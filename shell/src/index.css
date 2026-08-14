@@ -1,0 +1,14 @@
+@import "@lifeline/ui/src/styles/globals.css";
+@import "react-grid-layout/css/styles.css";
+@import "react-resizable/css/styles.css";
+
+/* Tailwind must see classes used inside workspace source packages. */
+@source "../../packages/ui/src";
+@source "../../apps/chores/src";
+@source "./";
+
+.react-grid-item.react-grid-placeholder {
+  background: var(--primary);
+  opacity: 0.15;
+  border-radius: var(--radius);
+}

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.local
+.env
+pocketbase/pb_data/
+shell/src-tauri/target/
+shell/src-tauri/gen/
+.claude/

@@ -1,0 +1,3 @@
+# Compile-time App registry, no runtime plugin system
+
+Apps register with the shell at compile time: each App is a workspace package exporting a manifest object ({ id, screens, cards, commands, contracts, collections }), imported in one registry file. Runtime plugin loading (module federation, remote bundles, a plugin store) was deliberately rejected: with a single author-user, rebuild-to-extend costs nothing, while dynamic loading forfeits TypeScript checking across Contract boundaries and multiplies loading complexity across the Tauri/Android/web triple target. "Extensible" here means "adding a package and an import line is easy", not "installable without rebuilding".

@@ -1,0 +1,88 @@
+import Dexie, { type Table } from "dexie";
+import type { CollectionDef } from "../manifest";
+import type { DateStr } from "../dates";
+
+/** Every synced record carries these. `deleted` is a tombstone (0|1 — Dexie can't index booleans). */
+export interface SyncedRecord {
+  id: string;
+  /** Client write time, ISO with millis. The LWW clock. */
+  updatedAt: string;
+  deleted: 0 | 1;
+}
+
+export interface OutboxEntry {
+  seq?: number;
+  collection: string;
+  recordId: string;
+  queuedAt: string;
+}
+
+export interface MetaEntry {
+  key: string;
+  value: string;
+}
+
+/** Core-owned: a Schedulable item pinned to a specific day, overriding its natural date. */
+export interface Placement extends SyncedRecord {
+  appId: string;
+  itemId: string;
+  date: DateStr;
+}
+
+export interface ScreenLayoutItem {
+  cardId: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Core-owned: a user-created Screen — a named grid of Cards. */
+export interface UserScreen extends SyncedRecord {
+  name: string;
+  layout: ScreenLayoutItem[];
+  sort: number;
+}
+
+export class LifelineDB extends Dexie {
+  _outbox!: Table<OutboxEntry, number>;
+  _meta!: Table<MetaEntry, string>;
+
+  constructor(collections: CollectionDef[]) {
+    super("lifeline");
+    const stores: Record<string, string> = {
+      _outbox: "++seq, collection",
+      _meta: "key",
+      placements: "id, updatedAt, deleted, date, [appId+itemId]",
+      screens: "id, updatedAt, deleted, sort",
+    };
+    for (const c of collections) {
+      stores[c.name] = ["id, updatedAt, deleted", ...(c.indexes ?? [])].join(", ");
+    }
+    this.version(1).stores(stores);
+  }
+
+  collection<T extends SyncedRecord = SyncedRecord>(name: string): Table<T, string> {
+    return this.table(name) as Table<T, string>;
+  }
+}
+
+let _db: LifelineDB | null = null;
+
+export function openDb(collections: CollectionDef[]): LifelineDB {
+  if (_db) return _db;
+  _db = new LifelineDB(collections);
+  return _db;
+}
+
+export function db(): LifelineDB {
+  if (!_db) throw new Error("Database not opened — call initApps() first");
+  return _db;
+}
+
+/** Names of all synced collections (core + apps). Internal tables excluded. */
+export function syncedCollectionNames(): string[] {
+  return db()
+    .tables.map((t) => t.name)
+    .filter((n) => !n.startsWith("_"));
+}

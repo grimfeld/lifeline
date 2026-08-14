@@ -1,0 +1,13 @@
+{
+  "name": "lifeline",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "pnpm --filter @lifeline/shell dev",
+    "build": "pnpm --filter @lifeline/shell build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "tauri": "pnpm --filter @lifeline/shell tauri"
+  },
+  "packageManager": "pnpm@9.11.0"
+}
