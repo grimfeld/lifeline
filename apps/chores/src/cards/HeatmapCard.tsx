@@ -1,3 +1,5 @@
+import type * as React from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { CardUnavailable } from "@lifeline/ui";
 import {
   formatHuman,
@@ -29,6 +31,33 @@ export function useHeatmapInstanceTitle(settings: CardSettings): string {
   const chore = settings.chore as string;
   if (chore) return chores.find((c) => c.id === chore)?.name ?? "";
   return `Chores · ${settings.weeks as number} weeks`;
+}
+
+const GAP = 3;
+const LABEL_W = 12;
+const LABEL_H = 12;
+
+/**
+ * Cell size that fits the whole grid (label column/row + cols×7 cells) in
+ * both the container's width and height, so every row is always visible.
+ */
+function useCellSize(cols: number, reserve: number): { ref: React.RefObject<HTMLDivElement | null>; cell: number } {
+  const ref = useRef<HTMLDivElement>(null);
+  const [cell, setCell] = useState(10);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.clientWidth - LABEL_W - GAP * cols;
+      const h = el.clientHeight - reserve - LABEL_H - GAP * 7;
+      setCell(Math.max(4, Math.floor(Math.min(w / cols, h / 7))));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [cols, reserve]);
+  return { ref, cell };
 }
 
 function opacityFor(n: number): number {
@@ -64,13 +93,20 @@ export function HeatmapCard({ settings, configure }: CardProps) {
     lastMonth = m;
   }
   const total = days.reduce((n, d) => n + (perDay.get(d)?.length ?? 0), 0);
+  const { ref, cell } = useCellSize(cols, total === 0 ? 20 : 0);
 
   return (
-    <div className="flex h-full flex-col gap-1 overflow-y-auto overflow-x-hidden text-xs">
-      <div className="grid gap-[3px]" style={{ gridTemplateColumns: `auto repeat(${cols}, minmax(0, 1fr))` }}>
+    <div ref={ref} className="flex h-full flex-col gap-1 overflow-hidden text-xs">
+      <div
+        className="grid gap-[3px]"
+        style={{
+          gridTemplateColumns: `${LABEL_W}px repeat(${cols}, ${cell}px)`,
+          gridTemplateRows: `${LABEL_H}px repeat(7, ${cell}px)`,
+        }}
+      >
         <div />
         {monthLabels.map((label, i) => (
-          <div key={i} className="text-muted-foreground truncate leading-none">
+          <div key={i} className="text-muted-foreground overflow-visible leading-none whitespace-nowrap">
             {label ?? ""}
           </div>
         ))}
@@ -87,9 +123,7 @@ export function HeatmapCard({ settings, configure }: CardProps) {
           />
         ))}
       </div>
-      {total === 0 && (
-        <p className="text-muted-foreground mt-auto">No completions in this window yet.</p>
-      )}
+      {total === 0 && <p className="text-muted-foreground">No completions in this window yet.</p>}
     </div>
   );
 }
@@ -123,7 +157,7 @@ function RowCells({
       <div
         key={d}
         title={title}
-        className={`aspect-square rounded-[2px] ${d === today ? "ring-1 ring-foreground" : ""}`}
+        className={`rounded-[2px] ${d === today ? "ring-1 ring-foreground" : ""}`}
         style={{
           backgroundColor: n === 0 ? "var(--muted)" : "var(--chart-aqua)",
           opacity: future ? 0 : n === 0 ? undefined : opacityFor(n),
