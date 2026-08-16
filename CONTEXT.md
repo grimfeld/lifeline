@@ -62,3 +62,26 @@ _Avoid_: reschedule, pin (a pin is the Core fallback, not the concept)
 ### Event
 A thing that happens at a fixed time (start + end, or all-day), owned by the Calendar App. Not work, not completable. The Calendar App owns Events and the calendar Surfaces; it no longer owns Tasks.
 _Avoid_: appointment, meeting
+
+### Stat
+A named series the user tracks (push-ups, weight, workouts, countries visited). Defines what is tracked and how values are read — one of four kinds: **Additive** (entries add up), **Measurement** (point-in-time readings), **Boolean** (a day was done), **Collection** (distinct items collected, optionally against a universe size shown as a denominator). Holds no totals; kind is fixed after creation. Goals/targets are out of scope.
+_Avoid_: metric, counter, habit (a habit is a Boolean Stat), goal
+
+### Entry
+One logged event of a Stat: a value and the moment it happened (user-settable, backdating allowed), plus an item name for Collections. Totals, streaks and distinct counts are always derived from Entries, never stored; duplicates are collapsed at derivation, never rejected.
+_Avoid_: log, record, data point
+
+### Streak
+A Boolean Stat's run of consecutive marked days. The current streak ends today or yesterday — an unmarked today doesn't break it. Derived, period-independent.
+
+### Media item
+A work (not an edition) of any medium — book, comic, movie, series, album, game — living on two independent axes: **Acquisition** (Wanted / Owned / Borrowed / Gone) and **Engagement** (Unstarted / In progress / Done / Abandoned — each medium supplies its verbs: read, watched, played…), plus the orthogonal **Studied** mark and the **Reason** it was added.
+_Avoid_: book (one medium), title, copy, edition
+
+### Nightstand
+Per medium, the small capped set of Media items currently claiming attention — both in progress and queued. A Slot is held for the whole time an item is in progress and is freed only by finishing or abandoning (or an explicit "back to backlog"). Caps are fixed in code, not settings. A Wanted item on the Nightstand is the instruction to buy it (the shopping list).
+_Avoid_: queue, TBR, wishlist, shelf, priority
+
+### Backlog
+Every Media item not on a Nightstand — an unranked pool, including done and gone items.
+_Avoid_: TBR, library, inbox

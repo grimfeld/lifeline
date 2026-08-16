@@ -110,6 +110,7 @@ export function Sidebar() {
           <div className="text-muted-foreground px-2 py-1 text-xs font-medium">Apps</div>
           {registeredApps()
             .flatMap((a) => a.screens)
+            .filter((s) => !s.hidden)
             .map((s) => {
               const Icon = s.icon;
               return (

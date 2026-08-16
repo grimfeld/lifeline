@@ -51,8 +51,9 @@ export interface UserScreen extends SyncedRecord {
  *   1 — tracer bullet: chores, chore_completions, placements, screens
  *   2 — Tasks App: tasks, task_occurrences
  *   3 — Calendar App: events
+ *   4 — Stats App: stats, stat_entries; Media App: media
  */
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export class LifelineDB extends Dexie {
   _outbox!: Table<OutboxEntry, number>;

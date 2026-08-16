@@ -10,7 +10,7 @@ export const choresApp: AppManifest = {
   id: APP_ID,
   title: "Chores",
   icon: ClipboardList,
-  color: "var(--chart-2)",
+  color: "var(--chart-aqua)",
   collections: [{ name: CHORES }, { name: COMPLETIONS, indexes: ["choreId"] }],
   screens: [
     {
