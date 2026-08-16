@@ -99,7 +99,6 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
 
   async function submit() {
     if (!title.trim()) return void toast.error("Title required");
-    if (!reason.trim()) return void toast.error("Write the reason — future you will not remember");
     await addMedia({
       type,
       title,
@@ -109,7 +108,7 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
       year: Number(year) || 0,
       size: Number(size) || 0,
       acquisition: acq,
-      reason,
+      reason: reason.trim(),
     });
     toast.success(`${title.trim()} added to the Backlog`);
     onOpenChange(false);
@@ -216,7 +215,7 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
                 </>
               )}
               <div className="grid gap-2">
-                <Label htmlFor="media-reason">Reason</Label>
+                <Label htmlFor="media-reason">Reason <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Textarea id="media-reason" value={reason} autoFocus={!!pick} rows={3} placeholder="Who recommended it, or what made you want it. Future you will not remember." onChange={(e) => setReason(e.target.value)} />
               </div>
               <div className="grid gap-2">

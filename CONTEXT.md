@@ -79,7 +79,7 @@ _Avoid_: log, record, data point
 A Boolean Stat's run of consecutive marked days. The current streak ends today or yesterday — an unmarked today doesn't break it. Derived, period-independent.
 
 ### Media item
-A work (not an edition) of any medium — book, comic, movie, series, album, game — living on two independent axes: **Acquisition** (Wanted / Owned / Borrowed / Gone) and **Engagement** (Unstarted / In progress / Done / Abandoned — each medium supplies its verbs: read, watched, played…), plus the orthogonal **Studied** mark and the **Reason** it was added.
+A work (not an edition) of any medium — book, comic, movie, series, album, game — living on two independent axes: **Acquisition** (Wanted / Owned / Borrowed / Gone) and **Engagement** (Unstarted / In progress / Done / Abandoned — each medium supplies its verbs: read, watched, played…), plus the orthogonal **Studied** mark and, optionally, the **Reason** it was added.
 _Avoid_: book (one medium), title, copy, edition
 
 ### Nightstand

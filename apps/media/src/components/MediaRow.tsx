@@ -81,7 +81,7 @@ export function EditMediaDialog({ item, onClose }: { item: MediaItem | null; onC
             <Input value={coverUrl} placeholder="https://…" onChange={(e) => setCoverUrl(e.target.value)} />
           </div>
           <div className="grid gap-2">
-            <Label>Reason</Label>
+            <Label>Reason <span className="text-muted-foreground font-normal">(optional)</span></Label>
             <Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />
           </div>
           <div className="grid gap-2">
