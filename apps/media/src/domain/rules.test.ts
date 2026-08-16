@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MediaItem } from "./types";
-import { abandon, finish, freeSlots, isBuySignal, isFull, isStale, nightstand, promote, shelfOfShame, slotAge } from "./rules";
+import { abandon, finish, freeSlots, isBuySignal, isFull, isStale, nightstand, promote, shelfOfShame, shoppingList, slotAge } from "./rules";
 
 function item(p: Partial<MediaItem>): MediaItem {
   return {
@@ -60,11 +60,24 @@ describe("signals", () => {
   it("wanted + slotted is a buy signal; owned + unstarted is the shelf of shame, oldest first", () => {
     expect(isBuySignal(item({ slot: 1 }))).toBe(true);
     expect(isBuySignal(item({ slot: 1, acquisition: "OWNED" }))).toBe(false);
+    expect(isBuySignal(item({ slot: 0 }))).toBe(false);
     const s = shelfOfShame([
       item({ id: "n", acquisition: "OWNED", acquiredOn: "2026-03-01" }),
       item({ id: "o", acquisition: "OWNED", acquiredOn: "2025-01-01" }),
       item({ id: "r", acquisition: "OWNED", engagement: "DONE" }),
     ]);
     expect(s.map((m) => m.id)).toEqual(["o", "n"]);
+  });
+});
+
+describe("shoppingList", () => {
+  it("lists every Wanted item, slotted first then oldest wish first", () => {
+    const list = shoppingList([
+      item({ id: "young", acquisition: "WANTED", slot: 0, addedOn: "2026-06-01" }),
+      item({ id: "owned", acquisition: "OWNED", slot: 0 }),
+      item({ id: "old", acquisition: "WANTED", slot: 0, addedOn: "2025-01-01" }),
+      item({ id: "next", acquisition: "WANTED", slot: 2, addedOn: "2026-07-01" }),
+    ]);
+    expect(list.map((m) => m.id)).toEqual(["next", "old", "young"]);
   });
 });

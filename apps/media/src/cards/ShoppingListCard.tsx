@@ -1,13 +1,13 @@
 import type { CardProps } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
-import { Check } from "lucide-react";
+import { Check, ShoppingCart } from "lucide-react";
 import { mediaType } from "../domain/mediaTypes";
-import { acquire, shoppingList } from "../domain/rules";
+import { acquire, isBuySignal, shoppingList } from "../domain/rules";
 import { byMedium } from "../domain/cardQueries";
 import { patchMedia, useMedia } from "../data/repo";
 import { mediumOf } from "./shared";
 
-/** Card: Wanted items holding a slot — the instruction to buy them. */
+/** Card: everything Wanted — slotted ones first (buy now), then the rest of the wish list. */
 export function ShoppingListCard({ settings }: CardProps) {
   const items = useMedia();
   const list = shoppingList(byMedium(items, mediumOf(settings)));
@@ -29,6 +29,7 @@ export function ShoppingListCard({ settings }: CardProps) {
             <Check className="size-3" />
           </button>
           <span className="truncate text-sm">{m.title}</span>
+          {isBuySignal(m) && <ShoppingCart className="text-primary size-3.5 shrink-0" aria-label="Next up — buy now" />}
           <span className="text-muted-foreground ml-auto shrink-0 text-xs">{mediaType(m.type).label}</span>
         </li>
       ))}

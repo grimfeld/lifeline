@@ -83,9 +83,13 @@ A work (not an edition) of any medium — book, comic, movie, series, album, gam
 _Avoid_: book (one medium), title, copy, edition
 
 ### Nightstand
-Per medium, the small capped set of Media items currently claiming attention — both in progress and queued. A Slot is held for the whole time an item is in progress and is freed only by finishing or abandoning (or an explicit "back to backlog"). Caps are fixed in code, not settings. A Wanted item on the Nightstand is the instruction to buy it (the shopping list).
+Per medium, the small capped set of Media items currently claiming attention — both in progress and queued. A Slot is held for the whole time an item is in progress and is freed only by finishing or abandoning (or an explicit "back to backlog"). Caps are fixed in code, not settings. A Wanted item on the Nightstand is the instruction to buy it *now* — it heads the Shopping list.
 _Avoid_: queue, TBR, wishlist, shelf, priority
 
 ### Backlog
 Every Media item not on a Nightstand — an unranked pool, including done and gone items.
 _Avoid_: TBR, library, inbox
+
+### Shopping list
+Every Wanted Media item, wherever it lives: Nightstand ones first (next up — buy now), then the rest of the wish list, oldest first. Marking one as acquired takes it off the list.
+_Avoid_: wishlist (that word hides the buy-now head of the list), cart
