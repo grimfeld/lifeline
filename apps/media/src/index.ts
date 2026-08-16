@@ -33,7 +33,7 @@ export const mediaApp: AppManifest = {
     {
       id: "media.shopping",
       title: "Shopping list",
-      description: "Wanted items on the Nightstand — buy these",
+      description: "Everything you want but don't own — slotted ones first",
       component: ShoppingListCard,
       defaultSize: { w: 3, h: 4 },
       minSize: { w: 2, h: 3 },

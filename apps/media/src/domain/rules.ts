@@ -36,7 +36,7 @@ export function slotAge(m: MediaItem, today = todayStr()): number | null {
 export const STALE_AFTER_DAYS = 60;
 export const isStale = (m: MediaItem, today = todayStr()) => (slotAge(m, today) ?? -1) >= STALE_AFTER_DAYS;
 
-/** A Wanted item holding a slot is the instruction to buy it. */
+/** A Wanted item holding a slot: buy it *now* (it is next up). Highlighted on the Nightstand. */
 export const isBuySignal = (m: MediaItem) => onNightstand(m) && m.acquisition === "WANTED";
 
 // --- transitions (pure, patch-returning) ---------------------------------
@@ -58,4 +58,8 @@ export const shelfOfShame = (items: MediaItem[]) =>
     .sort((a, b) => (a.acquiredOn || "9999").localeCompare(b.acquiredOn || "9999"));
 export const finishedIn = (items: MediaItem[], year: number) =>
   items.filter((m) => m.finishedOn.startsWith(String(year)));
-export const shoppingList = (items: MediaItem[]) => items.filter(isBuySignal);
+/** Every Wanted item, wherever it lives — slotted ones (buy now) first, then oldest wish first. */
+export const shoppingList = (items: MediaItem[]) =>
+  items
+    .filter((m) => m.acquisition === "WANTED")
+    .sort((a, b) => Number(isBuySignal(b)) - Number(isBuySignal(a)) || (a.addedOn || "9999").localeCompare(b.addedOn || "9999"));
