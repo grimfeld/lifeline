@@ -72,6 +72,18 @@
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
+    /* Named accent palette (from notch): Apps and Stats reference slots, never hexes. */
+    --chart-blue: #2a78d6;
+    --chart-orange: #eb6834;
+    --chart-aqua: #1baf7a;
+    --chart-yellow: #eda100;
+    --chart-magenta: #e87ba4;
+    --chart-green: #008300;
+    --chart-violet: #4a3aa7;
+    --chart-red: #e34948;
+    --chart-grid: #e1e0d9;
+    --chart-baseline: #c3c2b7;
+    --chart-muted: #898781;
     --radius: 0.625rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
@@ -107,6 +119,17 @@
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
+    --chart-blue: #3987e5;
+    --chart-orange: #d95926;
+    --chart-aqua: #199e70;
+    --chart-yellow: #c98500;
+    --chart-magenta: #d55181;
+    --chart-green: #008300;
+    --chart-violet: #9085e9;
+    --chart-red: #e66767;
+    --chart-grid: #2c2c2a;
+    --chart-baseline: #383835;
+    --chart-muted: #898781;
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.488 0.243 264.376);

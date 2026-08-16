@@ -72,6 +72,7 @@ export function CommandPalette() {
             </CommandItem>
             {registeredApps()
               .flatMap((a) => a.screens)
+              .filter((s) => !s.hidden)
               .map((s) => {
                 const Icon = s.icon ?? LayoutDashboard;
                 return (

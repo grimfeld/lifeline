@@ -9,7 +9,7 @@ import { TodayCard } from "./surfaces/TodayCard";
 export const hubApp: AppManifest = {
   id: "hub",
   title: "Lifeline",
-  color: "var(--chart-1)",
+  color: "var(--chart-yellow)",
   collections: [],
   screens: [],
   cards: [

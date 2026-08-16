@@ -11,7 +11,7 @@ export const calendarApp: AppManifest = {
   id: APP_ID,
   title: "Calendar",
   icon: CalendarClock,
-  color: "var(--chart-4)",
+  color: "var(--chart-violet)",
   collections: [{ name: EVENTS, indexes: ["date"] }],
   screens: [
     {

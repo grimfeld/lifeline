@@ -11,7 +11,7 @@ export const tasksApp: AppManifest = {
   id: APP_ID,
   title: "Tasks",
   icon: ListTodo,
-  color: "var(--chart-3)",
+  color: "var(--chart-blue)",
   collections: [
     { name: TASKS, indexes: ["date", "status"] },
     { name: OCCURRENCES, indexes: ["taskId", "[taskId+sourceDate]", "movedTo"] },

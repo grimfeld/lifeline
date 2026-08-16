@@ -16,6 +16,8 @@ export interface AppScreenDef {
   path: string;
   icon?: React.ComponentType<{ className?: string }>;
   component: React.ComponentType;
+  /** Routed but not listed in the sidebar/palette (detail pages such as "stats/:id"). */
+  hidden?: boolean;
 }
 
 export interface CardDef {

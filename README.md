@@ -12,6 +12,10 @@ apps/tasks       @lifeline/app-tasks — Tasks App (absorbs week-planner + calen
                  one-time + weekly-recurring tasks, per-Occurrence complete/move, Unassigned pool
 apps/calendar    @lifeline/app-calendar — Calendar App: Events (timed / all-day / multi-day),
                  shown on the month, week and Today surfaces via the Timed contract
+apps/stats       @lifeline/app-stats — Stats App (notch port): additive / measurement / boolean /
+                 collection stats, entries as an event log, derived totals, streaks, Recharts graphs
+apps/media       @lifeline/app-media — Media App (nightstand port, generalised): books, comics, movies,
+                 series, albums, games on two axes (Acquisition × Engagement) with per-medium Nightstand slots
 shell            @lifeline/shell — Vite + React shell: sidebar, command palette (Ctrl+K),
                  user Screens (drag/resize card grids), calendar + week Surfaces; Tauri 2 desktop config
 pocketbase       Dockerfile + fly.toml (app: lifeline-pb) + pb_migrations
@@ -60,5 +64,6 @@ Everything else — offline storage, sync, palette entries, card picker, calenda
    with drag & drop and an Unplaced pool; Schedulable gained an App-owned `move` hook (ADR 0004)
 3. ✅ Calendar Events: Calendar App owning Events, rendered on the month/week/Today surfaces through
    a second Core contract, `Timed` (fixed-time, not completable — ADR 0005)
-4. Stats (notch port), Readlist (nightstand port)
-5. Retire the four old Fly PocketBase instances as parity lands
+4. ✅ Stats (notch port — ADR 0007) and Media (nightstand port generalised to any medium — ADR 0006)
+5. Retire the four old Fly PocketBase instances (notch-pb, nightstand, week-planner, calendar) as parity
+   lands — import scripts for their data are the remaining piece
