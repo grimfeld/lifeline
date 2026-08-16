@@ -115,8 +115,12 @@ export async function deliver(batches) {
   }
 }
 
-// Importers are short scripts: a failure should read as one line, not a stack.
-process.on("unhandledRejection", (err) => {
-  console.error(`error: ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
-});
+/** Importers are short scripts: a failure should read as one line, not a stack. */
+export async function run(fn) {
+  try {
+    await fn();
+  } catch (err) {
+    console.error(`error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+}
