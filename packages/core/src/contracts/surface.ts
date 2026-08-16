@@ -15,6 +15,21 @@ export interface SurfaceItem extends SchedulableItem {
   color?: string;
 }
 
+/** An unplaced Schedulable item (natural date null): lives in the pool, not on a day. */
+export interface PoolItem extends SchedulableItem {
+  color?: string;
+}
+
+function useProviderItems(range: { start: DateStr; end: DateStr }) {
+  const providers = schedulableProviders();
+  // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
+  return providers.map((p) => ({
+    provider: p,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    items: p.useItems(range),
+  }));
+}
+
 /**
  * The read side of the Schedulable Contract, shared by every time surface
  * (month grid, week grid, Today feed). Collects items from all providers,
@@ -22,13 +37,7 @@ export interface SurfaceItem extends SchedulableItem {
  * App says so.
  */
 export function useSurfaceItems(range: { start: DateStr; end: DateStr }): SurfaceItem[] {
-  const providers = schedulableProviders();
-  // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
-  const perProvider = providers.map((p) => ({
-    provider: p,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    items: p.useItems(range),
-  }));
+  const perProvider = useProviderItems(range);
   const placements = useLiveQuery(
     () => db().collection<Placement>("placements").where("deleted").equals(0).toArray(),
     [],
@@ -45,7 +54,7 @@ export function useSurfaceItems(range: { start: DateStr; end: DateStr }): Surfac
     for (const item of items) {
       const pin = byItem.get(item.key);
       let displayDate = pin?.date ?? item.date;
-      if (displayDate === null) continue; // unplaced pool item — not on a surface
+      if (displayDate === null) continue; // unplaced pool item — see usePoolItems
       if (
         !item.completedOn &&
         displayDate < today &&
@@ -58,6 +67,31 @@ export function useSurfaceItems(range: { start: DateStr; end: DateStr }): Surfac
     }
   }
   return out.filter((i) => i.displayDate >= range.start && i.displayDate <= range.end);
+}
+
+/**
+ * Items no App has put on a day yet (natural date null, no pin) — the
+ * "unplaced" column of a planning surface. Providers report pool items
+ * regardless of the queried range, so any range works.
+ */
+export function usePoolItems(): PoolItem[] {
+  const today = todayStr();
+  const perProvider = useProviderItems({ start: today, end: today });
+  const placements = useLiveQuery(
+    () => db().collection<Placement>("placements").where("deleted").equals(0).toArray(),
+    [],
+    [] as Placement[],
+  );
+  const pinned = new Set(placements.map((pl) => `${pl.appId}/${pl.itemId}`));
+  const out: PoolItem[] = [];
+  for (const { provider, items } of perProvider) {
+    const color = appById(provider.appId)?.color;
+    for (const item of items) {
+      if (item.date !== null || pinned.has(item.key) || item.completedOn) continue;
+      out.push({ ...item, color });
+    }
+  }
+  return out;
 }
 
 /** Pin an item to a day (or move an existing pin). */
@@ -79,8 +113,39 @@ export async function unplaceItem(placementId: string): Promise<void> {
   await remove("placements", placementId);
 }
 
+/**
+ * Move via a surface: the owning App decides what a move means when it
+ * implements the hook (a task changes its day); otherwise Core pins it with a
+ * Placement. `to === null` sends the item back to the pool / natural day.
+ */
+export async function moveSurfaceItem(
+  item: Pick<SurfaceItem, "appId" | "itemId" | "placementId">,
+  to: DateStr | null,
+): Promise<void> {
+  const provider = schedulableProviders().find((p) => p.appId === item.appId);
+  if (!provider) throw new Error(`No Schedulable provider for app ${item.appId}`);
+  if (provider.move) {
+    await provider.move(item.itemId, to);
+    if (item.placementId) await unplaceItem(item.placementId);
+    return;
+  }
+  if (to === null) {
+    if (item.placementId) await unplaceItem(item.placementId);
+    return;
+  }
+  await placeItem(item.appId, item.itemId, to);
+}
+
+/** Whether an App owns move semantics (and so its items can go back to the pool). */
+export function canUnplace(appId: string): boolean {
+  return !!schedulableProviders().find((p) => p.appId === appId)?.move;
+}
+
 /** Complete via a surface: delegate to the owning App, then clear any pin. */
-export async function completeSurfaceItem(item: SurfaceItem, on?: DateStr): Promise<void> {
+export async function completeSurfaceItem(
+  item: Pick<SurfaceItem, "appId" | "itemId" | "placementId">,
+  on?: DateStr,
+): Promise<void> {
   const provider = schedulableProviders().find((p) => p.appId === item.appId);
   if (!provider) throw new Error(`No Schedulable provider for app ${item.appId}`);
   await provider.complete(item.itemId, on ?? todayStr());

@@ -4,6 +4,7 @@ import { db, registeredApps, useLiveQuery, type UserScreen } from "@lifeline/cor
 import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
 import { CalendarPage } from "./surfaces/CalendarPage";
+import { WeekPage } from "./surfaces/WeekPage";
 import { UserScreenPage } from "./screens/UserScreenPage";
 
 function HomeRedirect() {
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/screen/:id" element={<UserScreenPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/week" element={<WeekPage />} />
           {registeredApps()
             .flatMap((a) => a.screens)
             .map((s) => {

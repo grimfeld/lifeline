@@ -3,12 +3,14 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { initApps, startSync } from "@lifeline/core";
 import { choresApp } from "@lifeline/app-chores";
+import { tasksApp } from "@lifeline/app-tasks";
+import { calendarApp } from "@lifeline/app-calendar";
 import { hubApp } from "./hub";
 import App from "./App";
 import "./index.css";
 
 // Compile-time App registry (ADR 0003): every App joins here.
-initApps([hubApp, choresApp]);
+initApps([hubApp, choresApp, tasksApp, calendarApp]);
 startSync();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

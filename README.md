@@ -8,8 +8,12 @@ Personal dashboard/OS: one shell hosting sovereign Apps that interoperate throug
 packages/core    @lifeline/core — contracts, app registry, Dexie offline store + PocketBase sync engine
 packages/ui      @lifeline/ui — shared shadcn/Tailwind component kit (unified look)
 apps/chores      @lifeline/app-chores — first App (ported from chore-scheduler)
+apps/tasks       @lifeline/app-tasks — Tasks App (absorbs week-planner + calendar's task half):
+                 one-time + weekly-recurring tasks, per-Occurrence complete/move, Unassigned pool
+apps/calendar    @lifeline/app-calendar — Calendar App: Events (timed / all-day / multi-day),
+                 shown on the month, week and Today surfaces via the Timed contract
 shell            @lifeline/shell — Vite + React shell: sidebar, command palette (Ctrl+K),
-                 user Screens (drag/resize card grids), calendar Surface; Tauri 2 desktop config
+                 user Screens (drag/resize card grids), calendar + week Surfaces; Tauri 2 desktop config
 pocketbase       Dockerfile + fly.toml (app: lifeline-pb) + pb_migrations
 ```
 
@@ -43,16 +47,18 @@ fly deploy
 
 ## Adding an App (ADR 0003)
 
-1. New package under `apps/<name>` exporting an `AppManifest` — collections, screens, cards, commands, contract implementations.
+1. New package under `apps/<name>` exporting an `AppManifest` — collections, screens, cards, commands, contract implementations (`schedulable` for work that lands on days, `timed` for fixed-time things).
 2. Add the collections to a new `pocketbase/pb_migrations` file (same base fields: `id` 15-char, `updatedAt` text, `deleted` number, autodates).
-3. Register the manifest in `shell/src/main.tsx` (`initApps([...])`).
+3. Register the manifest in `shell/src/main.tsx` (`initApps([...])`), add the package to `shell/package.json`, add its `src` to the `@source` list in `shell/src/index.css`, and bump `DB_VERSION` in `packages/core/src/data/db.ts` (Dexie needs it to migrate existing local databases).
 
 Everything else — offline storage, sync, palette entries, card picker, calendar presence — comes from Core.
 
 ## Roadmap (agreed build order)
 
 1. ✅ Tracer bullet: Core + Chores + calendar Surface + Screens + palette
-2. Tasks App (absorbs calendar tasks + week-planner; per-Occurrence recurrence)
-3. Calendar Events + week Surface
+2. ✅ Tasks App (absorbs calendar tasks + week-planner; per-Occurrence recurrence) + week Surface
+   with drag & drop and an Unplaced pool; Schedulable gained an App-owned `move` hook (ADR 0004)
+3. ✅ Calendar Events: Calendar App owning Events, rendered on the month/week/Today surfaces through
+   a second Core contract, `Timed` (fixed-time, not completable — ADR 0005)
 4. Stats (notch port), Readlist (nightstand port)
 5. Retire the four old Fly PocketBase instances as parity lands

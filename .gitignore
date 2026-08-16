@@ -6,3 +6,4 @@ pocketbase/pb_data/
 shell/src-tauri/target/
 shell/src-tauri/gen/
 .claude/
+pocketbase/pocketbase
