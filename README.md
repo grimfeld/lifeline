@@ -19,6 +19,7 @@ apps/media       @lifeline/app-media — Media App (nightstand port, generalised
 shell            @lifeline/shell — Vite + React shell: sidebar, command palette (Ctrl+K),
                  user Screens (drag/resize card grids), calendar + week Surfaces; Tauri 2 desktop config
 pocketbase       Dockerfile + fly.toml (app: lifeline-pb) + pb_migrations
+scripts          dev.sh (backend + shell), import/ (legacy data → Lifeline, see docs/retire-legacy.md)
 ```
 
 ## Dev
@@ -65,5 +66,5 @@ Everything else — offline storage, sync, palette entries, card picker, calenda
 3. ✅ Calendar Events: Calendar App owning Events, rendered on the month/week/Today surfaces through
    a second Core contract, `Timed` (fixed-time, not completable — ADR 0005)
 4. ✅ Stats (notch port — ADR 0007) and Media (nightstand port generalised to any medium — ADR 0006)
-5. Retire the four old Fly PocketBase instances (notch-pb, nightstand, week-planner, calendar) as parity
-   lands — import scripts for their data are the remaining piece
+5. ◐ Retire the legacy backends — importers in `scripts/import/` + runbook in `docs/retire-legacy.md`;
+   the deploy → import → verify → `fly apps destroy` steps are manual (see the runbook for what was found)
