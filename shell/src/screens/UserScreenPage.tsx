@@ -204,6 +204,7 @@ export function UserScreenPage() {
           margin={[8, 8]}
           isDraggable={editing}
           isResizable={editing}
+          draggableCancel=".card-action, input, textarea, select, [role=combobox]"
           onLayoutChange={(next: Layout[]) => {
             if (editing) void saveLayout(next);
           }}
@@ -226,7 +227,7 @@ export function UserScreenPage() {
                       />
                       <span className="truncate">{def ? <InstanceTitle def={def} settings={settings} /> : l.cardId}</span>
                       {editing && (
-                        <span className="ml-auto flex items-center">
+                        <span className="card-action ml-auto flex items-center">
                           {configurable && (
                             <Button
                               size="icon"
