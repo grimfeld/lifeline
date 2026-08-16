@@ -11,6 +11,7 @@ import {
   markedDays,
   noonOf,
   periodStart,
+  previousPeriodHeadline,
 } from "./aggregate";
 import type { Entry } from "./types";
 
@@ -34,6 +35,13 @@ describe("additive", () => {
     expect(pts.map((p) => p.sum)).toEqual([0, 0, 0, 0, 15, 0, 1]);
     expect(pts.at(-1)?.cumulative).toBe(16);
     expect(headline("additive", [e("2026-08-01", 3), e("2026-08-15", 4)], "week", now)).toBe(4);
+  });
+  it("previous-period sum covers the window just before the period", () => {
+    const es = [e("2026-08-02", 1), e("2026-08-03", 2), e("2026-08-09", 4), e("2026-08-10", 8), e("2026-07-17", 16), e("2026-06-01", 32), e("2025-12-31", 64), e("2025-01-01", 128)];
+    expect(previousPeriodHeadline(es, "week", now)).toBe(6); // Aug 3–9
+    expect(previousPeriodHeadline(es, "month", now)).toBe(16); // Jun 18–Jul 17 (Jun 1 excluded)
+    expect(previousPeriodHeadline(es, "year", now)).toBe(192); // 2025
+    expect(previousPeriodHeadline(es, "all", now)).toBeNull();
   });
 });
 

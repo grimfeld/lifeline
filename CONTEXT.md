@@ -40,8 +40,12 @@ A user-created, named page composed of Cards on a grid layout (drag/resize). Use
 _Avoid_: page, view, workspace
 
 ### Card
-A self-contained UI block an App registers for use on Screens — small ("chores due today", "current streak") or large (full calendar grid). The unit of layout composition.
+A self-contained UI block an App registers for use on Screens — small ("chores due today", "current streak") or large (full calendar grid). The unit of layout composition. A Card is a *kind*; what sits on a Screen is a Card instance. Some Cards are **configurable**: they can't be shown without the user choosing something first (which Stat, which medium, which Event).
 _Avoid_: widget, block, tile
+
+### Card instance
+One placed copy of a Card on one Screen, with its position and, for configurable Cards, its chosen settings. The same Card may be placed many times on a Screen with different settings (a "Push-ups" tile next to a "Weight" tile). Removing an instance never touches the entity it points at.
+_Avoid_: widget, tile
 
 ### Task
 A unit of work owned by the Tasks App. One-time (optionally assigned to a day) or recurring. Absorbs calendar's old Task/Backlog and week-planner's tasks. Completable; implements Schedulable.

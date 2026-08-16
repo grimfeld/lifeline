@@ -1,6 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type { CollectionDef } from "../manifest";
 import type { DateStr } from "../dates";
+import type { CardSettings } from "../cards";
 
 /** Every synced record carries these. `deleted` is a tombstone (0|1 — Dexie can't index booleans). */
 export interface SyncedRecord {
@@ -30,7 +31,11 @@ export interface Placement extends SyncedRecord {
 }
 
 export interface ScreenLayoutItem {
+  /** Unique within the Screen; the same cardId may be placed several times (ADR 0008). Older layouts lack it — see normalizeLayout(). */
+  instanceId?: string;
   cardId: string;
+  /** Instance settings for configurable Cards. */
+  settings?: CardSettings;
   x: number;
   y: number;
   w: number;

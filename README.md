@@ -58,6 +58,11 @@ fly deploy
 
 Everything else — offline storage, sync, palette entries, card picker, calendar presence — comes from Core.
 
+Cards (ADR 0008): a `CardDef` may declare a `settings` schema (`number` / `select` / `entity`) and an
+`instanceTitle`; the component receives `{ settings, configure }`. Cards with a required `entity` field are
+configured in the picker before being added; the rest get a gear in edit mode. When a configured target is
+gone, render `<CardUnavailable onConfigure={configure} />` — the instance stays on the Screen.
+
 ## Roadmap (agreed build order)
 
 1. ✅ Tracer bullet: Core + Chores + calendar Surface + Screens + palette

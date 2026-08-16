@@ -2,6 +2,8 @@ import type { AppManifest } from "@lifeline/core";
 import { CalendarClock } from "lucide-react";
 import { EventsScreen } from "./screens/EventsScreen";
 import { UpcomingEventsCard } from "./cards/UpcomingEventsCard";
+import { NextEventsCard, nextEventsSettings, nextEventsTitle } from "./cards/NextEventsCard";
+import { CountdownCard, countdownSettings, useCountdownTitle } from "./cards/CountdownCard";
 import { calendarCommands } from "./commands";
 import { calendarTimed, APP_ID } from "./timed";
 import { EVENTS } from "./domain/types";
@@ -30,6 +32,26 @@ export const calendarApp: AppManifest = {
       component: UpcomingEventsCard,
       defaultSize: { w: 3, h: 6 },
       minSize: { w: 2, h: 3 },
+    },
+    {
+      id: "calendar.next",
+      title: "Next events",
+      description: "The next few events with a day countdown",
+      component: NextEventsCard,
+      defaultSize: { w: 3, h: 6 },
+      minSize: { w: 2, h: 3 },
+      settings: nextEventsSettings,
+      instanceTitle: nextEventsTitle,
+    },
+    {
+      id: "calendar.countdown",
+      title: "Countdown",
+      description: "Big number of days until one chosen event",
+      component: CountdownCard,
+      defaultSize: { w: 2, h: 4 },
+      minSize: { w: 2, h: 3 },
+      settings: countdownSettings,
+      instanceTitle: useCountdownTitle,
     },
   ],
   commands: calendarCommands,
