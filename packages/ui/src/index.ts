@@ -14,3 +14,4 @@ export * from "./components/ui/sonner";
 export * from "./components/ui/tabs";
 export * from "./components/ui/textarea";
 export { toast } from "sonner";
+export * from "./components/ui/card-unavailable";

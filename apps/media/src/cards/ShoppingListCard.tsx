@@ -1,13 +1,16 @@
+import type { CardProps } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
 import { Check } from "lucide-react";
 import { mediaType } from "../domain/mediaTypes";
 import { acquire, shoppingList } from "../domain/rules";
+import { byMedium } from "../domain/cardQueries";
 import { patchMedia, useMedia } from "../data/repo";
+import { mediumOf } from "./shared";
 
 /** Card: Wanted items holding a slot — the instruction to buy them. */
-export function ShoppingListCard() {
+export function ShoppingListCard({ settings }: CardProps) {
   const items = useMedia();
-  const list = shoppingList(items);
+  const list = shoppingList(byMedium(items, mediumOf(settings)));
   if (list.length === 0) {
     return <div className="text-muted-foreground flex h-full items-center justify-center text-sm">Nothing to buy.</div>;
   }

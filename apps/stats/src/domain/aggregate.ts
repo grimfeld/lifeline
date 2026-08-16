@@ -93,6 +93,25 @@ export function headline(kind: "additive" | "measurement", entries: Entry[], per
   return inRange.reduce((a, b) => (a.ts > b.ts ? a : b)).value;
 }
 
+/**
+ * Additive: the sum over the window immediately preceding the period —
+ * previous 7 days for week, previous 30 for month, previous calendar year for
+ * year. `all` has no predecessor and yields null.
+ */
+export function previousPeriodHeadline(entries: Entry[], period: Period, now = new Date()): number | null {
+  const start = periodStart(period, now);
+  if (start === null) return null;
+  const prevStart = new Date(start);
+  if (period === "year") prevStart.setFullYear(start.getFullYear() - 1);
+  else prevStart.setDate(start.getDate() - (period === "week" ? 7 : 30));
+  return entries
+    .filter((e) => {
+      const t = new Date(e.ts);
+      return t >= prevStart && t < start;
+    })
+    .reduce((acc, e) => acc + e.value, 0);
+}
+
 /** Measurement: mean of readings in period (null when none). */
 export function average(entries: Entry[], period: Period, now = new Date()): number | null {
   const inRange = entries.filter((e) => inPeriod(e.ts, period, now));

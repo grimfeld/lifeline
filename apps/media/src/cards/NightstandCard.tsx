@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { CardProps } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 import { AlertTriangle, ShoppingCart } from "lucide-react";
 import { MEDIA_TYPES, mediaType } from "../domain/mediaTypes";
@@ -7,12 +8,14 @@ import { useMedia } from "../data/repo";
 import { Cover } from "../components/Cover";
 import { EditMediaDialog } from "../components/MediaRow";
 import type { MediaItem } from "../domain/types";
+import { mediumOf } from "./shared";
 
-/** Card: everything currently holding a slot, across media, with stale and buy signals. */
-export function NightstandCard() {
+/** Card: everything currently holding a slot, across media (or one medium), with stale and buy signals. */
+export function NightstandCard({ settings }: CardProps) {
   const items = useMedia();
+  const medium = mediumOf(settings);
   const [editing, setEditing] = useState<MediaItem | null>(null);
-  const rows = MEDIA_TYPES.flatMap((t) => nightstand(items, t.id));
+  const rows = MEDIA_TYPES.filter((t) => !medium || t.id === medium).flatMap((t) => nightstand(items, t.id));
   if (rows.length === 0) {
     return <div className="text-muted-foreground flex h-full items-center justify-center text-sm">Nightstand is empty.</div>;
   }

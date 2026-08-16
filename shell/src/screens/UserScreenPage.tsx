@@ -10,6 +10,7 @@ import {
   CardTitle,
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DropdownMenu,
@@ -19,30 +20,43 @@ import {
   toast,
 } from "@lifeline/ui";
 import {
-  allCards,
   appById,
+  cardById,
   db,
+  isConfigured,
+  newId,
+  normalizeLayout,
   put,
   remove,
+  resolveSettings,
+  useCardInstanceTitle,
   useLiveQuery,
+  type CardDef,
+  type CardSettings,
   type ScreenLayoutItem,
   type UserScreen,
 } from "@lifeline/core";
-import { Check, LayoutGrid, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Check, LayoutGrid, MoreHorizontal, Plus, Settings2, Trash2 } from "lucide-react";
+import { CardPicker } from "../components/CardPicker";
+import { CardSettingsForm } from "../components/CardSettingsForm";
 
 const Grid = WidthProvider(GridLayout);
 
-function CardBody({ cardId }: { cardId: string }) {
-  const def = allCards().find((c) => c.id === cardId);
+function InstanceTitle({ def, settings }: { def: CardDef; settings: CardSettings }) {
+  return <>{useCardInstanceTitle(def, settings)}</>;
+}
+
+function CardBody({ item, configure }: { item: ScreenLayoutItem; configure: () => void }) {
+  const def = cardById(item.cardId);
   if (!def) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
-        Unknown card: {cardId}
+        Unknown card: {item.cardId}
       </div>
     );
   }
   const Component = def.component;
-  return <Component />;
+  return <Component settings={item.settings ?? {}} configure={configure} />;
 }
 
 export function UserScreenPage() {
@@ -50,6 +64,8 @@ export function UserScreenPage() {
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [configuring, setConfiguring] = useState<string | null>(null);
+  const [draft, setDraft] = useState<CardSettings>({});
 
   const screen = useLiveQuery(
     () => db().collection<UserScreen>("screens").get(id ?? ""),
@@ -57,20 +73,23 @@ export function UserScreenPage() {
     undefined,
   );
 
+  /** Layout with instance ids and resolved settings (backfills pre-instance layouts, ADR 0008). */
+  const items = useMemo(() => normalizeLayout(screen?.layout ?? []), [screen]);
+
   const layout: Layout[] = useMemo(
     () =>
-      (screen?.layout ?? []).map((l) => ({
-        i: l.cardId,
-        x: l.x,
-        y: l.y,
-        w: l.w,
-        h: l.h,
-        ...(() => {
-          const def = allCards().find((c) => c.id === l.cardId);
-          return def?.minSize ? { minW: def.minSize.w, minH: def.minSize.h } : {};
-        })(),
-      })),
-    [screen],
+      items.map((l) => {
+        const def = cardById(l.cardId);
+        return {
+          i: l.instanceId!,
+          x: l.x,
+          y: l.y,
+          w: l.w,
+          h: l.h,
+          ...(def?.minSize ? { minW: def.minSize.w, minH: def.minSize.h } : {}),
+        };
+      }),
+    [items],
   );
 
   if (!screen || screen.deleted) {
@@ -81,39 +100,49 @@ export function UserScreenPage() {
     );
   }
 
-  async function saveLayout(next: Layout[]) {
-    const items: ScreenLayoutItem[] = next.map((l) => ({
-      cardId: l.i,
-      x: l.x,
-      y: l.y,
-      w: l.w,
-      h: l.h,
-    }));
-    await put<UserScreen>("screens", { ...screen!, layout: items });
+  async function saveItems(next: ScreenLayoutItem[]) {
+    await put<UserScreen>("screens", { ...screen!, layout: next });
   }
 
-  async function addCard(cardId: string) {
-    if (screen!.layout.some((l) => l.cardId === cardId)) {
-      toast.error("Card already on this screen");
-      return;
-    }
-    const def = allCards().find((c) => c.id === cardId)!;
-    const y = Math.max(0, ...screen!.layout.map((l) => l.y + l.h));
-    await put<UserScreen>("screens", {
-      ...screen!,
-      layout: [
-        ...screen!.layout,
-        { cardId, x: 0, y, w: def.defaultSize.w, h: def.defaultSize.h },
-      ],
-    });
+  async function saveLayout(next: Layout[]) {
+    const byId = new Map(items.map((l) => [l.instanceId!, l]));
+    await saveItems(
+      next.flatMap((l) => {
+        const cur = byId.get(l.i);
+        return cur ? [{ ...cur, x: l.x, y: l.y, w: l.w, h: l.h }] : [];
+      }),
+    );
+  }
+
+  async function addCard(cardId: string, settings: CardSettings) {
+    const def = cardById(cardId)!;
+    const y = Math.max(0, ...items.map((l) => l.y + l.h));
+    await saveItems([
+      ...items,
+      { instanceId: newId(), cardId, settings, x: 0, y, w: def.defaultSize.w, h: def.defaultSize.h },
+    ]);
     setPickerOpen(false);
   }
 
-  async function removeCard(cardId: string) {
-    await put<UserScreen>("screens", {
-      ...screen!,
-      layout: screen!.layout.filter((l) => l.cardId !== cardId),
-    });
+  async function removeInstance(instanceId: string) {
+    await saveItems(items.filter((l) => l.instanceId !== instanceId));
+  }
+
+  function openConfigure(instanceId: string) {
+    const item = items.find((l) => l.instanceId === instanceId);
+    if (!item) return;
+    setDraft(resolveSettings(cardById(item.cardId)?.settings, item.settings));
+    setConfiguring(instanceId);
+  }
+
+  async function saveConfigure() {
+    const item = items.find((l) => l.instanceId === configuring);
+    if (!item) return;
+    const def = cardById(item.cardId);
+    await saveItems(
+      items.map((l) => (l.instanceId === configuring ? { ...l, settings: resolveSettings(def?.settings, draft) } : l)),
+    );
+    setConfiguring(null);
   }
 
   async function deleteScreen() {
@@ -121,6 +150,9 @@ export function UserScreenPage() {
     toast.success(`Screen "${screen!.name}" deleted`);
     navigate("/");
   }
+
+  const configuringItem = items.find((l) => l.instanceId === configuring);
+  const configuringDef = configuringItem ? cardById(configuringItem.cardId) : undefined;
 
   return (
     <div className="flex h-full flex-col">
@@ -157,7 +189,7 @@ export function UserScreenPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
-        {screen.layout.length === 0 && (
+        {items.length === 0 && (
           <div className="text-muted-foreground flex h-40 flex-col items-center justify-center gap-3 text-sm">
             Empty screen.
             <Button variant="outline" onClick={() => { setEditing(true); setPickerOpen(true); }}>
@@ -176,10 +208,13 @@ export function UserScreenPage() {
             if (editing) void saveLayout(next);
           }}
         >
-          {screen.layout.map((l) => {
-            const def = allCards().find((c) => c.id === l.cardId);
+          {items.map((l) => {
+            const def = cardById(l.cardId);
+            const settings = l.settings ?? {};
+            const configurable = !!def?.settings;
+            const unconfigured = def ? !isConfigured(def.settings, settings) : false;
             return (
-              <div key={l.cardId}>
+              <div key={l.instanceId}>
                 <Card className="h-full gap-2 overflow-hidden py-3">
                   <CardHeader className="px-3">
                     <CardTitle className="flex items-center gap-2 text-sm">
@@ -189,21 +224,44 @@ export function UserScreenPage() {
                           background: def ? (appById(def.appId)?.color ?? "var(--muted-foreground)") : "var(--muted-foreground)",
                         }}
                       />
-                      {def?.title ?? l.cardId}
+                      <span className="truncate">{def ? <InstanceTitle def={def} settings={settings} /> : l.cardId}</span>
                       {editing && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="ml-auto size-6"
-                          onClick={() => void removeCard(l.cardId)}
-                        >
-                          <Trash2 className="size-3" />
-                        </Button>
+                        <span className="ml-auto flex items-center">
+                          {configurable && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="size-6"
+                              aria-label="Configure card"
+                              onClick={() => openConfigure(l.instanceId!)}
+                            >
+                              <Settings2 className="size-3" />
+                            </Button>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="size-6"
+                            aria-label="Remove card"
+                            onClick={() => void removeInstance(l.instanceId!)}
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        </span>
                       )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="min-h-0 flex-1 overflow-hidden px-3">
-                    <CardBody cardId={l.cardId} />
+                    {unconfigured ? (
+                      <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 text-sm">
+                        Not configured yet.
+                        <Button size="sm" variant="outline" onClick={() => openConfigure(l.instanceId!)}>
+                          <Settings2 /> Configure…
+                        </Button>
+                      </div>
+                    ) : (
+                      <CardBody item={l} configure={() => openConfigure(l.instanceId!)} />
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -212,31 +270,19 @@ export function UserScreenPage() {
         </Grid>
       </div>
 
-      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+      <CardPicker open={pickerOpen} onOpenChange={setPickerOpen} onAdd={addCard} />
+
+      <Dialog open={configuring !== null} onOpenChange={(o) => !o && setConfiguring(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add a card</DialogTitle>
+            <DialogTitle>Configure “{configuringDef?.title ?? "card"}”</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-2">
-            {allCards().map((c) => (
-              <button
-                key={c.id}
-                className="hover:bg-accent flex items-start gap-3 rounded-lg border p-3 text-left"
-                onClick={() => void addCard(c.id)}
-              >
-                <span
-                  className="mt-1 size-2 shrink-0 rounded-full"
-                  style={{ background: appById(c.appId)?.color ?? "var(--muted-foreground)" }}
-                />
-                <span>
-                  <span className="block text-sm font-medium">{c.title}</span>
-                  {c.description && (
-                    <span className="text-muted-foreground block text-xs">{c.description}</span>
-                  )}
-                </span>
-              </button>
-            ))}
-          </div>
+          {configuringDef?.settings && <CardSettingsForm schema={configuringDef.settings} value={draft} onChange={setDraft} />}
+          <DialogFooter>
+            <Button disabled={!isConfigured(configuringDef?.settings, draft)} onClick={() => void saveConfigure()}>
+              Save
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

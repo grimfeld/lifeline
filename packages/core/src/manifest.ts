@@ -1,6 +1,7 @@
 import type * as React from "react";
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
+import type { CardSettings, CardSettingsSchema } from "./cards";
 
 /** A synced Dexie/PocketBase collection an App owns. */
 export interface CollectionDef {
@@ -20,14 +21,30 @@ export interface AppScreenDef {
   hidden?: boolean;
 }
 
+/** Props every Card component receives (ADR 0008). */
+export interface CardProps {
+  /** Resolved instance settings (defaults filled in). */
+  settings: CardSettings;
+  /** Opens this instance's configure dialog — for "unavailable, reconfigure" states. */
+  configure: () => void;
+}
+
 export interface CardDef {
   id: string;
   title: string;
   description?: string;
-  component: React.ComponentType;
+  component: React.ComponentType<CardProps>;
   /** Grid units (12-column grid, row height ~40px). */
   defaultSize: { w: number; h: number };
   minSize?: { w: number; h: number };
+  /** Per-instance settings schema; absent = not configurable. */
+  settings?: CardSettingsSchema;
+  /**
+   * Title of one instance given its settings ("Push-ups", "Nightstand · Books").
+   * Called as a React hook (inside a per-instance component), so it may use
+   * the App's live-query hooks. Return "" to fall back to `title`.
+   */
+  instanceTitle?: (settings: CardSettings) => string;
 }
 
 export interface CommandCtx {
