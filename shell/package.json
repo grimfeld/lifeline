@@ -11,7 +11,10 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@lifeline/app-calendar": "workspace:*",
     "@lifeline/app-chores": "workspace:*",
+    "@lifeline/app-tasks": "workspace:*",
     "@lifeline/core": "workspace:*",
     "@lifeline/ui": "workspace:*",
     "@tauri-apps/api": "^2.9.0",

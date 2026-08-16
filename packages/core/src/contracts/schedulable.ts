@@ -32,6 +32,12 @@ export interface SchedulableProvider {
   /** Delegate of "the user ticked this off on a surface". */
   complete(itemId: string, on: DateStr): Promise<void>;
   /**
+   * Optional delegate of "the user dragged this to another day (or back to
+   * the unplaced pool: null)". When implemented, a move changes the App's
+   * own state; when absent, surfaces fall back to a Core Placement pin.
+   */
+  move?(itemId: string, to: DateStr | null): Promise<void>;
+  /**
    * Behavior when an item's day passes uncompleted:
    * "roll-forward" — surfaces show it on today until done (chores);
    * "stay" — it stays where it was and reads as missed.

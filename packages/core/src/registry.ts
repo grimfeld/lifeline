@@ -1,5 +1,6 @@
 import type { AppManifest, CardDef, CommandDef } from "./manifest";
 import type { SchedulableProvider } from "./contracts/schedulable";
+import type { TimedProvider } from "./contracts/timed";
 import { openDb, type LifelineDB } from "./data/db";
 
 let apps: AppManifest[] = [];
@@ -32,4 +33,8 @@ export function allCommands(): (CommandDef & { appId: string })[] {
 
 export function schedulableProviders(): SchedulableProvider[] {
   return apps.flatMap((a) => (a.schedulable ? [a.schedulable] : []));
+}
+
+export function timedProviders(): TimedProvider[] {
+  return apps.flatMap((a) => (a.timed ? [a.timed] : []));
 }

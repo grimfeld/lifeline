@@ -19,7 +19,7 @@ import {
   useLiveQuery,
   type UserScreen,
 } from "@lifeline/core";
-import { CalendarDays, LayoutDashboard, Plus, Sparkles } from "lucide-react";
+import { CalendarDays, Columns3, LayoutDashboard, Plus, Sparkles } from "lucide-react";
 import { SyncBadge } from "./SyncBadge";
 
 function navClass({ isActive }: { isActive: boolean }) {
@@ -100,6 +100,9 @@ export function Sidebar() {
           <div className="text-muted-foreground px-2 py-1 text-xs font-medium">Surfaces</div>
           <NavLink to="/calendar" className={navClass}>
             <CalendarDays className="size-4" /> Calendar
+          </NavLink>
+          <NavLink to="/week" className={navClass}>
+            <Columns3 className="size-4" /> Week
           </NavLink>
         </div>
 

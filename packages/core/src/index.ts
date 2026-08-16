@@ -4,6 +4,7 @@ export * from "./manifest";
 export * from "./registry";
 export * from "./contracts/schedulable";
 export * from "./contracts/surface";
+export * from "./contracts/timed";
 export {
   db,
   openDb,

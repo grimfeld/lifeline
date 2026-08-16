@@ -22,13 +22,16 @@ import {
   fromParts,
   daysInMonth,
   parts,
-  placeItem,
+  moveSurfaceItem,
   startOfWeek,
   todayStr,
   unplaceItem,
   useSurfaceItems,
+  useTimedItems,
+  formatTime,
   type DateStr,
   type SurfaceItem,
+  type SurfaceTimedItem,
 } from "@lifeline/core";
 import { Check, ChevronLeft, ChevronRight, MapPin, Pin, PinOff } from "lucide-react";
 
@@ -36,6 +39,22 @@ const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
+
+function TimedChip({ item }: { item: SurfaceTimedItem }) {
+  return (
+    <div
+      className="flex w-full items-center gap-1 truncate rounded px-1 py-0.5 text-xs"
+      title={`${appById(item.appId)?.title} · ${item.subtitle ?? item.title}`}
+    >
+      <span
+        className="size-1.5 shrink-0 rounded-sm"
+        style={{ background: item.color ?? "var(--muted-foreground)" }}
+      />
+      {item.start && <span className="text-muted-foreground shrink-0">{formatTime(item.start)}</span>}
+      <span className="truncate">{item.title}</span>
+    </div>
+  );
+}
 
 function ItemChip({ item, onMove }: { item: SurfaceItem; onMove: (i: SurfaceItem) => void }) {
   return (
@@ -104,6 +123,7 @@ export function CalendarPage() {
   const gridStart = startOfWeek(monthStart);
   const days: DateStr[] = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
   const items = useSurfaceItems({ start: gridStart, end: addDays(gridStart, 41) });
+  const timed = useTimedItems({ start: gridStart, end: addDays(gridStart, 41) });
 
   function shift(dm: number) {
     setAnchor(({ y, m }) => {
@@ -169,6 +189,11 @@ export function CalendarPage() {
                 {parts(d).day}
               </span>
               <div className="min-h-0 flex-1 overflow-y-auto">
+                {timed
+                  .filter((t) => t.date === d)
+                  .map((t) => (
+                    <TimedChip key={t.key} item={t} />
+                  ))}
                 {dayItems.map((item) => (
                   <ItemChip
                     key={item.key}
@@ -198,8 +223,9 @@ export function CalendarPage() {
             <Button
               onClick={() => {
                 if (moving && moveDate) {
-                  void placeItem(moving.appId, moving.itemId, moveDate);
-                  toast.success(`Pinned to ${moveDate}`);
+                  moveSurfaceItem(moving, moveDate)
+                    .then(() => toast.success(`Moved to ${moveDate}`))
+                    .catch((err: Error) => toast.error(err.message));
                 }
                 setMoving(null);
               }}

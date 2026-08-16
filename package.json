@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "pnpm --filter @lifeline/shell dev",
+    "dev:all": "bash scripts/dev.sh",
     "build": "pnpm --filter @lifeline/shell build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",

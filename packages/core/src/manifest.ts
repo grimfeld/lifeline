@@ -1,5 +1,6 @@
 import type * as React from "react";
 import type { SchedulableProvider } from "./contracts/schedulable";
+import type { TimedProvider } from "./contracts/timed";
 
 /** A synced Dexie/PocketBase collection an App owns. */
 export interface CollectionDef {
@@ -58,4 +59,5 @@ export interface AppManifest {
   commands: CommandDef[];
   /** Contract implementations. */
   schedulable?: SchedulableProvider;
+  timed?: TimedProvider;
 }

@@ -44,6 +44,16 @@ export interface UserScreen extends SyncedRecord {
   sort: number;
 }
 
+/**
+ * Bump whenever the set of stores or their indexes changes (Dexie needs a
+ * monotonically increasing version to migrate an existing local database;
+ * only the latest version has to be declared).
+ *   1 — tracer bullet: chores, chore_completions, placements, screens
+ *   2 — Tasks App: tasks, task_occurrences
+ *   3 — Calendar App: events
+ */
+const DB_VERSION = 3;
+
 export class LifelineDB extends Dexie {
   _outbox!: Table<OutboxEntry, number>;
   _meta!: Table<MetaEntry, string>;
@@ -59,7 +69,7 @@ export class LifelineDB extends Dexie {
     for (const c of collections) {
       stores[c.name] = ["id, updatedAt, deleted", ...(c.indexes ?? [])].join(", ");
     }
-    this.version(1).stores(stores);
+    this.version(DB_VERSION).stores(stores);
   }
 
   collection<T extends SyncedRecord = SyncedRecord>(name: string): Table<T, string> {
