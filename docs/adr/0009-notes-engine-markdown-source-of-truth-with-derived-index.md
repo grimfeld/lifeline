@@ -17,3 +17,7 @@ Note types are a compile-time registry (`NOTE_TYPES`: daily, person, place, plai
 - Editor is CodeMirror 6 (Obsidian's own basis) so features arrive as extensions; reading mode is a remark pipeline with a wikilink plugin.
 - Renaming a note rewrites `[[Old]]` in referrers; renaming an App entity does not (the link goes unresolved).
 - Full-text search runs client-side over Dexie; storage in PocketBase is a text field with no cap.
+
+## Amendment (Aug 2026)
+
+User-defined Note types were deferred above and are now in: the built-in types stay in code (`BUILTIN_TYPES`), and a synced `note_types` collection layers user types on top (label, plural, icon name from a curated set, default folder, typed properties). Templates were already user-editable as `template` notes. `noteType(id)` resolves through a live cache so unknown/deleted ids degrade to plain. Apps may also expose commands derived from live data through `AppManifest.useCommands` — the Notes App generates one "New <type>…" palette command per type.

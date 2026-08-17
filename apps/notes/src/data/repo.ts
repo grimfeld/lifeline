@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useReducer } from "react";
 import { db, get, newId, put, remove, todayStr, useLinkTargets, useLiveQuery, type DateStr, type SyncedRecord } from "@lifeline/core";
 import { NOTES, type Note } from "../domain/types";
-import { noteType, TEMPLATE_TYPE, type NoteTypeId } from "../domain/noteTypes";
+import { TEMPLATE_TYPE, type NoteTypeId } from "../domain/noteTypes";
+import { noteType } from "./noteTypes";
 import { renderTemplate } from "../domain/templates";
 import { buildIndex, type NoteIndex } from "../domain/index";
 import { normalizeName, renameLinks, serializeFrontmatter, splitFrontmatter, withProperties, type Properties } from "../domain/markdown";
@@ -72,7 +73,7 @@ export async function ensureTemplateNote(type: NoteTypeId): Promise<Note> {
 export async function createNote(input: { type: NoteTypeId; title: string; folder?: string; body?: string; properties?: Properties }): Promise<Note> {
   const fm = serializeFrontmatter(input.properties ?? {});
   const title = input.title.trim();
-  const folder = input.folder === undefined ? defaultFolder(input.type, title) : normalizeFolder(input.folder);
+  const folder = input.folder === undefined ? defaultFolder(input.type, title, noteType(input.type).folder) : normalizeFolder(input.folder);
   const note: Note = {
     id: newId(),
     type: input.type,

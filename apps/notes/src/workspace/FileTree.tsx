@@ -4,7 +4,8 @@ import { Button, ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSe
 import { formatHuman } from "@lifeline/core";
 import { ChevronDown, ChevronRight, FilePlus, FolderPlus, Pencil, Trash2, FolderInput } from "lucide-react";
 import type { Note } from "../domain/types";
-import { noteType, type NoteTypeId } from "../domain/noteTypes";
+import { type NoteTypeId } from "../domain/noteTypes";
+import { noteType, useNoteTypes } from "../data/noteTypes";
 import { allFolders, buildTree, joinFolder, parentFolder, type FolderNode } from "../domain/folders";
 import { createFolder, createNote, deleteFolder, deleteNote, moveNote, renameFolder, renameNote, useExtraFolders, useNotes } from "../data/repo";
 import { FolderPickerDialog, PromptDialog } from "./PromptDialog";
@@ -35,6 +36,8 @@ export function FileTree() {
   const extra = useExtraFolders();
   const navigate = useNavigate();
   const open = useOpenNote(notes);
+  const types = useNoteTypes();
+  const creatableTypes = types.filter((t) => t.titleRule === "name" && t.id !== "template");
   const tree = useMemo(() => buildTree(notes, extra), [notes, extra]);
   const folders = useMemo(() => allFolders(tree), [tree]);
   const [openSet, setOpenSet] = useState<Set<string>>(loadOpen);
@@ -127,15 +130,14 @@ export function FileTree() {
             </div>
           </ContextMenuTrigger>
           <ContextMenuContent>
-            <ContextMenuItem onClick={() => setAction({ kind: "new-note", folder: node.path, type: "plain" })}>
-              <FilePlus /> New note
-            </ContextMenuItem>
-            <ContextMenuItem onClick={() => setAction({ kind: "new-note", folder: node.path, type: "person" })}>
-              <FilePlus /> New person
-            </ContextMenuItem>
-            <ContextMenuItem onClick={() => setAction({ kind: "new-note", folder: node.path, type: "place" })}>
-              <FilePlus /> New place
-            </ContextMenuItem>
+            {creatableTypes.map((t) => {
+              const TI = t.icon;
+              return (
+                <ContextMenuItem key={t.id} onClick={() => setAction({ kind: "new-note", folder: node.path, type: t.id })}>
+                  <TI /> New {t.label.toLowerCase()}
+                </ContextMenuItem>
+              );
+            })}
             <ContextMenuItem onClick={() => setAction({ kind: "new-folder", parent: node.path })}>
               <FolderPlus /> New folder
             </ContextMenuItem>

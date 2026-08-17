@@ -107,6 +107,12 @@ export interface AppManifest {
   screens: AppScreenDef[];
   cards: CardDef[];
   commands: CommandDef[];
+  /**
+   * Commands derived from live data (e.g. one "New <type>…" per user-defined
+   * note type). A React hook — the palette calls it for every App in stable
+   * registry order (ADR 0003), so it may use live queries.
+   */
+  useCommands?: () => CommandDef[];
   /** Contract implementations. */
   schedulable?: SchedulableProvider;
   timed?: TimedProvider;
