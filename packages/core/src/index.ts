@@ -10,6 +10,9 @@ export * from "./contracts/agenda";
 export * from "./contracts/linkable";
 export * from "./contracts/daylog";
 export * from "./contracts/locatable";
+export * from "./contracts/taggable";
+export * from "./contracts/tagfilter";
+export * from "./tags";
 export * from "./geocode";
 export {
   db,

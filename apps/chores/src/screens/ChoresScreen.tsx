@@ -8,6 +8,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  TagChips,
   toast,
 } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
@@ -79,9 +80,9 @@ function ChoreRow({ row, onEdit }: { row: Row; onEdit: (c: Chore) => void }) {
         )}
         <div className="min-w-0 flex-1">
           <div className="truncate font-medium">{chore.name}</div>
-          <div className="text-muted-foreground truncate text-xs">
-            {describeSchedule(chore.schedule)}
-            {chore.category ? ` · ${chore.category}` : ""}
+          <div className="text-muted-foreground flex min-w-0 items-center gap-2 text-xs">
+            <span className="truncate">{describeSchedule(chore.schedule)}</span>
+            <TagChips tags={chore.tags} size="xs" />
           </div>
         </div>
         <DueBadge due={due} />

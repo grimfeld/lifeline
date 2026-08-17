@@ -8,6 +8,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  TagChips,
   toast,
 } from "@lifeline/ui";
 import { addDays, formatHuman, todayStr } from "@lifeline/core";
@@ -29,6 +30,7 @@ function EventRow({ ev, onEdit }: { ev: Event; onEdit: (e: Event) => void }) {
           <div className="text-muted-foreground flex items-center gap-1.5 truncate text-xs">
             <Clock className="size-3" /> {describeTime(ev)}
             {ev.notes && <span className="truncate">· {ev.notes}</span>}
+            <TagChips tags={ev.tags} size="xs" className="shrink-0" />
           </div>
         </div>
         <Badge variant={past ? "outline" : ev.date === today ? "default" : "secondary"}>

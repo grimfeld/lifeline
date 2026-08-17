@@ -25,7 +25,7 @@ export const choresDaylog: DaylogProvider = {
         itemId: chore.id,
         kind: "Done",
         title: chore.name,
-        subtitle: chore.category ?? undefined,
+        tags: chore.tags ?? [],
         time: null,
         href: CHORES_HREF,
       });

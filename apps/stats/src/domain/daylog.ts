@@ -30,7 +30,7 @@ export function daylogEntries(stats: Stat[], entries: Entry[], day: string): Day
     const stat = byId.get(e.statId);
     if (!stat) continue;
     const href = statHref(stat.id);
-    const base = { appId: APP_ID, itemId: stat.id, href };
+    const base = { appId: APP_ID, itemId: stat.id, href, tags: stat.tags ?? [] };
     switch (stat.kind) {
       case "additive":
         out.push({ ...base, key: `${APP_ID}/${e.id}`, kind: "Logged", title: `+${formatValue(e.value)} ${stat.unit} ${stat.name}`.replace(/\s+/g, " ").trim(), time: timeOf(e.ts) });

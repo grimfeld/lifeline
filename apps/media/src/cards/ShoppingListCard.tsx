@@ -1,4 +1,4 @@
-import type { CardProps } from "@lifeline/core";
+import { matchesTagFilter, useTagFilter, type CardProps } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
 import { Check, ShoppingCart } from "lucide-react";
 import { mediaType } from "../domain/mediaTypes";
@@ -9,7 +9,8 @@ import { mediumOf } from "./shared";
 
 /** Card: everything Wanted — slotted ones first (buy now), then the rest of the wish list. */
 export function ShoppingListCard({ settings }: CardProps) {
-  const items = useMedia();
+  const filter = useTagFilter();
+  const items = useMedia().filter((m) => matchesTagFilter(m.tags, filter));
   const list = shoppingList(byMedium(items, mediumOf(settings)));
   if (list.length === 0) {
     return <div className="text-muted-foreground flex h-full items-center justify-center text-sm">Nothing to buy.</div>;

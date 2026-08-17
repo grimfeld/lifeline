@@ -4,6 +4,7 @@ import { TodayCard } from "./surfaces/TodayCard";
 import { AgendaCard } from "./surfaces/AgendaCard";
 import { lastLocation } from "./components/WorkspaceSwitcher";
 import { MapCard, useLocatableAppOptions } from "./surfaces/MapCard";
+import { TagsCard } from "./surfaces/TagsCard";
 
 /**
  * The shell's own manifest: general Surfaces packaged like any App's cards,
@@ -23,6 +24,7 @@ export const hubApp: AppManifest = {
       component: TodayCard,
       defaultSize: { w: 4, h: 7 },
       minSize: { w: 2, h: 3 },
+      tagFilterable: true,
     },
     {
       id: "hub.agenda",
@@ -31,6 +33,7 @@ export const hubApp: AppManifest = {
       component: AgendaCard,
       defaultSize: { w: 3, h: 8 },
       minSize: { w: 2, h: 4 },
+      tagFilterable: true,
       settings: {
         startHour: { kind: "number", label: "From hour", default: 7, min: 0, max: 23 },
         endHour: { kind: "number", label: "To hour", default: 23, min: 1, max: 24 },
@@ -44,10 +47,19 @@ export const hubApp: AppManifest = {
       component: MapCard,
       defaultSize: { w: 6, h: 8 },
       minSize: { w: 3, h: 4 },
+      tagFilterable: true,
       settings: {
         app: { kind: "entity", label: "App", useOptions: useLocatableAppOptions, anyLabel: "All apps" },
       },
       instanceTitle: (s) => (s.app ? `Map · ${useLocatableAppOptions().find((o) => o.value === s.app)?.label ?? s.app}` : ""),
+    },
+    {
+      id: "hub.tags",
+      title: "Tags",
+      description: "Every tag in use across apps — expand one to see what carries it",
+      component: TagsCard,
+      defaultSize: { w: 3, h: 7 },
+      minSize: { w: 2, h: 3 },
     },
   ],
   commands: [

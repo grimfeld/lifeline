@@ -1,5 +1,5 @@
 import { Button, toast } from "@lifeline/ui";
-import { addDays, todayStr, type CardProps } from "@lifeline/core";
+import { addDays, matchesTagFilter, todayStr, useTagFilter, type CardProps } from "@lifeline/core";
 import { Check, Repeat } from "lucide-react";
 import { completedInRange, dayLabel, groupByDay } from "../domain/completed";
 import { setCompleted, useOverrides, useTasks } from "../data/repo";
@@ -9,8 +9,13 @@ export function CompletedCard({ settings }: CardProps) {
   const days = Math.max(1, Number(settings.days) || 7);
   const tasks = useTasks();
   const overrides = useOverrides();
+  const filter = useTagFilter();
   const today = todayStr();
-  const groups = groupByDay(completedInRange(tasks, overrides, addDays(today, 1 - days), today));
+  const groups = groupByDay(
+    completedInRange(tasks, overrides, addDays(today, 1 - days), today).filter((e) =>
+      matchesTagFilter(e.tags, filter),
+    ),
+  );
 
   if (groups.length === 0) {
     return (

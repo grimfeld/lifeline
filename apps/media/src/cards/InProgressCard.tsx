@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { diffDays, todayStr, type CardProps } from "@lifeline/core";
+import { diffDays, matchesTagFilter, todayStr, useTagFilter, type CardProps } from "@lifeline/core";
 import { Badge } from "@lifeline/ui";
 import { mediaType } from "../domain/mediaTypes";
 import { inProgress } from "../domain/cardQueries";
@@ -16,7 +16,8 @@ function startedLabel(startedOn: string, today: string): string {
 
 /** Card: covers of everything currently being read/watched/played, newest start first. */
 export function InProgressCard({ settings }: CardProps) {
-  const items = useMedia();
+  const filter = useTagFilter();
+  const items = useMedia().filter((m) => matchesTagFilter(m.tags, filter));
   const medium = mediumOf(settings);
   const [editing, setEditing] = useState<MediaItem | null>(null);
   const rows = inProgress(items, medium);

@@ -15,7 +15,10 @@ export type ChoreStatus = "active" | "paused" | "archived";
 
 export interface Chore extends SyncedRecord {
   name: string;
-  category: string | null;
+  /** Normalised tags (ADR 0014); may be undefined on old records — read with `?? []`. */
+  tags?: string[];
+  /** @deprecated Folded into `tags` (ADR 0014). Only present on unmigrated local records; read via the repo fallback. */
+  category?: string | null;
   status: ChoreStatus;
   schedule: Schedule;
   /**

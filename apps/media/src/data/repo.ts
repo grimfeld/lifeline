@@ -1,4 +1,4 @@
-import { db, put, remove, newId, todayStr, useLiveQuery } from "@lifeline/core";
+import { db, normalizeTags, put, remove, newId, todayStr, useLiveQuery } from "@lifeline/core";
 import { MEDIA, type Acquisition, type MediaItem } from "../domain/types";
 import type { MediaTypeId } from "../domain/mediaTypes";
 import type { Patch } from "../domain/rules";
@@ -18,6 +18,7 @@ function normalize(m: MediaItem): MediaItem {
     slottedOn: m.slottedOn ?? "",
     startedOn: m.startedOn ?? "",
     finishedOn: m.finishedOn ?? "",
+    tags: m.tags ?? [],
   };
 }
 
@@ -39,6 +40,7 @@ export async function addMedia(input: {
   year?: number;
   acquisition: Acquisition;
   reason: string;
+  tags?: string[];
 }): Promise<string> {
   const id = newId();
   const today = todayStr();
@@ -61,13 +63,15 @@ export async function addMedia(input: {
     slottedOn: "",
     startedOn: "",
     finishedOn: "",
+    tags: normalizeTags(input.tags),
   });
   return id;
 }
 
 /** Apply a transition patch (or an edit) to an item. */
 export async function patchMedia(item: MediaItem, patch: Patch): Promise<void> {
-  await put<MediaItem>(MEDIA, { ...item, ...patch });
+  const next = { ...item, ...patch };
+  await put<MediaItem>(MEDIA, { ...next, tags: normalizeTags(next.tags) });
 }
 
 export async function deleteMedia(id: string): Promise<void> {

@@ -1,13 +1,15 @@
-import { addDays, formatHuman, todayStr } from "@lifeline/core";
+import { addDays, formatHuman, matchesTagFilter, todayStr, useTagFilter } from "@lifeline/core";
 import { compareEvents, describeTime, isMultiDay } from "../domain/events";
 import { useEvents } from "../data/repo";
 
 /** Card: the next 14 days of events. */
 export function UpcomingEventsCard() {
   const events = useEvents();
+  const filter = useTagFilter();
   const today = todayStr();
   const horizon = addDays(today, 14);
   const upcoming = events
+    .filter((e) => matchesTagFilter(e.tags ?? [], filter))
     .filter((e) => (isMultiDay(e) ? e.endDate! : e.date) >= today && e.date <= horizon)
     .sort(compareEvents);
 

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router";
-import type { CardProps } from "@lifeline/core";
+import { matchesTagFilter, useTagFilter, type CardProps } from "@lifeline/core";
 import { entriesByStat, useEntries, useStats } from "../data/repo";
 import { colorVar } from "../domain/types";
 import { sortCollections, type CollectionSort } from "../domain/rank";
@@ -8,7 +8,8 @@ import { sortCollections, type CollectionSort } from "../domain/rank";
 /** Card: every collection's progress toward its universe. */
 export function CollectionsCard({ settings }: CardProps) {
   const sort = settings.sort as CollectionSort;
-  const stats = useStats();
+  const filter = useTagFilter();
+  const stats = useStats().filter((s) => matchesTagFilter(s.tags, filter));
   const entries = useEntries();
   const navigate = useNavigate();
   const rows = useMemo(() => sortCollections(stats, entriesByStat(entries), sort), [stats, entries, sort]);

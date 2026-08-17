@@ -27,6 +27,8 @@ export interface Stat extends SyncedRecord {
   /** collection only. 0 = unknown. */
   universeSize: number;
   createdAt: DateStr;
+  /** Normalised Tags (ADR 0014); undefined on old records — read with `?? []`. */
+  tags?: string[];
 }
 
 /**

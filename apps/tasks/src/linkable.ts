@@ -23,6 +23,7 @@ export const tasksLinkable: LinkableProvider = {
           name: t.title,
           subtitle: t.recurrence ? "recurring" : undefined,
           href: TASKS_HREF,
+          tags: t.tags ?? [],
         }),
       );
   },

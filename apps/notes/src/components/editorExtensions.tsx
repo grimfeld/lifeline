@@ -3,6 +3,7 @@ import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, typ
 import { RangeSetBuilder, StateEffect, StateField, type EditorState } from "@codemirror/state";
 import { autocompletion, type CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
 import { extractBlocks, extractLinks, extractTags, parseBlockOptions } from "../domain/markdown";
+import { normalizeTag } from "@lifeline/core";
 import type { LinkRef, NoteIndex } from "../domain/index";
 import { DaylogBlock } from "./DaylogBlock";
 
@@ -64,7 +65,7 @@ function build(view: EditorView): DecorationSet {
   const known = new Set(extractTags(text));
   let m: RegExpExecArray | null;
   while ((m = tagRe.exec(text))) {
-    if (!known.has(m[2].toLowerCase())) continue;
+    if (!known.has(normalizeTag(m[2]) ?? "")) continue;
     const from = m.index + m[1].length;
     marks.push({ from, to: from + 1 + m[2].length, deco: tagMark });
   }

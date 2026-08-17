@@ -12,6 +12,7 @@ import { mediaCommands } from "./commands";
 import { MEDIA } from "./domain/types";
 import { mediaLinkable } from "./linkable";
 import { mediaDaylog } from "./daylog";
+import { mediaTaggable } from "./taggable";
 
 /** Media App (Nightstand/readlist port, generalised to any medium). */
 export const mediaApp: AppManifest = {
@@ -19,11 +20,12 @@ export const mediaApp: AppManifest = {
   title: "Media",
   icon: BookMarked,
   color: "var(--chart-magenta)",
-  collections: [{ name: MEDIA, indexes: ["type", "slot", "externalKey"] }],
+  collections: [{ name: MEDIA, indexes: ["type", "slot", "externalKey", "*tags"] }],
   screens: [{ id: "media.main", title: "Media", path: "media", icon: BookMarked, component: MediaScreen }],
   cards: [
     {
       id: "media.nightstand",
+      tagFilterable: true,
       title: "Nightstand",
       description: "Everything holding a slot, across books, movies, games…",
       component: NightstandCard,
@@ -34,6 +36,7 @@ export const mediaApp: AppManifest = {
     },
     {
       id: "media.shopping",
+      tagFilterable: true,
       title: "Shopping list",
       description: "Everything you want but don't own — slotted ones first",
       component: ShoppingListCard,
@@ -44,6 +47,7 @@ export const mediaApp: AppManifest = {
     },
     {
       id: "media.in-progress",
+      tagFilterable: true,
       title: "In progress",
       description: "What you're reading, watching, playing right now",
       component: InProgressCard,
@@ -54,6 +58,7 @@ export const mediaApp: AppManifest = {
     },
     {
       id: "media.finished",
+      tagFilterable: true,
       title: "Finished",
       description: "How much you finished this year, with the latest covers",
       component: FinishedCard,
@@ -76,6 +81,7 @@ export const mediaApp: AppManifest = {
   commands: mediaCommands,
   linkable: mediaLinkable,
   daylog: mediaDaylog,
+  taggable: mediaTaggable,
 };
 
 export { MEDIA };

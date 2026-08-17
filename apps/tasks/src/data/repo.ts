@@ -3,6 +3,7 @@ import {
   put,
   remove,
   newId,
+  normalizeTags,
   todayStr,
   useLiveQuery,
   type DateStr,
@@ -27,6 +28,7 @@ function normalizeTask(t: Task): Task {
     date: t.date || null,
     completedOn: t.completedOn || null,
     recurrence: t.recurrence || null,
+    tags: t.tags ?? [],
   };
 }
 
@@ -59,6 +61,7 @@ export async function addTask(input: {
   notes?: string;
   date?: DateStr | null;
   recurrence?: Recurrence | null;
+  tags?: string[];
 }): Promise<string> {
   const id = newId();
   await put<Task>(TASKS, {
@@ -70,12 +73,13 @@ export async function addTask(input: {
     completedOn: null,
     recurrence: input.recurrence ?? null,
     createdAt: todayStr(),
+    tags: normalizeTags(input.tags),
   });
   return id;
 }
 
 export async function updateTask(task: Task): Promise<void> {
-  await put<Task>(TASKS, task);
+  await put<Task>(TASKS, { ...task, tags: normalizeTags(task.tags) });
 }
 
 export async function setArchived(task: Task, archived: boolean): Promise<void> {

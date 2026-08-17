@@ -21,7 +21,7 @@ export const choresLinkable: LinkableProvider = {
         appId: APP_ID,
         itemId: chore.id,
         name: chore.name,
-        subtitle: chore.category ?? undefined,
+        tags: chore.tags ?? [],
         href: CHORES_HREF,
       });
     }

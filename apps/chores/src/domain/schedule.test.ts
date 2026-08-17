@@ -14,7 +14,7 @@ function chore(overrides: Partial<Chore> & { schedule: Schedule }): Chore {
     updatedAt: "2026-07-01T00:00:00.000Z",
     deleted: 0 as const,
     name: "Test chore",
-    category: null,
+    tags: [],
     status: "active",
     anchorDate: null,
     createdAt: "2026-07-01",

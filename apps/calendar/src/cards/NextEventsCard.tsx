@@ -1,4 +1,4 @@
-import { formatHuman, formatTime, todayStr, type CardProps, type CardSettingsSchema } from "@lifeline/core";
+import { formatHuman, formatTime, matchesTagFilter, todayStr, useTagFilter, type CardProps, type CardSettingsSchema } from "@lifeline/core";
 import { countdownWord, daysUntil, nextEvents } from "../domain/countdown";
 import { useEvents } from "../data/repo";
 
@@ -14,8 +14,13 @@ export function nextEventsTitle(settings: { n?: string | number }): string {
 /** Card: the next N events with a day countdown. */
 export function NextEventsCard({ settings }: CardProps) {
   const events = useEvents();
+  const filter = useTagFilter();
   const today = todayStr();
-  const list = nextEvents(events, today, settings.n as number);
+  const list = nextEvents(
+    events.filter((e) => matchesTagFilter(e.tags ?? [], filter)),
+    today,
+    settings.n as number,
+  );
 
   if (list.length === 0) {
     return (

@@ -52,6 +52,15 @@ describe("matchesSearch", () => {
     expect(matchesSearch(m, "sam")).toBe(true);
     expect(matchesSearch(m, "zzz")).toBe(false);
   });
+  it("matches tags, with or without a leading #; # restricts to tags", () => {
+    const m = item({ title: "Dune", tags: ["garden", "sci-fi"] });
+    expect(matchesSearch(m, "garden")).toBe(true);
+    expect(matchesSearch(m, "#garden")).toBe(true);
+    expect(matchesSearch(m, "#GARD")).toBe(true);
+    expect(matchesSearch(m, "#dune")).toBe(false);
+    expect(matchesSearch(m, "#")).toBe(true);
+    expect(matchesSearch(item({ title: "Dune" }), "garden")).toBe(false);
+  });
 });
 
 describe("sortGallery", () => {

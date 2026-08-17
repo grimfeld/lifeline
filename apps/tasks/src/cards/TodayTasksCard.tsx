@@ -1,5 +1,5 @@
 import { Button, cn, toast } from "@lifeline/ui";
-import { addDays, todayStr } from "@lifeline/core";
+import { addDays, matchesTagFilter, todayStr, useTagFilter } from "@lifeline/core";
 import { Check, Repeat } from "lucide-react";
 import { deriveItems } from "../domain/occurrences";
 import { setCompleted, useOverrides, useTasks } from "../data/repo";
@@ -8,9 +8,13 @@ import { setCompleted, useOverrides, useTasks } from "../data/repo";
 export function TodayTasksCard() {
   const tasks = useTasks();
   const overrides = useOverrides();
+  const filter = useTagFilter();
   const today = todayStr();
   const items = deriveItems(tasks, overrides, { start: addDays(today, -60), end: today }).filter(
-    (i) => i.date !== null && (i.date === today || (i.date < today && !i.completedOn)),
+    (i) =>
+      i.date !== null &&
+      (i.date === today || (i.date < today && !i.completedOn)) &&
+      matchesTagFilter(i.task.tags, filter),
   );
   const open = items.filter((i) => !i.completedOn);
   const done = items.filter((i) => i.completedOn);

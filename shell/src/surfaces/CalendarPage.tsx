@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TagFilterBar } from "../components/TagFilterBar";
 import {
   Badge,
   Button,
@@ -28,6 +29,7 @@ import {
   unplaceItem,
   useSurfaceItems,
   useTimedItems,
+  composeTagFilter,
   formatTime,
   type DateStr,
   type SurfaceItem,
@@ -122,8 +124,10 @@ export function CalendarPage() {
   const monthEnd = fromParts(anchor.y, anchor.m, daysInMonth(anchor.y, anchor.m));
   const gridStart = startOfWeek(monthStart);
   const days: DateStr[] = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
-  const items = useSurfaceItems({ start: gridStart, end: addDays(gridStart, 41) });
-  const timed = useTimedItems({ start: gridStart, end: addDays(gridStart, 41) });
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const tags = composeTagFilter(tagFilter);
+  const items = useSurfaceItems({ start: gridStart, end: addDays(gridStart, 41) }, { tags });
+  const timed = useTimedItems({ start: gridStart, end: addDays(gridStart, 41) }, { tags });
 
   function shift(dm: number) {
     setAnchor(({ y, m }) => {
@@ -144,6 +148,7 @@ export function CalendarPage() {
           {items.filter((i) => !i.completedOn && i.displayDate === today).length} today
         </Badge>
         <div className="ml-auto flex items-center gap-1">
+          <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2" />
           <Button size="icon" variant="outline" className="size-8" onClick={() => shift(-1)}>
             <ChevronLeft />
           </Button>

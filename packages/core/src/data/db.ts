@@ -47,6 +47,8 @@ export interface UserScreen extends SyncedRecord {
   name: string;
   layout: ScreenLayoutItem[];
   sort: number;
+  /** Screen-level Tag filter (ADR 0014): every tagFilterable Card on it obeys. */
+  tags?: string[];
 }
 
 /**
@@ -60,8 +62,9 @@ export interface UserScreen extends SyncedRecord {
  *   5 — Notes App: notes
  *   6 — notes.folder index (ADR 0013)
  *   7 — note_types (user-defined Note types)
+ *   8 — *tags multi-entry indexes on tasks, chores, events, stats, media (ADR 0014)
  */
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 
 export class LifelineDB extends Dexie {
   _outbox!: Table<OutboxEntry, number>;

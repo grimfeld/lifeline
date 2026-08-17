@@ -7,6 +7,7 @@ import { choreCommands } from "./commands";
 import { choresSchedulable, APP_ID } from "./schedulable";
 import { choresLinkable } from "./linkable";
 import { choresDaylog } from "./daylog";
+import { choresTaggable } from "./taggable";
 import { CHORES, COMPLETIONS } from "./domain/types";
 
 export const choresApp: AppManifest = {
@@ -14,7 +15,10 @@ export const choresApp: AppManifest = {
   title: "Chores",
   icon: ClipboardList,
   color: "var(--chart-aqua)",
-  collections: [{ name: CHORES }, { name: COMPLETIONS, indexes: ["choreId"] }],
+  collections: [
+    { name: CHORES, indexes: ["*tags"] },
+    { name: COMPLETIONS, indexes: ["choreId"] },
+  ],
   screens: [
     {
       id: "chores.main",
@@ -32,6 +36,7 @@ export const choresApp: AppManifest = {
       component: DueTodayCard,
       defaultSize: { w: 3, h: 6 },
       minSize: { w: 2, h: 3 },
+      tagFilterable: true,
     },
     {
       id: "chores.heatmap",
@@ -40,6 +45,7 @@ export const choresApp: AppManifest = {
       component: HeatmapCard,
       defaultSize: { w: 4, h: 5 },
       minSize: { w: 3, h: 4 },
+      tagFilterable: true,
       settings: {
         weeks: { kind: "number", label: "Weeks", default: 12, min: 4, max: 52 },
         chore: {
@@ -56,6 +62,7 @@ export const choresApp: AppManifest = {
   schedulable: choresSchedulable,
   linkable: choresLinkable,
   daylog: choresDaylog,
+  taggable: choresTaggable,
 };
 
 export { CHORES, COMPLETIONS };

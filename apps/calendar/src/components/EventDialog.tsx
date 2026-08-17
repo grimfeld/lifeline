@@ -9,10 +9,11 @@ import {
   DialogTitle,
   Input,
   Label,
+  TagInput,
   Textarea,
   toast,
 } from "@lifeline/ui";
-import { todayStr, useBacklinks, type DateStr } from "@lifeline/core";
+import { normalizeTag, todayStr, useBacklinks, useTagVocabulary, type DateStr } from "@lifeline/core";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
 import { APP_ID } from "../timed";
@@ -36,6 +37,8 @@ export function EventDialog({
   const [allDay, setAllDay] = useState(true);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
+  const [tags, setTags] = useState<string[]>([]);
+  const suggestions = useTagVocabulary().map((v) => v.tag);
   const backlinks = useBacklinks({ appId: APP_ID, itemId: event?.id ?? "" });
 
   useEffect(() => {
@@ -47,6 +50,7 @@ export function EventDialog({
     setAllDay(event ? event.start === null : true);
     setStart(event?.start ?? "09:00");
     setEnd(event?.end ?? "10:00");
+    setTags(event?.tags ?? []);
   }, [open, event, defaultDate]);
 
   async function submit() {
@@ -62,6 +66,7 @@ export function EventDialog({
       endDate: allDay && endDate && endDate > date ? endDate : null,
       start: allDay ? null : start,
       end: allDay ? null : end || null,
+      tags,
     };
     if (event) {
       await updateEvent({ ...event, ...fields });
@@ -126,6 +131,10 @@ export function EventDialog({
           <div className="grid gap-2">
             <Label htmlFor="ev-notes">Notes</Label>
             <Textarea id="ev-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional" />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="ev-tags">Tags</Label>
+            <TagInput id="ev-tags" value={tags} onChange={setTags} suggestions={suggestions} normalize={normalizeTag} placeholder="Add tag…" />
           </div>
           {event && backlinks.length > 0 && (
             <div className="text-muted-foreground grid gap-1 text-xs">

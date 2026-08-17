@@ -44,6 +44,8 @@ export interface MediaItem extends SyncedRecord {
   slottedOn: DateStr;
   startedOn: DateStr;
   finishedOn: DateStr;
+  /** Normalised Tags (ADR 0014). May be undefined on old records — read with `?? []`. */
+  tags?: string[];
 }
 
 export const MEDIA = "media";

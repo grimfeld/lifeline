@@ -1,4 +1,4 @@
-import type { AppManifest, BacklinkProvider, LocatableProvider, Pin } from "@lifeline/core";
+import type { AppManifest, BacklinkProvider, CardSettings, LocatableProvider, Pin } from "@lifeline/core";
 import { NotebookPen } from "lucide-react";
 import { JournalScreen } from "./screens/JournalScreen";
 import { NotesSidebar } from "./workspace/NotesSidebar";
@@ -11,8 +11,9 @@ import { onNoteConflict, useNoteIndex, useNotes } from "./data/repo";
 import { NOTES } from "./domain/types";
 import { NOTE_TYPES_COLLECTION } from "./data/noteTypes";
 import { formatHuman, addDays, todayStr } from "@lifeline/core";
-import { excerpt, noteCoords, splitFrontmatter } from "./domain/markdown";
+import { excerpt, extractTags, noteCoords, splitFrontmatter } from "./domain/markdown";
 import { noteType } from "./data/noteTypes";
+import { notesTaggable } from "./taggable";
 
 const APP_ID = "notes";
 
@@ -46,14 +47,14 @@ const notesLocatable: LocatableProvider = {
       const c = noteCoords(props, geoKey);
       if (!c) continue;
       const address = typeof props.address === "string" && props.address ? props.address : noteType(n.type).label;
-      out.push({ appId: APP_ID, itemId: n.id, name: n.title, subtitle: address, lat: c.lat, lon: c.lon, href: `/notes/n/${n.id}` });
+      out.push({ appId: APP_ID, itemId: n.id, name: n.title, subtitle: address, lat: c.lat, lon: c.lon, href: `/notes/n/${n.id}`, tags: extractTags(n.body) });
     }
     return out;
   },
 };
 
 const offsetKnob = { kind: "number" as const, label: "Day offset", default: 0, min: -365, max: 0 };
-const offsetTitle = (base: string) => (s: Record<string, string | number>) => {
+const offsetTitle = (base: string) => (s: CardSettings) => {
   const o = Number(s.offset ?? 0);
   return o === 0 ? base : o === -1 ? `${base} · yesterday` : `${base} · ${formatHuman(addDays(todayStr(), o))}`;
 };
@@ -94,6 +95,7 @@ export const notesApp: AppManifest = {
       minSize: { w: 2, h: 3 },
       settings: { offset: offsetKnob },
       instanceTitle: offsetTitle("Daylog"),
+      tagFilterable: true,
     },
     {
       id: "notes.recent",
@@ -107,12 +109,14 @@ export const notesApp: AppManifest = {
         count: { kind: "number", label: "How many", default: 8, min: 1, max: 50 },
       },
       instanceTitle: (s) => (s.type ? `Recent ${noteType(String(s.type)).plural.toLowerCase()}` : ""),
+      tagFilterable: true,
     },
   ],
   commands: noteCommands,
   useCommands: useNoteTypeCommands,
   backlinks: notesBacklinks,
   locatable: notesLocatable,
+  taggable: notesTaggable,
 };
 
 export { NOTES };

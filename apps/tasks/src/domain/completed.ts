@@ -12,6 +12,8 @@ export interface CompletedEntry {
   sourceDate?: DateStr;
   completedOn: DateStr;
   recurring: boolean;
+  /** The Task's tags; Occurrences inherit the definition's (ADR 0014). */
+  tags: string[];
 }
 
 export interface CompletedGroup {
@@ -46,6 +48,7 @@ export function completedInRange(
       title: task.title,
       completedOn: task.completedOn,
       recurring: false,
+      tags: task.tags ?? [],
     });
   }
   for (const o of overrides) {
@@ -59,6 +62,7 @@ export function completedInRange(
       sourceDate: o.sourceDate,
       completedOn: o.completedOn,
       recurring: true,
+      tags: task.tags ?? [],
     });
   }
   return out.sort(

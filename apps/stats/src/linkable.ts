@@ -13,6 +13,7 @@ export const statsLinkable: LinkableProvider = {
         itemId: s.id,
         name: s.name,
         subtitle: s.kind,
+        tags: s.tags ?? [],
         href: statHref(s.id),
       }),
     );

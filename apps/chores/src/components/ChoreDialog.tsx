@@ -14,9 +14,16 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  TagInput,
   toast,
 } from "@lifeline/ui";
-import { todayStr, useBacklinks, type Weekday } from "@lifeline/core";
+import {
+  normalizeTag,
+  todayStr,
+  useBacklinks,
+  useTagVocabulary,
+  type Weekday,
+} from "@lifeline/core";
 import type { Chore, Schedule } from "../domain/types";
 import { addChore, updateChore } from "../data/repo";
 import { APP_ID } from "../schedulable";
@@ -68,7 +75,8 @@ export function ChoreDialog({
   chore?: Chore;
 }) {
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const suggestions = useTagVocabulary().map((v) => v.tag);
   const [kind, setKind] = useState<Schedule["kind"]>("weekly");
   const [weekdays, setWeekdays] = useState<Weekday[]>([1]);
   const [dayOfMonth, setDayOfMonth] = useState(1);
@@ -79,7 +87,7 @@ export function ChoreDialog({
   useEffect(() => {
     if (!open) return;
     setName(chore?.name ?? "");
-    setCategory(chore?.category ?? "");
+    setTags(chore?.tags ?? []);
     const s = chore?.schedule;
     setKind(s?.kind ?? "weekly");
     setWeekdays(s?.kind === "weekly" ? s.weekdays : [1]);
@@ -109,12 +117,12 @@ export function ChoreDialog({
       return;
     }
     if (chore) {
-      await updateChore({ ...chore, name: name.trim(), category: category.trim() || null, schedule });
+      await updateChore({ ...chore, name: name.trim(), tags, schedule });
       toast.success("Chore updated");
     } else {
       await addChore({
         name: name.trim(),
-        category: category.trim() || null,
+        tags,
         schedule,
         anchorDate: schedule.kind === "interval" ? todayStr() : null,
       });
@@ -141,12 +149,14 @@ export function ChoreDialog({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="chore-category">Category</Label>
-            <Input
-              id="chore-category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="Kitchen (optional)"
+            <Label htmlFor="chore-tags">Tags</Label>
+            <TagInput
+              id="chore-tags"
+              value={tags}
+              onChange={setTags}
+              suggestions={suggestions}
+              normalize={normalizeTag}
+              placeholder="kitchen, garden…"
             />
           </div>
           <div className="grid gap-2">

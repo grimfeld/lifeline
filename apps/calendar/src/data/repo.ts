@@ -1,4 +1,4 @@
-import { addDays, db, diffDays, put, remove, newId, todayStr, useLiveQuery, type DateStr } from "@lifeline/core";
+import { addDays, db, diffDays, normalizeTags, put, remove, newId, todayStr, useLiveQuery, type DateStr } from "@lifeline/core";
 import { EVENTS, type Event } from "../domain/types";
 
 /** PocketBase returns absent text fields as ""; re-establish null on read. */
@@ -9,6 +9,7 @@ function normalize(e: Event): Event {
     endDate: e.endDate || null,
     start: e.start || null,
     end: e.end || null,
+    tags: e.tags ?? [],
   };
 }
 
@@ -27,6 +28,7 @@ export async function addEvent(input: {
   endDate?: DateStr | null;
   start?: string | null;
   end?: string | null;
+  tags?: string[];
 }): Promise<string> {
   const id = newId();
   const start = input.start || null;
@@ -39,12 +41,13 @@ export async function addEvent(input: {
     start,
     end: start ? (input.end || null) : null,
     createdAt: todayStr(),
+    tags: normalizeTags(input.tags ?? []),
   });
   return id;
 }
 
 export async function updateEvent(ev: Event): Promise<void> {
-  await put<Event>(EVENTS, ev);
+  await put<Event>(EVENTS, { ...ev, tags: normalizeTags(ev.tags ?? []) });
 }
 
 export async function deleteEvent(id: string): Promise<void> {

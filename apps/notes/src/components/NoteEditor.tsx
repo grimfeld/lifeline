@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, MiniMap, toast } from "@lifeline/ui";
-import { formatHuman } from "@lifeline/core";
+import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, TagChips, TagInput, toast } from "@lifeline/ui";
+import { formatHuman, normalizeTag, normalizeTags, useTagVocabulary } from "@lifeline/core";
 import { Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Trash2 } from "lucide-react";
 import type { Note } from "../domain/types";
 import { TEMPLATE_TYPE } from "../domain/noteTypes";
 import { noteType } from "../data/noteTypes";
 import type { LinkRef, NoteIndex } from "../domain/index";
-import { noteCoords, splitFrontmatter, withProperties, writeCoords, type Properties } from "../domain/markdown";
+import { extractProseTags, frontmatterTagWords, noteCoords, splitFrontmatter, withProperties, writeCoords, type Properties } from "../domain/markdown";
 import { createNote, deleteNote, renameNote, saveBody } from "../data/repo";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { PropertiesForm } from "./PropertiesForm";
@@ -82,6 +82,19 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
 
   const geoKey = def.properties.find((p) => p.kind === "geo")?.key;
   const coords = useMemo(() => noteCoords(properties, geoKey), [properties, geoKey]);
+
+  // Tags (ADR 0014): the chip row edits only the frontmatter `tags` list; prose #tags are shown read-only
+  // next to it — the text is the truth (ADR 0009), so they can only be removed in the editor.
+  const fmTags = useMemo(() => normalizeTags(frontmatterTagWords(properties)), [properties]);
+  const proseOnlyTags = useMemo(() => extractProseTags(content).filter((t) => !fmTags.includes(t)), [content, fmTags]);
+  const tagSuggestions = useTagVocabulary().map((v) => v.tag);
+  const setTags = (next: string[]) => {
+    const { tags: _drop, ...rest } = propsRef.current;
+    propsRef.current = next.length > 0 ? { ...rest, tags: next } : rest;
+    flush();
+  };
+  // A type may declare `tags` itself; the chip row is the one editor for it, so keep it out of the properties form.
+  const formType = useMemo(() => (def.properties.some((p) => p.key === "tags") ? { ...def, properties: def.properties.filter((p) => p.key !== "tags") } : def), [def]);
   const Icon = def.icon;
   return (
     <div className="flex h-full min-h-0">
@@ -129,18 +142,31 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
             <code>{"{{title}}"}</code> <code>{"{{date}}"}</code> <code>{"{{time}}"}</code>. Delete this note to restore the built-in default.
           </div>
         )}
-        {def.properties.length > 0 && (
-          <div className="border-b px-4 py-2">
+        <div className="grid gap-2 border-b px-4 py-2">
+          {formType.properties.length > 0 && (
             <PropertiesForm
-              type={def}
+              type={formType}
               value={properties}
               onChange={(next) => {
                 propsRef.current = next;
                 flush();
               }}
             />
+          )}
+          <div className="grid gap-1">
+            <Label htmlFor="note-tags" className="text-muted-foreground text-xs">
+              Tags
+            </Label>
+            <div className="flex flex-wrap items-center gap-2">
+              <TagInput id="note-tags" className="min-w-48 flex-1" value={fmTags} onChange={setTags} suggestions={tagSuggestions} normalize={normalizeTag} placeholder="Add tag…" />
+              {proseOnlyTags.length > 0 && (
+                <span className="text-muted-foreground inline-flex items-center gap-1 text-xs" title="Written in the text — edit them there">
+                  in text: <TagChips tags={proseOnlyTags} size="xs" />
+                </span>
+              )}
+            </div>
           </div>
-        )}
+        </div>
         <div className="flex min-h-0 flex-1 flex-col px-4">
           <MarkdownEditor
             value={content}

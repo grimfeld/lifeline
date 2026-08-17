@@ -1,4 +1,4 @@
-import { Badge, Button, cn, Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
+import { Badge, Button, cn, Dialog, DialogContent, DialogHeader, DialogTitle, TagChips } from "@lifeline/ui";
 import { AlertTriangle, ArrowDownToLine, Check, GraduationCap, MoreHorizontal, Play, ShoppingCart } from "lucide-react";
 import { mediaType } from "../domain/mediaTypes";
 import type { MediaItem } from "../domain/types";
@@ -74,6 +74,8 @@ export function MediaDetailDialog({ item, all, onClose, onEdit }: { item: MediaI
                 </span>
               )}
             </div>
+
+            {(item.tags ?? []).length > 0 && <TagChips tags={item.tags} size="xs" />}
 
             {item.reason && <p className="text-muted-foreground text-sm italic">{item.reason}</p>}
 

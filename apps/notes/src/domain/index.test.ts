@@ -10,7 +10,7 @@ describe("buildIndex", () => {
   const notes = [
     note("d1", "2026-08-16", "Saw [[Yas]] at [[Paris]]. Read [[Dune]] and [[Nobody]]. #quote", "daily"),
     note("p1", "Yasmine", "---\naliases:\n  - Yas\n---\nA friend. Self [[Yasmine]].", "person"),
-    note("pl", "Paris", "---\nkind: city\n---\n", "place"),
+    note("pl", "Paris", "---\nkind: city\ntags:\n  - travel\n---\n#quote", "place"),
     note("d2", "2026-08-15", "Again [[yasmine]] and [[Dune]]", "daily"),
   ];
   const idx = buildIndex(notes, [{ appId: "media", itemId: "m1", name: "Dune", href: "/app/media" }, { appId: "media", itemId: "m2", name: "Paris", aliases: ["Paname"] }]);
@@ -30,8 +30,9 @@ describe("buildIndex", () => {
   });
   it("collects unresolved names, tags and properties", () => {
     expect(idx.unresolved.get("nobody")).toEqual(["d1"]);
-    expect(idx.tags.get("quote")).toEqual(["d1"]);
-    expect(idx.properties("pl")).toEqual({ kind: "city" });
+    expect(idx.tags.get("quote")).toEqual(["d1", "pl"]);
+    expect(idx.tags.get("travel")).toEqual(["pl"]); // frontmatter tags count too
+    expect(idx.properties("pl")).toEqual({ kind: "city", tags: ["travel"] });
     expect(idx.linksFrom("d1")).toHaveLength(4);
   });
   it("names() lists titles, aliases and app targets", () => {

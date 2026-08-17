@@ -27,6 +27,15 @@ describe("daylogEntries", () => {
     expect(items.every((i) => i.appId === "stats" && i.key.startsWith("stats/"))).toBe(true);
   });
 
+  it("stamps the parent Stat's tags on every item (untagged → [])", () => {
+    const tagged = { ...stat("a", "additive", "Push-ups"), tags: ["health", "gym"] };
+    const items = daylogEntries([tagged, stat("b", "boolean", "Meditated")], [entry("e1", "a", "2026-08-16T07:05", 20), entry("e2", "b", "2026-08-16T08:00")], "2026-08-16");
+    expect(items.map((i) => [i.itemId, i.tags])).toEqual([
+      ["a", ["health", "gym"]],
+      ["b", []],
+    ]);
+  });
+
   it("collapses a boolean stat to one untimed Marked line per day", () => {
     const entries = [entry("e1", "b", "2026-08-16T07:00"), entry("e2", "b", "2026-08-16T21:00"), entry("e3", "b", "2026-08-15T09:00")];
     const items = daylogEntries(stats, entries, "2026-08-16");

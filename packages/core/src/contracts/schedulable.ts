@@ -15,6 +15,8 @@ export interface SchedulableItem {
   urgency: Urgency;
   /** Set when the current cycle/occurrence is already done. */
   completedOn?: DateStr | null;
+  /** The entity's Tags (ADR 0014); Occurrences inherit their Task's. */
+  tags?: string[];
 }
 
 /**

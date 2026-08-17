@@ -1,5 +1,7 @@
 import type { DateStr } from "../dates";
 import { appById, timedProviders } from "../registry";
+import { matchesTagFilter, type TagFilter } from "../tags";
+import { useTagFilter } from "./tagfilter";
 
 /** "HH:MM" local wall-clock time. */
 export type TimeStr = string;
@@ -21,6 +23,8 @@ export interface TimedItem {
   /** null = all day. */
   start: TimeStr | null;
   end: TimeStr | null;
+  /** The entity's Tags (ADR 0014). */
+  tags?: string[];
 }
 
 export interface TimedProvider {
@@ -35,8 +39,13 @@ export interface SurfaceTimedItem extends TimedItem {
   color?: string;
 }
 
-/** Read side of the Timed contract: every provider's items in range, colored per App. */
-export function useTimedItems(range: { start: DateStr; end: DateStr }): SurfaceTimedItem[] {
+/**
+ * Read side of the Timed contract: every provider's items in range, colored
+ * per App, narrowed by the ambient Tag filter (or an explicit one).
+ */
+export function useTimedItems(range: { start: DateStr; end: DateStr }, opts?: { tags?: TagFilter }): SurfaceTimedItem[] {
+  const ambient = useTagFilter();
+  const filter = opts?.tags ?? ambient;
   const providers = timedProviders();
   // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
   const perProvider = providers.map((p) => ({
@@ -47,7 +56,7 @@ export function useTimedItems(range: { start: DateStr; end: DateStr }): SurfaceT
   const out: SurfaceTimedItem[] = [];
   for (const { provider, items } of perProvider) {
     const color = appById(provider.appId)?.color;
-    for (const item of items) out.push({ ...item, color });
+    for (const item of items) if (matchesTagFilter(item.tags, filter)) out.push({ ...item, color });
   }
   return out.sort((a, b) =>
     a.date.localeCompare(b.date) || (a.start ?? "").localeCompare(b.start ?? "") || a.title.localeCompare(b.title),

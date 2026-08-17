@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router";
-import { formatHuman, type CardProps } from "@lifeline/core";
+import { formatHuman, matchesTagFilter, useTagFilter, type CardProps } from "@lifeline/core";
+import { TagChips } from "@lifeline/ui";
 import { useNotes } from "../data/repo";
 import { noteType, useNoteTypes } from "../data/noteTypes";
-import { excerpt } from "../domain/markdown";
+import { excerpt, extractTags } from "../domain/markdown";
 
 /** Card: most recently edited notes (knobs: type filter, count). */
 export function RecentNotesCard({ settings }: CardProps) {
@@ -10,8 +11,10 @@ export function RecentNotesCard({ settings }: CardProps) {
   const count = Number(settings.count ?? 8);
   const notes = useNotes();
   const navigate = useNavigate();
+  const filter = useTagFilter();
   const list = notes
     .filter((n) => !type || n.type === type)
+    .filter((n) => matchesTagFilter(extractTags(n.body), filter))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, count);
   if (list.length === 0) return <div className="text-muted-foreground flex h-full items-center justify-center text-sm">No notes yet.</div>;
@@ -20,6 +23,7 @@ export function RecentNotesCard({ settings }: CardProps) {
       {list.map((n) => {
         const def = noteType(n.type);
         const I = def.icon;
+        const tags = extractTags(n.body);
         return (
           <li key={n.id}>
             <button
@@ -28,6 +32,7 @@ export function RecentNotesCard({ settings }: CardProps) {
             >
               <I className="text-muted-foreground size-3.5 shrink-0" />
               <span className="truncate text-sm">{def.titleRule === "date" ? formatHuman(n.title) : n.title}</span>
+              <TagChips tags={tags.slice(0, 3)} size="xs" className="shrink-0" />
               <span className="text-muted-foreground ml-auto truncate text-xs">{excerpt(n.body, 40)}</span>
             </button>
           </li>

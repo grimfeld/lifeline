@@ -77,6 +77,14 @@ describe("completedInRange", () => {
     expect(entries[0].recurring).toBe(false);
   });
 
+  it("carries the task's tags on entries; occurrences inherit the definition's, untagged reads as []", () => {
+    const tasks = [weekly("gym", { tags: ["health", "gym"] }), oneTime("mail", "2026-08-15")];
+    const overrides = [ov("gym", "2026-08-10", { completedOn: "2026-08-10" })];
+    const entries = completedInRange(tasks, overrides, "2026-08-10", "2026-08-16");
+    expect(entries.find((e) => e.key === "gym|2026-08-10")?.tags).toEqual(["health", "gym"]);
+    expect(entries.find((e) => e.key === "mail")?.tags).toEqual([]);
+  });
+
   it("ignores deleted and archived tasks, and occurrences of missing tasks", () => {
     const tasks = [
       oneTime("del", "2026-08-15", { deleted: 1 }),

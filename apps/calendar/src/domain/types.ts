@@ -16,6 +16,8 @@ export interface Event extends SyncedRecord {
   start: TimeStr | null;
   end: TimeStr | null;
   createdAt: DateStr;
+  /** Normalised Tags (ADR 0014); undefined on old records — read with `?? []`. */
+  tags?: string[];
 }
 
 export const EVENTS = "events";

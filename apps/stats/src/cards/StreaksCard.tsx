@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Flame } from "lucide-react";
 import { cn } from "@lifeline/ui";
-import type { CardProps, CardSettings } from "@lifeline/core";
+import { matchesTagFilter, useTagFilter, type CardProps, type CardSettings } from "@lifeline/core";
 import { entriesByStat, useEntries, useStats } from "../data/repo";
 import { QuickLogButton } from "../components/StatCard";
 import { rankByStreak } from "../domain/rank";
@@ -13,7 +13,8 @@ export function streaksInstanceTitle(settings: CardSettings): string {
 /** Card: boolean stats ranked by current streak, longest-ever muted, mark today inline. */
 export function StreaksCard({ settings }: CardProps) {
   const activeOnly = settings.show === "active";
-  const stats = useStats();
+  const filter = useTagFilter();
+  const stats = useStats().filter((s) => matchesTagFilter(s.tags, filter));
   const entries = useEntries();
   const rows = useMemo(() => rankByStreak(stats, entriesByStat(entries), activeOnly), [stats, entries, activeOnly]);
   if (rows.length === 0) {

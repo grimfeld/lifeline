@@ -10,6 +10,7 @@ import {
 } from "@lifeline/ui";
 import {
   hasRequiredFields,
+  cardSchema,
   isConfigured,
   registeredApps,
   resolveSettings,
@@ -55,12 +56,12 @@ export function CardPicker({
   }
 
   function pick(card: CardDef) {
-    if (hasRequiredFields(card.settings)) {
+    if (hasRequiredFields(cardSchema(card))) {
       setConfiguring(card);
-      setDraft(resolveSettings(card.settings));
+      setDraft(resolveSettings(cardSchema(card)));
       return;
     }
-    void onAdd(card.id, resolveSettings(card.settings));
+    void onAdd(card.id, resolveSettings(cardSchema(card)));
     reset();
   }
 
@@ -83,12 +84,12 @@ export function CardPicker({
                 Configure “{configuring.title}”
               </DialogTitle>
             </DialogHeader>
-            <CardSettingsForm schema={configuring.settings!} value={draft} onChange={setDraft} />
+            <CardSettingsForm schema={cardSchema(configuring)!} value={draft} onChange={setDraft} />
             <DialogFooter>
               <Button
-                disabled={!isConfigured(configuring.settings, draft)}
+                disabled={!isConfigured(cardSchema(configuring), draft)}
                 onClick={() => {
-                  void onAdd(configuring.id, resolveSettings(configuring.settings, draft));
+                  void onAdd(configuring.id, resolveSettings(cardSchema(configuring), draft));
                   reset();
                 }}
               >
@@ -125,7 +126,7 @@ export function CardPicker({
                         <span>
                           <span className="block text-sm font-medium">
                             {c.title}
-                            {hasRequiredFields(c.settings) && <span className="text-muted-foreground font-normal"> · pick one</span>}
+                            {hasRequiredFields(cardSchema(c)) && <span className="text-muted-foreground font-normal"> · pick one</span>}
                           </span>
                           {c.description && <span className="text-muted-foreground block text-xs">{c.description}</span>}
                         </span>

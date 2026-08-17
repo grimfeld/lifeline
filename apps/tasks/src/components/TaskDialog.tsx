@@ -14,10 +14,18 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  TagInput,
   Textarea,
   toast,
 } from "@lifeline/ui";
-import { todayStr, useBacklinks, type DateStr, type Weekday } from "@lifeline/core";
+import {
+  normalizeTag,
+  todayStr,
+  useBacklinks,
+  useTagVocabulary,
+  type DateStr,
+  type Weekday,
+} from "@lifeline/core";
 import type { Recurrence, Task } from "../domain/types";
 import { addTask, updateTask } from "../data/repo";
 import { APP_ID } from "../schedulable";
@@ -77,6 +85,8 @@ export function TaskDialog({
   const [kind, setKind] = useState<Kind>("one-time");
   const [date, setDate] = useState<string>("");
   const [weekdays, setWeekdays] = useState<Weekday[]>([1]);
+  const [tags, setTags] = useState<string[]>([]);
+  const suggestions = useTagVocabulary().map((v) => v.tag);
 
   useEffect(() => {
     if (!open) return;
@@ -85,6 +95,7 @@ export function TaskDialog({
     setKind(task?.recurrence ? "weekly" : "one-time");
     setDate(task ? (task.date ?? "") : (defaultDate === undefined ? todayStr() : (defaultDate ?? "")));
     setWeekdays(task?.recurrence?.weekdays ?? [1]);
+    setTags(task?.tags ?? []);
   }, [open, task, defaultDate]);
 
   function buildRecurrence(): Recurrence | null {
@@ -110,10 +121,11 @@ export function TaskDialog({
         recurrence,
         date: recurrence ? null : date || null,
         completedOn: recurrence ? null : task.completedOn,
+        tags,
       });
       toast.success("Task updated");
     } else {
-      await addTask({ title: title.trim(), notes: notes.trim(), recurrence, date: date || null });
+      await addTask({ title: title.trim(), notes: notes.trim(), recurrence, date: date || null, tags });
       toast.success("Task added");
     }
     onOpenChange(false);
@@ -213,6 +225,17 @@ export function TaskDialog({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Optional"
               rows={3}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="task-tags">Tags</Label>
+            <TagInput
+              id="task-tags"
+              value={tags}
+              onChange={setTags}
+              suggestions={suggestions}
+              normalize={normalizeTag}
+              placeholder="Add tag…"
             />
           </div>
           {task && <MentionedIn taskId={task.id} />}

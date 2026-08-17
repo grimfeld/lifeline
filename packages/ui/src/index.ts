@@ -19,3 +19,4 @@ export * from "./components/map/MapView";
 export * from "./components/map/MiniMap";
 export * from "./components/map/GeoField";
 export * from "./components/ui/context-menu";
+export * from "./components/ui/tag-input";
