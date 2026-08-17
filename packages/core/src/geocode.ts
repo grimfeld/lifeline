@@ -51,3 +51,47 @@ export async function geocode(query: string, limit = 5): Promise<GeocodeHit[]> {
   cache.set(key, out);
   return out;
 }
+
+// ---- typeahead: Photon (komoot's open geocoder over OSM data; free, no key, fair use) ----
+// Nominatim's policy rules out autocomplete-style querying, so suggestions go
+// through Photon; the explicit "Locate" action stays on Nominatim.
+
+const PHOTON = "https://photon.komoot.io/api/";
+const suggestCache = new Map<string, GeocodeHit[]>();
+let suggestAbort: AbortController | null = null;
+
+interface PhotonFeature {
+  geometry: { coordinates: [number, number] };
+  properties: { name?: string; housenumber?: string; street?: string; postcode?: string; city?: string; state?: string; country?: string; osm_value?: string };
+}
+
+function photonLabel(p: PhotonFeature["properties"]): string {
+  const line1 = [p.housenumber, p.street ?? (p.name && p.name !== p.city ? p.name : undefined)].filter(Boolean).join(" ");
+  const line2 = [p.postcode, p.city].filter(Boolean).join(" ");
+  const parts = [line1 || p.name, line2, p.state && p.state !== p.city ? p.state : undefined, p.country].filter(Boolean);
+  return Array.from(new Set(parts)).join(", ");
+}
+
+/**
+ * Address suggestions while typing (debounce on the caller's side, ≥3 chars
+ * recommended). Cancels the previous in-flight request; cached per query.
+ */
+export async function suggestAddresses(query: string, limit = 6): Promise<GeocodeHit[]> {
+  const q = query.trim();
+  if (q.length < 3) return [];
+  const lang = (typeof navigator !== "undefined" ? navigator.language : "en").slice(0, 2);
+  const key = `${lang}:${q}:${limit}`;
+  const cached = suggestCache.get(key);
+  if (cached) return cached;
+  suggestAbort?.abort();
+  suggestAbort = new AbortController();
+  const url = `${PHOTON}?q=${encodeURIComponent(q)}&limit=${limit}&lang=${["en", "de", "fr", "it"].includes(lang) ? lang : "en"}`;
+  const res = await fetch(url, { signal: suggestAbort.signal, headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`Address search failed (${res.status})`);
+  const data = (await res.json()) as { features: PhotonFeature[] };
+  const out = data.features
+    .map((f) => ({ lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], label: photonLabel(f.properties) }))
+    .filter((h) => Number.isFinite(h.lat) && Number.isFinite(h.lon) && h.label);
+  suggestCache.set(key, out);
+  return out;
+}
