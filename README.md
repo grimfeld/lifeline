@@ -14,6 +14,9 @@ apps/calendar    @lifeline/app-calendar — Calendar App: Events (timed / all-da
                  shown on the month, week and Today surfaces via the Timed contract
 apps/stats       @lifeline/app-stats — Stats App (notch port): additive / measurement / boolean /
                  collection stats, entries as an event log, derived totals, streaks, Recharts graphs
+apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): markdown notes with typed Note types
+                 (daily/person/place/plain), wikilinks + backlinks across notes and other Apps' entities (Linkable),
+                 CodeMirror 6 editor, `daylog` blocks (Daylog contract), the Journal Surface; conflict copies (ADR 0010)
 apps/media       @lifeline/app-media — Media App (nightstand port, generalised): books, comics, movies,
                  series, albums, games on two axes (Acquisition × Engagement) with per-medium Nightstand slots
 shell            @lifeline/shell — Vite + React shell: sidebar, command palette (Ctrl+K),
@@ -73,3 +76,5 @@ gone, render `<CardUnavailable onConfigure={configure} />` — the instance stay
 4. ✅ Stats (notch port — ADR 0007) and Media (nightstand port generalised to any medium — ADR 0006)
 5. ◐ Retire the legacy backends — importers in `scripts/import/` + runbook in `docs/retire-legacy.md`;
    the deploy → import → verify → `fly apps destroy` steps are manual (see the runbook for what was found)
+6. ✅ Notes App + Journal (ADR 0009/0010): Notes engine, Linkable + Daylog contracts implemented by every App,
+   Obsidian vault importer (`pnpm import:obsidian`, see docs/retire-legacy.md)
