@@ -16,9 +16,10 @@ import {
   SelectValue,
   toast,
 } from "@lifeline/ui";
-import { todayStr, type Weekday } from "@lifeline/core";
+import { todayStr, useBacklinks, type Weekday } from "@lifeline/core";
 import type { Chore, Schedule } from "../domain/types";
 import { addChore, updateChore } from "../data/repo";
+import { APP_ID } from "../schedulable";
 
 const WEEKDAYS: { value: Weekday; label: string }[] = [
   { value: 1, label: "Mon" },
@@ -29,6 +30,32 @@ const WEEKDAYS: { value: Weekday; label: string }[] = [
   { value: 6, label: "Sat" },
   { value: 0, label: "Sun" },
 ];
+
+/** Notes mentioning this chore via [[wikilink]] (ADR 0009). Muted, read-only. */
+function MentionedIn({ choreId }: { choreId: string }) {
+  const links = useBacklinks({ appId: APP_ID, itemId: choreId });
+  if (links.length === 0) return null;
+  return (
+    <div className="grid gap-1 text-xs text-muted-foreground">
+      <span>
+        Mentioned in {links.length} {links.length === 1 ? "note" : "notes"}
+      </span>
+      <ul className="grid gap-0.5">
+        {links.map((l) => (
+          <li key={`${l.appId}/${l.sourceId}`}>
+            {l.href ? (
+              <a href={l.href} className="underline-offset-2 hover:underline">
+                {l.title}
+              </a>
+            ) : (
+              l.title
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export function ChoreDialog({
   open,
@@ -205,6 +232,7 @@ export function ChoreDialog({
               />
             </div>
           )}
+          {chore && <MentionedIn choreId={chore.id} />}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

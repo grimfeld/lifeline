@@ -7,6 +7,10 @@ export * from "./contracts/schedulable";
 export * from "./contracts/surface";
 export * from "./contracts/timed";
 export * from "./contracts/agenda";
+export * from "./contracts/linkable";
+export * from "./contracts/daylog";
+export * from "./contracts/locatable";
+export * from "./geocode";
 export {
   db,
   openDb,

@@ -7,12 +7,13 @@ import { tasksApp } from "@lifeline/app-tasks";
 import { calendarApp } from "@lifeline/app-calendar";
 import { statsApp } from "@lifeline/app-stats";
 import { mediaApp } from "@lifeline/app-media";
+import { notesApp } from "@lifeline/app-notes";
 import { hubApp } from "./hub";
 import App from "./App";
 import "./index.css";
 
 // Compile-time App registry (ADR 0003): every App joins here.
-initApps([hubApp, choresApp, tasksApp, calendarApp, statsApp, mediaApp]);
+initApps([hubApp, choresApp, tasksApp, calendarApp, statsApp, mediaApp, notesApp]);
 startSync();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

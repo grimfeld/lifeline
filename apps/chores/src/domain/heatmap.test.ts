@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { weekdayOf } from "@lifeline/core";
-import { completionsPerDay, heatmapDays } from "./heatmap";
+import { completionsOn, completionsPerDay, heatmapDays } from "./heatmap";
 import type { Completion } from "./types";
 
 function done(choreId: string, doneOn: string, id = `${choreId}-${doneOn}`): Completion {
@@ -49,5 +49,13 @@ describe("completionsPerDay", () => {
     const m = completionsPerDay(all, days, "b");
     expect(m.get("2026-08-12")?.map((c) => c.choreId)).toEqual(["b"]);
     expect(m.get("2026-08-03")).toEqual([]);
+  });
+});
+
+describe("completionsOn", () => {
+  it("returns only the completions with doneOn equal to the day, in a stable order", () => {
+    const cs = [done("b", "2026-08-12"), done("a", "2026-08-13"), done("a", "2026-08-12")];
+    expect(completionsOn(cs, "2026-08-12").map((c) => c.choreId)).toEqual(["a", "b"]);
+    expect(completionsOn(cs, "2026-08-14")).toEqual([]);
   });
 });

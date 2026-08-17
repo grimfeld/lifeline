@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { useBacklinks } from "@lifeline/core";
 import {
   Badge,
   Button,
@@ -45,6 +46,7 @@ export function StatDetailScreen() {
   const navigate = useNavigate();
   const stat = useStat(id);
   const entries = useStatEntries(id);
+  const backlinks = useBacklinks({ appId: "stats", itemId: id ?? "" });
   const [period, setPeriod] = useState<Period>("month");
   const [logOpen, setLogOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -163,6 +165,27 @@ export function StatDetailScreen() {
           ))}
         </ul>
       </section>
+
+      {backlinks.length > 0 && (
+        <section className="grid gap-2">
+          <h2 className="text-muted-foreground text-sm font-medium">Mentioned in</h2>
+          <ul className="grid gap-1">
+            {backlinks.map((b) => (
+              <li key={`${b.appId}/${b.sourceId}`}>
+                <button
+                  type="button"
+                  className="text-sm hover:underline disabled:no-underline"
+                  disabled={!b.href}
+                  onClick={() => b.href && navigate(b.href)}
+                >
+                  {b.title}
+                </button>
+                {b.excerpt && <span className="text-muted-foreground ml-2 text-xs">{b.excerpt}</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <AddEntryDialog open={logOpen} onOpenChange={setLogOpen} stat={stat} entries={entries} />
       <StatEditorDialog open={editOpen} onOpenChange={setEditOpen} stat={stat} />

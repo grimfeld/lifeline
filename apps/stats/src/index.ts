@@ -8,6 +8,8 @@ import { PERIOD_OPTIONS, SingleStatCard, useSingleStatTitle, useSingleStatOption
 import { StreaksCard, streaksInstanceTitle } from "./cards/StreaksCard";
 import { CollectionsCard } from "./cards/CollectionsCard";
 import { statCommands } from "./commands";
+import { statsLinkable } from "./linkable";
+import { statsDaylog } from "./daylog";
 import { ENTRIES, STATS } from "./domain/types";
 
 /** Stats App (notch port): stats are definitions, entries are an event log, totals are derived. */
@@ -82,6 +84,8 @@ export const statsApp: AppManifest = {
     },
   ],
   commands: statCommands,
+  linkable: statsLinkable,
+  daylog: statsDaylog,
 };
 
 export { STATS, ENTRIES };

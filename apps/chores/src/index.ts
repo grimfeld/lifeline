@@ -5,6 +5,8 @@ import { DueTodayCard } from "./cards/DueTodayCard";
 import { HeatmapCard, useHeatmapInstanceTitle, useHeatmapChoreOptions } from "./cards/HeatmapCard";
 import { choreCommands } from "./commands";
 import { choresSchedulable, APP_ID } from "./schedulable";
+import { choresLinkable } from "./linkable";
+import { choresDaylog } from "./daylog";
 import { CHORES, COMPLETIONS } from "./domain/types";
 
 export const choresApp: AppManifest = {
@@ -52,6 +54,8 @@ export const choresApp: AppManifest = {
   ],
   commands: choreCommands,
   schedulable: choresSchedulable,
+  linkable: choresLinkable,
+  daylog: choresDaylog,
 };
 
 export { CHORES, COMPLETIONS };

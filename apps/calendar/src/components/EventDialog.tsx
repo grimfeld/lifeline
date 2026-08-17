@@ -12,9 +12,10 @@ import {
   Textarea,
   toast,
 } from "@lifeline/ui";
-import { todayStr, type DateStr } from "@lifeline/core";
+import { todayStr, useBacklinks, type DateStr } from "@lifeline/core";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
+import { APP_ID } from "../timed";
 
 export function EventDialog({
   open,
@@ -35,6 +36,7 @@ export function EventDialog({
   const [allDay, setAllDay] = useState(true);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
+  const backlinks = useBacklinks({ appId: APP_ID, itemId: event?.id ?? "" });
 
   useEffect(() => {
     if (!open) return;
@@ -125,6 +127,26 @@ export function EventDialog({
             <Label htmlFor="ev-notes">Notes</Label>
             <Textarea id="ev-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional" />
           </div>
+          {event && backlinks.length > 0 && (
+            <div className="text-muted-foreground grid gap-1 text-xs">
+              <span>
+                Mentioned in {backlinks.length} {backlinks.length === 1 ? "note" : "notes"}
+              </span>
+              <ul className="grid gap-0.5">
+                {backlinks.map((b) => (
+                  <li key={`${b.appId}/${b.sourceId}`} className="truncate">
+                    {b.href ? (
+                      <a href={b.href} className="hover:text-foreground underline-offset-2 hover:underline">
+                        {b.title}
+                      </a>
+                    ) : (
+                      b.title
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

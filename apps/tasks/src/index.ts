@@ -7,6 +7,8 @@ import { CompletedCard } from "./cards/CompletedCard";
 import { QuickAddCard } from "./cards/QuickAddCard";
 import { taskCommands } from "./commands";
 import { tasksSchedulable, APP_ID } from "./schedulable";
+import { tasksLinkable } from "./linkable";
+import { tasksDaylog } from "./daylog";
 import { OCCURRENCES, TASKS } from "./domain/types";
 
 export const tasksApp: AppManifest = {
@@ -79,6 +81,8 @@ export const tasksApp: AppManifest = {
   ],
   commands: taskCommands,
   schedulable: tasksSchedulable,
+  linkable: tasksLinkable,
+  daylog: tasksDaylog,
 };
 
 export { TASKS, OCCURRENCES };

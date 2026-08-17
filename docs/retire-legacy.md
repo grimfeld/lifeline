@@ -45,6 +45,9 @@ node scripts/import/import-calendar.mjs --sqlite ../calendar/pocketbase/pb_data/
 
 # week-planner → tasks + task_occurrences (point it at a running old instance)
 WEEKPLANNER_PB_URL=http://127.0.0.1:8090 node scripts/import/import-week-planner.mjs [--apply]
+
+# Obsidian vaults → notes (reads the .md files on disk; see below)
+OBSIDIAN_VAULTS="/path/to/Journal,/path/to/Journal on MacOS" node scripts/import/import-obsidian.mjs [--apply]
 ```
 
 Mappings worth knowing: notch keeps kinds/colors/units 1:1 and converts `ts`
@@ -53,6 +56,31 @@ to ISO; nightstand `UNREAD/READING/READ` → `UNSTARTED/IN_PROGRESS/DONE`,
 local day + `HH:MM`; week-planner weekdays shift from Mon=0 to Sun=0, and a
 recurring task's `createdAt` is pulled back to its earliest override so old
 completions still land on generated Occurrences.
+
+### Obsidian vaults → notes
+
+`import-obsidian.mjs` walks the two Journal vaults (`~/private/Obsidian/Journal`
+and `…/Journal on MacOS` by default; override with `OBSIDIAN_VAULTS`, comma
+separated) and maps folders to Note types (ADR 0009): a `YYYY-MM-DD.md` under
+`Journal/` or `<year>/<Month>/` → **daily** (body verbatim, `createdAt` = the
+date); `Personnes/`, `People/` → **person**; `Lieux/`, `Places/` (any depth) →
+**place**; everything else — `Films/`, `Livres/`, `Jeux/`, `Séries/`, `Games/`,
+`Shows/`, `Bands/`, `Characters/`, `Companies/`, `Home.md`, `Mementos.md`, week
+notes… — → **plain**, skipped when the body (minus frontmatter) is empty.
+`Templates/`, `.obsidian/` and non-`.md` files are ignored.
+
+Person/place frontmatter is rewritten with a small YAML subset: `alias:` folds
+into the `aliases` list, an empty `locations:` is dropped, and a place whose body
+has a `[label](geo:LAT,LNG)` link gets `geo: "LAT,LNG"` + `address: label`
+(the original line stays). People/places present in both vaults are merged by
+title (case-insensitive): aliases are unioned, non-empty bodies concatenated
+with a blank line, the earliest file date wins. Same-title dailies keep the
+longer copy and are logged. Daily frontmatter is untouched.
+
+Unlike the other importers there are no legacy ids to keep — every note gets a
+fresh id, so **run `--apply` once**; a second run duplicates the notes. The
+summary (counts per type, skipped empties, merges) goes to stderr; the record
+dump to stdout.
 
 ## 3. Verify
 

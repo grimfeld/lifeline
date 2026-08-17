@@ -1,6 +1,10 @@
 import type * as React from "react";
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
+import type { BacklinkProvider, LinkableProvider } from "./contracts/linkable";
+import type { DaylogProvider } from "./contracts/daylog";
+import type { LocatableProvider } from "./contracts/locatable";
+import type { SyncedRecord } from "./data/db";
 import type { CardSettings, CardSettingsSchema } from "./cards";
 
 /** A synced Dexie/PocketBase collection an App owns. */
@@ -8,6 +12,12 @@ export interface CollectionDef {
   name: string;
   /** Extra Dexie indexes beyond the standard "id, updatedAt, deleted". */
   indexes?: string[];
+  /**
+   * Called when a push finds the server copy newer than an unsynced local
+   * edit (LWW would drop the local edit). The App may preserve it — the
+   * Notes App saves a conflict copy (ADR 0010). Absent = plain LWW.
+   */
+  onConflict?: (local: SyncedRecord, server: SyncedRecord) => Promise<void>;
 }
 
 export interface AppScreenDef {
@@ -79,4 +89,8 @@ export interface AppManifest {
   /** Contract implementations. */
   schedulable?: SchedulableProvider;
   timed?: TimedProvider;
+  linkable?: LinkableProvider;
+  backlinks?: BacklinkProvider;
+  daylog?: DaylogProvider;
+  locatable?: LocatableProvider;
 }

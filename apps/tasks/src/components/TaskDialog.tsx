@@ -17,9 +17,10 @@ import {
   Textarea,
   toast,
 } from "@lifeline/ui";
-import { todayStr, type DateStr, type Weekday } from "@lifeline/core";
+import { todayStr, useBacklinks, type DateStr, type Weekday } from "@lifeline/core";
 import type { Recurrence, Task } from "../domain/types";
 import { addTask, updateTask } from "../data/repo";
+import { APP_ID } from "../schedulable";
 
 /** Monday-first display order; values are Core weekdays (0 = Sunday). */
 export const WEEKDAYS: { value: Weekday; label: string }[] = [
@@ -33,6 +34,30 @@ export const WEEKDAYS: { value: Weekday; label: string }[] = [
 ];
 
 type Kind = "one-time" | "weekly";
+
+/** Notes that link to this Task (edit mode only). Hidden when there are none. */
+function MentionedIn({ taskId }: { taskId: string }) {
+  const backlinks = useBacklinks({ appId: APP_ID, itemId: taskId });
+  if (backlinks.length === 0) return null;
+  return (
+    <div className="text-muted-foreground grid gap-1 text-xs">
+      <span>Mentioned in {backlinks.length} {backlinks.length === 1 ? "note" : "notes"}</span>
+      <ul className="grid gap-0.5">
+        {backlinks.map((b) => (
+          <li key={`${b.appId}/${b.sourceId}`} className="truncate">
+            {b.href ? (
+              <a href={b.href} className="hover:text-foreground underline-offset-2 hover:underline">
+                {b.title}
+              </a>
+            ) : (
+              b.title
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export function TaskDialog({
   open,
@@ -190,6 +215,7 @@ export function TaskDialog({
               rows={3}
             />
           </div>
+          {task && <MentionedIn taskId={task.id} />}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

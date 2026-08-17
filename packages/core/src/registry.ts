@@ -1,6 +1,9 @@
 import type { AppManifest, CardDef, CommandDef } from "./manifest";
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
+import type { BacklinkProvider, LinkableProvider } from "./contracts/linkable";
+import type { DaylogProvider } from "./contracts/daylog";
+import type { LocatableProvider } from "./contracts/locatable";
 import { openDb, type LifelineDB, type ScreenLayoutItem } from "./data/db";
 import { resolveSettings, type CardSettings } from "./cards";
 
@@ -38,6 +41,27 @@ export function schedulableProviders(): SchedulableProvider[] {
 
 export function timedProviders(): TimedProvider[] {
   return apps.flatMap((a) => (a.timed ? [a.timed] : []));
+}
+
+export function linkableProviders(): LinkableProvider[] {
+  return apps.flatMap((a) => (a.linkable ? [a.linkable] : []));
+}
+
+export function backlinkProviders(): BacklinkProvider[] {
+  return apps.flatMap((a) => (a.backlinks ? [a.backlinks] : []));
+}
+
+export function daylogProviders(): DaylogProvider[] {
+  return apps.flatMap((a) => (a.daylog ? [a.daylog] : []));
+}
+
+export function locatableProviders(): LocatableProvider[] {
+  return apps.flatMap((a) => (a.locatable ? [a.locatable] : []));
+}
+
+/** Collection definition by name (any App). */
+export function collectionDef(name: string) {
+  return apps.flatMap((a) => a.collections).find((c) => c.name === name);
 }
 
 /** Card definition by id, with its owning App id. */

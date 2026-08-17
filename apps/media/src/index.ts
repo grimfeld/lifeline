@@ -10,6 +10,8 @@ import { mediumField } from "./cards/shared";
 import { titleWithMedium } from "./domain/cardQueries";
 import { mediaCommands } from "./commands";
 import { MEDIA } from "./domain/types";
+import { mediaLinkable } from "./linkable";
+import { mediaDaylog } from "./daylog";
 
 /** Media App (Nightstand/readlist port, generalised to any medium). */
 export const mediaApp: AppManifest = {
@@ -72,6 +74,8 @@ export const mediaApp: AppManifest = {
     },
   ],
   commands: mediaCommands,
+  linkable: mediaLinkable,
+  daylog: mediaDaylog,
 };
 
 export { MEDIA };

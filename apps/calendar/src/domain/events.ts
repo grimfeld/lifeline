@@ -30,3 +30,13 @@ export function compareEvents(a: Event, b: Event): number {
     a.title.localeCompare(b.title)
   );
 }
+
+/** True when the event happens on `date` (its day, or inside its all-day span). */
+export function occursOn(ev: Event, date: DateStr): boolean {
+  return daysOf(ev, { start: date, end: date }).length > 0;
+}
+
+/** Events happening on one day, in display order (all-day first, then by start). */
+export function eventsOn(events: Event[], date: DateStr): Event[] {
+  return events.filter((ev) => occursOn(ev, date)).sort(compareEvents);
+}

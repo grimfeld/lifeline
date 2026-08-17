@@ -6,6 +6,8 @@ import { NextEventsCard, nextEventsSettings, nextEventsTitle } from "./cards/Nex
 import { CountdownCard, countdownSettings, useCountdownTitle } from "./cards/CountdownCard";
 import { calendarCommands } from "./commands";
 import { calendarTimed, APP_ID } from "./timed";
+import { calendarLinkable } from "./linkable";
+import { calendarDaylog } from "./daylog";
 import { EVENTS } from "./domain/types";
 
 /** The Calendar App owns Events (CONTEXT.md). The month/week grids are Core Surfaces. */
@@ -56,6 +58,8 @@ export const calendarApp: AppManifest = {
   ],
   commands: calendarCommands,
   timed: calendarTimed,
+  linkable: calendarLinkable,
+  daylog: calendarDaylog,
 };
 
 export { EVENTS };
