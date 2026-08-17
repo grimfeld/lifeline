@@ -5,38 +5,11 @@ import { MEDIA_TYPES, mediaType, type MediaTypeId } from "../domain/mediaTypes";
 import type { MediaItem } from "../domain/types";
 import { backlog, freeSlots, nightstand } from "../domain/rules";
 import { useMedia } from "../data/repo";
+import { GALLERY_SORTS, matchesSearch, matchesStatus, sortGallery, STATUS_FILTERS, type GallerySort, type StatusFilter } from "../domain/browse";
 import { AddMediaDialog } from "../components/AddMediaDialog";
+import { MediaTile } from "../components/MediaTile";
+import { MediaDetailDialog } from "../components/MediaDetailDialog";
 import { EditMediaDialog, MediaRow } from "../components/MediaRow";
-
-type Filter = "ALL" | "WANTED" | "OWNED_UNSTARTED" | "DONE" | "STUDIED" | "ABANDONED" | "GONE";
-const FILTERS: { value: Filter; label: string }[] = [
-  { value: "ALL", label: "Everything" },
-  { value: "WANTED", label: "Wanted" },
-  { value: "OWNED_UNSTARTED", label: "Owned but unstarted" },
-  { value: "DONE", label: "Done" },
-  { value: "STUDIED", label: "Studied" },
-  { value: "ABANDONED", label: "Abandoned" },
-  { value: "GONE", label: "Gone" },
-];
-
-function matches(m: MediaItem, f: Filter): boolean {
-  switch (f) {
-    case "ALL":
-      return true;
-    case "WANTED":
-      return m.acquisition === "WANTED";
-    case "OWNED_UNSTARTED":
-      return m.acquisition === "OWNED" && m.engagement === "UNSTARTED";
-    case "DONE":
-      return m.engagement === "DONE";
-    case "STUDIED":
-      return m.studied;
-    case "ABANDONED":
-      return m.engagement === "ABANDONED";
-    case "GONE":
-      return m.acquisition === "GONE";
-  }
-}
 
 function TypeChips({ value, onChange, counts }: { value: MediaTypeId | "all"; onChange: (v: MediaTypeId | "all") => void; counts: Map<string, number> }) {
   return (
@@ -89,9 +62,11 @@ export function MediaScreen() {
   const items = useMedia();
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<MediaItem | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
   const [type, setType] = useState<MediaTypeId | "all">("all");
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<Filter>("ALL");
+  const [filter, setFilter] = useState<StatusFilter>("ALL");
+  const [sort, setSort] = useState<GallerySort>("ADDED");
 
   const counts = useMemo(() => {
     const m = new Map<string, number>();
@@ -102,14 +77,33 @@ export function MediaScreen() {
 
   const types = type === "all" ? MEDIA_TYPES.map((t) => t.id).filter((t) => (counts.get(t) ?? 0) > 0 || t === "book") : [type];
 
-  const pool = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return backlog(items)
-      .filter((m) => type === "all" || m.type === type)
-      .filter((m) => matches(m, filter))
-      .filter((m) => !needle || [m.title, m.creator, m.reason].some((s) => s.toLowerCase().includes(needle)))
-      .sort((a, b) => a.title.localeCompare(b.title));
-  }, [items, type, q, filter]);
+  // Search + status filter apply to both the Backlog list and the Gallery.
+  const narrowed = useMemo(
+    () => items.filter((m) => type === "all" || m.type === type).filter((m) => matchesStatus(m, filter)).filter((m) => matchesSearch(m, q)),
+    [items, type, q, filter],
+  );
+  const pool = useMemo(() => backlog(narrowed).sort((a, b) => a.title.localeCompare(b.title)), [narrowed]);
+  const gallery = useMemo(() => sortGallery(narrowed, sort), [narrowed, sort]);
+  // Resolve by id so the dialog re-renders with the live record after each transition.
+  const viewing = viewingId ? (items.find((m) => m.id === viewingId) ?? null) : null;
+
+  const filterControls = (
+    <div className="flex gap-2">
+      <Input placeholder="Search title, creator, reason…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <Select value={filter} onValueChange={(v) => setFilter(v as StatusFilter)}>
+        <SelectTrigger className="w-48">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {STATUS_FILTERS.map((f) => (
+            <SelectItem key={f.value} value={f.value}>
+              {f.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-6 p-6">
@@ -125,6 +119,7 @@ export function MediaScreen() {
         <TabsList>
           <TabsTrigger value="nightstand">Nightstand</TabsTrigger>
           <TabsTrigger value="backlog">Backlog ({backlog(items).filter((m) => type === "all" || m.type === type).length})</TabsTrigger>
+          <TabsTrigger value="gallery">Gallery</TabsTrigger>
         </TabsList>
 
         <TabsContent value="nightstand" className="grid gap-6 pt-4">
@@ -134,21 +129,7 @@ export function MediaScreen() {
         </TabsContent>
 
         <TabsContent value="backlog" className="grid gap-3 pt-4">
-          <div className="flex gap-2">
-            <Input placeholder="Search title, creator, reason…" value={q} onChange={(e) => setQ(e.target.value)} />
-            <Select value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FILTERS.map((f) => (
-                  <SelectItem key={f.value} value={f.value}>
-                    {f.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {filterControls}
           {pool.length === 0 ? (
             <Card>
               <CardContent className="text-muted-foreground p-8 text-center text-sm">Nothing here. The Backlog is the unranked pool the Nightstand is filled from.</CardContent>
@@ -161,8 +142,38 @@ export function MediaScreen() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="gallery" className="grid gap-3 pt-4">
+          <div className="flex flex-wrap gap-2">
+            <div className="min-w-0 flex-1">{filterControls}</div>
+            <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {GALLERY_SORTS.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {gallery.length === 0 ? (
+            <Card>
+              <CardContent className="text-muted-foreground p-8 text-center text-sm">Nothing to show. The Gallery is everything you track — Nightstand and Backlog — as covers.</CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-3 gap-y-4">
+              {gallery.map((m) => (
+                <MediaTile key={m.id} item={m} onOpen={(it) => setViewingId(it.id)} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
+      <MediaDetailDialog item={viewing} all={items} onClose={() => setViewingId(null)} onEdit={setEditing} />
       <AddMediaDialog open={addOpen} onOpenChange={setAddOpen} defaultType={type === "all" ? "book" : type} />
       <EditMediaDialog item={editing} onClose={() => setEditing(null)} />
     </div>

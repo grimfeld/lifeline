@@ -1,0 +1,80 @@
+import { describe, expect, it } from "vitest";
+import type { MediaItem } from "./types";
+import { matchesSearch, matchesStatus, sortGallery } from "./browse";
+
+function item(p: Partial<MediaItem>): MediaItem {
+  return {
+    id: p.id ?? "x",
+    updatedAt: "",
+    deleted: 0,
+    type: "book",
+    title: "t",
+    creator: "",
+    externalKey: "",
+    coverUrl: "",
+    size: 0,
+    year: 0,
+    acquisition: "WANTED",
+    engagement: "UNSTARTED",
+    studied: false,
+    reason: "",
+    slot: 0,
+    addedOn: "2026-01-01",
+    acquiredOn: "",
+    slottedOn: "",
+    startedOn: "",
+    finishedOn: "",
+    ...p,
+  };
+}
+
+describe("matchesStatus", () => {
+  it("ALL matches everything", () => {
+    expect(matchesStatus(item({}), "ALL")).toBe(true);
+  });
+  it("OWNED_UNSTARTED needs both axes", () => {
+    expect(matchesStatus(item({ acquisition: "OWNED" }), "OWNED_UNSTARTED")).toBe(true);
+    expect(matchesStatus(item({ acquisition: "OWNED", engagement: "DONE" }), "OWNED_UNSTARTED")).toBe(false);
+    expect(matchesStatus(item({ acquisition: "WANTED" }), "OWNED_UNSTARTED")).toBe(false);
+  });
+  it("IN_PROGRESS is an engagement filter", () => {
+    expect(matchesStatus(item({ engagement: "IN_PROGRESS" }), "IN_PROGRESS")).toBe(true);
+    expect(matchesStatus(item({}), "IN_PROGRESS")).toBe(false);
+  });
+});
+
+describe("matchesSearch", () => {
+  it("empty needle matches all; otherwise title/creator/reason, case-insensitive", () => {
+    const m = item({ title: "Dune", creator: "Herbert", reason: "Recommended by Sam" });
+    expect(matchesSearch(m, "  ")).toBe(true);
+    expect(matchesSearch(m, "dune")).toBe(true);
+    expect(matchesSearch(m, "HERB")).toBe(true);
+    expect(matchesSearch(m, "sam")).toBe(true);
+    expect(matchesSearch(m, "zzz")).toBe(false);
+  });
+});
+
+describe("sortGallery", () => {
+  const a = item({ id: "a", title: "Alpha", addedOn: "2026-01-01", finishedOn: "", year: 2001 });
+  const b = item({ id: "b", title: "Beta", addedOn: "2026-03-01", finishedOn: "2026-04-01", year: 0 });
+  const c = item({ id: "c", title: "Gamma", addedOn: "2026-02-01", finishedOn: "2026-05-01", year: 1999 });
+  const ids = (xs: MediaItem[]) => xs.map((x) => x.id);
+
+  it("does not mutate input", () => {
+    const input = [c, b, a];
+    sortGallery(input, "TITLE");
+    expect(ids(input)).toEqual(["c", "b", "a"]);
+  });
+  it("TITLE is alphabetical", () => {
+    expect(ids(sortGallery([c, b, a], "TITLE"))).toEqual(["a", "b", "c"]);
+  });
+  it("ADDED is newest first", () => {
+    expect(ids(sortGallery([a, b, c], "ADDED"))).toEqual(["b", "c", "a"]);
+  });
+  it("FINISHED is newest first, never-finished last", () => {
+    expect(ids(sortGallery([a, b, c], "FINISHED"))).toEqual(["c", "b", "a"]);
+  });
+  it("YEAR is newest release first, unknown year last", () => {
+    expect(ids(sortGallery([a, b, c], "YEAR"))).toEqual(["a", "c", "b"]);
+  });
+});
