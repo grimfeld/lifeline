@@ -11,7 +11,7 @@ export function TemplatesDialog({ open, onOpenChange }: { open: boolean; onOpenC
   async function edit(type: NoteTypeId) {
     const t = await ensureTemplateNote(type);
     onOpenChange(false);
-    navigate(`/app/notes/${t.id}`);
+    navigate(`/notes/n/${t.id}`);
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

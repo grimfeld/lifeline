@@ -1,4 +1,4 @@
-import type { AppManifest, CardDef, CommandDef } from "./manifest";
+import { DASHBOARD_WORKSPACE, type AppManifest, type AppScreenDef, type CardDef, type CommandDef, type WorkspaceDef } from "./manifest";
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
 import type { BacklinkProvider, LinkableProvider } from "./contracts/linkable";
@@ -90,4 +90,33 @@ export function normalizeLayout(items: ScreenLayoutItem[]): ScreenLayoutItem[] {
     instanceId: l.instanceId ?? l.cardId,
     settings: resolveSettings(cardById(l.cardId)?.settings, l.settings),
   }));
+}
+
+/** Workspaces provided by Apps (the dashboard is Core's own and not listed here). */
+export function workspaces(): (WorkspaceDef & { appId: string })[] {
+  return apps.flatMap((a) => (a.workspace ? [{ ...a.workspace, appId: a.id }] : []));
+}
+
+export function workspaceById(id: string): (WorkspaceDef & { appId: string }) | undefined {
+  return workspaces().find((w) => w.id === id);
+}
+
+/** Screens of one workspace, with their owning App id. */
+export function screensOf(workspace: string = DASHBOARD_WORKSPACE): (AppScreenDef & { appId: string })[] {
+  return apps.flatMap((a) => a.screens.filter((s) => (s.workspace ?? DASHBOARD_WORKSPACE) === workspace).map((s) => ({ ...s, appId: a.id })));
+}
+
+/** Absolute route of a screen: /app/<path> in the dashboard, <workspace.path>/<path> elsewhere. */
+export function screenRoute(s: AppScreenDef): string {
+  const ws = s.workspace ?? DASHBOARD_WORKSPACE;
+  if (ws === DASHBOARD_WORKSPACE) return `/app/${s.path}`;
+  const w = workspaceById(ws);
+  const base = w?.path ?? `/${ws}`;
+  return s.path ? `${base}/${s.path}` : base;
+}
+
+/** Which workspace a pathname belongs to. */
+export function workspaceOfPath(pathname: string): string {
+  const w = workspaces().find((w) => pathname === w.path || pathname.startsWith(w.path + "/"));
+  return w?.id ?? DASHBOARD_WORKSPACE;
 }

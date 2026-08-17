@@ -1,7 +1,8 @@
 import type { AppManifest } from "@lifeline/core";
-import { MapPin, Sun } from "lucide-react";
+import { LayoutDashboard, MapPin, NotebookPen, Sun } from "lucide-react";
 import { TodayCard } from "./surfaces/TodayCard";
 import { AgendaCard } from "./surfaces/AgendaCard";
+import { lastLocation } from "./components/WorkspaceSwitcher";
 import { MapCard, useLocatableAppOptions } from "./surfaces/MapCard";
 
 /**
@@ -50,6 +51,20 @@ export const hubApp: AppManifest = {
     },
   ],
   commands: [
+    {
+      id: "hub.go-dashboard",
+      title: "Go to Dashboard",
+      keywords: ["workspace", "screens"],
+      icon: LayoutDashboard,
+      run: ({ navigate }) => navigate(lastLocation("dashboard")),
+    },
+    {
+      id: "hub.go-notes",
+      title: "Go to Notes",
+      keywords: ["workspace", "journal", "editor"],
+      icon: NotebookPen,
+      run: ({ navigate }) => navigate(lastLocation("notes")),
+    },
     {
       id: "hub.today-icon",
       title: "Go to Calendar",

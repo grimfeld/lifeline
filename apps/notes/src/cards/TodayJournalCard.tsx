@@ -13,7 +13,7 @@ export function TodayJournalCard({ settings }: CardProps) {
   const notes = useNotes();
   const navigate = useNavigate();
   const note = notes.find((n) => n.type === "daily" && n.title === date);
-  const open = () => navigate(offset === 0 ? "/app/journal" : `/app/journal?d=${date}`);
+  const open = () => navigate(offset === 0 ? "/notes/journal" : `/notes/journal?d=${date}`);
   if (!note) {
     return (
       <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 text-sm">

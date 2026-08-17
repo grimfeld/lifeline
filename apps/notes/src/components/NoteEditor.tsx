@@ -51,14 +51,14 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
 
   const openRef = useCallback(
     (ref: LinkRef, name: string) => {
-      if (ref.kind === "note") navigate(`/app/notes/${ref.noteId}`);
+      if (ref.kind === "note") navigate(`/notes/n/${ref.noteId}`);
       else if (ref.kind === "app") {
         if (ref.href) navigate(ref.href);
         else toast.message(`${name} lives in another app`);
       } else {
         void createNote({ type: "plain", title: name }).then((n) => {
           toast.success(`Created “${name}”`);
-          navigate(`/app/notes/${n.id}`);
+          navigate(`/notes/n/${n.id}`);
         });
       }
     },
@@ -76,7 +76,7 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
     flush();
     await deleteNote(note.id);
     toast.success(`“${note.title}” deleted`);
-    navigate("/app/notes");
+    navigate("/notes");
   }
 
   const coords = useMemo(() => noteCoords(properties), [properties]);

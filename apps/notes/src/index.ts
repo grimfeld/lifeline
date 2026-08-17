@@ -1,7 +1,7 @@
 import type { AppManifest, BacklinkProvider, LocatableProvider, Pin } from "@lifeline/core";
 import { NotebookPen } from "lucide-react";
 import { JournalScreen } from "./screens/JournalScreen";
-import { NotesScreen } from "./screens/NotesScreen";
+import { NotesSidebar } from "./workspace/NotesSidebar";
 import { NoteScreen } from "./screens/NoteScreen";
 import { TodayJournalCard } from "./cards/TodayJournalCard";
 import { DaylogCard } from "./cards/DaylogCard";
@@ -27,7 +27,7 @@ const notesBacklinks: BacklinkProvider = {
         sourceId: b.noteId,
         title: n ? (n.type === "daily" ? formatHuman(n.title) : n.title) : "?",
         excerpt: b.context || excerpt(n?.body ?? "", 100),
-        href: n ? (n.type === "daily" ? `/app/journal?d=${n.title}` : `/app/notes/${n.id}`) : undefined,
+        href: n ? (n.type === "daily" ? `/notes/journal?d=${n.title}` : `/notes/n/${n.id}`) : undefined,
       };
     });
   },
@@ -44,7 +44,7 @@ const notesLocatable: LocatableProvider = {
       const c = noteCoords(props);
       if (!c) continue;
       const address = typeof props.address === "string" && props.address ? props.address : noteType(n.type).label;
-      out.push({ appId: APP_ID, itemId: n.id, name: n.title, subtitle: address, lat: c.lat, lon: c.lon, href: `/app/notes/${n.id}` });
+      out.push({ appId: APP_ID, itemId: n.id, name: n.title, subtitle: address, lat: c.lat, lon: c.lon, href: `/notes/n/${n.id}` });
     }
     return out;
   },
@@ -62,11 +62,12 @@ export const notesApp: AppManifest = {
   title: "Notes",
   icon: NotebookPen,
   color: "var(--chart-green)",
-  collections: [{ name: NOTES, indexes: ["type", "title"], onConflict: onNoteConflict }],
+  collections: [{ name: NOTES, indexes: ["type", "title", "folder"], onConflict: onNoteConflict }],
+  /** The Notes workspace (ADR 0012): Core frames it, this App supplies the sidebar and the screens below /notes. */
+  workspace: { id: "notes", title: "Notes", icon: NotebookPen, path: "/notes", sidebar: NotesSidebar, home: "journal" },
   screens: [
-    { id: "notes.journal", title: "Journal", path: "journal", icon: NotebookPen, component: JournalScreen },
-    { id: "notes.main", title: "Notes", path: "notes", icon: NotebookPen, component: NotesScreen },
-    { id: "notes.detail", title: "Note", path: "notes/:id", component: NoteScreen, hidden: true },
+    { id: "notes.journal", title: "Journal", path: "journal", icon: NotebookPen, component: JournalScreen, workspace: "notes" },
+    { id: "notes.detail", title: "Note", path: "n/:id", component: NoteScreen, hidden: true, workspace: "notes" },
   ],
   cards: [
     {

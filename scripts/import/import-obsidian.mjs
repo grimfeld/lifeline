@@ -6,7 +6,7 @@
 // lib.mjs (dry-run by default, --apply to write). Ids are always fresh: vault
 // files have no ids, so re-running an import creates duplicates — run it once.
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { basename, join, relative, sep } from "node:path";
+import { basename, dirname, join, relative, sep } from "node:path";
 import { deliver, newId, stamp, run } from "./lib.mjs";
 
 const DEFAULT_VAULTS = [
@@ -39,6 +39,19 @@ function classify(relPath) {
   if (PERSON_DIRS.has(top)) return "person";
   if (PLACE_DIRS.has(top)) return "place";
   return "plain";
+}
+
+/**
+ * Folder for a note (ADR 0013): dailies → Journal/YYYY/MM; people/places →
+ * "People" / "Places" (the two vaults name them differently and merge);
+ * everything else keeps its vault directory 1:1 ("" at the root).
+ */
+function folderFor(type, relPath, title) {
+  if (type === "daily") return `Journal/${title.slice(0, 4)}/${title.slice(5, 7)}`;
+  if (type === "person") return "People";
+  if (type === "place") return "Places";
+  const dir = dirname(relPath);
+  return dir === "." ? "" : dir.split(sep).join("/");
 }
 
 function fileDay(path) {
@@ -167,7 +180,7 @@ await run(async () => {
       const existing = drafts.get(key);
 
       if (type === "daily") {
-        const draft = { type, title, body: text, createdAt: title, source };
+        const draft = { type, title, folder: folderFor(type, rel, title), body: text, createdAt: title, source };
         if (existing) {
           const keep = text.length > existing.body.length ? draft : existing;
           stats.dailyDupes.push(`daily ${title}: kept ${keep.source} (${keep.body.length} chars) over the shorter copy`);
@@ -177,14 +190,14 @@ await run(async () => {
       }
       if (type === "plain") {
         if (existing) {
-          const keep = text.length > existing.body.length ? { type, title, body: text, createdAt: fileDay(path), source } : existing;
+          const keep = text.length > existing.body.length ? { type, title, folder: folderFor(type, rel, title), body: text, createdAt: fileDay(path), source } : existing;
           stats.dailyDupes.push(`plain "${title}": kept ${keep.source} over the shorter copy`);
           drafts.set(key, keep);
-        } else drafts.set(key, { type, title, body: text, createdAt: fileDay(path), source });
+        } else drafts.set(key, { type, title, folder: folderFor(type, rel, title), body: text, createdAt: fileDay(path), source });
         continue;
       }
       // person / place
-      const draft = { type, title, fm: normaliseEntity(type, fm, rest), rest, createdAt: fileDay(path), source };
+      const draft = { type, title, folder: folderFor(type, rel, title), fm: normaliseEntity(type, fm, rest), rest, createdAt: fileDay(path), source };
       drafts.set(key, existing ? mergeEntity(existing, draft, stats.merged) : draft);
     }
   }
@@ -192,7 +205,7 @@ await run(async () => {
   const notes = [];
   for (const d of drafts.values()) {
     const body = d.body ?? serializeFrontmatter(d.fm) + d.rest.replace(/^\s*\n/, "");
-    notes.push(stamp({ id: newId(), type: d.type, title: d.title, body, createdAt: d.createdAt }));
+    notes.push(stamp({ id: newId(), type: d.type, folder: d.folder ?? "", title: d.title, body, createdAt: d.createdAt }));
     stats.perType[d.type] = (stats.perType[d.type] ?? 0) + 1;
   }
   notes.sort((a, b) => a.type.localeCompare(b.type) || a.title.localeCompare(b.title));

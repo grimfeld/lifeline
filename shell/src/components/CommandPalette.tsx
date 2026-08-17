@@ -14,6 +14,7 @@ import {
   appById,
   db,
   registeredApps,
+  screenRoute,
   useLiveQuery,
   type CommandDef,
   type UserScreen,
@@ -81,7 +82,7 @@ export function CommandPalette() {
                 return (
                   <CommandItem
                     key={s.id}
-                    onSelect={() => pick(() => navigate(`/app/${s.path}`))}
+                    onSelect={() => pick(() => navigate(screenRoute(s)))}
                   >
                     <Icon /> {s.title}
                   </CommandItem>

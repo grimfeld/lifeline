@@ -60,7 +60,7 @@ function NewNoteCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           const n = await createNote({ type, title });
           setType(null);
           onOpenChange(false);
-          navigate(`/app/notes/${n.id}`);
+          navigate(`/notes/n/${n.id}`);
         }}
       />
     );
@@ -91,7 +91,7 @@ function NewNoteCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 }
 
 export const noteCommands: CommandDef[] = [
-  { id: "notes.today", title: "Open today's journal", keywords: ["daily", "diary", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal") },
+  { id: "notes.today", title: "Open today's journal", keywords: ["daily", "diary", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/notes/journal") },
   { id: "notes.new", title: "New note…", keywords: ["person", "place", "note"], icon: FilePlus, dialog: NewNoteCommandDialog },
   { id: "notes.capture", title: "Quick capture", keywords: ["journal", "log", "thought"], icon: Zap, dialog: QuickCaptureDialog },
   { id: "notes.templates", title: "Edit note templates…", keywords: ["template", "daily", "journal"], icon: LayoutTemplate, dialog: TemplatesDialog },
