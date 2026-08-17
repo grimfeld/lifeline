@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input } from "@lifeline/ui";
+import { Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Input } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
-import { Plus, Search } from "lucide-react";
-import { NOTE_TYPES, type NoteTypeDef, type NoteTypeId } from "../domain/noteTypes";
+import { LayoutTemplate, Plus, Search } from "lucide-react";
+import { NOTE_TYPES, isTemplatable, type NoteTypeDef, type NoteTypeId } from "../domain/noteTypes";
 import { excerpt } from "../domain/markdown";
 import { createNote, useNoteIndex, useNotes } from "../data/repo";
 import type { Note } from "../domain/types";
 import { NewNoteDialog } from "../components/NewNoteDialog";
+import { TemplatesDialog } from "../components/TemplatesDialog";
 
 /** All notes grouped by type, with search over title, aliases, tags and text. */
 export function NotesScreen() {
@@ -17,6 +18,7 @@ export function NotesScreen() {
   const [q, setQ] = useState("");
   const [newType, setNewType] = useState<NoteTypeId | null>(null);
   const [typeFilter, setTypeFilter] = useState<NoteTypeId | "all">("all");
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -48,7 +50,7 @@ export function NotesScreen() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {(NOTE_TYPES as readonly NoteTypeDef[]).map((t) => {
+            {(NOTE_TYPES as readonly NoteTypeDef[]).filter(isTemplatable).map((t) => {
               const I = t.icon;
               return (
                 <DropdownMenuItem key={t.id} onClick={() => (t.titleRule === "date" ? navigate("/app/journal") : setNewType(t.id as NoteTypeId))}>
@@ -56,6 +58,10 @@ export function NotesScreen() {
                 </DropdownMenuItem>
               );
             })}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setTemplatesOpen(true)}>
+              <LayoutTemplate /> Edit templates…
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -104,6 +110,7 @@ export function NotesScreen() {
           );
         })
       )}
+      <TemplatesDialog open={templatesOpen} onOpenChange={setTemplatesOpen} />
       <NewNoteDialog
         type={newType}
         onOpenChange={(o) => !o && setNewType(null)}

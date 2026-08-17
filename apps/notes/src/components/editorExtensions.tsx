@@ -157,11 +157,22 @@ class DaylogWidget extends WidgetType {
   }
 }
 
+/** Whether the editor has focus — a `daylog` fence shows its source only when focused with the cursor inside. */
+export const setFocused = StateEffect.define<boolean>();
+export const focusedField = StateField.define<boolean>({
+  create: () => false,
+  update(v, tr) {
+    for (const e of tr.effects) if (e.is(setFocused)) return e.value;
+    return v;
+  },
+});
+export const focusTracking = EditorView.focusChangeEffect.of((_state, focusing) => setFocused.of(focusing));
+
 /** Block decorations must come from a StateField (not a view plugin). */
 export const daylogField = StateField.define<DecorationSet>({
   create: (state) => buildBlocks(state),
   update(deco, tr) {
-    if (tr.docChanged || tr.selection || tr.effects.some((e) => e.is(setContext))) return buildBlocks(tr.state);
+    if (tr.docChanged || tr.selection || tr.effects.some((e) => e.is(setContext) || e.is(setFocused))) return buildBlocks(tr.state);
     return deco;
   },
   provide: (f) => EditorView.decorations.from(f),
@@ -172,9 +183,10 @@ function buildBlocks(state: EditorState): DecorationSet {
   const text = state.doc.toString();
   const b = new RangeSetBuilder<Decoration>();
   const sel = state.selection.main;
+  const focused = state.field(focusedField, false) ?? false;
   for (const blk of extractBlocks(text)) {
     if (blk.lang !== "daylog") continue;
-    if (sel.from <= blk.to && sel.to >= blk.from) continue; // cursor inside: show source
+    if (focused && sel.from <= blk.to && sel.to >= blk.from) continue; // cursor inside while editing: show source
     const opts = parseBlockOptions(blk.body);
     const date = opts.date || ctx?.noteDate || new Date().toISOString().slice(0, 10);
     const apps = opts.apps ? opts.apps.split(/[\s,]+/).filter(Boolean) : undefined;

@@ -1,5 +1,5 @@
 import type * as React from "react";
-import { CalendarDays, FileText, MapPin, User } from "lucide-react";
+import { CalendarDays, FileText, LayoutTemplate, MapPin, User } from "lucide-react";
 
 /** A typed Property of a Note type; values live in the note's frontmatter. */
 export type PropertyDef =
@@ -110,9 +110,31 @@ export const NOTE_TYPES = [
     template: "",
     order: 3,
   },
+  {
+    id: "template",
+    label: "Template",
+    plural: "Templates",
+    icon: LayoutTemplate,
+    titleRule: "name",
+    properties: [],
+    template: "",
+    order: 9,
+  },
 ] as const satisfies readonly NoteTypeDef[];
 
+/**
+ * A user-editable template is a Note of type "template" titled with the
+ * target type's id ("daily", "person"…). Its content (after any frontmatter)
+ * replaces the code default above; placeholders: {{title}}, {{date}}, {{time}}.
+ */
+export function isTemplatable(t: NoteTypeDef): boolean {
+  return t.id !== TEMPLATE_TYPE;
+}
+
+
 export type NoteTypeId = (typeof NOTE_TYPES)[number]["id"];
+
+export const TEMPLATE_TYPE: NoteTypeId = "template";
 
 export function noteType(id: string): NoteTypeDef {
   return (NOTE_TYPES as readonly NoteTypeDef[]).find((t) => t.id === id) ?? NOTE_TYPES[3];

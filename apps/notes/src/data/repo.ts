@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { db, get, newId, put, remove, todayStr, useLinkTargets, useLiveQuery, type DateStr, type SyncedRecord } from "@lifeline/core";
 import { NOTES, type Note } from "../domain/types";
-import { noteType, type NoteTypeId } from "../domain/noteTypes";
+import { noteType, TEMPLATE_TYPE, type NoteTypeId } from "../domain/noteTypes";
+import { renderTemplate } from "../domain/templates";
 import { buildIndex, type NoteIndex } from "../domain/index";
 import { normalizeName, renameLinks, serializeFrontmatter, splitFrontmatter, withProperties, type Properties } from "../domain/markdown";
 
@@ -25,7 +26,8 @@ export function useNote(id: string | undefined): Note | undefined {
 export function useNoteIndex(): NoteIndex {
   const notes = useNotes();
   const targets = useLinkTargets();
-  return useMemo(() => buildIndex(notes, targets), [notes, targets]);
+  // Templates are not link targets and their placeholder links are not backlinks.
+  return useMemo(() => buildIndex(notes.filter((n) => n.type !== TEMPLATE_TYPE), targets), [notes, targets]);
 }
 
 export async function allNotes(): Promise<Note[]> {
@@ -37,15 +39,32 @@ export async function findByTitle(title: string): Promise<Note | undefined> {
   return (await allNotes()).find((n) => normalizeName(n.title) === k);
 }
 
+/** The template note for a type (a "template" note titled with the type id), if the user made one. */
+export async function templateNote(type: NoteTypeId): Promise<Note | undefined> {
+  return (await allNotes()).find((n) => n.type === TEMPLATE_TYPE && normalizeName(n.title) === type);
+}
+
+/** Template content for a type: the user's template note (content after its frontmatter) or the code default. */
+export async function templateFor(type: NoteTypeId, vars: { title: string }): Promise<string> {
+  const custom = await templateNote(type);
+  const raw = custom ? splitFrontmatter(custom.body).content : noteType(type).template;
+  return renderTemplate(raw, { title: vars.title, date: type === "daily" ? vars.title : todayStr() });
+}
+
+/** Get-or-create the editable template note for a type, seeded with the code default. */
+export async function ensureTemplateNote(type: NoteTypeId): Promise<Note> {
+  return (await templateNote(type)) ?? createNote({ type: TEMPLATE_TYPE, title: type, body: noteType(type).template });
+}
+
 /** Create a note of a type; body defaults to the type's template with empty properties. */
 export async function createNote(input: { type: NoteTypeId; title: string; body?: string; properties?: Properties }): Promise<Note> {
-  const def = noteType(input.type);
   const fm = serializeFrontmatter(input.properties ?? {});
+  const title = input.title.trim();
   const note: Note = {
     id: newId(),
     type: input.type,
-    title: input.title.trim(),
-    body: input.body ?? fm + def.template,
+    title,
+    body: input.body ?? fm + (await templateFor(input.type, { title })),
     createdAt: todayStr(),
     updatedAt: "",
     deleted: 0,
