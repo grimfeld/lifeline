@@ -22,7 +22,7 @@ const LABELS: Record<string, string> = {
 };
 
 export function SyncBadge() {
-  const { state, pending } = useSyncState();
+  const { state, pending, error } = useSyncState();
   const { loggedIn, email } = useAuth();
   const [open, setOpen] = useState(false);
   const [em, setEm] = useState("");
@@ -51,9 +51,9 @@ export function SyncBadge() {
       <button
         className="hover:bg-accent/50 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs"
         onClick={() => (loggedIn ? void syncNow() : setOpen(true))}
-        title={loggedIn ? "Sync now" : "Sign in to sync"}
+        title={loggedIn ? (state === "error" && error ? `Sync error: ${error}\nClick to retry` : "Sync now") : "Sign in to sync"}
       >
-        <Icon className={state === "syncing" ? "size-3.5 animate-spin" : "size-3.5"} />
+        <Icon className={`size-3.5 ${state === "syncing" ? "animate-spin" : ""} ${state === "error" ? "text-destructive" : ""}`} />
         <span className="truncate">
           {loggedIn ? (LABELS[state] ?? state) : "Sign in to sync"}
           {pending > 0 && ` · ${pending} pending`}
