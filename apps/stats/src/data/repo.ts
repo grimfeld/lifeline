@@ -1,8 +1,8 @@
-import { db, put, remove, newId, todayStr, useLiveQuery } from "@lifeline/core";
+import { db, put, remove, newId, todayStr, useLiveQuery, normalizeTags } from "@lifeline/core";
 import { ENTRIES, STATS, type ColorSlot, type Entry, type Stat, type StatKind } from "../domain/types";
 
 function normalizeStat(s: Stat): Stat {
-  return { ...s, unit: s.unit ?? "", defaultIncrement: s.defaultIncrement || 0, universeSize: s.universeSize || 0 };
+  return { ...s, unit: s.unit ?? "", defaultIncrement: s.defaultIncrement || 0, universeSize: s.universeSize || 0, tags: s.tags ?? [] };
 }
 function normalizeEntry(e: Entry): Entry {
   return { ...e, item: e.item ?? "" };
@@ -71,6 +71,7 @@ export interface StatInput {
   color: ColorSlot;
   defaultIncrement: number;
   universeSize: number;
+  tags: string[];
 }
 
 /** Fields irrelevant to the kind are zeroed so they can't leak meaning. */
@@ -81,6 +82,7 @@ function scrub(input: StatInput): StatInput {
     unit: k === "additive" || k === "measurement" ? input.unit.trim() : "",
     defaultIncrement: k === "additive" ? input.defaultIncrement || 0 : 0,
     universeSize: k === "collection" ? input.universeSize || 0 : 0,
+    tags: normalizeTags(input.tags),
   };
 }
 

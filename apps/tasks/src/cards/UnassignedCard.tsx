@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { Button, Input, toast } from "@lifeline/ui";
-import { todayStr } from "@lifeline/core";
+import { matchesTagFilter, todayStr, useTagFilter } from "@lifeline/core";
 import { CalendarPlus, Check } from "lucide-react";
 import { addTask, moveItem, setCompleted, useTasks } from "../data/repo";
 
 /** Card: the Unassigned pool with quick add; "→ today" schedules a task for today. */
 export function UnassignedCard() {
   const tasks = useTasks();
+  const filter = useTagFilter();
   const [quick, setQuick] = useState("");
   const pool = tasks
     .filter((t) => t.status === "active" && !t.recurrence && t.date === null && !t.completedOn)
+    .filter((t) => matchesTagFilter(t.tags, filter))
     .sort((a, b) => a.title.localeCompare(b.title));
 
   async function quickAdd() {

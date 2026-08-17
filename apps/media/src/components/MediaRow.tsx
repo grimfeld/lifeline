@@ -15,6 +15,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  TagChips,
+  TagInput,
   Textarea,
   toast,
 } from "@lifeline/ui";
@@ -26,7 +28,7 @@ import { patchMedia } from "../data/repo";
 import { Cover } from "./Cover";
 import { MediaActionsMenu, useAct } from "./MediaActions";
 import { ACQ_LABEL } from "./AddMediaDialog";
-import { useBacklinks } from "@lifeline/core";
+import { normalizeTag, useBacklinks, useTagVocabulary } from "@lifeline/core";
 import { APP_ID } from "../linkable";
 
 /** Notes mentioning this item via [[wikilink]] (ADR 0009). Muted, read-only. */
@@ -63,6 +65,8 @@ export function EditMediaDialog({ item, onClose }: { item: MediaItem | null; onC
   const [reason, setReason] = useState("");
   const [acq, setAcq] = useState<Acquisition>("WANTED");
   const [coverUrl, setCoverUrl] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const tagSuggestions = useTagVocabulary().map((v) => v.tag);
   useEffect(() => {
     if (!item) return;
     setTitle(item.title);
@@ -72,6 +76,7 @@ export function EditMediaDialog({ item, onClose }: { item: MediaItem | null; onC
     setReason(item.reason);
     setAcq(item.acquisition);
     setCoverUrl(item.coverUrl);
+    setTags(item.tags ?? []);
   }, [item]);
   if (!item) return null;
   const def = mediaType(item.type);
@@ -109,6 +114,10 @@ export function EditMediaDialog({ item, onClose }: { item: MediaItem | null; onC
             <Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />
           </div>
           <div className="grid gap-2">
+            <Label htmlFor="media-edit-tags">Tags</Label>
+            <TagInput id="media-edit-tags" value={tags} onChange={setTags} suggestions={tagSuggestions} normalize={normalizeTag} placeholder="Add tag…" />
+          </div>
+          <div className="grid gap-2">
             <Label>Acquisition</Label>
             <Select value={acq} onValueChange={(v) => setAcq(v as Acquisition)}>
               <SelectTrigger>
@@ -139,6 +148,7 @@ export function EditMediaDialog({ item, onClose }: { item: MediaItem | null; onC
                 size: Number(size) || 0,
                 reason: reason.trim(),
                 coverUrl: coverUrl.trim(),
+                tags,
                 ...(acq !== item.acquisition ? (acq === "OWNED" || acq === "BORROWED" ? acquire(acq) : acq === "GONE" ? release() : { acquisition: acq }) : {}),
               });
               toast.success("Saved");
@@ -180,6 +190,7 @@ export function MediaRow({ item, all, onEdit, compact = false }: { item: MediaIt
           {!compact && item.size ? ` · ${item.size} ${def.sizeUnit}` : ""}
         </div>
         {!compact && item.reason && <div className="text-muted-foreground line-clamp-2 text-xs italic">{item.reason}</div>}
+        {(item.tags ?? []).length > 0 && <TagChips tags={item.tags} size="xs" className="mt-0.5" />}
         <div className="mt-1 flex flex-wrap items-center gap-1">
           {buy && (
             <Badge variant="default" className="gap-1">

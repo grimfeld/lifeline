@@ -24,6 +24,7 @@ export const tasksDaylog: DaylogProvider = {
         subtitle: e.recurring ? "recurring" : undefined,
         time: null,
         href: TASKS_HREF,
+        tags: e.tags,
       }),
     );
   },

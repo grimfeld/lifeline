@@ -3,15 +3,27 @@ import {
   put,
   remove,
   newId,
+  normalizeTags,
   todayStr,
   useLiveQuery,
   type DateStr,
 } from "@lifeline/core";
 import { CHORES, COMPLETIONS, type Chore, type Completion, type Schedule } from "../domain/types";
 
+/**
+ * Read-side fallback for local records written before ADR 0014: a legacy
+ * `category` becomes the single tag until the record is next saved.
+ */
+function withTags(r: Chore): Chore {
+  if (r.tags) return r;
+  const { category, ...rest } = r;
+  return { ...rest, tags: category ? normalizeTags([category]) : [] };
+}
+
 export function useChores(): Chore[] {
   return useLiveQuery(
-    () => db().collection<Chore>(CHORES).where("deleted").equals(0).toArray(),
+    async () =>
+      (await db().collection<Chore>(CHORES).where("deleted").equals(0).toArray()).map(withTags),
     [],
     [] as Chore[],
   );
@@ -37,14 +49,14 @@ export function lastDoneMap(completions: Completion[]): Map<string, DateStr> {
 
 export async function addChore(input: {
   name: string;
-  category: string | null;
+  tags: string[];
   schedule: Schedule;
   anchorDate: DateStr | null;
 }): Promise<void> {
   await put<Chore>(CHORES, {
     id: newId(),
     name: input.name,
-    category: input.category,
+    tags: normalizeTags(input.tags),
     status: "active",
     schedule: input.schedule,
     anchorDate: input.anchorDate,
@@ -53,7 +65,8 @@ export async function addChore(input: {
 }
 
 export async function updateChore(chore: Chore): Promise<void> {
-  await put<Chore>(CHORES, chore);
+  const { category: _legacy, ...rest } = chore;
+  await put<Chore>(CHORES, { ...rest, tags: normalizeTags(chore.tags) });
 }
 
 export async function completeChore(choreId: string, on: DateStr): Promise<void> {

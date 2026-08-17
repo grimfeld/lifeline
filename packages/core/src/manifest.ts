@@ -4,6 +4,7 @@ import type { TimedProvider } from "./contracts/timed";
 import type { BacklinkProvider, LinkableProvider } from "./contracts/linkable";
 import type { DaylogProvider } from "./contracts/daylog";
 import type { LocatableProvider } from "./contracts/locatable";
+import type { TaggableProvider } from "./contracts/taggable";
 import type { SyncedRecord } from "./data/db";
 import type { CardSettings, CardSettingsSchema } from "./cards";
 
@@ -71,6 +72,13 @@ export interface CardDef {
   /** Per-instance settings schema; absent = not configurable. */
   settings?: CardSettingsSchema;
   /**
+   * The Card lists many items and obeys Tag filters (ADR 0014): it gains an
+   * optional `tags` setting and is wrapped in the Screen's filter. Single-
+   * entity Cards leave this unset and ignore filters. Use cardSchema(def)
+   * for the effective schema.
+   */
+  tagFilterable?: boolean;
+  /**
    * Title of one instance given its settings ("Push-ups", "Nightstand · Books").
    * Called as a React hook (inside a per-instance component), so it may use
    * the App's live-query hooks. Return "" to fall back to `title`.
@@ -122,4 +130,5 @@ export interface AppManifest {
   /** A workspace this App provides (ADR 0012). */
   workspace?: WorkspaceDef;
   locatable?: LocatableProvider;
+  taggable?: TaggableProvider;
 }

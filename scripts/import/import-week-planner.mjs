@@ -24,6 +24,7 @@ await run(async () => {
       recurrence: recurring ? { kind: "weekly", weekdays: (t.weekdays ?? []).map((w) => (w + 1) % 7).sort() } : null,
       // Old recurring tasks existed for all time; generate from the earliest override or creation.
       createdAt: created,
+      tags: [],
     });
   });
 

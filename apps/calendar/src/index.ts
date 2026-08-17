@@ -8,6 +8,7 @@ import { calendarCommands } from "./commands";
 import { calendarTimed, APP_ID } from "./timed";
 import { calendarLinkable } from "./linkable";
 import { calendarDaylog } from "./daylog";
+import { calendarTaggable } from "./taggable";
 import { EVENTS } from "./domain/types";
 
 /** The Calendar App owns Events (CONTEXT.md). The month/week grids are Core Surfaces. */
@@ -16,7 +17,7 @@ export const calendarApp: AppManifest = {
   title: "Calendar",
   icon: CalendarClock,
   color: "var(--chart-violet)",
-  collections: [{ name: EVENTS, indexes: ["date"] }],
+  collections: [{ name: EVENTS, indexes: ["date", "*tags"] }],
   screens: [
     {
       id: "calendar.events",
@@ -34,6 +35,7 @@ export const calendarApp: AppManifest = {
       component: UpcomingEventsCard,
       defaultSize: { w: 3, h: 6 },
       minSize: { w: 2, h: 3 },
+      tagFilterable: true,
     },
     {
       id: "calendar.next",
@@ -42,6 +44,7 @@ export const calendarApp: AppManifest = {
       component: NextEventsCard,
       defaultSize: { w: 3, h: 6 },
       minSize: { w: 2, h: 3 },
+      tagFilterable: true,
       settings: nextEventsSettings,
       instanceTitle: nextEventsTitle,
     },
@@ -60,6 +63,7 @@ export const calendarApp: AppManifest = {
   timed: calendarTimed,
   linkable: calendarLinkable,
   daylog: calendarDaylog,
+  taggable: calendarTaggable,
 };
 
 export { EVENTS };

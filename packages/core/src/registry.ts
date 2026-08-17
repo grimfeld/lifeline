@@ -4,8 +4,9 @@ import type { TimedProvider } from "./contracts/timed";
 import type { BacklinkProvider, LinkableProvider } from "./contracts/linkable";
 import type { DaylogProvider } from "./contracts/daylog";
 import type { LocatableProvider } from "./contracts/locatable";
+import type { TaggableProvider } from "./contracts/taggable";
 import { openDb, type LifelineDB, type ScreenLayoutItem } from "./data/db";
-import { resolveSettings, type CardSettings } from "./cards";
+import { resolveSettings, settingsTags, TAGS_FIELD, TAGS_SETTING, type CardSettings, type CardSettingsSchema } from "./cards";
 
 let apps: AppManifest[] = [];
 
@@ -69,6 +70,17 @@ export function locatableProviders(): LocatableProvider[] {
   return apps.flatMap((a) => (a.locatable ? [a.locatable] : []));
 }
 
+export function taggableProviders(): TaggableProvider[] {
+  return apps.flatMap((a) => (a.taggable ? [a.taggable] : []));
+}
+
+/** Effective settings schema of a Card: its own plus the auto-added Tag filter when tagFilterable. */
+export function cardSchema(def: Pick<CardDef, "settings" | "tagFilterable"> | undefined): CardSettingsSchema | undefined {
+  if (!def) return undefined;
+  if (!def.tagFilterable) return def.settings;
+  return { ...(def.settings ?? {}), [TAGS_SETTING]: TAGS_FIELD };
+}
+
 /** Collection definition by name (any App). */
 export function collectionDef(name: string) {
   return apps.flatMap((a) => a.collections).find((c) => c.name === name);
@@ -86,8 +98,11 @@ export function cardById(id: string): (CardDef & { appId: string }) | undefined 
 export function useCardInstanceTitle(def: CardDef, settings: CardSettings): string {
   // Hook order is stable per component instance: `def` never changes for a mounted card.
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const t = def.instanceTitle ? def.instanceTitle(resolveSettings(def.settings, settings)) : "";
-  return t || def.title;
+  const t = def.instanceTitle ? def.instanceTitle(resolveSettings(cardSchema(def), settings)) : "";
+  const base = t || def.title;
+  // A tagFilterable instance with its own filter says so: "Today · #garden #plants" (ADR 0014).
+  const tags = def.tagFilterable ? settingsTags(settings) : [];
+  return tags.length > 0 ? `${base} · ${tags.map((x) => `#${x}`).join(" ")}` : base;
 }
 
 /**
@@ -98,7 +113,7 @@ export function normalizeLayout(items: ScreenLayoutItem[]): ScreenLayoutItem[] {
   return items.map((l) => ({
     ...l,
     instanceId: l.instanceId ?? l.cardId,
-    settings: resolveSettings(cardById(l.cardId)?.settings, l.settings),
+    settings: resolveSettings(cardSchema(cardById(l.cardId)), l.settings),
   }));
 }
 

@@ -5,6 +5,8 @@ import { put, remove } from "../data/repo";
 import { appById, schedulableProviders } from "../registry";
 import { todayStr, type DateStr } from "../dates";
 import type { SchedulableItem } from "./schedulable";
+import { matchesTagFilter, type TagFilter } from "../tags";
+import { useTagFilter } from "./tagfilter";
 
 /** A Schedulable item resolved for display: placement pin > natural date; overdue rolled per owning App's policy. */
 export interface SurfaceItem extends SchedulableItem {
@@ -36,7 +38,9 @@ function useProviderItems(range: { start: DateStr; end: DateStr }) {
  * applies Placement pins, and rolls overdue items forward when the owning
  * App says so.
  */
-export function useSurfaceItems(range: { start: DateStr; end: DateStr }): SurfaceItem[] {
+export function useSurfaceItems(range: { start: DateStr; end: DateStr }, opts?: { tags?: TagFilter }): SurfaceItem[] {
+  const ambient = useTagFilter();
+  const filter = opts?.tags ?? ambient;
   const perProvider = useProviderItems(range);
   const placements = useLiveQuery(
     () => db().collection<Placement>("placements").where("deleted").equals(0).toArray(),
@@ -52,6 +56,7 @@ export function useSurfaceItems(range: { start: DateStr; end: DateStr }): Surfac
   for (const { provider, items } of perProvider) {
     const color = appById(provider.appId)?.color;
     for (const item of items) {
+      if (!matchesTagFilter(item.tags, filter)) continue;
       const pin = byItem.get(item.key);
       let displayDate = pin?.date ?? item.date;
       if (displayDate === null) continue; // unplaced pool item — see usePoolItems
@@ -74,7 +79,9 @@ export function useSurfaceItems(range: { start: DateStr; end: DateStr }): Surfac
  * "unplaced" column of a planning surface. Providers report pool items
  * regardless of the queried range, so any range works.
  */
-export function usePoolItems(): PoolItem[] {
+export function usePoolItems(opts?: { tags?: TagFilter }): PoolItem[] {
+  const ambient = useTagFilter();
+  const filter = opts?.tags ?? ambient;
   const today = todayStr();
   const perProvider = useProviderItems({ start: today, end: today });
   const placements = useLiveQuery(
@@ -88,6 +95,7 @@ export function usePoolItems(): PoolItem[] {
     const color = appById(provider.appId)?.color;
     for (const item of items) {
       if (item.date !== null || pinned.has(item.key) || item.completedOn) continue;
+      if (!matchesTagFilter(item.tags, filter)) continue;
       out.push({ ...item, color });
     }
   }

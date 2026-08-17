@@ -9,6 +9,7 @@ import { taskCommands } from "./commands";
 import { tasksSchedulable, APP_ID } from "./schedulable";
 import { tasksLinkable } from "./linkable";
 import { tasksDaylog } from "./daylog";
+import { tasksTaggable } from "./taggable";
 import { OCCURRENCES, TASKS } from "./domain/types";
 
 export const tasksApp: AppManifest = {
@@ -17,7 +18,7 @@ export const tasksApp: AppManifest = {
   icon: ListTodo,
   color: "var(--chart-blue)",
   collections: [
-    { name: TASKS, indexes: ["date", "status"] },
+    { name: TASKS, indexes: ["date", "status", "*tags"] },
     { name: OCCURRENCES, indexes: ["taskId", "[taskId+sourceDate]", "movedTo"] },
   ],
   screens: [
@@ -32,6 +33,7 @@ export const tasksApp: AppManifest = {
   cards: [
     {
       id: "tasks.today",
+      tagFilterable: true,
       title: "Tasks today",
       description: "Today's tasks and anything overdue, tick-off inline",
       component: TodayTasksCard,
@@ -40,6 +42,7 @@ export const tasksApp: AppManifest = {
     },
     {
       id: "tasks.unassigned",
+      tagFilterable: true,
       title: "Unassigned tasks",
       description: "The pool of tasks not yet on a day, with quick add",
       component: UnassignedCard,
@@ -48,6 +51,7 @@ export const tasksApp: AppManifest = {
     },
     {
       id: "tasks.completed",
+      tagFilterable: true,
       title: "Completed recently",
       description: "What you got done in the last days, grouped by day — untick to undo",
       component: CompletedCard,
@@ -83,6 +87,7 @@ export const tasksApp: AppManifest = {
   schedulable: tasksSchedulable,
   linkable: tasksLinkable,
   daylog: tasksDaylog,
+  taggable: tasksTaggable,
 };
 
 export { TASKS, OCCURRENCES };

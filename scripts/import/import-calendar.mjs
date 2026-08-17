@@ -38,6 +38,7 @@ await run(async () => {
         start: allDay ? null : localTime(startIso),
         end: allDay || !endIso ? null : localTime(endIso),
         createdAt: date,
+        tags: [],
       });
     });
 

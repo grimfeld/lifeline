@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { CardProps } from "@lifeline/core";
+import { matchesTagFilter, useTagFilter, type CardProps } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 import { AlertTriangle, ShoppingCart } from "lucide-react";
 import { MEDIA_TYPES, mediaType } from "../domain/mediaTypes";
@@ -12,7 +12,8 @@ import { mediumOf } from "./shared";
 
 /** Card: everything currently holding a slot, across media (or one medium), with stale and buy signals. */
 export function NightstandCard({ settings }: CardProps) {
-  const items = useMedia();
+  const filter = useTagFilter();
+  const items = useMedia().filter((m) => matchesTagFilter(m.tags, filter));
   const medium = mediumOf(settings);
   const [editing, setEditing] = useState<MediaItem | null>(null);
   const rows = MEDIA_TYPES.filter((t) => !medium || t.id === medium).flatMap((t) => nightstand(items, t.id));

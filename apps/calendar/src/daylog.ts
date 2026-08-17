@@ -18,6 +18,7 @@ export const calendarDaylog: DaylogProvider = {
       subtitle: ev.end ? `until ${ev.end}` : ev.start === null ? "all day" : undefined,
       time: ev.start,
       href: EVENTS_HREF,
+      tags: ev.tags ?? [],
     }));
   },
 };

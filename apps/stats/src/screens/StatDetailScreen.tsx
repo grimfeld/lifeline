@@ -14,6 +14,7 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
+  TagChips,
   toast,
 } from "@lifeline/ui";
 import { ArrowLeft, Check, Pencil, Trash2 } from "lucide-react";
@@ -105,6 +106,7 @@ export function StatDetailScreen() {
           {stat.unit && <span className="text-muted-foreground">{stat.unit}</span>}
           <span className="text-muted-foreground ml-1 text-sm">{caption}</span>
         </div>
+        {(stat.tags ?? []).length > 0 && <TagChips tags={stat.tags} size="xs" />}
         {stat.kind === "boolean" && (
           <div className="text-muted-foreground text-sm">
             <span className="text-foreground font-medium">{currentStreak(days)}</span> day streak · best {longestStreak(days)}

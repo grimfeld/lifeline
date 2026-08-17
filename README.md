@@ -62,10 +62,15 @@ fly deploy
 
 Everything else — offline storage, sync, palette entries, card picker, calendar presence — comes from Core.
 
-Cards (ADR 0008): a `CardDef` may declare a `settings` schema (`number` / `select` / `entity`) and an
+Cards (ADR 0008): a `CardDef` may declare a `settings` schema (`number` / `select` / `entity` / `tags`) and an
 `instanceTitle`; the component receives `{ settings, configure }`. Cards with a required `entity` field are
 configured in the picker before being added; the rest get a gear in edit mode. When a configured target is
 gone, render `<CardUnavailable onConfigure={configure} />` — the instance stays on the Screen.
+
+Tags (ADR 0014): every top-level entity carries `tags: string[]` (Notes derive theirs from `#tags` in prose and a
+frontmatter `tags` list). An App stamps `tags` on the items its Contract providers emit and implements `taggable`
+(`useTagged()` → its tagged entities) so Core can derive the vocabulary. Listing Cards set `tagFilterable: true`
+and read `useTagFilter()`; the Screen's filter ∧ the instance's `tags` setting compose (any-of within a set, both must pass).
 
 ## Roadmap (agreed build order)
 
@@ -81,3 +86,4 @@ gone, render `<CardUnavailable onConfigure={configure} />` — the instance stay
    Obsidian vault importer (`pnpm import:obsidian`, see docs/retire-legacy.md)
 7. ✅ Map Surface (ADR 0011): Locatable contract (coordinates only, geocoded at edit time via Nominatim),
    Leaflet over OSM tiles — `/map` screen, Map card, mini-map on Place notes; Notes is the first provider
+8. ✅ Tags (ADR 0014): free-form tags on every App entity, Taggable contract, Screen/Card Tag filters, Tags card

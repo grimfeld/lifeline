@@ -16,6 +16,7 @@ await run(async () => {
       color: s.color || "blue",
       defaultIncrement: s.defaultIncrement || 0,
       universeSize: s.universeSize || 0,
+      tags: [],
       createdAt: localDay(pbToIso(s.created)),
     }),
   );

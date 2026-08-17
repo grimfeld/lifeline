@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { matchesTagFilter, useTagFilter } from "@lifeline/core";
 import { entriesByStat, useEntries, useStats } from "../data/repo";
 import { QuickLogButton } from "../components/StatCard";
 import { DotStrip } from "../components/charts";
@@ -7,7 +8,8 @@ import { currentStreak, markedDays } from "../domain/aggregate";
 
 /** Card: boolean stats (habits) with their trailing two weeks and streak — mark today inline. */
 export function HabitsCard() {
-  const stats = useStats().filter((s) => s.kind === "boolean");
+  const filter = useTagFilter();
+  const stats = useStats().filter((s) => s.kind === "boolean" && matchesTagFilter(s.tags, filter));
   const entries = useEntries();
   const byStat = useMemo(() => entriesByStat(entries), [entries]);
   if (stats.length === 0) {

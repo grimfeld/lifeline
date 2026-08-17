@@ -21,6 +21,7 @@ export const calendarTimed: TimedProvider = {
           date,
           start: ev.start,
           end: ev.end,
+          tags: ev.tags ?? [],
         });
       }
     }

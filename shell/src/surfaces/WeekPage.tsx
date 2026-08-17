@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { TagFilterBar } from "../components/TagFilterBar";
 import {
   DndContext,
   DragOverlay,
@@ -39,6 +40,7 @@ import {
   usePoolItems,
   useSurfaceItems,
   useTimedItems,
+  composeTagFilter,
   canMoveTimed,
   moveTimedItem,
   formatTime,
@@ -284,9 +286,11 @@ export function WeekPage() {
   const weekEnd = addDays(weekStart, 6);
   const days: DateStr[] = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   // Look back so "stay"-policy items missed in earlier weeks surface as Overdue.
-  const items = useSurfaceItems({ start: addDays(weekStart, -90), end: weekEnd });
-  const pool = usePoolItems();
-  const timed = useTimedItems({ start: weekStart, end: weekEnd });
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
+  const tags = composeTagFilter(tagFilter);
+  const items = useSurfaceItems({ start: addDays(weekStart, -90), end: weekEnd }, { tags });
+  const pool = usePoolItems({ tags });
+  const timed = useTimedItems({ start: weekStart, end: weekEnd }, { tags });
   const overdue = items.filter((i) => i.displayDate < weekStart && !i.completedOn);
   const inWeek = items.filter((i) => i.displayDate >= weekStart);
 
@@ -344,6 +348,7 @@ export function WeekPage() {
             {openCount} open
           </Badge>
           <div className="ml-auto flex items-center gap-1">
+            <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2" />
             <Button size="icon" variant="outline" className="size-8" onClick={() => setWeekStart((w) => addDays(w, -7))}>
               <ChevronLeft />
             </Button>

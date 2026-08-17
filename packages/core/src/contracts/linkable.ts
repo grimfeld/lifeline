@@ -13,6 +13,8 @@ export interface LinkTarget {
   subtitle?: string;
   /** Route to open the entity, e.g. "/app/stats/abc". */
   href?: string;
+  /** The entity's Tags (ADR 0014). */
+  tags?: string[];
 }
 
 export interface LinkableProvider {

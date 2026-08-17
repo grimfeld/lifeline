@@ -22,6 +22,9 @@ import {
 import {
   appById,
   cardById,
+  cardSchema,
+  settingsTags,
+  TagFilterProvider,
   db,
   isConfigured,
   newId,
@@ -36,7 +39,9 @@ import {
   type ScreenLayoutItem,
   type UserScreen,
 } from "@lifeline/core";
-import { Check, LayoutGrid, MoreHorizontal, Plus, Settings2, Trash2 } from "lucide-react";
+import { Check, LayoutGrid, MoreHorizontal, Plus, Settings2, Tag, Trash2 } from "lucide-react";
+import { TagChips } from "@lifeline/ui";
+import { TagPicker } from "../components/TagPicker";
 import { CardPicker } from "../components/CardPicker";
 import { CardSettingsForm } from "../components/CardSettingsForm";
 
@@ -56,7 +61,9 @@ function CardBody({ item, configure }: { item: ScreenLayoutItem; configure: () =
     );
   }
   const Component = def.component;
-  return <Component settings={item.settings ?? {}} configure={configure} />;
+  const body = <Component settings={item.settings ?? {}} configure={configure} />;
+  // Screen filter ∧ this instance's own `tags` setting (ADR 0014); non-filterable Cards ignore both.
+  return def.tagFilterable ? <TagFilterProvider tags={settingsTags(item.settings)}>{body}</TagFilterProvider> : body;
 }
 
 export function UserScreenPage() {
@@ -131,7 +138,7 @@ export function UserScreenPage() {
   function openConfigure(instanceId: string) {
     const item = items.find((l) => l.instanceId === instanceId);
     if (!item) return;
-    setDraft(resolveSettings(cardById(item.cardId)?.settings, item.settings));
+    setDraft(resolveSettings(cardSchema(cardById(item.cardId)), item.settings));
     setConfiguring(instanceId);
   }
 
@@ -140,9 +147,13 @@ export function UserScreenPage() {
     if (!item) return;
     const def = cardById(item.cardId);
     await saveItems(
-      items.map((l) => (l.instanceId === configuring ? { ...l, settings: resolveSettings(def?.settings, draft) } : l)),
+      items.map((l) => (l.instanceId === configuring ? { ...l, settings: resolveSettings(cardSchema(def), draft) } : l)),
     );
     setConfiguring(null);
+  }
+
+  async function saveScreenTags(tags: string[]) {
+    await put<UserScreen>("screens", { ...screen!, tags });
   }
 
   async function deleteScreen() {
@@ -159,6 +170,14 @@ export function UserScreenPage() {
       <div className="flex items-center gap-2 border-b px-4 py-2">
         <h1 className="text-lg font-semibold tracking-tight">{screen.name}</h1>
         {editing && <Badge variant="secondary">editing</Badge>}
+        {editing ? (
+          <div className="flex items-center gap-1.5">
+            <Tag className="text-muted-foreground size-3.5" />
+            <TagPicker value={screen.tags ?? []} onChange={(t) => void saveScreenTags(t)} placeholder="Screen tag filter…" className="w-56" />
+          </div>
+        ) : (
+          <TagChips tags={screen.tags} />
+        )}
         <div className="ml-auto flex items-center gap-1">
           {editing && (
             <Button variant="outline" className="h-8" onClick={() => setPickerOpen(true)}>
@@ -197,6 +216,7 @@ export function UserScreenPage() {
             </Button>
           </div>
         )}
+        <TagFilterProvider tags={screen.tags}>
         <Grid
           layout={layout}
           cols={12}
@@ -212,8 +232,9 @@ export function UserScreenPage() {
           {items.map((l) => {
             const def = cardById(l.cardId);
             const settings = l.settings ?? {};
-            const configurable = !!def?.settings;
-            const unconfigured = def ? !isConfigured(def.settings, settings) : false;
+            const schema = cardSchema(def);
+            const configurable = !!schema;
+            const unconfigured = def ? !isConfigured(schema, settings) : false;
             return (
               <div key={l.instanceId}>
                 <Card className="h-full gap-2 overflow-hidden py-3">
@@ -269,6 +290,7 @@ export function UserScreenPage() {
             );
           })}
         </Grid>
+        </TagFilterProvider>
       </div>
 
       <CardPicker open={pickerOpen} onOpenChange={setPickerOpen} onAdd={addCard} />
@@ -278,9 +300,9 @@ export function UserScreenPage() {
           <DialogHeader>
             <DialogTitle>Configure “{configuringDef?.title ?? "card"}”</DialogTitle>
           </DialogHeader>
-          {configuringDef?.settings && <CardSettingsForm schema={configuringDef.settings} value={draft} onChange={setDraft} />}
+          {cardSchema(configuringDef) && <CardSettingsForm schema={cardSchema(configuringDef)!} value={draft} onChange={setDraft} />}
           <DialogFooter>
-            <Button disabled={!isConfigured(configuringDef?.settings, draft)} onClick={() => void saveConfigure()}>
+            <Button disabled={!isConfigured(cardSchema(configuringDef), draft)} onClick={() => void saveConfigure()}>
               Save
             </Button>
           </DialogFooter>

@@ -137,8 +137,15 @@ Core Contract: an App reports what *happened* on a day — completed tasks, chor
 _Avoid_: timeline, activity feed, summary
 
 ### Tag
-A free-form, lower-cased word (`garden`, `health/gym`) a user puts on a top-level entity — Task, Chore, Event, Stat, Media item, Note — to group and filter across Apps. Same word, same tag, whatever App it sits on; the vocabulary is derived from use, never managed. Recurring things carry tags on the definition; Occurrences, Entries and Placements inherit their parent's tags. A Note's tags are read out of its text (`#garden`), never stored beside it.
+A free-form, lower-cased word (`garden`, `health/gym`) a user puts on a top-level entity — Task, Chore, Event, Stat, Media item, Note — to group and filter across Apps. Same word, same tag, whatever App it sits on; the vocabulary is derived from use, never managed. Recurring things carry tags on the definition; Occurrences, Entries and Placements inherit their parent's tags. A Note's tags are read out of its text — `#garden` in prose or a `tags` list in its frontmatter — never stored beside it.
 _Avoid_: label, category, folder (a Folder is where a Note lives), Note type
+
+### Tag filter
+A set of Tags that narrows what a Card instance or a whole Screen shows: an item passes if it carries *any* of them. A Screen's filter applies to every Card on it; a Card's own filter narrows further within that (both must pass). Empty filter = show everything. Untagged items never pass a non-empty filter.
+_Avoid_: view, saved search, override (nothing overrides — filters compose)
+
+### Taggable
+Core Contract: an App reports its tagged entities (name, tags, a way to open each) so Core can derive the tag vocabulary and any Surface can browse items by Tag across Apps. Contract items placed on Surfaces (Schedulable, Timed, Daylog, Pin…) also carry their entity's Tags, so Tag filters apply everywhere.
 
 ### Conflict copy
 A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten unsynced local edits. Nothing is merged, nothing is lost.

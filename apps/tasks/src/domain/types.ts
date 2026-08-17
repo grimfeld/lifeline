@@ -28,6 +28,11 @@ export interface Task extends SyncedRecord {
   recurrence: Recurrence | null;
   /** Recurring Tasks generate Occurrences from this day on. */
   createdAt: DateStr;
+  /**
+   * Tags (ADR 0014), normalised via Core's normalizeTags. Absent on old
+   * records — always read with `?? []`. Occurrences inherit the definition's.
+   */
+  tags?: string[];
 }
 
 /**

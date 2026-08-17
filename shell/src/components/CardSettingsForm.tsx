@@ -1,5 +1,6 @@
 import { Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import type { CardFieldDef, CardSettings, CardSettingsSchema } from "@lifeline/core";
+import { type CardFieldDef, type CardSettings, type CardSettingsSchema, type CardSettingValue } from "@lifeline/core";
+import { TagPicker } from "./TagPicker";
 
 /** Generic form for a Card's settings schema (ADR 0008). Entity fields call the App's live options hook. */
 export function CardSettingsForm({
@@ -36,8 +37,8 @@ function Field({
 }: {
   id: string;
   field: CardFieldDef;
-  value: string | number | undefined;
-  onChange: (v: string | number) => void;
+  value: CardSettingValue | undefined;
+  onChange: (v: CardSettingValue) => void;
 }) {
   switch (field.kind) {
     case "number":
@@ -70,6 +71,8 @@ function Field({
           </SelectContent>
         </Select>
       );
+    case "tags":
+      return <TagPicker id={id} value={Array.isArray(value) ? value : []} onChange={onChange} placeholder="Any tag" />;
     case "entity":
       return <EntityField id={id} field={field} value={typeof value === "string" ? value : ""} onChange={onChange} />;
   }

@@ -10,6 +10,7 @@ import { CollectionsCard } from "./cards/CollectionsCard";
 import { statCommands } from "./commands";
 import { statsLinkable } from "./linkable";
 import { statsDaylog } from "./daylog";
+import { statsTaggable } from "./taggable";
 import { ENTRIES, STATS } from "./domain/types";
 
 /** Stats App (notch port): stats are definitions, entries are an event log, totals are derived. */
@@ -19,7 +20,7 @@ export const statsApp: AppManifest = {
   icon: BarChart3,
   color: "var(--chart-orange)",
   collections: [
-    { name: STATS },
+    { name: STATS, indexes: ["*tags"] },
     { name: ENTRIES, indexes: ["statId", "ts"] },
   ],
   screens: [
@@ -27,8 +28,8 @@ export const statsApp: AppManifest = {
     { id: "stats.detail", title: "Stat", path: "stats/:id", component: StatDetailScreen, hidden: true },
   ],
   cards: [
-    { id: "stats.overview", title: "Stats", description: "Every stat's headline with one-tap logging", component: StatsOverviewCard, defaultSize: { w: 3, h: 6 }, minSize: { w: 2, h: 3 } },
-    { id: "stats.habits", title: "Habits", description: "Boolean stats: last two weeks and streaks, mark today inline", component: HabitsCard, defaultSize: { w: 3, h: 6 }, minSize: { w: 2, h: 3 } },
+    { id: "stats.overview", title: "Stats", description: "Every stat's headline with one-tap logging", component: StatsOverviewCard, tagFilterable: true, defaultSize: { w: 3, h: 6 }, minSize: { w: 2, h: 3 } },
+    { id: "stats.habits", title: "Habits", description: "Boolean stats: last two weeks and streaks, mark today inline", component: HabitsCard, tagFilterable: true, defaultSize: { w: 3, h: 6 }, minSize: { w: 2, h: 3 } },
     {
       id: "stats.single",
       title: "Single stat",
@@ -47,6 +48,7 @@ export const statsApp: AppManifest = {
       title: "Streak leaderboard",
       description: "Boolean stats ranked by current streak",
       component: StreaksCard,
+      tagFilterable: true,
       defaultSize: { w: 3, h: 5 },
       minSize: { w: 2, h: 3 },
       settings: {
@@ -67,6 +69,7 @@ export const statsApp: AppManifest = {
       title: "Collections",
       description: "Every collection's progress toward its universe",
       component: CollectionsCard,
+      tagFilterable: true,
       defaultSize: { w: 3, h: 5 },
       minSize: { w: 2, h: 3 },
       settings: {
@@ -86,6 +89,7 @@ export const statsApp: AppManifest = {
   commands: statCommands,
   linkable: statsLinkable,
   daylog: statsDaylog,
+  taggable: statsTaggable,
 };
 
 export { STATS, ENTRIES };

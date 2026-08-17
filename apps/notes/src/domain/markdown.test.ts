@@ -61,6 +61,19 @@ describe("tags / headings / blocks", () => {
   it("finds tags but not headings, numbers or code", () => {
     expect(extractTags("# Title\n#quote and #Life/Work #2024 (#x) `#no`\n```\n#nope\n```")).toEqual(["quote", "life/work", "x"]);
   });
+  it("unions the frontmatter tags list with prose #tags, frontmatter first", () => {
+    expect(extractTags("---\ntags:\n  - Garden\n  - work/home\n---\nhello #prose")).toEqual(["garden", "work/home", "prose"]);
+    expect(extractTags("---\ntags: [a, b]\n---\n#c")).toEqual(["a", "b", "c"]);
+  });
+  it("accepts a scalar tags value (comma / space separated)", () => {
+    expect(extractTags("---\ntags: alpha, beta gamma\n---\n")).toEqual(["alpha", "beta", "gamma"]);
+    expect(extractTags("---\ntags: solo\n---\n")).toEqual(["solo"]);
+  });
+  it("dedupes across frontmatter and prose and normalises #-prefixed / cased values", () => {
+    expect(extractTags("---\ntags:\n  - \"#Quote\"\n  - life work\n---\n#quote #Life-Work #2024")).toEqual(["quote", "life-work"]);
+    expect(extractTags("---\ntags: []\n---\nnothing")).toEqual([]);
+    expect(extractTags("---\ntitle: x\n---\n#a")).toEqual(["a"]);
+  });
   it("extracts headings outside fences", () => {
     expect(extractHeadings("# A\ntext\n### B ###\n```\n# no\n```")).toEqual([
       { level: 1, text: "A", line: 0 },

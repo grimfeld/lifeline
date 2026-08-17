@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Button, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
+import { normalizeTag, useTagVocabulary } from "@lifeline/core";
+import { Button, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, toast } from "@lifeline/ui";
 import { COLOR_SLOTS, STAT_KINDS, colorVar, type ColorSlot, type Stat, type StatKind } from "../domain/types";
 import { addStat, updateStat } from "../data/repo";
 
@@ -17,6 +18,8 @@ export function StatEditorDialog({ open, onOpenChange, stat }: { open: boolean; 
   const [color, setColor] = useState<ColorSlot>("blue");
   const [inc, setInc] = useState("1");
   const [universe, setUniverse] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const suggestions = useTagVocabulary().map((v) => v.tag);
 
   useEffect(() => {
     if (!open) return;
@@ -26,6 +29,7 @@ export function StatEditorDialog({ open, onOpenChange, stat }: { open: boolean; 
     setColor(stat?.color ?? "blue");
     setInc(stat ? String(stat.defaultIncrement || "") : "1");
     setUniverse(stat?.universeSize ? String(stat.universeSize) : "");
+    setTags(stat?.tags ?? []);
   }, [open, stat]);
 
   async function submit() {
@@ -36,6 +40,7 @@ export function StatEditorDialog({ open, onOpenChange, stat }: { open: boolean; 
       color,
       defaultIncrement: Number(inc) || 0,
       universeSize: Number(universe) || 0,
+      tags,
     };
     if (stat) {
       await updateStat(stat, input);
@@ -100,6 +105,10 @@ export function StatEditorDialog({ open, onOpenChange, stat }: { open: boolean; 
               <p className="text-muted-foreground text-xs">How many exist in total — shown as "5 / 195". A fact, not a goal.</p>
             </div>
           )}
+          <div className="grid gap-2">
+            <Label htmlFor="stat-tags">Tags</Label>
+            <TagInput id="stat-tags" value={tags} onChange={setTags} suggestions={suggestions} normalize={normalizeTag} placeholder="garden, health…" />
+          </div>
           <div className="grid gap-2">
             <Label>Color</Label>
             <div className="flex flex-wrap gap-2">

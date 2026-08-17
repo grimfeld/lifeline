@@ -23,6 +23,7 @@ export const mediaLinkable: LinkableProvider = {
         name: m.title,
         subtitle: `${label}${m.creator ? " · " + m.creator : ""}`,
         href: MEDIA_HREF,
+        tags: m.tags ?? [],
       });
     }
     return out;

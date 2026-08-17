@@ -1,5 +1,5 @@
 import { Button, toast } from "@lifeline/ui";
-import { todayStr } from "@lifeline/core";
+import { matchesTagFilter, todayStr, useTagFilter } from "@lifeline/core";
 import { Check } from "lucide-react";
 import { completeChore, lastDoneMap, useChores, useCompletions } from "../data/repo";
 import { dueState } from "../domain/schedule";
@@ -10,9 +10,10 @@ export function DueTodayCard() {
   const completions = useCompletions();
   const today = todayStr();
   const last = lastDoneMap(completions);
+  const filter = useTagFilter();
 
   const due = chores
-    .filter((c) => c.status === "active")
+    .filter((c) => c.status === "active" && matchesTagFilter(c.tags, filter))
     .map((c) => ({ chore: c, due: dueState(c, last.get(c.id) ?? null, today) }))
     .filter((r) => r.due.state === "overdue" || r.due.state === "due-today");
 

@@ -4,6 +4,8 @@
  * and `renameLinks`, which produce new text.
  */
 
+import { normalizeTag } from "@lifeline/core";
+
 export type PropertyValue = string | number | string[];
 export type Properties = Record<string, PropertyValue>;
 
@@ -153,26 +155,54 @@ export function extractLinks(text: string): WikiLink[] {
   return out;
 }
 
+/** A `#tag` in prose. Same word rules as Core's TAG_WORD_RE (ADR 0014) — `normalizeTag` is the single normaliser. */
 const TAG_RE = /(^|[\s(])#([\p{L}\p{N}_/-]*[\p{L}_/-][\p{L}\p{N}_/-]*)/gu;
 
-/** #tags in prose (not in code, not the # of a heading, not bare numbers). Lower-cased, deduped, in order. */
-export function extractTags(text: string): string[] {
+/**
+ * The frontmatter `tags` property as raw words: a YAML list (one tag per
+ * item), or a scalar split on commas/whitespace (`tags: a, b #c`). Not normalised.
+ */
+export function frontmatterTagWords(props: Properties): string[] {
+  const v = props.tags;
+  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean);
+  if (typeof v === "string" || typeof v === "number") return String(v).split(/[,\s]+/).filter(Boolean);
+  return [];
+}
+
+/** `#tags` in the prose only (not in code, not the # of a heading, not bare numbers). Normalised, deduped, in order. */
+export function extractProseTags(content: string): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const seg of proseSegments(text)) {
+  for (const seg of proseSegments(content)) {
     for (const line of seg.text.split("\n")) {
       if (/^\s{0,3}#{1,6}\s/.test(line)) continue; // heading
       TAG_RE.lastIndex = 0;
       let m: RegExpExecArray | null;
       while ((m = TAG_RE.exec(line))) {
-        const t = m[2].toLowerCase();
-        if (!seen.has(t)) {
+        const t = normalizeTag(m[2]);
+        if (t && !seen.has(t)) {
           seen.add(t);
           out.push(t);
         }
       }
     }
   }
+  return out;
+}
+
+/**
+ * A note's tags (ADR 0009/0014): the frontmatter `tags` list ∪ the prose
+ * `#tags`, every one through `normalizeTag`, deduped. Frontmatter tags come
+ * first (they are the "declared" ones), then prose tags in order of appearance.
+ */
+export function extractTags(text: string): string[] {
+  const { properties, content } = splitFrontmatter(text);
+  const out: string[] = [];
+  for (const raw of frontmatterTagWords(properties)) {
+    const t = normalizeTag(raw);
+    if (t && !out.includes(t)) out.push(t);
+  }
+  for (const t of extractProseTags(content)) if (!out.includes(t)) out.push(t);
   return out;
 }
 

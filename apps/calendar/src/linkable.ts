@@ -15,6 +15,7 @@ export const calendarLinkable: LinkableProvider = {
       name: ev.title,
       subtitle: formatHuman(ev.date),
       href: EVENTS_HREF,
+      tags: ev.tags ?? [],
     }));
   },
 };

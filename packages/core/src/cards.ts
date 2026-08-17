@@ -5,6 +5,8 @@
  * or a pick of one App entity (backed by a live options hook the App supplies).
  */
 
+import { normalizeTags } from "./tags";
+
 export interface CardOption {
   value: string;
   label: string;
@@ -22,13 +24,31 @@ export type CardFieldDef =
       useOptions: () => CardOption[];
       /** Label used for the empty choice when not required. */
       anyLabel?: string;
+    }
+  | {
+      /** A Tag filter set (any-of). Auto-added as `tags` on tagFilterable Cards (ADR 0014). */
+      kind: "tags";
+      label: string;
     };
 
 export type CardSettingsSchema = Record<string, CardFieldDef>;
-export type CardSettings = Record<string, string | number>;
+export type CardSettingValue = string | number | string[];
+export type CardSettings = Record<string, CardSettingValue>;
 
-export function fieldDefault(f: CardFieldDef): string | number {
-  return f.kind === "entity" ? "" : f.default;
+export function fieldDefault(f: CardFieldDef): CardSettingValue {
+  if (f.kind === "entity") return "";
+  if (f.kind === "tags") return [];
+  return f.default;
+}
+
+/** Settings key of the auto-added Tag filter field on tagFilterable Cards. */
+export const TAGS_SETTING = "tags";
+export const TAGS_FIELD: CardFieldDef = { kind: "tags", label: "Only tags" };
+
+/** The instance's own Tag filter set (empty when none / not filterable). */
+export function settingsTags(settings: CardSettings | undefined): string[] {
+  const v = settings?.[TAGS_SETTING];
+  return Array.isArray(v) ? v : [];
 }
 
 /** Defaults for every field, with `given` values layered on top (unknown keys dropped). */
@@ -41,6 +61,8 @@ export function resolveSettings(schema: CardSettingsSchema | undefined, given?: 
       out[k] = typeof v === "number" && Number.isFinite(v) ? clamp(v, f.min, f.max) : f.default;
     } else if (f.kind === "select") {
       out[k] = typeof v === "string" && f.options.some((o) => o.value === v) ? v : f.default;
+    } else if (f.kind === "tags") {
+      out[k] = normalizeTags(Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
     } else {
       out[k] = typeof v === "string" ? v : "";
     }

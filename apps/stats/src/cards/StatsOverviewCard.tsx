@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Flame } from "lucide-react";
+import { matchesTagFilter, useTagFilter } from "@lifeline/core";
 import { entriesByStat, useEntries, useStats } from "../data/repo";
 import { QuickLogButton, useSummary } from "../components/StatCard";
 import type { Entry, Stat } from "../domain/types";
@@ -26,7 +27,8 @@ function Row({ stat, entries }: { stat: Stat; entries: Entry[] }) {
 
 /** Card: every stat's headline with one-tap logging. */
 export function StatsOverviewCard() {
-  const stats = useStats();
+  const filter = useTagFilter();
+  const stats = useStats().filter((s) => matchesTagFilter(s.tags, filter));
   const entries = useEntries();
   const byStat = useMemo(() => entriesByStat(entries), [entries]);
   if (stats.length === 0) {

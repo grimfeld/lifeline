@@ -3,8 +3,10 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { CardUnavailable } from "@lifeline/ui";
 import {
   formatHuman,
+  matchesTagFilter,
   parts,
   todayStr,
+  useTagFilter,
   type CardOption,
   type CardProps,
   type CardSettings,
@@ -72,7 +74,12 @@ export function HeatmapCard({ settings, configure }: CardProps) {
   const weeks = settings.weeks as number;
   const choreId = settings.chore as string;
   const chores = useChores();
-  const completions = useCompletions();
+  const allCompletions = useCompletions();
+  // Tag filter (ADR 0014): completions inherit their chore's tags.
+  const filter = useTagFilter();
+  // A heatmap pinned to one chore is a single-entity view: the filter does not apply.
+  const passing = new Set(chores.filter((c) => choreId === c.id || (!choreId && matchesTagFilter(c.tags, filter))).map((c) => c.id));
+  const completions = allCompletions.filter((c) => passing.has(c.choreId));
 
   const today = todayStr();
   const days = heatmapDays(weeks, today);

@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Input,
+  TagChips,
   toast,
 } from "@lifeline/ui";
 import { formatHuman, todayStr, type DateStr } from "@lifeline/core";
@@ -136,6 +137,7 @@ export function TaskRow({
             <span>· moved from {formatHuman(item.sourceDate)}</span>
           )}
           {task.notes && <span className="truncate">{task.recurrence ? "· " : ""}{task.notes}</span>}
+          {(task.tags ?? []).length > 0 && <TagChips tags={task.tags} size="xs" className="shrink-0" />}
         </div>
       </div>
       {showDate && item.date && (

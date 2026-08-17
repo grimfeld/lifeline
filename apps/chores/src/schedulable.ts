@@ -41,6 +41,7 @@ export const choresSchedulable: SchedulableProvider = {
         subtitle: describeSchedule(chore.schedule),
         date: ds.dueOn,
         urgency,
+        tags: chore.tags ?? [],
       });
     }
     // Done history inside the queried range.
@@ -56,6 +57,7 @@ export const choresSchedulable: SchedulableProvider = {
         date: c.doneOn,
         urgency: "none",
         completedOn: c.doneOn,
+        tags: chore.tags ?? [],
       });
     }
     return items;

@@ -22,6 +22,7 @@ export const mediaDaylog: DaylogProvider = {
       subtitle: mediaType(item.type).label,
       time: null,
       href: MEDIA_HREF,
+      tags: item.tags ?? [],
     }));
   },
 };

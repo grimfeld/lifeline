@@ -29,6 +29,7 @@ await run(async () => {
       slottedOn: b.slotted_on ?? "",
       startedOn: b.started_on ?? "",
       finishedOn: b.finished_on ?? "",
+      tags: [],
     }),
   );
 

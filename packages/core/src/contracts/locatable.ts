@@ -1,4 +1,6 @@
 import { appById, locatableProviders } from "../registry";
+import { matchesTagFilter, type TagFilter } from "../tags";
+import { useTagFilter } from "./tagfilter";
 
 /**
  * The Locatable Contract (ADR 0011): an App exposes entities that sit at a
@@ -15,6 +17,8 @@ export interface Pin {
   lon: number;
   /** Route to open the entity, e.g. "/app/notes/abc". */
   href?: string;
+  /** The entity's Tags (ADR 0014). */
+  tags?: string[];
 }
 
 export interface LocatableProvider {
@@ -30,7 +34,9 @@ export interface SurfacePin extends Pin {
 }
 
 /** Read side: every provider's pins, coloured per App; optionally only some Apps. */
-export function useLocatablePins(apps?: string[]): SurfacePin[] {
+export function useLocatablePins(apps?: string[], opts?: { tags?: TagFilter }): SurfacePin[] {
+  const ambient = useTagFilter();
+  const filter = opts?.tags ?? ambient;
   const providers = locatableProviders();
   // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
   const per = providers.map((p) => ({
@@ -42,7 +48,7 @@ export function useLocatablePins(apps?: string[]): SurfacePin[] {
   for (const { provider, pins } of per) {
     if (apps && apps.length > 0 && !apps.includes(provider.appId)) continue;
     const color = appById(provider.appId)?.color;
-    for (const p of pins) out.push({ ...p, key: `${p.appId}/${p.itemId}`, color });
+    for (const p of pins) if (matchesTagFilter(p.tags, filter)) out.push({ ...p, key: `${p.appId}/${p.itemId}`, color });
   }
   return out;
 }

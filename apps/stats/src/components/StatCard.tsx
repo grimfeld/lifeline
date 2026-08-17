@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, Card, CardContent, cn, toast } from "@lifeline/ui";
+import { Button, Card, CardContent, cn, toast, TagChips } from "@lifeline/ui";
 import { Check, Flame, Plus } from "lucide-react";
 import type { Entry, Stat } from "../domain/types";
 import { colorVar } from "../domain/types";
@@ -106,6 +106,7 @@ export function StatCard({ stat, entries, onOpen }: { stat: Stat; entries: Entry
           {s.unit && <span className="text-muted-foreground text-sm">{s.unit}</span>}
           <span className="text-muted-foreground ml-1 text-xs">{s.caption}</span>
         </div>
+        {(stat.tags ?? []).length > 0 && <TagChips tags={stat.tags} size="xs" />}
         {s.days ? <DotStrip days={s.days} color={s.color} /> : <Sparkline values={s.spark ?? []} color={s.color} />}
       </CardContent>
     </Card>

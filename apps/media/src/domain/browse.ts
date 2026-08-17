@@ -34,10 +34,20 @@ export function matchesStatus(m: MediaItem, f: StatusFilter): boolean {
   }
 }
 
-/** Free-text search over title, creator and reason. Empty needle matches all. */
+/**
+ * Free-text search over title, creator, reason and tags. Empty needle matches
+ * all. A leading `#` restricts the needle to tags (`#garden`); a bare word also
+ * matches items tagged with it (`garden`).
+ */
 export function matchesSearch(m: MediaItem, q: string): boolean {
-  const needle = q.trim().toLowerCase();
-  return !needle || [m.title, m.creator, m.reason].some((s) => s.toLowerCase().includes(needle));
+  const raw = q.trim().toLowerCase();
+  if (!raw) return true;
+  const tags = m.tags ?? [];
+  if (raw.startsWith("#")) {
+    const needle = raw.slice(1);
+    return !needle || tags.some((t) => t.includes(needle));
+  }
+  return [m.title, m.creator, m.reason].some((s) => s.toLowerCase().includes(raw)) || tags.some((t) => t.includes(raw));
 }
 
 /** Gallery orderings. */

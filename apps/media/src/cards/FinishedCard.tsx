@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { CardProps } from "@lifeline/core";
+import { matchesTagFilter, useTagFilter, type CardProps } from "@lifeline/core";
 import { finishedIn, mediumBreakdown } from "../domain/cardQueries";
 import { useMedia } from "../data/repo";
 import { Cover } from "../components/Cover";
@@ -9,7 +9,8 @@ import { mediumOf } from "./shared";
 
 /** Card: how much I finished in a year, with the latest covers. */
 export function FinishedCard({ settings }: CardProps) {
-  const items = useMedia();
+  const filter = useTagFilter();
+  const items = useMedia().filter((m) => matchesTagFilter(m.tags, filter));
   const medium = mediumOf(settings);
   const year = typeof settings.year === "number" ? settings.year : new Date().getFullYear();
   const [editing, setEditing] = useState<MediaItem | null>(null);

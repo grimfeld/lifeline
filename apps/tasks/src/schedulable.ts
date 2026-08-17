@@ -41,6 +41,7 @@ export const tasksSchedulable: SchedulableProvider = {
         date: it.date,
         urgency,
         completedOn: it.completedOn,
+        tags: it.task.tags ?? [],
       };
     });
   },

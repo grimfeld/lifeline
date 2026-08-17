@@ -1,6 +1,8 @@
 import type { DateStr } from "../dates";
 import type { TimeStr } from "./timed";
 import { appById, daylogProviders } from "../registry";
+import { matchesTagFilter, type TagFilter } from "../tags";
+import { useTagFilter } from "./tagfilter";
 
 /**
  * The Daylog Contract (ADR 0009): an App reports what *happened* on a day —
@@ -20,6 +22,8 @@ export interface DaylogItem {
   /** "HH:MM" when the fact has a time; null/undefined otherwise. Sorted first when present. */
   time?: TimeStr | null;
   href?: string;
+  /** Tags of the entity the fact is about (ADR 0014). */
+  tags?: string[];
 }
 
 export interface DaylogProvider {
@@ -33,7 +37,9 @@ export interface SurfaceDaylogItem extends DaylogItem {
 }
 
 /** Read side: every provider's facts for the day, timed first, coloured per App. */
-export function useDaylog(date: DateStr, apps?: string[]): SurfaceDaylogItem[] {
+export function useDaylog(date: DateStr, apps?: string[], opts?: { tags?: TagFilter }): SurfaceDaylogItem[] {
+  const ambient = useTagFilter();
+  const filter = opts?.tags ?? ambient;
   const providers = daylogProviders();
   // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
   const per = providers.map((p) => ({
@@ -45,7 +51,7 @@ export function useDaylog(date: DateStr, apps?: string[]): SurfaceDaylogItem[] {
   for (const { provider, items } of per) {
     if (apps && apps.length > 0 && !apps.includes(provider.appId)) continue;
     const color = appById(provider.appId)?.color;
-    for (const item of items) out.push({ ...item, color });
+    for (const item of items) if (matchesTagFilter(item.tags, filter)) out.push({ ...item, color });
   }
   return out.sort((a, b) => {
     if (a.time && b.time) return a.time.localeCompare(b.time) || a.title.localeCompare(b.title);

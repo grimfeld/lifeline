@@ -13,9 +13,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  TagInput,
   Textarea,
   toast,
 } from "@lifeline/ui";
+import { normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { Search } from "lucide-react";
 import { MEDIA_TYPES, mediaType, type MediaTypeId } from "../domain/mediaTypes";
 import { ACQUISITION, type Acquisition } from "../domain/types";
@@ -43,6 +45,8 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
   const [size, setSize] = useState("");
   const [reason, setReason] = useState("");
   const [acq, setAcq] = useState<Acquisition>("WANTED");
+  const [tags, setTags] = useState<string[]>([]);
+  const tagSuggestions = useTagVocabulary().map((v) => v.tag);
   const def = mediaType(type);
 
   useEffect(() => {
@@ -58,6 +62,7 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
     setSize("");
     setReason("");
     setAcq("WANTED");
+    setTags([]);
   }, [open, defaultType]);
 
   // Debounced lookup; last keystroke wins.
@@ -109,6 +114,7 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
       size: Number(size) || 0,
       acquisition: acq,
       reason: reason.trim(),
+      tags,
     });
     toast.success(`${title.trim()} added to the Backlog`);
     onOpenChange(false);
@@ -217,6 +223,10 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
               <div className="grid gap-2">
                 <Label htmlFor="media-reason">Reason <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Textarea id="media-reason" value={reason} autoFocus={!!pick} rows={3} placeholder="Who recommended it, or what made you want it. Future you will not remember." onChange={(e) => setReason(e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="media-tags">Tags</Label>
+                <TagInput id="media-tags" value={tags} onChange={setTags} suggestions={tagSuggestions} normalize={normalizeTag} placeholder="Add tag…" />
               </div>
               <div className="grid gap-2">
                 <Label>Acquisition</Label>
