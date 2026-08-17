@@ -9,6 +9,9 @@ let state: SyncState = "idle";
 let pendingCount = 0;
 const listeners = new Set<() => void>();
 
+/** Last sync problem, for the badge/tooltip ("" when the last cycle was clean). */
+export let lastSyncError = "";
+
 function setState(s: SyncState) {
   if (state !== s) {
     state = s;
@@ -24,16 +27,16 @@ async function refreshPending() {
   }
 }
 
-export function useSyncState(): { state: SyncState; pending: number } {
+export function useSyncState(): { state: SyncState; pending: number; error: string } {
   useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    () => `${state}:${pendingCount}`,
-    () => "idle:0",
+    () => `${state}:${pendingCount}:${lastSyncError}`,
+    () => "idle:0:",
   );
-  return { state, pending: pendingCount };
+  return { state, pending: pendingCount, error: lastSyncError };
 }
 
 type PbRecord = Record<string, unknown> & { id: string; updated: string };
@@ -44,6 +47,18 @@ function toLocal(r: PbRecord): SyncedRecord {
   return rest as unknown as SyncedRecord;
 }
 
+/** PocketBase says a collection is missing when the server hasn't run a migration yet. */
+function isMissingCollection(err: unknown): boolean {
+  const e = err as { status?: number; response?: { message?: string } };
+  return e?.status === 404 && /collection/i.test(e.response?.message ?? "");
+}
+
+/**
+ * Push every queued local write. One failing record (or a collection the
+ * server doesn't have yet) is skipped and left queued for the next cycle —
+ * it never blocks the others. Throws at the end if anything failed, so the
+ * badge shows an error while everything that could sync did.
+ */
 async function pushOnce(): Promise<void> {
   // Coalesce multiple queued writes of the same record into one push.
   const entries = await db()._outbox.orderBy("seq").toArray();
@@ -55,7 +70,10 @@ async function pushOnce(): Promise<void> {
     latest.set(k, cur);
   }
 
+  const failures: string[] = [];
+  const skipCollections = new Set<string>();
   for (const { seqs, collection, recordId } of latest.values()) {
+    if (skipCollections.has(collection)) continue;
     const local = await db().collection(collection).get(recordId);
     if (!local) {
       await db()._outbox.bulkDelete(seqs);
@@ -84,10 +102,17 @@ async function pushOnce(): Promise<void> {
       }
       await db()._outbox.bulkDelete(seqs);
     } catch (err) {
-      // Leave the entry queued; next cycle retries.
-      throw err;
+      // Leave the entry queued; next cycle retries. Keep pushing the rest.
+      if (isMissingCollection(err)) {
+        skipCollections.add(collection);
+        failures.push(`server has no "${collection}" collection yet — run the PocketBase migrations`);
+      } else {
+        const msg = (err as { response?: { message?: string }; message?: string }).response?.message ?? (err as Error).message ?? String(err);
+        failures.push(`${collection}/${recordId}: ${msg}`);
+      }
     }
   }
+  if (failures.length) throw new Error(failures[0] + (failures.length > 1 ? ` (+${failures.length - 1} more)` : ""));
 }
 
 async function pullCollection(name: string): Promise<void> {
@@ -142,12 +167,27 @@ export async function syncNow(): Promise<void> {
   }
   syncing = true;
   setState("syncing");
+  const problems: string[] = [];
   try {
-    await pushOnce();
-    for (const name of syncedCollectionNames()) {
-      await pullCollection(name);
+    try {
+      await pushOnce();
+    } catch (err) {
+      problems.push((err as Error).message);
     }
-    setState("idle");
+    for (const name of syncedCollectionNames()) {
+      try {
+        await pullCollection(name);
+      } catch (err) {
+        // A collection missing on the server (pending migration) must not stop the others.
+        problems.push(isMissingCollection(err) ? `server has no "${name}" collection yet — run the PocketBase migrations` : `${name}: ${(err as Error).message}`);
+      }
+    }
+    lastSyncError = problems[0] ?? "";
+    listeners.forEach((l) => l());
+    if (problems.length) {
+      console.warn("[sync]", problems.join("; "));
+      setState(navigator.onLine ? "error" : "offline");
+    } else setState("idle");
   } catch {
     setState(navigator.onLine ? "error" : "offline");
   } finally {
