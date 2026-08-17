@@ -37,6 +37,8 @@ export interface NoteTypeDef {
   folder?: string;
   /** Built-in types are defined in code and cannot be deleted; user types live in the `note_types` collection. */
   builtIn?: boolean;
+  /** A built-in whose label/icon/properties were customised by a user record (reset = delete the record). */
+  overridden?: boolean;
   /** "date": title is a YYYY-MM-DD day, at most one note per day. "name": free unique title. */
   titleRule: "date" | "name";
   properties: PropertyDef[];
