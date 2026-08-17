@@ -1,7 +1,8 @@
 import type { AppManifest } from "@lifeline/core";
-import { Sun } from "lucide-react";
+import { MapPin, Sun } from "lucide-react";
 import { TodayCard } from "./surfaces/TodayCard";
 import { AgendaCard } from "./surfaces/AgendaCard";
+import { MapCard, useLocatableAppOptions } from "./surfaces/MapCard";
 
 /**
  * The shell's own manifest: general Surfaces packaged like any App's cards,
@@ -35,6 +36,18 @@ export const hubApp: AppManifest = {
       },
       instanceTitle: (s) => (s.startHour === 7 && s.endHour === 23 ? "" : `Agenda · ${s.startHour}–${s.endHour}h`),
     },
+    {
+      id: "hub.map",
+      title: "Map",
+      description: "Every located thing, from every app, on an OpenStreetMap",
+      component: MapCard,
+      defaultSize: { w: 6, h: 8 },
+      minSize: { w: 3, h: 4 },
+      settings: {
+        app: { kind: "entity", label: "App", useOptions: useLocatableAppOptions, anyLabel: "All apps" },
+      },
+      instanceTitle: (s) => (s.app ? `Map · ${useLocatableAppOptions().find((o) => o.value === s.app)?.label ?? s.app}` : ""),
+    },
   ],
   commands: [
     {
@@ -43,6 +56,13 @@ export const hubApp: AppManifest = {
       keywords: ["month", "schedule"],
       icon: Sun,
       run: ({ navigate }) => navigate("/calendar"),
+    },
+    {
+      id: "hub.map-go",
+      title: "Go to Map",
+      keywords: ["places", "osm", "locations"],
+      icon: MapPin,
+      run: ({ navigate }) => navigate("/map"),
     },
   ],
 };

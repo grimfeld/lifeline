@@ -19,7 +19,7 @@ import {
   useLiveQuery,
   type UserScreen,
 } from "@lifeline/core";
-import { CalendarDays, Columns3, LayoutDashboard, Plus, Sparkles } from "lucide-react";
+import { CalendarDays, Columns3, LayoutDashboard, MapPin, Plus, Sparkles } from "lucide-react";
 import { SyncBadge } from "./SyncBadge";
 
 function navClass({ isActive }: { isActive: boolean }) {
@@ -103,6 +103,9 @@ export function Sidebar() {
           </NavLink>
           <NavLink to="/week" className={navClass}>
             <Columns3 className="size-4" /> Week
+          </NavLink>
+          <NavLink to="/map" className={navClass}>
+            <MapPin className="size-4" /> Map
           </NavLink>
         </div>
 

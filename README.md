@@ -16,11 +16,12 @@ apps/stats       @lifeline/app-stats — Stats App (notch port): additive / meas
                  collection stats, entries as an event log, derived totals, streaks, Recharts graphs
 apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): markdown notes with typed Note types
                  (daily/person/place/plain), wikilinks + backlinks across notes and other Apps' entities (Linkable),
-                 CodeMirror 6 editor, `daylog` blocks (Daylog contract), the Journal Surface; conflict copies (ADR 0010)
+                 CodeMirror 6 editor, `daylog` blocks (Daylog contract), the Journal Surface; conflict copies (ADR 0010);
+                 notes with a `location: [lat, lon]` property are Pins on the map (Locatable, ADR 0011)
 apps/media       @lifeline/app-media — Media App (nightstand port, generalised): books, comics, movies,
                  series, albums, games on two axes (Acquisition × Engagement) with per-medium Nightstand slots
 shell            @lifeline/shell — Vite + React shell: sidebar, command palette (Ctrl+K),
-                 user Screens (drag/resize card grids), calendar + week Surfaces; Tauri 2 desktop config
+                 user Screens (drag/resize card grids), calendar + week + map Surfaces; Tauri 2 desktop config
 pocketbase       Dockerfile + fly.toml (app: lifeline-pb) + pb_migrations
 scripts          dev.sh (backend + shell), import/ (legacy data → Lifeline, see docs/retire-legacy.md)
 ```
@@ -78,3 +79,5 @@ gone, render `<CardUnavailable onConfigure={configure} />` — the instance stay
    the deploy → import → verify → `fly apps destroy` steps are manual (see the runbook for what was found)
 6. ✅ Notes App + Journal (ADR 0009/0010): Notes engine, Linkable + Daylog contracts implemented by every App,
    Obsidian vault importer (`pnpm import:obsidian`, see docs/retire-legacy.md)
+7. ✅ Map Surface (ADR 0011): Locatable contract (coordinates only, geocoded at edit time via Nominatim),
+   Leaflet over OSM tiles — `/map` screen, Map card, mini-map on Place notes; Notes is the first provider

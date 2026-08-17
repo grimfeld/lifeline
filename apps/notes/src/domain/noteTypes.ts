@@ -8,7 +8,7 @@ export type PropertyDef =
   | { key: string; label: string; kind: "date" }
   | { key: string; label: string; kind: "select"; options: { value: string; label: string }[] }
   | { key: string; label: string; kind: "list" }
-  /** "lat,lng" */
+  /** Coordinates, stored as `[lat, lon]` (the shape Obsidian Map View reads; ADR 0011). */
   | { key: string; label: string; kind: "geo" };
 
 export interface NoteTypeDef {
@@ -83,7 +83,7 @@ export const NOTE_TYPES = [
     properties: [
       { key: "aliases", label: "Aliases", kind: "list" },
       { key: "address", label: "Address", kind: "text" },
-      { key: "geo", label: "Coordinates", kind: "geo" },
+      { key: "location", label: "Coordinates", kind: "geo" },
       {
         key: "kind",
         label: "Kind",
@@ -130,7 +130,6 @@ export const NOTE_TYPES = [
 export function isTemplatable(t: NoteTypeDef): boolean {
   return t.id !== TEMPLATE_TYPE;
 }
-
 
 export type NoteTypeId = (typeof NOTE_TYPES)[number]["id"];
 

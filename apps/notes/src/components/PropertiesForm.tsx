@@ -1,6 +1,7 @@
-import { Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { GeoField, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { geocode } from "@lifeline/core";
 import type { NoteTypeDef, PropertyDef } from "../domain/noteTypes";
-import type { Properties, PropertyValue } from "../domain/markdown";
+import { noteCoords, writeCoords, type Properties, type PropertyValue } from "../domain/markdown";
 
 const NONE = "__none__";
 
@@ -15,19 +16,23 @@ export function PropertiesForm({ type, value, onChange }: { type: NoteTypeDef; v
           <Label htmlFor={`prop-${p.key}`} className="text-muted-foreground text-xs">
             {p.label}
           </Label>
-          <Field def={p} value={value[p.key]} onChange={(v) => set(p.key, v)} />
+          <Field def={p} value={value[p.key]} all={value} onChange={(v) => set(p.key, v)} />
         </div>
       ))}
     </div>
   );
 }
 
-function Field({ def, value, onChange }: { def: PropertyDef; value: PropertyValue | undefined; onChange: (v: PropertyValue) => void }) {
+function Field({ def, value, all, onChange }: { def: PropertyDef; value: PropertyValue | undefined; all: Properties; onChange: (v: PropertyValue) => void }) {
   const id = `prop-${def.key}`;
   switch (def.kind) {
     case "text":
-    case "geo":
-      return <Input id={id} className="h-8" value={String(value ?? "")} placeholder={def.kind === "geo" ? "lat,lng" : ""} onChange={(e) => onChange(e.target.value)} />;
+      return <Input id={id} className="h-8" value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} />;
+    case "geo": {
+      // Geocodes the sibling "address" property on an explicit click (ADR 0011).
+      const address = typeof all.address === "string" ? all.address : "";
+      return <GeoField id={id} value={noteCoords(all)} onChange={(c) => onChange(writeCoords(c))} query={address} geocode={geocode} />;
+    }
     case "number":
       return <Input id={id} className="h-8" type="number" value={value === undefined ? "" : String(value)} onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))} />;
     case "date":

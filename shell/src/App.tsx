@@ -5,6 +5,7 @@ import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
 import { CalendarPage } from "./surfaces/CalendarPage";
 import { WeekPage } from "./surfaces/WeekPage";
+import { MapPage } from "./surfaces/MapPage";
 import { UserScreenPage } from "./screens/UserScreenPage";
 
 function HomeRedirect() {
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/screen/:id" element={<UserScreenPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/week" element={<WeekPage />} />
+          <Route path="/map" element={<MapPage />} />
           {registeredApps()
             .flatMap((a) => a.screens)
             .map((s) => {

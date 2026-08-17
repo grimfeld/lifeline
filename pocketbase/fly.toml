@@ -1,8 +1,12 @@
+# fly.toml app configuration file generated for lifeline-pb on 2026-08-17T19:30:55+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
 app = 'lifeline-pb'
 primary_region = 'fra'
 
 [build]
-
 [[mounts]]
   source = 'pb_data'
   destination = '/pb/pb_data'
@@ -17,5 +21,5 @@ primary_region = 'fra'
 
 [[vm]]
   memory = '512mb'
-  cpu_kind = 'shared'
   cpus = 1
+  memory_mb = 512
