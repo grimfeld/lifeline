@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { buildIndex } from "./index";
 import type { Note } from "./types";
 
-const note = (id: string, title: string, body: string, type: Note["type"] = "plain"): Note => ({
-  id, title, body, type, createdAt: "2026-01-01", updatedAt: "", deleted: 0,
+const note = (id: string, title: string, body: string, type: Note["type"] = "plain", folder = ""): Note => ({
+  id, title, body, type, folder, createdAt: "2026-01-01", updatedAt: "", deleted: 0,
 });
 
 describe("buildIndex", () => {
@@ -37,5 +37,23 @@ describe("buildIndex", () => {
   it("names() lists titles, aliases and app targets", () => {
     const names = idx.names().map((n) => n.name);
     expect(names).toEqual(expect.arrayContaining(["2026-08-16", "Yasmine", "Yas", "Paris", "Dune"]));
+  });
+});
+
+describe("folders in resolution (ADR 0013)", () => {
+  const idx = buildIndex([
+    note("a", "Paul", "", "person", "People"),
+    note("b", "Paul", "", "plain", "Books/Characters"),
+    note("c", "2026-08-17", "[[Paul]] [[Books/Characters/Paul]] [[people/paul]]", "daily", "Journal/2026/08"),
+  ]);
+  it("exact path wins, else the shallowest title", () => {
+    expect(idx.resolve("Books/Characters/Paul")).toEqual({ kind: "note", noteId: "b" });
+    expect(idx.resolve("people/paul")).toEqual({ kind: "note", noteId: "a" });
+    expect(idx.resolve("Paul")).toEqual({ kind: "note", noteId: "a" });
+  });
+  it("offers path forms for ambiguous titles in autocomplete", () => {
+    const names = idx.names().map((n) => n.name);
+    expect(names).toEqual(expect.arrayContaining(["People/Paul", "Books/Characters/Paul", "2026-08-17"]));
+    expect(names).not.toContain("Paul");
   });
 });

@@ -58,8 +58,9 @@ export interface UserScreen extends SyncedRecord {
  *   3 — Calendar App: events
  *   4 — Stats App: stats, stat_entries; Media App: media
  *   5 — Notes App: notes
+ *   6 — notes.folder index (ADR 0013)
  */
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 export class LifelineDB extends Dexie {
   _outbox!: Table<OutboxEntry, number>;

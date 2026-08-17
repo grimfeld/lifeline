@@ -24,7 +24,7 @@ export function RecentNotesCard({ settings }: CardProps) {
           <li key={n.id}>
             <button
               className="hover:bg-accent flex w-full items-center gap-2 rounded-md px-1 py-0.5 text-left"
-              onClick={() => navigate(def.titleRule === "date" ? `/app/journal?d=${n.title}` : `/app/notes/${n.id}`)}
+              onClick={() => navigate(def.titleRule === "date" ? `/notes/journal?d=${n.title}` : `/notes/n/${n.id}`)}
             >
               <I className="text-muted-foreground size-3.5 shrink-0" />
               <span className="truncate text-sm">{def.titleRule === "date" ? formatHuman(n.title) : n.title}</span>

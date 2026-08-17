@@ -1,13 +1,16 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useReducer } from "react";
 import { db, get, newId, put, remove, todayStr, useLinkTargets, useLiveQuery, type DateStr, type SyncedRecord } from "@lifeline/core";
 import { NOTES, type Note } from "../domain/types";
 import { noteType, TEMPLATE_TYPE, type NoteTypeId } from "../domain/noteTypes";
 import { renderTemplate } from "../domain/templates";
 import { buildIndex, type NoteIndex } from "../domain/index";
 import { normalizeName, renameLinks, serializeFrontmatter, splitFrontmatter, withProperties, type Properties } from "../domain/markdown";
+import { defaultFolder, isWithin, migrateFolder, normalizeFolder, notePath, rebase, titleTaken } from "../domain/folders";
 
 function normalize(n: Note): Note {
-  return { ...n, body: n.body ?? "", title: n.title ?? "", type: (n.type ?? "plain") as NoteTypeId, createdAt: n.createdAt ?? "" };
+  const type = (n.type ?? "plain") as NoteTypeId;
+  const title = n.title ?? "";
+  return { ...n, body: n.body ?? "", title, type, folder: migrateFolder({ folder: n.folder, type, title }), createdAt: n.createdAt ?? "" };
 }
 
 export function useNotes(): Note[] {
@@ -19,7 +22,14 @@ export function useNotes(): Note[] {
 }
 
 export function useNote(id: string | undefined): Note | undefined {
-  return useLiveQuery(async () => (id ? get<Note>(NOTES, id) : undefined), [id], undefined);
+  return useLiveQuery(
+    async () => {
+      const n = id ? await get<Note>(NOTES, id) : undefined;
+      return n ? normalize(n) : undefined;
+    },
+    [id],
+    undefined,
+  );
 }
 
 /** The derived index over all notes + every App's Linkable targets (ADR 0009). */
@@ -34,9 +44,11 @@ export async function allNotes(): Promise<Note[]> {
   return (await db().collection<Note>(NOTES).where("deleted").equals(0).toArray()).map(normalize);
 }
 
-export async function findByTitle(title: string): Promise<Note | undefined> {
+/** A note by title within a folder (titles are unique per folder). */
+export async function findByTitle(title: string, folder = ""): Promise<Note | undefined> {
   const k = normalizeName(title);
-  return (await allNotes()).find((n) => normalizeName(n.title) === k);
+  const f = normalizeFolder(folder);
+  return (await allNotes()).find((n) => n.folder === f && normalizeName(n.title) === k);
 }
 
 /** The template note for a type (a "template" note titled with the type id), if the user made one. */
@@ -53,16 +65,18 @@ export async function templateFor(type: NoteTypeId, vars: { title: string }): Pr
 
 /** Get-or-create the editable template note for a type, seeded with the code default. */
 export async function ensureTemplateNote(type: NoteTypeId): Promise<Note> {
-  return (await templateNote(type)) ?? createNote({ type: TEMPLATE_TYPE, title: type, body: noteType(type).template });
+  return (await templateNote(type)) ?? createNote({ type: TEMPLATE_TYPE, title: type, folder: defaultFolder(TEMPLATE_TYPE, type), body: noteType(type).template });
 }
 
-/** Create a note of a type; body defaults to the type's template with empty properties. */
-export async function createNote(input: { type: NoteTypeId; title: string; body?: string; properties?: Properties }): Promise<Note> {
+/** Create a note of a type; body defaults to the type's template with empty properties. Folder defaults per type. */
+export async function createNote(input: { type: NoteTypeId; title: string; folder?: string; body?: string; properties?: Properties }): Promise<Note> {
   const fm = serializeFrontmatter(input.properties ?? {});
   const title = input.title.trim();
+  const folder = input.folder === undefined ? defaultFolder(input.type, title) : normalizeFolder(input.folder);
   const note: Note = {
     id: newId(),
     type: input.type,
+    folder,
     title,
     body: input.body ?? fm + (await templateFor(input.type, { title })),
     createdAt: todayStr(),
@@ -82,16 +96,110 @@ export async function setProperties(note: Note, props: Properties): Promise<void
   await saveBody(note, withProperties(note.body, props));
 }
 
-/** Rename a note and rewrite [[Old]] → [[New]] in every referring note (Obsidian behaviour). */
+/** Rename a note and rewrite [[Old]] / [[Folder/Old]] → new in every referring note (Obsidian behaviour). */
 export async function renameNote(note: Note, newTitle: string): Promise<void> {
   const title = newTitle.trim();
   if (!title || title === note.title) return;
-  await put<Note>(NOTES, { ...note, title });
-  for (const other of await allNotes()) {
-    if (other.id === note.id) continue;
-    const rewritten = renameLinks(other.body, note.title, title);
-    if (rewritten !== other.body) await put<Note>(NOTES, { ...other, body: rewritten });
+  const notes = await allNotes();
+  if (titleTaken(notes, note.folder, title, note.id)) throw new Error(`“${title}” already exists in ${note.folder || "the root"}`);
+  const next = { ...note, title };
+  await put<Note>(NOTES, next);
+  await rewriteReferrers(notes, note, next);
+}
+
+/** Move a note to another folder; path-form links are rewritten, name-form links are untouched. */
+export async function moveNote(note: Note, folder: string): Promise<void> {
+  const f = normalizeFolder(folder);
+  if (f === note.folder) return;
+  const notes = await allNotes();
+  if (titleTaken(notes, f, note.title, note.id)) throw new Error(`“${note.title}” already exists in ${f || "the root"}`);
+  const next = { ...note, folder: f };
+  await put<Note>(NOTES, next);
+  await rewriteReferrers(notes, note, next);
+}
+
+async function rewriteReferrers(notes: Note[], before: Note, after: Note): Promise<void> {
+  const oldPath = notePath(before);
+  const newPath = notePath(after);
+  for (const other of notes) {
+    if (other.id === before.id) continue;
+    let body = other.body;
+    if (before.title !== after.title) body = renameLinks(body, before.title, after.title);
+    body = renameLinks(body, oldPath, newPath);
+    if (body !== other.body) await put<Note>(NOTES, { ...other, body });
   }
+}
+
+/** Rename (or move) a folder: every descendant note's folder is rebased; path links follow. */
+export async function renameFolder(from: string, to: string): Promise<void> {
+  const a = normalizeFolder(from);
+  const b = normalizeFolder(to);
+  if (!a || a === b) return;
+  if (isWithin(b, a) && b !== a) throw new Error("Cannot move a folder into itself");
+  const notes = await allNotes();
+  const moved = notes.filter((n) => isWithin(n.folder, a));
+  const staying = notes.filter((n) => !isWithin(n.folder, a));
+  for (const n of moved) {
+    const target = rebase(n.folder, a, b);
+    if (titleTaken(staying, target, n.title)) throw new Error(`“${n.title}” already exists in ${target}`);
+  }
+  for (const n of moved) {
+    const next = { ...n, folder: rebase(n.folder, a, b) };
+    await put<Note>(NOTES, next);
+    await rewriteReferrers(notes, n, next);
+  }
+  const extra = await extraFolders();
+  await setExtraFolders(extra.map((f) => rebase(f, a, b)));
+}
+
+// --- user-created empty folders (local UI state, not synced) ---------------
+const EXTRA_KEY = "notes:folders";
+
+export async function extraFolders(): Promise<string[]> {
+  const raw = (await db()._meta.get(EXTRA_KEY))?.value;
+  try {
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+async function setExtraFolders(list: string[]): Promise<void> {
+  await db()._meta.put({ key: EXTRA_KEY, value: JSON.stringify(Array.from(new Set(list.map(normalizeFolder).filter(Boolean)))) });
+  bumpFolders();
+}
+export async function createFolder(path: string): Promise<void> {
+  const p = normalizeFolder(path);
+  if (!p) return;
+  await setExtraFolders([...(await extraFolders()), p]);
+}
+/** Delete a folder — only when no note lives in it or below (Obsidian asks; we refuse). */
+export async function deleteFolder(path: string): Promise<void> {
+  const p = normalizeFolder(path);
+  const notes = await allNotes();
+  if (notes.some((n) => isWithin(n.folder, p))) throw new Error("Folder is not empty");
+  await setExtraFolders((await extraFolders()).filter((f) => !isWithin(f, p)));
+}
+/** Once a folder has a note, it no longer needs to be remembered. */
+export async function forgetExtraFolder(path: string): Promise<void> {
+  const p = normalizeFolder(path);
+  const cur = await extraFolders();
+  if (cur.includes(p)) await setExtraFolders(cur.filter((f) => f !== p));
+}
+
+// _meta isn't a live-queried table for the extra-folder list; a tiny version counter re-renders the hook.
+let foldersVersion = 0;
+const folderListeners = new Set<() => void>();
+function bumpFolders() {
+  foldersVersion++;
+  folderListeners.forEach((l) => l());
+}
+export function useExtraFolders(): string[] {
+  const [, force] = useReducer((x: number) => x + 1, 0);
+  useEffect(() => {
+    folderListeners.add(force);
+    return () => void folderListeners.delete(force);
+  }, []);
+  return useLiveQuery(extraFolders, [foldersVersion], [] as string[]);
 }
 
 export async function deleteNote(id: string): Promise<void> {
@@ -109,7 +217,7 @@ const inflight = new Map<DateStr, Promise<Note>>();
 export function ensureDailyNote(date: DateStr): Promise<Note> {
   const pending = inflight.get(date);
   if (pending) return pending;
-  const p = (async () => (await dailyNote(date)) ?? createNote({ type: "daily", title: date }))().finally(() => inflight.delete(date));
+  const p = (async () => (await dailyNote(date)) ?? createNote({ type: "daily", title: date, folder: defaultFolder("daily", date) }))().finally(() => inflight.delete(date));
   inflight.set(date, p);
   return p;
 }
@@ -140,6 +248,7 @@ export async function onNoteConflict(local: SyncedRecord, server: SyncedRecord):
   await put<Note>(NOTES, {
     id: newId(),
     type: "plain",
+    folder: l.folder ?? "",
     title: `${l.title} (conflict ${stamp})`,
     body: serializeFrontmatter({ ...properties, conflictOf: l.title }) + content,
     createdAt: todayStr(),

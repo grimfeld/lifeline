@@ -93,3 +93,5 @@ Dexie data merges by LWW, so a device that already has records is fine.
 Only after step 3, per app: `fly apps destroy notch-pb` (and any other that
 still exists — `fly apps list`). Keep the legacy repos; their ADRs are cited
 from Lifeline's.
+
+Folders (ADR 0013): dailies land in `Journal/YYYY/MM`, people in `People`, places in `Places`; other notes keep their vault directory as their folder.

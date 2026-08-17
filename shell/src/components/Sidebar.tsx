@@ -15,12 +15,13 @@ import {
   db,
   newId,
   put,
-  registeredApps,
+  screensOf,
   useLiveQuery,
   type UserScreen,
 } from "@lifeline/core";
 import { CalendarDays, Columns3, LayoutDashboard, MapPin, Plus, Sparkles } from "lucide-react";
 import { SyncBadge } from "./SyncBadge";
+import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 function navClass({ isActive }: { isActive: boolean }) {
   return cn(
@@ -65,7 +66,8 @@ export function Sidebar() {
         <Sparkles className="text-primary size-5" />
         <span className="text-base font-semibold tracking-tight">Lifeline</span>
       </div>
-      <Separator />
+      <WorkspaceSwitcher />
+      <Separator className="mt-2" />
 
       <nav className="flex-1 space-y-4 overflow-y-auto p-2">
         <div>
@@ -111,8 +113,7 @@ export function Sidebar() {
 
         <div>
           <div className="text-muted-foreground px-2 py-1 text-xs font-medium">Apps</div>
-          {registeredApps()
-            .flatMap((a) => a.screens)
+          {screensOf()
             .filter((s) => !s.hidden)
             .map((s) => {
               const Icon = s.icon;

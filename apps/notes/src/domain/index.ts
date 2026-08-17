@@ -1,6 +1,7 @@
 import type { LinkTarget } from "@lifeline/core";
 import type { Note } from "./types";
 import { extractLinks, extractTags, normalizeName, splitFrontmatter, type Properties, type WikiLink } from "./markdown";
+import { normalizeFolder, notePath } from "./folders";
 
 /** What a wikilink points at (ADR 0009): a note, an App entity, or nothing yet. */
 export type LinkRef =
@@ -48,19 +49,25 @@ function contextAround(text: string, from: number, to: number, radius = 60): str
 
 /**
  * Derive everything from the notes' text (plus the Apps' Linkable targets).
- * Precedence: note title → note alias → App entity name → App alias → unresolved.
+ * Precedence (ADR 0009/0013): exact `Folder/Name` path → note title (unique,
+ * else the shortest path) → note alias → App entity name → App alias → unresolved.
  * Pure; rebuild whenever notes or targets change.
  */
 export function buildIndex(notes: Note[], targets: (LinkTarget & { color?: string })[] = []): NoteIndex {
   const byId = new Map(notes.map((n) => [n.id, n]));
   const props = new Map<string, Properties>();
+  const byPath = new Map<string, string>();
   const byTitle = new Map<string, string>();
   const byAlias = new Map<string, string>();
+  const depth = (n: Note) => (n.folder ? n.folder.split("/").length : 0);
   for (const n of notes) {
     const p = splitFrontmatter(n.body).properties;
     props.set(n.id, p);
+    byPath.set(normalizeName(notePath(n)), n.id);
     const key = normalizeName(n.title);
-    if (!byTitle.has(key)) byTitle.set(key, n.id);
+    const cur = byTitle.get(key);
+    // Ambiguous titles: the shallowest path wins (Obsidian's rule); ties keep the first.
+    if (!cur || depth(n) < depth(byId.get(cur)!)) byTitle.set(key, n.id);
     for (const a of aliasesOf(p)) {
       const k = normalizeName(a);
       if (!byAlias.has(k)) byAlias.set(k, n.id);
@@ -80,6 +87,10 @@ export function buildIndex(notes: Note[], targets: (LinkTarget & { color?: strin
 
   function resolve(name: string): LinkRef {
     const k = normalizeName(name);
+    if (k.includes("/")) {
+      const byP = byPath.get(normalizeName(normalizeFolder(k)));
+      if (byP) return { kind: "note", noteId: byP };
+    }
     const t = byTitle.get(k);
     if (t) return { kind: "note", noteId: t };
     const a = byAlias.get(k);
@@ -131,8 +142,11 @@ export function buildIndex(notes: Note[], targets: (LinkTarget & { color?: strin
     properties: (id) => props.get(id) ?? {},
     names: () => {
       const out: { name: string; ref: LinkRef; subtitle?: string }[] = [];
+      const titleCount = new Map<string, number>();
+      for (const n of notes) titleCount.set(normalizeName(n.title), (titleCount.get(normalizeName(n.title)) ?? 0) + 1);
       for (const n of notes) {
-        out.push({ name: n.title, ref: { kind: "note", noteId: n.id }, subtitle: n.type });
+        const ambiguous = (titleCount.get(normalizeName(n.title)) ?? 0) > 1;
+        out.push({ name: ambiguous ? notePath(n) : n.title, ref: { kind: "note", noteId: n.id }, subtitle: n.folder || n.type });
         for (const a of aliasesOf(props.get(n.id) ?? {})) out.push({ name: a, ref: { kind: "note", noteId: n.id }, subtitle: `→ ${n.title}` });
       }
       for (const t of targets) {

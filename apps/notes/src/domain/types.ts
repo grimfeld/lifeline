@@ -8,6 +8,8 @@ import type { NoteTypeId } from "./noteTypes";
  */
 export interface Note extends SyncedRecord {
   type: NoteTypeId;
+  /** Folder path, "/"-separated; "" = root (ADR 0013). Titles are unique per folder. */
+  folder: string;
   title: string;
   /** Full markdown including the frontmatter block, if any. */
   body: string;

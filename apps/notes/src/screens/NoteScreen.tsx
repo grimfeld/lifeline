@@ -1,12 +1,13 @@
-import { useParams } from "react-router";
+import { Navigate, useParams } from "react-router";
 import { useNote, useNoteIndex } from "../data/repo";
-import { NoteEditor } from "../components/NoteEditor";
+import { NoteView } from "../workspace/NoteView";
+import { journalHref } from "../workspace/useOpenNote";
 
-/** Hidden route notes/:id — one note in the editor. */
+/** /notes/n/:id — one note; daily notes redirect to their journal URL so the date toolbar shows. */
 export function NoteScreen() {
   const { id } = useParams<{ id: string }>();
   const note = useNote(id);
   const index = useNoteIndex();
-  if (!note) return <div className="text-muted-foreground flex h-full items-center justify-center text-sm">Note not found.</div>;
-  return <NoteEditor key={note.id} note={note} index={index} autoFocus />;
+  if (note?.type === "daily") return <Navigate to={journalHref(note.title)} replace />;
+  return <NoteView note={note} index={index} />;
 }

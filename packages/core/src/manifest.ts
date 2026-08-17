@@ -20,11 +20,32 @@ export interface CollectionDef {
   onConflict?: (local: SyncedRecord, server: SyncedRecord) => Promise<void>;
 }
 
+/**
+ * A Workspace (ADR 0012): a full-screen environment over the same data with
+ * its own chrome. Core provides the built-in "dashboard" workspace and the
+ * switcher; an App may provide another one (the Notes App provides "notes").
+ */
+export interface WorkspaceDef {
+  id: string;
+  title: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  /** URL root, e.g. "/notes". Every screen of this workspace is routed below it. */
+  path: string;
+  /** The workspace's own sidebar (Core renders the switcher above it). */
+  sidebar: React.ComponentType;
+  /** Where the bare root path lands, relative to `path` (e.g. "journal"). */
+  home: string;
+}
+
+export const DASHBOARD_WORKSPACE = "dashboard";
+
 export interface AppScreenDef {
   id: string;
   title: string;
-  /** Route path under /app/, e.g. "chores". */
+  /** Route path: under /app/ for dashboard screens, under the workspace's path otherwise (e.g. "chores", "n/:id"). */
   path: string;
+  /** Workspace the screen lives in; default "dashboard". */
+  workspace?: string;
   icon?: React.ComponentType<{ className?: string }>;
   component: React.ComponentType;
   /** Routed but not listed in the sidebar/palette (detail pages such as "stats/:id"). */
@@ -92,5 +113,7 @@ export interface AppManifest {
   linkable?: LinkableProvider;
   backlinks?: BacklinkProvider;
   daylog?: DaylogProvider;
+  /** A workspace this App provides (ADR 0012). */
+  workspace?: WorkspaceDef;
   locatable?: LocatableProvider;
 }

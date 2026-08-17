@@ -138,3 +138,11 @@ _Avoid_: timeline, activity feed, summary
 
 ### Conflict copy
 A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten unsynced local edits. Nothing is merged, nothing is lost.
+
+### Workspace
+A full-screen environment over the same data, chosen by URL: **Notes** (Obsidian-shaped: folder tree, editor, links) and **Dashboard** (Screens, Surfaces, App screens). Core owns the switcher; an App declares which Workspace its screens live in. Two views of one dataset, not two apps.
+_Avoid_: mode, full-screen app, view
+
+### Folder
+Where a Note lives: a `/`-separated path (root when empty). A Folder exists because Notes are in it; titles are unique within a Folder. Daily notes live in `Journal/YYYY/MM`, templates in `Templates`.
+_Avoid_: directory, category (that's a Note type), tag
