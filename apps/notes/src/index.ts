@@ -1,4 +1,4 @@
-import type { AppManifest, BacklinkProvider } from "@lifeline/core";
+import type { AppManifest, BacklinkProvider, LocatableProvider, Pin } from "@lifeline/core";
 import { NotebookPen } from "lucide-react";
 import { JournalScreen } from "./screens/JournalScreen";
 import { NotesScreen } from "./screens/NotesScreen";
@@ -7,10 +7,11 @@ import { TodayJournalCard } from "./cards/TodayJournalCard";
 import { DaylogCard } from "./cards/DaylogCard";
 import { RecentNotesCard, recentTypeOptions } from "./cards/RecentNotesCard";
 import { noteCommands } from "./commands";
-import { onNoteConflict, useNoteIndex } from "./data/repo";
+import { onNoteConflict, useNoteIndex, useNotes } from "./data/repo";
 import { NOTES } from "./domain/types";
 import { formatHuman, addDays, todayStr } from "@lifeline/core";
-import { excerpt } from "./domain/markdown";
+import { excerpt, noteCoords, splitFrontmatter } from "./domain/markdown";
+import { noteType } from "./domain/noteTypes";
 
 const APP_ID = "notes";
 
@@ -29,6 +30,23 @@ const notesBacklinks: BacklinkProvider = {
         href: n ? (n.type === "daily" ? `/app/journal?d=${n.title}` : `/app/notes/${n.id}`) : undefined,
       };
     });
+  },
+};
+
+/** Any note with a valid `location` property is a Pin — Places first, but the contract is about data, not type (ADR 0011). */
+const notesLocatable: LocatableProvider = {
+  appId: APP_ID,
+  usePins() {
+    const notes = useNotes();
+    const out: Pin[] = [];
+    for (const n of notes) {
+      const props = splitFrontmatter(n.body).properties;
+      const c = noteCoords(props);
+      if (!c) continue;
+      const address = typeof props.address === "string" && props.address ? props.address : noteType(n.type).label;
+      out.push({ appId: APP_ID, itemId: n.id, name: n.title, subtitle: address, lat: c.lat, lon: c.lon, href: `/app/notes/${n.id}` });
+    }
+    return out;
   },
 };
 
@@ -87,6 +105,7 @@ export const notesApp: AppManifest = {
   ],
   commands: noteCommands,
   backlinks: notesBacklinks,
+  locatable: notesLocatable,
 };
 
 export { NOTES };

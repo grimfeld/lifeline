@@ -1,0 +1,95 @@
+/* Leaflet inside the app: theme-aware pins and popups (ADR 0011). */
+
+.leaflet-container {
+  font-family: inherit;
+  background: var(--muted);
+  z-index: 0;
+}
+
+.ll-pin {
+  background: transparent;
+  border: 0;
+}
+.ll-pin-dot {
+  display: block;
+  width: var(--pin-size);
+  height: var(--pin-size);
+  background: var(--pin);
+  border: 2px solid white;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+}
+.ll-pin-dot::after {
+  content: "";
+  position: absolute;
+  inset: 30%;
+  border-radius: 50%;
+  background: white;
+  opacity: 0.85;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.2);
+}
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius);
+}
+.leaflet-popup-content {
+  margin: 10px 12px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--muted-foreground);
+}
+.ll-popup {
+  display: grid;
+  gap: 4px;
+  min-width: 140px;
+}
+.ll-popup-name {
+  font-weight: 600;
+}
+.ll-popup-sub {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.ll-popup-open {
+  justify-self: start;
+  margin-top: 2px;
+  color: var(--primary);
+  font-size: 12px;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.ll-popup-open:hover {
+  text-decoration: underline;
+}
+
+.leaflet-bar a {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border-bottom-color: var(--border);
+}
+.leaflet-bar a:hover {
+  background: var(--accent);
+}
+/* Tiles are always light, so the attribution keeps fixed light-on-map colours in both themes. */
+.leaflet-container .leaflet-control-attribution {
+  background: rgb(255 255 255 / 0.8);
+  color: #444;
+  font-size: 10px;
+}
+.leaflet-container .leaflet-control-attribution a {
+  color: #0b5cad;
+}
+
+.dark .leaflet-tile-pane {
+  filter: brightness(0.7) contrast(1.05) saturate(0.85);
+}

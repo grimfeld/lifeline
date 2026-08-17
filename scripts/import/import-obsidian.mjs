@@ -87,7 +87,9 @@ function serializeFrontmatter(fm) {
     if (key === null) lines.push(value);
     else if (Array.isArray(value)) {
       if (!value.length) continue;
-      lines.push(`${key}:`, ...value.map((v) => `  - ${quote(v)}`));
+      // Numeric lists (coordinates) inline, `location: [lat, lon]` — the shape Obsidian Map View reads (ADR 0011).
+      if (value.every((v) => /^-?\d+(\.\d+)?$/.test(v))) lines.push(`${key}: [${value.join(", ")}]`);
+      else lines.push(`${key}:`, ...value.map((v) => `  - ${quote(v)}`));
     } else lines.push(`${key}: ${quote(value)}`);
   }
   return lines.length ? `---\n${lines.join("\n")}\n---\n` : "";
@@ -107,7 +109,7 @@ function setScalar(fm, key, value) {
 const asList = (v) => (v == null ? [] : Array.isArray(v) ? v : [String(v)]).map((s) => s.trim()).filter(Boolean);
 const uniq = (xs) => [...new Set(xs)];
 
-/** Person/place frontmatter clean-up: `alias` → `aliases` (list); empty `locations` dropped; geo link → geo/address. */
+/** Person/place frontmatter clean-up: `alias` → `aliases` (list); empty `locations` dropped; geo link → location/address. */
 function normaliseEntity(type, fm, rest) {
   fm = fm ? fm.filter((e) => e.key !== "locations" || asList(e.value).length) : [];
   const aliases = uniq([...asList(get(fm, "aliases")?.value), ...asList(get(fm, "alias")?.value)]);
@@ -116,7 +118,7 @@ function normaliseEntity(type, fm, rest) {
   if (type === "place") {
     const g = GEO_LINK.exec(rest);
     if (g) {
-      setScalar(fm, "geo", `${g[2]},${g[3]}`);
+      setList(fm, "location", [g[2], g[3]]);
       if (g[1].trim() && !get(fm, "address")) setScalar(fm, "address", g[1].trim());
     }
   }

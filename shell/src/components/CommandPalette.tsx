@@ -18,7 +18,7 @@ import {
   type CommandDef,
   type UserScreen,
 } from "@lifeline/core";
-import { CalendarDays, Columns3, LayoutDashboard, Terminal } from "lucide-react";
+import { CalendarDays, Columns3, LayoutDashboard, MapPin, Terminal } from "lucide-react";
 
 type DialogCommand = CommandDef & { appId: string };
 
@@ -69,6 +69,9 @@ export function CommandPalette() {
             </CommandItem>
             <CommandItem onSelect={() => pick(() => navigate("/week"))}>
               <Columns3 /> Week
+            </CommandItem>
+            <CommandItem onSelect={() => pick(() => navigate("/map"))}>
+              <MapPin /> Map
             </CommandItem>
             {registeredApps()
               .flatMap((a) => a.screens)

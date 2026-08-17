@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, toast } from "@lifeline/ui";
+import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, MiniMap, toast } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import { Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Trash2 } from "lucide-react";
 import type { Note } from "../domain/types";
 import { noteType, TEMPLATE_TYPE } from "../domain/noteTypes";
 import type { LinkRef, NoteIndex } from "../domain/index";
-import { splitFrontmatter, withProperties, type Properties } from "../domain/markdown";
+import { noteCoords, splitFrontmatter, withProperties, writeCoords, type Properties } from "../domain/markdown";
 import { createNote, deleteNote, renameNote, saveBody } from "../data/repo";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { PropertiesForm } from "./PropertiesForm";
@@ -79,6 +79,7 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
     navigate("/app/notes");
   }
 
+  const coords = useMemo(() => noteCoords(properties), [properties]);
   const Icon = def.icon;
   return (
     <div className="flex h-full min-h-0">
@@ -157,6 +158,20 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
           <div className="text-muted-foreground mb-2 flex items-center gap-1 text-xs">
             <Link2 className="size-3" /> ⌘-click a link to open it
           </div>
+          {coords && (
+            <div className="mb-3">
+              <MiniMap
+                lat={coords.lat}
+                lon={coords.lon}
+                color="var(--chart-green)"
+                onMove={(lat, lon) => {
+                  propsRef.current = { ...propsRef.current, location: writeCoords({ lat, lon }) };
+                  flush();
+                }}
+                onExpand={() => navigate(`/map?focus=notes/${note.id}`)}
+              />
+            </div>
+          )}
           <LinksPanel note={note} index={index} onOpen={openRef} />
         </aside>
       )}

@@ -71,7 +71,7 @@ notes… — → **plain**, skipped when the body (minus frontmatter) is empty.
 
 Person/place frontmatter is rewritten with a small YAML subset: `alias:` folds
 into the `aliases` list, an empty `locations:` is dropped, and a place whose body
-has a `[label](geo:LAT,LNG)` link gets `geo: "LAT,LNG"` + `address: label`
+has a `[label](geo:LAT,LNG)` link gets `location: [LAT, LNG]` (ADR 0011) + `address: label`
 (the original line stays). People/places present in both vaults are merged by
 title (case-insensitive): aliases are unioned, non-empty bodies concatenated
 with a blank line, the earliest file date wins. Same-title dailies keep the

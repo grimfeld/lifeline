@@ -55,6 +55,10 @@ function unquote(s: string): string {
   return t;
 }
 
+function isNumeric(s: string): boolean {
+  return /^-?\d+(\.\d+)?$/.test(s);
+}
+
 function quoteIfNeeded(s: string): string {
   return /[:#\[\]{}",']|^\s|\s$/.test(s) || s === "" ? JSON.stringify(s) : s;
 }
@@ -67,8 +71,13 @@ export function serializeFrontmatter(props: Properties): string {
     if (Array.isArray(v)) {
       const items = v.filter((x) => x !== "");
       if (items.length === 0) continue;
-      lines.push(`${k}:`);
-      for (const item of items) lines.push(`  - ${quoteIfNeeded(item)}`);
+      if (items.every(isNumeric)) {
+        // Numeric lists (coordinates) read better inline: `location: [48.85, 2.35]`.
+        lines.push(`${k}: [${items.join(", ")}]`);
+      } else {
+        lines.push(`${k}:`);
+        for (const item of items) lines.push(`  - ${quoteIfNeeded(item)}`);
+      }
     } else if (typeof v === "number") {
       lines.push(`${k}: ${v}`);
     } else {
@@ -76,6 +85,26 @@ export function serializeFrontmatter(props: Properties): string {
     }
   }
   return lines.length ? `---\n${lines.join("\n")}\n---\n` : "";
+}
+
+/** Read a `[lat, lon]` property (also tolerates a legacy "lat,lon" string). Null when absent or malformed. */
+export function readCoords(v: PropertyValue | undefined): { lat: number; lon: number } | null {
+  const parts = Array.isArray(v) ? v : typeof v === "string" ? v.split(",") : [];
+  if (parts.length !== 2) return null;
+  const lat = Number(String(parts[0]).trim());
+  const lon = Number(String(parts[1]).trim());
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return { lat, lon };
+}
+
+/** A note's coordinates: the `location` property, or the pre-ADR-0011 `geo: "lat,lon"` string from early imports. */
+export function noteCoords(props: Properties): { lat: number; lon: number } | null {
+  return readCoords(props.location) ?? readCoords(props.geo);
+}
+
+/** The property value for coordinates: `[lat, lon]` as strings, "" to clear. */
+export function writeCoords(c: { lat: number; lon: number } | null): PropertyValue {
+  return c ? [String(c.lat), String(c.lon)] : "";
 }
 
 /** Replace the note's frontmatter with `props`, keeping the content. */

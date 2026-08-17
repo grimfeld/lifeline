@@ -124,6 +124,14 @@ _Avoid_: incoming link, reference
 ### Linkable
 Core Contract: an App exposes its entities as wikilink targets by name and receives their backlinks.
 
+### Locatable
+Core Contract: an App exposes entities that sit at a geographic point, so any map Surface can draw them. Coordinates are the owning App's data (resolved when the entity is edited, never looked up at render time); an entity with an address but no coordinates is not Locatable yet.
+_Avoid_: mappable, geolocated, placed (Placement is a calendar concept)
+
+### Pin
+One Locatable entity drawn on a map: name, optional subtitle, coordinates, and a way to open the entity. Coloured by owning App. Not stored — read live from the Apps.
+_Avoid_: marker (a rendering detail), place (a Note type), location (that's the coordinates, not the entity)
+
 ### Daylog
 Core Contract: an App reports what *happened* on a day — completed tasks, chore completions, logged entries, media started/finished, events. Rendered live wherever a Daylog block appears (a daily note's fenced `daylog` block, or a Card); never written as text.
 _Avoid_: timeline, activity feed, summary

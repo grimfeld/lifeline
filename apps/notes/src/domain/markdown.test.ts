@@ -6,10 +6,12 @@ import {
   extractLinks,
   extractTags,
   parseBlockOptions,
+  readCoords,
   renameLinks,
   serializeFrontmatter,
   splitFrontmatter,
   withProperties,
+  writeCoords,
 } from "./markdown";
 
 describe("frontmatter", () => {
@@ -19,11 +21,20 @@ describe("frontmatter", () => {
     expect(content).toBe("Body");
   });
   it("round-trips through serialize / withProperties and drops empties", () => {
-    const fm = serializeFrontmatter({ mood: "3", aliases: ["X", ""], address: "", geo: "48.9,2.3" });
-    expect(fm).toBe("---\nmood: 3\naliases:\n  - X\ngeo: \"48.9,2.3\"\n---\n");
-    expect(splitFrontmatter(fm + "hi").properties).toEqual({ mood: 3, aliases: ["X"], geo: "48.9,2.3" });
+    const fm = serializeFrontmatter({ mood: "3", aliases: ["X", ""], address: "", location: ["48.9", "2.3"] });
+    expect(fm).toBe("---\nmood: 3\naliases:\n  - X\nlocation: [48.9, 2.3]\n---\n");
+    expect(splitFrontmatter(fm + "hi").properties).toEqual({ mood: 3, aliases: ["X"], location: ["48.9", "2.3"] });
     expect(withProperties("---\nmood: 1\n---\nBody", { mood: "5" })).toBe("---\nmood: 5\n---\nBody");
     expect(withProperties("Body", {})).toBe("Body");
+  });
+  it("reads and writes coordinates as [lat, lon]", () => {
+    expect(readCoords(["48.9", "2.3"])).toEqual({ lat: 48.9, lon: 2.3 });
+    expect(readCoords("48.9,2.3")).toEqual({ lat: 48.9, lon: 2.3 });
+    expect(readCoords(["91", "0"])).toBeNull();
+    expect(readCoords(undefined)).toBeNull();
+    expect(readCoords("Paris")).toBeNull();
+    expect(writeCoords({ lat: 48.9, lon: 2.3 })).toEqual(["48.9", "2.3"]);
+    expect(writeCoords(null)).toBe("");
   });
   it("no frontmatter → empty properties, content untouched", () => {
     expect(splitFrontmatter("--- not fm\nx")).toEqual({ properties: {}, content: "--- not fm\nx", raw: "" });
