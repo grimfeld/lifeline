@@ -136,6 +136,10 @@ _Avoid_: marker (a rendering detail), place (a Note type), location (that's the 
 Core Contract: an App reports what *happened* on a day — completed tasks, chore completions, logged entries, media started/finished, events. Rendered live wherever a Daylog block appears (a daily note's fenced `daylog` block, or a Card); never written as text.
 _Avoid_: timeline, activity feed, summary
 
+### Tag
+A free-form, lower-cased word (`garden`, `health/gym`) a user puts on a top-level entity — Task, Chore, Event, Stat, Media item, Note — to group and filter across Apps. Same word, same tag, whatever App it sits on; the vocabulary is derived from use, never managed. Recurring things carry tags on the definition; Occurrences, Entries and Placements inherit their parent's tags. A Note's tags are read out of its text (`#garden`), never stored beside it.
+_Avoid_: label, category, folder (a Folder is where a Note lives), Note type
+
 ### Conflict copy
 A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten unsynced local edits. Nothing is merged, nothing is lost.
 

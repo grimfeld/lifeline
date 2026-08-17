@@ -1,5 +1,6 @@
+import { useRef } from "react";
 import { GeoField, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { geocode } from "@lifeline/core";
+import { geocode, suggestAddresses } from "@lifeline/core";
 import type { NoteTypeDef, PropertyDef } from "../domain/noteTypes";
 import { noteCoords, writeCoords, type Properties, type PropertyValue } from "../domain/markdown";
 
@@ -7,8 +8,14 @@ const NONE = "__none__";
 
 /** Typed Properties of a Note type, rendered as a form; values are frontmatter (ADR 0009). */
 export function PropertiesForm({ type, value, onChange }: { type: NoteTypeDef; value: Properties; onChange: (next: Properties) => void }) {
+  // Latest value in a ref so two sets in one event (coordinates + address) don't clobber each other.
+  const latest = useRef(value);
+  latest.current = value;
+  const set = (key: string, v: PropertyValue) => {
+    latest.current = { ...latest.current, [key]: v };
+    onChange(latest.current);
+  };
   if (type.properties.length === 0) return null;
-  const set = (key: string, v: PropertyValue) => onChange({ ...value, [key]: v });
   return (
     <div className="grid gap-2 sm:grid-cols-2">
       {type.properties.map((p) => (
@@ -16,14 +23,14 @@ export function PropertiesForm({ type, value, onChange }: { type: NoteTypeDef; v
           <Label htmlFor={`prop-${p.key}`} className="text-muted-foreground text-xs">
             {p.label}
           </Label>
-          <Field def={p} value={value[p.key]} all={value} onChange={(v) => set(p.key, v)} />
+          <Field def={p} value={value[p.key]} all={value} onChange={(v) => set(p.key, v)} onSet={set} />
         </div>
       ))}
     </div>
   );
 }
 
-function Field({ def, value, all, onChange }: { def: PropertyDef; value: PropertyValue | undefined; all: Properties; onChange: (v: PropertyValue) => void }) {
+function Field({ def, value, all, onChange, onSet }: { def: PropertyDef; value: PropertyValue | undefined; all: Properties; onChange: (v: PropertyValue) => void; onSet: (key: string, v: PropertyValue) => void }) {
   const id = `prop-${def.key}`;
   switch (def.kind) {
     case "text":
@@ -31,7 +38,20 @@ function Field({ def, value, all, onChange }: { def: PropertyDef; value: Propert
     case "geo": {
       // Geocodes the sibling "address" property on an explicit click (ADR 0011).
       const address = typeof all.address === "string" ? all.address : "";
-      return <GeoField id={id} value={noteCoords(all)} onChange={(c) => onChange(writeCoords(c))} query={address} geocode={geocode} />;
+      return (
+        <GeoField
+          id={id}
+          value={noteCoords(all)}
+          onChange={(c) => onChange(writeCoords(c))}
+          query={address}
+          geocode={geocode}
+          suggest={suggestAddresses}
+          onPickAddress={(label) => {
+            // Fill the sibling address only when it's still empty — never overwrite what the user typed.
+            if (!address.trim()) onSet("address", label);
+          }}
+        />
+      );
     }
     case "number":
       return <Input id={id} className="h-8" type="number" value={value === undefined ? "" : String(value)} onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))} />;
