@@ -1,0 +1,70 @@
+import { describe, expect, it } from "vitest";
+import {
+  excerpt,
+  extractBlocks,
+  extractHeadings,
+  extractLinks,
+  extractTags,
+  parseBlockOptions,
+  renameLinks,
+  serializeFrontmatter,
+  splitFrontmatter,
+  withProperties,
+} from "./markdown";
+
+describe("frontmatter", () => {
+  it("parses scalars, inline lists and block lists", () => {
+    const { properties, content } = splitFrontmatter("---\naliases:\n  - Adel\n  - \"A. B\"\nmood: 4\nkind: home\ntags: [a, b]\n---\nBody");
+    expect(properties).toEqual({ aliases: ["Adel", "A. B"], mood: 4, kind: "home", tags: ["a", "b"] });
+    expect(content).toBe("Body");
+  });
+  it("round-trips through serialize / withProperties and drops empties", () => {
+    const fm = serializeFrontmatter({ mood: "3", aliases: ["X", ""], address: "", geo: "48.9,2.3" });
+    expect(fm).toBe("---\nmood: 3\naliases:\n  - X\ngeo: \"48.9,2.3\"\n---\n");
+    expect(splitFrontmatter(fm + "hi").properties).toEqual({ mood: 3, aliases: ["X"], geo: "48.9,2.3" });
+    expect(withProperties("---\nmood: 1\n---\nBody", { mood: "5" })).toBe("---\nmood: 5\n---\nBody");
+    expect(withProperties("Body", {})).toBe("Body");
+  });
+  it("no frontmatter → empty properties, content untouched", () => {
+    expect(splitFrontmatter("--- not fm\nx")).toEqual({ properties: {}, content: "--- not fm\nx", raw: "" });
+  });
+});
+
+describe("links", () => {
+  it("extracts name / heading / alias / embed with offsets, skipping code", () => {
+    const text = "See [[Yasmine|Y]] and [[Paris#Trip]] ![[img.png]] `[[not]]`\n```\n[[nope]]\n```";
+    const links = extractLinks(text);
+    expect(links.map((l) => [l.name, l.alias, l.heading, l.embed])).toEqual([
+      ["Yasmine", "Y", undefined, false],
+      ["Paris", undefined, "Trip", false],
+      ["img.png", undefined, undefined, true],
+    ]);
+    expect(text.slice(links[0].from, links[0].to)).toBe("[[Yasmine|Y]]");
+  });
+  it("renames links case-insensitively, keeping alias and heading", () => {
+    expect(renameLinks("a [[old name|x]] b [[Old Name#h]] c [[other]]", "old name", "New")).toBe("a [[New|x]] b [[New#h]] c [[other]]");
+  });
+});
+
+describe("tags / headings / blocks", () => {
+  it("finds tags but not headings, numbers or code", () => {
+    expect(extractTags("# Title\n#quote and #Life/Work #2024 (#x) `#no`\n```\n#nope\n```")).toEqual(["quote", "life/work", "x"]);
+  });
+  it("extracts headings outside fences", () => {
+    expect(extractHeadings("# A\ntext\n### B ###\n```\n# no\n```")).toEqual([
+      { level: 1, text: "A", line: 0 },
+      { level: 3, text: "B", line: 2 },
+    ]);
+  });
+  it("finds fenced blocks incl. empty ones with lang and offsets", () => {
+    const text = "x\n```daylog\napps: tasks\n```\ny\n```daylog\n```\n";
+    const blocks = extractBlocks(text);
+    expect(blocks.map((b) => [b.lang, b.body])).toEqual([["daylog", "apps: tasks"], ["daylog", ""]]);
+    expect(text.slice(blocks[0].from, blocks[0].to)).toBe("```daylog\napps: tasks\n```");
+    expect(text.slice(blocks[1].from, blocks[1].to)).toBe("```daylog\n```");
+    expect(parseBlockOptions(blocks[0].body)).toEqual({ apps: "tasks" });
+  });
+  it("excerpt strips syntax", () => {
+    expect(excerpt("---\nmood: 3\n---\n### Head\nHello [[World|there]] **bold**")).toBe("Head Hello there bold");
+  });
+});

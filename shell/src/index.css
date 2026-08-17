@@ -9,6 +9,7 @@
 @source "../../apps/calendar/src";
 @source "../../apps/stats/src";
 @source "../../apps/media/src";
+@source "../../apps/notes/src";
 @source "./";
 
 .react-grid-item.react-grid-placeholder {

@@ -1,5 +1,6 @@
 import { db, syncedCollectionNames, type SyncedRecord } from "./db";
 import { pb } from "./pb";
+import { collectionDef } from "../registry";
 import { useSyncExternalStore } from "react";
 
 export type SyncState = "idle" | "syncing" | "offline" | "unauthenticated" | "error";
@@ -67,7 +68,13 @@ async function pushOnce(): Promise<void> {
         const server = (await col.getOne(recordId)) as unknown as PbRecord & { updatedAt?: string };
         // LWW: the newer client clock wins; a newer server copy will arrive via pull.
         if (server.updatedAt && server.updatedAt > local.updatedAt) serverNewer = true;
-        if (!serverNewer) await col.update(recordId, local);
+        if (serverNewer) {
+          // The App may rescue the losing local edit (ADR 0010) before pull overwrites it.
+          const hook = collectionDef(collection)?.onConflict;
+          if (hook) await hook(local, toLocal(server));
+        } else {
+          await col.update(recordId, local);
+        }
       } catch (err) {
         if ((err as { status?: number }).status === 404) {
           await col.create({ ...local, id: recordId });

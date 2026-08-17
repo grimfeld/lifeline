@@ -29,3 +29,10 @@ export function completionsPerDay(
   }
   return m;
 }
+
+/** Completions recorded for exactly one day, in a stable order (by chore, then id). */
+export function completionsOn(completions: Completion[], day: DateStr): Completion[] {
+  return completions
+    .filter((c) => c.doneOn === day)
+    .sort((a, b) => a.choreId.localeCompare(b.choreId) || a.id.localeCompare(b.id));
+}

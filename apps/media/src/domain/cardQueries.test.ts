@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MediaItem } from "./types";
-import { countByMedium, finishedIn, inProgress, mediumBreakdown, pickIndex, surprisePool, titleWithMedium } from "./cardQueries";
+import { countByMedium, daylogFacts, finishedIn, inProgress, mediumBreakdown, pickIndex, surprisePool, titleWithMedium } from "./cardQueries";
 
 function item(p: Partial<MediaItem>): MediaItem {
   return {
@@ -95,5 +95,35 @@ describe("titleWithMedium", () => {
   it("appends the plural medium label", () => {
     expect(titleWithMedium("Nightstand", "")).toBe("Nightstand");
     expect(titleWithMedium("Nightstand", "book")).toBe("Nightstand · Books");
+  });
+});
+
+describe("daylogFacts", () => {
+  const D = "2026-03-10";
+  it("returns nothing when no stamp matches the day", () => {
+    expect(daylogFacts([item({ addedOn: "2026-03-09", startedOn: "2026-03-11" })], D)).toEqual([]);
+  });
+  it("uses the medium's past-tense verb for a finish", () => {
+    const facts = daylogFacts([item({ id: "b", type: "book", finishedOn: D }), item({ id: "m", type: "movie", finishedOn: D }), item({ id: "g", type: "game", finishedOn: D })], D);
+    expect(facts.map((f) => [f.item.id, f.kind])).toEqual([
+      ["b", "Read"],
+      ["m", "Watched"],
+      ["g", "Played"],
+    ]);
+  });
+  it("emits Started / Acquired / Added for the other stamps", () => {
+    const facts = daylogFacts([item({ id: "s", startedOn: D }), item({ id: "a", acquiredOn: D }), item({ id: "n", addedOn: D })], D);
+    expect(facts.map((f) => [f.item.id, f.kind])).toEqual([
+      ["s", "Started"],
+      ["a", "Acquired"],
+      ["n", "Added"],
+    ]);
+  });
+  it("gives one line per item, finished > started > acquired > added", () => {
+    const facts = daylogFacts([item({ id: "x", addedOn: D, acquiredOn: D, startedOn: D, finishedOn: D }), item({ id: "y", addedOn: D, startedOn: D })], D);
+    expect(facts.map((f) => [f.item.id, f.kind])).toEqual([
+      ["x", "Read"],
+      ["y", "Started"],
+    ]);
   });
 });

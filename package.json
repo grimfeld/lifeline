@@ -8,6 +8,7 @@
     "import:calendar": "node scripts/import/import-calendar.mjs",
     "import:notch": "node scripts/import/import-notch.mjs",
     "import:nightstand": "node scripts/import/import-nightstand.mjs",
+    "import:obsidian": "node scripts/import/import-obsidian.mjs",
     "import:week-planner": "node scripts/import/import-week-planner.mjs",
     "build": "pnpm --filter @lifeline/shell build",
     "typecheck": "pnpm -r typecheck",

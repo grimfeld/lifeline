@@ -1,0 +1,72 @@
+/* CodeMirror theming for the Notes editor: inherits the UI kit's tokens. */
+.ll-editor .cm-editor {
+  height: 100%;
+  font-size: 0.95rem;
+  background: transparent;
+}
+.ll-editor .cm-editor.cm-focused {
+  outline: none;
+}
+.ll-editor .cm-scroller {
+  font-family: inherit;
+  line-height: 1.6;
+  overflow: auto;
+}
+.ll-editor .cm-content {
+  padding: 0.75rem 0;
+  caret-color: var(--foreground);
+}
+.ll-editor .cm-line {
+  padding: 0 0.25rem;
+}
+.ll-editor .cm-cursor {
+  border-left-color: var(--foreground);
+}
+.ll-editor .cm-selectionBackground,
+.ll-editor .cm-editor.cm-focused .cm-selectionBackground,
+.ll-editor .cm-content ::selection {
+  background: color-mix(in oklab, var(--primary) 25%, transparent) !important;
+}
+.ll-editor .cm-activeLine {
+  background: color-mix(in oklab, var(--muted) 40%, transparent);
+}
+.ll-editor .cm-wikilink {
+  color: var(--primary);
+  border-radius: 0.25rem;
+  padding: 0 0.1rem;
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+  cursor: pointer;
+}
+.ll-editor .cm-wikilink-unresolved {
+  color: var(--muted-foreground);
+  background: color-mix(in oklab, var(--muted-foreground) 12%, transparent);
+  text-decoration: underline dotted;
+}
+.ll-editor .cm-wikilink-app {
+  color: var(--chart-magenta);
+  background: color-mix(in oklab, var(--chart-magenta) 12%, transparent);
+}
+.ll-editor .cm-tag {
+  color: var(--chart-orange);
+}
+.ll-editor .cm-daylog {
+  background: color-mix(in oklab, var(--muted) 35%, transparent);
+  border-color: var(--border);
+}
+.ll-editor .cm-tooltip.cm-tooltip-autocomplete {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.ll-editor .cm-tooltip-autocomplete ul li[aria-selected] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.ll-editor .cm-tooltip-autocomplete .cm-completionDetail {
+  color: var(--muted-foreground);
+  margin-left: 0.5rem;
+  font-style: normal;
+  font-size: 0.75em;
+}

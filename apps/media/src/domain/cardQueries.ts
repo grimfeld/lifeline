@@ -1,3 +1,4 @@
+import type { DateStr } from "@lifeline/core";
 import { MEDIA_TYPES, mediaType, type MediaTypeId } from "./mediaTypes";
 import type { MediaItem } from "./types";
 
@@ -56,4 +57,27 @@ export function pickIndex(poolSize: number, avoid: number | null, rnd: () => num
   let i = Math.floor(rnd() * poolSize);
   if (i === avoid) i = (i + 1 + Math.floor(rnd() * (poolSize - 1))) % poolSize;
   return i;
+}
+
+/** One Daylog line for a media item on a day: what happened, in the medium's words. */
+export interface MediaDayFact {
+  item: MediaItem;
+  /** Verb-first: the medium's past-tense finish verb ("Read", "Watched"…), else "Started" / "Acquired" / "Added". */
+  kind: string;
+}
+
+/**
+ * The facts of one day, one line per item, most significant stamp wins:
+ * finished > started > acquired > added. Finishing uses the medium's own
+ * past-tense verb (registry `engagement.DONE`); the other verbs are neutral.
+ */
+export function daylogFacts(items: MediaItem[], day: DateStr): MediaDayFact[] {
+  const out: MediaDayFact[] = [];
+  for (const item of items) {
+    if (item.finishedOn === day) out.push({ item, kind: mediaType(item.type).engagement.DONE });
+    else if (item.startedOn === day) out.push({ item, kind: "Started" });
+    else if (item.acquiredOn === day) out.push({ item, kind: "Acquired" });
+    else if (item.addedOn === day) out.push({ item, kind: "Added" });
+  }
+  return out;
 }

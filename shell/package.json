@@ -15,6 +15,7 @@
     "@lifeline/app-calendar": "workspace:*",
     "@lifeline/app-chores": "workspace:*",
     "@lifeline/app-media": "workspace:*",
+    "@lifeline/app-notes": "workspace:*",
     "@lifeline/app-stats": "workspace:*",
     "@lifeline/app-tasks": "workspace:*",
     "@lifeline/core": "workspace:*",
