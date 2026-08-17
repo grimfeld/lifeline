@@ -1,0 +1,3 @@
+# Notes keep per-record LWW but never drop local edits: conflict copies
+
+ADR 0002's sync is last-writer-wins per record, which is fine for chores and entries but would silently drop a paragraph when the same journal note is edited on two offline devices. Rather than a CRDT/3-way merge for one collection (a second persistence model and a heavy dependency), the sync layer gains a per-collection hook: when a pull would overwrite a note that has unsynced local edits, the local text is saved as a sibling note `"<title> (conflict HH:MM)"` and the incoming version wins the original. Nothing is lost, there is no merge UI, and every other collection keeps plain LWW.

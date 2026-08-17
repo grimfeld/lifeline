@@ -8,11 +8,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
   Input,
   Label,
   Select,
@@ -23,12 +18,13 @@ import {
   Textarea,
   toast,
 } from "@lifeline/ui";
-import { AlertTriangle, ArrowDownToLine, BookOpenCheck, Check, GraduationCap, MoreHorizontal, Pencil, Play, ShoppingCart, Square, Trash2, X } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, Check, GraduationCap, Play, ShoppingCart } from "lucide-react";
 import { mediaType } from "../domain/mediaTypes";
 import { ACQUISITION, type Acquisition, type MediaItem } from "../domain/types";
-import { abandon, acquire, evict, finish, freeSlots, isBuySignal, isStale, promote, release, setStudied, slotAge, start } from "../domain/rules";
-import { deleteMedia, patchMedia } from "../data/repo";
+import { acquire, finish, freeSlots, isBuySignal, isStale, promote, release, slotAge, start } from "../domain/rules";
+import { patchMedia } from "../data/repo";
 import { Cover } from "./Cover";
+import { MediaActionsMenu, useAct } from "./MediaActions";
 import { ACQ_LABEL } from "./AddMediaDialog";
 
 export function EditMediaDialog({ item, onClose }: { item: MediaItem | null; onClose: () => void }) {
@@ -139,10 +135,7 @@ export function MediaRow({ item, all, onEdit, compact = false }: { item: MediaIt
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
 
-  const act = (label: string, patch: Parameters<typeof patchMedia>[1]) => () => {
-    void patchMedia(item, patch);
-    toast.success(label);
-  };
+  const act = useAct(item);
 
   return (
     <div className={cn("bg-card flex items-center gap-3 rounded-lg border px-3 py-2", compact && "px-2 py-1.5")}>
@@ -204,77 +197,7 @@ export function MediaRow({ item, all, onEdit, compact = false }: { item: MediaIt
         </Button>
       )}
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button size="icon" variant="ghost" className="size-7 shrink-0">
-            <MoreHorizontal />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {slotted ? (
-            <>
-              {buy && (
-                <DropdownMenuItem onClick={act("Got it", acquire("OWNED"))}>
-                  <ShoppingCart /> Got it (owned)
-                </DropdownMenuItem>
-              )}
-              {!reading && (
-                <DropdownMenuItem onClick={act(`${def.engagement.IN_PROGRESS}…`, start())}>
-                  <Play /> {def.startVerb}
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={act("Slot freed", finish())}>
-                <Check /> {def.finishVerb}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={act("Abandoned — slot freed", abandon())}>
-                <X /> Abandon
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={act("Back to the backlog", evict())}>
-                <Square /> Back to backlog
-              </DropdownMenuItem>
-            </>
-          ) : (
-            <>
-              {!done && (
-                <DropdownMenuItem disabled={free.length === 0} onClick={act(`Slot ${free[0]} taken`, promote(free[0]))}>
-                  <ArrowDownToLine /> Slot it{free.length === 0 ? " (full)" : ""}
-                </DropdownMenuItem>
-              )}
-              {item.acquisition === "WANTED" && (
-                <DropdownMenuItem onClick={act("Owned", acquire("OWNED"))}>
-                  <ShoppingCart /> Got it (owned)
-                </DropdownMenuItem>
-              )}
-              {done && (
-                <DropdownMenuItem onClick={act("Back to unstarted", { engagement: "UNSTARTED", finishedOn: "", startedOn: "" })}>
-                  <BookOpenCheck /> Mark {def.engagement.UNSTARTED.toLowerCase()} again
-                </DropdownMenuItem>
-              )}
-            </>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={act(item.studied ? "Studied mark removed" : "Marked studied", setStudied(!item.studied))}>
-            <GraduationCap /> {item.studied ? "Unmark studied" : "Mark studied"}
-          </DropdownMenuItem>
-          {item.acquisition !== "GONE" && (
-            <DropdownMenuItem onClick={act("Gone", release())}>
-              <X /> Gone (sold / returned / given away)
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem onClick={() => onEdit(item)}>
-            <Pencil /> Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => {
-              void deleteMedia(item.id);
-              toast.success("Deleted");
-            }}
-          >
-            <Trash2 /> Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <MediaActionsMenu item={item} all={all} onEdit={onEdit} />
     </div>
   );
 }

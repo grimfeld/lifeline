@@ -93,3 +93,40 @@ _Avoid_: TBR, library, inbox
 ### Shopping list
 Every Wanted Media item, wherever it lives: Nightstand ones first (next up — buy now), then the rest of the wish list, oldest first. Marking one as acquired takes it off the list.
 _Avoid_: wishlist (that word hides the buy-now head of the list), cart
+
+### Note
+A titled markdown document owned by the Notes App. The text is the truth: links, tags, headings and properties are read out of it, never stored beside it. Every Note has a Note type.
+_Avoid_: document, page, file
+
+### Note type
+A compile-time kind of Note (daily, person, place, plain) fixing its title rule, its typed Properties and its template. Behaviour belongs to an App; prose plus a few properties is a Note type.
+_Avoid_: template (that is one part of a type), schema, category
+
+### Property
+A typed field of a Note (mood, aliases, birthday, geo…), edited as a form and stored as frontmatter in the text.
+_Avoid_: metadata, field, attribute
+
+### Daily note
+The Note whose title is a date — at most one per day; the Journal entry. Created from the daily template on first use; the day's hub, carrying a Daylog block.
+_Avoid_: journal entry (same thing — use "daily note"), log, diary page
+
+### Journal
+The Notes App's date-navigated Surface over daily notes.
+
+### Wikilink
+`[[Name]]` in a Note's text. Resolves by name to a Note (title, then alias), else to an App entity through Linkable, else stays unresolved (click to create the Note).
+_Avoid_: reference, mention (a mention is what the *target* sees)
+
+### Backlink
+From the target's side: a Note that wikilinks to it. Notes and Linkable App entities both have backlinks ("mentioned in").
+_Avoid_: incoming link, reference
+
+### Linkable
+Core Contract: an App exposes its entities as wikilink targets by name and receives their backlinks.
+
+### Daylog
+Core Contract: an App reports what *happened* on a day — completed tasks, chore completions, logged entries, media started/finished, events. Rendered live wherever a Daylog block appears (a daily note's fenced `daylog` block, or a Card); never written as text.
+_Avoid_: timeline, activity feed, summary
+
+### Conflict copy
+A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten unsynced local edits. Nothing is merged, nothing is lost.
