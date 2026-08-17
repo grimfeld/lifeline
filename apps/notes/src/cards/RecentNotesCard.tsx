@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import { formatHuman, type CardProps } from "@lifeline/core";
 import { useNotes } from "../data/repo";
-import { NOTE_TYPES, noteType, type NoteTypeDef } from "../domain/noteTypes";
+import { noteType, useNoteTypes } from "../data/noteTypes";
 import { excerpt } from "../domain/markdown";
 
 /** Card: most recently edited notes (knobs: type filter, count). */
@@ -37,4 +37,7 @@ export function RecentNotesCard({ settings }: CardProps) {
   );
 }
 
-export const recentTypeOptions = [{ value: "", label: "All types" }, ...(NOTE_TYPES as readonly NoteTypeDef[]).map((t) => ({ value: t.id, label: t.plural }))];
+/** Options hook for the card's type knob (entity field, "" = all). */
+export function useRecentTypeOptions() {
+  return useNoteTypes().map((t) => ({ value: t.id, label: t.plural }));
+}

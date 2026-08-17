@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, cn } from "@lifeline/ui";
-import { CalendarDays, FolderTree, Hash, LayoutTemplate, Plus, Search } from "lucide-react";
-import { NOTE_TYPES, isTemplatable, type NoteTypeDef, type NoteTypeId } from "../domain/noteTypes";
+import { CalendarDays, FolderTree, Hash, Plus, Search, Settings2 } from "lucide-react";
+import { isTemplatable, type NoteTypeId } from "../domain/noteTypes";
+import { useNoteTypes } from "../data/noteTypes";
 import { FileTree } from "./FileTree";
 import { SearchPane } from "./SearchPane";
 import { TagsPane } from "./TagsPane";
 import { NewNoteDialog } from "../components/NewNoteDialog";
-import { TemplatesDialog } from "../components/TemplatesDialog";
+import { NotesSettingsDialog } from "../components/NotesSettingsDialog";
 import { createNote } from "../data/repo";
 import { noteHref } from "./useOpenNote";
 
@@ -19,6 +20,7 @@ export function NotesSidebar() {
   const [newType, setNewType] = useState<NoteTypeId | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const navigate = useNavigate();
+  const types = useNoteTypes();
   const tabs: { id: Tab; icon: typeof FolderTree; label: string }[] = [
     { id: "files", icon: FolderTree, label: "Files" },
     { id: "search", icon: Search, label: "Search" },
@@ -34,7 +36,7 @@ export function NotesSidebar() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            {(NOTE_TYPES as readonly NoteTypeDef[]).filter(isTemplatable).map((t) => {
+            {types.filter(isTemplatable).map((t) => {
               const I = t.icon;
               return (
                 <DropdownMenuItem key={t.id} onClick={() => (t.titleRule === "date" ? navigate("/notes/journal") : setNewType(t.id as NoteTypeId))}>
@@ -44,7 +46,7 @@ export function NotesSidebar() {
             })}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setTemplatesOpen(true)}>
-              <LayoutTemplate /> Edit templates…
+              <Settings2 /> Types & templates…
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -76,7 +78,7 @@ export function NotesSidebar() {
           navigate(noteHref(n));
         }}
       />
-      <TemplatesDialog open={templatesOpen} onOpenChange={setTemplatesOpen} />
+      <NotesSettingsDialog open={templatesOpen} onOpenChange={setTemplatesOpen} />
     </>
   );
 }

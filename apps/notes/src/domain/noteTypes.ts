@@ -1,5 +1,20 @@
 import type * as React from "react";
-import { CalendarDays, FileText, LayoutTemplate, MapPin, User } from "lucide-react";
+import {
+  Activity, BookOpen, Briefcase, Building2, CalendarDays, Car, Coffee, Dumbbell, FileText, Film, Gamepad2, Gift, GraduationCap, Heart, Home, Landmark, LayoutTemplate,
+  Lightbulb, MapPin, Music, Palette, PawPrint, Plane, Quote, Sparkles, Star, Target, User, Users, Utensils, Wrench,
+} from "lucide-react";
+
+/** Curated icon set for user-defined types (name → component). Built-ins pick from the same set. */
+export const TYPE_ICONS = {
+  "file-text": FileText, user: User, users: Users, "map-pin": MapPin, "calendar-days": CalendarDays, "layout-template": LayoutTemplate,
+  "book-open": BookOpen, briefcase: Briefcase, building: Building2, car: Car, coffee: Coffee, dumbbell: Dumbbell, film: Film, gamepad: Gamepad2,
+  gift: Gift, "graduation-cap": GraduationCap, heart: Heart, home: Home, landmark: Landmark, lightbulb: Lightbulb, music: Music, palette: Palette,
+  "paw-print": PawPrint, plane: Plane, quote: Quote, sparkles: Sparkles, star: Star, target: Target, utensils: Utensils, wrench: Wrench, activity: Activity,
+} as const;
+export type TypeIconName = keyof typeof TYPE_ICONS;
+export function typeIcon(name: string | undefined): React.ComponentType<{ className?: string }> {
+  return (TYPE_ICONS as Record<string, React.ComponentType<{ className?: string }>>)[name ?? ""] ?? FileText;
+}
 
 /** A typed Property of a Note type; values live in the note's frontmatter. */
 export type PropertyDef =
@@ -16,6 +31,12 @@ export interface NoteTypeDef {
   label: string;
   plural: string;
   icon: React.ComponentType<{ className?: string }>;
+  /** Icon name in TYPE_ICONS (user-defined types are stored by name). */
+  iconName?: string;
+  /** Default folder for new notes of this type ("" = root; daily/template are fixed by rule). */
+  folder?: string;
+  /** Built-in types are defined in code and cannot be deleted; user types live in the `note_types` collection. */
+  builtIn?: boolean;
   /** "date": title is a YYYY-MM-DD day, at most one note per day. "name": free unique title. */
   titleRule: "date" | "name";
   properties: PropertyDef[];
@@ -34,16 +55,19 @@ export const MOODS = [
 ];
 
 /**
- * Compile-time Note type registry (ADR 0009). Adding a type is adding an
- * entry; the engine renders properties as a form and stores them as
- * frontmatter so notes stay portable markdown.
+ * Built-in Note types (ADR 0009, amended): defined in code, extended at run
+ * time by user-defined types (`note_types` collection, see data/noteTypes.ts).
+ * The engine renders properties as a form and stores them as frontmatter so
+ * notes stay portable markdown.
  */
-export const NOTE_TYPES = [
+export const BUILTIN_TYPES = [
   {
     id: "daily",
     label: "Daily note",
     plural: "Daily notes",
     icon: CalendarDays,
+    iconName: "calendar-days",
+    builtIn: true,
     titleRule: "date",
     properties: [{ key: "mood", label: "Mood", kind: "select", options: MOODS }],
     template: "```daylog\n```\n\n### Histoire du jour\n\n---\n### Citation du jour\n\n---\n### Quoi de neuf ?\n\n---\n### Et maintenant ?\n\n",
@@ -54,6 +78,8 @@ export const NOTE_TYPES = [
     label: "Person",
     plural: "People",
     icon: User,
+    iconName: "user",
+    builtIn: true,
     titleRule: "name",
     properties: [
       { key: "aliases", label: "Aliases", kind: "list" },
@@ -79,6 +105,8 @@ export const NOTE_TYPES = [
     label: "Place",
     plural: "Places",
     icon: MapPin,
+    iconName: "map-pin",
+    builtIn: true,
     titleRule: "name",
     properties: [
       { key: "aliases", label: "Aliases", kind: "list" },
@@ -105,6 +133,8 @@ export const NOTE_TYPES = [
     label: "Note",
     plural: "Notes",
     icon: FileText,
+    iconName: "file-text",
+    builtIn: true,
     titleRule: "name",
     properties: [{ key: "aliases", label: "Aliases", kind: "list" }],
     template: "",
@@ -115,12 +145,17 @@ export const NOTE_TYPES = [
     label: "Template",
     plural: "Templates",
     icon: LayoutTemplate,
+    iconName: "layout-template",
+    builtIn: true,
     titleRule: "name",
     properties: [],
     template: "",
     order: 9,
   },
 ] as const satisfies readonly NoteTypeDef[];
+
+/** Backwards-compatible alias: the built-in registry. Prefer useNoteTypes()/noteType() from data/noteTypes.ts. */
+export const NOTE_TYPES = BUILTIN_TYPES;
 
 /**
  * A user-editable template is a Note of type "template" titled with the
@@ -131,11 +166,23 @@ export function isTemplatable(t: NoteTypeDef): boolean {
   return t.id !== TEMPLATE_TYPE;
 }
 
-export type NoteTypeId = (typeof NOTE_TYPES)[number]["id"];
+/** Type ids are strings: built-in ids plus user-defined slugs. */
+export type NoteTypeId = string;
 
 export const TEMPLATE_TYPE: NoteTypeId = "template";
+export const PLAIN_TYPE: NoteTypeId = "plain";
 
-export function noteType(id: string): NoteTypeDef {
-  return (NOTE_TYPES as readonly NoteTypeDef[]).find((t) => t.id === id) ?? NOTE_TYPES[3];
+/** Slug for a user-defined type from its label: "Recipe idea" → "recipe-idea". */
+export function slugify(label: string): string {
+  return label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
 }
 
+export function builtinType(id: string): NoteTypeDef | undefined {
+  return (BUILTIN_TYPES as readonly NoteTypeDef[]).find((t) => t.id === id);
+}

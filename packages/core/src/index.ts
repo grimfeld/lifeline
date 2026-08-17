@@ -24,3 +24,4 @@ export { put, remove, get, all } from "./data/repo";
 export { pb, login, logout, useAuth } from "./data/pb";
 export { startSync, syncNow, requestSync, useSyncState, type SyncState } from "./data/sync";
 export { useLiveQuery } from "dexie-react-hooks";
+export { liveQuery } from "dexie";

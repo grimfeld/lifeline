@@ -5,13 +5,14 @@ import { NotesSidebar } from "./workspace/NotesSidebar";
 import { NoteScreen } from "./screens/NoteScreen";
 import { TodayJournalCard } from "./cards/TodayJournalCard";
 import { DaylogCard } from "./cards/DaylogCard";
-import { RecentNotesCard, recentTypeOptions } from "./cards/RecentNotesCard";
-import { noteCommands } from "./commands";
+import { RecentNotesCard, useRecentTypeOptions } from "./cards/RecentNotesCard";
+import { noteCommands, useNoteTypeCommands } from "./commands";
 import { onNoteConflict, useNoteIndex, useNotes } from "./data/repo";
 import { NOTES } from "./domain/types";
+import { NOTE_TYPES_COLLECTION } from "./data/noteTypes";
 import { formatHuman, addDays, todayStr } from "@lifeline/core";
 import { excerpt, noteCoords, splitFrontmatter } from "./domain/markdown";
-import { noteType } from "./domain/noteTypes";
+import { noteType } from "./data/noteTypes";
 
 const APP_ID = "notes";
 
@@ -62,7 +63,10 @@ export const notesApp: AppManifest = {
   title: "Notes",
   icon: NotebookPen,
   color: "var(--chart-green)",
-  collections: [{ name: NOTES, indexes: ["type", "title", "folder"], onConflict: onNoteConflict }],
+  collections: [
+    { name: NOTES, indexes: ["type", "title", "folder"], onConflict: onNoteConflict },
+    { name: NOTE_TYPES_COLLECTION, indexes: ["typeId", "order"] },
+  ],
   /** The Notes workspace (ADR 0012): Core frames it, this App supplies the sidebar and the screens below /notes. */
   workspace: { id: "notes", title: "Notes", icon: NotebookPen, path: "/notes", sidebar: NotesSidebar, home: "journal" },
   screens: [
@@ -98,18 +102,20 @@ export const notesApp: AppManifest = {
       defaultSize: { w: 3, h: 6 },
       minSize: { w: 2, h: 3 },
       settings: {
-        type: { kind: "select", label: "Type", default: "", options: recentTypeOptions },
+        type: { kind: "entity", label: "Type", useOptions: useRecentTypeOptions, anyLabel: "All types" },
         count: { kind: "number", label: "How many", default: 8, min: 1, max: 50 },
       },
-      instanceTitle: (s) => (s.type ? `Recent ${recentTypeOptions.find((o) => o.value === s.type)?.label.toLowerCase() ?? "notes"}` : ""),
+      instanceTitle: (s) => (s.type ? `Recent ${noteType(String(s.type)).plural.toLowerCase()}` : ""),
     },
   ],
   commands: noteCommands,
+  useCommands: useNoteTypeCommands,
   backlinks: notesBacklinks,
   locatable: notesLocatable,
 };
 
 export { NOTES };
 export type { Note } from "./domain/types";
-export { NOTE_TYPES, type NoteTypeId } from "./domain/noteTypes";
+export { BUILTIN_TYPES, type NoteTypeId } from "./domain/noteTypes";
+export { useNoteTypes, noteType } from "./data/noteTypes";
 export { DaylogBlock } from "./components/DaylogBlock";

@@ -54,11 +54,11 @@ export function dailyFolder(date: DateStr): string {
 
 export const TEMPLATES_FOLDER = "Templates";
 
-/** Default folder for a note of a type when nothing else is chosen. */
-export function defaultFolder(type: string, title: string): string {
+/** Default folder for a note of a type when nothing else is chosen; user types may declare one. */
+export function defaultFolder(type: string, title: string, typeFolder = ""): string {
   if (type === "daily") return dailyFolder(title);
   if (type === "template") return TEMPLATES_FOLDER;
-  return "";
+  return normalizeFolder(typeFolder);
 }
 
 /** Legacy notes (before folders) get a folder on read; idempotent. */

@@ -10,7 +10,7 @@ import {
   CommandSeparator,
 } from "@lifeline/ui";
 import {
-  allCommands,
+  useAllCommands,
   appById,
   db,
   registeredApps,
@@ -50,7 +50,7 @@ export function CommandPalette() {
     fn();
   }
 
-  const commands = allCommands();
+  const commands = useAllCommands();
   const ActiveDialogComponent = activeDialog?.dialog;
 
   return (

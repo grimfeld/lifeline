@@ -4,7 +4,8 @@ import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, Dro
 import { formatHuman } from "@lifeline/core";
 import { Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Trash2 } from "lucide-react";
 import type { Note } from "../domain/types";
-import { noteType, TEMPLATE_TYPE } from "../domain/noteTypes";
+import { TEMPLATE_TYPE } from "../domain/noteTypes";
+import { noteType } from "../data/noteTypes";
 import type { LinkRef, NoteIndex } from "../domain/index";
 import { noteCoords, splitFrontmatter, withProperties, writeCoords, type Properties } from "../domain/markdown";
 import { createNote, deleteNote, renameNote, saveBody } from "../data/repo";

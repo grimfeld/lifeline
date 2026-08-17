@@ -35,6 +35,16 @@ export function allCommands(): (CommandDef & { appId: string })[] {
   return apps.flatMap((a) => a.commands.map((c) => ({ ...c, appId: a.id })));
 }
 
+/** Static + dynamic commands of every App. A React hook (calls each App's `useCommands`). */
+export function useAllCommands(): (CommandDef & { appId: string })[] {
+  // Hook order is stable: the App list is fixed at compile time (ADR 0003).
+  return apps.flatMap((a) => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const dynamic = a.useCommands ? a.useCommands() : [];
+    return [...a.commands, ...dynamic].map((c) => ({ ...c, appId: a.id }));
+  });
+}
+
 export function schedulableProviders(): SchedulableProvider[] {
   return apps.flatMap((a) => (a.schedulable ? [a.schedulable] : []));
 }

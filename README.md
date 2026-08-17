@@ -15,7 +15,7 @@ apps/calendar    @lifeline/app-calendar — Calendar App: Events (timed / all-da
 apps/stats       @lifeline/app-stats — Stats App (notch port): additive / measurement / boolean /
                  collection stats, entries as an event log, derived totals, streaks, Recharts graphs
 apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): markdown notes with typed Note types
-                 (daily/person/place/plain), wikilinks + backlinks across notes and other Apps' entities (Linkable),
+                 (built-in daily/person/place/plain + user-defined types & templates), wikilinks + backlinks across notes and other Apps' entities (Linkable),
                  CodeMirror 6 editor, `daylog` blocks (Daylog contract), the Journal Surface; conflict copies (ADR 0010);
                  notes with a `location: [lat, lon]` property are Pins on the map (Locatable, ADR 0011)
 apps/media       @lifeline/app-media — Media App (nightstand port, generalised): books, comics, movies,

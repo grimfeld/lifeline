@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, toast } from "@lifeline/ui";
-import { noteType, type NoteTypeId } from "../domain/noteTypes";
+import { type NoteTypeId } from "../domain/noteTypes";
+import { noteType } from "../data/noteTypes";
 import { findByTitle } from "../data/repo";
 
 /** Title prompt for a new note of a name-titled type. */
