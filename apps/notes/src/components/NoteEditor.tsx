@@ -4,7 +4,7 @@ import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, Dro
 import { formatHuman } from "@lifeline/core";
 import { Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Trash2 } from "lucide-react";
 import type { Note } from "../domain/types";
-import { noteType } from "../domain/noteTypes";
+import { noteType, TEMPLATE_TYPE } from "../domain/noteTypes";
 import type { LinkRef, NoteIndex } from "../domain/index";
 import { splitFrontmatter, withProperties, type Properties } from "../domain/markdown";
 import { createNote, deleteNote, renameNote, saveBody } from "../data/repo";
@@ -120,6 +120,12 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
             </DropdownMenu>
           </div>
         </div>
+        {note.type === TEMPLATE_TYPE && (
+          <div className="text-muted-foreground border-b px-4 py-1.5 text-xs">
+            Template for <span className="text-foreground font-medium">{noteType(note.title).label}</span> notes — this text seeds every new one. Placeholders:{" "}
+            <code>{"{{title}}"}</code> <code>{"{{date}}"}</code> <code>{"{{time}}"}</code>. Delete this note to restore the built-in default.
+          </div>
+        )}
         {def.properties.length > 0 && (
           <div className="border-b px-4 py-2">
             <PropertiesForm

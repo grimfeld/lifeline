@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Textarea, toast } from "@lifeline/ui";
 import type { CommandDef } from "@lifeline/core";
-import { CalendarDays, FilePlus, Zap } from "lucide-react";
+import { CalendarDays, FilePlus, LayoutTemplate, Zap } from "lucide-react";
 import { appendToDaily, createNote } from "./data/repo";
-import { NOTE_TYPES, type NoteTypeDef, type NoteTypeId } from "./domain/noteTypes";
+import { NOTE_TYPES, isTemplatable, type NoteTypeDef, type NoteTypeId } from "./domain/noteTypes";
+import { TemplatesDialog } from "./components/TemplatesDialog";
 import { NewNoteDialog } from "./components/NewNoteDialog";
 
 function QuickCaptureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
@@ -72,7 +73,7 @@ function NewNoteCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         </DialogHeader>
         <ul className="grid gap-1">
           {(NOTE_TYPES as readonly NoteTypeDef[])
-            .filter((t) => t.titleRule !== "date")
+            .filter((t) => t.titleRule !== "date" && isTemplatable(t))
             .map((t) => {
               const I = t.icon;
               return (
@@ -93,4 +94,5 @@ export const noteCommands: CommandDef[] = [
   { id: "notes.today", title: "Open today's journal", keywords: ["daily", "diary", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal") },
   { id: "notes.new", title: "New note…", keywords: ["person", "place", "note"], icon: FilePlus, dialog: NewNoteCommandDialog },
   { id: "notes.capture", title: "Quick capture", keywords: ["journal", "log", "thought"], icon: Zap, dialog: QuickCaptureDialog },
+  { id: "notes.templates", title: "Edit note templates…", keywords: ["template", "daily", "journal"], icon: LayoutTemplate, dialog: TemplatesDialog },
 ];

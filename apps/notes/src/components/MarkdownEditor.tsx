@@ -10,6 +10,8 @@ import type { NoteIndex } from "../domain/index";
 import {
   contextField,
   daylogField,
+  focusTracking,
+  focusedField,
   indexField,
   setContext,
   setIndex,
@@ -82,6 +84,8 @@ export function MarkdownEditor({
         wikilinkPlugin,
         wikilinkClick,
         wikilinkCompletion(),
+        focusedField,
+        focusTracking,
         daylogField,
         keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap, indentWithTab]),
         placeholder ? cmPlaceholder(placeholder) : [],
