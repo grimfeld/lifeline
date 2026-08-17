@@ -34,11 +34,24 @@ function toDef(r: NoteTypeRecord): NoteTypeDef {
   };
 }
 
+/**
+ * Built-ins + user types. A user record whose typeId matches a built-in
+ * *overrides* it (label, plural, icon, folder, properties) while the
+ * built-in's rules stay (title rule, code template, order); deleting the
+ * override resets to the code default.
+ */
 function merge(user: NoteTypeRecord[]): NoteTypeDef[] {
   const builtins = BUILTIN_TYPES as readonly NoteTypeDef[];
+  const byId = new Map(user.map((r) => [r.typeId, r]));
+  const merged = builtins.map((b) => {
+    const r = byId.get(b.id);
+    if (!r) return b;
+    const d = toDef(r);
+    return { ...b, label: d.label, plural: d.plural, icon: d.icon, iconName: d.iconName, folder: d.folder, properties: d.properties, builtIn: true, overridden: true };
+  });
   const ids = new Set(builtins.map((t) => t.id));
   const extra = user.filter((r) => !ids.has(r.typeId)).map(toDef);
-  return [...builtins, ...extra].sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+  return [...merged, ...extra].sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
 }
 
 // --- synchronous access: a module cache kept fresh by a live subscription ------

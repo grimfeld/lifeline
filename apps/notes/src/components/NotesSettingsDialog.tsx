@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
-import { LayoutTemplate, Pencil, Plus, Trash2 } from "lucide-react";
-import { isTemplatable, type NoteTypeId } from "../domain/noteTypes";
+import { LayoutTemplate, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { isTemplatable, type NoteTypeDef, type NoteTypeId } from "../domain/noteTypes";
 import { deleteNoteType, useNoteTypes, useUserNoteTypes, type NoteTypeRecord } from "../data/noteTypes";
 import { ensureTemplateNote, useNotes } from "../data/repo";
 import { NoteTypeEditor } from "./NoteTypeEditor";
@@ -13,7 +13,7 @@ export function NotesSettingsDialog({ open, onOpenChange, initialTab = "types" }
   const userTypes = useUserNoteTypes();
   const notes = useNotes();
   const navigate = useNavigate();
-  const [editing, setEditing] = useState<NoteTypeRecord | null | "new">(null);
+  const [editing, setEditing] = useState<{ record: NoteTypeRecord | null; base?: NoteTypeDef } | null>(null);
   const customTemplates = new Set(notes.filter((n) => n.type === "template").map((n) => n.title.toLowerCase()));
 
   async function editTemplate(type: NoteTypeId) {
@@ -21,10 +21,10 @@ export function NotesSettingsDialog({ open, onOpenChange, initialTab = "types" }
     onOpenChange(false);
     navigate(`/notes/n/${t.id}`);
   }
-  async function removeType(r: NoteTypeRecord) {
+  async function removeType(r: NoteTypeRecord, builtIn: boolean) {
     const inUse = notes.filter((n) => n.type === r.typeId).length;
     await deleteNoteType(r.id);
-    toast.success(`Type “${r.label}” deleted${inUse ? ` — ${inUse} note(s) now render as plain notes` : ""}`);
+    toast.success(builtIn ? `“${r.label}” reset to its built-in default` : `Type “${r.label}” deleted${inUse ? ` — ${inUse} note(s) now render as plain notes` : ""}`);
   }
 
   return (
@@ -38,10 +38,10 @@ export function NotesSettingsDialog({ open, onOpenChange, initialTab = "types" }
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Note types & templates</DialogTitle>
-          <DialogDescription>Types define a note's properties, icon and default folder; templates seed its text. Built-in types stay in code; yours sync like notes.</DialogDescription>
+          <DialogDescription>Types define a note's properties, icon and default folder; templates seed its text. Built-ins can be edited (reset restores the default); yours sync like notes.</DialogDescription>
         </DialogHeader>
         {editing !== null ? (
-          <NoteTypeEditor record={editing === "new" ? null : editing} existingIds={types.map((t) => t.id)} onDone={() => setEditing(null)} />
+          <NoteTypeEditor record={editing.record} base={editing.base} existingIds={types.map((t) => t.id)} onDone={() => setEditing(null)} />
         ) : (
           <Tabs defaultValue={initialTab}>
             <TabsList>
@@ -58,29 +58,26 @@ export function NotesSettingsDialog({ open, onOpenChange, initialTab = "types" }
                       <I className="text-muted-foreground size-4" />
                       <span className="font-medium">{t.label}</span>
                       <span className="text-muted-foreground text-xs">{t.plural}</span>
-                      {t.builtIn ? (
+                      {t.builtIn && (
                         <Badge variant="secondary" className="ml-1">
-                          built-in
+                          {t.overridden ? "built-in · edited" : "built-in"}
                         </Badge>
-                      ) : (
-                        t.folder && <span className="text-muted-foreground text-xs">→ {t.folder}/</span>
                       )}
+                      {t.folder && !t.builtIn && <span className="text-muted-foreground text-xs">→ {t.folder}/</span>}
                       <span className="text-muted-foreground ml-auto text-xs">{t.properties.length} props</span>
+                      <Button size="icon" variant="ghost" className="size-7" onClick={() => setEditing({ record: rec ?? null, base: t.builtIn ? t : undefined })} aria-label="Edit type">
+                        <Pencil className="size-3.5" />
+                      </Button>
                       {rec && (
-                        <>
-                          <Button size="icon" variant="ghost" className="size-7" onClick={() => setEditing(rec)} aria-label="Edit type">
-                            <Pencil className="size-3.5" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="size-7" onClick={() => void removeType(rec)} aria-label="Delete type">
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        </>
+                        <Button size="icon" variant="ghost" className="size-7" onClick={() => void removeType(rec, !!t.builtIn)} aria-label={t.builtIn ? "Reset to default" : "Delete type"} title={t.builtIn ? "Reset to default" : "Delete type"}>
+                          {t.builtIn ? <RotateCcw className="size-3.5" /> : <Trash2 className="size-3.5" />}
+                        </Button>
                       )}
                     </li>
                   );
                 })}
               </ul>
-              <Button className="justify-self-start" onClick={() => setEditing("new")}>
+              <Button className="justify-self-start" onClick={() => setEditing({ record: null })}>
                 <Plus /> New type
               </Button>
             </TabsContent>
