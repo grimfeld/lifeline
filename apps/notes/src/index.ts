@@ -42,7 +42,8 @@ const notesLocatable: LocatableProvider = {
     const out: Pin[] = [];
     for (const n of notes) {
       const props = splitFrontmatter(n.body).properties;
-      const c = noteCoords(props);
+      const geoKey = noteType(n.type).properties.find((p) => p.kind === "geo")?.key;
+      const c = noteCoords(props, geoKey);
       if (!c) continue;
       const address = typeof props.address === "string" && props.address ? props.address : noteType(n.type).label;
       out.push({ appId: APP_ID, itemId: n.id, name: n.title, subtitle: address, lat: c.lat, lon: c.lon, href: `/notes/n/${n.id}` });

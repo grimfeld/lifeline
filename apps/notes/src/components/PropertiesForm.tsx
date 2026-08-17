@@ -41,7 +41,7 @@ function Field({ def, value, all, onChange, onSet }: { def: PropertyDef; value: 
       return (
         <GeoField
           id={id}
-          value={noteCoords(all)}
+          value={noteCoords(all, def.key)}
           onChange={(c) => onChange(writeCoords(c))}
           query={address}
           geocode={geocode}

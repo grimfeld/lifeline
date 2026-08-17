@@ -97,8 +97,13 @@ export function readCoords(v: PropertyValue | undefined): { lat: number; lon: nu
   return { lat, lon };
 }
 
-/** A note's coordinates: the `location` property, or the pre-ADR-0011 `geo: "lat,lon"` string from early imports. */
-export function noteCoords(props: Properties): { lat: number; lon: number } | null {
+/**
+ * A note's coordinates. By default the `location` property (or the pre-ADR-0011
+ * `geo: "lat,lon"` string from early imports); pass `key` to read a
+ * Coordinates property stored under another name (user-defined types).
+ */
+export function noteCoords(props: Properties, key?: string): { lat: number; lon: number } | null {
+  if (key && key !== "location" && key !== "geo") return readCoords(props[key]) ?? readCoords(props.location) ?? readCoords(props.geo);
   return readCoords(props.location) ?? readCoords(props.geo);
 }
 
