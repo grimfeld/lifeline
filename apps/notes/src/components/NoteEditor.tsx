@@ -80,7 +80,8 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
     navigate("/notes");
   }
 
-  const coords = useMemo(() => noteCoords(properties), [properties]);
+  const geoKey = def.properties.find((p) => p.kind === "geo")?.key;
+  const coords = useMemo(() => noteCoords(properties, geoKey), [properties, geoKey]);
   const Icon = def.icon;
   return (
     <div className="flex h-full min-h-0">
