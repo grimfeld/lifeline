@@ -82,3 +82,30 @@ export async function deleteMedia(id: string): Promise<void> {
 export function findByExternalKey(items: MediaItem[], key: string): MediaItem | undefined {
   return key ? items.find((m) => m.externalKey === key) : undefined;
 }
+
+/**
+ * Quick add (ADR 0006 amendment): title, optional creator, medium — straight
+ * onto the To… shelf, nothing else asked. Optional lookup hit attaches
+ * cover/year/external key. Returns the id (for Undo).
+ */
+export async function quickAddMedia(input: { type: MediaTypeId; title: string; creator?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; creator: string } }): Promise<string> {
+  return addMedia({
+    type: input.type,
+    title: input.title,
+    creator: input.creator || input.hit?.creator || "",
+    externalKey: input.hit?.externalKey ?? "",
+    coverUrl: input.hit?.coverUrl ?? "",
+    year: input.hit?.year ?? 0,
+    size: input.hit?.size ?? 0,
+    acquisition: "WANTED",
+    reason: "",
+  });
+}
+
+/** Parse "Title — Creator" / "Title - Creator" / "Title by Creator" typed in a quick-add box. */
+export function parseQuickTitle(raw: string): { title: string; creator: string } {
+  const t = raw.trim();
+  const m = /^(.*?)\s+(?:—|–|-|by)\s+(.+)$/.exec(t);
+  if (m && m[1].trim() && m[2].trim()) return { title: m[1].trim(), creator: m[2].trim() };
+  return { title: t, creator: "" };
+}

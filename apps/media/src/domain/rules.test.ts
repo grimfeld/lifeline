@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { onShelf, shelfLabel } from "./browse";
+import { hasSlots, SLOTTED_TYPES } from "./mediaTypes";
+import { parseQuickTitle } from "../data/repo";
 import type { MediaItem } from "./types";
 import { abandon, finish, freeSlots, isBuySignal, isFull, isStale, nightstand, promote, shelfOfShame, shoppingList, slotAge } from "./rules";
 
@@ -29,15 +32,16 @@ function item(p: Partial<MediaItem>): MediaItem {
 }
 
 describe("slots per medium", () => {
-  it("books have five slots, games two; the lowest free slot is next", () => {
-    const items = [item({ id: "a", slot: 1 }), item({ id: "b", slot: 3 }), item({ id: "g", type: "game", slot: 1 })];
+  it("books have five slots, comics three, games none; the lowest free slot is next", () => {
+    const items = [item({ id: "a", slot: 1 }), item({ id: "b", slot: 3 }), item({ id: "c", type: "comic", slot: 1 })];
     expect(freeSlots(items, "book")).toEqual([2, 4, 5]);
-    expect(freeSlots(items, "game")).toEqual([2]);
+    expect(freeSlots(items, "comic")).toEqual([2, 3]);
+    expect(freeSlots(items, "game")).toEqual([]);
     expect(nightstand(items, "book").map((m) => m.id)).toEqual(["a", "b"]);
   });
   it("a full nightstand of one medium does not block another", () => {
-    const items = [1, 2].map((s) => item({ id: `g${s}`, type: "game", slot: s }));
-    expect(isFull(items, "game")).toBe(true);
+    const items = [1, 2, 3].map((s) => item({ id: `c${s}`, type: "comic", slot: s }));
+    expect(isFull(items, "comic")).toBe(true);
     expect(isFull(items, "book")).toBe(false);
   });
 });
@@ -79,5 +83,27 @@ describe("shoppingList", () => {
       item({ id: "next", acquisition: "WANTED", slot: 2, addedOn: "2026-07-01" }),
     ]);
     expect(list.map((m) => m.id)).toEqual(["next", "old", "young"]);
+  });
+});
+
+describe("shelves and slots (ADR 0006 amendment)", () => {
+  it("only books and comics have slots", () => {
+    expect(SLOTTED_TYPES).toEqual(["book", "comic"]);
+    expect(hasSlots("movie")).toBe(false);
+  });
+  it("shelf labels follow the medium's verb", () => {
+    expect(shelfLabel("UNSTARTED", "book")).toBe("To read");
+    expect(shelfLabel("UNSTARTED", "music")).toBe("To listen");
+    expect(shelfLabel("UNSTARTED", "all")).toBe("To do");
+    expect(shelfLabel("ABANDONED", "movie")).toBe("Dropped");
+    expect(onShelf(item({ engagement: "DONE" }), "DONE")).toBe(true);
+    expect(onShelf(item({ engagement: "DONE" }), "ALL")).toBe(true);
+    expect(onShelf(item({ engagement: "DONE" }), "UNSTARTED")).toBe(false);
+  });
+  it("parses quick titles", () => {
+    expect(parseQuickTitle("Dune — Frank Herbert")).toEqual({ title: "Dune", creator: "Frank Herbert" });
+    expect(parseQuickTitle("Heat by Michael Mann")).toEqual({ title: "Heat", creator: "Michael Mann" });
+    expect(parseQuickTitle("Spider-Man")).toEqual({ title: "Spider-Man", creator: "" });
+    expect(parseQuickTitle("Kind of Blue - Miles Davis")).toEqual({ title: "Kind of Blue", creator: "Miles Davis" });
   });
 });

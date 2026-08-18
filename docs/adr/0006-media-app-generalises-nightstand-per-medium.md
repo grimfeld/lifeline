@@ -10,3 +10,7 @@ Each medium has its own Nightstand and cap (books 5, comics/movies/series/albums
 - External identity is a namespaced `externalKey` (`openlibrary:/works/…`); Open Library lookup exists for books and comics, everything else is manual entry until another source is wired in.
 - Unlike readlist, the client is offline-capable via Core sync; the "two devices claim the last slot" race resolves by LWW and is accepted for one user.
 - The Media App does not implement Schedulable or Timed: media are not work on days.
+
+## Amendment (Aug 2026): one shelf, Nightstand for books and comics only
+
+In use, the two-axis model and the Backlog/Gallery/Nightstand tabs were more than the medium warranted: the Backlog and the Gallery were the same set with different chrome, and slots made sense for reading but not for movies, music or games. The App now has **one primary Shelf per item — the Engagement axis under its verbs: To read/watch/listen/play · In progress · Done · Dropped** — shown as a single Gallery with shelf and medium filters. Acquisition is kept as data (importer, Shopping-list card) but demoted to an optional "owned" detail, never asked on add. The Nightstand survives only where slots earn their keep — books (5) and comics (3); other media have no slots (`slotCount: 0`). Adding is one line (title, optional creator, medium) straight onto the To… shelf, with optional lookups (Open Library for books/comics, MusicBrainz for music); the detailed dialog remains for the rare case.

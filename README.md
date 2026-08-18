@@ -21,8 +21,8 @@ apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): m
 apps/sources     @lifeline/app-sources — Sources: things outside Lifeline shown inside it (ADR 0016/0017): Embed (a page in a
                  frame), Feed (RSS/Atom, "seen up to" only), Calendar subscription (iCal → read-only Timed items in its colour),
                  Live value (one JSON-path/regex value polled on a period); Embed/Feed/Live value cards, Sources screen, full-page view
-apps/media       @lifeline/app-media — Media App (nightstand port, generalised): books, comics, movies,
-                 series, albums, games on two axes (Acquisition × Engagement) with per-medium Nightstand slots
+apps/media       @lifeline/app-media — Media App: books, comics, movies, series, albums, games on one Shelf
+                 (To read/watch/listen · In progress · Done · Dropped), one Gallery, quick add; Nightstand slots for books/comics
 shell            @lifeline/shell — Vite + React shell: sidebar, command palette (Ctrl+K),
                  user Screens (drag/resize card grids), calendar + week + schedule (hour-scaled time-blocking, ADR 0015) + map Surfaces; Tauri 2 desktop config
 pocketbase       Dockerfile + fly.toml (app: lifeline-pb) + pb_migrations

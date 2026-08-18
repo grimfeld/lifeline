@@ -19,8 +19,10 @@ export interface MediaTypeDef {
   /** Verb for the "start" action. */
   startVerb: string;
   finishVerb: string;
-  /** Whether Open Library lookup applies (books/comics). */
-  lookup: "openlibrary" | null;
+  /** Shelf label for not-yet-started items: "To read", "To watch"… (ADR 0006 amendment). */
+  wantLabel: string;
+  /** Optional lookup source for quick add / details: Open Library (books/comics), MusicBrainz (music). */
+  lookup: "openlibrary" | "musicbrainz" | null;
 }
 
 const READ = { UNSTARTED: "Unread", IN_PROGRESS: "Reading", DONE: "Read", ABANDONED: "Abandoned" };
@@ -28,18 +30,22 @@ const WATCH = { UNSTARTED: "Unwatched", IN_PROGRESS: "Watching", DONE: "Watched"
 
 /**
  * The media type registry: adding a medium is adding an entry here (plus, if
- * it needs one, a lookup source). Everything else — slots, axes, backlog,
- * dates, screens — is shared.
+ * it needs one, a lookup source). Everything else — shelves, dates, screens —
+ * is shared. Only books and comics have Nightstand slots (ADR 0006 amendment).
  */
 export const MEDIA_TYPES: MediaTypeDef[] = [
-  { id: "book", label: "Book", plural: "Books", creatorLabel: "Author", sizeUnit: "pages", slotCount: 5, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", lookup: "openlibrary" },
-  { id: "comic", label: "Comic", plural: "Comics", creatorLabel: "Author / artist", sizeUnit: "issues", slotCount: 3, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", lookup: "openlibrary" },
-  { id: "movie", label: "Movie", plural: "Movies", creatorLabel: "Director", sizeUnit: "min", slotCount: 3, cover: "portrait", engagement: WATCH, startVerb: "Start", finishVerb: "Finish", lookup: null },
-  { id: "series", label: "Series", plural: "Series", creatorLabel: "Creator", sizeUnit: "episodes", slotCount: 3, cover: "portrait", engagement: WATCH, startVerb: "Start", finishVerb: "Finish", lookup: null },
-  { id: "music", label: "Album", plural: "Music", creatorLabel: "Artist", sizeUnit: "tracks", slotCount: 3, cover: "square", engagement: { UNSTARTED: "Unheard", IN_PROGRESS: "Listening", DONE: "Listened", ABANDONED: "Abandoned" }, startVerb: "Start", finishVerb: "Finish", lookup: null },
-  { id: "game", label: "Game", plural: "Games", creatorLabel: "Developer", sizeUnit: "hours", slotCount: 2, cover: "portrait", engagement: { UNSTARTED: "Unplayed", IN_PROGRESS: "Playing", DONE: "Played", ABANDONED: "Abandoned" }, startVerb: "Start", finishVerb: "Finish", lookup: null },
+  { id: "book", label: "Book", plural: "Books", creatorLabel: "Author", sizeUnit: "pages", slotCount: 5, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", wantLabel: "To read", lookup: "openlibrary" },
+  { id: "comic", label: "Comic", plural: "Comics", creatorLabel: "Author / artist", sizeUnit: "issues", slotCount: 3, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", wantLabel: "To read", lookup: "openlibrary" },
+  { id: "movie", label: "Movie", plural: "Movies", creatorLabel: "Director", sizeUnit: "min", slotCount: 0, cover: "portrait", engagement: WATCH, startVerb: "Start", finishVerb: "Finish", wantLabel: "To watch", lookup: null },
+  { id: "series", label: "Series", plural: "Series", creatorLabel: "Creator", sizeUnit: "episodes", slotCount: 0, cover: "portrait", engagement: WATCH, startVerb: "Start", finishVerb: "Finish", wantLabel: "To watch", lookup: null },
+  { id: "music", label: "Album", plural: "Music", creatorLabel: "Artist", sizeUnit: "tracks", slotCount: 0, cover: "square", engagement: { UNSTARTED: "Unheard", IN_PROGRESS: "Listening", DONE: "Listened", ABANDONED: "Abandoned" }, startVerb: "Start", finishVerb: "Finish", wantLabel: "To listen", lookup: "musicbrainz" },
+  { id: "game", label: "Game", plural: "Games", creatorLabel: "Developer", sizeUnit: "hours", slotCount: 0, cover: "portrait", engagement: { UNSTARTED: "Unplayed", IN_PROGRESS: "Playing", DONE: "Played", ABANDONED: "Abandoned" }, startVerb: "Start", finishVerb: "Finish", wantLabel: "To play", lookup: null },
 ];
 
 export function mediaType(id: MediaTypeId): MediaTypeDef {
   return MEDIA_TYPES.find((t) => t.id === id) ?? MEDIA_TYPES[0];
 }
+
+/** Types that have a Nightstand (slotCount > 0). */
+export const SLOTTED_TYPES: MediaTypeId[] = MEDIA_TYPES.filter((t) => t.slotCount > 0).map((t) => t.id);
+export const hasSlots = (id: MediaTypeId) => mediaType(id).slotCount > 0;
