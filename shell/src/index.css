@@ -10,6 +10,7 @@
 @source "../../apps/stats/src";
 @source "../../apps/media/src";
 @source "../../apps/notes/src";
+@source "../../apps/sources/src";
 @source "./";
 
 .react-grid-item.react-grid-placeholder {

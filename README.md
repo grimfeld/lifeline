@@ -18,6 +18,8 @@ apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): m
                  (built-in daily/person/place/plain + user-defined types & templates), wikilinks + backlinks across notes and other Apps' entities (Linkable),
                  CodeMirror 6 editor, `daylog` blocks (Daylog contract), the Journal Surface; conflict copies (ADR 0010);
                  notes with a `location: [lat, lon]` property are Pins on the map (Locatable, ADR 0011)
+apps/sources     @lifeline/app-sources — Sources: things outside Lifeline shown inside it (ADR 0016); first kind Embed
+                 (a web page in a frame, by URL): Embed card (entity pick + scale), Sources screen, full-page view, "Open ↗"
 apps/media       @lifeline/app-media — Media App (nightstand port, generalised): books, comics, movies,
                  series, albums, games on two axes (Acquisition × Engagement) with per-medium Nightstand slots
 shell            @lifeline/shell — Vite + React shell: sidebar, command palette (Ctrl+K),
@@ -87,3 +89,4 @@ and read `useTagFilter()`; the Screen's filter ∧ the instance's `tags` setting
 7. ✅ Map Surface (ADR 0011): Locatable contract (coordinates only, geocoded at edit time via Nominatim),
    Leaflet over OSM tiles — `/map` screen, Map card, mini-map on Place notes; Notes is the first provider
 8. ✅ Tags (ADR 0014): free-form tags on every App entity, Taggable contract, Screen/Card Tag filters, Tags card
+9. ✅ Sources App (ADR 0016): external content as App-owned entities; Embed kind (iframe + Open ↗), Embed card
