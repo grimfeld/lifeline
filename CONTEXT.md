@@ -25,8 +25,15 @@ The second Contract: an entity that happens at a fixed time on a day (start/end,
 _Avoid_: appointment (that's an Event, one implementation), block
 
 ### Placement
-A Schedulable entity's assignment to a day or time slot on a surface. Owned by the surface (calendar), referencing the foreign entity by App + id. Distinct from the entity itself: deleting a Placement never deletes the entity. Subsumes calendar's old "TimeBlock".
+A Schedulable entity's assignment to a day — and optionally a time slot — on a surface. Owned by the surface (Core), referencing the foreign entity by App + id; the time is the surface's, never the App's (a Task still only knows its day). Distinct from the entity itself: deleting a Placement never deletes the entity. Subsumes calendar's old "TimeBlock".
 _Avoid_: TimeBlock, occurrence, booking
+
+### Time block
+A Placement that carries a start (and end) time: an item planned into an hour slot on the Schedule surface. Completing it completes the item; when the item rolls forward as overdue, the time is dropped. Blocks belong to one occurrence and never repeat.
+_Avoid_: appointment, event (that's the Calendar App's timed thing), slot (the empty grid cell)
+
+### Schedule
+The hour-scaled Surface (day or week) where Time blocks and Events are laid out and dragged. Distinct from the Week planner (day-granular) and the month Calendar.
 
 ### Surface
 A screen that consumes a Contract across all Apps rather than owning a domain (calendar grid, week grid, Today feed, dashboard). Surfaces are general; Apps are specific.
@@ -146,6 +153,14 @@ _Avoid_: view, saved search, override (nothing overrides — filters compose)
 
 ### Taggable
 Core Contract: an App reports its tagged entities (name, tags, a way to open each) so Core can derive the tag vocabulary and any Surface can browse items by Tag across Apps. Contract items placed on Surfaces (Schedulable, Timed, Daylog, Pin…) also carry their entity's Tags, so Tag filters apply everywhere.
+
+### Source
+Something outside Lifeline shown inside it, owned by the Sources App. Kinds are added over time; the first is the Embed. A Source is named, tagged and pickable for a Card; Lifeline never owns the data behind it.
+_Avoid_: integration (that is an App talking to a service), widget, feed (one future kind)
+
+### Embed
+A Source kind: a web page shown as-is in a frame, by URL. Lifeline displays it and does not understand it; a page that refuses to be framed stays blank and can only be opened outside. Optionally reloads itself on a period.
+_Avoid_: iframe (a rendering detail), link (that's a Wikilink), bookmark
 
 ### Conflict copy
 A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten unsynced local edits. Nothing is merged, nothing is lost.

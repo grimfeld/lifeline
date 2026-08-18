@@ -33,6 +33,10 @@ export interface TimedProvider {
   useItems(range: { start: DateStr; end: DateStr }): TimedItem[];
   /** Optional delegate of "the user dragged this to another day". */
   move?(itemId: string, to: DateStr): Promise<void>;
+  /** Optional delegate of "the user dragged/resized this on the Schedule" (ADR 0015): new day and time (null = all day). */
+  reschedule?(itemId: string, date: DateStr, start: TimeStr | null, end: TimeStr | null): Promise<void>;
+  /** Optional delegate of "the user clicked an empty slot": create a timed item there. */
+  create?(input: { title: string; date: DateStr; start: TimeStr | null; end: TimeStr | null }): Promise<void>;
 }
 
 export interface SurfaceTimedItem extends TimedItem {
@@ -61,6 +65,21 @@ export function useTimedItems(range: { start: DateStr; end: DateStr }, opts?: { 
   return out.sort((a, b) =>
     a.date.localeCompare(b.date) || (a.start ?? "").localeCompare(b.start ?? "") || a.title.localeCompare(b.title),
   );
+}
+
+export function canRescheduleTimed(appId: string): boolean {
+  return !!timedProviders().find((p) => p.appId === appId)?.reschedule;
+}
+
+export async function rescheduleTimedItem(item: Pick<TimedItem, "appId" | "itemId">, date: DateStr, start: TimeStr | null, end: TimeStr | null): Promise<void> {
+  const provider = timedProviders().find((p) => p.appId === item.appId);
+  if (!provider?.reschedule) throw new Error(`${appById(item.appId)?.title ?? item.appId} items can't be rescheduled`);
+  await provider.reschedule(item.itemId, date, start, end);
+}
+
+/** Providers that can create a timed item from the surface (the Calendar App). */
+export function timedCreators(): TimedProvider[] {
+  return timedProviders().filter((p) => !!p.create);
 }
 
 export function canMoveTimed(appId: string): boolean {

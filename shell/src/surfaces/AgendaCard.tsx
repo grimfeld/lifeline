@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { appById, formatTime, hourWindow, layoutColumns, todayStr, useTimedItems, type CardProps } from "@lifeline/core";
+import { appById, formatTime, hourWindow, layoutColumns, todayStr, useSurfaceItems, useTimedItems, type CardProps } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 
 const HOUR_PX = 48;
@@ -16,7 +16,16 @@ function useNow(): Date {
 /** Hub card: today's Timed items on an hour-scaled timeline with a live "now" line. */
 export function AgendaCard({ settings }: CardProps) {
   const today = todayStr();
-  const items = useTimedItems({ start: today, end: today });
+  const timedItems = useTimedItems({ start: today, end: today });
+  // Time blocks (ADR 0015): planned work shows beside Events.
+  const blocks = useSurfaceItems({ start: today, end: today }).filter((i) => i.start);
+  const items = useMemo(
+    () => [
+      ...timedItems,
+      ...blocks.map((b) => ({ key: b.key, appId: b.appId, itemId: b.itemId, title: `${b.completedOn ? "✓ " : ""}${b.title}`, date: b.displayDate, start: b.start!, end: b.end ?? null, color: b.color })),
+    ],
+    [timedItems, blocks],
+  );
   const now = useNow();
   const startHour = Number(settings.startHour ?? 7);
   const endHour = Number(settings.endHour ?? 23);

@@ -21,7 +21,7 @@ apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): m
 apps/media       @lifeline/app-media — Media App (nightstand port, generalised): books, comics, movies,
                  series, albums, games on two axes (Acquisition × Engagement) with per-medium Nightstand slots
 shell            @lifeline/shell — Vite + React shell: sidebar, command palette (Ctrl+K),
-                 user Screens (drag/resize card grids), calendar + week + map Surfaces; Tauri 2 desktop config
+                 user Screens (drag/resize card grids), calendar + week + schedule (hour-scaled time-blocking, ADR 0015) + map Surfaces; Tauri 2 desktop config
 pocketbase       Dockerfile + fly.toml (app: lifeline-pb) + pb_migrations
 scripts          dev.sh (backend + shell), import/ (legacy data → Lifeline, see docs/retire-legacy.md)
 ```

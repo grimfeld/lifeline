@@ -14,6 +14,9 @@ export interface SurfaceItem extends SchedulableItem {
   displayDate: DateStr;
   /** Set when a Placement pin, not the natural date, decided displayDate. */
   placementId?: string;
+  /** Time block (ADR 0015): "HH:MM" when the item is planned into a slot; null = untimed. */
+  start?: string | null;
+  end?: string | null;
   color?: string;
 }
 
@@ -57,18 +60,20 @@ export function useSurfaceItems(range: { start: DateStr; end: DateStr }, opts?: 
     const color = appById(provider.appId)?.color;
     for (const item of items) {
       if (!matchesTagFilter(item.tags, filter)) continue;
-      const pin = byItem.get(item.key);
+      let pin = byItem.get(item.key);
+      // An App that owns its day: a pin whose day no longer matches is a stale time block — ignore it.
+      if (pin && provider.move && item.date !== null && pin.date !== item.date) pin = undefined;
       let displayDate = pin?.date ?? item.date;
       if (displayDate === null) continue; // unplaced pool item — see usePoolItems
-      if (
-        !item.completedOn &&
-        displayDate < today &&
-        provider.overduePolicy === "roll-forward" &&
-        !pin
-      ) {
+      let start = pin?.start ?? null;
+      let end = pin?.end ?? null;
+      if (!item.completedOn && displayDate < today && provider.overduePolicy === "roll-forward" && (!pin || start)) {
+        // Overdue rolls to today per the App's policy; a stale time is dropped (ADR 0015).
         displayDate = today;
+        start = null;
+        end = null;
       }
-      out.push({ ...item, displayDate, placementId: pin?.id, color });
+      out.push({ ...item, displayDate, placementId: pin?.id, start, end, color });
     }
   }
   return out.filter((i) => i.displayDate >= range.start && i.displayDate <= range.end);
@@ -102,8 +107,8 @@ export function usePoolItems(opts?: { tags?: TagFilter }): PoolItem[] {
   return out;
 }
 
-/** Pin an item to a day (or move an existing pin). */
-export async function placeItem(appId: string, itemId: string, date: DateStr): Promise<void> {
+/** Pin an item to a day (or move an existing pin), optionally into a time slot. Day-only pins drop any time. */
+export async function placeItem(appId: string, itemId: string, date: DateStr, time?: { start: string; end: string | null } | null): Promise<void> {
   const existing = await db()
     .collection<Placement>("placements")
     .where("[appId+itemId]")
@@ -114,7 +119,30 @@ export async function placeItem(appId: string, itemId: string, date: DateStr): P
     appId,
     itemId,
     date,
+    start: time?.start ?? null,
+    end: time?.end ?? null,
   });
+}
+
+/**
+ * Plan an item into a time slot on `date` (ADR 0015): the owning App moves
+ * the day when it owns moves and the day changed; the Placement carries the
+ * time. `time === null` keeps the day and drops the time (back to the
+ * untimed strip).
+ */
+export async function scheduleSurfaceItem(
+  item: Pick<SurfaceItem, "appId" | "itemId" | "placementId" | "displayDate">,
+  date: DateStr,
+  time: { start: string; end: string | null } | null,
+): Promise<void> {
+  const provider = schedulableProviders().find((p) => p.appId === item.appId);
+  if (!provider) throw new Error(`No Schedulable provider for app ${item.appId}`);
+  if (provider.move && date !== item.displayDate) await provider.move(item.itemId, date);
+  if (time === null && provider.move) {
+    if (item.placementId) await unplaceItem(item.placementId);
+    return;
+  }
+  await placeItem(item.appId, item.itemId, date, time);
 }
 
 export async function unplaceItem(placementId: string): Promise<void> {
@@ -157,5 +185,9 @@ export async function completeSurfaceItem(
   const provider = schedulableProviders().find((p) => p.appId === item.appId);
   if (!provider) throw new Error(`No Schedulable provider for app ${item.appId}`);
   await provider.complete(item.itemId, on ?? todayStr());
-  if (item.placementId) await unplaceItem(item.placementId);
+  // A day-only pin is cleared; a Time block stays so the schedule shows what got done (ADR 0015).
+  if (item.placementId) {
+    const pin = await db().collection<Placement>("placements").get(item.placementId);
+    if (pin && !pin.start) await unplaceItem(item.placementId);
+  }
 }
