@@ -11,33 +11,43 @@ import {
   TagChips,
   toast,
 } from "@lifeline/ui";
-import { Globe, MoreHorizontal, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
-import type { Embed } from "../domain/types";
+import { CalendarDays, Gauge, Globe, MoreHorizontal, Pencil, Plus, RefreshCw, Rss, Trash2 } from "lucide-react";
+import { colorVar, type Source, type SourceKind } from "../domain/types";
 import { hostOf } from "../domain/url";
-import { deleteSource, useEmbeds } from "../data/repo";
-import { EmbedDialog } from "../components/EmbedDialog";
+import { deleteSource, useSources } from "../data/repo";
+import { SourceDialog, KIND_LABEL } from "../components/SourceDialog";
 import { OpenExternalButton } from "../components/OpenExternalButton";
-import { embedHref } from "../hrefs";
+import { sourceHref } from "../hrefs";
 
-function EmbedRow({ embed, onEdit }: { embed: Embed; onEdit: (e: Embed) => void }) {
+export const KIND_ICON: Record<SourceKind, typeof Globe> = { embed: Globe, feed: Rss, ical: CalendarDays, value: Gauge };
+const KIND_ORDER: SourceKind[] = ["embed", "feed", "ical", "value"];
+const KIND_TITLE: Record<SourceKind, string> = { embed: "Embeds", feed: "Feeds", ical: "Calendar subscriptions", value: "Live values" };
+
+function SourceRow({ source, onEdit }: { source: Source; onEdit: (s: Source) => void }) {
   const navigate = useNavigate();
+  const Icon = KIND_ICON[source.kind];
   return (
     <Card className="py-3">
       <CardContent className="flex items-center gap-3 px-4">
-        <Globe className="text-muted-foreground size-4 shrink-0" />
-        <button className="min-w-0 flex-1 text-left" onClick={() => navigate(embedHref(embed.id))}>
-          <div className="truncate font-medium">{embed.name}</div>
+        {source.kind === "ical" ? (
+          <span className="size-3 shrink-0 rounded-full" style={{ background: colorVar(source.color) }} />
+        ) : (
+          <Icon className="text-muted-foreground size-4 shrink-0" />
+        )}
+        <button className="min-w-0 flex-1 text-left" onClick={() => navigate(sourceHref(source.id))}>
+          <div className="truncate font-medium">{source.name}</div>
           <div className="text-muted-foreground flex items-center gap-1.5 truncate text-xs">
-            <span className="truncate">{hostOf(embed.url)}</span>
-            {embed.refreshMinutes && (
+            <span className="truncate">{hostOf(source.url)}</span>
+            {source.refreshMinutes && (
               <span className="flex shrink-0 items-center gap-0.5">
-                <RefreshCw className="size-3" /> {embed.refreshMinutes} min
+                <RefreshCw className="size-3" /> {source.refreshMinutes} min
               </span>
             )}
-            <TagChips tags={embed.tags} size="xs" className="shrink-0" />
+            {source.kind === "value" && <span className="shrink-0 font-mono">{source.mode === "json" ? source.path || "$" : "/regex/"}</span>}
+            <TagChips tags={source.tags} size="xs" className="shrink-0" />
           </div>
         </button>
-        <OpenExternalButton url={embed.url} iconOnly className="size-8" />
+        <OpenExternalButton url={source.url} iconOnly className="size-8" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="icon" variant="ghost" className="size-8">
@@ -45,14 +55,14 @@ function EmbedRow({ embed, onEdit }: { embed: Embed; onEdit: (e: Embed) => void 
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(embed)}>
+            <DropdownMenuItem onClick={() => onEdit(source)}>
               <Pencil /> Edit
             </DropdownMenuItem>
             <DropdownMenuItem
               variant="destructive"
               onClick={() => {
-                void deleteSource(embed.id);
-                toast.success("Embed deleted");
+                void deleteSource(source.id);
+                toast.success(`${KIND_LABEL[source.kind]} deleted`);
               }}
             >
               <Trash2 /> Delete
@@ -64,45 +74,54 @@ function EmbedRow({ embed, onEdit }: { embed: Embed; onEdit: (e: Embed) => void 
   );
 }
 
-/** The Sources App's management screen: every Embed, add/edit/delete. */
+/** The Sources App's management screen: every Source by kind, add/edit/delete. */
 export function SourcesScreen() {
-  const embeds = useEmbeds().slice().sort((a, b) => a.name.localeCompare(b.name));
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Embed | undefined>(undefined);
+  const sources = useSources();
+  const [dialog, setDialog] = useState<{ kind: SourceKind; source?: Source } | null>(null);
 
   return (
     <div className="flex h-full flex-col gap-3 p-4">
       <div className="flex items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight">Sources</h1>
-        <span className="text-muted-foreground text-sm">{embeds.length} embed{embeds.length === 1 ? "" : "s"}</span>
-        <Button
-          className="ml-auto h-8"
-          onClick={() => {
-            setEditing(undefined);
-            setDialogOpen(true);
-          }}
-        >
-          <Plus /> New embed
-        </Button>
+        <span className="text-muted-foreground text-sm">{sources.length} source{sources.length === 1 ? "" : "s"}</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="ml-auto h-8">
+              <Plus /> New
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {KIND_ORDER.map((k) => {
+              const Icon = KIND_ICON[k];
+              return (
+                <DropdownMenuItem key={k} onClick={() => setDialog({ kind: k })}>
+                  <Icon /> New {KIND_LABEL[k]}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-      <div className="grid gap-2 overflow-y-auto">
-        {embeds.length === 0 && (
+      <div className="grid gap-4 overflow-y-auto">
+        {sources.length === 0 && (
           <div className="text-muted-foreground py-10 text-center text-sm">
-            No embeds yet. Add a URL to show a web page on your Screens.
+            Nothing yet. Add an embed (a web page), a feed, a calendar subscription or a live value.
           </div>
         )}
-        {embeds.map((e) => (
-          <EmbedRow
-            key={e.id}
-            embed={e}
-            onEdit={(em) => {
-              setEditing(em);
-              setDialogOpen(true);
-            }}
-          />
-        ))}
+        {KIND_ORDER.map((k) => {
+          const list = sources.filter((s) => s.kind === k).sort((a, b) => a.name.localeCompare(b.name));
+          if (list.length === 0) return null;
+          return (
+            <section key={k} className="grid gap-2">
+              <h2 className="text-muted-foreground text-xs font-medium uppercase tracking-wide">{KIND_TITLE[k]}</h2>
+              {list.map((s) => (
+                <SourceRow key={s.id} source={s} onEdit={(src) => setDialog({ kind: src.kind, source: src })} />
+              ))}
+            </section>
+          );
+        })}
       </div>
-      <EmbedDialog open={dialogOpen} onOpenChange={setDialogOpen} embed={editing} />
+      {dialog && <SourceDialog open onOpenChange={(o) => !o && setDialog(null)} kind={dialog.kind} source={dialog.source} />}
     </div>
   );
 }

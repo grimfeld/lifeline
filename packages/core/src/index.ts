@@ -29,3 +29,4 @@ export { startSync, syncNow, requestSync, useSyncState, type SyncState } from ".
 export { useLiveQuery } from "dexie-react-hooks";
 export { liveQuery } from "dexie";
 export * from "./external";
+export * from "./fetch";

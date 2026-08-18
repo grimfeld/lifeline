@@ -162,6 +162,18 @@ _Avoid_: integration (that is an App talking to a service), widget, feed (one fu
 A Source kind: a web page shown as-is in a frame, by URL. Lifeline displays it and does not understand it; a page that refuses to be framed stays blank and can only be opened outside. Optionally reloads itself on a period.
 _Avoid_: iframe (a rendering detail), link (that's a Wikilink), bookmark
 
+### Feed
+A Source kind: an RSS/Atom URL Lifeline reads and lists — latest items, opened outside. Remembers only "seen up to when"; never the items themselves.
+_Avoid_: reader, subscription (that's a Calendar subscription), channel
+
+### Calendar subscription
+A Source kind: an iCal URL whose events appear on the time Surfaces as read-only Timed items in the subscription's colour. They are never copied into the Calendar App's Events and can't be moved or completed.
+_Avoid_: external calendar, imported calendar (nothing is imported), feed
+
+### Live value
+A Source kind: a URL polled on a period, from whose response one value is read (a JSON path or a regex capture) and shown as a tile with a label and unit. Shows when it was last read; goes stale, never fakes.
+_Avoid_: metric, sensor, stat (a Stat is owned data with history — a Live value has none)
+
 ### Conflict copy
 A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten unsynced local edits. Nothing is merged, nothing is lost.
 

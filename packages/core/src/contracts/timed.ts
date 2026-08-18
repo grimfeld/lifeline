@@ -25,6 +25,8 @@ export interface TimedItem {
   end: TimeStr | null;
   /** The entity's Tags (ADR 0014). */
   tags?: string[];
+  /** Overrides the App colour on surfaces (a Calendar subscription's own colour, ADR 0017). */
+  color?: string;
 }
 
 export interface TimedProvider {
@@ -60,7 +62,7 @@ export function useTimedItems(range: { start: DateStr; end: DateStr }, opts?: { 
   const out: SurfaceTimedItem[] = [];
   for (const { provider, items } of perProvider) {
     const color = appById(provider.appId)?.color;
-    for (const item of items) if (matchesTagFilter(item.tags, filter)) out.push({ ...item, color });
+    for (const item of items) if (matchesTagFilter(item.tags, filter)) out.push({ ...item, color: item.color ?? color });
   }
   return out.sort((a, b) =>
     a.date.localeCompare(b.date) || (a.start ?? "").localeCompare(b.start ?? "") || a.title.localeCompare(b.title),

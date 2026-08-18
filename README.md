@@ -18,8 +18,9 @@ apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): m
                  (built-in daily/person/place/plain + user-defined types & templates), wikilinks + backlinks across notes and other Apps' entities (Linkable),
                  CodeMirror 6 editor, `daylog` blocks (Daylog contract), the Journal Surface; conflict copies (ADR 0010);
                  notes with a `location: [lat, lon]` property are Pins on the map (Locatable, ADR 0011)
-apps/sources     @lifeline/app-sources — Sources: things outside Lifeline shown inside it (ADR 0016); first kind Embed
-                 (a web page in a frame, by URL): Embed card (entity pick + scale), Sources screen, full-page view, "Open ↗"
+apps/sources     @lifeline/app-sources — Sources: things outside Lifeline shown inside it (ADR 0016/0017): Embed (a page in a
+                 frame), Feed (RSS/Atom, "seen up to" only), Calendar subscription (iCal → read-only Timed items in its colour),
+                 Live value (one JSON-path/regex value polled on a period); Embed/Feed/Live value cards, Sources screen, full-page view
 apps/media       @lifeline/app-media — Media App (nightstand port, generalised): books, comics, movies,
                  series, albums, games on two axes (Acquisition × Engagement) with per-medium Nightstand slots
 shell            @lifeline/shell — Vite + React shell: sidebar, command palette (Ctrl+K),
@@ -59,7 +60,7 @@ fly deploy
 ## Adding an App (ADR 0003)
 
 1. New package under `apps/<name>` exporting an `AppManifest` — collections, screens, cards, commands, contract implementations (`schedulable` for work that lands on days, `timed` for fixed-time things).
-2. Add the collections to a new `pocketbase/pb_migrations` file (same base fields: `id` 15-char, `updatedAt` text, `deleted` number, autodates).
+2. Add the collections to a new `pocketbase/pb_migrations` file (server routes go in `pocketbase/pb_hooks`, loaded with `--hooksDir`) (same base fields: `id` 15-char, `updatedAt` text, `deleted` number, autodates).
 3. Register the manifest in `shell/src/main.tsx` (`initApps([...])`), add the package to `shell/package.json`, add its `src` to the `@source` list in `shell/src/index.css`, and bump `DB_VERSION` in `packages/core/src/data/db.ts` (Dexie needs it to migrate existing local databases).
 
 Everything else — offline storage, sync, palette entries, card picker, calendar presence — comes from Core.
@@ -90,3 +91,5 @@ and read `useTagFilter()`; the Screen's filter ∧ the instance's `tags` setting
    Leaflet over OSM tiles — `/map` screen, Map card, mini-map on Place notes; Notes is the first provider
 8. ✅ Tags (ADR 0014): free-form tags on every App entity, Taggable contract, Screen/Card Tag filters, Tags card
 9. ✅ Sources App (ADR 0016): external content as App-owned entities; Embed kind (iframe + Open ↗), Embed card
+10. ✅ Feeds, Calendar subscriptions, Live values (ADR 0017): one Core `fetchExternal` (Tauri http, else the PocketBase
+    `/api/lifeline/fetch` proxy in `pocketbase/pb_hooks`), local-only `_source_cache`, ical.js expansion
