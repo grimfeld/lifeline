@@ -20,7 +20,9 @@
     "@lifeline/core": "workspace:*",
     "@lifeline/ui": "workspace:*",
     "lucide-react": "^1.27.0",
-    "react-router": "^7.9.4"
+    "react-router": "^7.9.4",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "peerDependencies": {
     "react": "^19.0.0",
