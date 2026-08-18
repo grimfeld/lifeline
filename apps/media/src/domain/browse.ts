@@ -1,4 +1,5 @@
-import type { MediaItem } from "./types";
+import type { Engagement, MediaItem } from "./types";
+import { mediaType, type MediaTypeId } from "./mediaTypes";
 
 /** Status filters shared by the Backlog list and the Gallery. */
 export type StatusFilter = "ALL" | "WANTED" | "OWNED_UNSTARTED" | "IN_PROGRESS" | "DONE" | "STUDIED" | "ABANDONED" | "GONE";
@@ -79,3 +80,21 @@ export function sortGallery(items: MediaItem[], sort: GallerySort): MediaItem[] 
       return out.sort((a, b) => Number(!!b.year) - Number(!!a.year) || b.year - a.year || byTitle(a, b));
   }
 }
+
+/** The Shelf filter (ADR 0006 amendment): one Engagement value or ALL. */
+export type Shelf = Engagement | "ALL";
+export const SHELVES: Shelf[] = ["UNSTARTED", "IN_PROGRESS", "DONE", "ABANDONED", "ALL"];
+
+/** Shelf label in the medium's verbs; for "all" media, a neutral wording. */
+export function shelfLabel(shelf: Shelf, type: MediaTypeId | "all"): string {
+  if (shelf === "ALL") return "All";
+  if (shelf === "UNSTARTED") {
+    if (type === "all") return "To do";
+    return mediaType(type).wantLabel;
+  }
+  if (shelf === "IN_PROGRESS") return "In progress";
+  if (shelf === "DONE") return "Done";
+  return "Dropped";
+}
+
+export const onShelf = (m: MediaItem, shelf: Shelf) => shelf === "ALL" || m.engagement === shelf;

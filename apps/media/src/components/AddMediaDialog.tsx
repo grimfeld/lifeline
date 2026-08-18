@@ -29,7 +29,8 @@ const ACQ_LABEL: Record<Acquisition, string> = { WANTED: "Wanted", OWNED: "Owned
 
 /**
  * Two steps: find (lookup for books/comics, otherwise manual), then the
- * Reason + Acquisition. Items always enter via the Backlog.
+ * Reason and tags. Acquisition is a folded-away detail, defaulting to Wanted;
+ * items land on the To… shelf (ADR 0006 amendment).
  */
 export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { open: boolean; onOpenChange: (o: boolean) => void; defaultType?: MediaTypeId }) {
   const items = useMedia();
@@ -116,7 +117,7 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
       reason: reason.trim(),
       tags,
     });
-    toast.success(`${title.trim()} added to the Backlog`);
+    toast.success(`${title.trim()} added to ${def.wantLabel}`);
     onOpenChange(false);
   }
 
@@ -228,21 +229,26 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
                 <Label htmlFor="media-tags">Tags</Label>
                 <TagInput id="media-tags" value={tags} onChange={setTags} suggestions={tagSuggestions} normalize={normalizeTag} placeholder="Add tag…" />
               </div>
-              <div className="grid gap-2">
-                <Label>Acquisition</Label>
-                <Select value={acq} onValueChange={(v) => setAcq(v as Acquisition)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACQUISITION.filter((a) => a !== "GONE").map((a) => (
-                      <SelectItem key={a} value={a}>
-                        {ACQ_LABEL[a]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <details className="grid gap-2">
+                <summary className="text-muted-foreground cursor-pointer text-xs">
+                  More details{acq !== "WANTED" ? ` · ${ACQ_LABEL[acq]}` : ""}
+                </summary>
+                <div className="grid gap-2 pt-2">
+                  <Label>Owned?</Label>
+                  <Select value={acq} onValueChange={(v) => setAcq(v as Acquisition)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ACQUISITION.filter((a) => a !== "GONE").map((a) => (
+                        <SelectItem key={a} value={a}>
+                          {ACQ_LABEL[a]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </details>
             </>
           )}
         </div>
@@ -250,7 +256,7 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          {step2 && <Button onClick={() => void submit()}>Add to Backlog</Button>}
+          {step2 && <Button onClick={() => void submit()}>Add</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

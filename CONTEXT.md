@@ -86,16 +86,16 @@ _Avoid_: log, record, data point
 A Boolean Stat's run of consecutive marked days. The current streak ends today or yesterday — an unmarked today doesn't break it. Derived, period-independent.
 
 ### Media item
-A work (not an edition) of any medium — book, comic, movie, series, album, game — living on two independent axes: **Acquisition** (Wanted / Owned / Borrowed / Gone) and **Engagement** (Unstarted / In progress / Done / Abandoned — each medium supplies its verbs: read, watched, played…), plus the orthogonal **Studied** mark and, optionally, the **Reason** it was added.
+A work (not an edition) of any medium — book, comic, movie, series, album, game — sitting on one **Shelf** (see below), plus optional details: **owned** (Acquisition, kept from the old two-axis model but no longer a shelf), the **Studied** mark, tags and the **Reason** it was added.
 _Avoid_: book (one medium), title, copy, edition
 
-### Nightstand
-Per medium, the small capped set of Media items currently claiming attention — both in progress and queued. A Slot is held for the whole time an item is in progress and is freed only by finishing or abandoning (or an explicit "back to backlog"). Caps are fixed in code, not settings. A Wanted item on the Nightstand is the instruction to buy it *now* — it heads the Shopping list.
-_Avoid_: queue, TBR, wishlist, shelf, priority
+### Shelf
+Where a Media item stands with me, in the medium's own verbs: **To read / watch / listen / play** (not started), **In progress**, **Done**, **Dropped**. One shelf per item; the Gallery is browsed by shelf and medium.
+_Avoid_: status (too generic), backlog, engagement (the internal field name)
 
-### Backlog
-Every Media item not on a Nightstand — an unranked pool, including done and gone items.
-_Avoid_: TBR, library, inbox
+### Nightstand
+For books and comics only: the small capped set of items currently claiming attention — in progress and next up. A Slot is held for the whole time an item is in progress and freed only by finishing or dropping. Caps are fixed in code (books 5, comics 3); other media have no slots. A Nightstand item that isn't owned yet is the instruction to buy it *now* — it heads the Shopping list.
+_Avoid_: queue, TBR, wishlist, priority
 
 ### Shopping list
 Every Wanted Media item, wherever it lives: Nightstand ones first (next up — buy now), then the rest of the wish list, oldest first. Marking one as acquired takes it off the list.

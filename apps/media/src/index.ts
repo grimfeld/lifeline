@@ -6,7 +6,11 @@ import { ShoppingListCard } from "./cards/ShoppingListCard";
 import { InProgressCard } from "./cards/InProgressCard";
 import { FinishedCard } from "./cards/FinishedCard";
 import { SurpriseCard } from "./cards/SurpriseCard";
-import { mediumField } from "./cards/shared";
+import { QuickAddCard } from "./cards/QuickAddCard";
+import { WantCard } from "./cards/WantCard";
+import { mediumField, requiredMediumField, slottedMediumField } from "./cards/shared";
+import { shelfLabel } from "./domain/browse";
+import type { MediaTypeId } from "./domain/mediaTypes";
 import { titleWithMedium } from "./domain/cardQueries";
 import { mediaCommands } from "./commands";
 import { MEDIA } from "./domain/types";
@@ -27,11 +31,11 @@ export const mediaApp: AppManifest = {
       id: "media.nightstand",
       tagFilterable: true,
       title: "Nightstand",
-      description: "Everything holding a slot, across books, movies, games…",
+      description: "Books and comics holding a Nightstand slot — in progress and next up",
       component: NightstandCard,
       defaultSize: { w: 3, h: 6 },
       minSize: { w: 2, h: 3 },
-      settings: { medium: mediumField },
+      settings: { medium: slottedMediumField },
       instanceTitle: (s) => titleWithMedium("Nightstand", s.medium),
     },
     {
@@ -76,6 +80,31 @@ export const mediaApp: AppManifest = {
       minSize: { w: 2, h: 4 },
       settings: { medium: mediumField },
       instanceTitle: (s) => titleWithMedium("Surprise me", s.medium),
+    },
+    {
+      id: "media.quick-add",
+      title: "Media quick add",
+      description: "One line — title, creator, Enter — straight onto the To… shelf",
+      component: QuickAddCard,
+      defaultSize: { w: 3, h: 2 },
+      minSize: { w: 2, h: 2 },
+      settings: { medium: requiredMediumField },
+      instanceTitle: (s) => titleWithMedium("Quick add", s.medium),
+    },
+    {
+      id: "media.want",
+      tagFilterable: true,
+      title: "To read / watch / listen",
+      description: "What's waiting on the shelf, with a one-tap start",
+      component: WantCard,
+      defaultSize: { w: 3, h: 5 },
+      minSize: { w: 2, h: 3 },
+      settings: {
+        medium: mediumField,
+        count: { kind: "number", label: "Show at most", default: 10, min: 1, max: 50 },
+        sort: { kind: "select", label: "Order", default: "added", options: [{ value: "added", label: "Recently added" }, { value: "title", label: "Title" }] },
+      },
+      instanceTitle: (s) => shelfLabel("UNSTARTED", typeof s.medium === "string" && s.medium ? (s.medium as MediaTypeId) : "all"),
     },
   ],
   commands: mediaCommands,

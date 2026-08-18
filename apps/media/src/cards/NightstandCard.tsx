@@ -2,7 +2,7 @@ import { useState } from "react";
 import { matchesTagFilter, useTagFilter, type CardProps } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 import { AlertTriangle, ShoppingCart } from "lucide-react";
-import { MEDIA_TYPES, mediaType } from "../domain/mediaTypes";
+import { mediaType, SLOTTED_TYPES } from "../domain/mediaTypes";
 import { isBuySignal, isStale, nightstand, slotAge } from "../domain/rules";
 import { useMedia } from "../data/repo";
 import { Cover } from "../components/Cover";
@@ -10,13 +10,13 @@ import { EditMediaDialog } from "../components/MediaRow";
 import type { MediaItem } from "../domain/types";
 import { mediumOf } from "./shared";
 
-/** Card: everything currently holding a slot, across media (or one medium), with stale and buy signals. */
+/** Card: everything currently holding a slot — books and comics only (ADR 0006 amendment) — with stale and buy signals. */
 export function NightstandCard({ settings }: CardProps) {
   const filter = useTagFilter();
   const items = useMedia().filter((m) => matchesTagFilter(m.tags, filter));
   const medium = mediumOf(settings);
   const [editing, setEditing] = useState<MediaItem | null>(null);
-  const rows = MEDIA_TYPES.filter((t) => !medium || t.id === medium).flatMap((t) => nightstand(items, t.id));
+  const rows = SLOTTED_TYPES.filter((t) => !medium || t === medium).flatMap((t) => nightstand(items, t));
   if (rows.length === 0) {
     return <div className="text-muted-foreground flex h-full items-center justify-center text-sm">Nightstand is empty.</div>;
   }
