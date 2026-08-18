@@ -1,4 +1,4 @@
-import { addDays, diffDays, weekdayOf, type DateStr } from "@lifeline/core";
+import { addDays, clampedDate, diffDays, parts, weekdayOf, type DateStr } from "@lifeline/core";
 import type { OccurrenceOverride, Recurrence, Task } from "./types";
 
 /**
@@ -41,18 +41,36 @@ export function overrideMap(overrides: OccurrenceOverride[]): Map<string, Occurr
   return m;
 }
 
-/** Days in [start, end] on which a recurring task naturally occurs. */
+/** Days in [start, end] on which a recurring task naturally occurs (never before its creation day). */
 export function sourceDatesInRange(task: Task, start: DateStr, end: DateStr): DateStr[] {
   if (!task.recurrence) return [];
-  const want = new Set(task.recurrence.weekdays);
   const from = start > task.createdAt ? start : task.createdAt;
-  const out: DateStr[] = [];
-  const n = diffDays(from, end);
-  for (let i = 0; i <= n; i++) {
-    const d = addDays(from, i);
-    if (want.has(weekdayOf(d))) out.push(d);
+  if (from > end) return [];
+  const r = task.recurrence;
+  if (r.kind === "weekly") {
+    const want = new Set(r.weekdays);
+    const out: DateStr[] = [];
+    const n = diffDays(from, end);
+    for (let i = 0; i <= n; i++) {
+      const d = addDays(from, i);
+      if (want.has(weekdayOf(d))) out.push(d);
+    }
+    return out;
   }
-  return out;
+  // monthly / yearly: enumerate the candidate dates month by month, clamped to month length.
+  const out = new Set<DateStr>();
+  const a = parts(from);
+  const b = parts(end);
+  for (let y = a.y; y <= b.y; y++) {
+    for (let m = y === a.y ? a.m : 1; m <= (y === b.y ? b.m : 12); m++) {
+      const days = r.kind === "monthly" ? r.days : r.dates.filter((d) => d.month === m).map((d) => d.day);
+      for (const day of days) {
+        const d = clampedDate(y, m, day);
+        if (d >= from && d <= end) out.add(d);
+      }
+    }
+  }
+  return Array.from(out).sort();
 }
 
 /**
@@ -110,8 +128,8 @@ export function deriveItems(
     const task = byTask.get(o.taskId);
     if (!task || task.status !== "active" || !task.recurrence) continue;
     // Guard against stale overrides whose source day no longer matches the rule.
-    if (!task.recurrence.weekdays.includes(weekdayOf(o.sourceDate))) continue;
     if (o.sourceDate < task.createdAt) continue;
+    if (!sourceDatesInRange(task, o.sourceDate, o.sourceDate).includes(o.sourceDate)) continue;
     items.push({
       itemId: key,
       task,
@@ -127,7 +145,22 @@ export function deriveItems(
   );
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
+}
+
 export function describeRecurrence(r: Recurrence): string {
+  if (r.kind === "monthly") {
+    const days = [...r.days].sort((a, b) => a - b).map(ordinal);
+    return `Monthly on the ${days.join(", ")}`;
+  }
+  if (r.kind === "yearly") {
+    const dates = [...r.dates].sort((a, b) => a.month - b.month || a.day - b.day).map((d) => `${MONTHS[d.month - 1]} ${d.day}`);
+    return `Yearly on ${dates.join(", ")}`;
+  }
   const names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   // Show Monday-first
   const order = [1, 2, 3, 4, 5, 6, 0];

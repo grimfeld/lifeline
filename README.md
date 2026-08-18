@@ -9,7 +9,7 @@ packages/core    @lifeline/core — contracts, app registry, Dexie offline store
 packages/ui      @lifeline/ui — shared shadcn/Tailwind component kit (unified look)
 apps/chores      @lifeline/app-chores — first App (ported from chore-scheduler)
 apps/tasks       @lifeline/app-tasks — Tasks App (absorbs week-planner + calendar's task half):
-                 one-time + weekly-recurring tasks, per-Occurrence complete/move, Unassigned pool
+                 one-time + weekly/monthly/yearly recurring tasks, per-Occurrence complete/move, Unassigned pool
 apps/calendar    @lifeline/app-calendar — Calendar App: Events (timed / all-day / multi-day),
                  shown on the month, week and Today surfaces via the Timed contract
 apps/stats       @lifeline/app-stats — Stats App (notch port): additive / measurement / boolean /

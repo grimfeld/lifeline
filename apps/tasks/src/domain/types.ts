@@ -2,10 +2,14 @@ import type { DateStr, SyncedRecord, Weekday } from "@lifeline/core";
 
 /**
  * How a recurring Task repeats. Weekday values follow Core's convention
- * (0 = Sunday … 6 = Saturday); the UI shows weeks Monday-first.
- * Designed as a union so intervals/monthly can join later.
+ * (0 = Sunday … 6 = Saturday); the UI shows weeks Monday-first. Monthly
+ * days-of-month and yearly dates are clamped to the month's length
+ * (the 31st in February → the 28th/29th), like Chore schedules.
  */
-export type Recurrence = { kind: "weekly"; weekdays: Weekday[] };
+export type Recurrence =
+  | { kind: "weekly"; weekdays: Weekday[] }
+  | { kind: "monthly"; days: number[] } // 1–31
+  | { kind: "yearly"; dates: { month: number; day: number }[] }; // month 1–12, day 1–31
 
 export type TaskStatus = "active" | "archived";
 
