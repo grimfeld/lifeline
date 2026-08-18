@@ -6,7 +6,7 @@ import { useEmbeds } from "../data/repo";
 import { hostOf } from "../domain/url";
 import { EmbedFrame } from "../components/EmbedFrame";
 import { OpenExternalButton } from "../components/OpenExternalButton";
-import { embedHref } from "../hrefs";
+import { sourceHref } from "../hrefs";
 
 function useEmbedOptions(): CardOption[] {
   return useEmbeds()
@@ -41,7 +41,7 @@ export function EmbedCard({ settings, configure }: CardProps) {
     <div className="group/embed relative h-full w-full">
       <EmbedFrame embed={embed} scale={scale} />
       <div className="card-action absolute top-1 right-1 flex items-center gap-0.5 rounded-md bg-background/80 opacity-0 backdrop-blur transition-opacity group-hover/embed:opacity-100">
-        <Button size="icon" variant="ghost" className="size-6" aria-label="Open full page" title="Open full page" onClick={() => navigate(embedHref(embed.id))}>
+        <Button size="icon" variant="ghost" className="size-6" aria-label="Open full page" title="Open full page" onClick={() => navigate(sourceHref(embed.id))}>
           <Maximize2 className="size-3.5" />
         </Button>
         <OpenExternalButton url={embed.url} iconOnly />

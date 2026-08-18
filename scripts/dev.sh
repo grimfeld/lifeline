@@ -54,7 +54,8 @@ echo "==> pocketbase on $PB_URL"
 "$PB_BIN" serve \
   --http="$PB_HTTP" \
   --dir="$PB_DIR/pb_data" \
-  --migrationsDir="$PB_DIR/pb_migrations" &
+  --migrationsDir="$PB_DIR/pb_migrations" \
+  --hooksDir="$PB_DIR/pb_hooks" &
 
 echo "==> shell on http://localhost:1420"
 "${PNPM[@]}" dev &

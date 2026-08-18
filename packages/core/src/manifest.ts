@@ -10,6 +10,7 @@ import type { CardSettings, CardSettingsSchema } from "./cards";
 
 /** A synced Dexie/PocketBase collection an App owns. */
 export interface CollectionDef {
+  /** Names starting with "_" are local-only tables: never synced (e.g. a Source's fetch cache, ADR 0017). */
   name: string;
   /** Extra Dexie indexes beyond the standard "id, updatedAt, deleted". */
   indexes?: string[];

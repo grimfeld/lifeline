@@ -71,8 +71,9 @@ export interface UserScreen extends SyncedRecord {
  *   7 — note_types (user-defined Note types)
  *   8 — *tags multi-entry indexes on tasks, chores, events, stats, media (ADR 0014)
  *   9 — Sources App: sources (ADR 0016)
+ *  10 — _source_cache local-only table (ADR 0017)
  */
-const DB_VERSION = 9;
+const DB_VERSION = 10;
 
 export class LifelineDB extends Dexie {
   _outbox!: Table<OutboxEntry, number>;
