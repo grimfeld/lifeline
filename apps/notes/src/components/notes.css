@@ -70,3 +70,21 @@
   font-style: normal;
   font-size: 0.75em;
 }
+
+/* Reading mode (MarkdownView) */
+.prose-note { font-size: 0.9rem; line-height: 1.6; }
+.prose-note-compact { font-size: 0.8rem; line-height: 1.5; }
+.prose-note h1, .prose-note h2, .prose-note h3, .prose-note h4 { font-weight: 600; margin: 0.8em 0 0.3em; line-height: 1.25; }
+.prose-note h1 { font-size: 1.4em; } .prose-note h2 { font-size: 1.25em; } .prose-note h3 { font-size: 1.1em; }
+.prose-note p { margin: 0.35em 0; }
+.prose-note ul, .prose-note ol { padding-left: 1.4em; margin: 0.35em 0; }
+.prose-note ul { list-style: disc; } .prose-note ol { list-style: decimal; }
+.prose-note li > input[type="checkbox"] { margin-right: 0.4em; }
+.prose-note blockquote { border-left: 2px solid var(--border); padding-left: 0.75em; color: var(--muted-foreground); margin: 0.5em 0; }
+.prose-note hr { border-color: var(--border); margin: 0.75em 0; }
+.prose-note code { font-family: ui-monospace, monospace; background: color-mix(in oklab, var(--muted) 60%, transparent); border-radius: 0.25rem; padding: 0 0.25em; font-size: 0.9em; }
+.prose-note a { color: var(--primary); text-decoration: underline; }
+.prose-note a.wikilink { text-decoration: none; border-radius: 0.25rem; padding: 0 0.15rem; background: color-mix(in oklab, var(--primary) 10%, transparent); }
+.prose-note a.wikilink-unresolved { color: var(--muted-foreground); background: color-mix(in oklab, var(--muted-foreground) 12%, transparent); text-decoration: underline dotted; }
+.prose-note a.wikilink-app { color: var(--chart-magenta); background: color-mix(in oklab, var(--chart-magenta) 12%, transparent); }
+.prose-note table { border-collapse: collapse; font-size: 0.9em; } .prose-note th, .prose-note td { border: 1px solid var(--border); padding: 0.2em 0.5em; }

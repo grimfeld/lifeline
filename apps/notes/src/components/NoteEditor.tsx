@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, TagChips, TagInput, toast } from "@lifeline/ui";
 import { formatHuman, normalizeTag, normalizeTags, useTagVocabulary } from "@lifeline/core";
-import { Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Trash2 } from "lucide-react";
+import { BookOpen, Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Pencil, Trash2 } from "lucide-react";
 import type { Note } from "../domain/types";
 import { TEMPLATE_TYPE } from "../domain/noteTypes";
 import { noteType } from "../data/noteTypes";
@@ -10,6 +10,7 @@ import type { LinkRef, NoteIndex } from "../domain/index";
 import { extractProseTags, frontmatterTagWords, noteCoords, splitFrontmatter, withProperties, writeCoords, type Properties } from "../domain/markdown";
 import { createNote, deleteNote, renameNote, saveBody } from "../data/repo";
 import { MarkdownEditor } from "./MarkdownEditor";
+import { MarkdownView } from "./MarkdownView";
 import { PropertiesForm } from "./PropertiesForm";
 import { LinksPanel } from "./LinksPanel";
 
@@ -22,6 +23,7 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
   const navigate = useNavigate();
   const def = noteType(note.type);
   const [panelOpen, setPanelOpen] = useState(showPanel);
+  const [reading, setReading] = useState(false);
   const [title, setTitle] = useState(note.title);
   useEffect(() => setTitle(note.title), [note.title]);
 
@@ -49,6 +51,16 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
     timer.current = window.setTimeout(flush, 500);
   }, [flush]);
   useEffect(() => () => flush(), [flush]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        setReading((r) => !r);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const openRef = useCallback(
     (ref: LinkRef, name: string) => {
@@ -119,6 +131,9 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
             {def.label}
           </Badge>
           <div className="ml-auto flex items-center gap-1">
+            <Button size="icon" variant="ghost" className="size-8" onClick={() => setReading((r) => !r)} aria-label={reading ? "Edit" : "Reading mode"} title={reading ? "Edit (⌘E)" : "Reading mode (⌘E)"}>
+              {reading ? <Pencil /> : <BookOpen />}
+            </Button>
             <Button size="icon" variant="ghost" className="size-8" onClick={() => setPanelOpen((o) => !o)} aria-label="Toggle links panel">
               {panelOpen ? <PanelRightClose /> : <PanelRightOpen />}
             </Button>
@@ -168,6 +183,11 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
           </div>
         </div>
         <div className="flex min-h-0 flex-1 flex-col px-4">
+          {reading ? (
+            <div className="min-h-0 flex-1 overflow-y-auto py-3" onDoubleClick={() => setReading(false)}>
+              <MarkdownView body={withProperties(contentRef.current, propsRef.current)} index={index} noteDate={note.type === "daily" ? note.title : null} />
+            </div>
+          ) : (
           <MarkdownEditor
             value={content}
             onChange={(next) => {
@@ -179,6 +199,7 @@ export function NoteEditor({ note, index, autoFocus, showPanel = true }: { note:
             autoFocus={autoFocus}
             placeholder="Write… [[ links notes and app items, #tags, ```daylog for the day's facts"
           />
+          )}
         </div>
       </div>
       {panelOpen && (

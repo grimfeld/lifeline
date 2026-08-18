@@ -15,6 +15,7 @@ export interface CardOption {
 export type CardFieldDef =
   | { kind: "number"; label: string; default: number; min?: number; max?: number; step?: number }
   | { kind: "select"; label: string; default: string; options: CardOption[] }
+  | { kind: "text"; label: string; default: string; placeholder?: string }
   | {
       kind: "entity";
       label: string;
@@ -24,6 +25,8 @@ export type CardFieldDef =
       useOptions: () => CardOption[];
       /** Label used for the empty choice when not required. */
       anyLabel?: string;
+      /** Initial value ("" = none/any). */
+      default?: string;
     }
   | {
       /** A Tag filter set (any-of). Auto-added as `tags` on tagFilterable Cards (ADR 0014). */
@@ -36,7 +39,7 @@ export type CardSettingValue = string | number | string[];
 export type CardSettings = Record<string, CardSettingValue>;
 
 export function fieldDefault(f: CardFieldDef): CardSettingValue {
-  if (f.kind === "entity") return "";
+  if (f.kind === "entity") return f.default ?? "";
   if (f.kind === "tags") return [];
   return f.default;
 }
@@ -61,10 +64,12 @@ export function resolveSettings(schema: CardSettingsSchema | undefined, given?: 
       out[k] = typeof v === "number" && Number.isFinite(v) ? clamp(v, f.min, f.max) : f.default;
     } else if (f.kind === "select") {
       out[k] = typeof v === "string" && f.options.some((o) => o.value === v) ? v : f.default;
+    } else if (f.kind === "text") {
+      out[k] = typeof v === "string" ? v : f.default;
     } else if (f.kind === "tags") {
       out[k] = normalizeTags(Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
     } else {
-      out[k] = typeof v === "string" ? v : "";
+      out[k] = typeof v === "string" ? v : (f.default ?? "");
     }
   }
   return out;

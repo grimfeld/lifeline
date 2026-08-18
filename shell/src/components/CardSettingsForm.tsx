@@ -56,6 +56,8 @@ function Field({
           }}
         />
       );
+    case "text":
+      return <Input id={id} placeholder={field.placeholder} value={typeof value === "string" ? value : field.default} onChange={(e) => onChange(e.target.value)} />;
     case "select":
       return (
         <Select value={String(value ?? field.default)} onValueChange={onChange}>
