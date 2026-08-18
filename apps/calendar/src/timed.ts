@@ -1,6 +1,6 @@
 import type { TimedItem, TimedProvider } from "@lifeline/core";
 import { daysOf, describeTime } from "./domain/events";
-import { moveEvent, useEvents } from "./data/repo";
+import { addEvent, moveEvent, rescheduleEvent, useEvents } from "./data/repo";
 
 export const APP_ID = "calendar";
 
@@ -29,5 +29,11 @@ export const calendarTimed: TimedProvider = {
   },
   async move(itemId, to) {
     await moveEvent(itemId, to);
+  },
+  async reschedule(itemId, date, start, end) {
+    await rescheduleEvent(itemId, date, start, end);
+  },
+  async create({ title, date, start, end }) {
+    await addEvent({ title, date, start, end });
   },
 };

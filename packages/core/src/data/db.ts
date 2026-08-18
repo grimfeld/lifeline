@@ -23,11 +23,18 @@ export interface MetaEntry {
   value: string;
 }
 
-/** Core-owned: a Schedulable item pinned to a specific day, overriding its natural date. */
+/**
+ * Core-owned: a Schedulable item pinned to a specific day, overriding its
+ * natural date — and, with `start` set, a Time block on the Schedule surface
+ * (ADR 0015). The time is the surface's, never the App's.
+ */
 export interface Placement extends SyncedRecord {
   appId: string;
   itemId: string;
   date: DateStr;
+  /** "HH:MM"; absent/null = untimed (day pin only). */
+  start?: string | null;
+  end?: string | null;
 }
 
 export interface ScreenLayoutItem {

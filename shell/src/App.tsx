@@ -6,6 +6,7 @@ import { CommandPalette } from "./components/CommandPalette";
 import { CalendarPage } from "./surfaces/CalendarPage";
 import { WeekPage } from "./surfaces/WeekPage";
 import { MapPage } from "./surfaces/MapPage";
+import { SchedulePage } from "./surfaces/SchedulePage";
 import { UserScreenPage } from "./screens/UserScreenPage";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
 import { useWorkspaceMemory } from "./components/WorkspaceSwitcher";
@@ -38,6 +39,7 @@ function DashboardWorkspace() {
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/week" element={<WeekPage />} />
           <Route path="/map" element={<MapPage />} />
+          <Route path="/schedule" element={<SchedulePage />} />
           {screensOf().map((s) => {
             const Component = s.component;
             return <Route key={s.id} path={`/app/${s.path}`} element={<Component />} />;
