@@ -41,7 +41,8 @@ export const WEEKDAYS: { value: Weekday; label: string }[] = [
   { value: 0, label: "Sun" },
 ];
 
-type Kind = "one-time" | "weekly";
+type Kind = "one-time" | "weekly" | "monthly" | "yearly";
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Notes that link to this Task (edit mode only). Hidden when there are none. */
 function MentionedIn({ taskId }: { taskId: string }) {
@@ -85,6 +86,8 @@ export function TaskDialog({
   const [kind, setKind] = useState<Kind>("one-time");
   const [date, setDate] = useState<string>("");
   const [weekdays, setWeekdays] = useState<Weekday[]>([1]);
+  const [monthDays, setMonthDays] = useState<number[]>([1]);
+  const [yearDates, setYearDates] = useState<{ month: number; day: number }[]>([{ month: 1, day: 1 }]);
   const [tags, setTags] = useState<string[]>([]);
   const suggestions = useTagVocabulary().map((v) => v.tag);
 
@@ -92,15 +95,29 @@ export function TaskDialog({
     if (!open) return;
     setTitle(task?.title ?? "");
     setNotes(task?.notes ?? "");
-    setKind(task?.recurrence ? "weekly" : "one-time");
+    const r = task?.recurrence ?? null;
+    setKind(r ? r.kind : "one-time");
     setDate(task ? (task.date ?? "") : (defaultDate === undefined ? todayStr() : (defaultDate ?? "")));
-    setWeekdays(task?.recurrence?.weekdays ?? [1]);
+    setWeekdays(r?.kind === "weekly" ? r.weekdays : [1]);
+    setMonthDays(r?.kind === "monthly" ? r.days : [1]);
+    setYearDates(r?.kind === "yearly" ? r.dates : [{ month: 1, day: 1 }]);
     setTags(task?.tags ?? []);
   }, [open, task, defaultDate]);
 
   function buildRecurrence(): Recurrence | null {
-    if (kind !== "weekly") return null;
-    return { kind: "weekly", weekdays: [...weekdays].sort() };
+    if (kind === "weekly") return { kind: "weekly", weekdays: [...weekdays].sort() };
+    if (kind === "monthly") return { kind: "monthly", days: Array.from(new Set(monthDays)).sort((a, b) => a - b) };
+    if (kind === "yearly") {
+      const seen = new Set<string>();
+      const dates = yearDates.filter((d) => {
+        const k = `${d.month}-${d.day}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+      return { kind: "yearly", dates: dates.sort((a, b) => a.month - b.month || a.day - b.day) };
+    }
+    return null;
   }
 
   async function submit() {
@@ -110,6 +127,14 @@ export function TaskDialog({
     }
     if (kind === "weekly" && weekdays.length === 0) {
       toast.error("Pick at least one weekday");
+      return;
+    }
+    if (kind === "monthly" && monthDays.length === 0) {
+      toast.error("Pick at least one day of the month");
+      return;
+    }
+    if (kind === "yearly" && yearDates.length === 0) {
+      toast.error("Add at least one date");
       return;
     }
     const recurrence = buildRecurrence();
@@ -158,6 +183,8 @@ export function TaskDialog({
               <SelectContent>
                 <SelectItem value="one-time">One-time</SelectItem>
                 <SelectItem value="weekly">Weekly recurring</SelectItem>
+                <SelectItem value="monthly">Monthly recurring</SelectItem>
+                <SelectItem value="yearly">Yearly recurring</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -186,7 +213,7 @@ export function TaskDialog({
                 </p>
               )}
             </div>
-          ) : (
+          ) : kind === "weekly" ? (
             <div className="grid gap-2">
               <Label>Repeats on</Label>
               <div className="flex flex-wrap gap-1.5">
@@ -214,6 +241,67 @@ export function TaskDialog({
                   );
                 })}
               </div>
+            </div>
+          ) : kind === "monthly" ? (
+            <div className="grid gap-2">
+              <Label>Days of the month</Label>
+              <div className="grid grid-cols-7 gap-1">
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => {
+                  const on = monthDays.includes(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      aria-pressed={on}
+                      className={cn("rounded-md border py-1 text-sm tabular-nums transition-colors", on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent")}
+                      onClick={() => setMonthDays((cur) => (on ? cur.filter((x) => x !== d) : [...cur, d]))}
+                    >
+                      {d}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-muted-foreground text-xs">The 29th–31st fall on the last day of shorter months.</p>
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              <Label>Dates in the year</Label>
+              <div className="grid gap-1">
+                {yearDates.map((d, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <Select value={String(d.month)} onValueChange={(v) => setYearDates((cur) => cur.map((x, j) => (j === i ? { ...x, month: Number(v) } : x)))}>
+                      <SelectTrigger className="h-8 w-28">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MONTHS.map((m, k) => (
+                          <SelectItem key={m} value={String(k + 1)}>
+                            {m}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      className="h-8 w-20"
+                      value={d.day}
+                      onChange={(e) => {
+                        const n = Math.min(31, Math.max(1, Number(e.target.value) || 1));
+                        setYearDates((cur) => cur.map((x, j) => (j === i ? { ...x, day: n } : x)));
+                      }}
+                      aria-label="Day"
+                    />
+                    <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => setYearDates((cur) => cur.filter((_, j) => j !== i))} disabled={yearDates.length === 1} aria-label="Remove date">
+                      ×
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button type="button" size="sm" variant="outline" className="justify-self-start" onClick={() => setYearDates((cur) => [...cur, { month: 1, day: 1 }])}>
+                + Add a date
+              </Button>
             </div>
           )}
 
