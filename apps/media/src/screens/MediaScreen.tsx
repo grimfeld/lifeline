@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import { Button, Card, CardContent, cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { SlidersHorizontal } from "lucide-react";
+import { Quote as QuoteIcon, SlidersHorizontal } from "lucide-react";
+import { useNavigate } from "react-router";
+import { useQuotes } from "../data/quotes";
+import { QUOTES_HREF } from "../linkable";
 import { MEDIA_TYPES, mediaType, SLOTTED_TYPES, type MediaTypeId } from "../domain/mediaTypes";
 import type { MediaItem } from "../domain/types";
 import { freeSlots, nightstand } from "../domain/rules";
@@ -13,9 +16,9 @@ import { EditMediaDialog } from "../components/MediaRow";
 import { QuickAdd } from "../components/QuickAdd";
 import { Cover } from "../components/Cover";
 
-type Medium = MediaTypeId | "all";
+export type Medium = MediaTypeId | "all";
 
-function TypeChips({ value, onChange, counts }: { value: Medium; onChange: (v: Medium) => void; counts: Map<string, number> }) {
+export function TypeChips({ value, onChange, counts }: { value: Medium; onChange: (v: Medium) => void; counts: Map<string, number> }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {[{ id: "all" as const, label: "All" }, ...MEDIA_TYPES.map((t) => ({ id: t.id, label: t.plural }))].map((t) => (
@@ -103,6 +106,8 @@ function emptyMessage(shelf: Shelf, medium: Medium): string {
 
 export function MediaScreen() {
   const items = useMedia();
+  const quoteCount = useQuotes().length;
+  const navigate = useNavigate();
   const [addOpen, setAddOpen] = useState(false);
   const [editing, setEditing] = useState<MediaItem | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
@@ -139,9 +144,14 @@ export function MediaScreen() {
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">Media</h1>
-          <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-            <SlidersHorizontal /> Add with details…
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate(QUOTES_HREF)}>
+              <QuoteIcon /> Quotes ({quoteCount})
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
+              <SlidersHorizontal /> Add with details…
+            </Button>
+          </div>
         </div>
         <QuickAdd defaultType={type === "all" ? undefined : type} />
       </div>

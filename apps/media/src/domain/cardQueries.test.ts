@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MediaItem } from "./types";
-import { countByMedium, daylogFacts, finishedIn, inProgress, mediumBreakdown, pickIndex, surprisePool, titleWithMedium } from "./cardQueries";
+import { countByMedium, daylogFacts, finishedIn, inProgress, mediumBreakdown, pickIndex, surprisePool, titleWithMedium, defaultCaptureItem } from "./cardQueries";
 
 function item(p: Partial<MediaItem>): MediaItem {
   return {
@@ -125,5 +125,19 @@ describe("daylogFacts", () => {
       ["x", "Read"],
       ["y", "Started"],
     ]);
+  });
+});
+
+describe("defaultCaptureItem", () => {
+  it("prefers the latest-started in-progress item of the medium, else the most recently added", () => {
+    const items = [
+      item({ id: "a", type: "book", engagement: "IN_PROGRESS", startedOn: "2026-01-01", addedOn: "2025-01-01" }),
+      item({ id: "b", type: "book", engagement: "IN_PROGRESS", startedOn: "2026-02-01", addedOn: "2025-01-02" }),
+      item({ id: "c", type: "movie", engagement: "UNSTARTED", addedOn: "2026-03-01" }),
+      item({ id: "d", type: "movie", engagement: "UNSTARTED", addedOn: "2026-02-01" }),
+    ];
+    expect(defaultCaptureItem(items)?.id).toBe("b");
+    expect(defaultCaptureItem(items, "movie")?.id).toBe("c");
+    expect(defaultCaptureItem([], "book")).toBeUndefined();
   });
 });

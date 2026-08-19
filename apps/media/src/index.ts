@@ -13,10 +13,17 @@ import { shelfLabel } from "./domain/browse";
 import type { MediaTypeId } from "./domain/mediaTypes";
 import { titleWithMedium } from "./domain/cardQueries";
 import { mediaCommands } from "./commands";
-import { MEDIA } from "./domain/types";
+import { MEDIA, QUOTES } from "./domain/types";
 import { mediaLinkable } from "./linkable";
 import { mediaDaylog } from "./daylog";
 import { mediaTaggable } from "./taggable";
+import { QuotesScreen } from "./screens/QuotesScreen";
+import { RandomQuoteCard } from "./cards/RandomQuoteCard";
+import { QuoteOfDayCard } from "./cards/QuoteOfDayCard";
+import { QuotesOfCard } from "./cards/QuotesOfCard";
+import { RecentQuotesCard } from "./cards/RecentQuotesCard";
+import { QuoteCaptureCard } from "./cards/QuoteCaptureCard";
+import { quoteTagField, useMediaItemOptions, useQuotesOfTitle } from "./cards/quoteShared";
 
 /** Media App (Nightstand/readlist port, generalised to any medium). */
 export const mediaApp: AppManifest = {
@@ -24,8 +31,14 @@ export const mediaApp: AppManifest = {
   title: "Media",
   icon: BookMarked,
   color: "var(--chart-magenta)",
-  collections: [{ name: MEDIA, indexes: ["type", "slot", "externalKey", "*tags"] }],
-  screens: [{ id: "media.main", title: "Media", path: "media", icon: BookMarked, component: MediaScreen }],
+  collections: [
+    { name: MEDIA, indexes: ["type", "slot", "externalKey", "*tags"] },
+    { name: QUOTES, indexes: ["mediaId", "capturedOn", "*tags"] },
+  ],
+  screens: [
+    { id: "media.main", title: "Media", path: "media", icon: BookMarked, component: MediaScreen },
+    { id: "media.quotes", title: "Quotes", path: "media/quotes", component: QuotesScreen, hidden: true },
+  ],
   cards: [
     {
       id: "media.nightstand",
@@ -105,6 +118,59 @@ export const mediaApp: AppManifest = {
         sort: { kind: "select", label: "Order", default: "added", options: [{ value: "added", label: "Recently added" }, { value: "title", label: "Title" }] },
       },
       instanceTitle: (s) => shelfLabel("UNSTARTED", typeof s.medium === "string" && s.medium ? (s.medium as MediaTypeId) : "all"),
+    },
+    {
+      id: "media.quote-random",
+      title: "Random quote",
+      description: "One quote from your books, films and albums — reroll for another",
+      component: RandomQuoteCard,
+      defaultSize: { w: 4, h: 4 },
+      minSize: { w: 2, h: 3 },
+      settings: { medium: mediumField, tag: quoteTagField },
+      instanceTitle: (s) => titleWithMedium("Random quote", s.medium),
+    },
+    {
+      id: "media.quote-day",
+      title: "Quote of the day",
+      description: "The same quote all day, another one tomorrow",
+      component: QuoteOfDayCard,
+      defaultSize: { w: 4, h: 4 },
+      minSize: { w: 2, h: 3 },
+      settings: { medium: mediumField, tag: quoteTagField },
+      instanceTitle: (s) => titleWithMedium("Quote of the day", s.medium),
+    },
+    {
+      id: "media.quotes-of",
+      title: "Quotes of…",
+      description: "The quotes you kept from one book, film or album",
+      component: QuotesOfCard,
+      defaultSize: { w: 3, h: 6 },
+      minSize: { w: 2, h: 3 },
+      settings: {
+        item: { kind: "entity", label: "Item", required: true, useOptions: useMediaItemOptions },
+        count: { kind: "number", label: "Show at most", default: 5, min: 1, max: 50 },
+      },
+      instanceTitle: useQuotesOfTitle,
+    },
+    {
+      id: "media.quotes-recent",
+      title: "Recent quotes",
+      description: "The latest quotes you captured, with their works",
+      component: RecentQuotesCard,
+      defaultSize: { w: 3, h: 6 },
+      minSize: { w: 2, h: 3 },
+      settings: { count: { kind: "number", label: "Show at most", default: 5, min: 1, max: 50 }, medium: mediumField },
+      instanceTitle: (s) => titleWithMedium("Recent quotes", s.medium),
+    },
+    {
+      id: "media.quote-capture",
+      title: "Quote capture",
+      description: "Jot a passage into what you're reading right now",
+      component: QuoteCaptureCard,
+      defaultSize: { w: 3, h: 3 },
+      minSize: { w: 2, h: 2 },
+      settings: { medium: mediumField },
+      instanceTitle: (s) => titleWithMedium("Quote capture", s.medium),
     },
   ],
   commands: mediaCommands,

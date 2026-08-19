@@ -6,6 +6,39 @@ import { acquire, finish, freeSlots, isBuySignal, isStale, promote, slotAge, sta
 import { Cover } from "./Cover";
 import { ACQ_LABEL } from "./AddMediaDialog";
 import { MediaActionsMenu, useAct } from "./MediaActions";
+import { useState } from "react";
+import { Plus } from "lucide-react";
+import { useQuotes } from "../data/quotes";
+import { QuoteEditor } from "./QuoteEditor";
+import { newestFirst, QuoteBlock } from "./QuoteBlock";
+
+/** "Quotes · N" section of the detail dialog: add inline, list with hover actions. */
+function QuotesSection({ item }: { item: MediaItem }) {
+  const quotes = newestFirst(useQuotes().filter((q) => q.mediaId === item.id));
+  const [adding, setAdding] = useState(false);
+  return (
+    <section className="grid gap-2 border-t pt-3" aria-label="Quotes">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-medium">
+          Quotes · <span className="tabular-nums">{quotes.length}</span>
+        </h3>
+        {!adding && (
+          <Button size="sm" variant="ghost" onClick={() => setAdding(true)}>
+            <Plus /> Add quote
+          </Button>
+        )}
+      </div>
+      {adding && <QuoteEditor mediaId={item.id} onDone={() => setAdding(false)} onCancel={() => setAdding(false)} />}
+      {quotes.length > 0 && (
+        <div className="grid max-h-64 gap-2 overflow-y-auto pr-1">
+          {quotes.map((q) => (
+            <QuoteBlock key={q.id} quote={q} item={item} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -87,6 +120,8 @@ export function MediaDetailDialog({ item, all, onClose, onEdit }: { item: MediaI
             </div>
           </div>
         </div>
+
+        <QuotesSection item={item} />
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
           {slotted ? (

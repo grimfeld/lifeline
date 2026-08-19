@@ -184,3 +184,7 @@ _Avoid_: mode, full-screen app, view
 ### Folder
 Where a Note lives: a `/`-separated path (root when empty). A Folder exists because Notes are in it; titles are unique within a Folder. Daily notes live in `Journal/YYYY/MM`, templates in `Templates`.
 _Avoid_: directory, category (that's a Note type), tag
+
+### Quote
+A passage kept from a Media item — its text, an optional locator (page, chapter, timestamp), an optional comment and tags — owned by the Media App and impossible without its item. Inserted into notes as a blockquote ending in a wikilink to the item; also a wikilink target by its opening words. Captured on a day, it is a Daylog fact ("Quoted").
+_Avoid_: highlight (a quote may be a thought you had about it, not only the text), excerpt, clipping
