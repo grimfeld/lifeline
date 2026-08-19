@@ -49,3 +49,18 @@ export interface MediaItem extends SyncedRecord {
 }
 
 export const MEDIA = "media";
+
+/**
+ * A Quote (CONTEXT.md): a passage kept from a Media item. Owned by the Media
+ * App; tombstoned with its item. `locator` is free text (page, chapter, time).
+ */
+export interface Quote extends SyncedRecord {
+  mediaId: string;
+  text: string;
+  locator: string;
+  comment: string;
+  capturedOn: DateStr;
+  tags?: string[];
+}
+
+export const QUOTES = "media_quotes";

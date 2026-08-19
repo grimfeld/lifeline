@@ -35,6 +35,14 @@ export function surprisePool(items: MediaItem[], medium: MediumFilter = ""): Med
   );
 }
 
+/** The item a quote capture should default to: first in-progress of the medium (latest started), else the most recently added. */
+export function defaultCaptureItem(items: MediaItem[], medium: MediumFilter = ""): MediaItem | undefined {
+  const ofMedium = byMedium(items, medium);
+  const going = inProgress(ofMedium);
+  if (going[0]) return going[0];
+  return [...ofMedium].sort((a, b) => b.addedOn.localeCompare(a.addedOn))[0];
+}
+
 /** Counts per medium, in registry order, omitting zeros. */
 export function countByMedium(items: MediaItem[]): { type: MediaTypeId; count: number }[] {
   return MEDIA_TYPES.map((t) => ({ type: t.id, count: items.filter((m) => m.type === t.id).length })).filter((c) => c.count > 0);

@@ -235,6 +235,16 @@ export async function appendToDaily(text: string, now = new Date()): Promise<Not
   return next;
 }
 
+/** Append a raw markdown block (no timestamp) to today's daily note — used by other Apps through the bridge event. */
+export async function appendBlockToDaily(markdown: string, now = new Date()): Promise<Note> {
+  const note = await ensureDailyNote(todayStr(now));
+  const block = markdown.replace(/\s+$/, "");
+  const sep = note.body === "" ? "" : note.body.endsWith("\n\n") ? "" : note.body.endsWith("\n") ? "\n" : "\n\n";
+  const next = { ...note, body: `${note.body}${sep}${block}\n` };
+  await put<Note>(NOTES, next);
+  return next;
+}
+
 /**
  * Sync conflict (ADR 0010): the server copy is newer than an unsynced local
  * edit. Keep the local text as a sibling "<title> (conflict HH:MM)" note.

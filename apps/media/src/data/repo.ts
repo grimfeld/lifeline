@@ -2,6 +2,7 @@ import { db, normalizeTags, put, remove, newId, todayStr, useLiveQuery } from "@
 import { MEDIA, type Acquisition, type MediaItem } from "../domain/types";
 import type { MediaTypeId } from "../domain/mediaTypes";
 import type { Patch } from "../domain/rules";
+import { deleteQuotesOf } from "./quotes";
 
 function normalize(m: MediaItem): MediaItem {
   return {
@@ -76,6 +77,8 @@ export async function patchMedia(item: MediaItem, patch: Patch): Promise<void> {
 
 export async function deleteMedia(id: string): Promise<void> {
   await remove(MEDIA, id);
+  // A Quote cannot outlive its item (CONTEXT.md).
+  await deleteQuotesOf(id);
 }
 
 /** Existing item with the same external identity, if any ("do I already own this?"). */

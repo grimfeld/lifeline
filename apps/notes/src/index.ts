@@ -10,6 +10,9 @@ import { noteCommands, useNoteTypeCommands } from "./commands";
 import { onNoteConflict, useNoteIndex, useNotes } from "./data/repo";
 import { NOTES } from "./domain/types";
 import { NOTE_TYPES_COLLECTION } from "./data/noteTypes";
+import { registerNotesBridge } from "./data/bridge";
+
+registerNotesBridge();
 import { formatHuman, addDays, todayStr } from "@lifeline/core";
 import { excerpt, extractTags, noteCoords, splitFrontmatter } from "./domain/markdown";
 import { noteType } from "./data/noteTypes";

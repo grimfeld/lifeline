@@ -72,6 +72,9 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.2.8
+      react-router:
+        specifier: ^7.9.4
+        version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@types/react':
         specifier: ^19.1.0
