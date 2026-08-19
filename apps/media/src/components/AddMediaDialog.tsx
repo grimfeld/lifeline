@@ -21,8 +21,9 @@ import { normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { Search } from "lucide-react";
 import { MEDIA_TYPES, mediaType, type MediaTypeId } from "../domain/mediaTypes";
 import { ACQUISITION, type Acquisition } from "../domain/types";
-import { addMedia, findByExternalKey, useMedia } from "../data/repo";
-import { searchOpenLibrary, type WorkHit } from "../data/openlibrary";
+import { addMedia, findByExternalKey, useMedia, useMediaSettings } from "../data/repo";
+import type { WorkHit } from "../data/openlibrary";
+import { describeLookup, lookupFor, resolveHit } from "../data/lookup";
 import { Cover } from "./Cover";
 
 const ACQ_LABEL: Record<Acquisition, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
@@ -48,7 +49,9 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
   const [acq, setAcq] = useState<Acquisition>("WANTED");
   const [tags, setTags] = useState<string[]>([]);
   const tagSuggestions = useTagVocabulary().map((v) => v.tag);
+  const settings = useMediaSettings();
   const def = mediaType(type);
+  const search = lookupFor(type, settings);
 
   useEffect(() => {
     if (!open) return;
@@ -68,14 +71,14 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
 
   // Debounced lookup; last keystroke wins.
   useEffect(() => {
-    if (!def.lookup || manual || query.trim().length < 3) {
+    if (!search || manual || query.trim().length < 3) {
       setHits([]);
       return;
     }
     const ctl = new AbortController();
     const t = setTimeout(() => {
       setSearching(true);
-      searchOpenLibrary(query.trim(), ctl.signal)
+      search(query.trim(), ctl.signal)
         .then(setHits)
         .catch((err: Error) => {
           if (err.name !== "AbortError") toast.error("Lookup failed — add it manually");
@@ -86,14 +89,16 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
       clearTimeout(t);
       ctl.abort();
     };
-  }, [query, def.lookup, manual]);
+  }, [query, type, settings, manual]); // `search` derives from type + settings
 
-  function choose(h: WorkHit) {
-    const dup = findByExternalKey(items, h.externalKey);
+
+  async function choose(raw: WorkHit) {
+    const dup = findByExternalKey(items, raw.externalKey);
     if (dup) {
       toast.warning(`Already on your list — ${ACQ_LABEL[dup.acquisition]}, ${mediaType(dup.type).engagement[dup.engagement]}`);
       return;
     }
+    const h = await resolveHit(raw);
     setPick(h);
     setTitle(h.title);
     setCreator(h.creator);
@@ -101,7 +106,7 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
     setSize(h.size ? String(h.size) : "");
   }
 
-  const step2 = pick !== null || manual || !def.lookup;
+  const step2 = pick !== null || manual || !search;
 
   async function submit() {
     if (!title.trim()) return void toast.error("Title required");
@@ -154,7 +159,7 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
 
           {!step2 && (
             <div className="grid gap-2">
-              <Label htmlFor="media-search">Search Open Library</Label>
+              <Label htmlFor="media-search">Search {describeLookup(type, settings)}</Label>
               <div className="relative">
                 <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
                 <Input id="media-search" className="pl-8" value={query} autoFocus placeholder="Title or author (3+ letters)" onChange={(e) => setQuery(e.target.value)} />
@@ -164,7 +169,7 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
                 <ul className="grid max-h-64 gap-1 overflow-y-auto">
                   {hits.map((h) => (
                     <li key={h.externalKey}>
-                      <button type="button" className="hover:bg-accent flex w-full items-center gap-3 rounded-md border p-2 text-left" onClick={() => choose(h)}>
+                      <button type="button" className="hover:bg-accent flex w-full items-center gap-3 rounded-md border p-2 text-left" onClick={() => void choose(h)}>
                         <Cover item={{ title: h.title, coverUrl: h.coverUrl, type }} />
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium">{h.title}</span>

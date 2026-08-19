@@ -73,8 +73,9 @@ export interface UserScreen extends SyncedRecord {
  *   9 — Sources App: sources (ADR 0016)
  *  10 — _source_cache local-only table (ADR 0017)
  *   11 — media_quotes (Media App quotes)
+ *   12 — media_settings (Media App lookup provider keys)
  */
-const DB_VERSION = 11;
+const DB_VERSION = 12;
 
 export class LifelineDB extends Dexie {
   _outbox!: Table<OutboxEntry, number>;

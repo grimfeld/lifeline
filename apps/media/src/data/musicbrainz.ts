@@ -24,7 +24,16 @@ export async function searchMusicBrainz(q: string, signal?: AbortSignal): Promis
   const res = await fetch(url, { signal, headers: { "User-Agent": UA, Accept: "application/json" } });
   if (!res.ok) throw new Error(`MusicBrainz ${res.status}`);
   const data = (await res.json()) as { "release-groups": RG[] };
-  return data["release-groups"].map((r) => ({
+  // MusicBrainz ranks by text score, so tributes tie with the original; among equal titles prefer the earliest release.
+  const norm = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const wanted = norm(q);
+  const groups = [...data["release-groups"]].sort((a, b) => {
+    const ea = norm(a.title) === wanted ? 0 : 1;
+    const eb = norm(b.title) === wanted ? 0 : 1;
+    if (ea !== eb) return ea - eb;
+    return (a["first-release-date"] || "9999").localeCompare(b["first-release-date"] || "9999");
+  });
+  return groups.map((r) => ({
     externalKey: `musicbrainz:release-group/${r.id}`,
     title: r.title,
     creator: (r["artist-credit"] ?? []).map((a) => a.name).join(", "),

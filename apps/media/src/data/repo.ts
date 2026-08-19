@@ -1,5 +1,5 @@
 import { db, normalizeTags, put, remove, newId, todayStr, useLiveQuery } from "@lifeline/core";
-import { MEDIA, type Acquisition, type MediaItem } from "../domain/types";
+import { MEDIA, MEDIA_SETTINGS, MEDIA_SETTINGS_ID, type Acquisition, type MediaItem, type MediaSettings } from "../domain/types";
 import type { MediaTypeId } from "../domain/mediaTypes";
 import type { Patch } from "../domain/rules";
 import { deleteQuotesOf } from "./quotes";
@@ -111,4 +111,23 @@ export function parseQuickTitle(raw: string): { title: string; creator: string }
   const m = /^(.*?)\s+(?:—|–|-|by)\s+(.+)$/.exec(t);
   if (m && m[1].trim() && m[2].trim()) return { title: m[1].trim(), creator: m[2].trim() };
   return { title: t, creator: "" };
+}
+
+/* ---------- Lookup settings (one record, id "default") ---------- */
+
+const EMPTY_SETTINGS: MediaSettings = { id: MEDIA_SETTINGS_ID, tmdbKey: "", rawgKey: "", comicvineKey: "", googleBooksKey: "", updatedAt: "", deleted: 0 };
+
+function normalizeSettings(s: Partial<MediaSettings> | undefined): MediaSettings {
+  return { ...EMPTY_SETTINGS, ...(s ?? {}), tmdbKey: s?.tmdbKey ?? "", rawgKey: s?.rawgKey ?? "", comicvineKey: s?.comicvineKey ?? "", googleBooksKey: s?.googleBooksKey ?? "" };
+}
+
+/** The lookup settings record (empty keys until saved). */
+export function useMediaSettings(): MediaSettings {
+  return useLiveQuery(async () => normalizeSettings(await db().collection<MediaSettings>(MEDIA_SETTINGS).get(MEDIA_SETTINGS_ID)), [], EMPTY_SETTINGS);
+}
+
+export async function saveMediaSettings(patch: Partial<Omit<MediaSettings, "id" | "updatedAt" | "deleted">>): Promise<void> {
+  const cur = normalizeSettings(await db().collection<MediaSettings>(MEDIA_SETTINGS).get(MEDIA_SETTINGS_ID));
+  const trimmed = Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v]));
+  await put<MediaSettings>(MEDIA_SETTINGS, { ...cur, ...trimmed, id: MEDIA_SETTINGS_ID, deleted: 0 });
 }

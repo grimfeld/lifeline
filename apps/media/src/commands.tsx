@@ -1,11 +1,12 @@
 import type { CommandDef } from "@lifeline/core";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
-import { BookMarked, Plus, Quote as QuoteIcon, SlidersHorizontal } from "lucide-react";
+import { BookMarked, Plus, Quote as QuoteIcon, Settings2, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { AddMediaDialog } from "./components/AddMediaDialog";
 import { QuickAdd } from "./components/QuickAdd";
 import { QuoteEditor } from "./components/QuoteEditor";
+import { LookupSettingsDialog } from "./components/LookupSettingsDialog";
 import { defaultCaptureItem } from "./domain/cardQueries";
 import { useMedia } from "./data/repo";
 import { QUOTES_HREF } from "./linkable";
@@ -73,4 +74,5 @@ export const mediaCommands: CommandDef[] = [
   { id: "media.open", title: "Go to Media", keywords: ["media", "books", "reading", "nightstand", "shelf"], icon: BookMarked, run: ({ navigate }) => navigate("/app/media") },
   { id: "media.quote-add", title: "Add quote…", keywords: ["quote", "passage", "highlight", "book", "capture"], icon: QuoteIcon, dialog: AddQuoteCommandDialog },
   { id: "media.quotes", title: "Go to Quotes", keywords: ["quotes", "passages", "highlights", "media"], icon: QuoteIcon, run: ({ navigate }) => navigate(QUOTES_HREF) },
+  { id: "media.lookup-settings", title: "Media lookup settings…", keywords: ["media", "lookup", "metadata", "api", "key", "tmdb", "rawg", "comicvine", "enrich", "covers"], icon: Settings2, dialog: LookupSettingsDialog },
 ];

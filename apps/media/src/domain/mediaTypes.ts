@@ -21,8 +21,6 @@ export interface MediaTypeDef {
   finishVerb: string;
   /** Shelf label for not-yet-started items: "To read", "To watch"… (ADR 0006 amendment). */
   wantLabel: string;
-  /** Optional lookup source for quick add / details: Open Library (books/comics), MusicBrainz (music). */
-  lookup: "openlibrary" | "musicbrainz" | null;
 }
 
 const READ = { UNSTARTED: "Unread", IN_PROGRESS: "Reading", DONE: "Read", ABANDONED: "Abandoned" };
@@ -30,16 +28,16 @@ const WATCH = { UNSTARTED: "Unwatched", IN_PROGRESS: "Watching", DONE: "Watched"
 
 /**
  * The media type registry: adding a medium is adding an entry here (plus, if
- * it needs one, a lookup source). Everything else — shelves, dates, screens —
- * is shared. Only books and comics have Nightstand slots (ADR 0006 amendment).
+ * it needs one, a lookup provider in data/lookup.ts). Everything else —
+ * shelves, dates, screens — is shared. Only books and comics have Nightstand slots (ADR 0006 amendment).
  */
 export const MEDIA_TYPES: MediaTypeDef[] = [
-  { id: "book", label: "Book", plural: "Books", creatorLabel: "Author", sizeUnit: "pages", slotCount: 5, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", wantLabel: "To read", lookup: "openlibrary" },
-  { id: "comic", label: "Comic", plural: "Comics", creatorLabel: "Author / artist", sizeUnit: "issues", slotCount: 3, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", wantLabel: "To read", lookup: "openlibrary" },
-  { id: "movie", label: "Movie", plural: "Movies", creatorLabel: "Director", sizeUnit: "min", slotCount: 0, cover: "portrait", engagement: WATCH, startVerb: "Start", finishVerb: "Finish", wantLabel: "To watch", lookup: null },
-  { id: "series", label: "Series", plural: "Series", creatorLabel: "Creator", sizeUnit: "episodes", slotCount: 0, cover: "portrait", engagement: WATCH, startVerb: "Start", finishVerb: "Finish", wantLabel: "To watch", lookup: null },
-  { id: "music", label: "Album", plural: "Music", creatorLabel: "Artist", sizeUnit: "tracks", slotCount: 0, cover: "square", engagement: { UNSTARTED: "Unheard", IN_PROGRESS: "Listening", DONE: "Listened", ABANDONED: "Abandoned" }, startVerb: "Start", finishVerb: "Finish", wantLabel: "To listen", lookup: "musicbrainz" },
-  { id: "game", label: "Game", plural: "Games", creatorLabel: "Developer", sizeUnit: "hours", slotCount: 0, cover: "portrait", engagement: { UNSTARTED: "Unplayed", IN_PROGRESS: "Playing", DONE: "Played", ABANDONED: "Abandoned" }, startVerb: "Start", finishVerb: "Finish", wantLabel: "To play", lookup: null },
+  { id: "book", label: "Book", plural: "Books", creatorLabel: "Author", sizeUnit: "pages", slotCount: 5, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", wantLabel: "To read" },
+  { id: "comic", label: "Comic", plural: "Comics", creatorLabel: "Author / artist", sizeUnit: "issues", slotCount: 3, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", wantLabel: "To read" },
+  { id: "movie", label: "Movie", plural: "Movies", creatorLabel: "Director", sizeUnit: "min", slotCount: 0, cover: "portrait", engagement: WATCH, startVerb: "Start", finishVerb: "Finish", wantLabel: "To watch" },
+  { id: "series", label: "Series", plural: "Series", creatorLabel: "Creator", sizeUnit: "episodes", slotCount: 0, cover: "portrait", engagement: WATCH, startVerb: "Start", finishVerb: "Finish", wantLabel: "To watch" },
+  { id: "music", label: "Album", plural: "Music", creatorLabel: "Artist", sizeUnit: "tracks", slotCount: 0, cover: "square", engagement: { UNSTARTED: "Unheard", IN_PROGRESS: "Listening", DONE: "Listened", ABANDONED: "Abandoned" }, startVerb: "Start", finishVerb: "Finish", wantLabel: "To listen" },
+  { id: "game", label: "Game", plural: "Games", creatorLabel: "Developer", sizeUnit: "hours", slotCount: 0, cover: "portrait", engagement: { UNSTARTED: "Unplayed", IN_PROGRESS: "Playing", DONE: "Played", ABANDONED: "Abandoned" }, startVerb: "Start", finishVerb: "Finish", wantLabel: "To play" },
 ];
 
 export function mediaType(id: MediaTypeId): MediaTypeDef {
