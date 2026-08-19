@@ -13,7 +13,7 @@ import { shelfLabel } from "./domain/browse";
 import type { MediaTypeId } from "./domain/mediaTypes";
 import { titleWithMedium } from "./domain/cardQueries";
 import { mediaCommands } from "./commands";
-import { MEDIA, QUOTES } from "./domain/types";
+import { MEDIA, MEDIA_SETTINGS, QUOTES } from "./domain/types";
 import { mediaLinkable } from "./linkable";
 import { mediaDaylog } from "./daylog";
 import { mediaTaggable } from "./taggable";
@@ -34,6 +34,7 @@ export const mediaApp: AppManifest = {
   collections: [
     { name: MEDIA, indexes: ["type", "slot", "externalKey", "*tags"] },
     { name: QUOTES, indexes: ["mediaId", "capturedOn", "*tags"] },
+    { name: MEDIA_SETTINGS },
   ],
   screens: [
     { id: "media.main", title: "Media", path: "media", icon: BookMarked, component: MediaScreen },

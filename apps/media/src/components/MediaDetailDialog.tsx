@@ -1,5 +1,5 @@
 import { Badge, Button, cn, Dialog, DialogContent, DialogHeader, DialogTitle, TagChips } from "@lifeline/ui";
-import { AlertTriangle, ArrowDownToLine, Check, GraduationCap, MoreHorizontal, Play, ShoppingCart } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, Check, GraduationCap, MoreHorizontal, Play, RefreshCw, Search, ShoppingCart } from "lucide-react";
 import { mediaType } from "../domain/mediaTypes";
 import type { MediaItem } from "../domain/types";
 import { acquire, finish, freeSlots, isBuySignal, isStale, promote, slotAge, start } from "../domain/rules";
@@ -11,6 +11,47 @@ import { Plus } from "lucide-react";
 import { useQuotes } from "../data/quotes";
 import { QuoteEditor } from "./QuoteEditor";
 import { newestFirst, QuoteBlock } from "./QuoteBlock";
+import { toast } from "@lifeline/ui";
+import { useMediaSettings } from "../data/repo";
+import { lookupFor } from "../data/lookup";
+import { refreshFromSource } from "../data/enrichActions";
+import { FindMetadataDialog } from "./FindMetadataDialog";
+
+/** "Find metadata" / "Refresh from source" — the lookup row under the header (ADR 0006 amendment). */
+function LookupActions({ item }: { item: MediaItem }) {
+  const settings = useMediaSettings();
+  const [finding, setFinding] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const hasLookup = lookupFor(item.type, settings) !== null;
+  if (!hasLookup) return null;
+
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      const patch = await refreshFromSource(item, settings);
+      if (patch === null) toast.warning("No matching source entry found");
+      else toast.success(Object.keys(patch).length ? "Refreshed from source" : "Already up to date");
+    } catch (e) {
+      toast.error((e as Error).message || "Refresh failed");
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setFinding(true)}>
+        <Search className="size-3" /> Find metadata
+      </Button>
+      {item.externalKey && (
+        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={refreshing} onClick={() => void refresh()}>
+          <RefreshCw className={cn("size-3", refreshing && "animate-spin")} /> Refresh from source
+        </Button>
+      )}
+      {finding && <FindMetadataDialog item={item} onClose={() => setFinding(false)} />}
+    </div>
+  );
+}
 
 /** "Quotes · N" section of the detail dialog: add inline, list with hover actions. */
 function QuotesSection({ item }: { item: MediaItem }) {
@@ -109,6 +150,8 @@ export function MediaDetailDialog({ item, all, onClose, onEdit }: { item: MediaI
             </div>
 
             {(item.tags ?? []).length > 0 && <TagChips tags={item.tags} size="xs" />}
+
+            <LookupActions item={item} />
 
             {item.reason && <p className="text-muted-foreground text-sm italic">{item.reason}</p>}
 

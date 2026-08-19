@@ -6,6 +6,12 @@ export interface WorkHit {
   year: number;
   size: number;
   coverUrl: string;
+  /**
+   * Lazy "on pick" enrichment for providers whose search results lack a field
+   * (TMDB director/runtime, RAWG developers): one more request, merged into
+   * the hit before it is applied. Never called while listing candidates.
+   */
+  resolve?: () => Promise<Partial<WorkHit>>;
 }
 
 interface OLDoc {

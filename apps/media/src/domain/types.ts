@@ -64,3 +64,18 @@ export interface Quote extends SyncedRecord {
 }
 
 export const QUOTES = "media_quotes";
+
+/**
+ * Lookup provider keys (ADR 0006 amendment, metadata lookups). One synced
+ * record, id "default"; every key optional — a missing key just disables
+ * that provider (the UI says "key needed").
+ */
+export interface MediaSettings extends SyncedRecord {
+  tmdbKey: string;
+  rawgKey: string;
+  comicvineKey: string;
+  googleBooksKey: string;
+}
+
+export const MEDIA_SETTINGS = "media_settings";
+export const MEDIA_SETTINGS_ID = "default";

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button, Card, CardContent, cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { Quote as QuoteIcon, SlidersHorizontal } from "lucide-react";
+import { Quote as QuoteIcon, Settings2, SlidersHorizontal } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useQuotes } from "../data/quotes";
 import { QUOTES_HREF } from "../linkable";
@@ -14,6 +14,7 @@ import { MediaTile } from "../components/MediaTile";
 import { MediaDetailDialog } from "../components/MediaDetailDialog";
 import { EditMediaDialog } from "../components/MediaRow";
 import { QuickAdd } from "../components/QuickAdd";
+import { LookupSettingsDialog } from "../components/LookupSettingsDialog";
 import { Cover } from "../components/Cover";
 
 export type Medium = MediaTypeId | "all";
@@ -109,6 +110,7 @@ export function MediaScreen() {
   const quoteCount = useQuotes().length;
   const navigate = useNavigate();
   const [addOpen, setAddOpen] = useState(false);
+  const [lookupOpen, setLookupOpen] = useState(false);
   const [editing, setEditing] = useState<MediaItem | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [type, setType] = useState<Medium>("all");
@@ -150,6 +152,9 @@ export function MediaScreen() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
               <SlidersHorizontal /> Add with details…
+            </Button>
+            <Button variant="ghost" size="icon-sm" aria-label="Media lookup settings" title="Lookup settings" onClick={() => setLookupOpen(true)}>
+              <Settings2 />
             </Button>
           </div>
         </div>
@@ -193,6 +198,7 @@ export function MediaScreen() {
       <MediaDetailDialog item={viewing} all={items} onClose={() => setViewingId(null)} onEdit={setEditing} />
       <AddMediaDialog open={addOpen} onOpenChange={setAddOpen} defaultType={type === "all" ? "book" : type} />
       <EditMediaDialog item={editing} onClose={() => setEditing(null)} />
+      <LookupSettingsDialog open={lookupOpen} onOpenChange={setLookupOpen} />
     </div>
   );
 }

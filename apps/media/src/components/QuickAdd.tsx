@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
 import { MEDIA_TYPES, mediaType, type MediaTypeId } from "../domain/mediaTypes";
-import { deleteMedia, parseQuickTitle, quickAddMedia } from "../data/repo";
-import { lookupFor } from "../data/lookup";
+import { deleteMedia, parseQuickTitle, quickAddMedia, useMediaSettings } from "../data/repo";
+import { lookupFor, resolveHit } from "../data/lookup";
 import type { WorkHit } from "../data/openlibrary";
 import { Cover } from "./Cover";
 
@@ -40,6 +40,7 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
   const [highlight, setHighlight] = useState(-1);
   const [hidden, setHidden] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const settings = useMediaSettings();
   const def = mediaType(type);
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
 
   // Debounced, abortable, best-effort lookup. Failures are silent: the raw text still adds.
   useEffect(() => {
-    const search = lookupFor(type);
+    const search = lookupFor(type, settings);
     const q = text.trim();
     if (!search || q.length < 3) {
       setHits([]);
@@ -76,12 +77,14 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
       clearTimeout(t);
       ctl.abort();
     };
-  }, [text, type]);
+  }, [text, type, settings]);
 
   async function add(input: { title: string; creator?: string; hit?: WorkHit }) {
     const title = input.title.trim();
     if (!title) return;
-    const id = await quickAddMedia({ type, title, creator: input.creator, hit: input.hit });
+    // Lazy enrichment (TMDB director/runtime, RAWG developers) happens only on pick.
+    const hit = input.hit ? await resolveHit(input.hit) : undefined;
+    const id = await quickAddMedia({ type, title, creator: input.creator || hit?.creator, hit });
     writeLastType(type);
     toast.success(`Added to ${def.wantLabel}`, {
       description: title,
