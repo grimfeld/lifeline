@@ -18,3 +18,45 @@
   opacity: 0.15;
   border-radius: var(--radius);
 }
+
+/* Card resize handle (edit mode only): replace the faint 6px default glyph with
+   a bold, theme-aware corner grip. Larger hit area; lifts on hover/drag. */
+.react-grid-item > .react-resizable-handle {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background-image: none;
+  z-index: 2;
+}
+.react-grid-item > .react-resizable-handle::before {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--primary);
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.react-grid-item > .react-resizable-handle::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 14px;
+  height: 14px;
+  border-right: 3px solid var(--primary);
+  border-bottom: 3px solid var(--primary);
+  border-bottom-right-radius: 4px;
+  transition: border-color 120ms;
+}
+.react-grid-item > .react-resizable-handle:hover::before,
+.react-grid-item.resizing > .react-resizable-handle::before {
+  opacity: 1;
+}
+.react-grid-item > .react-resizable-handle:hover::after,
+.react-grid-item.resizing > .react-resizable-handle::after {
+  border-color: var(--primary-foreground);
+}
