@@ -33,18 +33,18 @@ export function daylogEntries(stats: Stat[], entries: Entry[], day: string): Day
     const base = { appId: APP_ID, itemId: stat.id, href, tags: stat.tags ?? [] };
     switch (stat.kind) {
       case "additive":
-        out.push({ ...base, key: `${APP_ID}/${e.id}`, kind: "Logged", title: `+${formatValue(e.value)} ${stat.unit} ${stat.name}`.replace(/\s+/g, " ").trim(), time: timeOf(e.ts) });
+        out.push({ ...base, key: `${APP_ID}/${e.id}`, kind: "Logged", title: `+${formatValue(e.value)} ${stat.unit} ${stat.title}`.replace(/\s+/g, " ").trim(), time: timeOf(e.ts) });
         break;
       case "measurement":
-        out.push({ ...base, key: `${APP_ID}/${e.id}`, kind: "Measured", title: `${stat.name} ${formatValue(e.value)} ${stat.unit}`.trim(), time: timeOf(e.ts) });
+        out.push({ ...base, key: `${APP_ID}/${e.id}`, kind: "Measured", title: `${stat.title} ${formatValue(e.value)} ${stat.unit}`.trim(), time: timeOf(e.ts) });
         break;
       case "boolean":
         if (markedStats.has(stat.id)) break;
         markedStats.add(stat.id);
-        out.push({ ...base, key: `${APP_ID}/${stat.id}/${day}`, kind: "Marked", title: stat.name, time: null });
+        out.push({ ...base, key: `${APP_ID}/${stat.id}/${day}`, kind: "Marked", title: stat.title, time: null });
         break;
       case "collection":
-        out.push({ ...base, key: `${APP_ID}/${e.id}`, kind: "Collected", title: `${e.item} · ${stat.name}`, time: timeOf(e.ts) });
+        out.push({ ...base, key: `${APP_ID}/${e.id}`, kind: "Collected", title: `${e.item} · ${stat.title}`, time: timeOf(e.ts) });
         break;
     }
   }

@@ -7,20 +7,36 @@ export * from "./contracts/schedulable";
 export * from "./contracts/surface";
 export * from "./contracts/timed";
 export * from "./contracts/agenda";
-export * from "./contracts/linkable";
 export * from "./contracts/daylog";
 export * from "./contracts/locatable";
 export * from "./contracts/taggable";
 export * from "./contracts/tagfilter";
 export * from "./tags";
 export * from "./geocode";
+export * from "./markdown";
+export * from "./templates";
+export * from "./folders";
+export * from "./documents/types";
+export * from "./documents/registry";
+export * from "./documents/store";
+export * from "./documents/links";
+export * from "./documents/href";
+export * from "./documents/text";
+export * from "./documents/views";
 export {
   db,
   openDb,
+  DOCUMENTS,
+  VIEWS,
+  DOCUMENT_TYPES,
   type SyncedRecord,
   type Placement,
   type UserScreen,
   type ScreenLayoutItem,
+  type ViewRecord,
+  type ViewLayout,
+  type ViewFilter,
+  type ViewFilterOp,
   type LifelineDB,
 } from "./data/db";
 export { put, remove, get, all } from "./data/repo";
@@ -30,3 +46,4 @@ export { useLiveQuery } from "dexie-react-hooks";
 export { liveQuery } from "dexie";
 export * from "./external";
 export * from "./fetch";
+export * from "./documents/ops";

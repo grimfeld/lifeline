@@ -54,12 +54,12 @@ export function QuickLogButton({ stat, entries, className }: { stat: Stat; entri
     if (stat.kind === "boolean") {
       if (todayMarked) return;
       await addEntry({ statId: stat.id, value: 1, ts: new Date().toISOString() });
-      toast.success(`${stat.name} marked today`);
+      toast.success(`${stat.title} marked today`);
       return;
     }
     if (stat.kind === "additive" && stat.defaultIncrement) {
       await addEntry({ statId: stat.id, value: stat.defaultIncrement, ts: new Date().toISOString() });
-      toast.success(`+${formatValue(stat.defaultIncrement)} ${stat.name}`);
+      toast.success(`+${formatValue(stat.defaultIncrement)} ${stat.title}`);
       return;
     }
     setOpen(true);
@@ -71,7 +71,7 @@ export function QuickLogButton({ stat, entries, className }: { stat: Stat; entri
         size="icon"
         variant="outline"
         className={cn("size-7 rounded-full", className)}
-        aria-label={stat.kind === "boolean" ? `Mark ${stat.name} today` : `Log ${stat.name}`}
+        aria-label={stat.kind === "boolean" ? `Mark ${stat.title} today` : `Log ${stat.title}`}
         aria-pressed={stat.kind === "boolean" ? todayMarked : undefined}
         disabled={todayMarked}
         onClick={(e) => {
@@ -93,7 +93,7 @@ export function StatCard({ stat, entries, onOpen }: { stat: Stat; entries: Entry
       <CardContent className="grid gap-2 px-4">
         <div className="flex items-center gap-2">
           <span className="size-2 rounded-full" style={{ background: s.color }} />
-          <span className="truncate text-sm font-medium">{stat.name}</span>
+          <span className="truncate text-sm font-medium">{stat.title}</span>
           {s.streak > 1 && (
             <span className="ml-1 flex items-center gap-0.5 text-xs" title="Current streak">
               <Flame className="size-3.5" style={{ color: s.color }} /> {s.streak}

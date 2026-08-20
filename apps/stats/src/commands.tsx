@@ -42,7 +42,7 @@ function LogEntryCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
               <li key={s.id}>
                 <Button variant="ghost" className="w-full justify-start" onClick={() => setPicked(s)}>
                   <span className="size-2 rounded-full" style={{ background: colorVar(s.color) }} />
-                  {s.name}
+                  {s.title}
                 </Button>
               </li>
             ))}

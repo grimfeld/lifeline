@@ -9,6 +9,9 @@ function item(p: Partial<MediaItem>): MediaItem {
     deleted: 0,
     type: "book",
     title: "t",
+    tags: [],
+    folder: "",
+    createdAt: "2026-01-01",
     creator: "",
     externalKey: "",
     coverUrl: "",
@@ -74,8 +77,8 @@ describe("countByMedium / breakdown", () => {
   it("counts in registry order, drops zeros, pluralises", () => {
     const items = [item({ type: "movie" }), item({ type: "book" }), item({ type: "book" })];
     expect(countByMedium(items)).toEqual([
-      { type: "book", count: 2 },
-      { type: "movie", count: 1 },
+      { medium: "book", count: 2 },
+      { medium: "movie", count: 1 },
     ]);
     expect(mediumBreakdown(items)).toBe("2 books · 1 movie");
     expect(mediumBreakdown([])).toBe("");

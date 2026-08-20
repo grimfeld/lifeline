@@ -111,7 +111,7 @@ export function AddMediaDialog({ open, onOpenChange, defaultType = "book" }: { o
   async function submit() {
     if (!title.trim()) return void toast.error("Title required");
     await addMedia({
-      type,
+      medium: type,
       title,
       creator,
       externalKey: pick?.externalKey ?? "",

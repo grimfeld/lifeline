@@ -2,6 +2,7 @@ import Dexie, { type Table } from "dexie";
 import type { CollectionDef } from "../manifest";
 import type { DateStr } from "../dates";
 import type { CardSettings } from "../cards";
+import type { Document } from "../documents/types";
 
 /** Every synced record carries these. `deleted` is a tombstone (0|1 — Dexie can't index booleans). */
 export interface SyncedRecord {
@@ -59,39 +60,93 @@ export interface UserScreen extends SyncedRecord {
 }
 
 /**
+ * Core-owned: a saved View inside a type's Base (CONTEXT.md "View"):
+ * filters, sort, visible fields and layout. Every Base has an implicit
+ * "All" View; these are the user's extra ones.
+ */
+/** A View's layout (CONTEXT.md "View"). Layouts display; they never bypass App ownership (ADR 0020). */
+export type ViewLayout = "table" | "list" | "cards" | "gallery" | "map" | "board" | "calendar";
+
+export interface ViewRecord extends SyncedRecord {
+  /** Document type id the Base belongs to. */
+  type: string;
+  name: string;
+  layout: ViewLayout;
+  /** gallery: field whose value is the image URL. */
+  imageField?: string;
+  /** map: geo field ([lat, lon]) placing each Document. */
+  geoField?: string;
+  /** board: select field the columns group by. */
+  groupField?: string;
+  /** calendar: date/datetime field placing each Document. */
+  dateField?: string;
+  /** Conjunction of filters. */
+  filters: ViewFilter[];
+  /** Text search across title/body. */
+  search?: string;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+  /** Visible field keys (undefined = type default). */
+  columns?: string[];
+  sort: number;
+}
+
+export type ViewFilterOp = "eq" | "neq" | "contains" | "empty" | "notEmpty" | "gt" | "lt" | "anyOf";
+
+export interface ViewFilter {
+  /** Field key, or "title" / "tags" / "folder" / "createdAt". */
+  field: string;
+  op: ViewFilterOp;
+  value?: string | number | boolean | string[];
+}
+
+/**
  * Bump whenever the set of stores or their indexes changes (Dexie needs a
  * monotonically increasing version to migrate an existing local database;
  * only the latest version has to be declared).
- *   1 — tracer bullet: chores, chore_completions, placements, screens
- *   2 — Tasks App: tasks, task_occurrences
- *   3 — Calendar App: events
- *   4 — Stats App: stats, stat_entries; Media App: media
- *   5 — Notes App: notes
- *   6 — notes.folder index (ADR 0013)
- *   7 — note_types (user-defined Note types)
- *   8 — *tags multi-entry indexes on tasks, chores, events, stats, media (ADR 0014)
- *   9 — Sources App: sources (ADR 0016)
- *  10 — _source_cache local-only table (ADR 0017)
- *   11 — media_quotes (Media App quotes)
- *   12 — media_settings (Media App lookup provider keys)
+ *   1–12 — per-App collections (pre-ADR 0018)
+ *   13 — one `documents` store (ADR 0018), `views`, `document_types`; per-App stores dropped
+ *   14 — media split: per-medium types; media's `[type+medium]` index dropped, `[type+slot]`/`[type+externalKey]` shared by the six types
  */
-const DB_VERSION = 12;
+const DB_VERSION = 14;
+
+/** Stores that existed before ADR 0018; deleted on upgrade so a client re-pulls into `documents`. */
+const LEGACY_STORES = [
+  "chores", "chore_completions", "tasks", "task_occurrences", "events", "stats", "stat_entries", "media", "media_quotes",
+  "media_settings", "notes", "note_types", "sources",
+];
+
+export const DOCUMENTS = "documents";
+export const VIEWS = "views";
+export const DOCUMENT_TYPES = "document_types";
+
+/** Indexes every Document row gets; type-declared ones are added as `[type+field]`. */
+const DOCUMENT_BASE_INDEXES = ["id", "updatedAt", "deleted", "type", "[type+deleted]", "title", "folder", "*tags", "createdAt"];
+
+export function compileDocumentIndex(ix: string): string {
+  return ix.startsWith("[") ? ix : `[type+${ix}]`;
+}
 
 export class LifelineDB extends Dexie {
   _outbox!: Table<OutboxEntry, number>;
   _meta!: Table<MetaEntry, string>;
+  documents!: Table<Document, string>;
 
-  constructor(collections: CollectionDef[]) {
+  constructor(documentIndexes: string[], localTables: CollectionDef[]) {
     super("lifeline");
-    const stores: Record<string, string> = {
+    const stores: Record<string, string | null> = {
       _outbox: "++seq, collection",
       _meta: "key",
       placements: "id, updatedAt, deleted, date, [appId+itemId]",
       screens: "id, updatedAt, deleted, sort",
+      [VIEWS]: "id, updatedAt, deleted, type, sort",
+      [DOCUMENT_TYPES]: "id, updatedAt, deleted, typeId",
+      [DOCUMENTS]: Array.from(new Set([...DOCUMENT_BASE_INDEXES, ...documentIndexes.map(compileDocumentIndex)])).join(", "),
     };
-    for (const c of collections) {
+    for (const c of localTables) {
       stores[c.name] = ["id, updatedAt, deleted", ...(c.indexes ?? [])].join(", ");
     }
+    for (const l of LEGACY_STORES) stores[l] = null;
     this.version(DB_VERSION).stores(stores);
   }
 
@@ -102,9 +157,9 @@ export class LifelineDB extends Dexie {
 
 let _db: LifelineDB | null = null;
 
-export function openDb(collections: CollectionDef[]): LifelineDB {
+export function openDb(documentIndexes: string[], localTables: CollectionDef[]): LifelineDB {
   if (_db) return _db;
-  _db = new LifelineDB(collections);
+  _db = new LifelineDB(documentIndexes, localTables);
   return _db;
 }
 
@@ -113,7 +168,7 @@ export function db(): LifelineDB {
   return _db;
 }
 
-/** Names of all synced collections (core + apps). Internal tables excluded. */
+/** Names of all synced collections (documents + core bookkeeping). Internal tables excluded. */
 export function syncedCollectionNames(): string[] {
   return db()
     .tables.map((t) => t.name)

@@ -21,7 +21,7 @@ export function rankByStreak(stats: Stat[], byStat: Map<string, Entry[]>, active
       return { stat, entries, current: currentStreak(days, now), longest: longestStreak(days) };
     })
     .filter((r) => !activeOnly || r.current > 0)
-    .sort((a, b) => b.current - a.current || a.stat.name.localeCompare(b.stat.name));
+    .sort((a, b) => b.current - a.current || a.stat.title.localeCompare(b.stat.title));
 }
 
 export interface CollectionRow {
@@ -51,7 +51,7 @@ export function sortCollections(stats: Stat[], byStat: Map<string, Entry[]>, sor
       const percent = universe > 0 ? Math.min(100, (count / universe) * 100) : null;
       return { stat, entries, count, universe, percent };
     });
-  const byName = (a: CollectionRow, b: CollectionRow) => a.stat.name.localeCompare(b.stat.name);
+  const byName = (a: CollectionRow, b: CollectionRow) => a.stat.title.localeCompare(b.stat.title);
   if (sort === "name") return rows.sort(byName);
   return rows.sort((a, b) => {
     if (a.percent === null && b.percent === null) return b.count - a.count || byName(a, b);

@@ -1,7 +1,9 @@
-import type { Note } from "./types";
-import { excerpt, splitFrontmatter } from "./markdown";
+import { excerpt, splitFrontmatter, type Document } from "@lifeline/core";
 
-/** Plain-ish version of a note body for snippets (no frontmatter/fences/markdown syntax; newlines kept as spaces). */
+type Note = Document;
+const bodyOf = (n: Document) => (typeof n.body === "string" ? n.body : "");
+
+/** Plain-ish version of a body for snippets (no frontmatter/fences/markdown syntax; newlines kept as spaces). */
 function plainText(body: string): string {
   return splitFrontmatter(body)
     .content.replace(/```[\s\S]*?```/g, " ")
@@ -45,14 +47,14 @@ export function searchNotes(notes: Note[], query: string, aliasesOf: (n: Note) =
   const hits: { note: Note; rank: number; snippet: string }[] = [];
   for (const note of notes) {
     if (note.title.toLowerCase().includes(q)) {
-      hits.push({ note, rank: 0, snippet: excerpt(note.body, 120) });
+      hits.push({ note, rank: 0, snippet: excerpt(bodyOf(note), 120) });
       continue;
     }
     if (aliasesOf(note).some((a) => a.toLowerCase().includes(q))) {
-      hits.push({ note, rank: 1, snippet: excerpt(note.body, 120) });
+      hits.push({ note, rank: 1, snippet: excerpt(bodyOf(note), 120) });
       continue;
     }
-    const text = plainText(note.body);
+    const text = plainText(bodyOf(note));
     const i = text.toLowerCase().indexOf(q);
     if (i >= 0) hits.push({ note, rank: 2, snippet: snippetAround(text, i, i + q.length) });
   }

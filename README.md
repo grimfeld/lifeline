@@ -1,12 +1,16 @@
 # Lifeline
 
-Personal dashboard/OS: one shell hosting sovereign Apps that interoperate through Contracts. See `CONTEXT.md` for the ubiquitous language and `docs/adr/` for the decisions.
+Personal dashboard/OS: one Document store (ADR 0018), hand-written Apps owning built-in Document types (ADR 0019), user-defined types, and Cards / Screens / Surfaces / App screens / Bases over them. See `CONTEXT.md` for the ubiquitous language and `docs/adr/` for the decisions.
 
 ## Layout
 
 ```
-packages/core    @lifeline/core — contracts, app registry, Dexie offline store + PocketBase sync engine
+packages/core    @lifeline/core — Document store (one `documents` table), type registry (built-in + user-defined), link index,
+                 frontmatter projection, Views/Bases query, contracts, app registry, Dexie offline store + PocketBase sync engine
+packages/editor  @lifeline/editor — CodeMirror markdown editor, reading view, generic DocumentEditor / FieldsForm / LinksPanel
 packages/ui      @lifeline/ui — shared shadcn/Tailwind component kit (unified look)
+apps/clipper     @lifeline/app-clipper — Clipper: `clipping` (pasted text + source; never fetches)
+apps/writer      @lifeline/app-writer — Writer's pad: `writing` + manual `writing_version` snapshots, side-by-side compare/restore
 apps/chores      @lifeline/app-chores — first App (ported from chore-scheduler)
 apps/tasks       @lifeline/app-tasks — Tasks App (absorbs week-planner + calendar's task half):
                  one-time + weekly/monthly/yearly recurring tasks, per-Occurrence complete/move, Unassigned pool
@@ -23,7 +27,8 @@ apps/sources     @lifeline/app-sources — Sources: things outside Lifeline show
                  Live value (one JSON-path/regex value polled on a period); Embed/Feed/Live value cards, Sources screen, full-page view
 apps/media       @lifeline/app-media — Media App: books, comics, movies, series, albums, games on one Shelf
                  (To read/watch/listen · In progress · Done · Dropped), one Gallery, quick add; Nightstand slots for books/comics
-shell            @lifeline/shell — Vite + React shell: sidebar, command palette (Ctrl+K),
+shell            @lifeline/shell — Vite + React shell: Dashboard + Vault workspaces, Bases (/base/:type, saved Views), generic
+                 View/Document/Count cards, sidebar, command palette (Ctrl+K),
                  user Screens (drag/resize card grids), calendar + week + schedule (hour-scaled time-blocking, ADR 0015) + map Surfaces; Tauri 2 desktop config
 pocketbase       Dockerfile + fly.toml (app: lifeline-pb) + pb_migrations
 scripts          dev.sh (backend + shell), import/ (legacy data → Lifeline, see docs/retire-legacy.md)

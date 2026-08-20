@@ -9,7 +9,7 @@ import type { MediaItem, Quote } from "../domain/types";
 import { Cover } from "../components/Cover";
 import { newestFirst, QuoteBlock } from "../components/QuoteBlock";
 import { TypeChips, type Medium } from "./MediaScreen";
-import { MEDIA_HREF } from "../linkable";
+import { MEDIA_HREF } from "../constants";
 
 type Sort = "newest" | "oldest" | "random";
 

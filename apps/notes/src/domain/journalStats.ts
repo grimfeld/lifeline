@@ -1,14 +1,14 @@
 /**
  * Pure journal statistics for the Notes cards: on-this-day lookups, writing
- * streaks, mood series and word counts. Everything derives from daily notes'
- * text (`type === "daily"`, `title === YYYY-MM-DD`); nothing is stored.
+ * streaks, mood series and word counts. Everything derives from daily notes
+ * (`type === "daily"`, `title === YYYY-MM-DD`); nothing is stored.
  */
 
-import { addDays, clampedDate, parts, type DateStr } from "@lifeline/core";
-import { splitFrontmatter } from "./markdown";
-import type { Note } from "./types";
+import { addDays, clampedDate, parts, splitFrontmatter, type DateStr } from "@lifeline/core";
 
-type DailyLike = Pick<Note, "type" | "title" | "body">;
+/** The slice of a Document these helpers read: `mood` is a flat field now, not frontmatter. */
+type DailyLike = { type: string; title: string; body?: string; mood?: unknown };
+const bodyOf = (n: DailyLike) => (typeof n.body === "string" ? n.body : "");
 
 const isDaily = (n: DailyLike) => n.type === "daily" && /^\d{4}-\d{2}-\d{2}$/.test(n.title);
 
@@ -80,7 +80,7 @@ export function isWritten(body: string): boolean {
 /** Set of dates (YYYY-MM-DD) with a written daily note. */
 export function writtenDays(notes: DailyLike[]): Set<string> {
   const out = new Set<string>();
-  for (const n of notes) if (isDaily(n) && isWritten(n.body)) out.add(n.title);
+  for (const n of notes) if (isDaily(n) && isWritten(bodyOf(n))) out.add(n.title);
   return out;
 }
 
@@ -126,9 +126,9 @@ export interface MoodPoint {
   mood: number | null;
 }
 
-/** Read the `mood` frontmatter property as 1..5 (null otherwise). */
-export function readMood(body: string): number | null {
-  const v = splitFrontmatter(body).properties.mood;
+/** Read a `mood` field value as 1..5 (null otherwise). */
+export function readMood(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
   return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
 }
@@ -138,7 +138,7 @@ export function moodSeries(notes: DailyLike[], days: number, today: DateStr): Mo
   const byDate = new Map<string, number>();
   for (const n of notes) {
     if (!isDaily(n)) continue;
-    const m = readMood(n.body);
+    const m = readMood(n.mood);
     if (m !== null) byDate.set(n.title, m);
   }
   return lastDays(today, days).map((date) => ({ date, mood: byDate.get(date) ?? null }));
@@ -168,7 +168,7 @@ export function wordCount(body: string): number {
 /** Sum of words in daily notes dated within [from, to]. */
 export function wordsBetween(notes: DailyLike[], from: DateStr, to: DateStr): number {
   let total = 0;
-  for (const n of notes) if (isDaily(n) && n.title >= from && n.title <= to) total += wordCount(n.body);
+  for (const n of notes) if (isDaily(n) && n.title >= from && n.title <= to) total += wordCount(bodyOf(n));
   return total;
 }
 

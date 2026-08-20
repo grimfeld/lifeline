@@ -13,10 +13,9 @@ import {
   Textarea,
   toast,
 } from "@lifeline/ui";
-import { normalizeTag, todayStr, useBacklinks, useTagVocabulary, type DateStr } from "@lifeline/core";
+import { displayTitle, docHref, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr } from "@lifeline/core";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
-import { APP_ID } from "../timed";
 
 export function EventDialog({
   open,
@@ -39,7 +38,8 @@ export function EventDialog({
   const [end, setEnd] = useState("10:00");
   const [tags, setTags] = useState<string[]>([]);
   const suggestions = useTagVocabulary().map((v) => v.tag);
-  const backlinks = useBacklinks({ appId: APP_ID, itemId: event?.id ?? "" });
+  const linkIndex = useLinkIndex();
+  const backlinks = event ? linkIndex.backlinksTo(event.id) : [];
 
   useEffect(() => {
     if (!open) return;
@@ -142,17 +142,21 @@ export function EventDialog({
                 Mentioned in {backlinks.length} {backlinks.length === 1 ? "note" : "notes"}
               </span>
               <ul className="grid gap-0.5">
-                {backlinks.map((b) => (
-                  <li key={`${b.appId}/${b.sourceId}`} className="truncate">
-                    {b.href ? (
-                      <a href={b.href} className="hover:text-foreground underline-offset-2 hover:underline">
-                        {b.title}
-                      </a>
-                    ) : (
-                      b.title
-                    )}
-                  </li>
-                ))}
+                {backlinks.map((b) => {
+                  const src = linkIndex.byId.get(b.sourceId);
+                  const title = src ? displayTitle(src) : b.sourceId;
+                  return (
+                    <li key={`${b.sourceId}/${b.field ?? ""}`} className="truncate">
+                      {src ? (
+                        <a href={docHref(src)} className="hover:text-foreground underline-offset-2 hover:underline">
+                          {title}
+                        </a>
+                      ) : (
+                        title
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}

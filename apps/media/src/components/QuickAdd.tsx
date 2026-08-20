@@ -84,7 +84,7 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
     if (!title) return;
     // Lazy enrichment (TMDB director/runtime, RAWG developers) happens only on pick.
     const hit = input.hit ? await resolveHit(input.hit) : undefined;
-    const id = await quickAddMedia({ type, title, creator: input.creator || hit?.creator, hit });
+    const id = await quickAddMedia({ medium: type, title, creator: input.creator || hit?.creator, hit });
     writeLastType(type);
     toast.success(`Added to ${def.wantLabel}`, {
       description: title,

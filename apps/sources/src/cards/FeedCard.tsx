@@ -11,8 +11,8 @@ import type { Feed } from "../domain/types";
 function useFeedOptions(): CardOption[] {
   return useFeeds()
     .slice()
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((f) => ({ value: f.id, label: `${f.name} · ${hostOf(f.url)}` }));
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .map((f) => ({ value: f.id, label: `${f.title} · ${hostOf(f.url)}` }));
 }
 
 export const feedCardSettings: CardSettingsSchema = {
@@ -21,7 +21,7 @@ export const feedCardSettings: CardSettingsSchema = {
 };
 
 export function useFeedCardTitle(settings: CardSettings): string {
-  return useFeeds().find((f) => f.id === settings.feed)?.name ?? "";
+  return useFeeds().find((f) => f.id === settings.feed)?.title ?? "";
 }
 
 /** Card (ADR 0017): latest items of one Feed; new since "seen up to" are marked; opening the card marks seen. */

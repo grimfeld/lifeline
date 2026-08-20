@@ -22,13 +22,13 @@ import {
 /** Options hook for the `stat` setting: every stat by name. */
 export function useSingleStatOptions(): CardOption[] {
   const stats = useStats();
-  return [...stats].sort((a, b) => a.name.localeCompare(b.name)).map((s) => ({ value: s.id, label: s.name }));
+  return [...stats].sort((a, b) => a.title.localeCompare(b.title)).map((s) => ({ value: s.id, label: s.title }));
 }
 
 /** Instance title (a hook, per CardDef.instanceTitle): the chosen stat's name. */
 export function useSingleStatTitle(settings: CardSettings): string {
   const stats = useStats();
-  return stats.find((s) => s.id === settings.stat)?.name ?? "";
+  return stats.find((s) => s.id === settings.stat)?.title ?? "";
 }
 
 export const PERIOD_OPTIONS: CardOption[] = [

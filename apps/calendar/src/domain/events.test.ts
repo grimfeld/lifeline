@@ -5,9 +5,12 @@ import type { Event } from "./types";
 function ev(p: Partial<Event>): Event {
   return {
     id: "e",
+    type: "event",
     updatedAt: "",
     deleted: 0,
     title: "t",
+    tags: [],
+    folder: "",
     notes: "",
     date: "2026-08-10",
     endDate: null,

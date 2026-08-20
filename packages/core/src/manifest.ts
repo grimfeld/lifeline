@@ -1,25 +1,18 @@
 import type * as React from "react";
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
-import type { BacklinkProvider, LinkableProvider } from "./contracts/linkable";
 import type { DaylogProvider } from "./contracts/daylog";
-import type { LocatableProvider } from "./contracts/locatable";
-import type { TaggableProvider } from "./contracts/taggable";
-import type { SyncedRecord } from "./data/db";
 import type { CardSettings, CardSettingsSchema } from "./cards";
+import type { Document, DocumentTypeDef } from "./documents/types";
 
-/** A synced Dexie/PocketBase collection an App owns. */
+/**
+ * A local-only Dexie table an App keeps beside the Document store (ADR 0017:
+ * a Source's fetch cache). Names start with "_"; never synced.
+ */
 export interface CollectionDef {
-  /** Names starting with "_" are local-only tables: never synced (e.g. a Source's fetch cache, ADR 0017). */
   name: string;
   /** Extra Dexie indexes beyond the standard "id, updatedAt, deleted". */
   indexes?: string[];
-  /**
-   * Called when a push finds the server copy newer than an unsynced local
-   * edit (LWW would drop the local edit). The App may preserve it — the
-   * Notes App saves a conflict copy (ADR 0010). Absent = plain LWW.
-   */
-  onConflict?: (local: SyncedRecord, server: SyncedRecord) => Promise<void>;
 }
 
 /**
@@ -40,6 +33,7 @@ export interface WorkspaceDef {
 }
 
 export const DASHBOARD_WORKSPACE = "dashboard";
+export const VAULT_WORKSPACE = "vault";
 
 export interface AppScreenDef {
   id: string;
@@ -112,7 +106,10 @@ export interface AppManifest {
   icon?: React.ComponentType<{ className?: string }>;
   /** Accent color CSS value used for the App's items on shared surfaces. */
   color?: string;
-  collections: CollectionDef[];
+  /** Built-in Document types this App owns (ADR 0019). Their `appId` is filled in by the registry. */
+  types: DocumentTypeDef[];
+  /** Local-only tables ("_"-prefixed), never synced. */
+  localTables?: CollectionDef[];
   screens: AppScreenDef[];
   cards: CardDef[];
   commands: CommandDef[];
@@ -122,14 +119,17 @@ export interface AppManifest {
    * registry order (ADR 0003), so it may use live queries.
    */
   useCommands?: () => CommandDef[];
+  /**
+   * ADR 0020: a Base board layout asks the App to change a guarded field
+   * ("user wants engagement → IN_PROGRESS"). The App runs its real operation
+   * and returns true, or declines with false. Absent = boards on this App's
+   * guarded fields are read-only.
+   */
+  requestFieldChange?: (doc: Document, field: string, value: string) => Promise<boolean>;
   /** Contract implementations. */
   schedulable?: SchedulableProvider;
   timed?: TimedProvider;
-  linkable?: LinkableProvider;
-  backlinks?: BacklinkProvider;
   daylog?: DaylogProvider;
   /** A workspace this App provides (ADR 0012). */
   workspace?: WorkspaceDef;
-  locatable?: LocatableProvider;
-  taggable?: TaggableProvider;
 }

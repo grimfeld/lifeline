@@ -35,12 +35,12 @@ export function DueTodayCard() {
             className="size-6 shrink-0 rounded-full"
             onClick={() => {
               void completeChore(chore.id, today);
-              toast.success(`${chore.name} done`);
+              toast.success(`${chore.title} done`);
             }}
           >
             <Check className="size-3" />
           </Button>
-          <span className="truncate text-sm">{chore.name}</span>
+          <span className="truncate text-sm">{chore.title}</span>
           {due.state === "overdue" && (
             <span className="text-destructive ml-auto shrink-0 text-xs">
               {due.daysLate}d late

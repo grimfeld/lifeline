@@ -1,4 +1,4 @@
-import type { DateStr, SyncedRecord, Weekday } from "@lifeline/core";
+import type { DateStr, Document, Weekday } from "@lifeline/core";
 
 /**
  * How a recurring Task repeats. Weekday values follow Core's convention
@@ -20,8 +20,8 @@ export type TaskStatus = "active" | "archived";
  * Occurrence overrides. Callers use the unified intents in data/repo.ts and
  * never branch on kind.
  */
-export interface Task extends SyncedRecord {
-  title: string;
+export interface Task extends Document {
+  type: typeof TASK;
   notes: string;
   status: TaskStatus;
   /** One-time only: the day it is assigned to. null = Unassigned pool. */
@@ -30,13 +30,8 @@ export interface Task extends SyncedRecord {
   completedOn: DateStr | null;
   /** Recurring only. null = one-time. */
   recurrence: Recurrence | null;
-  /** Recurring Tasks generate Occurrences from this day on. */
+  /** Recurring Tasks generate Occurrences from this day on (the Document's createdAt). */
   createdAt: DateStr;
-  /**
-   * Tags (ADR 0014), normalised via Core's normalizeTags. Absent on old
-   * records — always read with `?? []`. Occurrences inherit the definition's.
-   */
-  tags?: string[];
 }
 
 /**
@@ -45,7 +40,8 @@ export interface Task extends SyncedRecord {
  * — the natural day the recurrence rule produced — so completion is per
  * historical week and survives forever.
  */
-export interface OccurrenceOverride extends SyncedRecord {
+export interface OccurrenceOverride extends Document {
+  type: typeof TASK_OCCURRENCE;
   taskId: string;
   sourceDate: DateStr;
   /** Day the Occurrence was moved to; null = still on sourceDate. */
@@ -53,5 +49,9 @@ export interface OccurrenceOverride extends SyncedRecord {
   completedOn: DateStr | null;
 }
 
-export const TASKS = "tasks";
-export const OCCURRENCES = "task_occurrences";
+/** Document type ids (ADR 0019). */
+export const TASK = "task";
+export const TASK_OCCURRENCE = "task_occurrence";
+
+/** Where a Task opens: the App has no per-task route, so the main screen. */
+export const TASKS_HREF = "/app/tasks";

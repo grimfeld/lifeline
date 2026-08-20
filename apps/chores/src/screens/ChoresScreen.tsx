@@ -72,14 +72,14 @@ function ChoreRow({ row, onEdit }: { row: Row; onEdit: (c: Chore) => void }) {
             title="Mark done"
             onClick={() => {
               void completeChore(chore.id, todayStr());
-              toast.success(`${chore.name} done`);
+              toast.success(`${chore.title} done`);
             }}
           >
             <Check />
           </Button>
         )}
         <div className="min-w-0 flex-1">
-          <div className="truncate font-medium">{chore.name}</div>
+          <div className="truncate font-medium">{chore.title}</div>
           <div className="text-muted-foreground flex min-w-0 items-center gap-2 text-xs">
             <span className="truncate">{describeSchedule(chore.schedule)}</span>
             <TagChips tags={chore.tags} size="xs" />

@@ -39,7 +39,7 @@ export function SourcePage() {
           <ArrowLeft />
         </Button>
         {source.kind === "ical" && <span className="size-3 rounded-full" style={{ background: colorVar(source.color) }} />}
-        <h1 className="truncate text-lg font-semibold tracking-tight">{source.name}</h1>
+        <h1 className="truncate text-lg font-semibold tracking-tight">{source.title}</h1>
         <span className="text-muted-foreground truncate text-xs">{hostOf(source.url)}</span>
         <TagChips tags={source.tags} size="xs" />
         <div className="ml-auto flex items-center gap-1">

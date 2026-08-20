@@ -1,11 +1,10 @@
 import { DASHBOARD_WORKSPACE, type AppManifest, type AppScreenDef, type CardDef, type CommandDef, type WorkspaceDef } from "./manifest";
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
-import type { BacklinkProvider, LinkableProvider } from "./contracts/linkable";
 import type { DaylogProvider } from "./contracts/daylog";
-import type { LocatableProvider } from "./contracts/locatable";
-import type { TaggableProvider } from "./contracts/taggable";
 import { openDb, type LifelineDB, type ScreenLayoutItem } from "./data/db";
+import { registerBuiltinTypes } from "./documents/registry";
+import type { DocumentTypeDef } from "./documents/types";
 import { resolveSettings, settingsTags, TAGS_FIELD, TAGS_SETTING, type CardSettings, type CardSettingsSchema } from "./cards";
 
 let apps: AppManifest[] = [];
@@ -17,7 +16,17 @@ let apps: AppManifest[] = [];
  */
 export function initApps(manifests: AppManifest[]): LifelineDB {
   apps = manifests;
-  return openDb(manifests.flatMap((a) => a.collections));
+  const types = manifests.flatMap((a) => a.types.map((t) => ({ ...t, appId: a.id, builtIn: true })));
+  registerBuiltinTypes(types);
+  return openDb(
+    types.flatMap((t) => t.indexes ?? []),
+    manifests.flatMap((a) => a.localTables ?? []),
+  );
+}
+
+/** Built-in types of one App. */
+export function typesOfApp(appId: string): DocumentTypeDef[] {
+  return appById(appId)?.types.map((t) => ({ ...t, appId, builtIn: true })) ?? [];
 }
 
 export function registeredApps(): AppManifest[] {
@@ -54,24 +63,8 @@ export function timedProviders(): TimedProvider[] {
   return apps.flatMap((a) => (a.timed ? [a.timed] : []));
 }
 
-export function linkableProviders(): LinkableProvider[] {
-  return apps.flatMap((a) => (a.linkable ? [a.linkable] : []));
-}
-
-export function backlinkProviders(): BacklinkProvider[] {
-  return apps.flatMap((a) => (a.backlinks ? [a.backlinks] : []));
-}
-
 export function daylogProviders(): DaylogProvider[] {
   return apps.flatMap((a) => (a.daylog ? [a.daylog] : []));
-}
-
-export function locatableProviders(): LocatableProvider[] {
-  return apps.flatMap((a) => (a.locatable ? [a.locatable] : []));
-}
-
-export function taggableProviders(): TaggableProvider[] {
-  return apps.flatMap((a) => (a.taggable ? [a.taggable] : []));
 }
 
 /** Effective settings schema of a Card: its own plus the auto-added Tag filter when tagFilterable. */
@@ -79,11 +72,6 @@ export function cardSchema(def: Pick<CardDef, "settings" | "tagFilterable"> | un
   if (!def) return undefined;
   if (!def.tagFilterable) return def.settings;
   return { ...(def.settings ?? {}), [TAGS_SETTING]: TAGS_FIELD };
-}
-
-/** Collection definition by name (any App). */
-export function collectionDef(name: string) {
-  return apps.flatMap((a) => a.collections).find((c) => c.name === name);
 }
 
 /** Card definition by id, with its owning App id. */

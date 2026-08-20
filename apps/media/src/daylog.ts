@@ -4,7 +4,7 @@ import { useQuotes } from "./data/quotes";
 import { quoteName, quotesOn } from "./domain/quotes";
 import { daylogFacts } from "./domain/cardQueries";
 import { mediaType } from "./domain/mediaTypes";
-import { APP_ID, MEDIA_HREF, QUOTES_HREF } from "./linkable";
+import { APP_ID, MEDIA_HREF, QUOTES_HREF } from "./constants";
 
 /**
  * What happened in Media on a day (ADR 0009): one fact per item whose

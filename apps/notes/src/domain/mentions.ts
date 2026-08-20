@@ -1,7 +1,5 @@
-import type { DateStr } from "@lifeline/core";
-import type { NoteIndex } from "./index";
-import type { Note } from "./types";
-import { normalizeName } from "./markdown";
+import { normalizeName, type DateStr, type Document, type LinkIndex } from "@lifeline/core";
+import { DAILY } from "./types";
 
 export interface MentionRank {
   noteId: string;
@@ -16,15 +14,15 @@ export interface MentionRank {
  * to them — "people I've seen" when type = person. Ties break by recency,
  * then by title. Notes with zero recent mentions are omitted.
  */
-export function rankMentions(index: NoteIndex, notes: Note[], opts: { type?: string; since: DateStr }): MentionRank[] {
+export function rankMentions(index: LinkIndex, docs: Document[], opts: { type?: string; since: DateStr }): MentionRank[] {
   const out: MentionRank[] = [];
-  for (const n of notes) {
+  for (const n of docs) {
     if (opts.type && n.type !== opts.type) continue;
-    if (n.type === "daily") continue;
+    if (n.type === DAILY) continue;
     const days = new Set<DateStr>();
-    for (const b of index.backlinksTo({ kind: "note", noteId: n.id })) {
-      const src = index.byId.get(b.noteId);
-      if (!src || src.type !== "daily" || src.title < opts.since) continue;
+    for (const b of index.backlinksTo(n.id)) {
+      const src = index.byId.get(b.sourceId);
+      if (!src || src.type !== DAILY || src.title < opts.since) continue;
       days.add(src.title);
     }
     if (days.size === 0) continue;
@@ -42,13 +40,13 @@ export interface Mention {
 }
 
 /** Linked mentions of a note, newest first (daily notes by date, others by last edit). */
-export function mentionsOf(index: NoteIndex, noteId: string): Mention[] {
+export function mentionsOf(index: LinkIndex, noteId: string): Mention[] {
   return index
-    .backlinksTo({ kind: "note", noteId })
+    .backlinksTo(noteId)
     .map((b) => {
-      const src = index.byId.get(b.noteId);
-      const when = !src ? "" : src.type === "daily" ? src.title : src.updatedAt.slice(0, 10) || src.createdAt;
-      return { noteId: b.noteId, context: b.context, when };
+      const src = index.byId.get(b.sourceId);
+      const when = !src ? "" : src.type === DAILY ? src.title : src.updatedAt.slice(0, 10) || src.createdAt;
+      return { noteId: b.sourceId, context: b.context, when };
     })
     .sort((a, b) => b.when.localeCompare(a.when));
 }
@@ -63,7 +61,7 @@ export interface UnresolvedEntry {
  * Unresolved link names with the notes mentioning them. The index keys are
  * normalized; the display name is recovered from the first mention's link text.
  */
-export function unresolvedEntries(index: NoteIndex, sort: "count" | "name" = "count"): UnresolvedEntry[] {
+export function unresolvedEntries(index: LinkIndex, sort: "count" | "name" = "count"): UnresolvedEntry[] {
   const out: UnresolvedEntry[] = [];
   for (const [key, noteIds] of index.unresolved) {
     let name = key;

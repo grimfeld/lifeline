@@ -1,48 +1,58 @@
-import { appById, taggableProviders } from "../registry";
+import { useMemo } from "react";
+import { appById } from "../registry";
+import { useAllDocuments } from "../documents/store";
+import { useDocumentTypes } from "../documents/registry";
+import { displayTitle, singularOf } from "../documents/types";
+import { docHref } from "../documents/href";
+import { VAULT_APP_ID } from "./locatable";
 
 /**
- * The Taggable Contract (ADR 0014): an App reports its tagged entities so
- * Core can derive the tag vocabulary and any Surface can browse items by
- * Tag across Apps. Untagged entities are not reported.
+ * Tags across Documents (ADR 0014, ADR 0018): every Document carries Tags by
+ * construction, so there is no Taggable Contract any more — Core derives
+ * the vocabulary and the tagged list straight from the store.
  */
 export interface TaggedItem {
   appId: string;
   itemId: string;
+  type: string;
   title: string;
   subtitle?: string;
-  /** Normalised tags (see normalizeTags). Never empty. */
+  /** Never empty. */
   tags: string[];
-  /** Route to open the entity, e.g. "/app/tasks". */
   href?: string;
 }
 
-export interface TaggableProvider {
-  appId: string;
-  /** React hook. Every live entity carrying at least one tag. */
-  useTagged(): TaggedItem[];
-}
-
 export interface SurfaceTaggedItem extends TaggedItem {
-  /** `${appId}/${itemId}` — unique across Apps. */
   key: string;
   color?: string;
 }
 
-/** Read side: every provider's tagged entities, coloured per App. */
+/** Every tagged Document (internal types excluded), coloured per owning App. */
 export function useTaggedItems(): SurfaceTaggedItem[] {
-  const providers = taggableProviders();
-  // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
-  const per = providers.map((p) => ({
-    provider: p,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    items: p.useTagged(),
-  }));
-  const out: SurfaceTaggedItem[] = [];
-  for (const { provider, items } of per) {
-    const color = appById(provider.appId)?.color;
-    for (const it of items) out.push({ ...it, key: `${it.appId}/${it.itemId}`, color });
-  }
-  return out;
+  const docs = useAllDocuments();
+  const types = useDocumentTypes();
+  return useMemo(() => {
+    const defs = new Map(types.map((t) => [t.id, t]));
+    const out: SurfaceTaggedItem[] = [];
+    for (const d of docs) {
+      if (!d.tags || d.tags.length === 0) continue;
+      const def = defs.get(d.type);
+      if (def?.internal) continue;
+      const appId = def?.appId ?? VAULT_APP_ID;
+      out.push({
+        key: `${d.type}/${d.id}`,
+        appId,
+        itemId: d.id,
+        type: d.type,
+        title: displayTitle(d, def),
+        subtitle: def && singularOf(def),
+        tags: d.tags,
+        href: docHref(d, def),
+        color: def?.appId ? appById(def.appId)?.color : undefined,
+      });
+    }
+    return out;
+  }, [docs, types]);
 }
 
 export interface TagVocabularyEntry {
@@ -55,14 +65,16 @@ export interface TagVocabularyEntry {
 /** Derived vocabulary: every tag in use, most used first. A React hook. */
 export function useTagVocabulary(): TagVocabularyEntry[] {
   const items = useTaggedItems();
-  const map = new Map<string, TagVocabularyEntry>();
-  for (const it of items) {
-    for (const tag of it.tags) {
-      let e = map.get(tag);
-      if (!e) map.set(tag, (e = { tag, count: 0, byApp: {} }));
-      e.count++;
-      e.byApp[it.appId] = (e.byApp[it.appId] ?? 0) + 1;
+  return useMemo(() => {
+    const map = new Map<string, TagVocabularyEntry>();
+    for (const it of items) {
+      for (const tag of it.tags) {
+        let e = map.get(tag);
+        if (!e) map.set(tag, (e = { tag, count: 0, byApp: {} }));
+        e.count++;
+        e.byApp[it.appId] = (e.byApp[it.appId] ?? 0) + 1;
+      }
     }
-  }
-  return Array.from(map.values()).sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+    return Array.from(map.values()).sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+  }, [items]);
 }

@@ -11,9 +11,11 @@ import type { Chore, Schedule } from "./types";
 function chore(overrides: Partial<Chore> & { schedule: Schedule }): Chore {
   return {
     id: "c1",
+    type: "chore",
+    folder: "",
     updatedAt: "2026-07-01T00:00:00.000Z",
     deleted: 0 as const,
-    name: "Test chore",
+    title: "Test chore",
     tags: [],
     status: "active",
     anchorDate: null,

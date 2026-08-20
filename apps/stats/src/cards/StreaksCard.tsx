@@ -29,7 +29,7 @@ export function StreaksCard({ settings }: CardProps) {
       {rows.map((r, i) => (
         <li key={r.stat.id} className="flex items-center gap-2 rounded-md px-1 py-0.5">
           <span className="text-muted-foreground w-5 shrink-0 text-right text-xs tabular-nums">{i + 1}</span>
-          <span className="truncate text-sm">{r.stat.name}</span>
+          <span className="truncate text-sm">{r.stat.title}</span>
           <span
             className={cn(
               "ml-auto flex shrink-0 items-center gap-0.5 text-sm tabular-nums",

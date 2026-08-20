@@ -7,20 +7,16 @@ import { CompletedCard } from "./cards/CompletedCard";
 import { QuickAddCard } from "./cards/QuickAddCard";
 import { taskCommands } from "./commands";
 import { tasksSchedulable, APP_ID } from "./schedulable";
-import { tasksLinkable } from "./linkable";
 import { tasksDaylog } from "./daylog";
-import { tasksTaggable } from "./taggable";
-import { OCCURRENCES, TASKS } from "./domain/types";
+import { TASK, TASK_OCCURRENCE, TASKS_HREF } from "./domain/types";
+import { taskTypes } from "./types";
 
 export const tasksApp: AppManifest = {
   id: APP_ID,
   title: "Tasks",
   icon: ListTodo,
   color: "var(--chart-blue)",
-  collections: [
-    { name: TASKS, indexes: ["date", "status", "*tags"] },
-    { name: OCCURRENCES, indexes: ["taskId", "[taskId+sourceDate]", "movedTo"] },
-  ],
+  types: taskTypes,
   screens: [
     {
       id: "tasks.main",
@@ -85,10 +81,8 @@ export const tasksApp: AppManifest = {
   ],
   commands: taskCommands,
   schedulable: tasksSchedulable,
-  linkable: tasksLinkable,
   daylog: tasksDaylog,
-  taggable: tasksTaggable,
 };
 
-export { TASKS, OCCURRENCES };
+export { TASK, TASK_OCCURRENCE, TASKS_HREF };
 export type { Task, OccurrenceOverride, Recurrence } from "./domain/types";

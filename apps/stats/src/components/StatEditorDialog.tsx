@@ -23,7 +23,7 @@ export function StatEditorDialog({ open, onOpenChange, stat }: { open: boolean; 
 
   useEffect(() => {
     if (!open) return;
-    setName(stat?.name ?? "");
+    setName(stat?.title ?? "");
     setKind(stat?.kind ?? "additive");
     setUnit(stat?.unit ?? "");
     setColor(stat?.color ?? "blue");
@@ -35,7 +35,7 @@ export function StatEditorDialog({ open, onOpenChange, stat }: { open: boolean; 
   async function submit() {
     if (!name.trim()) return void toast.error("Name required");
     const input = {
-      name: name.trim(),
+      title: name.trim(),
       unit,
       color,
       defaultIncrement: Number(inc) || 0,

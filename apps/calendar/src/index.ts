@@ -1,4 +1,4 @@
-import type { AppManifest } from "@lifeline/core";
+import { formatHuman, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
 import { CalendarClock } from "lucide-react";
 import { EventsScreen } from "./screens/EventsScreen";
 import { UpcomingEventsCard } from "./cards/UpcomingEventsCard";
@@ -6,10 +6,29 @@ import { NextEventsCard, nextEventsSettings, nextEventsTitle } from "./cards/Nex
 import { CountdownCard, countdownSettings, useCountdownTitle } from "./cards/CountdownCard";
 import { calendarCommands } from "./commands";
 import { calendarTimed, APP_ID } from "./timed";
-import { calendarLinkable } from "./linkable";
 import { calendarDaylog } from "./daylog";
-import { calendarTaggable } from "./taggable";
-import { EVENTS } from "./domain/types";
+import { EVENT_TYPE, EVENTS, EVENTS_HREF, type Event } from "./domain/types";
+
+/** The `event` Document type (ADR 0019): structured, no body; time fields are guarded (moves go through the Timed hooks). */
+const eventType: DocumentTypeDef = {
+  id: EVENT_TYPE,
+  label: "Events",
+  icon: CalendarClock,
+  titleRule: "name",
+  body: "none",
+  fields: [
+    { key: "date", label: "Day", kind: "date", required: true, guarded: true, column: true },
+    { key: "endDate", label: "Last day", kind: "date", guarded: true },
+    { key: "start", label: "Start", kind: "text", guarded: true, column: true },
+    { key: "end", label: "End", kind: "text", guarded: true, column: true },
+    { key: "notes", label: "Notes", kind: "longtext" },
+  ],
+  indexes: ["date"],
+  linkable: { subtitle: (d) => formatHuman((d as Event).date) },
+  href: () => EVENTS_HREF,
+  order: 30,
+  builtIn: true,
+};
 
 /** The Calendar App owns Events (CONTEXT.md). The month/week grids are Core Surfaces. */
 export const calendarApp: AppManifest = {
@@ -17,7 +36,7 @@ export const calendarApp: AppManifest = {
   title: "Calendar",
   icon: CalendarClock,
   color: "var(--chart-violet)",
-  collections: [{ name: EVENTS, indexes: ["date", "*tags"] }],
+  types: [eventType],
   screens: [
     {
       id: "calendar.events",
@@ -61,10 +80,8 @@ export const calendarApp: AppManifest = {
   ],
   commands: calendarCommands,
   timed: calendarTimed,
-  linkable: calendarLinkable,
   daylog: calendarDaylog,
-  taggable: calendarTaggable,
 };
 
-export { EVENTS };
+export { EVENTS, EVENT_TYPE };
 export type { Event } from "./domain/types";

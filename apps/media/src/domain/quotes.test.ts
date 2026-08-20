@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { quoteMarkdown, quoteName, quoteOfTheDay, searchQuotes } from "./quotes";
 import type { MediaItem, Quote } from "./types";
 
-const q = (id: string, text: string, extra: Partial<Quote> = {}): Quote => ({ id, mediaId: "m1", text, locator: "", comment: "", capturedOn: "2026-08-19", updatedAt: "", deleted: 0, ...extra });
+const q = (id: string, text: string, extra: Partial<Quote> = {}): Quote => ({ id, type: "quote", title: "", tags: [], folder: "", createdAt: "2026-08-19", mediaId: "m1", text, locator: "", comment: "", capturedOn: "2026-08-19", updatedAt: "", deleted: 0, ...extra });
 const item = { id: "m1", title: "Dune", creator: "Frank Herbert" } as MediaItem;
 
 describe("quotes", () => {

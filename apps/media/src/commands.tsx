@@ -9,7 +9,7 @@ import { QuoteEditor } from "./components/QuoteEditor";
 import { LookupSettingsDialog } from "./components/LookupSettingsDialog";
 import { defaultCaptureItem } from "./domain/cardQueries";
 import { useMedia } from "./data/repo";
-import { QUOTES_HREF } from "./linkable";
+import { QUOTES_HREF } from "./constants";
 
 /** "Add quote…": pick an item (in-progress first), then the inline editor; closes on save. */
 function AddQuoteCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {

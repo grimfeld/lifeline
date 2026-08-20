@@ -1,40 +1,21 @@
 import {
-  db,
-  put,
-  remove,
-  newId,
+  documentsOf,
+  documentsWhere,
   normalizeTags,
+  putDocument,
+  removeDocument,
   todayStr,
-  useLiveQuery,
+  useDocuments,
   type DateStr,
 } from "@lifeline/core";
-import { CHORES, COMPLETIONS, type Chore, type Completion, type Schedule } from "../domain/types";
-
-/**
- * Read-side fallback for local records written before ADR 0014: a legacy
- * `category` becomes the single tag until the record is next saved.
- */
-function withTags(r: Chore): Chore {
-  if (r.tags) return r;
-  const { category, ...rest } = r;
-  return { ...rest, tags: category ? normalizeTags([category]) : [] };
-}
+import { CHORE, COMPLETION, type Chore, type Completion, type Schedule } from "../domain/types";
 
 export function useChores(): Chore[] {
-  return useLiveQuery(
-    async () =>
-      (await db().collection<Chore>(CHORES).where("deleted").equals(0).toArray()).map(withTags),
-    [],
-    [] as Chore[],
-  );
+  return useDocuments<Chore>(CHORE);
 }
 
 export function useCompletions(): Completion[] {
-  return useLiveQuery(
-    () => db().collection<Completion>(COMPLETIONS).where("deleted").equals(0).toArray(),
-    [],
-    [] as Completion[],
-  );
+  return useDocuments<Completion>(COMPLETION);
 }
 
 /** Latest completion date per chore — the input to all due computation. */
@@ -48,14 +29,14 @@ export function lastDoneMap(completions: Completion[]): Map<string, DateStr> {
 }
 
 export async function addChore(input: {
-  name: string;
+  title: string;
   tags: string[];
   schedule: Schedule;
   anchorDate: DateStr | null;
 }): Promise<void> {
-  await put<Chore>(CHORES, {
-    id: newId(),
-    name: input.name,
+  await putDocument<Chore>({
+    type: CHORE,
+    title: input.title,
     tags: normalizeTags(input.tags),
     status: "active",
     schedule: input.schedule,
@@ -65,13 +46,12 @@ export async function addChore(input: {
 }
 
 export async function updateChore(chore: Chore): Promise<void> {
-  const { category: _legacy, ...rest } = chore;
-  await put<Chore>(CHORES, { ...rest, tags: normalizeTags(chore.tags) });
+  await putDocument<Chore>({ ...chore, tags: normalizeTags(chore.tags) });
 }
 
 export async function completeChore(choreId: string, on: DateStr): Promise<void> {
-  await put<Completion>(COMPLETIONS, {
-    id: newId(),
+  await putDocument<Completion>({
+    type: COMPLETION,
     choreId,
     doneOn: on,
     recordedAt: new Date().toISOString(),
@@ -88,19 +68,19 @@ export async function setStatus(
     status === "active" && chore.status === "paused" && chore.schedule.kind === "interval"
       ? todayStr()
       : chore.anchorDate;
-  await put<Chore>(CHORES, { ...chore, status, anchorDate });
+  await putDocument<Chore>({ ...chore, status, anchorDate });
 }
 
-/** Hard delete — allowed only for chores with zero completions. */
+/** Tombstone — allowed only for chores with zero completions. */
 export async function deleteChore(choreId: string): Promise<void> {
-  await remove(CHORES, choreId);
+  await removeDocument(choreId);
 }
 
 export async function completionCount(choreId: string): Promise<number> {
-  const all = await db()
-    .collection<Completion>(COMPLETIONS)
-    .where("deleted")
-    .equals(0)
-    .toArray();
-  return all.filter((c) => c.choreId === choreId).length;
+  return (await documentsWhere<Completion>(COMPLETION, "choreId", choreId)).length;
+}
+
+/** Every live chore, outside React. */
+export async function allChores(): Promise<Chore[]> {
+  return documentsOf<Chore>(CHORE);
 }

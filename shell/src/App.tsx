@@ -8,6 +8,8 @@ import { WeekPage } from "./surfaces/WeekPage";
 import { MapPage } from "./surfaces/MapPage";
 import { SchedulePage } from "./surfaces/SchedulePage";
 import { UserScreenPage } from "./screens/UserScreenPage";
+import { BasePage } from "./bases/BasePage";
+import { BasesIndex } from "./bases/BasesIndex";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
 import { useWorkspaceMemory } from "./components/WorkspaceSwitcher";
 
@@ -24,7 +26,12 @@ function HomeRedirect() {
 
 function LegacyNoteRedirect() {
   const { id } = useParams<{ id: string }>();
-  return <Navigate to={`/notes/n/${id}`} replace />;
+  return <Navigate to={`/vault/d/${id}`} replace />;
+}
+
+function LegacyVaultRedirect() {
+  const { "*": rest } = useParams();
+  return <Navigate to={`/vault/${rest ?? ""}`.replace("/vault/n/", "/vault/d/")} replace />;
 }
 
 /** The built-in Dashboard workspace: user Screens, Surfaces and the Apps' dashboard screens. */
@@ -40,13 +47,16 @@ function DashboardWorkspace() {
           <Route path="/week" element={<WeekPage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/schedule" element={<SchedulePage />} />
+          <Route path="/base" element={<BasesIndex />} />
+          <Route path="/base/:type" element={<BasePage />} />
           {screensOf().map((s) => {
             const Component = s.component;
             return <Route key={s.id} path={`/app/${s.path}`} element={<Component />} />;
           })}
-          {/* Legacy Notes URLs from before the workspace split. */}
-          <Route path="/app/notes" element={<Navigate to="/notes" replace />} />
+          {/* Legacy Notes URLs (before the workspace split, and before the Vault rename). */}
+          <Route path="/app/notes" element={<Navigate to="/vault" replace />} />
           <Route path="/app/notes/:id" element={<LegacyNoteRedirect />} />
+          <Route path="/notes/*" element={<LegacyVaultRedirect />} />
           {/* Screens that moved to another workspace keep their old /app/ URLs as redirects. */}
           {workspaces()
             .flatMap((w) => screensOf(w.id))

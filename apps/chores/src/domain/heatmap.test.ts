@@ -4,7 +4,7 @@ import { completionsOn, completionsPerDay, heatmapDays } from "./heatmap";
 import type { Completion } from "./types";
 
 function done(choreId: string, doneOn: string, id = `${choreId}-${doneOn}`): Completion {
-  return { id, choreId, doneOn, recordedAt: `${doneOn}T10:00:00.000Z`, updatedAt: "", deleted: 0 };
+  return { id, type: "chore_completion", title: "", tags: [], folder: "", createdAt: doneOn, choreId, doneOn, recordedAt: `${doneOn}T10:00:00.000Z`, updatedAt: "", deleted: 0 };
 }
 
 describe("heatmapDays", () => {

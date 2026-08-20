@@ -17,7 +17,7 @@ import {
 } from "./journalStats";
 
 const TEMPLATE = "```daylog\n```\n\n### Histoire du jour\n\n---\n### Citation du jour\n\n---\n### Quoi de neuf ?\n\n---\n### Et maintenant ?\n\n";
-const daily = (title: string, body: string) => ({ type: "daily" as const, title, body });
+const daily = (title: string, body: string, mood?: string) => ({ type: "daily" as const, title, body, mood });
 
 describe("onThisDay", () => {
   it("finds the same day in earlier years, most recent first", () => {
@@ -47,7 +47,6 @@ describe("written days & streaks", () => {
   it("template-only notes are not written", () => {
     expect(writtenContent(TEMPLATE)).toBe("");
     expect(isWritten(TEMPLATE)).toBe(false);
-    expect(isWritten("---\nmood: 3\n---\n" + TEMPLATE)).toBe(false);
     expect(isWritten(TEMPLATE + "Went for a long walk by the river.")).toBe(true);
     expect(isWritten(TEMPLATE + "short")).toBe(false);
   });
@@ -77,13 +76,14 @@ describe("written days & streaks", () => {
 
 describe("mood", () => {
   it("reads 1..5 from frontmatter", () => {
-    expect(readMood("---\nmood: 4\n---\nhi")).toBe(4);
-    expect(readMood('---\nmood: "2"\n---\n')).toBe(2);
-    expect(readMood("---\nmood: 9\n---\n")).toBeNull();
+    expect(readMood(4)).toBe(4);
+    expect(readMood("2")).toBe(2);
+    expect(readMood(9)).toBeNull();
+    expect(readMood("")).toBeNull();
     expect(readMood("no frontmatter")).toBeNull();
   });
   it("moodSeries fills missing days with null", () => {
-    const s = moodSeries([daily("2026-08-18", "---\nmood: 5\n---\n"), daily("2026-08-16", "---\nmood: 2\n---\n")], 3, "2026-08-18");
+    const s = moodSeries([daily("2026-08-18", "", "5"), daily("2026-08-16", "", "2")], 3, "2026-08-18");
     expect(s).toEqual([
       { date: "2026-08-16", mood: 2 },
       { date: "2026-08-17", mood: null },

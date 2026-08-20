@@ -1,5 +1,5 @@
 import { addDays, formatHuman, todayStr, type CardProps } from "@lifeline/core";
-import { DaylogBlock } from "../components/DaylogBlock";
+import { DaylogBlock } from "@lifeline/editor";
 
 /** Card: the Daylog for a day (knob: day offset) — same rendering as the in-note block. */
 export function DaylogCard({ settings }: CardProps) {

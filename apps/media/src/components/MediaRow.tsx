@@ -28,30 +28,30 @@ import { patchMedia } from "../data/repo";
 import { Cover } from "./Cover";
 import { MediaActionsMenu, useAct } from "./MediaActions";
 import { ACQ_LABEL } from "./AddMediaDialog";
-import { normalizeTag, useBacklinks, useTagVocabulary } from "@lifeline/core";
-import { APP_ID } from "../linkable";
+import { displayTitle, docHref, normalizeTag, useLinkIndex, useTagVocabulary } from "@lifeline/core";
 
-/** Notes mentioning this item via [[wikilink]] (ADR 0009). Muted, read-only. */
+/** Documents mentioning this item via [[wikilink]] (ADR 0018). Muted, read-only. */
 function MentionedIn({ itemId }: { itemId: string }) {
-  const links = useBacklinks({ appId: APP_ID, itemId });
+  const index = useLinkIndex();
+  const links = index.backlinksTo(itemId);
   if (links.length === 0) return null;
   return (
     <div className="text-muted-foreground grid gap-1 text-xs">
       <span>
-        Mentioned in {links.length} {links.length === 1 ? "note" : "notes"}
+        Mentioned in {links.length} {links.length === 1 ? "document" : "documents"}
       </span>
       <ul className="grid gap-0.5">
-        {links.map((l) => (
-          <li key={`${l.appId}/${l.sourceId}`}>
-            {l.href ? (
-              <a href={l.href} className="underline-offset-2 hover:underline">
-                {l.title}
+        {links.map((l) => {
+          const src = index.byId.get(l.sourceId);
+          if (!src) return null;
+          return (
+            <li key={`${l.sourceId}/${l.field ?? ""}`}>
+              <a href={docHref(src)} className="underline-offset-2 hover:underline">
+                {displayTitle(src)}
               </a>
-            ) : (
-              l.title
-            )}
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

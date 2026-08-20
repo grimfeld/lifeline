@@ -1,4 +1,4 @@
-import type { AppManifest } from "@lifeline/core";
+import type { AppManifest, DocumentTypeDef } from "@lifeline/core";
 import { Globe } from "lucide-react";
 import { SourcesScreen } from "./screens/SourcesScreen";
 import { SourcePage } from "./screens/SourcePage";
@@ -6,11 +6,49 @@ import { EmbedCard, embedCardSettings, useEmbedCardTitle } from "./cards/EmbedCa
 import { FeedCard, feedCardSettings, useFeedCardTitle } from "./cards/FeedCard";
 import { LiveValueCard, liveValueCardSettings, useLiveValueCardTitle } from "./cards/LiveValueCard";
 import { sourcesCommands } from "./commands";
-import { sourcesLinkable } from "./linkable";
-import { sourcesTaggable } from "./taggable";
 import { sourcesTimed } from "./timed";
-import { APP_ID } from "./hrefs";
-import { SOURCES, SOURCE_CACHE } from "./domain/types";
+import { APP_ID, sourceHref } from "./hrefs";
+import { COLOR_SLOTS, SOURCE_CACHE, SOURCE_TYPE, SOURCES } from "./domain/types";
+import { hostOf } from "./domain/url";
+
+/** The `source` Document type (ADR 0019): one type for every kind; `kind` discriminates. */
+const sourceType: DocumentTypeDef = {
+  id: SOURCE_TYPE,
+  label: "Sources",
+  icon: Globe,
+  titleRule: "name",
+  body: "none",
+  fields: [
+    {
+      key: "kind",
+      label: "Kind",
+      kind: "select",
+      guarded: true,
+      column: true,
+      options: [
+        { value: "embed", label: "Embed" },
+        { value: "feed", label: "Feed" },
+        { value: "ical", label: "Calendar subscription" },
+        { value: "value", label: "Live value" },
+      ],
+    },
+    { key: "url", label: "URL", kind: "url", column: true },
+    { key: "refreshMinutes", label: "Refresh (min)", kind: "number" },
+    { key: "headers", label: "Headers", kind: "text", hidden: true },
+    { key: "seenUpTo", label: "Seen up to", kind: "datetime", guarded: true },
+    { key: "color", label: "Colour", kind: "select", options: COLOR_SLOTS.map((c) => ({ value: c, label: c })) },
+    { key: "mode", label: "Read mode", kind: "select", options: [{ value: "json", label: "JSON path" }, { value: "regex", label: "Regex" }] },
+    { key: "path", label: "Path / pattern", kind: "text" },
+    { key: "unit", label: "Unit", kind: "text" },
+    { key: "prefix", label: "Prefix", kind: "text" },
+    { key: "decimals", label: "Decimals", kind: "number" },
+  ],
+  indexes: ["kind"],
+  linkable: { subtitle: (d) => hostOf(String(d.url ?? "")) },
+  href: (d) => sourceHref(d.id),
+  order: 70,
+  builtIn: true,
+};
 
 /**
  * The Sources App (ADR 0016/0017) owns Sources — things outside Lifeline shown
@@ -22,11 +60,9 @@ export const sourcesApp: AppManifest = {
   title: "Sources",
   icon: Globe,
   color: "var(--chart-red)",
-  collections: [
-    { name: SOURCES, indexes: ["kind", "*tags"] },
-    // Local-only fetch cache (never synced — leading underscore).
-    { name: SOURCE_CACHE, indexes: ["fetchedAt"] },
-  ],
+  types: [sourceType],
+  // Local-only fetch cache (never synced — leading underscore, ADR 0017).
+  localTables: [{ name: SOURCE_CACHE, indexes: ["fetchedAt"] }],
   screens: [
     { id: "sources.main", title: "Sources", path: "sources", icon: Globe, component: SourcesScreen },
     { id: "sources.detail", title: "Source", path: "sources/:id", component: SourcePage, hidden: true },
@@ -64,10 +100,8 @@ export const sourcesApp: AppManifest = {
     },
   ],
   commands: sourcesCommands,
-  linkable: sourcesLinkable,
-  taggable: sourcesTaggable,
   timed: sourcesTimed,
 };
 
-export { SOURCES };
+export { SOURCES, SOURCE_TYPE };
 export type { Embed, Feed, CalendarSub, LiveValue, Source } from "./domain/types";
