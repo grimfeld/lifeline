@@ -57,6 +57,8 @@ export interface UserScreen extends SyncedRecord {
   sort: number;
   /** Screen-level Tag filter (ADR 0014): every tagFilterable Card on it obeys. */
   tags?: string[];
+  /** The one Screen the phone's bottom bar opens as Home (grill 2026-08-20). Synced; at most one Screen holds it. */
+  phoneHome?: boolean;
 }
 
 /**

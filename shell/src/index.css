@@ -11,6 +11,8 @@
 @source "../../apps/media/src";
 @source "../../apps/notes/src";
 @source "../../apps/sources/src";
+@source "../../apps/clipper/src";
+@source "../../apps/writer/src";
 @source "./";
 
 .react-grid-item.react-grid-placeholder {
@@ -59,4 +61,18 @@
 .react-grid-item > .react-resizable-handle:hover::after,
 .react-grid-item.resizing > .react-resizable-handle::after {
   border-color: var(--primary-foreground);
+}
+
+/* Touch ergonomics (grill 2026-08-20): on coarse pointers, give every button
+   in the content area an invisible enlarged hit box so 24px tick-offs are
+   thumb-workable. Purely a hit-area bump - no visual size change. */
+@media (pointer: coarse) {
+  main button {
+    position: relative;
+  }
+  main button::after {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
 }

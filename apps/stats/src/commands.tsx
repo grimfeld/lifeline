@@ -54,7 +54,7 @@ function LogEntryCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 }
 
 export const statCommands: CommandDef[] = [
-  { id: "stats.log", title: "Log entry", keywords: ["stat", "track", "mark", "notch"], icon: PenLine, dialog: LogEntryCommandDialog },
+  { id: "stats.log", title: "Log entry", keywords: ["stat", "track", "mark", "notch"], icon: PenLine, dialog: LogEntryCommandDialog, capture: true },
   { id: "stats.new", title: "New stat", keywords: ["stat", "track", "create"], icon: Plus, dialog: NewStatCommandDialog },
   { id: "stats.open", title: "Go to Stats", keywords: ["stats", "graphs"], icon: BarChart3, run: ({ navigate }) => navigate("/app/stats") },
 ];

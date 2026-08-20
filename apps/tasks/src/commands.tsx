@@ -76,6 +76,7 @@ export const taskCommands: CommandDef[] = [
     keywords: ["new", "create", "todo", "task"],
     icon: Plus,
     dialog: AddTaskCommandDialog,
+    capture: true,
   },
   {
     id: "tasks.complete",

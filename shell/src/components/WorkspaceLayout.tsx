@@ -11,7 +11,7 @@ export function WorkspaceLayout({ workspace }: { workspace: WorkspaceDef }) {
   const Sidebar = workspace.sidebar;
   return (
     <>
-      <aside className="bg-sidebar text-sidebar-foreground flex w-72 shrink-0 flex-col border-r">
+      <aside className="bg-sidebar text-sidebar-foreground flex w-72 shrink-0 flex-col border-r max-md:hidden">
         <WorkspaceSwitcher />
         <div className="flex min-h-0 flex-1 flex-col">
           <Sidebar />
