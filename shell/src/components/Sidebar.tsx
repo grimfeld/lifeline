@@ -110,10 +110,13 @@ export function Sidebar({ className }: { className?: string } = {}) {
           {screens.map((s) => (
             <ContextMenu key={s.id}>
               <ContextMenuTrigger asChild>
-                <NavLink to={`/screen/${s.id}`} className={navClass}>
-                  <LayoutDashboard className="size-4" /> {s.name}
-                  {s.phoneHome && <Smartphone className="text-muted-foreground ml-auto size-3.5" />}
-                </NavLink>
+                {/* Plain div absorbs Radix's asChild prop-merge — it stringifies NavLink's function className (same trick as the Bases rows). */}
+                <div>
+                  <NavLink to={`/screen/${s.id}`} className={navClass}>
+                    <LayoutDashboard className="size-4" /> {s.name}
+                    {s.phoneHome && <Smartphone className="text-muted-foreground ml-auto size-3.5" />}
+                  </NavLink>
+                </div>
               </ContextMenuTrigger>
               <ContextMenuContent>
                 <ContextMenuItem onClick={() => void setPhoneHome(s.id)}>
