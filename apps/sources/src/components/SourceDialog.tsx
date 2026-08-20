@@ -87,7 +87,7 @@ export function SourceDialog({
 
   useEffect(() => {
     if (!open) return;
-    setName(source?.name ?? "");
+    setName(source?.title ?? "");
     setUrl(source?.url ?? "");
     setRefresh(source?.refreshMinutes ? String(source.refreshMinutes) : "");
     setTags(source?.tags ?? []);

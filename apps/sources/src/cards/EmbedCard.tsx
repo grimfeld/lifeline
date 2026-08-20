@@ -11,8 +11,8 @@ import { sourceHref } from "../hrefs";
 function useEmbedOptions(): CardOption[] {
   return useEmbeds()
     .slice()
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((e) => ({ value: e.id, label: `${e.name} · ${hostOf(e.url)}` }));
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .map((e) => ({ value: e.id, label: `${e.title} · ${hostOf(e.url)}` }));
 }
 
 const SCALES: CardOption[] = [
@@ -28,7 +28,7 @@ export const embedCardSettings: CardSettingsSchema = {
 
 /** Instance title (a hook, per CardDef.instanceTitle): the chosen embed's name. */
 export function useEmbedCardTitle(settings: CardSettings): string {
-  return useEmbeds().find((e) => e.id === settings.embed)?.name ?? "";
+  return useEmbeds().find((e) => e.id === settings.embed)?.title ?? "";
 }
 
 /** Card (ADR 0016): one Embed in a frame, with "Open ↗" and a full-page view. Single-entity: not tagFilterable. */

@@ -32,7 +32,7 @@ export function EmbedFrame({ embed, scale = 1, className }: { embed: Embed; scal
       )}
       <iframe
         key={`${embed.url}#${gen}`}
-        title={embed.name}
+        title={embed.title}
         src={embed.url}
         onLoad={() => setLoaded(true)}
         allow="fullscreen; clipboard-read; clipboard-write"

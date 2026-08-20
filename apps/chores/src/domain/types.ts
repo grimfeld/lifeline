@@ -1,4 +1,4 @@
-import type { DateStr, Weekday, SyncedRecord } from "@lifeline/core";
+import type { DateStr, Weekday, Document } from "@lifeline/core";
 
 /**
  * The rule that determines when a chore becomes due. See CONTEXT.md.
@@ -13,12 +13,9 @@ export type Schedule =
 
 export type ChoreStatus = "active" | "paused" | "archived";
 
-export interface Chore extends SyncedRecord {
-  name: string;
-  /** Normalised tags (ADR 0014); may be undefined on old records — read with `?? []`. */
-  tags?: string[];
-  /** @deprecated Folded into `tags` (ADR 0014). Only present on unmigrated local records; read via the repo fallback. */
-  category?: string | null;
+/** A Chore is a Document of type `chore` (ADR 0018); its name is the Document title. */
+export interface Chore extends Document {
+  type: typeof CHORE;
   status: ChoreStatus;
   schedule: Schedule;
   /**
@@ -28,14 +25,16 @@ export interface Chore extends SyncedRecord {
    * otherwise due = last completion + interval.
    */
   anchorDate: DateStr | null;
-  createdAt: DateStr;
 }
 
-export interface Completion extends SyncedRecord {
+/** Internal Document type: one completion of a Chore on a day. */
+export interface Completion extends Document {
+  type: typeof COMPLETION;
   choreId: string;
   doneOn: DateStr;
   recordedAt: string; // ISO timestamp
 }
 
-export const CHORES = "chores";
-export const COMPLETIONS = "chore_completions";
+/** Document type ids (ADR 0019). */
+export const CHORE = "chore";
+export const COMPLETION = "chore_completion";

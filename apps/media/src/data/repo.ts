@@ -1,10 +1,15 @@
-import { db, normalizeTags, put, remove, newId, todayStr, useLiveQuery } from "@lifeline/core";
-import { MEDIA, MEDIA_SETTINGS, MEDIA_SETTINGS_ID, type Acquisition, type MediaItem, type MediaSettings } from "../domain/types";
+import { useMemo } from "react";
+import { documentsOf, getDocument, normalizeTags, putDocument, removeDocument, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
+import { MEDIA_SETTINGS, MEDIA_SETTINGS_ID, MEDIA_TYPE_IDS, type Acquisition, type MediaItem, type MediaSettings } from "../domain/types";
 import type { MediaTypeId } from "../domain/mediaTypes";
 import type { Patch } from "../domain/rules";
 import { deleteQuotesOf } from "./quotes";
 
-function normalize(m: MediaItem): MediaItem {
+/**
+ * PocketBase stores absent text/number fields as ""/0 and hands them back
+ * that way, so every read re-establishes the domain's defaults.
+ */
+export function normalize(m: MediaItem): MediaItem {
   return {
     ...m,
     creator: m.creator ?? "",
@@ -23,16 +28,23 @@ function normalize(m: MediaItem): MediaItem {
   };
 }
 
+/** Every media item, across all six medium types (one query per type, flattened). */
 export function useMedia(): MediaItem[] {
-  return useLiveQuery(
-    async () => (await db().collection<MediaItem>(MEDIA).where("deleted").equals(0).toArray()).map(normalize),
+  const rows = useLiveQuery(
+    async () => (await Promise.all(MEDIA_TYPE_IDS.map((t) => documentsOf<MediaItem>(t)))).flat(),
     [],
     [] as MediaItem[],
   );
+  return useMemo(() => rows.map(normalize), [rows]);
+}
+
+export function useMediaItem(id: string | undefined): MediaItem | undefined {
+  const row = useDocument<MediaItem>(id);
+  return useMemo(() => (row ? normalize(row) : undefined), [row]);
 }
 
 export async function addMedia(input: {
-  type: MediaTypeId;
+  medium: MediaTypeId;
   title: string;
   creator?: string;
   externalKey?: string;
@@ -43,11 +55,9 @@ export async function addMedia(input: {
   reason: string;
   tags?: string[];
 }): Promise<string> {
-  const id = newId();
   const today = todayStr();
-  await put<MediaItem>(MEDIA, {
-    id,
-    type: input.type,
+  const row = await putDocument<MediaItem>({
+    type: input.medium,
     title: input.title.trim(),
     creator: input.creator?.trim() ?? "",
     externalKey: input.externalKey ?? "",
@@ -66,17 +76,17 @@ export async function addMedia(input: {
     finishedOn: "",
     tags: normalizeTags(input.tags),
   });
-  return id;
+  return row.id;
 }
 
 /** Apply a transition patch (or an edit) to an item. */
 export async function patchMedia(item: MediaItem, patch: Patch): Promise<void> {
   const next = { ...item, ...patch };
-  await put<MediaItem>(MEDIA, { ...next, tags: normalizeTags(next.tags) });
+  await putDocument<MediaItem>({ ...next, tags: normalizeTags(next.tags) });
 }
 
 export async function deleteMedia(id: string): Promise<void> {
-  await remove(MEDIA, id);
+  await removeDocument(id);
   // A Quote cannot outlive its item (CONTEXT.md).
   await deleteQuotesOf(id);
 }
@@ -91,9 +101,9 @@ export function findByExternalKey(items: MediaItem[], key: string): MediaItem | 
  * onto the To… shelf, nothing else asked. Optional lookup hit attaches
  * cover/year/external key. Returns the id (for Undo).
  */
-export async function quickAddMedia(input: { type: MediaTypeId; title: string; creator?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; creator: string } }): Promise<string> {
+export async function quickAddMedia(input: { medium: MediaTypeId; title: string; creator?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; creator: string } }): Promise<string> {
   return addMedia({
-    type: input.type,
+    medium: input.medium,
     title: input.title,
     creator: input.creator || input.hit?.creator || "",
     externalKey: input.hit?.externalKey ?? "",
@@ -113,9 +123,12 @@ export function parseQuickTitle(raw: string): { title: string; creator: string }
   return { title: t, creator: "" };
 }
 
-/* ---------- Lookup settings (one record, id "default") ---------- */
+/* ---------- Lookup settings (one internal Document, id "default") ---------- */
 
-const EMPTY_SETTINGS: MediaSettings = { id: MEDIA_SETTINGS_ID, tmdbKey: "", rawgKey: "", comicvineKey: "", googleBooksKey: "", updatedAt: "", deleted: 0 };
+const EMPTY_SETTINGS: MediaSettings = {
+  id: MEDIA_SETTINGS_ID, type: MEDIA_SETTINGS, title: "Media lookup settings", tags: [], folder: "", createdAt: "",
+  tmdbKey: "", rawgKey: "", comicvineKey: "", googleBooksKey: "", updatedAt: "", deleted: 0,
+};
 
 function normalizeSettings(s: Partial<MediaSettings> | undefined): MediaSettings {
   return { ...EMPTY_SETTINGS, ...(s ?? {}), tmdbKey: s?.tmdbKey ?? "", rawgKey: s?.rawgKey ?? "", comicvineKey: s?.comicvineKey ?? "", googleBooksKey: s?.googleBooksKey ?? "" };
@@ -123,11 +136,13 @@ function normalizeSettings(s: Partial<MediaSettings> | undefined): MediaSettings
 
 /** The lookup settings record (empty keys until saved). */
 export function useMediaSettings(): MediaSettings {
-  return useLiveQuery(async () => normalizeSettings(await db().collection<MediaSettings>(MEDIA_SETTINGS).get(MEDIA_SETTINGS_ID)), [], EMPTY_SETTINGS);
+  const row = useDocument<MediaSettings>(MEDIA_SETTINGS_ID);
+  // Stable identity between live-query results: effects depend on it.
+  return useMemo(() => normalizeSettings(row), [row]);
 }
 
 export async function saveMediaSettings(patch: Partial<Omit<MediaSettings, "id" | "updatedAt" | "deleted">>): Promise<void> {
-  const cur = normalizeSettings(await db().collection<MediaSettings>(MEDIA_SETTINGS).get(MEDIA_SETTINGS_ID));
+  const cur = normalizeSettings(await getDocument<MediaSettings>(MEDIA_SETTINGS_ID));
   const trimmed = Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v]));
-  await put<MediaSettings>(MEDIA_SETTINGS, { ...cur, ...trimmed, id: MEDIA_SETTINGS_ID, deleted: 0 });
+  await putDocument<MediaSettings>({ ...cur, ...trimmed, id: MEDIA_SETTINGS_ID, type: MEDIA_SETTINGS });
 }

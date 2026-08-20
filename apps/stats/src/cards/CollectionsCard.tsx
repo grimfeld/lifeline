@@ -29,7 +29,7 @@ export function CollectionsCard({ settings }: CardProps) {
           >
             <div className="flex items-center gap-2">
               <span className="size-2 shrink-0 rounded-full" style={{ background: color }} />
-              <span className="truncate text-sm">{r.stat.name}</span>
+              <span className="truncate text-sm">{r.stat.title}</span>
               <span className="ml-auto shrink-0 text-sm font-medium tabular-nums">
                 {r.universe > 0 ? `${r.count} / ${r.universe}` : r.count}
               </span>

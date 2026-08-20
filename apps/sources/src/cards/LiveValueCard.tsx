@@ -11,8 +11,8 @@ import type { LiveValue } from "../domain/types";
 function useValueOptions(): CardOption[] {
   return useLiveValues()
     .slice()
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((v) => ({ value: v.id, label: `${v.name} · ${hostOf(v.url)}` }));
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .map((v) => ({ value: v.id, label: `${v.title} · ${hostOf(v.url)}` }));
 }
 
 export const liveValueCardSettings: CardSettingsSchema = {
@@ -20,7 +20,7 @@ export const liveValueCardSettings: CardSettingsSchema = {
 };
 
 export function useLiveValueCardTitle(settings: CardSettings): string {
-  return useLiveValues().find((v) => v.id === settings.value)?.name ?? "";
+  return useLiveValues().find((v) => v.id === settings.value)?.title ?? "";
 }
 
 /** Card (ADR 0017): one Live value as a tile — big number, unit, "as of", stale marker. */
@@ -55,7 +55,7 @@ export function ValueTile({ value: v, className }: { value: LiveValue; className
       ) : (
         <div className={cn("max-w-full break-words px-2 text-3xl font-semibold leading-none tabular-nums", stale && "text-muted-foreground")}>{read && "text" in read ? read.text : "—"}</div>
       )}
-      <div className="mt-1 w-full truncate px-2 text-sm font-medium">{v.name}</div>
+      <div className="mt-1 w-full truncate px-2 text-sm font-medium">{v.title}</div>
       {entry && (
         <div className="text-muted-foreground flex items-center gap-1 text-[10px]">
           {(!entry.ok || stale) && <AlertTriangle className="text-destructive size-3" />}

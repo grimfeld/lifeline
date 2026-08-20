@@ -1,10 +1,9 @@
 import { useNavigate } from "react-router";
 import { Button } from "@lifeline/ui";
-import { addDays, formatHuman, todayStr, type CardProps } from "@lifeline/core";
+import { addDays, excerpt, formatHuman, todayStr, type CardProps } from "@lifeline/core";
 import { PenLine } from "lucide-react";
 import { useNotes } from "../data/repo";
-import { excerpt, splitFrontmatter } from "../domain/markdown";
-import { MOODS } from "../domain/noteTypes";
+import { DAILY, MOODS, journalHref } from "../domain/types";
 
 /** Card: preview of a day's journal note (knob: day offset), click to open. */
 export function TodayJournalCard({ settings }: CardProps) {
@@ -12,8 +11,8 @@ export function TodayJournalCard({ settings }: CardProps) {
   const date = addDays(todayStr(), offset);
   const notes = useNotes();
   const navigate = useNavigate();
-  const note = notes.find((n) => n.type === "daily" && n.title === date);
-  const open = () => navigate(offset === 0 ? "/notes/journal" : `/notes/journal?d=${date}`);
+  const note = notes.find((n) => n.type === DAILY && n.title === date);
+  const open = () => navigate(journalHref(date, todayStr()));
   if (!note) {
     return (
       <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 text-sm">
@@ -24,8 +23,7 @@ export function TodayJournalCard({ settings }: CardProps) {
       </div>
     );
   }
-  const { properties } = splitFrontmatter(note.body);
-  const mood = MOODS.find((m) => m.value === String(properties.mood ?? ""));
+  const mood = MOODS.find((m) => m.value === String(note.mood ?? ""));
   const text = excerpt(note.body, 600);
   return (
     <button className="hover:bg-accent/40 flex h-full w-full flex-col gap-1 overflow-hidden rounded-md text-left" onClick={open}>

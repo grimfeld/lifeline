@@ -1,8 +1,7 @@
 import type { DaylogItem, DaylogProvider } from "@lifeline/core";
 import { completionsOn } from "./domain/heatmap";
 import { useChores, useCompletions } from "./data/repo";
-import { CHORES_HREF } from "./linkable";
-import { APP_ID } from "./schedulable";
+import { APP_ID, CHORES_HREF } from "./schedulable";
 
 /**
  * What happened in Chores on a day (ADR 0009): one "Done" fact per completion
@@ -24,8 +23,8 @@ export const choresDaylog: DaylogProvider = {
         appId: APP_ID,
         itemId: chore.id,
         kind: "Done",
-        title: chore.name,
-        tags: chore.tags ?? [],
+        title: chore.title,
+        tags: chore.tags,
         time: null,
         href: CHORES_HREF,
       });

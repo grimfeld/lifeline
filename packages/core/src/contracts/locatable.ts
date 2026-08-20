@@ -1,56 +1,80 @@
-import { appById, locatableProviders } from "../registry";
+import { useMemo } from "react";
+import { appById } from "../registry";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
+import { useAllDocuments } from "../documents/store";
+import { useDocumentTypes } from "../documents/registry";
+import { displayTitle, geoOf, singularOf } from "../documents/types";
+import { docHref } from "../documents/href";
 
 /**
- * The Locatable Contract (ADR 0011): an App exposes entities that sit at a
- * geographic point, so any map Surface can draw them. Pins carry resolved
- * coordinates only — geocoding is the owning App's job at edit time, never
- * the Surface's at render time.
+ * The Locatable Contract (ADR 0011, now data-declarable per ADR 0019): a
+ * Document type names the geo field (or a reader) that places its Documents
+ * on a map. Pins carry resolved coordinates only — geocoding happens at
+ * edit time, never at render time.
  */
 export interface Pin {
+  /** Owning App id, or "vault" for user-defined types. */
   appId: string;
+  /** Document id. */
   itemId: string;
+  /** Document type id. */
+  type: string;
   name: string;
   subtitle?: string;
   lat: number;
   lon: number;
-  /** Route to open the entity, e.g. "/app/notes/abc". */
   href?: string;
-  /** The entity's Tags (ADR 0014). */
   tags?: string[];
 }
 
-export interface LocatableProvider {
-  appId: string;
-  /** React hook. Every live entity that has coordinates. */
-  usePins(): Pin[];
-}
-
 export interface SurfacePin extends Pin {
-  /** `${appId}/${itemId}` — unique across Apps. */
+  /** `${type}/${itemId}` — unique. */
   key: string;
   color?: string;
 }
 
-/** Read side: every provider's pins, coloured per App; optionally only some Apps. */
+export const VAULT_APP_ID = "vault";
+
+/** Read side: every Locatable Document as a pin, coloured per owning App; optionally only some Apps / types. */
 export function useLocatablePins(apps?: string[], opts?: { tags?: TagFilter }): SurfacePin[] {
   const ambient = useTagFilter();
   const filter = opts?.tags ?? ambient;
-  const providers = locatableProviders();
-  // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
-  const per = providers.map((p) => ({
-    provider: p,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    pins: p.usePins(),
-  }));
-  const out: SurfacePin[] = [];
-  for (const { provider, pins } of per) {
-    if (apps && apps.length > 0 && !apps.includes(provider.appId)) continue;
-    const color = appById(provider.appId)?.color;
-    for (const p of pins) if (matchesTagFilter(p.tags, filter)) out.push({ ...p, key: `${p.appId}/${p.itemId}`, color });
-  }
-  return out;
+  const docs = useAllDocuments();
+  const types = useDocumentTypes();
+  return useMemo(() => {
+    const defs = new Map(types.map((t) => [t.id, t]));
+    const out: SurfacePin[] = [];
+    for (const d of docs) {
+      const def = defs.get(d.type);
+      if (!def?.locatable || def.internal) continue;
+      const appId = def.appId ?? VAULT_APP_ID;
+      if (apps && apps.length > 0 && !apps.includes(appId) && !apps.includes(d.type)) continue;
+      const c = geoOf(d, def);
+      if (!c) continue;
+      if (!matchesTagFilter(d.tags, filter)) continue;
+      out.push({
+        key: `${d.type}/${d.id}`,
+        appId,
+        itemId: d.id,
+        type: d.type,
+        name: displayTitle(d, def),
+        subtitle: singularOf(def),
+        lat: c.lat,
+        lon: c.lon,
+        href: docHref(d, def),
+        tags: d.tags,
+        color: def.appId ? appById(def.appId)?.color : undefined,
+      });
+    }
+    return out;
+  }, [docs, types, apps, filter]);
+}
+
+/** Document types that declare Locatable, for pickers. */
+export function useLocatableTypes(): { value: string; label: string }[] {
+  const types = useDocumentTypes();
+  return types.filter((t) => t.locatable && !t.internal).map((t) => ({ value: t.id, label: t.label }));
 }
 
 /** True when the pair is a plausible WGS84 coordinate. */

@@ -1,0 +1,326 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router";
+import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, TagInput, Textarea, toast } from "@lifeline/ui";
+import {
+  basePath,
+  displayTitle,
+  docHref,
+  documentToText,
+  effectiveTags,
+  extractProseTags,
+  formatHuman,
+  geoOf,
+  normalizeTag,
+  putDocument,
+  removeDocument,
+  singularOf,
+  textToDocument,
+  useTagVocabulary,
+  writeGeo,
+  type Document,
+  type DocumentTypeDef,
+  type LinkIndex,
+  type LinkRef,
+} from "@lifeline/core";
+import { BookOpen, Code2, Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Pencil, Table2, Trash2 } from "lucide-react";
+import { MarkdownEditor } from "./MarkdownEditor";
+import { MarkdownView } from "./MarkdownView";
+import { FieldsForm } from "./FieldsForm";
+import { LinksPanel } from "./LinksPanel";
+
+export interface DocumentEditorProps {
+  doc: Document;
+  def: DocumentTypeDef | undefined;
+  index: LinkIndex;
+  autoFocus?: boolean;
+  showPanel?: boolean;
+  /** The day a daylog fence defaults to (a daily note's date). */
+  docDate?: string | null;
+  /** What to do with an unresolved link the user opens. Default: create a `note` and open it. */
+  onCreateUnresolved?: (name: string) => void;
+  /** Called after delete (default: navigate to the type's Base). */
+  onDeleted?: () => void;
+  /** Extra toolbar content (an App's own actions). */
+  toolbar?: React.ReactNode;
+  /** A note under the header (an App's own hint). */
+  banner?: React.ReactNode;
+  /** Allow editing guarded fields through the form (the owning App's own editor). */
+  allowGuarded?: boolean;
+  /** Write the Document (default: putDocument). */
+  save?: (next: Document) => Promise<unknown>;
+  /** Delete the Document (default: removeDocument) — an App may cascade. */
+  remove?: () => Promise<unknown>;
+}
+
+/**
+ * The generic editor over any Document (ADR 0018): title, the type's Fields
+ * as a form, Tags, the markdown body (edit / reading / raw text modes), and
+ * the links panel. Saves are debounced. Text mode shows the frontmatter
+ * projection; edits to guarded fields there are reverted with a notice.
+ */
+export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn }: DocumentEditorProps) {
+  const navigate = useNavigate();
+  const [panelOpen, setPanelOpen] = useState(showPanel);
+  const [mode, setMode] = useState<"edit" | "read" | "text">("edit");
+  const [title, setTitle] = useState(doc.title);
+  useEffect(() => setTitle(doc.title), [doc.title]);
+
+  const docRef = useRef(doc);
+  docRef.current = doc;
+  /** Pending edits not yet flushed. */
+  const pending = useRef<Partial<Document>>({});
+  const timer = useRef<number | null>(null);
+  const write = useCallback(
+    async (next: Document) => {
+      if (save) await save(next);
+      else await putDocument(next as Document & { type: string });
+    },
+    [save],
+  );
+  const flush = useCallback(() => {
+    if (timer.current) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+    if (Object.keys(pending.current).length === 0) return;
+    const next = { ...docRef.current, ...pending.current } as Document;
+    pending.current = {};
+    void write(next);
+  }, [write]);
+  const stage = useCallback(
+    (patch: Partial<Document>, immediate = false) => {
+      pending.current = { ...pending.current, ...patch };
+      if (immediate) return flush();
+      if (timer.current) window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(flush, 500);
+    },
+    [flush],
+  );
+  useEffect(() => () => flush(), [flush]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e") {
+        e.preventDefault();
+        setMode((m) => (m === "read" ? "edit" : "read"));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const openRef = useCallback(
+    (ref: LinkRef, name: string) => {
+      if (ref.kind === "doc") {
+        const d = index.byId.get(ref.id);
+        if (d) navigate(docHref(d));
+        return;
+      }
+      if (onCreateUnresolved) return onCreateUnresolved(name);
+      void putDocument({ type: "note", title: name, body: "" }).then((n) => {
+        toast.success(`Created “${name}”`);
+        navigate(docHref(n));
+      });
+    },
+    [index, navigate, onCreateUnresolved],
+  );
+  const context = useMemo(() => ({ docDate, openRef }), [docDate, openRef]);
+
+  const body = typeof doc.body === "string" ? doc.body : "";
+  const hasBody = (def?.body ?? "optional") !== "none";
+  const fields = def?.fields ?? [];
+  const fieldValues = useMemo(() => {
+    const out: Record<string, unknown> = {};
+    for (const f of fields) out[f.key] = doc[f.key];
+    return out;
+  }, [doc, fields]);
+
+  async function commitTitle() {
+    if (def?.titleRule === "date" || def?.titleRule === "derived") return;
+    if (title.trim() && title.trim() !== doc.title) stage({ title: title.trim() }, true);
+    else setTitle(doc.title);
+  }
+
+  async function remove() {
+    flush();
+    if (removeFn) await removeFn();
+    else await removeDocument(doc.id);
+    toast.success(`“${displayTitle(doc, def)}” deleted`);
+    if (onDeleted) onDeleted();
+    else navigate(basePath(doc.type));
+  }
+
+  const coords = useMemo(() => geoOf(doc, def), [doc, def]);
+  const geoKey = typeof def?.locatable === "string" ? def.locatable : undefined;
+
+  // Tags (ADR 0014): the chip row edits the explicit list; prose #tags are read-only here (edit them in the text).
+  const proseTags = useMemo(() => extractProseTags(body), [body]);
+  const explicitTags = useMemo(() => doc.tags.filter((t) => !proseTags.includes(t)), [doc.tags, proseTags]);
+  const tagSuggestions = useTagVocabulary().map((v) => v.tag);
+
+  // Text mode: the frontmatter projection.
+  const [text, setText] = useState("");
+  const codec = useMemo(
+    () => ({
+      linkName: (id: string) => {
+        const d = index.byId.get(id);
+        return d ? displayTitle(d) : undefined;
+      },
+      resolveLink: (name: string) => {
+        const r = index.resolve(name);
+        return r.kind === "doc" ? r.id : undefined;
+      },
+    }),
+    [index],
+  );
+  useEffect(() => {
+    if (mode === "text") setText(documentToText(doc, def, codec));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+  function commitText() {
+    const { patch, rejected } = textToDocument(text, doc, def, codec);
+    if (rejected.length > 0) toast.message(`Guarded fields kept as they were: ${rejected.join(", ")}`);
+    stage(patch as Partial<Document>, true);
+  }
+
+  const Icon = def?.icon;
+  const label = def ? singularOf(def) : doc.type;
+  return (
+    <div className="flex h-full min-h-0">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex items-center gap-2 border-b px-4 py-2">
+          {Icon && <Icon className="text-muted-foreground size-4 shrink-0" />}
+          {def?.titleRule === "date" ? (
+            <h1 className="text-lg font-semibold tracking-tight">
+              {formatHuman(doc.title)} <span className="text-muted-foreground text-sm font-normal">{doc.title}</span>
+            </h1>
+          ) : def?.titleRule === "derived" ? (
+            <h1 className="truncate text-lg font-semibold tracking-tight">{displayTitle(doc, def)}</h1>
+          ) : (
+            <Input
+              className="h-8 max-w-md border-transparent px-1 text-lg font-semibold tracking-tight shadow-none focus-visible:border-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => void commitTitle()}
+              onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
+              aria-label="Title"
+            />
+          )}
+          <Badge variant="secondary" className="shrink-0 cursor-pointer" title={`Open the ${def?.label ?? doc.type} Base`} onClick={() => navigate(basePath(doc.type))}>
+            {label}
+          </Badge>
+          <div className="ml-auto flex items-center gap-1">
+            {toolbar}
+            {hasBody && (
+              <Button size="icon" variant="ghost" className="size-8" onClick={() => setMode((m) => (m === "read" ? "edit" : "read"))} aria-label={mode === "read" ? "Edit" : "Reading mode"} title={mode === "read" ? "Edit (⌘E)" : "Reading mode (⌘E)"}>
+                {mode === "read" ? <Pencil /> : <BookOpen />}
+              </Button>
+            )}
+            <Button size="icon" variant="ghost" className={`size-8 ${mode === "text" ? "bg-accent" : ""}`} onClick={() => setMode((m) => (m === "text" ? "edit" : "text"))} aria-label="Raw text" title="Frontmatter + body as text">
+              <Code2 />
+            </Button>
+            <Button size="icon" variant="ghost" className="size-8" onClick={() => setPanelOpen((o) => !o)} aria-label="Toggle links panel">
+              {panelOpen ? <PanelRightClose /> : <PanelRightOpen />}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost" className="size-8">
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate(basePath(doc.type))}>
+                  <Table2 /> Open {def?.label ?? "Base"}
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={() => void remove()}>
+                  <Trash2 /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+        {banner}
+        {mode === "text" ? (
+          <div className="flex min-h-0 flex-1 flex-col gap-2 p-4">
+            <Textarea className="min-h-0 flex-1 resize-none font-mono text-sm" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setMode("edit")}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => { commitText(); setMode("edit"); }}>
+                Apply
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-2 border-b px-4 py-2">
+              {fields.some((f) => !f.hidden) && (
+                <FieldsForm def={{ fields }} value={fieldValues} allowGuarded={allowGuarded} onChange={(next) => stage(next as Partial<Document>)} />
+              )}
+              <div className="grid gap-1">
+                <Label htmlFor="doc-tags" className="text-muted-foreground text-xs">
+                  Tags
+                </Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <TagInput
+                    id="doc-tags"
+                    className="min-w-48 flex-1"
+                    value={explicitTags}
+                    onChange={(next) => stage({ tags: effectiveTags(next, body) }, true)}
+                    suggestions={tagSuggestions}
+                    normalize={normalizeTag}
+                    placeholder="Add tag…"
+                  />
+                  {proseTags.length > 0 && (
+                    <span className="text-muted-foreground inline-flex items-center gap-1 text-xs" title="Written in the text — edit them there">
+                      in text: {proseTags.map((t) => `#${t}`).join(" ")}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            {hasBody && (
+              <div className="flex min-h-0 flex-1 flex-col px-4">
+                {mode === "read" ? (
+                  <div className="min-h-0 flex-1 overflow-y-auto py-3" onDoubleClick={() => setMode("edit")}>
+                    <MarkdownView body={body} index={index} docDate={docDate} />
+                  </div>
+                ) : (
+                  <MarkdownEditor
+                    value={body}
+                    onChange={(next) => stage({ body: next, tags: effectiveTags(explicitTags, next) })}
+                    index={index}
+                    context={context}
+                    autoFocus={autoFocus}
+                    placeholder="Write… [[ links any Document, #tags, ```daylog for the day's facts"
+                  />
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      {panelOpen && (
+        <aside className="hidden w-72 shrink-0 overflow-y-auto border-l p-3 md:block">
+          <div className="text-muted-foreground mb-2 flex items-center gap-1 text-xs">
+            <Link2 className="size-3" /> ⌘-click a link to open it
+          </div>
+          {coords && (
+            <div className="mb-3">
+              <MiniMap
+                lat={coords.lat}
+                lon={coords.lon}
+                color="var(--chart-green)"
+                onMove={(lat, lon) => {
+                  if (geoKey) stage({ [geoKey]: writeGeo({ lat, lon }) }, true);
+                }}
+                onExpand={() => navigate(`/map?focus=${doc.type}/${doc.id}`)}
+              />
+            </div>
+          )}
+          <LinksPanel docId={doc.id} index={index} onOpen={openRef} />
+        </aside>
+      )}
+    </div>
+  );
+}

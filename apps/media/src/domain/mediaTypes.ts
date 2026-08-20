@@ -44,6 +44,9 @@ export function mediaType(id: MediaTypeId): MediaTypeDef {
   return MEDIA_TYPES.find((t) => t.id === id) ?? MEDIA_TYPES[0];
 }
 
+/** Every medium id — these are the Document type ids the Media App owns (one Base each). */
+export const MEDIA_TYPE_IDS: MediaTypeId[] = MEDIA_TYPES.map((t) => t.id);
+
 /** Types that have a Nightstand (slotCount > 0). */
 export const SLOTTED_TYPES: MediaTypeId[] = MEDIA_TYPES.filter((t) => t.slotCount > 0).map((t) => t.id);
 export const hasSlots = (id: MediaTypeId) => mediaType(id).slotCount > 0;

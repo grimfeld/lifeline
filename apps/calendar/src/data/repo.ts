@@ -1,5 +1,6 @@
-import { addDays, db, diffDays, normalizeTags, put, remove, newId, todayStr, useLiveQuery, type DateStr } from "@lifeline/core";
-import { EVENTS, type Event } from "../domain/types";
+import { useMemo } from "react";
+import { addDays, diffDays, documentsOf, getDocument, normalizeTags, putDocument, removeDocument, useDocuments, type DateStr } from "@lifeline/core";
+import { EVENT_TYPE, type Event } from "../domain/types";
 
 /** PocketBase returns absent text fields as ""; re-establish null on read. */
 function normalize(e: Event): Event {
@@ -14,11 +15,12 @@ function normalize(e: Event): Event {
 }
 
 export function useEvents(): Event[] {
-  return useLiveQuery(
-    async () => (await db().collection<Event>(EVENTS).where("deleted").equals(0).toArray()).map(normalize),
-    [],
-    [] as Event[],
-  );
+  const rows = useDocuments<Event>(EVENT_TYPE);
+  return useMemo(() => rows.map(normalize), [rows]);
+}
+
+export async function allEvents(): Promise<Event[]> {
+  return (await documentsOf<Event>(EVENT_TYPE)).map(normalize);
 }
 
 export async function addEvent(input: {
@@ -30,44 +32,42 @@ export async function addEvent(input: {
   end?: string | null;
   tags?: string[];
 }): Promise<string> {
-  const id = newId();
   const start = input.start || null;
-  await put<Event>(EVENTS, {
-    id,
+  const row = await putDocument<Event>({
+    type: EVENT_TYPE,
     title: input.title,
     notes: input.notes ?? "",
     date: input.date,
     endDate: start ? null : (input.endDate ?? null),
     start,
     end: start ? (input.end || null) : null,
-    createdAt: todayStr(),
     tags: normalizeTags(input.tags ?? []),
   });
-  return id;
+  return row.id;
 }
 
 export async function updateEvent(ev: Event): Promise<void> {
-  await put<Event>(EVENTS, { ...ev, tags: normalizeTags(ev.tags ?? []) });
+  await putDocument<Event>({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) });
 }
 
 export async function deleteEvent(id: string): Promise<void> {
-  await remove(EVENTS, id);
+  await removeDocument(id);
 }
 
 /** Move an event's first day to `to`, keeping its length. */
 export async function moveEvent(id: string, to: DateStr): Promise<void> {
-  const ev = await db().collection<Event>(EVENTS).get(id);
-  if (!ev || ev.deleted) return;
+  const ev = await getDocument<Event>(id);
+  if (!ev) return;
   const e = normalize(ev);
   const len = e.endDate && e.endDate > e.date ? diffDays(e.date, e.endDate) : 0;
-  await put<Event>(EVENTS, { ...e, date: to, endDate: len > 0 ? addDays(to, len) : null });
+  await putDocument<Event>({ ...e, date: to, endDate: len > 0 ? addDays(to, len) : null });
 }
 
 /** Reschedule an event onto a day and time (null start = all day). Multi-day events keep their length. */
 export async function rescheduleEvent(id: string, date: DateStr, start: string | null, end: string | null): Promise<void> {
-  const ev = await db().collection<Event>(EVENTS).get(id);
-  if (!ev || ev.deleted) return;
+  const ev = await getDocument<Event>(id);
+  if (!ev) return;
   const e = normalize(ev);
   const len = e.endDate && e.endDate > e.date ? diffDays(e.date, e.endDate) : 0;
-  await put<Event>(EVENTS, { ...e, date, endDate: len > 0 ? addDays(date, len) : null, start, end: start ? end : null });
+  await putDocument<Event>({ ...e, date, endDate: len > 0 ? addDays(date, len) : null, start, end: start ? end : null });
 }

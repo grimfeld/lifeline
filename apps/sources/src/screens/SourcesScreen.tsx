@@ -35,7 +35,7 @@ function SourceRow({ source, onEdit }: { source: Source; onEdit: (s: Source) => 
           <Icon className="text-muted-foreground size-4 shrink-0" />
         )}
         <button className="min-w-0 flex-1 text-left" onClick={() => navigate(sourceHref(source.id))}>
-          <div className="truncate font-medium">{source.name}</div>
+          <div className="truncate font-medium">{source.title}</div>
           <div className="text-muted-foreground flex items-center gap-1.5 truncate text-xs">
             <span className="truncate">{hostOf(source.url)}</span>
             {source.refreshMinutes && (
@@ -109,7 +109,7 @@ export function SourcesScreen() {
           </div>
         )}
         {KIND_ORDER.map((k) => {
-          const list = sources.filter((s) => s.kind === k).sort((a, b) => a.name.localeCompare(b.name));
+          const list = sources.filter((s) => s.kind === k).sort((a, b) => a.title.localeCompare(b.title));
           if (list.length === 0) return null;
           return (
             <section key={k} className="grid gap-2">

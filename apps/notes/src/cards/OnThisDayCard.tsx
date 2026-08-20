@@ -1,9 +1,8 @@
 import { useNavigate } from "react-router";
-import { addDays, formatHuman, todayStr, type CardProps } from "@lifeline/core";
+import { addDays, excerpt, formatHuman, todayStr, type CardProps } from "@lifeline/core";
 import { useNotes } from "../data/repo";
-import { excerpt } from "../domain/markdown";
 import { onThisDay } from "../domain/journalStats";
-import { journalHref } from "../workspace/useOpenNote";
+import { DAILY, journalHref } from "../domain/types";
 
 /** Card: daily notes from the same day in earlier years (knobs: years, week lookbacks, day offset). */
 export function OnThisDayCard({ settings }: CardProps) {
@@ -13,7 +12,7 @@ export function OnThisDayCard({ settings }: CardProps) {
   const today = addDays(todayStr(), offset);
   const notes = useNotes();
   const navigate = useNavigate();
-  const dailies = notes.filter((n) => n.type === "daily");
+  const dailies = notes.filter((n) => n.type === DAILY);
   const byDate = new Map(dailies.map((n) => [n.title, n]));
   const hits = onThisDay([...byDate.keys()], today, { years, alsoWeeks });
   if (hits.length === 0) {

@@ -1,23 +1,22 @@
 import { useNavigate } from "react-router";
 import { Button, toast } from "@lifeline/ui";
 import { Plus } from "lucide-react";
-import type { CardProps } from "@lifeline/core";
-import { createNote, useNoteIndex } from "../data/repo";
+import { createDocument, docHref, useLinkIndex, type CardProps } from "@lifeline/core";
 import { unresolvedEntries } from "../domain/mentions";
-import { noteHref } from "../workspace/useOpenNote";
+import { NOTE } from "../domain/types";
 
 /** Card: [[links]] that resolve to nothing; "+" creates the note (knobs: count, sort). */
 export function UnresolvedCard({ settings }: CardProps) {
   const count = Number(settings.count ?? 15);
   const sort = settings.sort === "name" ? "name" : "count";
-  const index = useNoteIndex();
+  const index = useLinkIndex();
   const navigate = useNavigate();
   const list = unresolvedEntries(index, sort).slice(0, count);
 
   async function create(name: string) {
     try {
-      const n = await createNote({ type: "plain", title: name });
-      navigate(noteHref(n));
+      const n = await createDocument({ type: NOTE, title: name });
+      navigate(docHref(n));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not create note");
     }

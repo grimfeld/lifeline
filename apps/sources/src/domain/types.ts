@@ -1,23 +1,20 @@
-import type { DateStr, SyncedRecord } from "@lifeline/core";
+import type { Document, SyncedRecord } from "@lifeline/core";
 
 /**
  * A Source (CONTEXT.md, ADR 0016/0017): something outside Lifeline shown
- * inside it. One collection holds every kind; `kind` discriminates.
+ * inside it. One Document type holds every kind; `kind` discriminates.
+ * The Source's name is the Document `title`.
  */
 export type SourceKind = "embed" | "feed" | "ical" | "value";
 
-export interface SourceBase extends SyncedRecord {
+export interface SourceBase extends Document {
   kind: SourceKind;
-  name: string;
   /** Absolute http(s) URL (see normalizeEmbedUrl). */
   url: string;
-  /** Normalised Tags (ADR 0014); undefined on old records — read with `?? []`. */
-  tags?: string[];
   /** Refetch / reload period in minutes; null = never (Embed) / kind default (others). */
   refreshMinutes: number | null;
   /** Extra request headers (API keys). Stored on the record — the user's own PocketBase (ADR 0017). */
   headers?: Record<string, string>;
-  createdAt: DateStr;
 }
 
 /** A web page shown as-is in a frame. */
@@ -53,7 +50,10 @@ export interface LiveValue extends SourceBase {
 
 export type Source = Embed | Feed | CalendarSub | LiveValue;
 
-export const SOURCES = "sources";
+/** Document type id of a Source. */
+export const SOURCE_TYPE = "source";
+/** @deprecated use SOURCE_TYPE */
+export const SOURCES = SOURCE_TYPE;
 /** Local-only (never synced) cache of each Source's last fetched body. */
 export const SOURCE_CACHE = "_source_cache";
 

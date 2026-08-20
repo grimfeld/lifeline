@@ -44,14 +44,14 @@ export function defaultCaptureItem(items: MediaItem[], medium: MediumFilter = ""
 }
 
 /** Counts per medium, in registry order, omitting zeros. */
-export function countByMedium(items: MediaItem[]): { type: MediaTypeId; count: number }[] {
-  return MEDIA_TYPES.map((t) => ({ type: t.id, count: items.filter((m) => m.type === t.id).length })).filter((c) => c.count > 0);
+export function countByMedium(items: MediaItem[]): { medium: MediaTypeId; count: number }[] {
+  return MEDIA_TYPES.map((t) => ({ medium: t.id, count: items.filter((m) => m.type === t.id).length })).filter((c) => c.count > 0);
 }
 
 /** "12 books · 5 movies". */
 export function mediumBreakdown(items: MediaItem[]): string {
   return countByMedium(items)
-    .map(({ type, count }) => {
+    .map(({ medium: type, count }) => {
       const def = mediaType(type);
       return `${count} ${(count === 1 ? def.label : def.plural).toLowerCase()}`;
     })

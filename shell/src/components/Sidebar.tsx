@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router";
 import {
   Button,
   cn,
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -12,16 +16,19 @@ import {
   Separator,
 } from "@lifeline/ui";
 import {
+  basePath,
   db,
   newId,
   put,
   screensOf,
+  useDocumentTypes,
   useLiveQuery,
   type UserScreen,
 } from "@lifeline/core";
-import { CalendarDays, Clock, Columns3, LayoutDashboard, MapPin, Plus, Sparkles } from "lucide-react";
+import { CalendarDays, ChevronRight, Clock, Columns3, EyeOff, LayoutDashboard, MapPin, Plus, Settings2, Sparkles, Table2 } from "lucide-react";
 import { SyncBadge } from "./SyncBadge";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { useCollapsedSections, useHiddenBases } from "./sidebarPrefs";
 
 function navClass({ isActive }: { isActive: boolean }) {
   return cn(
@@ -30,11 +37,31 @@ function navClass({ isActive }: { isActive: boolean }) {
   );
 }
 
+/** A collapsible sidebar section; collapse state is per-device (sidebarPrefs). */
+function Section({ id, title, actions, children }: { id: string; title: string; actions?: ReactNode; children: ReactNode }) {
+  const [collapsed, toggle] = useCollapsedSections();
+  const open = !collapsed.includes(id);
+  return (
+    <div>
+      <div className="text-muted-foreground flex items-center justify-between px-2 py-1 text-xs font-medium">
+        <button className="hover:text-foreground group flex flex-1 items-center gap-1 text-left" onClick={() => toggle(id)} aria-expanded={open}>
+          <ChevronRight className={cn("size-3 transition-transform", open && "rotate-90")} />
+          {title}
+        </button>
+        {actions}
+      </div>
+      {open && children}
+    </div>
+  );
+}
+
 export function Sidebar() {
   const navigate = useNavigate();
   const [newOpen, setNewOpen] = useState(false);
   const [name, setName] = useState("");
 
+  const types = useDocumentTypes().filter((t) => !t.internal);
+  const [hiddenBases, toggleHiddenBase] = useHiddenBases();
   const screens = useLiveQuery(
     () =>
       db()
@@ -70,19 +97,15 @@ export function Sidebar() {
       <Separator className="mt-2" />
 
       <nav className="flex-1 space-y-4 overflow-y-auto p-2">
-        <div>
-          <div className="text-muted-foreground flex items-center justify-between px-2 py-1 text-xs font-medium">
-            Screens
-            <Button
-              size="icon"
-              variant="ghost"
-              className="size-5"
-              title="New screen"
-              onClick={() => setNewOpen(true)}
-            >
+        <Section
+          id="screens"
+          title="Screens"
+          actions={
+            <Button size="icon" variant="ghost" className="size-5" title="New screen" onClick={() => setNewOpen(true)}>
               <Plus className="size-3.5" />
             </Button>
-          </div>
+          }
+        >
           {screens.map((s) => (
             <NavLink key={s.id} to={`/screen/${s.id}`} className={navClass}>
               <LayoutDashboard className="size-4" /> {s.name}
@@ -96,10 +119,9 @@ export function Sidebar() {
               + Create a screen
             </button>
           )}
-        </div>
+        </Section>
 
-        <div>
-          <div className="text-muted-foreground px-2 py-1 text-xs font-medium">Surfaces</div>
+        <Section id="surfaces" title="Surfaces">
           <NavLink to="/calendar" className={navClass}>
             <CalendarDays className="size-4" /> Calendar
           </NavLink>
@@ -112,10 +134,9 @@ export function Sidebar() {
           <NavLink to="/map" className={navClass}>
             <MapPin className="size-4" /> Map
           </NavLink>
-        </div>
+        </Section>
 
-        <div>
-          <div className="text-muted-foreground px-2 py-1 text-xs font-medium">Apps</div>
+        <Section id="apps" title="Apps">
           {screensOf()
             .filter((s) => !s.hidden)
             .map((s) => {
@@ -126,7 +147,40 @@ export function Sidebar() {
                 </NavLink>
               );
             })}
-        </div>
+        </Section>
+
+        <Section
+          id="bases"
+          title="Bases"
+          actions={
+            <Button size="icon" variant="ghost" className="size-5" title="Document types" onClick={() => navigate("/base")}>
+              <Settings2 className="size-3.5" />
+            </Button>
+          }
+        >
+          {types
+            .filter((t) => !hiddenBases.includes(t.id))
+            .map((t) => {
+              const Icon = t.icon ?? Table2;
+              return (
+                <ContextMenu key={t.id}>
+                  {/* Radix asChild merges className, which mangles NavLink's className function — keep the function on the NavLink inside a plain trigger div. */}
+                  <ContextMenuTrigger asChild>
+                    <div>
+                      <NavLink to={basePath(t.id)} className={navClass}>
+                        <Icon className="size-4" /> {t.label}
+                      </NavLink>
+                    </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem onClick={() => toggleHiddenBase(t.id)}>
+                      <EyeOff className="size-4" /> Hide from sidebar
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              );
+            })}
+        </Section>
       </nav>
 
       <Separator />

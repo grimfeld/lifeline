@@ -10,18 +10,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@codemirror/autocomplete": "^6.18.0",
-    "@codemirror/commands": "^6.8.0",
-    "@codemirror/lang-markdown": "^6.3.0",
-    "@codemirror/language": "^6.11.0",
-    "@codemirror/state": "^6.5.0",
-    "@codemirror/view": "^6.36.0",
-    "@lezer/highlight": "^1.2.0",
     "@lifeline/core": "workspace:*",
+    "@lifeline/editor": "workspace:*",
     "@lifeline/ui": "workspace:*",
     "lucide-react": "^1.27.0",
     "react-router": "^7.9.4",
-    "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"
   },
   "peerDependencies": {

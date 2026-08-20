@@ -23,15 +23,15 @@ export function useHeatmapChoreOptions(): CardOption[] {
   const chores = useChores();
   return chores
     .filter((c) => c.status !== "archived")
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((c) => ({ value: c.id, label: c.name }));
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .map((c) => ({ value: c.id, label: c.title }));
 }
 
 /** Instance title (a hook, per CardDef.instanceTitle): the chore's name, or the window. */
 export function useHeatmapInstanceTitle(settings: CardSettings): string {
   const chores = useChores();
   const chore = settings.chore as string;
-  if (chore) return chores.find((c) => c.id === chore)?.name ?? "";
+  if (chore) return chores.find((c) => c.id === chore)?.title ?? "";
   return `Chores · ${settings.weeks as number} weeks`;
 }
 
@@ -84,7 +84,7 @@ export function HeatmapCard({ settings, configure }: CardProps) {
   const today = todayStr();
   const days = heatmapDays(weeks, today);
   const perDay = completionsPerDay(completions, days, choreId || undefined);
-  const nameOf = (id: string) => chores.find((c) => c.id === id)?.name ?? "Unknown chore";
+  const nameOf = (id: string) => chores.find((c) => c.id === id)?.title ?? "Unknown chore";
 
   if (choreId && !chores.some((c) => c.id === choreId)) {
     return <CardUnavailable message="That chore no longer exists." onConfigure={configure} />;

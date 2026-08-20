@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router";
-import { appById, locatableProviders, useLocatablePins, type CardProps } from "@lifeline/core";
+import { useLocatablePins, useLocatableTypes, type CardProps } from "@lifeline/core";
 import { MapView } from "@lifeline/ui";
 
-/** Options for the Map card's App filter: every App implementing Locatable. */
+/** Options for the Map card's filter: every Locatable Document type. */
 export function useLocatableAppOptions() {
-  return locatableProviders().map((p) => ({ value: p.appId, label: appById(p.appId)?.title ?? p.appId }));
+  return useLocatableTypes();
 }
 
 /** Hub card (ADR 0011): the map Surface on a Screen, optionally one App only. */

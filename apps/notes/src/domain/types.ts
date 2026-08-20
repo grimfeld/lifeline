@@ -1,19 +1,29 @@
-import type { DateStr, SyncedRecord } from "@lifeline/core";
-import type { NoteTypeId } from "./noteTypes";
+import type { Document } from "@lifeline/core";
 
-/**
- * A Note (CONTEXT.md, ADR 0009): a title plus raw markdown. The text is the
- * truth — properties (frontmatter), links, tags and headings are derived
- * from `body` and never stored beside it.
- */
-export interface Note extends SyncedRecord {
-  type: NoteTypeId;
-  /** Folder path, "/"-separated; "" = root (ADR 0013). Titles are unique per folder. */
-  folder: string;
-  title: string;
-  /** Full markdown including the frontmatter block, if any. */
+/** Document types the Notes App owns (ADR 0019). */
+export const NOTE = "note";
+export const DAILY = "daily";
+export const TEMPLATE = "template";
+export const NOTE_TYPES = [NOTE, DAILY, TEMPLATE] as const;
+
+/** A Note-shaped Document: body-first; fields (mood, aliases) are flat on the row. */
+export interface Note extends Document {
   body: string;
-  createdAt: DateStr;
+  /** daily only: 1..5 as a string option value. */
+  mood?: string;
+  aliases?: string[];
 }
 
-export const NOTES = "notes";
+export const MOODS = [
+  { value: "1", label: "😞 Rough" },
+  { value: "2", label: "😕 Meh" },
+  { value: "3", label: "😐 Okay" },
+  { value: "4", label: "🙂 Good" },
+  { value: "5", label: "😄 Great" },
+];
+
+export const DAILY_TEMPLATE = "```daylog\n```\n\n### Histoire du jour\n\n---\n### Citation du jour\n\n---\n### Quoi de neuf ?\n\n---\n### Et maintenant ?\n\n";
+
+/** Routes (the shell's Vault hosts both). */
+export const journalHref = (date: string, today?: string) => (today && date === today ? "/vault/journal" : `/vault/journal?d=${date}`);
+export const noteHref = (n: Pick<Document, "id" | "type" | "title">) => (n.type === DAILY ? `/vault/journal?d=${n.title}` : `/vault/d/${n.id}`);

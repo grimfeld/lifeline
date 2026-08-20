@@ -13,10 +13,11 @@ import { shelfLabel } from "./domain/browse";
 import type { MediaTypeId } from "./domain/mediaTypes";
 import { titleWithMedium } from "./domain/cardQueries";
 import { mediaCommands } from "./commands";
-import { MEDIA, MEDIA_SETTINGS, QUOTES } from "./domain/types";
-import { mediaLinkable } from "./linkable";
+import { MEDIA_TYPE_IDS, type MediaItem } from "./domain/types";
+import { patchMedia } from "./data/repo";
+import { abandon, finish, start } from "./domain/rules";
 import { mediaDaylog } from "./daylog";
-import { mediaTaggable } from "./taggable";
+import { mediaSettingsTypeDef, mediaTypeDefs, quoteTypeDef } from "./types";
 import { QuotesScreen } from "./screens/QuotesScreen";
 import { RandomQuoteCard } from "./cards/RandomQuoteCard";
 import { QuoteOfDayCard } from "./cards/QuoteOfDayCard";
@@ -31,11 +32,7 @@ export const mediaApp: AppManifest = {
   title: "Media",
   icon: BookMarked,
   color: "var(--chart-magenta)",
-  collections: [
-    { name: MEDIA, indexes: ["type", "slot", "externalKey", "*tags"] },
-    { name: QUOTES, indexes: ["mediaId", "capturedOn", "*tags"] },
-    { name: MEDIA_SETTINGS },
-  ],
+  types: [...mediaTypeDefs, quoteTypeDef, mediaSettingsTypeDef],
   screens: [
     { id: "media.main", title: "Media", path: "media", icon: BookMarked, component: MediaScreen },
     { id: "media.quotes", title: "Quotes", path: "media/quotes", component: QuotesScreen, hidden: true },
@@ -175,12 +172,22 @@ export const mediaApp: AppManifest = {
     },
   ],
   commands: mediaCommands,
-  linkable: mediaLinkable,
   daylog: mediaDaylog,
-  taggable: mediaTaggable,
+  // ADR 0020: a board drag on the guarded Shelf runs the real transition
+  // (start/finish/abandon stamp dates and free Nightstand slots). Un-starting
+  // is not an operation the App has, so it is declined.
+  requestFieldChange: async (doc, field, value) => {
+    if (field !== "engagement") return false;
+    const item = doc as MediaItem;
+    if (value === "IN_PROGRESS") await patchMedia(item, start());
+    else if (value === "DONE") await patchMedia(item, finish());
+    else if (value === "ABANDONED") await patchMedia(item, abandon());
+    else return false;
+    return true;
+  },
 };
 
-export { MEDIA };
+export { MEDIA_TYPE_IDS };
 export { MEDIA_TYPES } from "./domain/mediaTypes";
 export type { MediaItem, Acquisition, Engagement } from "./domain/types";
 export type { MediaTypeDef, MediaTypeId } from "./domain/mediaTypes";

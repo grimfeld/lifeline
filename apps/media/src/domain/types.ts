@@ -1,4 +1,4 @@
-import type { DateStr, SyncedRecord } from "@lifeline/core";
+import type { DateStr, Document } from "@lifeline/core";
 import type { MediaTypeId } from "./mediaTypes";
 
 /** Whether and how I have access to a copy. Independent of Engagement. */
@@ -13,17 +13,18 @@ export const ENGAGEMENT = ["UNSTARTED", "IN_PROGRESS", "DONE", "ABANDONED"] as c
 export type Engagement = (typeof ENGAGEMENT)[number];
 
 /**
- * A work (not an edition) of any medium: book, comic, movie, series, album,
- * game… Ported from Nightstand/readlist and generalised: the two axes,
- * Studied, Reason, Slot and the auto-stamped days are medium-neutral; the
- * medium decides labels, creator wording, size unit and slot cap.
+ * A work (not an edition) of any medium. Each medium is its own Document
+ * type (`book`, `comic`, `movie`, `series`, `music`, `game` — one Base
+ * each), all owned by the one Media App: the two axes, Studied, Reason,
+ * Slot and the auto-stamped days are medium-neutral; the medium decides
+ * labels, creator wording, size unit and slot cap.
  *
  * Days are "YYYY-MM-DD" text; "" (or null) means "not yet". `slot` 0 = not on
  * the Nightstand (PocketBase coerces empty numbers to 0).
  */
-export interface MediaItem extends SyncedRecord {
+export interface MediaItem extends Document {
+  /** The Document type IS the medium. */
   type: MediaTypeId;
-  title: string;
   /** Author / director / artist / developer — one free-text credit line. */
   creator: string;
   /** External work identity for dedupe, e.g. "openlibrary:/works/OL27448W". "" = none. */
@@ -44,33 +45,30 @@ export interface MediaItem extends SyncedRecord {
   slottedOn: DateStr;
   startedOn: DateStr;
   finishedOn: DateStr;
-  /** Normalised Tags (ADR 0014). May be undefined on old records — read with `?? []`. */
-  tags?: string[];
 }
 
-export const MEDIA = "media";
+export { MEDIA_TYPE_IDS } from "./mediaTypes";
 
 /**
  * A Quote (CONTEXT.md): a passage kept from a Media item. Owned by the Media
  * App; tombstoned with its item. `locator` is free text (page, chapter, time).
  */
-export interface Quote extends SyncedRecord {
+export interface Quote extends Document {
   mediaId: string;
   text: string;
   locator: string;
   comment: string;
   capturedOn: DateStr;
-  tags?: string[];
 }
 
-export const QUOTES = "media_quotes";
+export const QUOTES = "quote";
 
 /**
  * Lookup provider keys (ADR 0006 amendment, metadata lookups). One synced
  * record, id "default"; every key optional — a missing key just disables
  * that provider (the UI says "key needed").
  */
-export interface MediaSettings extends SyncedRecord {
+export interface MediaSettings extends Document {
   tmdbKey: string;
   rawgKey: string;
   comicvineKey: string;

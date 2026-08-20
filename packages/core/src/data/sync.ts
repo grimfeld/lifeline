@@ -1,6 +1,7 @@
-import { db, syncedCollectionNames, type SyncedRecord } from "./db";
+import { db, DOCUMENTS, syncedCollectionNames, type SyncedRecord } from "./db";
 import { pb } from "./pb";
-import { collectionDef } from "../registry";
+import { documentTypeSync } from "../documents/registry";
+import { isCommonKey, type Document } from "../documents/types";
 import { useSyncExternalStore } from "react";
 
 export type SyncState = "idle" | "syncing" | "offline" | "unauthenticated" | "error";
@@ -41,10 +42,31 @@ export function useSyncState(): { state: SyncState; pending: number; error: stri
 
 type PbRecord = Record<string, unknown> & { id: string; updated: string };
 
-/** Strip PocketBase system fields before storing locally. */
-function toLocal(r: PbRecord): SyncedRecord {
+/** Strip PocketBase system fields before storing locally; Documents get their `fields` JSON spread flat (ADR 0018). */
+function toLocal(collection: string, r: PbRecord): SyncedRecord {
   const { collectionId: _c, collectionName: _n, created: _cr, updated: _u, ...rest } = r as Record<string, unknown>;
+  if (collection === DOCUMENTS) {
+    const { fields, ...common } = rest as Record<string, unknown> & { fields?: unknown };
+    const extra = fields && typeof fields === "object" && !Array.isArray(fields) ? (fields as Record<string, unknown>) : {};
+    const doc = { ...extra, ...common } as Document;
+    if (!Array.isArray(doc.tags)) doc.tags = [];
+    if (typeof doc.folder !== "string") doc.folder = "";
+    if (doc.body === null) delete doc.body;
+    return doc;
+  }
   return rest as unknown as SyncedRecord;
+}
+
+/** The wire shape of a local record: Documents pack their type fields into `fields`. */
+function toRemote(collection: string, local: SyncedRecord): Record<string, unknown> {
+  if (collection !== DOCUMENTS) return local as unknown as Record<string, unknown>;
+  const common: Record<string, unknown> = {};
+  const fields: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(local)) {
+    if (isCommonKey(k)) common[k] = v;
+    else if (v !== undefined) fields[k] = v;
+  }
+  return { ...common, body: (common.body as string | undefined) ?? "", fields };
 }
 
 /** PocketBase says a collection is missing when the server hasn't run a migration yet. */
@@ -88,14 +110,14 @@ async function pushOnce(): Promise<void> {
         if (server.updatedAt && server.updatedAt > local.updatedAt) serverNewer = true;
         if (serverNewer) {
           // The App may rescue the losing local edit (ADR 0010) before pull overwrites it.
-          const hook = collectionDef(collection)?.onConflict;
-          if (hook) await hook(local, toLocal(server));
+          const hook = collection === DOCUMENTS ? documentTypeSync((local as Document).type)?.onConflict : undefined;
+          if (hook) await hook(local as Document, toLocal(collection, server) as Document);
         } else {
-          await col.update(recordId, local);
+          await col.update(recordId, toRemote(collection, local));
         }
       } catch (err) {
         if ((err as { status?: number }).status === 404) {
-          await col.create({ ...local, id: recordId });
+          await col.create({ ...toRemote(collection, local), id: recordId });
         } else {
           throw err;
         }
@@ -138,7 +160,7 @@ async function pullCollection(name: string): Promise<void> {
         // A locally-queued write is newer intent: let push resolve it (LWW check happens there).
         if (pending.has(r.id)) continue;
         const local = await db().collection(name).get(r.id);
-        const incoming = toLocal(r);
+        const incoming = toLocal(name, r);
         if (!local || incoming.updatedAt >= local.updatedAt) {
           await db().collection(name).put(incoming);
         }

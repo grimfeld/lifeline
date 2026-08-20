@@ -4,7 +4,7 @@ import { cn } from "@lifeline/ui";
 import { Flame } from "lucide-react";
 import { useNotes } from "../data/repo";
 import { currentStreak, lastDays, longestStreak, writtenDays } from "../domain/journalStats";
-import { journalHref } from "../workspace/useOpenNote";
+import { journalHref } from "../domain/types";
 
 /** Card: journal streak — dot strip of the last N days, current and longest streak (knob: days). */
 export function StreakCard({ settings }: CardProps) {

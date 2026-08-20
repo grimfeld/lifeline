@@ -3,8 +3,7 @@ import { formatHuman, todayStr, type CardProps } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 import { useNotes } from "../data/repo";
 import { avg, moodSeries } from "../domain/journalStats";
-import { MOODS } from "../domain/noteTypes";
-import { journalHref } from "../workspace/useOpenNote";
+import { MOODS, journalHref } from "../domain/types";
 
 const MOOD_COLORS: Record<number, string> = {
   1: "var(--chart-red)",
@@ -17,7 +16,7 @@ const MOOD_COLORS: Record<number, string> = {
 const moodLabel = (m: number) => MOODS.find((x) => x.value === String(m))?.label ?? String(m);
 const emojiOf = (m: number | null) => (m === null ? "" : moodLabel(Math.round(m)).split(" ")[0]);
 
-/** Card: mood over the last N days from daily notes' frontmatter (knob: days). */
+/** Card: mood over the last N days from daily notes' `mood` field (knob: days). */
 export function MoodCard({ settings }: CardProps) {
   const days = Math.max(1, Number(settings.days ?? 30));
   const today = todayStr();

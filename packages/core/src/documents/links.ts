@@ -1,0 +1,232 @@
+import { useMemo } from "react";
+import { extractLinks, normalizeName, type WikiLink } from "../markdown";
+import { docPath, normalizeFolder } from "../folders";
+import { aliasesOf, displayTitle, singularOf, type Document, type DocumentTypeDef } from "./types";
+import { useAllDocuments } from "./store";
+import { useDocumentTypes } from "./registry";
+import { docHref } from "./href";
+
+/** What a wikilink points at (ADR 0018/0019): a Document, or nothing yet. */
+export type LinkRef = { kind: "doc"; id: string; type: string } | { kind: "unresolved"; name: string };
+
+export interface ResolvedLink {
+  link: WikiLink;
+  ref: LinkRef;
+}
+
+export interface Backlink {
+  /** The referring Document. */
+  sourceId: string;
+  /** Text around the mention ("" for a Link field). */
+  context: string;
+  /** Key of the Link field that holds the reference, for field-based backlinks. */
+  field?: string;
+}
+
+export interface LinkName {
+  name: string;
+  ref: LinkRef;
+  subtitle?: string;
+  /** Type id of the target (for badges in the completer). */
+  type: string;
+}
+
+export interface LinkIndex {
+  docs: Document[];
+  byId: Map<string, Document>;
+  /** Resolve a name as written in [[…]] (with an optional `type:` prefix). */
+  resolve(name: string): LinkRef;
+  linksFrom(docId: string): ResolvedLink[];
+  backlinksTo(docId: string): Backlink[];
+  /** Normalised unresolved names → ids of the Documents mentioning them. */
+  unresolved: Map<string, string[]>;
+  /** Tag → ids of the Documents carrying it. */
+  tags: Map<string, string[]>;
+  /** Titles + aliases of every linkable Document, for autocomplete. */
+  names(): LinkName[];
+}
+
+function contextAround(text: string, from: number, to: number, radius = 60): string {
+  const start = Math.max(0, text.lastIndexOf("\n", from) + 1, from - radius);
+  const endNl = text.indexOf("\n", to);
+  const end = Math.min(text.length, endNl === -1 ? text.length : endNl, to + radius);
+  return (start > 0 && text[start - 1] !== "\n" ? "…" : "") + text.slice(start, end).trim() + (end < text.length && text[end] !== "\n" ? "…" : "");
+}
+
+function isLinkable(def: DocumentTypeDef | undefined): boolean {
+  if (!def) return false;
+  if (def.internal) return false;
+  return !!def.linkable;
+}
+
+/**
+ * Derive every link relation from the Documents (ADR 0018): wikilinks in
+ * bodies and Link fields. Precedence (CONTEXT.md "Wikilink"): an exact
+ * `Folder/Name` path → a unique title across linkable types (ties: the
+ * shallowest path, then the first) → an alias → unresolved. `[[type:Name]]`
+ * restricts to one type (id, label or plural, case-insensitive). Pure;
+ * rebuild whenever Documents or types change.
+ */
+export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[]): LinkIndex {
+  const defs = new Map(types.map((t) => [t.id, t]));
+  const typeByWord = new Map<string, string>();
+  for (const t of types) {
+    typeByWord.set(normalizeName(t.id), t.id);
+    typeByWord.set(normalizeName(t.label), t.id);
+    typeByWord.set(normalizeName(singularOf(t)), t.id);
+  }
+  const byId = new Map(docs.map((d) => [d.id, d]));
+  const targets = docs.filter((d) => isLinkable(defs.get(d.type)));
+  const depth = (d: Document) => (d.folder ? d.folder.split("/").length : 0);
+  const titleOf = (d: Document) => displayTitle(d, defs.get(d.type));
+
+  const byPath = new Map<string, string>();
+  const byTitle = new Map<string, string>();
+  const byAlias = new Map<string, string>();
+  const byTypeTitle = new Map<string, string>();
+  const byTypeAlias = new Map<string, string>();
+  for (const d of targets) {
+    const title = titleOf(d);
+    byPath.set(normalizeName(docPath({ folder: d.folder, title })), d.id);
+    const key = normalizeName(title);
+    const cur = byTitle.get(key);
+    if (!cur || depth(d) < depth(byId.get(cur)!)) byTitle.set(key, d.id);
+    const tk = `${d.type}:${key}`;
+    if (!byTypeTitle.has(tk)) byTypeTitle.set(tk, d.id);
+    for (const a of aliasesOf(d, defs.get(d.type))) {
+      const k = normalizeName(a);
+      if (!byAlias.has(k)) byAlias.set(k, d.id);
+      const tak = `${d.type}:${k}`;
+      if (!byTypeAlias.has(tak)) byTypeAlias.set(tak, d.id);
+    }
+  }
+
+  const ref = (id: string): LinkRef => ({ kind: "doc", id, type: byId.get(id)?.type ?? "" });
+
+  function resolve(name: string): LinkRef {
+    let k = normalizeName(name);
+    // `type:Name` prefix
+    const colon = k.indexOf(":");
+    if (colon > 0) {
+      const typeId = typeByWord.get(k.slice(0, colon).trim());
+      if (typeId) {
+        const rest = k.slice(colon + 1).trim();
+        const hit = byTypeTitle.get(`${typeId}:${rest}`) ?? byTypeAlias.get(`${typeId}:${rest}`);
+        if (hit) return ref(hit);
+        k = rest;
+      }
+    }
+    if (k.includes("/")) {
+      const byP = byPath.get(normalizeName(normalizeFolder(k)));
+      if (byP) return ref(byP);
+    }
+    const t = byTitle.get(k);
+    if (t) return ref(t);
+    const a = byAlias.get(k);
+    if (a) return ref(a);
+    return { kind: "unresolved", name: name.trim() };
+  }
+
+  const linksFromMap = new Map<string, ResolvedLink[]>();
+  const backlinks = new Map<string, Backlink[]>();
+  const unresolved = new Map<string, string[]>();
+  const tags = new Map<string, string[]>();
+
+  for (const d of docs) {
+    const def = defs.get(d.type);
+    const body = typeof d.body === "string" ? d.body : "";
+    const links = body ? extractLinks(body).map((link) => ({ link, ref: resolve(link.name) })) : [];
+    linksFromMap.set(d.id, links);
+    for (const { link, ref: r } of links) {
+      if (r.kind === "unresolved") {
+        const k = normalizeName(r.name);
+        const list = unresolved.get(k) ?? [];
+        if (!list.includes(d.id)) list.push(d.id);
+        unresolved.set(k, list);
+        continue;
+      }
+      if (r.id === d.id) continue; // self-link
+      const list = backlinks.get(r.id) ?? [];
+      list.push({ sourceId: d.id, context: contextAround(body, link.from, link.to) });
+      backlinks.set(r.id, list);
+    }
+    // Link fields (ADR 0019): a stored id is a reference too.
+    for (const f of def?.fields ?? []) {
+      if (f.kind !== "link") continue;
+      const v = d[f.key];
+      const ids = Array.isArray(v) ? v : typeof v === "string" && v ? [v] : [];
+      for (const id of ids) {
+        if (typeof id !== "string" || id === d.id || !byId.has(id)) continue;
+        const list = backlinks.get(id) ?? [];
+        list.push({ sourceId: d.id, context: "", field: f.key });
+        backlinks.set(id, list);
+      }
+    }
+    for (const t of d.tags ?? []) {
+      const list = tags.get(t) ?? [];
+      list.push(d.id);
+      tags.set(t, list);
+    }
+  }
+
+  return {
+    docs,
+    byId,
+    resolve,
+    linksFrom: (id) => linksFromMap.get(id) ?? [],
+    backlinksTo: (id) => backlinks.get(id) ?? [],
+    unresolved,
+    tags,
+    names: () => {
+      const out: LinkName[] = [];
+      const titleCount = new Map<string, number>();
+      for (const d of targets) {
+        const k = normalizeName(titleOf(d));
+        titleCount.set(k, (titleCount.get(k) ?? 0) + 1);
+      }
+      for (const d of targets) {
+        const def = defs.get(d.type);
+        const title = titleOf(d);
+        const ambiguous = (titleCount.get(normalizeName(title)) ?? 0) > 1;
+        const sub = typeof def?.linkable === "object" ? def.linkable.subtitle?.(d) : undefined;
+        out.push({ name: ambiguous ? docPath({ folder: d.folder, title }) : title, ref: ref(d.id), subtitle: sub ?? (d.folder || (def && singularOf(def))), type: d.type });
+        for (const a of aliasesOf(d, def)) out.push({ name: a, ref: ref(d.id), subtitle: `→ ${title}`, type: d.type });
+      }
+      return out;
+    },
+  };
+}
+
+/** The live link index over every Document (ADR 0018). A React hook. */
+export function useLinkIndex(): LinkIndex {
+  const docs = useAllDocuments();
+  const types = useDocumentTypes();
+  return useMemo(() => buildLinkIndex(docs, types), [docs, types]);
+}
+
+/** Backlinks ("mentioned in") of one Document. A React hook. */
+export function useBacklinks(docId: string | undefined): Backlink[] {
+  const idx = useLinkIndex();
+  return docId ? idx.backlinksTo(docId) : [];
+}
+
+export interface BacklinkRow extends Backlink {
+  title: string;
+  type: string;
+  href: string;
+}
+
+/** Backlinks of one Document with the referrer's title and route resolved — for "Mentioned in" lists. A React hook. */
+export function useBacklinkRows(docId: string | undefined): BacklinkRow[] {
+  const idx = useLinkIndex();
+  const types = useDocumentTypes();
+  return useMemo(() => {
+    if (!docId) return [];
+    const defs = new Map(types.map((t) => [t.id, t]));
+    return idx.backlinksTo(docId).map((b) => {
+      const src = idx.byId.get(b.sourceId);
+      const def = src ? defs.get(src.type) : undefined;
+      return { ...b, title: src ? displayTitle(src, def) : "?", type: src?.type ?? "", href: src ? docHref(src, def) : "" };
+    });
+  }, [idx, types, docId]);
+}

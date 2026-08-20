@@ -3,7 +3,7 @@ import { Button, Card, CardContent, cn, Input, Select, SelectContent, SelectItem
 import { Quote as QuoteIcon, Settings2, SlidersHorizontal } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useQuotes } from "../data/quotes";
-import { QUOTES_HREF } from "../linkable";
+import { QUOTES_HREF } from "../constants";
 import { MEDIA_TYPES, mediaType, SLOTTED_TYPES, type MediaTypeId } from "../domain/mediaTypes";
 import type { MediaItem } from "../domain/types";
 import { freeSlots, nightstand } from "../domain/rules";

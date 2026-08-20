@@ -24,7 +24,7 @@ export function HabitsCard() {
         return (
           <li key={s.id} className="grid gap-1">
             <div className="flex items-center gap-2">
-              <span className="truncate text-sm">{s.name}</span>
+              <span className="truncate text-sm">{s.title}</span>
               {streak > 0 && <span className="text-muted-foreground text-xs">{streak}d</span>}
               <QuickLogButton stat={s} entries={es} className="ml-auto size-6" />
             </div>

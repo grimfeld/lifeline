@@ -1,7 +1,7 @@
 import type { DaylogItem, DaylogProvider } from "@lifeline/core";
 import { completedInRange } from "./domain/completed";
 import { useOverrides, useTasks } from "./data/repo";
-import { TASKS_HREF } from "./linkable";
+import { TASKS_HREF } from "./domain/types";
 import { APP_ID } from "./schedulable";
 
 /**

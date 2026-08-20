@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { useBacklinks } from "@lifeline/core";
+import { displayTitle, docHref, documentType, useLinkIndex } from "@lifeline/core";
 import {
   Badge,
   Button,
@@ -47,7 +47,17 @@ export function StatDetailScreen() {
   const navigate = useNavigate();
   const stat = useStat(id);
   const entries = useStatEntries(id);
-  const backlinks = useBacklinks({ appId: "stats", itemId: id ?? "" });
+  const linkIndex = useLinkIndex();
+  // "Mentioned in": every Document whose body or Link field points at this Stat (Core link index, ADR 0018).
+  const backlinks = useMemo(
+    () =>
+      (id ? linkIndex.backlinksTo(id) : []).flatMap((b) => {
+        const src = linkIndex.byId.get(b.sourceId);
+        if (!src) return [];
+        return [{ sourceId: b.sourceId, title: displayTitle(src, documentType(src.type)), href: docHref(src), excerpt: b.context }];
+      }),
+    [linkIndex, id],
+  );
   const [period, setPeriod] = useState<Period>("month");
   const [logOpen, setLogOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -88,7 +98,7 @@ export function StatDetailScreen() {
           <ArrowLeft />
         </Button>
         <span className="size-2.5 rounded-full" style={{ background: color }} />
-        <h1 className="truncate text-2xl font-semibold tracking-tight">{stat.name}</h1>
+        <h1 className="truncate text-2xl font-semibold tracking-tight">{stat.title}</h1>
         <div className="ml-auto flex items-center gap-1">
           <Button size="icon" variant="ghost" className="size-8" title="Edit" onClick={() => setEditOpen(true)}>
             <Pencil />
@@ -173,7 +183,7 @@ export function StatDetailScreen() {
           <h2 className="text-muted-foreground text-sm font-medium">Mentioned in</h2>
           <ul className="grid gap-1">
             {backlinks.map((b) => (
-              <li key={`${b.appId}/${b.sourceId}`}>
+              <li key={b.sourceId}>
                 <button
                   type="button"
                   className="text-sm hover:underline disabled:no-underline"
@@ -194,7 +204,7 @@ export function StatDetailScreen() {
       <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Delete "{stat.name}"?</DialogTitle>
+            <DialogTitle>Delete "{stat.title}"?</DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground text-sm">Every logged entry for this stat is deleted with it. This cannot be undone.</p>
           <DialogFooter>

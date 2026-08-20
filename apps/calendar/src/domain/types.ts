@@ -1,12 +1,11 @@
-import type { DateStr, SyncedRecord, TimeStr } from "@lifeline/core";
+import type { DateStr, Document, TimeStr } from "@lifeline/core";
 
 /**
  * A thing that happens at a fixed time (CONTEXT.md): not work, not
  * completable. Timed on one day (start/end "HH:MM"), or all-day spanning
- * [date, endDate] when start is null.
+ * [date, endDate] when start is null. A Document of type `event` (ADR 0018).
  */
-export interface Event extends SyncedRecord {
-  title: string;
+export interface Event extends Document {
   notes: string;
   /** First (or only) day. */
   date: DateStr;
@@ -15,9 +14,10 @@ export interface Event extends SyncedRecord {
   /** null = all day. */
   start: TimeStr | null;
   end: TimeStr | null;
-  createdAt: DateStr;
-  /** Normalised Tags (ADR 0014); undefined on old records — read with `?? []`. */
-  tags?: string[];
 }
 
-export const EVENTS = "events";
+/** Document type id. */
+export const EVENT_TYPE = "event";
+/** @deprecated old collection name; kept as the type id alias for callers. */
+export const EVENTS = EVENT_TYPE;
+export const EVENTS_HREF = "/app/events";

@@ -9,6 +9,7 @@ import { describeSchedule } from "./domain/schedule";
 import { completeChore, lastDoneMap, useChores, useCompletions } from "./data/repo";
 
 export const APP_ID = "chores";
+export const CHORES_HREF = "/app/chores";
 
 /**
  * Chores on time surfaces: each active chore appears on its due date, and
@@ -37,11 +38,11 @@ export const choresSchedulable: SchedulableProvider = {
         key: `${APP_ID}/${chore.id}`,
         appId: APP_ID,
         itemId: chore.id,
-        title: chore.name,
+        title: chore.title,
         subtitle: describeSchedule(chore.schedule),
         date: ds.dueOn,
         urgency,
-        tags: chore.tags ?? [],
+        tags: chore.tags,
       });
     }
     // Done history inside the queried range.
@@ -53,11 +54,11 @@ export const choresSchedulable: SchedulableProvider = {
         key: `${APP_ID}/${chore.id}@${c.doneOn}`,
         appId: APP_ID,
         itemId: chore.id,
-        title: chore.name,
+        title: chore.title,
         date: c.doneOn,
         urgency: "none",
         completedOn: c.doneOn,
-        tags: chore.tags ?? [],
+        tags: chore.tags,
       });
     }
     return items;

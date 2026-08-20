@@ -1,36 +1,25 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { all, initApps, type Weekday } from "@lifeline/core";
-import { OCCURRENCES, TASKS, type OccurrenceOverride, type Task } from "../domain/types";
+import { documentsOf, initApps, type Weekday } from "@lifeline/core";
+import { taskTypes } from "../types";
+import { TASK, TASK_OCCURRENCE, type OccurrenceOverride, type Task } from "../domain/types";
 import { deriveItems, occurrenceItemId } from "../domain/occurrences";
 import { addTask, deleteTask, moveItem, setCompleted } from "./repo";
 
-// Open the local database once with the Tasks App's collections (no sync started).
-initApps([
-  {
-    id: "tasks",
-    title: "Tasks",
-    collections: [
-      { name: TASKS, indexes: ["date", "status"] },
-      { name: OCCURRENCES, indexes: ["taskId", "[taskId+sourceDate]", "movedTo"] },
-    ],
-    screens: [],
-    cards: [],
-    commands: [],
-  },
-]);
+// Open the local database once with the Tasks App's types (no sync started).
+initApps([{ id: "tasks", title: "Tasks", types: taskTypes, screens: [], cards: [], commands: [] }]);
 
 const MON: Weekday = 1;
 const week = { start: "2026-08-24", end: "2026-08-30" };
 
 async function state() {
-  const tasks = await all<Task>(TASKS);
-  const overrides = await all<OccurrenceOverride>(OCCURRENCES);
+  const tasks = await documentsOf<Task>(TASK);
+  const overrides = await documentsOf<OccurrenceOverride>(TASK_OCCURRENCE);
   return { tasks, overrides, items: deriveItems(tasks, overrides, week) };
 }
 
 beforeEach(async () => {
-  for (const t of await all<Task>(TASKS)) await deleteTask(t.id);
+  for (const t of await documentsOf<Task>(TASK)) await deleteTask(t.id);
 });
 
 describe("one-time intents", () => {

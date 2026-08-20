@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { completedInRange, dayLabel, groupByDay } from "./completed";
 import type { OccurrenceOverride, Task } from "./types";
 
-const base = { updatedAt: "2026-01-01T00:00:00.000Z", deleted: 0 as const, notes: "" };
+const base = { updatedAt: "2026-01-01T00:00:00.000Z", deleted: 0 as const, notes: "", tags: [] as string[], folder: "" };
 
 function oneTime(id: string, completedOn: string | null, extra: Partial<Task> = {}): Task {
   return {
     ...base,
+    type: "task" as const,
     id,
     title: id,
     status: "active",
@@ -21,6 +22,7 @@ function oneTime(id: string, completedOn: string | null, extra: Partial<Task> = 
 function weekly(id: string, extra: Partial<Task> = {}): Task {
   return {
     ...base,
+    type: "task" as const,
     id,
     title: id,
     status: "active",
@@ -33,7 +35,7 @@ function weekly(id: string, extra: Partial<Task> = {}): Task {
 }
 
 function ov(taskId: string, sourceDate: string, p: Partial<OccurrenceOverride>): OccurrenceOverride {
-  return { ...base, id: `${taskId}${sourceDate}`, taskId, sourceDate, movedTo: null, completedOn: null, ...p };
+  return { ...base, type: "task_occurrence" as const, id: `${taskId}${sourceDate}`, title: "", createdAt: "2026-01-01", taskId, sourceDate, movedTo: null, completedOn: null, ...p };
 }
 
 describe("completedInRange", () => {

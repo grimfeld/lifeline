@@ -10,7 +10,7 @@ function Row({ stat, entries }: { stat: Stat; entries: Entry[] }) {
   return (
     <li className="flex items-center gap-2 rounded-md px-1 py-0.5">
       <span className="size-2 shrink-0 rounded-full" style={{ background: s.color }} />
-      <span className="truncate text-sm">{stat.name}</span>
+      <span className="truncate text-sm">{stat.title}</span>
       {s.streak > 1 && (
         <span className="flex items-center gap-0.5 text-xs">
           <Flame className="size-3" style={{ color: s.color }} /> {s.streak}

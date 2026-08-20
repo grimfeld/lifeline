@@ -13,3 +13,7 @@ The Notes App wants Obsidian's chrome (file tree, search, tags rail; editor; lin
 - Two shell-level layouts; the sidebar, palette and routes are workspace-aware. Adding a third workspace is a layout plus a switcher entry.
 - The Notes App has no entries in the Dashboard sidebar; the Dashboard reaches notes through Cards and links only. The Journal is not a separate screen but "the daily note open in the Notes workspace" with a date toolbar.
 - v1 has a single editor pane; tabs/splits are additive.
+
+## Amendment (Aug 2026)
+
+With every Document able to carry a body (ADR 0018) the Notes workspace is renamed the **Vault** and widened: its tree, generic frontmatter+body editor, search and links panel cover every bodied Document whatever its type; the Note taker, Clipper and Writer's pad Apps put their specialised editors and App screens inside it. The Dashboard gains Bases. Two workspaces remain; the reason (two chromes that don't mix) is unchanged.

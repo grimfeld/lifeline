@@ -1,4 +1,5 @@
-import { db, newId, normalizeTags, put, remove, todayStr, useLiveQuery } from "@lifeline/core";
+import { useMemo } from "react";
+import { documentsWhere, normalizeTags, putDocument, removeDocument, todayStr, useDocuments } from "@lifeline/core";
 import { QUOTES, type Quote } from "../domain/types";
 
 function normalize(q: Quote): Quote {
@@ -6,35 +7,33 @@ function normalize(q: Quote): Quote {
 }
 
 export function useQuotes(): Quote[] {
-  return useLiveQuery(async () => (await db().collection<Quote>(QUOTES).where("deleted").equals(0).toArray()).map(normalize), [], [] as Quote[]);
+  const rows = useDocuments<Quote>(QUOTES);
+  return useMemo(() => rows.map(normalize), [rows]);
 }
 
 export async function addQuote(input: { mediaId: string; text: string; locator?: string; comment?: string; tags?: string[] }): Promise<Quote> {
-  const q: Quote = {
-    id: newId(),
+  return putDocument<Quote>({
+    type: QUOTES,
     mediaId: input.mediaId,
     text: input.text.trim(),
     locator: (input.locator ?? "").trim(),
     comment: (input.comment ?? "").trim(),
     capturedOn: todayStr(),
     tags: normalizeTags(input.tags ?? []),
-    updatedAt: "",
-    deleted: 0,
-  };
-  await put<Quote>(QUOTES, q);
-  return q;
+  });
 }
 
 export async function updateQuote(q: Quote): Promise<void> {
-  await put<Quote>(QUOTES, { ...q, text: q.text.trim(), tags: normalizeTags(q.tags ?? []) });
+  // Title is derived from the text; clear it so putDocument re-derives.
+  await putDocument<Quote>({ ...q, type: QUOTES, title: "", text: q.text.trim(), tags: normalizeTags(q.tags ?? []) });
 }
 
 export async function deleteQuote(id: string): Promise<void> {
-  await remove(QUOTES, id);
+  await removeDocument(id);
 }
 
 /** Tombstone every quote of a Media item (called when the item is deleted). */
 export async function deleteQuotesOf(mediaId: string): Promise<void> {
-  const qs = await db().collection<Quote>(QUOTES).where("mediaId").equals(mediaId).toArray();
-  for (const q of qs) if (!q.deleted) await remove(QUOTES, q.id);
+  const qs = await documentsWhere<Quote>(QUOTES, "mediaId", mediaId);
+  for (const q of qs) await removeDocument(q.id);
 }

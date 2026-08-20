@@ -1,7 +1,7 @@
 import type { DaylogItem, DaylogProvider } from "@lifeline/core";
 import { eventsOn } from "./domain/events";
 import { useEvents } from "./data/repo";
-import { EVENTS_HREF } from "./linkable";
+import { EVENTS_HREF } from "./domain/types";
 import { APP_ID } from "./timed";
 
 /** What happened on a day: the Events taking place that day. */

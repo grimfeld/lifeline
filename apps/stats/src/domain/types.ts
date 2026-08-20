@@ -1,4 +1,4 @@
-import type { DateStr, SyncedRecord } from "@lifeline/core";
+import type { Document } from "@lifeline/core";
 
 export const STAT_KINDS = ["additive", "measurement", "boolean", "collection"] as const;
 export type StatKind = (typeof STAT_KINDS)[number];
@@ -11,13 +11,13 @@ export function colorVar(slot: string): string {
 }
 
 /**
- * A named series (notch's Stat). Defines what is tracked and how values are
- * read; holds no totals — those are always derived from Entries. Kind is
+ * A named series (notch's Stat), a Document of type "stat" whose `title` is
+ * the name. Defines what is tracked and how values are read; holds no totals — those are always derived from Entries. Kind is
  * fixed after creation (entries would mean something else). Goals/targets
  * are out of scope; `universeSize` is a fact shown as a denominator.
  */
-export interface Stat extends SyncedRecord {
-  name: string;
+export interface Stat extends Document {
+  type: typeof STAT;
   kind: StatKind;
   /** additive/measurement only. */
   unit: string;
@@ -26,9 +26,6 @@ export interface Stat extends SyncedRecord {
   defaultIncrement: number;
   /** collection only. 0 = unknown. */
   universeSize: number;
-  createdAt: DateStr;
-  /** Normalised Tags (ADR 0014); undefined on old records — read with `?? []`. */
-  tags?: string[];
 }
 
 /**
@@ -37,7 +34,8 @@ export interface Stat extends SyncedRecord {
  * ignored; duplicates are collapsed at derivation, never rejected (ADR-0002
  * of notch, kept).
  */
-export interface Entry extends SyncedRecord {
+export interface Entry extends Document {
+  type: typeof STAT_ENTRY;
   statId: string;
   value: number;
   /** collection only: the item collected. */
@@ -47,5 +45,9 @@ export interface Entry extends SyncedRecord {
 
 export type Period = "week" | "month" | "year" | "all";
 
-export const STATS = "stats";
-export const ENTRIES = "stat_entries";
+/** Document type ids (ADR 0019). */
+export const STAT = "stat";
+export const STAT_ENTRY = "stat_entry";
+/** @deprecated aliases of the type ids (old collection names). */
+export const STATS = STAT;
+export const ENTRIES = STAT_ENTRY;

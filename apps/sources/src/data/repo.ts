@@ -1,5 +1,6 @@
-import { db, newId, normalizeTags, put, remove, todayStr, useLiveQuery } from "@lifeline/core";
-import { COLOR_SLOTS, DEFAULT_REFRESH, SOURCES, type CalendarSub, type Embed, type Feed, type LiveValue, type Source, type SourceKind } from "../domain/types";
+import { useMemo } from "react";
+import { newId, normalizeTags, putDocument, removeDocument, useDocuments } from "@lifeline/core";
+import { COLOR_SLOTS, DEFAULT_REFRESH, SOURCE_TYPE, type CalendarSub, type Embed, type Feed, type LiveValue, type Source, type SourceKind } from "../domain/types";
 import { normalizeEmbedUrl } from "../domain/url";
 
 function normalize(s: Source): Source {
@@ -7,24 +8,26 @@ function normalize(s: Source): Source {
 }
 
 export function useSources(): Source[] {
-  return useLiveQuery(
-    async () => (await db().collection<Source>(SOURCES).where("deleted").equals(0).toArray()).map(normalize),
-    [],
-    [] as Source[],
-  );
+  const rows = useDocuments<Source>(SOURCE_TYPE);
+  // Stable identity between live-query results: effects and memos depend on it.
+  return useMemo(() => rows.map(normalize), [rows]);
 }
 
+function useOfKind<T extends Source>(kind: SourceKind): T[] {
+  const all = useSources();
+  return useMemo(() => all.filter((s): s is T => s.kind === kind), [all, kind]);
+}
 export function useEmbeds(): Embed[] {
-  return useSources().filter((s): s is Embed => s.kind === "embed");
+  return useOfKind<Embed>("embed");
 }
 export function useFeeds(): Feed[] {
-  return useSources().filter((s): s is Feed => s.kind === "feed");
+  return useOfKind<Feed>("feed");
 }
 export function useCalendarSubs(): CalendarSub[] {
-  return useSources().filter((s): s is CalendarSub => s.kind === "ical");
+  return useOfKind<CalendarSub>("ical");
 }
 export function useLiveValues(): LiveValue[] {
-  return useSources().filter((s): s is LiveValue => s.kind === "value");
+  return useOfKind<LiveValue>("value");
 }
 export function useSource(id: string | undefined): Source | undefined {
   return useSources().find((e) => e.id === id);
@@ -50,7 +53,7 @@ function scrubBase(kind: SourceKind, input: SourceInputBase) {
   const headers: Record<string, string> = {};
   for (const [k, v] of Object.entries(input.headers ?? {})) if (k.trim() && v.trim()) headers[k.trim()] = v.trim();
   return {
-    name: input.name.trim() || hostFallback(url),
+    title: input.name.trim() || hostFallback(url),
     url,
     tags: normalizeTags(input.tags ?? []),
     refreshMinutes: typeof r === "number" && Number.isFinite(r) && r > 0 ? Math.round(r) : kind === "embed" ? null : DEFAULT_REFRESH[kind],
@@ -70,27 +73,27 @@ function hostFallback(url: string): string {
 export type EmbedInput = SourceInputBase;
 export async function addEmbed(input: EmbedInput): Promise<string> {
   const id = newId();
-  await put<Embed>(SOURCES, { id, kind: "embed", ...scrubBase("embed", input), createdAt: todayStr() });
+  await putDocument<Embed>({ type: SOURCE_TYPE, id, kind: "embed", ...scrubBase("embed", input) });
   return id;
 }
 export async function updateEmbed(embed: Embed, input: EmbedInput): Promise<void> {
-  await put<Embed>(SOURCES, { ...embed, ...scrubBase("embed", input) });
+  await putDocument<Embed>({ ...embed, ...scrubBase("embed", input) });
 }
 
 // ---- Feed
 export type FeedInput = SourceInputBase;
 export async function addFeed(input: FeedInput): Promise<string> {
   const id = newId();
-  await put<Feed>(SOURCES, { id, kind: "feed", ...scrubBase("feed", input), seenUpTo: null, createdAt: todayStr() });
+  await putDocument<Feed>({ type: SOURCE_TYPE, id, kind: "feed", ...scrubBase("feed", input), seenUpTo: null });
   return id;
 }
 export async function updateFeed(feed: Feed, input: FeedInput): Promise<void> {
-  await put<Feed>(SOURCES, { ...feed, ...scrubBase("feed", input) });
+  await putDocument<Feed>({ ...feed, ...scrubBase("feed", input) });
 }
 /** "Seen up to now": items published after this are new. */
 export async function markFeedSeen(feed: Feed, upTo: string = new Date().toISOString()): Promise<void> {
   if (feed.seenUpTo && feed.seenUpTo >= upTo) return;
-  await put<Feed>(SOURCES, { ...feed, seenUpTo: upTo });
+  await putDocument<Feed>({ ...feed, seenUpTo: upTo });
 }
 
 // ---- Calendar subscription
@@ -99,11 +102,11 @@ export interface CalendarSubInput extends SourceInputBase {
 }
 export async function addCalendarSub(input: CalendarSubInput): Promise<string> {
   const id = newId();
-  await put<CalendarSub>(SOURCES, { id, kind: "ical", ...scrubBase("ical", input), color: slot(input.color), createdAt: todayStr() });
+  await putDocument<CalendarSub>({ type: SOURCE_TYPE, id, kind: "ical", ...scrubBase("ical", input), color: slot(input.color) });
   return id;
 }
 export async function updateCalendarSub(sub: CalendarSub, input: CalendarSubInput): Promise<void> {
-  await put<CalendarSub>(SOURCES, { ...sub, ...scrubBase("ical", input), color: slot(input.color) });
+  await putDocument<CalendarSub>({ ...sub, ...scrubBase("ical", input), color: slot(input.color) });
 }
 const slot = (c: string) => (COLOR_SLOTS.includes(c as (typeof COLOR_SLOTS)[number]) ? c : "blue");
 
@@ -127,13 +130,13 @@ function scrubValue(input: LiveValueInput) {
 }
 export async function addLiveValue(input: LiveValueInput): Promise<string> {
   const id = newId();
-  await put<LiveValue>(SOURCES, { id, kind: "value", ...scrubBase("value", input), ...scrubValue(input), createdAt: todayStr() });
+  await putDocument<LiveValue>({ type: SOURCE_TYPE, id, kind: "value", ...scrubBase("value", input), ...scrubValue(input) });
   return id;
 }
 export async function updateLiveValue(v: LiveValue, input: LiveValueInput): Promise<void> {
-  await put<LiveValue>(SOURCES, { ...v, ...scrubBase("value", input), ...scrubValue(input) });
+  await putDocument<LiveValue>({ ...v, ...scrubBase("value", input), ...scrubValue(input) });
 }
 
 export async function deleteSource(id: string): Promise<void> {
-  await remove(SOURCES, id);
+  await removeDocument(id);
 }

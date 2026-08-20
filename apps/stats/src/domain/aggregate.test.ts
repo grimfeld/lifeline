@@ -17,7 +17,7 @@ import type { Entry } from "./types";
 
 const now = new Date(2026, 7, 16, 15, 0); // local Aug 16 2026, 15:00
 function e(day: string, value = 1, item = ""): Entry {
-  return { id: `${day}-${value}-${item}`, updatedAt: "", deleted: 0, statId: "s", value, item, ts: new Date(`${day}T10:00`).toISOString() };
+  return { id: `${day}-${value}-${item}`, type: "stat_entry", title: "", tags: [], folder: "", createdAt: day, updatedAt: "", deleted: 0, statId: "s", value, item, ts: new Date(`${day}T10:00`).toISOString() };
 }
 
 describe("periods", () => {

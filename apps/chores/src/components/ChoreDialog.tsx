@@ -18,15 +18,18 @@ import {
   toast,
 } from "@lifeline/ui";
 import {
+  displayTitle,
+  docHref,
+  documentType,
   normalizeTag,
   todayStr,
   useBacklinks,
+  useLinkIndex,
   useTagVocabulary,
   type Weekday,
 } from "@lifeline/core";
 import type { Chore, Schedule } from "../domain/types";
 import { addChore, updateChore } from "../data/repo";
-import { APP_ID } from "../schedulable";
 
 const WEEKDAYS: { value: Weekday; label: string }[] = [
   { value: 1, label: "Mon" },
@@ -38,27 +41,32 @@ const WEEKDAYS: { value: Weekday; label: string }[] = [
   { value: 0, label: "Sun" },
 ];
 
-/** Notes mentioning this chore via [[wikilink]] (ADR 0009). Muted, read-only. */
+/** Documents mentioning this chore via [[wikilink]] (ADR 0018). Muted, read-only. */
 function MentionedIn({ choreId }: { choreId: string }) {
-  const links = useBacklinks({ appId: APP_ID, itemId: choreId });
+  const links = useBacklinks(choreId);
+  const idx = useLinkIndex();
   if (links.length === 0) return null;
   return (
     <div className="grid gap-1 text-xs text-muted-foreground">
       <span>
-        Mentioned in {links.length} {links.length === 1 ? "note" : "notes"}
+        Mentioned in {links.length} {links.length === 1 ? "document" : "documents"}
       </span>
       <ul className="grid gap-0.5">
-        {links.map((l) => (
-          <li key={`${l.appId}/${l.sourceId}`}>
-            {l.href ? (
-              <a href={l.href} className="underline-offset-2 hover:underline">
-                {l.title}
-              </a>
-            ) : (
-              l.title
-            )}
-          </li>
-        ))}
+        {links.map((l) => {
+          const src = idx.byId.get(l.sourceId);
+          const title = src ? displayTitle(src, documentType(src.type)) : l.sourceId;
+          return (
+            <li key={`${l.sourceId}/${l.field ?? ""}`}>
+              {src ? (
+                <a href={docHref(src)} className="underline-offset-2 hover:underline">
+                  {title}
+                </a>
+              ) : (
+                title
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -86,7 +94,7 @@ export function ChoreDialog({
 
   useEffect(() => {
     if (!open) return;
-    setName(chore?.name ?? "");
+    setName(chore?.title ?? "");
     setTags(chore?.tags ?? []);
     const s = chore?.schedule;
     setKind(s?.kind ?? "weekly");
@@ -117,11 +125,11 @@ export function ChoreDialog({
       return;
     }
     if (chore) {
-      await updateChore({ ...chore, name: name.trim(), tags, schedule });
+      await updateChore({ ...chore, title: name.trim(), tags, schedule });
       toast.success("Chore updated");
     } else {
       await addChore({
-        name: name.trim(),
+        title: name.trim(),
         tags,
         schedule,
         anchorDate: schedule.kind === "interval" ? todayStr() : null,

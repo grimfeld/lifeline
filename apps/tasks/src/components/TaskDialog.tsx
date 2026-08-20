@@ -22,13 +22,15 @@ import {
   normalizeTag,
   todayStr,
   useBacklinks,
+  useLinkIndex,
+  displayTitle,
+  docHref,
   useTagVocabulary,
   type DateStr,
   type Weekday,
 } from "@lifeline/core";
 import type { Recurrence, Task } from "../domain/types";
 import { addTask, updateTask } from "../data/repo";
-import { APP_ID } from "../schedulable";
 
 /** Monday-first display order; values are Core weekdays (0 = Sunday). */
 export const WEEKDAYS: { value: Weekday; label: string }[] = [
@@ -46,23 +48,28 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 /** Notes that link to this Task (edit mode only). Hidden when there are none. */
 function MentionedIn({ taskId }: { taskId: string }) {
-  const backlinks = useBacklinks({ appId: APP_ID, itemId: taskId });
+  const backlinks = useBacklinks(taskId);
+  const idx = useLinkIndex();
   if (backlinks.length === 0) return null;
   return (
     <div className="text-muted-foreground grid gap-1 text-xs">
-      <span>Mentioned in {backlinks.length} {backlinks.length === 1 ? "note" : "notes"}</span>
+      <span>Mentioned in {backlinks.length} {backlinks.length === 1 ? "document" : "documents"}</span>
       <ul className="grid gap-0.5">
-        {backlinks.map((b) => (
-          <li key={`${b.appId}/${b.sourceId}`} className="truncate">
-            {b.href ? (
-              <a href={b.href} className="hover:text-foreground underline-offset-2 hover:underline">
-                {b.title}
-              </a>
-            ) : (
-              b.title
-            )}
-          </li>
-        ))}
+        {backlinks.map((b) => {
+          const src = idx.byId.get(b.sourceId);
+          const title = src ? displayTitle(src) : b.sourceId;
+          return (
+            <li key={`${b.sourceId}/${b.field ?? ""}`} className="truncate">
+              {src ? (
+                <a href={docHref(src)} className="hover:text-foreground underline-offset-2 hover:underline">
+                  {title}
+                </a>
+              ) : (
+                title
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

@@ -41,16 +41,16 @@ export function AddEntryDialog({
   async function submit() {
     if (stat.kind === "boolean") {
       await addEntry({ statId: stat.id, value: 1, ts: noonOf(day) });
-      toast.success(`${stat.name} marked for ${day}`);
+      toast.success(`${stat.title} marked for ${day}`);
     } else if (stat.kind === "collection") {
       if (!item.trim()) return void toast.error("Name the item");
       await addEntry({ statId: stat.id, value: 1, item: item.trim(), ts: new Date(when).toISOString() });
-      toast.success(`${item.trim()} added to ${stat.name}`);
+      toast.success(`${item.trim()} added to ${stat.title}`);
     } else {
       const v = Number(value);
       if (!value.trim() || Number.isNaN(v)) return void toast.error("Enter a number");
       await addEntry({ statId: stat.id, value: v, ts: new Date(when).toISOString() });
-      toast.success(`${stat.name}: ${v}${stat.unit ? ` ${stat.unit}` : ""} logged`);
+      toast.success(`${stat.title}: ${v}${stat.unit ? ` ${stat.unit}` : ""} logged`);
     }
     onOpenChange(false);
   }
@@ -60,7 +60,7 @@ export function AddEntryDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>
-            {stat.kind === "boolean" ? "Mark" : "Log"} {stat.name}
+            {stat.kind === "boolean" ? "Mark" : "Log"} {stat.title}
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">

@@ -1,16 +1,18 @@
 import {
-  db,
-  put,
-  remove,
+  documentsOf,
+  documentsTable,
+  getDocument,
   newId,
   normalizeTags,
+  putDocument,
+  removeDocument,
   todayStr,
   useLiveQuery,
   type DateStr,
 } from "@lifeline/core";
 import {
-  OCCURRENCES,
-  TASKS,
+  TASK,
+  TASK_OCCURRENCE,
   type OccurrenceOverride,
   type Recurrence,
   type Task,
@@ -37,23 +39,11 @@ function normalizeOverride(o: OccurrenceOverride): OccurrenceOverride {
 }
 
 export function useTasks(): Task[] {
-  return useLiveQuery(
-    async () =>
-      (await db().collection<Task>(TASKS).where("deleted").equals(0).toArray()).map(normalizeTask),
-    [],
-    [] as Task[],
-  );
+  return useLiveQuery(async () => (await documentsOf<Task>(TASK)).map(normalizeTask), [], [] as Task[]);
 }
 
 export function useOverrides(): OccurrenceOverride[] {
-  return useLiveQuery(
-    async () =>
-      (
-        await db().collection<OccurrenceOverride>(OCCURRENCES).where("deleted").equals(0).toArray()
-      ).map(normalizeOverride),
-    [],
-    [] as OccurrenceOverride[],
-  );
+  return useLiveQuery(async () => (await documentsOf<OccurrenceOverride>(TASK_OCCURRENCE)).map(normalizeOverride), [], [] as OccurrenceOverride[]);
 }
 
 export async function addTask(input: {
@@ -64,8 +54,9 @@ export async function addTask(input: {
   tags?: string[];
 }): Promise<string> {
   const id = newId();
-  await put<Task>(TASKS, {
+  await putDocument<Task>({
     id,
+    type: TASK,
     title: input.title,
     notes: input.notes ?? "",
     status: "active",
@@ -79,38 +70,30 @@ export async function addTask(input: {
 }
 
 export async function updateTask(task: Task): Promise<void> {
-  await put<Task>(TASKS, { ...task, tags: normalizeTags(task.tags) });
+  await putDocument<Task>({ ...task, tags: normalizeTags(task.tags) });
 }
 
 export async function setArchived(task: Task, archived: boolean): Promise<void> {
-  await put<Task>(TASKS, { ...task, status: archived ? "archived" : "active" });
+  await putDocument<Task>({ ...task, status: archived ? "archived" : "active" });
 }
 
 /** Delete a task and cascade to its occurrence overrides. */
 export async function deleteTask(taskId: string): Promise<void> {
-  const overrides = await db()
-    .collection<OccurrenceOverride>(OCCURRENCES)
-    .where("taskId")
-    .equals(taskId)
-    .toArray();
-  for (const o of overrides) if (!o.deleted) await remove(OCCURRENCES, o.id);
-  await remove(TASKS, taskId);
+  const overrides = (await documentsTable().where("[type+taskId]").equals([TASK_OCCURRENCE, taskId]).toArray()) as OccurrenceOverride[];
+  for (const o of overrides) if (!o.deleted) await removeDocument(o.id);
+  await removeDocument(taskId);
 }
 
 async function getTask(taskId: string): Promise<Task | undefined> {
-  const t = await db().collection<Task>(TASKS).get(taskId);
-  return t && !t.deleted ? normalizeTask(t) : undefined;
+  const t = await getDocument<Task>(taskId);
+  return t && t.type === TASK ? normalizeTask(t) : undefined;
 }
 
 async function getOverride(
   taskId: string,
   sourceDate: DateStr,
 ): Promise<OccurrenceOverride | undefined> {
-  const o = await db()
-    .collection<OccurrenceOverride>(OCCURRENCES)
-    .where("[taskId+sourceDate]")
-    .equals([taskId, sourceDate])
-    .first();
+  const o = (await documentsTable().where("[type+taskId+sourceDate]").equals([TASK_OCCURRENCE, taskId, sourceDate]).first()) as OccurrenceOverride | undefined;
   return o && !o.deleted ? normalizeOverride(o) : undefined;
 }
 
@@ -131,11 +114,12 @@ async function writeOverride(
   };
   if (next.movedTo === sourceDate) next.movedTo = null;
   if (next.movedTo === null && next.completedOn === null) {
-    if (existing) await remove(OCCURRENCES, existing.id);
+    if (existing) await removeDocument(existing.id);
     return;
   }
-  await put<OccurrenceOverride>(OCCURRENCES, {
+  await putDocument<OccurrenceOverride>({
     id: existing?.id ?? newId(),
+    type: TASK_OCCURRENCE,
     taskId,
     sourceDate,
     ...next,
@@ -147,7 +131,7 @@ export async function setCompleted(itemId: ItemId, on: DateStr | null): Promise<
   const { taskId, sourceDate } = parseItemId(itemId);
   if (sourceDate === null) {
     const task = await getTask(taskId);
-    if (task) await put<Task>(TASKS, { ...task, completedOn: on });
+    if (task) await putDocument<Task>({ ...task, completedOn: on });
     return;
   }
   await writeOverride(taskId, sourceDate, { completedOn: on });
@@ -161,7 +145,7 @@ export async function moveItem(itemId: ItemId, to: DateStr | null): Promise<void
   const { taskId, sourceDate } = parseItemId(itemId);
   if (sourceDate === null) {
     const task = await getTask(taskId);
-    if (task && task.date !== to) await put<Task>(TASKS, { ...task, date: to });
+    if (task && task.date !== to) await putDocument<Task>({ ...task, date: to });
     return;
   }
   if (to === null) throw new Error("A recurring task's occurrence can't be unassigned");

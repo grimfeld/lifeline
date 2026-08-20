@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildIndex } from "./index";
+import { buildLinkIndex, type Document, type DocumentTypeDef } from "@lifeline/core";
 import { appendBullet, mentionsOf, rankMentions, unresolvedEntries } from "./mentions";
-import type { Note } from "./types";
 
-const note = (id: string, title: string, body: string, type: Note["type"] = "plain", updatedAt = ""): Note => ({
-  id, title, body, type, folder: "", createdAt: "2026-01-01", updatedAt, deleted: 0,
+const T = (id: string): DocumentTypeDef => ({ id, label: id + "s", titleRule: "name", body: "required", fields: [], linkable: true, builtIn: true });
+const types = [T("note"), T("daily"), T("person")];
+const note = (id: string, title: string, body: string, type = "note", updatedAt = ""): Document => ({
+  id, title, body, type, folder: "", tags: [], createdAt: "2026-01-01", updatedAt, deleted: 0,
 });
 
 const notes = [
@@ -14,9 +15,9 @@ const notes = [
   note("p1", "Yasmine", "A friend.", "person"),
   note("p2", "Bob", "Colleague.", "person"),
   note("p3", "Carl", "Ancient.", "person"),
-  note("x1", "Project X", "Owned by [[Bob]].", "plain", "2026-08-12T10:00:00Z"),
+  note("x1", "Project X", "Owned by [[Bob]].", "note", "2026-08-12T10:00:00Z"),
 ];
-const idx = buildIndex(notes);
+const idx = buildLinkIndex(notes, types);
 
 describe("rankMentions", () => {
   it("counts distinct recent daily notes per person, newest-last, omits stale", () => {
@@ -29,7 +30,7 @@ describe("rankMentions", () => {
   it("ignores non-daily sources and can span all types", () => {
     const r = rankMentions(idx, notes, { since: "2026-01-01" });
     expect(r.map((m) => m.noteId)).toEqual(["p2", "p1", "p3"]);
-    expect(r[0].count).toBe(3); // x1 (plain) is not counted
+    expect(r[0].count).toBe(3); // x1 (note) is not counted
   });
 });
 

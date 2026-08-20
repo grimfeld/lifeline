@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import { cn } from "@lifeline/ui";
-import { QUOTES_HREF } from "../linkable";
+import { QUOTES_HREF } from "../constants";
 import type { MediaItem, Quote } from "../domain/types";
 import { locatorLabel } from "./QuoteBlock";
 

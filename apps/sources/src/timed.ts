@@ -34,7 +34,7 @@ export const sourcesTimed: TimedProvider = {
             appId: APP_ID,
             itemId,
             title: o.title,
-            subtitle: o.location ?? sub.name,
+            subtitle: o.location ?? sub.title,
             date: o.date,
             start: o.start,
             end: o.end,

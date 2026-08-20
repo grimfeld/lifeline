@@ -1,18 +1,19 @@
-import { db, put, remove, newId, todayStr, useLiveQuery, normalizeTags } from "@lifeline/core";
-import { ENTRIES, STATS, type ColorSlot, type Entry, type Stat, type StatKind } from "../domain/types";
+import { documentsOf, documentsWhere, getDocument, normalizeTags, putDocument, removeDocument, useLiveQuery } from "@lifeline/core";
+import { STAT, STAT_ENTRY, type ColorSlot, type Entry, type Stat, type StatKind } from "../domain/types";
 
+/** PocketBase stores an absent text/number as "" / 0; re-establish the domain's defaults on read. */
 function normalizeStat(s: Stat): Stat {
   return { ...s, unit: s.unit ?? "", defaultIncrement: s.defaultIncrement || 0, universeSize: s.universeSize || 0, tags: s.tags ?? [] };
 }
 function normalizeEntry(e: Entry): Entry {
-  return { ...e, item: e.item ?? "" };
+  return { ...e, item: e.item ?? "", tags: e.tags ?? [] };
 }
 
 /** Stats in creation order (notch: no manual reorder, no archive). */
 export function useStats(): Stat[] {
   return useLiveQuery(
     async () =>
-      (await db().collection<Stat>(STATS).where("deleted").equals(0).toArray())
+      (await documentsOf<Stat>(STAT))
         .map(normalizeStat)
         .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.updatedAt.localeCompare(b.updatedAt)),
     [],
@@ -23,7 +24,7 @@ export function useStats(): Stat[] {
 /** All entries, all-time: streaks and distinct counts need history, and personal scale is small. */
 export function useEntries(): Entry[] {
   return useLiveQuery(
-    async () => (await db().collection<Entry>(ENTRIES).where("deleted").equals(0).toArray()).map(normalizeEntry),
+    async () => (await documentsOf<Entry>(STAT_ENTRY)).map(normalizeEntry),
     [],
     [] as Entry[],
   );
@@ -33,8 +34,8 @@ export function useStat(id: string | undefined): Stat | undefined {
   return useLiveQuery(
     async () => {
       if (!id) return undefined;
-      const s = await db().collection<Stat>(STATS).get(id);
-      return s && !s.deleted ? normalizeStat(s) : undefined;
+      const s = await getDocument<Stat>(id);
+      return s && s.type === STAT ? normalizeStat(s) : undefined;
     },
     [id],
     undefined,
@@ -44,11 +45,7 @@ export function useStat(id: string | undefined): Stat | undefined {
 export function useStatEntries(statId: string | undefined): Entry[] {
   return useLiveQuery(
     async () =>
-      statId
-        ? (await db().collection<Entry>(ENTRIES).where("statId").equals(statId).toArray())
-            .filter((e) => !e.deleted)
-            .map(normalizeEntry)
-        : [],
+      statId ? (await documentsWhere<Entry>(STAT_ENTRY, "statId", statId)).map(normalizeEntry) : [],
     [statId],
     [] as Entry[],
   );
@@ -65,7 +62,7 @@ export function entriesByStat(entries: Entry[]): Map<string, Entry[]> {
 }
 
 export interface StatInput {
-  name: string;
+  title: string;
   kind: StatKind;
   unit: string;
   color: ColorSlot;
@@ -87,26 +84,25 @@ function scrub(input: StatInput): StatInput {
 }
 
 export async function addStat(input: StatInput): Promise<string> {
-  const id = newId();
-  await put<Stat>(STATS, { id, ...scrub(input), createdAt: todayStr() });
-  return id;
+  const row = await putDocument<Stat>({ type: STAT, ...scrub(input) });
+  return row.id;
 }
 
 /** Kind is fixed after creation — the input's kind is ignored in favour of the stored one. */
 export async function updateStat(stat: Stat, input: Omit<StatInput, "kind">): Promise<void> {
-  await put<Stat>(STATS, { ...stat, ...scrub({ ...input, kind: stat.kind }) });
+  await putDocument<Stat>({ ...stat, ...scrub({ ...input, kind: stat.kind }) });
 }
 
 /** Deleting a stat deletes every entry with it. */
 export async function deleteStat(statId: string): Promise<void> {
-  const entries = await db().collection<Entry>(ENTRIES).where("statId").equals(statId).toArray();
-  for (const e of entries) if (!e.deleted) await remove(ENTRIES, e.id);
-  await remove(STATS, statId);
+  const entries = await documentsWhere<Entry>(STAT_ENTRY, "statId", statId);
+  for (const e of entries) await removeDocument(e.id);
+  await removeDocument(statId);
 }
 
 export async function addEntry(input: { statId: string; value: number; ts: string; item?: string }): Promise<void> {
-  await put<Entry>(ENTRIES, {
-    id: newId(),
+  await putDocument<Entry>({
+    type: STAT_ENTRY,
     statId: input.statId,
     value: input.value,
     item: input.item?.trim() ?? "",
@@ -115,5 +111,5 @@ export async function addEntry(input: { statId: string; value: number; ts: strin
 }
 
 export async function deleteEntry(id: string): Promise<void> {
-  await remove(ENTRIES, id);
+  await removeDocument(id);
 }

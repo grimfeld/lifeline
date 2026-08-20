@@ -2,20 +2,29 @@
 
 Glossary of domain terms for Lifeline, the personal dashboard/OS. Implementation details live elsewhere.
 
-One shell hosts many sovereign Apps. Apps own their entities and behaviors; they interoperate only through Contracts defined by the Core.
+One shell, one Document store. Hand-written Apps own built-in Document types and their behaviour; user-defined types get Core's generic behaviour; everything is shown through Cards, Screens, Surfaces, App screens and Bases, and interoperates only through Contracts defined by the Core.
 
 ## Glossary
 
+### Document
+The one basic block everything in Lifeline is made of. Every record a user can see — Task, Chore, Event, Stat, Entry, Media item, Quote, Source, Note… — is a Document of exactly one **Document type**. Every Document has a title (free, dated, or **derived** read-only from its fields as the type decides), typed fields, Tags, a Folder (root by default), and — where its type allows (required / optional / none) — a markdown body; the fields double as that body's frontmatter properties. Contracts (Schedulable, Linkable, Locatable…) apply to Document types; Cards, Screens, Surfaces, Bases and Apps all present or process Documents and never anything else.
+_Avoid_: record, entity, item, page, file, note (one type), block (a body fragment)
+
+### Document type
+The kind of a Document: its field schema, title rule, body policy and the Contracts it implements. Adding a type is meant to be cheap and automatically yields a Base. A type may be **internal**: its Documents exist only in service of another Document (a Writing's Versions) and are hidden from the Vault tree, link completion and the sidebar, though they still have a Base. Two origins, one registry: **built-in** types are defined in code and are the only ones an App's behaviour may depend on; **user-defined** types are created in-app and get everything generic (Base, form, body, generic Cards) plus the Contracts that can be declared from data alone — a Contract with behaviour hooks needs code. Subsumes the old "Note type".
+_Avoid_: schema, collection (storage detail), category, template (a part of a type)
+
+
 ### App
-A sovereign domain module (Chores, Stats, Readlist, Tasks…) living inside the shell. Owns its entities, rules, and screens. Never reaches into another App's data directly — all interop goes through Contracts.
-_Avoid_: plugin, widget, service
+A hand-written domain module (Chores, Stats, Media, Tasks…) living inside the shell. Owns one or more built-in Document types: it alone defines their behaviour — Contract hooks, commands, rules, and which fields are **guarded** (editable only through the App's own operations — never by a Base's raw write, and read-only when the Document is opened as text). Any App or generic tool may *read* any Document; semantic operations go through the owner. Apps are never generated per type; user-defined types have no owning App and are served by Core's generic behaviour.
+_Avoid_: plugin, widget, service, processor
 
 ### Core
-The neutral part of the system: shell, contracts, sync layer, command registry. Owns no domain entities.
+The neutral part of the system: shell, Contracts, sync layer, command registry, the Document store and type registry, Bases, Surfaces and generic Cards. Owns no Document types; its own bookkeeping — Screens and Card instances, Placements, Views, user-defined type definitions — is synced but is *not* Documents (Documents are user-facing content only).
 
 ### Contract
-An interface defined by Core that an App may implement for one of its entity types (e.g. Schedulable). Carries data shape *and* behavior hooks — the consuming surface calls the hook; the owning App decides what happens. Contracts are how "apps and their data work together" without merging domains.
-_Avoid_: capability, trait, API
+An interface defined by Core that a Document type implements (Schedulable, Timed, Linkable, Locatable, Taggable, Daylog…). Carries data shape *and* behaviour hooks — the consuming Surface calls the hook; the owning App decides what happens. Built-in types implement Contracts in code; user-defined types may declare the data-only ones (e.g. Locatable through a geo field). The five things that serve Documents — Card, Screen, Surface, App, Base — are *not* Contracts and have no collective name.
+_Avoid_: capability, trait, API, decorator
 
 ### Schedulable
 The first Contract: an entity that can be placed onto a time surface (calendar, week view). The owning App supplies title/identity/status and behavior hooks — e.g. what completing a placement means, and what happens when a placement's time passes uncompleted (keep / roll forward / drop). A Chore rolls its placement forward until completed; a simple task's placement just passes.
@@ -35,8 +44,21 @@ _Avoid_: appointment, event (that's the Calendar App's timed thing), slot (the e
 ### Schedule
 The hour-scaled Surface (day or week) where Time blocks and Events are laid out and dragged. Distinct from the Week planner (day-granular) and the month Calendar.
 
+### Base
+The one bulk place for one Document type: every Document of that type, shown for sorting, filtering and bulk editing of plain fields (guarded fields go through the owning App). Exactly one per type, generated from the type — adding a type adds a Base. A Base holds **Views**.
+_Avoid_: table (one layout), database, list, explorer
+
+### View
+A named, saved configuration inside a Base: filters, sort, visible fields and a **layout** — table, list, cards, gallery, map, board or calendar. A layout that reads one particular field (gallery's image URL, map's geo, board's group-by select, calendar's date) stores that field pick in the View and is only offered when the type has such a field; Documents the layout cannot place (no coordinates, no date) are left out but counted, never silently swallowed. Layouts display — they never bypass ownership: a board drag on a guarded field is a request to the owning App, which runs its real operation or declines (no App answer → that board is read-only), and the calendar layout never moves anything (moving through time is Surface work). Every Base starts with an "All" View; the user adds more ("To read", "Open · work"). A View is the unit you place on a Screen as a Card, rendered in its own layout wherever it appears.
+_Avoid_: saved search, filter (one part of a View), base (the container), view type (say layout)
+
 ### Surface
-A screen that consumes a Contract across all Apps rather than owning a domain (calendar grid, week grid, Today feed, dashboard). Surfaces are general; Apps are specific.
+A fixed, hand-written page owned by Core that shows Documents of *many* types together through a Contract, never through a type directly (Schedule, week grid, map, Today feed, Journal). Surfaces are general; Apps are specific. Distinct from an App screen (one App's own page) and a Screen (user-composed).
+_Avoid_: page, dashboard, view (that's a Base's saved configuration), screen
+
+### App screen
+A fixed, hand-written page an App ships over its own types (Gallery, Chores, a Stat's detail page). Listed in the sidebar beside Surfaces and Screens.
+_Avoid_: surface (Core-owned, cross-type), screen (user-composed), page
 
 ### Command
 A named action an App registers with Core, run from the global palette (Ctrl+K): navigation or domain action ("Complete chore…", "Log entry…"). Declares an argument signature from day one; v1 collects args via dialog, inline parsing may come later.
@@ -47,8 +69,8 @@ A user-created, named page composed of Cards on a grid layout (drag/resize). Use
 _Avoid_: page, view, workspace
 
 ### Card
-A self-contained UI block an App registers for use on Screens — small ("chores due today", "current streak") or large (full calendar grid). The unit of layout composition. A Card is a *kind*; what sits on a Screen is a Card instance. Some Cards are **configurable**: they can't be shown without the user choosing something first (which Stat, which medium, which Event).
-_Avoid_: widget, block, tile
+A self-contained UI block for use on Screens — small ("chores due today", "current streak") or large (full calendar grid). The unit of layout composition. A Card is a *kind*; what sits on a Screen is a Card instance. Two origins: **App Cards**, hand-written and registered by an App; and Core's **generic Cards** that work on any Document type — the **View card** (a Base View on a Screen), the **Document card** (one chosen Document, fields and body) and the **Count tile** (how many Documents a View holds). Capture/quick-add is always an App Card. Some Cards are **configurable**: they can't be shown without the user choosing something first (which Stat, which View, which Document).
+_Avoid_: widget, block, tile (except Count tile), embed
 
 ### Card instance
 One placed copy of a Card on one Screen, with its position and, for configurable Cards, its chosen settings. The same Card may be placed many times on a Screen with different settings (a "Push-ups" tile next to a "Weight" tile). Removing an instance never touches the entity it points at.
@@ -86,8 +108,8 @@ _Avoid_: log, record, data point
 A Boolean Stat's run of consecutive marked days. The current streak ends today or yesterday — an unmarked today doesn't break it. Derived, period-independent.
 
 ### Media item
-A work (not an edition) of any medium — book, comic, movie, series, album, game — sitting on one **Shelf** (see below), plus optional details: **owned** (Acquisition, kept from the old two-axis model but no longer a shelf), the **Studied** mark, tags and the **Reason** it was added.
-_Avoid_: book (one medium), title, copy, edition
+A work (not an edition) sitting on one **Shelf** (see below), plus optional details: **owned** (Acquisition), the **Studied** mark, tags and the **Reason** it was added. Not one Document type but a family of six, each its own type with its own Base — **book, comic, movie, series, music, game** — all owned by the one Media App; a Media item's Document type *is* its medium. "Media item" is the family's informal name.
+_Avoid_: media (as a type id — there is none), title, copy, edition
 
 ### Shelf
 Where a Media item stands with me, in the medium's own verbs: **To read / watch / listen / play** (not started), **In progress**, **Done**, **Dropped**. One shelf per item; the Gallery is browsed by shelf and medium.
@@ -102,16 +124,35 @@ Every Wanted Media item, wherever it lives: Nightstand ones first (next up — b
 _Avoid_: wishlist (that word hides the buy-now head of the list), cart
 
 ### Note
-A titled markdown document owned by the Notes App. The text is the truth: links, tags, headings and properties are read out of it, never stored beside it. Every Note has a Note type.
-_Avoid_: document, page, file
+A body-first Document type owned by the Notes App: my own thinking about things. Links, tags and headings are derived from the body; its fields are its frontmatter. Daily notes are Notes.
+_Avoid_: document (the general block), page, file, clipping, writing
+
+### Clipping
+A body-first Document type owned by the Clipper App: text I pasted from outside, carrying its source (URL or name, captured-at) beside the body. Lifeline never fetches it — I bring the text, the Clipper keeps it with its origin. Not my words. A Quote is *not* a Clipping — it belongs to its Media item.
+_Avoid_: note, bookmark, highlight, web clip (fine in prose, not as the term)
+
+### Reference
+Not a type: the informal name for any Document about a real-world thing (a person, a place, an organisation, a work) that other Documents link to. Person and place are user-defined types; Media items are References owned by the Media App. What makes something a Reference is being Linkable, not its type.
+_Avoid_: entity, contact, using "Reference" as a Document type name
+
+### Writing
+A body-first Document type owned by the Writer's pad App: prose that is purely my own and *is* the thing (essay, story, draft), rather than notes *about* something. A Writing may have Versions.
+_Avoid_: note, draft (a state a Writing may be in), article
+
+### Version
+An internal Document type owned by the Writer's pad: a snapshot of a Writing's body taken on purpose by pressing a button — never automatic. Versions are kept side by side with the current text for comparison; restoring one is a new edit, not a rewind.
+_Avoid_: revision, history (implies automatic), backup (fine in prose)
 
 ### Note type
-A compile-time kind of Note (daily, person, place, plain) fixing its title rule, its typed Properties and its template. Behaviour belongs to an App; prose plus a few properties is a Note type.
-_Avoid_: template (that is one part of a type), schema, category
+_Retired_ — use **Document type**. (Was: a kind of Note fixing its title rule, Properties and template.)
 
-### Property
-A typed field of a Note (mood, aliases, birthday, geo…), edited as a form and stored as frontmatter in the text.
-_Avoid_: metadata, field, attribute
+### Field
+A typed value a Document type declares (mood, aliases, birthday, geo, employer…), edited as a form, shown as a Base column, and read/written as frontmatter when the Document is opened as text. Kinds: text, long text, number, boolean, date, datetime, select, multi-select, url, geo, list of text, and **Link**. No formulas — a computed value belongs to a View, not a type.
+_Avoid_: property (old Notes word — same thing), metadata, attribute, column (a View's rendering of a Field)
+
+### Link (field)
+A Field holding a reference to another Document, optionally restricted to one type (`employer → organisation`). Stored by id, written as a wikilink in frontmatter, clickable in Bases, and a source of Backlinks exactly like a wikilink in a body.
+_Avoid_: relation, foreign key, reference
 
 ### Daily note
 The Note whose title is a date — at most one per day; the Journal entry. Created from the daily template on first use; the day's hub, carrying a Daylog block.
@@ -121,18 +162,18 @@ _Avoid_: journal entry (same thing — use "daily note"), log, diary page
 The Notes App's date-navigated Surface over daily notes.
 
 ### Wikilink
-`[[Name]]` in a Note's text. Resolves by name to a Note (title, then alias), else to an App entity through Linkable, else stays unresolved (click to create the Note).
+`[[Name]]` in any Document's body. Resolves by name across every Linkable Document type — exact title first, then alias — with an optional type prefix (`[[media:Dune]]`) to disambiguate; once resolved, the link remembers its target so later collisions don't move it. Unresolved links stay unresolved (click to create a Note). The editor's completer shows the type of each candidate.
 _Avoid_: reference, mention (a mention is what the *target* sees)
 
 ### Backlink
-From the target's side: a Note that wikilinks to it. Notes and Linkable App entities both have backlinks ("mentioned in").
+From the target's side: a Document that wikilinks to it. Every Linkable Document has backlinks ("mentioned in").
 _Avoid_: incoming link, reference
 
 ### Linkable
-Core Contract: an App exposes its entities as wikilink targets by name and receives their backlinks.
+Core Contract: a Document type whose Documents are wikilink targets by title and alias, and receive backlinks. Declarable by data (a user-defined type just says so).
 
 ### Locatable
-Core Contract: an App exposes entities that sit at a geographic point, so any map Surface can draw them. Coordinates are the owning App's data (resolved when the entity is edited, never looked up at render time); an entity with an address but no coordinates is not Locatable yet.
+Core Contract: a Document type whose Documents sit at a geographic point, so any map Surface can draw them. Declarable by data (a user-defined type with a geo field). Coordinates are the owning App's data (resolved when the entity is edited, never looked up at render time); an entity with an address but no coordinates is not Locatable yet.
 _Avoid_: mappable, geolocated, placed (Placement is a calendar concept)
 
 ### Pin
@@ -140,11 +181,11 @@ One Locatable entity drawn on a map: name, optional subtitle, coordinates, and a
 _Avoid_: marker (a rendering detail), place (a Note type), location (that's the coordinates, not the entity)
 
 ### Daylog
-Core Contract: an App reports what *happened* on a day — completed tasks, chore completions, logged entries, media started/finished, events. Rendered live wherever a Daylog block appears (a daily note's fenced `daylog` block, or a Card); never written as text.
+Core Contract (behaviour — code only): an App reports what *happened* on a day — completed tasks, chore completions, logged entries, media started/finished, events. Rendered live wherever a Daylog block appears (a daily note's fenced `daylog` block, or a Card); never written as text.
 _Avoid_: timeline, activity feed, summary
 
 ### Tag
-A free-form, lower-cased word (`garden`, `health/gym`) a user puts on a top-level entity — Task, Chore, Event, Stat, Media item, Note — to group and filter across Apps. Same word, same tag, whatever App it sits on; the vocabulary is derived from use, never managed. Recurring things carry tags on the definition; Occurrences, Entries and Placements inherit their parent's tags. A Note's tags are read out of its text — `#garden` in prose or a `tags` list in its frontmatter — never stored beside it.
+A free-form, lower-cased word (`garden`, `health/gym`) a user puts on any Document to group and filter across types. Same word, same tag, whatever App it sits on; the vocabulary is derived from use, never managed. Recurring things carry tags on the definition; Occurrences, Entries and Placements inherit their parent's tags. A bodied Document's tags include `#garden` words found in its body.
 _Avoid_: label, category, folder (a Folder is where a Note lives), Note type
 
 ### Tag filter
@@ -152,7 +193,7 @@ A set of Tags that narrows what a Card instance or a whole Screen shows: an item
 _Avoid_: view, saved search, override (nothing overrides — filters compose)
 
 ### Taggable
-Core Contract: an App reports its tagged entities (name, tags, a way to open each) so Core can derive the tag vocabulary and any Surface can browse items by Tag across Apps. Contract items placed on Surfaces (Schedulable, Timed, Daylog, Pin…) also carry their entity's Tags, so Tag filters apply everywhere.
+_Retired_ — every Document carries Tags by construction; Core derives the vocabulary from the store. Contract items placed on Surfaces (Schedulable, Timed, Daylog, Pin…) still carry their Document's Tags, so Tag filters apply everywhere.
 
 ### Source
 Something outside Lifeline shown inside it, owned by the Sources App. Kinds are added over time; the first is the Embed. A Source is named, tagged and pickable for a Card; Lifeline never owns the data behind it.
@@ -178,12 +219,16 @@ _Avoid_: metric, sensor, stat (a Stat is owned data with history — a Live valu
 A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten unsynced local edits. Nothing is merged, nothing is lost.
 
 ### Workspace
-A full-screen environment over the same data, chosen by URL: **Notes** (Obsidian-shaped: folder tree, editor, links) and **Dashboard** (Screens, Surfaces, App screens). Core owns the switcher; an App declares which Workspace its screens live in. Two views of one dataset, not two apps.
-_Avoid_: mode, full-screen app, view
+A full-screen environment over the same data, chosen by URL: the **Vault** (Obsidian-shaped: tree, editor, links — over every Document that has a body, whatever its type) and the **Dashboard** (Screens, Surfaces, App screens, Bases). Core owns the switcher; an App declares which Workspace its screens live in. Two views of one dataset, not two apps.
+_Avoid_: mode, full-screen app, view, "Notes workspace" (old name of the Vault)
+
+### Vault
+The Workspace with Obsidian's chrome. Shows any Document as frontmatter + body in a generic editor; the Note taker, Clipper and Writer's pad Apps put their specialised editors here. Not a storage place — Documents live in one store whatever Workspace shows them.
+_Avoid_: notes (one type), library, folder
 
 ### Folder
-Where a Note lives: a `/`-separated path (root when empty). A Folder exists because Notes are in it; titles are unique within a Folder. Daily notes live in `Journal/YYYY/MM`, templates in `Templates`.
-_Avoid_: directory, category (that's a Note type), tag
+Where a Document lives: a `/`-separated path (root when empty). Every Document has one; only the Vault tree cares. A Folder exists because Documents are in it; titles are unique within a Folder for a given type. Daily notes live in `Journal/YYYY/MM`, templates in `Templates`.
+_Avoid_: directory, category (that's a Document type), tag
 
 ### Quote
 A passage kept from a Media item — its text, an optional locator (page, chapter, timestamp), an optional comment and tags — owned by the Media App and impossible without its item. Inserted into notes as a blockquote ending in a wikilink to the item; also a wikilink target by its opening words. Captured on a day, it is a Daylog fact ("Quoted").

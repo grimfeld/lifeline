@@ -61,11 +61,11 @@ function CompleteChoreCommandDialog({
                   onClick={() => {
                     void completeChore(chore.id, today);
                     setDone((d) => [...d, chore.id]);
-                    toast.success(`${chore.name} done`);
+                    toast.success(`${chore.title} done`);
                   }}
                 >
                   <Check className={done.includes(chore.id) ? "" : "opacity-30"} />
-                  {chore.name}
+                  {chore.title}
                 </Button>
               </li>
             ))}
