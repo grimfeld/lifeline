@@ -44,6 +44,7 @@ import { TagChips } from "@lifeline/ui";
 import { TagPicker } from "../components/TagPicker";
 import { CardPicker } from "../components/CardPicker";
 import { CardSettingsForm } from "../components/CardSettingsForm";
+import { useIsMobile } from "../mobile/useIsMobile";
 
 const Grid = WidthProvider(GridLayout);
 
@@ -66,6 +67,35 @@ function CardBody({ item, configure }: { item: ScreenLayoutItem; configure: () =
   return def.tagFilterable ? <TagFilterProvider tags={settingsTags(item.settings)}>{body}</TagFilterProvider> : body;
 }
 
+/** Phone rendering (grill 2026-08-20): the Screen's cards in one column, read-only — no drag, no resize, no edit. */
+function StackedItems({ items }: { items: ScreenLayoutItem[] }) {
+  const sorted = [...items].sort((a, b) => a.y - b.y || a.x - b.x);
+  return (
+    <div className="flex flex-col gap-2">
+      {sorted.map((l) => {
+        const def = cardById(l.cardId);
+        const settings = l.settings ?? {};
+        return (
+          <Card key={l.instanceId} className="gap-2 overflow-hidden py-3" style={{ height: l.h * 40 + (l.h - 1) * 8 }}>
+            <CardHeader className="px-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <span
+                  className="size-2 rounded-full"
+                  style={{ background: def ? (appById(def.appId)?.color ?? "var(--muted-foreground)") : "var(--muted-foreground)" }}
+                />
+                <span className="truncate">{def ? <InstanceTitle def={def} settings={settings} /> : l.cardId}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="min-h-0 flex-1 overflow-hidden px-3">
+              <CardBody item={l} configure={() => {}} />
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
 export function UserScreenPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -73,6 +103,7 @@ export function UserScreenPage() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [configuring, setConfiguring] = useState<string | null>(null);
   const [draft, setDraft] = useState<CardSettings>({});
+  const isMobile = useIsMobile();
 
   const screen = useLiveQuery(
     () => db().collection<UserScreen>("screens").get(id ?? ""),
@@ -178,7 +209,7 @@ export function UserScreenPage() {
         ) : (
           <TagChips tags={screen.tags} />
         )}
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1 max-md:hidden">
           {editing && (
             <Button variant="outline" className="h-8" onClick={() => setPickerOpen(true)}>
               <Plus /> Add card
@@ -217,6 +248,9 @@ export function UserScreenPage() {
           </div>
         )}
         <TagFilterProvider tags={screen.tags}>
+        {isMobile ? (
+          <StackedItems items={items} />
+        ) : (
         <Grid
           layout={layout}
           cols={12}
@@ -290,6 +324,7 @@ export function UserScreenPage() {
             );
           })}
         </Grid>
+        )}
         </TagFilterProvider>
       </div>
 

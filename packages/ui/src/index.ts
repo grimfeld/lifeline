@@ -10,6 +10,7 @@ export * from "./components/ui/input";
 export * from "./components/ui/label";
 export * from "./components/ui/select";
 export * from "./components/ui/separator";
+export * from "./components/ui/sheet";
 export * from "./components/ui/sonner";
 export * from "./components/ui/tabs";
 export * from "./components/ui/textarea";

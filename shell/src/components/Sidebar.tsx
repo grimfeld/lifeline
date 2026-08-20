@@ -25,8 +25,9 @@ import {
   useLiveQuery,
   type UserScreen,
 } from "@lifeline/core";
-import { CalendarDays, ChevronRight, Clock, Columns3, EyeOff, LayoutDashboard, MapPin, Plus, Settings2, Sparkles, Table2 } from "lucide-react";
+import { CalendarDays, ChevronRight, Clock, Columns3, EyeOff, LayoutDashboard, MapPin, Plus, Settings2, Smartphone, Sparkles, Table2 } from "lucide-react";
 import { SyncBadge } from "./SyncBadge";
+import { setPhoneHome } from "../mobile/phoneHome";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useCollapsedSections, useHiddenBases } from "./sidebarPrefs";
 
@@ -55,7 +56,7 @@ function Section({ id, title, actions, children }: { id: string; title: string; 
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ className }: { className?: string } = {}) {
   const navigate = useNavigate();
   const [newOpen, setNewOpen] = useState(false);
   const [name, setName] = useState("");
@@ -88,7 +89,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="bg-sidebar text-sidebar-foreground flex w-56 shrink-0 flex-col border-r">
+    <aside className={cn("bg-sidebar text-sidebar-foreground flex w-56 shrink-0 flex-col border-r", className)}>
       <div className="flex items-center gap-2 px-4 py-3">
         <Sparkles className="text-primary size-5" />
         <span className="text-base font-semibold tracking-tight">Lifeline</span>
@@ -107,9 +108,19 @@ export function Sidebar() {
           }
         >
           {screens.map((s) => (
-            <NavLink key={s.id} to={`/screen/${s.id}`} className={navClass}>
-              <LayoutDashboard className="size-4" /> {s.name}
-            </NavLink>
+            <ContextMenu key={s.id}>
+              <ContextMenuTrigger asChild>
+                <NavLink to={`/screen/${s.id}`} className={navClass}>
+                  <LayoutDashboard className="size-4" /> {s.name}
+                  {s.phoneHome && <Smartphone className="text-muted-foreground ml-auto size-3.5" />}
+                </NavLink>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onClick={() => void setPhoneHome(s.id)}>
+                  <Smartphone className="size-4" /> Use as phone home
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           ))}
           {screens.length === 0 && (
             <button

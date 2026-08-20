@@ -69,10 +69,10 @@ function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 }
 
 export const mediaCommands: CommandDef[] = [
-  { id: "media.quick-add", title: "Add media…", keywords: ["book", "movie", "series", "album", "game", "comic", "read", "watch", "quick"], icon: Plus, dialog: QuickAddCommandDialog },
+  { id: "media.quick-add", title: "Add media…", keywords: ["book", "movie", "series", "album", "game", "comic", "read", "watch", "quick"], icon: Plus, dialog: QuickAddCommandDialog, capture: true },
   { id: "media.add", title: "Add media with details", keywords: ["book", "movie", "series", "album", "game", "comic", "read", "watch", "details"], icon: SlidersHorizontal, dialog: AddMediaCommandDialog },
   { id: "media.open", title: "Go to Media", keywords: ["media", "books", "reading", "nightstand", "shelf"], icon: BookMarked, run: ({ navigate }) => navigate("/app/media") },
-  { id: "media.quote-add", title: "Add quote…", keywords: ["quote", "passage", "highlight", "book", "capture"], icon: QuoteIcon, dialog: AddQuoteCommandDialog },
+  { id: "media.quote-add", title: "Add quote…", keywords: ["quote", "passage", "highlight", "book", "capture"], icon: QuoteIcon, dialog: AddQuoteCommandDialog, capture: true },
   { id: "media.quotes", title: "Go to Quotes", keywords: ["quotes", "passages", "highlights", "media"], icon: QuoteIcon, run: ({ navigate }) => navigate(QUOTES_HREF) },
   { id: "media.lookup-settings", title: "Media lookup settings…", keywords: ["media", "lookup", "metadata", "api", "key", "tmdb", "rawg", "comicvine", "enrich", "covers"], icon: Settings2, dialog: LookupSettingsDialog },
 ];

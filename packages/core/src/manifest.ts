@@ -94,6 +94,8 @@ export interface CommandDef {
   run?: (ctx: CommandCtx) => void | Promise<void>;
   /** Dialog opened when the command is picked. */
   dialog?: React.ComponentType<{ open: boolean; onOpenChange: (open: boolean) => void }>;
+  /** A capture command records something in seconds (clip, log entry, quick capture…). Listed in the phone's "+" capture sheet. */
+  capture?: boolean;
 }
 
 /**

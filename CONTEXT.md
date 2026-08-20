@@ -61,7 +61,7 @@ A fixed, hand-written page an App ships over its own types (Gallery, Chores, a S
 _Avoid_: surface (Core-owned, cross-type), screen (user-composed), page
 
 ### Command
-A named action an App registers with Core, run from the global palette (Ctrl+K): navigation or domain action ("Complete chore…", "Log entry…"). Declares an argument signature from day one; v1 collects args via dialog, inline parsing may come later.
+A named action an App registers with Core, run from the global palette (Ctrl+K): navigation or domain action ("Complete chore…", "Log entry…"). Declares an argument signature from day one; v1 collects args via dialog, inline parsing may come later. A Command may be flagged **capture** — it records something in seconds (clip, log entry, quick capture) — and capture Commands are what the phone's "+" sheet lists.
 _Avoid_: shortcut, action
 
 ### Screen
@@ -75,6 +75,10 @@ _Avoid_: widget, block, tile (except Count tile), embed
 ### Card instance
 One placed copy of a Card on one Screen, with its position and, for configurable Cards, its chosen settings. The same Card may be placed many times on a Screen with different settings (a "Push-ups" tile next to a "Weight" tile). Removing an instance never touches the entity it points at.
 _Avoid_: widget, tile
+
+### Phone home
+The one Screen the phone opens as Home. On a phone, Lifeline is capture-and-consult: the phone home's Cards stacked in one column, a Journal tab, and a capture sheet of capture Commands; everything else stays reachable but is shaped for the desktop. Designated on a Screen ("Use as phone home"); at most one Screen holds it, on every device alike.
+_Avoid_: mobile app (same app, one frame), home screen (the OS thing)
 
 ### Task
 A unit of work owned by the Tasks App. One-time (optionally assigned to a day) or recurring. Absorbs calendar's old Task/Backlog and week-planner's tasks. Completable; implements Schedulable.

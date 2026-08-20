@@ -60,7 +60,7 @@ export const clipperApp: AppManifest = {
     },
   ],
   commands: [
-    { id: "clipper.clip", title: "Clip…", keywords: ["clipping", "paste", "capture", "web"], icon: Scissors, dialog: ClipDialog },
+    { id: "clipper.clip", title: "Clip…", keywords: ["clipping", "paste", "capture", "web"], icon: Scissors, dialog: ClipDialog, capture: true },
     { id: "clipper.go", title: "Go to Clippings", keywords: ["clipper"], icon: Scissors, run: ({ navigate }) => navigate(CLIPPINGS_HREF) },
   ],
   daylog: clipperDaylog,

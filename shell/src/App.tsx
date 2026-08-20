@@ -12,6 +12,8 @@ import { BasePage } from "./bases/BasePage";
 import { BasesIndex } from "./bases/BasesIndex";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
 import { useWorkspaceMemory } from "./components/WorkspaceSwitcher";
+import { MobileNav } from "./mobile/MobileNav";
+import { PhoneHomePage } from "./mobile/PhoneHomePage";
 
 function HomeRedirect() {
   const screens = useLiveQuery(
@@ -38,11 +40,12 @@ function LegacyVaultRedirect() {
 function DashboardWorkspace() {
   return (
     <>
-      <Sidebar />
+      <Sidebar className="max-md:hidden" />
       <main className="min-w-0 flex-1 overflow-y-auto">
         <Routes>
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/screen/:id" element={<UserScreenPage />} />
+          <Route path="/phone" element={<PhoneHomePage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/week" element={<WeekPage />} />
           <Route path="/map" element={<MapPage />} />
@@ -73,13 +76,16 @@ function DashboardWorkspace() {
 export default function App() {
   useWorkspaceMemory();
   return (
-    <div className="bg-background text-foreground flex h-dvh overflow-hidden">
-      <Routes>
-        {workspaces().map((w) => (
-          <Route key={w.id} path={`${w.path}/*`} element={<WorkspaceLayout workspace={w} />} />
-        ))}
-        <Route path="/*" element={<DashboardWorkspace />} />
-      </Routes>
+    <div className="bg-background text-foreground flex h-dvh flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <Routes>
+          {workspaces().map((w) => (
+            <Route key={w.id} path={`${w.path}/*`} element={<WorkspaceLayout workspace={w} />} />
+          ))}
+          <Route path="/*" element={<DashboardWorkspace />} />
+        </Routes>
+      </div>
+      <MobileNav />
       <CommandPalette />
       <Toaster position="bottom-right" />
     </div>
