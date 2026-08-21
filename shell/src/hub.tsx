@@ -1,11 +1,12 @@
 import { useDocumentTypes, VAULT_WORKSPACE, type AppManifest } from "@lifeline/core";
-import { FileText, Hash, LayoutDashboard, MapPin, Sun, Table2, Vault } from "lucide-react";
+import { FileText, Hash, LayoutDashboard, MapPin, Sun, Table2, Vault, Waypoints } from "lucide-react";
 import { TodayCard } from "./surfaces/TodayCard";
 import { AgendaCard } from "./surfaces/AgendaCard";
 import { lastLocation } from "./components/WorkspaceSwitcher";
 import { MapCard, useLocatableAppOptions } from "./surfaces/MapCard";
 import { TagsCard } from "./surfaces/TagsCard";
 import { CountTile, DocumentCard, useDocumentOptions, useViewOptions, ViewCard } from "./surfaces/DocumentCards";
+import { GraphCard } from "./surfaces/GraphCard";
 import { VaultSidebar } from "./vault/VaultSidebar";
 import { VaultDocPage } from "./vault/VaultDocPage";
 
@@ -123,6 +124,27 @@ export const hubApp: AppManifest = {
       instanceTitle: (s) => useDocumentOptions().find((o) => o.value === s.doc)?.label.split(" · ")[0] ?? "",
     },
     {
+      id: "hub.graph",
+      title: "Graph",
+      description: "One Document's neighbourhood — its links and backlinks, drawn as a local graph",
+      component: GraphCard,
+      defaultSize: { w: 4, h: 6 },
+      minSize: { w: 2, h: 3 },
+      settings: {
+        doc: { kind: "entity", label: "Document", required: true, useOptions: useDocumentOptions },
+        depth: {
+          kind: "select",
+          label: "Depth",
+          default: "1",
+          options: [
+            { value: "1", label: "Direct links" },
+            { value: "2", label: "Two steps" },
+          ],
+        },
+      },
+      instanceTitle: (s) => useDocumentOptions().find((o) => o.value === s.doc)?.label.split(" · ")[0] ?? "",
+    },
+    {
       id: "hub.count",
       title: "Count",
       description: "How many Documents a View holds, as one big number",
@@ -164,6 +186,13 @@ export const hubApp: AppManifest = {
       keywords: ["month", "schedule"],
       icon: Sun,
       run: ({ navigate }) => navigate("/calendar"),
+    },
+    {
+      id: "hub.graph-go",
+      title: "Go to Graph",
+      keywords: ["links", "network", "backlinks", "vault"],
+      icon: Waypoints,
+      run: ({ navigate }) => navigate("/graph"),
     },
     {
       id: "hub.map-go",

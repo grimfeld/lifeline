@@ -6,6 +6,7 @@ import { CommandPalette } from "./components/CommandPalette";
 import { CalendarPage } from "./surfaces/CalendarPage";
 import { WeekPage } from "./surfaces/WeekPage";
 import { MapPage } from "./surfaces/MapPage";
+import { GraphPage } from "./surfaces/GraphPage";
 import { SchedulePage } from "./surfaces/SchedulePage";
 import { UserScreenPage } from "./screens/UserScreenPage";
 import { BasePage } from "./bases/BasePage";
@@ -49,6 +50,7 @@ function DashboardWorkspace() {
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/week" element={<WeekPage />} />
           <Route path="/map" element={<MapPage />} />
+          <Route path="/graph" element={<GraphPage />} />
           <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/base" element={<BasesIndex />} />
           <Route path="/base/:type" element={<BasePage />} />

@@ -25,7 +25,7 @@ import {
   useLiveQuery,
   type UserScreen,
 } from "@lifeline/core";
-import { CalendarDays, ChevronRight, Clock, Columns3, EyeOff, LayoutDashboard, MapPin, Plus, Settings2, Smartphone, Sparkles, Table2 } from "lucide-react";
+import { CalendarDays, ChevronRight, Clock, Columns3, EyeOff, LayoutDashboard, MapPin, Plus, Settings2, Smartphone, Sparkles, Table2, Waypoints } from "lucide-react";
 import { SyncBadge } from "./SyncBadge";
 import { setPhoneHome } from "../mobile/phoneHome";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
@@ -147,6 +147,9 @@ export function Sidebar({ className }: { className?: string } = {}) {
           </NavLink>
           <NavLink to="/map" className={navClass}>
             <MapPin className="size-4" /> Map
+          </NavLink>
+          <NavLink to="/graph" className={navClass}>
+            <Waypoints className="size-4" /> Graph
           </NavLink>
         </Section>
 

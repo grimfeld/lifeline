@@ -27,6 +27,7 @@ import { MarkdownEditor } from "./MarkdownEditor";
 import { MarkdownView } from "./MarkdownView";
 import { FieldsForm } from "./FieldsForm";
 import { LinksPanel } from "./LinksPanel";
+import { LocalGraphPanel } from "./LocalGraphPanel";
 
 export interface DocumentEditorProps {
   doc: Document;
@@ -301,7 +302,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
         )}
       </div>
       {panelOpen && (
-        <aside className="hidden w-72 shrink-0 overflow-y-auto border-l p-3 md:block">
+        <aside className="w-72 shrink-0 overflow-y-auto border-l p-3 max-md:hidden">
           <div className="text-muted-foreground mb-2 flex items-center gap-1 text-xs">
             <Link2 className="size-3" /> ⌘-click a link to open it
           </div>
@@ -318,6 +319,9 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
               />
             </div>
           )}
+          <div className="mb-3">
+            <LocalGraphPanel docId={doc.id} index={index} onOpen={openRef} />
+          </div>
           <LinksPanel docId={doc.id} index={index} onOpen={openRef} />
         </aside>
       )}

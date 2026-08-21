@@ -204,6 +204,18 @@ _Avoid_: incoming link, reference
 ### Linkable
 Core Contract: a Document type whose Documents are wikilink targets by title and alias, and receive backlinks. Declarable by data (a user-defined type just says so).
 
+### Graph
+The Core Surface drawing every Linkable Document as a node and every link relation — wikilink or Link field, merged per pair, undirected — as an edge, coloured by owning App like Pins. Unresolved names appear as Ghost nodes; Documents nothing links to (orphans) are hidden unless asked for; Tags may be shown as nodes on request. The layout is derived, never synced.
+_Avoid_: graph view (Obsidian's name), network, mind map
+
+### Local graph
+The depth-limited neighbourhood of one Document — its links, backlinks and Ghost nodes, drawn like the Graph. Shown as a panel on the open Document and placeable on a Screen as the **Graph card** (a configurable generic Card: Document + depth). A Screen's Tag filter treats a Graph card as one unit; it never filters nodes inside the neighbourhood.
+_Avoid_: connections panel, related items
+
+### Ghost node
+An unresolved wikilink name drawn on a Graph: a hole in the vault. Clicking it creates the Note, exactly like clicking the unresolved link itself.
+_Avoid_: phantom, placeholder, unresolved node (fine in prose)
+
 ### Locatable
 Core Contract: a Document type whose Documents sit at a geographic point, so any map Surface can draw them. Declarable by data (a user-defined type with a geo field). Coordinates are the owning App's data (resolved when the entity is edited, never looked up at render time); an entity with an address but no coordinates is not Locatable yet.
 _Avoid_: mappable, geolocated, placed (Placement is a calendar concept)
