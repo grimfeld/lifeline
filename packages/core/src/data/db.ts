@@ -109,8 +109,9 @@ export interface ViewFilter {
  *   1–12 — per-App collections (pre-ADR 0018)
  *   13 — one `documents` store (ADR 0018), `views`, `document_types`; per-App stores dropped
  *   14 — media split: per-medium types; media's `[type+medium]` index dropped, `[type+slot]`/`[type+externalKey]` shared by the six types
+ *   15 — Museum App (ADR 0022): `[type+artistId]` and `[type+exhibitionId]` added
  */
-const DB_VERSION = 14;
+const DB_VERSION = 15;
 
 /** Stores that existed before ADR 0018; deleted on upgrade so a client re-pulls into `documents`. */
 const LEGACY_STORES = [
