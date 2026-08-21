@@ -127,6 +127,34 @@ _Avoid_: queue, TBR, wishlist, priority
 Every Wanted Media item, wherever it lives: Nightstand ones first (next up — buy now), then the rest of the wish list, oldest first. Marking one as acquired takes it off the list.
 _Avoid_: wishlist (that word hides the buy-now head of the list), cart
 
+### Artwork
+A work of classical art held by the Museum App. Not one Document type but a family of five, each its own type with its own Base — **painting, drawing, photography, sculpture, architecture** — all owned by the one Museum App; an Artwork's Document type *is* its art form. Shared shape: artist (Link), year as free text ("c. 1503", "1501–1504"), image by URL, a location in words, the **Seen** mark, optional body for my own commentary. Architecture is Locatable (a building sits at a point on the earth); the object forms are not — the museum holding a work doesn't make the work a place. "Artwork" is the family's informal name.
+_Avoid_: piece, art form (as a field — the type is the form), media item (a different family)
+
+### Artist
+A built-in Reference type owned by the Museum App: who made an Artwork — a person, workshop or firm. Linkable by name and alias; "works by" is always backlinks, never a stored list. A metadata lookup that meets an unknown artist creates the record (name + external key) and links it.
+_Avoid_: creator (Media's word), author, person (a user-defined type)
+
+### Holdings
+Every Artwork the Museum has, whatever its state — the permanent collection. Exhibitions select from the Holdings; hanging or archiving never removes a work from them.
+_Avoid_: collection (a Stat kind), gallery (Media's browse surface), vault (the Workspace), storage
+
+### Exhibition
+A named, curated selection of Artworks from the Holdings, arranged into ordered Rooms, owned by the Museum App; optional body — the curator's essay. Lifecycle: **In preparation** (being curated, not visible) → **Hanging** (on display; several may hang at once) → **Archived** (a past show, kept intact and re-hangable). *Hang* and *take down* are the only verbs, and taking down always archives — reworking a show means taking it down first.
+_Avoid_: show, expo (fine in prose, not as terms), gallery, playlist
+
+### Room
+An internal Document type owned by the Museum App: a named, ordered section of exactly one Exhibition, holding its hung Artworks in order. Free-form — it may mix art forms; its theme is expressed by naming and picking, never by structure. No life outside its Exhibition and not a wikilink target — you link to the Exhibition.
+_Avoid_: wall (a rendering), section, gallery, art-form partition
+
+### Seen
+The mark on an Artwork that I have stood before the real thing. A boolean fact, not a visit log.
+_Avoid_: visited, studied (Media's mark)
+
+### On display
+Where a hung Exhibition is experienced: entering it walks its Rooms one at a time, artworks image-first with a small placard. Also the Museum's configurable Card — one Artwork drawn from the Hanging Exhibitions, rotating daily, opening into the Room where it hangs.
+_Avoid_: featured, showcase, slideshow
+
 ### Note
 A body-first Document type owned by the Notes App: my own thinking about things. Links, tags and headings are derived from the body; its fields are its frontmatter. Daily notes are Notes.
 _Avoid_: document (the general block), page, file, clipping, writing
