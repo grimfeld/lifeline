@@ -112,48 +112,24 @@ _Avoid_: log, record, data point
 A Boolean Stat's run of consecutive marked days. The current streak ends today or yesterday — an unmarked today doesn't break it. Derived, period-independent.
 
 ### Media item
-A work (not an edition) sitting on one **Shelf** (see below), plus optional details: **owned** (Acquisition), the **Studied** mark, tags and the **Reason** it was added. Not one Document type but a family of six, each its own type with its own Base — **book, comic, movie, series, music, game** — all owned by the one Media App; a Media item's Document type *is* its medium. "Media item" is the family's informal name.
-_Avoid_: media (as a type id — there is none), title, copy, edition
+_Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus the **Commonplace book** for Quotes. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry creator, year, size, cover by URL and an optional **Reason** (who sent me here — never asked at add). The old "Studied" mark is gone.
+_Avoid_: media (as a type id or an App — neither exists), title, copy, edition, studied
 
 ### Shelf
-Where a Media item stands with me, in the medium's own verbs: **To read / watch / listen / play** (not started), **In progress**, **Done**, **Dropped**. One shelf per item; the Gallery is browsed by shelf and medium.
+Where a work stands with me, in its family's own verbs: **To read / watch / listen / play** (not started), **In progress**, **Done**, **Dropped**. One shelf per work; every family App's Gallery is browsed by shelf.
 _Avoid_: status (too generic), backlog, engagement (the internal field name)
 
+### Gallery
+A family App's main screen and the view you land on: the wall-to-wall cover grid of everything the App owns, narrowed by Shelf, search and — where the App owns two types (Books|Comics, Movies|Series) — a medium chip. Landing is always on All, never pre-filtered.
+_Avoid_: library (an App), grid (a rendering), backlog
+
 ### Nightstand
-For books and comics only: the small capped set of items currently claiming attention — in progress and next up. A Slot is held for the whole time an item is in progress and freed only by finishing or dropping. Caps are fixed in code (books 5, comics 3); other media have no slots. A Nightstand item that isn't owned yet is the instruction to buy it *now* — it heads the Shopping list.
+Library only, for books and comics: the small capped set of items currently claiming attention — in progress and next up. A Slot is held for the whole time an item is in progress and freed only by finishing or dropping. Caps are fixed in code (books 5, comics 3); no other family has slots. A Nightstand item that isn't owned yet is the instruction to buy it *now* — it heads the Shopping list. Lives in its own tab, never on the Gallery.
 _Avoid_: queue, TBR, wishlist, priority
 
 ### Shopping list
-Every Wanted Media item, wherever it lives: Nightstand ones first (next up — buy now), then the rest of the wish list, oldest first. Marking one as acquired takes it off the list.
+Every Wanted work of a family that still has **Acquisition** — Library and Arcade only (streamed media are never owned, so Cinema and the Discotheque have no Acquisition at all): Nightstand ones first (next up — buy now), then the rest, oldest first. Marking one as acquired takes it off the list. A Card per App, never furniture on the Gallery.
 _Avoid_: wishlist (that word hides the buy-now head of the list), cart
-
-### Artwork
-A work of classical art held by the Museum App. Not one Document type but a family of five, each its own type with its own Base — **painting, drawing, photography, sculpture, architecture** — all owned by the one Museum App; an Artwork's Document type *is* its art form. Shared shape: artist (Link), year as free text ("c. 1503", "1501–1504"), image by URL, a location in words, the **Seen** mark, optional body for my own commentary. Architecture is Locatable (a building sits at a point on the earth); the object forms are not — the museum holding a work doesn't make the work a place. "Artwork" is the family's informal name.
-_Avoid_: piece, art form (as a field — the type is the form), media item (a different family)
-
-### Artist
-A built-in Reference type owned by the Museum App: who made an Artwork — a person, workshop or firm. Linkable by name and alias; "works by" is always backlinks, never a stored list. A metadata lookup that meets an unknown artist creates the record (name + external key) and links it.
-_Avoid_: creator (Media's word), author, person (a user-defined type)
-
-### Holdings
-Every Artwork the Museum has, whatever its state — the permanent collection. Exhibitions select from the Holdings; hanging or archiving never removes a work from them.
-_Avoid_: collection (a Stat kind), gallery (Media's browse surface), vault (the Workspace), storage
-
-### Exhibition
-A named, curated selection of Artworks from the Holdings, arranged into ordered Rooms, owned by the Museum App; optional body — the curator's essay. Lifecycle: **In preparation** (being curated, not visible) → **Hanging** (on display; several may hang at once) → **Archived** (a past show, kept intact and re-hangable). *Hang* and *take down* are the only verbs, and taking down always archives — reworking a show means taking it down first.
-_Avoid_: show, expo (fine in prose, not as terms), gallery, playlist
-
-### Room
-An internal Document type owned by the Museum App: a named, ordered section of exactly one Exhibition, holding its hung Artworks in order. Free-form — it may mix art forms; its theme is expressed by naming and picking, never by structure. No life outside its Exhibition and not a wikilink target — you link to the Exhibition.
-_Avoid_: wall (a rendering), section, gallery, art-form partition
-
-### Seen
-The mark on an Artwork that I have stood before the real thing. A boolean fact, not a visit log.
-_Avoid_: visited, studied (Media's mark)
-
-### On display
-Where a hung Exhibition is experienced: entering it walks its Rooms one at a time, artworks image-first with a small placard. Also the Museum's configurable Card — one Artwork drawn from the Hanging Exhibitions, rotating daily, opening into the Room where it hangs.
-_Avoid_: featured, showcase, slideshow
 
 ### Note
 A body-first Document type owned by the Notes App: my own thinking about things. Links, tags and headings are derived from the body; its fields are its frontmatter. Daily notes are Notes.
@@ -164,7 +140,7 @@ A body-first Document type owned by the Clipper App: text I pasted from outside,
 _Avoid_: note, bookmark, highlight, web clip (fine in prose, not as the term)
 
 ### Reference
-Not a type: the informal name for any Document about a real-world thing (a person, a place, an organisation, a work) that other Documents link to. Person and place are user-defined types; Media items are References owned by the Media App. What makes something a Reference is being Linkable, not its type.
+Not a type: the informal name for any Document about a real-world thing (a person, a place, an organisation, a work) that other Documents link to. Person and place are user-defined types; works (books, films, albums, games) are References owned by their family App, Artworks by the Museum App. What makes something a Reference is being Linkable, not its type.
 _Avoid_: entity, contact, using "Reference" as a Document type name
 
 ### Writing
@@ -275,5 +251,5 @@ Where a Document lives: a `/`-separated path (root when empty). Every Document h
 _Avoid_: directory, category (that's a Document type), tag
 
 ### Quote
-A passage kept from a Media item — its text, an optional locator (page, chapter, timestamp), an optional comment and tags — owned by the Media App and impossible without its item. Inserted into notes as a blockquote ending in a wikilink to the item; also a wikilink target by its opening words. Captured on a day, it is a Daylog fact ("Quoted").
+A passage kept from a work of any family — its text, an optional locator (page, chapter, timestamp), an optional comment and tags — owned by the **Commonplace book** App (ADR 0024) and impossible without the work it links to, whatever App owns that work. Inserted into notes as a blockquote ending in a wikilink to the item; also a wikilink target by its opening words. Captured on a day, it is a Daylog fact ("Quoted").
 _Avoid_: highlight (a quote may be a thought you had about it, not only the text), excerpt, clipping

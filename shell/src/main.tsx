@@ -8,7 +8,11 @@ import { tasksApp } from "@lifeline/app-tasks";
 import { calendarApp } from "@lifeline/app-calendar";
 import { sourcesApp } from "@lifeline/app-sources";
 import { statsApp } from "@lifeline/app-stats";
-import { mediaApp } from "@lifeline/app-media";
+import { libraryApp } from "@lifeline/app-library";
+import { cinemaApp } from "@lifeline/app-cinema";
+import { discothequeApp } from "@lifeline/app-discotheque";
+import { arcadeApp } from "@lifeline/app-arcade";
+import { commonplaceApp } from "@lifeline/app-commonplace";
 import { museumApp } from "@lifeline/app-museum";
 import { notesApp } from "@lifeline/app-notes";
 import { clipperApp } from "@lifeline/app-clipper";
@@ -19,7 +23,7 @@ import "./index.css";
 
 // Compile-time App registry (ADR 0003): every App joins here.
 setTypeIconResolver(typeIcon);
-initApps([hubApp, choresApp, tasksApp, calendarApp, statsApp, mediaApp, museumApp, notesApp, clipperApp, writerApp, sourcesApp]);
+initApps([hubApp, choresApp, tasksApp, calendarApp, statsApp, libraryApp, cinemaApp, discothequeApp, arcadeApp, commonplaceApp, museumApp, notesApp, clipperApp, writerApp, sourcesApp]);
 startSync();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

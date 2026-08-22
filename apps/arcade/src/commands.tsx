@@ -1,0 +1,28 @@
+import type { CommandDef } from "@lifeline/core";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
+import { Gamepad2, Plus, Settings2, SlidersHorizontal } from "lucide-react";
+import { AddWorkDialog } from "./components/AddWorkDialog";
+import { QuickAdd } from "./components/QuickAdd";
+import { LookupSettingsDialog } from "./components/LookupSettingsDialog";
+import { APP_HREF } from "./constants";
+
+/** One-line quick add in a small dialog; closes as soon as something is added. */
+function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add a game</DialogTitle>
+        </DialogHeader>
+        <QuickAdd autoFocus onAdded={() => onOpenChange(false)} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export const arcadeCommands: CommandDef[] = [
+  { id: "arcade.quick-add", title: "Add game…", keywords: ["game", "play", "arcade", "quick"], icon: Plus, dialog: QuickAddCommandDialog, capture: true },
+  { id: "arcade.add", title: "Add game with details", keywords: ["game", "play", "details", "arcade"], icon: SlidersHorizontal, dialog: AddWorkDialog },
+  { id: "arcade.open", title: "Go to Arcade", keywords: ["arcade", "games", "playing", "shelf"], icon: Gamepad2, run: ({ navigate }) => navigate(APP_HREF) },
+  { id: "arcade.lookup-settings", title: "Arcade lookup settings…", keywords: ["arcade", "lookup", "metadata", "api", "key", "rawg", "enrich", "covers"], icon: Settings2, dialog: LookupSettingsDialog },
+];

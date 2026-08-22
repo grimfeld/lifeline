@@ -1,0 +1,41 @@
+import type { DocumentTypeDef, FieldDef } from "@lifeline/core";
+import { Music } from "lucide-react";
+import { ENGAGEMENT, type Work } from "./domain/types";
+import { WORK_TYPES } from "./domain/workTypes";
+import { APP_HREF } from "./constants";
+
+const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
+
+/**
+ * The music type (ADR 0024, type id unchanged from Media — no data
+ * migration): the Shelf only — streamed media have no Acquisition. Shelf
+ * moves and the auto-stamped days are guarded (ADR 0019).
+ */
+const WORK_FIELDS: FieldDef[] = [
+  { key: "creator", label: "Creator", kind: "text", column: true },
+  { key: "year", label: "Year", kind: "number", column: true },
+  { key: "size", label: "Size", kind: "number" },
+  { key: "engagement", label: "Shelf", kind: "select", options: ENGAGEMENT.map((v) => ({ value: v, label: ENG_LABELS[v] })), guarded: true, column: true },
+  { key: "reason", label: "Reason", kind: "longtext" },
+  { key: "coverUrl", label: "Cover URL", kind: "url" },
+  { key: "externalKey", label: "External key", kind: "text", hidden: true },
+  { key: "addedOn", label: "Added on", kind: "date", guarded: true },
+  { key: "startedOn", label: "Started on", kind: "date", guarded: true },
+  { key: "finishedOn", label: "Finished on", kind: "date", guarded: true },
+];
+
+export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t) => ({
+  id: t.id,
+  label: t.plural,
+  singular: t.label,
+  icon: Music,
+  iconName: "music",
+  titleRule: "name",
+  body: "none",
+  linkable: { subtitle: (d) => { const m = d as Work; return `${t.label}${m.creator ? " · " + m.creator : ""}`; } },
+  href: () => APP_HREF,
+  indexes: ["externalKey"],
+  order: 44,
+  builtIn: true,
+  fields: WORK_FIELDS,
+}));
