@@ -102,7 +102,7 @@ _Avoid_: appointment, meeting
 
 ### Stat
 A named series the user tracks (push-ups, weight, workouts, countries visited). Defines what is tracked and how values are read — one of four kinds: **Additive** (entries add up), **Measurement** (point-in-time readings), **Boolean** (a day was done), **Collection** (distinct items collected, optionally against a universe size shown as a denominator). Holds no totals; kind is fixed after creation. Goals/targets are out of scope.
-_Avoid_: metric, counter, habit (a habit is a Boolean Stat), goal
+_Avoid_: metric, counter, habit (a Habit is the Life Level App's XP-bearing track — a Boolean Stat merely tracks days done), goal
 
 ### Entry
 One logged event of a Stat: a value and the moment it happened (user-settable, backdating allowed), plus an item name for Collections. Totals, streaks and distinct counts are always derived from Entries, never stored; duplicates are collapsed at derivation, never rejected.
@@ -110,6 +110,38 @@ _Avoid_: log, record, data point
 
 ### Streak
 A Boolean Stat's run of consecutive marked days. The current streak ends today or yesterday — an unmarked today doesn't break it. Derived, period-independent.
+
+### Habit
+A positive activity the user wants to do, owned by the Life Level App. Completing one earns XP toward its Level; neglect bleeds XP away through Decay — standing still loses ground. Has a Difficulty. Distinct from a Boolean Stat (neutral did-I-do-it tracking): a Habit answers "how much ground have I gained or lost?". Not Schedulable — cadence is enforced by decay pressure, never by planning; "meditate on Tuesday" is a Task that links to the Habit.
+_Avoid_: activity (the old umbrella word), routine, boolean stat
+
+### Negative activity
+A bad behaviour the user wants to avoid, owned by the Life Level App. Logging one drains XP from a Habit; has a Gravity and one of two targeting modes: **fixed** (permanently paired with one rival Habit it undoes — junk food → eat healthy) or **random** (each log rolls a fresh victim — unjust on purpose; the unpredictability is the deterrent). An anti-habit, meaningless without Habits: logging with no Habit to hit is blocked, never a whiff. A fixed Negative whose rival is deleted survives but is blocked from logging until re-paired or set to random — never silently switched.
+_Avoid_: bad habit, vice (fine in prose, not the term), penalty
+
+### Completion (Life Level)
+One logged occurrence of a Habit or Negative activity: a visible ledger Document carrying the moment it really *happened* (occurred-at, user-settable — back-logging covers genuine forgetting) and an optional note. A Negative's Completion also records the Habit it hit: the persisted outcome of the fixed pair or the random roll — a fact, never re-rolled. Completions die with their activity ("honest quitting"): deleting a Habit deletes its own Completions and every Negative Completion that hit it — earned levels and XP debt die together; forfeiting progress is the cost of shedding debt.
+_Avoid_: log (fine as a verb), check-in, entry (a Stat's term), occurrence (a Task's term)
+
+### Difficulty
+`easy | normal | hard | expert | master` — a Habit property, self-assessed, blending two axes: aversion (how unpleasant) and time cost (how long). Harder = more XP per Completion and gentler Decay. Re-assessing it is retroactive: the whole ledger re-values at the new Difficulty — "it was always this hard". The ledger stores facts; valuation is policy.
+_Avoid_: gravity (the Negative axis), priority, weight
+
+### Gravity
+`minor | severe | catastrophic` — a Negative activity property: a single axis, the severity of the real-life consequence. Higher = more XP damage per log. Deliberately not a mirror of Difficulty — good is rewarded by *effort*, bad is punished by *harm*. Retroactive on edit, like Difficulty.
+_Avoid_: difficulty (the Habit axis), severity (fine in prose)
+
+### Raw XP
+The signed, always-derived measure of a Habit's progress: Completion XP minus Decay minus Negative damage, computed from the ledger and the wall clock — never stored. Tuning is keyed only by Difficulty and Gravity — no per-Habit knobs. Negatives can push it below zero into **debt**, which must be climbed out of before progress resumes; Decay never can — the floors are asymmetric on purpose.
+_Avoid_: score, points, total XP (no global total exists)
+
+### Level (Life Level)
+A per-Habit number derived from its Raw XP, floored at 1. Deliberately no global "character level" — life is many separate tracks, not one stat; the App name is aspiration, not a computed score. It moves with the clock alone (Decay), so it is always computed at read, never stored.
+_Avoid_: rank, character level, life level (as a number)
+
+### Decay
+XP bleeding away while a Habit sits idle past a grace period. Harder Habits decay more gently — time-expensive habits can't realistically be done daily. Decay only erodes positive progress: it stops at zero; only Negatives dig the hole.
+_Avoid_: rust, penalty (that's Negative damage), streak loss
 
 ### Media item
 _Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus the **Commonplace book** for Quotes. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry creator, year, size, cover by URL and an optional **Reason** (who sent me here — never asked at add). The old "Studied" mark is gone.

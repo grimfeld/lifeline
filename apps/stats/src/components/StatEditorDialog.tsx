@@ -7,7 +7,7 @@ import { addStat, updateStat } from "../data/repo";
 const KIND_COPY: Record<StatKind, { title: string; hint: string }> = {
   additive: { title: "Additive", hint: "Increments that add up — push-ups, books" },
   measurement: { title: "Measurement", hint: "Point-in-time readings — weight" },
-  boolean: { title: "Boolean", hint: "Did it happen today — workouts, habits" },
+  boolean: { title: "Boolean", hint: "Did it happen today — workouts, meditation" },
   collection: { title: "Collection", hint: "Distinct things collected — countries" },
 };
 

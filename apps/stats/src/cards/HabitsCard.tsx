@@ -6,7 +6,7 @@ import { DotStrip } from "../components/charts";
 import { colorVar } from "../domain/types";
 import { currentStreak, markedDays } from "../domain/aggregate";
 
-/** Card: boolean stats (habits) with their trailing two weeks and streak — mark today inline. */
+/** Card: boolean stats with their trailing two weeks and streak — mark today inline. ("Habit" is Life Level's term.) */
 export function HabitsCard() {
   const filter = useTagFilter();
   const stats = useStats().filter((s) => s.kind === "boolean" && matchesTagFilter(s.tags, filter));
