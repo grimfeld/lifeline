@@ -1,0 +1,215 @@
+import { useEffect, useState } from "react";
+import {
+  Badge,
+  Button,
+  cn,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  TagChips,
+  TagInput,
+  Textarea,
+  toast,
+} from "@lifeline/ui";
+import { Check, Play, ShoppingCart } from "lucide-react";
+import { workType } from "../domain/workTypes";
+import { ACQUISITION, type Acquisition, type Work } from "../domain/types";
+import { acquire, finish, release, start } from "../domain/rules";
+import { patchWork } from "../data/repo";
+import { Cover } from "./Cover";
+import { WorkActionsMenu, useAct } from "./WorkActions";
+import { ACQ_LABEL } from "./AddWorkDialog";
+import { displayTitle, docHref, normalizeTag, useLinkIndex, useTagVocabulary } from "@lifeline/core";
+
+/** Documents mentioning this item via [[wikilink]] (ADR 0018). Muted, read-only. */
+function MentionedIn({ itemId }: { itemId: string }) {
+  const index = useLinkIndex();
+  const links = index.backlinksTo(itemId);
+  if (links.length === 0) return null;
+  return (
+    <div className="text-muted-foreground grid gap-1 text-xs">
+      <span>
+        Mentioned in {links.length} {links.length === 1 ? "document" : "documents"}
+      </span>
+      <ul className="grid gap-0.5">
+        {links.map((l) => {
+          const src = index.byId.get(l.sourceId);
+          if (!src) return null;
+          return (
+            <li key={`${l.sourceId}/${l.field ?? ""}`}>
+              <a href={docHref(src)} className="underline-offset-2 hover:underline">
+                {displayTitle(src)}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+export function EditWorkDialog({ item, onClose }: { item: Work | null; onClose: () => void }) {
+  const [title, setTitle] = useState("");
+  const [creator, setCreator] = useState("");
+  const [year, setYear] = useState("");
+  const [size, setSize] = useState("");
+  const [reason, setReason] = useState("");
+  const [acq, setAcq] = useState<Acquisition>("WANTED");
+  const [coverUrl, setCoverUrl] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const tagSuggestions = useTagVocabulary().map((v) => v.tag);
+  useEffect(() => {
+    if (!item) return;
+    setTitle(item.title);
+    setCreator(item.creator);
+    setYear(item.year ? String(item.year) : "");
+    setSize(item.size ? String(item.size) : "");
+    setReason(item.reason);
+    setAcq(item.acquisition);
+    setCoverUrl(item.coverUrl);
+    setTags(item.tags ?? []);
+  }, [item]);
+  if (!item) return null;
+  const def = workType(item.type);
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit {def.label.toLowerCase()}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3">
+          <div className="grid gap-2">
+            <Label>Title</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-[1fr_5rem_5rem] gap-2">
+            <div className="grid gap-2">
+              <Label>{def.creatorLabel}</Label>
+              <Input value={creator} onChange={(e) => setCreator(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Year</Label>
+              <Input type="number" value={year} onChange={(e) => setYear(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label className="truncate">{def.sizeUnit}</Label>
+              <Input type="number" value={size} onChange={(e) => setSize(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label>Cover URL</Label>
+            <Input value={coverUrl} placeholder="https://…" onChange={(e) => setCoverUrl(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <Label>Reason <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="media-edit-tags">Tags</Label>
+            <TagInput id="media-edit-tags" value={tags} onChange={setTags} suggestions={tagSuggestions} normalize={normalizeTag} placeholder="Add tag…" />
+          </div>
+          <div className="grid gap-2">
+            <Label>Acquisition</Label>
+            <Select value={acq} onValueChange={(v) => setAcq(v as Acquisition)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ACQUISITION.map((a) => (
+                  <SelectItem key={a} value={a}>
+                    {ACQ_LABEL[a]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <MentionedIn itemId={item.id} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              if (!title.trim()) return void toast.error("Title required");
+              void patchWork(item, {
+                title: title.trim(),
+                creator: creator.trim(),
+                year: Number(year) || 0,
+                size: Number(size) || 0,
+                reason: reason.trim(),
+                coverUrl: coverUrl.trim(),
+                tags,
+                ...(acq !== item.acquisition ? (acq === "OWNED" || acq === "BORROWED" ? acquire(acq) : acq === "GONE" ? release() : { acquisition: acq }) : {}),
+              });
+              toast.success("Saved");
+              onClose();
+            }}
+          >
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** One item with its transitions — cover, credit line, badges, start/finish. */
+export function WorkRow({ item, all: _all, onEdit, compact = false }: { item: Work; all?: Work[]; onEdit: (m: Work) => void; compact?: boolean }) {
+  const def = workType(item.type);
+  const reading = item.engagement === "IN_PROGRESS";
+  const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
+  const act = useAct(item);
+
+  return (
+    <div className={cn("bg-card flex items-center gap-3 rounded-lg border px-3 py-2", compact && "px-2 py-1.5")}>
+      <Cover item={item} />
+      <div className="min-w-0 flex-1">
+        <span className="truncate text-sm font-medium">{item.title}</span>
+        <div className="text-muted-foreground truncate text-xs">
+          {item.creator}
+          {item.year ? ` · ${item.year}` : ""}
+          {!compact && item.size ? ` · ${item.size} ${def.sizeUnit}` : ""}
+        </div>
+        {!compact && item.reason && <div className="text-muted-foreground line-clamp-2 text-xs italic">{item.reason}</div>}
+        {(item.tags ?? []).length > 0 && <TagChips tags={item.tags} size="xs" className="mt-0.5" />}
+        <div className="mt-1 flex flex-wrap items-center gap-1">
+          {reading && <Badge>{def.engagement.IN_PROGRESS}</Badge>}
+          {!reading && <Badge variant="outline">{ACQ_LABEL[item.acquisition]}</Badge>}
+          {item.engagement !== "UNSTARTED" && !reading && <Badge variant="secondary">{def.engagement[item.engagement]}</Badge>}
+        </div>
+      </div>
+
+      {!compact && (
+        <div className="hidden shrink-0 gap-1 sm:flex">
+          {item.acquisition === "WANTED" && (
+            <Button size="sm" variant="outline" onClick={act("Got it", acquire("OWNED"))}>
+              <ShoppingCart /> Got it
+            </Button>
+          )}
+          {!reading && !done && (
+            <Button size="sm" variant="outline" onClick={act(`${def.engagement.IN_PROGRESS}…`, start())}>
+              <Play /> {def.startVerb}
+            </Button>
+          )}
+          {reading && (
+            <Button size="sm" onClick={act(`${item.title} — ${def.engagement.DONE.toLowerCase()}.`, finish())}>
+              <Check /> {def.finishVerb}
+            </Button>
+          )}
+        </div>
+      )}
+
+      <WorkActionsMenu item={item} onEdit={onEdit} />
+    </div>
+  );
+}

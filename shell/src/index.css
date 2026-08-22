@@ -8,7 +8,11 @@
 @source "../../apps/tasks/src";
 @source "../../apps/calendar/src";
 @source "../../apps/stats/src";
-@source "../../apps/media/src";
+@source "../../apps/library/src";
+@source "../../apps/cinema/src";
+@source "../../apps/discotheque/src";
+@source "../../apps/arcade/src";
+@source "../../apps/commonplace/src";
 @source "../../apps/museum/src";
 @source "../../apps/notes/src";
 @source "../../apps/sources/src";
