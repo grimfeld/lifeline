@@ -20,6 +20,7 @@
     "@lifeline/app-commonplace": "workspace:*",
     "@lifeline/app-discotheque": "workspace:*",
     "@lifeline/app-library": "workspace:*",
+    "@lifeline/app-lifelevel": "workspace:*",
     "@lifeline/app-museum": "workspace:*",
     "@lifeline/app-notes": "workspace:*",
     "@lifeline/app-sources": "workspace:*",

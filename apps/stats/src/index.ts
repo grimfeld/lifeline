@@ -70,7 +70,7 @@ export const statsApp: AppManifest = {
   ],
   cards: [
     { id: "stats.overview", title: "Stats", description: "Every stat's headline with one-tap logging", component: StatsOverviewCard, tagFilterable: true, defaultSize: { w: 3, h: 6 }, minSize: { w: 2, h: 3 } },
-    { id: "stats.habits", title: "Habits", description: "Boolean stats: last two weeks and streaks, mark today inline", component: HabitsCard, tagFilterable: true, defaultSize: { w: 3, h: 6 }, minSize: { w: 2, h: 3 } },
+    { id: "stats.habits", title: "Daily marks", description: "Boolean stats: last two weeks and streaks, mark today inline", component: HabitsCard, tagFilterable: true, defaultSize: { w: 3, h: 6 }, minSize: { w: 2, h: 3 } },
     {
       id: "stats.single",
       title: "Single stat",
@@ -98,7 +98,7 @@ export const statsApp: AppManifest = {
           label: "Show",
           default: "all",
           options: [
-            { value: "all", label: "All habits" },
+            { value: "all", label: "All boolean stats" },
             { value: "active", label: "Active streaks only" },
           ],
         },
