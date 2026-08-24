@@ -30,7 +30,7 @@ _Avoid_: capability, trait, API, decorator
 The first Contract: an entity that can be placed onto a time surface (calendar, week view). The owning App supplies title/identity/status and behavior hooks — e.g. what completing a placement means, and what happens when a placement's time passes uncompleted (keep / roll forward / drop). A Chore rolls its placement forward until completed; a simple task's placement just passes.
 
 ### Timed
-The second Contract: an entity that happens at a fixed time on a day (start/end, or all day) and is not work — nothing to complete. Surfaces draw Timed items above the day's Schedulable work. The Calendar App's Events are the first implementation; the owning App may allow moving them to another day.
+The second Contract: an entity that happens at a fixed time on a day (start/end, or all day) and is not work — nothing to complete. Surfaces draw Timed items above the day's Schedulable work. The Calendar App's Events are the first implementation; the owning App may allow moving them to another day, may offer Event templates for quick add, and may report background items — Time blocker bands, which hour-scaled Surfaces paint behind everything and day-granular ones leave out.
 _Avoid_: appointment (that's an Event, one implementation), block
 
 ### Placement
@@ -42,7 +42,7 @@ A Placement that carries a start (and end) time: an item planned into an hour sl
 _Avoid_: appointment, event (that's the Calendar App's timed thing), slot (the empty grid cell)
 
 ### Schedule
-The hour-scaled Surface (day or week) where Time blocks and Events are laid out and dragged. Distinct from the Week planner (day-granular) and the month Calendar.
+The hour-scaled Surface (day or week) where Time blocks and Events are laid out and dragged, over the bands of the day's Time blockers, beside the Event templates offered for quick add. Distinct from the Week planner (day-granular) and the month Calendar.
 
 ### Base
 The one bulk place for one Document type: every Document of that type, shown for sorting, filtering and bulk editing of plain fields (guarded fields go through the owning App). Exactly one per type, generated from the type — adding a type adds a Base. A Base holds **Views**.
@@ -99,6 +99,14 @@ _Avoid_: reschedule, pin (a pin is the Core fallback, not the concept)
 ### Event
 A thing that happens at a fixed time (start + end, or all-day), owned by the Calendar App. Not work, not completable. The Calendar App owns Events and the calendar Surfaces; it no longer owns Tasks.
 _Avoid_: appointment, meeting
+
+### Event template
+A named shape for an Event the user adds again and again — "Standup", "Gym", "Dentist": title, length, usual start, notes, Tags, and no day at all. Quick-adding one on the Schedule (dropped on an hour, or added to the open day) creates an ordinary Event and then forgets the template: editing a template never rewrites the Events it made, deleting one never removes them. Owned by the Calendar App.
+_Avoid_: recurring event (a template repeats only when you use it), preset, boilerplate
+
+### Time blocker
+A recurring band of hours the user keeps out of reach — sleep, work hours, the school run: weekdays, a start and an end (past midnight when the end is earlier), and a colour. Not an Event and not work: it lives on no day, creates nothing, and is painted behind the Schedule's hours so everything else is planned around it. Switching one off keeps the definition and stops the paint. Owned by the Calendar App.
+_Avoid_: busy event, availability, Time block (that's one item planned into a slot), recurring event
 
 ### Stat
 A named series the user tracks (push-ups, weight, workouts, countries visited). Defines what is tracked and how values are read — one of four kinds: **Additive** (entries add up), **Measurement** (point-in-time readings), **Boolean** (a day was done), **Collection** (distinct items collected, optionally against a universe size shown as a denominator). Holds no totals; kind is fixed after creation. Goals/targets are out of scope.
