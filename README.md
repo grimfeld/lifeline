@@ -81,21 +81,6 @@ frontmatter `tags` list). An App stamps `tags` on the items its Contract provide
 (`useTagged()` → its tagged entities) so Core can derive the vocabulary. Listing Cards set `tagFilterable: true`
 and read `useTagFilter()`; the Screen's filter ∧ the instance's `tags` setting compose (any-of within a set, both must pass).
 
-## Roadmap (agreed build order)
+## History
 
-1. ✅ Tracer bullet: Core + Chores + calendar Surface + Screens + palette
-2. ✅ Tasks App (absorbs calendar tasks + week-planner; per-Occurrence recurrence) + week Surface
-   with drag & drop and an Unplaced pool; Schedulable gained an App-owned `move` hook (ADR 0004)
-3. ✅ Calendar Events: Calendar App owning Events, rendered on the month/week/Today surfaces through
-   a second Core contract, `Timed` (fixed-time, not completable — ADR 0005)
-4. ✅ Stats (notch port — ADR 0007) and Media (nightstand port generalised to any medium — ADR 0006)
-5. ◐ Retire the legacy backends — importers in `scripts/import/` + runbook in `docs/retire-legacy.md`;
-   the deploy → import → verify → `fly apps destroy` steps are manual (see the runbook for what was found)
-6. ✅ Notes App + Journal (ADR 0009/0010): Notes engine, Linkable + Daylog contracts implemented by every App,
-   Obsidian vault importer (`pnpm import:obsidian`, see docs/retire-legacy.md)
-7. ✅ Map Surface (ADR 0011): Locatable contract (coordinates only, geocoded at edit time via Nominatim),
-   Leaflet over OSM tiles — `/map` screen, Map card, mini-map on Place notes; Notes is the first provider
-8. ✅ Tags (ADR 0014): free-form tags on every App entity, Taggable contract, Screen/Card Tag filters, Tags card
-9. ✅ Sources App (ADR 0016): external content as App-owned entities; Embed kind (iframe + Open ↗), Embed card
-10. ✅ Feeds, Calendar subscriptions, Live values (ADR 0017): one Core `fetchExternal` (Tauri http, else the PocketBase
-    `/api/lifeline/fetch` proxy in `pocketbase/pb_hooks`), local-only `_source_cache`, ical.js expansion
+What was built, in what order and why, is the ADR sequence in `docs/adr/` — read it numerically.

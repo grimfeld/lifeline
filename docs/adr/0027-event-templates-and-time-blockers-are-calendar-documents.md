@@ -1,10 +1,10 @@
 # Event templates and Time blockers are Calendar Documents; blockers paint, they never place
 
-Two quick-planning wants — "add this event again" and "keep these hours out of reach" — could each have been solved by bending something that already exists. They are instead two new built-in Document types owned by the Calendar App, reaching the Schedule through the Timed contract.
+Two quick-planning wants — "add this event again" and "show me the hours already taken" — could each have been solved by bending something that already exists. They are instead two new built-in Document types owned by the Calendar App, reaching the Schedule through the Timed contract.
 
 An **Event template** (`event_template`) is the shape of an Event — title, length, usual start, notes, Tags — on no day of its own. Quick-adding one creates a real Event and then forgets the template: the Event has no link back, so editing a template never rewrites history, and deleting one never touches what it made. The Timed contract gains the pair `useTemplates()` / `createFromTemplate(templateId, date, start)`, so the Schedule offers templates and says *when*, while the owning App decides what a template is worth: an explicit slot wins, otherwise the template's own usual start, otherwise all day.
 
-A **Time blocker** (`time_blocker`) is a weekly rule — weekdays, from, to, colour — painted behind the Schedule's hours. It creates no Documents per day: the App projects it into `TimedItem`s flagged `background`, one band per covered day (two when the band runs past midnight). Hour-scaled surfaces draw those bands behind everything and never drag them; day-granular surfaces (month grid, week planner, Today) drop them.
+A **Time blocker** (`time_blocker`) is a weekly rule — weekdays, from, to, colour — painted behind the Schedule's hours. It creates no Documents per day: the App projects it into `TimedItem`s flagged `background`, one band per covered day (two when the band runs past midnight). Hour-scaled surfaces draw those bands behind everything and never drag them; day-granular surfaces (month grid, week planner, Today feed) drop them.
 
 ## Considered options
 
@@ -20,5 +20,6 @@ A **Time blocker** (`time_blocker`) is a weekly rule — weekdays, from, to, col
 - Blockers are a *rule*, not history: changing one changes every day it covers, past days included. Anything worth keeping as a record is an Event.
 - Blockers never enter the hour window calculation — a sleep band would otherwise stretch every Schedule to a full 24 hours — and are clipped to the visible hours.
 - Turning a blocker off keeps the definition and stops the paint; a blocker with no weekday covers every day.
+- The rule is by scale, not by page: anything hour-scaled paints bands (the Schedule, the Agenda card on Today), anything day-granular drops them (month grid, week planner, Today feed). Bands also ignore the Tag filter — they are the hours around the content, not content — and they are a guide only: nothing refuses a drop over a band.
 - `weekdays`, `start` and `end` are guarded: a Base may retitle, recolour or switch a blocker off, but the weekly rule and the overnight split go through the App.
 - Both types get a Base, Tags and links for free (ADR 0018/0019); neither has a body, so neither shows up in the Vault tree.

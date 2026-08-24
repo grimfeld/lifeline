@@ -102,10 +102,10 @@ _Avoid_: appointment, meeting
 
 ### Event template
 A named shape for an Event the user adds again and again — "Standup", "Gym", "Dentist": title, length, usual start, notes, Tags, and no day at all. Quick-adding one on the Schedule (dropped on an hour, or added to the open day) creates an ordinary Event and then forgets the template: editing a template never rewrites the Events it made, deleting one never removes them. Owned by the Calendar App.
-_Avoid_: recurring event (a template repeats only when you use it), preset, boilerplate
+_Avoid_: template (bare — always "Event template"; a Note template is a different thing), recurring event (a template repeats only when you use it), preset, boilerplate
 
 ### Time blocker
-A recurring band of hours the user keeps out of reach — sleep, work hours, the school run: weekdays, a start and an end (past midnight when the end is earlier), and a colour. Not an Event and not work: it lives on no day, creates nothing, and is painted behind the Schedule's hours so everything else is planned around it. Switching one off keeps the definition and stops the paint. Owned by the Calendar App.
+A recurring band of hours the user marks as already taken — sleep, work hours, the school run: weekdays, a start and an end (past midnight when the end is earlier), and a colour. Not an Event and not work: it lives on no day, creates nothing, and is painted behind the hours of every hour-scaled view (the Schedule, the Agenda card) as a guide to plan around. A guide only: nothing refuses a drop over a band. Day-granular views leave bands out; Tag filters never hide them, since a band is not content but the hours around it. Switching one off keeps the definition and stops the paint. Owned by the Calendar App.
 _Avoid_: busy event, availability, Time block (that's one item planned into a slot), recurring event
 
 ### Stat
@@ -202,8 +202,12 @@ _Avoid_: property (old Notes word — same thing), metadata, attribute, column (
 A Field holding a reference to another Document, optionally restricted to one type (`employer → organisation`). Stored by id, written as a wikilink in frontmatter, clickable in Bases, and a source of Backlinks exactly like a wikilink in a body.
 _Avoid_: relation, foreign key, reference
 
+### Note template
+A Note whose body is the starting text for other Notes — the daily template, a meeting template. Lives in the `Templates` Folder; copied into a new Note's body once and forgotten, never a link. Owned by the Notes App. Not an Event template (that shapes an Event, not a body).
+_Avoid_: template (bare — say which), preset, skeleton
+
 ### Daily note
-The Note whose title is a date — at most one per day; the Journal entry. Created from the daily template on first use; the day's hub, carrying a Daylog block.
+The Note whose title is a date — at most one per day; the Journal entry. Created from the daily Note template on first use; the day's hub, carrying a Daylog block.
 _Avoid_: journal entry (same thing — use "daily note"), log, diary page
 
 ### Journal
@@ -245,7 +249,7 @@ Core Contract (behaviour — code only): an App reports what *happened* on a day
 _Avoid_: timeline, activity feed, summary
 
 ### Tag
-A free-form, lower-cased word (`garden`, `health/gym`) a user puts on any Document to group and filter across types. Same word, same tag, whatever App it sits on; the vocabulary is derived from use, never managed. Recurring things carry tags on the definition; Occurrences, Entries and Placements inherit their parent's tags. A bodied Document's tags include `#garden` words found in its body.
+A free-form, lower-cased word (`garden`, `health/gym`) a user puts on any Document to group and filter across types. Same word, same tag, whatever App it sits on; the vocabulary is derived from use, never managed. Recurring things carry tags on the definition; Occurrences, Entries and Placements inherit their parent's tags. A bodied Document's tags include `#garden` words found in its body. Time blocker bands are the one thing a Tag filter never hides.
 _Avoid_: label, category, folder (a Folder is where a Note lives), Note type
 
 ### Tag filter

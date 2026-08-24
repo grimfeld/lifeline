@@ -77,7 +77,9 @@ export interface SurfaceTimedItem extends TimedItem {
 
 /**
  * Read side of the Timed contract: every provider's items in range, colored
- * per App, narrowed by the ambient Tag filter (or an explicit one).
+ * per App, narrowed by the ambient Tag filter (or an explicit one). Background
+ * items (Time blocker bands, ADR 0027) are never filtered out: a band is the
+ * hours around the content, not content.
  */
 export function useTimedItems(range: { start: DateStr; end: DateStr }, opts?: { tags?: TagFilter }): SurfaceTimedItem[] {
   const ambient = useTagFilter();
@@ -92,7 +94,7 @@ export function useTimedItems(range: { start: DateStr; end: DateStr }, opts?: { 
   const out: SurfaceTimedItem[] = [];
   for (const { provider, items } of perProvider) {
     const color = appById(provider.appId)?.color;
-    for (const item of items) if (matchesTagFilter(item.tags, filter)) out.push({ ...item, color: item.color ?? color });
+    for (const item of items) if (item.background || matchesTagFilter(item.tags, filter)) out.push({ ...item, color: item.color ?? color });
   }
   return out.sort((a, b) =>
     a.date.localeCompare(b.date) || (a.start ?? "").localeCompare(b.start ?? "") || a.title.localeCompare(b.title),
