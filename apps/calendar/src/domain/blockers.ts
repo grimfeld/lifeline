@@ -1,4 +1,4 @@
-import { addDays, diffDays, formatTime, weekdayOf, type DateStr, type TimeStr, type Weekday } from "@lifeline/core";
+import { addDays, diffDays, formatHuman, formatTime, weekdayOf, type DateStr, type TimeStr, type Weekday } from "@lifeline/core";
 import type { TimeBlocker } from "./types";
 
 /** Monday-first display order; values are Core weekdays (0 = Sunday). */
@@ -19,7 +19,13 @@ export interface BlockerBand {
   end: TimeStr;
 }
 
-function covers(b: Pick<TimeBlocker, "weekdays">, date: DateStr): boolean {
+/** A one-off blocker (ADR 0029) sits on one day; a weekly one covers its weekdays (none = every day). */
+export function isOneOff(b: Pick<TimeBlocker, "date">): boolean {
+  return !!b.date;
+}
+
+function covers(b: Pick<TimeBlocker, "weekdays" | "date">, date: DateStr): boolean {
+  if (b.date) return b.date === date;
   const days = b.weekdays ?? [];
   return days.length === 0 || days.includes(weekdayOf(date));
 }
@@ -55,9 +61,10 @@ export function bandsIn(blockers: TimeBlocker[], range: { start: DateStr; end: D
   return out;
 }
 
-/** "Mon–Fri · 9:00 AM – 5:00 PM", "Every day · 11:00 PM – 7:00 AM (next day)". */
+/** "Mon–Fri · 9:00 AM – 5:00 PM", "Every day · 11:00 PM – 7:00 AM (next day)", "Tue 25 Aug · 8:00 AM – 8:30 AM". */
 export function describeBlocker(b: TimeBlocker): string {
-  return `${describeWeekdays(b.weekdays ?? [])} · ${formatTime(b.start)} – ${formatTime(b.end)}${isOvernight(b) ? " (next day)" : ""}`;
+  const when = b.date ? formatHuman(b.date) : describeWeekdays(b.weekdays ?? []);
+  return `${when} · ${formatTime(b.start)} – ${formatTime(b.end)}${isOvernight(b) ? " (next day)" : ""}`;
 }
 
 /** "Every day", "Weekdays", "Weekends", else the day names in Monday-first order. */
@@ -69,7 +76,7 @@ export function describeWeekdays(days: Weekday[]): string {
   return WEEKDAYS.filter((w) => set.has(w.value)).map((w) => w.label).join(", ");
 }
 
-/** Sort key: earliest start first, then title. */
+/** Sort key: weekly rules first by start, then one-offs by day and start, then title. */
 export function compareBlockers(a: TimeBlocker, b: TimeBlocker): number {
-  return a.start.localeCompare(b.start) || a.title.localeCompare(b.title);
+  return (a.date ?? "").localeCompare(b.date ?? "") || a.start.localeCompare(b.start) || a.title.localeCompare(b.title);
 }

@@ -22,6 +22,7 @@ import {
   timedCreators,
   todayStr,
   toHours,
+  unplaceItem,
   usePoolItems,
   useSurfaceItems,
   useTimedItems,
@@ -32,7 +33,7 @@ import {
   type SurfaceTimedItem,
   type TimedTemplate,
 } from "@lifeline/core";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Inbox, LayoutTemplate, Plus, Undo2, Zap } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Inbox, LayoutTemplate, Plus, Trash2, Zap } from "lucide-react";
 import { TagFilterBar } from "../components/TagFilterBar";
 import { useIsMobile } from "../mobile/useIsMobile";
 
@@ -44,8 +45,8 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type WorkItem = (SurfaceItem | (PoolItem & { displayDate?: undefined; placementId?: undefined; start?: undefined; end?: undefined })) & { color?: string };
 type Entry = { kind: "block"; item: SurfaceItem; start: string; end: string } | { kind: "timed"; item: SurfaceTimedItem; start: string; end: string };
-/** A Time blocker's band on one day (ADR 0027): painted behind everything, never dragged. */
-type Band = { key: string; title: string; start: string; end: string; color?: string };
+/** A Time blocker's band on one day (ADR 0027): painted behind everything. A weekly rule's band is fixed; a one-off's (ADR 0029) drags and resizes. */
+type Band = { key: string; title: string; start: string; end: string; color?: string; fixed: boolean; item: SurfaceTimedItem };
 
 /** The hour gutter's label: "1:00 PM" with room, bare "1 PM" on a phone. */
 function hourLabel(hour: number, compact: boolean): string {
@@ -71,11 +72,22 @@ function addHours(start: string, h: number): string {
   return toClock(Math.min(24, toHours(start) + h));
 }
 
-/** A draggable chip: an untimed work item (strip or pool) or an all-day timed item. */
-function Chip({ id, data, title, color, done, onComplete }: { id: string; data: Record<string, unknown>; title: string; color?: string; done?: boolean; onComplete?: () => void }) {
+/**
+ * A draggable chip: an untimed work item (strip or pool) or an all-day timed
+ * item. A chip is a source (ADR 0028): dragging it onto an hour makes a new
+ * Time block and leaves the chip here, greyed while `planned` blocks lie ahead.
+ */
+function Chip({ id, data, title, color, done, planned, onComplete }: { id: string; data: Record<string, unknown>; title: string; color?: string; done?: boolean; planned?: number; onComplete?: () => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data });
+  const scheduled = !!planned && planned > 0;
   return (
-    <div ref={setNodeRef} {...attributes} {...listeners} className={cn("bg-card flex cursor-grab items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs select-none", isDragging && "opacity-40", done && "opacity-60")} title={title}>
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={cn("bg-card flex cursor-grab items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs select-none", isDragging && "opacity-40", (done || scheduled) && "opacity-60", scheduled && "border-dashed")}
+      title={scheduled ? `${title} · ${planned} block${planned === 1 ? "" : "s"} planned — drag again for another` : title}
+    >
       {onComplete && !done && (
         <button
           className="hover:bg-accent flex size-4 shrink-0 items-center justify-center rounded-full border"
@@ -91,15 +103,17 @@ function Chip({ id, data, title, color, done, onComplete }: { id: string; data: 
       )}
       {done && <Check className="text-muted-foreground size-3 shrink-0" />}
       <span className={cn("truncate", done && "line-through")}>{title}</span>
-      <span className="ml-auto size-1.5 shrink-0 rounded-full" style={{ background: color ?? "var(--muted-foreground)" }} />
+      {scheduled && <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">×{planned}</span>}
+      <span className={cn("size-1.5 shrink-0 rounded-full", !scheduled && "ml-auto")} style={{ background: color ?? "var(--muted-foreground)" }} />
     </div>
   );
 }
 
 /** A block on the timeline: draggable, resizable at the bottom edge. */
-function Block({ entry, from, cols, col, onResize, onComplete, onUntime }: { entry: Entry; from: number; cols: number; col: number; onResize: (endHours: number) => void; onComplete?: () => void; onUntime?: () => void }) {
+function Block({ entry, from, cols, col, onResize, onComplete, onRemove }: { entry: Entry; from: number; cols: number; col: number; onResize: (endHours: number) => void; onComplete?: () => void; onRemove?: () => void }) {
   const isBlock = entry.kind === "block";
-  const id = isBlock ? `block:${entry.item.key}` : `timed:${entry.item.key}`;
+  // One item may have several blocks (ADR 0028): the Placement, not the item, is the draggable.
+  const id = isBlock ? `block:${entry.item.placementId}` : `timed:${entry.item.key}`;
   const grab = useRef(0);
   const data = isBlock ? { item: entry.item, grab } : { timed: entry.item, grab };
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data });
@@ -114,7 +128,7 @@ function Block({ entry, from, cols, col, onResize, onComplete, onUntime }: { ent
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={cn("group absolute overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-xs shadow-sm select-none", isBlock ? "cursor-grab" : "cursor-grab", isDragging && "opacity-40", done && "opacity-60")}
+      className={cn("group absolute z-[2] cursor-grab overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-xs shadow-sm select-none", isDragging && "opacity-40", done && "opacity-60")}
       style={{
         top: (s - from) * HOUR_PX + 1,
         height: Math.max(18, (e - s) * HOUR_PX - 2),
@@ -144,17 +158,17 @@ function Block({ entry, from, cols, col, onResize, onComplete, onUntime }: { ent
         )}
         {done && <Check className="size-3 shrink-0" />}
         <span className={cn("truncate font-medium", done && "line-through")}>{entry.item.title}</span>
-        {isBlock && onUntime && (
+        {isBlock && onRemove && (
           <button
             className="text-muted-foreground hover:text-foreground ml-auto hidden shrink-0 group-hover:block"
-            title="Remove time (back to the day)"
+            title="Remove this block"
             onPointerDown={(ev) => ev.stopPropagation()}
             onClick={(ev) => {
               ev.stopPropagation();
-              onUntime();
+              onRemove();
             }}
           >
-            <Undo2 className="size-3" />
+            <Trash2 className="size-3" />
           </button>
         )}
       </div>
@@ -201,31 +215,77 @@ function Strip({ date, work, allDay, onCompleteChip }: { date: DateStr; work: Wo
         <Chip key={t.key} id={`timed:${t.key}`} data={{ timed: t }} title={t.title} color={t.color} />
       ))}
       {work.map((w) => (
-        <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} done={!!w.completedOn} onComplete={() => onCompleteChip(w)} />
+        <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} done={!!w.completedOn} planned={w.blocksAhead} onComplete={() => onCompleteChip(w)} />
       ))}
       {allDay.length === 0 && work.length === 0 && <div className="text-muted-foreground px-1 text-[10px]">untimed</div>}
     </div>
   );
 }
 
-/** One Time blocker band, clipped to the visible hours. */
-function BandLayer({ band, from, to }: { band: Band; from: number; to: number }) {
+/** One Time blocker band, clipped to the visible hours. A weekly band is inert; a one-off band drags and resizes (ADR 0029). */
+function BandLayer({ band, from, to, onResize }: { band: Band; from: number; to: number; onResize: (endHours: number) => void }) {
   const s = Math.max(from, toHours(band.start));
   const e = Math.min(to, toHours(band.end));
-  if (e <= s) return null;
   const color = band.color ?? "var(--muted-foreground)";
+  const style = {
+    top: (s - from) * HOUR_PX,
+    height: (e - s) * HOUR_PX,
+    background: `repeating-linear-gradient(135deg, color-mix(in oklab, ${color} 14%, transparent) 0 6px, transparent 6px 12px)`,
+    borderColor: `color-mix(in oklab, ${color} 35%, transparent)`,
+  };
+  const title = `${formatTime(band.start)}–${formatTime(band.end)} ${band.title}`;
+  if (e <= s) return null;
+  if (band.fixed) {
+    return (
+      <div className="pointer-events-none absolute inset-x-0 z-0 overflow-hidden border-y" style={style} title={title}>
+        <span className="text-muted-foreground absolute top-0.5 left-1 truncate text-[10px]">{band.title}</span>
+      </div>
+    );
+  }
+  return <OneOffBand band={band} s={s} e={e} style={style} title={title} onResize={onResize} />;
+}
+
+/** A one-off blocker's band: still behind everything, but a draggable with a resize edge. */
+function OneOffBand({ band, s, e, style, title, onResize }: { band: Band; s: number; e: number; style: React.CSSProperties; title: string; onResize: (endHours: number) => void }) {
+  const grab = useRef(0);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${band.item.key}`, data: { timed: band.item, grab } });
+  const resizing = useRef<{ startY: number; startEnd: number } | null>(null);
   return (
     <div
-      className="pointer-events-none absolute inset-x-0 z-0 overflow-hidden border-y"
-      style={{
-        top: (s - from) * HOUR_PX,
-        height: (e - s) * HOUR_PX,
-        background: `repeating-linear-gradient(135deg, color-mix(in oklab, ${color} 14%, transparent) 0 6px, transparent 6px 12px)`,
-        borderColor: `color-mix(in oklab, ${color} 35%, transparent)`,
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={cn("absolute inset-x-0 z-[1] cursor-grab overflow-hidden border-y select-none", isDragging && "opacity-40")}
+      style={style}
+      title={`${title} · one-off, drag to move`}
+      onPointerDownCapture={(ev) => {
+        grab.current = ev.clientY - ev.currentTarget.getBoundingClientRect().top;
       }}
-      title={`${formatTime(band.start)}–${formatTime(band.end)} ${band.title}`}
     >
       <span className="text-muted-foreground absolute top-0.5 left-1 truncate text-[10px]">{band.title}</span>
+      <div
+        className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none max-md:h-3"
+        aria-hidden
+        onPointerDown={(ev) => {
+          ev.stopPropagation();
+          ev.preventDefault();
+          (ev.target as HTMLElement).setPointerCapture(ev.pointerId);
+          resizing.current = { startY: ev.clientY, startEnd: e };
+        }}
+        onPointerMove={(ev) => {
+          if (!resizing.current) return;
+          const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
+          const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
+          (ev.currentTarget.parentElement as HTMLElement).style.height = `${(next - s) * HOUR_PX}px`;
+        }}
+        onPointerUp={(ev) => {
+          if (!resizing.current) return;
+          const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
+          const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
+          resizing.current = null;
+          if (next !== e) onResize(next);
+        }}
+      />
     </div>
   );
 }
@@ -240,8 +300,9 @@ function DayColumn({
   nowH,
   onSlotClick,
   onResize,
+  onBandResize,
   onComplete,
-  onUntime,
+  onRemove,
 }: {
   date: DateStr;
   from: number;
@@ -252,8 +313,9 @@ function DayColumn({
   nowH: number;
   onSlotClick: (date: DateStr, hours: number) => void;
   onResize: (entry: Entry, endHours: number) => void;
+  onBandResize: (band: Band, endHours: number) => void;
   onComplete: (item: SurfaceItem) => void;
-  onUntime: (item: SurfaceItem) => void;
+  onRemove: (item: SurfaceItem) => void;
 }) {
   const colDrop = useDroppable({ id: `col:${date}` });
   const height = (to - from) * HOUR_PX;
@@ -262,7 +324,7 @@ function DayColumn({
     <div className="flex min-w-0 flex-col">
       <div ref={colDrop.setNodeRef} className={cn("relative", colDrop.isOver && "bg-accent/20")} style={{ height }} data-col={date}>
         {bands.map((b) => (
-          <BandLayer key={b.key} band={b} from={from} to={to} />
+          <BandLayer key={b.key} band={b} from={from} to={to} onResize={(h) => onBandResize(b, h)} />
         ))}
         {Array.from({ length: to - from }, (_, i) => (
           <div
@@ -276,7 +338,7 @@ function DayColumn({
           />
         ))}
         {laid.map(({ item: en, col, cols }) => (
-          <Block key={en.kind === "block" ? en.item.key : en.item.key} entry={en} from={from} col={col} cols={cols} onResize={(h) => onResize(en, h)} onComplete={en.kind === "block" ? () => onComplete(en.item) : undefined} onUntime={en.kind === "block" ? () => onUntime(en.item) : undefined} />
+          <Block key={en.kind === "block" ? en.item.placementId : en.item.key} entry={en} from={from} col={col} cols={cols} onResize={(h) => onResize(en, h)} onComplete={en.kind === "block" ? () => onComplete(en.item) : undefined} onRemove={en.kind === "block" ? () => onRemove(en.item) : undefined} />
         ))}
         {date === today && nowH >= from && nowH <= to && (
           <div className="pointer-events-none absolute right-0 left-0 z-10 flex items-center" style={{ top: (nowH - from) * HOUR_PX }}>
@@ -289,21 +351,28 @@ function DayColumn({
   );
 }
 
-/** A draggable Event template chip: drop it on a slot, or add it to the open day with one tap. */
+/**
+ * A draggable template chip: drop it on a slot, or add it to the open day
+ * with one tap. A Blocker template (ADR 0029) is drawn hatched — it makes a
+ * band, not a thing — and has no bolt: a band needs a slot.
+ */
 function TemplateChip({ template, onAdd }: { template: TimedTemplate; onAdd: () => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `tpl:${template.key}`, data: { template } });
+  const color = template.color ?? "var(--muted-foreground)";
   return (
     <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
       className={cn("bg-card flex cursor-grab items-center gap-1.5 rounded-md border border-dashed px-1.5 py-1 text-xs select-none", isDragging && "opacity-40")}
+      style={template.background ? { background: `repeating-linear-gradient(135deg, color-mix(in oklab, ${color} 14%, transparent) 0 6px, transparent 6px 12px)` } : undefined}
       title={template.subtitle ? `${template.title} · ${template.subtitle}` : template.title}
     >
       <span className="truncate">{template.title}</span>
       <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">
         {template.durationMin === null ? "all day" : template.durationMin >= 60 ? `${Math.round((template.durationMin / 60) * 10) / 10}h` : `${template.durationMin}m`}
       </span>
+      {!template.background && (
       <button
         className="hover:bg-accent flex size-4 shrink-0 items-center justify-center rounded-full border"
         onPointerDown={(e) => e.stopPropagation()}
@@ -315,6 +384,7 @@ function TemplateChip({ template, onAdd }: { template: TimedTemplate; onAdd: () 
       >
         <Zap className="size-2.5" />
       </button>
+      )}
     </div>
   );
 }
@@ -357,7 +427,7 @@ function PoolColumn({ items, onComplete, collapsible }: { items: WorkItem[]; onC
   const { setNodeRef, isOver } = useDroppable({ id: POOL });
   const [open, setOpen] = useState(false);
   const chips = items.map((w) => (
-    <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} onComplete={() => onComplete(w)} />
+    <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} planned={w.blocksAhead} onComplete={() => onComplete(w)} />
   ));
   if (collapsible) {
     return (
@@ -415,10 +485,12 @@ function DayStrip({ anchor, today, onPick }: { anchor: DateStr; today: DateStr; 
 }
 
 /**
- * The Schedule Surface (ADR 0015): hour-scaled day/week. Drag untimed work
- * (strip or pool) or a block onto a slot to plan it; drag back to the strip
- * to untime; resize the bottom edge; double-click an empty slot to add an
- * Event. Times live in Placements; Events retime through their App.
+ * The Schedule Surface (ADR 0015): hour-scaled day/week. Chips (strip or
+ * pool) are sources: drag one onto a slot to make a Time block and the chip
+ * stays, greyed while blocks lie ahead (ADR 0028); drag a block to move that
+ * block alone; drag it to the strip or the pool to remove it. Resize the
+ * bottom edge; double-click an empty slot to add an Event. Times live in
+ * Placements; Events and one-off blockers (ADR 0029) retime through their App.
  */
 export function SchedulePage() {
   const [params, setParams] = useSearchParams();
@@ -462,7 +534,7 @@ export function SchedulePage() {
   const bandsFor = (d: DateStr): Band[] =>
     bandItems
       .filter((b) => b.date === d)
-      .map((b) => ({ key: b.key, title: b.title, start: b.start!, end: b.end ?? "24:00", color: b.color }));
+      .map((b) => ({ key: b.key, title: b.title, start: b.start!, end: b.end ?? "24:00", color: b.color, fixed: !!b.fixed, item: b }));
   const stripFor = (d: DateStr) => ({
     work: items.filter((i) => i.displayDate === d && !i.start) as WorkItem[],
     allDay: timed.filter((t) => t.date === d && !t.start),
@@ -522,7 +594,7 @@ export function SchedulePage() {
       if (d.template) {
         const t = d.template;
         createFromTimedTemplate(t, date, t.durationMin === null ? null : start)
-          .then(() => toast.success(t.durationMin === null ? `${t.title} on ${formatHuman(date)}` : `${t.title} at ${formatTime(start)}`))
+          .then(() => toast.success(t.durationMin === null ? `${t.title} on ${formatHuman(date)}` : `${t.title} ${t.background ? "blocked" : ""} at ${formatTime(start)}`.replace("  ", " ")))
           .catch(fail);
         return;
       }
@@ -546,6 +618,7 @@ export function SchedulePage() {
       return;
     }
     if (overId === POOL && d.item) {
+      // A block dropped here is removed, the item untouched; a chip goes back to the pool (ADR 0028).
       moveSurfaceItem(d.item as SurfaceItem, null).catch(fail);
     }
   }
@@ -563,6 +636,7 @@ export function SchedulePage() {
 
   /** The bolt on a template chip: onto the open day, at the template's own time. */
   function addTemplate(t: TimedTemplate) {
+    if (t.background) return void toast.error("Drop a blocker template on an hour");
     createFromTimedTemplate(t, anchor, null)
       .then(() => toast.success(`${t.title} on ${formatHuman(anchor)}`))
       .catch(fail);
@@ -570,7 +644,7 @@ export function SchedulePage() {
 
   const gutter = isMobile ? "2.5rem" : "3rem";
   const label = view === "week" ? `${formatHuman(first)} – ${formatHuman(last)}` : formatHuman(anchor);
-  const openCount = items.filter((i) => !i.completedOn).length;
+  const openCount = items.filter((i) => !i.start && !i.completedOn).length;
 
   return (
     <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
@@ -665,8 +739,11 @@ export function SchedulePage() {
                         if (en.kind === "block") scheduleSurfaceItem(en.item, en.item.displayDate, { start: en.start, end }).catch(fail);
                         else if (canRescheduleTimed(en.item.appId)) rescheduleTimedItem(en.item, en.item.date, en.start, end).catch(fail);
                       }}
+                      onBandResize={(b, endH) => {
+                        if (canRescheduleTimed(b.item.appId)) rescheduleTimedItem(b.item, b.item.date, b.start, toClock(endH)).catch(fail);
+                      }}
                       onComplete={(it) => completeSurfaceItem(it).then(() => toast.success(`${it.title} done`)).catch(fail)}
-                      onUntime={(it) => scheduleSurfaceItem(it, it.displayDate, null).catch(fail)}
+                      onRemove={(it) => (it.placementId ? unplaceItem(it.placementId).catch(fail) : undefined)}
                     />
                   </div>
                 ))}
@@ -677,7 +754,7 @@ export function SchedulePage() {
         <p className="text-muted-foreground shrink-0 text-[11px]">
           {isMobile
             ? "Press and hold to drag · + adds an event · ⚡ adds a template to this day."
-            : "Drag work or a template into a slot to plan it · drag to the top strip to untime · resize the bottom edge · double-click a slot to add an event · shaded bands are your time blockers."}
+            : "Drag work or a template into a slot to plan it — a chip stays and can be planned again · drag a block to the strip or the pool to remove it · resize the bottom edge · double-click a slot to add an event · shaded bands are your time blockers; one-off bands drag."}
         </p>
       </div>
 
@@ -691,11 +768,11 @@ export function SchedulePage() {
             </DialogTitle>
           </DialogHeader>
           <Input autoFocus placeholder="Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void createAt()} />
-          {templates.length > 0 && (
+          {templates.some((t) => !t.background) && (
             <div className="grid gap-1.5">
               <span className="text-muted-foreground text-xs">Or from a template</span>
               <div className="flex flex-wrap gap-1.5">
-                {templates.map((t) => (
+                {templates.filter((t) => !t.background).map((t) => (
                   <Button
                     key={t.key}
                     size="sm"

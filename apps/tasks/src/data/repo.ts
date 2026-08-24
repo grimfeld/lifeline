@@ -6,6 +6,7 @@ import {
   normalizeTags,
   putDocument,
   removeDocument,
+  removePlacementsOf,
   todayStr,
   useLiveQuery,
   type DateStr,
@@ -82,6 +83,8 @@ export async function deleteTask(taskId: string): Promise<void> {
   const overrides = (await documentsTable().where("[type+taskId]").equals([TASK_OCCURRENCE, taskId]).toArray()) as OccurrenceOverride[];
   for (const o of overrides) if (!o.deleted) await removeDocument(o.id);
   await removeDocument(taskId);
+  // Its Time blocks go with it (ADR 0028): the task's own id, or any of its Occurrences' `taskId|date`.
+  await removePlacementsOf("tasks", (id) => parseItemId(id).taskId === taskId);
 }
 
 async function getTask(taskId: string): Promise<Task | undefined> {

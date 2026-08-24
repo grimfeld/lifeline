@@ -33,12 +33,19 @@ export interface TimedItem {
    * never move it, day-granular surfaces leave it out.
    */
   background?: boolean;
+  /**
+   * A background band that comes from a rule (a weekly Time blocker): never
+   * dragged, since a drag would silently retime every week (ADR 0029). A
+   * one-off band leaves this unset and moves through `reschedule`.
+   */
+  fixed?: boolean;
 }
 
 /**
- * A named shape for a new Timed item (an Event template, ADR 0027): what a
- * planning surface offers for quick add. The owning App keeps the definition
- * and does the creating; the surface only says when.
+ * A named shape for a new Timed item (an Event template, ADR 0027, or a
+ * Blocker template, ADR 0029): what a planning surface offers for quick add.
+ * The owning App keeps the definition and does the creating; the surface
+ * only says when.
  */
 export interface TimedTemplate {
   /** `${appId}/${id}` — unique across Apps. */
@@ -53,6 +60,8 @@ export interface TimedTemplate {
   defaultStart: TimeStr | null;
   tags?: string[];
   color?: string;
+  /** Makes a background band (a one-off Time blocker), not a thing: the palette draws it hatched and needs a slot. */
+  background?: boolean;
 }
 
 export interface TimedProvider {

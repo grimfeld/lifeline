@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type TimeStr, type Weekday } from "@lifeline/core";
+import { documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr, type TimeStr, type Weekday } from "@lifeline/core";
 import { compareBlockers } from "../domain/blockers";
 import { TIME_BLOCKER_TYPE, type TimeBlocker } from "../domain/types";
 
@@ -7,6 +7,7 @@ import { TIME_BLOCKER_TYPE, type TimeBlocker } from "../domain/types";
 function normalize(b: TimeBlocker): TimeBlocker {
   return {
     ...b,
+    date: b.date || null,
     weekdays: Array.isArray(b.weekdays) ? (b.weekdays.map(Number).filter((d) => d >= 0 && d <= 6) as Weekday[]) : [],
     start: b.start || "09:00",
     end: b.end || "17:00",
@@ -27,6 +28,8 @@ export async function allTimeBlockers(): Promise<TimeBlocker[]> {
 
 export async function addTimeBlocker(input: {
   title: string;
+  /** Set for a one-off blocker (ADR 0029); the weekdays are then ignored. */
+  date?: DateStr | null;
   weekdays: Weekday[];
   start: TimeStr;
   end: TimeStr;
@@ -37,7 +40,8 @@ export async function addTimeBlocker(input: {
   const row = await putDocument<TimeBlocker>({
     type: TIME_BLOCKER_TYPE,
     title: input.title,
-    weekdays: [...input.weekdays].sort(),
+    date: input.date ?? null,
+    weekdays: input.date ? [] : [...input.weekdays].sort(),
     start: input.start,
     end: input.end,
     color: input.color ?? null,
@@ -58,4 +62,18 @@ export async function setBlockerActive(id: string, active: boolean): Promise<voi
 
 export async function deleteTimeBlocker(id: string): Promise<void> {
   await removeDocument(id);
+}
+
+/**
+ * A one-off blocker dragged or resized on the Schedule (ADR 0029): it moves
+ * alone. A weekly one refuses — a drag would retime the rule for every
+ * week. A null start (dropped on the untimed strip) keeps the hours and
+ * only changes the day: a band without hours is no band.
+ */
+export async function rescheduleTimeBlocker(id: string, date: DateStr, start: TimeStr | null, end: TimeStr | null): Promise<void> {
+  const row = await getDocument<TimeBlocker>(id);
+  if (!row || row.type !== TIME_BLOCKER_TYPE) throw new Error("That blocker is gone");
+  const b = normalize(row);
+  if (!b.date) throw new Error("A weekly blocker is a rule — edit it on the Templates & blockers screen");
+  await patchDocument(id, { date, start: start ?? b.start, end: start ? (end ?? b.end) : b.end });
 }

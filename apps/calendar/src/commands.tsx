@@ -5,6 +5,7 @@ import { Ban, CalendarPlus, LayoutTemplate, Zap } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
 import { EventTemplateDialog } from "./components/EventTemplateDialog";
 import { TimeBlockerDialog } from "./components/TimeBlockerDialog";
+import { BlockerTemplateDialog } from "./components/BlockerTemplateDialog";
 import { addEventFromTemplate, useEventTemplates } from "./data/templates";
 
 function AddEventCommandDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -17,6 +18,10 @@ function AddTemplateCommandDialog(props: { open: boolean; onOpenChange: (open: b
 
 function AddBlockerCommandDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
   return <TimeBlockerDialog {...props} />;
+}
+
+function AddBlockerTemplateCommandDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  return <BlockerTemplateDialog {...props} />;
 }
 
 export const calendarCommands: CommandDef[] = [
@@ -40,6 +45,13 @@ export const calendarCommands: CommandDef[] = [
     keywords: ["blocker", "block", "busy", "recurring", "unavailable"],
     icon: Ban,
     dialog: AddBlockerCommandDialog,
+  },
+  {
+    id: "calendar.add-blocker-template",
+    title: "New blocker template",
+    keywords: ["blocker", "template", "travel", "buffer", "band"],
+    icon: Ban,
+    dialog: AddBlockerTemplateCommandDialog,
   },
 ];
 

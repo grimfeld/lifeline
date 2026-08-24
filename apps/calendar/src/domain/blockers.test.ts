@@ -13,6 +13,7 @@ function blocker(over: Partial<TimeBlocker> = {}): TimeBlocker {
     createdAt: "2026-01-01",
     updatedAt: "2026-01-01T00:00:00Z",
     deleted: 0,
+    date: null,
     weekdays: [1, 2, 3, 4, 5] as Weekday[],
     start: "09:00",
     end: "17:00",
@@ -47,6 +48,17 @@ describe("bandsOn", () => {
     expect(bandsOn(sleep, "2026-08-28")).toEqual([{ date: "2026-08-28", start: "23:00", end: "24:00" }]);
     expect(bandsOn(sleep, "2026-08-29")).toEqual([{ date: "2026-08-29", start: "00:00", end: "07:00" }]);
     expect(bandsOn(sleep, "2026-08-30")).toEqual([]);
+  });
+  it("paints a one-off blocker on its day only, whatever the weekdays say (ADR 0029)", () => {
+    const travel = blocker({ title: "Travel", date: "2026-08-29", weekdays: [1] as Weekday[], start: "08:00", end: "08:30" });
+    expect(bandsOn(travel, "2026-08-29")).toEqual([{ date: "2026-08-29", start: "08:00", end: "08:30" }]);
+    expect(bandsOn(travel, "2026-08-24")).toEqual([]);
+    expect(bandsOn(travel, "2026-09-05")).toEqual([]);
+  });
+  it("carries a one-off overnight tail onto the next day", () => {
+    const flight = blocker({ date: "2026-08-24", weekdays: [], start: "22:00", end: "02:00" });
+    expect(bandsOn(flight, "2026-08-24")).toEqual([{ date: "2026-08-24", start: "22:00", end: "24:00" }]);
+    expect(bandsOn(flight, "2026-08-25")).toEqual([{ date: "2026-08-25", start: "00:00", end: "02:00" }]);
   });
   it("leaves no tail when the band just reaches midnight", () => {
     expect(bandsOn(blocker({ weekdays: [], start: "22:00", end: "00:00" }), "2026-08-25")).toEqual([

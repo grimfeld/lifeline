@@ -25,7 +25,7 @@ export function AgendaCard({ settings }: CardProps) {
   const items = useMemo(
     () => [
       ...timedItems,
-      ...blocks.map((b) => ({ key: b.key, appId: b.appId, itemId: b.itemId, title: `${b.completedOn ? "✓ " : ""}${b.title}`, date: b.displayDate, start: b.start!, end: b.end ?? null, color: b.color })),
+      ...blocks.map((b) => ({ key: `${b.key}#${b.placementId}`, appId: b.appId, itemId: b.itemId, title: `${b.completedOn ? "✓ " : ""}${b.title}`, date: b.displayDate, start: b.start!, end: b.end ?? null, color: b.color })),
     ],
     [timedItems, blocks],
   );
