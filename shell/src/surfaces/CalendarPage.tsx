@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { TagFilterBar } from "../components/TagFilterBar";
 import {
   Badge,
@@ -22,6 +23,7 @@ import {
   completeSurfaceItem,
   fromParts,
   daysInMonth,
+  formatHuman,
   parts,
   moveSurfaceItem,
   startOfWeek,
@@ -63,6 +65,8 @@ function ItemChip({ item, onMove }: { item: SurfaceItem; onMove: (i: SurfaceItem
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
+          // The day cell opens the Schedule; a chip's own click belongs to its menu.
+          onClick={(e) => e.stopPropagation()}
           className={cn(
             "flex w-full items-center gap-1 truncate rounded px-1 py-0.5 text-left text-xs transition-colors hover:bg-accent",
             item.completedOn && "text-muted-foreground line-through",
@@ -77,7 +81,8 @@ function ItemChip({ item, onMove }: { item: SurfaceItem; onMove: (i: SurfaceItem
           {item.placementId && <Pin className="text-muted-foreground ml-auto size-3 shrink-0" />}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
+      {/* Portalled, but React events still bubble to the day cell — keep them here. */}
+      <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
         <div className="text-muted-foreground px-2 py-1 text-xs">
           {appById(item.appId)?.title} · {item.subtitle ?? item.title}
         </div>
@@ -112,7 +117,10 @@ function ItemChip({ item, onMove }: { item: SurfaceItem; onMove: (i: SurfaceItem
 }
 
 export function CalendarPage() {
+  const navigate = useNavigate();
   const today = todayStr();
+  /** A day is a doorway: the month says what, the Schedule says when (ADR 0015). */
+  const openDay = (d: DateStr) => navigate(`/schedule?d=${d}`);
   const [anchor, setAnchor] = useState(() => {
     const { y, m } = parts(today);
     return { y, m };
@@ -180,19 +188,25 @@ export function CalendarPage() {
           return (
             <div
               key={d}
+              onClick={() => openDay(d)}
               className={cn(
-                "bg-background flex min-h-0 flex-col gap-0.5 p-1",
+                "bg-background flex min-h-0 cursor-pointer flex-col gap-0.5 p-1",
                 !inMonth && "bg-muted/40 text-muted-foreground",
               )}
             >
-              <span
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openDay(d);
+                }}
+                title={`Open ${formatHuman(d)} in the Schedule`}
                 className={cn(
                   "mb-0.5 self-start rounded-full px-1.5 text-xs leading-5",
-                  d === today && "bg-primary text-primary-foreground font-semibold",
+                  d === today ? "bg-primary text-primary-foreground font-semibold" : "hover:bg-accent",
                 )}
               >
                 {parts(d).day}
-              </span>
+              </button>
               <div className="min-h-0 flex-1 overflow-y-auto">
                 {timed
                   .filter((t) => t.date === d)
