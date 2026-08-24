@@ -34,7 +34,7 @@ function Section({
 }) {
   if (items.length === 0) return null;
   return (
-    <section className="grid gap-2">
+    <section className="grid min-w-0 grid-cols-1 gap-2">
       <h2 className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
         {title} <Badge variant="secondary">{items.length}</Badge>
       </h2>
@@ -108,7 +108,7 @@ export function TasksScreen() {
     groups.overdue.length + groups.today.length + groups.unassigned.length + groups.upcoming.length;
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-6 p-6">
+    <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-6 p-4 sm:p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
         <Button
@@ -129,14 +129,14 @@ export function TasksScreen() {
       />
 
       <Tabs defaultValue="open">
-        <TabsList>
+        <TabsList className="max-w-full overflow-x-auto">
           <TabsTrigger value="open">Open ({openCount})</TabsTrigger>
           <TabsTrigger value="recurring">Recurring ({groups.recurring.length})</TabsTrigger>
           <TabsTrigger value="done">Done</TabsTrigger>
           <TabsTrigger value="archived">Archived ({groups.archived.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="open" className="grid gap-6 pt-4">
+        <TabsContent value="open" className="grid min-w-0 grid-cols-1 gap-6 pt-4">
           {openCount === 0 && (
             <Card>
               <CardContent className="text-muted-foreground p-8 text-center text-sm">
@@ -150,7 +150,7 @@ export function TasksScreen() {
           <Section title="Upcoming" items={groups.upcoming} onEdit={edit} onMove={setMoving} />
         </TabsContent>
 
-        <TabsContent value="recurring" className="grid gap-6 pt-4">
+        <TabsContent value="recurring" className="grid min-w-0 grid-cols-1 gap-6 pt-4">
           {groups.recurring.length === 0 && (
             <Card>
               <CardContent className="text-muted-foreground p-8 text-center text-sm">
@@ -167,7 +167,7 @@ export function TasksScreen() {
           />
         </TabsContent>
 
-        <TabsContent value="done" className="grid gap-6 pt-4">
+        <TabsContent value="done" className="grid min-w-0 grid-cols-1 gap-6 pt-4">
           {groups.done.length === 0 && (
             <Card>
               <CardContent className="text-muted-foreground p-8 text-center text-sm">
@@ -178,7 +178,7 @@ export function TasksScreen() {
           <Section title="Done" items={groups.done} onEdit={edit} onMove={setMoving} />
         </TabsContent>
 
-        <TabsContent value="archived" className="grid gap-6 pt-4">
+        <TabsContent value="archived" className="grid min-w-0 grid-cols-1 gap-6 pt-4">
           {groups.archived.length === 0 && (
             <Card>
               <CardContent className="text-muted-foreground p-8 text-center text-sm">

@@ -127,17 +127,19 @@ export function TaskRow({
         <div className={cn("truncate text-sm font-medium", done && "line-through")}>
           {task.title}
         </div>
-        <div className="text-muted-foreground flex items-center gap-1.5 truncate text-xs">
+        <div className="text-muted-foreground flex items-center gap-1.5 overflow-hidden text-xs">
           {task.recurrence && (
-            <>
+            <span className="flex shrink-0 items-center gap-1.5">
               <Repeat className="size-3" /> {describeRecurrence(task.recurrence)}
-            </>
+            </span>
           )}
           {item.moved && item.sourceDate && (
-            <span>· moved from {formatHuman(item.sourceDate)}</span>
+            <span className="shrink-0">· moved from {formatHuman(item.sourceDate)}</span>
           )}
-          {task.notes && <span className="truncate">{task.recurrence ? "· " : ""}{task.notes}</span>}
-          {(task.tags ?? []).length > 0 && <TagChips tags={task.tags} size="xs" className="shrink-0" />}
+          {task.notes && <span className="min-w-0 truncate">{task.recurrence ? "· " : ""}{task.notes}</span>}
+          {(task.tags ?? []).length > 0 && (
+            <TagChips tags={task.tags} size="xs" className="shrink-0 flex-nowrap overflow-hidden" />
+          )}
         </div>
       </div>
       {showDate && item.date && (
@@ -150,7 +152,7 @@ export function TaskRow({
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button size="icon" variant="ghost" className="size-7">
+          <Button size="icon" variant="ghost" className="size-7 shrink-0">
             <MoreHorizontal />
           </Button>
         </DropdownMenuTrigger>
