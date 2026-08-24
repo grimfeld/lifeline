@@ -9,7 +9,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 PB_DIR="$ROOT/pocketbase"
-PB_BIN="$PB_DIR/pocketbase"
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*) PB_BIN="$PB_DIR/pocketbase.exe" ;;
+  *)                    PB_BIN="$PB_DIR/pocketbase" ;;
+esac
 PB_URL="${VITE_PB_URL:-http://127.0.0.1:8090}"
 PB_HTTP="${PB_URL#http://}"
 
@@ -36,12 +39,13 @@ if [[ ! -x "$PB_BIN" ]]; then
     Darwin-x86_64) PB_PLATFORM=darwin_amd64 ;;
     Linux-aarch64) PB_PLATFORM=linux_arm64 ;;
     Linux-x86_64)  PB_PLATFORM=linux_amd64 ;;
+    MINGW*-x86_64|MSYS*-x86_64|CYGWIN*-x86_64) PB_PLATFORM=windows_amd64 ;;
     *) echo "error: unsupported platform $(uname -s)-$(uname -m); install pocketbase manually" >&2; exit 1 ;;
   esac
   echo "==> downloading pocketbase v$PB_VERSION ($PB_PLATFORM)"
   curl -fsSL -o /tmp/pb.zip \
     "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_${PB_PLATFORM}.zip"
-  unzip -o -q /tmp/pb.zip pocketbase -d "$PB_DIR"
+  unzip -o -q /tmp/pb.zip "$(basename "$PB_BIN")" -d "$PB_DIR"
   rm /tmp/pb.zip
 fi
 

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "pnpm --filter @lifeline/shell dev",
-    "dev:all": "bash scripts/dev.sh",
+    "dev:all": "node scripts/dev-launcher.mjs",
     "import:calendar": "node scripts/import/import-calendar.mjs",
     "import:notch": "node scripts/import/import-notch.mjs",
     "import:nightstand": "node scripts/import/import-nightstand.mjs",
