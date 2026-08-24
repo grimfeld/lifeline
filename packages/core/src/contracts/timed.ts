@@ -27,6 +27,32 @@ export interface TimedItem {
   tags?: string[];
   /** Overrides the App colour on surfaces (a Calendar subscription's own colour, ADR 0017). */
   color?: string;
+  /**
+   * A recurring band of blocked time (a Time blocker, ADR 0027), not a
+   * discrete thing: hour-scaled surfaces draw it behind everything else and
+   * never move it, day-granular surfaces leave it out.
+   */
+  background?: boolean;
+}
+
+/**
+ * A named shape for a new Timed item (an Event template, ADR 0027): what a
+ * planning surface offers for quick add. The owning App keeps the definition
+ * and does the creating; the surface only says when.
+ */
+export interface TimedTemplate {
+  /** `${appId}/${id}` — unique across Apps. */
+  key: string;
+  appId: string;
+  id: string;
+  title: string;
+  subtitle?: string;
+  /** How long the created item lasts. null = all day. */
+  durationMin: number | null;
+  /** Where it wants to land when the surface has no slot of its own. null = all day. */
+  defaultStart: TimeStr | null;
+  tags?: string[];
+  color?: string;
 }
 
 export interface TimedProvider {
@@ -39,6 +65,10 @@ export interface TimedProvider {
   reschedule?(itemId: string, date: DateStr, start: TimeStr | null, end: TimeStr | null): Promise<void>;
   /** Optional delegate of "the user clicked an empty slot": create a timed item there. */
   create?(input: { title: string; date: DateStr; start: TimeStr | null; end: TimeStr | null }): Promise<void>;
+  /** React hook. Quick-add templates this App offers planning surfaces (ADR 0027). */
+  useTemplates?(): TimedTemplate[];
+  /** Optional delegate of "the user quick-added this template here" (null start = all day). */
+  createFromTemplate?(templateId: string, date: DateStr, start: TimeStr | null): Promise<void>;
 }
 
 export interface SurfaceTimedItem extends TimedItem {
@@ -67,6 +97,35 @@ export function useTimedItems(range: { start: DateStr; end: DateStr }, opts?: { 
   return out.sort((a, b) =>
     a.date.localeCompare(b.date) || (a.start ?? "").localeCompare(b.start ?? "") || a.title.localeCompare(b.title),
   );
+}
+
+/**
+ * Read side of the quick-add half of the Timed contract (ADR 0027): every
+ * provider's Event templates, coloured per App. Providers that offer
+ * templates but cannot create from them are skipped — a template you cannot
+ * add is not a template.
+ */
+export function useTimedTemplates(): TimedTemplate[] {
+  const providers = timedProviders();
+  // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
+  const perProvider = providers.map((p) => ({
+    provider: p,
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    templates: p.useTemplates && p.createFromTemplate ? p.useTemplates() : [],
+  }));
+  const out: TimedTemplate[] = [];
+  for (const { provider, templates } of perProvider) {
+    const color = appById(provider.appId)?.color;
+    for (const t of templates) out.push({ ...t, color: t.color ?? color });
+  }
+  return out;
+}
+
+/** Add one Event template to a day and time (null start = all day). */
+export async function createFromTimedTemplate(template: Pick<TimedTemplate, "appId" | "id">, date: DateStr, start: TimeStr | null): Promise<void> {
+  const provider = timedProviders().find((p) => p.appId === template.appId);
+  if (!provider?.createFromTemplate) throw new Error(`${appById(template.appId)?.title ?? template.appId} has no templates`);
+  await provider.createFromTemplate(template.id, date, start);
 }
 
 export function canRescheduleTimed(appId: string): boolean {
