@@ -3,7 +3,8 @@ import { TagFilterBar } from "../components/TagFilterBar";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDraggable,
   useDroppable,
   useSensor,
@@ -49,7 +50,8 @@ import {
   type SurfaceItem,
   type SurfaceTimedItem,
 } from "@lifeline/core";
-import { Check, ChevronLeft, ChevronRight, Inbox, MapPin, Pin, PinOff } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, GripVertical, Inbox, MapPin, Pin, PinOff } from "lucide-react";
+import { useIsMobile } from "../mobile/useIsMobile";
 
 const POOL = "pool";
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -112,6 +114,7 @@ function ItemCard({
         title={done ? "Done" : "Complete"}
         disabled={done}
         onPointerDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation();
           void completeSurfaceItem(item);
@@ -125,6 +128,7 @@ function ItemCard({
           <button
             className="min-w-0 flex-1 text-left"
             onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
           >
             <span className={cn("block truncate leading-tight", done && "line-through")}>
               {item.title}
@@ -183,6 +187,13 @@ function ItemCard({
         title={appById(item.appId)?.title}
       />
       {item.placementId && <Pin className="text-muted-foreground mt-1 size-3 shrink-0" />}
+      {/* Phone: the title opens the menu, so the long-press drag needs its own
+          hit area — the card is the draggable, this is the visible grip. */}
+      {!done && (
+        <span className="text-muted-foreground/50 -my-1.5 -mr-1 flex w-6 shrink-0 items-center justify-center self-stretch md:hidden" aria-hidden>
+          <GripVertical className="size-4" />
+        </span>
+      )}
     </div>
   );
 }
@@ -227,6 +238,7 @@ function Column({
   onMove,
   highlight,
   className,
+  stacked,
   children,
 }: {
   id: string;
@@ -237,6 +249,8 @@ function Column({
   onMove: (i: Item) => void;
   highlight?: boolean;
   className?: string;
+  /** Phone: a row in the day stack — height follows its contents, the page scrolls. */
+  stacked?: boolean;
   children?: ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -244,7 +258,8 @@ function Column({
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-background flex min-h-0 min-w-0 flex-col rounded-lg border",
+        "bg-background flex min-w-0 flex-col rounded-lg border",
+        stacked ? "shrink-0" : "min-h-0",
         isOver && "ring-ring/50 bg-accent/30 ring-2",
         highlight && "border-primary",
         className,
@@ -257,7 +272,12 @@ function Column({
           {items.filter((i) => !i.completedOn).length || ""}
         </span>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-1.5">
+      <div
+        className={cn(
+          "flex flex-col gap-1.5 p-1.5",
+          stacked ? "min-h-10" : "min-h-0 flex-1 overflow-y-auto",
+        )}
+      >
         {children}
         {timed.map((t) => (
           <TimedCard key={t.key} item={t} />
@@ -266,7 +286,12 @@ function Column({
           <ItemCard key={item.key} item={item} onMove={onMove} />
         ))}
         {items.length === 0 && timed.length === 0 && !children && (
-          <div className="text-muted-foreground/60 flex flex-1 items-center justify-center py-6 text-xs">
+          <div
+            className={cn(
+              "text-muted-foreground/60 flex flex-1 items-center justify-center text-xs",
+              stacked ? "py-1" : "py-6",
+            )}
+          >
             Drop here
           </div>
         )}
@@ -275,7 +300,67 @@ function Column({
   );
 }
 
+/**
+ * The Unplaced pool on a phone (ADR 0021's "parity grows page-by-page"): the
+ * same droppable as the desktop column, collapsed above the days — which need
+ * the whole width. Overdue work rides inside it, counted on the header so it
+ * is visible while closed; a drop on the closed header still unplaces.
+ */
+function PoolDrawer({
+  items,
+  overdue,
+  onMove,
+}: {
+  items: Item[];
+  overdue: Item[];
+  onMove: (i: Item) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: POOL });
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn("bg-background shrink-0 rounded-lg border", isOver && "ring-ring/50 bg-accent/30 ring-2")}
+    >
+      <button
+        className="text-muted-foreground flex w-full items-center gap-1.5 px-2 py-2 text-xs font-medium"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        <Inbox className="size-3.5" /> Unplaced
+        <span className="tabular-nums">{items.length}</span>
+        {overdue.length > 0 && (
+          <span className="text-destructive tabular-nums">· {overdue.length} overdue</span>
+        )}
+        <ChevronDown className={cn("ml-auto size-3.5 transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="flex max-h-64 flex-col gap-1.5 overflow-y-auto border-t p-1.5">
+          {overdue.length > 0 && (
+            <>
+              <div className="text-destructive px-0.5 text-xs font-medium">
+                Overdue ({overdue.length})
+              </div>
+              {overdue.map((item) => (
+                <ItemCard key={item.key} item={item} onMove={onMove} />
+              ))}
+              <div className="bg-border my-1 h-px" />
+            </>
+          )}
+          {items.map((item) => (
+            <ItemCard key={item.key} item={item} onMove={onMove} />
+          ))}
+          {items.length === 0 && overdue.length === 0 && (
+            <div className="text-muted-foreground p-2 text-xs">Nothing unplaced.</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function WeekPage() {
+  const isMobile = useIsMobile();
   const today = todayStr();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(today));
   const [moving, setMoving] = useState<Item | null>(null);
@@ -294,7 +379,12 @@ export function WeekPage() {
   const overdue = items.filter((i) => i.displayDate < weekStart && !i.completedOn);
   const inWeek = items.filter((i) => i.displayDate >= weekStart);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  // A touch that moves scrolls, so a phone drag is a long press (ADR 0021,
+  // as on the Schedule): mouse keeps its 4px threshold.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
+  );
 
   function drop(item: Item, to: DateStr | null) {
     const from = item.displayDate ?? null;
@@ -340,15 +430,15 @@ export function WeekPage() {
         setActiveTimed(null);
       }}
     >
-      <div className="flex h-full flex-col gap-3 p-4">
-        <div className="flex items-center gap-2">
+      <div className="flex h-full flex-col gap-3 p-4 max-md:gap-2 max-md:p-3">
+        <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-xl font-semibold tracking-tight">Week</h1>
           <span className="text-muted-foreground text-sm">{weekLabel(weekStart)}</span>
           <Badge variant="secondary" className="ml-1">
             {openCount} open
           </Badge>
-          <div className="ml-auto flex items-center gap-1">
-            <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2" />
+          <div className="ml-auto flex items-center gap-1 max-md:ml-0 max-md:w-full">
+            <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2 max-md:mr-auto" />
             <Button size="icon" variant="outline" className="size-8" onClick={() => setWeekStart((w) => addDays(w, -7))}>
               <ChevronLeft />
             </Button>
@@ -361,25 +451,16 @@ export function WeekPage() {
           </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-[14rem_1fr] gap-2">
-          <Column id={POOL} title="Unplaced" subtitle="pool" items={pool} onMove={setMoving}>
-            {overdue.length > 0 && (
-              <div className="mb-1 grid gap-1.5">
-                <div className="text-destructive px-0.5 text-xs font-medium">
-                  Overdue ({overdue.length})
-                </div>
-                {overdue.map((item) => (
-                  <ItemCard key={item.key} item={item} onMove={setMoving} />
-                ))}
-                <div className="bg-border my-1 h-px" />
-              </div>
-            )}
-          </Column>
-          <div className="grid min-h-0 min-w-0 grid-cols-7 gap-2">
+        {isMobile ? (
+          // Seven columns are ~11px wide on a phone: the week becomes a stack
+          // of days, scrolled as one, with the pool as a drawer above it.
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+            <PoolDrawer items={pool} overdue={overdue} onMove={setMoving} />
             {days.map((d, i) => (
               <Column
                 key={d}
                 id={d}
+                stacked
                 title={DAY_NAMES[i]}
                 subtitle={String(parts(d).day)}
                 highlight={d === today}
@@ -390,7 +471,44 @@ export function WeekPage() {
               />
             ))}
           </div>
-        </div>
+        ) : (
+          <div className="grid min-h-0 flex-1 grid-cols-[14rem_1fr] gap-2">
+            <Column id={POOL} title="Unplaced" subtitle="pool" items={pool} onMove={setMoving}>
+              {overdue.length > 0 && (
+                <div className="mb-1 grid grid-cols-1 gap-1.5">
+                  <div className="text-destructive px-0.5 text-xs font-medium">
+                    Overdue ({overdue.length})
+                  </div>
+                  {overdue.map((item) => (
+                    <ItemCard key={item.key} item={item} onMove={setMoving} />
+                  ))}
+                  <div className="bg-border my-1 h-px" />
+                </div>
+              )}
+            </Column>
+            <div className="grid min-h-0 min-w-0 grid-cols-7 gap-2">
+              {days.map((d, i) => (
+                <Column
+                  key={d}
+                  id={d}
+                  title={DAY_NAMES[i]}
+                  subtitle={String(parts(d).day)}
+                  highlight={d === today}
+                  items={inWeek.filter((it) => it.displayDate === d)}
+                  timed={timed.filter((t) => t.date === d)}
+                  onMove={setMoving}
+                  className={d < today ? "bg-muted/30" : undefined}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {isMobile && (
+          <p className="text-muted-foreground shrink-0 text-[11px]">
+            Press and hold the grip to drag · tap a card for its actions.
+          </p>
+        )}
       </div>
 
       <DragOverlay dropAnimation={null}>
