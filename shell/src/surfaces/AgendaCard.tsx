@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { appById, formatTime, hourWindow, layoutColumns, todayStr, useSurfaceItems, useTimedItems, type CardProps } from "@lifeline/core";
+import { appById, formatTime, hourWindow, layoutColumns, todayStr, toHours, useSurfaceItems, useTimedItems, type CardProps } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 
 const HOUR_PX = 48;
@@ -16,7 +16,10 @@ function useNow(): Date {
 /** Hub card: today's Timed items on an hour-scaled timeline with a live "now" line. */
 export function AgendaCard({ settings }: CardProps) {
   const today = todayStr();
-  const timedItems = useTimedItems({ start: today, end: today });
+  const allTimed = useTimedItems({ start: today, end: today });
+  const timedItems = allTimed.filter((t) => !t.background);
+  // Time blockers (ADR 0027): the hours already spoken for, painted behind the day.
+  const bands = allTimed.filter((t) => t.background && t.start);
   // Time blocks (ADR 0015): planned work shows beside Events.
   const blocks = useSurfaceItems({ start: today, end: today }).filter((i) => i.start);
   const items = useMemo(
@@ -64,6 +67,25 @@ export function AgendaCard({ settings }: CardProps) {
       )}
       <div ref={scroller} className="relative min-h-0 flex-1 overflow-y-auto">
         <div className="relative" style={{ height }}>
+          {bands.map((b) => {
+            const s = Math.max(from, toHours(b.start!));
+            const e = Math.min(to, toHours(b.end ?? "24:00"));
+            if (e <= s) return null;
+            const color = b.color ?? "var(--muted-foreground)";
+            return (
+              <div
+                key={b.key}
+                className="pointer-events-none absolute right-0 left-10 z-0 border-y"
+                style={{
+                  top: (s - from) * HOUR_PX,
+                  height: (e - s) * HOUR_PX,
+                  background: `repeating-linear-gradient(135deg, color-mix(in oklab, ${color} 14%, transparent) 0 6px, transparent 6px 12px)`,
+                  borderColor: `color-mix(in oklab, ${color} 35%, transparent)`,
+                }}
+                title={`${formatTime(b.start)}–${formatTime(b.end ?? "24:00")} ${b.title}`}
+              />
+            );
+          })}
           {hours.map((h) => (
             <div key={h} className="absolute right-0 left-0 flex" style={{ top: (h - from) * HOUR_PX, height: HOUR_PX }}>
               <span className="text-muted-foreground w-10 shrink-0 -translate-y-1.5 text-right text-[10px] tabular-nums pr-1">

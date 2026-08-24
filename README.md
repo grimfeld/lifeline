@@ -15,7 +15,8 @@ apps/chores      @lifeline/app-chores — first App (ported from chore-scheduler
 apps/tasks       @lifeline/app-tasks — Tasks App (absorbs week-planner + calendar's task half):
                  one-time + weekly/monthly/yearly recurring tasks, per-Occurrence complete/move, Unassigned pool
 apps/calendar    @lifeline/app-calendar — Calendar App: Events (timed / all-day / multi-day),
-                 shown on the month, week and Today surfaces via the Timed contract
+                 shown on the month, week and Today surfaces via the Timed contract; Event templates (quick add onto a
+                 slot) and Time blockers (recurring bands painted behind the Schedule), ADR 0027
 apps/stats       @lifeline/app-stats — Stats App (notch port): additive / measurement / boolean /
                  collection stats, entries as an event log, derived totals, streaks, Recharts graphs
 apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): markdown notes with typed Note types

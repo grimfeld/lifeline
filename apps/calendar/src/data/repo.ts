@@ -57,7 +57,8 @@ export async function deleteEvent(id: string): Promise<void> {
 /** Move an event's first day to `to`, keeping its length. */
 export async function moveEvent(id: string, to: DateStr): Promise<void> {
   const ev = await getDocument<Event>(id);
-  if (!ev) return;
+  // Time blockers reach the Timed contract through this App too (ADR 0027); they have no day to move.
+  if (!ev || ev.type !== EVENT_TYPE) return;
   const e = normalize(ev);
   const len = e.endDate && e.endDate > e.date ? diffDays(e.date, e.endDate) : 0;
   await putDocument<Event>({ ...e, date: to, endDate: len > 0 ? addDays(to, len) : null });
@@ -66,7 +67,7 @@ export async function moveEvent(id: string, to: DateStr): Promise<void> {
 /** Reschedule an event onto a day and time (null start = all day). Multi-day events keep their length. */
 export async function rescheduleEvent(id: string, date: DateStr, start: string | null, end: string | null): Promise<void> {
   const ev = await getDocument<Event>(id);
-  if (!ev) return;
+  if (!ev || ev.type !== EVENT_TYPE) return;
   const e = normalize(ev);
   const len = e.endDate && e.endDate > e.date ? diffDays(e.date, e.endDate) : 0;
   await putDocument<Event>({ ...e, date, endDate: len > 0 ? addDays(date, len) : null, start, end: start ? end : null });

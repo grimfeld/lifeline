@@ -375,7 +375,8 @@ export function WeekPage() {
   const tags = composeTagFilter(tagFilter);
   const items = useSurfaceItems({ start: addDays(weekStart, -90), end: weekEnd }, { tags });
   const pool = usePoolItems({ tags });
-  const timed = useTimedItems({ start: weekStart, end: weekEnd }, { tags });
+  // Time blockers are bands on the hour-scaled Schedule, not things on a day (ADR 0027).
+  const timed = useTimedItems({ start: weekStart, end: weekEnd }, { tags }).filter((t) => !t.background);
   const overdue = items.filter((i) => i.displayDate < weekStart && !i.completedOn);
   const inWeek = items.filter((i) => i.displayDate >= weekStart);
 

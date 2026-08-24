@@ -8,6 +8,7 @@ import {
   canRescheduleTimed,
   completeSurfaceItem,
   composeTagFilter,
+  createFromTimedTemplate,
   formatHuman,
   formatTime,
   hourWindow,
@@ -24,12 +25,14 @@ import {
   usePoolItems,
   useSurfaceItems,
   useTimedItems,
+  useTimedTemplates,
   type DateStr,
   type PoolItem,
   type SurfaceItem,
   type SurfaceTimedItem,
+  type TimedTemplate,
 } from "@lifeline/core";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Inbox, Plus, Undo2 } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Inbox, LayoutTemplate, Plus, Undo2, Zap } from "lucide-react";
 import { TagFilterBar } from "../components/TagFilterBar";
 import { useIsMobile } from "../mobile/useIsMobile";
 
@@ -41,6 +44,8 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type WorkItem = (SurfaceItem | (PoolItem & { displayDate?: undefined; placementId?: undefined; start?: undefined; end?: undefined })) & { color?: string };
 type Entry = { kind: "block"; item: SurfaceItem; start: string; end: string } | { kind: "timed"; item: SurfaceTimedItem; start: string; end: string };
+/** A Time blocker's band on one day (ADR 0027): painted behind everything, never dragged. */
+type Band = { key: string; title: string; start: string; end: string; color?: string };
 
 /** The hour gutter's label: "1:00 PM" with room, bare "1 PM" on a phone. */
 function hourLabel(hour: number, compact: boolean): string {
@@ -203,11 +208,34 @@ function Strip({ date, work, allDay, onCompleteChip }: { date: DateStr; work: Wo
   );
 }
 
+/** One Time blocker band, clipped to the visible hours. */
+function BandLayer({ band, from, to }: { band: Band; from: number; to: number }) {
+  const s = Math.max(from, toHours(band.start));
+  const e = Math.min(to, toHours(band.end));
+  if (e <= s) return null;
+  const color = band.color ?? "var(--muted-foreground)";
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 z-0 overflow-hidden border-y"
+      style={{
+        top: (s - from) * HOUR_PX,
+        height: (e - s) * HOUR_PX,
+        background: `repeating-linear-gradient(135deg, color-mix(in oklab, ${color} 14%, transparent) 0 6px, transparent 6px 12px)`,
+        borderColor: `color-mix(in oklab, ${color} 35%, transparent)`,
+      }}
+      title={`${formatTime(band.start)}–${formatTime(band.end)} ${band.title}`}
+    >
+      <span className="text-muted-foreground absolute top-0.5 left-1 truncate text-[10px]">{band.title}</span>
+    </div>
+  );
+}
+
 function DayColumn({
   date,
   from,
   to,
   entries,
+  bands,
   today,
   nowH,
   onSlotClick,
@@ -219,6 +247,7 @@ function DayColumn({
   from: number;
   to: number;
   entries: Entry[];
+  bands: Band[];
   today: DateStr;
   nowH: number;
   onSlotClick: (date: DateStr, hours: number) => void;
@@ -232,6 +261,9 @@ function DayColumn({
   return (
     <div className="flex min-w-0 flex-col">
       <div ref={colDrop.setNodeRef} className={cn("relative", colDrop.isOver && "bg-accent/20")} style={{ height }} data-col={date}>
+        {bands.map((b) => (
+          <BandLayer key={b.key} band={b} from={from} to={to} />
+        ))}
         {Array.from({ length: to - from }, (_, i) => (
           <div
             key={i}
@@ -253,6 +285,66 @@ function DayColumn({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** A draggable Event template chip: drop it on a slot, or add it to the open day with one tap. */
+function TemplateChip({ template, onAdd }: { template: TimedTemplate; onAdd: () => void }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `tpl:${template.key}`, data: { template } });
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={cn("bg-card flex cursor-grab items-center gap-1.5 rounded-md border border-dashed px-1.5 py-1 text-xs select-none", isDragging && "opacity-40")}
+      title={template.subtitle ? `${template.title} · ${template.subtitle}` : template.title}
+    >
+      <span className="truncate">{template.title}</span>
+      <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">
+        {template.durationMin === null ? "all day" : template.durationMin >= 60 ? `${Math.round((template.durationMin / 60) * 10) / 10}h` : `${template.durationMin}m`}
+      </span>
+      <button
+        className="hover:bg-accent flex size-4 shrink-0 items-center justify-center rounded-full border"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onAdd();
+        }}
+        aria-label={`Add ${template.title}`}
+      >
+        <Zap className="size-2.5" />
+      </button>
+    </div>
+  );
+}
+
+/**
+ * The Event templates palette (ADR 0027): the shapes the Calendar App offers
+ * for quick add. Drag one onto an hour to plan it there; the bolt puts it on
+ * the open day at its usual time.
+ */
+function TemplatePalette({ templates, onAdd, collapsible }: { templates: TimedTemplate[]; onAdd: (t: TimedTemplate) => void; collapsible?: boolean }) {
+  const [open, setOpen] = useState(false);
+  if (templates.length === 0) return null;
+  const chips = templates.map((t) => <TemplateChip key={t.key} template={t} onAdd={() => onAdd(t)} />);
+  if (collapsible) {
+    return (
+      <div className="shrink-0 rounded-lg border">
+        <button className="text-muted-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+          <LayoutTemplate className="size-3.5" /> Templates <span className="ml-auto tabular-nums">{templates.length}</span>
+          <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} />
+        </button>
+        {open && <div className="max-h-40 space-y-1 overflow-y-auto border-t p-1">{chips}</div>}
+      </div>
+    );
+  }
+  return (
+    <div className="flex max-h-56 shrink-0 flex-col rounded-lg border">
+      <div className="text-muted-foreground flex items-center gap-1 border-b px-2 py-1.5 text-xs font-medium">
+        <LayoutTemplate className="size-3.5" /> Templates <span className="ml-auto">{templates.length}</span>
+      </div>
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto p-1">{chips}</div>
     </div>
   );
 }
@@ -284,7 +376,7 @@ function PoolColumn({ items, onComplete, collapsible }: { items: WorkItem[]; onC
     );
   }
   return (
-    <div ref={setNodeRef} className={cn("flex min-h-0 flex-col rounded-lg border", isOver && "bg-accent/40")}>
+    <div ref={setNodeRef} className={cn("flex min-h-0 flex-1 flex-col rounded-lg border", isOver && "bg-accent/40")}>
       <div className="text-muted-foreground flex items-center gap-1 border-b px-2 py-1.5 text-xs font-medium">
         <Inbox className="size-3.5" /> Unplaced <span className="ml-auto">{items.length}</span>
       </div>
@@ -345,7 +437,11 @@ export function SchedulePage() {
   const tags = composeTagFilter(tagFilter);
   const items = useSurfaceItems({ start: first, end: last }, { tags });
   const pool = usePoolItems({ tags });
-  const timed = useTimedItems({ start: first, end: last }, { tags });
+  const allTimed = useTimedItems({ start: first, end: last }, { tags });
+  // Time blockers arrive through the Timed contract as background items (ADR 0027): bands, not things.
+  const timed = allTimed.filter((t) => !t.background);
+  const bandItems = allTimed.filter((t) => t.background && t.start);
+  const templates = useTimedTemplates();
   const creator = timedCreators()[0];
 
   const [now, setNow] = useState(() => new Date());
@@ -363,6 +459,10 @@ export function SchedulePage() {
     ...blocks.filter((b) => b.displayDate === d).map((b) => ({ kind: "block" as const, item: b, start: b.start!, end: b.end ?? addHours(b.start!, DEFAULT_MIN / 60) })),
     ...timedIn.filter((t) => t.date === d).map((t) => ({ kind: "timed" as const, item: t, start: t.start!, end: t.end ?? addHours(t.start!, 1) })),
   ];
+  const bandsFor = (d: DateStr): Band[] =>
+    bandItems
+      .filter((b) => b.date === d)
+      .map((b) => ({ key: b.key, title: b.title, start: b.start!, end: b.end ?? "24:00", color: b.color }));
   const stripFor = (d: DateStr) => ({
     work: items.filter((i) => i.displayDate === d && !i.start) as WorkItem[],
     allDay: timed.filter((t) => t.date === d && !t.start),
@@ -401,15 +501,15 @@ export function SchedulePage() {
   function onDragStart(e: DragStartEvent) {
     const ev = e.activatorEvent as PointerEvent | TouchEvent;
     const y = "clientY" in ev ? ev.clientY : (ev.touches[0]?.clientY ?? 0);
-    const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; grab?: { current: number } };
+    const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate; grab?: { current: number } };
     pointer.current = { y, grab: d.grab?.current ?? 0 };
-    setActive({ title: d.item?.title ?? d.timed?.title ?? "" });
+    setActive({ title: d.item?.title ?? d.timed?.title ?? d.template?.title ?? "" });
   }
   function onDragEnd(e: DragEndEvent) {
     setActive(null);
     if (!e.over) return;
     const overId = String(e.over.id);
-    const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem };
+    const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate };
     const isBlockDrag = String(e.active.id).startsWith("block:") || String(e.active.id).startsWith("timed:");
     if (overId.startsWith("col:")) {
       const date = overId.slice(4);
@@ -419,6 +519,13 @@ export function SchedulePage() {
       const top = pointer.current.y - (isBlockDrag ? pointer.current.grab : 8) - colTop;
       const startH = Math.max(from, Math.min(to - SNAP_MIN / 60, snap(from + top / HOUR_PX)));
       const start = toClock(startH);
+      if (d.template) {
+        const t = d.template;
+        createFromTimedTemplate(t, date, t.durationMin === null ? null : start)
+          .then(() => toast.success(t.durationMin === null ? `${t.title} on ${formatHuman(date)}` : `${t.title} at ${formatTime(start)}`))
+          .catch(fail);
+        return;
+      }
       if (d.item) {
         const dur = d.item.start ? durationOf(d.item.start, d.item.end) : DEFAULT_MIN / 60;
         scheduleSurfaceItem(d.item as SurfaceItem, date, { start, end: addHours(start, dur) }).catch(fail);
@@ -452,6 +559,13 @@ export function SchedulePage() {
     toast.success(`${newTitle.trim()} at ${formatTime(start)}`);
     setCreating(null);
     setNewTitle("");
+  }
+
+  /** The bolt on a template chip: onto the open day, at the template's own time. */
+  function addTemplate(t: TimedTemplate) {
+    createFromTimedTemplate(t, anchor, null)
+      .then(() => toast.success(`${t.title} on ${formatHuman(anchor)}`))
+      .catch(fail);
   }
 
   const gutter = isMobile ? "2.5rem" : "3rem";
@@ -501,7 +615,10 @@ export function SchedulePage() {
         {isMobile && <DayStrip anchor={anchor} today={today} onPick={(d) => go(d)} />}
 
         <div className="grid min-h-0 flex-1 grid-cols-[13rem_1fr] gap-2 max-md:flex max-md:flex-col">
-          <PoolColumn items={pool as WorkItem[]} onComplete={(w) => completeSurfaceItem(w as SurfaceItem).catch(fail)} collapsible={isMobile} />
+          <div className="flex min-h-0 flex-col gap-2 max-md:contents">
+            <PoolColumn items={pool as WorkItem[]} onComplete={(w) => completeSurfaceItem(w as SurfaceItem).catch(fail)} collapsible={isMobile} />
+            <TemplatePalette templates={templates} onAdd={addTemplate} collapsible={isMobile} />
+          </div>
           <div className="flex min-h-0 min-w-0 flex-col rounded-lg border max-md:flex-1">
             <div className="grid shrink-0 border-b max-md:hidden" style={{ gridTemplateColumns: `${gutter} repeat(${days.length}, minmax(0, 1fr))` }}>
               <div />
@@ -536,6 +653,7 @@ export function SchedulePage() {
                       from={from}
                       to={to}
                       entries={entriesFor(d)}
+                      bands={bandsFor(d)}
                       today={today}
                       nowH={nowH}
                       onSlotClick={(date, hours) => {
@@ -558,8 +676,8 @@ export function SchedulePage() {
         </div>
         <p className="text-muted-foreground shrink-0 text-[11px]">
           {isMobile
-            ? "Press and hold to drag · + adds an event."
-            : "Drag work into a slot to plan it · drag to the top strip to untime · resize the bottom edge · double-click a slot to add an event."}
+            ? "Press and hold to drag · + adds an event · ⚡ adds a template to this day."
+            : "Drag work or a template into a slot to plan it · drag to the top strip to untime · resize the bottom edge · double-click a slot to add an event · shaded bands are your time blockers."}
         </p>
       </div>
 
@@ -573,6 +691,31 @@ export function SchedulePage() {
             </DialogTitle>
           </DialogHeader>
           <Input autoFocus placeholder="Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void createAt()} />
+          {templates.length > 0 && (
+            <div className="grid gap-1.5">
+              <span className="text-muted-foreground text-xs">Or from a template</span>
+              <div className="flex flex-wrap gap-1.5">
+                {templates.map((t) => (
+                  <Button
+                    key={t.key}
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      if (!creating) return;
+                      const start = toClock(creating.hours);
+                      createFromTimedTemplate(t, creating.date, t.durationMin === null ? null : start)
+                        .then(() => toast.success(t.durationMin === null ? `${t.title} on ${formatHuman(creating.date)}` : `${t.title} at ${formatTime(start)}`))
+                        .catch(fail);
+                      setCreating(null);
+                      setNewTitle("");
+                    }}
+                  >
+                    {t.title}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <Button onClick={() => void createAt()} disabled={!newTitle.trim()}>
               Add

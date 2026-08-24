@@ -1,13 +1,26 @@
 import { formatHuman, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
-import { CalendarClock } from "lucide-react";
+import { Ban, CalendarClock, LayoutTemplate } from "lucide-react";
 import { EventsScreen } from "./screens/EventsScreen";
+import { TemplatesScreen } from "./screens/TemplatesScreen";
 import { UpcomingEventsCard } from "./cards/UpcomingEventsCard";
 import { NextEventsCard, nextEventsSettings, nextEventsTitle } from "./cards/NextEventsCard";
 import { CountdownCard, countdownSettings, useCountdownTitle } from "./cards/CountdownCard";
-import { calendarCommands } from "./commands";
+import { calendarCommands, useTemplateCommands } from "./commands";
 import { calendarTimed, APP_ID } from "./timed";
 import { calendarDaylog } from "./daylog";
-import { EVENT_TYPE, EVENTS, EVENTS_HREF, type Event } from "./domain/types";
+import { describeBlocker } from "./domain/blockers";
+import { describeTemplate } from "./domain/templates";
+import {
+  EVENT_TEMPLATE_TYPE,
+  EVENT_TYPE,
+  EVENTS,
+  EVENTS_HREF,
+  TEMPLATES_HREF,
+  TIME_BLOCKER_TYPE,
+  type Event,
+  type EventTemplate,
+  type TimeBlocker,
+} from "./domain/types";
 
 /** The `event` Document type (ADR 0019): structured, no body; time fields are guarded (moves go through the Timed hooks). */
 const eventType: DocumentTypeDef = {
@@ -30,13 +43,52 @@ const eventType: DocumentTypeDef = {
   builtIn: true,
 };
 
+/** The `event_template` Document type (ADR 0027): the shape of an Event, on no day of its own. */
+const eventTemplateType: DocumentTypeDef = {
+  id: EVENT_TEMPLATE_TYPE,
+  label: "Event templates",
+  icon: LayoutTemplate,
+  titleRule: "name",
+  body: "none",
+  fields: [
+    { key: "allDay", label: "All day", kind: "boolean", column: true },
+    { key: "durationMin", label: "Length (min)", kind: "number", column: true },
+    { key: "defaultStart", label: "Usual start", kind: "text", column: true },
+    { key: "notes", label: "Notes", kind: "longtext" },
+  ],
+  linkable: { subtitle: (d) => describeTemplate(d as EventTemplate) },
+  href: () => TEMPLATES_HREF,
+  order: 31,
+  builtIn: true,
+};
+
+/** The `time_blocker` Document type (ADR 0027): a recurring band, guarded because the App owns what a band means. */
+const timeBlockerType: DocumentTypeDef = {
+  id: TIME_BLOCKER_TYPE,
+  label: "Time blockers",
+  icon: Ban,
+  titleRule: "name",
+  body: "none",
+  fields: [
+    { key: "weekdays", label: "Weekdays", kind: "list", guarded: true },
+    { key: "start", label: "From", kind: "text", guarded: true, column: true },
+    { key: "end", label: "To", kind: "text", guarded: true, column: true },
+    { key: "active", label: "On", kind: "boolean", column: true },
+    { key: "color", label: "Colour", kind: "text" },
+  ],
+  linkable: { subtitle: (d) => describeBlocker(d as TimeBlocker) },
+  href: () => TEMPLATES_HREF,
+  order: 32,
+  builtIn: true,
+};
+
 /** The Calendar App owns Events (CONTEXT.md). The month/week grids are Core Surfaces. */
 export const calendarApp: AppManifest = {
   id: APP_ID,
   title: "Calendar",
   icon: CalendarClock,
   color: "var(--chart-violet)",
-  types: [eventType],
+  types: [eventType, eventTemplateType, timeBlockerType],
   screens: [
     {
       id: "calendar.events",
@@ -44,6 +96,13 @@ export const calendarApp: AppManifest = {
       path: "events",
       icon: CalendarClock,
       component: EventsScreen,
+    },
+    {
+      id: "calendar.templates",
+      title: "Templates & blockers",
+      path: "event-templates",
+      icon: LayoutTemplate,
+      component: TemplatesScreen,
     },
   ],
   cards: [
@@ -79,9 +138,10 @@ export const calendarApp: AppManifest = {
     },
   ],
   commands: calendarCommands,
+  useCommands: useTemplateCommands,
   timed: calendarTimed,
   daylog: calendarDaylog,
 };
 
-export { EVENTS, EVENT_TYPE };
-export type { Event } from "./domain/types";
+export { EVENTS, EVENT_TYPE, EVENT_TEMPLATE_TYPE, TIME_BLOCKER_TYPE };
+export type { Event, EventTemplate, TimeBlocker } from "./domain/types";
