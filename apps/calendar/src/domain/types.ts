@@ -77,5 +77,6 @@ export interface BlockerTemplate extends Document {
 export const EVENT_TEMPLATE_TYPE = "event_template";
 export const TIME_BLOCKER_TYPE = "time_blocker";
 export const BLOCKER_TEMPLATE_TYPE = "blocker_template";
-/** Both are managed on one Calendar screen. */
-export const TEMPLATES_HREF = "/app/event-templates";
+/** Templates and blockers are tabs of the Events screen. */
+export const TEMPLATES_HREF = `${EVENTS_HREF}?tab=templates`;
+export const BLOCKERS_HREF = `${EVENTS_HREF}?tab=blockers`;

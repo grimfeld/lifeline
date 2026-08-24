@@ -158,32 +158,20 @@ function BlockerRow({ b, onEdit }: { b: TimeBlocker; onEdit: (b: TimeBlocker) =>
 }
 
 /**
- * One Calendar screen for the two things that make planning quick (ADR
- * 0027): Event templates you add to a day in one gesture, and Time blockers
- * that paint the Schedule with the hours already spoken for.
+ * The Events screen's Templates tab (ADR 0027/0029): the shapes you drop on
+ * the Schedule — Event templates that make Events, Blocker templates that
+ * make one-off bands.
  */
-export function TemplatesScreen() {
+export function TemplatesTab() {
   const templates = useEventTemplates();
-  const allBlockers = useTimeBlockers();
   const blockerTemplates = useBlockerTemplates();
-  const today = todayStr();
-  const weekly = allBlockers.filter((b) => !isOneOff(b));
-  // One-offs (ADR 0029): upcoming ones are listed; past ones are record and stay in the Base.
-  const oneOffs = allBlockers.filter((b) => isOneOff(b) && b.date! >= today);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EventTemplate | undefined>();
-  const [blockerOpen, setBlockerOpen] = useState(false);
-  const [editingBlocker, setEditingBlocker] = useState<TimeBlocker | undefined>();
   const [blockerTemplateOpen, setBlockerTemplateOpen] = useState(false);
   const [editingBlockerTemplate, setEditingBlockerTemplate] = useState<BlockerTemplate | undefined>();
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-8 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Templates & blockers</h1>
-        <p className="text-muted-foreground text-sm">Events you add again and again, the hours that are already taken, and the bands you drop around them.</p>
-      </div>
-
+    <div className="grid gap-8">
       <section className="grid gap-2">
         <div className="flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-sm font-medium">
@@ -196,13 +184,13 @@ export function TemplatesScreen() {
               setTemplateOpen(true);
             }}
           >
-            <Plus /> New template
+            <Plus /> New event template
           </Button>
         </div>
         {templates.length === 0 ? (
           <Card>
             <CardContent className="text-muted-foreground p-6 text-center text-sm">
-              No templates yet. A template is an event shape — title, length, notes, tags — you drop onto a slot on the Schedule or add to today in one click.
+              No event templates yet. A template is an event shape — title, length, notes, tags — you drop onto a slot on the Schedule or add to today in one click.
             </CardContent>
           </Card>
         ) : (
@@ -213,41 +201,6 @@ export function TemplatesScreen() {
               onEdit={(x) => {
                 setEditingTemplate(x);
                 setTemplateOpen(true);
-              }}
-            />
-          ))
-        )}
-      </section>
-
-      <section className="grid gap-2">
-        <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-sm font-medium">
-            <Ban className="size-4" /> Time blockers
-          </h2>
-          <Button
-            size="sm"
-            onClick={() => {
-              setEditingBlocker(undefined);
-              setBlockerOpen(true);
-            }}
-          >
-            <Plus /> New blocker
-          </Button>
-        </div>
-        {weekly.length === 0 ? (
-          <Card>
-            <CardContent className="text-muted-foreground p-6 text-center text-sm">
-              No blockers yet. A blocker is a weekly band — sleep, work hours, the school run — painted behind the Schedule so you plan around it.
-            </CardContent>
-          </Card>
-        ) : (
-          weekly.map((b) => (
-            <BlockerRow
-              key={b.id}
-              b={b}
-              onEdit={(x) => {
-                setEditingBlocker(x);
-                setBlockerOpen(true);
               }}
             />
           ))
@@ -287,26 +240,75 @@ export function TemplatesScreen() {
             />
           ))
         )}
-        {oneOffs.length > 0 && (
-          <div className="mt-2 grid gap-2">
-            <h3 className="text-muted-foreground text-xs font-medium">Upcoming one-off blockers</h3>
-            {oneOffs.map((b) => (
-              <BlockerRow
-                key={b.id}
-                b={b}
-                onEdit={(x) => {
-                  setEditingBlocker(x);
-                  setBlockerOpen(true);
-                }}
-              />
-            ))}
-          </div>
-        )}
       </section>
 
       <EventTemplateDialog open={templateOpen} onOpenChange={setTemplateOpen} template={editingTemplate} />
-      <TimeBlockerDialog open={blockerOpen} onOpenChange={setBlockerOpen} blocker={editingBlocker} />
       <BlockerTemplateDialog open={blockerTemplateOpen} onOpenChange={setBlockerTemplateOpen} template={editingBlockerTemplate} />
+    </div>
+  );
+}
+
+/**
+ * The Events screen's Blockers tab (ADR 0027/0029): the weekly rules that
+ * paint the Schedule, and the one-off bands still ahead. Past one-offs are
+ * record and stay in the Base.
+ */
+export function BlockersTab() {
+  const allBlockers = useTimeBlockers();
+  const today = todayStr();
+  const weekly = allBlockers.filter((b) => !isOneOff(b));
+  const oneOffs = allBlockers.filter((b) => isOneOff(b) && b.date! >= today);
+  const [blockerOpen, setBlockerOpen] = useState(false);
+  const [editingBlocker, setEditingBlocker] = useState<TimeBlocker | undefined>();
+  const edit = (b: TimeBlocker) => {
+    setEditingBlocker(b);
+    setBlockerOpen(true);
+  };
+
+  return (
+    <div className="grid gap-8">
+      <section className="grid gap-2">
+        <div className="flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-sm font-medium">
+            <Ban className="size-4" /> Weekly blockers
+          </h2>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingBlocker(undefined);
+              setBlockerOpen(true);
+            }}
+          >
+            <Plus /> New blocker
+          </Button>
+        </div>
+        {weekly.length === 0 ? (
+          <Card>
+            <CardContent className="text-muted-foreground p-6 text-center text-sm">
+              No blockers yet. A blocker is a weekly band — sleep, work hours, the school run — painted behind the Schedule so you plan around it.
+            </CardContent>
+          </Card>
+        ) : (
+          weekly.map((b) => <BlockerRow key={b.id} b={b} onEdit={edit} />)
+        )}
+      </section>
+
+      <section className="grid gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-medium">
+          <Clock className="size-4" /> Upcoming one-off blockers
+        </h2>
+        {oneOffs.length === 0 ? (
+          <Card>
+            <CardContent className="text-muted-foreground p-6 text-center text-sm">
+              None ahead. Drop a blocker template on an hour of the Schedule to paint a one-off band there.
+            </CardContent>
+          </Card>
+        ) : (
+          oneOffs.map((b) => <BlockerRow key={b.id} b={b} onEdit={edit} />)
+        )}
+      </section>
+
+      <TimeBlockerDialog open={blockerOpen} onOpenChange={setBlockerOpen} blocker={editingBlocker} />
     </div>
   );
 }

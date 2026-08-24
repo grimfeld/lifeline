@@ -1,7 +1,6 @@
 import { formatHuman, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
 import { Ban, CalendarClock, LayoutTemplate } from "lucide-react";
 import { EventsScreen } from "./screens/EventsScreen";
-import { TemplatesScreen } from "./screens/TemplatesScreen";
 import { UpcomingEventsCard } from "./cards/UpcomingEventsCard";
 import { NextEventsCard, nextEventsSettings, nextEventsTitle } from "./cards/NextEventsCard";
 import { CountdownCard, countdownSettings, useCountdownTitle } from "./cards/CountdownCard";
@@ -16,6 +15,7 @@ import {
   EVENT_TYPE,
   EVENTS,
   EVENTS_HREF,
+  BLOCKERS_HREF,
   TEMPLATES_HREF,
   TIME_BLOCKER_TYPE,
   type BlockerTemplate,
@@ -81,7 +81,7 @@ const timeBlockerType: DocumentTypeDef = {
   ],
   indexes: ["date"],
   linkable: { subtitle: (d) => describeBlocker(d as TimeBlocker) },
-  href: () => TEMPLATES_HREF,
+  href: () => BLOCKERS_HREF,
   order: 32,
   builtIn: true,
 };
@@ -117,13 +117,6 @@ export const calendarApp: AppManifest = {
       path: "events",
       icon: CalendarClock,
       component: EventsScreen,
-    },
-    {
-      id: "calendar.templates",
-      title: "Templates & blockers",
-      path: "event-templates",
-      icon: LayoutTemplate,
-      component: TemplatesScreen,
     },
   ],
   cards: [

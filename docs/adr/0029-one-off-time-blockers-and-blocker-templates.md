@@ -14,4 +14,4 @@ Travel to the dentist, prep before a call: hours that are *taken* but on one day
 - `TimedItem.background` items now split: the provider marks a band `fixed` when it comes from a rule; the Schedule drags only unfixed bands, and `reschedule` on a one-off retimes that Document alone.
 - `TimedTemplate` gains `background`; the palette shows blocker templates with the band hatch so the user sees what they will get.
 - One-off blockers are kept once past (a record like everything else), so the `time_blocker` Base fills with "Travel" rows — the Base can filter by date; nothing is auto-deleted.
-- `weekdays` and `date` are exclusive: a blocker with a `date` ignores `weekdays`; the "Templates & blockers" screen edits weekly ones and lists one-offs read-only by day.
+- `weekdays` and `date` are exclusive: a blocker with a `date` ignores `weekdays`; the Events screen's Blockers tab edits weekly ones and lists the one-offs still ahead.
