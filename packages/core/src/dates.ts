@@ -31,6 +31,11 @@ export function todayStr(now: Date = new Date()): DateStr {
   return `${y}-${m}-${d}`;
 }
 
+/** Local wall clock as "HH:MM" — the clock Time blocks are compared against ("still ahead"). */
+export function nowClock(now: Date = new Date()): string {
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
 export function addDays(d: DateStr, n: number): DateStr {
   const { y, m, day } = parts(d);
   return fromParts(y, m, day + n);

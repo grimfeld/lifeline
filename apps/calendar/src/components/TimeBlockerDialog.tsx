@@ -13,7 +13,7 @@ import {
   TagInput,
   toast,
 } from "@lifeline/ui";
-import { normalizeTag, useTagVocabulary, type Weekday } from "@lifeline/core";
+import { normalizeTag, useTagVocabulary, type DateStr, type Weekday } from "@lifeline/core";
 import { isOvernight, WEEKDAYS } from "../domain/blockers";
 import type { TimeBlocker } from "../domain/types";
 import { addTimeBlocker, updateTimeBlocker } from "../data/blockers";
@@ -47,6 +47,8 @@ export function TimeBlockerDialog({
   blocker?: TimeBlocker;
 }) {
   const [title, setTitle] = useState("");
+  /** A one-off blocker (ADR 0029) keeps its day here; a weekly one has none. */
+  const [date, setDate] = useState<DateStr | null>(null);
   const [weekdays, setWeekdays] = useState<Weekday[]>([]);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("17:00");
@@ -58,6 +60,7 @@ export function TimeBlockerDialog({
   useEffect(() => {
     if (!open) return;
     setTitle(blocker?.title ?? "");
+    setDate(blocker?.date ?? null);
     setWeekdays(blocker?.weekdays ?? []);
     setStart(blocker?.start ?? "09:00");
     setEnd(blocker?.end ?? "17:00");
@@ -69,7 +72,8 @@ export function TimeBlockerDialog({
   async function submit() {
     if (!title.trim()) return void toast.error("Title required");
     if (!start || !end) return void toast.error("Start and end required");
-    const fields = { title: title.trim(), weekdays, start, end, color, active, tags };
+    if (blocker?.date && !date) return void toast.error("Day required");
+    const fields = { title: title.trim(), date: blocker?.date ? date : null, weekdays, start, end, color, active, tags };
     if (blocker) {
       await updateTimeBlocker({ ...blocker, ...fields });
       toast.success("Blocker updated");
@@ -86,7 +90,7 @@ export function TimeBlockerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{blocker ? "Edit time blocker" : "New time blocker"}</DialogTitle>
+          <DialogTitle>{blocker ? (blocker.date ? "Edit one-off blocker" : "Edit time blocker") : "New time blocker"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
           <div className="grid gap-2">
@@ -100,6 +104,13 @@ export function TimeBlockerDialog({
               onKeyDown={(e) => e.key === "Enter" && void submit()}
             />
           </div>
+          {blocker?.date ? (
+            <div className="grid gap-2">
+              <Label htmlFor="blk-date">Day</Label>
+              <Input id="blk-date" type="date" className="w-40" value={date ?? ""} onChange={(e) => setDate(e.target.value || null)} />
+              <p className="text-muted-foreground text-xs">A one-off band: this day only. Drag it on the Schedule to move it.</p>
+            </div>
+          ) : (
           <div className="grid gap-2">
             <Label>Repeats on</Label>
             <div className="flex flex-wrap gap-1.5">
@@ -127,6 +138,7 @@ export function TimeBlockerDialog({
             </div>
             {weekdays.length === 0 && <p className="text-muted-foreground text-xs">No day picked — the band covers every day.</p>}
           </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="blk-start">From</Label>

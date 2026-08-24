@@ -45,7 +45,13 @@ export interface EventTemplate extends Document {
  * every weekday it covers, a guide only — nothing refuses a drop over it. A Document of type `time_blocker`.
  */
 export interface TimeBlocker extends Document {
-  /** Core weekdays (0 = Sunday). Empty = every day. */
+  /**
+   * One-off shape (ADR 0029): the single day this band is on — travel, prep.
+   * null = the weekly shape, painted by `weekdays`. A dated blocker ignores
+   * `weekdays` and may be moved on the Schedule; a weekly one never.
+   */
+  date: DateStr | null;
+  /** Weekly shape only. Core weekdays (0 = Sunday). Empty = every day. */
   weekdays: Weekday[];
   /** "HH:MM"; when `end` is at or before `start` the band runs past midnight into the next day. */
   start: TimeStr;
@@ -56,7 +62,20 @@ export interface TimeBlocker extends Document {
   active: boolean;
 }
 
+/**
+ * A named shape for a one-off Time blocker the user drops again and again —
+ * "Travel 30", "Prep 15" (ADR 0029): title, length, colour, no day, no rule.
+ * It paints nothing by itself. A Document of type `blocker_template`.
+ */
+export interface BlockerTemplate extends Document {
+  /** How long the band lasts, in minutes. */
+  durationMin: number;
+  /** CSS colour for the bands it makes; null = the Calendar App's colour. */
+  color: string | null;
+}
+
 export const EVENT_TEMPLATE_TYPE = "event_template";
 export const TIME_BLOCKER_TYPE = "time_blocker";
+export const BLOCKER_TEMPLATE_TYPE = "blocker_template";
 /** Both are managed on one Calendar screen. */
 export const TEMPLATES_HREF = "/app/event-templates";

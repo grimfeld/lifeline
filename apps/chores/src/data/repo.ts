@@ -4,6 +4,7 @@ import {
   normalizeTags,
   putDocument,
   removeDocument,
+  removePlacementsOf,
   todayStr,
   useDocuments,
   type DateStr,
@@ -74,6 +75,7 @@ export async function setStatus(
 /** Tombstone — allowed only for chores with zero completions. */
 export async function deleteChore(choreId: string): Promise<void> {
   await removeDocument(choreId);
+  await removePlacementsOf("chores", choreId);
 }
 
 export async function completionCount(choreId: string): Promise<number> {

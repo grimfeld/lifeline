@@ -9,14 +9,16 @@ import { calendarCommands, useTemplateCommands } from "./commands";
 import { calendarTimed, APP_ID } from "./timed";
 import { calendarDaylog } from "./daylog";
 import { describeBlocker } from "./domain/blockers";
-import { describeTemplate } from "./domain/templates";
+import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
 import {
+  BLOCKER_TEMPLATE_TYPE,
   EVENT_TEMPLATE_TYPE,
   EVENT_TYPE,
   EVENTS,
   EVENTS_HREF,
   TEMPLATES_HREF,
   TIME_BLOCKER_TYPE,
+  type BlockerTemplate,
   type Event,
   type EventTemplate,
   type TimeBlocker,
@@ -62,7 +64,7 @@ const eventTemplateType: DocumentTypeDef = {
   builtIn: true,
 };
 
-/** The `time_blocker` Document type (ADR 0027): a recurring band, guarded because the App owns what a band means. */
+/** The `time_blocker` Document type (ADR 0027/0029): a weekly rule or a one-off band, guarded because the App owns what a band means. */
 const timeBlockerType: DocumentTypeDef = {
   id: TIME_BLOCKER_TYPE,
   label: "Time blockers",
@@ -70,15 +72,34 @@ const timeBlockerType: DocumentTypeDef = {
   titleRule: "name",
   body: "none",
   fields: [
+    { key: "date", label: "Day (one-off)", kind: "date", guarded: true, column: true },
     { key: "weekdays", label: "Weekdays", kind: "list", guarded: true },
     { key: "start", label: "From", kind: "text", guarded: true, column: true },
     { key: "end", label: "To", kind: "text", guarded: true, column: true },
     { key: "active", label: "On", kind: "boolean", column: true },
     { key: "color", label: "Colour", kind: "text" },
   ],
+  indexes: ["date"],
   linkable: { subtitle: (d) => describeBlocker(d as TimeBlocker) },
   href: () => TEMPLATES_HREF,
   order: 32,
+  builtIn: true,
+};
+
+/** The `blocker_template` Document type (ADR 0029): the shape of a one-off blocker, on no day. */
+const blockerTemplateType: DocumentTypeDef = {
+  id: BLOCKER_TEMPLATE_TYPE,
+  label: "Blocker templates",
+  icon: Ban,
+  titleRule: "name",
+  body: "none",
+  fields: [
+    { key: "durationMin", label: "Length (min)", kind: "number", column: true },
+    { key: "color", label: "Colour", kind: "text" },
+  ],
+  linkable: { subtitle: (d) => formatDuration(durationOf(d as BlockerTemplate)) },
+  href: () => TEMPLATES_HREF,
+  order: 33,
   builtIn: true,
 };
 
@@ -88,7 +109,7 @@ export const calendarApp: AppManifest = {
   title: "Calendar",
   icon: CalendarClock,
   color: "var(--chart-violet)",
-  types: [eventType, eventTemplateType, timeBlockerType],
+  types: [eventType, eventTemplateType, timeBlockerType, blockerTemplateType],
   screens: [
     {
       id: "calendar.events",
@@ -143,5 +164,5 @@ export const calendarApp: AppManifest = {
   daylog: calendarDaylog,
 };
 
-export { EVENTS, EVENT_TYPE, EVENT_TEMPLATE_TYPE, TIME_BLOCKER_TYPE };
-export type { Event, EventTemplate, TimeBlocker } from "./domain/types";
+export { EVENTS, EVENT_TYPE, EVENT_TEMPLATE_TYPE, TIME_BLOCKER_TYPE, BLOCKER_TEMPLATE_TYPE };
+export type { BlockerTemplate, Event, EventTemplate, TimeBlocker } from "./domain/types";

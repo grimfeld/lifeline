@@ -373,7 +373,8 @@ export function WeekPage() {
   // Look back so "stay"-policy items missed in earlier weeks surface as Overdue.
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const tags = composeTagFilter(tagFilter);
-  const items = useSurfaceItems({ start: addDays(weekStart, -90), end: weekEnd }, { tags });
+  // Day-granular: the item on its own day only — its Time blocks are Schedule detail (ADR 0028).
+  const items = useSurfaceItems({ start: addDays(weekStart, -90), end: weekEnd }, { tags }).filter((i) => !i.start);
   const pool = usePoolItems({ tags });
   // Time blockers are bands on the hour-scaled Schedule, not things on a day (ADR 0027).
   const timed = useTimedItems({ start: weekStart, end: weekEnd }, { tags }).filter((t) => !t.background);

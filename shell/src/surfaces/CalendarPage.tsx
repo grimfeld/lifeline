@@ -134,7 +134,8 @@ export function CalendarPage() {
   const days: DateStr[] = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const tags = composeTagFilter(tagFilter);
-  const items = useSurfaceItems({ start: gridStart, end: addDays(gridStart, 41) }, { tags });
+  // Day-granular: the item on its own day only — its Time blocks are Schedule detail (ADR 0028).
+  const items = useSurfaceItems({ start: gridStart, end: addDays(gridStart, 41) }, { tags }).filter((i) => !i.start);
   // Time blockers are bands on the hour-scaled Schedule, not things on a day (ADR 0027).
   const timed = useTimedItems({ start: gridStart, end: addDays(gridStart, 41) }, { tags }).filter((t) => !t.background);
 

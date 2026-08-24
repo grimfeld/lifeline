@@ -16,7 +16,8 @@ apps/tasks       @lifeline/app-tasks — Tasks App (absorbs week-planner + calen
                  one-time + weekly/monthly/yearly recurring tasks, per-Occurrence complete/move, Unassigned pool
 apps/calendar    @lifeline/app-calendar — Calendar App: Events (timed / all-day / multi-day),
                  shown on the month, week and Today surfaces via the Timed contract; Event templates (quick add onto a
-                 slot) and Time blockers (recurring bands painted behind the Schedule), ADR 0027
+                 slot) and Time blockers (weekly bands painted behind the Schedule), ADR 0027; one-off blockers dropped
+                 from Blocker templates and dragged on the Schedule, ADR 0029
 apps/stats       @lifeline/app-stats — Stats App (notch port): additive / measurement / boolean /
                  collection stats, entries as an event log, derived totals, streaks, Recharts graphs
 apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): markdown notes with typed Note types
@@ -30,7 +31,7 @@ apps/media       @lifeline/app-media — Media App: books, comics, movies, serie
                  (To read/watch/listen · In progress · Done · Dropped), one Gallery, quick add; Nightstand slots for books/comics
 shell            @lifeline/shell — Vite + React shell: Dashboard + Vault workspaces, Bases (/base/:type, saved Views), generic
                  View/Document/Count cards, sidebar, command palette (Ctrl+K),
-                 user Screens (drag/resize card grids), calendar + week + schedule (hour-scaled time-blocking, ADR 0015) + map Surfaces; Tauri 2 desktop config
+                 user Screens (drag/resize card grids), calendar + week + schedule (hour-scaled time-blocking, ADR 0015; many blocks per item, ADR 0028) + map Surfaces; Tauri 2 desktop config
 pocketbase       Dockerfile + fly.toml (app: lifeline-pb) + pb_migrations
 scripts          dev.sh (backend + shell), import/ (legacy data → Lifeline, see docs/retire-legacy.md)
 ```
