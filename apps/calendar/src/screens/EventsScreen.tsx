@@ -129,7 +129,7 @@ export function EventsScreen() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setParams(v === "events" ? {} : { tab: v })}>
-        <TabsList className="max-w-full overflow-x-auto">
+        <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
           <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="blockers">Blockers</TabsTrigger>

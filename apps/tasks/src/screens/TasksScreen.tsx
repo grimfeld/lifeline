@@ -129,7 +129,7 @@ export function TasksScreen() {
       />
 
       <Tabs defaultValue="open">
-        <TabsList className="max-w-full overflow-x-auto">
+        <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
           <TabsTrigger value="open">Open ({openCount})</TabsTrigger>
           <TabsTrigger value="recurring">Recurring ({groups.recurring.length})</TabsTrigger>
           <TabsTrigger value="done">Done</TabsTrigger>
