@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import {
   Badge,
   Button,
@@ -9,6 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   TagChips,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   toast,
 } from "@lifeline/ui";
 import { addDays, formatHuman, todayStr } from "@lifeline/core";
@@ -17,6 +22,10 @@ import type { Event } from "../domain/types";
 import { compareEvents, describeTime, isMultiDay } from "../domain/events";
 import { deleteEvent, useEvents } from "../data/repo";
 import { EventDialog } from "../components/EventDialog";
+import { BlockersTab, TemplatesTab } from "./PlanningTabs";
+
+const TABS = ["events", "templates", "blockers"] as const;
+type Tab = (typeof TABS)[number];
 
 function EventRow({ ev, onEdit }: { ev: Event; onEdit: (e: Event) => void }) {
   const today = todayStr();
@@ -75,11 +84,18 @@ function Section({ title, events, onEdit }: { title: string; events: Event[]; on
   );
 }
 
+/**
+ * The Calendar App's one screen: Events, and — as tabs, not screens of their
+ * own — the Templates you drop on the Schedule and the Blockers that paint it
+ * (ADR 0027/0029). The tab lives in the URL so Bases can deep-link to it.
+ */
 export function EventsScreen() {
   const events = useEvents();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Event | undefined>();
   const today = todayStr();
+  const [params, setParams] = useSearchParams();
+  const tab: Tab = (TABS as readonly string[]).includes(params.get("tab") ?? "") ? (params.get("tab") as Tab) : "events";
 
   const groups = useMemo(() => {
     const sorted = [...events].sort(compareEvents);
@@ -100,25 +116,45 @@ export function EventsScreen() {
     <div className="mx-auto grid w-full max-w-3xl gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
-        <Button
-          onClick={() => {
-            setEditing(undefined);
-            setDialogOpen(true);
-          }}
-        >
-          <Plus /> New event
-        </Button>
+        {tab === "events" && (
+          <Button
+            onClick={() => {
+              setEditing(undefined);
+              setDialogOpen(true);
+            }}
+          >
+            <Plus /> New event
+          </Button>
+        )}
       </div>
-      {events.length === 0 && (
-        <Card>
-          <CardContent className="text-muted-foreground p-8 text-center text-sm">
-            No events yet. Events show up on the Calendar and Week surfaces.
-          </CardContent>
-        </Card>
-      )}
-      <Section title="Today" events={groups.today} onEdit={edit} />
-      <Section title="Upcoming" events={groups.upcoming} onEdit={edit} />
-      <Section title="Past 30 days" events={groups.past} onEdit={edit} />
+
+      <Tabs value={tab} onValueChange={(v) => setParams(v === "events" ? {} : { tab: v })}>
+        <TabsList className="max-w-full overflow-x-auto">
+          <TabsTrigger value="events">Events</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="blockers">Blockers</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="events" className="grid min-w-0 gap-6 pt-4">
+          {events.length === 0 && (
+            <Card>
+              <CardContent className="text-muted-foreground p-8 text-center text-sm">
+                No events yet. Events show up on the Calendar and Week surfaces.
+              </CardContent>
+            </Card>
+          )}
+          <Section title="Today" events={groups.today} onEdit={edit} />
+          <Section title="Upcoming" events={groups.upcoming} onEdit={edit} />
+          <Section title="Past 30 days" events={groups.past} onEdit={edit} />
+        </TabsContent>
+        <TabsContent value="templates" className="pt-4">
+          <TemplatesTab />
+        </TabsContent>
+        <TabsContent value="blockers" className="pt-4">
+          <BlockersTab />
+        </TabsContent>
+      </Tabs>
+
       <EventDialog open={dialogOpen} onOpenChange={setDialogOpen} event={editing} />
     </div>
   );

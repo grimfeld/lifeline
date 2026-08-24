@@ -74,6 +74,6 @@ export async function rescheduleTimeBlocker(id: string, date: DateStr, start: Ti
   const row = await getDocument<TimeBlocker>(id);
   if (!row || row.type !== TIME_BLOCKER_TYPE) throw new Error("That blocker is gone");
   const b = normalize(row);
-  if (!b.date) throw new Error("A weekly blocker is a rule — edit it on the Templates & blockers screen");
+  if (!b.date) throw new Error("A weekly blocker is a rule — edit it on the Events screen's Blockers tab");
   await patchDocument(id, { date, start: start ?? b.start, end: start ? (end ?? b.end) : b.end });
 }
