@@ -53,3 +53,37 @@ sidebars disappear and a bottom bar appears: **☰ · Home · Journal · +**.
   made once, on the desktop, and every device agrees.
 - If parity is ever wanted, it grows page-by-page (a Surface at a time)
   without touching this frame.
+
+## Amendment (Aug 2026): the Schedule Surface grows a phone layout
+
+The first exercise of the "parity grows page-by-page" clause. Rendered
+unadapted, the Schedule was not merely dense on a phone: a 13rem pool column
+took over half the width, the seven week columns collapsed to ~25px each with
+their headers overlapping, and no drag was possible because a touch that moves
+scrolls. It is now a hand-fitted layout below `md`, desktop untouched.
+
+**One day, always.** The week is desk work; below `md` the Surface renders the
+anchored day whatever `?view=week` says, and the day/week toggle is hidden. A
+**day strip** — the anchor's week as seven tappable date pills — replaces both
+the toggle and the `<input type=date>`, so moving through the week stays one
+tap and the week is still legible as context.
+
+**The Unplaced pool becomes a drawer.** Same droppable, collapsed by default
+above the grid (header row with a count), expanding to a capped, scrollable
+list. Dropping onto the collapsed header still returns an item to the pool.
+
+**Touch drag is a long press.** The `PointerSensor` is replaced by
+`MouseSensor` + `TouchSensor` (220ms, 8px tolerance): a swipe scrolls the grid,
+a press-and-hold picks a chip or block up. `pointer.current` is fed from
+`touchmove` as well, since a touch activator carries no `clientY`. The resize
+handle is the one `touch-action: none` element — it grows to 12px and shows a
+grip on phones so its swipe-swallowing is visible rather than surprising.
+
+**"+" replaces the double-click.** Double-clicking an empty slot has no touch
+equivalent, so the phone header carries a "+" that opens the same New event
+dialog at the current hour (9:00 on a day that is not today).
+
+Detail work follows the same rule — space goes to the grid: a 2.5rem gutter
+with bare-hour labels ("1 PM"), no day-header row (the strip names the day), a
+shorter all-day strip, and blocks under ~34px keep the title and drop the clock
+line.

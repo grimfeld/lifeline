@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import { DndContext, DragOverlay, PointerSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
 import { Badge, Button, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, toast } from "@lifeline/ui";
 import {
   addDays,
@@ -29,8 +29,9 @@ import {
   type SurfaceItem,
   type SurfaceTimedItem,
 } from "@lifeline/core";
-import { Check, ChevronLeft, ChevronRight, Inbox, Undo2 } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Inbox, Plus, Undo2 } from "lucide-react";
 import { TagFilterBar } from "../components/TagFilterBar";
+import { useIsMobile } from "../mobile/useIsMobile";
 
 const HOUR_PX = 56;
 const SNAP_MIN = 15;
@@ -40,6 +41,15 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type WorkItem = (SurfaceItem | (PoolItem & { displayDate?: undefined; placementId?: undefined; start?: undefined; end?: undefined })) & { color?: string };
 type Entry = { kind: "block"; item: SurfaceItem; start: string; end: string } | { kind: "timed"; item: SurfaceTimedItem; start: string; end: string };
+
+/** The hour gutter's label: "1:00 PM" with room, bare "1 PM" on a phone. */
+function hourLabel(hour: number, compact: boolean): string {
+  return new Date(Date.UTC(2000, 0, 1, hour, 0)).toLocaleTimeString(undefined, {
+    hour: "numeric",
+    ...(compact ? {} : { minute: "2-digit" }),
+    timeZone: "UTC",
+  });
+}
 
 function toClock(hours: number): string {
   const h = Math.max(0, Math.min(24, hours));
@@ -91,6 +101,7 @@ function Block({ entry, from, cols, col, onResize, onComplete, onUntime }: { ent
   const s = toHours(entry.start);
   const e = toHours(entry.end);
   const done = isBlock && !!entry.item.completedOn;
+  const short = (e - s) * HOUR_PX < 34;
   const color = entry.item.color ?? "var(--muted-foreground)";
   const resizing = useRef<{ startY: number; startEnd: number } | null>(null);
   return (
@@ -142,11 +153,14 @@ function Block({ entry, from, cols, col, onResize, onComplete, onUntime }: { ent
           </button>
         )}
       </div>
-      <div className="text-muted-foreground truncate text-[10px]">
-        {formatTime(entry.start)}–{formatTime(entry.end)}
-      </div>
+      {!short && (
+        <div className="text-muted-foreground truncate text-[10px]">
+          {formatTime(entry.start)}–{formatTime(entry.end)}
+        </div>
+      )}
       <div
-        className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize"
+        className={cn("absolute inset-x-0 bottom-0 cursor-ns-resize touch-none", short ? "h-1.5" : "h-2 max-md:h-3")}
+        aria-hidden
         onPointerDown={(ev) => {
           ev.stopPropagation();
           ev.preventDefault();
@@ -166,7 +180,9 @@ function Block({ entry, from, cols, col, onResize, onComplete, onUntime }: { ent
           resizing.current = null;
           if (next !== e) onResize(next);
         }}
-      />
+      >
+        {!short && <span className="bg-foreground/30 absolute inset-x-0 bottom-0.5 mx-auto h-0.5 w-6 rounded-full md:hidden" />}
+      </div>
     </div>
   );
 }
@@ -175,7 +191,7 @@ function Block({ entry, from, cols, col, onResize, onComplete, onUntime }: { ent
 function Strip({ date, work, allDay, onCompleteChip }: { date: DateStr; work: WorkItem[]; allDay: SurfaceTimedItem[]; onCompleteChip: (item: WorkItem) => void }) {
   const stripDrop = useDroppable({ id: `strip:${date}` });
   return (
-    <div ref={stripDrop.setNodeRef} className={cn("min-h-12 max-h-32 space-y-1 overflow-y-auto border-l p-1", stripDrop.isOver && "bg-accent/40")}>
+    <div ref={stripDrop.setNodeRef} className={cn("min-h-12 max-h-32 space-y-1 overflow-y-auto border-l p-1 max-md:max-h-24", stripDrop.isOver && "bg-accent/40")}>
       {allDay.map((t) => (
         <Chip key={t.key} id={`timed:${t.key}`} data={{ timed: t }} title={t.title} color={t.color} />
       ))}
@@ -241,19 +257,67 @@ function DayColumn({
   );
 }
 
-function PoolColumn({ items, onComplete }: { items: WorkItem[]; onComplete: (item: WorkItem) => void }) {
+/**
+ * The Unplaced pool: a full-height column beside the grid on the desktop, a
+ * collapsed drawer above it on a phone (where the grid needs the whole width).
+ */
+function PoolColumn({ items, onComplete, collapsible }: { items: WorkItem[]; onComplete: (item: WorkItem) => void; collapsible?: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: POOL });
+  const [open, setOpen] = useState(false);
+  const chips = items.map((w) => (
+    <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} onComplete={() => onComplete(w)} />
+  ));
+  if (collapsible) {
+    return (
+      <div ref={setNodeRef} className={cn("shrink-0 rounded-lg border", isOver && "bg-accent/40")}>
+        <button className="text-muted-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+          <Inbox className="size-3.5" /> Unplaced <span className="ml-auto tabular-nums">{items.length}</span>
+          <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} />
+        </button>
+        {open && (
+          <div className="max-h-40 space-y-1 overflow-y-auto border-t p-1">
+            {chips}
+            {items.length === 0 && <div className="text-muted-foreground p-2 text-xs">Nothing unplaced.</div>}
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div ref={setNodeRef} className={cn("flex min-h-0 flex-col rounded-lg border", isOver && "bg-accent/40")}>
       <div className="text-muted-foreground flex items-center gap-1 border-b px-2 py-1.5 text-xs font-medium">
         <Inbox className="size-3.5" /> Unplaced <span className="ml-auto">{items.length}</span>
       </div>
       <div className="min-h-0 flex-1 space-y-1 overflow-y-auto p-1">
-        {items.map((w) => (
-          <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} onComplete={() => onComplete(w)} />
-        ))}
+        {chips}
         {items.length === 0 && <div className="text-muted-foreground p-2 text-xs">Nothing unplaced.</div>}
       </div>
+    </div>
+  );
+}
+
+/** Phone-only week navigator: the anchor's week as seven tappable days. */
+function DayStrip({ anchor, today, onPick }: { anchor: DateStr; today: DateStr; onPick: (d: DateStr) => void }) {
+  const week = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(anchor), i));
+  return (
+    <div className="flex shrink-0 gap-1">
+      {week.map((d) => {
+        const active = d === anchor;
+        return (
+          <button
+            key={d}
+            onClick={() => onPick(d)}
+            aria-current={active ? "date" : undefined}
+            className={cn(
+              "flex flex-1 flex-col items-center rounded-md border py-1 text-[10px] leading-tight",
+              active ? "bg-primary text-primary-foreground border-primary" : d === today ? "text-primary" : "text-muted-foreground",
+            )}
+          >
+            {DAY_NAMES[(new Date(d + "T12:00:00").getDay() + 6) % 7]}
+            <span className="text-sm font-medium tabular-nums">{parts(d).day}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -266,8 +330,11 @@ function PoolColumn({ items, onComplete }: { items: WorkItem[]; onComplete: (ite
  */
 export function SchedulePage() {
   const [params, setParams] = useSearchParams();
+  const isMobile = useIsMobile();
   const today = todayStr();
-  const view = params.get("view") === "week" ? "week" : "day";
+  // Seven columns cannot be read or dropped into on a phone: below `md` the
+  // Surface is always the single day, navigated by the day strip.
+  const view = !isMobile && params.get("view") === "week" ? "week" : "day";
   const anchor: DateStr = /^\d{4}-\d{2}-\d{2}$/.test(params.get("d") ?? "") ? params.get("d")! : today;
   const days: DateStr[] = view === "week" ? Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(anchor), i)) : [anchor];
   const first = days[0];
@@ -301,7 +368,10 @@ export function SchedulePage() {
     allDay: timed.filter((t) => t.date === d && !t.start),
   });
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
+  );
   const [active, setActive] = useState<{ title: string } | null>(null);
   const pointer = useRef<{ y: number; grab: number }>({ y: 0, grab: 0 });
   const scroller = useRef<HTMLDivElement>(null);
@@ -318,13 +388,21 @@ export function SchedulePage() {
     const track = (ev: PointerEvent) => {
       pointer.current.y = ev.clientY;
     };
+    const trackTouch = (ev: TouchEvent) => {
+      if (ev.touches[0]) pointer.current.y = ev.touches[0].clientY;
+    };
     window.addEventListener("pointermove", track, { passive: true });
-    return () => window.removeEventListener("pointermove", track);
+    window.addEventListener("touchmove", trackTouch, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", track);
+      window.removeEventListener("touchmove", trackTouch);
+    };
   }, []);
   function onDragStart(e: DragStartEvent) {
-    const ev = e.activatorEvent as PointerEvent;
+    const ev = e.activatorEvent as PointerEvent | TouchEvent;
+    const y = "clientY" in ev ? ev.clientY : (ev.touches[0]?.clientY ?? 0);
     const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; grab?: { current: number } };
-    pointer.current = { y: ev.clientY, grab: d.grab?.current ?? 0 };
+    pointer.current = { y, grab: d.grab?.current ?? 0 };
     setActive({ title: d.item?.title ?? d.timed?.title ?? "" });
   }
   function onDragEnd(e: DragEndEvent) {
@@ -376,19 +454,20 @@ export function SchedulePage() {
     setNewTitle("");
   }
 
+  const gutter = isMobile ? "2.5rem" : "3rem";
   const label = view === "week" ? `${formatHuman(first)} – ${formatHuman(last)}` : formatHuman(anchor);
   const openCount = items.filter((i) => !i.completedOn).length;
 
   return (
     <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
-      <div className="flex h-full flex-col gap-3 p-4">
+      <div className="flex h-full flex-col gap-3 p-4 max-md:gap-2 max-md:p-3">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-xl font-semibold tracking-tight">Schedule</h1>
           <span className="text-muted-foreground text-sm">{label}</span>
           <Badge variant="secondary">{openCount} open</Badge>
           <div className="ml-auto flex items-center gap-1">
             <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2" />
-            <div className="bg-muted/60 mr-2 grid grid-cols-2 gap-0.5 rounded-lg p-0.5">
+            <div className="bg-muted/60 mr-2 grid grid-cols-2 gap-0.5 rounded-lg p-0.5 max-md:hidden">
               {(["day", "week"] as const).map((v) => (
                 <button key={v} className={cn("rounded-md px-2 py-1 text-xs font-medium capitalize", view === v ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")} onClick={() => go(anchor, v)}>
                   {v}
@@ -404,14 +483,27 @@ export function SchedulePage() {
             <Button size="icon" variant="outline" className="size-8" onClick={() => go(addDays(anchor, view === "week" ? 7 : 1))} aria-label="Next">
               <ChevronRight />
             </Button>
-            <Input type="date" className="h-8 w-36" value={anchor} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
+            <Input type="date" className="h-8 w-36 max-md:hidden" value={anchor} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
+            {creator?.create && (
+              <Button
+                size="icon"
+                variant="outline"
+                className="size-8 md:hidden"
+                aria-label="New event"
+                onClick={() => setCreating({ date: anchor, hours: anchor === today ? Math.min(snap(nowH), to - 1) : Math.max(from, 9) })}
+              >
+                <Plus />
+              </Button>
+            )}
           </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-[13rem_1fr] gap-2">
-          <PoolColumn items={pool as WorkItem[]} onComplete={(w) => completeSurfaceItem(w as SurfaceItem).catch(fail)} />
-          <div className="flex min-h-0 min-w-0 flex-col rounded-lg border">
-            <div className="grid shrink-0 border-b" style={{ gridTemplateColumns: `3rem repeat(${days.length}, minmax(0, 1fr))` }}>
+        {isMobile && <DayStrip anchor={anchor} today={today} onPick={(d) => go(d)} />}
+
+        <div className="grid min-h-0 flex-1 grid-cols-[13rem_1fr] gap-2 max-md:flex max-md:flex-col">
+          <PoolColumn items={pool as WorkItem[]} onComplete={(w) => completeSurfaceItem(w as SurfaceItem).catch(fail)} collapsible={isMobile} />
+          <div className="flex min-h-0 min-w-0 flex-col rounded-lg border max-md:flex-1">
+            <div className="grid shrink-0 border-b max-md:hidden" style={{ gridTemplateColumns: `${gutter} repeat(${days.length}, minmax(0, 1fr))` }}>
               <div />
               {days.map((d) => (
                 <div key={d} className={cn("border-l px-2 py-1 text-xs", d === today && "text-primary font-semibold")}>
@@ -419,7 +511,7 @@ export function SchedulePage() {
                 </div>
               ))}
             </div>
-            <div className="grid shrink-0 border-b" style={{ gridTemplateColumns: `3rem repeat(${days.length}, minmax(0, 1fr))` }}>
+            <div className="grid shrink-0 border-b" style={{ gridTemplateColumns: `${gutter} repeat(${days.length}, minmax(0, 1fr))` }}>
               <div className="text-muted-foreground px-1 pt-1 text-[10px]">all day</div>
               {days.map((d) => {
                 const st = stripFor(d);
@@ -427,12 +519,12 @@ export function SchedulePage() {
               })}
             </div>
             <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
-              <div className="grid" style={{ gridTemplateColumns: `3rem repeat(${days.length}, minmax(0, 1fr))` }}>
+              <div className="grid" style={{ gridTemplateColumns: `${gutter} repeat(${days.length}, minmax(0, 1fr))` }}>
                 <div className="relative">
                   <div className="relative" style={{ height: (to - from) * HOUR_PX }}>
                     {Array.from({ length: to - from }, (_, i) => (
                       <div key={i} className="text-muted-foreground absolute right-1 -translate-y-1.5 text-[10px] tabular-nums" style={{ top: i * HOUR_PX }}>
-                        {formatTime(`${String(from + i).padStart(2, "0")}:00`)}
+                        {hourLabel(from + i, isMobile)}
                       </div>
                     ))}
                   </div>
@@ -464,7 +556,11 @@ export function SchedulePage() {
             </div>
           </div>
         </div>
-        <p className="text-muted-foreground text-[11px]">Drag work into a slot to plan it · drag to the top strip to untime · resize the bottom edge · double-click a slot to add an event.</p>
+        <p className="text-muted-foreground shrink-0 text-[11px]">
+          {isMobile
+            ? "Press and hold to drag · + adds an event."
+            : "Drag work into a slot to plan it · drag to the top strip to untime · resize the bottom edge · double-click a slot to add an event."}
+        </p>
       </div>
 
       <DragOverlay dropAnimation={null}>{active && <div className="bg-card rounded-md border px-2 py-1 text-xs shadow-md">{active.title}</div>}</DragOverlay>
