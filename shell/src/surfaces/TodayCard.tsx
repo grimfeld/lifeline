@@ -13,7 +13,8 @@ import { Check } from "lucide-react";
 export function TodayCard() {
   const today = todayStr();
   const items = useSurfaceItems({ start: today, end: today });
-  const timed = useTimedItems({ start: today, end: today });
+  // Time blockers are bands on the hour-scaled Schedule, not things on a day (ADR 0027).
+  const timed = useTimedItems({ start: today, end: today }).filter((t) => !t.background);
   const open = items.filter((i) => !i.completedOn);
   const done = items.filter((i) => i.completedOn);
 

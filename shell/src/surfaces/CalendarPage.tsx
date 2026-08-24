@@ -135,7 +135,8 @@ export function CalendarPage() {
   const [tagFilter, setTagFilter] = useState<string[]>([]);
   const tags = composeTagFilter(tagFilter);
   const items = useSurfaceItems({ start: gridStart, end: addDays(gridStart, 41) }, { tags });
-  const timed = useTimedItems({ start: gridStart, end: addDays(gridStart, 41) }, { tags });
+  // Time blockers are bands on the hour-scaled Schedule, not things on a day (ADR 0027).
+  const timed = useTimedItems({ start: gridStart, end: addDays(gridStart, 41) }, { tags }).filter((t) => !t.background);
 
   function shift(dm: number) {
     setAnchor(({ y, m }) => {
