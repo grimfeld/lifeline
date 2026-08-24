@@ -39,10 +39,10 @@ export interface EventTemplate extends Document {
 }
 
 /**
- * A recurring band of time the user keeps unavailable — sleep, work hours,
- * the school run (ADR 0027). Not an Event: it has no single day and creates
- * no Documents; it paints the Schedule behind everything else on every
- * weekday it covers. A Document of type `time_blocker`.
+ * A recurring band of hours the user marks as already taken — sleep, work
+ * hours, the school run (ADR 0027). Not an Event: it has no single day and
+ * creates no Documents; it paints hour-scaled views behind everything else on
+ * every weekday it covers, a guide only — nothing refuses a drop over it. A Document of type `time_blocker`.
  */
 export interface TimeBlocker extends Document {
   /** Core weekdays (0 = Sunday). Empty = every day. */
