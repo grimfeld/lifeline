@@ -48,7 +48,8 @@ sidebars disappear and a bottom bar appears: **☰ · Home · Journal · +**.
   hard-coded; new Apps join the phone by shipping cards and flagging capture
   commands — no shell changes.
 - There is no mobile week view, schedule, or Base editing *by design*; the
-  drawer keeps them reachable for emergencies.
+  drawer keeps them reachable for emergencies. (The Schedule and the Week have
+  since claimed the parity clause — see the amendments below; Bases have not.)
 - `screens.phoneHome` is synced (PB migration 1756900000), so the choice is
   made once, on the desktop, and every device agrees.
 - If parity is ever wanted, it grows page-by-page (a Surface at a time)
@@ -87,3 +88,35 @@ Detail work follows the same rule — space goes to the grid: a 2.5rem gutter
 with bare-hour labels ("1 PM"), no day-header row (the strip names the day), a
 shorter all-day strip, and blocks under ~34px keep the title and drop the clock
 line.
+
+## Amendment (Aug 2026): the Week Surface grows a phone layout
+
+The second page to grow one. Rendered unadapted on a 390px phone, the Week was
+the Schedule's failure again: the 14rem pool column took 57% of the width, the
+seven day columns were **11px** each (headers overlapping, every card clipped to
+a sliver), and — the `PointerSensor` again — no drag was possible. Desktop is
+untouched; the phone gets a hand-fitted layout below `md`.
+
+**The week becomes a stack of days.** Seven columns are unreadable at that
+width, but the week is what this Surface *is*, so it is not narrowed to one day
+as the Schedule was: the days become full-width rows, Monday to Sunday, scrolled
+as one list. Each row's height follows its contents (empty days keep a short
+"Drop here" target, so a whole empty week fits on one screen), today keeps its
+border, past days keep their wash. The seven droppables are unchanged.
+
+**The Unplaced pool becomes a drawer**, as on the Schedule — same droppable,
+collapsed above the days, expanding to a capped, scrollable list. Overdue work
+lives inside it, so its count rides on the closed header ("Unplaced 4 · 2
+overdue") where it is the one thing that must not be buried. A drop on the
+collapsed header still unplaces.
+
+**Touch drag is a long press with a grip.** `MouseSensor` + `TouchSensor`
+(220ms, 8px), the Schedule's bargain: a swipe scrolls, a press-and-hold picks a
+card up. But a Week card is almost entirely its title button, and that button
+opens the card's menu — so a phone card grows an explicit grip on its right edge
+(`md:hidden`), and the title's tap keeps opening the menu, where "Move to day…"
+remains the no-drag path. Completed cards show no grip; they cannot be dragged.
+
+The header wraps into two rows (title/date/count, then filter + navigation), and
+the Tag filter's picker gives way instead of running off the edge — it was
+pushing the week navigation off-screen entirely on a phone.
