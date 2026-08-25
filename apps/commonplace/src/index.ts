@@ -11,14 +11,14 @@ import { commonplaceCommands } from "./commands";
 import { commonplaceDaylog } from "./daylog";
 import { quoteTypeDef } from "./types";
 
-/** Commonplace book App (ADR 0024): passages from a work of any family. */
+/** Quotes App (ADR 0024, born as the Commonplace book): passages from a work of any family. The id stays `commonplace` — card ids live in synced Screen layouts. */
 export const commonplaceApp: AppManifest = {
   id: "commonplace",
-  title: "Commonplace book",
+  title: "Quotes",
   icon: NotebookPen,
   color: "var(--chart-orange)",
   types: [quoteTypeDef],
-  screens: [{ id: "commonplace.main", title: "Commonplace book", path: "commonplace", icon: NotebookPen, component: CommonplaceScreen }],
+  screens: [{ id: "commonplace.main", title: "Quotes", path: "quotes", icon: NotebookPen, component: CommonplaceScreen }],
   cards: [
     {
       id: "commonplace.quote-random",

@@ -1,7 +1,7 @@
 import type { Document } from "@lifeline/core";
 
 /**
- * The Commonplace book quotes works of *any* family (ADR 0024): it reads the
+ * The Quotes App quotes works of *any* family (ADR 0024): it reads the
  * family Apps' Documents — reading is always allowed; every Quote operation
  * is a Quote operation, owned here. This registry only names what a quote
  * can come from and how to draw its cover.

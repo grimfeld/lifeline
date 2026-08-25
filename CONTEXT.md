@@ -156,7 +156,7 @@ XP bleeding away while a Habit sits idle past a grace period. Harder Habits deca
 _Avoid_: rust, penalty (that's Negative damage), streak loss
 
 ### Media item
-_Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus the **Commonplace book** for Quotes. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry creator, year, size, cover by URL and an optional **Reason** (who sent me here — never asked at add). The old "Studied" mark is gone.
+_Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus **Quotes** (born as the Commonplace book) for Quotes. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry creator, year, size, cover by URL and an optional **Reason** (who sent me here — never asked at add). The old "Studied" mark is gone.
 _Avoid_: media (as a type id or an App — neither exists), title, copy, edition, studied
 
 ### Shelf
@@ -298,6 +298,9 @@ _Avoid_: notes (one type), library, folder
 Where a Document lives: a `/`-separated path (root when empty). Every Document has one; only the Vault tree cares. A Folder exists because Documents are in it; titles are unique within a Folder for a given type. Daily notes live in `Journal/YYYY/MM`, templates in `Templates`.
 _Avoid_: directory, category (that's a Document type), tag
 
+### Commonplace book
+_Retired_ — the App is now called **Quotes**; its id and ADR 0024 keep the old name.
+
 ### Quote
-A passage kept from a work of any family — its text, an optional locator (page, chapter, timestamp), an optional comment and tags — owned by the **Commonplace book** App (ADR 0024) and impossible without the work it links to, whatever App owns that work. Inserted into notes as a blockquote ending in a wikilink to the item; also a wikilink target by its opening words. Captured on a day, it is a Daylog fact ("Quoted").
+A passage kept from a work of any family — its text, an optional locator (page, chapter, timestamp), an optional comment and tags — owned by the **Quotes** App (ADR 0024) and impossible without the work it links to, whatever App owns that work. Inserted into notes as a blockquote ending in a wikilink to the item; also a wikilink target by its opening words. Captured on a day, it is a Daylog fact ("Quoted").
 _Avoid_: highlight (a quote may be a thought you had about it, not only the text), excerpt, clipping
