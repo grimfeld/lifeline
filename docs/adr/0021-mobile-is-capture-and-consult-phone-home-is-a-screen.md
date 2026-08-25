@@ -120,3 +120,14 @@ remains the no-drag path. Completed cards show no grip; they cannot be dragged.
 The header wraps into two rows (title/date/count, then filter + navigation), and
 the Tag filter's picker gives way instead of running off the edge — it was
 pushing the week navigation off-screen entirely on a phone.
+
+## Amendment (2026-08-25): a third phone mode — operate
+
+The Workout App's timer (ADR 0030) is neither capture nor consult: the phone
+is propped on a bench and *operated*, hands mostly off. It is the first
+phone-first App screen — full-screen digits, beeps and voice at 3-2-1 and
+round changes, a wake lock, giant targets (pause, next, AMRAP round +1) — and
+reachable from a "Start workout" Card on the phone home and from the `+`
+menu. Editing Workouts, the Exercise library and PR tables stay desk work.
+The rule stands: parity grows page-by-page, and a page earns phone tuning by
+being used on the phone.

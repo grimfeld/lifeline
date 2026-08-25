@@ -2,6 +2,7 @@ import { DASHBOARD_WORKSPACE, type AppManifest, type AppScreenDef, type CardDef,
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
+import type { LoggableProvider } from "./contracts/loggable";
 import { openDb, type LifelineDB, type ScreenLayoutItem } from "./data/db";
 import { registerBuiltinTypes } from "./documents/registry";
 import type { DocumentTypeDef } from "./documents/types";
@@ -65,6 +66,10 @@ export function timedProviders(): TimedProvider[] {
 
 export function daylogProviders(): DaylogProvider[] {
   return apps.flatMap((a) => (a.daylog ? [a.daylog] : []));
+}
+
+export function loggableProviders(): LoggableProvider[] {
+  return apps.flatMap((a) => (a.loggable ? [a.loggable] : []));
 }
 
 /** Effective settings schema of a Card: its own plus the auto-added Tag filter when tagFilterable. */

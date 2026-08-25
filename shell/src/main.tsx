@@ -18,13 +18,14 @@ import { museumApp } from "@lifeline/app-museum";
 import { notesApp } from "@lifeline/app-notes";
 import { clipperApp } from "@lifeline/app-clipper";
 import { writerApp } from "@lifeline/app-writer";
+import { workoutApp } from "@lifeline/app-workout";
 import { hubApp } from "./hub";
 import App from "./App";
 import "./index.css";
 
 // Compile-time App registry (ADR 0003): every App joins here.
 setTypeIconResolver(typeIcon);
-initApps([hubApp, choresApp, tasksApp, calendarApp, statsApp, lifelevelApp, libraryApp, cinemaApp, discothequeApp, arcadeApp, commonplaceApp, museumApp, notesApp, clipperApp, writerApp, sourcesApp]);
+initApps([hubApp, choresApp, tasksApp, calendarApp, statsApp, lifelevelApp, libraryApp, cinemaApp, discothequeApp, arcadeApp, commonplaceApp, museumApp, notesApp, clipperApp, writerApp, sourcesApp, workoutApp]);
 startSync();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

@@ -18,6 +18,9 @@ apps/calendar    @lifeline/app-calendar — Calendar App: Events (timed / all-da
                  shown on the month, week and Today surfaces via the Timed contract; Event templates (quick add onto a
                  slot) and Time blockers (weekly bands painted behind the Schedule), ADR 0027; one-off blockers dropped
                  from Blocker templates and dragged on the Schedule, ADR 0029
+apps/workout     @lifeline/app-workout — Workout App (ADR 0030): Workouts as Blocks of intervals (EMOM / AMRAP / Tabata /
+                 For Time / Intervals), a full-screen timer, hand-curated Exercises, Sessions as Timed + Daylog records,
+                 derived PRs; Tallies feed Habits and Stats through the Loggable contract (ADR 0031)
 apps/stats       @lifeline/app-stats — Stats App (notch port): additive / measurement / boolean /
                  collection stats, entries as an event log, derived totals, streaks, Recharts graphs
 apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): markdown notes with typed Note types

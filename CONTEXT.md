@@ -23,7 +23,7 @@ _Avoid_: plugin, widget, service, processor
 The neutral part of the system: shell, Contracts, sync layer, command registry, the Document store and type registry, Bases, Surfaces and generic Cards. Owns no Document types; its own bookkeeping — Screens and Card instances, Placements, Views, user-defined type definitions — is synced but is *not* Documents (Documents are user-facing content only).
 
 ### Contract
-An interface defined by Core that a Document type implements (Schedulable, Timed, Linkable, Locatable, Taggable, Daylog…). Carries data shape *and* behaviour hooks — the consuming Surface calls the hook; the owning App decides what happens. Built-in types implement Contracts in code; user-defined types may declare the data-only ones (e.g. Locatable through a geo field). The five things that serve Documents — Card, Screen, Surface, App, Base — are *not* Contracts and have no collective name.
+An interface defined by Core that a Document type implements (Schedulable, Timed, Loggable, Linkable, Locatable, Taggable, Daylog…). Carries data shape *and* behaviour hooks — the consuming Surface calls the hook; the owning App decides what happens. Built-in types implement Contracts in code; user-defined types may declare the data-only ones (e.g. Locatable through a geo field). The five things that serve Documents — Card, Screen, Surface, App, Base — are *not* Contracts and have no collective name.
 _Avoid_: capability, trait, API, decorator
 
 ### Schedulable
@@ -32,6 +32,14 @@ The first Contract: an entity that can be placed onto a time surface (calendar, 
 ### Timed
 The second Contract: an entity that happens at a fixed time on a day (start/end, or all day) and is not work — nothing to complete. Surfaces draw Timed items above the day's Schedulable work. The Calendar App's Events are the first implementation; the owning App may allow moving them to another day, may offer Event templates for quick add, and may report background items — Time blocker bands, which hour-scaled Surfaces paint behind everything and day-granular ones leave out.
 _Avoid_: appointment (that's an Event, one implementation), block
+
+### Loggable
+A Contract: an entity that accepts a logged occurrence from any other App — a Stat takes an Entry (a value at a moment), a Habit takes a Completion (a moment, a note). The owning App lists its targets and does the logging; the sending App only names the target and the moment. How Workout Sessions feed Habits and Stats; open to Chores and Tasks later.
+_Avoid_: trackable, sink, hook (the Contract's own word for its functions)
+
+### Tally
+A Workout's standing instruction to log each of its Sessions somewhere Loggable — "tallies to Habit *Train*", "tallies to Stat *Minutes trained* (+duration)". Carries the target and what value to send (one, the duration, a Block's result). Fires when the Session is saved, never again.
+_Avoid_: feed (a Source kind), sync, bridge (the idea, not the thing), hook
 
 ### Placement
 A Schedulable entity's assignment to a day — and optionally a time slot — on a surface. Owned by the surface (Core), referencing the foreign entity by App + id; the time is the surface's, never the App's (a Task still only knows its day). An entity may have any number of Placements — several Time blocks across several days — and none of them moves the entity's own day. Distinct from the entity itself: deleting a Placement never deletes the entity. Subsumes calendar's old "TimeBlock".
@@ -111,6 +119,30 @@ _Avoid_: busy event, availability, Time block (that's one item planned into a sl
 ### Blocker template
 A named shape for a one-off Time blocker the user drops again and again — "Travel 30", "Prep 15": title, length, colour, and no day or rule; it paints nothing by itself. Dropping one on an hour of the Schedule makes a one-off Time blocker there and forgets the template, exactly as an Event template makes an Event. Owned by the Calendar App.
 _Avoid_: template (bare — say which), buffer, padding
+
+### Workout
+A plan for a training session, owned by the Workout App: an ordered list of Blocks you launch on the timer in one tap — "Tabata warm-up → EMOM 12 → cooldown". Says nothing about when; running it on a day makes a Session. Not a Stat, not a Habit (those may be fed by Sessions).
+_Avoid_: routine, program, WOD, session (that's one run of it)
+
+### Block
+One timed part of a Workout, in one **mode** — EMOM (a movement every minute), AMRAP (as many rounds as possible in a countdown), Tabata (8 × 20 s work / 10 s rest by default), For Time (count up to a cap), or plain Intervals — with the mode's few parameters and its Movements. Every mode is only a way of writing intervals: the timer plays the expanded work/rest sequence and does not care which mode wrote it.
+_Avoid_: set, segment, phase, Time block (a Placement on the Schedule)
+
+### Movement
+An Exercise inside a Block with its dose — reps, load, seconds or distance — and an optional cue. EMOM alternates Movements by round; AMRAP and For Time cycle through them; Tabata takes one per interval. Always points at an Exercise: that link is what turns Sessions into PRs.
+_Avoid_: exercise (that's the library entry), drill, station
+
+### Exercise
+A library entry, hand-curated by the user, owned by the Workout App: name, category (push, pull, legs, core, cardio, full-body), equipment, and its **measure** — the one number worth beating: load (with reps), reps, time, distance or calories. Movements point at Exercises; PRs belong to Exercises.
+_Avoid_: movement (that's an Exercise inside a Block), lift, activity
+
+### Session
+One run of a Workout on a day at a time, owned by the Workout App and made by the timer: when it started and ended, each Block's result in its mode's own terms (AMRAP rounds + extra reps, For Time clock, rounds completed), what each Movement actually got when it strayed from the plan (load used, reps hit), notes. A Timed item on the time Surfaces and a "Worked out" fact in the Daylog. Deleting the Workout keeps its Sessions.
+_Avoid_: workout (the plan), log, entry (a Stat's)
+
+### PR
+The best a Session ever reached for an Exercise, in that Exercise's measure — and for load Exercises the best load at 1, 3, 5 and 10 reps. Always derived from Sessions, never stored or declared; a Session that beats it is a PR the moment it is saved.
+_Avoid_: record (a Document), best, max
 
 ### Stat
 A named series the user tracks (push-ups, weight, workouts, countries visited). Defines what is tracked and how values are read — one of four kinds: **Additive** (entries add up), **Measurement** (point-in-time readings), **Boolean** (a day was done), **Collection** (distinct items collected, optionally against a universe size shown as a denominator). Holds no totals; kind is fixed after creation. Goals/targets are out of scope.

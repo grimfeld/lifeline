@@ -18,6 +18,7 @@
 @source "../../apps/sources/src";
 @source "../../apps/clipper/src";
 @source "../../apps/writer/src";
+@source "../../apps/workout/src";
 @source "./";
 
 .react-grid-item.react-grid-placeholder {
