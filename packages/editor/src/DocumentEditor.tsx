@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, TagInput, Textarea, toast } from "@lifeline/ui";
 import {
+  documentPanels,
   basePath,
   displayTitle,
   docHref,
@@ -322,6 +323,14 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
           <div className="mb-3">
             <LocalGraphPanel docId={doc.id} index={index} onOpen={openRef} />
           </div>
+          {documentPanels().map((p) => {
+            const Panel = p.component;
+            return (
+              <div key={`${p.appId}/${p.id}`} className="mb-3">
+                <Panel doc={doc} index={index} />
+              </div>
+            );
+          })}
           <LinksPanel docId={doc.id} index={index} onOpen={openRef} />
         </aside>
       )}

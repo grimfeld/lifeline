@@ -252,7 +252,8 @@ export function extractBlocks(text: string): FencedBlock[] {
 }
 
 /** Text outside fenced blocks and inline code, with offsets into the original. */
-function proseSegments(text: string): { text: string; offset: number }[] {
+/** The prose parts of a markdown text with their offsets — fenced and inline code left out. What link and tag extraction walk. */
+export function proseSegments(text: string): { text: string; offset: number }[] {
   const blocks = extractBlocks(text);
   const segs: { text: string; offset: number }[] = [];
   let pos = 0;

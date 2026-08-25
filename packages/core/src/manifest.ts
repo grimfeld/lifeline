@@ -5,6 +5,17 @@ import type { DaylogProvider } from "./contracts/daylog";
 import type { LoggableProvider } from "./contracts/loggable";
 import type { CardSettings, CardSettingsSchema } from "./cards";
 import type { Document, DocumentTypeDef } from "./documents/types";
+import type { LinkIndex } from "./documents/links";
+
+/**
+ * A panel an App adds to the side of every open Document in the Vault
+ * (ADR 0032: the Bible App's unlinked references). Rendered under the
+ * Local graph and links; returns null when it has nothing to say.
+ */
+export interface DocumentPanelDef {
+  id: string;
+  component: React.ComponentType<{ doc: Document; index: LinkIndex }>;
+}
 
 /**
  * A local-only Dexie table an App keeps beside the Document store (ADR 0017:
@@ -135,6 +146,14 @@ export interface AppManifest {
   daylog?: DaylogProvider;
   /** Loggable (ADR 0031): this App's entities other Apps may log occurrences into. */
   loggable?: LoggableProvider;
+  /**
+   * A React hook the shell runs once, always, for this App — live work that
+   * belongs to no screen (ADR 0032: creating Verses from unresolved names).
+   * Must be cheap; runs whether or not any of the App's pages is open.
+   */
+  useBackground?: () => void;
+  /** Panels on every open Document's side (see DocumentPanelDef). */
+  documentPanels?: DocumentPanelDef[];
   /** A workspace this App provides (ADR 0012). */
   workspace?: WorkspaceDef;
 }

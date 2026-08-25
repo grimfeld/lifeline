@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes, useParams } from "react-router";
 import { Toaster } from "@lifeline/ui";
-import { db, screenRoute, screensOf, useLiveQuery, workspaces, type UserScreen } from "@lifeline/core";
+import { backgroundApps, db, screenRoute, screensOf, useLiveQuery, workspaces, type AppManifest, type UserScreen } from "@lifeline/core";
 import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
 import { CalendarPage } from "./surfaces/CalendarPage";
@@ -75,10 +75,19 @@ function DashboardWorkspace() {
   );
 }
 
+/** One component per App with a background hook, so each hook runs under React's rules (ADR 0032). */
+function AppBackground({ app }: { app: AppManifest }) {
+  app.useBackground!();
+  return null;
+}
+
 export default function App() {
   useWorkspaceMemory();
   return (
     <div className="bg-background text-foreground flex h-dvh flex-col overflow-hidden">
+      {backgroundApps().map((a) => (
+        <AppBackground key={a.id} app={a} />
+      ))}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <Routes>
           {workspaces().map((w) => (

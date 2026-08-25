@@ -52,6 +52,8 @@ export interface GraphOptions {
   hiddenTypes?: ReadonlySet<string>;
   /** Tag filter (ADR 0014 semantics): a Document passes if it carries any of these; untagged never passes a non-empty filter. */
   tagFilter?: readonly string[];
+  /** An App's lens (ADR 0032): keep only Documents of these types and whatever is one edge away from them. */
+  focusTypes?: ReadonlySet<string>;
 }
 
 function isLinkable(def: DocumentTypeDef | undefined): boolean {
@@ -60,7 +62,7 @@ function isLinkable(def: DocumentTypeDef | undefined): boolean {
 
 /** Build the whole Graph from the link index. Pure. */
 export function buildGraph(index: LinkIndex, types: DocumentTypeDef[], opts: GraphOptions = {}): GraphModel {
-  const { ghosts = true, tags = false, orphans = false, hiddenTypes, tagFilter } = opts;
+  const { ghosts = true, tags = false, orphans = false, hiddenTypes, tagFilter, focusTypes } = opts;
   const defs = new Map(types.map((t) => [t.id, t]));
 
   let tagged: Set<string> | null = null;
@@ -143,8 +145,19 @@ export function buildGraph(index: LinkIndex, types: DocumentTypeDef[], opts: Gra
 
   // A non-empty tag filter is an explicit selection: keep its Documents even
   // when the filter cut their edges away — otherwise filtering often shows nothing.
-  const nodes = [...byId.values()].filter((n) => orphans || tagged !== null || n.degree > 0 || n.kind !== "doc");
-  return { nodes, edges: edgeList };
+  let nodes = [...byId.values()].filter((n) => orphans || tagged !== null || n.degree > 0 || n.kind !== "doc");
+  let finalEdges = edgeList;
+  if (focusTypes && focusTypes.size > 0) {
+    const keep = new Set<string>();
+    for (const n of nodes) if (n.kind === "doc" && n.type && focusTypes.has(n.type)) keep.add(n.id);
+    for (const e of edgeList) {
+      if (keep.has(e.source)) keep.add(e.target);
+      else if (keep.has(e.target)) keep.add(e.source);
+    }
+    nodes = nodes.filter((n) => keep.has(n.id));
+    finalEdges = edgeList.filter((e) => keep.has(e.source) && keep.has(e.target));
+  }
+  return { nodes, edges: finalEdges };
 }
 
 /**
