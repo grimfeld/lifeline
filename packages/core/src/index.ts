@@ -8,6 +8,7 @@ export * from "./contracts/surface";
 export * from "./contracts/timed";
 export * from "./contracts/agenda";
 export * from "./contracts/daylog";
+export * from "./contracts/loggable";
 export * from "./contracts/locatable";
 export * from "./contracts/taggable";
 export * from "./contracts/tagfilter";

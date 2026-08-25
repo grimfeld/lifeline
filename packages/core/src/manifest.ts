@@ -2,6 +2,7 @@ import type * as React from "react";
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
+import type { LoggableProvider } from "./contracts/loggable";
 import type { CardSettings, CardSettingsSchema } from "./cards";
 import type { Document, DocumentTypeDef } from "./documents/types";
 
@@ -132,6 +133,8 @@ export interface AppManifest {
   schedulable?: SchedulableProvider;
   timed?: TimedProvider;
   daylog?: DaylogProvider;
+  /** Loggable (ADR 0031): this App's entities other Apps may log occurrences into. */
+  loggable?: LoggableProvider;
   /** A workspace this App provides (ADR 0012). */
   workspace?: WorkspaceDef;
 }

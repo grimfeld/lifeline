@@ -6,6 +6,7 @@ import { HabitTileCard, useHabitTileOptions, useHabitTileTitle } from "./cards/H
 import { LogNegativeCard } from "./cards/LogNegativeCard";
 import { lifelevelCommands } from "./commands";
 import { lifelevelDaylog } from "./daylog";
+import { lifelevelLoggable } from "./loggable";
 import { habitHref, LIFELEVEL_HREF } from "./domain/daylog";
 import {
   APP_ID,
@@ -132,6 +133,7 @@ export const lifelevelApp: AppManifest = {
   ],
   commands: lifelevelCommands,
   daylog: lifelevelDaylog,
+  loggable: lifelevelLoggable,
 };
 
 export { HABIT, NEGATIVE, HABIT_COMPLETION, NEGATIVE_COMPLETION };

@@ -9,6 +9,7 @@ import { StreaksCard, streaksInstanceTitle } from "./cards/StreaksCard";
 import { CollectionsCard } from "./cards/CollectionsCard";
 import { statCommands } from "./commands";
 import { statsDaylog } from "./daylog";
+import { statsLoggable } from "./loggable";
 import { ENTRIES, STATS, STAT, STAT_ENTRY, STAT_KINDS, COLOR_SLOTS, type Entry } from "./domain/types";
 import { statHref } from "./domain/daylog";
 import { formatValue } from "./domain/aggregate";
@@ -129,6 +130,7 @@ export const statsApp: AppManifest = {
   ],
   commands: statCommands,
   daylog: statsDaylog,
+  loggable: statsLoggable,
 };
 
 export { STATS, ENTRIES, STAT, STAT_ENTRY };

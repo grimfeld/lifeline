@@ -26,6 +26,7 @@
     "@lifeline/app-sources": "workspace:*",
     "@lifeline/app-stats": "workspace:*",
     "@lifeline/app-tasks": "workspace:*",
+    "@lifeline/app-workout": "workspace:*",
     "@lifeline/app-writer": "workspace:*",
     "@lifeline/core": "workspace:*",
     "@lifeline/editor": "workspace:*",
