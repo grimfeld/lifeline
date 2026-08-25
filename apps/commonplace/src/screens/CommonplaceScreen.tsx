@@ -42,7 +42,7 @@ function shuffled<T>(xs: T[]): T[] {
   return a;
 }
 
-/** The Commonplace book (ADR 0024): every quote, searchable and filterable, grouped by the work it came from. */
+/** The Quotes screen (ADR 0024): every quote, searchable and filterable, grouped by the work it came from. */
 export function CommonplaceScreen() {
   const items = useQuotedWorks();
   const quotes = useQuotes();

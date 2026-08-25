@@ -6,7 +6,7 @@ import { quoteName } from "./domain/quotes";
 import { APP_HREF } from "./constants";
 
 /**
- * The Quote type (ADR 0024): owned by the Commonplace book; the link accepts
+ * The Quote type (ADR 0024): owned by the Quotes App; the link accepts
  * a work of any family — the type ids belong to the family Apps, but a Link
  * field is data, not behaviour.
  */

@@ -4,7 +4,7 @@ import { useQuotedWorks } from "./data/works";
 import { quoteName, quotesOn } from "./domain/quotes";
 import { APP_HREF, APP_ID } from "./constants";
 
-/** What happened in the Commonplace book on a day: the quotes captured then. */
+/** What happened in Quotes on a day: the quotes captured then. */
 export const commonplaceDaylog: DaylogProvider = {
   appId: APP_ID,
   useItems(date) {

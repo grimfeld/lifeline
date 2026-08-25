@@ -48,5 +48,5 @@ function AddQuoteCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 
 export const commonplaceCommands: CommandDef[] = [
   { id: "commonplace.quote-add", title: "Add quote…", keywords: ["quote", "passage", "highlight", "book", "film", "album", "capture", "commonplace"], icon: QuoteIcon, dialog: AddQuoteCommandDialog, capture: true },
-  { id: "commonplace.open", title: "Go to Commonplace book", keywords: ["quotes", "passages", "highlights", "commonplace"], icon: NotebookPen, run: ({ navigate }) => navigate(APP_HREF) },
+  { id: "commonplace.open", title: "Go to Quotes", keywords: ["quotes", "passages", "highlights", "commonplace"], icon: NotebookPen, run: ({ navigate }) => navigate(APP_HREF) },
 ];
