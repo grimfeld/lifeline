@@ -122,8 +122,14 @@ export interface DocumentTypeDef {
    * compound index `[type+field]`; a bracketed compound is used verbatim.
    */
   indexes?: string[];
-  /** Linkable (data-declarable Contract): Documents are wikilink targets by title and by the `aliases` list field (or the named field). */
-  linkable?: boolean | { aliasesField?: string; subtitle?: (doc: Document) => string | undefined };
+  /**
+   * Linkable (data-declarable Contract): Documents are wikilink targets by
+   * title and by the `aliases` list field (or the named field). `expand`
+   * (ADR 0032) lets a type read a written name its own way and say which of
+   * its titles it stands for — a scripture range `John 3:16–18` → three
+   * Verse titles — or null when the name is not its business.
+   */
+  linkable?: boolean | { aliasesField?: string; subtitle?: (doc: Document) => string | undefined; expand?: (name: string) => string[] | null };
   /** Locatable (data-declarable Contract): the geo field holding `[lat, lon]`, or a reader. */
   locatable?: string | ((doc: Document) => { lat: number; lon: number } | null);
   /** Route that opens one Document. Default: the Vault's generic page `/vault/d/<id>`. */

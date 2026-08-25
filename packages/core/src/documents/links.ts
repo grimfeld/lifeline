@@ -34,8 +34,10 @@ export interface LinkName {
 export interface LinkIndex {
   docs: Document[];
   byId: Map<string, Document>;
-  /** Resolve a name as written in [[…]] (with an optional `type:` prefix). */
+  /** Resolve a name as written in [[…]] (with an optional `type:` prefix). The first target when a name expands to several. */
   resolve(name: string): LinkRef;
+  /** Every target a written name stands for (ADR 0032) — several when a type's expander splits it. */
+  resolveAll(name: string): LinkRef[];
   linksFrom(docId: string): ResolvedLink[];
   backlinksTo(docId: string): Backlink[];
   /** Normalised unresolved names → ids of the Documents mentioning them. */
@@ -102,6 +104,30 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[]): Link
   }
 
   const ref = (id: string): LinkRef => ({ kind: "doc", id, type: byId.get(id)?.type ?? "" });
+  const expanders = types.filter((t) => typeof t.linkable === "object" && t.linkable.expand).map((t) => ({ type: t.id, expand: (t.linkable as { expand: (n: string) => string[] | null }).expand }));
+
+  /**
+   * Every target a written name stands for (ADR 0032): a type's expander may
+   * turn one name into several of its titles (a scripture range). Titles it
+   * names that do not exist yet come back unresolved under their canonical
+   * name, so Ghost nodes and on-demand creation see the real titles.
+   */
+  function resolveAll(name: string): LinkRef[] {
+    for (const { type, expand } of expanders) {
+      let titles: string[] | null = null;
+      try {
+        titles = expand(name);
+      } catch {
+        titles = null;
+      }
+      if (!titles || titles.length === 0) continue;
+      return titles.map((title) => {
+        const hit = byTypeTitle.get(`${type}:${normalizeName(title)}`);
+        return hit ? ref(hit) : { kind: "unresolved" as const, name: title };
+      });
+    }
+    return [resolve(name)];
+  }
 
   function resolve(name: string): LinkRef {
     let k = normalizeName(name);
@@ -135,7 +161,7 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[]): Link
   for (const d of docs) {
     const def = defs.get(d.type);
     const body = typeof d.body === "string" ? d.body : "";
-    const links = body ? extractLinks(body).map((link) => ({ link, ref: resolve(link.name) })) : [];
+    const links = body ? extractLinks(body).flatMap((link) => resolveAll(link.name).map((r) => ({ link, ref: r }))) : [];
     linksFromMap.set(d.id, links);
     for (const { link, ref: r } of links) {
       if (r.kind === "unresolved") {
@@ -173,6 +199,7 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[]): Link
     docs,
     byId,
     resolve,
+    resolveAll,
     linksFrom: (id) => linksFromMap.get(id) ?? [],
     backlinksTo: (id) => backlinks.get(id) ?? [],
     unresolved,

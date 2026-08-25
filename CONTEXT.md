@@ -333,6 +333,34 @@ _Avoid_: directory, category (that's a Document type), tag
 ### Commonplace book
 _Retired_ — the App is now called **Quotes**; its id and ADR 0024 keep the old name.
 
+### Bible study
+The Bible App: a lens over the study, not a second notebook. It owns the *references* of Bible study — Verses, Characters, Concepts — and scopes the material to them: the Notes (on verses, articles, speeches), Clippings (pasted articles) and Writings (talks) that link to a Verse, Character or Concept are *the* Bible study, wherever they live; the App lists them, draws their Graph, and reads verse references in any body. No Bible Note, no Bible Clipping, no Bible Writing: a Note is my thinking about things, whatever the thing.
+_Avoid_: Bible notes app, study notes (a type), scripture app
+
+### Verse
+One verse of scripture as a Linkable reference, owned by the Bible App — "John 3:16" and nothing else: no text is stored, a Verse is a hub that Notes and ideas connect through, the Bible itself stays on the shelf. Written as `[[John 3:16]]` in any body; a **range** written once — `[[John 3:16–18]]` — is one link in the text that resolves to every Verse in it. A bare reference in prose ("see Rom 8:28") is found and *offered* as a link, never linked behind your back. A Verse belongs to its Chapter, a Chapter to its Book; all three are created on first mention, never seeded.
+_Avoid_: scripture (the whole), passage (a range — fine in prose), reference (the informal word for any Linkable thing), citation
+
+### Chapter
+A chapter of a Book as its own Linkable Document, owned by the Bible App — "John 3" — that its Verses belong to, so a Note on the chapter and the Notes on its verses find each other. Has a body: the place for what the chapter as a whole is about.
+_Avoid_: section, pericope
+
+### Book
+A book of the Bible as its own Linkable Document, owned by the Bible App — "John", "Romans" — that its Chapters belong to. Has a body. The canon's names and their abbreviations are the App's, so `Jn`, `Rom`, `1 Cor` resolve.
+_Avoid_: book (a Library work — say "Bible book" when both are near), volume
+
+### Character
+A person of the Bible, owned by the Bible App and Linkable: Paul, Ruth, Pilate. Distinct from a user-defined `person` (someone I know) — a Character is met in the text, and a Note or Verse links to it.
+_Avoid_: person (my own contacts), figure, biblical person (fine in prose)
+
+### Concept
+An idea the study keeps returning to — grace, covenant, exile — owned by the Bible App and Linkable, so Notes, Verses and Characters gather under it. A Concept is a study's own vocabulary, not a Tag: it has a body of its own and can be written about.
+_Avoid_: theme (fine in prose), topic, tag, context (the setting; also a word Lifeline already uses for its glossary)
+
+### Talk
+Not a type: a Writing I give aloud — a sermon, a study-group talk. Marked by its Writer's pad project ("Talks") or a `talk` Tag, it links the Verses, Characters and Concepts it draws on like any body and keeps Versions like any Writing. The Bible App lists such Writings under "Talks"; the day it is given is an Event, since a talk is given more than once.
+_Avoid_: sermon (fine in prose), speech (that's something I *heard* — a Note or Clipping about it), presentation
+
 ### Quote
 A passage kept from a work of any family — its text, an optional locator (page, chapter, timestamp), an optional comment and tags — owned by the **Quotes** App (ADR 0024) and impossible without the work it links to, whatever App owns that work. Inserted into notes as a blockquote ending in a wikilink to the item; also a wikilink target by its opening words. Captured on a day, it is a Daylog fact ("Quoted").
 _Avoid_: highlight (a quote may be a thought you had about it, not only the text), excerpt, clipping

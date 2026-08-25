@@ -18,6 +18,9 @@ apps/calendar    @lifeline/app-calendar — Calendar App: Events (timed / all-da
                  shown on the month, week and Today surfaces via the Timed contract; Event templates (quick add onto a
                  slot) and Time blockers (weekly bands painted behind the Schedule), ADR 0027; one-off blockers dropped
                  from Blocker templates and dragged on the Schedule, ADR 0029
+apps/bible       @lifeline/app-bible — Bible App (ADR 0032): a lens over the study — owns Verses (one per verse, ranges expand),
+                 Chapters, Bible books, Characters, Concepts (created on first mention); lists the Notes/Clippings/Writings that
+                 link them, a scoped Graph, an unlinked-references panel in the Vault, a phone screen with "Note on a verse"
 apps/workout     @lifeline/app-workout — Workout App (ADR 0030): Workouts as Blocks of intervals (EMOM / AMRAP / Tabata /
                  For Time / Intervals), a full-screen timer, hand-curated Exercises, Sessions as Timed + Daylog records,
                  derived PRs; Tallies feed Habits and Stats through the Loggable contract (ADR 0031)

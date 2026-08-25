@@ -1,4 +1,4 @@
-import { DASHBOARD_WORKSPACE, type AppManifest, type AppScreenDef, type CardDef, type CommandDef, type WorkspaceDef } from "./manifest";
+import { DASHBOARD_WORKSPACE, type AppManifest, type AppScreenDef, type CardDef, type CommandDef, type DocumentPanelDef, type WorkspaceDef } from "./manifest";
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
@@ -70,6 +70,15 @@ export function daylogProviders(): DaylogProvider[] {
 
 export function loggableProviders(): LoggableProvider[] {
   return apps.flatMap((a) => (a.loggable ? [a.loggable] : []));
+}
+
+/** Apps with a background hook, in registry order (stable, so the shell may call the hooks in a loop). */
+export function backgroundApps(): AppManifest[] {
+  return apps.filter((a) => !!a.useBackground);
+}
+
+export function documentPanels(): (DocumentPanelDef & { appId: string })[] {
+  return apps.flatMap((a) => (a.documentPanels ?? []).map((p) => ({ ...p, appId: a.id })));
 }
 
 /** Effective settings schema of a Card: its own plus the auto-added Tag filter when tagFilterable. */

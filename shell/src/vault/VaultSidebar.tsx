@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, cn } from "@lifeline/ui";
 import { CalendarDays, FolderTree, Hash, Plus, Search, Settings2 } from "lucide-react";
-import { singularOf } from "@lifeline/core";
+import { screensOf, singularOf, VAULT_WORKSPACE } from "@lifeline/core";
 import { FileTree } from "./FileTree";
 import { SearchPane } from "./SearchPane";
 import { TagsPane } from "./TagsPane";
@@ -46,9 +46,17 @@ export function VaultSidebar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button size="sm" variant="outline" className="h-7" title="Today's journal" onClick={() => navigate("/vault/journal")}>
-          <CalendarDays /> Today
-        </Button>
+        {screensOf(VAULT_WORKSPACE)
+          .filter((s) => !s.hidden)
+          .map((s) => {
+            const I = s.icon ?? CalendarDays;
+            const journal = s.path === "journal";
+            return (
+              <Button key={s.id} size="sm" variant="outline" className="h-7" title={journal ? "Today's journal" : s.title} onClick={() => navigate(`/vault/${s.path}`)}>
+                <I /> {journal ? "Today" : s.title}
+              </Button>
+            );
+          })}
       </div>
       <div className="mx-2 mt-2 flex gap-0.5 border-b">
         {tabs.map((t) => (
