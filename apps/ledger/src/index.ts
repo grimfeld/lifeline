@@ -15,21 +15,21 @@ import {
   BUDGET_HREF,
   CATEGORY,
   KIND_LABEL,
-  RECURRING,
   REGISTER_HREF,
+  SERIES,
   TRANSACTION,
   type LedgerAccount,
   type LedgerCategory,
-  type Recurring,
+  type Series,
   type Transaction,
 } from "./domain/types";
 
 /**
  * The `ledger_transaction` Document type (ADR 0033): one movement of money
  * on a day. Bodiless, so Transactions never clutter the Vault; not Linkable
- * — thousands of derived titles are noise in completion. The kind and its
- * provenance fields are the App's (guarded); day, amount, category, payee
- * stay plain so Bases can bulk-recategorize.
+ * — thousands of derived titles are noise in completion. The kind and the
+ * import id are the App's (guarded); day, amount, category, payee stay
+ * plain so Bases can bulk-recategorize.
  */
 const transactionType: DocumentTypeDef = {
   id: TRANSACTION,
@@ -52,8 +52,6 @@ const transactionType: DocumentTypeDef = {
     { key: "categoryId", label: "Category", kind: "link", linkType: CATEGORY, column: true },
     { key: "payee", label: "Payee", kind: "text", column: true },
     { key: "note", label: "Note", kind: "longtext" },
-    { key: "recurringId", label: "Recurring", kind: "link", linkType: RECURRING, guarded: true, hidden: true },
-    { key: "dueDate", label: "Due day", kind: "date", guarded: true, hidden: true },
     { key: "importId", label: "Import id", kind: "text", guarded: true, hidden: true },
   ],
   indexes: ["date", "categoryId", "accountId"],
@@ -101,23 +99,23 @@ const categoryType: DocumentTypeDef = {
   builtIn: true,
 };
 
-/** The `ledger_recurring` Document type (ADR 0033): a standing definition; Dues confirm, never auto-post. */
-const recurringType: DocumentTypeDef = {
-  id: RECURRING,
-  label: "Recurring transactions",
+/**
+ * The `ledger_series` internal type (ADR 0034): the user's word over a
+ * *derived* Recurring series — muted, and the due days waved off. The
+ * series itself is never stored; only what cannot derive is.
+ */
+const seriesOverrideType: DocumentTypeDef = {
+  id: SERIES,
+  label: "Series overrides",
+  singular: "Series override",
   icon: Repeat,
+  internal: true,
   titleRule: "name",
   body: "none",
   fields: [
-    { key: "kind", label: "Kind", kind: "select", options: [{ value: "expense", label: "Expense" }, { value: "income", label: "Income" }], guarded: true, required: true, column: true },
-    { key: "amount", label: "Amount (cents)", kind: "number", required: true, column: true },
-    { key: "accountId", label: "Account", kind: "link", linkType: ACCOUNT, column: true },
-    { key: "categoryId", label: "Category", kind: "link", linkType: CATEGORY, column: true },
-    { key: "payee", label: "Payee", kind: "text", column: true },
-    { key: "rule", label: "Rule", kind: "json", guarded: true },
-    { key: "startDate", label: "From", kind: "date" },
-    { key: "paused", label: "Paused", kind: "boolean", column: true },
-    { key: "skipped", label: "Skipped", kind: "json", guarded: true, hidden: true },
+    { key: "key", label: "Series", kind: "text", guarded: true, required: true, column: true },
+    { key: "muted", label: "Muted", kind: "boolean", column: true },
+    { key: "skipped", label: "Skipped days", kind: "json", guarded: true, hidden: true },
   ],
   href: () => `${REGISTER_HREF}?tab=recurring`,
   order: 83,
@@ -148,7 +146,7 @@ export const ledgerApp: AppManifest = {
   title: "Ledger",
   icon: Landmark,
   color: "var(--chart-teal, #14b8a6)",
-  types: [transactionType, accountType, categoryType, recurringType, allocationType],
+  types: [transactionType, accountType, categoryType, seriesOverrideType, allocationType],
   screens: [
     { id: "ledger.register", title: "Ledger", path: "ledger", icon: Landmark, component: RegisterScreen },
     { id: "ledger.budget", title: "Budget", path: "ledger/budget", icon: PiggyBank, component: BudgetScreen },
@@ -192,5 +190,5 @@ export const ledgerApp: AppManifest = {
   daylog: ledgerDaylog,
 };
 
-export { TRANSACTION, ACCOUNT, CATEGORY, RECURRING, ALLOCATION };
-export type { Transaction, LedgerAccount, LedgerCategory, Recurring };
+export { TRANSACTION, ACCOUNT, CATEGORY, SERIES, ALLOCATION };
+export type { Transaction, LedgerAccount, LedgerCategory, Series };
