@@ -9,11 +9,13 @@ import { formatCents, formatSigned, parseAmount } from "../domain/money";
 import { describeDueDay, isOverdue, openDues } from "../domain/recur";
 import { describeCadence, nextOccurrence } from "../domain/series";
 import { payeeCategoryIndex, suggestCategory } from "../domain/suggest";
+import { looksLikePaypal } from "../domain/paypal";
 import { categorizeTransaction, confirmDue, dismissDue, setSeriesMuted, useAccounts, useCategories, useSeries, useTransactions } from "../data/repo";
 import { TransactionEditorDialog } from "../components/TransactionEditorDialog";
 import { AccountEditorDialog } from "../components/AccountEditorDialog";
 import { ReconcileDialog } from "../components/ReconcileDialog";
 import { ImportDialog } from "../components/ImportDialog";
+import { PaypalSweepDialog } from "../components/PaypalSweepDialog";
 
 const PAGE = 100;
 
@@ -28,12 +30,13 @@ const SORTS: Record<SortKey, (a: Transaction, b: Transaction) => number> = {
 };
 
 /**
- * Free search over one Transaction: payee/note text, the day — "2026-03",
+ * Free search over one Transaction: payee/note/bank-payee text, the day — "2026-03",
  * "03-10", "10-03" and "10.03" all find the 10th of March — or an exact
  * amount ("12,50" and "12.50" both find €12.50 either direction).
  */
 function matchesSearch(t: Transaction, q: string): boolean {
-  if (`${t.payee} ${t.note}`.toLowerCase().includes(q)) return true;
+  // bankPayee too: a PayPal row renamed to its merchant is still findable by what the bank called it.
+  if (`${t.payee} ${t.note} ${t.bankPayee}`.toLowerCase().includes(q)) return true;
   const dateQ = q.replace(/[./]/g, "-");
   if (/^[\d-]+$/.test(dateQ) && dateQ.includes("-")) {
     if (t.date.includes(dateQ)) return true;
@@ -81,6 +84,9 @@ export function RegisterScreen() {
   const [accountAddOpen, setAccountAddOpen] = useState(false);
   const [reconciling, setReconciling] = useState<LedgerAccount | undefined>();
   const [importing, setImporting] = useState<LedgerAccount | undefined>();
+  const [paypalOpen, setPaypalOpen] = useState(false);
+  /** The PayPal nudge, hidden for this visit — rows no activity file covers would otherwise nag forever. */
+  const [paypalHidden, setPaypalHidden] = useState(false);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") ?? "transactions";
@@ -90,6 +96,8 @@ export function RegisterScreen() {
   const today = todayStr();
   const dues = useMemo(() => openDues(series, today), [series, today]);
   const uncategorized = useMemo(() => transactions.filter(isUncategorized), [transactions]);
+  /** Still wearing the bank's one PayPal name — one merchant as far as the suggester can tell. */
+  const unnamedPaypal = useMemo(() => transactions.filter((t) => (t.kind === "expense" || t.kind === "income") && !t.paypalId && looksLikePaypal(t.payee)), [transactions]);
 
   /** Every month the ledger touches, newest first — the month filter's options. */
   const months = useMemo(() => Array.from(new Set(transactions.map((t) => monthOf(t.date)))).sort().reverse(), [transactions]);
@@ -170,6 +178,19 @@ export function RegisterScreen() {
               </button>
               <Button size="sm" variant="outline" onClick={() => void autoCategorize()}>
                 <Wand2 /> Auto-categorize
+              </Button>
+            </div>
+          )}
+          {unnamedPaypal.length > 0 && !paypalHidden && (
+            <div className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
+              <span className="text-muted-foreground min-w-0 flex-1">
+                {unnamedPaypal.length} transaction{unnamedPaypal.length === 1 ? "" : "s"} the bank filed under PayPal — one payee for every merchant, so categorizing one categorizes them all.
+              </span>
+              <Button size="sm" variant="outline" onClick={() => setPaypalOpen(true)}>
+                <Wand2 /> Name PayPal payees
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setPaypalHidden(true)}>
+                Not now
               </Button>
             </div>
           )}
@@ -362,6 +383,7 @@ export function RegisterScreen() {
       <AccountEditorDialog open={!!accountEditing} onOpenChange={(o) => !o && setAccountEditing(undefined)} account={accountEditing} />
       {reconciling && <ReconcileDialog open onOpenChange={(o) => !o && setReconciling(undefined)} account={reconciling} currentBalance={balanceOf(reconciling, transactions)} />}
       {importing && <ImportDialog open onOpenChange={(o) => !o && setImporting(undefined)} account={importing} />}
+      {paypalOpen && <PaypalSweepDialog open onOpenChange={setPaypalOpen} />}
     </div>
   );
 }
