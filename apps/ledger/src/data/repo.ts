@@ -159,6 +159,11 @@ export async function deleteTransaction(id: string): Promise<void> {
   await removeDocument(id);
 }
 
+/** Set just the category — the auto-categorize sweep and quick fixes use this. */
+export async function categorizeTransaction(id: string, categoryId: string): Promise<void> {
+  await patchDocument(id, { categoryId });
+}
+
 /**
  * Reconcile (ADR 0033): the real balance is typed in, the gap becomes an
  * adjustment — a visible fact, category-less, excluded from reports.
