@@ -187,6 +187,34 @@ _Avoid_: rank, character level, life level (as a number)
 XP bleeding away while a Habit sits idle past a grace period. Harder Habits decay more gently — time-expensive habits can't realistically be done daily. Decay only erodes positive progress: it stops at zero; only Negatives dig the hole.
 _Avoid_: rust, penalty (that's Negative damage), streak loss
 
+### Ledger
+The money App: Accounts, Transactions, Categories, Recurring transactions — and the Budget, a derived lens over them. Ledger-first: the ledger stores facts (Transactions); every total — balance, spent, pot — is derived at read, never stored. Lower-case "ledger" in prose means its record of Transactions (Life Level's Completions ledger is its own thing).
+_Avoid_: budget app (the Budget is one lens), finance, money app, wallet
+
+### Transaction
+One movement of money on a day, owned by the Ledger App: an amount in integer cents (one app-wide currency), an Account, and a kind — **expense** (one expense Category), **income** (one income Category), **transfer** (a single Document with from-Account and to-Account; never spending — paying a credit card is a transfer, the expense happened at the swipe), or **adjustment** (the reconcile gap: type the real balance, the difference is recorded as a fact; category-less, excluded from reports). Also: free-text payee, a note field, Tags, an optional import id. No body, derived title, no time of day; backdating allowed. No splits — one Transaction, one Category; a receipt across two Categories is two Transactions (a UI helper may create them). Manual entry requires the Category; imported Transactions may arrive **uncategorized** and are shown loudly — an inbox to clear, never hidden, never auto-dumped.
+_Avoid_: entry (a Stat's), record, expense (one kind), line item, split, payment
+
+### Account
+A named place money lives — checking, savings, cash, credit card — owned by the Ledger App, Linkable. Holds an opening balance and its saved CSV import mapping; its balance is always derived (opening plus its Transactions, transfers read from both sides; a credit card simply runs negative). Never deleted while Transactions reference it — **archived** instead: history kept, out of pickers and default balance views. Hard delete only when empty.
+_Avoid_: wallet, bank (the institution), envelope
+
+### Category
+Where a Transaction is classified, owned by the Ledger App, Linkable: a kind (**expense** or **income**), a display group (plain field — two levels for reading, no policy at group level), a standing monthly Target, and an **accumulating** flag. Exactly one per Transaction. An accumulating Category is a sinking fund: its **pot** — all allocations minus all spending since its start, derived, never stored — rolls month to month and may go negative; next months' allocations climb out of the hole, nothing clamps. Deleting a referenced Category is blocked — merge into another instead. Tags stay orthogonal: free crosscutting words, never budget maths.
+_Avoid_: tag, envelope, group (the display field), budget (the lens)
+
+### Target
+A Category's monthly amount of policy — "Groceries €400": a standing value on the Category, overridable for a single month by an **Allocation override** (an internal Document — December ≠ March, and the history of what was allocated stays honest). Spent is derived from the ledger; the Budget screen shows target / spent / available per expense Category for one month. An income Category may carry a Target; the Budget screen ignores it. Fresh each month unless the Category accumulates.
+_Avoid_: budget (the whole lens), allocation (the override record), limit, goal
+
+### Recurring transaction
+A standing definition of a Transaction that repeats — rent, salary, Netflix: payee, amount, Category, Account, rule — owned by the Ledger App. When due it surfaces as a **Due**; it never posts itself — the ledger records only witnessed facts. The list of upcoming Dues *is* the forecast; no separate concept. Deleting the definition keeps every Transaction it posted.
+_Avoid_: subscription (fine in prose), scheduled transaction, template (the Calendar Apps' word), auto-payment, standing order
+
+### Due
+One pending occurrence of a Recurring transaction: the due day and suggested amount, confirmed in one tap (amount editable at confirm) into a real Transaction, or dismissed. Lives in the Ledger App and its Dues Card — never on the time Surfaces.
+_Avoid_: reminder, occurrence (a Task's), bill (fine in prose), pending transaction
+
 ### Media item
 _Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus **Quotes** (born as the Commonplace book) for Quotes. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry creator, year, size, cover by URL and an optional **Reason** (who sent me here — never asked at add). The old "Studied" mark is gone.
 _Avoid_: media (as a type id or an App — neither exists), title, copy, edition, studied
