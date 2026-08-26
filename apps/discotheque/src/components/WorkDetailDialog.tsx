@@ -1,11 +1,15 @@
-import { Badge, Button, cn, Dialog, DialogContent, DialogHeader, DialogTitle, TagChips, toast } from "@lifeline/ui";
-import { Check, MoreHorizontal, Play, RefreshCw, Search } from "lucide-react";
-import { useState } from "react";
+import { Badge, Button, cn, Dialog, DialogContent, DialogHeader, DialogTitle, TagChips, Textarea, toast } from "@lifeline/ui";
+import { ListPlus, MoreHorizontal, Pencil, Play, RefreshCw, Search } from "lucide-react";
+import { useEffect, useState } from "react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
-import { finish, start } from "../domain/rules";
+import { setReview, start } from "../domain/rules";
+import { playlistsWith } from "../domain/playlist";
 import { Cover } from "./Cover";
 import { useAct, WorkActionsMenu } from "./WorkActions";
+import { MarksRow } from "./Marks";
+import { AddToPlaylistDialog } from "./AddToPlaylistDialog";
+import { patchWork, usePlaylists } from "../data/repo";
 import { lookupFor } from "../data/lookup";
 import { refreshFromSource } from "../data/enrichActions";
 import { FindMetadataDialog } from "./FindMetadataDialog";
@@ -49,6 +53,67 @@ function LookupActions({ item }: { item: Work }) {
   );
 }
 
+/** The Review (ADR 0035): the body, read as written; "Write" / "Edit" opens it in place. */
+function Review({ item }: { item: Work }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(item.body ?? "");
+  useEffect(() => setDraft(item.body ?? ""), [item.id, item.body]);
+  const body = (item.body ?? "").trim();
+
+  if (editing) {
+    return (
+      <div className="grid gap-2">
+        <Textarea autoFocus rows={5} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What did you make of it? Markdown, [[links]] and #tags all count." />
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="ghost" onClick={() => { setDraft(item.body ?? ""); setEditing(false); }}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              void patchWork(item, setReview(draft));
+              setEditing(false);
+              toast.success(draft.trim() ? "Review saved" : "Review cleared");
+            }}
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="grid gap-1">
+      <div className="flex items-center justify-between">
+        <div className="text-muted-foreground text-[11px] tracking-wide uppercase">Review</div>
+        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setEditing(true)}>
+          <Pencil className="size-3" /> {body ? "Edit" : "Write"}
+        </Button>
+      </div>
+      {body ? <p className="text-sm whitespace-pre-wrap">{body}</p> : <p className="text-muted-foreground text-sm italic">Nothing written yet.</p>}
+    </div>
+  );
+}
+
+/** "In playlists: …" with the way to add more. */
+function Playlists({ item }: { item: Work }) {
+  const inLists = playlistsWith(usePlaylists(), item.id);
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+      {inLists.length > 0 && (
+        <span className="text-muted-foreground">
+          In {inLists.map((p) => p.title).join(", ")}
+        </span>
+      )}
+      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setOpen(true)}>
+        <ListPlus className="size-3" /> Add to playlist…
+      </Button>
+      <AddToPlaylistDialog item={item} open={open} onOpenChange={setOpen} />
+    </div>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-0.5">
@@ -88,6 +153,8 @@ export function WorkDetailDialog({ item, all: _all, onClose, onEdit }: { item: W
               <Badge variant={reading ? "default" : "secondary"}>{def.engagement[item.engagement]}</Badge>
             </div>
 
+            <MarksRow item={item} />
+
             {(item.tags ?? []).length > 0 && <TagChips tags={item.tags} size="xs" />}
 
             <LookupActions item={item} />
@@ -99,18 +166,17 @@ export function WorkDetailDialog({ item, all: _all, onClose, onEdit }: { item: W
               <Field label="Started">{item.startedOn || "—"}</Field>
               <Field label="Finished">{item.finishedOn || "—"}</Field>
             </div>
+
+            <Playlists item={item} />
           </div>
         </div>
+
+        <Review item={item} />
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
           {!reading && !done && (
             <Button size="sm" variant="outline" onClick={act(`${def.engagement.IN_PROGRESS}…`, start())}>
               <Play /> {def.startVerb}
-            </Button>
-          )}
-          {reading && (
-            <Button size="sm" onClick={act(`${item.title} — ${def.engagement.DONE.toLowerCase()}.`, finish())}>
-              <Check /> {def.finishVerb}
             </Button>
           )}
           <WorkActionsMenu

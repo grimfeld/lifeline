@@ -220,7 +220,7 @@ _Retired_ — the one Media App split into four family Apps (ADR 0024): **Librar
 _Avoid_: media (as a type id or an App — neither exists), title, copy, edition, studied
 
 ### Shelf
-Where a work stands with me, in its family's own verbs: **To read / watch / listen / play** (not started), **In progress**, **Done**, **Dropped**. One shelf per work; every family App's Gallery is browsed by shelf.
+Where a work stands with me, in its family's own verbs: **To read / watch / listen / play** (not started), **In progress**, **Done**, **Dropped**. One shelf per work; every family App's Gallery is browsed by shelf. In the Cinema and the Discotheque, **Done** is one click from any shelf — a film watched, an album heard — and clicking again undoes it; Marks and the Review survive either way.
 _Avoid_: status (too generic), backlog, engagement (the internal field name)
 
 ### Gallery
@@ -234,6 +234,18 @@ _Avoid_: queue, TBR, wishlist, priority
 ### Shopping list
 Every Wanted work of a family that still has **Acquisition** — Library and Arcade only (streamed media are never owned, so Cinema and the Discotheque have no Acquisition at all): Nightstand ones first (next up — buy now), then the rest, oldest first. Marking one as acquired takes it off the list. A Card per App, never furniture on the Gallery.
 _Avoid_: wishlist (that word hides the buy-now head of the list), cart
+
+### Marks
+Cinema and Discotheque only: what I make of a work, beside where it stands on the Shelf. **Liked** (a heart, on or off) and a **Rating** (one to five whole stars; unrated is its own state, not zero stars). Each is one click on the Gallery tile or the detail; neither implies the other, neither moves the Shelf, and a Shelf move never touches them. Marks are facts about the work, not events: nothing lands in the Daylog, nothing feeds Life Level.
+_Avoid_: score, favourite (say Liked), half-star, vote
+
+### Review
+Cinema and Discotheque only: my own words about a work — its Document body. One per work, written from the detail, and everything a body gives for free follows: opened as text with the fields as frontmatter, wikilinks, `#tags` counted, Backlinks. Not a Note (it belongs to the work), not a Clipping (my words), not a Quote (a passage is the work's words).
+_Avoid_: comment, notes (a Note is a Document), diary entry (there is no diary — one Shelf, one Review per work)
+
+### Playlist
+Cinema and Discotheque only: a named, ordered selection of works I curate by hand — "Films for a rainy Sunday", "Albums of 2025" — with an optional blurb (its body) and optionally **ranked**, which shows the order as numbers. Membership belongs to the Playlist, never to the work: a work sits in any number of Playlists, a deleted work simply leaves them. Each App owns its own Playlists over its own works (movies and series together in one; albums in another) — no Playlist crosses families. Lives in its own tab beside the Gallery, like the Nightstand does. Not a View (a View filters; a Playlist is chosen and ordered by me), not a Tag (unordered, no blurb), not the Shelf (a Playlist says nothing about whether I've seen it).
+_Avoid_: list (a Base word and a layout), collection (a Stat kind), watchlist (that is the To watch shelf), queue, exhibition (the Museum's word)
 
 ### Note
 A body-first Document type owned by the Notes App: my own thinking about things. Links, tags and headings are derived from the body; its fields are its frontmatter. Daily notes are Notes.

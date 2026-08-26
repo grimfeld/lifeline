@@ -1,9 +1,11 @@
 import type { CommandDef } from "@lifeline/core";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
-import { Disc3, Plus, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Disc3, Headphones, ListPlus, Plus, SlidersHorizontal, Sparkles } from "lucide-react";
 import { AddWorkDialog } from "./components/AddWorkDialog";
 import { QuickAdd } from "./components/QuickAdd";
 import { EnrichDialog } from "./components/EnrichDialog";
+import { MarkListenedDialog } from "./components/MarkListenedDialog";
+import { PlaylistDialog } from "./components/PlaylistDialog";
 import { APP_HREF } from "./constants";
 
 /** One-line quick add in a small dialog; closes as soon as something is added. */
@@ -22,6 +24,8 @@ function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 
 export const discothequeCommands: CommandDef[] = [
   { id: "discotheque.quick-add", title: "Add album…", keywords: ["album", "music", "listen", "discotheque", "quick"], icon: Plus, dialog: QuickAddCommandDialog, capture: true },
+  { id: "discotheque.mark-listened", title: "Mark listened…", keywords: ["listened", "heard", "done", "finish", "rate", "like", "album", "music", "discotheque", "log"], icon: Headphones, dialog: MarkListenedDialog, capture: true },
+  { id: "discotheque.new-playlist", title: "New playlist…", keywords: ["playlist", "list", "collection", "discotheque", "albums"], icon: ListPlus, dialog: PlaylistDialog },
   { id: "discotheque.add", title: "Add album with details", keywords: ["album", "music", "listen", "details", "discotheque"], icon: SlidersHorizontal, dialog: AddWorkDialog },
   { id: "discotheque.open", title: "Go to Discotheque", keywords: ["discotheque", "music", "albums", "listening", "shelf"], icon: Disc3, run: ({ navigate }) => navigate(APP_HREF) },
   { id: "discotheque.enrich", title: "Enrich albums from MusicBrainz…", keywords: ["discotheque", "music", "lookup", "metadata", "enrich", "covers", "musicbrainz"], icon: Sparkles, dialog: EnrichDialog },
