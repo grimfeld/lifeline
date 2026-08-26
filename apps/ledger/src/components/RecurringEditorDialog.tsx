@@ -79,7 +79,7 @@ export function RecurringEditorDialog({ open, onOpenChange, recurring }: { open:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{recurring ? "Edit recurring" : "New recurring transaction"}</DialogTitle>
         </DialogHeader>
