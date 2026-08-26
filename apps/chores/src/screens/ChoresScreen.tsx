@@ -24,6 +24,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { Chore } from "../domain/types";
+import { isDoneOn } from "../domain/completions";
 import { dueState, describeSchedule, type DueState } from "../domain/schedule";
 import {
   completeChore,
@@ -39,6 +40,8 @@ import { ChoreDialog } from "../components/ChoreDialog";
 interface Row {
   chore: Chore;
   due: DueState;
+  /** Already completed today: the tick becomes a record, not a button. */
+  doneToday: boolean;
 }
 
 function DueBadge({ due }: { due: DueState }) {
@@ -59,7 +62,7 @@ function DueBadge({ due }: { due: DueState }) {
 }
 
 function ChoreRow({ row, onEdit }: { row: Row; onEdit: (c: Chore) => void }) {
-  const { chore, due } = row;
+  const { chore, due, doneToday } = row;
   const actionable = due.state === "overdue" || due.state === "due-today";
   return (
     <Card className="py-3">
@@ -67,12 +70,15 @@ function ChoreRow({ row, onEdit }: { row: Row; onEdit: (c: Chore) => void }) {
         {chore.status === "active" && (
           <Button
             size="icon"
-            variant={actionable ? "default" : "outline"}
-            className="size-8 rounded-full"
-            title="Mark done"
+            variant={doneToday ? "secondary" : actionable ? "default" : "outline"}
+            className="size-8 rounded-full disabled:opacity-100"
+            title={doneToday ? "Done today" : "Mark done"}
+            disabled={doneToday}
             onClick={() => {
-              void completeChore(chore.id, todayStr());
-              toast.success(`${chore.title} done`);
+              void completeChore(chore.id, todayStr()).then((recorded) => {
+                if (recorded) toast.success(`${chore.title} done`);
+                else toast.info(`${chore.title} was already done today`);
+              });
             }}
           >
             <Check />
@@ -161,6 +167,7 @@ export function ChoresScreen() {
     const rows: Row[] = chores.map((chore) => ({
       chore,
       due: dueState(chore, last.get(chore.id) ?? null, today),
+      doneToday: isDoneOn(completions, chore.id, today),
     }));
     const active = rows.filter((r) => r.chore.status === "active");
     return {

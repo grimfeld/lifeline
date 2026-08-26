@@ -59,9 +59,10 @@ function CompleteChoreCommandDialog({
                   className="w-full justify-start"
                   disabled={done.includes(chore.id)}
                   onClick={() => {
-                    void completeChore(chore.id, today);
                     setDone((d) => [...d, chore.id]);
-                    toast.success(`${chore.title} done`);
+                    void completeChore(chore.id, today).then((recorded) => {
+                      if (recorded) toast.success(`${chore.title} done`);
+                    });
                   }}
                 >
                   <Check className={done.includes(chore.id) ? "" : "opacity-30"} />
