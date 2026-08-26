@@ -1,0 +1,21 @@
+# Ledger App: a flat fact ledger, a targets-school budget that derives
+
+A money tracker could have been an envelope budgeter (YNAB-shaped) or a bare expense list. The **Ledger App** is ledger-first: **Transactions** are witnessed facts — expense, income, transfer (one Document, two Accounts), adjustment (the reconcile gap, recorded not hidden) — and everything summed (an **Account**'s balance, a month's spent, a sinking fund's pot) derives at read, never stored. The **Budget** is a lens of policy over those facts: each expense **Category** carries a standing monthly **Target**, overridable per month by an internal Allocation override; spent derives from the ledger; nothing couples targets to account balances. Rollover is opt-in per Category (*accumulating* — a sinking fund whose pot derives from full history and may go negative), not the default. The ledger is flat: one Transaction, one Category, no split lines. Recurring transactions never post themselves — a **Due** is confirmed in one tap. CSV import ships in v1: mapping saved per Account, dedupe previewed (bank row id, else account+date+amount fingerprint, never silent), imported rows may arrive uncategorized into a loud inbox while manual entry still requires a Category.
+
+## Considered options
+
+- **Zero-based envelopes (every euro has a job)** — rejected: it demands a trusted ledger, and manual entry guarantees drift; every adjustment would break "money = jobs". Targets are policy detached from balances, so drift dents nothing but the report. Envelopes could layer on later; the reverse is a rewrite.
+- **Split transactions (line items with per-line categories)** — rejected: every derivation would iterate lines forever, and every unsplit Transaction would be a 1-line ceremony. The budgeting fact is "€40 left for groceries", not the swipe; a receipt across categories is two Transactions.
+- **Transfers as paired transactions** — rejected: pairs desync and orphan. One Document with from- and to-Account is one fact, read from both sides at balance derivation.
+- **Rollover everywhere** — rejected: envelopes by the back door. Only sinking funds earn rollover; everywhere else it is noise.
+- **Auto-posting recurring transactions** — rejected: the app would invent facts (price changed → fiction in the ledger). Confirm is one tap; auto-post remains a possible per-definition flag later.
+- **Payee as a Document** — rejected for now: hundreds of auto-spawned Documents for what derivation gives free — autocomplete from ledger strings, category/account prefilled from the payee's last Transaction.
+- **Categories as Tags** — rejected: budget maths needs exactly one managed value per Transaction; Tags are multi-valued and free-form. Tags stay as orthogonal annotation.
+
+## Consequences
+
+- Types: `ledger_transaction`, `ledger_account`, `ledger_category`, `ledger_recurring`, plus internal `ledger_allocation` (per category-month Target override). Amounts are integer cents, single app-wide currency (per-account currency is an addable field later; cross-currency transfers then simply refuse until designed). Transactions are day-granular and bodiless, so they never clutter the Vault.
+- Contracts: Daylog on transactions ("Spent €40 · Albert Heijn"); Linkable on Account and Category; deliberately no Schedulable/Timed — Dues live in the App and its Card, not on time Surfaces.
+- Lifecycle: a referenced Category can only be merged away; a referenced Account is archived, hard-deleted only when empty; posted Transactions outlive their Recurring definition (Workout→Session precedent).
+- Import edge: a transfer imported from both sides appears as two rows in two Accounts; dedupe cannot see it, so the categorize flow can re-kind a row to transfer and merge the counterpart pair into one.
+- Derivations (balances, spent-per-category-month, pots, payee prefill) scan the ledger; fine at personal scale, a derived index if it ever isn't (PR-derivation precedent).

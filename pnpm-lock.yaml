@@ -232,6 +232,37 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.2.0)(jsdom@26.1.0)(vite@7.3.6(@types/node@26.2.0)(jiti@2.7.0)(lightningcss@1.32.0))
 
+  apps/ledger:
+    dependencies:
+      '@lifeline/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@lifeline/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      lucide-react:
+        specifier: ^1.27.0
+        version: 1.31.0(react@19.2.8)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      react-router:
+        specifier: ^7.9.4
+        version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      recharts:
+        specifier: ^3.10.1
+        version: 3.10.1(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@16.13.1)(react@19.2.8)(redux@5.0.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.2.18
+      typescript:
+        specifier: ~5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@26.2.0)(jsdom@26.1.0)(vite@7.3.6(@types/node@26.2.0)(jiti@2.7.0)(lightningcss@1.32.0))
+
   apps/library:
     dependencies:
       '@lifeline/core':
@@ -699,6 +730,9 @@ importers:
       '@lifeline/app-discotheque':
         specifier: workspace:*
         version: link:../apps/discotheque
+      '@lifeline/app-ledger':
+        specifier: workspace:*
+        version: link:../apps/ledger
       '@lifeline/app-library':
         specifier: workspace:*
         version: link:../apps/library
