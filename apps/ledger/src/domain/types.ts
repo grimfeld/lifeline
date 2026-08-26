@@ -1,10 +1,10 @@
-import type { DateStr, Document, Weekday } from "@lifeline/core";
+import type { DateStr, Document } from "@lifeline/core";
 
 export const APP_ID = "ledger";
 export const TRANSACTION = "ledger_transaction";
 export const ACCOUNT = "ledger_account";
 export const CATEGORY = "ledger_category";
-export const RECURRING = "ledger_recurring";
+export const SERIES = "ledger_series";
 export const ALLOCATION = "ledger_allocation";
 
 export const REGISTER_HREF = "/app/ledger";
@@ -38,10 +38,6 @@ export interface Transaction extends Document {
   /** Free text; autocomplete and prefill derive from ledger history, never stored elsewhere. */
   payee: string;
   note: string;
-  /** Posted from this Recurring definition (confirmed Due). */
-  recurringId: string;
-  /** The due day the confirm covered, so the Due stops surfacing. */
-  dueDate: DateStr | "";
   /** The bank's row identity, for import dedupe. */
   importId: string;
 }
@@ -99,41 +95,67 @@ export interface Allocation extends Document {
   amount: number;
 }
 
-/**
- * How a Recurring transaction repeats. Weekday convention and month-length
- * clamping follow Tasks/Chores (0 = Sunday … 6 = Saturday; the 31st in
- * February → the 28th/29th).
- */
-export type RecurRule =
-  | { kind: "weekly"; weekdays: Weekday[] }
-  | { kind: "monthly"; days: number[] } // 1–31
-  | { kind: "yearly"; dates: { month: number; day: number }[] };
+/** How often a Recurring series comes round — read off the ledger, never typed in. */
+export type Cadence = "weekly" | "fortnightly" | "monthly" | "yearly";
 
 /**
- * A Recurring transaction (ADR 0033): a standing definition. Never posts
- * itself — a Due is confirmed in one tap into a real Transaction.
+ * A Recurring series (ADR 0034): a bill the ledger already shows — one
+ * payee whose Transactions keep a cadence and near enough one amount.
+ * Derived on every read from the facts alone; nothing here is stored, and
+ * there is nothing to type in.
  */
-export interface Recurring extends Document {
-  type: typeof RECURRING;
+export interface Series {
+  /** Identity: kind + normalized payee, so the bank's spellings collapse into one. */
+  key: string;
+  /** The newest occurrence's spelling — what a confirm posts. */
+  payee: string;
   kind: Extract<TransactionKind, "expense" | "income">;
-  /** Suggested amount, integer cents. */
+  cadence: Cadence;
+  /** The cadence's nominal days — what the projection steps by. */
+  period: number;
+  /** The run's median amount, integer cents — the suggestion, never a promise. */
   amount: number;
+  /** Widest deviation from `amount`, as a fraction of it. 0 = every occurrence identical. */
+  spread: number;
+  /** Where the next one would be posted: the newest occurrence's Account and Category. */
   accountId: string;
   categoryId: string;
-  payee: string;
-  rule: RecurRule;
-  /** Dues start surfacing from this day (default: createdAt). */
-  startDate: DateStr;
-  /** Paused: no Dues surface, definition kept. */
-  paused: boolean;
-  /** Dismissed due days — the Due was declined, not forgotten. */
+  /** The Transactions the series is read from, newest first. */
+  occurrences: Transaction[];
+  firstDate: DateStr;
+  lastDate: DateStr;
+  /** Day of month the series lands on (monthly and yearly); with the month, for yearly. */
+  anchorDay: number;
+  anchorMonth: number;
+  /** Nothing for two whole periods: the bill is over, so it surfaces no more Dues. */
+  dormant: boolean;
+  /** The Series override Document backing `muted`/`skipped`, or "" when the series says nothing but facts. */
+  overrideId: string;
+  /** Silenced by hand: listed, greyed, no Dues. The one thing that cannot derive. */
+  muted: boolean;
+  /** Due days dismissed by hand. */
   skipped: DateStr[];
 }
 
-/** One pending occurrence of a Recurring transaction — derived, never stored. */
+/** One pending occurrence of a Recurring series — derived, never stored. */
 export interface Due {
-  recurring: Recurring;
+  series: Series;
   date: DateStr;
+}
+
+/**
+ * A Series override (internal, ADR 0034): the user's own word over a
+ * derived series — muted, and the due days waved off. Facts derive; only
+ * intent is stored, and only while it says something.
+ */
+export interface SeriesOverride extends Document {
+  type: typeof SERIES;
+  /** The Series key it overlays. */
+  key: string;
+  /** Silenced: the series surfaces no Dues. */
+  muted: boolean;
+  /** Dismissed due days. */
+  skipped: DateStr[];
 }
 
 export const KIND_LABEL: Record<TransactionKind, string> = {

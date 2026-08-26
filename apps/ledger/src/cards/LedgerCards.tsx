@@ -7,7 +7,7 @@ import { BUDGET_HREF } from "../domain/types";
 import { balanceOf, budgetRows, netWorth, uncategorizedSpent, thisMonth } from "../domain/derive";
 import { formatCents } from "../domain/money";
 import { openDues } from "../domain/recur";
-import { useAccounts, useAllocations, useCategories, useRecurrings, useTransactions } from "../data/repo";
+import { useAccounts, useAllocations, useCategories, useSeries, useTransactions } from "../data/repo";
 import { TransactionEditorDialog } from "../components/TransactionEditorDialog";
 import { DuesList } from "../screens/RegisterScreen";
 
@@ -87,11 +87,10 @@ export function BudgetMonthCard(_props: CardProps) {
   );
 }
 
-/** Open Dues with confirm buttons — the forecast is this list (ADR 0033). */
+/** Open Dues with confirm buttons — the forecast is this list (ADR 0033), read off the ledger (ADR 0034). */
 export function DuesCard(_props: CardProps) {
-  const recurrings = useRecurrings();
-  const transactions = useTransactions();
+  const series = useSeries();
   const today = todayStr();
-  const dues = useMemo(() => openDues(recurrings, transactions, today), [recurrings, transactions, today]);
+  const dues = useMemo(() => openDues(series, today), [series, today]);
   return <DuesList dues={dues} today={today} compact />;
 }
