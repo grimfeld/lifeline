@@ -34,8 +34,9 @@ export function DueTodayCard() {
             variant="outline"
             className="size-6 shrink-0 rounded-full"
             onClick={() => {
-              void completeChore(chore.id, today);
-              toast.success(`${chore.title} done`);
+              void completeChore(chore.id, today).then((recorded) => {
+                if (recorded) toast.success(`${chore.title} done`);
+              });
             }}
           >
             <Check className="size-3" />
