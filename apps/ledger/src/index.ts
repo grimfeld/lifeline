@@ -53,6 +53,8 @@ const transactionType: DocumentTypeDef = {
     { key: "payee", label: "Payee", kind: "text", column: true },
     { key: "note", label: "Note", kind: "longtext" },
     { key: "importId", label: "Import id", kind: "text", guarded: true, hidden: true },
+    { key: "paypalId", label: "PayPal id", kind: "text", guarded: true, hidden: true },
+    { key: "bankPayee", label: "Bank payee", kind: "text", guarded: true, hidden: true },
   ],
   indexes: ["date", "categoryId", "accountId"],
   href: () => REGISTER_HREF,

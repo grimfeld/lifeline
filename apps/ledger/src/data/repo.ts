@@ -35,6 +35,8 @@ function normalizeTransaction(t: Transaction): Transaction {
     payee: t.payee ?? "",
     note: t.note ?? "",
     importId: t.importId ?? "",
+    paypalId: t.paypalId ?? "",
+    bankPayee: t.bankPayee ?? "",
     tags: t.tags ?? [],
   };
 }
@@ -108,6 +110,8 @@ export interface TransactionInput {
   note?: string;
   tags?: string[];
   importId?: string;
+  paypalId?: string;
+  bankPayee?: string;
 }
 
 function validate(input: TransactionInput): void {
@@ -134,6 +138,8 @@ function rowOf(input: TransactionInput): Omit<Transaction, "id" | "updatedAt" | 
     payee: input.payee?.trim() ?? "",
     note: input.note?.trim() ?? "",
     importId: input.importId ?? "",
+    paypalId: input.paypalId ?? "",
+    bankPayee: input.bankPayee ?? "",
     folder: "",
     tags: normalizeTags(input.tags ?? []),
   };
@@ -147,7 +153,15 @@ export async function addTransaction(input: TransactionInput): Promise<string> {
 
 export async function updateTransaction(t: Transaction, input: TransactionInput): Promise<void> {
   validate(input);
-  await putDocument<Transaction>({ ...t, ...rowOf(input), importId: input.importId ?? t.importId });
+  await putDocument<Transaction>({
+    ...t,
+    ...rowOf(input),
+    importId: input.importId ?? t.importId,
+    // A hand-edited payee keeps both: the bank original stays readable, and the PayPal id
+    // it was resolved from keeps the sweep from overwriting the correction.
+    paypalId: input.paypalId ?? t.paypalId,
+    bankPayee: input.bankPayee ?? t.bankPayee,
+  });
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
@@ -157,6 +171,15 @@ export async function deleteTransaction(id: string): Promise<void> {
 /** Set just the category — the auto-categorize sweep and quick fixes use this. */
 export async function categorizeTransaction(id: string, categoryId: string): Promise<void> {
   await patchDocument(id, { categoryId });
+}
+
+/**
+ * Replace a bank row's payee with the merchant PayPal knows (`domain/paypal.ts`).
+ * The bank's own string is kept in `bankPayee` so nothing is lost, and the
+ * PayPal transaction id is recorded so a second sweep leaves the row alone.
+ */
+export async function resolvePaypalPayee(t: Transaction, payee: string, paypalId: string): Promise<void> {
+  await patchDocument(t.id, { payee, paypalId, bankPayee: t.bankPayee || t.payee });
 }
 
 /**
@@ -320,7 +343,7 @@ export async function dismissDue(due: Due): Promise<void> {
  * suggestion or a hand pick); without one it lands uncategorized — the
  * inbox is loud, never hidden.
  */
-export async function importRows(rows: (ImportRow & { categoryId?: string })[], accountId: string): Promise<number> {
+export async function importRows(rows: (ImportRow & { categoryId?: string; paypalId?: string; bankPayee?: string })[], accountId: string): Promise<number> {
   let n = 0;
   for (const r of rows) {
     if (r.invalid || r.date === null || r.amount === null) continue;
@@ -333,6 +356,8 @@ export async function importRows(rows: (ImportRow & { categoryId?: string })[], 
       payee: r.payee,
       note: r.note,
       importId: r.importId || `csv-${newId()}`,
+      paypalId: r.paypalId ?? "",
+      bankPayee: r.bankPayee ?? "",
     });
     n++;
   }
