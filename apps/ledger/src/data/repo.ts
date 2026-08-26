@@ -322,10 +322,12 @@ export async function dismissDue(due: Due): Promise<void> {
 // ---- Import ----
 
 /**
- * Post the ticked preview rows (ADR 0033): sign decides expense/income,
- * imported rows may land uncategorized — the inbox is loud, never hidden.
+ * Post the ticked preview rows (ADR 0033): sign decides expense/income.
+ * A row may carry the category confirmed in the preview (history-derived
+ * suggestion or a hand pick); without one it lands uncategorized — the
+ * inbox is loud, never hidden.
  */
-export async function importRows(rows: ImportRow[], accountId: string): Promise<number> {
+export async function importRows(rows: (ImportRow & { categoryId?: string })[], accountId: string): Promise<number> {
   let n = 0;
   for (const r of rows) {
     if (r.invalid || r.date === null || r.amount === null) continue;
@@ -334,6 +336,7 @@ export async function importRows(rows: ImportRow[], accountId: string): Promise<
       date: r.date,
       amount: Math.abs(r.amount),
       accountId,
+      categoryId: r.categoryId ?? "",
       payee: r.payee,
       note: r.note,
       importId: r.importId || `csv-${newId()}`,

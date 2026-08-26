@@ -3,8 +3,9 @@ import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, Di
 import type { ImportMapping, LedgerAccount } from "../domain/types";
 import { applyMapping, flagDuplicates, parseCsv, type ImportRow } from "../domain/csv";
 import { isOfx, parseOfx } from "../domain/ofx";
+import { payeeCategoryIndex, suggestCategory } from "../domain/suggest";
 import { formatCents } from "../domain/money";
-import { importRows, saveImportMapping, useTransactions } from "../data/repo";
+import { importRows, saveImportMapping, useCategories, useTransactions } from "../data/repo";
 
 const DEFAULT_MAPPING: ImportMapping = { dateCol: 0, amountCol: 1, payeeCol: 2, noteCol: null, idCol: null, dateFormat: "DMY", decimal: "comma", invert: false, skipHeader: true };
 
@@ -18,6 +19,7 @@ const DEFAULT_MAPPING: ImportMapping = { dateCol: 0, amountCol: 1, payeeCol: 2, 
  */
 export function ImportDialog({ open, onOpenChange, account }: { open: boolean; onOpenChange: (open: boolean) => void; account: LedgerAccount }) {
   const transactions = useTransactions();
+  const categories = useCategories();
   const [rows, setRows] = useState<string[][] | null>(null);
   /** OFX path: parsed rows straight from the file — no mapping state at all. */
   const [ofxRows, setOfxRows] = useState<ImportRow[] | null>(null);
@@ -25,6 +27,8 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
   const [mapping, setMapping] = useState<ImportMapping>(account.importMapping ?? DEFAULT_MAPPING);
   /** null = untouched → default ticks apply (readable, non-duplicate rows). */
   const [ticked, setTicked] = useState<Set<number> | null>(null);
+  /** Hand-picked categories per row index; unset rows fall back to the history-derived suggestion. */
+  const [pickedCategories, setPickedCategories] = useState<Map<number, string>>(new Map());
   const [posting, setPosting] = useState(false);
 
   const preview: ImportRow[] = useMemo(() => {
@@ -32,6 +36,20 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
     if (!raw) return [];
     return flagDuplicates(raw, transactions, account.id);
   }, [rows, ofxRows, mapping, transactions, account.id]);
+
+  /** History-derived category per row ("smart" without AI): last-used category of the matching payee. */
+  const catIndex = useMemo(() => payeeCategoryIndex(transactions), [transactions]);
+  const suggestions = useMemo(() => {
+    const out = new Map<number, string>();
+    for (const r of preview) {
+      if (r.invalid || r.amount === null || !r.payee) continue;
+      const s = suggestCategory(r.payee, r.amount < 0 ? "expense" : "income", catIndex);
+      if (s) out.set(r.index, s.categoryId);
+    }
+    return out;
+  }, [preview, catIndex]);
+
+  const categoryOf = (r: ImportRow) => pickedCategories.get(r.index) ?? suggestions.get(r.index) ?? "";
 
   // Default ticks: everything readable and not a probable duplicate.
   const defaultTicks = useMemo(() => new Set(preview.filter((r) => !r.invalid && !r.duplicateOf).map((r) => r.index)), [preview]);
@@ -49,6 +67,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
       }
       setFileName(file.name);
       setTicked(null);
+      setPickedCategories(new Map());
     });
   }
 
@@ -56,6 +75,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
     setRows(null);
     setOfxRows(null);
     setTicked(null);
+    setPickedCategories(new Map());
   }
 
   function toggle(index: number) {
@@ -66,14 +86,15 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
   }
 
   async function post() {
-    const chosen = preview.filter((r) => effectiveTicks.has(r.index));
+    const chosen = preview.filter((r) => effectiveTicks.has(r.index)).map((r) => ({ ...r, categoryId: categoryOf(r) }));
     if (chosen.length === 0) return void toast.error("Nothing ticked");
     setPosting(true);
     try {
       const n = await importRows(chosen, account.id);
       // The mapping is a CSV concern; OFX is self-describing.
       if (rows) await saveImportMapping(account.id, mapping);
-      toast.success(`Imported ${n} transaction${n === 1 ? "" : "s"} — categorize them in the Register`);
+      const bare = chosen.filter((r) => !r.categoryId).length;
+      toast.success(bare > 0 ? `Imported ${n} — ${bare} uncategorized, clear them in the Register` : `Imported ${n}, all categorized`);
       onOpenChange(false);
       reset();
     } finally {
@@ -171,7 +192,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
             <div className="text-muted-foreground text-xs">
               {preview.length} rows · {dupCount > 0 && <span className="text-amber-600">{dupCount} probable duplicates unticked · </span>}
               {badCount > 0 && <span className="text-destructive">{badCount} unreadable · </span>}
-              negative = expense, positive = income; rows land uncategorized.
+              negative = expense, positive = income; categories marked <span className="text-foreground">auto</span> come from how you categorized the payee before — adjust any, the rest land uncategorized.
             </div>
             <div className="max-h-72 overflow-y-auto rounded-md border">
               <table className="w-full text-sm">
@@ -184,7 +205,28 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
                       <td className="px-2 py-1 whitespace-nowrap tabular-nums">{r.date ?? "?"}</td>
                       <td className="px-2 py-1 text-right whitespace-nowrap tabular-nums">{r.amount === null ? "?" : formatCents(r.amount)}</td>
                       <td className="max-w-48 truncate px-2 py-1">{r.payee}</td>
-                      <td className="text-muted-foreground max-w-40 truncate px-2 py-1 text-xs">{r.invalid ? "unreadable" : r.duplicateOf ? "already in the ledger?" : ""}</td>
+                      <td className="px-2 py-1">
+                        {!r.invalid && r.amount !== null && (
+                          <Select value={categoryOf(r) || "none"} onValueChange={(v) => setPickedCategories(new Map(pickedCategories).set(r.index, v === "none" ? "" : v))}>
+                            <SelectTrigger size="sm" className="h-7 w-40 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">— uncategorized</SelectItem>
+                              {categories
+                                .filter((c) => c.kind === (r.amount! < 0 ? "expense" : "income"))
+                                .map((c) => (
+                                  <SelectItem key={c.id} value={c.id}>
+                                    {c.group ? `${c.group} · ${c.title}` : c.title}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </td>
+                      <td className="text-muted-foreground max-w-40 truncate px-2 py-1 text-xs">
+                        {r.invalid ? "unreadable" : r.duplicateOf ? "already in the ledger?" : suggestions.has(r.index) && !pickedCategories.has(r.index) ? "auto" : ""}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
