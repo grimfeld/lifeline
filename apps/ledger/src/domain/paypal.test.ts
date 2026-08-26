@@ -30,8 +30,40 @@ describe("parsePaypalCsv", () => {
     expect(row).toMatchObject({ name: "Spotify AB", amount: -1099, date: "2026-03-10", id: "8XY12345678901234" });
   });
 
+  it("reads the current French export: BOM, 'Avant commission', 'Numéro de la transaction de référence', a currency column", () => {
+    const fr = `\ufeff"Date","Heure","Fuseau horaire","Nom","Type","État","Devise","Avant commission","Commission","Net","Numéro de transaction","Numéro de la transaction de référence","Objet","Impact sur le solde"
+"09/01/2026","10:00:00","CET","Thangs 3D Inc.","Paiement d'abonnement","Terminé","USD","-12,32","0,00","-12,32","5LA35124KN7349003","I-L2US6SFEDGCB","Multi Maker","Débit"
+"09/01/2026","10:00:00","CET","","Conversion de devise standard","Terminé","EUR","-11,02","0,00","-11,02","1CV00000000000001","5LA35124KN7349003","","Débit"
+"09/01/2026","10:00:00","CET","","Conversion de devise standard","Terminé","USD","12,32","0,00","12,32","1CV00000000000002","5LA35124KN7349003","","Crédit"
+"10/01/2026","11:00:00","CET","Uber Payments BV","Autorisation standard","Terminé","EUR","-11,02","0,00","-11,02","6XS431032C5678703","B-7YS17408W7013793D","","Mémo"
+"12/01/2026","12:00:00","CET","www.steampowered.com","Paiement Express Checkout","Terminé","EUR","-12,32","0,00","-12,32","4BX48845SL310502X","","","Débit"`;
+    const rows = parsePaypalCsv(fr);
+    expect(rows.map((r) => [r.name || r.type, r.currency, r.amount])).toEqual([
+      ["Thangs 3D Inc.", "USD", -1232],
+      ["Conversion de devise standard", "EUR", -1102],
+      ["Conversion de devise standard", "USD", 1232],
+      ["www.steampowered.com", "EUR", -1232],
+    ]);
+    expect(rows[0].date).toBe("2026-01-09");
+    expect(rows[1].refId).toBe("5LA35124KN7349003");
+
+    const idx = paypalIndex(rows);
+    // The euro conversion line borrows the dollar payment's merchant…
+    expect(matchPaypal({ date: "2026-01-10", amount: -1102, text: "PAYPAL EUROPE S.A.R.L. ET CIE S.C.A" }, idx).pick?.payee).toBe("Thangs 3D Inc.");
+    // …and the dollar figure itself is never matched against a euro bank row: 12,32 € is Steam, not Thangs.
+    const steam = matchPaypal({ date: "2026-01-12", amount: -1232, text: "PAYPAL EUROPE S.A.R.L. ET CIE S.C.A" }, idx);
+    expect(steam.status).toBe("confident");
+    expect(steam.pick?.payee).toBe("www.steampowered.com");
+  });
+
+  it("falls back to Net when the file has no Gross column", () => {
+    const [row] = parsePaypalCsv('"Date","Name","Currency","Net","Transaction ID"\n"10/03/2026","Spotify AB","EUR","-10,99","8XY12345678901234"');
+    expect(row).toMatchObject({ name: "Spotify AB", amount: -1099, currency: "EUR" });
+  });
+
   it("refuses a file that is not a PayPal activity export", () => {
     expect(() => parsePaypalCsv('"Datum","Betrag"\n"10/03/2026","-10,99"')).toThrow(PaypalFormatError);
+    expect(() => parsePaypalCsv('"Datum","Betrag"\n"10/03/2026","-10,99"')).toThrow(/no Gross, Name column/);
   });
 });
 

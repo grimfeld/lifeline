@@ -11,6 +11,8 @@ import { parseAmount } from "./money";
 
 /** Minimal RFC-4180-ish parser: quotes, escaped quotes, commas/semicolons/tabs auto-detected. */
 export function parseCsv(text: string): string[][] {
+  // A leading byte-order mark would otherwise glue itself to the first header ("\ufeffDate").
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
   const firstLine = text.slice(0, text.indexOf("\n") + 1 || text.length);
   const delimiter = [";", "\t", ","].reduce((best, d) => (countOutsideQuotes(firstLine, d) > countOutsideQuotes(firstLine, best) ? d : best), ",");
   const rows: string[][] = [];
