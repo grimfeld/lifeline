@@ -2,16 +2,16 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Badge, Button, Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
-import { ArrowLeftRight, Import, Landmark, Pencil, Plus, Scale, Wand2 } from "lucide-react";
-import type { Due, LedgerAccount, Recurring, Transaction } from "../domain/types";
-import { balanceOf, formatMonth, monthOf } from "../domain/derive";
+import { ArrowLeftRight, Bell, BellOff, Import, Inbox, Landmark, Pencil, Plus, Scale, Search, Wand2 } from "lucide-react";
+import type { Due, LedgerAccount, Series, Transaction } from "../domain/types";
+import { balanceOf, formatMonth, isUncategorized, monthOf } from "../domain/derive";
 import { formatCents, formatSigned, parseAmount } from "../domain/money";
 import { describeDueDay, isOverdue, openDues } from "../domain/recur";
+import { describeCadence, nextOccurrence } from "../domain/series";
 import { payeeCategoryIndex, suggestCategory } from "../domain/suggest";
-import { categorizeTransaction, confirmDue, dismissDue, useAccounts, useCategories, useRecurrings, useTransactions } from "../data/repo";
+import { categorizeTransaction, confirmDue, dismissDue, setSeriesMuted, useAccounts, useCategories, useSeries, useTransactions } from "../data/repo";
 import { TransactionEditorDialog } from "../components/TransactionEditorDialog";
 import { AccountEditorDialog } from "../components/AccountEditorDialog";
-import { RecurringEditorDialog } from "../components/RecurringEditorDialog";
 import { ReconcileDialog } from "../components/ReconcileDialog";
 import { ImportDialog } from "../components/ImportDialog";
 
@@ -55,19 +55,22 @@ const SORT_LABEL: Record<SortKey, string> = {
 
 /**
  * The Register (ADR 0033): the workhorse — per-account transaction list,
- * filters, the uncategorized inbox, accounts with derived balances,
- * recurring definitions and their Dues.
+ * filters with the uncategorized inbox one tap away, accounts with derived
+ * balances, and the Recurring series the ledger reads off itself (ADR
+ * 0034) with their Dues.
  */
 export function RegisterScreen() {
   const transactions = useTransactions();
   const accounts = useAccounts();
   const categories = useCategories();
-  const recurrings = useRecurrings();
+  const series = useSeries();
 
   const [accountFilter, setAccountFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("all");
   const [kindFilter, setKindFilter] = useState("all");
+  /** The quick filter: the import inbox alone, composing with every other filter. */
+  const [onlyUncategorized, setOnlyUncategorized] = useState(false);
   const [sort, setSort] = useState<SortKey>("date-desc");
   const [search, setSearch] = useState("");
   const [limit, setLimit] = useState(PAGE);
@@ -76,8 +79,6 @@ export function RegisterScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [accountEditing, setAccountEditing] = useState<LedgerAccount | undefined>();
   const [accountAddOpen, setAccountAddOpen] = useState(false);
-  const [recurringEditing, setRecurringEditing] = useState<Recurring | undefined>();
-  const [recurringAddOpen, setRecurringAddOpen] = useState(false);
   const [reconciling, setReconciling] = useState<LedgerAccount | undefined>();
   const [importing, setImporting] = useState<LedgerAccount | undefined>();
 
@@ -87,8 +88,8 @@ export function RegisterScreen() {
   const byAccount = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   const byCategory = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const today = todayStr();
-  const dues = useMemo(() => openDues(recurrings, transactions, today), [recurrings, transactions, today]);
-  const uncategorized = useMemo(() => transactions.filter((t) => (t.kind === "expense" || t.kind === "income") && !t.categoryId), [transactions]);
+  const dues = useMemo(() => openDues(series, today), [series, today]);
+  const uncategorized = useMemo(() => transactions.filter(isUncategorized), [transactions]);
 
   /** Every month the ledger touches, newest first — the month filter's options. */
   const months = useMemo(() => Array.from(new Set(transactions.map((t) => monthOf(t.date)))).sort().reverse(), [transactions]);
@@ -113,9 +114,8 @@ export function RegisterScreen() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const out = transactions.filter((t) => {
-      if (accountFilter === "uncategorized") {
-        if (!((t.kind === "expense" || t.kind === "income") && !t.categoryId)) return false;
-      } else if (accountFilter !== "all" && t.accountId !== accountFilter && t.fromAccountId !== accountFilter && t.toAccountId !== accountFilter) return false;
+      if (onlyUncategorized && !isUncategorized(t)) return false;
+      if (accountFilter !== "all" && t.accountId !== accountFilter && t.fromAccountId !== accountFilter && t.toAccountId !== accountFilter) return false;
       if (categoryFilter !== "all" && t.categoryId !== categoryFilter) return false;
       if (monthFilter !== "all" && monthOf(t.date) !== monthFilter) return false;
       if (kindFilter !== "all" && t.kind !== kindFilter) return false;
@@ -123,7 +123,7 @@ export function RegisterScreen() {
       return true;
     });
     return out.sort(SORTS[sort]);
-  }, [transactions, accountFilter, categoryFilter, monthFilter, kindFilter, sort, search]);
+  }, [transactions, onlyUncategorized, accountFilter, categoryFilter, monthFilter, kindFilter, sort, search]);
 
   function describe(t: Transaction): { what: string; sign: string } {
     switch (t.kind) {
@@ -165,7 +165,7 @@ export function RegisterScreen() {
         <TabsContent value="transactions" className="grid gap-3">
           {uncategorized.length > 0 && (
             <div className="flex items-center gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-1.5 text-sm">
-              <button className="min-w-0 flex-1 text-left" onClick={() => setAccountFilter("uncategorized")}>
+              <button className="min-w-0 flex-1 text-left" onClick={() => setOnlyUncategorized(true)}>
                 {uncategorized.length} uncategorized transaction{uncategorized.length === 1 ? "" : "s"} — the import inbox. Click to clear it.
               </button>
               <Button size="sm" variant="outline" onClick={() => void autoCategorize()}>
@@ -174,13 +174,20 @@ export function RegisterScreen() {
             </div>
           )}
           <div className="flex flex-wrap gap-2">
+            <Button variant={onlyUncategorized ? "default" : "outline"} onClick={() => setOnlyUncategorized((v) => !v)} aria-pressed={onlyUncategorized} title="Show only transactions with no category">
+              <Inbox /> Uncategorized
+              {uncategorized.length > 0 && (
+                <Badge variant={onlyUncategorized ? "secondary" : "outline"} className="ml-1 px-1.5">
+                  {uncategorized.length}
+                </Badge>
+              )}
+            </Button>
             <Select value={accountFilter} onValueChange={setAccountFilter}>
               <SelectTrigger className="w-44">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All accounts</SelectItem>
-                <SelectItem value="uncategorized">Uncategorized</SelectItem>
                 {accounts
                   .filter((a) => !a.archived)
                   .map((a) => (
@@ -249,7 +256,7 @@ export function RegisterScreen() {
           </div>
           <Card className="py-1">
             <CardContent className="px-0">
-              {filtered.length === 0 && <p className="text-muted-foreground px-4 py-6 text-center text-sm">No transactions.</p>}
+              {filtered.length === 0 && <p className="text-muted-foreground px-4 py-6 text-center text-sm">{onlyUncategorized && uncategorized.length === 0 ? "Inbox clear — every transaction has a category." : "No transactions."}</p>}
               <ul>
                 {filtered.slice(0, limit).map((t) => {
                   const d = describe(t);
@@ -262,7 +269,7 @@ export function RegisterScreen() {
                         <span className="min-w-0 flex-1 truncate">
                           {t.payee || d.what}
                           {t.payee && <span className="text-muted-foreground"> · {d.what}</span>}
-                          {(t.kind === "expense" || t.kind === "income") && !t.categoryId && (
+                          {isUncategorized(t) && (
                             <Badge variant="outline" className="ml-2 border-amber-500/60 text-amber-600">
                               uncategorized
                             </Badge>
@@ -328,35 +335,24 @@ export function RegisterScreen() {
 
         <TabsContent value="recurring" className="grid gap-3">
           <DuesList dues={dues} today={today} />
-          <div>
-            <Button variant="outline" onClick={() => setRecurringAddOpen(true)}>
-              <Plus /> New recurring
-            </Button>
-          </div>
-          {recurrings.map((r) => (
-            <Card key={r.id} className={`py-3 ${r.paused ? "opacity-60" : ""}`}>
-              <CardContent className="flex items-center gap-3 px-4">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">
-                    {r.payee}
-                    {r.paused && (
-                      <Badge variant="outline" className="ml-2">
-                        paused
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-muted-foreground text-xs">
-                    {r.rule.kind === "monthly" ? `monthly on the ${r.rule.days.join(", ")}` : r.rule.kind === "weekly" ? "weekly" : "yearly"} · {byCategory.get(r.categoryId)?.title ?? "?"} · {byAccount.get(r.accountId)?.title ?? "?"}
-                  </div>
-                </div>
-                <span className="tabular-nums">{formatCents(r.amount)}</span>
-                <Button size="icon" variant="ghost" className="size-8" onClick={() => setRecurringEditing(r)}>
-                  <Pencil />
-                </Button>
-              </CardContent>
-            </Card>
+          <p className="text-muted-foreground text-xs">
+            Recurring series read themselves off the ledger (ADR 0034): a payee whose transactions keep coming at one cadence for near enough one amount. Nothing to add here — post the transactions and the series shows up.
+          </p>
+          {series.map((s) => (
+            <SeriesCard
+              key={s.key}
+              series={s}
+              today={today}
+              category={byCategory.get(s.categoryId)?.title}
+              account={byAccount.get(s.accountId)?.title}
+              onShow={() => {
+                setSearch(s.payee);
+                setOnlyUncategorized(false);
+                setSearchParams({}, { replace: true });
+              }}
+            />
           ))}
-          {recurrings.length === 0 && <p className="text-muted-foreground text-sm">No recurring transactions — rent, salary, subscriptions save retyping here.</p>}
+          {series.length === 0 && <p className="text-muted-foreground text-sm">No recurring series yet — three regular payments to the same payee and rent, salary or Netflix appears here on its own.</p>}
         </TabsContent>
       </Tabs>
 
@@ -364,31 +360,29 @@ export function RegisterScreen() {
       <TransactionEditorDialog open={!!editing} onOpenChange={(o) => !o && setEditing(undefined)} transaction={editing} />
       <AccountEditorDialog open={accountAddOpen} onOpenChange={setAccountAddOpen} />
       <AccountEditorDialog open={!!accountEditing} onOpenChange={(o) => !o && setAccountEditing(undefined)} account={accountEditing} />
-      <RecurringEditorDialog open={recurringAddOpen} onOpenChange={setRecurringAddOpen} />
-      <RecurringEditorDialog open={!!recurringEditing} onOpenChange={(o) => !o && setRecurringEditing(undefined)} recurring={recurringEditing} />
       {reconciling && <ReconcileDialog open onOpenChange={(o) => !o && setReconciling(undefined)} account={reconciling} currentBalance={balanceOf(reconciling, transactions)} />}
       {importing && <ImportDialog open onOpenChange={(o) => !o && setImporting(undefined)} account={importing} />}
     </div>
   );
 }
 
-/** Open Dues, overdue loud — confirm posts the fact, dismiss remembers the skip (ADR 0033). */
+/** Open Dues, overdue loud — confirm posts the fact, skip waves that one day off (ADR 0034). */
 export function DuesList({ dues, today, compact }: { dues: Due[]; today: string; compact?: boolean }) {
   if (dues.length === 0) return compact ? <p className="text-muted-foreground p-3 text-sm">Nothing due.</p> : null;
   return (
     <ul className={compact ? "grid content-start gap-1 overflow-y-auto p-2" : "grid gap-1"}>
       {dues.map((due) => (
-        <li key={`${due.recurring.id}/${due.date}`} className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
+        <li key={`${due.series.key}/${due.date}`} className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
           <span className="min-w-0 flex-1 truncate">
-            {due.recurring.payee}
+            {due.series.payee}
             <span className={`ml-2 text-xs ${isOverdue(due, today) ? "text-destructive" : "text-muted-foreground"}`}>{describeDueDay(due.date, today)}</span>
           </span>
-          <span className="text-muted-foreground shrink-0 tabular-nums">{formatCents(due.recurring.amount)}</span>
+          <span className="text-muted-foreground shrink-0 tabular-nums">{formatCents(due.series.amount)}</span>
           <Button
             size="sm"
             onClick={() =>
               void confirmDue(due)
-                .then(() => toast.success(`${due.recurring.payee} posted`))
+                .then(() => toast.success(`${due.series.payee} posted`))
                 .catch((err: Error) => toast.error(err.message))
             }
           >
@@ -400,5 +394,62 @@ export function DuesList({ dues, today, compact }: { dues: Due[]; today: string;
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * One derived Recurring series: what the ledger reads, and the two things
+ * the reading cannot decide — whether it is a bill at all (mute) and where
+ * to look at its transactions.
+ */
+function SeriesCard({ series, today, category, account, onShow }: { series: Series; today: string; category?: string; account?: string; onShow: () => void }) {
+  const next = nextOccurrence(series, series.lastDate);
+  const quiet = series.muted || series.dormant;
+  return (
+    <Card className={`py-3 ${quiet ? "opacity-60" : ""}`}>
+      <CardContent className="flex items-center gap-3 px-4">
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-medium">
+            {series.payee}
+            {series.kind === "income" && (
+              <Badge variant="outline" className="ml-2">
+                income
+              </Badge>
+            )}
+            {series.muted && (
+              <Badge variant="outline" className="ml-2">
+                muted
+              </Badge>
+            )}
+            {series.dormant && !series.muted && (
+              <Badge variant="outline" className="ml-2">
+                over
+              </Badge>
+            )}
+          </div>
+          <div className="text-muted-foreground text-xs">
+            {describeCadence(series)} · {category ?? "Uncategorized"} · {account ?? "?"} · {series.occurrences.length} since {formatHuman(series.firstDate)}
+          </div>
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="tabular-nums">{formatCents(series.amount)}</div>
+          <div className="text-muted-foreground text-xs">{quiet ? `last ${formatHuman(series.lastDate)}` : next < today ? `overdue since ${formatHuman(next)}` : `next ${describeDueDay(next, today)}`}</div>
+        </div>
+        <Button size="icon" variant="ghost" className="size-8" title="Show these transactions in the register" onClick={onShow}>
+          <Search />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="size-8"
+          title={series.muted ? "Unmute — let it surface Dues again" : "Mute — keep it listed, surface no Dues"}
+          onClick={() =>
+            void setSeriesMuted(series, !series.muted).then(() => toast.success(series.muted ? `${series.payee} unmuted` : `${series.payee} muted — no more dues`))
+          }
+        >
+          {series.muted ? <Bell /> : <BellOff />}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

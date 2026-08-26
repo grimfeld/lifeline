@@ -4,7 +4,7 @@ import {
   ACCOUNT,
   ALLOCATION,
   CATEGORY,
-  RECURRING,
+  SERIES,
   TRANSACTION,
   type Allocation,
   type Due,
@@ -12,10 +12,12 @@ import {
   type LedgerAccount,
   type LedgerCategory,
   type MonthStr,
-  type Recurring,
+  type Series,
+  type SeriesOverride,
   type Transaction,
   type TransactionKind,
 } from "../domain/types";
+import { detectSeries } from "../domain/series";
 import { formatCents } from "../domain/money";
 import type { ImportRow } from "../domain/csv";
 
@@ -32,8 +34,6 @@ function normalizeTransaction(t: Transaction): Transaction {
     categoryId: t.categoryId ?? "",
     payee: t.payee ?? "",
     note: t.note ?? "",
-    recurringId: t.recurringId ?? "",
-    dueDate: t.dueDate ?? "",
     importId: t.importId ?? "",
     tags: t.tags ?? [],
   };
@@ -51,20 +51,8 @@ function normalizeAllocation(a: Allocation): Allocation {
   return { ...a, categoryId: a.categoryId ?? "", month: a.month ?? "", amount: Number(a.amount) || 0 };
 }
 
-function normalizeRecurring(r: Recurring): Recurring {
-  return {
-    ...r,
-    kind: r.kind === "income" ? "income" : "expense",
-    amount: Number(r.amount) || 0,
-    accountId: r.accountId ?? "",
-    categoryId: r.categoryId ?? "",
-    payee: r.payee ?? "",
-    rule: r.rule && typeof r.rule === "object" ? r.rule : { kind: "monthly", days: [1] },
-    startDate: r.startDate || r.createdAt,
-    paused: !!r.paused,
-    skipped: Array.isArray(r.skipped) ? r.skipped : [],
-    tags: r.tags ?? [],
-  };
+function normalizeSeriesOverride(o: SeriesOverride): SeriesOverride {
+  return { ...o, key: o.key ?? "", muted: !!o.muted, skipped: Array.isArray(o.skipped) ? o.skipped : [], tags: o.tags ?? [] };
 }
 
 // ---- Reads ----
@@ -89,9 +77,20 @@ export function useAllocations(): Allocation[] {
   return useMemo(() => rows.map(normalizeAllocation), [rows]);
 }
 
-export function useRecurrings(): Recurring[] {
-  const rows = useDocuments<Recurring>(RECURRING);
-  return useMemo(() => rows.map(normalizeRecurring).sort((a, b) => a.payee.localeCompare(b.payee)), [rows]);
+export function useSeriesOverrides(): SeriesOverride[] {
+  const rows = useDocuments<SeriesOverride>(SERIES);
+  return useMemo(() => rows.map(normalizeSeriesOverride), [rows]);
+}
+
+/**
+ * Every Recurring series the ledger shows (ADR 0034) — derived from the
+ * Transactions on every read, with the hand-made overrides laid over.
+ */
+export function useSeries(): Series[] {
+  const transactions = useTransactions();
+  const overrides = useSeriesOverrides();
+  const today = todayStr();
+  return useMemo(() => detectSeries(transactions, overrides, today), [transactions, overrides, today]);
 }
 
 // ---- Transactions ----
@@ -108,8 +107,6 @@ export interface TransactionInput {
   payee?: string;
   note?: string;
   tags?: string[];
-  recurringId?: string;
-  dueDate?: DateStr;
   importId?: string;
 }
 
@@ -136,8 +133,6 @@ function rowOf(input: TransactionInput): Omit<Transaction, "id" | "updatedAt" | 
     categoryId: input.kind === "expense" || input.kind === "income" ? (input.categoryId ?? "") : "",
     payee: input.payee?.trim() ?? "",
     note: input.note?.trim() ?? "",
-    recurringId: input.recurringId ?? "",
-    dueDate: input.dueDate ?? "",
     importId: input.importId ?? "",
     folder: "",
     tags: normalizeTags(input.tags ?? []),
@@ -152,7 +147,7 @@ export async function addTransaction(input: TransactionInput): Promise<string> {
 
 export async function updateTransaction(t: Transaction, input: TransactionInput): Promise<void> {
   validate(input);
-  await putDocument<Transaction>({ ...t, ...rowOf(input), recurringId: input.recurringId ?? t.recurringId, dueDate: input.dueDate ?? t.dueDate, importId: input.importId ?? t.importId });
+  await putDocument<Transaction>({ ...t, ...rowOf(input), importId: input.importId ?? t.importId });
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
@@ -219,8 +214,6 @@ export async function saveImportMapping(id: string, importMapping: ImportMapping
 export async function deleteAccount(id: string): Promise<void> {
   const ts = (await documentsOf<Transaction>(TRANSACTION)).map(normalizeTransaction);
   if (ts.some((t) => t.accountId === id || t.fromAccountId === id || t.toAccountId === id)) throw new Error("Account has transactions — archive it instead");
-  const rs = (await documentsOf<Recurring>(RECURRING)).map(normalizeRecurring);
-  if (rs.some((r) => r.accountId === id)) throw new Error("A recurring transaction still uses this account");
   await removeDocument(id);
 }
 
@@ -245,13 +238,13 @@ export async function updateCategory(c: LedgerCategory, input: CategoryInput): P
 
 /**
  * A referenced Category can only be merged away (ADR 0033): its
- * Transactions and Recurring definitions move to the target, its
- * Allocation overrides die with it, then it goes.
+ * Transactions move to the target, its Allocation overrides die with it,
+ * then it goes. Recurring series follow for free — they are the
+ * Transactions (ADR 0034).
  */
 export async function mergeCategory(fromId: string, intoId: string): Promise<void> {
   if (fromId === intoId) throw new Error("Pick a different category to merge into");
   for (const t of await documentsWhere<Transaction>(TRANSACTION, "categoryId", fromId)) await patchDocument(t.id, { categoryId: intoId });
-  for (const r of await documentsWhere<Recurring>(RECURRING, "categoryId", fromId)) await patchDocument(r.id, { categoryId: intoId });
   for (const a of (await documentsOf<Allocation>(ALLOCATION)).filter((a) => a.categoryId === fromId)) await removeDocument(a.id);
   await removeDocument(fromId);
 }
@@ -259,7 +252,6 @@ export async function mergeCategory(fromId: string, intoId: string): Promise<voi
 /** Plain delete passes only for an unreferenced Category. */
 export async function deleteCategory(id: string): Promise<void> {
   if ((await documentsWhere<Transaction>(TRANSACTION, "categoryId", id)).length > 0) throw new Error("Category has transactions — merge it instead");
-  if ((await documentsWhere<Recurring>(RECURRING, "categoryId", id)).length > 0) throw new Error("A recurring transaction still uses this category");
   for (const a of (await documentsOf<Allocation>(ALLOCATION)).filter((a) => a.categoryId === id)) await removeDocument(a.id);
   await removeDocument(id);
 }
@@ -277,51 +269,47 @@ export async function setAllocation(categoryId: string, month: MonthStr, amount:
   else await putDocument<Allocation>({ type: ALLOCATION, title: "", categoryId, month, amount, folder: "", tags: [] } as unknown as Allocation);
 }
 
-// ---- Recurring ----
+// ---- Recurring series ----
 
-export interface RecurringInput {
-  payee: string;
-  kind: Recurring["kind"];
-  amount: number;
-  accountId: string;
-  categoryId: string;
-  rule: Recurring["rule"];
-  startDate: DateStr;
-  paused?: boolean;
+/**
+ * The one thing a derived series cannot know: the user's own word. Written
+ * only while it says something — unmuting a series with no skips left takes
+ * the override Document away again (ADR 0034).
+ */
+async function overrideSeries(series: Series, next: { muted: boolean; skipped: DateStr[] }): Promise<void> {
+  if (!next.muted && next.skipped.length === 0) {
+    if (series.overrideId) await removeDocument(series.overrideId);
+    return;
+  }
+  if (series.overrideId) {
+    await patchDocument(series.overrideId, next);
+    return;
+  }
+  await putDocument<SeriesOverride>({ type: SERIES, title: series.payee, key: series.key, ...next, folder: "", tags: [] } as unknown as SeriesOverride);
 }
 
-export async function addRecurring(input: RecurringInput): Promise<string> {
-  const row = await putDocument<Recurring>({ type: RECURRING, title: input.payee.trim(), ...input, payee: input.payee.trim(), paused: !!input.paused, skipped: [], folder: "", tags: [] } as unknown as Recurring);
-  return row.id;
+/** Silence a series: it stays listed and greyed, and surfaces no Dues. */
+export async function setSeriesMuted(series: Series, muted: boolean): Promise<void> {
+  await overrideSeries(series, { muted, skipped: series.skipped });
 }
 
-export async function updateRecurring(r: Recurring, input: RecurringInput): Promise<void> {
-  await putDocument<Recurring>({ ...r, ...input, title: input.payee.trim(), payee: input.payee.trim(), paused: input.paused ?? r.paused });
-}
-
-/** Deleting the definition keeps every Transaction it posted (ADR 0033). */
-export async function deleteRecurring(id: string): Promise<void> {
-  await removeDocument(id);
-}
-
-/** One tap: the Due becomes a real Transaction — amount editable at confirm, never auto-posted. */
+/** One tap: the Due becomes a real Transaction — amount editable at confirm, never auto-posted. Posting it advances the series, so the Due goes. */
 export async function confirmDue(due: Due, amount?: number, date?: DateStr): Promise<string> {
-  const r = due.recurring;
+  const s = due.series;
   return addTransaction({
-    kind: r.kind,
+    kind: s.kind,
     date: date ?? due.date,
-    amount: amount ?? r.amount,
-    accountId: r.accountId,
-    categoryId: r.categoryId,
-    payee: r.payee,
-    recurringId: r.id,
-    dueDate: due.date,
+    amount: amount ?? s.amount,
+    accountId: s.accountId,
+    categoryId: s.categoryId,
+    payee: s.payee,
   });
 }
 
 /** Decline a Due: its day is remembered as skipped and never surfaces again. */
 export async function dismissDue(due: Due): Promise<void> {
-  await patchDocument(due.recurring.id, { skipped: [...due.recurring.skipped, due.date] });
+  if (due.series.skipped.includes(due.date)) return;
+  await overrideSeries(due.series, { muted: due.series.muted, skipped: [...due.series.skipped, due.date] });
 }
 
 // ---- Import ----

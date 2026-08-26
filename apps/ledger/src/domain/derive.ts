@@ -60,6 +60,11 @@ export function netWorth(accounts: LedgerAccount[], transactions: Transaction[],
   return accounts.filter((a) => !a.archived).reduce((s, a) => s + balanceOf(a, transactions, upTo), 0);
 }
 
+/** The import inbox's mark: an expense or income the user has not classified yet (ADR 0033) — never hidden, and the Register's quick filter. */
+export function isUncategorized(t: Transaction): boolean {
+  return (t.kind === "expense" || t.kind === "income") && !t.categoryId;
+}
+
 /** Spending Transactions of one month (expenses only — transfers and adjustments are nobody's spending). */
 export function spendingIn(transactions: Transaction[], month: MonthStr): Transaction[] {
   return transactions.filter((t) => t.kind === "expense" && monthOf(t.date) === month);
