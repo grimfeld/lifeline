@@ -2,12 +2,13 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Badge, Button, Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
-import { ArrowLeftRight, Import, Landmark, Pencil, Plus, Scale } from "lucide-react";
+import { ArrowLeftRight, Import, Landmark, Pencil, Plus, Scale, Wand2 } from "lucide-react";
 import type { Due, LedgerAccount, Recurring, Transaction } from "../domain/types";
 import { balanceOf, formatMonth, monthOf } from "../domain/derive";
-import { formatCents, formatSigned } from "../domain/money";
+import { formatCents, formatSigned, parseAmount } from "../domain/money";
 import { describeDueDay, isOverdue, openDues } from "../domain/recur";
-import { confirmDue, dismissDue, useAccounts, useCategories, useRecurrings, useTransactions } from "../data/repo";
+import { payeeCategoryIndex, suggestCategory } from "../domain/suggest";
+import { categorizeTransaction, confirmDue, dismissDue, useAccounts, useCategories, useRecurrings, useTransactions } from "../data/repo";
 import { TransactionEditorDialog } from "../components/TransactionEditorDialog";
 import { AccountEditorDialog } from "../components/AccountEditorDialog";
 import { RecurringEditorDialog } from "../components/RecurringEditorDialog";
@@ -25,6 +26,24 @@ const SORTS: Record<SortKey, (a: Transaction, b: Transaction) => number> = {
   "amount-asc": (a, b) => Math.abs(a.amount) - Math.abs(b.amount) || b.date.localeCompare(a.date),
   payee: (a, b) => a.payee.localeCompare(b.payee) || b.date.localeCompare(a.date),
 };
+
+/**
+ * Free search over one Transaction: payee/note text, the day — "2026-03",
+ * "03-10", "10-03" and "10.03" all find the 10th of March — or an exact
+ * amount ("12,50" and "12.50" both find €12.50 either direction).
+ */
+function matchesSearch(t: Transaction, q: string): boolean {
+  if (`${t.payee} ${t.note}`.toLowerCase().includes(q)) return true;
+  const dateQ = q.replace(/[./]/g, "-");
+  if (/^[\d-]+$/.test(dateQ) && dateQ.includes("-")) {
+    if (t.date.includes(dateQ)) return true;
+    const flipped = dateQ.split("-").reverse().join("-");
+    if (flipped !== dateQ && t.date.includes(flipped)) return true;
+  }
+  const cents = parseAmount(q);
+  if (cents !== null && Math.abs(cents) === Math.abs(t.amount)) return true;
+  return false;
+}
 
 const SORT_LABEL: Record<SortKey, string> = {
   "date-desc": "Newest first",
@@ -74,6 +93,23 @@ export function RegisterScreen() {
   /** Every month the ledger touches, newest first — the month filter's options. */
   const months = useMemo(() => Array.from(new Set(transactions.map((t) => monthOf(t.date)))).sort().reverse(), [transactions]);
 
+  /**
+   * The sweep behind the Auto-categorize button: run the history-derived
+   * suggester over the inbox and apply what it knows; the rest stay loud.
+   */
+  async function autoCategorize() {
+    const index = payeeCategoryIndex(transactions);
+    let n = 0;
+    for (const t of uncategorized) {
+      const s = suggestCategory(t.payee, t.kind as "expense" | "income", index);
+      if (!s) continue;
+      await categorizeTransaction(t.id, s.categoryId);
+      n++;
+    }
+    if (n === 0) toast.info("History knows none of these payees — categorize a few by hand first");
+    else toast.success(`Categorized ${n} of ${uncategorized.length}${n < uncategorized.length ? " — the rest need a hand" : ""}`);
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const out = transactions.filter((t) => {
@@ -83,7 +119,7 @@ export function RegisterScreen() {
       if (categoryFilter !== "all" && t.categoryId !== categoryFilter) return false;
       if (monthFilter !== "all" && monthOf(t.date) !== monthFilter) return false;
       if (kindFilter !== "all" && t.kind !== kindFilter) return false;
-      if (q && !`${t.payee} ${t.note}`.toLowerCase().includes(q)) return false;
+      if (q && !matchesSearch(t, q)) return false;
       return true;
     });
     return out.sort(SORTS[sort]);
@@ -127,10 +163,15 @@ export function RegisterScreen() {
         </TabsList>
 
         <TabsContent value="transactions" className="grid gap-3">
-          {uncategorized.length > 0 && accountFilter !== "uncategorized" && (
-            <button className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-left text-sm" onClick={() => setAccountFilter("uncategorized")}>
-              {uncategorized.length} uncategorized transaction{uncategorized.length === 1 ? "" : "s"} — the import inbox. Click to clear it.
-            </button>
+          {uncategorized.length > 0 && (
+            <div className="flex items-center gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-1.5 text-sm">
+              <button className="min-w-0 flex-1 text-left" onClick={() => setAccountFilter("uncategorized")}>
+                {uncategorized.length} uncategorized transaction{uncategorized.length === 1 ? "" : "s"} — the import inbox. Click to clear it.
+              </button>
+              <Button size="sm" variant="outline" onClick={() => void autoCategorize()}>
+                <Wand2 /> Auto-categorize
+              </Button>
+            </div>
           )}
           <div className="flex flex-wrap gap-2">
             <Select value={accountFilter} onValueChange={setAccountFilter}>
@@ -199,8 +240,8 @@ export function RegisterScreen() {
                 ))}
               </SelectContent>
             </Select>
-            <Input className="max-w-56 flex-1" placeholder="Search payee or note…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <Input placeholder="Search payee, note, amount (12,50) or date (10-03)…" value={search} onChange={(e) => setSearch(e.target.value)} />
           <div className="text-muted-foreground text-xs">
             {filtered.length} transaction{filtered.length === 1 ? "" : "s"}
             {" · "}−{formatCents(filtered.filter((t) => t.kind === "expense").reduce((s, t) => s + t.amount, 0))}
