@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
 import type { ImportMapping, LedgerAccount } from "../domain/types";
 import { applyMapping, flagDuplicates, parseCsv, type ImportRow } from "../domain/csv";
 import { isOfx, parseOfx } from "../domain/ofx";
 import { payeeCategoryIndex, suggestCategory } from "../domain/suggest";
+import { looksLikePaypal, matchPaypal, type PaypalCandidate, type PaypalMatch } from "../domain/paypal";
+import { PaypalFileInput, usePaypalFile } from "./PaypalFileInput";
 import { formatCents } from "../domain/money";
 import { importRows, saveImportMapping, useCategories, useTransactions } from "../data/repo";
 
@@ -14,6 +16,9 @@ const DEFAULT_MAPPING: ImportMapping = { dateCol: 0, amountCol: 1, payeeCol: 2, 
  * the Account after the first run — later imports are pick-file-and-go),
  * for OFX/QFX nothing — the format is self-describing and its FITID makes
  * dedupe exact → preview with duplicates flagged and unticked → post.
+ * A PayPal activity file may be handed over alongside: rows the bank filed
+ * under "PAYPAL" then show the merchant PayPal knows, and the category
+ * suggestion runs on that real name instead of on "PAYPAL" (domain/paypal.ts).
  * Imported rows may land uncategorized: the inbox is loud in Register and
  * Budget, never hidden.
  */
@@ -29,7 +34,13 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
   const [ticked, setTicked] = useState<Set<number> | null>(null);
   /** Hand-picked categories per row index; unset rows fall back to the history-derived suggestion. */
   const [pickedCategories, setPickedCategories] = useState<Map<number, string>>(new Map());
+  /** The optional PayPal activity file, and the merchant picked per row (entry id; "" = keep the bank's own string). */
+  const paypal = usePaypalFile();
+  const [pickedPayees, setPickedPayees] = useState<Map<number, string>>(new Map());
   const [posting, setPosting] = useState(false);
+
+  // A different PayPal file is a different set of answers: per-row merchant picks start over.
+  useEffect(() => setPickedPayees(new Map()), [paypal.index]);
 
   const preview: ImportRow[] = useMemo(() => {
     const raw = ofxRows ?? (rows ? applyMapping(rows, mapping) : null);
@@ -37,17 +48,50 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
     return flagDuplicates(raw, transactions, account.id);
   }, [rows, ofxRows, mapping, transactions, account.id]);
 
+  /** How many rows the bank filed under PayPal — nothing is asked for unless there are some. */
+  const paypalRows = useMemo(() => preview.filter((r) => !r.invalid && looksLikePaypal(r.payee)).length, [preview]);
+
+  /**
+   * PayPal rows matched against the activity file — keyed by row index, only
+   * for rows the bank filed under PayPal, only where the file has an answer.
+   */
+  const paypalMatches = useMemo(() => {
+    const out = new Map<number, PaypalMatch>();
+    if (!paypal.index) return out;
+    for (const r of preview) {
+      if (r.invalid || r.date === null || r.amount === null || !looksLikePaypal(r.payee)) continue;
+      const m = matchPaypal({ date: r.date, amount: r.amount, text: `${r.payee} ${r.note}` }, paypal.index);
+      if (m.status !== "none") out.set(r.index, m);
+    }
+    return out;
+  }, [preview, paypal.index]);
+
+  /** The merchant this row will be posted under: the hand pick, else the match's own, else nothing. */
+  function resolutionOf(r: ImportRow): PaypalCandidate | null {
+    const m = paypalMatches.get(r.index);
+    if (!m) return null;
+    const picked = pickedPayees.get(r.index);
+    if (picked !== undefined) return m.candidates.find((c) => c.entry.id === picked) ?? null;
+    return m.pick;
+  }
+
+  const payeeOfRow = (r: ImportRow) => resolutionOf(r)?.payee || r.payee;
+
   /** History-derived category per row ("smart" without AI): last-used category of the matching payee. */
   const catIndex = useMemo(() => payeeCategoryIndex(transactions), [transactions]);
   const suggestions = useMemo(() => {
     const out = new Map<number, string>();
     for (const r of preview) {
-      if (r.invalid || r.amount === null || !r.payee) continue;
-      const s = suggestCategory(r.payee, r.amount < 0 ? "expense" : "income", catIndex);
+      if (r.invalid || r.amount === null) continue;
+      // The resolved merchant, not "PAYPAL": one PayPal payee would otherwise
+      // hand the same category to everything PayPal ever collected.
+      const payee = payeeOfRow(r);
+      if (!payee) continue;
+      const s = suggestCategory(payee, r.amount < 0 ? "expense" : "income", catIndex);
       if (s) out.set(r.index, s.categoryId);
     }
     return out;
-  }, [preview, catIndex]);
+  }, [preview, catIndex, paypalMatches, pickedPayees]);
 
   const categoryOf = (r: ImportRow) => pickedCategories.get(r.index) ?? suggestions.get(r.index) ?? "";
 
@@ -68,6 +112,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
       setFileName(file.name);
       setTicked(null);
       setPickedCategories(new Map());
+      setPickedPayees(new Map());
     });
   }
 
@@ -76,6 +121,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
     setOfxRows(null);
     setTicked(null);
     setPickedCategories(new Map());
+    setPickedPayees(new Map());
   }
 
   function toggle(index: number) {
@@ -86,7 +132,11 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
   }
 
   async function post() {
-    const chosen = preview.filter((r) => effectiveTicks.has(r.index)).map((r) => ({ ...r, categoryId: categoryOf(r) }));
+    const chosen = preview.filter((r) => effectiveTicks.has(r.index)).map((r) => {
+      const resolved = resolutionOf(r);
+      // The bank's own string is kept, never overwritten — the swap stays readable and undoable.
+      return { ...r, categoryId: categoryOf(r), payee: resolved?.payee ?? r.payee, paypalId: resolved?.entry.id ?? "", bankPayee: resolved ? r.payee : "" };
+    });
     if (chosen.length === 0) return void toast.error("Nothing ticked");
     setPosting(true);
     try {
@@ -94,7 +144,9 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
       // The mapping is a CSV concern; OFX is self-describing.
       if (rows) await saveImportMapping(account.id, mapping);
       const bare = chosen.filter((r) => !r.categoryId).length;
-      toast.success(bare > 0 ? `Imported ${n} — ${bare} uncategorized, clear them in the Register` : `Imported ${n}, all categorized`);
+      const named = chosen.filter((r) => r.paypalId).length;
+      const paypalNote = named > 0 ? ` · ${named} PayPal payee${named === 1 ? "" : "s"} named` : "";
+      toast.success((bare > 0 ? `Imported ${n} — ${bare} uncategorized, clear them in the Register` : `Imported ${n}, all categorized`) + paypalNote);
       onOpenChange(false);
       reset();
     } finally {
@@ -140,6 +192,15 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
               {fileName}
               {ofxRows && <span className="ml-2 rounded-sm border px-1.5 py-0.5 text-xs">OFX</span>}
             </div>
+            {paypalRows > 0 && (
+              <div className="grid gap-1 rounded-md border px-3 py-2">
+                <Label className="text-xs">
+                  {paypalRows} row{paypalRows === 1 ? "" : "s"} the bank filed under PayPal
+                  {paypal.index ? ` · ${paypalMatches.size} matched` : ""}
+                </Label>
+                <PaypalFileInput file={paypal} />
+              </div>
+            )}
             {rows && (
               <>
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
@@ -193,6 +254,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
               {preview.length} rows · {dupCount > 0 && <span className="text-amber-600">{dupCount} probable duplicates unticked · </span>}
               {badCount > 0 && <span className="text-destructive">{badCount} unreadable · </span>}
               negative = expense, positive = income; categories marked <span className="text-foreground">auto</span> come from how you categorized the payee before — adjust any, the rest land uncategorized.
+              {paypalMatches.size > 0 && <> Rows marked <span className="text-foreground">paypal</span> take their payee from the activity file; where two merchants fit the same amount and day, pick one.</>}
             </div>
             <div className="max-h-72 overflow-y-auto rounded-md border">
               <table className="w-full text-sm">
@@ -204,7 +266,28 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap tabular-nums">{r.date ?? "?"}</td>
                       <td className="px-2 py-1 text-right whitespace-nowrap tabular-nums">{r.amount === null ? "?" : formatCents(r.amount)}</td>
-                      <td className="max-w-48 truncate px-2 py-1">{r.payee}</td>
+                      <td className="max-w-52 px-2 py-1">
+                        {paypalMatches.has(r.index) ? (
+                          <div className="grid gap-0.5">
+                            <Select value={resolutionOf(r)?.entry.id ?? "none"} onValueChange={(v) => setPickedPayees(new Map(pickedPayees).set(r.index, v === "none" ? "" : v))}>
+                              <SelectTrigger size="sm" className="h-7 w-44 text-xs">
+                                <SelectValue placeholder="which merchant?" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">— keep the bank's name</SelectItem>
+                                {paypalMatches.get(r.index)!.candidates.map((c) => (
+                                  <SelectItem key={c.entry.id} value={c.entry.id}>
+                                    {c.payee}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <span className="text-muted-foreground truncate text-[11px]">{r.payee}</span>
+                          </div>
+                        ) : (
+                          <span className="block truncate">{r.payee}</span>
+                        )}
+                      </td>
                       <td className="px-2 py-1">
                         {!r.invalid && r.amount !== null && (
                           <Select value={categoryOf(r) || "none"} onValueChange={(v) => setPickedCategories(new Map(pickedCategories).set(r.index, v === "none" ? "" : v))}>
@@ -225,7 +308,13 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
                         )}
                       </td>
                       <td className="text-muted-foreground max-w-40 truncate px-2 py-1 text-xs">
-                        {r.invalid ? "unreadable" : r.duplicateOf ? "already in the ledger?" : suggestions.has(r.index) && !pickedCategories.has(r.index) ? "auto" : ""}
+                        {r.invalid
+                          ? "unreadable"
+                          : r.duplicateOf
+                            ? "already in the ledger?"
+                            : [paypalMatches.get(r.index)?.status === "ambiguous" && !pickedPayees.has(r.index) ? "pick a merchant" : paypalMatches.has(r.index) ? "paypal" : "", suggestions.has(r.index) && !pickedCategories.has(r.index) ? "auto" : ""]
+                                .filter(Boolean)
+                                .join(" · ")}
                       </td>
                     </tr>
                   ))}

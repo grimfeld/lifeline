@@ -44,6 +44,10 @@ export interface Transaction extends Document {
   dueDate: DateStr | "";
   /** The bank's row identity, for import dedupe. */
   importId: string;
+  /** The PayPal transaction this payee was resolved from — the sweep skips what it already did. */
+  paypalId: string;
+  /** What the bank called it before PayPal's merchant name replaced it. Nothing is lost. */
+  bankPayee: string;
 }
 
 export type AccountFlavor = "checking" | "savings" | "cash" | "credit" | "other";

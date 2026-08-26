@@ -161,6 +161,14 @@ export function TransactionEditorDialog({
                   <option key={p.payee} value={p.payee} />
                 ))}
               </datalist>
+              {transaction?.bankPayee && (
+                <p className="text-muted-foreground text-xs">
+                  The bank called this <span className="text-foreground">{transaction.bankPayee}</span> — PayPal named the merchant.{" "}
+                  <button type="button" className="underline" onClick={() => setPayee(transaction.bankPayee)}>
+                    Put it back
+                  </button>
+                </p>
+              )}
             </div>
           )}
           {kind === "transfer" ? (

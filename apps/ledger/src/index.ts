@@ -55,6 +55,8 @@ const transactionType: DocumentTypeDef = {
     { key: "recurringId", label: "Recurring", kind: "link", linkType: RECURRING, guarded: true, hidden: true },
     { key: "dueDate", label: "Due day", kind: "date", guarded: true, hidden: true },
     { key: "importId", label: "Import id", kind: "text", guarded: true, hidden: true },
+    { key: "paypalId", label: "PayPal id", kind: "text", guarded: true, hidden: true },
+    { key: "bankPayee", label: "Bank payee", kind: "text", guarded: true, hidden: true },
   ],
   indexes: ["date", "categoryId", "accountId"],
   href: () => REGISTER_HREF,
