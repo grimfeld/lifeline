@@ -18,12 +18,13 @@ export function matchesSearch(m: Work, q: string): boolean {
 }
 
 /** Gallery orderings. */
-export type GallerySort = "TITLE" | "ADDED" | "FINISHED" | "YEAR";
+export type GallerySort = "TITLE" | "ADDED" | "FINISHED" | "YEAR" | "RATING";
 export const GALLERY_SORTS: { value: GallerySort; label: string }[] = [
   { value: "TITLE", label: "Title" },
   { value: "ADDED", label: "Recently added" },
   { value: "FINISHED", label: "Recently finished" },
   { value: "YEAR", label: "Year" },
+  { value: "RATING", label: "Rating" },
 ];
 
 const byTitle = (a: Work, b: Work) => a.title.localeCompare(b.title);
@@ -44,8 +45,14 @@ export function sortGallery(items: Work[], sort: GallerySort): Work[] {
       return out.sort((a, b) => Number(!!b.finishedOn) - Number(!!a.finishedOn) || b.finishedOn.localeCompare(a.finishedOn) || byTitle(a, b));
     case "YEAR":
       return out.sort((a, b) => Number(!!b.year) - Number(!!a.year) || b.year - a.year || byTitle(a, b));
+    case "RATING":
+      // Highest first; unrated sink to the end, in title order.
+      return out.sort((a, b) => b.rating - a.rating || byTitle(a, b));
   }
 }
+
+/** The ♥ chip (ADR 0035): only what I liked, composing with shelf and search. */
+export const isLiked = (m: Work) => m.liked;
 
 /** The Shelf filter (ADR 0006 amendment): one Engagement value or ALL. */
 export type Shelf = Engagement | "ALL";

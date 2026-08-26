@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { documentsOf, normalizeTags, putDocument, removeDocument, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
-import { WORK_TYPE_IDS, type Work } from "../domain/types";
+import { documentsOf, normalizeTags, putDocument, removeDocument, todayStr, useDocument, useDocuments, useLiveQuery } from "@lifeline/core";
+import { PLAYLIST, WORK_TYPE_IDS, type Playlist, type Work } from "../domain/types";
+import { removeFromPlaylist } from "../domain/playlist";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
 
@@ -19,6 +20,8 @@ export function normalize(m: Work): Work {
     reason: m.reason ?? "",
     startedOn: m.startedOn ?? "",
     finishedOn: m.finishedOn ?? "",
+    liked: m.liked === true,
+    rating: m.rating || 0,
     tags: m.tags ?? [],
   };
 }
@@ -63,6 +66,8 @@ export async function addWork(input: {
     addedOn: today,
     startedOn: "",
     finishedOn: "",
+    liked: false,
+    rating: 0,
     tags: normalizeTags(input.tags),
   });
   return row.id;
@@ -74,7 +79,36 @@ export async function patchWork(item: Work, patch: Patch): Promise<void> {
   await putDocument<Work>({ ...next, tags: normalizeTags(next.tags) });
 }
 
+/** Delete an album; it leaves every Playlist it sat in (membership is the Playlist's — ADR 0035). */
 export async function deleteWork(id: string): Promise<void> {
+  for (const p of await documentsOf<Playlist>(PLAYLIST)) {
+    const ids = Array.isArray(p.workIds) ? p.workIds : [];
+    if (ids.includes(id)) await putDocument<Playlist>({ ...p, workIds: removeFromPlaylist(ids, id) });
+  }
+  await removeDocument(id);
+}
+
+/* ---------- Playlists (ADR 0035) ---------- */
+
+function normalizePlaylist(p: Playlist): Playlist {
+  return { ...p, workIds: Array.isArray(p.workIds) ? p.workIds : [], ranked: p.ranked === true, body: p.body ?? "" };
+}
+
+export function usePlaylists(): Playlist[] {
+  const rows = useDocuments<Playlist>(PLAYLIST);
+  return useMemo(() => rows.map(normalizePlaylist), [rows]);
+}
+
+export async function addPlaylist(input: { title: string; body: string; ranked: boolean; workIds?: string[] }): Promise<string> {
+  const row = await putDocument<Playlist>({ type: PLAYLIST, title: input.title.trim(), body: input.body, ranked: input.ranked, workIds: input.workIds ?? [], tags: [] });
+  return row.id;
+}
+
+export async function patchPlaylist(playlist: Playlist, patch: Partial<Pick<Playlist, "title" | "body" | "ranked" | "workIds">>): Promise<void> {
+  await putDocument<Playlist>({ ...playlist, ...patch });
+}
+
+export async function deletePlaylist(id: string): Promise<void> {
   await removeDocument(id);
 }
 

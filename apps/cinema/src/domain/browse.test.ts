@@ -22,6 +22,8 @@ function item(p: Partial<Work>): Work {
     addedOn: "2026-01-01",
     startedOn: "",
     finishedOn: "",
+    liked: false,
+    rating: 0,
     ...p,
   };
 }
@@ -66,6 +68,14 @@ describe("sortGallery", () => {
   it("FINISHED is newest first, never-finished last", () => {
     expect(ids(sortGallery([a, b, c], "FINISHED"))).toEqual(["c", "b", "a"]);
   });
+  it("RATING is highest first, unrated last, title breaking ties", () => {
+    const r5 = item({ id: "r5", title: "Zeta", rating: 5 });
+    const r3 = item({ id: "r3", title: "Beta", rating: 3 });
+    const r3b = item({ id: "r3b", title: "Alpha", rating: 3 });
+    const none = item({ id: "none", title: "Aardvark", rating: 0 });
+    expect(sortGallery([none, r3, r5, r3b], "RATING").map((m) => m.id)).toEqual(["r5", "r3b", "r3", "none"]);
+  });
+
   it("YEAR is newest release first, unknown year last", () => {
     expect(ids(sortGallery([a, b, c], "YEAR"))).toEqual(["a", "c", "b"]);
   });

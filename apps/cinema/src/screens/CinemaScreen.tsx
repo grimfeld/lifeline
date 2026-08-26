@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
-import { Button, Card, CardContent, cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { Settings2, SlidersHorizontal } from "lucide-react";
+import { Button, Card, CardContent, cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
+import { Heart, Settings2, SlidersHorizontal } from "lucide-react";
 import { WORK_TYPES, type WorkTypeId } from "../domain/workTypes";
 import type { Work } from "../domain/types";
 import { useWorks } from "../data/repo";
-import { GALLERY_SORTS, matchesSearch, onShelf, SHELVES, shelfLabel, sortGallery, type GallerySort, type Shelf } from "../domain/browse";
+import { GALLERY_SORTS, isLiked, matchesSearch, onShelf, SHELVES, shelfLabel, sortGallery, type GallerySort, type Shelf } from "../domain/browse";
+import { PlaylistsTab } from "../components/PlaylistsTab";
+import { usePlaylists } from "../data/repo";
 import { AddWorkDialog } from "../components/AddWorkDialog";
 import { WorkTile } from "../components/WorkTile";
 import { WorkDetailDialog } from "../components/WorkDetailDialog";
@@ -14,7 +16,7 @@ import { LookupSettingsDialog } from "../components/LookupSettingsDialog";
 
 export type Medium = WorkTypeId | "all";
 
-function TypeChips({ value, onChange, counts }: { value: Medium; onChange: (v: Medium) => void; counts: Map<string, number> }) {
+function TypeChips({ value, onChange, counts, liked, onLiked, likedCount }: { value: Medium; onChange: (v: Medium) => void; counts: Map<string, number>; liked: boolean; onLiked: (v: boolean) => void; likedCount: number }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {[{ id: "all" as const, label: "All" }, ...WORK_TYPES.map((t) => ({ id: t.id, label: t.plural }))].map((t) => (
@@ -29,6 +31,16 @@ function TypeChips({ value, onChange, counts }: { value: Medium; onChange: (v: M
           {counts.get(t.id) ? <span className="ml-1 opacity-70">{counts.get(t.id)}</span> : null}
         </button>
       ))}
+      <button
+        type="button"
+        aria-pressed={liked}
+        title="Only what I liked"
+        className={cn("ml-1 inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs transition-colors", liked ? "border-rose-500 bg-rose-500 text-white" : "hover:bg-accent")}
+        onClick={() => onLiked(!liked)}
+      >
+        <Heart className={cn("size-3", liked && "fill-current")} /> Liked
+        {likedCount ? <span className="opacity-70">{likedCount}</span> : null}
+      </button>
     </div>
   );
 }
@@ -80,6 +92,8 @@ export function CinemaScreen() {
   const [shelf, setShelf] = useState<Shelf>("ALL");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<GallerySort>("ADDED");
+  const [likedOnly, setLikedOnly] = useState(false);
+  const playlistCount = usePlaylists().length;
 
   const typeCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -89,7 +103,11 @@ export function CinemaScreen() {
   }, [items]);
   const ofMedium = useMemo(() => items.filter((m) => type === "all" || m.type === type), [items, type]);
   const shelfCounts = useMemo(() => new Map<Shelf, number>(SHELVES.map((s) => [s, ofMedium.filter((m) => onShelf(m, s)).length])), [ofMedium]);
-  const gallery = useMemo(() => sortGallery(ofMedium.filter((m) => onShelf(m, shelf)).filter((m) => matchesSearch(m, q)), sort), [ofMedium, shelf, q, sort]);
+  const likedCount = useMemo(() => ofMedium.filter(isLiked).length, [ofMedium]);
+  const gallery = useMemo(
+    () => sortGallery(ofMedium.filter((m) => onShelf(m, shelf) && (!likedOnly || isLiked(m)) && matchesSearch(m, q)), sort),
+    [ofMedium, shelf, likedOnly, q, sort],
+  );
   // Resolve by id so the dialog re-renders with the live record after each transition.
   const viewing = viewingId ? (items.find((m) => m.id === viewingId) ?? null) : null;
 
@@ -110,37 +128,52 @@ export function CinemaScreen() {
         <QuickAdd defaultType={type === "all" ? undefined : type} />
       </div>
 
-      <div className="grid gap-2">
-        <ShelfControl value={shelf} onChange={setShelf} counts={shelfCounts} />
-        <TypeChips value={type} onChange={setType} counts={typeCounts} />
-        <div className="flex flex-wrap gap-2">
-          <Input className="min-w-40 flex-1" placeholder="Search title, director, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
-            <SelectTrigger className="w-44" aria-label="Sort">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {GALLERY_SORTS.map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <Tabs defaultValue="gallery">
+        <TabsList>
+          <TabsTrigger value="gallery">Gallery</TabsTrigger>
+          <TabsTrigger value="playlists">
+            Playlists <span className="ml-1 tabular-nums opacity-60">{playlistCount}</span>
+          </TabsTrigger>
+        </TabsList>
 
-      {gallery.length === 0 ? (
-        <Card>
-          <CardContent className="text-muted-foreground p-8 text-center text-sm">{q.trim() ? "Nothing matches that search." : emptyMessage(shelf)}</CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-3 gap-y-4">
-          {gallery.map((m) => (
-            <WorkTile key={m.id} item={m} onOpen={(it) => setViewingId(it.id)} />
-          ))}
-        </div>
-      )}
+        <TabsContent value="gallery" className="grid gap-3 pt-2">
+          <div className="grid gap-2">
+            <ShelfControl value={shelf} onChange={setShelf} counts={shelfCounts} />
+            <TypeChips value={type} onChange={setType} counts={typeCounts} liked={likedOnly} onLiked={setLikedOnly} likedCount={likedCount} />
+            <div className="flex flex-wrap gap-2">
+              <Input className="min-w-40 flex-1" placeholder="Search title, director, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
+                <SelectTrigger className="w-44" aria-label="Sort">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {GALLERY_SORTS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {gallery.length === 0 ? (
+            <Card>
+              <CardContent className="text-muted-foreground p-8 text-center text-sm">{q.trim() ? "Nothing matches that search." : likedOnly ? "Nothing liked here yet." : emptyMessage(shelf)}</CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-3 gap-y-4">
+              {gallery.map((m) => (
+                <WorkTile key={m.id} item={m} onOpen={(it) => setViewingId(it.id)} onEdit={setEditing} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="playlists" className="pt-2">
+          <PlaylistsTab items={items} onOpenWork={(w) => setViewingId(w.id)} />
+        </TabsContent>
+      </Tabs>
 
       <WorkDetailDialog item={viewing} onClose={() => setViewingId(null)} onEdit={setEditing} />
       <AddWorkDialog open={addOpen} onOpenChange={setAddOpen} defaultType={type === "all" ? "movie" : type} />

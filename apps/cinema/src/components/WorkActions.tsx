@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, toast } from "@lifeline/ui";
-import { BookOpenCheck, Check, MoreHorizontal, Pencil, Play, Trash2, X } from "lucide-react";
+import { BookOpenCheck, Check, Eye, ListPlus, MoreHorizontal, Pencil, Play, Trash2, X } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
-import { abandon, finish, start, type Patch } from "../domain/rules";
+import { abandon, finish, start, unfinish, type Patch } from "../domain/rules";
 import { deleteWork, patchWork } from "../data/repo";
+import { AddToPlaylistDialog } from "./AddToPlaylistDialog";
 
 /** Applies a transition patch to an item and toasts. */
 export function useAct(item: Work) {
@@ -17,14 +19,16 @@ export function useAct(item: Work) {
  * The full transition set for one item, as a dropdown. Shared by the detail
  * dialog and the cards so both offer exactly the same actions.
  */
-export function WorkActionsMenu({ item, onEdit, onDeleted, trigger }: { item: Work; onEdit: (m: Work) => void; onDeleted?: () => void; trigger?: React.ReactNode }) {
+export function WorkActionsMenu({ item, onEdit, onDeleted, onOpenChange, trigger }: { item: Work; onEdit: (m: Work) => void; onDeleted?: () => void; onOpenChange?: (open: boolean) => void; trigger?: React.ReactNode }) {
   const def = workType(item.type);
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
   const act = useAct(item);
+  const [playlistOpen, setPlaylistOpen] = useState(false);
 
   return (
-    <DropdownMenu>
+    <>
+    <DropdownMenu onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
         {trigger ?? (
           <Button size="icon" variant="ghost" className="size-7 shrink-0">
@@ -38,6 +42,11 @@ export function WorkActionsMenu({ item, onEdit, onDeleted, trigger }: { item: Wo
             <Play /> {def.startVerb}
           </DropdownMenuItem>
         )}
+        {item.engagement !== "DONE" && (
+          <DropdownMenuItem onClick={act(def.engagement.DONE, finish())}>
+            <Eye /> Mark {def.engagement.DONE.toLowerCase()}
+          </DropdownMenuItem>
+        )}
         {reading && (
           <>
             <DropdownMenuItem onClick={act(def.engagement.DONE, finish())}>
@@ -49,11 +58,14 @@ export function WorkActionsMenu({ item, onEdit, onDeleted, trigger }: { item: Wo
           </>
         )}
         {done && (
-          <DropdownMenuItem onClick={act("Back to unstarted", { engagement: "UNSTARTED", finishedOn: "", startedOn: "" })}>
+          <DropdownMenuItem onClick={act("Back to unstarted", { ...unfinish(), startedOn: "" })}>
             <BookOpenCheck /> Mark {def.engagement.UNSTARTED.toLowerCase()} again
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => setPlaylistOpen(true)}>
+          <ListPlus /> Add to playlist…
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onEdit(item)}>
           <Pencil /> Edit
         </DropdownMenuItem>
@@ -69,5 +81,7 @@ export function WorkActionsMenu({ item, onEdit, onDeleted, trigger }: { item: Wo
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <AddToPlaylistDialog item={item} open={playlistOpen} onOpenChange={setPlaylistOpen} />
+    </>
   );
 }

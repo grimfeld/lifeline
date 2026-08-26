@@ -14,7 +14,7 @@ import type { WorkTypeId } from "./domain/workTypes";
 import { patchWork } from "./data/repo";
 import { abandon, finish, start } from "./domain/rules";
 import { cinemaDaylog } from "./daylog";
-import { settingsTypeDef, workTypeDefs } from "./types";
+import { playlistTypeDef, settingsTypeDef, workTypeDefs } from "./types";
 
 /** Cinema App (ADR 0024): movies and series — streamed, never owned. */
 export const cinemaApp: AppManifest = {
@@ -22,7 +22,7 @@ export const cinemaApp: AppManifest = {
   title: "Cinema",
   icon: Clapperboard,
   color: "var(--chart-red)",
-  types: [...workTypeDefs, settingsTypeDef],
+  types: [...workTypeDefs, playlistTypeDef, settingsTypeDef],
   screens: [{ id: "cinema.main", title: "Cinema", path: "cinema", icon: Clapperboard, component: CinemaScreen }],
   cards: [
     {

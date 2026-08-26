@@ -12,7 +12,7 @@ import type { WorkTypeId } from "./domain/workTypes";
 import { patchWork } from "./data/repo";
 import { abandon, finish, start } from "./domain/rules";
 import { discothequeDaylog } from "./daylog";
-import { workTypeDefs } from "./types";
+import { playlistTypeDef, workTypeDefs } from "./types";
 
 /** Discotheque App (ADR 0024): albums — streamed, keyless lookup, no settings. */
 export const discothequeApp: AppManifest = {
@@ -20,7 +20,7 @@ export const discothequeApp: AppManifest = {
   title: "Discotheque",
   icon: Disc3,
   color: "var(--chart-violet)",
-  types: workTypeDefs,
+  types: [...workTypeDefs, playlistTypeDef],
   screens: [{ id: "discotheque.main", title: "Discotheque", path: "discotheque", icon: Disc3, component: DiscothequeScreen }],
   cards: [
     {
