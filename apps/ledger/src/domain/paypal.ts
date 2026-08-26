@@ -1,6 +1,6 @@
 import type { DateStr } from "@lifeline/core";
 import { parseCsv, parseDate } from "./csv";
-import { parseAmount } from "./money";
+import { CURRENCY, parseAmount } from "./money";
 
 /**
  * PayPal payee resolution (ADR 0033 spirit): the bank writes every PayPal
@@ -35,6 +35,8 @@ export interface PaypalEntry {
   refId: string;
   /** PayPal's own row type ("Express Checkout Payment", "General Currency Conversion"…). */
   type: string;
+  /** ISO code of the row's own currency ("EUR", "USD"); "" when the file has no such column. */
+  currency: string;
 }
 
 // ---- Parsing -------------------------------------------------------------
@@ -52,18 +54,30 @@ function normalizeHeader(s: string): string {
 
 /**
  * Which header means what. PayPal writes the file in the account's own
- * language, so each column is found by any of its known names — English
- * first, then the other languages a European account is likely to produce.
- * A column already claimed by a more specific field is never reused, so
- * "Numéro de transaction de référence" cannot be read as the id.
+ * language — and has renamed columns over the years ("Brut" became "Avant
+ * commission", "Numéro de transaction de référence" grew a "la") — so each
+ * column is found by any of its known names: English first, then the other
+ * languages a European account is likely to produce. A column already
+ * claimed by a more specific field is never reused, so a reference-id
+ * header cannot be read as the id.
  */
 const COLUMNS = {
-  refId: ["reference txn id", "numero de transaction de reference", "referenztransaktionscode", "id de transaccion de referencia", "id transazione di riferimento"],
+  refId: [
+    "reference txn id",
+    "numero de transaction de reference",
+    "numero de la transaction de reference",
+    "referenztransaktionscode",
+    "id de transaccion de referencia",
+    "id transazione di riferimento",
+  ],
   id: ["transaction id", "numero de transaction", "transaktionscode", "id de transaccion", "codice transazione"],
   date: ["date", "datum", "fecha", "data"],
   name: ["name", "nom", "nombre", "nome"],
   type: ["type", "typ", "tipo"],
-  gross: ["gross", "brut", "brutto", "bruto", "lordo"],
+  gross: ["gross", "brut", "avant commission", "brutto", "bruto", "lordo"],
+  /** Read when the file has no gross column at all. */
+  net: ["net", "netto", "neto"],
+  currency: ["currency", "devise", "wahrung", "moneda", "valuta"],
   impact: ["balance impact", "impact sur le solde", "auswirkung auf saldo", "impacto en el saldo", "impatto sul saldo"],
   subject: ["subject", "item title", "objet", "titre de l objet", "artikelbezeichnung", "titulo del articulo", "oggetto"],
 } satisfies Record<string, string[]>;
@@ -118,8 +132,10 @@ export function parsePaypalCsv(text: string): PaypalEntry[] {
   const rows = parseCsv(text);
   if (rows.length < 2) throw new PaypalFormatError("That file has no rows.");
   const col = findColumns(rows[0]);
-  if (col.date < 0 || col.gross < 0 || (col.name < 0 && col.subject < 0)) {
-    throw new PaypalFormatError(`Not a PayPal activity CSV — expected Date, Gross and Name columns, found: ${rows[0].filter(Boolean).slice(0, 12).join(", ")}`);
+  const amountCol = col.gross >= 0 ? col.gross : col.net;
+  const missing = [col.date < 0 && "Date", amountCol < 0 && "Gross", col.name < 0 && col.subject < 0 && "Name"].filter(Boolean);
+  if (missing.length > 0) {
+    throw new PaypalFormatError(`Not a PayPal activity CSV — no ${missing.join(", ")} column. Found: ${rows[0].filter(Boolean).slice(0, 12).join(", ")}`);
   }
   const body = rows.slice(1);
   const format = inferDateFormat(body.map((r) => (r[col.date] ?? "").trim()));
@@ -129,7 +145,7 @@ export function parsePaypalCsv(text: string): PaypalEntry[] {
     const impact = normalizeHeader(cell(row, col.impact));
     if (impact === "memo" || impact === "note") continue;
     const date = parseDate(cell(row, col.date), format);
-    const amount = parseAmount(cell(row, col.gross));
+    const amount = parseAmount(cell(row, amountCol));
     if (date === null || amount === null || amount === 0) continue;
     out.push({
       id: cell(row, col.id) || `pp-${date}-${amount}-${i}`,
@@ -139,6 +155,7 @@ export function parsePaypalCsv(text: string): PaypalEntry[] {
       subject: cell(row, col.subject),
       refId: cell(row, col.refId),
       type: cell(row, col.type),
+      currency: cell(row, col.currency).toUpperCase(),
     });
   }
   return out;
@@ -229,11 +246,22 @@ export interface PaypalQuery {
 }
 
 /**
+ * Is this row's amount in the ledger's own currency? A foreign-currency
+ * purchase appears in the file twice — the payment in dollars and the
+ * conversion in euros, referencing it — and only the euro line can equal
+ * what the bank posted; the dollar figure matching a euro row would be pure
+ * coincidence. A file without a currency column is trusted as-is.
+ */
+function inLedgerCurrency(entry: PaypalEntry): boolean {
+  return entry.currency === "" || entry.currency === CURRENCY;
+}
+
+/**
  * Match one bank row against the PayPal file. A reference the bank itself
- * quoted wins outright; otherwise the amount must match to the cent and the
- * day must fall in the posting window, and only a single merchant surviving
- * that counts as an answer. Several merchants, or none, and the payee is
- * left exactly as the bank wrote it.
+ * quoted wins outright; otherwise the amount must match to the cent, in the
+ * ledger's currency, and the day must fall in the posting window, and only
+ * a single merchant surviving that counts as an answer. Several merchants,
+ * or none, and the payee is left exactly as the bank wrote it.
  */
 export function matchPaypal(row: PaypalQuery, index: PaypalIndex): PaypalMatch {
   const named = index.named;
@@ -246,12 +274,12 @@ export function matchPaypal(row: PaypalQuery, index: PaypalIndex): PaypalMatch {
   });
   if (quoted.length > 0) {
     // Several rows share a reference (a payment and its funding); the one whose amount matches is the payment.
-    const byAmount = quoted.filter((c) => Math.abs(c.entry.amount) === Math.abs(row.amount));
+    const byAmount = quoted.filter((c) => inLedgerCurrency(c.entry) && Math.abs(c.entry.amount) === Math.abs(row.amount));
     return { status: "exact", pick: byAmount[0] ?? quoted[0], candidates: quoted };
   }
 
   const fits = named
-    .filter((c) => Math.abs(c.entry.amount) === Math.abs(row.amount))
+    .filter((c) => inLedgerCurrency(c.entry) && Math.abs(c.entry.amount) === Math.abs(row.amount))
     .map((c) => ({ ...c, diff: dayDiff(row.date, c.entry.date) }))
     .filter((c) => c.diff >= -WINDOW_BEFORE && c.diff <= WINDOW_AFTER)
     .sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff) || a.entry.date.localeCompare(b.entry.date));
