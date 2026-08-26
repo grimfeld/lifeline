@@ -4,7 +4,7 @@ import { Badge, Button, Card, CardContent, Input, Select, SelectContent, SelectI
 import { formatHuman, todayStr } from "@lifeline/core";
 import { ArrowLeftRight, Import, Landmark, Pencil, Plus, Scale } from "lucide-react";
 import type { Due, LedgerAccount, Recurring, Transaction } from "../domain/types";
-import { balanceOf } from "../domain/derive";
+import { balanceOf, formatMonth, monthOf } from "../domain/derive";
 import { formatCents, formatSigned } from "../domain/money";
 import { describeDueDay, isOverdue, openDues } from "../domain/recur";
 import { confirmDue, dismissDue, useAccounts, useCategories, useRecurrings, useTransactions } from "../data/repo";
@@ -15,6 +15,24 @@ import { ReconcileDialog } from "../components/ReconcileDialog";
 import { ImportDialog } from "../components/ImportDialog";
 
 const PAGE = 100;
+
+type SortKey = "date-desc" | "date-asc" | "amount-desc" | "amount-asc" | "payee";
+
+const SORTS: Record<SortKey, (a: Transaction, b: Transaction) => number> = {
+  "date-desc": (a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt),
+  "date-asc": (a, b) => a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt),
+  "amount-desc": (a, b) => Math.abs(b.amount) - Math.abs(a.amount) || b.date.localeCompare(a.date),
+  "amount-asc": (a, b) => Math.abs(a.amount) - Math.abs(b.amount) || b.date.localeCompare(a.date),
+  payee: (a, b) => a.payee.localeCompare(b.payee) || b.date.localeCompare(a.date),
+};
+
+const SORT_LABEL: Record<SortKey, string> = {
+  "date-desc": "Newest first",
+  "date-asc": "Oldest first",
+  "amount-desc": "Largest first",
+  "amount-asc": "Smallest first",
+  payee: "Payee A–Z",
+};
 
 /**
  * The Register (ADR 0033): the workhorse — per-account transaction list,
@@ -29,6 +47,9 @@ export function RegisterScreen() {
 
   const [accountFilter, setAccountFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState("all");
+  const [kindFilter, setKindFilter] = useState("all");
+  const [sort, setSort] = useState<SortKey>("date-desc");
   const [search, setSearch] = useState("");
   const [limit, setLimit] = useState(PAGE);
 
@@ -50,16 +71,23 @@ export function RegisterScreen() {
   const dues = useMemo(() => openDues(recurrings, transactions, today), [recurrings, transactions, today]);
   const uncategorized = useMemo(() => transactions.filter((t) => (t.kind === "expense" || t.kind === "income") && !t.categoryId), [transactions]);
 
+  /** Every month the ledger touches, newest first — the month filter's options. */
+  const months = useMemo(() => Array.from(new Set(transactions.map((t) => monthOf(t.date)))).sort().reverse(), [transactions]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return transactions.filter((t) => {
-      if (accountFilter === "uncategorized") return (t.kind === "expense" || t.kind === "income") && !t.categoryId;
-      if (accountFilter !== "all" && t.accountId !== accountFilter && t.fromAccountId !== accountFilter && t.toAccountId !== accountFilter) return false;
+    const out = transactions.filter((t) => {
+      if (accountFilter === "uncategorized") {
+        if (!((t.kind === "expense" || t.kind === "income") && !t.categoryId)) return false;
+      } else if (accountFilter !== "all" && t.accountId !== accountFilter && t.fromAccountId !== accountFilter && t.toAccountId !== accountFilter) return false;
       if (categoryFilter !== "all" && t.categoryId !== categoryFilter) return false;
+      if (monthFilter !== "all" && monthOf(t.date) !== monthFilter) return false;
+      if (kindFilter !== "all" && t.kind !== kindFilter) return false;
       if (q && !`${t.payee} ${t.note}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [transactions, accountFilter, categoryFilter, search]);
+    return out.sort(SORTS[sort]);
+  }, [transactions, accountFilter, categoryFilter, monthFilter, kindFilter, sort, search]);
 
   function describe(t: Transaction): { what: string; sign: string } {
     switch (t.kind) {
@@ -134,7 +162,49 @@ export function RegisterScreen() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={monthFilter} onValueChange={setMonthFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All time</SelectItem>
+                {months.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {formatMonth(m)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={kindFilter} onValueChange={setKindFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All kinds</SelectItem>
+                <SelectItem value="expense">Expenses</SelectItem>
+                <SelectItem value="income">Income</SelectItem>
+                <SelectItem value="transfer">Transfers</SelectItem>
+                <SelectItem value="adjustment">Adjustments</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {SORT_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Input className="max-w-56 flex-1" placeholder="Search payee or note…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div className="text-muted-foreground text-xs">
+            {filtered.length} transaction{filtered.length === 1 ? "" : "s"}
+            {" · "}−{formatCents(filtered.filter((t) => t.kind === "expense").reduce((s, t) => s + t.amount, 0))}
+            {" · "}+{formatCents(filtered.filter((t) => t.kind === "income").reduce((s, t) => s + t.amount, 0))}
           </div>
           <Card className="py-1">
             <CardContent className="px-0">
