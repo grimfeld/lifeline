@@ -21,8 +21,6 @@ function tx(partial: Partial<Transaction>): Transaction {
     categoryId: "",
     payee: "",
     note: "",
-    recurringId: "",
-    dueDate: "",
     importId: "",
     ...partial,
   } as unknown as Transaction;
