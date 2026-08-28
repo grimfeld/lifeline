@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Sheet, SheetContent, SheetTitle, cn } from "@lifeline/ui";
 import { useAllCommands, workspaceOfPath, workspaces, DASHBOARD_WORKSPACE, type CommandDef } from "@lifeline/core";
 import { CalendarDays, LayoutDashboard, Menu, Plus } from "lucide-react";
 import { Sidebar } from "../components/Sidebar";
+import { SyncBadge } from "../components/SyncBadge";
+import { WorkspaceSwitcher } from "../components/WorkspaceSwitcher";
 import { usePhoneHome } from "./phoneHome";
 
 type DialogCommand = CommandDef & { appId: string };
@@ -31,6 +33,13 @@ export function MobileNav() {
   const wsId = workspaceOfPath(location.pathname);
   const ws = workspaces().find((w) => w.id === wsId);
   const WorkspaceSidebar = wsId !== DASHBOARD_WORKSPACE ? ws?.sidebar : undefined;
+
+  // Any tap that navigates closes the drawer. A workspace sidebar is not made of
+  // links — the Vault's tree, search hits and tags are buttons that navigate — so
+  // watching the location is the only signal that covers all of them.
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname, location.search]);
 
   function slot(active: boolean) {
     return cn(
@@ -62,24 +71,24 @@ export function MobileNav() {
         </button>
       </nav>
 
-      {/* ☰ drawer: the current workspace's sidebar, off-canvas. Any link tap closes it. */}
+      {/* ☰ drawer: the current workspace's sidebar, off-canvas — the whole desktop frame,
+          switcher and sync included, or the phone would be stuck in the workspace it is in. */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="left" aria-describedby={undefined} className="p-0">
+        <SheetContent side="left" aria-describedby={undefined} className="overflow-hidden p-0">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <div
-            className="flex min-h-0 flex-1 flex-col"
-            onClickCapture={(e) => {
-              if ((e.target as HTMLElement).closest("a")) setDrawerOpen(false);
-            }}
-          >
-            {WorkspaceSidebar ? (
-              <div className="bg-sidebar text-sidebar-foreground flex min-h-0 flex-1 flex-col">
+          {WorkspaceSidebar ? (
+            <div className="bg-sidebar text-sidebar-foreground flex min-h-0 flex-1 flex-col">
+              <WorkspaceSwitcher />
+              <div className="flex min-h-0 flex-1 flex-col">
                 <WorkspaceSidebar />
               </div>
-            ) : (
-              <Sidebar className="w-full border-r-0" />
-            )}
-          </div>
+              <div className="border-t p-2">
+                <SyncBadge />
+              </div>
+            </div>
+          ) : (
+            <Sidebar className="w-full border-r-0" />
+          )}
         </SheetContent>
       </Sheet>
 

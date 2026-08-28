@@ -172,3 +172,31 @@ into the prose.
 
 `useIsMobile` moves from the shell to Core: Apps growing a phone layout need
 the breakpoint too, and it is a browser fact, not shell furniture.
+
+## Amendment (2026-08-28): the drawer carries the whole frame, and the editor's panel is a sheet
+
+"Everything else stays reachable behind the ☰ drawer" was not true of the
+Vault. Three holes, all of them dead ends on a phone:
+
+**The drawer showed a workspace's sidebar, not the workspace frame.** The
+desktop mounts the Workspace switcher above that sidebar and the sync badge
+below it; the drawer mounted neither. In the Vault — where the ☰ *is* the
+sidebar — that left no way back to the Dashboard and no way to sign in: the
+phone was stuck in whichever workspace it had opened. The drawer now renders
+the same three pieces the desktop frame does, switcher included.
+
+**The drawer closed on a link, and a sidebar is not made of links.** It
+watched taps for an `<a>`, but the Vault's tree rows, search hits and tag
+rows are buttons that navigate. Tapping a note opened it *behind* a drawer
+that stayed put, so the tree read as broken. Closing is now driven by the
+location changing, which covers every row whatever it is made of.
+
+**The links panel had no phone form at all.** It was a `max-md:hidden`
+column with a `max-md:hidden` toggle — backlinks, the local graph, the mini
+map and every App's document panel were desktop-only, silently. Below `md`
+the same panel is a right sheet (the drawer pattern again), opened by the
+toggle that now shows on a phone; opening a link from it navigates, which
+remounts the editor and takes the sheet with it. This reverses the Writer's
+pad amendment above on one point: the pad's panel toggle stays on a phone.
+
+The `max-md:hidden` column and its desktop toggle are untouched.
