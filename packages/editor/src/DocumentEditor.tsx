@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, TagInput, Textarea, toast } from "@lifeline/ui";
+import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, TagInput, Textarea, cn, toast } from "@lifeline/ui";
 import {
   documentPanels,
   basePath,
@@ -23,7 +23,7 @@ import {
   type LinkIndex,
   type LinkRef,
 } from "@lifeline/core";
-import { BookOpen, Code2, Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Pencil, Table2, Trash2 } from "lucide-react";
+import { BookOpen, Code2, Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Pencil, SlidersHorizontal, Table2, Trash2 } from "lucide-react";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { MarkdownView } from "./MarkdownView";
 import { FieldsForm } from "./FieldsForm";
@@ -64,21 +64,29 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   const navigate = useNavigate();
   const [panelOpen, setPanelOpen] = useState(showPanel);
   const [mode, setMode] = useState<"edit" | "read" | "text">("edit");
+  /** Phone: the Fields + Tags strip is folded away — on a phone the body is the point. */
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [title, setTitle] = useState(doc.title);
   useEffect(() => setTitle(doc.title), [doc.title]);
 
   const docRef = useRef(doc);
   docRef.current = doc;
+  // Kept in a ref: an App usually passes a fresh closure every render, and a
+  // changing `write` used to re-run the unmount effect below on every render —
+  // flushing (and syncing) mid-word instead of when the typing stops.
+  const saveRef = useRef(save);
+  saveRef.current = save;
   /** Pending edits not yet flushed. */
   const pending = useRef<Partial<Document>>({});
   const timer = useRef<number | null>(null);
-  const write = useCallback(
-    async (next: Document) => {
-      if (save) await save(next);
-      else await putDocument(next as Document & { type: string });
-    },
-    [save],
-  );
+  /** The body the editor holds; ahead of the stored one until a write comes back. */
+  const editorBody = useRef<string | null>(null);
+  /** Bodies handed to the store and not read back yet (see `body` below). */
+  const written = useRef<string[]>([]);
+  const write = useCallback(async (next: Document) => {
+    if (saveRef.current) await saveRef.current(next);
+    else await putDocument(next as Document & { type: string });
+  }, []);
   const flush = useCallback(() => {
     if (timer.current) {
       window.clearTimeout(timer.current);
@@ -87,10 +95,12 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
     if (Object.keys(pending.current).length === 0) return;
     const next = { ...docRef.current, ...pending.current } as Document;
     pending.current = {};
+    if (typeof next.body === "string") written.current = [...written.current, next.body].slice(-10);
     void write(next);
   }, [write]);
   const stage = useCallback(
     (patch: Partial<Document>, immediate = false) => {
+      if (typeof patch.body === "string") editorBody.current = patch.body;
       pending.current = { ...pending.current, ...patch };
       if (immediate) return flush();
       if (timer.current) window.clearTimeout(timer.current);
@@ -127,7 +137,26 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   );
   const context = useMemo(() => ({ docDate, openRef }), [docDate, openRef]);
 
-  const body = typeof doc.body === "string" ? doc.body : "";
+  const stored = typeof doc.body === "string" ? doc.body : "";
+  /**
+   * The text the editor works on. The stored body lags behind the keystrokes
+   * for the length of a write's round trip, so a Document arriving with a body
+   * we ourselves wrote is our own write catching up, not news, and must not be
+   * pushed back into the editor — it would undo whatever was typed meanwhile
+   * (erasing characters fast used to fight the editor, the last one reappearing
+   * over and over as each save came back). Anything else — another device's
+   * edit, a Restore, text mode — is news and wins.
+   */
+  const body = (() => {
+    if (editorBody.current === null || stored === editorBody.current) {
+      written.current = [];
+      return stored;
+    }
+    if (typeof pending.current.body === "string" || written.current.includes(stored)) return editorBody.current;
+    editorBody.current = null;
+    written.current = [];
+    return stored;
+  })();
   const hasBody = (def?.body ?? "optional") !== "none";
   const fields = def?.fields ?? [];
   const fieldValues = useMemo(() => {
@@ -188,8 +217,8 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   const label = def ? singularOf(def) : doc.type;
   return (
     <div className="flex h-full min-h-0">
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center gap-2 border-b px-4 py-2">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2 md:flex-nowrap md:px-4">
           {Icon && <Icon className="text-muted-foreground size-4 shrink-0" />}
           {def?.titleRule === "date" ? (
             <h1 className="text-lg font-semibold tracking-tight">
@@ -207,11 +236,14 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
               aria-label="Title"
             />
           )}
-          <Badge variant="secondary" className="shrink-0 cursor-pointer" title={`Open the ${def?.label ?? doc.type} Base`} onClick={() => navigate(basePath(doc.type))}>
+          <Badge variant="secondary" className="shrink-0 cursor-pointer max-md:hidden" title={`Open the ${def?.label ?? doc.type} Base`} onClick={() => navigate(basePath(doc.type))}>
             {label}
           </Badge>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-1 max-md:basis-full md:flex-nowrap">
             {toolbar}
+            <Button size="icon" variant="ghost" className={cn("size-8 md:hidden", detailsOpen && "bg-accent")} onClick={() => setDetailsOpen((o) => !o)} aria-label="Fields and tags" title="Fields and tags">
+              <SlidersHorizontal />
+            </Button>
             {hasBody && (
               <Button size="icon" variant="ghost" className="size-8" onClick={() => setMode((m) => (m === "read" ? "edit" : "read"))} aria-label={mode === "read" ? "Edit" : "Reading mode"} title={mode === "read" ? "Edit (⌘E)" : "Reading mode (⌘E)"}>
                 {mode === "read" ? <Pencil /> : <BookOpen />}
@@ -220,7 +252,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
             <Button size="icon" variant="ghost" className={`size-8 ${mode === "text" ? "bg-accent" : ""}`} onClick={() => setMode((m) => (m === "text" ? "edit" : "text"))} aria-label="Raw text" title="Frontmatter + body as text">
               <Code2 />
             </Button>
-            <Button size="icon" variant="ghost" className="size-8" onClick={() => setPanelOpen((o) => !o)} aria-label="Toggle links panel">
+            <Button size="icon" variant="ghost" className="size-8 max-md:hidden" onClick={() => setPanelOpen((o) => !o)} aria-label="Toggle links panel">
               {panelOpen ? <PanelRightClose /> : <PanelRightOpen />}
             </Button>
             <DropdownMenu>
@@ -242,7 +274,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
         </div>
         {banner}
         {mode === "text" ? (
-          <div className="flex min-h-0 flex-1 flex-col gap-2 p-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-2 p-3 md:p-4">
             <Textarea className="min-h-0 flex-1 resize-none font-mono text-sm" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setMode("edit")}>
@@ -255,7 +287,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
           </div>
         ) : (
           <>
-            <div className="grid gap-2 border-b px-4 py-2">
+            <div className={cn("grid gap-2 border-b px-3 py-2 md:px-4", !detailsOpen && "max-md:hidden")}>
               {fields.some((f) => !f.hidden) && (
                 <FieldsForm def={{ fields }} value={fieldValues} allowGuarded={allowGuarded} onChange={(next) => stage(next as Partial<Document>)} />
               )}
@@ -282,7 +314,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
               </div>
             </div>
             {hasBody && (
-              <div className="flex min-h-0 flex-1 flex-col px-4">
+              <div className="flex min-h-0 flex-1 flex-col px-3 md:px-4">
                 {mode === "read" ? (
                   <div className="min-h-0 flex-1 overflow-y-auto py-3" onDoubleClick={() => setMode("edit")}>
                     <MarkdownView body={body} index={index} docDate={docDate} />

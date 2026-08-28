@@ -34,6 +34,7 @@ import {
   resolveSettings,
   useCardInstanceTitle,
   useLiveQuery,
+  useIsMobile,
   type CardDef,
   type CardSettings,
   type ScreenLayoutItem,
@@ -44,7 +45,6 @@ import { TagChips } from "@lifeline/ui";
 import { TagPicker } from "../components/TagPicker";
 import { CardPicker } from "../components/CardPicker";
 import { CardSettingsForm } from "../components/CardSettingsForm";
-import { useIsMobile } from "../mobile/useIsMobile";
 
 const Grid = WidthProvider(GridLayout);
 
