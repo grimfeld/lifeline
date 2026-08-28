@@ -87,7 +87,9 @@ export function MobileNav() {
               </div>
             </div>
           ) : (
-            <Sidebar className="w-full border-r-0" />
+            /* flex-1 + min-h-0, or the sidebar grows to its content height inside the
+               sheet and its own nav never becomes the scroller. */
+            <Sidebar className="min-h-0 w-full flex-1 border-r-0" />
           )}
         </SheetContent>
       </Sheet>
