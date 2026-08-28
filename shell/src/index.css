@@ -20,6 +20,8 @@
 @source "../../apps/writer/src";
 @source "../../apps/workout/src";
 @source "../../apps/bible/src";
+@source "../../apps/lifelevel/src";
+@source "../../apps/ledger/src";
 @source "./";
 
 .react-grid-item.react-grid-placeholder {

@@ -74,6 +74,8 @@ export interface ComputedHabitState {
   expToNextLevel: number;
   progress01: number;
   completionCount: number;
+  /** Completions logged on the local calendar day of `now` — the "already done today" fact. */
+  completionsToday: number;
   lastCompletedAt: string | null;
   hoursSinceLastPositive: number | null;
   /** Decay ticks accrued in the idle tail since the last completion. */

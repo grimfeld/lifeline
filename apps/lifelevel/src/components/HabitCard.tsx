@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, cn } from "@lifeline/ui";
+import { Check, Circle } from "lucide-react";
 import type { ComputedHabitState } from "../domain/types";
 import { completeHabit } from "../data/repo";
 import { celebrateCompletion, decayWarningOnce, ensureFeedbackStyles, HIT_EVENT } from "../feedback/feedback";
@@ -26,6 +27,37 @@ export function XpBar({ state, className }: { state: ComputedHabitState; classNa
         style={{ width: `${Math.round((debt ? 0 : state.progress01) * 100)}%` }}
       />
     </div>
+  );
+}
+
+/**
+ * Whether this Habit has been completed on today's calendar day — the one thing
+ * XP and decay never say out loud, since a completion logged an hour ago and one
+ * logged last week both read as "safe". Green and filled means done; a dashed
+ * outline means today is still empty. Never a bar: more than once a day is
+ * allowed and welcome, so the extra logs are counted, not refused.
+ */
+export function DoneTodayBadge({
+  completionsToday,
+  compact = false,
+  className,
+}: {
+  completionsToday: number;
+  /** For a dashboard tile, where the row is narrow: just "Today", the colour carries the answer. */
+  compact?: boolean;
+  className?: string;
+}) {
+  const done = completionsToday > 0;
+  const label = compact ? "Today" : done ? "Done today" : "Not today";
+  return (
+    <Badge
+      variant={done ? "default" : "outline"}
+      title={done ? `Already completed today (${completionsToday}×)` : "Not completed today yet"}
+      className={cn(done ? "border-transparent bg-emerald-600 text-white dark:bg-emerald-500" : "text-muted-foreground border-dashed", className)}
+    >
+      {done ? <Check /> : <Circle />}
+      {done && completionsToday > 1 ? `${label} ×${completionsToday}` : label}
+    </Badge>
   );
 }
 
@@ -71,9 +103,11 @@ export function HabitCard({ state, now, onOpen }: { state: ComputedHabitState; n
   }
 
   const debt = state.rawXp < 0;
+  const doneToday = state.completionsToday > 0;
   return (
-    <Card className={cn("gap-3", shake && "ll-shake", decayImminent && "border-rose-400/60")}>
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0">
+    // The Card draws its edge as a ring, not a border — tint that, or the accent is invisible.
+    <Card className={cn("gap-3", shake && "ll-shake", decayImminent ? "ring-rose-400/60" : doneToday && "ring-emerald-500/60")}>
+      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
         <div className="min-w-0">
           <CardTitle className="truncate text-base">
             <button type="button" className="hover:underline" onClick={onOpen}>
@@ -85,11 +119,11 @@ export function HabitCard({ state, now, onOpen }: { state: ComputedHabitState; n
               Lv <span key={state.level} className="ll-pop">{state.level}</span>
             </Badge>
             <Badge variant="outline">{state.difficulty}</Badge>
-            {state.completionCount > 0 && <span className="text-muted-foreground text-xs">Done {state.completionCount}×</span>}
+            <DoneTodayBadge completionsToday={state.completionsToday} />
           </div>
         </div>
-        <Button size="sm" disabled={pending} onClick={() => void quickComplete()}>
-          {pending ? "Logging…" : flash ? "Logged!" : "Complete"}
+        <Button size="sm" className="shrink-0" variant={doneToday ? "secondary" : "default"} disabled={pending} onClick={() => void quickComplete()}>
+          {pending ? "Logging…" : flash ? "Logged!" : doneToday ? "Complete again" : "Complete"}
         </Button>
       </CardHeader>
       <CardContent className="grid gap-1.5">
