@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, TagInput, Textarea, cn, toast } from "@lifeline/ui";
+import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, cn, toast } from "@lifeline/ui";
 import {
   documentPanels,
   basePath,
@@ -16,6 +16,7 @@ import {
   removeDocument,
   singularOf,
   textToDocument,
+  useIsMobile,
   useTagVocabulary,
   writeGeo,
   type Document,
@@ -62,7 +63,12 @@ export interface DocumentEditorProps {
  */
 export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn }: DocumentEditorProps) {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [panelOpen, setPanelOpen] = useState(showPanel);
+  /** Phone: the panel is a right sheet, not a column — it starts closed whatever `showPanel` says. */
+  const [panelSheet, setPanelSheet] = useState(false);
+  const panelShown = isMobile ? panelSheet : panelOpen;
+  const togglePanel = () => (isMobile ? setPanelSheet((o) => !o) : setPanelOpen((o) => !o));
   const [mode, setMode] = useState<"edit" | "read" | "text">("edit");
   /** Phone: the Fields + Tags strip is folded away — on a phone the body is the point. */
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -215,6 +221,41 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
 
   const Icon = def?.icon;
   const label = def ? singularOf(def) : doc.type;
+  /** The right-hand panel's contents: a column on the desktop, a sheet on a phone. */
+  const panel = (
+    <>
+      {!isMobile && (
+        <div className="text-muted-foreground mb-2 flex items-center gap-1 text-xs">
+          <Link2 className="size-3" /> ⌘-click a link to open it
+        </div>
+      )}
+      {coords && (
+        <div className="mb-3">
+          <MiniMap
+            lat={coords.lat}
+            lon={coords.lon}
+            color="var(--chart-green)"
+            onMove={(lat, lon) => {
+              if (geoKey) stage({ [geoKey]: writeGeo({ lat, lon }) }, true);
+            }}
+            onExpand={() => navigate(`/map?focus=${doc.type}/${doc.id}`)}
+          />
+        </div>
+      )}
+      <div className="mb-3">
+        <LocalGraphPanel docId={doc.id} index={index} onOpen={openRef} />
+      </div>
+      {documentPanels().map((p) => {
+        const Panel = p.component;
+        return (
+          <div key={`${p.appId}/${p.id}`} className="mb-3">
+            <Panel doc={doc} index={index} />
+          </div>
+        );
+      })}
+      <LinksPanel docId={doc.id} index={index} onOpen={openRef} />
+    </>
+  );
   return (
     <div className="flex h-full min-h-0">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -252,8 +293,8 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
             <Button size="icon" variant="ghost" className={`size-8 ${mode === "text" ? "bg-accent" : ""}`} onClick={() => setMode((m) => (m === "text" ? "edit" : "text"))} aria-label="Raw text" title="Frontmatter + body as text">
               <Code2 />
             </Button>
-            <Button size="icon" variant="ghost" className="size-8 max-md:hidden" onClick={() => setPanelOpen((o) => !o)} aria-label="Toggle links panel">
-              {panelOpen ? <PanelRightClose /> : <PanelRightOpen />}
+            <Button size="icon" variant="ghost" className={cn("size-8", isMobile && panelShown && "bg-accent")} onClick={togglePanel} aria-label="Toggle links panel" title="Links panel">
+              {panelShown ? <PanelRightClose /> : <PanelRightOpen />}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -334,38 +375,18 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
           </>
         )}
       </div>
-      {panelOpen && (
-        <aside className="w-72 shrink-0 overflow-y-auto border-l p-3 max-md:hidden">
-          <div className="text-muted-foreground mb-2 flex items-center gap-1 text-xs">
-            <Link2 className="size-3" /> ⌘-click a link to open it
-          </div>
-          {coords && (
-            <div className="mb-3">
-              <MiniMap
-                lat={coords.lat}
-                lon={coords.lon}
-                color="var(--chart-green)"
-                onMove={(lat, lon) => {
-                  if (geoKey) stage({ [geoKey]: writeGeo({ lat, lon }) }, true);
-                }}
-                onExpand={() => navigate(`/map?focus=${doc.type}/${doc.id}`)}
-              />
-            </div>
-          )}
-          <div className="mb-3">
-            <LocalGraphPanel docId={doc.id} index={index} onOpen={openRef} />
-          </div>
-          {documentPanels().map((p) => {
-            const Panel = p.component;
-            return (
-              <div key={`${p.appId}/${p.id}`} className="mb-3">
-                <Panel doc={doc} index={index} />
-              </div>
-            );
-          })}
-          <LinksPanel docId={doc.id} index={index} onOpen={openRef} />
-        </aside>
-      )}
+      {/* Not merely CSS-hidden on a phone: the sheet below holds the same panel, and mounting both
+          would run every App's document panel twice. */}
+      {panelOpen && !isMobile && <aside className="w-72 shrink-0 overflow-y-auto border-l p-3 max-md:hidden">{panel}</aside>}
+      {/* Phone: the same panel as a right sheet — there is no width for a column, and
+          the links, the local graph and an App's own panels are not desk-only (ADR 0021). */}
+      <Sheet open={isMobile && panelSheet} onOpenChange={setPanelSheet}>
+        <SheetContent side="right" aria-describedby={undefined} className="w-[85%] max-w-sm overflow-hidden">
+          <SheetTitle>Links</SheetTitle>
+          {/* Opening a link navigates, which remounts the editor (keyed by Document) — the sheet goes with it. */}
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">{panel}</div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
