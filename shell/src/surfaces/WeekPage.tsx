@@ -45,13 +45,13 @@ import {
   canMoveTimed,
   moveTimedItem,
   formatTime,
+  useIsMobile,
   type DateStr,
   type PoolItem,
   type SurfaceItem,
   type SurfaceTimedItem,
 } from "@lifeline/core";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, GripVertical, Inbox, MapPin, Pin, PinOff } from "lucide-react";
-import { useIsMobile } from "../mobile/useIsMobile";
 
 const POOL = "pool";
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];

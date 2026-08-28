@@ -15,6 +15,7 @@ export * from "./contracts/tagfilter";
 export * from "./tags";
 export * from "./geocode";
 export * from "./markdown";
+export * from "./media";
 export * from "./templates";
 export * from "./folders";
 export * from "./documents/types";

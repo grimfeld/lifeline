@@ -27,6 +27,7 @@ import {
   useSurfaceItems,
   useTimedItems,
   useTimedTemplates,
+  useIsMobile,
   type DateStr,
   type PoolItem,
   type SurfaceItem,
@@ -35,7 +36,6 @@ import {
 } from "@lifeline/core";
 import { Check, ChevronDown, ChevronLeft, ChevronRight, Inbox, LayoutTemplate, Plus, Trash2, Zap } from "lucide-react";
 import { TagFilterBar } from "../components/TagFilterBar";
-import { useIsMobile } from "../mobile/useIsMobile";
 
 const HOUR_PX = 56;
 const SNAP_MIN = 15;
