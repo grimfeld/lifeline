@@ -6,7 +6,7 @@ import { computeProgression } from "../domain/progression";
 import { habitHref } from "../domain/daylog";
 import { completeHabit, useHabitCompletions, useHabits, useNegativeCompletions, useNegatives, useProgressionNow } from "../data/repo";
 import { celebrateCompletion } from "../feedback/feedback";
-import { formatTimeUntil, XpBar } from "../components/HabitCard";
+import { DoneTodayBadge, formatTimeUntil, XpBar } from "../components/HabitCard";
 
 /** Options hook for the `habit` setting: every Habit by name. */
 export function useHabitTileOptions(): CardOption[] {
@@ -51,12 +51,14 @@ export function HabitTileCard({ settings, configure }: CardProps) {
   }
 
   const debt = state.rawXp < 0;
+  const doneToday = state.completionsToday > 0;
   return (
     <div className="flex h-full flex-col gap-2 p-3">
       <div className="flex items-center justify-between gap-2">
         <button type="button" className="min-w-0 truncate text-left text-sm font-medium hover:underline" onClick={() => navigate(habitHref(habit.id))}>
           {habit.title}
         </button>
+        <DoneTodayBadge completionsToday={state.completionsToday} compact className="shrink-0" />
         <Badge variant="secondary" className="tabular-nums">Lv {state.level}</Badge>
       </div>
       <div className="flex items-baseline justify-between">
@@ -65,8 +67,8 @@ export function HabitTileCard({ settings, configure }: CardProps) {
       </div>
       <XpBar state={state} />
       <div className="mt-auto">
-        <Button size="sm" className="w-full" disabled={pending} onClick={() => void quickComplete()}>
-          {pending ? "Logging…" : "Complete"}
+        <Button size="sm" variant={doneToday ? "secondary" : "default"} className="w-full" disabled={pending} onClick={() => void quickComplete()}>
+          {pending ? "Logging…" : doneToday ? "Complete again" : "Complete"}
         </Button>
       </div>
     </div>

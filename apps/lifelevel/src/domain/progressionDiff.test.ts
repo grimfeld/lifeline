@@ -16,6 +16,7 @@ function mockState(overrides: Partial<ComputedHabitState>): ComputedHabitState {
     expToNextLevel: 120,
     progress01: 0,
     completionCount: 0,
+    completionsToday: 0,
     lastCompletedAt: null,
     hoursSinceLastPositive: null,
     decayTicks: 0,
