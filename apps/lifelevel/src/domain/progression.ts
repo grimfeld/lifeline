@@ -4,6 +4,7 @@ import {
   expPerLevelFromDifficulty,
   xpGainForPositiveCompletion,
 } from "./difficulty";
+import { dayKeyOf } from "./daylog";
 import type {
   ComputedHabitState,
   ComputedNegativeState,
@@ -88,10 +89,16 @@ export function computeProgression(
     penaltyByHabit.set(c.affectedHabitId, (penaltyByHabit.get(c.affectedHabitId) ?? 0) + dmg);
   }
 
+  // "Already done today" is read from the ledger like every other number (ADR 0026),
+  // keyed on `occurredAt` and on the local calendar day — a completion back-logged to
+  // yesterday leaves today empty, and midnight clears it on its own.
+  const today = dayKeyOf(now.toISOString());
+
   const habitsOut: ComputedHabitState[] = habits.map((act) => {
     const mine = habitCompletionsSorted.filter((c) => c.habitId === act.id);
     const expPerLevel = expPerLevelFromDifficulty(act.difficulty);
     const completionCount = mine.length;
+    const completionsToday = mine.filter((c) => dayKeyOf(c.occurredAt) === today).length;
     const lastCompletedAt =
       mine.length > 0 ? mine.reduce((best, c) => (c.occurredAt > best ? c.occurredAt : best), mine[0].occurredAt) : null;
 
@@ -167,6 +174,7 @@ export function computeProgression(
       expToNextLevel,
       progress01,
       completionCount,
+      completionsToday,
       lastCompletedAt,
       hoursSinceLastPositive,
       decayTicks,

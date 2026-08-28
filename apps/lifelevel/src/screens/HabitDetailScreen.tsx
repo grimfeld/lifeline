@@ -26,7 +26,7 @@ import {
   useNegatives,
   useProgressionNow,
 } from "../data/repo";
-import { formatTimeUntil, XpBar } from "../components/HabitCard";
+import { DoneTodayBadge, formatTimeUntil, XpBar } from "../components/HabitCard";
 import { HabitEditorDialog } from "../components/HabitEditorDialog";
 import { CompleteHabitDialog } from "../components/LogDialogs";
 
@@ -110,6 +110,7 @@ export function HabitDetailScreen() {
         <h1 className="truncate text-2xl font-semibold tracking-tight">{habit.title}</h1>
         <Badge variant="secondary" className="tabular-nums">Lv {state.level}</Badge>
         <Badge variant="outline">{state.difficulty}</Badge>
+        <DoneTodayBadge completionsToday={state.completionsToday} />
         <div className="ml-auto flex items-center gap-1">
           <Button size="icon" variant="ghost" className="size-8" title="Edit" onClick={() => setEditOpen(true)}>
             <Pencil />
@@ -117,7 +118,9 @@ export function HabitDetailScreen() {
           <Button size="icon" variant="ghost" className="size-8" title="Delete habit" onClick={() => setConfirmDelete(true)}>
             <Trash2 />
           </Button>
-          <Button onClick={() => setLogOpen(true)}>Complete</Button>
+          <Button variant={state.completionsToday > 0 ? "secondary" : "default"} onClick={() => setLogOpen(true)}>
+            {state.completionsToday > 0 ? "Complete again" : "Complete"}
+          </Button>
         </div>
       </div>
 
@@ -130,6 +133,7 @@ export function HabitDetailScreen() {
           {debt ? "in debt — climb back to 0 before levels move again" : `${Math.round(state.expIntoLevel)} / ${state.expPerLevel} into Lv ${state.level}`}
         </span>
         <span className="text-muted-foreground text-sm">{state.nextDecayAt ? `decay in ${formatTimeUntil(state.nextDecayAt, now)}` : "safe from decay"}</span>
+        <span className="text-muted-foreground text-sm tabular-nums">{state.completionCount}× all time</span>
         {(habit.tags ?? []).length > 0 && <TagChips tags={habit.tags} size="xs" />}
       </div>
       <XpBar state={state} className="h-3" />
