@@ -4,6 +4,13 @@
   font-size: 0.95rem;
   background: transparent;
 }
+/* A phone must not zoom the page when the editor takes focus: iOS zooms any
+   field under 16px, and the zoom never comes back on its own. */
+@media (max-width: 767px) {
+  .ll-editor .cm-editor {
+    font-size: 1rem;
+  }
+}
 .ll-editor .cm-editor.cm-focused {
   outline: none;
 }
