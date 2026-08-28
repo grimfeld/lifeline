@@ -124,4 +124,47 @@ describe("computeProgression", () => {
     expect(stateA?.rawXp).toBe(10 - 18);
     expect(stateB?.rawXp).toBe(10);
   });
+
+  it("counts today's completions on the local calendar day, not the last 24 hours", () => {
+    // Local constructors on purpose: "today" is the day the user is living in.
+    const e = habit({ id: "e" });
+    const now = new Date(2026, 4, 20, 9, 30);
+    const completions = [
+      habitCompletion({ id: "y", habitId: "e", occurredAt: new Date(2026, 4, 19, 23, 30).toISOString() }),
+      habitCompletion({ id: "t1", habitId: "e", occurredAt: new Date(2026, 4, 20, 0, 5).toISOString() }),
+      habitCompletion({ id: "t2", habitId: "e", occurredAt: new Date(2026, 4, 20, 8, 0).toISOString() }),
+    ];
+    const p = computeProgression([e], [], completions, [], now).habits[0];
+    // The 23:30 log is ten hours old but belongs to yesterday; both of today's count.
+    expect(p?.completionsToday).toBe(2);
+    expect(p?.completionCount).toBe(3);
+  });
+
+  it("an empty today reads as 0, whatever the habit has banked", () => {
+    const e = habit({ id: "e" });
+    const now = new Date(2026, 4, 20, 9, 30);
+    const completions = Array.from({ length: 5 }, (_, i) =>
+      habitCompletion({ id: `c${i}`, habitId: "e", occurredAt: new Date(2026, 4, 14 + i, 12).toISOString() }),
+    );
+    const p = computeProgression([e], [], completions, [], now).habits[0];
+    expect(p?.completionsToday).toBe(0);
+  });
+
+  it("a completion back-logged to yesterday leaves today empty", () => {
+    const e = habit({ id: "e" });
+    const now = new Date(2026, 4, 20, 9, 30);
+    // Recorded this morning, but it happened yesterday — the ledger's occurredAt decides.
+    const completions = [habitCompletion({ id: "b", habitId: "e", occurredAt: new Date(2026, 4, 19, 18).toISOString() })];
+    const p = computeProgression([e], [], completions, [], now).habits[0];
+    expect(p?.completionsToday).toBe(0);
+  });
+
+  it("a Negative hit never counts as today's completion", () => {
+    const good = habit({ id: "good" });
+    const neg = negative({ id: "n", affectsHabitId: "good" });
+    const now = new Date(2026, 4, 20, 9, 30);
+    const hits = [negativeCompletion({ id: "h", negativeId: "n", affectedHabitId: "good", occurredAt: new Date(2026, 4, 20, 8).toISOString() })];
+    const p = computeProgression([good], [neg], [], hits, now).habits[0];
+    expect(p?.completionsToday).toBe(0);
+  });
 });
