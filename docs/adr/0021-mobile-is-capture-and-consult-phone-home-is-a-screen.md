@@ -131,3 +131,44 @@ reachable from a "Start workout" Card on the phone home and from the `+`
 menu. Editing Workouts, the Exercise library and PR tables stay desk work.
 The rule stands: parity grows page-by-page, and a page earns phone tuning by
 being used on the phone.
+
+## Amendment (2026-08-28): the Writer's pad grows a phone layout
+
+The third page to claim the parity clause, and the first App screen that is
+neither capture nor consult but *writing*: prose gets written on a phone, in
+the twenty minutes one has. Rendered unadapted it was the Schedule's failure
+again — the desk's furniture around a column of text with nothing left for the
+text. Desktop is untouched.
+
+**The Writings desk stacks.** The header's one row (title, count, four status
+filters, Base, New writing) ran off a 390px screen, so below `md` it becomes
+two: title with a count and a compact `+ New`, then the status filter as a
+scrollable strip. A row is one tap target — the whole row is the link, not the
+title alone, since a phone has no hover to find the small one by.
+
+**The pad gives the width to the text.** The generic editor's header wraps
+below `md`: the title keeps a row of its own and the actions take the next.
+The type Badge and the links-panel toggle are dropped there (the panel is
+already hidden below `md`, and the Badge's Base is in the ⋯ menu). The Fields
++ Tags strip — status, project, tags, three quarters of a phone screen above
+the first line of prose — folds behind a toggle in the header, closed by
+default. The status Select leaves the pad's own toolbar on a phone; it is one
+tap away in that strip.
+
+**Versions become a sheet, a compared Version takes the screen.** A 16rem
+column beside a 390px screen is not a column, so below `md` the Versions list
+is a bottom sheet (the drawer pattern the Schedule and the Week already use),
+and picking one closes it. Side-by-side compare is desk work: on a phone the
+Version replaces the editor — hidden, not unmounted, so the text and the
+cursor survive — with Restore and ✕ in its own header.
+
+The pad does not grab focus on a phone: a Writing is opened to read as often
+as to write, and a keyboard covering half the screen uninvited is the wrong
+default. Tapping the text opens it.
+
+**The editor's text is 16px below `md`.** iOS zooms any field under 16px on
+focus and never zooms back; CodeMirror's 0.95rem was doing it on every tap
+into the prose.
+
+`useIsMobile` moves from the shell to Core: Apps growing a phone layout need
+the breakpoint too, and it is a browser fact, not shell furniture.

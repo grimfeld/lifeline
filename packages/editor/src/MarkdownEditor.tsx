@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { EditorState } from "@codemirror/state";
+import { Annotation, EditorState } from "@codemirror/state";
 import { EditorView, drawSelection, highlightActiveLine, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
@@ -20,7 +20,11 @@ import {
   wikilinkPlugin,
   type EditorContext,
 } from "./editorExtensions";
+import { textChange } from "./textDiff";
 import "./editor.css";
+
+/** A value pushed in from outside (the stored Document changed): not the user's edit. */
+const external = Annotation.define<boolean>();
 
 const mdHighlight = HighlightStyle.define([
   { tag: t.heading1, fontSize: "1.5em", fontWeight: "600" },
@@ -43,7 +47,9 @@ const mdHighlight = HighlightStyle.define([
  * CodeMirror 6 markdown editor (live preview flavour, ADR 0009): wikilink and
  * tag decorations, `[[` autocomplete over the note index, `daylog` blocks
  * rendered as live widgets. Uncontrolled: `value` seeds the doc and is only
- * re-applied when it changes externally.
+ * re-applied when it changes externally — as a minimal change, marked
+ * `external` so it is never reported back through `onChange` (an echoed
+ * write would be stored and synced as if the user had typed it).
  */
 export function MarkdownEditor({
   value,
@@ -67,6 +73,8 @@ export function MarkdownEditor({
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const lastValue = useRef(value);
+  /** The editor has changes the owner has not handed back yet — it is ahead of `value`. */
+  const dirty = useRef(false);
 
   useEffect(() => {
     if (!host.current) return;
@@ -90,11 +98,12 @@ export function MarkdownEditor({
         keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap, indentWithTab]),
         placeholder ? cmPlaceholder(placeholder) : [],
         EditorView.updateListener.of((u) => {
-          if (u.docChanged) {
-            const next = u.state.doc.toString();
-            lastValue.current = next;
-            onChangeRef.current(next);
-          }
+          if (!u.docChanged) return;
+          const next = u.state.doc.toString();
+          lastValue.current = next;
+          if (u.transactions.some((tr) => tr.annotation(external))) return;
+          dirty.current = true;
+          onChangeRef.current(next);
         }),
       ],
     });
@@ -114,9 +123,20 @@ export function MarkdownEditor({
 
   useEffect(() => {
     const view = viewRef.current;
-    if (!view || value === lastValue.current) return;
+    if (!view) return;
+    if (value === lastValue.current) {
+      // The owner has caught up with what was typed here.
+      dirty.current = false;
+      return;
+    }
+    // Effects run a paint after the render that read `value`, and more may have
+    // been typed since. While this editor holds changes the owner has not
+    // handed back, its text is the newer one: a value computed before those
+    // keystrokes is stale and would undo them.
+    if (dirty.current) return;
     lastValue.current = value;
-    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value } });
+    const change = textChange(view.state.doc.toString(), value);
+    if (change) view.dispatch({ changes: change, annotations: external.of(true) });
   }, [value]);
 
   useEffect(() => {

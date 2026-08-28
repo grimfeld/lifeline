@@ -1,5 +1,6 @@
 import { db, DOCUMENTS, syncedCollectionNames, type SyncedRecord } from "./db";
 import { pb } from "./pb";
+import { shouldApply } from "./reconcile";
 import { documentTypeSync } from "../documents/registry";
 import { isCommonKey, type Document } from "../documents/types";
 import { useSyncExternalStore } from "react";
@@ -143,6 +144,9 @@ async function pullCollection(name: string): Promise<void> {
   const filter = cursor ? pb.filter("updated > {:c}", { c: cursor }) : "";
   let page = 1;
   let maxUpdated = cursor;
+  // A record held back below leaves the cursor where it is, so the server copy
+  // comes again next cycle instead of being skipped for good.
+  let held = false;
   for (;;) {
     const res = await pb.collection(name).getList(page, 200, {
       filter,
@@ -156,14 +160,15 @@ async function pullCollection(name: string): Promise<void> {
         (await db()._outbox.where("collection").equals(name).toArray()).map((e) => e.recordId),
       );
       for (const r of items) {
-        if (r.updated > maxUpdated) maxUpdated = r.updated;
         // A locally-queued write is newer intent: let push resolve it (LWW check happens there).
-        if (pending.has(r.id)) continue;
+        if (pending.has(r.id)) {
+          held = true;
+          continue;
+        }
+        if (!held && r.updated > maxUpdated) maxUpdated = r.updated;
         const local = await db().collection(name).get(r.id);
         const incoming = toLocal(name, r);
-        if (!local || incoming.updatedAt >= local.updatedAt) {
-          await db().collection(name).put(incoming);
-        }
+        if (shouldApply(local, incoming)) await db().collection(name).put(incoming);
       }
     });
     if (items.length < 200) break;
