@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveItems, describeRecurrence, parseItemId, sourceDatesInRange } from "./occurrences";
+import { currentSourceDate, deriveItems, describeRecurrence, parseItemId, sourceDatesInRange } from "./occurrences";
 import type { Weekday } from "@lifeline/core";
 import type { OccurrenceOverride, Task } from "./types";
 
@@ -127,5 +127,72 @@ describe("deriveItems", () => {
   it("drops occurrences moved out of the range", () => {
     const items = deriveItems([weekly("w", [1])], [ov("w", "2026-08-10", { movedTo: "2026-08-20" })], week);
     expect(items).toEqual([]);
+  });
+});
+
+describe("currentSourceDate", () => {
+  it("is the latest day the rule has produced, today included", () => {
+    expect(currentSourceDate(weekly("w", [1]), "2026-08-14")).toBe("2026-08-10");
+    expect(currentSourceDate(weekly("w", [1]), "2026-08-10")).toBe("2026-08-10");
+    expect(currentSourceDate({ ...weekly("m", []), recurrence: { kind: "monthly", days: [15] } }, "2026-08-14")).toBe("2026-07-15");
+    expect(
+      currentSourceDate(
+        { ...weekly("y", []), recurrence: { kind: "yearly", dates: [{ month: 12, day: 25 }] }, createdAt: "2020-01-01" },
+        "2026-08-14",
+      ),
+    ).toBe("2025-12-25");
+  });
+  it("is null before the task's first occurrence, and for one-time tasks", () => {
+    expect(currentSourceDate(weekly("w", [1], { createdAt: "2026-08-12" }), "2026-08-14")).toBeNull();
+    expect(currentSourceDate(oneTime("a", "2026-08-12"), "2026-08-14")).toBeNull();
+  });
+});
+
+// ADR 0036: a recurring task is overdue at most once — the Occurrence the
+// rule is on. The ones it has moved past have lapsed.
+describe("lapsed occurrences", () => {
+  it("lapses every missed occurrence but the one the rule is on", () => {
+    const items = deriveItems([weekly("w", [1, 2, 3, 4, 5, 6, 0])], [], week, "2026-08-13");
+    expect(items.map((i) => [i.date, i.lapsed])).toEqual([
+      ["2026-08-10", true],
+      ["2026-08-11", true],
+      ["2026-08-12", true],
+      ["2026-08-13", false], // today's occurrence
+      ["2026-08-14", false],
+      ["2026-08-15", false],
+      ["2026-08-16", false],
+    ]);
+  });
+
+  it("resets on the next occurrence: yesterday's miss lapses once today's arrives", () => {
+    const missed = (today: string) =>
+      deriveItems([weekly("w", [1, 4])], [], week, today).find((i) => i.date === "2026-08-10")!;
+    expect(missed("2026-08-12").lapsed).toBe(false); // still the current occurrence
+    expect(missed("2026-08-13").lapsed).toBe(true); // Thursday's occurrence took over
+  });
+
+  it("never lapses a completed occurrence, one still to come, or a one-time task", () => {
+    const items = deriveItems(
+      [weekly("w", [1, 2]), oneTime("a", "2026-08-10")],
+      [ov("w", "2026-08-10", { completedOn: "2026-08-10" })],
+      week,
+      "2026-08-14",
+    );
+    expect(items.map((i) => [i.itemId, i.lapsed])).toEqual([
+      ["a", false],
+      ["w|2026-08-10", false],
+      ["w|2026-08-11", false], // the current occurrence
+    ]);
+  });
+
+  it("un-lapses an occurrence moved onto today or later", () => {
+    const items = deriveItems(
+      [weekly("w", [1, 2, 3, 4, 5, 6, 0])],
+      [ov("w", "2026-08-10", { movedTo: "2026-08-16" })],
+      week,
+      "2026-08-14",
+    );
+    expect(items.find((i) => i.itemId === "w|2026-08-10")!.lapsed).toBe(false);
+    expect(items.find((i) => i.itemId === "w|2026-08-11")!.lapsed).toBe(true);
   });
 });

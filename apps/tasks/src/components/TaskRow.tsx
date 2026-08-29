@@ -99,7 +99,7 @@ export function TaskRow({
   const { task } = item;
   const today = todayStr();
   const done = !!item.completedOn;
-  const overdue = !done && item.date !== null && item.date < today;
+  const overdue = !done && !item.lapsed && item.date !== null && item.date < today;
   const archived = task.status === "archived";
 
   return (

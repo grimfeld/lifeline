@@ -378,7 +378,11 @@ export function WeekPage() {
   const pool = usePoolItems({ tags });
   // Time blockers are bands on the hour-scaled Schedule, not things on a day (ADR 0027).
   const timed = useTimedItems({ start: weekStart, end: weekEnd }, { tags }).filter((t) => !t.background);
-  const overdue = items.filter((i) => i.displayDate < weekStart && !i.completedOn);
+  // Only what the owning App still calls overdue: a Task's lapsed Occurrence
+  // (ADR 0036) sits on its own day, it is not waiting to be done.
+  const overdue = items.filter(
+    (i) => i.displayDate < weekStart && !i.completedOn && i.urgency === "overdue",
+  );
   const inWeek = items.filter((i) => i.displayDate >= weekStart);
 
   // A touch that moves scrolls, so a phone drag is a long press (ADR 0021,

@@ -54,6 +54,7 @@ function definitionItem(task: Task): TaskItem {
     completedOn: task.completedOn,
     recurring: !!task.recurrence,
     moved: false,
+    lapsed: false,
   };
 }
 
@@ -68,9 +69,9 @@ export function TasksScreen() {
   const today = todayStr();
   const groups = useMemo(() => {
     const oneTime = tasks.filter((t) => !t.recurrence);
-    const items = deriveItems(oneTime, [], { start: "0000-01-01", end: "9999-12-31" });
+    const items = deriveItems(oneTime, [], { start: "0000-01-01", end: "9999-12-31" }, today);
     const open = items.filter((i) => !i.completedOn);
-    const recentDone = deriveItems(tasks, overrides, { start: addDays(today, -30), end: today })
+    const recentDone = deriveItems(tasks, overrides, { start: addDays(today, -30), end: today }, today)
       .filter((i) => i.completedOn)
       .concat(items.filter((i) => i.completedOn && i.date === null))
       .sort((a, b) => (b.completedOn ?? "").localeCompare(a.completedOn ?? ""));
