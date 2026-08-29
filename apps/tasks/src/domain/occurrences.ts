@@ -1,4 +1,13 @@
-import { addDays, clampedDate, diffDays, parts, weekdayOf, type DateStr } from "@lifeline/core";
+import {
+  addDays,
+  clampedDate,
+  diffDays,
+  fromParts,
+  parts,
+  todayStr,
+  weekdayOf,
+  type DateStr,
+} from "@lifeline/core";
 import type { OccurrenceOverride, Recurrence, Task } from "./types";
 
 /**
@@ -29,6 +38,12 @@ export interface TaskItem {
   completedOn: DateStr | null;
   recurring: boolean;
   moved: boolean;
+  /**
+   * A missed Occurrence the rule has already moved past (ADR 0036): it keeps
+   * its day as record but no longer reads as overdue — the new Occurrence
+   * carries that. Always false for a one-time Task, which stays overdue.
+   */
+  lapsed: boolean;
 }
 
 export function overrideKey(taskId: string, sourceDate: DateStr): string {
@@ -74,19 +89,57 @@ export function sourceDatesInRange(task: Task, start: DateStr, end: DateStr): Da
 }
 
 /**
+ * How far back the rule is guaranteed to have produced an Occurrence: a week
+ * for weekly, the previous month for monthly, the previous year for yearly.
+ * Enough to find the previous Occurrence without walking all of history.
+ */
+function lookbackStart(r: Recurrence, on: DateStr): DateStr {
+  if (r.kind === "weekly") return addDays(on, -6);
+  const { y, m } = parts(on);
+  if (r.kind === "monthly") return m === 1 ? fromParts(y - 1, 12, 1) : fromParts(y, m - 1, 1);
+  return fromParts(y - 1, 1, 1);
+}
+
+/**
+ * The Occurrence a recurring Task is *on* as of `on`: the latest source day
+ * its rule has produced, today included. null before the first one (or for a
+ * one-time Task). Everything the rule produced earlier has been superseded.
+ */
+export function currentSourceDate(task: Task, on: DateStr): DateStr | null {
+  if (!task.recurrence) return null;
+  const dates = sourceDatesInRange(task, lookbackStart(task.recurrence, on), on);
+  return dates.length > 0 ? dates[dates.length - 1] : null;
+}
+
+/**
  * Pure derivation of everything visible in [start, end] plus the Unassigned
  * pool. Archived tasks never appear. A moved Occurrence shows on its new day
- * (in whatever range that falls) and never on its source day.
+ * (in whatever range that falls) and never on its source day. `today` decides
+ * which Occurrences have lapsed (ADR 0036); it is a parameter so the
+ * derivation stays pure and testable.
  */
 export function deriveItems(
   tasks: Task[],
   overrides: OccurrenceOverride[],
   range: { start: DateStr; end: DateStr },
+  today: DateStr = todayStr(),
 ): TaskItem[] {
   const ov = overrideMap(overrides);
   const byTask = new Map(tasks.map((t) => [t.id, t]));
   const items: TaskItem[] = [];
   const seen = new Set<string>();
+  // One walk back per recurring Task, however many of its Occurrences are shown.
+  const current = new Map<string, DateStr | null>();
+  const currentOf = (task: Task): DateStr | null => {
+    if (!current.has(task.id)) current.set(task.id, currentSourceDate(task, today));
+    return current.get(task.id) ?? null;
+  };
+  /** Missed, still open, and the rule has since produced a newer Occurrence. */
+  const hasLapsed = (task: Task, o: { date: DateStr; sourceDate: DateStr; completedOn: DateStr | null }): boolean => {
+    if (o.completedOn || o.date >= today) return false;
+    const cur = currentOf(task);
+    return cur !== null && o.sourceDate < cur;
+  };
 
   for (const task of tasks) {
     if (task.status !== "active") continue;
@@ -100,6 +153,7 @@ export function deriveItems(
         completedOn: task.completedOn,
         recurring: false,
         moved: false,
+        lapsed: false,
       });
       continue;
     }
@@ -109,14 +163,16 @@ export function deriveItems(
       const date = o?.movedTo ?? sourceDate;
       if (date < range.start || date > range.end) continue; // moved out of range
       seen.add(key);
+      const completedOn = o?.completedOn ?? null;
       items.push({
         itemId: key,
         task,
         date,
         sourceDate,
-        completedOn: o?.completedOn ?? null,
+        completedOn,
         recurring: true,
         moved: !!o?.movedTo,
+        lapsed: hasLapsed(task, { date, sourceDate, completedOn }),
       });
     }
   }
@@ -138,6 +194,7 @@ export function deriveItems(
       completedOn: o.completedOn,
       recurring: true,
       moved: true,
+      lapsed: hasLapsed(task, { date: o.movedTo, sourceDate: o.sourceDate, completedOn: o.completedOn }),
     });
   }
   return items.sort((a, b) =>
