@@ -59,11 +59,13 @@ export function NegativeEditorDialog({ open, onOpenChange, negative }: { open: b
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      {/* On a phone the dialog is a full-screen sheet: the fields keep their natural height
+          (content-start) and the actions ride the bottom of the screen, not the middle. */}
+      <DialogContent className="max-md:grid-rows-[auto_1fr_auto] sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{negative ? "Edit negative" : "New negative"}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4">
+        <div className="grid content-start gap-4">
           <div className="grid gap-2">
             <Label htmlFor="negative-name">Name</Label>
             <Input id="negative-name" value={name} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
@@ -71,7 +73,7 @@ export function NegativeEditorDialog({ open, onOpenChange, negative }: { open: b
           <div className="grid gap-2">
             <Label>Gravity</Label>
             <Select value={gravity} onValueChange={(v) => setGravity(v as Gravity)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -87,7 +89,7 @@ export function NegativeEditorDialog({ open, onOpenChange, negative }: { open: b
           <div className="grid gap-2">
             <Label>Rival habit</Label>
             <Select value={target} onValueChange={setTarget}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
