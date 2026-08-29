@@ -285,16 +285,28 @@ indent, undo, redo.
   on a bare `EditorState`; nothing in them knows about the bar, so a desktop
   keymap could take the same set later.
 
-**Riding the keyboard is `visualViewport` arithmetic.** There is no portable
-keyboard height: iOS never shrinks the layout viewport, so `bottom: 0` sits
-*under* the keyboard, and `env(keyboard-inset-height)` is Chromium's half of
-the answer. `useKeyboardInset` (Core, beside `useIsMobile` — a browser fact,
-not shell furniture) reports `innerHeight - visualViewport.height -
-offsetTop`, which is the keyboard on iOS and 0 where the layout viewport
-already stops at it. The bar is portalled to `body`, since a `fixed` element
-is trapped by any transformed ancestor and the editor sits inside sheets. The
-editor takes the bar and the keyboard as a bottom `scrollMargin`, so the caret
-is never scrolled to a "visible" position underneath them.
+**Riding the keyboard is the browser's job where it will do it.** There is no
+portable keyboard height, and measuring one from the visual viewport is not
+enough: on Android the first cut of this bar came up *under* the keyboard's own
+toolbar row, which the visual viewport's shrink did not account for. So the
+shell now asks for `interactive-widget=resizes-content`: Chromium ends the
+layout viewport at the keyboard, the `h-dvh` frame ends there with it, and
+anything fixed to the bottom — this bar, the phone nav — rides above whatever
+the IME actually occupies, with no arithmetic and nothing for us to get wrong.
+
+iOS ignores the hint and never shrinks the layout viewport, so the arithmetic
+stays as the fallback: `useKeyboardInset` (Core, beside `useIsMobile` — a
+browser fact, not shell furniture) reports `documentElement.clientHeight -
+visualViewport.height - offsetTop`, measured against the initial containing
+block because that, and not `window.innerHeight`, is the box a fixed `bottom`
+resolves against. It reads 0 on Chromium, which is the same right answer.
+
+The bar is portalled to `body`, since a `fixed` element is trapped by any
+transformed ancestor and the editor sits inside sheets, and it is opaque and a
+shade taller than the phone nav it lands on — while the editor has focus it
+takes that row over. The editor takes the bar and the keyboard as a bottom
+`scrollMargin`, so the caret is never scrolled to a "visible" position
+underneath them.
 
 The bar shows on focus and hides on blur, and its buttons `preventDefault` the
 pointer down: a blur would close the keyboard and drop the selection the

@@ -2,7 +2,11 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- `interactive-widget=resizes-content`: the on-screen keyboard shrinks the layout
+         viewport, so the frame (`h-dvh`) ends at the keyboard and anything fixed to the
+         bottom — the nav, the editor's key bar — rides above it without arithmetic.
+         iOS ignores it; see `useKeyboardInset`. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#18181b" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="/icon-192.png" />
