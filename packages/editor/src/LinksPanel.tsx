@@ -40,25 +40,25 @@ export function LinksPanel({ docId, index, onOpen }: { docId: string; index: Lin
   }
 
   return (
-    <div className="grid content-start gap-4 text-sm">
-      <section>
+    <div className="grid min-w-0 content-start gap-4 text-sm">
+      <section className="min-w-0">
         <h3 className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">Linked mentions · {backlinks.length}</h3>
         {backlinks.length === 0 ? (
           <p className="text-muted-foreground text-xs">Nothing links here yet.</p>
         ) : (
-          <ul className="grid gap-1.5">
+          <ul className="grid min-w-0 gap-1.5">
             {backlinks.map((b, i) => {
               const src = index.byId.get(b.sourceId);
               const def = src ? documentType(src.type) : undefined;
               const title = src ? displayTitle(src, def) : "?";
               return (
-                <li key={`${b.sourceId}-${i}`}>
-                  <button className="hover:bg-accent w-full rounded-md px-2 py-1 text-left" onClick={() => onOpen({ kind: "doc", id: b.sourceId, type: src?.type ?? "" }, title)}>
-                    <div className="flex items-baseline gap-2">
-                      <span className="truncate font-medium">{title}</span>
+                <li key={`${b.sourceId}-${i}`} className="min-w-0">
+                  <button className="hover:bg-accent w-full min-w-0 rounded-md px-2 py-1 text-left" onClick={() => onOpen({ kind: "doc", id: b.sourceId, type: src?.type ?? "" }, title)}>
+                    <div className="flex min-w-0 items-baseline gap-2">
+                      <span className="min-w-0 truncate font-medium">{title}</span>
                       {def && <span className="text-muted-foreground shrink-0 text-[10px] uppercase">{singularOf(def)}</span>}
                     </div>
-                    <div className="text-muted-foreground line-clamp-2 text-xs">{b.field ? `via ${b.field}` : b.context || excerpt(typeof src?.body === "string" ? src.body : "", 100)}</div>
+                    <div className="text-muted-foreground line-clamp-2 text-xs break-words">{b.field ? `via ${b.field}` : b.context || excerpt(typeof src?.body === "string" ? src.body : "", 100)}</div>
                   </button>
                 </li>
               );
@@ -67,21 +67,21 @@ export function LinksPanel({ docId, index, onOpen }: { docId: string; index: Lin
         )}
       </section>
       {unlinkedOf.length > 0 && (
-        <section>
+        <section className="min-w-0">
           <h3 className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">Unlinked mentions · {unlinkedOf.length}</h3>
-          <ul className="grid gap-1.5">
+          <ul className="grid min-w-0 gap-1.5">
             {unlinkedOf.map((m, i) => {
               const src = index.byId.get(m.sourceId);
               const def = src ? documentType(src.type) : undefined;
               const title = src ? displayTitle(src, def) : "?";
               return (
-                <li key={`${m.sourceId}-${m.hit.from}-${i}`} className="flex items-start gap-1">
+                <li key={`${m.sourceId}-${m.hit.from}-${i}`} className="flex min-w-0 items-start gap-1">
                   <button className="hover:bg-accent min-w-0 flex-1 rounded-md px-2 py-1 text-left" onClick={() => onOpen({ kind: "doc", id: m.sourceId, type: src?.type ?? "" }, title)}>
-                    <div className="flex items-baseline gap-2">
-                      <span className="truncate font-medium">{title}</span>
+                    <div className="flex min-w-0 items-baseline gap-2">
+                      <span className="min-w-0 truncate font-medium">{title}</span>
                       {def && <span className="text-muted-foreground shrink-0 text-[10px] uppercase">{singularOf(def)}</span>}
                     </div>
-                    <div className="text-muted-foreground line-clamp-2 text-xs">{m.context}</div>
+                    <div className="text-muted-foreground line-clamp-2 text-xs break-words">{m.context}</div>
                   </button>
                   <Button size="sm" variant="outline" className="mt-1 h-6 shrink-0 px-2 text-xs" onClick={() => void linkThere(m.sourceId, m.hit)}>
                     Link
@@ -93,13 +93,13 @@ export function LinksPanel({ docId, index, onOpen }: { docId: string; index: Lin
         </section>
       )}
       {unlinkedHere.length > 0 && (
-        <section>
+        <section className="min-w-0">
           <h3 className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">Unlinked here · {unlinkedHere.length}</h3>
-          <ul className="grid gap-1">
+          <ul className="grid min-w-0 gap-1">
             {unlinkedHere.map((h, i) => {
               const def = documentType(index.byId.get(h.targetId)?.type ?? "");
               return (
-                <li key={`${h.from}-${i}`} className="flex items-center gap-2">
+                <li key={`${h.from}-${i}`} className="flex min-w-0 items-center gap-2">
                   <span className="min-w-0 flex-1 truncate text-xs" title={h.canonical}>
                     {h.text}
                     {h.text !== h.canonical && <span className="text-muted-foreground"> → {h.canonical}</span>}
@@ -120,13 +120,13 @@ export function LinksPanel({ docId, index, onOpen }: { docId: string; index: Lin
         </section>
       )}
       {uniqueOut.length > 0 && (
-        <section>
+        <section className="min-w-0">
           <h3 className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">Links · {uniqueOut.length}</h3>
-          <ul className="flex flex-wrap gap-1">
+          <ul className="flex min-w-0 flex-wrap gap-1">
             {uniqueOut.map(({ link, ref }) => (
-              <li key={link.from}>
+              <li key={link.from} className="max-w-full min-w-0">
                 <button
-                  className={`rounded-md border px-1.5 py-0.5 text-xs ${ref.kind === "unresolved" ? "text-muted-foreground border-dashed" : "hover:bg-accent"}`}
+                  className={`block max-w-full truncate rounded-md border px-1.5 py-0.5 text-xs ${ref.kind === "unresolved" ? "text-muted-foreground border-dashed" : "hover:bg-accent"}`}
                   title={ref.kind === "unresolved" ? "Create note" : (() => { const d = documentType(ref.type); return d ? singularOf(d) : undefined; })()}
                   onClick={() => onOpen(ref, link.name)}
                 >
