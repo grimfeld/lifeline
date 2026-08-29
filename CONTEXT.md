@@ -290,12 +290,16 @@ _Avoid_: journal entry (same thing — use "daily note"), log, diary page
 The Notes App's date-navigated Surface over daily notes.
 
 ### Wikilink
-`[[Name]]` in any Document's body. Resolves by name across every Linkable Document type — exact title first, then alias — with an optional type prefix (`[[media:Dune]]`) to disambiguate; once resolved, the link remembers its target so later collisions don't move it. Unresolved links stay unresolved (click to create a Note). The editor's completer shows the type of each candidate.
+`[[Name]]` in any Document's body. Resolves by name — case- and accent-insensitive, spaces collapsed — across every Linkable Document type — exact title first, then alias — with an optional type prefix (`[[media:Dune]]`) to disambiguate; once resolved, the link remembers its target so later collisions don't move it. Unresolved links stay unresolved (click to create a Note). The editor's completer shows the type of each candidate.
 _Avoid_: reference, mention (a mention is what the *target* sees)
 
 ### Backlink
 From the target's side: a Document that wikilinks to it. Every Linkable Document has backlinks ("mentioned in").
 _Avoid_: incoming link, reference
+
+### Unlinked mention
+A Linkable Document's title or alias appearing as plain prose in another Document's body, with no wikilink around it. Derived, never stored; offered from both ends in the links panel — the target sees who mentions it, the source sees which names it could link — and turned into a Wikilink only on request, never silently. A Document type may opt its Documents out as targets (daily notes, the Bible's scripture types with their own references). Not a Backlink (that needs a link).
+_Avoid_: unlinked reference (the Bible App's scripture-specific kind), suggestion, candidate
 
 ### Linkable
 Core Contract: a Document type whose Documents are wikilink targets by title and alias, and receive backlinks. Declarable by data (a user-defined type just says so).

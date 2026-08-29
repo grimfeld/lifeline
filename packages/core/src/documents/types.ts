@@ -127,9 +127,11 @@ export interface DocumentTypeDef {
    * title and by the `aliases` list field (or the named field). `expand`
    * (ADR 0032) lets a type read a written name its own way and say which of
    * its titles it stands for — a scripture range `John 3:16–18` → three
-   * Verse titles — or null when the name is not its business.
+   * Verse titles — or null when the name is not its business. `mentions:
+   * false` keeps the type's Documents out of Unlinked mentions (CONTEXT.md):
+   * still wikilink targets, never offered from plain prose.
    */
-  linkable?: boolean | { aliasesField?: string; subtitle?: (doc: Document) => string | undefined; expand?: (name: string) => string[] | null };
+  linkable?: boolean | { aliasesField?: string; subtitle?: (doc: Document) => string | undefined; expand?: (name: string) => string[] | null; mentions?: boolean };
   /** Locatable (data-declarable Contract): the geo field holding `[lat, lon]`, or a reader. */
   locatable?: string | ((doc: Document) => { lat: number; lon: number } | null);
   /** Route that opens one Document. Default: the Vault's generic page `/vault/d/<id>`. */

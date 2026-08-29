@@ -1,6 +1,7 @@
 import type { Table } from "dexie";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, DOCUMENTS } from "../data/db";
+import { sharedLiveQuery } from "../data/live";
 import { put, remove } from "../data/repo";
 import { newId } from "../ids";
 import { todayStr } from "../dates";
@@ -52,9 +53,11 @@ export function useDocument<T extends Document = Document>(id: string | undefine
   return useLiveQuery(async () => (id ? await getDocument<T>(id) : undefined), [id], undefined);
 }
 
-/** React hook: every live Document (cross-type tooling). */
+const allLive = sharedLiveQuery(() => allDocuments(), [] as Document[]);
+
+/** React hook: every live Document (cross-type tooling). One shared query: every consumer sees the same array per change. */
 export function useAllDocuments(): Document[] {
-  return useLiveQuery(() => allDocuments(), [], [] as Document[]);
+  return allLive.use();
 }
 
 /** Effective tags: the explicit list ∪ `#tags` in the body, normalised. */

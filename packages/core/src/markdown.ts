@@ -280,9 +280,14 @@ export function renameLinks(text: string, oldName: string, newName: string): str
   return out + text.slice(pos);
 }
 
-/** Names compare case-insensitively, whitespace-collapsed, accents kept. */
+/** Names compare case- and accent-insensitively, whitespace-collapsed (CONTEXT.md "Wikilink"). */
 export function normalizeName(name: string): string {
-  return name.trim().replace(/\s+/g, " ").toLowerCase();
+  return foldName(name.trim().replace(/\s+/g, " "));
+}
+
+/** Fold one run of text the way names compare: decomposed, marks stripped, lower-cased. Length may change. */
+export function foldName(text: string): string {
+  return text.normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase();
 }
 
 /** Parse the option lines of a Lifeline block body: `key: value` per line. */

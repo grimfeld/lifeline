@@ -10,6 +10,7 @@ import { useBibleBackground } from "./data/repo";
 import { APP_ID, BIBLE_BOOK, BIBLE_CHAPTER, CHARACTER, CONCEPT, VERSE, type BibleBook, type BibleChapter, type Verse } from "./domain/types";
 
 /** `bible_book` (ADR 0032): a book of the Bible, created on first mention; its abbreviations are its aliases. */
+// Scripture types stay out of generic Unlinked mentions (`mentions: false`): the References panel offers bare "Rom 8:28" itself.
 const bookType: DocumentTypeDef = {
   id: BIBLE_BOOK,
   label: "Bible books",
@@ -22,7 +23,7 @@ const bookType: DocumentTypeDef = {
     { key: "testament", label: "Testament", kind: "select", options: [{ value: "OT", label: "Old Testament" }, { value: "NT", label: "New Testament" }], guarded: true, column: true },
     { key: "aliases", label: "Also written", kind: "list", guarded: true },
   ],
-  linkable: { aliasesField: "aliases", subtitle: (d) => ((d as BibleBook).testament === "OT" ? "Old Testament" : "New Testament"), expand: expanders.book },
+  linkable: { aliasesField: "aliases", subtitle: (d) => ((d as BibleBook).testament === "OT" ? "Old Testament" : "New Testament"), expand: expanders.book, mentions: false },
   order: 60,
   builtIn: true,
 };
@@ -41,7 +42,7 @@ const chapterType: DocumentTypeDef = {
     { key: "chapter", label: "Chapter", kind: "number", guarded: true, column: true },
   ],
   indexes: ["bookId"],
-  linkable: { subtitle: (d) => `${(d as BibleChapter).book}, chapter ${(d as BibleChapter).chapter}`, expand: expanders.chapter },
+  linkable: { subtitle: (d) => `${(d as BibleChapter).book}, chapter ${(d as BibleChapter).chapter}`, expand: expanders.chapter, mentions: false },
   order: 61,
   builtIn: true,
 };
@@ -62,7 +63,7 @@ const verseType: DocumentTypeDef = {
     { key: "verse", label: "Verse", kind: "number", guarded: true, column: true },
   ],
   indexes: ["chapterId"],
-  linkable: { subtitle: (d) => `${(d as Verse).book} ${(d as Verse).chapter}`, expand: expanders.verse },
+  linkable: { subtitle: (d) => `${(d as Verse).book} ${(d as Verse).chapter}`, expand: expanders.verse, mentions: false },
   order: 62,
   builtIn: true,
 };

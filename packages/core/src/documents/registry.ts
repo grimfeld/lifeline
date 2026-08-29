@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer } from "react";
+import { useSyncExternalStore } from "react";
 import { liveQuery } from "dexie";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, DOCUMENT_TYPES, type SyncedRecord } from "../data/db";
@@ -127,16 +127,16 @@ export function documentTypeSync(id: string): DocumentTypeDef | undefined {
   return cache.find((t) => t.id === id) ?? builtinType(id);
 }
 
-/** Live list of Document types for components. */
+function subscribeTypes(l: () => void) {
+  listeners.add(l);
+  ensureWatch();
+  return () => void listeners.delete(l);
+}
+
+/** Live list of Document types for components — the one shared cache, so every consumer sees the same array per change. */
 export function useDocumentTypes(): DocumentTypeDef[] {
   ensureWatch();
-  const [, force] = useReducer((x: number) => x + 1, 0);
-  useEffect(() => {
-    listeners.add(force);
-    return () => void listeners.delete(force);
-  }, []);
-  const rows = useLiveQuery(() => db().collection<DocumentTypeRecord>(DOCUMENT_TYPES).where("deleted").equals(0).toArray(), [], undefined);
-  return useMemo(() => (rows ? merge(rows) : cache), [rows]);
+  return useSyncExternalStore(subscribeTypes, () => cache);
 }
 
 export function useDocumentType(id: string | undefined): DocumentTypeDef | undefined {
