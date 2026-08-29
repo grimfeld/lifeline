@@ -48,8 +48,8 @@ const KEYS: Key[] = [
   { label: "Redo", icon: Redo2, run: redo },
 ];
 
-/** The bar's own height, in px — the editor keeps this much scroll margin below the caret. */
-export const ACCESSORY_BAR_HEIGHT = 44;
+/** The bar's height (`min-h-12`), in px — the editor keeps this much scroll margin below the caret. */
+export const ACCESSORY_BAR_HEIGHT = 48;
 
 /**
  * The strip of markdown actions that rides above the phone's keyboard while the
@@ -57,17 +57,20 @@ export const ACCESSORY_BAR_HEIGHT = 44;
  * is trapped by any transformed ancestor, and the editor sits inside sheets.
  *
  * `inset` is where the keyboard's top edge is — see `useKeyboardInset`. It is 0
- * when the layout viewport already stops there, which is also the right `bottom`.
+ * on Chromium, where `interactive-widget=resizes-content` has already ended the
+ * layout viewport at the keyboard, and that is the same right answer.
  */
 export function EditorAccessoryBar({ view, inset }: { view: EditorView; inset: number }) {
   return createPortal(
     <div
-      className="bg-background/95 fixed inset-x-0 z-50 border-t backdrop-blur-sm md:hidden"
+      // Opaque, and a shade taller than the phone nav it lands on: while the
+      // editor has focus the bar takes that row over rather than half-covering it.
+      className="bg-background fixed inset-x-0 z-50 flex min-h-12 items-center border-t md:hidden"
       style={{ bottom: inset, paddingBottom: inset > 0 ? undefined : "env(safe-area-inset-bottom)" }}
       role="toolbar"
       aria-label="Markdown actions"
     >
-      <div className="flex gap-0.5 overflow-x-auto px-1 py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex flex-1 gap-0.5 overflow-x-auto px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {KEYS.map(({ label, icon: Icon, run }) => (
           <button
             key={label}

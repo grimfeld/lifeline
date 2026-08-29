@@ -24,12 +24,15 @@ export function useIsMobile(): boolean {
  * keyboard, in practice (plus whatever accessory strip the OS puts above it).
  *
  * There is no portable "keyboard height": iOS never shrinks the layout viewport
- * for the keyboard, so `position: fixed; bottom: 0` sits *under* it, and the
- * Chromium-only `env(keyboard-inset-height)` covers the other half of the
- * problem. `visualViewport` is the one measurement both agree on. Where the
- * layout viewport *does* shrink (Android with `interactive-widget=resizes-
- * content`) this reads 0, which is the right answer there: the bottom of the
- * layout viewport already is the top of the keyboard.
+ * for the keyboard, so `position: fixed; bottom: 0` sits *under* it. Chromium
+ * does shrink it — the shell asks for `interactive-widget=resizes-content` —
+ * and there this reads 0, which is the right answer *and* the better one: the
+ * browser counts whatever the on-screen keyboard actually occupies, the IME's
+ * own toolbar row included, which the visual viewport alone does not.
+ *
+ * Measured against `documentElement.clientHeight` and not `window.innerHeight`:
+ * the initial containing block is the box a `position: fixed` bottom resolves
+ * against, and the two are not the same number on a phone browser.
  *
  * Pass `enabled: false` on the desktop to keep the listeners off.
  */
@@ -41,7 +44,7 @@ export function useKeyboardInset(enabled = true): number {
       setInset(0);
       return;
     }
-    const read = () => setInset(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    const read = () => setInset(Math.max(0, Math.round(document.documentElement.clientHeight - vv.height - vv.offsetTop)));
     read();
     // `scroll` too: iOS shifts the visual viewport within the layout one as the
     // caret is kept in sight, which moves the keyboard's top edge without resizing.
