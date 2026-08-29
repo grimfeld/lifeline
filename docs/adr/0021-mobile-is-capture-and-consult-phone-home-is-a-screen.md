@@ -200,3 +200,47 @@ remounts the editor and takes the sheet with it. This reverses the Writer's
 pad amendment above on one point: the pad's panel toggle stays on a phone.
 
 The `max-md:hidden` column and its desktop toggle are untouched.
+
+## Amendment (2026-08-29): the Bible study desk grows a phone layout
+
+The fourth page to claim the parity clause. The Bible study desk (ADR 0032) is
+consult work — the study is *read* on a phone as often as at the desk, and
+"look up a verse" is the shortest errand the App has — but rendered unadapted
+it was not merely dense: **the whole desk was 502px wide inside a 390px
+screen** and scrolled sideways. One `grid` with an `auto` track took its width
+from the widest thing on it, and that was the six-tab strip's min-content
+(~486px); the strip's own `overflow-x-auto` therefore never engaged — it had
+all the room it asked for. Everything else was dragged out to that width with
+it: the lookup's Open button sat past the right edge, the last two tabs and
+every row's date were off screen, and the graph showed three quarters of
+itself — all of it reachable only by dragging the whole page sideways.
+Desktop is untouched.
+
+**The track is capped.** `grid-cols-1` — `minmax(0, 1fr)` rather than `auto` —
+so no child's min-content can size the page. This is the whole of the fix for
+the sideways scroll; the rest is fitting the page to the width it now has.
+
+**The header stacks.** Below `md` the title takes a row and the lookup takes
+the next, full width — an `h-9` field that grows and its button beside it,
+rather than a 176px field pinned right. Above `md` the row is what it was.
+
+**The tabs are a scrolling strip.** Six tabs never fit a phone, so the strip
+scrolls inside the pill, clipped at the edge where the cut-off tab reads as
+"there is more". Two things make it usable: `justify-start`, or centred
+overflow puts *Study* out of reach past the left edge, and the chosen tab is
+scrolled into view on every change — arriving at `?tab=graph` otherwise
+showed the graph under a strip with no active tab visible on it.
+
+**A row's meta stacks under it.** Title, excerpt, then the type and the date
+on a small line of their own; a third column pinned to the right edge is desk
+furniture, and it was the half of the row a phone never saw. The Scripture
+tree's rows truncate their titles instead of pushing the chapter and mention
+counts off the screen, and nest by 1rem rather than 1.5rem so a Verse row
+keeps its width three levels down.
+
+**The graph gets 60dvh below `md`** (70 above), leaving the header and the
+strip on screen with it; the canvas already handles touch (`touch-none` plus
+pointer events), so pan and drag work as they do with a mouse.
+
+The phone's own Bible screen (`/app/bible`) is unchanged: it is capture and
+glance, the desk is the whole study, and both now work at 390px.
