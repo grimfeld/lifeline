@@ -1,12 +1,12 @@
-import { useEffect, useRef } from "react";
-import { Annotation, EditorState } from "@codemirror/state";
+import { useEffect, useRef, useState } from "react";
+import { Annotation, Compartment, EditorState } from "@codemirror/state";
 import { EditorView, drawSelection, highlightActiveLine, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import { completionKeymap } from "@codemirror/autocomplete";
-import type { LinkIndex } from "@lifeline/core";
+import { useIsMobile, useKeyboardInset, type LinkIndex } from "@lifeline/core";
 import {
   contextField,
   daylogField,
@@ -14,14 +14,19 @@ import {
   focusedField,
   indexField,
   setContext,
+  setFocused as setFocusedEffect,
   setIndex,
   wikilinkClick,
   wikilinkCompletion,
   wikilinkPlugin,
   type EditorContext,
 } from "./editorExtensions";
+import { ACCESSORY_BAR_HEIGHT, EditorAccessoryBar } from "./EditorAccessoryBar";
 import { textChange } from "./textDiff";
 import "./editor.css";
+
+/** Bottom scroll margin while the keyboard and its bar cover the editor's foot. */
+const keyboardMargin = new Compartment();
 
 /** A value pushed in from outside (the stored Document changed): not the user's edit. */
 const external = Annotation.define<boolean>();
@@ -75,6 +80,12 @@ export function MarkdownEditor({
   const lastValue = useRef(value);
   /** The editor has changes the owner has not handed back yet — it is ahead of `value`. */
   const dirty = useRef(false);
+  const isMobile = useIsMobile();
+  const inset = useKeyboardInset(isMobile);
+  // The accessory bar is React, so the view and the editor's focus are mirrored
+  // into state: a StateField changing is not, by itself, a render.
+  const [focused, setFocused] = useState(false);
+  const [view, setView] = useState<EditorView | null>(null);
 
   useEffect(() => {
     if (!host.current) return;
@@ -95,9 +106,14 @@ export function MarkdownEditor({
         focusedField,
         focusTracking,
         daylogField,
+        keyboardMargin.of([]),
         keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap, indentWithTab]),
         placeholder ? cmPlaceholder(placeholder) : [],
         EditorView.updateListener.of((u) => {
+          // `focusedField` and not `u.focusChanged`: the field is the editor's own
+          // record of focus, so the bar and the daylog widgets agree on one answer.
+          const now = u.state.field(focusedField, false) ?? false;
+          if (now !== (u.startState.field(focusedField, false) ?? false)) setFocused(now);
           if (!u.docChanged) return;
           const next = u.state.doc.toString();
           lastValue.current = next;
@@ -109,13 +125,22 @@ export function MarkdownEditor({
     });
     const view = new EditorView({ state, parent: host.current });
     viewRef.current = view;
+    setView(view);
     if (autoFocus) {
       view.dispatch({ selection: { anchor: view.state.doc.length } });
       view.focus();
     }
+    // CodeMirror announces focus *changes* only, so a view that comes up focused
+    // never announces anything: without this seed the bar stays away until the
+    // user has blurred and come back (and `focusedField` misreports the same way).
+    if (view.hasFocus) {
+      view.dispatch({ effects: setFocusedEffect.of(true) });
+      setFocused(true);
+    }
     return () => {
       view.destroy();
       viewRef.current = null;
+      setView(null);
     };
     // The editor is created once per mount; value/index/context are pushed via effects below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -147,5 +172,18 @@ export function MarkdownEditor({
     viewRef.current?.dispatch({ effects: setContext.of(context) });
   }, [context]);
 
-  return <div ref={host} className={`ll-editor min-h-0 flex-1 ${className ?? ""}`} />;
+  // The bar and the keyboard sit over the editor's last lines: without this the
+  // caret is scrolled to a "visible" position that is underneath both of them.
+  useEffect(() => {
+    const bottom = isMobile && focused ? inset + ACCESSORY_BAR_HEIGHT : 0;
+    const margin = bottom ? EditorView.scrollMargins.of(() => ({ bottom })) : [];
+    viewRef.current?.dispatch({ effects: keyboardMargin.reconfigure(margin) });
+  }, [isMobile, focused, inset]);
+
+  return (
+    <>
+      <div ref={host} className={`ll-editor min-h-0 flex-1 ${className ?? ""}`} />
+      {isMobile && focused && view && <EditorAccessoryBar view={view} inset={inset} />}
+    </>
+  );
 }

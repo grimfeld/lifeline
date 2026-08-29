@@ -1,4 +1,5 @@
 export * from "./MarkdownEditor";
+export * from "./mdCommands";
 export * from "./MarkdownView";
 export * from "./FieldsForm";
 export * from "./LinksPanel";
