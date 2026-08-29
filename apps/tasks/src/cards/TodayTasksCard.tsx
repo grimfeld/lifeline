@@ -10,9 +10,12 @@ export function TodayTasksCard() {
   const overrides = useOverrides();
   const filter = useTagFilter();
   const today = todayStr();
-  const items = deriveItems(tasks, overrides, { start: addDays(today, -60), end: today }).filter(
+  // Lapsed Occurrences stay behind on their day (ADR 0036): a recurring task
+  // shows up here once, for the Occurrence it is on.
+  const items = deriveItems(tasks, overrides, { start: addDays(today, -60), end: today }, today).filter(
     (i) =>
       i.date !== null &&
+      !i.lapsed &&
       (i.date === today || (i.date < today && !i.completedOn)) &&
       matchesTagFilter(i.task.tags, filter),
   );
