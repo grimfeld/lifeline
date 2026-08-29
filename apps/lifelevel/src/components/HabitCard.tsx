@@ -109,8 +109,8 @@ export function HabitCard({ state, now, onOpen }: { state: ComputedHabitState; n
     <Card className={cn("gap-3", shake && "ll-shake", decayImminent ? "ring-rose-400/60" : doneToday && "ring-emerald-500/60")}>
       <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
         <div className="min-w-0">
-          <CardTitle className="truncate text-base">
-            <button type="button" className="hover:underline" onClick={onOpen}>
+          <CardTitle className="min-w-0 text-base">
+            <button type="button" className="block max-w-full truncate text-left hover:underline" onClick={onOpen}>
               {state.name}
             </button>
           </CardTitle>

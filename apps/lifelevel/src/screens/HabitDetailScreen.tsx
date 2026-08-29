@@ -102,31 +102,33 @@ export function HabitDetailScreen() {
   const debt = state.rawXp < 0;
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl gap-6 p-6">
-      <div className="flex items-center gap-2">
-        <Button size="icon" variant="ghost" className="size-8" onClick={() => navigate(LIFELEVEL_HREF)}>
-          <ArrowLeft />
-        </Button>
-        <h1 className="truncate text-2xl font-semibold tracking-tight">{habit.title}</h1>
-        <Badge variant="secondary" className="tabular-nums">Lv {state.level}</Badge>
-        <Badge variant="outline">{state.difficulty}</Badge>
-        <DoneTodayBadge completionsToday={state.completionsToday} />
-        <div className="ml-auto flex items-center gap-1">
-          <Button size="icon" variant="ghost" className="size-8" title="Edit" onClick={() => setEditOpen(true)}>
+    <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 sm:gap-6 sm:p-6">
+      <div className="grid gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <Button size="icon" variant="ghost" className="size-8 shrink-0" onClick={() => navigate(LIFELEVEL_HREF)}>
+            <ArrowLeft />
+          </Button>
+          <h1 className="min-w-0 flex-1 truncate text-xl font-semibold tracking-tight sm:text-2xl">{habit.title}</h1>
+          <Button size="icon" variant="ghost" className="size-8 shrink-0" title="Edit" onClick={() => setEditOpen(true)}>
             <Pencil />
           </Button>
-          <Button size="icon" variant="ghost" className="size-8" title="Delete habit" onClick={() => setConfirmDelete(true)}>
+          <Button size="icon" variant="ghost" className="size-8 shrink-0" title="Delete habit" onClick={() => setConfirmDelete(true)}>
             <Trash2 />
           </Button>
-          <Button variant={state.completionsToday > 0 ? "secondary" : "default"} onClick={() => setLogOpen(true)}>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="tabular-nums">Lv {state.level}</Badge>
+          <Badge variant="outline">{state.difficulty}</Badge>
+          <DoneTodayBadge completionsToday={state.completionsToday} />
+          <Button className="ml-auto" variant={state.completionsToday > 0 ? "secondary" : "default"} onClick={() => setLogOpen(true)}>
             {state.completionsToday > 0 ? "Complete again" : "Complete"}
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-x-4 gap-y-1">
+      <div className="flex min-w-0 flex-wrap items-end gap-x-4 gap-y-1">
         <div className="flex items-baseline gap-1">
-          <span className={`text-4xl font-semibold tabular-nums ${debt ? "text-rose-500" : ""}`}>{Math.round(state.rawXp)}</span>
+          <span className={`text-3xl font-semibold tabular-nums sm:text-4xl ${debt ? "text-rose-500" : ""}`}>{Math.round(state.rawXp)}</span>
           <span className="text-muted-foreground text-sm">raw XP</span>
         </div>
         <span className="text-muted-foreground text-sm tabular-nums">
@@ -143,18 +145,22 @@ export function HabitDetailScreen() {
         {ledger.length === 0 && <p className="text-muted-foreground text-sm">Nothing logged yet. The clock is already running.</p>}
         <ul className="grid gap-1">
           {ledger.slice(0, 200).map((r) => (
-            <li key={r.id} className="bg-card flex items-center gap-3 rounded-md border px-3 py-1.5 text-sm">
-              {r.kind === "completion" ? <Check className="size-4 text-emerald-600" /> : <Skull className="size-4 text-rose-500" />}
-              <span className="min-w-0 flex-1 truncate">
-                {r.label}
-                {r.note && <span className="text-muted-foreground ml-2 text-xs">{r.note}</span>}
-              </span>
-              <span className={`text-xs tabular-nums ${r.delta < 0 ? "text-rose-500" : "text-emerald-600"}`}>
-                {r.delta < 0 ? "−" : "+"}
-                {Math.round(Math.abs(r.delta))} XP
-              </span>
-              <span className="text-muted-foreground text-xs">{new Date(r.occurredAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</span>
-              <Button size="icon" variant="ghost" className="size-7" title="Delete log" onClick={() => void deleteCompletion(r.id)}>
+            <li key={r.id} className="bg-card flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm sm:gap-3">
+              {r.kind === "completion" ? <Check className="size-4 shrink-0 text-emerald-600" /> : <Skull className="size-4 shrink-0 text-rose-500" />}
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
+                <span className="min-w-0 flex-1 truncate">
+                  {r.label}
+                  {r.note && <span className="text-muted-foreground ml-2 text-xs">{r.note}</span>}
+                </span>
+                <span className="flex shrink-0 items-center gap-2 text-xs sm:gap-3">
+                  <span className={`tabular-nums ${r.delta < 0 ? "text-rose-500" : "text-emerald-600"}`}>
+                    {r.delta < 0 ? "−" : "+"}
+                    {Math.round(Math.abs(r.delta))} XP
+                  </span>
+                  <span className="text-muted-foreground">{new Date(r.occurredAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</span>
+                </span>
+              </div>
+              <Button size="icon" variant="ghost" className="size-7 shrink-0" title="Delete log" onClick={() => void deleteCompletion(r.id)}>
                 <Trash2 className="size-3.5" />
               </Button>
             </li>
@@ -167,8 +173,8 @@ export function HabitDetailScreen() {
           <h2 className="text-muted-foreground text-sm font-medium">Mentioned in</h2>
           <ul className="grid gap-1">
             {backlinks.map((b) => (
-              <li key={b.sourceId}>
-                <button type="button" className="text-sm hover:underline disabled:no-underline" disabled={!b.href} onClick={() => b.href && navigate(b.href)}>
+              <li key={b.sourceId} className="min-w-0">
+                <button type="button" className="max-w-full truncate text-left text-sm hover:underline disabled:no-underline" disabled={!b.href} onClick={() => b.href && navigate(b.href)}>
                   {b.title}
                 </button>
                 {b.excerpt && <span className="text-muted-foreground ml-2 text-xs">{b.excerpt}</span>}

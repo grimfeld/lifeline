@@ -42,8 +42,8 @@ export function NegativeCard({
   return (
     <Card className={cn("gap-2 border-dashed", blocked && "opacity-75")}>
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 py-1">
-        <CardTitle className="min-w-0 truncate text-base">
-          <button type="button" className="hover:underline" onClick={onOpen}>
+        <CardTitle className="min-w-0 text-base">
+          <button type="button" className="block max-w-full truncate text-left hover:underline" onClick={onOpen}>
             {state.name}
           </button>
         </CardTitle>

@@ -56,11 +56,13 @@ export function HabitEditorDialog({ open, onOpenChange, habit }: { open: boolean
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      {/* On a phone the dialog is a full-screen sheet: the fields keep their natural height
+          (content-start) and the actions ride the bottom of the screen, not the middle. */}
+      <DialogContent className="max-md:grid-rows-[auto_1fr_auto] sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{habit ? "Edit habit" : "New habit"}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4">
+        <div className="grid content-start gap-4">
           <div className="grid gap-2">
             <Label htmlFor="habit-name">Name</Label>
             <Input id="habit-name" value={name} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
@@ -68,7 +70,7 @@ export function HabitEditorDialog({ open, onOpenChange, habit }: { open: boolean
           <div className="grid gap-2">
             <Label>Difficulty</Label>
             <Select value={difficulty} onValueChange={(v) => setDifficulty(v as Difficulty)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

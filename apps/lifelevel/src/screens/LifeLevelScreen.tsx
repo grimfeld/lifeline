@@ -32,7 +32,7 @@ export function LifeLevelScreen() {
   const habitById = useMemo(() => new Map(habits.map((h) => [h.id, h])), [habits]);
 
   return (
-    <div className="mx-auto grid w-full max-w-5xl gap-6 p-6">
+    <div className="mx-auto grid w-full max-w-5xl gap-4 p-4 sm:gap-6 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Life Level</h1>
         <div className="flex items-center gap-2">
