@@ -28,8 +28,8 @@ function CompleteTaskCommandDialog({
   const overrides = useOverrides();
   const [done, setDone] = useState<string[]>([]);
   const today = todayStr();
-  const due = deriveItems(tasks, overrides, { start: addDays(today, -60), end: today }).filter(
-    (i) => i.date !== null && !i.completedOn,
+  const due = deriveItems(tasks, overrides, { start: addDays(today, -60), end: today }, today).filter(
+    (i) => i.date !== null && !i.completedOn && !i.lapsed,
   );
 
   return (

@@ -13,7 +13,9 @@ apps/clipper     @lifeline/app-clipper — Clipper: `clipping` (pasted text + so
 apps/writer      @lifeline/app-writer — Writer's pad: `writing` + manual `writing_version` snapshots, side-by-side compare/restore
 apps/chores      @lifeline/app-chores — first App (ported from chore-scheduler)
 apps/tasks       @lifeline/app-tasks — Tasks App (absorbs week-planner + calendar's task half):
-                 one-time + weekly/monthly/yearly recurring tasks, per-Occurrence complete/move, Unassigned pool
+                 one-time + weekly/monthly/yearly recurring tasks, per-Occurrence complete/move, Unassigned pool;
+                 a missed Occurrence lapses when the rule produces the next one, so a recurring task is overdue
+                 at most once (ADR 0036)
 apps/calendar    @lifeline/app-calendar — Calendar App: Events (timed / all-day / multi-day),
                  shown on the month, week and Today surfaces via the Timed contract; Event templates (quick add onto a
                  slot) and Time blockers (weekly bands painted behind the Schedule), ADR 0027; one-off blockers dropped
