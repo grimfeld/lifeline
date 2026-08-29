@@ -377,7 +377,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
       </div>
       {/* Not merely CSS-hidden on a phone: the sheet below holds the same panel, and mounting both
           would run every App's document panel twice. */}
-      {panelOpen && !isMobile && <aside className="w-72 shrink-0 overflow-y-auto border-l p-3 max-md:hidden">{panel}</aside>}
+      {panelOpen && !isMobile && <aside className="w-80 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto border-l p-3 max-md:hidden">{panel}</aside>}
       {/* Phone: the same panel as a right sheet — there is no width for a column, and
           the links, the local graph and an App's own panels are not desk-only (ADR 0021). */}
       <Sheet open={isMobile && panelSheet} onOpenChange={setPanelSheet}>
