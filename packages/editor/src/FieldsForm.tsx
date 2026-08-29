@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Checkbox, GeoField, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Textarea } from "@lifeline/ui";
 import { displayTitle, documentType, geocode, readGeo, singularOf, suggestAddresses, useAllDocuments, useDocumentTypes, writeGeo, type DocumentTypeDef, type FieldDef } from "@lifeline/core";
 
@@ -103,16 +103,7 @@ export function FieldControl({
       );
     }
     case "list":
-      return (
-        <Input
-          id={id}
-          className="h-8"
-          disabled={disabled}
-          placeholder="comma-separated"
-          value={Array.isArray(value) ? value.join(", ") : String(value ?? "")}
-          onChange={(e) => onChange(e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-        />
-      );
+      return <ListInput id={id} value={value} disabled={disabled} onChange={onChange} />;
     case "select":
       return (
         <Select value={value === undefined || value === null || value === "" ? NONE : String(value)} onValueChange={(v) => onChange(v === NONE ? "" : v)} disabled={disabled}>
@@ -155,6 +146,40 @@ function toLocalInput(v: unknown): string {
 }
 
 /** A Link field: pick one Document (of the declared type, or any linkable type) by title. */
+/**
+ * A `list` field as comma-separated text. The text is the input's own while
+ * it has focus — the parsed array only reaches the Document on the editor's
+ * debounce — so a trailing ", " survives typing and a save never snaps the
+ * caret; on blur the text settles to the parsed form.
+ */
+function ListInput({ id, value, disabled, onChange }: { id: string; value: unknown; disabled?: boolean; onChange: (v: string[]) => void }) {
+  const joined = Array.isArray(value) ? value.map(String).join(", ") : String(value ?? "");
+  const [text, setText] = useState(joined);
+  const focused = useRef(false);
+  useEffect(() => {
+    if (!focused.current) setText(joined);
+  }, [joined]);
+  const parse = (t: string) => t.split(",").map((s) => s.trim()).filter(Boolean);
+  return (
+    <Input
+      id={id}
+      className="h-8"
+      disabled={disabled}
+      placeholder="comma-separated"
+      value={text}
+      onFocus={() => (focused.current = true)}
+      onBlur={() => {
+        focused.current = false;
+        setText(parse(text).join(", "));
+      }}
+      onChange={(e) => {
+        setText(e.target.value);
+        onChange(parse(e.target.value));
+      }}
+    />
+  );
+}
+
 function LinkField({ id, linkType, value, disabled, onChange }: { id: string; linkType?: string | string[]; value: unknown; disabled?: boolean; onChange: (v: unknown) => void }) {
   const docs = useAllDocuments();
   const types = useDocumentTypes();

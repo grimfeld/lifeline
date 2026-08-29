@@ -30,7 +30,8 @@ export const noteTypes: DocumentTypeDef[] = [
     body: "required",
     fields: [{ key: "mood", label: "Mood", kind: "select", options: MOODS, column: true }],
     template: DAILY_TEMPLATE,
-    linkable: true,
+    // A date in prose is not a mention of the day; the Daylog ties days together (CONTEXT.md "Unlinked mention").
+    linkable: { mentions: false },
     href: (d) => journalHref(d.title),
     onConflict: onNoteConflict,
     order: 0,

@@ -22,6 +22,7 @@ export * from "./documents/types";
 export * from "./documents/registry";
 export * from "./documents/store";
 export * from "./documents/links";
+export * from "./documents/mentions";
 export * from "./documents/graph";
 export * from "./documents/href";
 export * from "./documents/text";

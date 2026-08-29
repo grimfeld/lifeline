@@ -25,6 +25,8 @@ export interface Backlink {
 
 export interface LinkName {
   name: string;
+  /** What to write in `[[…]]` to reach the target unambiguously: its title, or `Folder/Title` when the title is shared. */
+  canonical: string;
   ref: LinkRef;
   subtitle?: string;
   /** Type id of the target (for badges in the completer). */
@@ -46,9 +48,12 @@ export interface LinkIndex {
   tags: Map<string, string[]>;
   /** Titles + aliases of every linkable Document, for autocomplete. */
   names(): LinkName[];
+  /** The subset of `names()` that may be offered as Unlinked mentions (types opt out with `linkable.mentions: false`). */
+  mentionNames(): LinkName[];
 }
 
-function contextAround(text: string, from: number, to: number, radius = 60): string {
+/** The line around a span, clipped to `radius` chars each side: backlink and mention context. */
+export function contextAround(text: string, from: number, to: number, radius = 60): string {
   const start = Math.max(0, text.lastIndexOf("\n", from) + 1, from - radius);
   const endNl = text.indexOf("\n", to);
   const end = Math.min(text.length, endNl === -1 ? text.length : endNl, to + radius);
@@ -204,31 +209,53 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[]): Link
     backlinksTo: (id) => backlinks.get(id) ?? [],
     unresolved,
     tags,
-    names: () => {
-      const out: LinkName[] = [];
-      const titleCount = new Map<string, number>();
-      for (const d of targets) {
-        const k = normalizeName(titleOf(d));
-        titleCount.set(k, (titleCount.get(k) ?? 0) + 1);
-      }
-      for (const d of targets) {
-        const def = defs.get(d.type);
-        const title = titleOf(d);
-        const ambiguous = (titleCount.get(normalizeName(title)) ?? 0) > 1;
-        const sub = typeof def?.linkable === "object" ? def.linkable.subtitle?.(d) : undefined;
-        out.push({ name: ambiguous ? docPath({ folder: d.folder, title }) : title, ref: ref(d.id), subtitle: sub ?? (d.folder || (def && singularOf(def))), type: d.type });
-        for (const a of aliasesOf(d, def)) out.push({ name: a, ref: ref(d.id), subtitle: `→ ${title}`, type: d.type });
-      }
-      return out;
-    },
+    names: () => names(targets, "canonical"),
+    mentionNames: () => names(targets.filter((d) => mentionable(defs.get(d.type))), "title"),
   };
+
+  /** Title + alias entries; the completer shows the canonical (path) form, the mention scanner needs the bare title. */
+  function names(of: Document[], show: "canonical" | "title"): LinkName[] {
+    const out: LinkName[] = [];
+    const titleCount = new Map<string, number>();
+    for (const d of targets) {
+      const k = normalizeName(titleOf(d));
+      titleCount.set(k, (titleCount.get(k) ?? 0) + 1);
+    }
+    for (const d of of) {
+      const def = defs.get(d.type);
+      const title = titleOf(d);
+      const ambiguous = (titleCount.get(normalizeName(title)) ?? 0) > 1;
+      const canonical = ambiguous ? docPath({ folder: d.folder, title }) : title;
+      const sub = typeof def?.linkable === "object" ? def.linkable.subtitle?.(d) : undefined;
+      out.push({ name: show === "title" ? title : canonical, canonical, ref: ref(d.id), subtitle: sub ?? (d.folder || (def && singularOf(def))), type: d.type });
+      for (const a of aliasesOf(d, def)) out.push({ name: a, canonical, ref: ref(d.id), subtitle: `→ ${title}`, type: d.type });
+    }
+    return out;
+  }
 }
 
-/** The live link index over every Document (ADR 0018). A React hook. */
+/** Whether a type's Documents may be offered as Unlinked mentions (CONTEXT.md): linkable, and not opted out. */
+function mentionable(def: DocumentTypeDef | undefined): boolean {
+  if (!isLinkable(def)) return false;
+  const l = def!.linkable;
+  return !(typeof l === "object" && l.mentions === false);
+}
+
+let last: { docs: Document[]; types: DocumentTypeDef[]; index: LinkIndex } | null = null;
+
+/** The index for one (docs, types) pair — built once per change, however many components ask. */
+export function linkIndexFor(docs: Document[], types: DocumentTypeDef[]): LinkIndex {
+  if (last && last.docs === docs && last.types === types) return last.index;
+  const index = buildLinkIndex(docs, types);
+  last = { docs, types, index };
+  return index;
+}
+
+/** The live link index over every Document (ADR 0018). A React hook; every mount shares one build per change. */
 export function useLinkIndex(): LinkIndex {
   const docs = useAllDocuments();
   const types = useDocumentTypes();
-  return useMemo(() => buildLinkIndex(docs, types), [docs, types]);
+  return useMemo(() => linkIndexFor(docs, types), [docs, types]);
 }
 
 /** Backlinks ("mentioned in") of one Document. A React hook. */

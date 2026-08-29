@@ -5,6 +5,7 @@ import {
   extractHeadings,
   extractLinks,
   extractTags,
+  normalizeName,
   parseBlockOptions,
   readCoords,
   renameLinks,
@@ -90,5 +91,15 @@ describe("tags / headings / blocks", () => {
   });
   it("excerpt strips syntax", () => {
     expect(excerpt("---\nmood: 3\n---\n### Head\nHello [[World|there]] **bold**")).toBe("Head Hello there bold");
+  });
+});
+
+describe("normalizeName", () => {
+  it("folds case, whitespace and accents", () => {
+    expect(normalizeName("  Léa   Dupont ")).toBe("lea dupont");
+    expect(normalizeName("Lea")).toBe(normalizeName("Léa"));
+    expect(normalizeName("Ça")).toBe("ca");
+    // an already-decomposed é (e + combining acute) folds the same
+    expect(normalizeName("Léa")).toBe("lea");
   });
 });
