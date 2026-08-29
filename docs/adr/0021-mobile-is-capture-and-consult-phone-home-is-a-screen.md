@@ -244,3 +244,74 @@ pointer events), so pan and drag work as they do with a mouse.
 
 The phone's own Bible screen (`/app/bible`) is unchanged: it is capture and
 glance, the desk is the whole study, and both now work at 390px.
+
+## Amendment (2026-08-29): the editor grows a key accessory bar
+
+The Writer's pad amendment above gave prose the width of the screen; it did
+not make the syntax typable. Markdown on a phone keyboard is `[`, `[`, a name,
+`]`, `]` — four of those five characters behind the symbols layer — and the
+caret work around them is fingertip surgery. The question that prompted this
+was whether the app could put up a keyboard of its own instead.
+
+**It does not replace the keyboard.** `inputmode="none"` on the CodeMirror
+content would suppress the OS keyboard in one line, and an app-drawn key grid
+could feed the editor through transactions; a real system IME (an iOS keyboard
+extension, an Android `InputMethodService`) is not even reachable — the phone
+runs the PWA, and an extension would be a separate sandboxed app the user
+enables system-wide. Either way the trade is the same and it is bad: autocorrect,
+swipe typing, dictation, emoji, every non-Latin layout, and external-keyboard
+and accessibility input, given up in order to type *prose*. The keyboard stays
+the OS's.
+
+**Above it goes a strip of the things the keyboard is bad at** — Obsidian's
+bargain. One scrollable row of icon buttons, rendered while the editor has
+focus below `md`. Its order is thumb-first: caret left/right and the `[[`
+link lead, because those are what a phone genuinely cannot do otherwise; then
+tag, heading, bold, italic, strikethrough, code, bullet, task, quote, outdent,
+indent, undo, redo.
+
+- **Linking is the point.** The link button wraps the selection in `[[…]]`,
+  puts the caret inside and calls `startCompletion` — the same note picker the
+  desktop gets by typing, with the selected words already as its query.
+- **One button per chore, not per state.** Heading cycles none → `#` → `##` →
+  `###` → none; the task button makes a plain line or a bullet into a task and
+  ticks and unticks one that already is. Ticking is exactly what a fingertip
+  cannot do to `[ ]`.
+- **Marks toggle off.** A second tap unwraps, whether the markers are inside
+  the selection or around it — but a marker that continues past the pair is
+  read as a longer run, so italic inside bold nests (`***x***`) instead of
+  eating the bold.
+- The commands are plain CodeMirror `Command`s in `mdCommands.ts`, unit-tested
+  on a bare `EditorState`; nothing in them knows about the bar, so a desktop
+  keymap could take the same set later.
+
+**Riding the keyboard is the browser's job where it will do it.** There is no
+portable keyboard height, and measuring one from the visual viewport is not
+enough: on Android the first cut of this bar came up *under* the keyboard's own
+toolbar row, which the visual viewport's shrink did not account for. So the
+shell now asks for `interactive-widget=resizes-content`: Chromium ends the
+layout viewport at the keyboard, the `h-dvh` frame ends there with it, and
+anything fixed to the bottom — this bar, the phone nav — rides above whatever
+the IME actually occupies, with no arithmetic and nothing for us to get wrong.
+
+iOS ignores the hint and never shrinks the layout viewport, so the arithmetic
+stays as the fallback: `useKeyboardInset` (Core, beside `useIsMobile` — a
+browser fact, not shell furniture) reports `documentElement.clientHeight -
+visualViewport.height - offsetTop`, measured against the initial containing
+block because that, and not `window.innerHeight`, is the box a fixed `bottom`
+resolves against. It reads 0 on Chromium, which is the same right answer.
+
+The bar is portalled to `body`, since a `fixed` element is trapped by any
+transformed ancestor and the editor sits inside sheets, and it is opaque and a
+shade taller than the phone nav it lands on — while the editor has focus it
+takes that row over. The editor takes the bar and the keyboard as a bottom
+`scrollMargin`, so the caret is never scrolled to a "visible" position
+underneath them.
+
+The bar shows on focus and hides on blur, and its buttons `preventDefault` the
+pointer down: a blur would close the keyboard and drop the selection the
+commands act on. Focus is read from the editor's own `focusedField` rather
+than `ViewUpdate.focusChanged`, and is now seeded when the view comes up
+focused — CodeMirror announces focus *changes* only, so an `autoFocus`ed
+editor (today's Journal) announced nothing, which had been leaving the daylog
+widgets' focus reckoning wrong in the same way.
