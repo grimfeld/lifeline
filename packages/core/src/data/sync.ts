@@ -1,5 +1,6 @@
 import { ATTACHMENTS, BLOBS, db, DOCUMENTS, syncedCollectionNames, type SyncedRecord } from "./db";
 import { pb } from "./pb";
+import { bindAccount, boundAccount, currentAccount } from "./account";
 import { shouldApply } from "./reconcile";
 import { documentTypeSync } from "../documents/registry";
 import { isCommonKey, type Document } from "../documents/types";
@@ -43,9 +44,14 @@ export function useSyncState(): { state: SyncState; pending: number; error: stri
 
 type PbRecord = Record<string, unknown> & { id: string; updated: string };
 
-/** Strip PocketBase system fields before storing locally; Documents get their `fields` JSON spread flat (ADR 0018). */
+/**
+ * Strip PocketBase system fields before storing locally; Documents get their
+ * `fields` JSON spread flat (ADR 0018). `owner` is the server's business
+ * (ADR 0039): it never reaches the local store, so it can never land in a
+ * Document's `fields` on the way back up.
+ */
 function toLocal(collection: string, r: PbRecord): SyncedRecord {
-  const { collectionId: _c, collectionName: _n, created: _cr, updated: _u, ...rest } = r as Record<string, unknown>;
+  const { collectionId: _c, collectionName: _n, created: _cr, updated: _u, owner: _o, ...rest } = r as Record<string, unknown>;
   if (collection === DOCUMENTS) {
     const { fields, ...common } = rest as Record<string, unknown> & { fields?: unknown };
     const extra = fields && typeof fields === "object" && !Array.isArray(fields) ? (fields as Record<string, unknown>) : {};
@@ -214,7 +220,8 @@ let queued = false;
 let started = false;
 
 export async function syncNow(): Promise<void> {
-  if (!pb.authStore.isValid) {
+  const me = currentAccount();
+  if (!me) {
     setState("unauthenticated");
     return;
   }
@@ -222,6 +229,16 @@ export async function syncNow(): Promise<void> {
     queued = true;
     return;
   }
+  // One device, one Account (ADR 0039): never push this device's rows as
+  // someone else, never pull someone else's rows into them.
+  const bound = await boundAccount();
+  if (bound && bound.id !== me.id) {
+    lastSyncError = `This device holds ${bound.email || "another account"}'s data — sign in as them, or erase it to switch`;
+    listeners.forEach((l) => l());
+    setState("error");
+    return;
+  }
+  if (!bound) await bindAccount(me);
   syncing = true;
   setState("syncing");
   const problems: string[] = [];

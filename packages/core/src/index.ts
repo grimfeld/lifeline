@@ -47,6 +47,7 @@ export {
 export { put, remove, get, all } from "./data/repo";
 export { pb, login, logout, useAuth } from "./data/pb";
 export { startSync, syncNow, requestSync, useSyncState, type SyncState } from "./data/sync";
+export { accountConflict, boundAccount, currentAccount, pendingWriteCount, switchAccount, type AccountRef } from "./data/account";
 export { useLiveQuery } from "dexie-react-hooks";
 export { liveQuery } from "dexie";
 export * from "./external";
