@@ -31,7 +31,26 @@ export function mayBePrivate(def: DocumentTypeDef | undefined): boolean {
 // --- settings: one internal Document, owned by the Notes App, read here by id ---
 
 export const PRIVATE_SETTINGS_TYPE = "private_settings";
-export const PRIVATE_SETTINGS_ID = "private:settings";
+/** PocketBase ids are `^[a-z0-9]+$`, at most 15 characters. */
+export const PRIVATE_SETTINGS_ID = "privatesettings";
+/** The first release used a `:` id PocketBase refuses; see repairPrivateSettings. */
+const LEGACY_SETTINGS_ID = "private:settings";
+
+/**
+ * One-time local repair: a settings row under the old, unsyncable id is
+ * re-keyed to the valid one and the old row dropped for good (its queued
+ * push goes with it — the outbox forgets entries whose row is gone). Run
+ * once at startup, never inside a live query.
+ */
+export async function repairPrivateSettings(): Promise<void> {
+  const d = db();
+  const old = (await d.documents.get(LEGACY_SETTINGS_ID)) as PrivateSettings | undefined;
+  if (!old) return;
+  if (!old.deleted && old.type === PRIVATE_SETTINGS_TYPE && !(await d.documents.get(PRIVATE_SETTINGS_ID))) {
+    await put<PrivateSettings>(DOCUMENTS, { ...old, id: PRIVATE_SETTINGS_ID });
+  }
+  await d.documents.delete(LEGACY_SETTINGS_ID);
+}
 
 export interface PrivateSettings extends Document {
   type: typeof PRIVATE_SETTINGS_TYPE;
