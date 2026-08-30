@@ -126,7 +126,7 @@ export function PocketScreen() {
                     <JarTile key={row.allowance.id} row={row} today={today} open={openTile === row.allowance.id} onEdit={() => setEditing(row.allowance)} onSpend={() => openSpend(row.allowance.id)} onToggle={() => setOpenTile((v) => (v === row.allowance.id ? undefined : row.allowance.id))} />
                   ))}
                 </div>
-                {openRow && <SpendsPanel row={openRow} onClose={() => setOpenTile(undefined)} onSpend={() => openSpend(openRow.allowance.id)} onEditSpend={editSpend} />}
+                {openRow && <SpendsPanel row={openRow} onClose={() => setOpenTile(undefined)} onSpend={() => openSpend(openRow.allowance.id)} onEdit={() => setEditing(openRow.allowance)} onEditSpend={editSpend} />}
               </>
             )}
             {key !== "current" && !collapsed && bucketRows.map((row) => <AllowanceLine key={row.allowance.id} row={row} today={today} renewable={canRenew(row.allowance, allowances)} onEdit={() => setEditing(row.allowance)} onSpend={() => openSpend(row.allowance.id)} onEditSpend={editSpend} onRenew={() => void renew(row.allowance)} />)}
@@ -148,7 +148,10 @@ function JarTile({ row, today, open, onEdit, onSpend, onToggle }: { row: Allowan
   const left = daysLeft(a, today);
   const n = row.spends.length;
   return (
-    <Card className={cn("py-0", open && "ring-ring ring-1")}>
+    <Card className={cn("relative py-0", open && "ring-ring ring-1")}>
+      <button className="text-muted-foreground hover:text-foreground hover:bg-accent absolute top-1.5 right-1.5 rounded-md p-1.5" onClick={onEdit} aria-label={`Edit ${a.name}`} title="Edit">
+        <Pencil className="size-3.5" />
+      </button>
       <CardContent className="grid justify-items-center gap-1 px-2 py-3 text-center">
         <button className="group grid justify-items-center gap-1 rounded-md px-2 pt-1" onClick={onSpend} aria-label={`Spend from ${a.name}`} title="Spend">
           <span className="relative">
@@ -174,7 +177,7 @@ function JarTile({ row, today, open, onEdit, onSpend, onToggle }: { row: Allowan
 }
 
 /** The Spends of the open jar, beneath the shelf — too narrow to live inside a tile. */
-function SpendsPanel({ row, onClose, onSpend, onEditSpend }: { row: AllowanceRow; onClose: () => void; onSpend: () => void; onEditSpend: (s: Spend) => void }) {
+function SpendsPanel({ row, onClose, onSpend, onEdit, onEditSpend }: { row: AllowanceRow; onClose: () => void; onSpend: () => void; onEdit: () => void; onEditSpend: (s: Spend) => void }) {
   const a = row.allowance;
   return (
     <Card className="py-0">
@@ -188,6 +191,9 @@ function SpendsPanel({ row, onClose, onSpend, onEditSpend }: { row: AllowanceRow
           <span className="text-muted-foreground text-xs tabular-nums">
             {formatCents(row.spent)} / {formatCents(a.amount)}
           </span>
+          <Button size="sm" variant="outline" onClick={onEdit}>
+            <Pencil /> Edit
+          </Button>
           <Button size="sm" variant="outline" onClick={onSpend}>
             <Plus /> Spend
           </Button>
