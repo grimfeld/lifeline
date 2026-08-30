@@ -262,6 +262,16 @@ export function FileTree() {
       <div className="text-muted-foreground flex items-center justify-between px-2 py-1 text-xs font-medium">
         Files
         <span className="flex items-center">
+          {/* The Private folder's one always-reachable control (ADR 0038) — the palette needs a keyboard, a phone has none. */}
+          <Button
+            size="icon"
+            variant="ghost"
+            className="size-5"
+            title={!gate.configured ? "Set up private notes…" : gate.locked ? "Unlock private notes…" : "Lock private notes"}
+            onClick={() => (!gate.configured ? openPrivateDialog("setup") : gate.locked ? openPrivateDialog("unlock") : void lockPrivate())}
+          >
+            {gate.configured && !gate.locked ? <LockOpen className="size-3" /> : <Lock className="size-3" />}
+          </Button>
           <Button size="icon" variant="ghost" className="size-5" title="New note" onClick={() => setAction({ kind: "new-note", folder: "", type: "note" })}>
             <FilePlus className="size-3" />
           </Button>
