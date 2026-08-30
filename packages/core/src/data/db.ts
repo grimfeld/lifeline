@@ -110,8 +110,9 @@ export interface ViewFilter {
  *   13 — one `documents` store (ADR 0018), `views`, `document_types`; per-App stores dropped
  *   14 — media split: per-medium types; media's `[type+medium]` index dropped, `[type+slot]`/`[type+externalKey]` shared by the six types
  *   15 — Museum App (ADR 0022): `[type+artistId]` and `[type+exhibitionId]` added
+ *   16 — Attachments (ADR 0037): synced `attachments` metadata, local `_blobs` bytes
  */
-const DB_VERSION = 15;
+const DB_VERSION = 16;
 
 /** Stores that existed before ADR 0018; deleted on upgrade so a client re-pulls into `documents`. */
 const LEGACY_STORES = [
@@ -122,6 +123,9 @@ const LEGACY_STORES = [
 export const DOCUMENTS = "documents";
 export const VIEWS = "views";
 export const DOCUMENT_TYPES = "document_types";
+/** Attachment metadata (ADR 0037) — synced; the bytes live in `_blobs`, local only. */
+export const ATTACHMENTS = "attachments";
+export const BLOBS = "_blobs";
 
 /** Indexes every Document row gets; type-declared ones are added as `[type+field]`. */
 const DOCUMENT_BASE_INDEXES = ["id", "updatedAt", "deleted", "type", "[type+deleted]", "title", "folder", "*tags", "createdAt"];
@@ -144,6 +148,8 @@ export class LifelineDB extends Dexie {
       screens: "id, updatedAt, deleted, sort",
       [VIEWS]: "id, updatedAt, deleted, type, sort",
       [DOCUMENT_TYPES]: "id, updatedAt, deleted, typeId",
+      [ATTACHMENTS]: "id, updatedAt, deleted, name",
+      [BLOBS]: "id",
       [DOCUMENTS]: Array.from(new Set([...DOCUMENT_BASE_INDEXES, ...documentIndexes.map(compileDocumentIndex)])).join(", "),
     };
     for (const c of localTables) {

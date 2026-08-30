@@ -2,8 +2,9 @@ import { createRoot, type Root } from "react-dom/client";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { RangeSetBuilder, StateEffect, StateField, type EditorState } from "@codemirror/state";
 import { autocompletion, type CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
-import { extractBlocks, extractLinks, extractTags, parseBlockOptions, normalizeTag, type LinkIndex, type LinkRef } from "@lifeline/core";
+import { extractBlocks, extractLinks, extractTags, isImageEmbed, parseBlockOptions, normalizeTag, resolveAttachment, type Attachment, type LinkIndex, type LinkRef } from "@lifeline/core";
 import { DaylogBlock } from "./DaylogBlock";
+import { AttachmentImage } from "./AttachmentImage";
 
 /** The current index is pushed into the editor state so decorations can resolve links. */
 export const setIndex = StateEffect.define<LinkIndex>();
@@ -29,6 +30,16 @@ export const contextField = StateField.define<EditorContext | null>({
   },
 });
 
+/** The live Attachments, pushed in like the index, so an image embed knows whether it resolves. */
+export const setAttachments = StateEffect.define<Attachment[]>();
+export const attachmentsField = StateField.define<Attachment[]>({
+  create: () => [],
+  update(value, tr) {
+    for (const e of tr.effects) if (e.is(setAttachments)) return e.value;
+    return value;
+  },
+});
+
 const linkMark = (cls: string) => Decoration.mark({ class: cls });
 const tagMark = Decoration.mark({ class: "cm-tag" });
 
@@ -40,7 +51,7 @@ export const wikilinkPlugin = ViewPlugin.fromClass(
       this.decorations = build(view);
     }
     update(u: ViewUpdate) {
-      if (u.docChanged || u.viewportChanged || u.transactions.some((t) => t.effects.some((e) => e.is(setIndex)))) {
+      if (u.docChanged || u.viewportChanged || u.transactions.some((t) => t.effects.some((e) => e.is(setIndex) || e.is(setAttachments)))) {
         this.decorations = build(u.view);
       }
     }
@@ -51,11 +62,13 @@ export const wikilinkPlugin = ViewPlugin.fromClass(
 function build(view: EditorView): DecorationSet {
   const text = view.state.doc.toString();
   const index = view.state.field(indexField, false);
+  const attachments = view.state.field(attachmentsField, false) ?? [];
   const b = new RangeSetBuilder<Decoration>();
   const marks: { from: number; to: number; deco: Decoration }[] = [];
   for (const l of extractLinks(text)) {
-    const ref = index?.resolve(l.name);
-    const cls = !ref || ref.kind === "unresolved" ? "cm-wikilink cm-wikilink-unresolved" : "cm-wikilink";
+    // An image embed resolves against Attachments (ADR 0037), never the Document index.
+    const resolved = isImageEmbed(l) ? !!resolveAttachment(attachments, l.name) : index?.resolve(l.name).kind === "doc";
+    const cls = resolved ? "cm-wikilink" : "cm-wikilink cm-wikilink-unresolved";
     marks.push({ from: l.from, to: l.to, deco: linkMark(cls) });
   }
   // tags: re-scan lines for positions (extractTags gives names only)
@@ -88,7 +101,7 @@ export const wikilinkClick = EditorView.domEventHandlers({
     const link = extractLinks(view.state.doc.toString()).find((l) => l.from <= pos && pos <= l.to);
     const ctx = view.state.field(contextField, false);
     const index = view.state.field(indexField, false);
-    if (!link || !ctx || !index) return false;
+    if (!link || !ctx || !index || isImageEmbed(link)) return false;
     event.preventDefault();
     ctx.openRef(index.resolve(link.name), link.name);
     return true;
@@ -190,6 +203,58 @@ function buildBlocks(state: EditorState): DecorationSet {
     const date = opts.date || ctx?.docDate || new Date().toISOString().slice(0, 10);
     const apps = opts.apps ? opts.apps.split(/[\s,]+/).filter(Boolean) : undefined;
     b.add(blk.from, blk.to, Decoration.replace({ widget: new DaylogWidget(date, apps), block: true }));
+  }
+  return b.finish();
+}
+
+/** An embedded image shown under its `![[name.png]]` line (ADR 0037); the text stays editable above it. */
+class ImageWidget extends WidgetType {
+  private root: Root | null = null;
+  constructor(readonly name: string) {
+    super();
+  }
+  eq(other: ImageWidget) {
+    return other.name === this.name;
+  }
+  toDOM() {
+    const el = document.createElement("div");
+    el.className = "cm-embed-image";
+    this.root = createRoot(el);
+    this.root.render(<AttachmentImage name={this.name} />);
+    return el;
+  }
+  destroy() {
+    const root = this.root;
+    this.root = null;
+    if (root) queueMicrotask(() => root.unmount());
+  }
+  ignoreEvent() {
+    return true;
+  }
+}
+
+/** Block widgets for every image embed — a StateField, like the daylog blocks. */
+export const imageEmbedField = StateField.define<DecorationSet>({
+  create: (state) => buildImages(state),
+  update(deco, tr) {
+    if (tr.docChanged) return buildImages(tr.state);
+    return deco;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+function buildImages(state: EditorState): DecorationSet {
+  const text = state.doc.toString();
+  const b = new RangeSetBuilder<Decoration>();
+  // Widgets sit at the end of the embed's line, in document order; several embeds on one line stack.
+  const perLine = new Map<number, string[]>();
+  for (const l of extractLinks(text)) {
+    if (!isImageEmbed(l)) continue;
+    const to = state.doc.lineAt(l.to).to;
+    perLine.set(to, [...(perLine.get(to) ?? []), l.name]);
+  }
+  for (const [to, names] of [...perLine.entries()].sort((x, y) => x[0] - y[0])) {
+    for (const name of names) b.add(to, to, Decoration.widget({ widget: new ImageWidget(name), block: true, side: 1 }));
   }
   return b.finish();
 }
