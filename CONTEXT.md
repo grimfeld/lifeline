@@ -215,6 +215,18 @@ _Avoid_: recurring transaction (the retired stored definition), subscription (fi
 One pending occurrence of a Recurring series: the day it is next expected and the series' suggested amount, confirmed in one tap (amount editable at confirm) into a real Transaction, or skipped. Projected one step past the series' newest occurrence, so a day already paid is never due and confirming is nothing but posting the Transaction. The list of upcoming Dues *is* the forecast; no separate concept. Lives in the Ledger App and its Dues Card — never on the time Surfaces.
 _Avoid_: reminder, occurrence (a Task's), bill (fine in prose), pending transaction
 
+### Pocket
+The month-in-hand App: Allowances and Spends, a rough running tally kept by hand between bank statements, deliberately apart from the Ledger. The Ledger holds bank facts; Pocket holds what the user believes they have left. Nothing in Pocket is ever a Transaction.
+_Avoid_: envelopes (ADR 0033 rejected envelope budgeting), budget (the Ledger's lens), pool (the Tasks App's unassigned chip)
+
+### Allowance
+A named sum the user grants themself for one calendar month — "Eating out · September 2026 · €300" — owned by the Pocket App. Bound to its month: a new month means new Allowances (typically cloned from last month's names and amounts, with no Spends), and nothing carries over — no rollover, ever; sinking funds are the Ledger's accumulating Category. What is left is derived: the granted amount minus its Spends, never stored.
+_Avoid_: pool, envelope, pot (an accumulating Category's balance), target (Ledger policy), budget
+
+### Spend
+One hand-typed amount taken from an Allowance during its month: amount, day, optional label. A belief, not a fact — the bank's Transaction, when imported into the Ledger, is the fact.
+_Avoid_: withdrawal (implies an Account), transaction (a Ledger fact), expense (a Transaction kind)
+
 ### Media item
 _Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus **Quotes** (born as the Commonplace book) for Quotes. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry creator, year, size, cover by URL and an optional **Reason** (who sent me here — never asked at add). The old "Studied" mark is gone.
 _Avoid_: media (as a type id or an App — neither exists), title, copy, edition, studied
@@ -365,6 +377,10 @@ A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten
 ### Workspace
 A full-screen environment over the same data, chosen by URL: the **Vault** (Obsidian-shaped: tree, editor, links — over every Document that has a body, whatever its type) and the **Dashboard** (Screens, Surfaces, App screens, Bases). Core owns the switcher; an App declares which Workspace its screens live in. Two views of one dataset, not two apps.
 _Avoid_: mode, full-screen app, view, "Notes workspace" (old name of the Vault)
+
+### Attachment
+A file — for now an image — dropped or pasted into a Document's body and kept by Core beside the content: bytes, filename and kind, nothing else. Not a Document: no type, no Base, no Folder, no Tags, absent from the Vault tree; it exists only to be embedded from bodies by name, and any body-first type (Note, Clipping, Writing) may embed one. Renaming it rewrites every embed, as renaming a Note does. Deleting the embed never deletes the Attachment: one no body embeds any more is **orphaned**, kept, and removed only when the user asks to clean up.
+_Avoid_: image (the kind, not the thing), file (a storage detail), asset, upload, media (the retired App)
 
 ### Vault
 The Workspace with Obsidian's chrome. Shows any Document as frontmatter + body in a generic editor; the Note taker, Clipper and Writer's pad Apps put their specialised editors here. Not a storage place — Documents live in one store whatever Workspace shows them.

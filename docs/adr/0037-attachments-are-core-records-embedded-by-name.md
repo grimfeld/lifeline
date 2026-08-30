@@ -1,0 +1,21 @@
+# Attachments are Core records, embedded by name, stored as PocketBase files
+
+Images dropped or pasted into a Document's body had nowhere to go: the whole stack — the `documents` collection, the Dexie outbox, the sync engine (ADR 0002), the Obsidian importer — moves JSON text only, and covers elsewhere are URLs the user brought. The decision is that an **Attachment** is a Core record beside the content, not a Document: an `attachments` collection (name, mime, size, a PocketBase file field) with its bytes on the one PocketBase instance's volume, no type, no Base, no Folder, absent from the Vault tree. A body embeds one by name — `![[Pasted image 20260830143000.png]]`, Obsidian's own syntax — so bodies round-trip with a vault unchanged, and renaming an Attachment rewrites its embeds the way renaming a Note does (ADR 0013). Dropping works offline: the bytes go into a local Dexie blob table first, the embed is inserted at once and renders from that blob, and the outbox pushes the record as a multipart create when the network is back; other devices pull the metadata like any record and fetch the bytes lazily on first render, caching them for good. The file field is `protected`, so bytes are never served by a bare URL — every fetch carries a short-lived file token, and an `<img>` always shows a cached blob, never a server URL. Images are downscaled on the device before storage (≤ 2048 px on the long edge; photos re-encoded as JPEG, screenshots kept as PNG) with a 20 MB ceiling, because a note is not a photo library. Nothing deletes an Attachment on its own: removing the embed, or the Document, leaves it **orphaned**, and only the "Clean up unused Attachments" Command removes orphans, on request.
+
+## Considered options
+
+- **Base64 data URIs inline in the body** — rejected: one screenshot is a megabyte of text that bloats the body, the local store, the full-text index and every sync push, and breaks the Obsidian round trip.
+- **An external bucket (R2/S3)** — rejected: a second service with its own credentials and CORS for one user, against the spirit of ADR 0002 (one PocketBase, nothing to babysit).
+- **A built-in `image` Document type** — rejected: Core owns no types (ADR 0019) and no App fits (Notes, Clipper and Writer all embed); a type would drag every image into the Vault tree and the `documents` collection cannot hold bytes anyway, so it would have been two records per image for a Base nobody asked for. Promotion stays open: the bytes live in the same collection either way.
+- **`![](attachment:id)` or literal server URLs in the body** — rejected: an id scheme is a dead link in Obsidian and ugly in source; a server URL ties every note to one host and cannot render offline.
+- **Public file URLs** — rejected: a journal's screenshots reachable by anyone holding a URL; the token step costs ten lines and is paid once per image per device.
+- **Refcounted cascade delete** — rejected: undo would resurrect a dangling embed, and LWW between an offline device and the one that removed the last embed loses bytes for good.
+
+## Consequences
+
+- The sync engine gains one special case: the `attachments` collection creates through multipart form data with the blob, updates (renames) through JSON without the file, and never pulls bytes — `attachmentUrl()` fetches them on demand with a file token and caches them in the local `_blobs` table.
+- The link index treats an embed of an image filename as an Attachment reference, never an unresolved Document: it does not show up in Unresolved links, Ghost nodes or "create this note".
+- Name is identity, unique across all Attachments (case- and accent-insensitive like Wikilinks). A dropped file keeps its name; a pasted image is `Pasted image YYYYMMDDHHmmss.png`; collisions get ` 1`, ` 2`.
+- Tauri's own drag-drop interception is switched off (`dragDropEnabled: false`) so the browser-standard `drop` event carries the files on desktop and web alike; the phone gets the same pipeline through a file input on the editor's key bar and clipboard paste.
+- The local blob cache is unbounded for now; a blob whose record is still in the outbox must never be evicted, which any later eviction policy has to honour.
+- Importing the images of an existing Obsidian vault is a follow-up over the same upload path.

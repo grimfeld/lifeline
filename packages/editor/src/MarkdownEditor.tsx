@@ -6,13 +6,16 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import { completionKeymap } from "@codemirror/autocomplete";
-import { useIsMobile, useKeyboardInset, type LinkIndex } from "@lifeline/core";
+import { useAttachments, useIsMobile, useKeyboardInset, type LinkIndex } from "@lifeline/core";
 import {
+  attachmentsField,
   contextField,
   daylogField,
   focusTracking,
   focusedField,
+  imageEmbedField,
   indexField,
+  setAttachments,
   setContext,
   setFocused as setFocusedEffect,
   setIndex,
@@ -21,6 +24,7 @@ import {
   wikilinkPlugin,
   type EditorContext,
 } from "./editorExtensions";
+import { attachmentDrop } from "./attachmentCommands";
 import { ACCESSORY_BAR_HEIGHT, EditorAccessoryBar } from "./EditorAccessoryBar";
 import { textChange } from "./textDiff";
 import "./editor.css";
@@ -86,6 +90,7 @@ export function MarkdownEditor({
   // into state: a StateField changing is not, by itself, a render.
   const [focused, setFocused] = useState(false);
   const [view, setView] = useState<EditorView | null>(null);
+  const attachments = useAttachments();
 
   useEffect(() => {
     if (!host.current) return;
@@ -100,12 +105,15 @@ export function MarkdownEditor({
         syntaxHighlighting(mdHighlight),
         indexField.init(() => index),
         contextField.init(() => context),
+        attachmentsField.init(() => attachments),
         wikilinkPlugin,
         wikilinkClick,
         wikilinkCompletion(),
         focusedField,
         focusTracking,
         daylogField,
+        imageEmbedField,
+        attachmentDrop,
         keyboardMargin.of([]),
         keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap, indentWithTab]),
         placeholder ? cmPlaceholder(placeholder) : [],
@@ -171,6 +179,10 @@ export function MarkdownEditor({
   useEffect(() => {
     viewRef.current?.dispatch({ effects: setContext.of(context) });
   }, [context]);
+
+  useEffect(() => {
+    viewRef.current?.dispatch({ effects: setAttachments.of(attachments) });
+  }, [attachments]);
 
   // The bar and the keyboard sit over the editor's last lines: without this the
   // caret is scrolled to a "visible" position that is underneath both of them.

@@ -6,4 +6,6 @@ export * from "./LinksPanel";
 export * from "./LocalGraphPanel";
 export * from "./DaylogBlock";
 export * from "./DocumentEditor";
+export * from "./AttachmentImage";
+export { pickImage, insertAttachments } from "./attachmentCommands";
 export { type EditorContext } from "./editorExtensions";

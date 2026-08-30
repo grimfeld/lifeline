@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Textarea, toast } from "@lifeline/ui";
 import { createDocument, docHref, useDocumentTypes, type CommandDef, type DocumentTypeDef, singularOf } from "@lifeline/core";
-import { CalendarDays, FilePlus, Settings2, Zap } from "lucide-react";
+import { CalendarDays, FilePlus, ImageOff, Settings2, Zap } from "lucide-react";
+import { AttachmentsCleanupDialog } from "./components/AttachmentsCleanupDialog";
 import { appendToDaily } from "./data/repo";
 import { DAILY, TEMPLATE } from "./domain/types";
 
@@ -125,6 +126,7 @@ export const noteCommands: CommandDef[] = [
   { id: "notes.new", title: "New note…", keywords: ["person", "place", "note"], icon: FilePlus, dialog: NewNoteCommandDialog },
   { id: "notes.capture", title: "Quick capture", keywords: ["journal", "log", "thought"], icon: Zap, dialog: QuickCaptureDialog, capture: true },
   { id: "notes.settings", title: "Document types & templates…", keywords: ["template", "type", "settings", "daily", "bases"], icon: Settings2, run: ({ navigate }) => navigate("/base") },
+  { id: "notes.attachments.cleanup", title: "Clean up unused attachments…", keywords: ["image", "attachment", "orphan", "storage", "delete"], icon: ImageOff, dialog: AttachmentsCleanupDialog },
 ];
 
 /** One "New <type>…" command per creatable body-first type — user-defined ones included (Core `useCommands` hook). */

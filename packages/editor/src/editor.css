@@ -56,6 +56,30 @@
 .ll-editor .cm-tag {
   color: var(--chart-orange);
 }
+.ll-editor .cm-embed-image {
+  padding: 0.25rem 0.25rem 0.5rem;
+}
+/* An embedded Attachment (ADR 0037), in the editor and in reading mode. */
+.attachment-image {
+  display: block;
+  max-width: 100%;
+  max-height: 28rem;
+  width: auto;
+  height: auto;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  user-select: none;
+}
+.attachment-missing,
+.attachment-loading {
+  display: inline-block;
+  font-size: 0.8em;
+  color: var(--muted-foreground);
+  border: 1px dashed var(--border);
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+}
+.prose-note p > .attachment-image { margin: 0.35em 0; }
 .ll-editor .cm-daylog {
   background: color-mix(in oklab, var(--muted) 35%, transparent);
   border-color: var(--border);

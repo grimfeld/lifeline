@@ -33,6 +33,7 @@ export {
   DOCUMENTS,
   VIEWS,
   DOCUMENT_TYPES,
+  ATTACHMENTS,
   type SyncedRecord,
   type Placement,
   type UserScreen,
@@ -51,3 +52,4 @@ export { liveQuery } from "dexie";
 export * from "./external";
 export * from "./fetch";
 export * from "./documents/ops";
+export * from "./attachments";

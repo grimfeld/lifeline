@@ -135,6 +135,18 @@ export interface WikiLink {
 
 const LINK_RE = /(!?)\[\[([^\]\n|#]+)(?:#([^\]\n|]+))?(?:\|([^\]\n]+))?\]\]/g;
 
+const IMAGE_NAME_RE = /\.(png|jpe?g|gif|webp|svg|avif|bmp)$/i;
+
+/** Whether a wikilink name is an image filename — `![[x.png]]` embeds an Attachment (ADR 0037), never a Document. */
+export function isImageName(name: string): boolean {
+  return IMAGE_NAME_RE.test(name.trim());
+}
+
+/** Whether a link is an Attachment embed: `![[…]]` of an image filename. */
+export function isImageEmbed(link: Pick<WikiLink, "embed" | "name">): boolean {
+  return link.embed && isImageName(link.name);
+}
+
 /** Every [[wikilink]] in the text with its offsets, skipping fenced code and inline code. */
 export function extractLinks(text: string): WikiLink[] {
   const out: WikiLink[] = [];

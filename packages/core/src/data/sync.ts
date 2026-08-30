@@ -1,4 +1,4 @@
-import { db, DOCUMENTS, syncedCollectionNames, type SyncedRecord } from "./db";
+import { ATTACHMENTS, BLOBS, db, DOCUMENTS, syncedCollectionNames, type SyncedRecord } from "./db";
 import { pb } from "./pb";
 import { shouldApply } from "./reconcile";
 import { documentTypeSync } from "../documents/registry";
@@ -58,8 +58,17 @@ function toLocal(collection: string, r: PbRecord): SyncedRecord {
   return rest as unknown as SyncedRecord;
 }
 
-/** The wire shape of a local record: Documents pack their type fields into `fields`. */
+/**
+ * The wire shape of a local record: Documents pack their type fields into
+ * `fields`; an Attachment's JSON update never carries `file` (the bytes go
+ * up once, at create — ADR 0037), except to clear it when tombstoned so the
+ * server frees the storage.
+ */
 function toRemote(collection: string, local: SyncedRecord): Record<string, unknown> {
+  if (collection === ATTACHMENTS) {
+    const { file: _f, ...rest } = local as unknown as Record<string, unknown>;
+    return local.deleted ? { ...rest, file: null } : rest;
+  }
   if (collection !== DOCUMENTS) return local as unknown as Record<string, unknown>;
   const common: Record<string, unknown> = {};
   const fields: Record<string, unknown> = {};
@@ -68,6 +77,26 @@ function toRemote(collection: string, local: SyncedRecord): Record<string, unkno
     else if (v !== undefined) fields[k] = v;
   }
   return { ...common, body: (common.body as string | undefined) ?? "", fields };
+}
+
+/**
+ * An Attachment's first push is a multipart create carrying the local blob
+ * (ADR 0037). The server names the file; that name is kept locally, outside
+ * the outbox, so lazy fetches elsewhere know what to ask for. A tombstone
+ * that never reached the server has nothing to create.
+ */
+async function createAttachment(recordId: string, local: SyncedRecord): Promise<void> {
+  if (local.deleted) return;
+  const row = (await db().table(BLOBS).get(recordId)) as { blob: Blob } | undefined;
+  if (!row) throw new Error("attachment bytes are missing locally");
+  const form = new FormData();
+  for (const [k, v] of Object.entries(toRemote(ATTACHMENTS, local))) {
+    if (v === undefined || v === null) continue;
+    form.append(k, String(v));
+  }
+  form.append("file", row.blob, (local as unknown as { name: string }).name);
+  const created = (await pb.collection(ATTACHMENTS).create(form)) as unknown as { file?: string };
+  if (created.file) await db().collection<SyncedRecord & { file?: string }>(ATTACHMENTS).update(recordId, { file: created.file });
 }
 
 /** PocketBase says a collection is missing when the server hasn't run a migration yet. */
@@ -118,7 +147,8 @@ async function pushOnce(): Promise<void> {
         }
       } catch (err) {
         if ((err as { status?: number }).status === 404) {
-          await col.create({ ...toRemote(collection, local), id: recordId });
+          if (collection === ATTACHMENTS) await createAttachment(recordId, local);
+          else await col.create({ ...toRemote(collection, local), id: recordId });
         } else {
           throw err;
         }

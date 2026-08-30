@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { extractLinks, normalizeName, type WikiLink } from "../markdown";
+import { extractLinks, isImageEmbed, normalizeName, type WikiLink } from "../markdown";
 import { docPath, normalizeFolder } from "../folders";
 import { aliasesOf, displayTitle, singularOf, type Document, type DocumentTypeDef } from "./types";
 import { useAllDocuments } from "./store";
@@ -166,7 +166,8 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[]): Link
   for (const d of docs) {
     const def = defs.get(d.type);
     const body = typeof d.body === "string" ? d.body : "";
-    const links = body ? extractLinks(body).flatMap((link) => resolveAll(link.name).map((r) => ({ link, ref: r }))) : [];
+    // An image embed points at an Attachment (ADR 0037), not a Document: never unresolved, never a Ghost.
+    const links = body ? extractLinks(body).filter((l) => !isImageEmbed(l)).flatMap((link) => resolveAll(link.name).map((r) => ({ link, ref: r }))) : [];
     linksFromMap.set(d.id, links);
     for (const { link, ref: r } of links) {
       if (r.kind === "unresolved") {

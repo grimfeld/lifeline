@@ -1,10 +1,11 @@
 import { useMemo } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useNavigate } from "react-router";
 import { cn } from "@lifeline/ui";
-import { docHref, extractBlocks, splitFrontmatter, type LinkIndex } from "@lifeline/core";
+import { docHref, extractBlocks, isImageName, splitFrontmatter, type LinkIndex } from "@lifeline/core";
 import { DaylogBlock } from "./DaylogBlock";
+import { AttachmentImage } from "./AttachmentImage";
 import "./editor.css";
 
 /**
@@ -33,7 +34,14 @@ export function MarkdownView({ body, index, docDate, className, compact }: { bod
     <div className={cn("prose-note", compact && "prose-note-compact", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        // The default transform blanks every scheme it does not know — our own two included.
+        urlTransform={(url) => (url.startsWith("wikilink:") || url.startsWith("attachment:") ? url : defaultUrlTransform(url))}
         components={{
+          img: ({ src, alt }) => {
+            const s = typeof src === "string" ? src : "";
+            if (s.startsWith("attachment:")) return <AttachmentImage name={decodeURIComponent(s.slice("attachment:".length))} />;
+            return <img src={s} alt={alt} />;
+          },
           a: ({ href, children }) => {
             if (href?.startsWith("wikilink:")) {
               const name = decodeURIComponent(href.slice("wikilink:".length));
@@ -82,10 +90,12 @@ export function MarkdownView({ body, index, docDate, className, compact }: { bod
   );
 }
 
+/** `[[Name|alias]]` → a `wikilink:` link; `![[image.png]]` → an `attachment:` image (ADR 0037). */
 function wikify(text: string): string {
-  return text.replace(/(!?)\[\[([^\]\n|#]+)(?:#([^\]\n|]+))?(?:\|([^\]\n]+))?\]\]/g, (_m, _embed, name: string, _heading: string | undefined, alias: string | undefined) => {
-    const label = (alias ?? name).trim();
-    return `[${label.replace(/\]/g, "\\]")}](wikilink:${encodeURIComponent(name.trim())})`;
+  return text.replace(/(!?)\[\[([^\]\n|#]+)(?:#([^\]\n|]+))?(?:\|([^\]\n]+))?\]\]/g, (_m, embed: string, name: string, _heading: string | undefined, alias: string | undefined) => {
+    const label = (alias ?? name).trim().replace(/\]/g, "\\]");
+    if (embed && isImageName(name)) return `![${label}](attachment:${encodeURIComponent(name.trim())})`;
+    return `[${label}](wikilink:${encodeURIComponent(name.trim())})`;
   });
 }
 

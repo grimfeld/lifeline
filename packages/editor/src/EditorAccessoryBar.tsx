@@ -8,6 +8,7 @@ import {
   Code,
   Hash,
   Heading,
+  ImagePlus,
   Italic,
   Link2,
   List,
@@ -21,6 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cycleHeading, insertText, insertWikilink, toggleBullet, toggleQuote, toggleTask, wrapWith } from "./mdCommands";
+import { pickImage } from "./attachmentCommands";
 
 type Key = { label: string; icon: LucideIcon; run: Command };
 
@@ -33,6 +35,7 @@ const KEYS: Key[] = [
   { label: "Left", icon: ChevronLeft, run: cursorCharLeft },
   { label: "Right", icon: ChevronRight, run: cursorCharRight },
   { label: "Link a note", icon: Link2, run: insertWikilink },
+  { label: "Image", icon: ImagePlus, run: pickImage },
   { label: "Tag", icon: Hash, run: insertText("#") },
   { label: "Heading", icon: Heading, run: cycleHeading },
   { label: "Bold", icon: Bold, run: wrapWith("**") },
