@@ -117,5 +117,7 @@
 .prose-note a { color: var(--primary); text-decoration: underline; }
 .prose-note a.wikilink { text-decoration: none; border-radius: 0.25rem; padding: 0 0.15rem; background: color-mix(in oklab, var(--primary) 10%, transparent); }
 .prose-note a.wikilink-unresolved { color: var(--muted-foreground); background: color-mix(in oklab, var(--muted-foreground) 12%, transparent); text-decoration: underline dotted; }
+.prose-note a.wikilink-locked, .ll-editor .cm-wikilink-locked { color: var(--muted-foreground); background: color-mix(in oklab, var(--muted-foreground) 12%, transparent); text-decoration: none; }
+.prose-note a.wikilink-locked::before, .ll-editor .cm-wikilink-locked::before { content: "🔒 "; font-size: 0.8em; }
 .prose-note a.wikilink-app { color: var(--chart-magenta); background: color-mix(in oklab, var(--chart-magenta) 12%, transparent); }
 .prose-note table { border-collapse: collapse; font-size: 0.9em; } .prose-note th, .prose-note td { border: 1px solid var(--border); padding: 0.2em 0.5em; }

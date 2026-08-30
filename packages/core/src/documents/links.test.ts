@@ -34,6 +34,15 @@ describe("buildLinkIndex", () => {
     expect(idx.resolve("Dune")).toEqual({ kind: "doc", id: "m1", type: "media" });
     expect(idx.resolve("Nobody")).toEqual({ kind: "unresolved", name: "Nobody" });
   });
+  it("a name behind the locked Private folder is a lock, not a hole (ADR 0038): no Ghost, no backlink", () => {
+    const locked = { names: new Set(["nobody"]), ids: new Set(["hidden"]) };
+    const li = buildLinkIndex(docs, types, locked);
+    expect(li.resolve("Nobody")).toEqual({ kind: "locked", name: "Nobody" });
+    expect(li.resolve("Yasmine")).toEqual({ kind: "doc", id: "p1", type: "person" });
+    expect(li.unresolved.has("nobody")).toBe(false);
+    expect(li.linksFrom("d1").find((l) => l.link.name === "Nobody")?.ref.kind).toBe("locked");
+    expect(idx.unresolved.has("nobody")).toBe(true);
+  });
   it("backlinks from bodies and Link fields, ignoring self-links; templates are not targets", () => {
     expect(idx.backlinksTo("p1").map((b) => b.sourceId)).toEqual(["d1", "d2", "tpl"]);
     expect(idx.backlinksTo("m1").map((b) => [b.sourceId, b.field])).toEqual([["d1", undefined], ["d2", undefined], ["r1", "source"]]);

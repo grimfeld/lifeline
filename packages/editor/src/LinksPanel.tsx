@@ -126,8 +126,8 @@ export function LinksPanel({ docId, index, onOpen }: { docId: string; index: Lin
             {uniqueOut.map(({ link, ref }) => (
               <li key={link.from} className="max-w-full min-w-0">
                 <button
-                  className={`block max-w-full truncate rounded-md border px-1.5 py-0.5 text-xs ${ref.kind === "unresolved" ? "text-muted-foreground border-dashed" : "hover:bg-accent"}`}
-                  title={ref.kind === "unresolved" ? "Create note" : (() => { const d = documentType(ref.type); return d ? singularOf(d) : undefined; })()}
+                  className={`block max-w-full truncate rounded-md border px-1.5 py-0.5 text-xs ${ref.kind === "unresolved" ? "text-muted-foreground border-dashed" : ref.kind === "locked" ? "text-muted-foreground" : "hover:bg-accent"}`}
+                  title={ref.kind === "unresolved" ? "Create note" : ref.kind === "locked" ? "In Private — unlock to open" : (() => { const d = documentType(ref.type); return d ? singularOf(d) : undefined; })()}
                   onClick={() => onOpen(ref, link.name)}
                 >
                   {link.name}

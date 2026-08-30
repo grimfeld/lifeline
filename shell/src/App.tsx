@@ -3,6 +3,7 @@ import { Toaster } from "@lifeline/ui";
 import { backgroundApps, db, screenRoute, screensOf, useLiveQuery, workspaces, type AppManifest, type UserScreen } from "@lifeline/core";
 import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
+import { PrivateDialogs } from "./vault/PrivateDialogs";
 import { CalendarPage } from "./surfaces/CalendarPage";
 import { WeekPage } from "./surfaces/WeekPage";
 import { MapPage } from "./surfaces/MapPage";
@@ -98,6 +99,7 @@ export default function App() {
       </div>
       <MobileNav />
       <CommandPalette />
+      <PrivateDialogs />
       <Toaster position="bottom-right" />
     </div>
   );

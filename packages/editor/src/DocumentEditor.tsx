@@ -20,6 +20,7 @@ import {
   useTagVocabulary,
   writeGeo,
   type Document,
+  openPrivateDialog,
   type DocumentTypeDef,
   type LinkIndex,
   type LinkRef,
@@ -133,6 +134,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
         if (d) navigate(docHref(d));
         return;
       }
+      if (ref.kind === "locked") return openPrivateDialog("unlock");
       if (onCreateUnresolved) return onCreateUnresolved(name);
       void putDocument({ type: "note", title: name, body: "" }).then((n) => {
         toast.success(`Created “${name}”`);

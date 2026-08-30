@@ -1,6 +1,8 @@
 import { useParams } from "react-router";
 import { DocumentEditor } from "@lifeline/editor";
-import { useDocument, useDocumentType, useLinkIndex } from "@lifeline/core";
+import { Button } from "@lifeline/ui";
+import { Lock } from "lucide-react";
+import { openPrivateDialog, useDocument, useDocumentType, useLinkIndex, usePrivateLockedRefs } from "@lifeline/core";
 
 /** Breadcrumb of a Document's folder path. */
 export function Breadcrumb({ folder }: { folder: string }) {
@@ -24,6 +26,19 @@ export function VaultDocPage() {
   const doc = useDocument(id);
   const def = useDocumentType(doc?.type);
   const index = useLinkIndex();
+  const locked = usePrivateLockedRefs();
+  if (!doc && id && locked.ids.has(id)) {
+    // Behind the gate (ADR 0038): say so and offer to unlock, never "not found".
+    return (
+      <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 text-sm">
+        <Lock className="size-6" />
+        <span>This Document is in Private.</span>
+        <Button size="sm" onClick={() => openPrivateDialog("unlock")}>
+          Unlock…
+        </Button>
+      </div>
+    );
+  }
   if (!doc) return <div className="text-muted-foreground flex h-full items-center justify-center text-sm">Document not found.</div>;
   return (
     <div className="flex h-full min-h-0 flex-col">

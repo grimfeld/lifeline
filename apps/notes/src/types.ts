@@ -1,4 +1,4 @@
-import { newId, putDocument, todayStr, type Document, type DocumentTypeDef } from "@lifeline/core";
+import { newId, PRIVATE_SETTINGS_TYPE, putDocument, todayStr, type Document, type DocumentTypeDef } from "@lifeline/core";
 import { DAILY, DAILY_TEMPLATE, MOODS, NOTE, TEMPLATE, journalHref, noteHref } from "./domain/types";
 
 /**
@@ -63,6 +63,23 @@ export const noteTypes: DocumentTypeDef[] = [
     linkable: false,
     href: (d) => noteHref(d),
     order: 90,
+    builtIn: true,
+  },
+  {
+    // The Private folder's password (ADR 0038): one internal Document, read by Core's gate by id. A hash and its salt, nothing secret.
+    id: PRIVATE_SETTINGS_TYPE,
+    label: "Private notes settings",
+    iconName: "lock",
+    titleRule: "name",
+    body: "none",
+    internal: true,
+    fields: [
+      { key: "salt", label: "Salt", kind: "text", hidden: true, guarded: true },
+      { key: "hash", label: "Hash", kind: "text", hidden: true, guarded: true },
+      { key: "iterations", label: "Iterations", kind: "number", hidden: true, guarded: true },
+    ],
+    linkable: false,
+    order: 99,
     builtIn: true,
   },
 ];

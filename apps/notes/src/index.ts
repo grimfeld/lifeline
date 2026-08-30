@@ -1,10 +1,10 @@
-import { addDays, documentType, formatHuman, todayStr, VAULT_WORKSPACE, type AppManifest, type CardSettings } from "@lifeline/core";
-import { CalendarDays, FileText, LayoutTemplate, NotebookPen } from "lucide-react";
+import { addDays, documentType, formatHuman, PRIVATE_SETTINGS_TYPE, todayStr, VAULT_WORKSPACE, type AppManifest, type CardSettings } from "@lifeline/core";
+import { CalendarDays, FileText, LayoutTemplate, Lock, NotebookPen } from "lucide-react";
 import { JournalScreen } from "./screens/JournalScreen";
 import { TodayJournalCard } from "./cards/TodayJournalCard";
 import { DaylogCard } from "./cards/DaylogCard";
 import { RecentNotesCard, useRecentTypeOptions } from "./cards/RecentNotesCard";
-import { noteCommands, useNoteTypeCommands } from "./commands";
+import { noteCommands, useNotesCommands } from "./commands";
 import { registerNotesBridge } from "./data/bridge";
 import { noteTypes } from "./types";
 import { DAILY, NOTE, TEMPLATE } from "./domain/types";
@@ -28,7 +28,7 @@ import { SavedSearchCard, searchTitle } from "./cards/SavedSearchCard";
 const APP_ID = "notes";
 
 /** Type defs with their icons attached (icons live here so src/types.ts stays UI-free for tests). */
-const ICONS = { [DAILY]: CalendarDays, [NOTE]: FileText, [TEMPLATE]: LayoutTemplate } as const;
+const ICONS = { [DAILY]: CalendarDays, [NOTE]: FileText, [TEMPLATE]: LayoutTemplate, [PRIVATE_SETTINGS_TYPE]: Lock } as const;
 const typesWithIcons = noteTypes.map((t) => ({ ...t, icon: ICONS[t.id as keyof typeof ICONS] }));
 
 const offsetKnob = { kind: "number" as const, label: "Day offset", default: 0, min: -365, max: 0 };
@@ -265,7 +265,7 @@ export const notesApp: AppManifest = {
     },
   ],
   commands: noteCommands,
-  useCommands: useNoteTypeCommands,
+  useCommands: useNotesCommands,
 };
 
 export { NOTE, DAILY, TEMPLATE, MOODS, type Note } from "./domain/types";

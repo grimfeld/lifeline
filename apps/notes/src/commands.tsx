@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Textarea, toast } from "@lifeline/ui";
-import { createDocument, docHref, useDocumentTypes, type CommandDef, type DocumentTypeDef, singularOf } from "@lifeline/core";
-import { CalendarDays, FilePlus, ImageOff, Settings2, Zap } from "lucide-react";
+import { createDocument, docHref, lockPrivate, openPrivateDialog, useDocumentTypes, usePrivateGate, type CommandDef, type DocumentTypeDef, singularOf } from "@lifeline/core";
+import { CalendarDays, FilePlus, ImageOff, KeyRound, Lock, LockOpen, Settings2, ShieldOff, Zap } from "lucide-react";
 import { AttachmentsCleanupDialog } from "./components/AttachmentsCleanupDialog";
 import { appendToDaily } from "./data/repo";
 import { DAILY, TEMPLATE } from "./domain/types";
@@ -128,6 +128,29 @@ export const noteCommands: CommandDef[] = [
   { id: "notes.settings", title: "Document types & templates…", keywords: ["template", "type", "settings", "daily", "bases"], icon: Settings2, run: ({ navigate }) => navigate("/base") },
   { id: "notes.attachments.cleanup", title: "Clean up unused attachments…", keywords: ["image", "attachment", "orphan", "storage", "delete"], icon: ImageOff, dialog: AttachmentsCleanupDialog },
 ];
+
+/** The Private folder's commands (ADR 0038), shaped by the gate's state: set up / unlock / lock / change password / turn off. */
+export function usePrivateCommands(): CommandDef[] {
+  const gate = usePrivateGate();
+  return useMemo(() => {
+    if (!gate.configured) {
+      return [{ id: "notes.private.setup", title: "Set up private notes…", keywords: ["private", "password", "lock", "secret"], icon: Lock, run: () => openPrivateDialog("setup") }];
+    }
+    const out: CommandDef[] = gate.locked
+      ? [{ id: "notes.private.unlock", title: "Unlock private notes…", keywords: ["private", "password", "lock"], icon: LockOpen, run: () => openPrivateDialog("unlock") }]
+      : [{ id: "notes.private.lock", title: "Lock private notes", keywords: ["private", "password", "lock"], icon: Lock, run: () => void lockPrivate() }];
+    out.push({ id: "notes.private.change", title: "Change private notes password…", keywords: ["private", "password"], icon: KeyRound, run: () => openPrivateDialog("change") });
+    if (!gate.locked) out.push({ id: "notes.private.disable", title: "Turn off private notes…", keywords: ["private", "password", "remove"], icon: ShieldOff, run: () => openPrivateDialog("disable") });
+    return out;
+  }, [gate.configured, gate.locked]);
+}
+
+/** Every live command of the Notes App: the per-type "New…" ones and the Private folder's. */
+export function useNotesCommands(): CommandDef[] {
+  const types = useNoteTypeCommands();
+  const priv = usePrivateCommands();
+  return useMemo(() => [...types, ...priv], [types, priv]);
+}
 
 /** One "New <type>…" command per creatable body-first type — user-defined ones included (Core `useCommands` hook). */
 export function useNoteTypeCommands(): CommandDef[] {

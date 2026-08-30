@@ -67,8 +67,8 @@ function build(view: EditorView): DecorationSet {
   const marks: { from: number; to: number; deco: Decoration }[] = [];
   for (const l of extractLinks(text)) {
     // An image embed resolves against Attachments (ADR 0037), never the Document index.
-    const resolved = isImageEmbed(l) ? !!resolveAttachment(attachments, l.name) : index?.resolve(l.name).kind === "doc";
-    const cls = resolved ? "cm-wikilink" : "cm-wikilink cm-wikilink-unresolved";
+    const kind = isImageEmbed(l) ? (resolveAttachment(attachments, l.name) ? "doc" : "unresolved") : (index?.resolve(l.name).kind ?? "unresolved");
+    const cls = kind === "doc" ? "cm-wikilink" : kind === "locked" ? "cm-wikilink cm-wikilink-locked" : "cm-wikilink cm-wikilink-unresolved";
     marks.push({ from: l.from, to: l.to, deco: linkMark(cls) });
   }
   // tags: re-scan lines for positions (extractTags gives names only)

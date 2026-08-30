@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
-import { deleteAttachment, orphanedAmong, pruneAttachmentBlobs, useAllDocuments, useAttachments, type Attachment } from "@lifeline/core";
-import { Trash2 } from "lucide-react";
+import { deleteAttachment, openPrivateDialog, orphanedAmong, pruneAttachmentBlobs, useAllDocuments, useAttachments, usePrivateGate, type Attachment } from "@lifeline/core";
+import { Lock, Trash2 } from "lucide-react";
 
 function kb(size: number): string {
   return size >= 1048576 ? `${(size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`;
@@ -15,6 +15,7 @@ function kb(size: number): string {
 export function AttachmentsCleanupDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const attachments = useAttachments();
   const docs = useAllDocuments();
+  const gate = usePrivateGate();
   const orphans = useMemo(() => orphanedAmong(attachments, docs).sort((a, b) => a.name.localeCompare(b.name)), [attachments, docs]);
   const [busy, setBusy] = useState(false);
   // Bytes of Attachments deleted elsewhere are dropped while we are here anyway.
@@ -41,7 +42,17 @@ export function AttachmentsCleanupDialog({ open, onOpenChange }: { open: boolean
         <DialogHeader>
           <DialogTitle>Clean up unused attachments</DialogTitle>
         </DialogHeader>
-        {orphans.length === 0 ? (
+        {gate.locked ? (
+          // ADR 0038: locked bodies are invisible here, so their images would look orphaned. Refuse rather than peek.
+          <div className="text-muted-foreground flex flex-col items-start gap-2 text-sm">
+            <p className="flex items-center gap-1.5">
+              <Lock className="size-3.5" /> Private is locked — its notes' images cannot be told from orphans. Unlock first.
+            </p>
+            <Button size="sm" variant="outline" onClick={() => openPrivateDialog("unlock")}>
+              Unlock…
+            </Button>
+          </div>
+        ) : orphans.length === 0 ? (
           <p className="text-muted-foreground text-sm">Every attachment is embedded somewhere. Nothing to clean up.</p>
         ) : (
           <>
@@ -67,7 +78,7 @@ export function AttachmentsCleanupDialog({ open, onOpenChange }: { open: boolean
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          {orphans.length > 0 && (
+          {!gate.locked && orphans.length > 0 && (
             <Button variant="destructive" disabled={busy} onClick={() => void remove(orphans)}>
               Delete all {orphans.length}
             </Button>
