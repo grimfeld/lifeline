@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, DOCUMENTS } from "./data/db";
 import { put, remove } from "./data/repo";
+import { newId } from "./ids";
 import { docPath, isWithin } from "./folders";
 import { normalizeName } from "./markdown";
 import type { Document, DocumentTypeDef } from "./documents/types";
@@ -28,17 +29,24 @@ export function mayBePrivate(def: DocumentTypeDef | undefined): boolean {
   return !!def && isVaultType(def);
 }
 
-// --- settings: one internal Document, owned by the Notes App, read here by id ---
+// --- settings: one internal Document, owned by the Notes App, found by type ---
 
 export const PRIVATE_SETTINGS_TYPE = "private_settings";
-/** PocketBase ids are `^[a-z0-9]+$`, at most 15 characters. */
-export const PRIVATE_SETTINGS_ID = "privatesettings";
 /** The first release used a `:` id PocketBase refuses; see repairPrivateSettings. */
 const LEGACY_SETTINGS_ID = "private:settings";
 
 /**
+ * The one settings Document of this type. Found by type, never by a fixed
+ * id: every Account has its own, and a shared fixed id could only ever be
+ * created once on the server (ADR 0039).
+ */
+async function settingsRow(): Promise<PrivateSettings | undefined> {
+  return (await db().documents.where("[type+deleted]").equals([PRIVATE_SETTINGS_TYPE, 0]).first()) as PrivateSettings | undefined;
+}
+
+/**
  * One-time local repair: a settings row under the old, unsyncable id is
- * re-keyed to the valid one and the old row dropped for good (its queued
+ * re-keyed to a valid one and the old row dropped for good (its queued
  * push goes with it — the outbox forgets entries whose row is gone). Run
  * once at startup, never inside a live query.
  */
@@ -46,8 +54,8 @@ export async function repairPrivateSettings(): Promise<void> {
   const d = db();
   const old = (await d.documents.get(LEGACY_SETTINGS_ID)) as PrivateSettings | undefined;
   if (!old) return;
-  if (!old.deleted && old.type === PRIVATE_SETTINGS_TYPE && !(await d.documents.get(PRIVATE_SETTINGS_ID))) {
-    await put<PrivateSettings>(DOCUMENTS, { ...old, id: PRIVATE_SETTINGS_ID });
+  if (!old.deleted && old.type === PRIVATE_SETTINGS_TYPE && !(await settingsRow())) {
+    await put<PrivateSettings>(DOCUMENTS, { ...old, id: newId() });
   }
   await d.documents.delete(LEGACY_SETTINGS_ID);
 }
@@ -87,8 +95,7 @@ export interface PrivateGate {
  */
 export async function privateGate(): Promise<PrivateGate> {
   const d = db();
-  const row = (await d.documents.get(PRIVATE_SETTINGS_ID)) as PrivateSettings | undefined;
-  const configured = !!row && !row.deleted && row.type === PRIVATE_SETTINGS_TYPE;
+  const configured = !!(await settingsRow());
   if (configured) {
     const unlocked = (await d._meta.get(UNLOCK_KEY))?.value === bootToken;
     return { configured, locked: !unlocked };
@@ -171,11 +178,6 @@ export async function derivePrivateHash(password: string, salt: Uint8Array, iter
   return b64(new Uint8Array(bits));
 }
 
-async function settingsRow(): Promise<PrivateSettings | undefined> {
-  const row = (await db().documents.get(PRIVATE_SETTINGS_ID)) as PrivateSettings | undefined;
-  return row && !row.deleted && row.type === PRIVATE_SETTINGS_TYPE ? row : undefined;
-}
-
 /** Set (or replace) the password and unlock. Adopts an existing plain `Private` folder as is. */
 export async function setPrivatePassword(password: string): Promise<void> {
   if (!password) throw new Error("A password is needed");
@@ -183,7 +185,7 @@ export async function setPrivatePassword(password: string): Promise<void> {
   const hash = await derivePrivateHash(password, salt, ITERATIONS);
   const cur = await settingsRow();
   const row: PrivateSettings = {
-    id: PRIVATE_SETTINGS_ID,
+    id: cur?.id ?? newId(),
     type: PRIVATE_SETTINGS_TYPE,
     title: "Private notes",
     tags: [],

@@ -22,6 +22,10 @@ _Avoid_: plugin, widget, service, processor
 ### Core
 The neutral part of the system: shell, Contracts, sync layer, command registry, the Document store and type registry, Bases, Surfaces and generic Cards. Owns no Document types; its own bookkeeping — Screens and Card instances, Placements, Views, user-defined type definitions — is synced but is *not* Documents (Documents are user-facing content only).
 
+### Account
+One sign-in, owning its own Documents and Core bookkeeping (Screens, Placements, Views, user-defined types, Attachments) outright. Nothing is shared or visible across Accounts; the server, never the client, decides which Account a record belongs to. One device holds one Account's data at a time.
+_Avoid_: user (the human), tenant, workspace, profile
+
 ### Contract
 An interface defined by Core that a Document type implements (Schedulable, Timed, Loggable, Linkable, Locatable, Taggable, Daylog…). Carries data shape *and* behaviour hooks — the consuming Surface calls the hook; the owning App decides what happens. Built-in types implement Contracts in code; user-defined types may declare the data-only ones (e.g. Locatable through a geo field). The five things that serve Documents — Card, Screen, Surface, App, Base — are *not* Contracts and have no collective name.
 _Avoid_: capability, trait, API, decorator

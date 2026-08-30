@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, normalizeTags, putDocument, removeDocument, todayStr, useDocument, useDocuments, useLiveQuery } from "@lifeline/core";
-import { PLAYLIST, SETTINGS_TYPE, SETTINGS_ID, WORK_TYPE_IDS, type Playlist, type Work, type LookupSettings } from "../domain/types";
+import { documentsOf, getDocument, newId, normalizeTags, putDocument, removeDocument, todayStr, useDocument, useDocuments, useLiveQuery } from "@lifeline/core";
+import { PLAYLIST, SETTINGS_TYPE, WORK_TYPE_IDS, type Playlist, type Work, type LookupSettings } from "../domain/types";
 import { removeFromPlaylist } from "../domain/playlist";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
@@ -143,15 +143,20 @@ export function parseQuickTitle(raw: string): { title: string; creator: string }
   return { title: t, creator: "" };
 }
 
-/* ---------- Lookup settings (one internal Document, id "default") ---------- */
+/* ---------- Lookup settings (one internal Document, found by type — ADR 0039) ---------- */
 
 const EMPTY_SETTINGS: LookupSettings = {
-  id: SETTINGS_ID, type: SETTINGS_TYPE, title: "Cinema lookup settings", tags: [], folder: "", createdAt: "",
+  id: "", type: SETTINGS_TYPE, title: "Cinema lookup settings", tags: [], folder: "", createdAt: "",
   tmdbKey: "", updatedAt: "", deleted: 0,
 };
 
 function normalizeSettings(s: Partial<LookupSettings> | undefined): LookupSettings {
   return { ...EMPTY_SETTINGS, ...(s ?? {}), tmdbKey: s?.tmdbKey ?? "" };
+}
+
+/** The one settings Document of this type, if saved. */
+async function settingsRow(): Promise<LookupSettings | undefined> {
+  return (await documentsOf<LookupSettings>(SETTINGS_TYPE))[0];
 }
 
 /**
@@ -162,27 +167,25 @@ let seeded = false;
 async function seedFromMediaSettings(): Promise<void> {
   if (seeded) return;
   seeded = true;
-  const own = await getDocument<LookupSettings>(SETTINGS_ID);
-  if (own && (own.type === SETTINGS_TYPE)) return;
+  if (await settingsRow()) return;
   const old = await getDocument<{ tmdbKey?: string; type?: string } & LookupSettings>("default");
   const legacy = old?.type === "media_settings" ? old : undefined;
   if (!legacy?.tmdbKey) return;
-  await putDocument<LookupSettings>({ ...EMPTY_SETTINGS, id: SETTINGS_ID, tmdbKey: legacy.tmdbKey ?? "" });
+  await putDocument<LookupSettings>({ ...EMPTY_SETTINGS, id: newId(), tmdbKey: legacy.tmdbKey ?? "" });
 }
 
 /** The lookup settings record (empty keys until saved). */
 export function useLookupSettings(): LookupSettings {
   const row = useLiveQuery(async () => {
     await seedFromMediaSettings();
-    const r = await getDocument<LookupSettings>(SETTINGS_ID);
-    return r && r.type === SETTINGS_TYPE ? r : undefined;
+    return settingsRow();
   }, [], undefined as LookupSettings | undefined);
   // Stable identity between live-query results: effects depend on it.
   return useMemo(() => normalizeSettings(row), [row]);
 }
 
 export async function saveLookupSettings(patch: Partial<Omit<LookupSettings, "id" | "updatedAt" | "deleted">>): Promise<void> {
-  const cur = normalizeSettings(await getDocument<LookupSettings>(SETTINGS_ID));
+  const cur = normalizeSettings(await settingsRow());
   const trimmed = Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v]));
-  await putDocument<LookupSettings>({ ...cur, ...trimmed, id: SETTINGS_ID, type: SETTINGS_TYPE });
+  await putDocument<LookupSettings>({ ...cur, ...trimmed, id: cur.id || newId(), type: SETTINGS_TYPE });
 }

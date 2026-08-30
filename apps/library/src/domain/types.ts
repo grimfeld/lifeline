@@ -46,4 +46,3 @@ export interface LookupSettings extends Document {
 }
 
 export const SETTINGS_TYPE = "library_settings";
-export const SETTINGS_ID = "default";
