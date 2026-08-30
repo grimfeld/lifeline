@@ -220,12 +220,12 @@ The month-in-hand App: Allowances and Spends, a rough running tally kept by hand
 _Avoid_: envelopes (ADR 0033 rejected envelope budgeting), budget (the Ledger's lens), pool (the Tasks App's unassigned chip)
 
 ### Allowance
-A named sum the user grants themself for one calendar month — "Eating out · September 2026 · €300" — owned by the Pocket App. Bound to its month: a new month means new Allowances (typically cloned from last month's names and amounts, with no Spends), and nothing carries over — no rollover, ever; sinking funds are the Ledger's accumulating Category. What is left is derived: the granted amount minus its Spends, never stored.
-_Avoid_: pool, envelope, pot (an accumulating Category's balance), target (Ledger policy), budget
+A named sum the user grants themself for one **period** — "Eating out · September 2026 · €300" — owned by the Pocket App. The period is a calendar week (Monday-first), a calendar month, a calendar year, or a **custom** span of days ("Vacation · 12–20 Sept"). An Allowance is bound to its period: **renewing** one makes a fresh Allowance for the next week, month or year with the same name and amount and no Spends (a custom span is not renewed — it does not recur). Nothing carries over — no rollover, ever; sinking funds are the Ledger's accumulating Category. What is **left** is derived: the granted amount minus its Spends, never stored.
+_Avoid_: pool, envelope, pot (an accumulating Category's balance), target (Ledger policy), budget, recurring (a Ledger series), template
 
 ### Spend
-One hand-typed amount taken from an Allowance during its month: amount, day, optional label. A belief, not a fact — the bank's Transaction, when imported into the Ledger, is the fact.
-_Avoid_: withdrawal (implies an Account), transaction (a Ledger fact), expense (a Transaction kind)
+One hand-typed amount taken from an Allowance on a day, with an optional label — an internal Document owned by the Pocket App, reported on the Daylog ("€12 · Eating out · lunch"). A belief, not a fact — the bank's Transaction, when imported into the Ledger, is the fact.
+_Avoid_: withdrawal (implies an Account), transaction (a Ledger fact), expense (a Transaction kind), entry (a Stat's)
 
 ### Media item
 _Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus **Quotes** (born as the Commonplace book) for Quotes. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry creator, year, size, cover by URL and an optional **Reason** (who sent me here — never asked at add). The old "Studied" mark is gone.
