@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Allowance, Spend } from "./types";
-import { allowanceRows, canRenew, leftOf, renewable, sortRows, successorOf } from "./derive";
+import { allowanceRows, canRenew, jarLevel, leftOf, renewable, sortRows, successorOf } from "./derive";
 
 function allowance(partial: Partial<Allowance>): Allowance {
   return {
@@ -90,5 +90,19 @@ describe("renewal", () => {
     const sep = allowance({ id: "sep", from: "2026-09-01" });
     expect(renewable([jul, aug, books, sep], "2026-10-02").map((a) => a.id)).toEqual(["books", "sep"]);
     expect(renewable([jul, aug, books, sep], "2026-09-15").map((a) => a.id)).toEqual(["books"]);
+  });
+});
+
+describe("jarLevel", () => {
+  it("is full with nothing spent, half at half, empty when overspent, never above 1 or below 0", () => {
+    const a = allowance({ id: "a", amount: 30000 });
+    expect(jarLevel({ allowance: a, left: 30000 })).toBe(1);
+    expect(jarLevel({ allowance: a, left: 15000 })).toBe(0.5);
+    expect(jarLevel({ allowance: a, left: 0 })).toBe(0);
+    expect(jarLevel({ allowance: a, left: -4000 })).toBe(0);
+  });
+
+  it("is empty for a zero-amount allowance", () => {
+    expect(jarLevel({ allowance: allowance({ amount: 0 }), left: 0 })).toBe(0);
   });
 });

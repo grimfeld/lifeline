@@ -1,4 +1,5 @@
 import type { AppManifest, DocumentTypeDef } from "@lifeline/core";
+import { COLOR_SLOTS } from "@lifeline/ui";
 import { HandCoins, Wallet } from "lucide-react";
 import { PocketScreen } from "./screens/PocketScreen";
 import { AllowancesCard } from "./cards/PocketCards";
@@ -28,6 +29,8 @@ const allowanceType: DocumentTypeDef = {
     { key: "from", label: "From", kind: "date", guarded: true, required: true, column: true },
     { key: "to", label: "To (custom only)", kind: "date", guarded: true },
     { key: "amount", label: "Amount (cents)", kind: "number", required: true, column: true },
+    { key: "emoji", label: "Emoji", kind: "text" },
+    { key: "color", label: "Colour", kind: "select", options: [{ value: "", label: "—" }, ...COLOR_SLOTS.map((c) => ({ value: c, label: c }))] },
   ],
   indexes: ["from"],
   linkable: { subtitle: (d) => `${periodLabel(d as Allowance)} · ${formatCents((d as Allowance).amount)}` },

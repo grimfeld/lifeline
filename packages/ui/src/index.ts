@@ -23,3 +23,4 @@ export * from "./components/map/GeoField";
 export * from "./components/ui/context-menu";
 export * from "./components/ui/tag-input";
 export * from "./typeIcons";
+export * from "./colorSlots";

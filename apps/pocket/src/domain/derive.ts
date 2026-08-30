@@ -36,6 +36,17 @@ export function allowanceRows(allowances: Allowance[], spends: Spend[], today: D
   });
 }
 
+/**
+ * How full the jar is drawn, 0..1: what is left over what was granted. Full
+ * at the period's start, empty once overspent — the jar drains, it never
+ * overflows (the red crack says the rest).
+ */
+export function jarLevel(row: Pick<AllowanceRow, "left" | "allowance">): number {
+  const amount = row.allowance.amount;
+  if (!(amount > 0)) return 0;
+  return Math.max(0, Math.min(1, row.left / amount));
+}
+
 /** Order for lists: current first (soonest to end first), then upcoming (soonest first), then past (most recent first); ties by name. */
 export function sortRows(rows: AllowanceRow[]): AllowanceRow[] {
   const rank: Record<Bucket, number> = { current: 0, upcoming: 1, past: 2 };

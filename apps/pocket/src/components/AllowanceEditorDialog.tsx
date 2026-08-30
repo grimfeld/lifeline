@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, toast } from "@lifeline/ui";
+import { Button, COLOR_SLOTS, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, cn, colorVar, toast, type ColorSlot } from "@lifeline/ui";
 import { addDays, todayStr, useTagVocabulary } from "@lifeline/core";
-import { PERIOD_KINDS, PERIOD_LABEL, type Allowance, type PeriodKind } from "../domain/types";
+import { EMOJI_PRESETS, PERIOD_KINDS, PERIOD_LABEL, faceColor, faceOf, firstGrapheme, type Allowance, type PeriodKind } from "../domain/types";
+import { Jar } from "./Jar";
 import { allowanceTitle, endOf, normalizeFrom } from "../domain/period";
 import { editAmount, formatCents, parseAmount } from "../domain/money";
 import { addAllowance, deleteAllowance, updateAllowance } from "../data/repo";
@@ -9,7 +10,8 @@ import { addAllowance, deleteAllowance, updateAllowance } from "../data/repo";
 /**
  * New / edit Allowance (ADR 0037): a name, a period kind, a day inside the
  * wanted period (snapped to its first day), the granted amount. The derived
- * title is previewed live so the period reads back before saving.
+ * title is previewed live so the period reads back before saving. Plus the
+ * face: an emoji (typed, or one of a dozen chips) and a colour slot.
  */
 export function AllowanceEditorDialog({ open, onOpenChange, allowance, spendCount = 0 }: { open: boolean; onOpenChange: (open: boolean) => void; allowance?: Allowance; spendCount?: number }) {
   const suggestions = useTagVocabulary().map((v) => v.tag);
@@ -19,6 +21,8 @@ export function AllowanceEditorDialog({ open, onOpenChange, allowance, spendCoun
   const [to, setTo] = useState(todayStr());
   const [amount, setAmount] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [emoji, setEmoji] = useState("");
+  const [color, setColor] = useState<ColorSlot | "">("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -29,6 +33,8 @@ export function AllowanceEditorDialog({ open, onOpenChange, allowance, spendCoun
     setTo(allowance?.period === "custom" ? allowance.to || allowance.from : addDays(todayStr(), 6));
     setAmount(allowance ? editAmount(allowance.amount) : "");
     setTags(allowance?.tags ?? []);
+    setEmoji(allowance?.emoji ?? "");
+    setColor(allowance?.color ?? "");
     setConfirmDelete(false);
   }, [open, allowance]);
 
@@ -39,7 +45,7 @@ export function AllowanceEditorDialog({ open, onOpenChange, allowance, spendCoun
   async function save() {
     const cents = parseAmount(amount);
     if (cents === null || cents <= 0) return void toast.error("Amount must be above zero");
-    const input = { name, period, from, to: period === "custom" ? to : undefined, amount: Math.abs(cents), tags };
+    const input = { name, period, from, to: period === "custom" ? to : undefined, amount: Math.abs(cents), emoji, color, tags };
     try {
       if (allowance) {
         await updateAllowance(allowance, input);
@@ -114,6 +120,33 @@ export function AllowanceEditorDialog({ open, onOpenChange, allowance, spendCoun
             )}
           </div>
           {preview && <p className="text-muted-foreground text-xs">Will be called “{preview}”.</p>}
+          <div className="grid gap-2">
+            <Label htmlFor="al-emoji">Face</Label>
+            <div className="flex items-start gap-3">
+              <div className="relative shrink-0">
+                <Jar level={1} over={false} color={faceColor({ color })} />
+                <span className="pointer-events-none absolute inset-x-0 top-[39px] text-center text-2xl leading-none">{faceOf({ name, emoji })}</span>
+              </div>
+              <div className="grid min-w-0 flex-1 gap-2">
+                <Input id="al-emoji" value={emoji} onChange={(e) => setEmoji(firstGrapheme(e.target.value))} placeholder="🍕 — or the name's first letter" />
+                <div className="flex flex-wrap gap-1">
+                  {EMOJI_PRESETS.map((e) => (
+                    <button key={e} type="button" aria-label={e} aria-pressed={emoji === e} onClick={() => setEmoji(emoji === e ? "" : e)} className={cn("hover:bg-accent size-8 rounded-md text-lg leading-none", emoji === e && "bg-accent ring-foreground/40 ring-1")}>
+                      {e}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button type="button" aria-label="No colour" aria-pressed={color === ""} onClick={() => setColor("")} className={cn("text-muted-foreground size-7 rounded-full border-2 border-dashed text-xs transition-transform", color === "" ? "border-foreground scale-110" : "border-muted-foreground/50")}>
+                    —
+                  </button>
+                  {COLOR_SLOTS.map((c) => (
+                    <button key={c} type="button" aria-label={c} aria-pressed={color === c} onClick={() => setColor(c)} className={cn("size-7 rounded-full border-2 transition-transform", color === c ? "border-foreground scale-110" : "border-transparent")} style={{ background: colorVar(c) }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="grid gap-2">
             <Label>Tags</Label>
             <TagInput value={tags} onChange={setTags} suggestions={suggestions} />
