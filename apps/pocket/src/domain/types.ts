@@ -1,4 +1,5 @@
 import type { DateStr, Document } from "@lifeline/core";
+import { colorVar, type ColorSlot } from "@lifeline/ui";
 
 export const APP_ID = "pocket";
 export const ALLOWANCE = "pocket_allowance";
@@ -31,7 +32,40 @@ export interface Allowance extends Document {
   to: DateStr;
   /** Granted amount, integer cents. */
   amount: number;
+  /** The face's emoji — one grapheme, "" for none (the name's first letter stands in). */
+  emoji: string;
+  /** The face's colour slot, "" for none (the App's colour stands in). */
+  color: ColorSlot | "";
 }
+
+/** Pocket's own colour — what a faceless Allowance is painted with. */
+export const POCKET_COLOR = "var(--chart-orange)";
+
+/** What an Allowance shows for a face: its emoji, else the first letter of its name. */
+export function faceOf(a: Pick<Allowance, "name" | "emoji">): string {
+  if (a.emoji) return a.emoji;
+  const first = Array.from(a.name.trim())[0];
+  return first ? first.toLocaleUpperCase() : "·";
+}
+
+/** The CSS colour an Allowance is painted with: its slot, else Pocket's colour. */
+export function faceColor(a: Pick<Allowance, "color">): string {
+  return a.color ? colorVar(a.color) : POCKET_COLOR;
+}
+
+/** One grapheme — the first of whatever was typed — or "". */
+export function firstGrapheme(s: string): string {
+  const t = s.trim();
+  if (!t) return "";
+  const Seg = (Intl as unknown as { Segmenter?: new (l?: string, o?: { granularity: string }) => { segment(s: string): Iterable<{ segment: string }> } }).Segmenter;
+  if (Seg) {
+    for (const g of new Seg(undefined, { granularity: "grapheme" }).segment(t)) return g.segment;
+  }
+  return Array.from(t)[0] ?? "";
+}
+
+/** A dozen faces one tap away in the editor — the common pockets. */
+export const EMOJI_PRESETS = ["🍕", "☕", "🎬", "🛒", "✈️", "🎁", "👕", "🚗", "🍺", "💊", "🎮", "🏠"];
 
 /**
  * A Spend (ADR 0037, internal): one hand-typed amount taken from an

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
-import type { Spend } from "../domain/types";
+import { faceOf, type Spend } from "../domain/types";
 import { allowanceRows, sortRows } from "../domain/derive";
 import { editAmount, formatCents, parseAmount } from "../domain/money";
 import { addSpend, deleteSpend, updateSpend, useAllowances, useSpends } from "../data/repo";
@@ -88,7 +88,7 @@ export function SpendDialog({ open, onOpenChange, spend, allowanceId }: { open: 
                       <SelectLabel>{BUCKET_TITLE[g.bucket]}</SelectLabel>
                       {g.rows.map((r) => (
                         <SelectItem key={r.allowance.id} value={r.allowance.id}>
-                          {r.allowance.title} — {formatCents(r.left)} left
+                          {faceOf(r.allowance)} {r.allowance.title} — {formatCents(r.left)} left
                         </SelectItem>
                       ))}
                     </SelectGroup>

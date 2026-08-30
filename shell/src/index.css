@@ -23,6 +23,7 @@
 @source "../../apps/bible/src";
 @source "../../apps/lifelevel/src";
 @source "../../apps/ledger/src";
+@source "../../apps/pocket/src";
 @source "./";
 
 .react-grid-item.react-grid-placeholder {

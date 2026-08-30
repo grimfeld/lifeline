@@ -220,8 +220,8 @@ The month-in-hand App: Allowances and Spends, a rough running tally kept by hand
 _Avoid_: envelopes (ADR 0033 rejected envelope budgeting), budget (the Ledger's lens), pool (the Tasks App's unassigned chip)
 
 ### Allowance
-A named sum the user grants themself for one **period** — "Eating out · September 2026 · €300" — owned by the Pocket App. The period is a calendar week (Monday-first), a calendar month, a calendar year, or a **custom** span of days ("Vacation · 12–20 Sept"). An Allowance is bound to its period: **renewing** one makes a fresh Allowance for the next week, month or year with the same name and amount and no Spends (a custom span is not renewed — it does not recur). Nothing carries over — no rollover, ever; sinking funds are the Ledger's accumulating Category. What is **left** is derived: the granted amount minus its Spends, never stored.
-_Avoid_: pool, envelope, pot (an accumulating Category's balance), target (Ledger policy), budget, recurring (a Ledger series), template
+A named sum the user grants themself for one **period** — "Eating out · September 2026 · €300" — owned by the Pocket App. The period is a calendar week (Monday-first), a calendar month, a calendar year, or a **custom** span of days ("Vacation · 12–20 Sept"). An Allowance is bound to its period: **renewing** one makes a fresh Allowance for the next week, month or year with the same name and amount and no Spends (a custom span is not renewed — it does not recur). An Allowance may wear a **face** — an optional emoji and an optional colour — so it is told apart at a glance; renewal keeps the face along with the name and amount. Nothing carries over — no rollover, ever; sinking funds are the Ledger's accumulating Category. What is **left** is derived: the granted amount minus its Spends, never stored.
+_Avoid_: pool, envelope, pot (an accumulating Category's balance), target (Ledger policy), budget, recurring (a Ledger series), template, icon (a Lucide glyph is a type's mark, not a face), avatar
 
 ### Spend
 One hand-typed amount taken from an Allowance on a day, with an optional label — an internal Document owned by the Pocket App, reported on the Daylog ("€12 · Eating out · lunch"). A belief, not a fact — the bank's Transaction, when imported into the Ledger, is the fact.
@@ -387,8 +387,16 @@ The Workspace with Obsidian's chrome. Shows any Document as frontmatter + body i
 _Avoid_: notes (one type), library, folder
 
 ### Folder
-Where a Document lives: a `/`-separated path (root when empty). Every Document has one; only the Vault tree cares. A Folder exists because Documents are in it; titles are unique within a Folder for a given type. Daily notes live in `Journal/YYYY/MM`, templates in `Templates`.
+Where a Document lives: a `/`-separated path (root when empty). Every Document has one; only the Vault tree cares. A Folder exists because Documents are in it; titles are unique within a Folder for a given type. Daily notes live in `Journal/YYYY/MM`, templates in `Templates`, private notes in `Private`.
 _Avoid_: directory, category (that's a Document type), tag
+
+### Private folder
+The one reserved Folder, `Private` at the root (subfolders included), whose Documents are shown only while it is **unlocked**. It exists once the user has **set it up** — chosen its password — and adopts any plain `Private` folder already there. Only body-first Documents (Note, Clipping, Writing) may be created or moved into it; no Task, Event or other App Document ever hides there. A gate, not a safe: it keeps eyes off, not bytes secret — the text is stored like any other Document's. Same password on every device, usable offline; resetting it needs the account password and loses nothing.
+_Avoid_: vault (the Workspace), encrypted/secret notes (they are not), locked folder (say "the Private folder is locked"), hidden folder
+
+### Locked / Unlocked
+The state of the Private folder on this device, right now. **Locked** (the default — after a reload, after idle, after the app goes to the background, on a device that has not yet learnt the password) means its Documents are absent from everything: tree, search, links and backlinks, unlinked mentions, Graph, Bases, Cards, autocomplete, tag vocabulary. The folder itself still shows, closed; a link into it shows as locked and asks for the password rather than pretending the target does not exist. **Unlocked** means they behave like any other Document until the user locks again or the timeout does. Anything that must see every body — Attachment clean-up — refuses to run while locked rather than peeking.
+_Avoid_: hidden (locked Documents are absent, not hidden in place), logged in / signed out (that's the account), open / closed (a Folder node in the tree)
 
 ### Commonplace book
 _Retired_ — the App is now called **Quotes**; its id and ADR 0024 keep the old name.

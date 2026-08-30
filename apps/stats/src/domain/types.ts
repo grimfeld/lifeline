@@ -1,14 +1,10 @@
 import type { Document } from "@lifeline/core";
+import type { ColorSlot } from "@lifeline/ui";
 
 export const STAT_KINDS = ["additive", "measurement", "boolean", "collection"] as const;
 export type StatKind = (typeof STAT_KINDS)[number];
 
-export const COLOR_SLOTS = ["blue", "orange", "aqua", "yellow", "magenta", "green", "violet", "red"] as const;
-export type ColorSlot = (typeof COLOR_SLOTS)[number];
-
-export function colorVar(slot: string): string {
-  return `var(--chart-${slot})`;
-}
+export { COLOR_SLOTS, colorVar, type ColorSlot } from "@lifeline/ui";
 
 /**
  * A named series (notch's Stat), a Document of type "stat" whose `title` is

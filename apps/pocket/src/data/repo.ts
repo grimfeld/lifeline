@@ -1,13 +1,14 @@
 import { useMemo } from "react";
 import { normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocuments, type DateStr } from "@lifeline/core";
-import { ALLOWANCE, SPEND, type Allowance, type PeriodKind, type Spend } from "../domain/types";
+import { isColorSlot } from "@lifeline/ui";
+import { ALLOWANCE, SPEND, firstGrapheme, type Allowance, type PeriodKind, type Spend } from "../domain/types";
 import { allowanceTitle, endOf, nextFrom, normalizeFrom } from "../domain/period";
 import { successorOf } from "../domain/derive";
 
 /** PocketBase returns absent fields as "" / undefined; re-establish shapes on read. */
 function normalizeAllowance(a: Allowance): Allowance {
   const period: PeriodKind = a.period || "month";
-  return { ...a, name: a.name ?? "", period, from: a.from || a.createdAt, to: period === "custom" ? a.to || "" : "", amount: Number(a.amount) || 0, tags: a.tags ?? [] };
+  return { ...a, name: a.name ?? "", period, from: a.from || a.createdAt, to: period === "custom" ? a.to || "" : "", amount: Number(a.amount) || 0, emoji: firstGrapheme(a.emoji ?? ""), color: isColorSlot(a.color) ? a.color : "", tags: a.tags ?? [] };
 }
 
 function normalizeSpend(s: Spend): Spend {
@@ -37,6 +38,9 @@ export interface AllowanceInput {
   to?: DateStr;
   /** Integer cents. */
   amount: number;
+  /** The face (CONTEXT: Allowance): one grapheme or "". */
+  emoji?: string;
+  color?: string;
   tags?: string[];
 }
 
@@ -48,7 +52,7 @@ function rowOf(input: AllowanceInput): Omit<Allowance, "id" | "updatedAt" | "del
   const from = normalizeFrom(input.period, input.from);
   const to = input.period === "custom" ? endOf("custom", from, input.to) : "";
   // Title is derived and re-derived on every write — the name or the period may have changed.
-  return { type: ALLOWANCE, title: allowanceTitle({ name, period: input.period, from, to }), name, period: input.period, from, to, amount: Math.round(input.amount), folder: "", tags: normalizeTags(input.tags ?? []) };
+  return { type: ALLOWANCE, title: allowanceTitle({ name, period: input.period, from, to }), name, period: input.period, from, to, amount: Math.round(input.amount), emoji: firstGrapheme(input.emoji ?? ""), color: isColorSlot(input.color) ? input.color : "", folder: "", tags: normalizeTags(input.tags ?? []) };
 }
 
 export async function addAllowance(input: AllowanceInput): Promise<string> {
@@ -69,7 +73,7 @@ export async function deleteAllowance(id: string): Promise<void> {
 
 /**
  * Renew (ADR 0037): a fresh Allowance for the next week / month / year with
- * the same name, amount and tags and no Spends. Never automatic; refuses a
+ * the same name, amount, face and tags and no Spends. Never automatic; refuses a
  * custom span and a second renewal of the same one.
  */
 export async function renewAllowance(a: Allowance, allowances: Allowance[], amount?: number): Promise<string> {
@@ -77,7 +81,7 @@ export async function renewAllowance(a: Allowance, allowances: Allowance[], amou
   if (!from) throw new Error("A custom span does not renew — make a new allowance");
   const existing = successorOf(a, allowances);
   if (existing) throw new Error(`Already renewed: ${existing.title || allowanceTitle(existing)}`);
-  return addAllowance({ name: a.name, period: a.period, from, amount: amount ?? a.amount, tags: a.tags });
+  return addAllowance({ name: a.name, period: a.period, from, amount: amount ?? a.amount, emoji: a.emoji, color: a.color, tags: a.tags });
 }
 
 // ---- Spends ----
