@@ -12,16 +12,20 @@ import {
   documentType,
   formatHuman,
   joinFolder,
+  lockPrivate,
   moveDocument,
+  openPrivateDialog,
   parentFolder,
+  PRIVATE_FOLDER,
   removeDocument,
   renameDocument,
   renameFolder,
   useExtraFolders,
+  usePrivateGate,
   type Document,
   type FolderNode,
 } from "@lifeline/core";
-import { ChevronDown, ChevronRight, FilePlus, FolderPlus, Pencil, Trash2, FolderInput } from "lucide-react";
+import { ChevronDown, ChevronRight, FilePlus, FolderPlus, Pencil, Trash2, FolderInput, Lock, LockOpen } from "lucide-react";
 import { FolderPickerDialog, PromptDialog } from "./PromptDialog";
 import { useCreatableTypes, useOpenDoc, useVaultDocs } from "./useVaultDocs";
 import { NewDocumentDialog } from "./NewDocumentDialog";
@@ -52,7 +56,9 @@ export function FileTree() {
   const navigate = useNavigate();
   const open = useOpenDoc(notes);
   const creatableTypes = useCreatableTypes().filter((t) => t.titleRule === "name");
-  const tree = useMemo(() => buildTree(notes, extra), [notes, extra]);
+  const gate = usePrivateGate();
+  // ADR 0038: once set up, the Private folder is always in the tree — closed and locked, or open like any other.
+  const tree = useMemo(() => buildTree(notes, gate.configured ? [...extra, PRIVATE_FOLDER] : extra), [notes, extra, gate.configured]);
   const folders = useMemo(() => allFolders(tree), [tree]);
   const [openSet, setOpenSet] = useState<Set<string>>(loadOpen);
   const [action, setAction] = useState<Action>(null);
@@ -116,6 +122,23 @@ export function FileTree() {
   });
 
   function renderFolder(node: FolderNode<Note>, depth: number) {
+    const isPrivate = gate.configured && node.path === PRIVATE_FOLDER;
+    if (isPrivate && gate.locked) {
+      // Locked: a closed node with a lock; a click asks for the password. No drag, no drop, no menu.
+      return (
+        <li key={node.path}>
+          <button
+            className="flex w-full items-center gap-1 rounded-md py-1 pr-1 text-left text-sm hover:bg-accent/60"
+            style={{ paddingLeft: depth * 12 + 4 }}
+            title="Locked — click to unlock"
+            onClick={() => openPrivateDialog("unlock")}
+          >
+            <Lock className="text-muted-foreground size-3.5 shrink-0" />
+            <span className="truncate font-medium">{node.name}</span>
+          </button>
+        </li>
+      );
+    }
     const isOpen = openSet.has(node.path);
     const Chevron = isOpen ? ChevronDown : ChevronRight;
     return (
@@ -125,12 +148,13 @@ export function FileTree() {
             <div
               className={cn("group flex items-center gap-1 rounded-md pr-1 text-sm hover:bg-accent/60", dragOver === node.path && "bg-accent ring-1 ring-primary/40")}
               style={{ paddingLeft: depth * 12 + 4 }}
-              draggable
+              draggable={!isPrivate}
               onDragStart={(e) => e.dataTransfer.setData("application/x-lifeline-folder", node.path)}
               {...dropProps(node.path)}
             >
               <button className="flex min-w-0 flex-1 items-center gap-1 py-1 text-left" onClick={() => toggle(node.path)}>
                 <Chevron className="text-muted-foreground size-3.5 shrink-0" />
+                {isPrivate && <LockOpen className="text-muted-foreground size-3 shrink-0" />}
                 <span className="truncate font-medium">{node.name}</span>
               </button>
               <span className="hidden items-center group-hover:flex">
@@ -156,15 +180,23 @@ export function FileTree() {
               <FolderPlus /> New folder
             </ContextMenuItem>
             <ContextMenuSeparator />
-            <ContextMenuItem onClick={() => setAction({ kind: "rename-folder", path: node.path })}>
-              <Pencil /> Rename
-            </ContextMenuItem>
-            <ContextMenuItem onClick={() => setAction({ kind: "move-folder", path: node.path })}>
-              <FolderInput /> Move to…
-            </ContextMenuItem>
-            <ContextMenuItem variant="destructive" onClick={() => void guarded(() => deleteFolder(node.path))}>
-              <Trash2 /> Delete (empty only)
-            </ContextMenuItem>
+            {isPrivate ? (
+              <ContextMenuItem onClick={() => void lockPrivate()}>
+                <Lock /> Lock
+              </ContextMenuItem>
+            ) : (
+              <>
+                <ContextMenuItem onClick={() => setAction({ kind: "rename-folder", path: node.path })}>
+                  <Pencil /> Rename
+                </ContextMenuItem>
+                <ContextMenuItem onClick={() => setAction({ kind: "move-folder", path: node.path })}>
+                  <FolderInput /> Move to…
+                </ContextMenuItem>
+                <ContextMenuItem variant="destructive" onClick={() => void guarded(() => deleteFolder(node.path))}>
+                  <Trash2 /> Delete (empty only)
+                </ContextMenuItem>
+              </>
+            )}
           </ContextMenuContent>
         </ContextMenu>
         {isOpen && (

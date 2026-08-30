@@ -7,6 +7,7 @@ import { todayStr } from "../dates";
 import { defaultFolder, docPath, isWithin, normalizeFolder, rebase, titleTaken } from "../folders";
 import { documentTypeSync } from "./registry";
 import { allDocuments, putDocument } from "./store";
+import { assertMayEnterPrivate, assertNotReservedFolder, inPrivateFolder, privateGate } from "../private";
 import type { Document } from "./types";
 
 /**
@@ -20,6 +21,7 @@ export async function createDocument(input: { type: string; title: string; folde
   const def = documentTypeSync(input.type);
   const title = input.title.trim();
   const folder = input.folder === undefined ? defaultFolder(input.type, title, def?.folder ?? "") : normalizeFolder(input.folder);
+  await assertMayEnterPrivate(folder, def);
   const docs = await allDocuments();
   if (def?.titleRule !== "derived" && titleTaken(docs.filter((d) => d.type === input.type), folder, title)) {
     throw new Error(`“${title}” already exists in ${folder || "the root"}`);
@@ -55,6 +57,7 @@ export async function renameDocument(doc: Document, newTitle: string): Promise<v
 export async function moveDocument(doc: Document, folder: string): Promise<void> {
   const f = normalizeFolder(folder);
   if (f === doc.folder) return;
+  await assertMayEnterPrivate(f, documentTypeSync(doc.type));
   const docs = await allDocuments();
   if (titleTaken(docs.filter((d) => d.type === doc.type), f, doc.title, doc.id)) throw new Error(`“${doc.title}” already exists in ${f || "the root"}`);
   const next = { ...doc, folder: f } as Document;
@@ -80,11 +83,16 @@ export async function renameFolder(from: string, to: string): Promise<void> {
   const b = normalizeFolder(to);
   if (!a || a === b) return;
   if (isWithin(b, a) && b !== a) throw new Error("Cannot move a folder into itself");
+  await assertNotReservedFolder(a);
+  await assertNotReservedFolder(b);
+  // Moving a folder into (or out of) Private needs the gate open: a locked store cannot see what it would move.
+  if ((inPrivateFolder(a) || inPrivateFolder(b)) && (await privateGate()).locked) throw new Error("Unlock Private first");
   const docs = await allDocuments();
   const moved = docs.filter((n) => isWithin(n.folder, a));
   const staying = docs.filter((n) => !isWithin(n.folder, a));
   for (const n of moved) {
     const target = rebase(n.folder, a, b);
+    await assertMayEnterPrivate(target, documentTypeSync(n.type));
     if (titleTaken(staying.filter((d) => d.type === n.type), target, n.title)) throw new Error(`“${n.title}” already exists in ${target}`);
   }
   for (const n of moved) {
@@ -119,6 +127,8 @@ export async function createFolder(path: string): Promise<void> {
 /** Delete a Folder — only when nothing lives in it or below. */
 export async function deleteFolder(path: string): Promise<void> {
   const p = normalizeFolder(path);
+  await assertNotReservedFolder(p);
+  if (inPrivateFolder(p) && (await privateGate()).locked) throw new Error("Unlock Private first");
   const docs = await allDocuments();
   if (docs.some((n) => isWithin(n.folder, p))) throw new Error("Folder is not empty");
   await setExtraFolders((await extraFolders()).filter((f) => !isWithin(f, p)));

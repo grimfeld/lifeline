@@ -53,3 +53,4 @@ export * from "./external";
 export * from "./fetch";
 export * from "./documents/ops";
 export * from "./attachments";
+export * from "./private";

@@ -3,7 +3,7 @@ import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useNavigate } from "react-router";
 import { cn } from "@lifeline/ui";
-import { docHref, extractBlocks, isImageName, splitFrontmatter, type LinkIndex } from "@lifeline/core";
+import { docHref, extractBlocks, isImageName, openPrivateDialog, splitFrontmatter, type LinkIndex } from "@lifeline/core";
 import { DaylogBlock } from "./DaylogBlock";
 import { AttachmentImage } from "./AttachmentImage";
 import "./editor.css";
@@ -46,17 +46,18 @@ export function MarkdownView({ body, index, docDate, className, compact }: { bod
             if (href?.startsWith("wikilink:")) {
               const name = decodeURIComponent(href.slice("wikilink:".length));
               const ref = index.resolve(name);
-              const cls = ref.kind === "unresolved" ? "wikilink wikilink-unresolved" : "wikilink";
+              const cls = ref.kind === "unresolved" ? "wikilink wikilink-unresolved" : ref.kind === "locked" ? "wikilink wikilink-locked" : "wikilink";
               return (
                 <a
                   href="#"
                   className={cls}
+                  title={ref.kind === "locked" ? "In Private — unlock to open" : undefined}
                   onClick={(e) => {
                     e.preventDefault();
                     if (ref.kind === "doc") {
                       const d = index.byId.get(ref.id);
                       if (d) navigate(docHref(d));
-                    }
+                    } else if (ref.kind === "locked") openPrivateDialog("unlock");
                   }}
                 >
                   {children}

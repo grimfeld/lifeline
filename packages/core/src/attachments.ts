@@ -6,6 +6,7 @@ import { put, remove } from "./data/repo";
 import { newId } from "./ids";
 import { extractLinks, isImageEmbed, normalizeName, renameLinks } from "./markdown";
 import { allDocuments, putDocument } from "./documents/store";
+import { privateGate } from "./private";
 import type { Document } from "./documents/types";
 
 /**
@@ -247,6 +248,8 @@ export async function renameAttachment(att: Attachment, newName: string): Promis
 
 /** Every orphaned Attachment (no body embeds it). */
 export async function orphanedAttachments(): Promise<Attachment[]> {
+  // ADR 0038: a locked gate hides bodies; their embeds would look orphaned. Refuse rather than peek.
+  if ((await privateGate()).locked) throw new Error("Unlock Private first");
   return orphanedAmong(await allAttachments(), await allDocuments());
 }
 

@@ -9,6 +9,7 @@ import { normalizeTags } from "../tags";
 import { extractProseTags } from "../markdown";
 import { normalizeFolder } from "../folders";
 import { documentTypeSync } from "./registry";
+import { inPrivateFolder, privateGate, visibleUnder } from "../private";
 import type { Document } from "./types";
 
 /**
@@ -22,25 +23,36 @@ export function documentsTable(): Table<Document, string> {
   return db().table(DOCUMENTS) as Table<Document, string>;
 }
 
+/**
+ * The Private gate (ADR 0038): every read below drops the Documents of the
+ * Private folder while it is locked. This is the one choke point — no
+ * surface checks the gate itself, and nothing reads around it.
+ */
+async function gated<T extends Document>(rows: T[]): Promise<T[]> {
+  return visibleUnder(rows, await privateGate());
+}
+
 /** Live rows of one type (tombstones excluded). */
 export async function documentsOf<T extends Document = Document>(type: string): Promise<T[]> {
-  return (await documentsTable().where("[type+deleted]").equals([type, 0]).toArray()) as T[];
+  return gated((await documentsTable().where("[type+deleted]").equals([type, 0]).toArray()) as T[]);
 }
 
 /** Rows of one type where an indexed field equals a value (`indexes` on the type def). */
 export async function documentsWhere<T extends Document = Document>(type: string, field: string, value: unknown): Promise<T[]> {
   const rows = (await documentsTable().where(`[type+${field}]`).equals([type, value as string]).toArray()) as T[];
-  return rows.filter((r) => !r.deleted);
+  return gated(rows.filter((r) => !r.deleted));
 }
 
 export async function getDocument<T extends Document = Document>(id: string): Promise<T | undefined> {
   const d = (await documentsTable().get(id)) as T | undefined;
-  return d && !d.deleted ? d : undefined;
+  if (!d || d.deleted) return undefined;
+  if (inPrivateFolder(d.folder) && (await privateGate()).locked) return undefined;
+  return d;
 }
 
 /** Every live Document of every type — for cross-type tooling only (Bases, links, tags). */
 export async function allDocuments(): Promise<Document[]> {
-  return documentsTable().where("deleted").equals(0).toArray();
+  return gated(await documentsTable().where("deleted").equals(0).toArray());
 }
 
 /** React hook: live rows of one type. */

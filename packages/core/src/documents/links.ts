@@ -3,11 +3,15 @@ import { extractLinks, isImageEmbed, normalizeName, type WikiLink } from "../mar
 import { docPath, normalizeFolder } from "../folders";
 import { aliasesOf, displayTitle, singularOf, type Document, type DocumentTypeDef } from "./types";
 import { useAllDocuments } from "./store";
+import { usePrivateLockedRefs, type PrivateLockedRefs } from "../private";
+
+const NO_LOCKED: PrivateLockedRefs = { names: new Set(), ids: new Set() };
 import { useDocumentTypes } from "./registry";
 import { docHref } from "./href";
 
 /** What a wikilink points at (ADR 0018/0019): a Document, or nothing yet. */
-export type LinkRef = { kind: "doc"; id: string; type: string } | { kind: "unresolved"; name: string };
+/** A link's target: a Document, nothing yet, or a Document behind the locked Private folder (ADR 0038 — a lock, never a hole). */
+export type LinkRef = { kind: "doc"; id: string; type: string } | { kind: "unresolved"; name: string } | { kind: "locked"; name: string };
 
 export interface ResolvedLink {
   link: WikiLink;
@@ -74,7 +78,7 @@ function isLinkable(def: DocumentTypeDef | undefined): boolean {
  * restricts to one type (id, label or plural, case-insensitive). Pure;
  * rebuild whenever Documents or types change.
  */
-export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[]): LinkIndex {
+export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[], locked: PrivateLockedRefs = NO_LOCKED): LinkIndex {
   const defs = new Map(types.map((t) => [t.id, t]));
   const typeByWord = new Map<string, string>();
   for (const t of types) {
@@ -155,6 +159,7 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[]): Link
     if (t) return ref(t);
     const a = byAlias.get(k);
     if (a) return ref(a);
+    if (locked.names.has(k)) return { kind: "locked", name: name.trim() };
     return { kind: "unresolved", name: name.trim() };
   }
 
@@ -170,6 +175,7 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[]): Link
     const links = body ? extractLinks(body).filter((l) => !isImageEmbed(l)).flatMap((link) => resolveAll(link.name).map((r) => ({ link, ref: r }))) : [];
     linksFromMap.set(d.id, links);
     for (const { link, ref: r } of links) {
+      if (r.kind === "locked") continue; // behind the gate: no backlink, no Ghost
       if (r.kind === "unresolved") {
         const k = normalizeName(r.name);
         const list = unresolved.get(k) ?? [];
@@ -242,13 +248,13 @@ function mentionable(def: DocumentTypeDef | undefined): boolean {
   return !(typeof l === "object" && l.mentions === false);
 }
 
-let last: { docs: Document[]; types: DocumentTypeDef[]; index: LinkIndex } | null = null;
+let last: { docs: Document[]; types: DocumentTypeDef[]; locked: PrivateLockedRefs; index: LinkIndex } | null = null;
 
-/** The index for one (docs, types) pair — built once per change, however many components ask. */
-export function linkIndexFor(docs: Document[], types: DocumentTypeDef[]): LinkIndex {
-  if (last && last.docs === docs && last.types === types) return last.index;
-  const index = buildLinkIndex(docs, types);
-  last = { docs, types, index };
+/** The index for one (docs, types, locked) triple — built once per change, however many components ask. */
+export function linkIndexFor(docs: Document[], types: DocumentTypeDef[], locked: PrivateLockedRefs = NO_LOCKED): LinkIndex {
+  if (last && last.docs === docs && last.types === types && last.locked === locked) return last.index;
+  const index = buildLinkIndex(docs, types, locked);
+  last = { docs, types, locked, index };
   return index;
 }
 
@@ -256,7 +262,8 @@ export function linkIndexFor(docs: Document[], types: DocumentTypeDef[]): LinkIn
 export function useLinkIndex(): LinkIndex {
   const docs = useAllDocuments();
   const types = useDocumentTypes();
-  return useMemo(() => linkIndexFor(docs, types), [docs, types]);
+  const locked = usePrivateLockedRefs();
+  return useMemo(() => linkIndexFor(docs, types, locked), [docs, types, locked]);
 }
 
 /** Backlinks ("mentioned in") of one Document. A React hook. */
