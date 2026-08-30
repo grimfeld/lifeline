@@ -1,4 +1,5 @@
-import { addDays, documentType, formatHuman, PRIVATE_SETTINGS_TYPE, todayStr, VAULT_WORKSPACE, type AppManifest, type CardSettings } from "@lifeline/core";
+import { useEffect } from "react";
+import { addDays, documentType, formatHuman, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, VAULT_WORKSPACE, type AppManifest, type CardSettings } from "@lifeline/core";
 import { CalendarDays, FileText, LayoutTemplate, Lock, NotebookPen } from "lucide-react";
 import { JournalScreen } from "./screens/JournalScreen";
 import { TodayJournalCard } from "./cards/TodayJournalCard";
@@ -266,6 +267,10 @@ export const notesApp: AppManifest = {
   ],
   commands: noteCommands,
   useCommands: useNotesCommands,
+  /** Once per launch: re-key a Private settings row saved under the old, unsyncable id (ADR 0038). */
+  useBackground: () => {
+    useEffect(() => void repairPrivateSettings().catch(() => {}), []);
+  },
 };
 
 export { NOTE, DAILY, TEMPLATE, MOODS, type Note } from "./domain/types";
