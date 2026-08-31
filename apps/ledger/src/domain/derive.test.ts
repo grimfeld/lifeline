@@ -83,6 +83,12 @@ describe("budget", () => {
     expect(rows[0]).toMatchObject({ target: 40_000, spent: 15_000, available: 25_000, pot: null });
   });
 
+  it("a category with no target is untracked — spending it is not overspending", () => {
+    const c = category("coffee");
+    const rows = budgetRows([c], [], [tx({ categoryId: "coffee", amount: 3_000 })], "2026-03");
+    expect(rows[0]).toMatchObject({ target: 0, spent: 3_000, tracked: false, available: null, pot: null });
+  });
+
   it("an accumulating pot rolls, honours overrides, and goes negative without clamping", () => {
     const c = category("vacation", { target: 10_000, accumulating: true, createdAt: "2026-01-15" });
     const allocations = [{ id: "x", categoryId: "vacation", month: "2026-02", amount: 20_000 } as Allocation];

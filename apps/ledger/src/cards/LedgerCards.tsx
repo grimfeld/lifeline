@@ -57,7 +57,7 @@ export function BudgetMonthCard(_props: CardProps) {
   const transactions = useTransactions();
   const month = thisMonth(todayStr());
   const rows = useMemo(
-    () => budgetRows(categories, allocations, transactions, month).filter((r) => r.target > 0 || r.spent > 0 || (r.pot ?? 0) !== 0).sort((a, b) => a.available - b.available),
+    () => budgetRows(categories, allocations, transactions, month).filter((r) => r.target > 0 || r.spent > 0 || (r.pot ?? 0) !== 0).sort((a, b) => (a.available ?? 0) - (b.available ?? 0)),
     [categories, allocations, transactions, month],
   );
   const inbox = uncategorizedSpent(transactions, month);
@@ -70,15 +70,17 @@ export function BudgetMonthCard(_props: CardProps) {
         </button>
       )}
       {rows.map((r) => {
-        const ratio = r.target > 0 ? Math.min(1, r.spent / r.target) : r.spent > 0 ? 1 : 0;
+        // Untracked (no Target, no pot): it reports what was spent, and nothing is over.
+        const over = r.available !== null && r.available < 0;
+        const ratio = r.target > 0 ? Math.min(1, r.spent / r.target) : 0;
         return (
           <button key={r.category.id} className="hover:bg-accent/50 grid gap-0.5 rounded-sm px-2 py-1 text-left" onClick={() => navigate(BUDGET_HREF)}>
             <div className="flex items-baseline gap-2 text-sm">
               <span className="min-w-0 flex-1 truncate">{r.category.title}</span>
-              <span className={`text-xs tabular-nums ${r.available < 0 ? "text-destructive" : "text-muted-foreground"}`}>{formatCents(r.available)}</span>
+              <span className={`text-xs tabular-nums ${over ? "text-destructive" : "text-muted-foreground"}`}>{r.available === null ? `${formatCents(r.spent)} spent` : formatCents(r.available)}</span>
             </div>
             <div className="bg-muted h-1 overflow-hidden rounded-full">
-              <div className={`h-full ${r.available < 0 ? "bg-destructive" : "bg-primary"}`} style={{ width: `${ratio * 100}%` }} />
+              <div className={`h-full ${over ? "bg-destructive" : "bg-primary"}`} style={{ width: `${ratio * 100}%` }} />
             </div>
           </button>
         );

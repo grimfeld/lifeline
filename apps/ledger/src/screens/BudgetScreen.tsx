@@ -114,8 +114,9 @@ function BudgetRowLine({ row, month, onEdit }: { row: BudgetRow; month: MonthStr
   const [draft, setDraft] = useState("");
   const category = categories.find((c) => c.id === row.category.id) ?? row.category;
   const hasOverride = allocations.some((a) => a.categoryId === category.id && a.month === month);
-  const over = row.available < 0;
-  const ratio = row.target > 0 ? Math.min(1, row.spent / row.target) : row.spent > 0 ? 1 : 0;
+  // Untracked (no Target, no pot): spending is just spending — never red, never a full bar.
+  const over = row.available !== null && row.available < 0;
+  const ratio = row.target > 0 ? Math.min(1, row.spent / row.target) : 0;
 
   async function saveTarget() {
     setEditingTarget(false);
@@ -163,10 +164,14 @@ function BudgetRowLine({ row, month, onEdit }: { row: BudgetRow; month: MonthStr
                 setEditingTarget(true);
               }}
             >
-              of {formatCents(row.target)}
+              {row.target > 0 ? `of ${formatCents(row.target)}` : "set a target"}
             </button>
           )}
-          <span className={`w-24 shrink-0 text-right font-medium tabular-nums ${over ? "text-destructive" : "text-green-600 dark:text-green-500"}`}>{formatCents(row.available)}</span>
+          {row.available === null ? (
+            <span className="text-muted-foreground w-24 shrink-0 text-right text-xs">no target</span>
+          ) : (
+            <span className={`w-24 shrink-0 text-right font-medium tabular-nums ${over ? "text-destructive" : "text-green-600 dark:text-green-500"}`}>{formatCents(row.available)}</span>
+          )}
         </div>
         <div className="bg-muted h-1.5 overflow-hidden rounded-full">
           <div className={`h-full rounded-full ${over ? "bg-destructive" : "bg-primary"}`} style={{ width: `${ratio * 100}%` }} />
