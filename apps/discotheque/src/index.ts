@@ -21,7 +21,7 @@ export const discothequeApp: AppManifest = {
   icon: Disc3,
   color: "var(--chart-violet)",
   types: [...workTypeDefs, playlistTypeDef],
-  screens: [{ id: "discotheque.main", title: "Discotheque", path: "discotheque", icon: Disc3, component: DiscothequeScreen }],
+  screens: [{ id: "discotheque.main", title: "Discotheque", path: "discotheque", icon: Disc3, group: "culture", component: DiscothequeScreen }],
   cards: [
     {
       id: "discotheque.in-progress",

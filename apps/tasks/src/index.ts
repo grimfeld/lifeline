@@ -23,6 +23,7 @@ export const tasksApp: AppManifest = {
       title: "Tasks",
       path: "tasks",
       icon: ListTodo,
+      group: "planning",
       component: TasksScreen,
     },
   ],

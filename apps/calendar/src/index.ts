@@ -116,6 +116,7 @@ export const calendarApp: AppManifest = {
       title: "Events",
       path: "events",
       icon: CalendarClock,
+      group: "planning",
       component: EventsScreen,
     },
   ],

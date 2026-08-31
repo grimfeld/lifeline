@@ -16,7 +16,7 @@ export const museumApp: AppManifest = {
   color: "var(--chart-yellow)",
   types: museumTypeDefs,
   screens: [
-    { id: "museum.main", title: "Museum", path: "museum", icon: Landmark, component: MuseumScreen },
+    { id: "museum.main", title: "Museum", path: "museum", icon: Landmark, group: "culture", component: MuseumScreen },
     { id: "museum.exhibition", title: "Exhibition", path: "museum/e/:id", component: ExhibitionScreen, hidden: true },
   ],
   cards: [

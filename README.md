@@ -38,7 +38,7 @@ apps/sources     @lifeline/app-sources — Sources: things outside Lifeline show
 apps/media       @lifeline/app-media — Media App: books, comics, movies, series, albums, games on one Shelf
                  (To read/watch/listen · In progress · Done · Dropped), one Gallery, quick add; Nightstand slots for books/comics
 shell            @lifeline/shell — Vite + React shell: Dashboard + Vault workspaces, Bases (/base/:type, saved Views), generic
-                 View/Document/Count cards, sidebar, command palette (Ctrl+K),
+                 View/Document/Count cards, sidebar (App screens shelved into Nav groups, ADR 0041), command palette (Ctrl+K),
                  user Screens (drag/resize card grids), calendar + week + schedule (hour-scaled time-blocking, ADR 0015; many blocks per item, ADR 0028) + map Surfaces; Tauri 2 desktop config
 pocketbase       Dockerfile + fly.toml (app: lifeline-pb) + pb_migrations
 scripts          dev.sh (backend + shell), import/ (legacy data → Lifeline, see docs/retire-legacy.md)

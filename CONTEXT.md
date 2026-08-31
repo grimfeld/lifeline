@@ -69,8 +69,12 @@ A fixed, hand-written page owned by Core that shows Documents of *many* types to
 _Avoid_: page, dashboard, view (that's a Base's saved configuration), screen
 
 ### App screen
-A fixed, hand-written page an App ships over its own types (Gallery, Chores, a Stat's detail page). Listed in the sidebar beside Surfaces and Screens.
+A fixed, hand-written page an App ships over its own types (Gallery, Chores, a Stat's detail page). Listed in the sidebar beside Surfaces and Screens, inside its Nav group.
 _Avoid_: surface (Core-owned, cross-type), screen (user-composed), page
+
+### Nav group
+One shelf of App screens in the sidebar (Planning, Culture, Money, Study, Progress). Core owns the list, the titles and the order — the sidebar is Core's chrome (ADR 0012), and grouping is about the sidebar's length, not about ownership: a group is never a container, an App never belongs to one, and two Apps' screens sit side by side in the same group (Ledger's three screens and Pocket's under Money). An App only names the group each of its screens is listed under; naming none, or an unknown one, leaves the screen a plain top-level row. Groups start closed on every device and remember what the user opened (per-device, like a collapsed section or a hidden Base); the group holding the screen you land on opens itself.
+_Avoid_: category, folder, section (the sidebar's own Screens/Surfaces/Apps/Bases headers), suite
 
 ### Command
 A named action an App registers with Core, run from the global palette (Ctrl+K): navigation or domain action ("Complete chore…", "Log entry…"). Declares an argument signature from day one; v1 collects args via dialog, inline parsing may come later. A Command may be flagged **capture** — it records something in seconds (clip, log entry, quick capture) — and capture Commands are what the phone's "+" sheet lists.
