@@ -163,12 +163,16 @@ export function unlinkedIn(index: LinkIndex, docId: string): MentionHit[] {
   return scan(body, matcherFor(index)).filter((h) => h.targetId !== docId);
 }
 
-/** Target side: every other Document whose prose names this one, in index order. */
+/**
+ * Target side: every other Document whose prose names this one, in index order.
+ * Over `linkSources`, so an internal type's Documents never appear — a Writing's
+ * Versions repeat its prose, and every mention in them is the Writing's own.
+ */
 export function unlinkedMentionsOf(index: LinkIndex, docId: string): UnlinkedMention[] {
   const own = compile(toMentionNames(index, docId));
   if (!own.re) return [];
   const out: UnlinkedMention[] = [];
-  for (const d of index.docs) {
+  for (const d of index.linkSources) {
     if (d.id === docId || typeof d.body !== "string" || !d.body) continue;
     for (const hit of scan(d.body, own)) out.push({ sourceId: d.id, hit, context: contextAround(d.body, hit.from, hit.to) });
   }
