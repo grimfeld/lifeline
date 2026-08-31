@@ -315,3 +315,40 @@ than `ViewUpdate.focusChanged`, and is now seeded when the view comes up
 focused — CodeMirror announces focus *changes* only, so an `autoFocus`ed
 editor (today's Journal) announced nothing, which had been leaving the daylog
 widgets' focus reckoning wrong in the same way.
+
+## Amendment (2026-08-31): the accessory bar stacks on the phone nav, it does not take its row
+
+The amendment above had the bar land on the phone nav and take that row over
+while the editor has focus. In use that is the wrong trade: the nav *is* the
+phone's way out of the note — Menu, Home, Journal, Capture — and editing a
+markdown body is exactly when you want to leave for one of them. Writing on the
+phone meant losing the app's navigation until you dismissed the keyboard.
+
+**Both rows, stacked.** From the bottom up: keyboard, phone nav, accessory bar.
+The bar is fixed at `inset + nav height` instead of at `inset`, so the nav keeps
+its own row and the bar takes another 48px from the text. That costs a line of
+the note and buys back the whole nav; the note is scrolled, the nav is not
+reachable any other way.
+
+**The nav's height is measured, not assumed.** It carries
+`env(safe-area-inset-bottom)`, which is real height on a notched phone and none
+on the rest, so a constant would be wrong on one of them and put the bar back
+over the nav. `MobileNav` observes its own box (`ResizeObserver`) and publishes
+the number through Core (`setPhoneNavHeight` / `usePhoneNavHeight`, beside
+`useKeyboardInset` — a layout fact, and the bar lives in another package with no
+way to reach the element). It reports 0 when `md:hidden` takes the nav out, so
+the bar falls back to its old placement wherever there is no nav at all.
+
+**And the nav clears the keyboard on iOS.** Stacking is only worth anything if
+the nav is on screen to stack on. Chromium ends the layout viewport at the
+keyboard and the `h-dvh` frame with it, so the nav already rides above it there;
+iOS never shrinks the viewport, so the nav sat *under* the keyboard — the row
+was lost to the IME before the bar ever covered it. The nav now takes the
+measured inset as its own bottom margin: the frame ends where the keyboard
+begins, the nav is the last thing above it, and its safe-area padding drops
+while the keyboard is up (the home indicator is behind it, so that padding would
+only be dead height). The margin is 0 on Chromium, where this is already true.
+
+Because the frame now ends above both keyboard and nav, the editor's bottom
+`scrollMargin` is just the bar's height — the only thing left that covers text
+the caret could be in.
