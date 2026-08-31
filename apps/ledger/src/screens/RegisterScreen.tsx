@@ -10,7 +10,7 @@ import { describeDueDay, isOverdue, openDues } from "../domain/recur";
 import { describeCadence, nextOccurrence } from "../domain/series";
 import { matchRule, payeeCategoryIndex, suggestCategory } from "../domain/suggest";
 import { looksLikePaypal } from "../domain/paypal";
-import { categorizeTransaction, confirmDue, dismissDue, setSeriesMuted, useAccounts, useCategories, useCategorizeRules, useSeries, useTransactions } from "../data/repo";
+import { categorizeTransaction, dismissDue, setSeriesMuted, useAccounts, useCategories, useCategorizeRules, useSeries, useTransactions } from "../data/repo";
 import { TransactionEditorDialog } from "../components/TransactionEditorDialog";
 import { AccountEditorDialog } from "../components/AccountEditorDialog";
 import { ReconcileDialog } from "../components/ReconcileDialog";
@@ -410,7 +410,7 @@ export function RegisterScreen() {
   );
 }
 
-/** Open Dues, overdue loud — confirm posts the fact, skip waves that one day off (ADR 0034). */
+/** Open Dues, overdue loud — a reading only: the bank's import is what clears a Due; skip waves one day off by hand (ADR 0042). */
 export function DuesList({ dues, today, compact }: { dues: Due[]; today: string; compact?: boolean }) {
   if (dues.length === 0) return compact ? <p className="text-muted-foreground p-3 text-sm">Nothing due.</p> : null;
   return (
@@ -422,17 +422,7 @@ export function DuesList({ dues, today, compact }: { dues: Due[]; today: string;
             <span className={`ml-2 text-xs ${isOverdue(due, today) ? "text-destructive" : "text-muted-foreground"}`}>{describeDueDay(due.date, today)}</span>
           </span>
           <span className="text-muted-foreground shrink-0 tabular-nums">{formatCents(due.series.amount)}</span>
-          <Button
-            size="sm"
-            onClick={() =>
-              void confirmDue(due)
-                .then(() => toast.success(`${due.series.payee} posted`))
-                .catch((err: Error) => toast.error(err.message))
-            }
-          >
-            Confirm
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => void dismissDue(due)}>
+          <Button size="sm" variant="ghost" title="Wave this one day off — the bank's import is what clears a Due" onClick={() => void dismissDue(due)}>
             Skip
           </Button>
         </li>

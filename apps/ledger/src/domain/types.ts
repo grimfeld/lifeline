@@ -113,7 +113,7 @@ export type Cadence = "weekly" | "fortnightly" | "monthly" | "yearly";
 export interface Series {
   /** Identity: kind + normalized payee, so the bank's spellings collapse into one. */
   key: string;
-  /** The newest occurrence's spelling — what a confirm posts. */
+  /** The newest occurrence's spelling. */
   payee: string;
   kind: Extract<TransactionKind, "expense" | "income">;
   cadence: Cadence;
