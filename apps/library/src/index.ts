@@ -26,7 +26,7 @@ export const libraryApp: AppManifest = {
   icon: LibraryIcon,
   color: "var(--chart-magenta)",
   types: [...workTypeDefs, settingsTypeDef],
-  screens: [{ id: "library.main", title: "Library", path: "library", icon: LibraryIcon, component: LibraryScreen }],
+  screens: [{ id: "library.main", title: "Library", path: "library", icon: LibraryIcon, group: "culture", component: LibraryScreen }],
   cards: [
     {
       id: "library.nightstand",

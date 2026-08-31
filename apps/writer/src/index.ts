@@ -13,7 +13,7 @@ export const writerApp: AppManifest = {
   color: "var(--chart-violet)",
   types: [writingType, versionType],
   screens: [
-    { id: "writer.desk", title: "Writings", path: "writings", icon: Feather, component: WritingsScreen },
+    { id: "writer.desk", title: "Writings", path: "writings", icon: Feather, group: "study", component: WritingsScreen },
     { id: "writer.pad", title: "Writing", path: "write/:id", component: WritePage, hidden: true },
   ],
   cards: [

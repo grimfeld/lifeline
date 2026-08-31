@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router";
 import {
   Button,
   cn,
@@ -18,18 +18,20 @@ import {
 import {
   basePath,
   db,
+  navSectionsOf,
   newId,
   put,
-  screensOf,
+  screenRoute,
   useDocumentTypes,
   useLiveQuery,
+  type NavSection,
   type UserScreen,
 } from "@lifeline/core";
 import { CalendarDays, ChevronRight, Clock, Columns3, EyeOff, LayoutDashboard, MapPin, Plus, Settings2, Smartphone, Sparkles, Table2, Waypoints } from "lucide-react";
 import { SyncBadge } from "./SyncBadge";
 import { setPhoneHome } from "../mobile/phoneHome";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
-import { useCollapsedSections, useHiddenBases } from "./sidebarPrefs";
+import { useCollapsedSections, useHiddenBases, useOpenGroups } from "./sidebarPrefs";
 
 function navClass({ isActive }: { isActive: boolean }) {
   return cn(
@@ -56,10 +58,55 @@ function Section({ id, title, actions, children }: { id: string; title: string; 
   );
 }
 
+/** One Nav group inside a section: a chevron row over its screens. Closed until opened (sidebarPrefs). */
+function NavGroup({ title, open, active, onToggle, children }: { title: string; open: boolean; active: boolean; onToggle: () => void; children: ReactNode }) {
+  return (
+    <div>
+      <button
+        className={cn(
+          "hover:bg-accent/50 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+          active && !open && "font-medium",
+        )}
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        <ChevronRight className={cn("size-3.5 shrink-0 transition-transform", open && "rotate-90")} />
+        {title}
+      </button>
+      {open && <div className="border-border ml-3.5 border-l pl-1">{children}</div>}
+    </div>
+  );
+}
+
+/** Nav group holding the current pathname — longest matching route wins ("/app/ledger/budget" over "/app/ledger"). */
+function useActiveGroup(sections: NavSection[]): string | undefined {
+  const { pathname } = useLocation();
+  let best = -1;
+  let group: string | undefined;
+  for (const section of sections)
+    for (const screen of section.screens) {
+      const route = screenRoute(screen);
+      if ((pathname === route || pathname.startsWith(route + "/")) && route.length > best) {
+        best = route.length;
+        group = section.group?.id;
+      }
+    }
+  return group;
+}
+
 export function Sidebar({ className }: { className?: string } = {}) {
   const navigate = useNavigate();
   const [newOpen, setNewOpen] = useState(false);
   const [name, setName] = useState("");
+
+  const sections = navSectionsOf();
+  const activeGroup = useActiveGroup(sections);
+  const { open: openGroups, toggle: toggleGroup, reveal: revealGroup } = useOpenGroups();
+  // Landing inside a closed group opens it, so the sidebar always shows where you are.
+  useEffect(() => {
+    if (activeGroup) revealGroup(activeGroup);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- revealGroup is idempotent and re-created every render
+  }, [activeGroup]);
 
   const types = useDocumentTypes().filter((t) => !t.internal);
   const [hiddenBases, toggleHiddenBase] = useHiddenBases();
@@ -154,16 +201,23 @@ export function Sidebar({ className }: { className?: string } = {}) {
         </Section>
 
         <Section id="apps" title="Apps">
-          {screensOf()
-            .filter((s) => !s.hidden)
-            .map((s) => {
+          {sections.map((section) => {
+            const rows = section.screens.map((s) => {
               const Icon = s.icon;
               return (
-                <NavLink key={s.id} to={`/app/${s.path}`} className={navClass}>
+                <NavLink key={s.id} to={screenRoute(s)} className={navClass}>
                   {Icon ? <Icon className="size-4" /> : <span className="size-4" />} {s.title}
                 </NavLink>
               );
-            })}
+            });
+            if (!section.group) return rows;
+            const id = section.group.id;
+            return (
+              <NavGroup key={id} title={section.group.title} open={openGroups.includes(id)} active={activeGroup === id} onToggle={() => toggleGroup(id)}>
+                {rows}
+              </NavGroup>
+            );
+          })}
         </Section>
 
         <Section

@@ -47,6 +47,26 @@ export interface WorkspaceDef {
 export const DASHBOARD_WORKSPACE = "dashboard";
 export const VAULT_WORKSPACE = "vault";
 
+/**
+ * A Nav group: one shelf of App screens in a workspace's sidebar. Core owns
+ * the list and the order (the sidebar is Core's chrome, ADR 0012); an App
+ * only names the group its screen belongs on. A screen naming no group — or
+ * an unknown one — stays a plain top-level row.
+ */
+export interface NavGroupDef {
+  id: string;
+  title: string;
+}
+
+/** The Dashboard's Nav groups, in sidebar order. */
+export const NAV_GROUPS: NavGroupDef[] = [
+  { id: "planning", title: "Planning" },
+  { id: "culture", title: "Culture" },
+  { id: "money", title: "Money" },
+  { id: "study", title: "Study" },
+  { id: "progress", title: "Progress" },
+];
+
 export interface AppScreenDef {
   id: string;
   title: string;
@@ -56,6 +76,8 @@ export interface AppScreenDef {
   workspace?: string;
   icon?: React.ComponentType<{ className?: string }>;
   component: React.ComponentType;
+  /** Nav group this screen is listed under (see NAV_GROUPS); absent = a top-level row. */
+  group?: string;
   /** Routed but not listed in the sidebar/palette (detail pages such as "stats/:id"). */
   hidden?: boolean;
 }

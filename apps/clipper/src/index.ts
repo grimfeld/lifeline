@@ -38,7 +38,7 @@ export const clipperApp: AppManifest = {
   icon: Scissors,
   color: "var(--chart-orange)",
   types: [clippingType],
-  screens: [{ id: "clipper.main", title: "Clippings", path: "clippings", icon: Scissors, component: ClipperScreen }],
+  screens: [{ id: "clipper.main", title: "Clippings", path: "clippings", icon: Scissors, group: "study", component: ClipperScreen }],
   cards: [
     {
       id: "clipper.quick",

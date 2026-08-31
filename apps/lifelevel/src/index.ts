@@ -105,7 +105,7 @@ export const lifelevelApp: AppManifest = {
   color: "var(--chart-yellow)",
   types: [habitType, negativeType, habitCompletionType, negativeCompletionType],
   screens: [
-    { id: "lifelevel.main", title: "Life Level", path: "lifelevel", icon: Trophy, component: LifeLevelScreen },
+    { id: "lifelevel.main", title: "Life Level", path: "lifelevel", icon: Trophy, group: "progress", component: LifeLevelScreen },
     { id: "lifelevel.detail", title: "Habit", path: "lifelevel/:id", component: HabitDetailScreen, hidden: true },
   ],
   cards: [
