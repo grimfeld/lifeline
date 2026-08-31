@@ -99,8 +99,14 @@ export interface BudgetRow {
   target: number;
   /** Cents spent this month. */
   spent: number;
-  /** Non-accumulating: target − spent. Accumulating: the pot (may be negative — no clamping). */
-  available: number;
+  /** Does policy say anything here this month — a Target, or an accumulating pot? */
+  tracked: boolean;
+  /**
+   * Non-accumulating: target − spent. Accumulating: the pot (may be negative
+   * — no clamping). Null when untracked: with no Target there is nothing to
+   * be available against, and spending is not overspending.
+   */
+  available: number | null;
   /** Accumulating only: the pot after this month. */
   pot: number | null;
 }
@@ -109,7 +115,9 @@ export interface BudgetRow {
  * One Budget month (ADR 0033): target / spent / available per expense
  * Category. An accumulating Category is a sinking fund: its pot is all
  * allocations minus all spending since its first month, rolling through
- * `month` — derived from full history, never stored.
+ * `month` — derived from full history, never stored. A Category with no
+ * Target (and no pot) is untracked: it records what was spent and claims
+ * nothing about it.
  */
 export function budgetRows(
   categories: LedgerCategory[],
@@ -133,7 +141,8 @@ export function budgetRows(
       }
       pot = sum;
     }
-    return { category, target, spent, available: pot ?? target - spent, pot };
+    const tracked = category.accumulating || target > 0;
+    return { category, target, spent, tracked, available: tracked ? (pot ?? target - spent) : null, pot };
   });
 }
 

@@ -208,7 +208,7 @@ Where a Transaction is classified, owned by the Ledger App, Linkable: a kind (**
 _Avoid_: tag, envelope, group (the display field), budget (the lens)
 
 ### Target
-A Category's monthly amount of policy — "Groceries €400": a standing value on the Category, overridable for a single month by an **Allocation override** (an internal Document — December ≠ March, and the history of what was allocated stays honest). Spent is derived from the ledger; the Budget screen shows target / spent / available per expense Category for one month. An income Category may carry a Target; the Budget screen ignores it. Fresh each month unless the Category accumulates.
+A Category's monthly amount of policy — "Groceries €400": a standing value on the Category, overridable for a single month by an **Allocation override** (an internal Document — December ≠ March, and the history of what was allocated stays honest). Spent is derived from the ledger; the Budget screen shows target / spent / available per expense Category for one month. A Category with no Target is **untracked**: the Budget lists it and shows what was spent, but claims nothing about it — no available figure, no overspent red, since there is no policy to break. An income Category may carry a Target; the Budget screen ignores it. Fresh each month unless the Category accumulates.
 _Avoid_: budget (the whole lens), allocation (the override record), limit, goal
 
 ### Categorize rule
