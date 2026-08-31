@@ -64,7 +64,7 @@ export const sourcesApp: AppManifest = {
   // Local-only fetch cache (never synced — leading underscore, ADR 0017).
   localTables: [{ name: SOURCE_CACHE, indexes: ["fetchedAt"] }],
   screens: [
-    { id: "sources.main", title: "Sources", path: "sources", icon: Globe, component: SourcesScreen },
+    { id: "sources.main", title: "Sources", path: "sources", icon: Globe, group: "study", component: SourcesScreen },
     { id: "sources.detail", title: "Source", path: "sources/:id", component: SourcePage, hidden: true },
   ],
   cards: [

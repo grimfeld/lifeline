@@ -22,7 +22,7 @@ export const arcadeApp: AppManifest = {
   icon: Gamepad2,
   color: "var(--chart-green)",
   types: [...workTypeDefs, settingsTypeDef],
-  screens: [{ id: "arcade.main", title: "Arcade", path: "arcade", icon: Gamepad2, component: ArcadeScreen }],
+  screens: [{ id: "arcade.main", title: "Arcade", path: "arcade", icon: Gamepad2, group: "culture", component: ArcadeScreen }],
   cards: [
     {
       id: "arcade.shopping",
