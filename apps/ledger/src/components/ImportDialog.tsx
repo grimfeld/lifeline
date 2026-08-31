@@ -3,11 +3,11 @@ import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, Di
 import type { ImportMapping, LedgerAccount } from "../domain/types";
 import { applyMapping, flagDuplicates, parseCsv, type ImportRow } from "../domain/csv";
 import { isOfx, parseOfx } from "../domain/ofx";
-import { payeeCategoryIndex, suggestCategory } from "../domain/suggest";
+import { matchRule, payeeCategoryIndex, suggestCategory, type Suggestion } from "../domain/suggest";
 import { looksLikePaypal, matchPaypal, type PaypalCandidate, type PaypalMatch } from "../domain/paypal";
 import { PaypalFileInput, usePaypalFile } from "./PaypalFileInput";
 import { formatCents } from "../domain/money";
-import { importRows, saveImportMapping, useCategories, useTransactions } from "../data/repo";
+import { importRows, saveImportMapping, useCategories, useCategorizeRules, useTransactions } from "../data/repo";
 
 const DEFAULT_MAPPING: ImportMapping = { dateCol: 0, amountCol: 1, payeeCol: 2, noteCol: null, idCol: null, dateFormat: "DMY", decimal: "comma", invert: false, skipHeader: true };
 
@@ -19,12 +19,15 @@ const DEFAULT_MAPPING: ImportMapping = { dateCol: 0, amountCol: 1, payeeCol: 2, 
  * A PayPal activity file may be handed over alongside: rows the bank filed
  * under "PAYPAL" then show the merchant PayPal knows, and the category
  * suggestion runs on that real name instead of on "PAYPAL" (domain/paypal.ts).
- * Imported rows may land uncategorized: the inbox is loud in Register and
- * Budget, never hidden.
+ * Category suggestions obey the Categorize rules (ADR 0040): a rule of yours
+ * answers before history does, and a never rule leaves the row blank on
+ * purpose. Imported rows may land uncategorized: the inbox is loud in
+ * Register and Budget, never hidden.
  */
 export function ImportDialog({ open, onOpenChange, account }: { open: boolean; onOpenChange: (open: boolean) => void; account: LedgerAccount }) {
   const transactions = useTransactions();
   const categories = useCategories();
+  const rules = useCategorizeRules();
   const [rows, setRows] = useState<string[][] | null>(null);
   /** OFX path: parsed rows straight from the file — no mapping state at all. */
   const [ofxRows, setOfxRows] = useState<ImportRow[] | null>(null);
@@ -32,7 +35,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
   const [mapping, setMapping] = useState<ImportMapping>(account.importMapping ?? DEFAULT_MAPPING);
   /** null = untouched → default ticks apply (readable, non-duplicate rows). */
   const [ticked, setTicked] = useState<Set<number> | null>(null);
-  /** Hand-picked categories per row index; unset rows fall back to the history-derived suggestion. */
+  /** Hand-picked categories per row index; unset rows fall back to the rule or history-derived suggestion. */
   const [pickedCategories, setPickedCategories] = useState<Map<number, string>>(new Map());
   /** The optional PayPal activity file, and the merchant picked per row (entry id; "" = keep the bank's own string). */
   const paypal = usePaypalFile();
@@ -77,23 +80,29 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
 
   const payeeOfRow = (r: ImportRow) => resolutionOf(r)?.payee || r.payee;
 
-  /** History-derived category per row ("smart" without AI): last-used category of the matching payee. */
+  /** Suggested category per row ("smart" without AI): a hand-made rule if one speaks, else the last-used category of the matching payee. */
   const catIndex = useMemo(() => payeeCategoryIndex(transactions), [transactions]);
-  const suggestions = useMemo(() => {
-    const out = new Map<number, string>();
+  const { suggestions, vetoed } = useMemo(() => {
+    const out = new Map<number, Suggestion>();
+    const never = new Set<number>();
     for (const r of preview) {
       if (r.invalid || r.amount === null) continue;
       // The resolved merchant, not "PAYPAL": one PayPal payee would otherwise
       // hand the same category to everything PayPal ever collected.
       const payee = payeeOfRow(r);
       if (!payee) continue;
-      const s = suggestCategory(payee, r.amount < 0 ? "expense" : "income", catIndex);
-      if (s) out.set(r.index, s.categoryId);
+      const kind = r.amount < 0 ? "expense" : "income";
+      if (matchRule(payee, kind, rules)?.never) {
+        never.add(r.index);
+        continue;
+      }
+      const s = suggestCategory(payee, kind, catIndex, rules);
+      if (s) out.set(r.index, s);
     }
-    return out;
-  }, [preview, catIndex, paypalMatches, pickedPayees]);
+    return { suggestions: out, vetoed: never };
+  }, [preview, catIndex, rules, paypalMatches, pickedPayees]);
 
-  const categoryOf = (r: ImportRow) => pickedCategories.get(r.index) ?? suggestions.get(r.index) ?? "";
+  const categoryOf = (r: ImportRow) => pickedCategories.get(r.index) ?? suggestions.get(r.index)?.categoryId ?? "";
 
   // Default ticks: everything readable and not a probable duplicate.
   const defaultTicks = useMemo(() => new Set(preview.filter((r) => !r.invalid && !r.duplicateOf).map((r) => r.index)), [preview]);
@@ -253,7 +262,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
             <div className="text-muted-foreground text-xs">
               {preview.length} rows · {dupCount > 0 && <span className="text-amber-600">{dupCount} probable duplicates unticked · </span>}
               {badCount > 0 && <span className="text-destructive">{badCount} unreadable · </span>}
-              negative = expense, positive = income; categories marked <span className="text-foreground">auto</span> come from how you categorized the payee before — adjust any, the rest land uncategorized.
+              negative = expense, positive = income; categories marked <span className="text-foreground">auto</span> come from how you categorized the payee before, <span className="text-foreground">rule</span> from a Categorize rule of yours, and <span className="text-foreground">never</span> is a payee you told the ledger not to guess — adjust any, the rest land uncategorized.
               {paypalMatches.size > 0 && <> Rows marked <span className="text-foreground">paypal</span> take their payee from the activity file; where two merchants fit the same amount and day, pick one.</>}
             </div>
             <div className="max-h-72 overflow-y-auto rounded-md border">
@@ -312,7 +321,10 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
                           ? "unreadable"
                           : r.duplicateOf
                             ? "already in the ledger?"
-                            : [paypalMatches.get(r.index)?.status === "ambiguous" && !pickedPayees.has(r.index) ? "pick a merchant" : paypalMatches.has(r.index) ? "paypal" : "", suggestions.has(r.index) && !pickedCategories.has(r.index) ? "auto" : ""]
+                            : [
+                                paypalMatches.get(r.index)?.status === "ambiguous" && !pickedPayees.has(r.index) ? "pick a merchant" : paypalMatches.has(r.index) ? "paypal" : "",
+                                vetoed.has(r.index) ? "never" : suggestions.has(r.index) && !pickedCategories.has(r.index) ? (suggestions.get(r.index)!.confidence === "rule" ? "rule" : "auto") : "",
+                              ]
                                 .filter(Boolean)
                                 .join(" · ")}
                       </td>
