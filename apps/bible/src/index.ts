@@ -107,7 +107,7 @@ export const bibleApp: AppManifest = {
   types: [bookType, chapterType, verseType, characterType, conceptType],
   screens: [
     { id: "bible.desk", title: "Bible study", path: "bible", icon: BookOpen, component: BibleDeskScreen, workspace: VAULT_WORKSPACE },
-    { id: "bible.phone", title: "Bible quick", path: "bible", icon: BookOpen, component: BibleScreen },
+    { id: "bible.phone", title: "Bible quick", path: "bible", icon: BookOpen, group: "study", component: BibleScreen },
   ],
   cards: [
     {

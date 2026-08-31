@@ -1,4 +1,4 @@
-import { DASHBOARD_WORKSPACE, type AppManifest, type AppScreenDef, type CardDef, type CommandDef, type DocumentPanelDef, type WorkspaceDef } from "./manifest";
+import { DASHBOARD_WORKSPACE, NAV_GROUPS, type AppManifest, type AppScreenDef, type CardDef, type CommandDef, type DocumentPanelDef, type NavGroupDef, type WorkspaceDef } from "./manifest";
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
@@ -131,6 +131,25 @@ export function workspaceById(id: string): (WorkspaceDef & { appId: string }) | 
 /** Screens of one workspace, with their owning App id. */
 export function screensOf(workspace: string = DASHBOARD_WORKSPACE): (AppScreenDef & { appId: string })[] {
   return apps.flatMap((a) => a.screens.filter((s) => (s.workspace ?? DASHBOARD_WORKSPACE) === workspace).map((s) => ({ ...s, appId: a.id })));
+}
+
+/** One shelf of the sidebar: a Nav group and its screens, or the loose screens that name none. */
+export interface NavSection {
+  group?: NavGroupDef;
+  screens: (AppScreenDef & { appId: string })[];
+}
+
+/**
+ * The listed screens of a workspace, folded into Core's Nav groups: the loose
+ * ones first (a screen naming no group, or an unknown one, stays a top-level
+ * row), then each non-empty group in NAV_GROUPS order.
+ */
+export function navSectionsOf(workspace: string = DASHBOARD_WORKSPACE): NavSection[] {
+  const listed = screensOf(workspace).filter((s) => !s.hidden);
+  const known = new Set(NAV_GROUPS.map((g) => g.id));
+  const loose = listed.filter((s) => !s.group || !known.has(s.group));
+  const groups = NAV_GROUPS.map((group) => ({ group, screens: listed.filter((s) => s.group === group.id) })).filter((s) => s.screens.length > 0);
+  return loose.length > 0 ? [{ screens: loose }, ...groups] : groups;
 }
 
 /** Absolute route of a screen: /app/<path> in the dashboard, <workspace.path>/<path> elsewhere. */

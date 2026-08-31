@@ -80,7 +80,7 @@ export const workoutApp: AppManifest = {
   color: "var(--chart-green)",
   types: [workoutType, exerciseType, sessionType],
   screens: [
-    { id: "workout.main", title: "Workout", path: "workout", icon: Dumbbell, component: WorkoutScreen },
+    { id: "workout.main", title: "Workout", path: "workout", icon: Dumbbell, group: "progress", component: WorkoutScreen },
     { id: "workout.run", title: "Timer", path: "workout/run/:id", component: TimerScreen, hidden: true },
   ],
   cards: [

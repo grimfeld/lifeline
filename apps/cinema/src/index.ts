@@ -23,7 +23,7 @@ export const cinemaApp: AppManifest = {
   icon: Clapperboard,
   color: "var(--chart-red)",
   types: [...workTypeDefs, playlistTypeDef, settingsTypeDef],
-  screens: [{ id: "cinema.main", title: "Cinema", path: "cinema", icon: Clapperboard, component: CinemaScreen }],
+  screens: [{ id: "cinema.main", title: "Cinema", path: "cinema", icon: Clapperboard, group: "culture", component: CinemaScreen }],
   cards: [
     {
       id: "cinema.in-progress",

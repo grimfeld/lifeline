@@ -18,7 +18,7 @@ export const commonplaceApp: AppManifest = {
   icon: NotebookPen,
   color: "var(--chart-orange)",
   types: [quoteTypeDef],
-  screens: [{ id: "commonplace.main", title: "Quotes", path: "quotes", icon: NotebookPen, component: CommonplaceScreen }],
+  screens: [{ id: "commonplace.main", title: "Quotes", path: "quotes", icon: NotebookPen, group: "study", component: CommonplaceScreen }],
   cards: [
     {
       id: "commonplace.quote-random",
