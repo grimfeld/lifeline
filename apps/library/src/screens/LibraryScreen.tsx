@@ -179,7 +179,7 @@ export function LibraryScreen() {
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-3 gap-y-4">
               {gallery.map((m) => (
-                <WorkTile key={m.id} item={m} onOpen={(it) => setViewingId(it.id)} />
+                <WorkTile key={m.id} item={m} all={items} onOpen={(it) => setViewingId(it.id)} onEdit={setEditing} />
               ))}
             </div>
           )}
