@@ -216,7 +216,7 @@ export const ledgerApp: AppManifest = {
     {
       id: "ledger.dues",
       title: "Upcoming bills",
-      description: "Open dues — confirm posts the transaction",
+      description: "Open dues — the upcoming bills, read off the ledger",
       component: DuesCard,
       defaultSize: { w: 3, h: 4 },
       minSize: { w: 2, h: 3 },
