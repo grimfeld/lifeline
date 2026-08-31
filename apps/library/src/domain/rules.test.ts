@@ -3,7 +3,7 @@ import { onShelf, shelfLabel } from "./browse";
 import { hasSlots, SLOTTED_TYPES } from "./workTypes";
 import { parseQuickTitle } from "../data/repo";
 import type { Work } from "./types";
-import { abandon, finish, freeSlots, isBuySignal, isFull, isStale, nightstand, promote, shelfOfShame, shoppingList, slotAge } from "./rules";
+import { abandon, finish, freeSlots, isBuySignal, isFull, isStale, nightstand, promote, shelfOfShame, shoppingList, slotAge, toggleDone, toggleOwned } from "./rules";
 
 function item(p: Partial<Work>): Work {
   return {
@@ -52,6 +52,15 @@ describe("transitions", () => {
     expect(promote(2, "2026-08-16")).toEqual({ slot: 2, slottedOn: "2026-08-16" });
     expect(finish("2026-08-16")).toMatchObject({ engagement: "DONE", slot: 0, slottedOn: "", finishedOn: "2026-08-16" });
     expect(abandon()).toEqual({ engagement: "ABANDONED", slot: 0, slottedOn: "" });
+  });
+  it("one-click Read: finishes from any shelf freeing the slot; undo returns without re-slotting", () => {
+    expect(toggleDone(item({ slot: 2 }), "2026-08-16")).toMatchObject({ engagement: "DONE", finishedOn: "2026-08-16", slot: 0, slottedOn: "" });
+    expect(toggleDone(item({ engagement: "DONE", startedOn: "2026-08-01" }))).toEqual({ engagement: "IN_PROGRESS", finishedOn: "" });
+    expect(toggleDone(item({ engagement: "DONE" }))).toEqual({ engagement: "UNSTARTED", finishedOn: "" });
+  });
+  it("one-click Bought: Wanted ⇄ Owned, the acquired day stamped then cleared", () => {
+    expect(toggleOwned(item({}), "2026-08-16")).toEqual({ acquisition: "OWNED", acquiredOn: "2026-08-16" });
+    expect(toggleOwned(item({ acquisition: "OWNED", acquiredOn: "2026-08-16" }))).toEqual({ acquisition: "WANTED", acquiredOn: "" });
   });
 });
 

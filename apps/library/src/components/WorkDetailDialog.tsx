@@ -1,10 +1,11 @@
 import { Badge, Button, cn, Dialog, DialogContent, DialogHeader, DialogTitle, TagChips } from "@lifeline/ui";
-import { AlertTriangle, ArrowDownToLine, Check, MoreHorizontal, Play, RefreshCw, Search, ShoppingCart } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, MoreHorizontal, Play, RefreshCw, Search, ShoppingCart } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
-import { acquire, finish, freeSlots, isBuySignal, isStale, promote, slotAge, start } from "../domain/rules";
+import { freeSlots, isBuySignal, isStale, promote, slotAge, start } from "../domain/rules";
 import { Cover } from "./Cover";
 import { ACQ_LABEL } from "./AddWorkDialog";
+import { QuickActionsRow } from "./QuickActions";
 import { WorkActionsMenu, useAct } from "./WorkActions";
 import { useState } from "react";
 import { toast } from "@lifeline/ui";
@@ -112,6 +113,8 @@ export function WorkDetailDialog({ item, all, onClose, onEdit }: { item: Work | 
               )}
             </div>
 
+            <QuickActionsRow item={item} />
+
             {(item.tags ?? []).length > 0 && <TagChips tags={item.tags} size="xs" />}
 
             <LookupActions item={item} />
@@ -129,21 +132,12 @@ export function WorkDetailDialog({ item, all, onClose, onEdit }: { item: Work | 
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
           {slotted ? (
-            <>
-              {buy && (
-                <Button size="sm" variant="outline" onClick={act("Got it", acquire("OWNED"))}>
-                  <ShoppingCart /> Got it
-                </Button>
-              )}
-              {!reading && item.acquisition !== "WANTED" && (
-                <Button size="sm" variant="outline" onClick={act(`${def.engagement.IN_PROGRESS}…`, start())}>
-                  <Play /> {def.startVerb}
-                </Button>
-              )}
-              <Button size="sm" onClick={act(`${item.title} — ${def.engagement.DONE.toLowerCase()}. Slot freed.`, finish())}>
-                <Check /> {def.finishVerb}
+            !reading &&
+            item.acquisition !== "WANTED" && (
+              <Button size="sm" variant="outline" onClick={act(`${def.engagement.IN_PROGRESS}…`, start())}>
+                <Play /> {def.startVerb}
               </Button>
-            </>
+            )
           ) : (
             !done && (
               <Button size="sm" variant="outline" disabled={free.length === 0} title={free.length === 0 ? `The ${def.plural.toLowerCase()} nightstand is full` : ""} onClick={act(`Slot ${free[0]} taken`, promote(free[0]))}>
