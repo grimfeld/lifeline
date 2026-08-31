@@ -1,12 +1,16 @@
-import type { Transaction } from "./types";
+import type { CategorizeRule, Transaction } from "./types";
 
 /**
- * Auto-categorization (ADR 0033 spirit): the ledger's own history is the
- * rulebook — the category you last gave a payee is what its next import
- * gets suggested. Derived on the spot, nothing stored, no rules to
+ * Auto-categorization (ADR 0033 spirit, ADR 0040): the ledger's own history
+ * is the rulebook — the category you last gave a payee is what its next
+ * import gets suggested. Derived on the spot, nothing stored, no rules to
  * maintain: recategorize once in the Register and every later import
- * follows. Suggestions only ever surface in the import preview, where the
- * user is the witness; nothing is guessed into the ledger silently.
+ * follows. Over that reading sit the hand-made Categorize rules — the two
+ * things history cannot know: "this payee always means that Category", and
+ * "never guess for this payee at all" (Amazon: one name, twenty
+ * categories). Suggestions only ever surface where the user is the witness
+ * — the import preview and the sweep button; nothing is guessed into the
+ * ledger silently.
  */
 
 /** Bank strings are noisy ("ALBERT HEIJN 1543 AMS NLD"): lowercase, drop digits and punctuation, collapse spaces. */
@@ -45,21 +49,60 @@ export function payeeCategoryIndex(transactions: Transaction[]): PayeeCategory[]
 
 export interface Suggestion {
   categoryId: string;
-  confidence: "exact" | "contains";
+  /** "rule" — a hand-made Categorize rule; the other two are history's own reading. */
+  confidence: "rule" | "exact" | "contains";
 }
 
-/** Substring matches shorter than this are junk ("de", "ah"). */
-const MIN_CONTAINS = 4;
+/** Substring matches shorter than this are junk ("de", "ah"). Guards the derived reading only — a hand-written rule is the user's own word. */
+export const MIN_CONTAINS = 4;
+
+/** Veto first, then exactness, then how much of the payee the rule names. */
+type Rank = [veto: number, exact: number, length: number];
+
+function outranks(a: Rank, b: Rank): boolean {
+  return a[0] !== b[0] ? a[0] > b[0] : a[1] !== b[1] ? a[1] > b[1] : a[2] > b[2];
+}
 
 /**
- * Suggest a category for an incoming payee string: an exact normalized
- * match first; else the longest known payee contained in the bank string
- * (or containing it) — "albert heijn" inside "albert heijn ams nld".
- * Only entries of the right kind apply; null when history says nothing.
+ * The hand-made rule that decides a payee, or null (ADR 0040). A never rule
+ * outranks a category rule — the blacklist is a veto, not a vote; an exact
+ * rule outranks a contains one; among equals the longest match wins, being
+ * the most specific thing the user wrote about this payee. "contains" reads
+ * one way only — the rule's text inside the bank's string, never the
+ * reverse — so a rule stays as narrow as it was written.
  */
-export function suggestCategory(payee: string, kind: "expense" | "income", index: PayeeCategory[]): Suggestion | null {
+export function matchRule(payee: string, kind: "expense" | "income", rules: CategorizeRule[]): CategorizeRule | null {
   const key = normalizePayee(payee);
   if (!key) return null;
+  let best: CategorizeRule | null = null;
+  let bestRank: Rank = [-1, -1, -1];
+  for (const r of rules) {
+    if (r.kind !== "both" && r.kind !== kind) continue;
+    const m = normalizePayee(r.match);
+    if (!m) continue;
+    if (r.mode === "exact" ? m !== key : !key.includes(m)) continue;
+    const rank: Rank = [r.never ? 1 : 0, r.mode === "exact" ? 1 : 0, m.length];
+    if (outranks(rank, bestRank)) {
+      best = r;
+      bestRank = rank;
+    }
+  }
+  return best;
+}
+
+/**
+ * Suggest a category for an incoming payee string. A hand-made rule speaks
+ * first — a never rule silences the payee for good, a category rule answers
+ * outright. Failing a rule, history: an exact normalized match, else the
+ * longest known payee contained in the bank string (or containing it) —
+ * "albert heijn" inside "albert heijn ams nld". Only entries of the right
+ * kind apply; null when neither rules nor history say anything.
+ */
+export function suggestCategory(payee: string, kind: "expense" | "income", index: PayeeCategory[], rules: CategorizeRule[] = []): Suggestion | null {
+  const key = normalizePayee(payee);
+  if (!key) return null;
+  const rule = matchRule(payee, kind, rules);
+  if (rule) return rule.never ? null : { categoryId: rule.categoryId, confidence: "rule" };
   const candidates = index.filter((e) => e.kind === kind);
   const exact = candidates.find((e) => e.key === key);
   if (exact) return { categoryId: exact.categoryId, confidence: "exact" };
@@ -74,4 +117,30 @@ export function suggestCategory(payee: string, kind: "expense" | "income", index
     }
   }
   return best ? { categoryId: best.categoryId, confidence: "contains" } : null;
+}
+
+/**
+ * How many distinct payees in the ledger each rule actually decides —
+ * precedence and all, so a rule shadowed by a narrower one reads as the 0 it
+ * is. Keyed by rule id; what the Rules panel shows beside each rule.
+ */
+export function ruleCoverage(transactions: Transaction[], rules: CategorizeRule[]): Map<string, number> {
+  const payees = new Map<string, Set<string>>();
+  for (const t of transactions) {
+    if (t.kind !== "expense" && t.kind !== "income") continue;
+    const key = normalizePayee(t.payee);
+    if (!key) continue;
+    const seen = payees.get(t.kind) ?? new Set<string>();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    payees.set(t.kind, seen);
+  }
+  const out = new Map<string, number>(rules.map((r) => [r.id, 0]));
+  for (const [kind, keys] of payees) {
+    for (const key of keys) {
+      const rule = matchRule(key, kind as "expense" | "income", rules);
+      if (rule) out.set(rule.id, (out.get(rule.id) ?? 0) + 1);
+    }
+  }
+  return out;
 }
