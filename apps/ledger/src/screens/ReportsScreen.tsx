@@ -5,11 +5,12 @@ import { todayStr } from "@lifeline/core";
 import { ChartLine } from "lucide-react";
 import type { MonthStr } from "../domain/types";
 import { emptyFilter, filterTransactions, ledgerMonths, monthRange, resolveRange, type ReportFilter, type ReportRange } from "../domain/report";
-import { useAccounts, useAllocations, useCategories, useTransactions } from "../data/repo";
+import { useAccounts, useAllocations, useCategories, useSeries, useTransactions } from "../data/repo";
 import { ReportFilterBar } from "../components/ReportFilterBar";
 import { ReportOverview } from "../components/ReportOverview";
 import { ReportCategories } from "../components/ReportCategories";
 import { ReportBudget } from "../components/ReportBudget";
+import { ReportRecurring } from "../components/ReportRecurring";
 import type { ReportData } from "../components/reportChrome";
 
 /** What the screen opens on, and the window a "custom" range falls back to before it has ends of its own. */
@@ -17,16 +18,19 @@ const DEFAULT_RANGE: Exclude<ReportRange, "custom"> = "12m";
 
 /**
  * Money reports (ADR 0033): one window over the fact ledger, one filter bar
- * that every tab reads, and three readings of the same slice — the flow of
- * the window (Overview), where it went (Categories), and how it held up
- * against the Budget's Targets (Budget). Every number is derived on the spot;
- * nothing on this screen is stored, and nothing here writes.
+ * that every tab reads, and four readings of the same slice — the flow of
+ * the window (Overview), where it went (Categories), how it held up against
+ * the Budget's Targets (Budget), and what keeps coming back (Recurring,
+ * ADR 0042). Every number is derived on the spot; nothing on this screen is
+ * stored, and nothing here writes.
  */
 export function ReportsScreen() {
   const transactions = useTransactions();
   const accounts = useAccounts();
   const categories = useCategories();
   const allocations = useAllocations();
+  /** Series detect over the whole ledger — the window only decides which months are read (CONTEXT: Recurring series). */
+  const series = useSeries();
   const today = todayStr();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -96,6 +100,7 @@ export function ReportsScreen() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="budget">Budget</TabsTrigger>
+          <TabsTrigger value="recurring">Recurring</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -106,6 +111,9 @@ export function ReportsScreen() {
         </TabsContent>
         <TabsContent value="budget">
           <ReportBudget data={data} />
+        </TabsContent>
+        <TabsContent value="recurring">
+          <ReportRecurring data={data} series={series} />
         </TabsContent>
       </Tabs>
     </div>

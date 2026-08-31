@@ -55,7 +55,7 @@ describe("detectSeries", () => {
     const [s] = detectSeries(rows, [], TODAY);
     expect(s.key).toBe(seriesKey("netflix com", "expense"));
     expect(s.occurrences).toHaveLength(3);
-    // The newest spelling is what a confirm would post.
+    // The newest spelling wins.
     expect(s.payee).toBe("Netflix.com");
   });
 
