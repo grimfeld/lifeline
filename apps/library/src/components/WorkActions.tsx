@@ -17,7 +17,7 @@ export function useAct(item: Work) {
  * The full transition set for one item, as a dropdown. Shared by the list row
  * and the detail dialog so both offer exactly the same actions.
  */
-export function WorkActionsMenu({ item, all, onEdit, onDeleted, trigger }: { item: Work; all: Work[]; onEdit: (m: Work) => void; onDeleted?: () => void; trigger?: React.ReactNode }) {
+export function WorkActionsMenu({ item, all, onEdit, onDeleted, onOpenChange, trigger }: { item: Work; all: Work[]; onEdit: (m: Work) => void; onDeleted?: () => void; onOpenChange?: (open: boolean) => void; trigger?: React.ReactNode }) {
   const def = workType(item.type);
   const slotted = item.slot > 0;
   const free = freeSlots(all, item.type);
@@ -27,7 +27,7 @@ export function WorkActionsMenu({ item, all, onEdit, onDeleted, trigger }: { ite
   const act = useAct(item);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
         {trigger ?? (
           <Button size="icon" variant="ghost" className="size-7 shrink-0">

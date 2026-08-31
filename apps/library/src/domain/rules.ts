@@ -49,6 +49,22 @@ export const abandon = (): Patch => ({ engagement: "ABANDONED", slot: 0, slotted
 export const acquire = (how: Extract<Acquisition, "OWNED" | "BORROWED">, today = todayStr()): Patch => ({ acquisition: how, acquiredOn: today });
 export const release = (): Patch => ({ acquisition: "GONE" });
 
+/** Undo a mis-clicked buy: back to Wanted, the acquired day cleared. */
+export const unacquire = (): Patch => ({ acquisition: "WANTED", acquiredOn: "" });
+
+/** Bought as one click (CONTEXT.md, Shopping list): Wanted ⇄ Owned. Borrowed and Gone stay deliberate menu moves. */
+export const toggleOwned = (item: Work, today = todayStr()): Patch =>
+  item.acquisition === "OWNED" ? unacquire() : acquire("OWNED", today);
+
+/**
+ * Undo Done (CONTEXT.md, Shelf): back to Reading when it had been started,
+ * else to the To read shelf. Only the finished day is cleared — the slot the
+ * finish freed is never taken back; re-slotting is deliberate.
+ */
+export const unfinish = (): Patch => ({ engagement: "UNSTARTED", finishedOn: "" });
+export const toggleDone = (item: Work, today = todayStr()): Patch =>
+  item.engagement === "DONE" ? (item.startedOn ? { engagement: "IN_PROGRESS", finishedOn: "" } : unfinish()) : finish(today);
+
 // --- derived views ---------------------------------------------------------
 
 export const shelfOfShame = (items: Work[]) =>
