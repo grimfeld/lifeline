@@ -404,20 +404,7 @@ export async function setSeriesMuted(series: Series, muted: boolean): Promise<vo
   await overrideSeries(series, { muted, skipped: series.skipped });
 }
 
-/** One tap: the Due becomes a real Transaction — amount editable at confirm, never auto-posted. Posting it advances the series, so the Due goes. */
-export async function confirmDue(due: Due, amount?: number, date?: DateStr): Promise<string> {
-  const s = due.series;
-  return addTransaction({
-    kind: s.kind,
-    date: date ?? due.date,
-    amount: amount ?? s.amount,
-    accountId: s.accountId,
-    categoryId: s.categoryId,
-    payee: s.payee,
-  });
-}
-
-/** Decline a Due: its day is remembered as skipped and never surfaces again. */
+/** Decline a Due: its day is remembered as skipped and never surfaces again. There is no confirm — the ledger accepts only witnessed events, and the bank's import is what makes a Due go (ADR 0042). */
 export async function dismissDue(due: Due): Promise<void> {
   if (due.series.skipped.includes(due.date)) return;
   await overrideSeries(due.series, { muted: due.series.muted, skipped: [...due.series.skipped, due.date] });

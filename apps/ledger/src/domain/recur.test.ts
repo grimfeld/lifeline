@@ -56,7 +56,7 @@ describe("openDues", () => {
     }
     const posted = [tx("2026-01-01"), tx("2026-02-01"), tx("2026-03-01")];
     expect(openDues(detectSeries(posted, [], TODAY), TODAY).map((d) => d.date)).toEqual(["2026-04-01"]);
-    // Confirming April's due adds one more fact; the ledger alone moves the series on.
+    // April's bank row arrives as one more fact; the ledger alone moves the series on.
     expect(openDues(detectSeries([...posted, tx("2026-04-01")], [], "2026-04-02"), "2026-04-02").map((d) => d.date)).toEqual(["2026-05-01"]);
   });
 });

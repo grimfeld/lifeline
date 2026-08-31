@@ -89,7 +89,7 @@ export function BudgetMonthCard(_props: CardProps) {
   );
 }
 
-/** Open Dues with confirm buttons — the forecast is this list (ADR 0033), read off the ledger (ADR 0034). */
+/** Open Dues — the forecast is this list (ADR 0033), read off the ledger and never posted (ADR 0042). */
 export function DuesCard(_props: CardProps) {
   const series = useSeries();
   const today = todayStr();
