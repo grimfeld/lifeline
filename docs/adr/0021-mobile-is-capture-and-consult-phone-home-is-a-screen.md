@@ -352,3 +352,45 @@ only be dead height). The margin is 0 on Chromium, where this is already true.
 Because the frame now ends above both keyboard and nav, the editor's bottom
 `scrollMargin` is just the bar's height — the only thing left that covers text
 the caret could be in.
+
+## Amendment (2026-08-31): Screens are composed on the phone too
+
+"Curation of the phone experience *is* Screen editing on the desktop" was the
+original bargain, and it holds right up to the moment the phone home is wrong:
+a card that is never tapped, one that should lead, one whose Stat was picked
+months ago. Fixing any of it meant walking to a computer. Screen editing is
+dense work, but *this* Screen is the phone's own page — the one surface where
+the desk is the wrong place to sit. The fifth page to claim the parity clause.
+
+**The same edit mode, minus the drag.** The header's actions (Add card, the
+Edit/Done toggle and the ⋯ menu) were `max-md:hidden`; they are not any more,
+and the header wraps below `md` so the Screen's name keeps its row while the
+actions and the Tag filter take theirs. Everything the desktop's edit mode
+does, the phone's does — add, configure, remove, the Screen's own Tag filter —
+through the dialogs it already had, which are full-screen on a phone.
+
+**Arranging is a strip under each card's title**, not a drag: ⌃⌄ to move a
+place, −/+ to take a row off the card's height or add one, then configure and
+remove. A drag would have to fight the scroll (the Schedule's long press,
+bought there because a grid *is* the page), and a phone column has no width
+to give — the one thing the strip cannot do is resize a card sideways, which
+stays desk work.
+
+**There is still one layout, and it is the grid.** The phone flattens it —
+rows top to bottom, left to right within a row — so a move is the exchange of
+two cards' grid slots (`moveStacked`, beside `stackOrder` in Core, both pure
+and tested). Sizes travel with their cards, so swapping two unequal ones can
+leave the desktop grid overlapping; react-grid-layout compacts that away on
+render, in the new order. A per-breakpoint layout would have been the second
+layout system this ADR refused, and the phone's order would then be a thing to
+keep in sync rather than a reading of what is there.
+
+**"Use as phone home" moves onto the Screen itself**, in that ⋯ menu, beside
+Delete screen. It lived only in the sidebar's context menu — a right-click,
+which is nothing at all on a phone — so the one choice this ADR calls "made
+once, on the desktop" is now also makeable where its consequence is visible.
+
+The grid's own rendering above `md` is untouched: same drag, same resize
+handles, same title-row chrome. The two now share one `ScreenCard`, so a card
+looks and behaves the same in both — the phone's strip and the desktop's
+title-row buttons are what differ, and that is all.

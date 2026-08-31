@@ -89,7 +89,7 @@ One placed copy of a Card on one Screen, with its position and, for configurable
 _Avoid_: widget, tile
 
 ### Phone home
-The one Screen the phone opens as Home. On a phone, Lifeline is capture-and-consult: the phone home's Cards stacked in one column, a Journal tab, and a capture sheet of capture Commands; everything else stays reachable but is shaped for the desktop. Designated on a Screen ("Use as phone home"); at most one Screen holds it, on every device alike.
+The one Screen the phone opens as Home. On a phone, Lifeline is capture-and-consult: the phone home's Cards stacked in one column, a Journal tab, and a capture sheet of capture Commands; everything else stays reachable but is shaped for the desktop. Designated on a Screen ("Use as phone home"); at most one Screen holds it, on every device alike. The stack is edited where it is read: a Screen is composed on the phone as well as at the desk.
 _Avoid_: mobile app (same app, one frame), home screen (the OS thing)
 
 ### Task
