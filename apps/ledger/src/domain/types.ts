@@ -6,8 +6,10 @@ export const ACCOUNT = "ledger_account";
 export const CATEGORY = "ledger_category";
 export const SERIES = "ledger_series";
 export const ALLOCATION = "ledger_allocation";
+export const RULE = "ledger_rule";
 
 export const REGISTER_HREF = "/app/ledger";
+export const RULES_HREF = `${REGISTER_HREF}?tab=rules`;
 export const BUDGET_HREF = "/app/ledger/budget";
 export const REPORTS_HREF = "/app/ledger/reports";
 
@@ -160,6 +162,35 @@ export interface SeriesOverride extends Document {
   muted: boolean;
   /** Dismissed due days. */
   skipped: DateStr[];
+}
+
+/** Which rows a Categorize rule speaks for: one kind, or both (a never rule always both). */
+export type RuleKind = "expense" | "income" | "both";
+
+/** How a Categorize rule reads its text against a payee. */
+export type RuleMode = "contains" | "exact";
+
+/**
+ * A Categorize rule (ADR 0040): the user's own word about a payee, over the
+ * ledger's history-derived reading. Either it hands out a Category, or it is
+ * a **never** rule — a veto that keeps a payee (Amazon: one name, twenty
+ * categories) out of auto-categorization entirely, so those rows land in the
+ * uncategorized inbox where a human picks. Rules apply wherever the ledger
+ * suggests: the import preview and the Auto-categorize sweep; nothing is
+ * ever written into the ledger without a witness.
+ */
+export interface CategorizeRule extends Document {
+  type: typeof RULE;
+  /** The payee text to look for, as the user typed it; matching normalizes both sides. */
+  match: string;
+  /** "contains" — the text appears in the payee (the bank's noise ignored); "exact" — the whole payee, normalized. */
+  mode: RuleMode;
+  /** Stamped from the Category's own kind; "both" for a never rule. Never typed in. */
+  kind: RuleKind;
+  /** The Category it hands out; "" when `never`. */
+  categoryId: string;
+  /** Never auto-categorize a payee this matches — no rule, no history, nothing. */
+  never: boolean;
 }
 
 export const KIND_LABEL: Record<TransactionKind, string> = {

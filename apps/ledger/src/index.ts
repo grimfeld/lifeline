@@ -1,5 +1,5 @@
 import type { AppManifest, DocumentTypeDef } from "@lifeline/core";
-import { ChartLine, Landmark, PiggyBank, Repeat, Tags, Wallet } from "lucide-react";
+import { ChartLine, Landmark, PiggyBank, Repeat, Tags, Wallet, Wand2 } from "lucide-react";
 import { RegisterScreen } from "./screens/RegisterScreen";
 import { BudgetScreen } from "./screens/BudgetScreen";
 import { ReportsScreen } from "./screens/ReportsScreen";
@@ -16,8 +16,11 @@ import {
   CATEGORY,
   KIND_LABEL,
   REGISTER_HREF,
+  RULE,
+  RULES_HREF,
   SERIES,
   TRANSACTION,
+  type CategorizeRule,
   type LedgerAccount,
   type LedgerCategory,
   type Series,
@@ -124,6 +127,37 @@ const seriesOverrideType: DocumentTypeDef = {
   builtIn: true,
 };
 
+/**
+ * The `ledger_rule` internal type (ADR 0040): the user's own word over the
+ * history-derived auto-categorization — a payee that always means one
+ * Category, or a payee that is never guessed at all. The kind is stamped
+ * from the Category and guarded; nothing here decides anything on its own,
+ * it only shapes what the import preview and the sweep suggest.
+ */
+const ruleType: DocumentTypeDef = {
+  id: RULE,
+  label: "Categorize rules",
+  singular: "Categorize rule",
+  icon: Wand2,
+  internal: true,
+  titleRule: "derived",
+  titleOf: (d) => {
+    const r = d as CategorizeRule;
+    return r.never ? `${r.match || "?"} · never` : r.match || "?";
+  },
+  body: "none",
+  fields: [
+    { key: "match", label: "Payee text", kind: "text", required: true, column: true },
+    { key: "mode", label: "Match", kind: "select", options: [{ value: "contains", label: "Contains" }, { value: "exact", label: "Exact" }], required: true, column: true },
+    { key: "never", label: "Never categorize", kind: "boolean", column: true },
+    { key: "categoryId", label: "Category", kind: "link", linkType: CATEGORY, column: true },
+    { key: "kind", label: "Applies to", kind: "select", options: [{ value: "expense", label: "Expenses" }, { value: "income", label: "Income" }, { value: "both", label: "Both" }], guarded: true, column: true },
+  ],
+  href: () => RULES_HREF,
+  order: 85,
+  builtIn: true,
+};
+
 /** The `ledger_allocation` internal type (ADR 0033): one month's Target override for one Category. */
 const allocationType: DocumentTypeDef = {
   id: ALLOCATION,
@@ -148,7 +182,7 @@ export const ledgerApp: AppManifest = {
   title: "Ledger",
   icon: Landmark,
   color: "var(--chart-teal, #14b8a6)",
-  types: [transactionType, accountType, categoryType, seriesOverrideType, allocationType],
+  types: [transactionType, accountType, categoryType, seriesOverrideType, allocationType, ruleType],
   screens: [
     { id: "ledger.register", title: "Ledger", path: "ledger", icon: Landmark, component: RegisterScreen },
     { id: "ledger.budget", title: "Budget", path: "ledger/budget", icon: PiggyBank, component: BudgetScreen },
@@ -192,5 +226,5 @@ export const ledgerApp: AppManifest = {
   daylog: ledgerDaylog,
 };
 
-export { TRANSACTION, ACCOUNT, CATEGORY, SERIES, ALLOCATION };
-export type { Transaction, LedgerAccount, LedgerCategory, Series };
+export { TRANSACTION, ACCOUNT, CATEGORY, SERIES, ALLOCATION, RULE };
+export type { Transaction, LedgerAccount, LedgerCategory, Series, CategorizeRule };
