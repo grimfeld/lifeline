@@ -6,7 +6,9 @@ const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef =>
   id, label: id + "s", titleRule: "name", body: "optional", fields: [], linkable: true, builtIn: true, ...extra,
 });
 const types = [T("note"), T("daily"), T("person"), T("place"), T("media", { linkable: { aliasesField: "aliases" } }), T("template", { linkable: false }),
-  T("recipe", { fields: [{ key: "source", label: "Source", kind: "link" }] })];
+  T("recipe", { fields: [{ key: "source", label: "Source", kind: "link" }] }),
+  // A Writing's Version, in miniature: internal, a copy of another Document's body, with a Link field back at it.
+  T("version", { internal: true, linkable: false, fields: [{ key: "of", label: "Of", kind: "link" }] })];
 
 const doc = (id: string, type: string, title: string, body = "", folder = "", extra: Record<string, unknown> = {}): Document => ({
   id, type, title, body, folder, tags: [], createdAt: "2026-01-01", updatedAt: "", deleted: 0, ...extra,
@@ -22,6 +24,7 @@ describe("buildLinkIndex", () => {
     doc("m2", "media", "Paris", "", "", { aliases: ["Paname"] }),
     doc("tpl", "template", "Dune", "[[Yas]]"),
     doc("r1", "recipe", "Cake", "", "", { source: "m1" }),
+    doc("v1", "version", "Snapshot", "Saw [[Yas]] and [[Nobody]]. #quote", "", { tags: ["quote"], of: "p1" }),
   ];
   const idx = buildLinkIndex(docs, types);
 
@@ -53,6 +56,19 @@ describe("buildLinkIndex", () => {
     expect(idx.unresolved.get("nobody")).toEqual(["d1"]);
     expect(idx.tags.get("quote")).toEqual(["d1", "pl"]);
     expect(idx.linksFrom("d1")).toHaveLength(4);
+  });
+  it("an internal type's Documents are sources of nothing: no backlink, Ghost or tag of their own", () => {
+    // A Version repeats its Writing's prose. Counted again under its own name it
+    // would double every relation the Writing already has (CONTEXT.md "internal").
+    expect(idx.linkSources.some((d) => d.id === "v1")).toBe(false);
+    expect(idx.backlinksTo("p1").map((b) => b.sourceId)).not.toContain("v1");
+    expect(idx.unresolved.get("nobody")).toEqual(["d1"]);
+    expect(idx.tags.get("quote")).toEqual(["d1", "pl"]);
+    // Its own links still resolve — the Document it serves is where it is read.
+    expect(idx.linksFrom("v1").map((l) => l.ref)).toEqual([
+      { kind: "doc", id: "p1", type: "person" },
+      { kind: "unresolved", name: "Nobody" },
+    ]);
   });
   it("names() lists titles, aliases with type", () => {
     const names = idx.names();
