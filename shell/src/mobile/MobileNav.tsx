@@ -1,7 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Sheet, SheetContent, SheetTitle, cn } from "@lifeline/ui";
-import { useAllCommands, workspaceOfPath, workspaces, DASHBOARD_WORKSPACE, type CommandDef } from "@lifeline/core";
+import {
+  useAllCommands,
+  useIsMobile,
+  useKeyboardInset,
+  setPhoneNavHeight,
+  workspaceOfPath,
+  workspaces,
+  DASHBOARD_WORKSPACE,
+  type CommandDef,
+} from "@lifeline/core";
 import { CalendarDays, LayoutDashboard, Menu, Plus } from "lucide-react";
 import { Sidebar } from "../components/Sidebar";
 import { SyncBadge } from "../components/SyncBadge";
@@ -22,6 +31,13 @@ export function MobileNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const home = usePhoneHome();
+  const nav = useRef<HTMLElement>(null);
+  const isMobile = useIsMobile();
+  // iOS never shrinks the layout viewport for the keyboard, so the frame — and
+  // this nav at the foot of it — runs on underneath the keys. The nav reserves
+  // that strip itself and ends above them, which Chromium's viewport resize
+  // gives for free (ADR 0021 amendment); there this reads 0, as it should.
+  const inset = useKeyboardInset(isMobile);
 
   const captures = useAllCommands().filter((c) => c.capture);
   const ActiveDialogComponent = activeDialog?.dialog;
@@ -33,6 +49,22 @@ export function MobileNav() {
   const wsId = workspaceOfPath(location.pathname);
   const ws = workspaces().find((w) => w.id === wsId);
   const WorkspaceSidebar = wsId !== DASHBOARD_WORKSPACE ? ws?.sidebar : undefined;
+
+  // Whatever the nav actually measures — its safe-area padding included, and 0
+  // once `md:hidden` takes it out — is what the editor's accessory bar stacks on
+  // top of. Observed rather than assumed: the padding comes and goes with the
+  // keyboard, and a guessed number would put the bar over the nav again.
+  useEffect(() => {
+    const el = nav.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setPhoneNavHeight(el.getBoundingClientRect().height));
+    ro.observe(el);
+    setPhoneNavHeight(el.getBoundingClientRect().height);
+    return () => {
+      ro.disconnect();
+      setPhoneNavHeight(0);
+    };
+  }, []);
 
   // Any tap that navigates closes the drawer. A workspace sidebar is not made of
   // links — the Vault's tree, search hits and tags are buttons that navigate — so
@@ -56,7 +88,14 @@ export function MobileNav() {
 
   return (
     <>
-      <nav className="bg-background flex shrink-0 border-t pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav
+        ref={nav}
+        className="bg-background flex shrink-0 border-t pb-[env(safe-area-inset-bottom)] md:hidden"
+        // The margin is the keyboard's strip, taken out of the frame so the nav
+        // ends above it; with the keyboard up the home indicator is behind it,
+        // so its safe-area padding would only be dead height.
+        style={inset > 0 ? { marginBottom: inset, paddingBottom: 0 } : undefined}
+      >
         <button className={cn(slot(false), "flex-1")} onClick={() => setDrawerOpen(true)}>
           <Menu className="size-5" /> Menu
         </button>

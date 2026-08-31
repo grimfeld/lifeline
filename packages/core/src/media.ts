@@ -57,3 +57,36 @@ export function useKeyboardInset(enabled = true): number {
   }, [enabled]);
   return inset;
 }
+
+/**
+ * The phone nav's rendered height (its safe-area padding included), published by
+ * the shell's `MobileNav` and read by whatever has to sit above it — today the
+ * editor's key accessory bar, which used to take the nav's row over.
+ *
+ * A module store and not a measurement each side takes for itself: the height is
+ * the nav's own business (padding, safe area, whether it is on screen at all),
+ * and the bar lives in another package with no way to reach the element.
+ */
+let phoneNavHeight = 0;
+const navHeightListeners = new Set<() => void>();
+
+/** Report the phone nav's height — 0 when it is not rendered. */
+export function setPhoneNavHeight(px: number): void {
+  if (px === phoneNavHeight) return;
+  phoneNavHeight = px;
+  for (const listener of navHeightListeners) listener();
+}
+
+/** How much of the frame's bottom the phone nav occupies; 0 above `md`, and on the server. */
+export function usePhoneNavHeight(): number {
+  return useSyncExternalStore(
+    (cb) => {
+      navHeightListeners.add(cb);
+      return () => {
+        navHeightListeners.delete(cb);
+      };
+    },
+    () => phoneNavHeight,
+    () => 0,
+  );
+}
