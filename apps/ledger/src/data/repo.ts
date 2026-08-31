@@ -4,20 +4,24 @@ import {
   ACCOUNT,
   ALLOCATION,
   CATEGORY,
+  RULE,
   SERIES,
   TRANSACTION,
   type Allocation,
+  type CategorizeRule,
   type Due,
   type ImportMapping,
   type LedgerAccount,
   type LedgerCategory,
   type MonthStr,
+  type RuleMode,
   type Series,
   type SeriesOverride,
   type Transaction,
   type TransactionKind,
 } from "../domain/types";
 import { detectSeries } from "../domain/series";
+import { MIN_CONTAINS, normalizePayee } from "../domain/suggest";
 import { formatCents } from "../domain/money";
 import type { ImportRow } from "../domain/csv";
 
@@ -53,6 +57,10 @@ function normalizeAllocation(a: Allocation): Allocation {
   return { ...a, categoryId: a.categoryId ?? "", month: a.month ?? "", amount: Number(a.amount) || 0 };
 }
 
+function normalizeRule(r: CategorizeRule): CategorizeRule {
+  return { ...r, match: r.match ?? "", mode: r.mode || "contains", kind: r.kind || "both", categoryId: r.categoryId ?? "", never: !!r.never, tags: r.tags ?? [] };
+}
+
 function normalizeSeriesOverride(o: SeriesOverride): SeriesOverride {
   return { ...o, key: o.key ?? "", muted: !!o.muted, skipped: Array.isArray(o.skipped) ? o.skipped : [], tags: o.tags ?? [] };
 }
@@ -77,6 +85,12 @@ export function useCategories(): LedgerCategory[] {
 export function useAllocations(): Allocation[] {
   const rows = useDocuments<Allocation>(ALLOCATION);
   return useMemo(() => rows.map(normalizeAllocation), [rows]);
+}
+
+/** Every Categorize rule (ADR 0040), the vetoes first — the panel and every suggestion read the same list. */
+export function useCategorizeRules(): CategorizeRule[] {
+  const rows = useDocuments<CategorizeRule>(RULE);
+  return useMemo(() => rows.map(normalizeRule).sort((a, b) => Number(b.never) - Number(a.never) || a.match.localeCompare(b.match)), [rows]);
 }
 
 export function useSeriesOverrides(): SeriesOverride[] {
@@ -290,6 +304,80 @@ export async function setAllocation(categoryId: string, month: MonthStr, amount:
   }
   if (cur) await patchDocument(cur.id, { amount });
   else await putDocument<Allocation>({ type: ALLOCATION, title: "", categoryId, month, amount, folder: "", tags: [] } as unknown as Allocation);
+}
+
+// ---- Categorize rules ----
+
+export interface RuleInput {
+  /** The payee text, as typed — matching normalizes it. */
+  match: string;
+  mode: RuleMode;
+  /** The Category handed out; ignored (and cleared) for a never rule. */
+  categoryId: string;
+  /** A veto: this payee is never auto-categorized. */
+  never: boolean;
+}
+
+/**
+ * A rule's kind is never typed in: a category rule speaks for its Category's
+ * own kind, a never rule for both. One less thing to keep in step.
+ */
+async function ruleKindOf(input: RuleInput): Promise<CategorizeRule["kind"]> {
+  if (input.never) return "both";
+  const category = (await documentsOf<LedgerCategory>(CATEGORY)).find((c) => c.id === input.categoryId);
+  if (!category) throw new Error("Pick a category — or make it a never rule");
+  return normalizeCategory(category).kind;
+}
+
+/** Two rules with the same text, mode and reach would argue forever; the second is refused and the first is there to edit. */
+async function assertUnique(input: RuleInput, kind: CategorizeRule["kind"], exceptId?: string): Promise<void> {
+  const match = normalizePayee(input.match);
+  const clash = (await documentsOf<CategorizeRule>(RULE))
+    .map(normalizeRule)
+    .find((r) => r.id !== exceptId && normalizePayee(r.match) === match && r.mode === input.mode && (r.kind === "both" || kind === "both" || r.kind === kind));
+  if (clash) throw new Error(`"${clash.match}" already has a rule — edit that one`);
+}
+
+function ruleRowOf(input: RuleInput, kind: CategorizeRule["kind"]) {
+  return { title: input.match.trim(), match: input.match.trim(), mode: input.mode, kind, categoryId: input.never ? "" : input.categoryId, never: input.never };
+}
+
+export async function addRule(input: RuleInput): Promise<string> {
+  if (!normalizePayee(input.match)) throw new Error("A rule needs payee text to look for");
+  const kind = await ruleKindOf(input);
+  await assertUnique(input, kind);
+  const row = await putDocument<CategorizeRule>({ type: RULE, ...ruleRowOf(input, kind), folder: "", tags: [] } as unknown as CategorizeRule);
+  return row.id;
+}
+
+export async function updateRule(rule: CategorizeRule, input: RuleInput): Promise<void> {
+  if (!normalizePayee(input.match)) throw new Error("A rule needs payee text to look for");
+  const kind = await ruleKindOf(input);
+  await assertUnique(input, kind, rule.id);
+  await putDocument<CategorizeRule>({ ...rule, ...ruleRowOf(input, kind) });
+}
+
+export async function deleteRule(id: string): Promise<void> {
+  await removeDocument(id);
+}
+
+/**
+ * How wide a one-tap rule made from a payee should read: one long enough to
+ * survive history's own substring guard keeps history's reach; a short one is
+ * pinned to the whole payee, so a tap never widens what was happening before.
+ */
+function reachOf(payee: string): RuleMode {
+  return normalizePayee(payee).length >= MIN_CONTAINS ? "contains" : "exact";
+}
+
+/** Pin what history already does into a rule the user owns — the action beside each derived line in the Rules panel. */
+export async function pinRule(payee: string, categoryId: string): Promise<string> {
+  return addRule({ match: payee, mode: reachOf(payee), categoryId, never: false });
+}
+
+/** The veto in one tap: this payee is never auto-categorized again, whatever history thinks. */
+export async function neverRule(payee: string): Promise<string> {
+  return addRule({ match: payee, mode: reachOf(payee), categoryId: "", never: true });
 }
 
 // ---- Recurring series ----

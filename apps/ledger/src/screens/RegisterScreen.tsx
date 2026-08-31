@@ -2,20 +2,21 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Badge, Button, Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
-import { ArrowLeftRight, Bell, BellOff, Import, Inbox, Landmark, Pencil, Plus, Scale, Search, Wand2 } from "lucide-react";
+import { ArrowLeftRight, Bell, BellOff, Import, Inbox, Landmark, ListChecks, Pencil, Plus, Scale, Search, Wand2 } from "lucide-react";
 import type { Due, LedgerAccount, Series, Transaction } from "../domain/types";
 import { balanceOf, formatMonth, isUncategorized, monthOf } from "../domain/derive";
 import { formatCents, formatSigned, parseAmount } from "../domain/money";
 import { describeDueDay, isOverdue, openDues } from "../domain/recur";
 import { describeCadence, nextOccurrence } from "../domain/series";
-import { payeeCategoryIndex, suggestCategory } from "../domain/suggest";
+import { matchRule, payeeCategoryIndex, suggestCategory } from "../domain/suggest";
 import { looksLikePaypal } from "../domain/paypal";
-import { categorizeTransaction, confirmDue, dismissDue, setSeriesMuted, useAccounts, useCategories, useSeries, useTransactions } from "../data/repo";
+import { categorizeTransaction, confirmDue, dismissDue, setSeriesMuted, useAccounts, useCategories, useCategorizeRules, useSeries, useTransactions } from "../data/repo";
 import { TransactionEditorDialog } from "../components/TransactionEditorDialog";
 import { AccountEditorDialog } from "../components/AccountEditorDialog";
 import { ReconcileDialog } from "../components/ReconcileDialog";
 import { ImportDialog } from "../components/ImportDialog";
 import { PaypalSweepDialog } from "../components/PaypalSweepDialog";
+import { RulesPanel } from "../components/RulesPanel";
 
 const PAGE = 100;
 
@@ -66,6 +67,7 @@ export function RegisterScreen() {
   const transactions = useTransactions();
   const accounts = useAccounts();
   const categories = useCategories();
+  const rules = useCategorizeRules();
   const series = useSeries();
 
   const [accountFilter, setAccountFilter] = useState("all");
@@ -103,20 +105,28 @@ export function RegisterScreen() {
   const months = useMemo(() => Array.from(new Set(transactions.map((t) => monthOf(t.date)))).sort().reverse(), [transactions]);
 
   /**
-   * The sweep behind the Auto-categorize button: run the history-derived
-   * suggester over the inbox and apply what it knows; the rest stay loud.
+   * The sweep behind the Auto-categorize button: run the suggester — rules
+   * first, then the ledger's own history (ADR 0040) — over the inbox and
+   * apply what it knows; the rest stay loud, never-ruled payees included.
    */
   async function autoCategorize() {
     const index = payeeCategoryIndex(transactions);
     let n = 0;
+    let vetoed = 0;
     for (const t of uncategorized) {
-      const s = suggestCategory(t.payee, t.kind as "expense" | "income", index);
+      const kind = t.kind as "expense" | "income";
+      if (matchRule(t.payee, kind, rules)?.never) {
+        vetoed++;
+        continue;
+      }
+      const s = suggestCategory(t.payee, kind, index, rules);
       if (!s) continue;
       await categorizeTransaction(t.id, s.categoryId);
       n++;
     }
-    if (n === 0) toast.info("History knows none of these payees — categorize a few by hand first");
-    else toast.success(`Categorized ${n} of ${uncategorized.length}${n < uncategorized.length ? " — the rest need a hand" : ""}`);
+    const left = vetoed > 0 ? ` — ${vetoed} left alone by a never rule` : n < uncategorized.length ? " — the rest need a hand" : "";
+    if (n === 0) toast.info(`Nothing to go on for these payees${vetoed > 0 ? `, and ${vetoed} are never auto-categorized` : " — categorize a few by hand first"}`);
+    else toast.success(`Categorized ${n} of ${uncategorized.length}${left}`);
   }
 
   const filtered = useMemo(() => {
@@ -160,6 +170,14 @@ export function RegisterScreen() {
         <TabsList>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="accounts">Accounts</TabsTrigger>
+          <TabsTrigger value="rules">
+            <ListChecks className="size-3.5" /> Rules
+            {rules.length > 0 && (
+              <Badge variant="outline" className="ml-1.5 px-1.5">
+                {rules.length}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="recurring">
             Recurring
             {dues.filter((d) => isOverdue(d, today) || d.date === today).length > 0 && (
@@ -352,6 +370,10 @@ export function RegisterScreen() {
             );
           })}
           {accounts.length === 0 && <p className="text-muted-foreground text-sm">No accounts yet — money needs a place to live.</p>}
+        </TabsContent>
+
+        <TabsContent value="rules">
+          <RulesPanel />
         </TabsContent>
 
         <TabsContent value="recurring" className="grid gap-3">
