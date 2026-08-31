@@ -15,3 +15,23 @@ Lifeline had two data shapes: Notes (raw markdown as the truth, a derived index,
 - Guarded fields (ADR 0019) are read-only in the frontmatter projection: edits to them in text mode are reverted on save with a notice.
 - Full-text search, the Vault tree and the link index run over every Document with a body, whatever its type.
 - Types may be **internal** (e.g. a Writing's Versions): stored like any Document, hidden from the tree, link completion and sidebar.
+
+## Amendment (2026-08-31): an internal Document is a source of nothing either
+
+"Hidden from the tree, link completion and sidebar" covered only what an
+internal Document is *found as* — it stayed a full participant in what the link
+index *derives*. A Writing's Version is a verbatim copy of its body, so every
+snapshot repeated the Writing's links under its own name: a note the Writing
+mentions in prose listed the same Unlinked mention once for the Writing and
+again for each Version, the wikilinks came back as duplicate backlinks, an
+unresolved name raised the Version as a second Ghost source, and the Link field
+back at the owner filed the Version among the owner's own backlinks (the same
+way a Chore's completions crowded its "Mentioned in").
+
+So the rule is symmetric now: an internal type's Documents are targets of
+nothing *and* sources of nothing. `buildLinkIndex` resolves their own links —
+their Document is still read somewhere, and its wikilinks have to render — but
+stops there, contributing no backlink, unresolved name or tag entry, and the
+Unlinked-mention scanner walks `LinkIndex.linkSources` (the same set) rather
+than every Document. What an internal Document says belongs to the Document it
+serves, where it was already counted once; it is only ever seen from there.

@@ -29,7 +29,7 @@ import { ACCESSORY_BAR_HEIGHT, EditorAccessoryBar } from "./EditorAccessoryBar";
 import { textChange } from "./textDiff";
 import "./editor.css";
 
-/** Bottom scroll margin while the keyboard and its bar cover the editor's foot. */
+/** Bottom scroll margin while the accessory bar covers the editor's foot. */
 const keyboardMargin = new Compartment();
 
 /** A value pushed in from outside (the stored Document changed): not the user's edit. */
@@ -184,13 +184,16 @@ export function MarkdownEditor({
     viewRef.current?.dispatch({ effects: setAttachments.of(attachments) });
   }, [attachments]);
 
-  // The bar and the keyboard sit over the editor's last lines: without this the
-  // caret is scrolled to a "visible" position that is underneath both of them.
+  // The bar sits over the editor's last lines: without this the caret is scrolled
+  // to a "visible" position that is underneath it. The keyboard and the phone nav
+  // need no margin of their own — the frame ends above both (the nav reserves the
+  // keyboard's strip, Chromium's viewport resize does it there) — so the bar's own
+  // height is the whole of what covers the text.
   useEffect(() => {
-    const bottom = isMobile && focused ? inset + ACCESSORY_BAR_HEIGHT : 0;
+    const bottom = isMobile && focused ? ACCESSORY_BAR_HEIGHT : 0;
     const margin = bottom ? EditorView.scrollMargins.of(() => ({ bottom })) : [];
     viewRef.current?.dispatch({ effects: keyboardMargin.reconfigure(margin) });
-  }, [isMobile, focused, inset]);
+  }, [isMobile, focused]);
 
   return (
     <>

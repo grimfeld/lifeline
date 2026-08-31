@@ -39,6 +39,12 @@ export interface LinkName {
 
 export interface LinkIndex {
   docs: Document[];
+  /**
+   * The Documents whose links count for anyone else: `docs` less the internal
+   * types' (see `originatesLinks`). Backlinks, Ghosts and tags are already
+   * derived from these; the Unlinked-mention scanner walks them too.
+   */
+  linkSources: Document[];
   byId: Map<string, Document>;
   /** Resolve a name as written in [[…]] (with an optional `type:` prefix). The first target when a name expands to several. */
   resolve(name: string): LinkRef;
@@ -68,6 +74,20 @@ function isLinkable(def: DocumentTypeDef | undefined): boolean {
   if (!def) return false;
   if (def.internal) return false;
   return !!def.linkable;
+}
+
+/**
+ * Whether a Document's own links are anyone else's business. An internal type's
+ * Documents exist only in service of another (CONTEXT.md) — a Writing's
+ * Versions are snapshots of its prose, a Chore's completions hang off the Chore
+ * — so what they say is the owner's, counted once there already. Counting it
+ * again under their own names is how a note ends up with the same Unlinked
+ * mention from a Writing and each of its twelve Versions. They are targets of
+ * nothing (`isLinkable`) and now sources of nothing: a Version is only ever
+ * seen from the Writing it belongs to.
+ */
+function originatesLinks(def: DocumentTypeDef | undefined): boolean {
+  return !def?.internal;
 }
 
 /**
@@ -173,7 +193,10 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[], locke
     const body = typeof d.body === "string" ? d.body : "";
     // An image embed points at an Attachment (ADR 0037), not a Document: never unresolved, never a Ghost.
     const links = body ? extractLinks(body).filter((l) => !isImageEmbed(l)).flatMap((link) => resolveAll(link.name).map((r) => ({ link, ref: r }))) : [];
+    // Resolved for the Document's own panel — a Version's snapshot still renders
+    // its wikilinks — but nothing below this line, which is what others see.
     linksFromMap.set(d.id, links);
+    if (!originatesLinks(def)) continue;
     for (const { link, ref: r } of links) {
       if (r.kind === "locked") continue; // behind the gate: no backlink, no Ghost
       if (r.kind === "unresolved") {
@@ -209,6 +232,7 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[], locke
 
   return {
     docs,
+    linkSources: docs.filter((d) => originatesLinks(defs.get(d.type))),
     byId,
     resolve,
     resolveAll,

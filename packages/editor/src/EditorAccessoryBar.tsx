@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { usePhoneNavHeight } from "@lifeline/core";
 import { EditorView, type Command } from "@codemirror/view";
 import { cursorCharLeft, cursorCharRight, indentLess, indentMore, redo, undo } from "@codemirror/commands";
 import {
@@ -62,14 +63,21 @@ export const ACCESSORY_BAR_HEIGHT = 48;
  * `inset` is where the keyboard's top edge is — see `useKeyboardInset`. It is 0
  * on Chromium, where `interactive-widget=resizes-content` has already ended the
  * layout viewport at the keyboard, and that is the same right answer.
+ *
+ * The bar stacks on the phone nav rather than over it: two rows, keyboard then
+ * nav then bar, so Menu/Home/Journal/Capture stay tappable while writing.
  */
 export function EditorAccessoryBar({ view, inset }: { view: EditorView; inset: number }) {
+  const navHeight = usePhoneNavHeight();
+  const bottom = inset + navHeight;
   return createPortal(
     <div
-      // Opaque, and a shade taller than the phone nav it lands on: while the
-      // editor has focus the bar takes that row over rather than half-covering it.
+      // Opaque: the editor's last line runs underneath it, and the bar is the row
+      // that reads while the caret is in the text.
       className="bg-background fixed inset-x-0 z-50 flex min-h-12 items-center border-t md:hidden"
-      style={{ bottom: inset, paddingBottom: inset > 0 ? undefined : "env(safe-area-inset-bottom)" }}
+      // The safe area is the nav's to pad (or the keyboard's to cover); the bar
+      // only owes it when it is the thing sitting on the screen's bottom edge.
+      style={{ bottom, paddingBottom: bottom > 0 ? undefined : "env(safe-area-inset-bottom)" }}
       role="toolbar"
       aria-label="Markdown actions"
     >
