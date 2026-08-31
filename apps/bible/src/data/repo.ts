@@ -41,7 +41,10 @@ export function useConcepts(): Concept[] {
 export function studyOf(index: LinkIndex): Document[] {
   const refTypes = new Set<string>(REFERENCE_TYPES);
   const out: Document[] = [];
-  for (const d of index.docs) {
+  // `linkSources`, not every Document: an internal type's links are the owner's
+  // (CONTEXT.md), so a Writing that quotes a Verse joins the study once and not
+  // again for each of its Versions.
+  for (const d of index.linkSources) {
     if (refTypes.has(d.type) || d.deleted) continue;
     if (index.linksFrom(d.id).some((l) => l.ref.kind === "doc" && refTypes.has(l.ref.type))) out.push(d);
   }

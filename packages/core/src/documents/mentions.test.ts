@@ -57,7 +57,8 @@ describe("linkMentions", () => {
 });
 
 describe("over the link index", () => {
-  const types = [T("note"), T("person"), T("daily", { linkable: { mentions: false } }), T("verse", { linkable: { mentions: false, expand: () => null } }), T("template", { linkable: false })];
+  const types = [T("note"), T("person"), T("daily", { linkable: { mentions: false } }), T("verse", { linkable: { mentions: false, expand: () => null } }), T("template", { linkable: false }),
+    T("version", { internal: true, linkable: false })];
   const docs = [
     doc("p1", "person", "Paul Person", "Paul is me. See [[Léa]].", "", { aliases: ["Paul"] }),
     doc("p2", "person", "Léa", "Lea knows Paul.", ""),
@@ -65,6 +66,7 @@ describe("over the link index", () => {
     doc("v1", "verse", "John 3:16", ""),
     doc("n1", "note", "Verses", "John 3:16 and Paul Person in [[Paul]] form; Lea again."),
     doc("tpl", "template", "Paul", "paul"),
+    doc("ver1", "version", "Snapshot", "Lunch with paul and Lea. 2026-08-20 was good."),
   ];
   const idx = buildLinkIndex(docs, types);
 
@@ -93,5 +95,9 @@ describe("over the link index", () => {
     expect(rows[1].context).toContain("Lunch with paul");
     expect(unlinkedMentionsOf(idx, "d1")).toEqual([]);
     expect(unlinkedMentionsOf(idx, "tpl")).toEqual([]);
+  });
+  it("unlinkedMentionsOf: an internal type's Documents are never a source (a Version repeats its Writing's prose)", () => {
+    expect(unlinkedMentionsOf(idx, "p1").map((r) => r.sourceId)).not.toContain("ver1");
+    expect(unlinkedMentionsOf(idx, "p2").map((r) => r.sourceId)).not.toContain("ver1");
   });
 });
