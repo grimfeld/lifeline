@@ -25,6 +25,7 @@
 @source "../../apps/ledger/src";
 @source "../../apps/pocket/src";
 @source "../../apps/pantry/src";
+@source "../../apps/mood/src";
 @source "./";
 
 .react-grid-item.react-grid-placeholder {

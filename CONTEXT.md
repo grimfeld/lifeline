@@ -163,6 +163,14 @@ _Avoid_: log, record, data point
 ### Streak
 A Boolean Stat's run of consecutive marked days. The current streak ends today or yesterday — an unmarked today doesn't break it. Derived, period-independent.
 
+### Mood
+How one day felt, on a fixed five-point scale — 😞 Rough, 😕 Meh, 😐 Okay, 🙂 Good, 😄 Great — one colour per step, owned by the Mood App as its only Document type. At most one per day (its title is the date); re-picking replaces it, and a day with none recorded is an absence, never a sixth mood. Settable on today or any past day — never a future one, which hasn't been felt yet. Reported to the Daylog, so the daily note still shows the day's mood; deliberately *not* Linkable — a date title would collide with the daily note's, and prose points at the day, not at the feeling. The scale is fixed in code so a colour means the same thing in every year of the grid. Was a `mood` field on the daily note until ADR 0044.
+_Avoid_: entry (a Stat's word), completion (Life Level's), check-in, mood entry, feeling, rating
+
+### Mood grid
+The Mood App's screen: one cell per day, coloured by that day's Mood, toggling between one month and a whole year. The picture is the point — a year of colour read at a glance — and it doubles as capture: clicking a cell sets or clears that day's Mood. Also placeable as a Card in miniature, carrying the window's average and its week-over-week direction.
+_Avoid_: heatmap (the Chores card's shape, and density rather than category), calendar, year in pixels (fine in prose)
+
 ### Habit
 A positive activity the user wants to do, owned by the Life Level App. Completing one earns XP toward its Level; neglect bleeds XP away through Decay — standing still loses ground. Has a Difficulty. Distinct from a Boolean Stat (neutral did-I-do-it tracking): a Habit answers "how much ground have I gained or lost?". Not Schedulable — cadence is enforced by decay pressure, never by planning; "meditate on Tuesday" is a Task that links to the Habit.
 _Avoid_: activity (the old umbrella word), routine, boolean stat
