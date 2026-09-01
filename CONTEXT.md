@@ -448,3 +448,19 @@ _Avoid_: sermon (fine in prose), speech (that's something I *heard* — a Note o
 ### Quote
 A passage kept from a work of any family — its text, an optional locator (page, chapter, timestamp), an optional comment and tags — owned by the **Quotes** App (ADR 0024) and impossible without the work it links to, whatever App owns that work. Inserted into notes as a blockquote ending in a wikilink to the item; also a wikilink target by its opening words. Captured on a day, it is a Daylog fact ("Quoted").
 _Avoid_: highlight (a quote may be a thought you had about it, not only the text), excerpt, clipping
+
+### Pantry
+The stocks App: what food the household holds and where. Owns Provisions and Storages; tracks presence and quantity, not recipes or meal plans.
+_Avoid_: inventory (fine in prose), larder, stock app
+
+### Provision
+A food product held in stock — one Document per product per Storage: a quantity (a count of units), an optional unit label ("500g pack"), an optional Minimum, and two optional dates: **expires** (a check-by hint — the earliest unit you own, not a guarantee) and **frozen on**. Quantity 0 keeps the Provision: a catalog entry that is out of stock, not a record to delete.
+_Avoid_: product, item (Media item is taken), ingredient (recipe-speak), stock (the aggregate), grocery
+
+### Storage
+A place food lives, user-defined and owned by Pantry — "Chest freezer", "Spice rack" — of exactly one kind: freezer, fridge or shelf. A Provision sits in exactly one Storage; the same product in two places is two Provisions.
+_Avoid_: location (Locatable's word), place, zone, pantry as a kind (the App's name — say shelf)
+
+### Minimum
+The optional threshold on a Provision below which it is **running low**: quantity under the Minimum, or zero even without one. Running low is a reading over Provisions, not a list you edit.
+_Avoid_: shopping list (Library's books), reorder point, restock threshold

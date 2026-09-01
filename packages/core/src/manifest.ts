@@ -60,6 +60,7 @@ export interface NavGroupDef {
 
 /** The Dashboard's Nav groups, in sidebar order. */
 export const NAV_GROUPS: NavGroupDef[] = [
+  { id: "home", title: "Home" },
   { id: "planning", title: "Planning" },
   { id: "culture", title: "Culture" },
   { id: "money", title: "Money" },
