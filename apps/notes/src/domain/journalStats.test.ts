@@ -1,14 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  avg,
   currentStreak,
   entriesPerMonth,
   isWritten,
   lastDays,
   longestStreak,
-  moodSeries,
   onThisDay,
-  readMood,
   sameDayInYear,
   wordCount,
   wordsBetween,
@@ -17,7 +14,7 @@ import {
 } from "./journalStats";
 
 const TEMPLATE = "```daylog\n```\n\n### Histoire du jour\n\n---\n### Citation du jour\n\n---\n### Quoi de neuf ?\n\n---\n### Et maintenant ?\n\n";
-const daily = (title: string, body: string, mood?: string) => ({ type: "daily" as const, title, body, mood });
+const daily = (title: string, body: string) => ({ type: "daily" as const, title, body });
 
 describe("onThisDay", () => {
   it("finds the same day in earlier years, most recent first", () => {
@@ -71,26 +68,6 @@ describe("written days & streaks", () => {
   });
   it("lastDays is oldest first and ends today", () => {
     expect(lastDays("2026-03-02", 3)).toEqual(["2026-02-28", "2026-03-01", "2026-03-02"]);
-  });
-});
-
-describe("mood", () => {
-  it("reads 1..5 from frontmatter", () => {
-    expect(readMood(4)).toBe(4);
-    expect(readMood("2")).toBe(2);
-    expect(readMood(9)).toBeNull();
-    expect(readMood("")).toBeNull();
-    expect(readMood("no frontmatter")).toBeNull();
-  });
-  it("moodSeries fills missing days with null", () => {
-    const s = moodSeries([daily("2026-08-18", "", "5"), daily("2026-08-16", "", "2")], 3, "2026-08-18");
-    expect(s).toEqual([
-      { date: "2026-08-16", mood: 2 },
-      { date: "2026-08-17", mood: null },
-      { date: "2026-08-18", mood: 5 },
-    ]);
-    expect(avg(s.map((p) => p.mood))).toBe(3.5);
-    expect(avg([null, null])).toBeNull();
   });
 });
 

@@ -17,7 +17,6 @@ import { UnresolvedCard } from "./cards/UnresolvedCard";
 import { CaptureCard } from "./cards/CaptureCard";
 import { OnThisDayCard } from "./cards/OnThisDayCard";
 import { StreakCard } from "./cards/StreakCard";
-import { MoodCard } from "./cards/MoodCard";
 import { WritingStatsCard } from "./cards/WritingStatsCard";
 import { useAnyDocumentOptions, useFolderOptions, useNoteOptions, useTagOptions } from "./data/options";
 import { PinnedNoteCard, usePinnedNoteTitle } from "./cards/PinnedNoteCard";
@@ -178,16 +177,6 @@ export const notesApp: AppManifest = {
       instanceTitle: (s) => `Journal streak · ${Number(s.days ?? 30)}d`,
     },
     {
-      id: "notes.mood",
-      title: "Mood",
-      description: "Mood from your daily notes, day by day",
-      component: MoodCard,
-      defaultSize: { w: 4, h: 4 },
-      minSize: { w: 2, h: 2 },
-      settings: { days: { kind: "number", label: "Days", default: 30, min: 7, max: 120 } },
-      instanceTitle: (s) => `Mood · ${Number(s.days ?? 30)}d`,
-    },
-    {
       id: "notes.writing",
       title: "Writing stats",
       description: "Words this week and month, entries per month",
@@ -273,5 +262,5 @@ export const notesApp: AppManifest = {
   },
 };
 
-export { NOTE, DAILY, TEMPLATE, MOODS, type Note } from "./domain/types";
+export { NOTE, DAILY, TEMPLATE, type Note } from "./domain/types";
 export { noteTypes } from "./types";
