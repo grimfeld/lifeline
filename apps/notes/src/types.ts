@@ -1,5 +1,5 @@
 import { newId, PRIVATE_SETTINGS_TYPE, putDocument, todayStr, type Document, type DocumentTypeDef } from "@lifeline/core";
-import { DAILY, DAILY_TEMPLATE, MOODS, NOTE, TEMPLATE, journalHref, noteHref } from "./domain/types";
+import { DAILY, DAILY_TEMPLATE, NOTE, TEMPLATE, journalHref, noteHref } from "./domain/types";
 
 /**
  * Sync conflict (ADR 0010): the server copy is newer than an unsynced local
@@ -28,7 +28,8 @@ export const noteTypes: DocumentTypeDef[] = [
     iconName: "calendar-days",
     titleRule: "date",
     body: "required",
-    fields: [{ key: "mood", label: "Mood", kind: "select", options: MOODS, column: true }],
+    // Mood left the daily note for the Mood App (ADR 0044); daily notes are body-only.
+    fields: [],
     template: DAILY_TEMPLATE,
     // A date in prose is not a mention of the day; the Daylog ties days together (CONTEXT.md "Unlinked mention").
     linkable: { mentions: false },

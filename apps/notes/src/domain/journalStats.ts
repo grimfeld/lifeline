@@ -1,13 +1,14 @@
 /**
  * Pure journal statistics for the Notes cards: on-this-day lookups, writing
- * streaks, mood series and word counts. Everything derives from daily notes
+ * streaks and word counts. Everything derives from daily notes
  * (`type === "daily"`, `title === YYYY-MM-DD`); nothing is stored.
+ * Mood left for the Mood App (ADR 0044).
  */
 
 import { addDays, clampedDate, parts, splitFrontmatter, type DateStr } from "@lifeline/core";
 
-/** The slice of a Document these helpers read: `mood` is a flat field now, not frontmatter. */
-type DailyLike = { type: string; title: string; body?: string; mood?: unknown };
+/** The slice of a Document these helpers read. */
+type DailyLike = { type: string; title: string; body?: string };
 const bodyOf = (n: DailyLike) => (typeof n.body === "string" ? n.body : "");
 
 const isDaily = (n: DailyLike) => n.type === "daily" && /^\d{4}-\d{2}-\d{2}$/.test(n.title);
@@ -116,38 +117,6 @@ export function lastDays(today: DateStr, n: number): DateStr[] {
   const out: DateStr[] = [];
   for (let i = n - 1; i >= 0; i--) out.push(addDays(today, -i));
   return out;
-}
-
-// --- mood ---------------------------------------------------------------
-
-export interface MoodPoint {
-  date: DateStr;
-  /** 1..5, or null when the day has no (valid) mood. */
-  mood: number | null;
-}
-
-/** Read a `mood` field value as 1..5 (null otherwise). */
-export function readMood(v: unknown): number | null {
-  if (v === null || v === undefined || v === "") return null;
-  const n = Number(v);
-  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
-}
-
-/** One point per day for the last `days` days (oldest first). */
-export function moodSeries(notes: DailyLike[], days: number, today: DateStr): MoodPoint[] {
-  const byDate = new Map<string, number>();
-  for (const n of notes) {
-    if (!isDaily(n)) continue;
-    const m = readMood(n.mood);
-    if (m !== null) byDate.set(n.title, m);
-  }
-  return lastDays(today, days).map((date) => ({ date, mood: byDate.get(date) ?? null }));
-}
-
-/** Mean of the numbers (null when empty). */
-export function avg(values: (number | null)[]): number | null {
-  const xs = values.filter((v): v is number => v !== null);
-  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
 }
 
 // --- writing stats -------------------------------------------------------
