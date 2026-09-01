@@ -112,7 +112,7 @@ export interface ViewFilter {
  *   15 — Museum App (ADR 0022): `[type+artistId]` and `[type+exhibitionId]` added
  *   16 — Attachments (ADR 0037): synced `attachments` metadata, local `_blobs` bytes
  */
-const DB_VERSION = 16;
+const DB_VERSION = 17;
 
 /** Stores that existed before ADR 0018; deleted on upgrade so a client re-pulls into `documents`. */
 const LEGACY_STORES = [
