@@ -69,7 +69,7 @@ export const choresApp: AppManifest = {
       title: "Chores",
       path: "chores",
       icon: ClipboardList,
-      group: "planning",
+      group: "home",
       component: ChoresScreen,
     },
   ],
