@@ -29,6 +29,10 @@ apps/workout     @lifeline/app-workout — Workout App (ADR 0030): Workouts as B
 apps/mood        @lifeline/app-mood — Mood App (ADR 0044): one Mood per day on a fixed five-point scale, drawn as a grid
                  (a month or a whole year) that is also how you set a day; a today's-mood card, and the day's mood
                  reported into the daily note through the Daylog
+apps/prices      @lifeline/app-prices — Prices App (ADR 0045): what regular purchases cost, where, and over time —
+                 Products (a measure, never a pack size) × Shops (chains); Receipts own Lines (amount, price paid,
+                 promo), read from a photo by Tesseract on the device behind one reader seam, always reviewed
+                 before saving; unit price, cheapest shop and per-shop change are derived, never stored
 apps/stats       @lifeline/app-stats — Stats App (notch port): additive / measurement / boolean /
                  collection stats, entries as an event log, derived totals, streaks, Recharts graphs
 apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): markdown notes with typed Note types
