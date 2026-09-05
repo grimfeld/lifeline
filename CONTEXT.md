@@ -399,7 +399,7 @@ _Avoid_: metric, sensor, stat (a Stat is owned data with history — a Live valu
 A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten unsynced local edits. Nothing is merged, nothing is lost.
 
 ### Workspace
-A full-screen environment over the same data, chosen by URL: the **Vault** (Obsidian-shaped: tree, editor, links — over every Document that has a body, whatever its type) and the **Dashboard** (Screens, Surfaces, App screens, Bases). Core owns the switcher; an App declares which Workspace its screens live in. Two views of one dataset, not two apps.
+A full-screen environment over the same data, chosen by URL: the **Vault** and the **Dashboard**. The split is what you *do*, not what you see — the Vault is where content is written freely, the Dashboard is where data is read and changed through defined operations. Core owns the switcher; an App declares which Workspace its screens live in. Two views of one dataset, not two apps.
 _Avoid_: mode, full-screen app, view, "Notes workspace" (old name of the Vault)
 
 ### Attachment
@@ -407,8 +407,12 @@ A file — for now an image — dropped or pasted into a Document's body and kep
 _Avoid_: image (the kind, not the thing), file (a storage detail), asset, upload, media (the retired App)
 
 ### Vault
-The Workspace with Obsidian's chrome. Shows any Document as frontmatter + body in a generic editor; the Note taker, Clipper and Writer's pad Apps put their specialised editors here. Not a storage place — Documents live in one store whatever Workspace shows them.
+The Workspace where content is **written**: Obsidian's chrome — tree, search, tags, links — around a markdown editor over any Document's frontmatter and body, whatever its type. Editing a body is what the Vault is for, so a body is edited here or it is edited in the wrong place. Not a storage place — Documents live in one store whatever Workspace shows them.
 _Avoid_: notes (one type), library, folder
+
+### Dashboard
+The Workspace where data is **read and operated**: Screens of Cards, Surfaces, App screens and Bases. What changes here changes through a defined operation — a form, a dialog, a click whose effect is known — never through free text. An App screen lists, filters and starts things; the body it opens belongs to the Vault.
+_Avoid_: home (the phone's Home is one Screen), main app, workspace (say which)
 
 ### Folder
 Where a Document lives: a `/`-separated path (root when empty). Every Document has one; only the Vault tree cares. A Folder exists because Documents are in it; titles are unique within a Folder for a given type. Daily notes live in `Journal/YYYY/MM`, templates in `Templates`, private notes in `Private`.
