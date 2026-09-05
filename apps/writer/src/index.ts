@@ -1,8 +1,8 @@
 import type { AppManifest } from "@lifeline/core";
 import { Feather } from "lucide-react";
 import { WritingsScreen } from "./screens/WritingsScreen";
-import { WritePage } from "./screens/WritePage";
 import { DraftsCard } from "./cards/DraftsCard";
+import { VersionsPanel } from "./VersionsPanel";
 import { APP_ID, versionType, WRITINGS_HREF, writingType } from "./types";
 
 /** The Writer's pad (ADR 0019): owns `writing` (my own prose) and its internal `writing_version` snapshots. */
@@ -12,10 +12,8 @@ export const writerApp: AppManifest = {
   icon: Feather,
   color: "var(--chart-violet)",
   types: [writingType, versionType],
-  screens: [
-    { id: "writer.desk", title: "Writings", path: "writings", icon: Feather, group: "study", component: WritingsScreen },
-    { id: "writer.pad", title: "Writing", path: "write/:id", component: WritePage, hidden: true },
-  ],
+  // One screen: the desk lists and starts Writings, the Vault writes them (ADR 0045).
+  screens: [{ id: "writer.desk", title: "Writings", path: "writings", icon: Feather, group: "study", component: WritingsScreen }],
   cards: [
     {
       id: "writer.drafts",
@@ -28,5 +26,7 @@ export const writerApp: AppManifest = {
       settings: { count: { kind: "number", label: "How many", default: 6, min: 1, max: 30 } },
     },
   ],
+  /** Versions ride along with a Writing wherever it is open (ADR 0045). */
+  documentPanels: [{ id: "writer.versions", component: VersionsPanel }],
   commands: [{ id: "writer.go", title: "Go to Writings", keywords: ["writer", "draft", "pad"], icon: Feather, run: ({ navigate }) => navigate(WRITINGS_HREF) }],
 };

@@ -9,20 +9,37 @@ import {
   workspaceOfPath,
   workspaces,
   DASHBOARD_WORKSPACE,
+  VAULT_WORKSPACE,
   type CommandDef,
 } from "@lifeline/core";
-import { CalendarDays, LayoutDashboard, Menu, Plus } from "lucide-react";
+import { CalendarDays, LayoutDashboard, Menu, NotebookText, Plus } from "lucide-react";
 import { Sidebar } from "../components/Sidebar";
 import { SyncBadge } from "../components/SyncBadge";
 import { WorkspaceSwitcher } from "../components/WorkspaceSwitcher";
 import { usePhoneHome } from "./phoneHome";
+import { lastLocation } from "../components/WorkspaceSwitcher";
+import { useTabHref, useVaultTabMemory, VAULT_TABS, type VaultTab } from "./vaultTabs";
 
 type DialogCommand = CommandDef & { appId: string };
 
+/** One bottom-bar slot; shared by both bars and by the Vault's tab buttons. */
+function slot(active: boolean) {
+  return cn("flex flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[10px]", active ? "text-foreground" : "text-muted-foreground");
+}
+
 /**
- * The phone frame's bottom bar (grill 2026-08-20): ☰ drawer · Home (the
- * designated phone-home Screen) · Journal · "+" capture sheet listing the
- * Apps' capture commands. Rendered below `md` only.
+ * The phone frame's bottom bar. One bar per Workspace (ADR 0021, amended
+ * 2026-09-05), because the two are used for different things (ADR 0045) and one
+ * bar served neither: `Journal` — a Vault screen — sat in a bar that was
+ * otherwise Dashboard furniture, while the folders one actually writes in were
+ * reachable only by opening ☰ and hunting.
+ *
+ * - **Dashboard:** ☰ · Home (the designated phone-home Screen) · Journal ·
+ *   Vault · "+" capture sheet listing the Apps' capture commands.
+ * - **Vault:** ☰ · Notes · Clippings · Writings · Dashboard.
+ *
+ * The crossing is a slot in each, so the Workspace switcher is no longer
+ * drawer-only. Rendered below `md` only.
  */
 export function MobileNav() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -47,6 +64,10 @@ export function MobileNav() {
   const journalActive = location.pathname === "/vault/journal";
 
   const wsId = workspaceOfPath(location.pathname);
+  const inVault = wsId === VAULT_WORKSPACE;
+  // Which Document is open decides the active Vault tab, so the memory has to
+  // be read here rather than inside each tab button.
+  const activeTab = useVaultTabMemory();
   const ws = workspaces().find((w) => w.id === wsId);
   const WorkspaceSidebar = wsId !== DASHBOARD_WORKSPACE ? ws?.sidebar : undefined;
 
@@ -73,13 +94,6 @@ export function MobileNav() {
     setDrawerOpen(false);
   }, [location.pathname, location.search]);
 
-  function slot(active: boolean) {
-    return cn(
-      "flex flex-col items-center justify-center gap-0.5 py-1 text-[10px]",
-      active ? "text-foreground" : "text-muted-foreground",
-    );
-  }
-
   function pickCapture(c: DialogCommand) {
     setCaptureOpen(false);
     if (c.dialog) setActiveDialog(c);
@@ -96,18 +110,37 @@ export function MobileNav() {
         // so its safe-area padding would only be dead height.
         style={inset > 0 ? { marginBottom: inset, paddingBottom: 0 } : undefined}
       >
-        <button className={cn(slot(false), "flex-1")} onClick={() => setDrawerOpen(true)}>
+        <button className={slot(false)} onClick={() => setDrawerOpen(true)}>
           <Menu className="size-5" /> Menu
         </button>
-        <button className={cn(slot(homeActive), "flex-1")} onClick={() => navigate(homeHref)}>
-          <LayoutDashboard className="size-5" /> Home
-        </button>
-        <button className={cn(slot(journalActive), "flex-1")} onClick={() => navigate("/vault/journal")}>
-          <CalendarDays className="size-5" /> Journal
-        </button>
-        <button className={cn(slot(false), "flex-1")} onClick={() => setCaptureOpen(true)}>
-          <Plus className="size-5" /> Capture
-        </button>
+        {inVault ? (
+          <>
+            {VAULT_TABS.map((t) => (
+              <VaultTabButton key={t.id} tab={t} active={t.id === activeTab?.id} />
+            ))}
+            {/* The crossing back, landing where the Dashboard was left (ADR 0012's memory). */}
+            <button className={slot(false)} onClick={() => navigate(lastLocation(DASHBOARD_WORKSPACE))}>
+              <LayoutDashboard className="size-5" /> Dashboard
+            </button>
+          </>
+        ) : (
+          <>
+            <button className={slot(homeActive)} onClick={() => navigate(homeHref)}>
+              <LayoutDashboard className="size-5" /> Home
+            </button>
+            {/* Journal stays here: "go to today" is a defined operation, which is the
+                Dashboard's job; the writing that follows is the Vault's (ADR 0045). */}
+            <button className={slot(journalActive)} onClick={() => navigate("/vault/journal")}>
+              <CalendarDays className="size-5" /> Journal
+            </button>
+            <button className={slot(false)} onClick={() => navigate(lastLocation(VAULT_WORKSPACE))}>
+              <NotebookText className="size-5" /> Vault
+            </button>
+            <button className={slot(false)} onClick={() => setCaptureOpen(true)}>
+              <Plus className="size-5" /> Capture
+            </button>
+          </>
+        )}
       </nav>
 
       {/* ☰ drawer: the current workspace's sidebar, off-canvas — the whole desktop frame,
@@ -157,5 +190,21 @@ export function MobileNav() {
 
       {ActiveDialogComponent && <ActiveDialogComponent open onOpenChange={(o) => !o && setActiveDialog(null)} />}
     </>
+  );
+}
+
+/**
+ * One Vault tab. Its own component because the href is a live query — the
+ * remembered Document, else the folder's newest — and a hook cannot run inside
+ * a map in the parent.
+ */
+function VaultTabButton({ tab, active }: { tab: VaultTab; active: boolean }) {
+  const navigate = useNavigate();
+  const href = useTabHref(tab);
+  const Icon = tab.icon;
+  return (
+    <button className={slot(active)} onClick={() => navigate(href)}>
+      <Icon className="size-5" /> {tab.title}
+    </button>
   );
 }

@@ -138,6 +138,14 @@ export interface DocumentTypeDef {
   href?: (doc: Document) => string;
   /** Sync conflict hook (ADR 0010): may rescue a losing local edit. Absent = plain LWW. */
   onConflict?: (local: Document, server: Document) => Promise<void>;
+  /**
+   * Cascade hook, run by `removeDocument` before the Document is tombstoned:
+   * the owning App takes down what only existed in service of it (a Writing's
+   * Versions). Needed because deletion happens from wherever the Document is
+   * shown — the Vault's editor and tree, a Base — and only the App knows what
+   * hangs off it (ADR 0045). Throwing leaves the Document in place.
+   */
+  onDelete?: (doc: Document) => Promise<void>;
   /** Sort order in pickers / the Bases list. */
   order?: number;
   /** Built-in (code) vs user-defined (data). */

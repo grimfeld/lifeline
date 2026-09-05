@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, cn, toast } from "@lifeline/ui";
 import {
+  isLinkable,
   documentPanels,
   basePath,
   displayTitle,
@@ -73,6 +74,19 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   const [mode, setMode] = useState<"edit" | "read" | "text">("edit");
   /** Phone: the Fields + Tags strip is folded away — on a phone the body is the point. */
   const [detailsOpen, setDetailsOpen] = useState(false);
+  /**
+   * The header recedes while the body is being written and comes back on a
+   * scroll up or a blur (ADR 0021, amended 2026-09-05). Automatic rather than a
+   * toggle: a focus button is one more control in the row it is trying to
+   * empty, and a mode one can be stuck in without knowing. Editor behaviour, so
+   * it applies at the desk too — a title pinned above the text is no more
+   * wanted with a mouse (the caret band set that precedent).
+   */
+  const [quiet, setQuiet] = useState(false);
+  // Leaving the body's editor at all — reading mode, raw text — brings the
+  // header back: those modes unmount the editor, which would otherwise never
+  // report the change and leave the header away with no way to ask for it.
+  useEffect(() => setQuiet(false), [mode]);
   const [title, setTitle] = useState(doc.title);
   useEffect(() => setTitle(doc.title), [doc.title]);
 
@@ -167,6 +181,16 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   })();
   const hasBody = (def?.body ?? "optional") !== "none";
   const fields = def?.fields ?? [];
+  /**
+   * The header's controls come from the type (ADR 0045), so a Document is
+   * never offered a control that can do nothing for it:
+   * - raw "frontmatter + body as text" is just the body when the type declares
+   *   no visible Field, and the editor below is already that;
+   * - the links panel is backlinks and the local graph, which a type that is
+   *   not a wikilink target (a Template) has none of.
+   */
+  const hasFields = fields.some((f) => !f.hidden);
+  const hasPanel = isLinkable(def) || !!def?.locatable;
   const fieldValues = useMemo(() => {
     const out: Record<string, unknown> = {};
     for (const f of fields) out[f.key] = doc[f.key];
@@ -261,7 +285,17 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   return (
     <div className="flex h-full min-h-0">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2 md:flex-nowrap md:px-4">
+        {/* Collapsed rather than unmounted: the title Input keeps its state, and
+            a height transition is what stops the text jumping under the caret. */}
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-2 overflow-hidden border-b px-3 py-2 transition-[max-height,opacity,padding] duration-200 md:flex-nowrap md:px-4",
+            quiet ? "max-h-0 border-b-0 py-0 opacity-0" : "max-h-40 opacity-100",
+          )}
+          // Collapsed chrome must leave the tab order too, or Tab walks into
+          // controls nobody can see. `inert` does both halves (React 19).
+          inert={quiet}
+        >
           {Icon && <Icon className="text-muted-foreground size-4 shrink-0" />}
           {def?.titleRule === "date" ? (
             <h1 className="text-lg font-semibold tracking-tight">
@@ -292,12 +326,16 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
                 {mode === "read" ? <Pencil /> : <BookOpen />}
               </Button>
             )}
-            <Button size="icon" variant="ghost" className={`size-8 ${mode === "text" ? "bg-accent" : ""}`} onClick={() => setMode((m) => (m === "text" ? "edit" : "text"))} aria-label="Raw text" title="Frontmatter + body as text">
-              <Code2 />
-            </Button>
-            <Button size="icon" variant="ghost" className={cn("size-8", isMobile && panelShown && "bg-accent")} onClick={togglePanel} aria-label="Toggle links panel" title="Links panel">
-              {panelShown ? <PanelRightClose /> : <PanelRightOpen />}
-            </Button>
+            {hasFields && (
+              <Button size="icon" variant="ghost" className={`size-8 ${mode === "text" ? "bg-accent" : ""}`} onClick={() => setMode((m) => (m === "text" ? "edit" : "text"))} aria-label="Raw text" title="Frontmatter + body as text">
+                <Code2 />
+              </Button>
+            )}
+            {hasPanel && (
+              <Button size="icon" variant="ghost" className={cn("size-8", isMobile && panelShown && "bg-accent")} onClick={togglePanel} aria-label="Toggle links panel" title="Links panel">
+                {panelShown ? <PanelRightClose /> : <PanelRightOpen />}
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="icon" variant="ghost" className="size-8">
@@ -369,6 +407,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
                     index={index}
                     context={context}
                     autoFocus={autoFocus}
+                    onQuietChange={setQuiet}
                     placeholder="Write… [[ links any Document, #tags, ```daylog for the day's facts"
                   />
                 )}
@@ -379,10 +418,10 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
       </div>
       {/* Not merely CSS-hidden on a phone: the sheet below holds the same panel, and mounting both
           would run every App's document panel twice. */}
-      {panelOpen && !isMobile && <aside className="w-80 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto border-l p-3 max-md:hidden">{panel}</aside>}
+      {hasPanel && panelOpen && !isMobile && <aside className="w-80 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto border-l p-3 max-md:hidden">{panel}</aside>}
       {/* Phone: the same panel as a right sheet — there is no width for a column, and
           the links, the local graph and an App's own panels are not desk-only (ADR 0021). */}
-      <Sheet open={isMobile && panelSheet} onOpenChange={setPanelSheet}>
+      <Sheet open={hasPanel && isMobile && panelSheet} onOpenChange={setPanelSheet}>
         <SheetContent side="right" aria-describedby={undefined} className="w-[85%] max-w-sm overflow-hidden">
           <SheetTitle>Links</SheetTitle>
           {/* Opening a link navigates, which remounts the editor (keyed by Document) — the sheet goes with it. */}
