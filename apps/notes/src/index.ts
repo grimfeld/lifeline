@@ -2,11 +2,13 @@ import { useEffect } from "react";
 import { addDays, documentType, formatHuman, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, VAULT_WORKSPACE, type AppManifest, type CardSettings } from "@lifeline/core";
 import { CalendarDays, FileText, LayoutTemplate, Lock, NotebookPen } from "lucide-react";
 import { JournalScreen } from "./screens/JournalScreen";
+import { NotesScreen } from "./screens/NotesScreen";
 import { TodayJournalCard } from "./cards/TodayJournalCard";
 import { DaylogCard } from "./cards/DaylogCard";
 import { RecentNotesCard, useRecentTypeOptions } from "./cards/RecentNotesCard";
 import { noteCommands, useNotesCommands } from "./commands";
 import { registerNotesBridge } from "./data/bridge";
+import { migrateRootNotes } from "./data/migrate";
 import { noteTypes } from "./types";
 import { DAILY, NOTE, TEMPLATE } from "./domain/types";
 
@@ -44,7 +46,11 @@ export const notesApp: AppManifest = {
   icon: NotebookPen,
   color: "var(--chart-green)",
   types: typesWithIcons,
-  screens: [{ id: "notes.journal", title: "Journal", path: "journal", icon: NotebookPen, component: JournalScreen, workspace: VAULT_WORKSPACE }],
+  screens: [
+    // The desk is a Dashboard index in Study beside Writings and Clippings; the Journal stays the Vault's (ADR 0045).
+    { id: "notes.desk", title: "Notes", path: "notes", icon: FileText, group: "study", component: NotesScreen },
+    { id: "notes.journal", title: "Journal", path: "journal", icon: NotebookPen, component: JournalScreen, workspace: VAULT_WORKSPACE },
+  ],
   cards: [
     {
       id: "notes.today",
@@ -256,9 +262,16 @@ export const notesApp: AppManifest = {
   ],
   commands: noteCommands,
   useCommands: useNotesCommands,
-  /** Once per launch: re-key a Private settings row saved under the old, unsyncable id (ADR 0038). */
+  /**
+   * Once per launch: re-key a Private settings row saved under the old,
+   * unsyncable id (ADR 0038), and move Notes left loose at the root into the
+   * `Notes` Folder they now default to (ADR 0046).
+   */
   useBackground: () => {
-    useEffect(() => void repairPrivateSettings().catch(() => {}), []);
+    useEffect(() => {
+      void repairPrivateSettings().catch(() => {});
+      void migrateRootNotes().catch(() => {});
+    }, []);
   },
 };
 

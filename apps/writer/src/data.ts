@@ -41,10 +41,8 @@ export async function deleteVersion(id: string): Promise<void> {
   await removeDocument(id);
 }
 
-/** Deleting a Writing tombstones its Versions too. */
+/** Deleting a Writing tombstones its Versions too — the cascade is the type's `onDelete` (ADR 0045). */
 export async function deleteWriting(id: string): Promise<void> {
-  const versions = await documentsWhere<Version>(VERSION, "writingId", id);
-  for (const v of versions) await removeDocument(v.id);
   await removeDocument(id);
 }
 

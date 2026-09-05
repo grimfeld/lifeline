@@ -6,6 +6,12 @@ export const DAILY = "daily";
 export const TEMPLATE = "template";
 export const NOTE_TYPES = [NOTE, DAILY, TEMPLATE] as const;
 
+/** The `note` type's home Folder (ADR 0046): where a new Note lands, not a rule about where Notes may live. */
+export const NOTES_FOLDER = "Notes";
+
+/** The Notes desk, a Dashboard App screen in Study (ADR 0045). */
+export const NOTES_HREF = "/app/notes";
+
 /** A Note-shaped Document: body-first; fields (aliases) are flat on the row. */
 export interface Note extends Document {
   body: string;

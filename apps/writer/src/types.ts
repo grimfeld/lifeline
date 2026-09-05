@@ -1,10 +1,11 @@
-import type { Document, DocumentTypeDef } from "@lifeline/core";
+import { removeDocumentsWhere, vaultDocPath, type Document, type DocumentTypeDef } from "@lifeline/core";
 
 export const APP_ID = "writer";
 export const WRITING = "writing";
 export const VERSION = "writing_version";
 export const WRITINGS_HREF = "/app/writings";
-export const writingHref = (id: string) => `/app/write/${id}`;
+/** A Writing is written in the Vault like every other body (ADR 0045). */
+export const writingHref = (id: string) => vaultDocPath(id);
 
 export const STATUSES = [
   { value: "draft", label: "Draft" },
@@ -41,12 +42,15 @@ export const writingType: DocumentTypeDef = {
   body: "required",
   folder: "Writings",
   linkable: { subtitle: (d) => (d.project ? String(d.project) : undefined) },
-  href: (d) => writingHref(d.id),
+  // No `href`: the default is the Vault's document page, which is where a
+  // Writing is now written (ADR 0045). It was the one type that overrode this.
   fields: [
     { key: "status", label: "Status", kind: "select", options: [...STATUSES], column: true },
     { key: "project", label: "Project", kind: "text", column: true },
   ],
   indexes: ["status"],
+  /** A Version exists only in service of its Writing, so it goes down with it. */
+  onDelete: async (d) => removeDocumentsWhere(VERSION, (v) => v.writingId === d.id),
   order: 25,
   builtIn: true,
 };

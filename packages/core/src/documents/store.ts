@@ -106,6 +106,12 @@ export async function putDocument<T extends Document = Document>(input: Document
 
 /** Tombstone a Document (never a hard delete). */
 export async function removeDocument(id: string): Promise<void> {
+  // The type's cascade first (ADR 0045): whatever exists only in service of
+  // this Document goes with it, from every place a Document can be deleted.
+  // `removeDocumentsWhere` below tombstones directly, so a cascade that uses
+  // it cannot re-enter this.
+  const doc = await documentsTable().get(id);
+  if (doc && !doc.deleted) await documentTypeSync(doc.type)?.onDelete?.(doc);
   await remove(DOCUMENTS, id);
 }
 
