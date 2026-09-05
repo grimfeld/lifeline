@@ -394,3 +394,42 @@ The grid's own rendering above `md` is untouched: same drag, same resize
 handles, same title-row chrome. The two now share one `ScreenCard`, so a card
 looks and behaves the same in both — the phone's strip and the desktop's
 title-row buttons are what differ, and that is all.
+
+## Amendment (2026-09-05): the caret rides in a band, and a note ends in a tail
+
+The two amendments above hung a nav and a key bar over the foot of the editor
+and gave the caret a bottom `scrollMargin` so it is never scrolled *underneath*
+them. That is not the same as being able to write there. Two things were still
+wrong while taking notes on a phone, and one of them is wrong at the desk too.
+
+**The end of a note had nowhere to go.** A scroll margin can only ask the
+scroller to scroll, and at the end of a document there is nothing below the last
+line to scroll into: the last lines are wherever the scroller ends, which on a
+phone is behind the accessory bar and the keyboard, and no amount of dragging
+brings them up. The text one has just written is the text one cannot see. Every
+document now ends in a **tail** — blank space after its last line, deep enough
+to lift that line clear of whatever covers the foot and up into the page.
+
+**And the line being written rode the bottom edge.** Scrolled into view by the
+smallest movement that satisfies the margin, the active line lands exactly on
+top of the bar: a toolbar under its chin, the keyboard under that, and nothing
+of the note below it. The caret now keeps a **band** of text between itself and
+either edge, so a line scrolled into view settles near the middle of the screen
+and the note flows up past it as it is written. The band is the same above and
+below — moving back up through the note parks the line at that same distance
+from the top, rather than against it.
+
+**One band, spent twice** (`caretRoom`, pure and tested beside `textDiff`):
+as the scroll margins, and as the depth of the tail — so the last line of a note
+can reach the same place every other line does. It is 40% of the visible text,
+capped so that the two margins and a line always fit inside the box (margins
+that leave no room for the line they are keeping in view scroll the view back
+and forth over it), and it gives way entirely on a box too short to carve one
+out of, where clearing the bar is all that is left. The editor's height is
+observed rather than read once — the keyboard takes half the screen, the Fields
+strip folds open, the phone turns — and the accessory bar's 48px are added to
+the room below only where the bar actually is: a phone, with the editor focused.
+
+**The desk gets both.** This is editor behaviour and not a phone layout — a
+caret pinned to the bottom of the window is no better with a mouse — so the band
+and the tail apply in both frames, sized from whatever box the editor has.

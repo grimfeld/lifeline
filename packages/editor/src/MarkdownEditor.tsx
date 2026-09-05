@@ -25,12 +25,13 @@ import {
   type EditorContext,
 } from "./editorExtensions";
 import { attachmentDrop } from "./attachmentCommands";
+import { caretRoom } from "./caretRoom";
 import { ACCESSORY_BAR_HEIGHT, EditorAccessoryBar } from "./EditorAccessoryBar";
 import { textChange } from "./textDiff";
 import "./editor.css";
 
-/** Bottom scroll margin while the accessory bar covers the editor's foot. */
-const keyboardMargin = new Compartment();
+/** The caret's scroll margins and the document's tail — both sized from the editor's box. */
+const room = new Compartment();
 
 /** A value pushed in from outside (the stored Document changed): not the user's edit. */
 const external = Annotation.define<boolean>();
@@ -90,6 +91,8 @@ export function MarkdownEditor({
   // into state: a StateField changing is not, by itself, a render.
   const [focused, setFocused] = useState(false);
   const [view, setView] = useState<EditorView | null>(null);
+  /** The scroller's height: the band and the tail below are fractions of it. */
+  const [boxHeight, setBoxHeight] = useState(0);
   const attachments = useAttachments();
 
   useEffect(() => {
@@ -114,7 +117,7 @@ export function MarkdownEditor({
         daylogField,
         imageEmbedField,
         attachmentDrop,
-        keyboardMargin.of([]),
+        room.of([]),
         keymap.of([...defaultKeymap, ...historyKeymap, ...completionKeymap, indentWithTab]),
         placeholder ? cmPlaceholder(placeholder) : [],
         EditorView.updateListener.of((u) => {
@@ -184,16 +187,36 @@ export function MarkdownEditor({
     viewRef.current?.dispatch({ effects: setAttachments.of(attachments) });
   }, [attachments]);
 
-  // The bar sits over the editor's last lines: without this the caret is scrolled
-  // to a "visible" position that is underneath it. The keyboard and the phone nav
-  // need no margin of their own — the frame ends above both (the nav reserves the
-  // keyboard's strip, Chromium's viewport resize does it there) — so the bar's own
-  // height is the whole of what covers the text.
+  // The band and the tail are fractions of the editor's own box, and the box moves
+  // under it: the keyboard takes half the screen, the Fields strip folds open, the
+  // phone turns. Observed rather than read once — a guessed height would put the
+  // caret in the wrong place for as long as the keyboard is up.
   useEffect(() => {
-    const bottom = isMobile && focused ? ACCESSORY_BAR_HEIGHT : 0;
-    const margin = bottom ? EditorView.scrollMargins.of(() => ({ bottom })) : [];
-    viewRef.current?.dispatch({ effects: keyboardMargin.reconfigure(margin) });
-  }, [isMobile, focused]);
+    if (!view) return;
+    const scroller = view.scrollDOM;
+    const read = () => setBoxHeight(scroller.clientHeight);
+    const observer = new ResizeObserver(read);
+    observer.observe(scroller);
+    read();
+    return () => observer.disconnect();
+  }, [view]);
+
+  // What covers the editor's foot is the accessory bar alone: the keyboard and the
+  // phone nav need no room of their own, the frame ending above both (the nav
+  // reserves the keyboard's strip, Chromium's viewport resize does it there).
+  // The bar's height is what the caret must clear; the band is what it keeps
+  // beyond that, and the tail is the blank space that lets the note's last lines
+  // reach the same place instead of sitting under the bar unreachable.
+  useEffect(() => {
+    const covered = isMobile && focused ? ACCESSORY_BAR_HEIGHT : 0;
+    const { top, bottom, tail } = caretRoom(boxHeight, covered);
+    viewRef.current?.dispatch({
+      effects: room.reconfigure([
+        EditorView.scrollMargins.of(() => ({ top, bottom })),
+        EditorView.contentAttributes.of({ style: `padding-bottom: ${tail}px` }),
+      ]),
+    });
+  }, [isMobile, focused, boxHeight]);
 
   return (
     <>
