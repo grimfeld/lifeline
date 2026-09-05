@@ -475,8 +475,17 @@ phone, a Note carried two rows of chrome above the text — a breadcrumb, then
 the title with five controls beside it — and two below (the nav, and the
 accessory bar once focused), leaving the text a minority of the screen. The
 header now recedes while the caret is in the body and returns on a scroll up or
-a tap. **Automatic, not a toggle**: a focus button is one more control in the
+a blur. **Automatic, not a toggle**: a focus button is one more control in the
 row being emptied, and a mode one can be stuck in without knowing.
+
+Scrolling *up* is the ask, because it is already the gesture for "let me see
+where I am" and there is nothing to tap while the header is away; scrolling down
+is not its opposite — only typing puts the header back, with a few pixels of
+slack so the caret band's own scrolling does not read as the user asking. The
+header is collapsed rather than unmounted, so the title keeps its state and the
+transition is what stops the text jumping under the caret, and it goes `inert`
+while collapsed, or Tab walks into controls nobody can see. Like the caret band,
+this is editor behaviour and not a phone layout, so it applies at the desk too.
 
 **The nav and the accessory bar stay.** This amendment does *not* reverse the
 2026-08-31 one — the nav is still the way out of the note, and losing it while
