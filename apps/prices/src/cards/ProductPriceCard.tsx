@@ -1,0 +1,61 @@
+import { useMemo } from "react";
+import { useNavigate } from "react-router";
+import { CardUnavailable } from "@lifeline/ui";
+import type { CardOption, CardProps, CardSettings } from "@lifeline/core";
+import { productHref } from "../domain/types";
+import { cheapest, formatUnitPrice, historyOf, latestUsual, observe } from "../domain/derive";
+import { useLines, useProducts, useReceipts, useShops } from "../data/repo";
+import { PriceChart, shopColor } from "../components/PriceChart";
+
+/** Options hook for the `product` setting: every Product by name. */
+export function useProductOptions(): CardOption[] {
+  return useProducts().map((p) => ({ value: p.id, label: p.title }));
+}
+
+/** Instance title: the chosen Product's name. */
+export function useProductCardTitle(settings: CardSettings): string {
+  return useProducts().find((p) => p.id === settings.product)?.title ?? "";
+}
+
+/** Product price (ADR 0045): the cheapest Shop's usual price, every Shop's beside it, and the sparkline of all of them. */
+export function ProductPriceCard({ settings, configure }: CardProps) {
+  const id = settings.product as string;
+  const navigate = useNavigate();
+  const products = useProducts();
+  const shops = useShops();
+  const receipts = useReceipts();
+  const lines = useLines();
+  const product = products.find((p) => p.id === id);
+  const history = useMemo(() => historyOf(id, observe(lines, receipts)), [id, lines, receipts]);
+  if (!product) return <CardUnavailable message="That product no longer exists." onConfigure={configure} />;
+  const best = cheapest(history);
+  const others = [...history.entries()].map(([sid, pts]) => ({ sid, usual: latestUsual(pts) })).filter((r) => r.usual && r.sid !== best?.shopId);
+  return (
+    <div className="hover:bg-accent/40 flex h-full cursor-pointer flex-col gap-1 rounded-md transition-colors" role="link" onClick={() => navigate(productHref(product.id))}>
+      {best ? (
+        <div className="flex flex-wrap items-baseline gap-x-1.5">
+          <span className="text-2xl font-semibold tabular-nums">{formatUnitPrice(best.point.unit, product.measure)}</span>
+          <span className="flex items-center gap-1 text-xs">
+            <span className="size-2 rounded-full" style={{ background: shopColor(best.shopId, shops) }} />
+            {shops.find((s) => s.id === best.shopId)?.title ?? "?"}
+          </span>
+        </div>
+      ) : (
+        <span className="text-muted-foreground text-sm">No usual price yet.</span>
+      )}
+      {others.length > 0 && (
+        <div className="text-muted-foreground flex flex-wrap gap-x-3 text-[11px] tabular-nums">
+          {others.map((o) => (
+            <span key={o.sid} className="flex items-center gap-1">
+              <span className="size-1.5 rounded-full" style={{ background: shopColor(o.sid, shops) }} />
+              {formatUnitPrice(o.usual!.unit, product.measure)}
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="mt-auto min-h-0 flex-1">
+        <PriceChart history={history} shops={shops} measure={product.measure} height={72} compact />
+      </div>
+    </div>
+  );
+}
