@@ -433,3 +433,56 @@ the room below only where the bar actually is: a phone, with the editor focused.
 **The desk gets both.** This is editor behaviour and not a phone layout — a
 caret pinned to the bottom of the window is no better with a mouse — so the band
 and the tail apply in both frames, sized from whatever box the editor has.
+
+## Amendment (2026-09-05): one bottom bar per Workspace, and the header goes quiet while writing
+
+This ADR gave the phone **one** bottom bar — `☰ · Home · Journal · +` — for the
+whole app, from a time when the phone did one kind of thing. It no longer does.
+ADR 0045 names the two kinds: the Dashboard is *operated*, the Vault is
+*written in*. One bar serving both meant its four slots were split between two
+jobs and did neither: `Journal` — a **Vault** screen — sat in a bar that was
+otherwise Dashboard furniture, and the Vault's own contents (the tree, and the
+folders one actually writes into) were reachable only by opening the ☰ drawer
+and hunting.
+
+**Each Workspace gets its own bar, and crossing between them is a slot.**
+
+- **Dashboard:** `☰ · Home · Journal · Vault · +`. `Journal` keeps its slot and
+  keeps routing into the Vault's Journal screen — "go to today" is a defined
+  operation, which is the Dashboard's job; the writing that follows is the
+  Vault's. `Vault` is the crossing.
+- **Vault:** `Notes · Clippings · Writings`, plus ☰ and the crossing back. The
+  tabs are **Folders**, per ADR 0045's second axis — where you go is a folder,
+  what furniture you get there is the type's.
+
+**Each tab remembers the last Document opened under it**, so returning to
+Writings returns you to the writing, not to a list you have to re-navigate. This
+is the same bargain the workspace switcher already makes by remembering each
+workspace's last location (ADR 0012); the tabs are finer-grained.
+
+The Workspace switcher stops being drawer-only. It was reachable on a phone
+only inside ☰ — a hole this ADR's 2026-08-28 amendment already patched once,
+by putting the whole frame in the drawer rather than just a sidebar. With two
+bars the crossing is a slot in each, where it is visible.
+
+**Journal is deliberately not a Vault tab.** Every other tab is a folder you
+browse; `Journal/YYYY/MM` is auto-filed and dated and you never browse it — you
+go to *today*. It is a date, not a place, so it fails the tab's own criterion
+while passing the Dashboard's.
+
+**And the editor's header goes quiet while you write.** Counted on a 390px
+phone, a Note carried two rows of chrome above the text — a breadcrumb, then
+the title with five controls beside it — and two below (the nav, and the
+accessory bar once focused), leaving the text a minority of the screen. The
+header now recedes while the caret is in the body and returns on a scroll up or
+a tap. **Automatic, not a toggle**: a focus button is one more control in the
+row being emptied, and a mode one can be stuck in without knowing.
+
+**The nav and the accessory bar stay.** This amendment does *not* reverse the
+2026-08-31 one — the nav is still the way out of the note, and losing it while
+the keyboard is up is the exact failure that amendment exists to fix. The line
+this draws: the header is chrome *about* the note, while the nav and the key bar
+are **instruments in the hand**. Furniture recedes; tools do not. Together with
+ADR 0045's type-derived controls (a `note` declares one Field, so its Fields
+toggle and raw-frontmatter view were furniture for a form that isn't there),
+what is left above a Note being written is the note.

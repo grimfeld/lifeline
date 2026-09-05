@@ -415,7 +415,7 @@ The Workspace where data is **read and operated**: Screens of Cards, Surfaces, A
 _Avoid_: home (the phone's Home is one Screen), main app, workspace (say which)
 
 ### Folder
-Where a Document lives: a `/`-separated path (root when empty). Every Document has one; only the Vault tree cares. A Folder exists because Documents are in it; titles are unique within a Folder for a given type. Daily notes live in `Journal/YYYY/MM`, templates in `Templates`, private notes in `Private`.
+Where a Document lives: a `/`-separated path (root when empty). Every Document has one; only the Vault cares — its tree, and the phone's Vault tabs, which *are* Folders. A Folder exists because Documents are in it; titles are unique within a Folder for a given type. Notes live in `Notes`, clippings in `Clippings`, writings in `Writings`, daily notes in `Journal/YYYY/MM`, templates in `Templates`, private ones in `Private`. A type's home Folder is where a new Document of it lands, never a rule about where its Documents may live — a Note in `Private` is still a Note. What a Folder decides is what "+" creates in it; what furniture a Document gets is decided by its type, never by where it sits.
 _Avoid_: directory, category (that's a Document type), tag
 
 ### Private folder
