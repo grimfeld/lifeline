@@ -2,7 +2,7 @@ import { useParams } from "react-router";
 import { DocumentEditor } from "@lifeline/editor";
 import { Button } from "@lifeline/ui";
 import { Lock } from "lucide-react";
-import { openPrivateDialog, useDocument, useDocumentType, useLinkIndex, usePrivateLockedRefs } from "@lifeline/core";
+import { openPrivateDialog, useDocument, useDocumentType, useIsMobile, useLinkIndex, usePrivateLockedRefs } from "@lifeline/core";
 
 /** Breadcrumb of a Document's folder path. */
 export function Breadcrumb({ folder }: { folder: string }) {
@@ -27,6 +27,7 @@ export function VaultDocPage() {
   const def = useDocumentType(doc?.type);
   const index = useLinkIndex();
   const locked = usePrivateLockedRefs();
+  const isMobile = useIsMobile();
   if (!doc && id && locked.ids.has(id)) {
     // Behind the gate (ADR 0038): say so and offer to unlock, never "not found".
     return (
@@ -47,7 +48,10 @@ export function VaultDocPage() {
           <Breadcrumb folder={doc.folder} />
         </div>
       </div>
-      <DocumentEditor key={doc.id} doc={doc} def={def} index={index} autoFocus />
+      {/* No autoFocus on a phone (ADR 0021): a Document is opened to read as
+          often as to write, and a keyboard covering half the screen uninvited is
+          the wrong default. Tapping the text opens it. */}
+      <DocumentEditor key={doc.id} doc={doc} def={def} index={index} autoFocus={!isMobile} />
     </div>
   );
 }
