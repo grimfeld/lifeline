@@ -74,6 +74,19 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   const [mode, setMode] = useState<"edit" | "read" | "text">("edit");
   /** Phone: the Fields + Tags strip is folded away — on a phone the body is the point. */
   const [detailsOpen, setDetailsOpen] = useState(false);
+  /**
+   * The header recedes while the body is being written and comes back on a
+   * scroll up or a blur (ADR 0021, amended 2026-09-05). Automatic rather than a
+   * toggle: a focus button is one more control in the row it is trying to
+   * empty, and a mode one can be stuck in without knowing. Editor behaviour, so
+   * it applies at the desk too — a title pinned above the text is no more
+   * wanted with a mouse (the caret band set that precedent).
+   */
+  const [quiet, setQuiet] = useState(false);
+  // Leaving the body's editor at all — reading mode, raw text — brings the
+  // header back: those modes unmount the editor, which would otherwise never
+  // report the change and leave the header away with no way to ask for it.
+  useEffect(() => setQuiet(false), [mode]);
   const [title, setTitle] = useState(doc.title);
   useEffect(() => setTitle(doc.title), [doc.title]);
 
@@ -272,7 +285,17 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   return (
     <div className="flex h-full min-h-0">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2 md:flex-nowrap md:px-4">
+        {/* Collapsed rather than unmounted: the title Input keeps its state, and
+            a height transition is what stops the text jumping under the caret. */}
+        <div
+          className={cn(
+            "flex flex-wrap items-center gap-2 overflow-hidden border-b px-3 py-2 transition-[max-height,opacity,padding] duration-200 md:flex-nowrap md:px-4",
+            quiet ? "max-h-0 border-b-0 py-0 opacity-0" : "max-h-40 opacity-100",
+          )}
+          // Collapsed chrome must leave the tab order too, or Tab walks into
+          // controls nobody can see. `inert` does both halves (React 19).
+          inert={quiet}
+        >
           {Icon && <Icon className="text-muted-foreground size-4 shrink-0" />}
           {def?.titleRule === "date" ? (
             <h1 className="text-lg font-semibold tracking-tight">
@@ -384,6 +407,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
                     index={index}
                     context={context}
                     autoFocus={autoFocus}
+                    onQuietChange={setQuiet}
                     placeholder="Write… [[ links any Document, #tags, ```daylog for the day's facts"
                   />
                 )}

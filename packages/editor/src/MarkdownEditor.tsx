@@ -69,6 +69,7 @@ export function MarkdownEditor({
   placeholder,
   autoFocus,
   className,
+  onQuietChange,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -77,11 +78,20 @@ export function MarkdownEditor({
   placeholder?: string;
   autoFocus?: boolean;
   className?: string;
+  /**
+   * Whether the chrome around the editor should get out of the way (ADR 0021,
+   * amended): true while the caret is in the body and the user has not asked
+   * for it back. The editor owns this because it is the only thing that knows
+   * about the caret, typing and the scroller.
+   */
+  onQuietChange?: (quiet: boolean) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onQuietChangeRef = useRef(onQuietChange);
+  onQuietChangeRef.current = onQuietChange;
   const lastValue = useRef(value);
   /** The editor has changes the owner has not handed back yet — it is ahead of `value`. */
   const dirty = useRef(false);
@@ -90,6 +100,8 @@ export function MarkdownEditor({
   // The accessory bar is React, so the view and the editor's focus are mirrored
   // into state: a StateField changing is not, by itself, a render.
   const [focused, setFocused] = useState(false);
+  /** The user scrolled up, asking for the chrome back; typing hides it again. */
+  const [revealed, setRevealed] = useState(false);
   const [view, setView] = useState<EditorView | null>(null);
   /** The scroller's height: the band and the tail below are fractions of it. */
   const [boxHeight, setBoxHeight] = useState(0);
@@ -126,6 +138,9 @@ export function MarkdownEditor({
           const now = u.state.field(focusedField, false) ?? false;
           if (now !== (u.startState.field(focusedField, false) ?? false)) setFocused(now);
           if (!u.docChanged) return;
+          // Writing is the signal that the chrome is not wanted: whatever the
+          // last scroll asked for, a keystroke puts the header away again.
+          setRevealed(false);
           const next = u.state.doc.toString();
           lastValue.current = next;
           if (u.transactions.some((tr) => tr.annotation(external))) return;
@@ -200,6 +215,30 @@ export function MarkdownEditor({
     read();
     return () => observer.disconnect();
   }, [view]);
+
+  // Scrolling *up* is how the header is asked back — the gesture is already the
+  // one for "let me see where I am", and there is nothing to tap while the
+  // header is away. Down is not the opposite: only typing puts it back.
+  useEffect(() => {
+    if (!view) return;
+    const scroller = view.scrollDOM;
+    let last = scroller.scrollTop;
+    const onScroll = () => {
+      const now = scroller.scrollTop;
+      // A few pixels of slack, or the scroll the caret band itself performs
+      // would read as the user asking for the chrome back.
+      if (now < last - 8) setRevealed(true);
+      last = now;
+    };
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => scroller.removeEventListener("scroll", onScroll);
+  }, [view]);
+
+  useEffect(() => {
+    onQuietChangeRef.current?.(focused && !revealed);
+    // Going away takes the chrome's reason to be hidden with it.
+    return () => onQuietChangeRef.current?.(false);
+  }, [focused, revealed]);
 
   // What covers the editor's foot is the accessory bar alone: the keyboard and the
   // phone nav need no room of their own, the frame ending above both (the nav
