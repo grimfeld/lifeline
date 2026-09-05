@@ -1,5 +1,5 @@
 import { newId, PRIVATE_SETTINGS_TYPE, putDocument, todayStr, type Document, type DocumentTypeDef } from "@lifeline/core";
-import { DAILY, DAILY_TEMPLATE, NOTE, TEMPLATE, journalHref, noteHref } from "./domain/types";
+import { DAILY, DAILY_TEMPLATE, NOTE, NOTES_FOLDER, TEMPLATE, journalHref, noteHref } from "./domain/types";
 
 /**
  * Sync conflict (ADR 0010): the server copy is newer than an unsynced local
@@ -45,7 +45,7 @@ export const noteTypes: DocumentTypeDef[] = [
     titleRule: "name",
     body: "required",
     fields: [{ key: "aliases", label: "Aliases", kind: "list" }],
-    folder: "",
+    folder: NOTES_FOLDER,
     template: "",
     linkable: true,
     href: (d) => noteHref(d),

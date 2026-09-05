@@ -67,3 +67,34 @@ it** — a creation default, not editor behaviour.
 - CONTEXT.md's **Workspace** entry is rewritten around write-vs-operate, **Vault**
   with it, and a **Dashboard** entry is added — it had none, existing only as a
   parenthetical inside Workspace.
+
+## How Versions survive the move
+
+The pad's Versions are the one piece of it that is not generic, so they decide
+whether "editing lives in the Vault" is a real rule or one with an asterisk.
+They become a **document panel** — the mechanism Core already has for exactly
+this (`DocumentPanelDef`, added for the Bible App's unlinked references, ADR
+0032): an App hangs a panel on every open Document and returns null for the
+ones it has nothing to say about. The Writer's pad registers one that renders
+for a `writing` and nothing else.
+
+The panel carries the list *and* the actions, so no new Core surface is needed:
+**Take a version** sits at its head, and each row offers View, Restore and
+Delete. It costs nothing on the phone either — below `md` the Vault's panel is
+already a right sheet (ADR 0021, 2026-08-28), which is the same bottom-drawer
+shape the pad's own Versions list had.
+
+**Side-by-side compare is kept, as a dialog.** A 16rem panel cannot hold two
+texts, so viewing a Version opens it beside the current one — two columns on the
+desktop, stacked on a phone — with Restore in the footer. This is the one place
+the move changes the shape of an existing feature rather than relocating it: the
+pad compared inside the page, the Vault compares over it.
+
+## Settled while building
+
+- **The Vault's tabs are a fixed list** — Notes, Clippings, Writings — the way
+  `NAV_GROUPS` is fixed (ADR 0041). User-pinnable tabs were considered and
+  deferred for ADR 0041's own reason: phone chrome preferences are per-device
+  and unsynced, so a hand-pinned set would not follow the user to another
+  device, while a list in code travels with it. Revisit when a fourth folder
+  genuinely wants a tab.
