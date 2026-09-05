@@ -482,7 +482,7 @@ row being emptied, and a mode one can be stuck in without knowing.
 2026-08-31 one — the nav is still the way out of the note, and losing it while
 the keyboard is up is the exact failure that amendment exists to fix. The line
 this draws: the header is chrome *about* the note, while the nav and the key bar
-are **instruments in the hand**. Furniture recedes; tools do not. Together with
-ADR 0045's type-derived controls (a `note` declares one Field, so its Fields
-toggle and raw-frontmatter view were furniture for a form that isn't there),
-what is left above a Note being written is the note.
+are **instruments in the hand**. Furniture recedes; tools do not. ADR 0045's type-derived
+controls help less here than expected — a `note` declares a visible Field and is
+linkable, so it keeps both of the controls that rule removes — which leaves the
+receding header as the whole of the answer for a Note.

@@ -58,9 +58,18 @@ it** — a creation default, not editor behaviour.
   amendment is **superseded in the part that describes the pad's own header and
   Versions sheet**; the phone-layout reasoning behind it (give the width to the
   text) survives, now as the Vault editor's behaviour for every type.
-- The editor's header controls derive from the type definition, so a type
-  declaring no Fields shows no Fields toggle and no raw-frontmatter view. This
-  is most of what made a Note's header noisy: `note` declares exactly one Field.
+- The editor's header controls derive from the type definition, so a Document is
+  never offered a control that can do nothing for it: no raw "frontmatter + body
+  as text" view for a type with no visible Fields (it would be the body, which
+  the editor already is), and no links panel for a type that is not a wikilink
+  target — a Template has neither backlinks nor a local graph.
+  **This does less for a Note than first assumed.** `note` declares one visible
+  Field (`aliases`) and is linkable, so it keeps both controls; and the Fields
+  strip cannot be gated on Fields at all, because Tags live in it for every
+  type. What quiets a Note's header is the header receding while you write (ADR
+  0021, amended), not the type. The rule earns its place on Templates and on
+  types with no fields, and it stops the header growing controls for Documents
+  that cannot use them.
 - Any App that wants a specialised editor puts it in the Vault. An App screen in
   the Dashboard lists, filters and starts things; the body it opens is the
   Vault's.
