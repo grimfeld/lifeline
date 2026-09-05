@@ -476,3 +476,31 @@ _Avoid_: location (Locatable's word), place, zone, pantry as a kind (the App's n
 ### Minimum
 The optional threshold on a Provision below which it is **running low**: quantity under the Minimum, or zero even without one. Running low is a reading over Provisions, not a list you edit.
 _Avoid_: shopping list (Library's books), reorder point, restock threshold
+
+### Prices
+The price App: what regular purchases cost, where, and over time. Owns Products, Shops and Receipts; holds no link to the Ledger (bank facts) or to Pantry (stock), and every history, comparison and change figure is derived from Lines, never stored.
+_Avoid_: price tracker (fine in prose), receipts app (the capture unit, not the reading), grocery app
+
+### Product
+A thing bought again, owned by Prices, Linkable: a name and a fixed **measure** — kilogram, litre or piece — that every Line of it is expressed in. Pack size is *not* part of a Product: a litre and a six-pack of litres are one Product with different amounts on the Line. Remembers the printed **labels** a Shop uses for it, so the next import of that label resolves on its own. Never deleted while Lines reference it — **merged** into another Product of the same measure instead, Lines and labels carried over.
+_Avoid_: item (Media item is taken), article, SKU, Provision (Pantry's stock row), grocery
+
+### Shop
+A chain where things are bought — "Lidl", "Biocoop" — user-defined, owned by Prices, Linkable. A Shop is the chain, never the branch: prices are compared per chain, and a branch is at most a free-text note on the Receipt. Deleting a Shop that Receipts reference is blocked.
+_Avoid_: store (say shop), Storage (Pantry's place food lives), merchant, payee (the Ledger's word), branch (a note, not a Document)
+
+### Receipt
+One buying occasion at one Shop on one day, owned by Prices: the Shop, the day, an optional branch note, the printed **total** as read (kept beside the derived sum of its Lines, a mismatch shown as a warning and never blocking), and its Lines. May hold the photo it was read from, embedded in its optional body as an Attachment. A price noticed without buying is a one-Line Receipt with no printed total. Reports to the Daylog ("€54.20 · Lidl"). Deleting a Receipt deletes its Lines.
+_Avoid_: purchase, shopping trip (fine in prose), bill, invoice, ticket, transaction (the Ledger's fact)
+
+### Line
+One priced entry on a Receipt — internal to it: the printed label, an **amount** in the Product's measure (6 L, 0.42 kg, 12 pieces), the **price paid** in cents after any discount, and a **promo** flag. **Matched** to exactly one Product or **unmatched**, in which case it is shown loudly as an inbox to clear, never hidden and never dropped. The only fact price history is made of.
+_Avoid_: item, observation, entry (a Stat's), split, line item (say Line)
+
+### Unit price
+The derived number every reading of Prices uses: a Line's price paid divided by its amount, so €/kg, €/L or €/piece. Never stored. "Usual price" readings and the change figure exclude promo Lines; history plots them, marked apart.
+_Avoid_: price (ambiguous — a Line's is the price paid), rate, normalised price
+
+### Price change
+The derived reading of how a Product's unit price moved over a span, always **per Shop**: earliest to latest non-promo unit price at that Shop inside the span. The all-Products figure is the median of the per-Shop changes over Products with at least two points at that Shop in the span. No cross-Shop number exists — a switch of Shop is not inflation.
+_Avoid_: inflation (fine in prose), trend, index
