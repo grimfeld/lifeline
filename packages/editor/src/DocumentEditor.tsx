@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, cn, toast } from "@lifeline/ui";
 import {
+  isLinkable,
   documentPanels,
   basePath,
   displayTitle,
@@ -167,6 +168,16 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   })();
   const hasBody = (def?.body ?? "optional") !== "none";
   const fields = def?.fields ?? [];
+  /**
+   * The header's controls come from the type (ADR 0045), so a Document is
+   * never offered a control that can do nothing for it:
+   * - raw "frontmatter + body as text" is just the body when the type declares
+   *   no visible Field, and the editor below is already that;
+   * - the links panel is backlinks and the local graph, which a type that is
+   *   not a wikilink target (a Template) has none of.
+   */
+  const hasFields = fields.some((f) => !f.hidden);
+  const hasPanel = isLinkable(def) || !!def?.locatable;
   const fieldValues = useMemo(() => {
     const out: Record<string, unknown> = {};
     for (const f of fields) out[f.key] = doc[f.key];
@@ -292,12 +303,16 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
                 {mode === "read" ? <Pencil /> : <BookOpen />}
               </Button>
             )}
-            <Button size="icon" variant="ghost" className={`size-8 ${mode === "text" ? "bg-accent" : ""}`} onClick={() => setMode((m) => (m === "text" ? "edit" : "text"))} aria-label="Raw text" title="Frontmatter + body as text">
-              <Code2 />
-            </Button>
-            <Button size="icon" variant="ghost" className={cn("size-8", isMobile && panelShown && "bg-accent")} onClick={togglePanel} aria-label="Toggle links panel" title="Links panel">
-              {panelShown ? <PanelRightClose /> : <PanelRightOpen />}
-            </Button>
+            {hasFields && (
+              <Button size="icon" variant="ghost" className={`size-8 ${mode === "text" ? "bg-accent" : ""}`} onClick={() => setMode((m) => (m === "text" ? "edit" : "text"))} aria-label="Raw text" title="Frontmatter + body as text">
+                <Code2 />
+              </Button>
+            )}
+            {hasPanel && (
+              <Button size="icon" variant="ghost" className={cn("size-8", isMobile && panelShown && "bg-accent")} onClick={togglePanel} aria-label="Toggle links panel" title="Links panel">
+                {panelShown ? <PanelRightClose /> : <PanelRightOpen />}
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="icon" variant="ghost" className="size-8">
@@ -379,10 +394,10 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
       </div>
       {/* Not merely CSS-hidden on a phone: the sheet below holds the same panel, and mounting both
           would run every App's document panel twice. */}
-      {panelOpen && !isMobile && <aside className="w-80 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto border-l p-3 max-md:hidden">{panel}</aside>}
+      {hasPanel && panelOpen && !isMobile && <aside className="w-80 min-w-0 shrink-0 overflow-x-hidden overflow-y-auto border-l p-3 max-md:hidden">{panel}</aside>}
       {/* Phone: the same panel as a right sheet — there is no width for a column, and
           the links, the local graph and an App's own panels are not desk-only (ADR 0021). */}
-      <Sheet open={isMobile && panelSheet} onOpenChange={setPanelSheet}>
+      <Sheet open={hasPanel && isMobile && panelSheet} onOpenChange={setPanelSheet}>
         <SheetContent side="right" aria-describedby={undefined} className="w-[85%] max-w-sm overflow-hidden">
           <SheetTitle>Links</SheetTitle>
           {/* Opening a link navigates, which remounts the editor (keyed by Document) — the sheet goes with it. */}

@@ -70,7 +70,8 @@ export function contextAround(text: string, from: number, to: number, radius = 6
   return (start > 0 && text[start - 1] !== "\n" ? "…" : "") + text.slice(start, end).trim() + (end < text.length && text[end] !== "\n" ? "…" : "");
 }
 
-function isLinkable(def: DocumentTypeDef | undefined): boolean {
+/** Whether a type's Documents are wikilink targets at all (internal types never are). */
+export function isLinkable(def: DocumentTypeDef | undefined): boolean {
   if (!def) return false;
   if (def.internal) return false;
   return !!def.linkable;
