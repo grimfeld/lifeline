@@ -41,6 +41,14 @@ _Avoid_: appointment (that's an Event, one implementation), block
 A Contract: an entity that accepts a logged occurrence from any other App — a Stat takes an Entry (a value at a moment), a Habit takes a Completion (a moment, a note). The owning App lists its targets and does the logging; the sending App only names the target and the moment. How Workout Sessions feed Habits and Stats; open to Chores and Tasks later.
 _Avoid_: trackable, sink, hook (the Contract's own word for its functions)
 
+### Intake
+Core Contract (behaviour — code only): an App that accepts a Handoff from any other App and makes one of its own Documents from it, through its own form. The accepting App declares what it makes ("Clipping", "Task", "Event") and opens its dialog prefilled with the Handoff; nothing is written until that dialog saves, so ownership stays whole. The sending App only lists the Intakes Core knows and never names a keeper. The Clipper, Tasks and Calendar are the first implementers; how Mail keeps a Message.
+_Avoid_: clip (one implementer's verb), import, share (the phone OS's word), capture (a Command's flag)
+
+### Handoff
+What one App hands to another's Intake: a title, a text in markdown, an origin URL, an author and a date — and nothing the sending App would have to know about the receiver. Each Intake reads it its own way: the Clipper keeps the text as body, Tasks takes the title and puts the origin in the note, Calendar takes the title and asks for the time.
+_Avoid_: payload, message (a Mail thing), draft
+
 ### Tally
 A Workout's standing instruction to log each of its Sessions somewhere Loggable — "tallies to Habit *Train*", "tallies to Stat *Minutes trained* (+duration)". Carries the target and what value to send (one, the duration, a Block's result). Fires when the Session is saved, never again.
 _Avoid_: feed (a Source kind), sync, bridge (the idea, not the thing), hook
@@ -504,3 +512,27 @@ _Avoid_: price (ambiguous — a Line's is the price paid), rate, normalised pric
 ### Price change
 The derived reading of how a Product's unit price moved over a span, always **per Shop**: earliest to latest non-promo unit price at that Shop inside the span. The all-Products figure is the median of the per-Shop changes over Products with at least two points at that Shop in the span. No cross-Shop number exists — a switch of Shop is not inflation.
 _Avoid_: inflation (fine in prose), trend, index
+
+### Mail
+The email App: a window onto Gmail, never a copy of it. Owns Mailboxes; reads messages live from Google and keeps them only in a local cache, so nothing about a message enters the Document store unless the user keeps it on purpose. Reads and triages — archive, mark read, star, label — and never sends: replying opens the message in Gmail.
+_Avoid_: email client (fine in prose), inbox (one label), mail app
+
+### Mailbox
+One connected Gmail address, owned by the Mail App and Linkable: the address, a display name, a colour, Tags. Lifeline stores no credential for it anywhere: a device reads a Mailbox while it holds a Google sign-in for that address, granted in a Google window when needed, and a Mailbox whose sign-in has lapsed on this device is **signed out** — shown, not readable, one click from asking Google again. Deleting a Mailbox forgets nothing at Google.
+_Avoid_: account (the Lifeline sign-in, and the Ledger's place money lives), inbox (a label inside a Mailbox), profile, identity
+
+### Thread
+One Gmail conversation as the Mail App lists and triages it — the row in the list, the thing archived, starred or marked read, exactly as Gmail would do it. Not a Document: read from Google into a local cache and never synced. Opening one shows its Messages.
+_Avoid_: conversation (fine in prose), email (ambiguous — say Thread or Message), item
+
+### Message
+One email inside a Thread — sender, recipients, date, subject, body — as read from Gmail. Not a Document and never stored beyond the local cache; **keeping** one hands it as a Handoff to an Intake of your choosing — a Clipping (subject as title, sender as author, sent date as published, the Gmail link as source), a Task, an Event. The Thread is what you triage; the Message is what you read and keep.
+_Avoid_: mail (the App), email (fine in prose), letter, clipping (what keeping makes)
+
+### Label
+A Gmail label as the Mail App reads it — Inbox, Starred, and the user's own — belonging to one Mailbox and living at Google. The list is narrowed by one Label; triage adds or removes one on a Thread. Never a Tag: a Thread is not a Document, and keeping a Message carries no Label across — the Clipping is tagged by hand.
+_Avoid_: tag (Lifeline's word, on Documents only), folder (a Document's place), category (Gmail's own tabs are not surfaced), mailbox (the connected address)
+
+### Triage
+What the Mail App does to a Thread, always at Google and never in Lifeline's own store: archive (out of Inbox), mark read or unread, star or unstar, add or remove a Label, and trash (Gmail's thirty-day bin). Nothing else — no spam, no permanent delete, no mute, and no snooze, which Gmail does not expose. Keeping a Message is not triage: it makes a Clipping, a Task or an Event through an Intake and leaves the Thread where it is.
+_Avoid_: process, action (a Command's word), sort (a View's)
