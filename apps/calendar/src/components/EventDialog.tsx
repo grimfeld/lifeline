@@ -13,7 +13,7 @@ import {
   Textarea,
   toast,
 } from "@lifeline/ui";
-import { displayTitle, docHref, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr } from "@lifeline/core";
+import { displayTitle, docHref, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff } from "@lifeline/core";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
 
@@ -22,12 +22,15 @@ export function EventDialog({
   onOpenChange,
   event,
   defaultDate,
+  handoff,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Present = edit mode. */
   event?: Event;
   defaultDate?: DateStr;
+  /** Create mode, Intake (ADR 0046): the title and the origin; the day and time are asked here. */
+  handoff?: Handoff;
 }) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -43,15 +46,15 @@ export function EventDialog({
 
   useEffect(() => {
     if (!open) return;
-    setTitle(event?.title ?? "");
-    setNotes(event?.notes ?? "");
+    setTitle(event?.title ?? handoff?.title ?? "");
+    setNotes(event?.notes ?? (handoff ? [handoff.url, handoff.author ? `From ${handoff.author}` : ""].filter(Boolean).join("\n") : ""));
     setDate(event?.date ?? defaultDate ?? todayStr());
     setEndDate(event?.endDate ?? "");
     setAllDay(event ? event.start === null : true);
     setStart(event?.start ?? "09:00");
     setEnd(event?.end ?? "10:00");
     setTags(event?.tags ?? []);
-  }, [open, event, defaultDate]);
+  }, [open, event, defaultDate, handoff]);
 
   async function submit() {
     if (!title.trim()) return void toast.error("Title required");
