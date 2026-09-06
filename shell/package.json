@@ -26,6 +26,7 @@
     "@lifeline/app-museum": "workspace:*",
     "@lifeline/app-notes": "workspace:*",
     "@lifeline/app-pocket": "workspace:*",
+    "@lifeline/app-mail": "workspace:*",
     "@lifeline/app-prices": "workspace:*",
     "@lifeline/app-mood": "workspace:*",
     "@lifeline/app-pantry": "workspace:*",

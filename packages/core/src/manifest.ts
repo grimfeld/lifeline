@@ -3,6 +3,7 @@ import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
 import type { LoggableProvider } from "./contracts/loggable";
+import type { IntakeDef } from "./contracts/intake";
 import type { CardSettings, CardSettingsSchema } from "./cards";
 import type { Document, DocumentTypeDef } from "./documents/types";
 import type { LinkIndex } from "./documents/links";
@@ -169,6 +170,8 @@ export interface AppManifest {
   daylog?: DaylogProvider;
   /** Loggable (ADR 0031): this App's entities other Apps may log occurrences into. */
   loggable?: LoggableProvider;
+  /** Intake (ADR 0046): the ways this App accepts a Handoff from another App — each a dialog opened prefilled. */
+  intakes?: IntakeDef[];
   /**
    * A React hook the shell runs once, always, for this App — live work that
    * belongs to no screen (ADR 0032: creating Verses from unresolved names).
