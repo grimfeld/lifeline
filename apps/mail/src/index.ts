@@ -8,7 +8,7 @@ import { mailCommands } from "./commands";
 import { APP_ID, MAIL_CACHE, MAIL_COLOR, MAILBOX, mailHref, type Mailbox } from "./domain/types";
 
 /**
- * The `mailbox` type (ADR 0047): one connected Gmail address. The address is
+ * The `mailbox` type (ADR 0051): one connected Gmail address. The address is
  * its identity, fixed at connect (guarded); the title is the display name;
  * no credential is ever a field. Linkable, so a Note can say [[work mail]].
  */
@@ -31,9 +31,9 @@ const mailboxType: DocumentTypeDef = {
 };
 
 /**
- * The Mail App (ADR 0047): a window onto Gmail — Threads read live and
+ * The Mail App (ADR 0051): a window onto Gmail — Threads read live and
  * triaged at Google, kept only in a local cache, and handed to other Apps'
- * Intakes (ADR 0046) when worth keeping. Never sends.
+ * Intakes (ADR 0050) when worth keeping. Never sends.
  */
 export const mailApp: AppManifest = {
   id: APP_ID,
@@ -43,7 +43,8 @@ export const mailApp: AppManifest = {
   types: [mailboxType],
   // Local-only cache of Threads, Messages and Labels (never synced — leading underscore).
   localTables: [{ name: MAIL_CACHE, indexes: ["kind", "[mailboxId+kind]", "threadId", "date"] }],
-  // A top-level sidebar row: no Nav group fits, and one screen does not earn a new one.
+  // Names no Module (ADR 0047), so the screen stays a top-level sidebar row —
+  // present in every Workspace: no shelf fits, and one screen does not earn a new one.
   screens: [{ id: "mail.main", title: "Mail", path: "mail", icon: Mail, component: MailScreen }],
   cards: [
     {

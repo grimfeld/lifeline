@@ -13,11 +13,12 @@ import { DEFAULT_EXPIRY_WINDOW_DAYS } from "./domain/rules";
 /** Pantry App (ADR 0043): the household's stocks — Provisions counted per Storage. */
 export const pantryApp: AppManifest = {
   id: "pantry",
+  module: "house",
   title: "Pantry",
   icon: ShoppingBasket,
   color: "var(--chart-green)",
   types: pantryTypeDefs,
-  screens: [{ id: "pantry.main", title: "Pantry", path: "pantry", icon: ShoppingBasket, group: "home", component: PantryScreen }],
+  screens: [{ id: "pantry.main", title: "Pantry", path: "pantry", icon: ShoppingBasket, component: PantryScreen }],
   cards: [
     {
       id: "pantry.running-low",

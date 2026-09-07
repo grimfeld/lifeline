@@ -23,7 +23,7 @@ import { LoadMore, ThreadList } from "../components/ThreadList";
 import { ThreadView } from "../components/ThreadView";
 
 /**
- * The Mail screen (ADR 0047): a Mailbox switcher (each address, and All),
+ * The Mail screen (ADR 0051): a Mailbox switcher (each address, and All),
  * a Label rail, the Thread list and the open Thread. On the phone the list
  * and the Thread are two steps.
  */

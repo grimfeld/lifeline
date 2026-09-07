@@ -495,3 +495,25 @@ are **instruments in the hand**. Furniture recedes; tools do not. ADR 0045's typ
 controls help less here than expected — a `note` declares a visible Field and is
 linkable, so it keeps both of the controls that rule removes — which leaves the
 receding header as the whole of the answer for a Note.
+
+## Amendment (2026-09-07): the bar is the Workspace's Modules, and Home is per Workspace
+
+The 2026-09-05 amendment above gave each Frame its own bottom bar. Workspaces
+(ADR 0047) add a third axis to five slots, and ADR 0049 resolves it: the
+middle of the bar becomes the Workspace's **Modules**, capped at three, with
+the two switchers — Workspace and Frame — moving to the header.
+
+That **supersedes the slot lists** of the amendment above, in both bars. Its
+reasoning is untouched: the two Frames are used for different things and their
+chrome should differ. It is now the Modules that differ rather than a fixed
+list, and the Vault's folder tabs live inside the Note-taking Module's screen.
+`Journal` loses its slot and stays a capture Command, one tap away.
+
+**"At most one Screen holds the phone home, on every device alike" becomes at
+most one per Workspace.** Switching Workspace on the phone therefore changes
+what Home *is* — the most OS-like gesture in the design, for one field. The
+rest of this ADR's phone-home bargain is unchanged: Home is a user Screen, its
+Cards stack in one column, and it is composed where it is read (2026-08-31).
+
+The parity clause is unchanged and still the rule: a page earns phone tuning by
+being used on a phone. Nothing here grants parity to anything.

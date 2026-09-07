@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Google Identity Services' browser token flow (ADR 0047): an access token
+ * Google Identity Services' browser token flow (ADR 0051): an access token
  * in memory for about an hour, asked for in a Google window on a user click
  * and never on the App's own initiative. No refresh token exists anywhere;
  * a lapsed token simply means the Mailbox is signed out on this device.

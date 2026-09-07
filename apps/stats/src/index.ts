@@ -61,12 +61,13 @@ const entryType: DocumentTypeDef = {
 /** Stats App (notch port): stats are definitions, entries are an event log, totals are derived. */
 export const statsApp: AppManifest = {
   id: "stats",
+  module: "progress",
   title: "Stats",
   icon: BarChart3,
   color: "var(--chart-orange)",
   types: [statType, entryType],
   screens: [
-    { id: "stats.main", title: "Stats", path: "stats", icon: BarChart3, group: "progress", component: StatsScreen },
+    { id: "stats.main", title: "Stats", path: "stats", icon: BarChart3, component: StatsScreen },
     { id: "stats.detail", title: "Stat", path: "stats/:id", component: StatDetailScreen, hidden: true },
   ],
   cards: [

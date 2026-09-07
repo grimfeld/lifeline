@@ -4,7 +4,7 @@ import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMe
 import { BookmarkPlus, ChevronDown } from "lucide-react";
 
 /**
- * "Keep as…" (ADR 0046): every Intake Core knows, and the chosen App's own
+ * "Keep as…" (ADR 0050): every Intake Core knows, and the chosen App's own
  * dialog opened with the Handoff. Mail names no receiver.
  */
 export function KeepMenu({ handoff, size = "sm" }: { handoff: () => Handoff; size?: "sm" | "default" }) {

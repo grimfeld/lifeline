@@ -6,7 +6,7 @@ import { clip } from "./data";
 
 /**
  * Paste → Clipping: title (optional), source, author, the text. Nothing is
- * fetched. With a `handoff` (ADR 0046: another App handing over a text with
+ * fetched. With a `handoff` (ADR 0050: another App handing over a text with
  * its origin — a kept mail) the form opens prefilled and the text is reviewed
  * here before anything is saved.
  */

@@ -20,12 +20,19 @@ export interface Document extends SyncedRecord {
   folder: string;
   /** "YYYY-MM-DD" day the Document was created. */
   createdAt: string;
+  /**
+   * Separation (ADR 0048): "" when the Document is **shared**, else the id of
+   * the one separated Workspace that **holds** it. A read matches this exactly
+   * — a strict partition, never a union — so a shared Document is invisible
+   * inside a separated Workspace just as a held one is invisible outside it.
+   */
+  workspace?: string;
   /** Type-specific fields, flat. */
   [field: string]: unknown;
 }
 
 /** Keys every Document has; everything else on a row is a type field. */
-export const DOCUMENT_COMMON_KEYS = ["id", "type", "title", "body", "tags", "folder", "createdAt", "updatedAt", "deleted"] as const;
+export const DOCUMENT_COMMON_KEYS = ["id", "type", "title", "body", "tags", "folder", "createdAt", "updatedAt", "deleted", "workspace"] as const;
 export type DocumentCommonKey = (typeof DOCUMENT_COMMON_KEYS)[number];
 
 export function isCommonKey(k: string): k is DocumentCommonKey {

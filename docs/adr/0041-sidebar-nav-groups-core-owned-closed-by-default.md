@@ -20,3 +20,31 @@ Groups **start closed** and open per device (`lifeline.sidebar.openGroups`, besi
 - Naming a group is one word in an App's manifest, and picking a *new* group is a line in Core; an App can neither invent a group nor reorder the list.
 - Every App screen is two clicks away when its group is closed, one when open. The command palette (Ctrl+K) is unchanged and still reaches every screen by name in one step — the palette, not the sidebar, is the fast path.
 - The Vault sidebar is unaffected: it lists its workspace's screens as buttons in a header row, and `navSectionsOf` is available to it if that ever grows.
+
+## Amendment (2026-09-07): the shelf becomes a container
+
+This ADR's central rule — "a group is never a container, an App never belongs
+to one" — was written to keep grouping about the sidebar's length rather than
+ownership. It was never exercised: all 22 Apps put every screen they have in
+exactly one group, so the case the rule protects against (one App's screens on
+two shelves) has never existed.
+
+ADR 0047 promotes the shelf to a **Module**, a container of Apps, and makes it
+the unit a Workspace is assembled from. `NAV_GROUPS` becomes `MODULES`;
+`AppScreenDef.group` becomes an App-level `module`, since no App has ever
+wanted two.
+
+Two of this ADR's judgements survive and one closes:
+
+- **Core owns the list** — reaffirmed, and by this ADR's own reasoning. User-
+  defined groups were rejected because sidebar prefs are per-device and
+  unsynced. That objection does not reach the Workspace, which *is* synced — so
+  the user-created thing is the Workspace, and the shelves it picks from stay
+  in code.
+- **The palette is the escape hatch** — reaffirmed and load-bearing. A Module
+  gates every list of things to run, the phone's capture sheet included, but
+  never the palette.
+- **Grouping the Bases** was deferred here because "its natural grouping is the
+  owning App, which is a different rule from these shelves". It is no longer a
+  different rule — a Module holds Apps, an App owns types, a type has one Base
+  — so the Bases group by Module.

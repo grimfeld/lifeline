@@ -179,14 +179,15 @@ const allocationType: DocumentTypeDef = {
 /** Ledger App (ADR 0033): a flat fact ledger, the Budget a derived lens over it. */
 export const ledgerApp: AppManifest = {
   id: APP_ID,
+  module: "money",
   title: "Ledger",
   icon: Landmark,
   color: "var(--chart-teal, #14b8a6)",
   types: [transactionType, accountType, categoryType, seriesOverrideType, allocationType, ruleType],
   screens: [
-    { id: "ledger.register", title: "Ledger", path: "ledger", icon: Landmark, group: "money", component: RegisterScreen },
-    { id: "ledger.budget", title: "Budget", path: "ledger/budget", icon: PiggyBank, group: "money", component: BudgetScreen },
-    { id: "ledger.reports", title: "Money reports", path: "ledger/reports", icon: ChartLine, group: "money", component: ReportsScreen },
+    { id: "ledger.register", title: "Ledger", path: "ledger", icon: Landmark, component: RegisterScreen },
+    { id: "ledger.budget", title: "Budget", path: "ledger/budget", icon: PiggyBank, component: BudgetScreen },
+    { id: "ledger.reports", title: "Money reports", path: "ledger/reports", icon: ChartLine, component: ReportsScreen },
   ],
   cards: [
     {

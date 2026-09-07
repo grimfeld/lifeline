@@ -27,7 +27,7 @@ import { getLabel, getThreadFull, getThreadMetadata, listLabels, listThreads, ma
 import { isSignedIn } from "../gmail/auth";
 
 /**
- * The local-only cache (ADR 0047): what this device last read from Gmail,
+ * The local-only cache (ADR 0051): what this device last read from Gmail,
  * so the list and opened Threads render instantly and offline. Never synced,
  * never a truth of its own — every write here follows a read from, or a
  * write to, Google.
@@ -333,7 +333,7 @@ export interface ListState {
  * Keep a Label's list current for these Mailboxes: read on mount, on a
  * change of Label or Mailboxes, and on the period — only while a token is
  * still valid. Never asks Google for one: a signed-out Mailbox is reported,
- * not prompted (ADR 0047).
+ * not prompted (ADR 0051).
  */
 export function useListRefresh(mailboxes: Mailbox[], labelId: string, enabled = true): ListState {
   const [loading, setLoading] = useState(false);

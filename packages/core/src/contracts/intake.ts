@@ -2,7 +2,7 @@ import type React from "react";
 import { registeredApps } from "../registry";
 
 /**
- * What one App hands to another's Intake (ADR 0046, CONTEXT.md "Handoff"):
+ * What one App hands to another's Intake (ADR 0050, CONTEXT.md "Handoff"):
  * a title, a text in markdown, where it came from, who wrote it, when — and
  * nothing the sender would have to know about the receiver.
  */
@@ -24,7 +24,7 @@ export interface IntakeDialogProps {
 }
 
 /**
- * One way an App accepts a Handoff (ADR 0046): what it makes ("Clipping",
+ * One way an App accepts a Handoff (ADR 0050): what it makes ("Clipping",
  * "Task", "Event") and the dialog it opens prefilled. Nothing is written
  * until that dialog saves — ownership stays whole.
  */

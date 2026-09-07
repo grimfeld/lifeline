@@ -94,7 +94,7 @@ export function TaskDialog({
   task?: Task;
   /** Create mode: preselected day (null = Unassigned). */
   defaultDate?: DateStr | null;
-  /** Create mode, Intake (ADR 0046): the title, and the origin in the notes. */
+  /** Create mode, Intake (ADR 0050): the title, and the origin in the notes. */
   handoff?: Handoff;
 }) {
   const [title, setTitle] = useState("");

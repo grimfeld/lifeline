@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { addDays, documentType, formatHuman, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, VAULT_WORKSPACE, type AppManifest, type CardSettings } from "@lifeline/core";
+import { addDays, documentType, formatHuman, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, VAULT_FRAME, type AppManifest, type CardSettings } from "@lifeline/core";
 import { CalendarDays, FileText, LayoutTemplate, Lock, NotebookPen } from "lucide-react";
 import { JournalScreen } from "./screens/JournalScreen";
 import { NotesScreen } from "./screens/NotesScreen";
@@ -42,14 +42,15 @@ const offsetTitle = (base: string) => (s: CardSettings) => {
 /** Notes App (ADR 0018/0019): owns the note, daily and template Document types; the Journal lives in the Vault. */
 export const notesApp: AppManifest = {
   id: APP_ID,
+  module: "notes",
   title: "Notes",
   icon: NotebookPen,
   color: "var(--chart-green)",
   types: typesWithIcons,
   screens: [
     // The desk is a Dashboard index in Study beside Writings and Clippings; the Journal stays the Vault's (ADR 0045).
-    { id: "notes.desk", title: "Notes", path: "notes", icon: FileText, group: "study", component: NotesScreen },
-    { id: "notes.journal", title: "Journal", path: "journal", icon: NotebookPen, component: JournalScreen, workspace: VAULT_WORKSPACE },
+    { id: "notes.desk", title: "Notes", path: "notes", icon: FileText, component: NotesScreen },
+    { id: "notes.journal", title: "Journal", path: "journal", icon: NotebookPen, component: JournalScreen, frame: VAULT_FRAME },
   ],
   cards: [
     {

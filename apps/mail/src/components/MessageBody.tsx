@@ -22,7 +22,7 @@ function isDark(): boolean {
 }
 
 /**
- * A Message's body in a sandboxed frame (ADR 0047): sanitised HTML, no
+ * A Message's body in a sandboxed frame (ADR 0051): sanitised HTML, no
  * scripts, remote images blocked by the frame's CSP until "Load images",
  * links opening outside. Plain text when there is no HTML.
  */

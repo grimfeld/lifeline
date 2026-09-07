@@ -14,6 +14,7 @@ import { taskTypes } from "./types";
 
 export const tasksApp: AppManifest = {
   id: APP_ID,
+  module: "tasks",
   title: "Tasks",
   icon: ListTodo,
   color: "var(--chart-blue)",
@@ -24,7 +25,6 @@ export const tasksApp: AppManifest = {
       title: "Tasks",
       path: "tasks",
       icon: ListTodo,
-      group: "planning",
       component: TasksScreen,
     },
   ],
@@ -84,7 +84,7 @@ export const tasksApp: AppManifest = {
   commands: taskCommands,
   schedulable: tasksSchedulable,
   daylog: tasksDaylog,
-  // Intake (ADR 0046): something handed over from another App — a mail — becomes a Task to finish here.
+  // Intake (ADR 0050): something handed over from another App — a mail — becomes a Task to finish here.
   intakes: [{ id: "task", title: "Task", icon: ListTodo, dialog: TaskDialog }],
 };
 
