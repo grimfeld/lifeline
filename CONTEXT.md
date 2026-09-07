@@ -24,7 +24,7 @@ The neutral part of the system: shell, Contracts, sync layer, command registry, 
 
 ### Account
 One sign-in, owning its own Documents and Core bookkeeping (Screens, Placements, Views, user-defined types, Attachments) outright. Nothing is shared or visible across Accounts; the server, never the client, decides which Account a record belongs to. One device holds one Account's data at a time.
-_Avoid_: user (the human), tenant, workspace, profile
+_Avoid_: user (the human), tenant, workspace (a container inside one Account), profile
 
 ### Contract
 An interface defined by Core that a Document type implements (Schedulable, Timed, Loggable, Linkable, Locatable, Taggable, Daylog…). Carries data shape *and* behaviour hooks — the consuming Surface calls the hook; the owning App decides what happens. Built-in types implement Contracts in code; user-defined types may declare the data-only ones (e.g. Locatable through a geo field). The five things that serve Documents — Card, Screen, Surface, App, Base — are *not* Contracts and have no collective name.
@@ -69,12 +69,12 @@ A fixed, hand-written page owned by Core that shows Documents of *many* types to
 _Avoid_: page, dashboard, view (that's a Base's saved configuration), screen
 
 ### App screen
-A fixed, hand-written page an App ships over its own types (Gallery, Chores, a Stat's detail page). Listed in the sidebar beside Surfaces and Screens, inside its Nav group.
+A fixed, hand-written page an App ships over its own types (Gallery, Chores, a Stat's detail page). Listed in the sidebar beside Surfaces and Screens, under its App's Module.
 _Avoid_: surface (Core-owned, cross-type), screen (user-composed), page
 
-### Nav group
-One shelf of App screens in the sidebar (Planning, Culture, Money, Study, Progress). Core owns the list, the titles and the order — the sidebar is Core's chrome (ADR 0012), and grouping is about the sidebar's length, not about ownership: a group is never a container, an App never belongs to one, and two Apps' screens sit side by side in the same group (Ledger's three screens and Pocket's under Money). An App only names the group each of its screens is listed under; naming none, or an unknown one, leaves the screen a plain top-level row. Groups start closed on every device and remember what the user opened (per-device, like a collapsed section or a hidden Base); the group holding the screen you land on opens itself.
-_Avoid_: category, folder, section (the sidebar's own Screens/Surfaces/Apps/Bases headers), suite
+### Module
+A named shelf of Apps — Money, House, Tasks, Schedules, Culture, Note-taking, Progress. Core owns the list, the titles and the order; an App names the one Module it belongs to and nothing else, and cannot invent one. A Module is what a Workspace is assembled from, and it carries an App's **chrome** into that Workspace: the App's screens, and the Bases of the types it owns. It carries nothing else — a Module never gates a Surface, the Vault, the command palette or a Screen's card picker, because those work across Apps by Contract and a Surface that hid half of Tuesday would be lying about Tuesday. **Modules scope chrome; separation scopes data.** Supersedes the Nav group, which was the same shelf when it held only screens and was explicitly not a container.
+_Avoid_: Nav group (the retired name), App (one member), category, folder, section (the sidebar's own Screens/Surfaces/Apps/Bases headers), suite, plugin
 
 ### Command
 A named action an App registers with Core, run from the global palette (Ctrl+K): navigation or domain action ("Complete chore…", "Log entry…"). Declares an argument signature from day one; v1 collects args via dialog, inline parsing may come later. A Command may be flagged **capture** — it records something in seconds (clip, log entry, quick capture) — and capture Commands are what the phone's "+" sheet lists.
@@ -399,20 +399,24 @@ _Avoid_: metric, sensor, stat (a Stat is owned data with history — a Live valu
 A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten unsynced local edits. Nothing is merged, nothing is lost.
 
 ### Workspace
-A full-screen environment over the same data, chosen by URL: the **Vault** and the **Dashboard**. The split is what you *do*, not what you see — the Vault is where content is written freely, the Dashboard is where data is read and changed through defined operations. Core owns the switcher; an App declares which Workspace its screens live in. Two views of one dataset, not two apps.
-_Avoid_: mode, full-screen app, view, "Notes workspace" (old name of the Vault)
+A user-created, named environment: a chosen set of **Modules**, and the option to keep its content separate from the other Workspaces (off by default). "Work" takes Tasks and Schedules; "Study" takes Note-taking and Culture. The user creates any number and switches between them; what the choice of Modules decides is *chrome* — which App screens and Bases this Workspace lists — never what a Surface, the Vault or the palette may reach. Orthogonal to the **Frame**: every Workspace has both a Vault and a Dashboard.
+_Avoid_: mode, space, profile, Account (one sign-in, a different axis), Frame (the Vault/Dashboard axis), Module (what a Workspace is made of)
+
+### Frame
+Which of the two chromes is wrapped around the content, chosen by URL: the **Vault** and the **Dashboard**. The split is what you *do*, not what you see — the Vault is where content is written freely, the Dashboard is where data is read and changed through defined operations. Core owns the switcher; an App declares which Frame its screens live in. Two ways of working over one dataset, not two apps. Orthogonal to the Workspace: the Frame is a fact about how you are working right now, the Workspace about what you are working on.
+_Avoid_: workspace (the old name of this axis, now the user-created container), mode, full-screen app, view, chrome (what a Frame is made of, not the word for one), "Notes workspace" (old name of the Vault)
 
 ### Attachment
 A file — for now an image — dropped or pasted into a Document's body and kept by Core beside the content: bytes, filename and kind, nothing else. Not a Document: no type, no Base, no Folder, no Tags, absent from the Vault tree; it exists only to be embedded from bodies by name, and any body-first type (Note, Clipping, Writing) may embed one. Renaming it rewrites every embed, as renaming a Note does. Deleting the embed never deletes the Attachment: one no body embeds any more is **orphaned**, kept, and removed only when the user asks to clean up.
 _Avoid_: image (the kind, not the thing), file (a storage detail), asset, upload, media (the retired App)
 
 ### Vault
-The Workspace where content is **written**: Obsidian's chrome — tree, search, tags, links — around a markdown editor over any Document's frontmatter and body, whatever its type. Editing a body is what the Vault is for, so a body is edited here or it is edited in the wrong place. Not a storage place — Documents live in one store whatever Workspace shows them.
+The Frame where content is **written**: Obsidian's chrome — tree, search, tags, links — around a markdown editor over any Document's frontmatter and body, whatever its type. Editing a body is what the Vault is for, so a body is edited here or it is edited in the wrong place. Not a storage place — Documents live in one store whatever Frame shows them.
 _Avoid_: notes (one type), library, folder
 
 ### Dashboard
-The Workspace where data is **read and operated**: Screens of Cards, Surfaces, App screens and Bases. What changes here changes through a defined operation — a form, a dialog, a click whose effect is known — never through free text. An App screen lists, filters and starts things; the body it opens belongs to the Vault.
-_Avoid_: home (the phone's Home is one Screen), main app, workspace (say which)
+The Frame where data is **read and operated**: Screens of Cards, Surfaces, App screens and Bases. What changes here changes through a defined operation — a form, a dialog, a click whose effect is known — never through free text. An App screen lists, filters and starts things; the body it opens belongs to the Vault.
+_Avoid_: home (the phone's Home is one Screen), main app, frame (say which), workspace (a different axis)
 
 ### Folder
 Where a Document lives: a `/`-separated path (root when empty). Every Document has one; only the Vault cares — its tree, and the phone's Vault tabs, which *are* Folders. A Folder exists because Documents are in it; titles are unique within a Folder for a given type. Notes live in `Notes`, clippings in `Clippings`, writings in `Writings`, daily notes in `Journal/YYYY/MM`, templates in `Templates`, private ones in `Private`. A type's home Folder is where a new Document of it lands, never a rule about where its Documents may live — a Note in `Private` is still a Note. What a Folder decides is what "+" creates in it; what furniture a Document gets is decided by its type, never by where it sits.
@@ -420,7 +424,7 @@ _Avoid_: directory, category (that's a Document type), tag
 
 ### Private folder
 The one reserved Folder, `Private` at the root (subfolders included), whose Documents are shown only while it is **unlocked**. It exists once the user has **set it up** — chosen its password — and adopts any plain `Private` folder already there. Only body-first Documents (Note, Clipping, Writing) may be created or moved into it; no Task, Event or other App Document ever hides there. A gate, not a safe: it keeps eyes off, not bytes secret — the text is stored like any other Document's. Same password on every device, usable offline; resetting it needs the account password and loses nothing.
-_Avoid_: vault (the Workspace), encrypted/secret notes (they are not), locked folder (say "the Private folder is locked"), hidden folder
+_Avoid_: vault (the Frame), encrypted/secret notes (they are not), locked folder (say "the Private folder is locked"), hidden folder
 
 ### Locked / Unlocked
 The state of the Private folder on this device, right now. **Locked** (the default — after a reload, after idle, after the app goes to the background, on a device that has not yet learnt the password) means its Documents are absent from everything: tree, search, links and backlinks, unlinked mentions, Graph, Bases, Cards, autocomplete, tag vocabulary. The folder itself still shows, closed; a link into it shows as locked and asks for the password rather than pretending the target does not exist. **Unlocked** means they behave like any other Document until the user locks again or the timeout does. Anything that must see every body — Attachment clean-up — refuses to run while locked rather than peeking.
