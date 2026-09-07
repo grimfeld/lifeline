@@ -41,6 +41,12 @@ const LEGACY_SETTINGS_ID = "private:settings";
  * created once on the server (ADR 0039).
  */
 async function settingsRow(): Promise<PrivateSettings | undefined> {
+  // Deliberately scope-blind (ADR 0048). Separation partitions Documents, and
+  // ADR 0039 replaced fixed-id singletons with "the one Document of that type"
+  // — which, under a partition, would silently become one *per Workspace*.
+  // The Private folder is an Account-level gate with one password on every
+  // device (CONTEXT.md "Private folder"), not a per-Workspace one, so this
+  // lookup reads past the scope and the row it finds is written shared below.
   return (await db().documents.where("[type+deleted]").equals([PRIVATE_SETTINGS_TYPE, 0]).first()) as PrivateSettings | undefined;
 }
 
@@ -55,7 +61,7 @@ export async function repairPrivateSettings(): Promise<void> {
   const old = (await d.documents.get(LEGACY_SETTINGS_ID)) as PrivateSettings | undefined;
   if (!old) return;
   if (!old.deleted && old.type === PRIVATE_SETTINGS_TYPE && !(await settingsRow())) {
-    await put<PrivateSettings>(DOCUMENTS, { ...old, id: newId() });
+    await put<PrivateSettings>(DOCUMENTS, { ...old, id: newId(), workspace: "" });
   }
   await d.documents.delete(LEGACY_SETTINGS_ID);
 }
@@ -196,6 +202,8 @@ export async function setPrivatePassword(password: string): Promise<void> {
     salt: b64(salt),
     hash,
     iterations: ITERATIONS,
+    // Shared, never held: one password for the Account, not one per Workspace.
+    workspace: "",
   };
   await put<PrivateSettings>(DOCUMENTS, row);
   await unlock();

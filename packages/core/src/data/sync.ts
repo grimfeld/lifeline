@@ -58,6 +58,8 @@ function toLocal(collection: string, r: PbRecord): SyncedRecord {
     const doc = { ...extra, ...common } as Document;
     if (!Array.isArray(doc.tags)) doc.tags = [];
     if (typeof doc.folder !== "string") doc.folder = "";
+    // Separation (ADR 0048): a row written before the field existed is shared.
+    if (typeof doc.workspace !== "string") doc.workspace = "";
     if (doc.body === null) delete doc.body;
     return doc;
   }
