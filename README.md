@@ -33,6 +33,10 @@ apps/prices      @lifeline/app-prices — Prices App (ADR 0045): what regular pu
                  Products (a measure, never a pack size) × Shops (chains); Receipts own Lines (amount, price paid,
                  promo), read from a photo by Tesseract on the device behind one reader seam, always reviewed
                  before saving; unit price, cheapest shop and per-shop change are derived, never stored
+apps/mail        @lifeline/app-mail — Mail App (ADR 0051): a window onto Gmail — Mailboxes (one per address, the only
+                 Document type), Threads read live into a local-only cache and triaged at Google (archive, read, star,
+                 label, trash), never sent; a Message is kept as a Clipping, Task or Event through the Intake
+                 Contract (ADR 0050); Google's browser token flow, so browser builds only
 apps/stats       @lifeline/app-stats — Stats App (notch port): additive / measurement / boolean /
                  collection stats, entries as an event log, derived totals, streaks, Recharts graphs
 apps/notes       @lifeline/app-notes — Notes App (Obsidian-style, ADR 0009): markdown notes with typed Note types
@@ -70,6 +74,11 @@ pocketbase superuser upsert you@example.com <password>
 ```
 
 The shell reads `VITE_PB_URL` (defaults to `http://127.0.0.1:8090`). Point it at the Fly instance for production builds.
+
+Mail (ADR 0051) reads `VITE_GOOGLE_CLIENT_ID`: an OAuth client of type *Web application* in your own Google Cloud project, with the
+Gmail API enabled, the `gmail.modify` scope on the consent screen, your Google account listed as a test user, and the dev
+(`http://localhost:1420`) and deployed origins as authorised JavaScript origins. Without it the Mail screen says so; nothing else
+changes. Mail works in browser builds only (Google's token flow needs an http(s) origin).
 
 ## Deploy backend
 

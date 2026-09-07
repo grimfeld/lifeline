@@ -118,8 +118,9 @@ export interface ViewFilter {
  *   18 — Prices App (ADR 0045): `[type+receiptId]`, `[type+productId]`, `[type+shopId]` added
  *   19 — Workspaces (ADR 0047/0048): synced `workspaces`; `workspace` indexed on
  *        `documents` and `screens` so a scoped read is an index hit, not a scan
+ *   20 — Mail App (ADR 0051): local `_mail_cache` table
  */
-const DB_VERSION = 19;
+const DB_VERSION = 20;
 
 /** Stores that existed before ADR 0018; deleted on upgrade so a client re-pulls into `documents`. */
 const LEGACY_STORES = [

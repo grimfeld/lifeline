@@ -1,22 +1,35 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Label, Textarea, toast } from "@lifeline/ui";
-import { docHref } from "@lifeline/core";
+import { docHref, type DateStr, type Handoff } from "@lifeline/core";
 import { clip } from "./data";
 
-/** Paste → Clipping: title (optional), source, author, the text. Nothing is fetched. */
-export function ClipDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+/**
+ * Paste → Clipping: title (optional), source, author, the text. Nothing is
+ * fetched. With a `handoff` (ADR 0050: another App handing over a text with
+ * its origin — a kept mail) the form opens prefilled and the text is reviewed
+ * here before anything is saved.
+ */
+export function ClipDialog({ open, onOpenChange, handoff }: { open: boolean; onOpenChange: (o: boolean) => void; handoff?: Handoff }) {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [source, setSource] = useState("");
   const [author, setAuthor] = useState("");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!open || !handoff) return;
+    setTitle(handoff.title);
+    setSource(handoff.url ?? "");
+    setAuthor(handoff.author ?? "");
+    setText(handoff.text);
+  }, [open, handoff]);
+  const publishedAt = (handoff?.date?.slice(0, 10) || undefined) as DateStr | undefined;
   async function submit(openAfter: boolean) {
     if (!text.trim()) return;
     setBusy(true);
     try {
-      const c = await clip({ title, source, author, text });
+      const c = await clip({ title, source, author, text, publishedAt });
       toast.success(`Clipped “${c.title}”`);
       setTitle("");
       setSource("");
@@ -32,8 +45,10 @@ export function ClipDialog({ open, onOpenChange }: { open: boolean; onOpenChange
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Clip</DialogTitle>
-          <DialogDescription>Paste the text you want to keep and say where it came from. Lifeline never fetches pages.</DialogDescription>
+          <DialogTitle>{handoff ? "Keep as Clipping" : "Clip"}</DialogTitle>
+          <DialogDescription>
+            {handoff ? "Trim the text if you like, then keep it. The Clipping is yours; nothing goes back to where it came from." : "Paste the text you want to keep and say where it came from. Lifeline never fetches pages."}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-2">
           <div className="grid gap-1">
@@ -62,8 +77,8 @@ export function ClipDialog({ open, onOpenChange }: { open: boolean; onOpenChange
             </Label>
             <Textarea
               id="clip-text"
-              autoFocus
-              rows={10}
+              autoFocus={!handoff}
+              rows={handoff ? 14 : 10}
               placeholder="Paste here…"
               value={text}
               onChange={(e) => setText(e.target.value)}

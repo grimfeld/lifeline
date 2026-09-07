@@ -27,6 +27,7 @@ import {
   docHref,
   useTagVocabulary,
   type DateStr,
+  type Handoff,
   type Weekday,
 } from "@lifeline/core";
 import type { Recurrence, Task } from "../domain/types";
@@ -44,6 +45,11 @@ export const WEEKDAYS: { value: Weekday; label: string }[] = [
 ];
 
 type Kind = "one-time" | "weekly" | "monthly" | "yearly";
+
+/** A Task made from a Handoff keeps only the origin: the text stays where it came from. */
+function handoffNotes(h: Handoff): string {
+  return [h.url, h.author ? `From ${h.author}` : ""].filter(Boolean).join("\n");
+}
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Notes that link to this Task (edit mode only). Hidden when there are none. */
@@ -80,6 +86,7 @@ export function TaskDialog({
   onOpenChange,
   task,
   defaultDate,
+  handoff,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -87,6 +94,8 @@ export function TaskDialog({
   task?: Task;
   /** Create mode: preselected day (null = Unassigned). */
   defaultDate?: DateStr | null;
+  /** Create mode, Intake (ADR 0050): the title, and the origin in the notes. */
+  handoff?: Handoff;
 }) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -100,8 +109,8 @@ export function TaskDialog({
 
   useEffect(() => {
     if (!open) return;
-    setTitle(task?.title ?? "");
-    setNotes(task?.notes ?? "");
+    setTitle(task?.title ?? handoff?.title ?? "");
+    setNotes(task?.notes ?? (handoff ? handoffNotes(handoff) : ""));
     const r = task?.recurrence ?? null;
     setKind(r ? r.kind : "one-time");
     setDate(task ? (task.date ?? "") : (defaultDate === undefined ? todayStr() : (defaultDate ?? "")));
@@ -109,7 +118,7 @@ export function TaskDialog({
     setMonthDays(r?.kind === "monthly" ? r.days : [1]);
     setYearDates(r?.kind === "yearly" ? r.dates : [{ month: 1, day: 1 }]);
     setTags(task?.tags ?? []);
-  }, [open, task, defaultDate]);
+  }, [open, task, defaultDate, handoff]);
 
   function buildRecurrence(): Recurrence | null {
     if (kind === "weekly") return { kind: "weekly", weekdays: [...weekdays].sort() };

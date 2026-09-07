@@ -1,4 +1,5 @@
 import type { AppManifest } from "@lifeline/core";
+import { TaskDialog } from "./components/TaskDialog";
 import { ListTodo } from "lucide-react";
 import { TasksScreen } from "./screens/TasksScreen";
 import { TodayTasksCard } from "./cards/TodayTasksCard";
@@ -83,6 +84,8 @@ export const tasksApp: AppManifest = {
   commands: taskCommands,
   schedulable: tasksSchedulable,
   daylog: tasksDaylog,
+  // Intake (ADR 0050): something handed over from another App — a mail — becomes a Task to finish here.
+  intakes: [{ id: "task", title: "Task", icon: ListTodo, dialog: TaskDialog }],
 };
 
 export { TASK, TASK_OCCURRENCE, TASKS_HREF };

@@ -65,4 +65,6 @@ export const clipperApp: AppManifest = {
     { id: "clipper.go", title: "Go to Clippings", keywords: ["clipper"], icon: Scissors, run: ({ navigate }) => navigate(CLIPPINGS_HREF) },
   ],
   daylog: clipperDaylog,
+  // Intake (ADR 0050): a text handed over from another App — a kept mail — becomes a Clipping, reviewed first.
+  intakes: [{ id: "clipping", title: "Clipping", icon: Scissors, dialog: ClipDialog }],
 };

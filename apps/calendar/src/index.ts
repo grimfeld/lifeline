@@ -1,6 +1,7 @@
 import { formatHuman, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
 import { Ban, CalendarClock, LayoutTemplate } from "lucide-react";
 import { EventsScreen } from "./screens/EventsScreen";
+import { EventDialog } from "./components/EventDialog";
 import { UpcomingEventsCard } from "./cards/UpcomingEventsCard";
 import { NextEventsCard, nextEventsSettings, nextEventsTitle } from "./cards/NextEventsCard";
 import { CountdownCard, countdownSettings, useCountdownTitle } from "./cards/CountdownCard";
@@ -156,6 +157,8 @@ export const calendarApp: AppManifest = {
   useCommands: useTemplateCommands,
   timed: calendarTimed,
   daylog: calendarDaylog,
+  // Intake (ADR 0050): something handed over from another App — a mail — becomes an Event; the day and time are asked here.
+  intakes: [{ id: "event", title: "Event", icon: CalendarClock, dialog: EventDialog }],
 };
 
 export { EVENTS, EVENT_TYPE, EVENT_TEMPLATE_TYPE, TIME_BLOCKER_TYPE, BLOCKER_TEMPLATE_TYPE };
