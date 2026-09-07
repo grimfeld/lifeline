@@ -15,7 +15,9 @@ import { BasesIndex } from "./bases/BasesIndex";
 import { FrameLayout } from "./components/FrameLayout";
 import { useFrameMemory } from "./components/FrameSwitcher";
 import { MobileNav } from "./mobile/MobileNav";
+import { PhoneHeader } from "./mobile/PhoneHeader";
 import { PhoneHomePage } from "./mobile/PhoneHomePage";
+import { ModulePage } from "./modules/ModulePage";
 
 function HomeRedirect() {
   const screens = useWorkspaceScreens();
@@ -44,6 +46,7 @@ function DashboardFrame() {
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/screen/:id" element={<UserScreenPage />} />
           <Route path="/phone" element={<PhoneHomePage />} />
+          <Route path="/module/:id" element={<ModulePage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/week" element={<WeekPage />} />
           <Route path="/map" element={<MapPage />} />
@@ -85,6 +88,7 @@ export default function App() {
       {backgroundApps().map((a) => (
         <AppBackground key={a.id} app={a} />
       ))}
+      <PhoneHeader />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <Routes>
           {frames().map((w) => (
