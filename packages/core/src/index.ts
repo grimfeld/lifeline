@@ -35,6 +35,7 @@ export {
   VIEWS,
   DOCUMENT_TYPES,
   ATTACHMENTS,
+  WORKSPACES,
   type SyncedRecord,
   type Placement,
   type UserScreen,
@@ -56,3 +57,4 @@ export * from "./fetch";
 export * from "./documents/ops";
 export * from "./attachments";
 export * from "./private";
+export * from "./workspaces";
