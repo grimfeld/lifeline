@@ -62,6 +62,12 @@ migrate(
         required: true,
       }),
     );
+    // The server autodates every other synced collection carries. `updated` is
+    // not decoration: the sync engine sorts and pages every pull on it, so a
+    // collection without it 400s on every cycle ("invalid sort field").
+    // Repaired on already-migrated servers by 1757500000.
+    ws.fields.add(new AutodateField({ id: "workspaces_created", name: "created", onCreate: true, onUpdate: false }));
+    ws.fields.add(new AutodateField({ id: "workspaces_updated", name: "updated", onCreate: true, onUpdate: true }));
     ws.indexes = ["CREATE INDEX idx_workspaces_owner ON workspaces (owner)"];
     app.save(ws);
 
