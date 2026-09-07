@@ -8,12 +8,13 @@ import { APP_ID, versionType, WRITINGS_HREF, writingType } from "./types";
 /** The Writer's pad (ADR 0019): owns `writing` (my own prose) and its internal `writing_version` snapshots. */
 export const writerApp: AppManifest = {
   id: APP_ID,
+  module: "notes",
   title: "Writer's pad",
   icon: Feather,
   color: "var(--chart-violet)",
   types: [writingType, versionType],
   // One screen: the desk lists and starts Writings, the Vault writes them (ADR 0045).
-  screens: [{ id: "writer.desk", title: "Writings", path: "writings", icon: Feather, group: "study", component: WritingsScreen }],
+  screens: [{ id: "writer.desk", title: "Writings", path: "writings", icon: Feather, component: WritingsScreen }],
   cards: [
     {
       id: "writer.drafts",

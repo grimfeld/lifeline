@@ -16,21 +16,25 @@ import {
   Separator,
 } from "@lifeline/ui";
 import {
+  MODULES,
   basePath,
-  db,
+  moduleOfApp,
   navSectionsOf,
   newId,
   put,
   screenRoute,
+  useCurrentWorkspace,
   useDocumentTypes,
-  useLiveQuery,
+  useWorkspaceModules,
+  useWorkspaceScreens,
   type NavSection,
   type UserScreen,
 } from "@lifeline/core";
 import { CalendarDays, ChevronRight, Clock, Columns3, EyeOff, LayoutDashboard, MapPin, Plus, Settings2, Smartphone, Sparkles, Table2, Waypoints } from "lucide-react";
 import { SyncBadge } from "./SyncBadge";
 import { setPhoneHome } from "../mobile/phoneHome";
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { FrameSwitcher } from "./FrameSwitcher";
+import { WorkspacePicker } from "./WorkspacePicker";
 import { useCollapsedSections, useHiddenBases, useOpenGroups } from "./sidebarPrefs";
 
 function navClass({ isActive }: { isActive: boolean }) {
@@ -99,7 +103,10 @@ export function Sidebar({ className }: { className?: string } = {}) {
   const [newOpen, setNewOpen] = useState(false);
   const [name, setName] = useState("");
 
-  const sections = navSectionsOf();
+  // Modules scope chrome, and this is the chrome they scope (ADR 0047): the
+  // Apps section and the Bases below it list this Workspace's Modules only.
+  const modules = useWorkspaceModules();
+  const sections = navSectionsOf(undefined, modules.length ? modules : undefined);
   const activeGroup = useActiveGroup(sections);
   const { open: openGroups, toggle: toggleGroup, reveal: revealGroup } = useOpenGroups();
   // Landing inside a closed group opens it, so the sidebar always shows where you are.
@@ -110,16 +117,29 @@ export function Sidebar({ className }: { className?: string } = {}) {
 
   const types = useDocumentTypes().filter((t) => !t.internal);
   const [hiddenBases, toggleHiddenBase] = useHiddenBases();
-  const screens = useLiveQuery(
-    () =>
-      db()
-        .collection<UserScreen>("screens")
-        .where("deleted")
-        .equals(0)
-        .sortBy("sort"),
-    [],
-    [] as UserScreen[],
-  );
+
+  /**
+   * Bases, shelved by the Module that owns them — which closes ADR 0041's
+   * deferral ("its natural grouping is the owning App, which is a different
+   * rule from these shelves"). It is no longer a different rule: a Module
+   * holds Apps, an App owns types, a type has one Base. User-defined types
+   * have no owning App and so no Module; they stay loose at the top, as an
+   * App naming no Module does in the Apps section above.
+   */
+  const baseShelves = (() => {
+    const visible = types.filter((t) => !hiddenBases.includes(t.id));
+    const moduleIdOf = (t: (typeof visible)[number]) => (t.appId ? moduleOfApp(t.appId)?.id : undefined);
+    const wanted = modules.length ? modules : MODULES.map((m) => m.id);
+    // No Module means loose, not hidden: a user-defined type has no owning App
+    // (ADR 0019) and so belongs to no Workspace's exclusion either.
+    const loose = visible.filter((t) => !moduleIdOf(t));
+    const shelves = MODULES.filter((m) => wanted.includes(m.id))
+      .map((m) => ({ module: m.title, types: visible.filter((t) => moduleIdOf(t) === m.id) }))
+      .filter((sh) => sh.types.length > 0);
+    return loose.length > 0 ? [{ module: undefined as string | undefined, types: loose }, ...shelves] : shelves;
+  })();
+  const screens = useWorkspaceScreens();
+  const ws = useCurrentWorkspace();
 
   async function createScreen() {
     if (!name.trim()) return;
@@ -129,6 +149,8 @@ export function Sidebar({ className }: { className?: string } = {}) {
       name: name.trim(),
       layout: [],
       sort: screens.length,
+      // A Screen belongs to the Workspace it was made in (ADR 0047).
+      workspace: ws?.id,
     });
     setName("");
     setNewOpen(false);
@@ -141,7 +163,10 @@ export function Sidebar({ className }: { className?: string } = {}) {
         <Sparkles className="text-primary size-5" />
         <span className="text-base font-semibold tracking-tight">Lifeline</span>
       </div>
-      <WorkspaceSwitcher />
+      <div className="px-2">
+        <WorkspacePicker />
+      </div>
+      <FrameSwitcher />
       <Separator className="mt-2" />
 
       <nav className="flex-1 space-y-4 overflow-y-auto p-2">
@@ -229,9 +254,8 @@ export function Sidebar({ className }: { className?: string } = {}) {
             </Button>
           }
         >
-          {types
-            .filter((t) => !hiddenBases.includes(t.id))
-            .map((t) => {
+          {baseShelves.map(({ module, types: shelf }) => {
+            const rows = shelf.map((t) => {
               const Icon = t.icon ?? Table2;
               return (
                 <ContextMenu key={t.id}>
@@ -250,7 +274,20 @@ export function Sidebar({ className }: { className?: string } = {}) {
                   </ContextMenuContent>
                 </ContextMenu>
               );
-            })}
+            });
+            if (!module) return rows;
+            return (
+              <NavGroup
+                key={`base-${module}`}
+                title={module}
+                open={openGroups.includes(`base:${module}`)}
+                active={false}
+                onToggle={() => toggleGroup(`base:${module}`)}
+              >
+                {rows}
+              </NavGroup>
+            );
+          })}
         </Section>
       </nav>
 
