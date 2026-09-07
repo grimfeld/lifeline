@@ -73,7 +73,7 @@ A fixed, hand-written page an App ships over its own types (Gallery, Chores, a S
 _Avoid_: surface (Core-owned, cross-type), screen (user-composed), page
 
 ### Module
-A named shelf of Apps — Money, House, Tasks, Schedules, Culture, Note-taking, Progress. Core owns the list, the titles and the order; an App names the one Module it belongs to and nothing else, and cannot invent one. A Module is what a Workspace is assembled from, and it carries an App's **chrome** into that Workspace: the App's screens, and the Bases of the types it owns. It carries nothing else — a Module never gates a Surface, the Vault, the command palette or a Screen's card picker, because those work across Apps by Contract and a Surface that hid half of Tuesday would be lying about Tuesday. **Modules scope chrome; separation scopes data.** Supersedes the Nav group, which was the same shelf when it held only screens and was explicitly not a container.
+A named shelf of Apps — Money, House, Tasks, Schedules, Culture, Note-taking, Progress. Core owns the list, the titles and the order; an App names the one Module it belongs to and nothing else, and cannot invent one. A Module is what a Workspace is assembled from, and it carries an App's **chrome** into that Workspace: the App's screens, and the Bases of the types it owns. It carries nothing else — a Module never gates a Surface, the Vault, the command palette or a Screen's card picker, because those work across Apps by Contract and a Surface that hid half of Tuesday would be lying about Tuesday. **Modules scope chrome; separation scopes data.** On a phone a Module is the primary navigation: the Workspace's Modules take the middle slots of the bottom bar, at most three of them in the Workspace's own order with the rest behind ☰, so the phone's nav is reconfigured by which Modules the Workspace holds — which is also why a Workspace holding many Modules is a worse phone than a focused one. Supersedes the Nav group, which was the same shelf when it held only screens and was explicitly not a container.
 _Avoid_: Nav group (the retired name), App (one member), category, folder, section (the sidebar's own Screens/Surfaces/Apps/Bases headers), suite, plugin
 
 ### Command
@@ -93,7 +93,7 @@ One placed copy of a Card on one Screen, with its position and, for configurable
 _Avoid_: widget, tile
 
 ### Phone home
-The one Screen the phone opens as Home. On a phone, Lifeline is capture-and-consult: the phone home's Cards stacked in one column, a Journal tab, and a capture sheet of capture Commands; everything else stays reachable but is shaped for the desktop. Designated on a Screen ("Use as phone home"); at most one Screen per Workspace holds it, on every device alike — so switching Workspace on the phone changes what Home *is*. The stack is edited where it is read: a Screen is composed on the phone as well as at the desk.
+The one Screen the phone opens as Home. On a phone, Lifeline is capture-and-consult: the phone home's Cards stacked in one column, the Workspace's Modules beside it, and a capture sheet of capture Commands; everything else stays reachable but is shaped for the desktop. Designated on a Screen ("Use as phone home"); at most one Screen per Workspace holds it, on every device alike — so switching Workspace on the phone changes what Home *is*. The stack is edited where it is read: a Screen is composed on the phone as well as at the desk.
 _Avoid_: mobile app (it is the same app), home screen (the OS thing)
 
 ### Task
