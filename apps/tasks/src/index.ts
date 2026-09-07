@@ -13,6 +13,7 @@ import { taskTypes } from "./types";
 
 export const tasksApp: AppManifest = {
   id: APP_ID,
+  module: "tasks",
   title: "Tasks",
   icon: ListTodo,
   color: "var(--chart-blue)",
@@ -23,7 +24,6 @@ export const tasksApp: AppManifest = {
       title: "Tasks",
       path: "tasks",
       icon: ListTodo,
-      group: "planning",
       component: TasksScreen,
     },
   ],

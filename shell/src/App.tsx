@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes, useParams } from "react-router";
 import { Toaster } from "@lifeline/ui";
-import { backgroundApps, db, screenRoute, screensOf, useLiveQuery, workspaces, type AppManifest, type UserScreen } from "@lifeline/core";
+import { backgroundApps, db, screenRoute, screensOf, useLiveQuery, frames, type AppManifest, type UserScreen } from "@lifeline/core";
 import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
 import { PrivateDialogs } from "./vault/PrivateDialogs";
@@ -12,8 +12,8 @@ import { SchedulePage } from "./surfaces/SchedulePage";
 import { UserScreenPage } from "./screens/UserScreenPage";
 import { BasePage } from "./bases/BasePage";
 import { BasesIndex } from "./bases/BasesIndex";
-import { WorkspaceLayout } from "./components/WorkspaceLayout";
-import { useWorkspaceMemory } from "./components/WorkspaceSwitcher";
+import { FrameLayout } from "./components/FrameLayout";
+import { useFrameMemory } from "./components/FrameSwitcher";
 import { MobileNav } from "./mobile/MobileNav";
 import { PhoneHomePage } from "./mobile/PhoneHomePage";
 
@@ -38,8 +38,8 @@ function LegacyVaultRedirect() {
   return <Navigate to={`/vault/${rest ?? ""}`.replace("/vault/n/", "/vault/d/")} replace />;
 }
 
-/** The built-in Dashboard workspace: user Screens, Surfaces and the Apps' dashboard screens. */
-function DashboardWorkspace() {
+/** The built-in Dashboard frame: user Screens, Surfaces and the Apps' dashboard screens. */
+function DashboardFrame() {
   return (
     <>
       <Sidebar className="max-md:hidden" />
@@ -59,12 +59,12 @@ function DashboardWorkspace() {
             const Component = s.component;
             return <Route key={s.id} path={`/app/${s.path}`} element={<Component />} />;
           })}
-          {/* Legacy Notes URLs (before the workspace split, and before the Vault rename). */}
+          {/* Legacy Notes URLs (before the frame split, and before the Vault rename). */}
           <Route path="/app/notes" element={<Navigate to="/vault" replace />} />
           <Route path="/app/notes/:id" element={<LegacyNoteRedirect />} />
           <Route path="/notes/*" element={<LegacyVaultRedirect />} />
-          {/* Screens that moved to another workspace keep their old /app/ URLs as redirects. */}
-          {workspaces()
+          {/* Screens that moved to another frame keep their old /app/ URLs as redirects. */}
+          {frames()
             .flatMap((w) => screensOf(w.id))
             .map((s) => (
               <Route key={`redirect-${s.id}`} path={`/app/${s.path}`} element={<Navigate to={screenRoute(s)} replace />} />
@@ -83,7 +83,7 @@ function AppBackground({ app }: { app: AppManifest }) {
 }
 
 export default function App() {
-  useWorkspaceMemory();
+  useFrameMemory();
   return (
     <div className="bg-background text-foreground flex h-dvh flex-col overflow-hidden">
       {backgroundApps().map((a) => (
@@ -91,10 +91,10 @@ export default function App() {
       ))}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <Routes>
-          {workspaces().map((w) => (
-            <Route key={w.id} path={`${w.path}/*`} element={<WorkspaceLayout workspace={w} />} />
+          {frames().map((w) => (
+            <Route key={w.id} path={`${w.path}/*`} element={<FrameLayout frame={w} />} />
           ))}
-          <Route path="/*" element={<DashboardWorkspace />} />
+          <Route path="/*" element={<DashboardFrame />} />
         </Routes>
       </div>
       <MobileNav />

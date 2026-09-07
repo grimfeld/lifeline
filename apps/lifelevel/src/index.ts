@@ -100,12 +100,13 @@ const negativeCompletionType: DocumentTypeDef = {
 /** Life Level App (life-level port, ADRs 0025/0026): loss-aversion habit RPG — decay, debt and levels, all derived. */
 export const lifelevelApp: AppManifest = {
   id: APP_ID,
+  module: "progress",
   title: "Life Level",
   icon: Trophy,
   color: "var(--chart-yellow)",
   types: [habitType, negativeType, habitCompletionType, negativeCompletionType],
   screens: [
-    { id: "lifelevel.main", title: "Life Level", path: "lifelevel", icon: Trophy, group: "progress", component: LifeLevelScreen },
+    { id: "lifelevel.main", title: "Life Level", path: "lifelevel", icon: Trophy, component: LifeLevelScreen },
     { id: "lifelevel.detail", title: "Habit", path: "lifelevel/:id", component: HabitDetailScreen, hidden: true },
   ],
   cards: [

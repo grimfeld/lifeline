@@ -11,12 +11,13 @@ import { hangExhibition, reopenExhibition, takeDownExhibition } from "./data/rep
 /** Museum App (ADR 0022): classical art, curated as exhibitions of rooms. */
 export const museumApp: AppManifest = {
   id: "museum",
+  module: "culture",
   title: "Museum",
   icon: Landmark,
   color: "var(--chart-yellow)",
   types: museumTypeDefs,
   screens: [
-    { id: "museum.main", title: "Museum", path: "museum", icon: Landmark, group: "culture", component: MuseumScreen },
+    { id: "museum.main", title: "Museum", path: "museum", icon: Landmark, component: MuseumScreen },
     { id: "museum.exhibition", title: "Exhibition", path: "museum/e/:id", component: ExhibitionScreen, hidden: true },
   ],
   cards: [

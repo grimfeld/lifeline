@@ -75,12 +75,13 @@ const sessionType: DocumentTypeDef = {
 /** Workout App (ADR 0030/0031): the timer, the library, the record. */
 export const workoutApp: AppManifest = {
   id: APP_ID,
+  module: "progress",
   title: "Workout",
   icon: Dumbbell,
   color: "var(--chart-green)",
   types: [workoutType, exerciseType, sessionType],
   screens: [
-    { id: "workout.main", title: "Workout", path: "workout", icon: Dumbbell, group: "progress", component: WorkoutScreen },
+    { id: "workout.main", title: "Workout", path: "workout", icon: Dumbbell, component: WorkoutScreen },
     { id: "workout.run", title: "Timer", path: "workout/run/:id", component: TimerScreen, hidden: true },
   ],
   cards: [

@@ -1,18 +1,18 @@
 import { Navigate, Route, Routes } from "react-router";
-import { screensOf, type WorkspaceDef } from "@lifeline/core";
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { screensOf, type FrameDef } from "@lifeline/core";
+import { FrameSwitcher } from "./FrameSwitcher";
 import { SyncBadge } from "./SyncBadge";
 
 /**
- * Frame for an App-provided workspace (ADR 0012): Core's switcher above the
- * workspace's own sidebar, and the workspace's screens routed below its path.
+ * Frame for an App-provided frame (ADR 0012): Core's switcher above the
+ * frame's own sidebar, and the frame's screens routed below its path.
  */
-export function WorkspaceLayout({ workspace }: { workspace: WorkspaceDef }) {
-  const Sidebar = workspace.sidebar;
+export function FrameLayout({ frame }: { frame: FrameDef }) {
+  const Sidebar = frame.sidebar;
   return (
     <>
       <aside className="bg-sidebar text-sidebar-foreground flex w-72 shrink-0 flex-col border-r max-md:hidden">
-        <WorkspaceSwitcher />
+        <FrameSwitcher />
         <div className="flex min-h-0 flex-1 flex-col">
           <Sidebar />
         </div>
@@ -22,12 +22,12 @@ export function WorkspaceLayout({ workspace }: { workspace: WorkspaceDef }) {
       </aside>
       <main className="min-w-0 flex-1 overflow-hidden">
         <Routes>
-          {workspace.home && <Route index element={<Navigate to={workspace.home} replace />} />}
-          {screensOf(workspace.id).map((s) => {
+          {frame.home && <Route index element={<Navigate to={frame.home} replace />} />}
+          {screensOf(frame.id).map((s) => {
             const Component = s.component;
             return <Route key={s.id} path={s.path || "/"} element={<Component />} />;
           })}
-          <Route path="*" element={<Navigate to={workspace.home || "."} replace />} />
+          <Route path="*" element={<Navigate to={frame.home || "."} replace />} />
         </Routes>
       </main>
     </>
