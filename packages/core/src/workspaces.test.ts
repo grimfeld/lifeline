@@ -63,7 +63,7 @@ describe("the fresh-account bootstrap", () => {
    * therefore no picker, therefore no way to make one — permanently, not just
    * until the next sync.
    */
-  it("cannot be gated on a per-collection cursor, which an empty collection never writes", () => {
+  it("cannot be gated on a cursor, which an empty collection never writes", () => {
     const cursorAfterEmptyPull = (previous: string, rowsReturned: string[]) => {
       const maxUpdated = rowsReturned.reduce((max, r) => (r > max ? r : max), previous);
       return maxUpdated !== previous ? maxUpdated : previous;
@@ -72,5 +72,31 @@ describe("the fresh-account bootstrap", () => {
     expect(cursorAfterEmptyPull("", ["2026-09-07T00:00:00Z"])).not.toBe("");
     // One it has no rows for never does, however many times it is pulled.
     expect(cursorAfterEmptyPull("", [])).toBe("");
+  });
+});
+
+
+describe("the workspaces collection's server shape", () => {
+  /**
+   * Regression for the 400 that broke syncing after a second Workspace was
+   * made: `invalid sort field "updated"`.
+   *
+   * The collection was created without the `created`/`updated` autodate fields
+   * every other synced collection carries. `updated` is load-bearing — the
+   * engine pulls with `sort=updated` and pages on it — so every cycle failed,
+   * Workspaces never synced between devices, and the fresh-account bootstrap
+   * (which then waited on a clean cycle) never fired either.
+   *
+   * This pins the invariant against the migration text, which is the only
+   * place the shape is stated.
+   */
+  it("declares the autodates every synced collection is pulled by", async () => {
+    const fs = await import("node:fs/promises");
+    const url = await import("node:url");
+    const path = await import("node:path");
+    const here = path.dirname(url.fileURLToPath(import.meta.url));
+    const migration = await fs.readFile(path.join(here, "../../../pocketbase/pb_migrations/1757400000_workspaces.js"), "utf8");
+    expect(migration).toContain('name: "updated"');
+    expect(migration).toContain('name: "created"');
   });
 });
