@@ -1,35 +1,22 @@
-import { db, newId, put, useLiveQuery, type UserScreen } from "@lifeline/core";
+import { newId, put, useWorkspaceScreens, type UserScreen } from "@lifeline/core";
 
 /**
- * Phone home (grill 2026-08-20): the one Screen the phone's bottom bar opens
- * as Home. A synced `phoneHome` bool on the Screen record; set-once from the
- * desktop, at most one Screen holds it.
+ * Phone home (ADR 0021, amended by ADR 0047): the Screen this Workspace opens
+ * as Home. `usePhoneHomeScreen` and `setPhoneHome` live in Core now — the flag
+ * is unique per Workspace rather than globally, so both need the Workspace
+ * scope and neither is shell furniture any more.
  */
-export function usePhoneHome(): UserScreen | undefined {
-  return useLiveQuery(
-    async () => (await db().collection<UserScreen>("screens").where("deleted").equals(0).toArray()).find((s) => s.phoneHome),
-    [],
-    undefined,
-  );
-}
-
-/** Make `id` the phone home; clears the flag on any other Screen. */
-export async function setPhoneHome(id: string): Promise<void> {
-  const screens = await db().collection<UserScreen>("screens").where("deleted").equals(0).toArray();
-  for (const s of screens) {
-    if (s.id === id && !s.phoneHome) await put<UserScreen>("screens", { ...s, phoneHome: true });
-    else if (s.id !== id && s.phoneHome) await put<UserScreen>("screens", { ...s, phoneHome: false });
-  }
-}
+export { usePhoneHomeScreen as usePhoneHome, setPhoneHome } from "@lifeline/core";
 
 /** The starter phone home: due today, tasks, recent clippings, quick clip. */
-export async function createStarterPhoneHome(sort: number): Promise<string> {
+export async function createStarterPhoneHome(sort: number, workspace: string): Promise<string> {
   const id = newId();
   await put<UserScreen>("screens", {
     id,
     name: "Phone",
     sort,
     phoneHome: true,
+    workspace,
     layout: [
       { instanceId: newId(), cardId: "chores.due-today", x: 0, y: 0, w: 6, h: 5 },
       { instanceId: newId(), cardId: "tasks.today", x: 6, y: 0, w: 6, h: 5 },
@@ -39,3 +26,5 @@ export async function createStarterPhoneHome(sort: number): Promise<string> {
   });
   return id;
 }
+
+export { useWorkspaceScreens };

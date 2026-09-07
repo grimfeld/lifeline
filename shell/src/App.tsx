@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes, useParams } from "react-router";
 import { Toaster } from "@lifeline/ui";
-import { backgroundApps, db, screenRoute, screensOf, useLiveQuery, frames, type AppManifest, type UserScreen } from "@lifeline/core";
+import { backgroundApps, frames, screenRoute, screensOf, useWorkspaceScreens, type AppManifest } from "@lifeline/core";
 import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
 import { PrivateDialogs } from "./vault/PrivateDialogs";
@@ -18,11 +18,7 @@ import { MobileNav } from "./mobile/MobileNav";
 import { PhoneHomePage } from "./mobile/PhoneHomePage";
 
 function HomeRedirect() {
-  const screens = useLiveQuery(
-    () => db().collection<UserScreen>("screens").where("deleted").equals(0).sortBy("sort"),
-    [],
-    undefined,
-  );
+  const screens = useWorkspaceScreens();
   if (screens === undefined) return null; // still loading
   if (screens.length > 0) return <Navigate to={`/screen/${screens[0].id}`} replace />;
   return <Navigate to="/calendar" replace />;
