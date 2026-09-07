@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@lifeline/ui";
 import { setCurrentWorkspace, useCurrentWorkspace, useWorkspaces } from "@lifeline/core";
-import { Check, ChevronsUpDown, Lock, Settings2 } from "lucide-react";
+import { Check, ChevronsUpDown, Lock, Plus, Settings2 } from "lucide-react";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 
 /**
@@ -26,9 +26,26 @@ export function WorkspacePicker({ className }: { className?: string }) {
   const workspaces = useWorkspaces();
   const current = useCurrentWorkspace();
   const [manage, setManage] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
 
-  if (!current) return null;
+  /**
+   * No Workspace yet — a fresh account, before the first pull has told us
+   * whether the server has one (ADR 0047's bootstrap). Never render nothing:
+   * an empty header is indistinguishable from a broken one, and this is the
+   * only control that can make a Workspace, so hiding it is a dead end.
+   */
+  if (!current) {
+    return (
+      <>
+        <Button variant="ghost" className={cn("h-8 w-full justify-start gap-1.5 px-2", className)} onClick={() => setCreating(true)}>
+          <span className="text-muted-foreground truncate">Setting up…</span>
+          <Plus className="text-muted-foreground ml-auto size-3.5 shrink-0" />
+        </Button>
+        {creating && <WorkspaceDialog open createFirst onOpenChange={(o) => !o && setCreating(false)} />}
+      </>
+    );
+  }
 
   return (
     <>
@@ -58,12 +75,19 @@ export function WorkspacePicker({ className }: { className?: string }) {
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
+          {/* Creating is the common errand and gets its own row: reaching it
+              through "Manage workspaces…" made it three taps on a phone, where
+              this picker is the primary navigation gesture. */}
+          <DropdownMenuItem onClick={() => setCreating(true)}>
+            <Plus className="size-4" /> New workspace
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setManage("")}>
             <Settings2 className="size-4" /> Manage workspaces…
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       {manage !== null && <WorkspaceDialog open onOpenChange={(o) => !o && setManage(null)} />}
+      {creating && <WorkspaceDialog open createFirst onOpenChange={(o) => !o && setCreating(false)} />}
     </>
   );
 }

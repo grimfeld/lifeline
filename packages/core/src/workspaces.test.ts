@@ -48,3 +48,29 @@ describe("inScope", () => {
     expect(inScope({ workspace: "w2" }, "w1")).toBe(false);
   });
 });
+
+
+describe("the fresh-account bootstrap", () => {
+  /**
+   * Regression, and the reason the guard is not a cursor. `pullCollection`
+   * writes `cursor:<name>` only when a pull actually returned a newer row:
+   *
+   *     if (maxUpdated !== cursor) await db()._meta.put({ key: cursorKey, ... })
+   *
+   * On a fresh account the server holds no workspaces, so `maxUpdated` and
+   * `cursor` are both "" on every cycle and the key is never written. A guard
+   * waiting on it waits forever, which left a fresh account with no Workspace,
+   * therefore no picker, therefore no way to make one — permanently, not just
+   * until the next sync.
+   */
+  it("cannot be gated on a per-collection cursor, which an empty collection never writes", () => {
+    const cursorAfterEmptyPull = (previous: string, rowsReturned: string[]) => {
+      const maxUpdated = rowsReturned.reduce((max, r) => (r > max ? r : max), previous);
+      return maxUpdated !== previous ? maxUpdated : previous;
+    };
+    // A collection the server has rows for advances, and would open such a gate.
+    expect(cursorAfterEmptyPull("", ["2026-09-07T00:00:00Z"])).not.toBe("");
+    // One it has no rows for never does, however many times it is pulled.
+    expect(cursorAfterEmptyPull("", [])).toBe("");
+  });
+});

@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, WORKSPACES, type SyncedRecord, type UserScreen } from "./data/db";
+import { WORKSPACES, type SyncedRecord, type UserScreen } from "./data/db";
 import { all, put } from "./data/repo";
+import { hasPulledOnce } from "./data/sync";
 import { newId } from "./ids";
 import { MODULES } from "./manifest";
 
@@ -157,10 +158,28 @@ export async function createWorkspace(name: string, modules: string[], separated
  * or a device that signs in before its first sync would make a second
  * "Personal" beside the one the server already has.
  */
-export async function ensureDefaultWorkspace(): Promise<void> {
+let ensuring: Promise<void> | null = null;
+
+export function ensureDefaultWorkspace(): Promise<void> {
+  // One at a time: the caller runs on render and on every sync tick, and two
+  // overlapping calls would both read zero and both create a "Personal".
+  ensuring ??= ensureOnce().finally(() => {
+    ensuring = null;
+  });
+  return ensuring;
+}
+
+async function ensureOnce(): Promise<void> {
   if ((await allWorkspaces()).length > 0) return;
-  const pulled = await db()._meta.get(`cursor:${WORKSPACES}`);
-  if (!pulled) return;
+  // Wait until the server has told us what it has, or a device signing in
+  // before its first sync makes a second "Personal" beside the migrated one.
+  //
+  // This asks `hasPulledOnce`, NOT the `workspaces` cursor. A per-collection
+  // cursor is only written when a pull actually returns rows, so on a fresh
+  // account — where the server has no workspaces at all — it stays empty
+  // forever and a guard on it never opens. That left a fresh account with no
+  // Workspace, and therefore no picker and no way to make one.
+  if (!(await hasPulledOnce())) return;
   await createWorkspace(
     "Personal",
     MODULES.map((m) => m.id),

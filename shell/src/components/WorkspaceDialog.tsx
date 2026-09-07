@@ -35,10 +35,19 @@ import { AlertTriangle, Lock, Plus, Trash2 } from "lucide-react";
  * in a docs page: turning it on starts the Workspace empty, because separation
  * is a sealed box and not an overlay.
  */
-export function WorkspaceDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+export function WorkspaceDialog({
+  open,
+  onOpenChange,
+  createFirst,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  /** Open straight on the form — "New workspace" from the picker, and the fresh-account case. */
+  createFirst?: boolean;
+}) {
   const workspaces = useWorkspaces();
   const current = useCurrentWorkspace();
-  const [editing, setEditing] = useState<WorkspaceRecord | "new" | null>(null);
+  const [editing, setEditing] = useState<WorkspaceRecord | "new" | null>(createFirst ? "new" : null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -46,7 +55,7 @@ export function WorkspaceDialog({ open, onOpenChange }: { open: boolean; onOpenC
         {editing ? (
           <WorkspaceForm
             workspace={editing === "new" ? undefined : editing}
-            onDone={() => setEditing(null)}
+            onDone={() => (createFirst ? onOpenChange(false) : setEditing(null))}
             canDelete={workspaces.length > 1}
           />
         ) : (

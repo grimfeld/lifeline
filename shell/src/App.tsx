@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router";
 import { Toaster } from "@lifeline/ui";
-import { backgroundApps, ensureDefaultWorkspace, frames, screenRoute, screensOf, useWorkspaceScreens, type AppManifest } from "@lifeline/core";
+import { backgroundApps, ensureDefaultWorkspace, frames, screenRoute, screensOf, useSyncState, useWorkspaceScreens, type AppManifest } from "@lifeline/core";
 import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
 import { PrivateDialogs } from "./vault/PrivateDialogs";
@@ -86,10 +86,13 @@ export default function App() {
   useFrameMemory();
   // A genuinely empty account makes its one Workspace here; an existing one was
   // given it by the server (PocketBase migration 1757400000), and this waits
-  // for that pull rather than racing it into a second "Personal" (ADR 0047).
+  // for the first full pull rather than racing it into a second "Personal"
+  // (ADR 0047). Keyed on the sync state so it runs again the moment that pull
+  // lands — nothing else re-renders when a cycle finishes.
+  const { state: syncState } = useSyncState();
   useEffect(() => {
     void ensureDefaultWorkspace();
-  });
+  }, [syncState]);
   return (
     <div className="bg-background text-foreground flex h-dvh flex-col overflow-hidden">
       {backgroundApps().map((a) => (
