@@ -34,11 +34,12 @@ const clipperDaylog: DaylogProvider = {
 /** The Clipper App (ADR 0019): owns `clipping` — text I paste from outside, kept with its source. Never fetches. */
 export const clipperApp: AppManifest = {
   id: APP_ID,
+  module: "notes",
   title: "Clipper",
   icon: Scissors,
   color: "var(--chart-orange)",
   types: [clippingType],
-  screens: [{ id: "clipper.main", title: "Clippings", path: "clippings", icon: Scissors, group: "study", component: ClipperScreen }],
+  screens: [{ id: "clipper.main", title: "Clippings", path: "clippings", icon: Scissors, component: ClipperScreen }],
   cards: [
     {
       id: "clipper.quick",
@@ -64,6 +65,6 @@ export const clipperApp: AppManifest = {
     { id: "clipper.go", title: "Go to Clippings", keywords: ["clipper"], icon: Scissors, run: ({ navigate }) => navigate(CLIPPINGS_HREF) },
   ],
   daylog: clipperDaylog,
-  // Intake (ADR 0046): a text handed over from another App — a kept mail — becomes a Clipping, reviewed first.
+  // Intake (ADR 0050): a text handed over from another App — a kept mail — becomes a Clipping, reviewed first.
   intakes: [{ id: "clipping", title: "Clipping", icon: Scissors, dialog: ClipDialog }],
 };

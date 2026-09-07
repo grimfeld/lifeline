@@ -5,6 +5,7 @@ import { pb } from "./data/pb";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
 import { extractLinks, isImageEmbed, normalizeName, renameLinks } from "./markdown";
+import { workspaceScope } from "./workspaces";
 import { allDocuments, putDocument } from "./documents/store";
 import { privateGate } from "./private";
 import type { Document } from "./documents/types";
@@ -22,6 +23,14 @@ export interface Attachment extends SyncedRecord {
   size: number;
   /** The server's filename once uploaded (PocketBase renames on store); absent until the push lands. */
   file?: string;
+  /**
+   * Separation (ADR 0048): an Attachment follows the Document that embeds it,
+   * so it carries the same scope — "" for shared, else the holding Workspace.
+   * Without this the partition leaks: bodies embed by *name*, names are unique
+   * per Account, so a held note would resolve `![[photo.png]]` to another
+   * Workspace's image straight through a boundary declared sealed.
+   */
+  workspace?: string;
 }
 
 export interface BlobRow {
@@ -104,6 +113,14 @@ export function orphanedAmong(attachments: readonly Attachment[], docs: readonly
 // --- store ---------------------------------------------------------------------
 
 export async function allAttachments(): Promise<Attachment[]> {
+  const scope = await workspaceScope();
+  return (await db().collection<Attachment>(ATTACHMENTS).where("deleted").equals(0).toArray()).filter(
+    (a) => (a.workspace ?? "") === scope,
+  );
+}
+
+/** Every Attachment whatever its Workspace — for name uniqueness and blob pruning only. */
+export async function allAttachmentsUnscoped(): Promise<Attachment[]> {
   return db().collection<Attachment>(ATTACHMENTS).where("deleted").equals(0).toArray();
 }
 
@@ -163,12 +180,14 @@ export async function addAttachment(file: Blob & { name?: string }): Promise<Att
   const { blob, mime } = await prepareImage(file);
   if (blob.size > MAX_ATTACHMENT_BYTES) throw new Error(`Image is too big (${Math.round(blob.size / 1048576)} MB; the limit is 20 MB)`);
   if (!EXT_BY_MIME[mime]) throw new Error(`Unsupported image type: ${mime || "unknown"}`);
+  // Names stay unique across the Account, not just this Workspace: the server
+  // enforces that, and a name colliding across a boundary would break on push.
   const existing = await db().collection<Attachment>(ATTACHMENTS).toArray();
   const taken = new Set(existing.map((a) => normalizeName(a.name)));
   const name = attachmentName(file.name, extensionFor(mime), (n) => taken.has(normalizeName(n)));
   const id = newId();
   await blobs().put({ id, blob });
-  const rec = { id, name, mime, size: blob.size };
+  const rec = { id, name, mime, size: blob.size, workspace: await workspaceScope() };
   await put<Attachment>(ATTACHMENTS, rec);
   return { ...rec, updatedAt: new Date().toISOString(), deleted: 0 };
 }
@@ -236,7 +255,9 @@ export async function renameAttachment(att: Attachment, newName: string): Promis
   const oldExt = /\.([A-Za-z0-9]+)$/.exec(att.name)?.[1];
   if (oldExt && !/\.[A-Za-z0-9]+$/.test(name)) name = `${name}.${oldExt}`;
   if (name === att.name) return;
-  const all = await allAttachments();
+  // Unscoped: names are unique per Account on the server, so a rename that only
+  // avoided this Workspace's names would be accepted here and rejected on push.
+  const all = await allAttachmentsUnscoped();
   if (all.some((a) => a.id !== att.id && normalizeName(a.name) === normalizeName(name))) throw new Error(`“${name}” is already taken`);
   await put<Attachment>(ATTACHMENTS, { ...att, name });
   for (const d of await allDocuments()) {
@@ -261,7 +282,10 @@ export async function deleteAttachment(id: string): Promise<void> {
 
 /** Drop cached bytes whose record is gone or tombstoned (another device's clean-up). Never touches one still queued for push. */
 export async function pruneAttachmentBlobs(): Promise<void> {
-  const live = new Set((await allAttachments()).map((a) => a.id));
+  // Unscoped, deliberately: the blob table is one store for the whole Account,
+  // and pruning against this Workspace's Attachments alone would delete the
+  // bytes of every other Workspace's.
+  const live = new Set((await allAttachmentsUnscoped()).map((a) => a.id));
   const queued = new Set((await db()._outbox.where("collection").equals(ATTACHMENTS).toArray()).map((e) => e.recordId));
   for (const r of await blobs().toArray()) if (!live.has(r.id) && !queued.has(r.id)) await dropAttachmentBlob(r.id);
 }

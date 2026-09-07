@@ -19,6 +19,7 @@ onRecordCreateRequest(
   "views",
   "document_types",
   "attachments",
+  "workspaces",
 );
 
 onRecordUpdateRequest(
@@ -32,4 +33,5 @@ onRecordUpdateRequest(
   "views",
   "document_types",
   "attachments",
+  "workspaces",
 );

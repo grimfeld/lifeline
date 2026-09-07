@@ -107,6 +107,7 @@ const blockerTemplateType: DocumentTypeDef = {
 /** The Calendar App owns Events (CONTEXT.md). The month/week grids are Core Surfaces. */
 export const calendarApp: AppManifest = {
   id: APP_ID,
+  module: "schedules",
   title: "Calendar",
   icon: CalendarClock,
   color: "var(--chart-violet)",
@@ -117,7 +118,6 @@ export const calendarApp: AppManifest = {
       title: "Events",
       path: "events",
       icon: CalendarClock,
-      group: "planning",
       component: EventsScreen,
     },
   ],
@@ -157,7 +157,7 @@ export const calendarApp: AppManifest = {
   useCommands: useTemplateCommands,
   timed: calendarTimed,
   daylog: calendarDaylog,
-  // Intake (ADR 0046): something handed over from another App — a mail — becomes an Event; the day and time are asked here.
+  // Intake (ADR 0050): something handed over from another App — a mail — becomes an Event; the day and time are asked here.
   intakes: [{ id: "event", title: "Event", icon: CalendarClock, dialog: EventDialog }],
 };
 

@@ -19,11 +19,12 @@ import { playlistTypeDef, settingsTypeDef, workTypeDefs } from "./types";
 /** Cinema App (ADR 0024): movies and series — streamed, never owned. */
 export const cinemaApp: AppManifest = {
   id: "cinema",
+  module: "culture",
   title: "Cinema",
   icon: Clapperboard,
   color: "var(--chart-red)",
   types: [...workTypeDefs, playlistTypeDef, settingsTypeDef],
-  screens: [{ id: "cinema.main", title: "Cinema", path: "cinema", icon: Clapperboard, group: "culture", component: CinemaScreen }],
+  screens: [{ id: "cinema.main", title: "Cinema", path: "cinema", icon: Clapperboard, component: CinemaScreen }],
   cards: [
     {
       id: "cinema.in-progress",

@@ -14,11 +14,12 @@ import { quoteTypeDef } from "./types";
 /** Quotes App (ADR 0024, born as the Commonplace book): passages from a work of any family. The id stays `commonplace` — card ids live in synced Screen layouts. */
 export const commonplaceApp: AppManifest = {
   id: "commonplace",
+  module: "notes",
   title: "Quotes",
   icon: NotebookPen,
   color: "var(--chart-orange)",
   types: [quoteTypeDef],
-  screens: [{ id: "commonplace.main", title: "Quotes", path: "quotes", icon: NotebookPen, group: "study", component: CommonplaceScreen }],
+  screens: [{ id: "commonplace.main", title: "Quotes", path: "quotes", icon: NotebookPen, component: CommonplaceScreen }],
   cards: [
     {
       id: "commonplace.quote-random",

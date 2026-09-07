@@ -1,7 +1,7 @@
 import type { Document, SyncedRecord } from "@lifeline/core";
 
 export const APP_ID = "mail";
-/** The one Document type Mail owns (ADR 0047). */
+/** The one Document type Mail owns (ADR 0051). */
 export const MAILBOX = "mailbox";
 /** Local-only (never synced) cache of Threads, Messages and Labels read from Gmail. */
 export const MAIL_CACHE = "_mail_cache";

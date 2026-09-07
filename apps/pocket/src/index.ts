@@ -66,11 +66,12 @@ const spendType: DocumentTypeDef = {
 /** Pocket App (ADR 0037): the month in hand — Allowances and Spends, beliefs kept apart from the Ledger's facts. */
 export const pocketApp: AppManifest = {
   id: APP_ID,
+  module: "money",
   title: "Pocket",
   icon: HandCoins,
   color: "var(--chart-orange)",
   types: [allowanceType, spendType],
-  screens: [{ id: "pocket.home", title: "Pocket", path: "pocket", icon: HandCoins, group: "money", component: PocketScreen }],
+  screens: [{ id: "pocket.home", title: "Pocket", path: "pocket", icon: HandCoins, component: PocketScreen }],
   cards: [
     {
       id: "pocket.allowances",

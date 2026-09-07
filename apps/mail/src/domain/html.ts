@@ -1,7 +1,7 @@
 import DOMPurify from "dompurify";
 
 /**
- * A Message's HTML made safe for the reading frame (ADR 0047): scripts,
+ * A Message's HTML made safe for the reading frame (ADR 0051): scripts,
  * forms and event handlers stripped; every link opens outside the frame.
  * Remote images are not removed here — the frame's CSP blocks them until
  * the reader asks (`allowImages`), so a newsletter's tracking pixels never

@@ -29,7 +29,7 @@ export function EventDialog({
   /** Present = edit mode. */
   event?: Event;
   defaultDate?: DateStr;
-  /** Create mode, Intake (ADR 0046): the title and the origin; the day and time are asked here. */
+  /** Create mode, Intake (ADR 0050): the title and the origin; the day and time are asked here. */
   handoff?: Handoff;
 }) {
   const [title, setTitle] = useState("");

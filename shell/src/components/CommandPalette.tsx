@@ -9,16 +9,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@lifeline/ui";
-import {
-  useAllCommands,
-  appById,
-  db,
-  registeredApps,
-  screenRoute,
-  useLiveQuery,
-  type CommandDef,
-  type UserScreen,
-} from "@lifeline/core";
+import { appById, registeredApps, screenRoute, useAllCommands, useWorkspaceScreens, type CommandDef } from "@lifeline/core";
 import { CalendarDays, Clock, Columns3, LayoutDashboard, MapPin, Terminal } from "lucide-react";
 
 type DialogCommand = CommandDef & { appId: string };
@@ -28,11 +19,7 @@ export function CommandPalette() {
   const [activeDialog, setActiveDialog] = useState<DialogCommand | null>(null);
   const navigate = useNavigate();
 
-  const screens = useLiveQuery(
-    () => db().collection<UserScreen>("screens").where("deleted").equals(0).sortBy("sort"),
-    [],
-    [] as UserScreen[],
-  );
+  const screens = useWorkspaceScreens();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

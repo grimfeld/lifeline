@@ -18,11 +18,12 @@ import { settingsTypeDef, workTypeDefs } from "./types";
 /** Arcade App (ADR 0024): games — bought, played, finished. No slots, no medium knob. */
 export const arcadeApp: AppManifest = {
   id: "arcade",
+  module: "culture",
   title: "Arcade",
   icon: Gamepad2,
   color: "var(--chart-green)",
   types: [...workTypeDefs, settingsTypeDef],
-  screens: [{ id: "arcade.main", title: "Arcade", path: "arcade", icon: Gamepad2, group: "culture", component: ArcadeScreen }],
+  screens: [{ id: "arcade.main", title: "Arcade", path: "arcade", icon: Gamepad2, component: ArcadeScreen }],
   cards: [
     {
       id: "arcade.shopping",

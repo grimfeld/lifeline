@@ -1,4 +1,4 @@
-import { VAULT_WORKSPACE, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
+import { VAULT_FRAME, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
 import { BookMarked, BookOpen, Lightbulb, Quote, ScrollText, Users } from "lucide-react";
 import { BibleDeskScreen } from "./screens/BibleDeskScreen";
 import { BibleScreen } from "./screens/BibleScreen";
@@ -101,13 +101,14 @@ const conceptType: DocumentTypeDef = {
 /** Bible App (ADR 0032): a lens over the study — owns the references, scopes the material. */
 export const bibleApp: AppManifest = {
   id: APP_ID,
+  module: "notes",
   title: "Bible study",
   icon: BookOpen,
   color: "var(--chart-aqua)",
   types: [bookType, chapterType, verseType, characterType, conceptType],
   screens: [
-    { id: "bible.desk", title: "Bible study", path: "bible", icon: BookOpen, component: BibleDeskScreen, workspace: VAULT_WORKSPACE },
-    { id: "bible.phone", title: "Bible quick", path: "bible", icon: BookOpen, group: "study", component: BibleScreen },
+    { id: "bible.desk", title: "Bible study", path: "bible", icon: BookOpen, component: BibleDeskScreen, frame: VAULT_FRAME },
+    { id: "bible.phone", title: "Bible quick", path: "bible", icon: BookOpen, component: BibleScreen },
   ],
   cards: [
     {

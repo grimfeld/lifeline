@@ -42,7 +42,7 @@ export function tidy(md: string): string {
     .trim();
 }
 
-/** What Mail hands to an Intake (ADR 0046): subject as title, the body as markdown, the Gmail link as origin, the sender as author. */
+/** What Mail hands to an Intake (ADR 0050): subject as title, the body as markdown, the Gmail link as origin, the sender as author. */
 export function handoffOf(m: Message, address: string): Handoff {
   return {
     title: m.subject || "(no subject)",

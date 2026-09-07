@@ -1,4 +1,4 @@
-import { DASHBOARD_WORKSPACE, NAV_GROUPS, type AppManifest, type AppScreenDef, type CardDef, type CommandDef, type DocumentPanelDef, type NavGroupDef, type WorkspaceDef } from "./manifest";
+import { DASHBOARD_FRAME, MODULES, type AppManifest, type AppScreenDef, type CardDef, type CommandDef, type DocumentPanelDef, type ModuleDef, type FrameDef } from "./manifest";
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
@@ -119,50 +119,77 @@ export function normalizeLayout(items: ScreenLayoutItem[]): ScreenLayoutItem[] {
   }));
 }
 
-/** Workspaces provided by Apps (the dashboard is Core's own and not listed here). */
-export function workspaces(): (WorkspaceDef & { appId: string })[] {
-  return apps.flatMap((a) => (a.workspace ? [{ ...a.workspace, appId: a.id }] : []));
+/** Frames provided by Apps (the dashboard is Core's own and not listed here). */
+export function frames(): (FrameDef & { appId: string })[] {
+  return apps.flatMap((a) => (a.frame ? [{ ...a.frame, appId: a.id }] : []));
 }
 
-export function workspaceById(id: string): (WorkspaceDef & { appId: string }) | undefined {
-  return workspaces().find((w) => w.id === id);
+export function frameById(id: string): (FrameDef & { appId: string }) | undefined {
+  return frames().find((w) => w.id === id);
 }
 
-/** Screens of one workspace, with their owning App id. */
-export function screensOf(workspace: string = DASHBOARD_WORKSPACE): (AppScreenDef & { appId: string })[] {
-  return apps.flatMap((a) => a.screens.filter((s) => (s.workspace ?? DASHBOARD_WORKSPACE) === workspace).map((s) => ({ ...s, appId: a.id })));
+/** Screens of one frame, with their owning App id. */
+export function screensOf(frame: string = DASHBOARD_FRAME): (AppScreenDef & { appId: string })[] {
+  return apps.flatMap((a) => a.screens.filter((s) => (s.frame ?? DASHBOARD_FRAME) === frame).map((s) => ({ ...s, appId: a.id })));
 }
 
-/** One shelf of the sidebar: a Nav group and its screens, or the loose screens that name none. */
+/** The Module an App belongs to, or undefined when it names none or an unknown one. */
+export function moduleOfApp(appId: string): ModuleDef | undefined {
+  const m = appById(appId)?.module;
+  return m ? MODULES.find((x) => x.id === m) : undefined;
+}
+
+/** Apps belonging to one Module, in registry order. */
+export function appsOfModule(moduleId: string): AppManifest[] {
+  return apps.filter((a) => a.module === moduleId);
+}
+
+/** Modules that actually have an App behind them — Core's list minus the empty shelves. */
+export function inhabitedModules(): ModuleDef[] {
+  return MODULES.filter((m) => apps.some((a) => a.module === m.id));
+}
+
+/** One shelf of the sidebar: a Module and its screens, or the loose screens whose Apps name none. */
 export interface NavSection {
-  group?: NavGroupDef;
+  group?: ModuleDef;
   screens: (AppScreenDef & { appId: string })[];
 }
 
 /**
- * The listed screens of a workspace, folded into Core's Nav groups: the loose
- * ones first (a screen naming no group, or an unknown one, stays a top-level
- * row), then each non-empty group in NAV_GROUPS order.
+ * The listed screens of a frame, folded into Core's Modules (ADR 0047): the
+ * loose ones first (a screen whose App names no Module, or an unknown one,
+ * stays a top-level row), then each non-empty Module in MODULES order.
+ *
+ * `modules` restricts the shelves to a Workspace's own — a Module gates chrome
+ * and this is the chrome it gates. Loose screens are never restricted: an App
+ * that names no Module belongs to no Workspace's exclusion either.
  */
-export function navSectionsOf(workspace: string = DASHBOARD_WORKSPACE): NavSection[] {
-  const listed = screensOf(workspace).filter((s) => !s.hidden);
-  const known = new Set(NAV_GROUPS.map((g) => g.id));
-  const loose = listed.filter((s) => !s.group || !known.has(s.group));
-  const groups = NAV_GROUPS.map((group) => ({ group, screens: listed.filter((s) => s.group === group.id) })).filter((s) => s.screens.length > 0);
+export function navSectionsOf(frame: string = DASHBOARD_FRAME, modules?: string[]): NavSection[] {
+  const listed = screensOf(frame).filter((s) => !s.hidden);
+  const known = new Set(MODULES.map((g) => g.id));
+  const moduleOf = (s: AppScreenDef & { appId: string }) => appById(s.appId)?.module;
+  const loose = listed.filter((s) => {
+    const m = moduleOf(s);
+    return !m || !known.has(m);
+  });
+  const wanted = modules ? MODULES.filter((m) => modules.includes(m.id)) : MODULES;
+  const groups = wanted
+    .map((group) => ({ group, screens: listed.filter((s) => moduleOf(s) === group.id) }))
+    .filter((s) => s.screens.length > 0);
   return loose.length > 0 ? [{ screens: loose }, ...groups] : groups;
 }
 
-/** Absolute route of a screen: /app/<path> in the dashboard, <workspace.path>/<path> elsewhere. */
+/** Absolute route of a screen: /app/<path> in the dashboard, <frame.path>/<path> elsewhere. */
 export function screenRoute(s: AppScreenDef): string {
-  const ws = s.workspace ?? DASHBOARD_WORKSPACE;
-  if (ws === DASHBOARD_WORKSPACE) return `/app/${s.path}`;
-  const w = workspaceById(ws);
+  const ws = s.frame ?? DASHBOARD_FRAME;
+  if (ws === DASHBOARD_FRAME) return `/app/${s.path}`;
+  const w = frameById(ws);
   const base = w?.path ?? `/${ws}`;
   return s.path ? `${base}/${s.path}` : base;
 }
 
-/** Which workspace a pathname belongs to. */
-export function workspaceOfPath(pathname: string): string {
-  const w = workspaces().find((w) => pathname === w.path || pathname.startsWith(w.path + "/"));
-  return w?.id ?? DASHBOARD_WORKSPACE;
+/** Which frame a pathname belongs to. */
+export function frameOfPath(pathname: string): string {
+  const w = frames().find((w) => pathname === w.path || pathname.startsWith(w.path + "/"));
+  return w?.id ?? DASHBOARD_FRAME;
 }
