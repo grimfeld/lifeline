@@ -415,7 +415,7 @@ Which content a Document is. **Shared** (the default, the field empty) means eve
 _Avoid_: private, owned (an Account owns), scoped, global (say shared)
 
 ### Frame
-Which of the two chromes is wrapped around the content, chosen by URL: the **Vault** and the **Dashboard**. The split is what you *do*, not what you see — the Vault is where content is written freely, the Dashboard is where data is read and changed through defined operations. Core owns the switcher; an App declares which Frame its screens live in. Two ways of working over one dataset, not two apps. Orthogonal to the Workspace: the Frame is a fact about how you are working right now, the Workspace about what you are working on.
+Which of the two chromes is wrapped around the content, chosen by URL: the **Vault** and the **Dashboard**. The split is what you *do*, not what you see — the Vault is where content is written freely, the Dashboard is where data is read and changed through defined operations. Core owns the switcher; an App declares which Frame its screens live in. Two ways of working over one dataset, not two apps. The switcher sits beside the Workspace's — under the Workspace picker at the top of the desktop sidebar, and in the phone's header — never in a phone bar slot, whose middle is the Modules'. Orthogonal to the Workspace: the Frame is a fact about how you are working right now, the Workspace about what you are working on.
 _Avoid_: workspace (the old name of this axis, now the user-created container), mode, full-screen app, view, chrome (what a Frame is made of, not the word for one), "Notes workspace" (old name of the Vault)
 
 ### Attachment
