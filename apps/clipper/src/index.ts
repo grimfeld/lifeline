@@ -34,11 +34,12 @@ const clipperDaylog: DaylogProvider = {
 /** The Clipper App (ADR 0019): owns `clipping` — text I paste from outside, kept with its source. Never fetches. */
 export const clipperApp: AppManifest = {
   id: APP_ID,
+  module: "notes",
   title: "Clipper",
   icon: Scissors,
   color: "var(--chart-orange)",
   types: [clippingType],
-  screens: [{ id: "clipper.main", title: "Clippings", path: "clippings", icon: Scissors, group: "study", component: ClipperScreen }],
+  screens: [{ id: "clipper.main", title: "Clippings", path: "clippings", icon: Scissors, component: ClipperScreen }],
   cards: [
     {
       id: "clipper.quick",

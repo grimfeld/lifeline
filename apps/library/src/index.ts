@@ -22,11 +22,12 @@ import { settingsTypeDef, workTypeDefs } from "./types";
 /** Library App (ADR 0024): the reading family — books and comics, Nightstand and all. */
 export const libraryApp: AppManifest = {
   id: "library",
+  module: "culture",
   title: "Library",
   icon: LibraryIcon,
   color: "var(--chart-magenta)",
   types: [...workTypeDefs, settingsTypeDef],
-  screens: [{ id: "library.main", title: "Library", path: "library", icon: LibraryIcon, group: "culture", component: LibraryScreen }],
+  screens: [{ id: "library.main", title: "Library", path: "library", icon: LibraryIcon, component: LibraryScreen }],
   cards: [
     {
       id: "library.nightstand",

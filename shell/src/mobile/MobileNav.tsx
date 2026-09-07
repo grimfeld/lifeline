@@ -6,18 +6,18 @@ import {
   useIsMobile,
   useKeyboardInset,
   setPhoneNavHeight,
-  workspaceOfPath,
-  workspaces,
-  DASHBOARD_WORKSPACE,
-  VAULT_WORKSPACE,
+  frameOfPath,
+  frames,
+  DASHBOARD_FRAME,
+  VAULT_FRAME,
   type CommandDef,
 } from "@lifeline/core";
 import { CalendarDays, LayoutDashboard, Menu, NotebookText, Plus } from "lucide-react";
 import { Sidebar } from "../components/Sidebar";
 import { SyncBadge } from "../components/SyncBadge";
-import { WorkspaceSwitcher } from "../components/WorkspaceSwitcher";
+import { FrameSwitcher } from "../components/FrameSwitcher";
 import { usePhoneHome } from "./phoneHome";
-import { lastLocation } from "../components/WorkspaceSwitcher";
+import { lastLocation } from "../components/FrameSwitcher";
 import { useTabHref, useVaultTabMemory, VAULT_TABS, type VaultTab } from "./vaultTabs";
 
 type DialogCommand = CommandDef & { appId: string };
@@ -28,7 +28,7 @@ function slot(active: boolean) {
 }
 
 /**
- * The phone frame's bottom bar. One bar per Workspace (ADR 0021, amended
+ * The phone frame's bottom bar. One bar per Frame (ADR 0021, amended
  * 2026-09-05), because the two are used for different things (ADR 0045) and one
  * bar served neither: `Journal` — a Vault screen — sat in a bar that was
  * otherwise Dashboard furniture, while the folders one actually writes in were
@@ -38,7 +38,7 @@ function slot(active: boolean) {
  *   Vault · "+" capture sheet listing the Apps' capture commands.
  * - **Vault:** ☰ · Notes · Clippings · Writings · Dashboard.
  *
- * The crossing is a slot in each, so the Workspace switcher is no longer
+ * The crossing is a slot in each, so the Frame switcher is no longer
  * drawer-only. Rendered below `md` only.
  */
 export function MobileNav() {
@@ -63,13 +63,13 @@ export function MobileNav() {
   const homeActive = location.pathname === homeHref || location.pathname === "/phone";
   const journalActive = location.pathname === "/vault/journal";
 
-  const wsId = workspaceOfPath(location.pathname);
-  const inVault = wsId === VAULT_WORKSPACE;
+  const wsId = frameOfPath(location.pathname);
+  const inVault = wsId === VAULT_FRAME;
   // Which Document is open decides the active Vault tab, so the memory has to
   // be read here rather than inside each tab button.
   const activeTab = useVaultTabMemory();
-  const ws = workspaces().find((w) => w.id === wsId);
-  const WorkspaceSidebar = wsId !== DASHBOARD_WORKSPACE ? ws?.sidebar : undefined;
+  const ws = frames().find((w) => w.id === wsId);
+  const FrameSidebar = wsId !== DASHBOARD_FRAME ? ws?.sidebar : undefined;
 
   // Whatever the nav actually measures — its safe-area padding included, and 0
   // once `md:hidden` takes it out — is what the editor's accessory bar stacks on
@@ -87,7 +87,7 @@ export function MobileNav() {
     };
   }, []);
 
-  // Any tap that navigates closes the drawer. A workspace sidebar is not made of
+  // Any tap that navigates closes the drawer. A frame sidebar is not made of
   // links — the Vault's tree, search hits and tags are buttons that navigate — so
   // watching the location is the only signal that covers all of them.
   useEffect(() => {
@@ -119,7 +119,7 @@ export function MobileNav() {
               <VaultTabButton key={t.id} tab={t} active={t.id === activeTab?.id} />
             ))}
             {/* The crossing back, landing where the Dashboard was left (ADR 0012's memory). */}
-            <button className={slot(false)} onClick={() => navigate(lastLocation(DASHBOARD_WORKSPACE))}>
+            <button className={slot(false)} onClick={() => navigate(lastLocation(DASHBOARD_FRAME))}>
               <LayoutDashboard className="size-5" /> Dashboard
             </button>
           </>
@@ -133,7 +133,7 @@ export function MobileNav() {
             <button className={slot(journalActive)} onClick={() => navigate("/vault/journal")}>
               <CalendarDays className="size-5" /> Journal
             </button>
-            <button className={slot(false)} onClick={() => navigate(lastLocation(VAULT_WORKSPACE))}>
+            <button className={slot(false)} onClick={() => navigate(lastLocation(VAULT_FRAME))}>
               <NotebookText className="size-5" /> Vault
             </button>
             <button className={slot(false)} onClick={() => setCaptureOpen(true)}>
@@ -143,16 +143,16 @@ export function MobileNav() {
         )}
       </nav>
 
-      {/* ☰ drawer: the current workspace's sidebar, off-canvas — the whole desktop frame,
-          switcher and sync included, or the phone would be stuck in the workspace it is in. */}
+      {/* ☰ drawer: the current frame's sidebar, off-canvas — the whole desktop frame,
+          switcher and sync included, or the phone would be stuck in the frame it is in. */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent side="left" aria-describedby={undefined} className="overflow-hidden p-0">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          {WorkspaceSidebar ? (
+          {FrameSidebar ? (
             <div className="bg-sidebar text-sidebar-foreground flex min-h-0 flex-1 flex-col">
-              <WorkspaceSwitcher />
+              <FrameSwitcher />
               <div className="flex min-h-0 flex-1 flex-col">
-                <WorkspaceSidebar />
+                <FrameSidebar />
               </div>
               <div className="border-t p-2">
                 <SyncBadge />

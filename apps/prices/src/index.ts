@@ -93,12 +93,13 @@ const lineType: DocumentTypeDef = {
 /** Prices App (ADR 0045): what regular purchases cost, where, and over time — apart from the Ledger's bank facts and Pantry's stock. */
 export const pricesApp: AppManifest = {
   id: APP_ID,
+  module: "money",
   title: "Prices",
   icon: Tag,
   color: PRICES_COLOR,
   types: [productType, shopType, receiptType, lineType],
   screens: [
-    { id: "prices.home", title: "Prices", path: "prices", icon: Tag, group: "money", component: PricesScreen },
+    { id: "prices.home", title: "Prices", path: "prices", icon: Tag, component: PricesScreen },
     { id: "prices.product", title: "Product", path: "prices/p/:id", component: ProductScreen, hidden: true },
   ],
   cards: [

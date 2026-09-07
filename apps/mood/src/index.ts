@@ -10,11 +10,12 @@ import { moodDaylog } from "./daylog";
 /** Mood App (ADR 0044): how each day felt, one Mood per day, drawn as a grid. */
 export const moodApp: AppManifest = {
   id: "mood",
+  module: "progress",
   title: "Mood",
   icon: Smile,
   color: "var(--chart-magenta)",
   types: moodTypeDefs,
-  screens: [{ id: "mood.main", title: "Mood", path: "mood", icon: Smile, group: "progress", component: MoodScreen }],
+  screens: [{ id: "mood.main", title: "Mood", path: "mood", icon: Smile, component: MoodScreen }],
   cards: [
     {
       id: "mood.today",

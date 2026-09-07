@@ -30,7 +30,7 @@ import {
 import { CalendarDays, ChevronRight, Clock, Columns3, EyeOff, LayoutDashboard, MapPin, Plus, Settings2, Smartphone, Sparkles, Table2, Waypoints } from "lucide-react";
 import { SyncBadge } from "./SyncBadge";
 import { setPhoneHome } from "../mobile/phoneHome";
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { FrameSwitcher } from "./FrameSwitcher";
 import { useCollapsedSections, useHiddenBases, useOpenGroups } from "./sidebarPrefs";
 
 function navClass({ isActive }: { isActive: boolean }) {
@@ -141,7 +141,7 @@ export function Sidebar({ className }: { className?: string } = {}) {
         <Sparkles className="text-primary size-5" />
         <span className="text-base font-semibold tracking-tight">Lifeline</span>
       </div>
-      <WorkspaceSwitcher />
+      <FrameSwitcher />
       <Separator className="mt-2" />
 
       <nav className="flex-1 space-y-4 overflow-y-auto p-2">

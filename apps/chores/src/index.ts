@@ -59,6 +59,7 @@ export function choreScheduleLabel(chore: Chore): string {
 
 export const choresApp: AppManifest = {
   id: APP_ID,
+  module: "house",
   title: "Chores",
   icon: ClipboardList,
   color: "var(--chart-aqua)",
@@ -69,7 +70,6 @@ export const choresApp: AppManifest = {
       title: "Chores",
       path: "chores",
       icon: ClipboardList,
-      group: "home",
       component: ChoresScreen,
     },
   ],

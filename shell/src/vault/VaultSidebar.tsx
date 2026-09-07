@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, cn } from "@lifeline/ui";
 import { CalendarDays, FolderTree, Hash, Plus, Search, Settings2 } from "lucide-react";
-import { screensOf, singularOf, VAULT_WORKSPACE } from "@lifeline/core";
+import { screensOf, singularOf, VAULT_FRAME } from "@lifeline/core";
 import { FileTree } from "./FileTree";
 import { SearchPane } from "./SearchPane";
 import { TagsPane } from "./TagsPane";
@@ -46,7 +46,7 @@ export function VaultSidebar() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        {screensOf(VAULT_WORKSPACE)
+        {screensOf(VAULT_FRAME)
           .filter((s) => !s.hidden)
           .map((s) => {
             const I = s.icon ?? CalendarDays;
