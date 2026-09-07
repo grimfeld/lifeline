@@ -215,18 +215,29 @@ async function pullCollection(name: string): Promise<void> {
   if (maxUpdated !== cursor) {
     await db()._meta.put({ key: cursorKey, value: maxUpdated });
   }
+  // "This collection has been pulled at least once" — written whether or not
+  // anything came back, which the cursor above cannot say: it only advances
+  // when a row arrives, so a collection the server has no rows for never
+  // writes one. Anything waiting for "the server has told us what it has"
+  // waits on this (see ensureDefaultWorkspace).
+  await db()._meta.put({ key: pulledKey(name), value: "1" });
 }
 
-const PULLED_ONCE_KEY = "sync:pulledOnce";
+const pulledKey = (name: string) => `pulled:${name}`;
 
 /**
- * Whether a full pull cycle has completed on this device — the honest "we know
- * what the server has" signal. Signed out, it is vacuously true: no sync is
- * coming, so nothing should wait for one.
+ * Whether one collection has been pulled at least once on this device — the
+ * honest "we know what the server has" signal for that collection.
+ *
+ * Per collection, deliberately, and not "a whole cycle came back clean": a
+ * cycle-level flag is blocked by *any* failing collection, so one collection
+ * awaiting a migration would stall unrelated work that only needs its own.
+ *
+ * Signed out it is vacuously true: no sync is coming, so nothing should wait.
  */
-export async function hasPulledOnce(): Promise<boolean> {
+export async function hasPulledOnce(collection: string): Promise<boolean> {
   if (!pb.authStore.isValid) return true;
-  return !!(await db()._meta.get(PULLED_ONCE_KEY));
+  return !!(await db()._meta.get(pulledKey(collection)));
 }
 
 let syncing = false;
@@ -275,15 +286,7 @@ export async function syncNow(): Promise<void> {
     if (problems.length) {
       console.warn("[sync]", problems.join("; "));
       setState(navigator.onLine ? "error" : "offline");
-    } else {
-      // A clean cycle means every collection has been pulled at least once —
-      // including the ones the server has no rows for, which a per-collection
-      // cursor cannot say, since it is only written when something came back.
-      // Anything that must wait for "the server has told us what it has" waits
-      // on this and not on a cursor (see ensureDefaultWorkspace).
-      await db()._meta.put({ key: PULLED_ONCE_KEY, value: new Date().toISOString() });
-      setState("idle");
-    }
+    } else setState("idle");
   } catch {
     setState(navigator.onLine ? "error" : "offline");
   } finally {

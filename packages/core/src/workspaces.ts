@@ -174,12 +174,12 @@ async function ensureOnce(): Promise<void> {
   // Wait until the server has told us what it has, or a device signing in
   // before its first sync makes a second "Personal" beside the migrated one.
   //
-  // This asks `hasPulledOnce`, NOT the `workspaces` cursor. A per-collection
-  // cursor is only written when a pull actually returns rows, so on a fresh
-  // account — where the server has no workspaces at all — it stays empty
-  // forever and a guard on it never opens. That left a fresh account with no
-  // Workspace, and therefore no picker and no way to make one.
-  if (!(await hasPulledOnce())) return;
+  // This asks `hasPulledOnce`, NOT the `workspaces` cursor. A cursor is only
+  // written when a pull actually returns rows, so on a fresh account — where
+  // the server has no workspaces at all — it stays empty forever and a guard on
+  // it never opens. That left a fresh account with no Workspace, and therefore
+  // no picker and no way to make one.
+  if (!(await hasPulledOnce(WORKSPACES))) return;
   await createWorkspace(
     "Personal",
     MODULES.map((m) => m.id),
