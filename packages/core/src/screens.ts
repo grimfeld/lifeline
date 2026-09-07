@@ -5,7 +5,10 @@
  * the desktop drags around.
  */
 
-import type { ScreenLayoutItem } from "./data/db";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db, type ScreenLayoutItem, type UserScreen } from "./data/db";
+import { put } from "./data/repo";
+import { allWorkspaces, currentWorkspace, currentWorkspaceId, useCurrentWorkspaceId } from "./workspaces";
 
 /** The one-column reading of a layout: rows top to bottom, left to right within a row. */
 export function stackOrder<T extends ScreenLayoutItem>(items: T[]): T[] {
@@ -31,4 +34,71 @@ export function moveStacked<T extends ScreenLayoutItem>(items: T[], instanceId: 
   // Slots stay where they are and the cards move between them — which also
   // settles the case coordinates alone cannot (two cards on the same slot).
   return swapped.map((l, i) => ({ ...l, x: order[i].x, y: order[i].y }));
+}
+
+
+export const SCREENS = "screens";
+
+/**
+ * Every Screen of one Workspace, in sort order (ADR 0047: a Screen belongs to
+ * the Workspace it was made in, separated or not — it is what gives an
+ * unseparated Workspace a face of its own when its Modules decide only the
+ * length of its sidebar).
+ *
+ * Rows written before Workspaces existed carry no `workspace`; they read as
+ * belonging to the default Workspace, so a device that has not yet pulled the
+ * server-side backfill still shows its Screens rather than an empty sidebar.
+ */
+export async function screensOfWorkspace(workspaceId?: string): Promise<UserScreen[]> {
+  const current = await currentWorkspace();
+  const id = workspaceId ?? current?.id ?? currentWorkspaceId();
+  const rows = await db().collection<UserScreen>(SCREENS).where("deleted").equals(0).sortBy("sort");
+  // An unstamped row belongs to the default Workspace — the first by sort, which
+  // is the one the server-side backfill will claim it for. Reading it that way
+  // means a device that has not pulled the backfill yet shows its Screens where
+  // they are about to land, rather than nowhere.
+  const isDefault = await isDefaultWorkspace(id);
+  return rows.filter((s) => (s.workspace ? s.workspace === id : isDefault));
+}
+
+/** Whether this is the Workspace unstamped rows fall to: the first by sort. */
+async function isDefaultWorkspace(id: string): Promise<boolean> {
+  const list = await allWorkspaces();
+  return list.length === 0 || list[0].id === id;
+}
+
+export function useWorkspaceScreens(): UserScreen[] {
+  const wsId = useCurrentWorkspaceId();
+  return useLiveQuery(() => screensOfWorkspace(), [wsId], [] as UserScreen[]);
+}
+
+/** The Screen this Workspace opens as Home on the phone, if one holds it. */
+export function usePhoneHomeScreen(): UserScreen | undefined {
+  return useWorkspaceScreens().find((s) => s.phoneHome);
+}
+
+/**
+ * Make `id` this Workspace's phone home, clearing the flag on its siblings.
+ * Uniqueness is **per Workspace** (ADR 0047), not global as it was: switching
+ * Workspace on the phone is meant to change what Home is.
+ */
+export async function setPhoneHome(id: string): Promise<void> {
+  for (const s of await screensOfWorkspace()) {
+    if (s.id === id && !s.phoneHome) await put<UserScreen>(SCREENS, { ...s, phoneHome: true });
+    else if (s.id !== id && s.phoneHome) await put<UserScreen>(SCREENS, { ...s, phoneHome: false });
+  }
+}
+
+/** The Screen claiming a Module in this Workspace — where that Module lands (ADR 0049, rule 1). */
+export function useModuleScreen(moduleId: string | undefined): UserScreen | undefined {
+  const screens = useWorkspaceScreens();
+  return moduleId ? screens.find((s) => s.module === moduleId) : undefined;
+}
+
+/** Claim a Module for a Screen, clearing the claim from whichever Screen held it here. */
+export async function claimModule(id: string, moduleId: string | undefined): Promise<void> {
+  for (const s of await screensOfWorkspace()) {
+    if (s.id === id && s.module !== moduleId) await put<UserScreen>(SCREENS, { ...s, module: moduleId });
+    else if (s.id !== id && moduleId && s.module === moduleId) await put<UserScreen>(SCREENS, { ...s, module: undefined });
+  }
 }
