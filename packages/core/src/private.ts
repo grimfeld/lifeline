@@ -7,6 +7,7 @@ import { docPath, isWithin } from "./folders";
 import { normalizeName } from "./markdown";
 import type { Document, DocumentTypeDef } from "./documents/types";
 import { isVaultType } from "./documents/registry";
+import { workspaceScope } from "./workspaces";
 
 /**
  * The Private folder (ADR 0038, CONTEXT.md "Private folder", "Locked /
@@ -248,7 +249,12 @@ const NO_REFS: PrivateLockedRefs = { names: new Set(), ids: new Set() };
 export async function privateLockedRefs(): Promise<PrivateLockedRefs> {
   const gate = await privateGate();
   if (!gate.locked) return NO_REFS;
-  const rows = await db().documents.where("folder").startsWith(PRIVATE_FOLDER).filter((r) => !r.deleted && inPrivateFolder(r.folder)).toArray();
+  // Scoped like every other read (ADR 0048): a link in this Workspace must not
+  // report another Workspace's private note as "locked" — outside its scope the
+  // target does not exist at all, which is a different answer.
+  const scope = await workspaceScope();
+  const rows = (await db().documents.where("folder").startsWith(PRIVATE_FOLDER).filter((r) => !r.deleted && inPrivateFolder(r.folder)).toArray())
+    .filter((r) => (r.workspace ?? "") === scope);
   const names = new Set<string>();
   const ids = new Set<string>();
   for (const r of rows) {

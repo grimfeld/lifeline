@@ -23,7 +23,7 @@ import {
   cn,
   toast,
 } from "@lifeline/ui";
-import { appById, cardById, cardSchema, claimModule, db, isConfigured, moduleById, moveStacked, newId, normalizeLayout, put, remove, resolveSettings, settingsTags, stackOrder, TagFilterProvider, useCardInstanceTitle, useIsMobile, useLiveQuery, useWorkspaceModules, type CardDef, type CardSettings, type ScreenLayoutItem, type UserScreen } from "@lifeline/core";
+import { appById, cardById, cardSchema, claimModule, isConfigured, moduleById, moveStacked, newId, normalizeLayout, put, remove, resolveSettings, screensOfWorkspace, settingsTags, stackOrder, TagFilterProvider, useCardInstanceTitle, useIsMobile, useLiveQuery, useWorkspaceModules, type CardDef, type CardSettings, type ScreenLayoutItem, type UserScreen } from "@lifeline/core";
 import {
   Check,
   ChevronDown,
@@ -240,7 +240,10 @@ export function UserScreenPage({ screenId }: { screenId?: string } = {}) {
   const workspaceModules = useWorkspaceModules();
 
   const screen = useLiveQuery(
-    () => db().collection<UserScreen>("screens").get(id ?? ""),
+    // Scoped: a Screen belongs to one Workspace (ADR 0047), so a link to another
+    // Workspace's Screen resolves to nothing here rather than rendering its
+    // layout against this Workspace's data.
+    async () => (await screensOfWorkspace()).find((s) => s.id === id),
     [id],
     undefined,
   );
