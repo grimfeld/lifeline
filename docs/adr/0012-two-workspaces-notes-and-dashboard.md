@@ -17,3 +17,19 @@ The Notes App wants Obsidian's chrome (file tree, search, tags rail; editor; lin
 ## Amendment (Aug 2026)
 
 With every Document able to carry a body (ADR 0018) the Notes workspace is renamed the **Vault** and widened: its tree, generic frontmatter+body editor, search and links panel cover every bodied Document whatever its type; the Note taker, Clipper and Writer's pad Apps put their specialised editors and App screens inside it. The Dashboard gains Bases. Two workspaces remain; the reason (two chromes that don't mix) is unchanged.
+
+## Amendment (2026-09-07): this axis is now the Frame
+
+Everything this ADR decided stands; only the noun moved. ADR 0047 gives the
+word **Workspace** to a user-created container of Modules, and what this ADR
+called a Workspace — the Vault/Dashboard split, full-screen environments over
+the same data, chosen by URL, with Core owning the switcher and an App
+declaring which one its screens live in — is renamed the **Frame**.
+
+The two are orthogonal: every Workspace has both Frames. The Frame is a fact
+about how you are working right now, the Workspace about what you are working
+on. `WorkspaceDef` becomes `FrameDef`, `VAULT_WORKSPACE` becomes `VAULT_FRAME`,
+`workspaceOfPath` becomes `frameOfPath`.
+
+The switcher keeps its place at the top of the sidebar; a Workspace picker now
+sits above it, and on the phone both live in the header (ADR 0049).
