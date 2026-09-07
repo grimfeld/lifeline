@@ -1,8 +1,8 @@
-import { useDocumentTypes, VAULT_WORKSPACE, type AppManifest } from "@lifeline/core";
+import { useDocumentTypes, VAULT_FRAME, type AppManifest } from "@lifeline/core";
 import { FileText, Hash, LayoutDashboard, MapPin, Sun, Table2, Vault, Waypoints } from "lucide-react";
 import { TodayCard } from "./surfaces/TodayCard";
 import { AgendaCard } from "./surfaces/AgendaCard";
-import { lastLocation } from "./components/WorkspaceSwitcher";
+import { lastLocation } from "./components/FrameSwitcher";
 import { MapCard, useLocatableAppOptions } from "./surfaces/MapCard";
 import { TagsCard } from "./surfaces/TagsCard";
 import { CountTile, DocumentCard, useDocumentOptions, useViewOptions, ViewCard } from "./surfaces/DocumentCards";
@@ -13,15 +13,15 @@ import { VaultDocPage } from "./vault/VaultDocPage";
 /**
  * The shell's own manifest: Core's Surfaces packaged like any App's cards
  * (so they appear in the card picker), the generic Document Cards (ADR 0018),
- * and the Vault workspace (ADR 0012, amended).
+ * and the Vault frame (ADR 0012, amended).
  */
 export const hubApp: AppManifest = {
   id: "hub",
   title: "Lifeline",
   color: "var(--chart-yellow)",
   types: [],
-  workspace: {
-    id: VAULT_WORKSPACE,
+  frame: {
+    id: VAULT_FRAME,
     title: "Vault",
     icon: Vault,
     path: "/vault",
@@ -33,7 +33,7 @@ export const hubApp: AppManifest = {
       id: "hub.doc",
       title: "Document",
       path: "d/:id",
-      workspace: VAULT_WORKSPACE,
+      frame: VAULT_FRAME,
       hidden: true,
       component: VaultDocPage,
     },
@@ -162,16 +162,16 @@ export const hubApp: AppManifest = {
     {
       id: "hub.go-dashboard",
       title: "Go to Dashboard",
-      keywords: ["workspace", "screens"],
+      keywords: ["frame", "screens"],
       icon: LayoutDashboard,
       run: ({ navigate }) => navigate(lastLocation("dashboard")),
     },
     {
       id: "hub.go-vault",
       title: "Go to Vault",
-      keywords: ["workspace", "notes", "journal", "editor"],
+      keywords: ["frame", "notes", "journal", "editor"],
       icon: Vault,
-      run: ({ navigate }) => navigate(lastLocation(VAULT_WORKSPACE)),
+      run: ({ navigate }) => navigate(lastLocation(VAULT_FRAME)),
     },
     {
       id: "hub.go-bases",

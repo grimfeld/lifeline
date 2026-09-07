@@ -16,33 +16,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   cn,
   toast,
 } from "@lifeline/ui";
-import {
-  appById,
-  cardById,
-  cardSchema,
-  settingsTags,
-  TagFilterProvider,
-  db,
-  isConfigured,
-  moveStacked,
-  newId,
-  normalizeLayout,
-  put,
-  remove,
-  resolveSettings,
-  stackOrder,
-  useCardInstanceTitle,
-  useLiveQuery,
-  useIsMobile,
-  type CardDef,
-  type CardSettings,
-  type ScreenLayoutItem,
-  type UserScreen,
-} from "@lifeline/core";
+import { appById, cardById, cardSchema, claimModule, isConfigured, moduleById, moveStacked, newId, normalizeLayout, put, remove, resolveSettings, screensOfWorkspace, settingsTags, stackOrder, TagFilterProvider, useCardInstanceTitle, useIsMobile, useLiveQuery, useWorkspaceModules, type CardDef, type CardSettings, type ScreenLayoutItem, type UserScreen } from "@lifeline/core";
 import {
   Check,
   ChevronDown,
@@ -246,17 +227,23 @@ function StackedItems({
   );
 }
 
-export function UserScreenPage() {
-  const { id } = useParams<{ id: string }>();
+/** `screenId` renders a given Screen rather than the routed one — a Module screen that claims one (ADR 0049). */
+export function UserScreenPage({ screenId }: { screenId?: string } = {}) {
+  const { id: routedId } = useParams<{ id: string }>();
+  const id = screenId ?? routedId;
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [configuring, setConfiguring] = useState<string | null>(null);
   const [draft, setDraft] = useState<CardSettings>({});
   const isMobile = useIsMobile();
+  const workspaceModules = useWorkspaceModules();
 
   const screen = useLiveQuery(
-    () => db().collection<UserScreen>("screens").get(id ?? ""),
+    // Scoped: a Screen belongs to one Workspace (ADR 0047), so a link to another
+    // Workspace's Screen resolves to nothing here rather than rendering its
+    // layout against this Workspace's data.
+    async () => (await screensOfWorkspace()).find((s) => s.id === id),
     [id],
     undefined,
   );
@@ -404,6 +391,24 @@ export function UserScreenPage() {
               <DropdownMenuItem disabled={screen.phoneHome} onClick={() => void useAsPhoneHome()}>
                 <Smartphone /> {screen.phoneHome ? "Is the phone home" : "Use as phone home"}
               </DropdownMenuItem>
+              {/* Rule 1 of ADR 0049: a Screen claiming a Module is where that
+                  Module's slot lands — the user's own Cards instead of an index. */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <LayoutGrid /> {screen.module ? `Module: ${moduleById(screen.module)?.title ?? screen.module}` : "Use as a module's page"}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {workspaceModules.map((m) => (
+                    <DropdownMenuItem key={m} onClick={() => void claimModule(screen.id, m)}>
+                      {moduleById(m)?.title ?? m}
+                      {screen.module === m && <Check className="ml-auto size-4" />}
+                    </DropdownMenuItem>
+                  ))}
+                  {screen.module && (
+                    <DropdownMenuItem onClick={() => void claimModule(screen.id, undefined)}>Not a module page</DropdownMenuItem>
+                  )}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuItem variant="destructive" onClick={() => void deleteScreen()}>
                 <Trash2 /> Delete screen
               </DropdownMenuItem>

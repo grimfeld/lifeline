@@ -106,6 +106,7 @@ const blockerTemplateType: DocumentTypeDef = {
 /** The Calendar App owns Events (CONTEXT.md). The month/week grids are Core Surfaces. */
 export const calendarApp: AppManifest = {
   id: APP_ID,
+  module: "schedules",
   title: "Calendar",
   icon: CalendarClock,
   color: "var(--chart-violet)",
@@ -116,7 +117,6 @@ export const calendarApp: AppManifest = {
       title: "Events",
       path: "events",
       icon: CalendarClock,
-      group: "planning",
       component: EventsScreen,
     },
   ],

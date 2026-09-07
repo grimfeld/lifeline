@@ -10,6 +10,7 @@ import { extractProseTags } from "../markdown";
 import { normalizeFolder } from "../folders";
 import { documentTypeSync } from "./registry";
 import { inPrivateFolder, privateGate, visibleUnder } from "../private";
+import { workspaceScope } from "../workspaces";
 import type { Document } from "./types";
 
 /**
@@ -24,12 +25,26 @@ export function documentsTable(): Table<Document, string> {
 }
 
 /**
- * The Private gate (ADR 0038): every read below drops the Documents of the
- * Private folder while it is locked. This is the one choke point — no
- * surface checks the gate itself, and nothing reads around it.
+ * A Document is in scope when its `workspace` matches the current one exactly:
+ * "" — shared — inside an unseparated Workspace, the Workspace's own id inside
+ * a separated one. A strict partition and never a union, which is the whole of
+ * separation (ADR 0048): a separated Workspace does not also see the shared
+ * content, which is why turning separation on starts a Workspace empty and
+ * content crosses only by being moved.
+ */
+export function inScope(doc: Pick<Document, "workspace">, scope: string): boolean {
+  return (doc.workspace ?? "") === scope;
+}
+
+/**
+ * The two gates (ADR 0038, ADR 0048): every read below drops the Documents of
+ * the Private folder while it is locked, and the Documents of every Workspace
+ * but this one. This is the one choke point — no surface checks either gate
+ * itself, and nothing reads around them.
  */
 async function gated<T extends Document>(rows: T[]): Promise<T[]> {
-  return visibleUnder(rows, await privateGate());
+  const scope = await workspaceScope();
+  return visibleUnder(rows, await privateGate()).filter((r) => inScope(r, scope));
 }
 
 /** Live rows of one type (tombstones excluded). */
@@ -47,6 +62,7 @@ export async function getDocument<T extends Document = Document>(id: string): Pr
   const d = (await documentsTable().get(id)) as T | undefined;
   if (!d || d.deleted) return undefined;
   if (inPrivateFolder(d.folder) && (await privateGate()).locked) return undefined;
+  if (!inScope(d, await workspaceScope())) return undefined;
   return d;
 }
 
@@ -84,6 +100,13 @@ export type DocumentInput<T extends Document = Document> = Omit<T, "id" | "updat
  * Write a Document: fills common keys (id, createdAt, folder, derived title),
  * recomputes tags from the body, stamps the LWW clock and queues the push.
  * Returns the stored row.
+ *
+ * This is also where separation is **written** (ADR 0048): a new Document takes
+ * the scope of the Workspace it is made in, so a separated Workspace holds what
+ * it creates and an unseparated one shares it. One choke point, as the read has
+ * one — every creation path in the app, from a capture Command to a Base's new
+ * row, arrives here. An existing row keeps the scope it has, so an edit never
+ * moves a Document between Workspaces; only `moveDocumentToWorkspace` does.
  */
 export async function putDocument<T extends Document = Document>(input: DocumentInput<T>): Promise<T> {
   const def = documentTypeSync(input.type);
@@ -96,6 +119,7 @@ export async function putDocument<T extends Document = Document>(input: Document
     folder: normalizeFolder(input.folder ?? ""),
     tags: effectiveTags(input.tags, body),
     title: input.title ?? "",
+    workspace: input.workspace ?? (await workspaceScope()),
   } as unknown as T;
   if (body === undefined) delete (row as Document).body;
   else (row as Document).body = body;
@@ -126,4 +150,35 @@ export async function patchDocument(id: string, patch: Record<string, unknown>):
   const existing = await documentsTable().get(id);
   if (!existing || existing.deleted) return;
   await putDocument({ ...existing, ...patch } as DocumentInput);
+}
+
+
+/**
+ * Move Documents into a Workspace, or out to the shared content with `""`.
+ * The only way content crosses a separation boundary (ADR 0048) — a sealed box
+ * you cannot put anything into is a box you cannot use, which is why this
+ * ships with separation rather than after it.
+ *
+ * Reads the rows directly rather than through `gated`: moving *out* of the
+ * current Workspace means writing rows the gate is about to stop showing, and
+ * releasing a Workspace on delete means writing rows it never showed here.
+ */
+export async function moveDocumentsToWorkspace(ids: string[], workspace: string): Promise<void> {
+  for (const id of ids) {
+    const doc = await documentsTable().get(id);
+    if (!doc || doc.deleted || (doc.workspace ?? "") === workspace) continue;
+    await put<Document>(DOCUMENTS, { ...doc, workspace });
+  }
+}
+
+/** Every Document a Workspace holds — ungated, for the move dialog and for release on delete. */
+export async function documentsHeldBy(workspace: string): Promise<Document[]> {
+  return (await documentsTable().where("workspace").equals(workspace).toArray()).filter((d) => !d.deleted);
+}
+
+/** Release everything a Workspace holds back to the shared content (ADR 0048's delete). */
+export async function releaseWorkspaceDocuments(workspace: string): Promise<void> {
+  if (!workspace) return;
+  const held = await documentsHeldBy(workspace);
+  await moveDocumentsToWorkspace(held.map((d) => d.id), "");
 }

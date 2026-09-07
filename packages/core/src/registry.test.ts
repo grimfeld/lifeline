@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { initApps, navSectionsOf } from "./registry";
-import { DASHBOARD_WORKSPACE, VAULT_WORKSPACE, type AppManifest, type AppScreenDef } from "./manifest";
+import { appsOfModule, inhabitedModules, moduleOfApp, navSectionsOf } from "./registry";
+import { initApps } from "./registry";
+import { DASHBOARD_FRAME, VAULT_FRAME, type AppManifest, type AppScreenDef } from "./manifest";
 
 const screen = (id: string, extra: Partial<AppScreenDef> = {}): AppScreenDef => ({
   id,
@@ -10,40 +11,77 @@ const screen = (id: string, extra: Partial<AppScreenDef> = {}): AppScreenDef => 
   ...extra,
 });
 
-const app = (id: string, screens: AppScreenDef[]): AppManifest => ({ id, title: id, types: [], screens, cards: [], commands: [] });
+const app = (id: string, module: string | undefined, screens: AppScreenDef[]): AppManifest => ({
+  id,
+  title: id,
+  module,
+  types: [],
+  screens,
+  cards: [],
+  commands: [],
+});
 
 initApps([
-  app("a", [
-    screen("tasks", { group: "planning" }),
-    screen("library", { group: "culture" }),
-    screen("stat-detail", { group: "progress", hidden: true }),
-  ]),
-  app("b", [
-    screen("chores", { group: "planning" }),
-    screen("hub"),
-    screen("odd", { group: "nonexistent" }),
-    screen("journal", { group: "culture", workspace: VAULT_WORKSPACE }),
-  ]),
+  app("tasks", "tasks", [screen("tasks")]),
+  app("library", "culture", [screen("library"), screen("shelf-detail", { hidden: true })]),
+  app("chores", "house", [screen("chores"), screen("journal", { frame: VAULT_FRAME })]),
+  app("loose", undefined, [screen("hub")]),
+  app("odd", "nonexistent", [screen("odd")]),
+  app("empty", "progress", [screen("hidden-only", { hidden: true })]),
 ]);
 
-describe("navSectionsOf", () => {
-  const sections = navSectionsOf(DASHBOARD_WORKSPACE);
+describe("moduleOfApp", () => {
+  it("resolves an App's Module", () => {
+    expect(moduleOfApp("tasks")?.title).toBe("Tasks");
+  });
 
-  it("puts loose screens first, then groups in NAV_GROUPS order", () => {
-    expect(sections.map((s) => s.group?.id)).toEqual([undefined, "planning", "culture"]);
+  it("is undefined for an App naming none or an unknown one", () => {
+    expect(moduleOfApp("loose")).toBeUndefined();
+    expect(moduleOfApp("odd")).toBeUndefined();
+  });
+});
+
+describe("appsOfModule", () => {
+  it("lists a Module's Apps in registry order", () => {
+    expect(appsOfModule("culture").map((a) => a.id)).toEqual(["library"]);
+  });
+});
+
+describe("inhabitedModules", () => {
+  it("drops shelves no App stands on", () => {
+    const ids = inhabitedModules().map((m) => m.id);
+    expect(ids).toContain("tasks");
+    expect(ids).not.toContain("money");
+  });
+
+  it("keeps a Module whose only screens are hidden — the shelf exists, the row does not", () => {
+    expect(inhabitedModules().map((m) => m.id)).toContain("progress");
+  });
+});
+
+describe("navSectionsOf", () => {
+  const sections = navSectionsOf(DASHBOARD_FRAME);
+
+  it("puts loose screens first, then Modules in MODULES order", () => {
+    expect(sections.map((s) => s.group?.id)).toEqual([undefined, "house", "tasks", "culture"]);
+  });
+
+  it("treats an App naming an unknown Module as loose", () => {
     expect(sections[0].screens.map((s) => s.id)).toEqual(["hub", "odd"]);
   });
 
-  it("keeps registry order inside a group, across Apps", () => {
-    expect(sections[1].screens.map((s) => s.id)).toEqual(["tasks", "chores"]);
-  });
-
-  it("leaves out hidden screens, and empty groups with them", () => {
-    expect(sections.flatMap((s) => s.screens).map((s) => s.id)).not.toContain("stat-detail");
+  it("leaves out hidden screens, and Modules left empty by them", () => {
+    expect(sections.flatMap((s) => s.screens).map((s) => s.id)).not.toContain("shelf-detail");
     expect(sections.map((s) => s.group?.id)).not.toContain("progress");
   });
 
-  it("groups each workspace on its own", () => {
-    expect(navSectionsOf(VAULT_WORKSPACE).map((s) => s.screens.map((x) => x.id))).toEqual([["journal"]]);
+  it("shelves each frame on its own", () => {
+    expect(navSectionsOf(VAULT_FRAME).map((s) => s.screens.map((x) => x.id))).toEqual([["journal"]]);
+  });
+
+  it("restricts shelves to a Workspace's Modules, but never the loose screens", () => {
+    const only = navSectionsOf(DASHBOARD_FRAME, ["culture"]);
+    expect(only.map((s) => s.group?.id)).toEqual([undefined, "culture"]);
+    expect(only[0].screens.map((s) => s.id)).toEqual(["hub", "odd"]);
   });
 });

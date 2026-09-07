@@ -58,6 +58,8 @@ function toLocal(collection: string, r: PbRecord): SyncedRecord {
     const doc = { ...extra, ...common } as Document;
     if (!Array.isArray(doc.tags)) doc.tags = [];
     if (typeof doc.folder !== "string") doc.folder = "";
+    // Separation (ADR 0048): a row written before the field existed is shared.
+    if (typeof doc.workspace !== "string") doc.workspace = "";
     if (doc.body === null) delete doc.body;
     return doc;
   }
@@ -215,6 +217,18 @@ async function pullCollection(name: string): Promise<void> {
   }
 }
 
+const PULLED_ONCE_KEY = "sync:pulledOnce";
+
+/**
+ * Whether a full pull cycle has completed on this device — the honest "we know
+ * what the server has" signal. Signed out, it is vacuously true: no sync is
+ * coming, so nothing should wait for one.
+ */
+export async function hasPulledOnce(): Promise<boolean> {
+  if (!pb.authStore.isValid) return true;
+  return !!(await db()._meta.get(PULLED_ONCE_KEY));
+}
+
 let syncing = false;
 let queued = false;
 let started = false;
@@ -261,7 +275,15 @@ export async function syncNow(): Promise<void> {
     if (problems.length) {
       console.warn("[sync]", problems.join("; "));
       setState(navigator.onLine ? "error" : "offline");
-    } else setState("idle");
+    } else {
+      // A clean cycle means every collection has been pulled at least once —
+      // including the ones the server has no rows for, which a per-collection
+      // cursor cannot say, since it is only written when something came back.
+      // Anything that must wait for "the server has told us what it has" waits
+      // on this and not on a cursor (see ensureDefaultWorkspace).
+      await db()._meta.put({ key: PULLED_ONCE_KEY, value: new Date().toISOString() });
+      setState("idle");
+    }
   } catch {
     setState(navigator.onLine ? "error" : "offline");
   } finally {

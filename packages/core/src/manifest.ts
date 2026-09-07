@@ -28,57 +28,68 @@ export interface CollectionDef {
 }
 
 /**
- * A Workspace (ADR 0012): a full-screen environment over the same data with
- * its own chrome. Core provides the built-in "dashboard" workspace and the
+ * A Frame (ADR 0012): a full-screen environment over the same data with
+ * its own chrome. Core provides the built-in "dashboard" frame and the
  * switcher; an App may provide another one (the Notes App provides "notes").
  */
-export interface WorkspaceDef {
+export interface FrameDef {
   id: string;
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
-  /** URL root, e.g. "/notes". Every screen of this workspace is routed below it. */
+  /** URL root, e.g. "/notes". Every screen of this frame is routed below it. */
   path: string;
-  /** The workspace's own sidebar (Core renders the switcher above it). */
+  /** The frame's own sidebar (Core renders the switcher above it). */
   sidebar: React.ComponentType;
   /** Where the bare root path lands, relative to `path` (e.g. "journal"). */
   home: string;
 }
 
-export const DASHBOARD_WORKSPACE = "dashboard";
-export const VAULT_WORKSPACE = "vault";
+export const DASHBOARD_FRAME = "dashboard";
+export const VAULT_FRAME = "vault";
 
 /**
- * A Nav group: one shelf of App screens in a workspace's sidebar. Core owns
- * the list and the order (the sidebar is Core's chrome, ADR 0012); an App
- * only names the group its screen belongs on. A screen naming no group — or
- * an unknown one — stays a plain top-level row.
+ * A Module (ADR 0047): one shelf of Apps. Core owns the list, the titles and
+ * the order — fixed in code, as the Nav groups it supersedes were — and an App
+ * names the one Module it belongs to. An App naming none, or an unknown one,
+ * keeps its screens as plain top-level rows.
+ *
+ * A Module carries **chrome and only chrome** into a Workspace: its Apps'
+ * screens, the Bases of the types those Apps own, and their capture Commands.
+ * It never gates a Surface, the Vault, the palette or a card picker — those
+ * work across Apps by Contract, and a Schedule that hid Tuesday's Chores
+ * because this Workspace lacks the House Module would be lying about Tuesday.
+ * Hiding is separation's job (ADR 0048) or nobody's.
  */
-export interface NavGroupDef {
+export interface ModuleDef {
   id: string;
   title: string;
+  icon?: React.ComponentType<{ className?: string }>;
 }
 
-/** The Dashboard's Nav groups, in sidebar order. */
-export const NAV_GROUPS: NavGroupDef[] = [
-  { id: "home", title: "Home" },
-  { id: "planning", title: "Planning" },
+/** Core's Modules, in order. A Workspace is assembled from these (ADR 0047). */
+export const MODULES: ModuleDef[] = [
+  { id: "house", title: "House" },
+  { id: "tasks", title: "Tasks" },
+  { id: "schedules", title: "Schedules" },
   { id: "culture", title: "Culture" },
   { id: "money", title: "Money" },
-  { id: "study", title: "Study" },
+  { id: "notes", title: "Note-taking" },
   { id: "progress", title: "Progress" },
 ];
+
+export function moduleById(id: string | undefined): ModuleDef | undefined {
+  return id ? MODULES.find((m) => m.id === id) : undefined;
+}
 
 export interface AppScreenDef {
   id: string;
   title: string;
-  /** Route path: under /app/ for dashboard screens, under the workspace's path otherwise (e.g. "chores", "n/:id"). */
+  /** Route path: under /app/ for dashboard screens, under the frame's path otherwise (e.g. "chores", "n/:id"). */
   path: string;
-  /** Workspace the screen lives in; default "dashboard". */
-  workspace?: string;
+  /** Frame the screen lives in; default "dashboard". */
+  frame?: string;
   icon?: React.ComponentType<{ className?: string }>;
   component: React.ComponentType;
-  /** Nav group this screen is listed under (see NAV_GROUPS); absent = a top-level row. */
-  group?: string;
   /** Routed but not listed in the sidebar/palette (detail pages such as "stats/:id"). */
   hidden?: boolean;
 }
@@ -141,6 +152,13 @@ export interface AppManifest {
   id: string;
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
+  /**
+   * The one Module this App belongs to (ADR 0047). An App names a Module, not
+   * one per screen: no App has ever wanted two, which is why the Nav group —
+   * which was per-screen and explicitly not a container — could become one.
+   * Absent or unknown leaves the App's screens as top-level sidebar rows.
+   */
+  module?: string;
   /** Accent color CSS value used for the App's items on shared surfaces. */
   color?: string;
   /** Built-in Document types this App owns (ADR 0019). Their `appId` is filled in by the registry. */
@@ -177,6 +195,6 @@ export interface AppManifest {
   useBackground?: () => void;
   /** Panels on every open Document's side (see DocumentPanelDef). */
   documentPanels?: DocumentPanelDef[];
-  /** A workspace this App provides (ADR 0012). */
-  workspace?: WorkspaceDef;
+  /** A frame this App provides (ADR 0012). */
+  frame?: FrameDef;
 }

@@ -107,3 +107,25 @@ pad compared inside the page, the Vault compares over it.
   and unsynced, so a hand-pinned set would not follow the user to another
   device, while a list in code travels with it. Revisit when a fourth folder
   genuinely wants a tab.
+
+## Amendment (2026-09-07): the Workspace is the Frame, and the phone tabs give way
+
+Two changes from ADR 0047 and ADR 0049, neither touching this ADR's actual
+decision — the Vault writes, the Dashboard operates, chrome follows the type
+and the Vault's tabs follow the Folder.
+
+**The noun.** What this ADR calls a Workspace is now the **Frame** (ADR 0012,
+amended). "Two ways of working still want two chromes" is unchanged, and so is
+the reason the Vault can never be a Module: a body is edited there whatever its
+type, so it is cross-Module by construction.
+
+**The phone tabs.** This ADR's `Notes · Clippings · Writings` folder tabs gave
+the Vault a bottom bar of its own. ADR 0049 gives the bar's middle to the
+Workspace's Modules instead, so the folder tabs move inside the Note-taking
+Module's screen. The reasoning survives — where you go is a Folder, what
+furniture you get there is the type's — one level down.
+
+**And the Frame crossing loses the slot this ADR's amendment gave it**, one
+release on. It moves to the phone header, beside the Workspace switcher. ADR
+0049 states the reversal plainly; the hole that amendment closed stays closed,
+because the header is at least as visible as the slot was.

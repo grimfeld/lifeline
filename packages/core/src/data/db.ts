@@ -57,8 +57,12 @@ export interface UserScreen extends SyncedRecord {
   sort: number;
   /** Screen-level Tag filter (ADR 0014): every tagFilterable Card on it obeys. */
   tags?: string[];
-  /** The one Screen the phone's bottom bar opens as Home (grill 2026-08-20). Synced; at most one Screen holds it. */
+  /** The one Screen the phone's bottom bar opens as Home (grill 2026-08-20). Synced; at most one Screen *per Workspace* holds it (ADR 0047). */
   phoneHome?: boolean;
+  /** The Workspace this Screen belongs to (ADR 0047). Always set; "" only in rows made before Workspaces existed. */
+  workspace?: string;
+  /** The Module this Screen claims, and is then where that Module lands in this Workspace (ADR 0049). */
+  module?: string;
 }
 
 /**
@@ -112,8 +116,10 @@ export interface ViewFilter {
  *   15 — Museum App (ADR 0022): `[type+artistId]` and `[type+exhibitionId]` added
  *   16 — Attachments (ADR 0037): synced `attachments` metadata, local `_blobs` bytes
  *   18 — Prices App (ADR 0045): `[type+receiptId]`, `[type+productId]`, `[type+shopId]` added
+ *   19 — Workspaces (ADR 0047/0048): synced `workspaces`; `workspace` indexed on
+ *        `documents` and `screens` so a scoped read is an index hit, not a scan
  */
-const DB_VERSION = 18;
+const DB_VERSION = 19;
 
 /** Stores that existed before ADR 0018; deleted on upgrade so a client re-pulls into `documents`. */
 const LEGACY_STORES = [
@@ -126,10 +132,17 @@ export const VIEWS = "views";
 export const DOCUMENT_TYPES = "document_types";
 /** Attachment metadata (ADR 0037) — synced; the bytes live in `_blobs`, local only. */
 export const ATTACHMENTS = "attachments";
+/** Workspaces (ADR 0047) — synced; which one this device is *in* is not. */
+export const WORKSPACES = "workspaces";
 export const BLOBS = "_blobs";
 
 /** Indexes every Document row gets; type-declared ones are added as `[type+field]`. */
-const DOCUMENT_BASE_INDEXES = ["id", "updatedAt", "deleted", "type", "[type+deleted]", "title", "folder", "*tags", "createdAt"];
+const DOCUMENT_BASE_INDEXES = [
+  "id", "updatedAt", "deleted", "type", "[type+deleted]", "title", "folder", "*tags", "createdAt",
+  // Separation (ADR 0048) filters every read by scope; `[type+workspace]` keeps
+  // the common "this type, this Workspace" read an index hit.
+  "workspace", "[type+workspace]",
+];
 
 export function compileDocumentIndex(ix: string): string {
   return ix.startsWith("[") ? ix : `[type+${ix}]`;
@@ -146,7 +159,8 @@ export class LifelineDB extends Dexie {
       _outbox: "++seq, collection",
       _meta: "key",
       placements: "id, updatedAt, deleted, date, [appId+itemId]",
-      screens: "id, updatedAt, deleted, sort",
+      screens: "id, updatedAt, deleted, sort, workspace",
+      [WORKSPACES]: "id, updatedAt, deleted, sort",
       [VIEWS]: "id, updatedAt, deleted, type, sort",
       [DOCUMENT_TYPES]: "id, updatedAt, deleted, typeId",
       [ATTACHMENTS]: "id, updatedAt, deleted, name",

@@ -7,6 +7,7 @@ import { docPath, isWithin } from "./folders";
 import { normalizeName } from "./markdown";
 import type { Document, DocumentTypeDef } from "./documents/types";
 import { isVaultType } from "./documents/registry";
+import { workspaceScope } from "./workspaces";
 
 /**
  * The Private folder (ADR 0038, CONTEXT.md "Private folder", "Locked /
@@ -41,6 +42,12 @@ const LEGACY_SETTINGS_ID = "private:settings";
  * created once on the server (ADR 0039).
  */
 async function settingsRow(): Promise<PrivateSettings | undefined> {
+  // Deliberately scope-blind (ADR 0048). Separation partitions Documents, and
+  // ADR 0039 replaced fixed-id singletons with "the one Document of that type"
+  // — which, under a partition, would silently become one *per Workspace*.
+  // The Private folder is an Account-level gate with one password on every
+  // device (CONTEXT.md "Private folder"), not a per-Workspace one, so this
+  // lookup reads past the scope and the row it finds is written shared below.
   return (await db().documents.where("[type+deleted]").equals([PRIVATE_SETTINGS_TYPE, 0]).first()) as PrivateSettings | undefined;
 }
 
@@ -55,7 +62,7 @@ export async function repairPrivateSettings(): Promise<void> {
   const old = (await d.documents.get(LEGACY_SETTINGS_ID)) as PrivateSettings | undefined;
   if (!old) return;
   if (!old.deleted && old.type === PRIVATE_SETTINGS_TYPE && !(await settingsRow())) {
-    await put<PrivateSettings>(DOCUMENTS, { ...old, id: newId() });
+    await put<PrivateSettings>(DOCUMENTS, { ...old, id: newId(), workspace: "" });
   }
   await d.documents.delete(LEGACY_SETTINGS_ID);
 }
@@ -196,6 +203,8 @@ export async function setPrivatePassword(password: string): Promise<void> {
     salt: b64(salt),
     hash,
     iterations: ITERATIONS,
+    // Shared, never held: one password for the Account, not one per Workspace.
+    workspace: "",
   };
   await put<PrivateSettings>(DOCUMENTS, row);
   await unlock();
@@ -240,7 +249,12 @@ const NO_REFS: PrivateLockedRefs = { names: new Set(), ids: new Set() };
 export async function privateLockedRefs(): Promise<PrivateLockedRefs> {
   const gate = await privateGate();
   if (!gate.locked) return NO_REFS;
-  const rows = await db().documents.where("folder").startsWith(PRIVATE_FOLDER).filter((r) => !r.deleted && inPrivateFolder(r.folder)).toArray();
+  // Scoped like every other read (ADR 0048): a link in this Workspace must not
+  // report another Workspace's private note as "locked" — outside its scope the
+  // target does not exist at all, which is a different answer.
+  const scope = await workspaceScope();
+  const rows = (await db().documents.where("folder").startsWith(PRIVATE_FOLDER).filter((r) => !r.deleted && inPrivateFolder(r.folder)).toArray())
+    .filter((r) => (r.workspace ?? "") === scope);
   const names = new Set<string>();
   const ids = new Set<string>();
   for (const r of rows) {
