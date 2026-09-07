@@ -20,7 +20,7 @@ A hand-written domain module (Chores, Stats, Media, Tasks…) living inside the 
 _Avoid_: plugin, widget, service, processor
 
 ### Core
-The neutral part of the system: shell, Contracts, sync layer, command registry, the Document store and type registry, Bases, Surfaces and generic Cards. Owns no Document types; its own bookkeeping — Screens and Card instances, Placements, Views, user-defined type definitions — is synced but is *not* Documents (Documents are user-facing content only).
+The neutral part of the system: shell, Contracts, sync layer, command registry, the Document store and type registry, Bases, Surfaces and generic Cards. Owns no Document types; its own bookkeeping — Screens and Card instances, Placements, Views, user-defined type definitions — is synced but is *not* Documents (Documents are user-facing content only). Of it, only **Screens** belong to a Workspace; Views and user-defined types are global (a View belongs to its Base, which follows the Module, and a type defined twice to be used in two Workspaces would be a bug), and Placements and Attachments follow the Document they serve.
 
 ### Account
 One sign-in, owning its own Documents and Core bookkeeping (Screens, Placements, Views, user-defined types, Attachments) outright. Nothing is shared or visible across Accounts; the server, never the client, decides which Account a record belongs to. One device holds one Account's data at a time.
@@ -81,8 +81,8 @@ A named action an App registers with Core, run from the global palette (Ctrl+K):
 _Avoid_: shortcut, action
 
 ### Screen
-A user-created, named page composed of Cards on a grid layout (drag/resize). Users create any number. Apps also ship built-in full-page screens; the sidebar lists both.
-_Avoid_: page, view, workspace
+A user-created, named page composed of Cards on a grid layout (drag/resize). Users create any number. Every Screen **belongs to the Workspace it was made in** — always, whether or not that Workspace is separated — so a Workspace has its own dashboard and its own arrangement of Cards; it is what gives an unseparated Workspace a face of its own, when the Modules it holds decide only the length of its sidebar. Apps also ship built-in full-page screens; the sidebar lists both.
+_Avoid_: page, view, workspace (a Screen is *in* one, not one)
 
 ### Card
 A self-contained UI block for use on Screens — small ("chores due today", "current streak") or large (full calendar grid). The unit of layout composition. A Card is a *kind*; what sits on a Screen is a Card instance. Two origins: **App Cards**, hand-written and registered by an App; and Core's **generic Cards** that work on any Document type — the **View card** (a Base View on a Screen), the **Document card** (one chosen Document, fields and body) and the **Count tile** (how many Documents a View holds). Capture/quick-add is always an App Card. Some Cards are **configurable**: they can't be shown without the user choosing something first (which Stat, which View, which Document).
@@ -93,8 +93,8 @@ One placed copy of a Card on one Screen, with its position and, for configurable
 _Avoid_: widget, tile
 
 ### Phone home
-The one Screen the phone opens as Home. On a phone, Lifeline is capture-and-consult: the phone home's Cards stacked in one column, a Journal tab, and a capture sheet of capture Commands; everything else stays reachable but is shaped for the desktop. Designated on a Screen ("Use as phone home"); at most one Screen holds it, on every device alike. The stack is edited where it is read: a Screen is composed on the phone as well as at the desk.
-_Avoid_: mobile app (same app, one frame), home screen (the OS thing)
+The one Screen the phone opens as Home. On a phone, Lifeline is capture-and-consult: the phone home's Cards stacked in one column, a Journal tab, and a capture sheet of capture Commands; everything else stays reachable but is shaped for the desktop. Designated on a Screen ("Use as phone home"); at most one Screen per Workspace holds it, on every device alike — so switching Workspace on the phone changes what Home *is*. The stack is edited where it is read: a Screen is composed on the phone as well as at the desk.
+_Avoid_: mobile app (it is the same app), home screen (the OS thing)
 
 ### Task
 A unit of work owned by the Tasks App. One-time (optionally assigned to a day) or recurring. Absorbs calendar's old Task/Backlog and week-planner's tasks. Completable; implements Schedulable.
