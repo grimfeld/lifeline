@@ -1,6 +1,7 @@
+import { useEffect } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router";
 import { Toaster } from "@lifeline/ui";
-import { backgroundApps, frames, screenRoute, screensOf, useWorkspaceScreens, type AppManifest } from "@lifeline/core";
+import { backgroundApps, ensureDefaultWorkspace, frames, screenRoute, screensOf, useWorkspaceScreens, type AppManifest } from "@lifeline/core";
 import { Sidebar } from "./components/Sidebar";
 import { CommandPalette } from "./components/CommandPalette";
 import { PrivateDialogs } from "./vault/PrivateDialogs";
@@ -83,6 +84,12 @@ function AppBackground({ app }: { app: AppManifest }) {
 
 export default function App() {
   useFrameMemory();
+  // A genuinely empty account makes its one Workspace here; an existing one was
+  // given it by the server (PocketBase migration 1757400000), and this waits
+  // for that pull rather than racing it into a second "Personal" (ADR 0047).
+  useEffect(() => {
+    void ensureDefaultWorkspace();
+  });
   return (
     <div className="bg-background text-foreground flex h-dvh flex-col overflow-hidden">
       {backgroundApps().map((a) => (

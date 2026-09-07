@@ -42,11 +42,12 @@ import {
   type ViewRecord,
   singularOf,
 } from "@lifeline/core";
-import { CalendarDays, ChevronDown, Columns3, Images, LayoutGrid, List, MapPin, MoreHorizontal, Plus, Save, Search, Settings2, SquareKanban, Table2, Tag, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronDown, Columns3, Images, LayoutGrid, List, MapPin, MoreHorizontal, Plus, Save, Search, Settings2, SquareKanban, Table2, Tag, Trash2 , FolderInput } from "lucide-react";
 import { LayoutView } from "./LayoutView";
 import { FilterBar } from "./FilterBar";
 import { NewDocumentDialog } from "../vault/NewDocumentDialog";
 import { TagPicker } from "../components/TagPicker";
+import { MoveToWorkspaceDialog } from "../components/MoveToWorkspace";
 
 interface ViewState {
   filters: ViewFilter[];
@@ -108,6 +109,7 @@ export function BasePage() {
   const [saveName, setSaveName] = useState("");
   const [tagOpen, setTagOpen] = useState(false);
   const [bulkTags, setBulkTags] = useState<string[]>([]);
+  const [moveOpen, setMoveOpen] = useState(false);
 
   // Re-seed the working state when the selected View (or the type) changes.
   useEffect(() => {
@@ -338,6 +340,9 @@ export function BasePage() {
           <Button size="sm" variant="outline" className="h-7" onClick={() => setTagOpen(true)}>
             <Tag /> Add tags
           </Button>
+          <Button size="sm" variant="outline" className="h-7" onClick={() => setMoveOpen(true)}>
+            <FolderInput /> Move to workspace
+          </Button>
           <Button size="sm" variant="outline" className="h-7 text-destructive" onClick={() => void bulkDelete()}>
             <Trash2 /> Delete
           </Button>
@@ -376,6 +381,13 @@ export function BasePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <MoveToWorkspaceDialog
+        ids={Array.from(selected)}
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        onMoved={() => setSelected(new Set())}
+      />
+
       <Dialog open={tagOpen} onOpenChange={setTagOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
