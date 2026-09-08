@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { extractLinks, isImageEmbed, normalizeName, type WikiLink } from "../markdown";
 import { docPath, normalizeFolder } from "../folders";
-import { aliasesOf, displayTitle, singularOf, type Document, type DocumentTypeDef } from "./types";
+import { aliasesOf, displayTitle, isLinkKind, singularOf, type Document, type DocumentTypeDef } from "./types";
 import { useAllDocuments } from "./store";
 import { usePrivateLockedRefs, type PrivateLockedRefs } from "../private";
 
@@ -212,9 +212,9 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[], locke
       list.push({ sourceId: d.id, context: contextAround(body, link.from, link.to) });
       backlinks.set(r.id, list);
     }
-    // Link fields (ADR 0019): a stored id is a reference too.
+    // Link fields (ADR 0019): a stored id is a reference too — one or several (ADR 0052).
     for (const f of def?.fields ?? []) {
-      if (f.kind !== "link") continue;
+      if (!isLinkKind(f.kind)) continue;
       const v = d[f.key];
       const ids = Array.isArray(v) ? v : typeof v === "string" && v ? [v] : [];
       for (const id of ids) {

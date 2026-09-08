@@ -12,7 +12,7 @@ function item(p: Partial<Work>): Work {
     tags: [],
     folder: "",
     createdAt: "2026-01-01",
-    creator: "",
+    authors: [],
     externalKey: "",
     coverUrl: "",
     size: 0,
@@ -31,11 +31,13 @@ function item(p: Partial<Work>): Work {
 }
 
 describe("matchesSearch", () => {
-  it("empty needle matches all; otherwise title/creator/reason, case-insensitive", () => {
-    const m = item({ title: "Dune", creator: "Herbert", reason: "Recommended by Sam" });
+  it("empty needle matches all; otherwise title/author/reason, case-insensitive", () => {
+    const names = (w: Work) => (w.authors.includes("a1") ? ["Herbert"] : []);
+    const m = item({ title: "Dune", authors: ["a1"], reason: "Recommended by Sam" });
     expect(matchesSearch(m, "  ")).toBe(true);
     expect(matchesSearch(m, "dune")).toBe(true);
-    expect(matchesSearch(m, "HERB")).toBe(true);
+    expect(matchesSearch(m, "HERB", names)).toBe(true);
+    expect(matchesSearch(m, "HERB")).toBe(false);
     expect(matchesSearch(m, "sam")).toBe(true);
     expect(matchesSearch(m, "zzz")).toBe(false);
   });

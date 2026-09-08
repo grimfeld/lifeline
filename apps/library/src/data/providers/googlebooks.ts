@@ -1,4 +1,4 @@
-import type { WorkHit } from "../openlibrary";
+import { isEmptyQuery, PAGE_SIZE, type LookupQuery, type WorkHit } from "../openlibrary";
 
 /**
  * Google Books volumes — the fallback when Open Library returns nothing for
@@ -21,18 +21,30 @@ export function mapGbVolume(v: GbVolume): WorkHit {
   return {
     externalKey: `googlebooks:${v.id}`,
     title: info.title ?? "",
-    creator: info.authors?.[0] ?? "",
+    authors: (info.authors ?? []).map((name) => ({ name })),
     year: Number((info.publishedDate ?? "").slice(0, 4)) || 0,
     size: info.pageCount ?? 0,
     coverUrl: thumb.replace(/^http:\/\//, "https://"),
   };
 }
 
+/** Google's query string: free text, then `intitle:` / `inauthor:` for the split fields (an author key means nothing here — the name is used). */
+export function googleBooksQuery(q: LookupQuery): string {
+  const parts: string[] = [];
+  if (q.text?.trim()) parts.push(q.text.trim());
+  if (q.title?.trim()) parts.push(`intitle:"${q.title.trim().replace(/"/g, "")}"`);
+  if (q.author?.trim()) parts.push(`inauthor:"${q.author.trim().replace(/"/g, "")}"`);
+  return parts.join(" ");
+}
+
 export function googleBooksSearch(key?: string) {
-  return async (q: string, signal?: AbortSignal): Promise<WorkHit[]> => {
+  return async (q: LookupQuery, signal?: AbortSignal): Promise<WorkHit[]> => {
+    const query = googleBooksQuery(q);
+    if (!query || isEmptyQuery(q)) return [];
     const url = new URL("https://www.googleapis.com/books/v1/volumes");
-    url.searchParams.set("q", q);
-    url.searchParams.set("maxResults", "8");
+    url.searchParams.set("q", query);
+    url.searchParams.set("maxResults", String(PAGE_SIZE));
+    url.searchParams.set("startIndex", String(((q.page ?? 1) - 1) * PAGE_SIZE));
     if (key) url.searchParams.set("key", key);
     const res = await fetch(url, { signal });
     if (!res.ok) throw new Error(`Google Books ${res.status}`);

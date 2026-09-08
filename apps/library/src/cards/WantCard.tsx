@@ -10,6 +10,7 @@ import { Cover } from "../components/Cover";
 import { EditWorkDialog } from "../components/WorkRow";
 import type { Work } from "../domain/types";
 import { mediumOf } from "./shared";
+import { AuthorNames } from "../components/AuthorNames";
 
 /** Card: the To read / watch / listen / play shelf — items not yet started, with a one-tap start. */
 export function WantCard({ settings }: CardProps) {
@@ -36,7 +37,7 @@ export function WantCard({ settings }: CardProps) {
               <Cover item={m} className="h-8 w-6" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm">{m.title}</div>
-                {m.creator && <div className="text-muted-foreground truncate text-xs">{m.creator}</div>}
+                {m.authors.length > 0 && <div className="text-muted-foreground truncate text-xs"><AuthorNames item={m} plain /></div>}
               </div>
               {!medium && (
                 <Badge variant="outline" className="shrink-0 text-[10px]">

@@ -59,6 +59,8 @@ export type FieldKind =
   | "geo"
   | "list"
   | "link"
+  /** A Link holding several ids (a Work's Authors, a Meeting's attendees): each a wikilink in frontmatter, an edge in the Graph, a Backlink. */
+  | "links"
   /** An opaque structured value (a Chore's schedule): shown as JSON, never edited generically. */
   | "json";
 
@@ -87,6 +89,9 @@ export interface FieldDef {
   /** Shown in the Base table by default. Defaults to true for the first few visible fields. */
   column?: boolean;
 }
+
+/** Whether a field kind holds Document ids — one (`link`) or several (`links`). */
+export const isLinkKind = (k: FieldKind): boolean => k === "link" || k === "links";
 
 /** Value shapes per field kind, as stored on the row. */
 export type FieldValue = string | number | boolean | string[] | [number, number] | null | undefined;

@@ -12,7 +12,7 @@ function item(p: Partial<Work>): Work {
     tags: [],
     folder: "",
     createdAt: "2026-01-01",
-    creator: "",
+    authors: [],
     externalKey: "",
     coverUrl: "",
     size: 0,

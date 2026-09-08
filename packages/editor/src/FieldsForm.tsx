@@ -132,6 +132,8 @@ export function FieldControl({
       );
     case "link":
       return <LinkField id={id} linkType={def.linkType} value={value} disabled={disabled} onChange={onChange} />;
+    case "links":
+      return <LinksField id={id} linkType={def.linkType} value={value} disabled={disabled} onChange={onChange} />;
     case "json":
       return <Input id={id} className="h-8 font-mono text-xs" disabled readOnly value={value === undefined || value === null ? "" : JSON.stringify(value)} />;
   }
@@ -177,6 +179,62 @@ function ListInput({ id, value, disabled, onChange }: { id: string; value: unkno
         onChange(parse(e.target.value));
       }}
     />
+  );
+}
+
+/** The linkable Documents a Link field may point at, sorted by title. */
+function useLinkOptions(linkType: string | string[] | undefined) {
+  const docs = useAllDocuments();
+  const types = useDocumentTypes();
+  const allowed = useMemo(() => (linkType === undefined ? null : new Set(Array.isArray(linkType) ? linkType : [linkType])), [linkType]);
+  const options = useMemo(() => {
+    const defs = new Map(types.map((t) => [t.id, t]));
+    return docs
+      .filter((d) => (allowed ? allowed.has(d.type) : !!defs.get(d.type)?.linkable && !defs.get(d.type)?.internal))
+      .map((d) => { const def = defs.get(d.type); return { value: d.id, label: displayTitle(d, def), type: def ? singularOf(def) : d.type }; })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [docs, types, allowed]);
+  const single = allowed && allowed.size === 1 ? [...allowed][0] : undefined;
+  const singularLabel = single ? (() => { const d = documentType(single); return d ? singularOf(d) : single; })() : undefined;
+  return { options, many: allowed === null || allowed.size > 1, singularLabel };
+}
+
+/** A `links` field (ADR 0052): the chosen Documents as removable chips, and a picker to add one more. */
+function LinksField({ id, linkType, value, disabled, onChange }: { id: string; linkType?: string | string[]; value: unknown; disabled?: boolean; onChange: (v: unknown) => void }) {
+  const { options, many, singularLabel } = useLinkOptions(linkType);
+  const ids = Array.isArray(value) ? value.map(String).filter(Boolean) : typeof value === "string" && value ? [value] : [];
+  const byId = new Map(options.map((o) => [o.value, o]));
+  const rest = options.filter((o) => !ids.includes(o.value));
+  return (
+    <div className="grid gap-1">
+      {ids.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {ids.map((x) => (
+            <span key={x} className="bg-muted inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs">
+              {byId.get(x)?.label ?? x}
+              {!disabled && (
+                <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={`Remove ${byId.get(x)?.label ?? x}`} onClick={() => onChange(ids.filter((y) => y !== x))}>
+                  ×
+                </button>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
+      <Select value={NONE} onValueChange={(v) => v !== NONE && onChange([...ids, v])} disabled={disabled || rest.length === 0}>
+        <SelectTrigger id={id} className="h-8 w-full">
+          <SelectValue placeholder={singularLabel ? `Add a ${singularLabel}` : "Add a Document"} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE}>—</SelectItem>
+          {rest.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label} {many && <span className="text-muted-foreground text-xs">· {o.type}</span>}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 

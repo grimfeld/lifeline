@@ -18,7 +18,8 @@ export type Engagement = (typeof ENGAGEMENT)[number];
 export interface Work extends Document {
   /** The Document type IS the medium. */
   type: WorkTypeId;
-  creator: string;
+  /** Author ids (ADR 0052) — several when co-written; [] = none known. Replaces the old `creator` string. */
+  authors: string[];
   /** External work identity for dedupe, e.g. "openlibrary:/works/OL27448W". "" = none. */
   externalKey: string;
   coverUrl: string;
@@ -38,6 +39,24 @@ export interface Work extends Document {
 }
 
 export { WORK_TYPE_IDS } from "./workTypes";
+
+export const AUTHOR = "author";
+
+/**
+ * An Author (CONTEXT.md, ADR 0052): a person who wrote or drew books and
+ * comics, Linkable by name and aliases, owned by the Library. May exist with
+ * no outside identity (typed, or inherited from an old creator string) and be
+ * resolved later; `externalKey` is "openlibrary:/authors/OL…A" or "". Years
+ * are what Open Library says, as text ("1920", "5 January 1932").
+ */
+export interface Author extends Document {
+  type: typeof AUTHOR;
+  aliases: string[];
+  externalKey: string;
+  photoUrl: string;
+  born: string;
+  died: string;
+}
 
 /** Lookup provider keys (ADR 0024): the Library's own synced record, id "default". */
 export interface LookupSettings extends Document {

@@ -1,6 +1,6 @@
 import type { DocumentTypeDef, FieldDef } from "@lifeline/core";
-import { Book, BookOpen } from "lucide-react";
-import { ACQUISITION, ENGAGEMENT, SETTINGS_TYPE, type Work } from "./domain/types";
+import { Book, BookOpen, UserPen } from "lucide-react";
+import { ACQUISITION, AUTHOR, ENGAGEMENT, SETTINGS_TYPE } from "./domain/types";
 import { WORK_TYPES, type WorkTypeId } from "./domain/workTypes";
 import { APP_HREF } from "./constants";
 
@@ -14,7 +14,7 @@ const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRE
  * guarded (ADR 0019).
  */
 const WORK_FIELDS: FieldDef[] = [
-  { key: "creator", label: "Creator", kind: "text", column: true },
+  { key: "authors", label: "Authors", kind: "links", linkType: AUTHOR, column: true },
   { key: "year", label: "Year", kind: "number", column: true },
   { key: "size", label: "Size", kind: "number" },
   { key: "acquisition", label: "Owned", kind: "select", options: ACQUISITION.map((v) => ({ value: v, label: ACQ_LABELS[v] })), guarded: true, column: true },
@@ -44,13 +44,38 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t, i) => ({
   iconName: ICONS[t.id].name,
   titleRule: "name",
   body: "none",
-  linkable: { subtitle: (d) => { const m = d as Work; return `${t.label}${m.creator ? " · " + m.creator : ""}`; } },
+  linkable: { subtitle: () => t.label },
   href: () => APP_HREF,
   indexes: ["slot", "externalKey"],
   order: 40 + i,
   builtIn: true,
   fields: WORK_FIELDS,
 }));
+
+/**
+ * The Author (ADR 0052): Linkable by name and aliases, with a body for my
+ * own words. Opens on the Vault's generic page (the body lives there); the
+ * Library's own Author screen is one click away from it.
+ */
+export const authorTypeDef: DocumentTypeDef = {
+  id: AUTHOR,
+  label: "Authors",
+  icon: UserPen,
+  iconName: "user",
+  titleRule: "name",
+  body: "optional",
+  linkable: { subtitle: (d) => { const a = d as { born?: string; died?: string }; return a.born || a.died ? `Author · ${[a.born, a.died].filter(Boolean).join(" – ")}` : "Author"; } },
+  indexes: ["externalKey"],
+  order: 42,
+  builtIn: true,
+  fields: [
+    { key: "aliases", label: "Aliases", kind: "list" },
+    { key: "born", label: "Born", kind: "text", column: true },
+    { key: "died", label: "Died", kind: "text", column: true },
+    { key: "photoUrl", label: "Photo URL", kind: "url" },
+    { key: "externalKey", label: "External key", kind: "text", hidden: true },
+  ],
+};
 
 export const settingsTypeDef: DocumentTypeDef = {
   id: SETTINGS_TYPE,
