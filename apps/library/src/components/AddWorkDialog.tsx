@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Dialog,
@@ -18,31 +18,41 @@ import {
   toast,
 } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary } from "@lifeline/core";
-import { Search } from "lucide-react";
+import { X } from "lucide-react";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import { ACQUISITION, type Acquisition } from "../domain/types";
-import { addWork, findByExternalKey, useWorks, useLookupSettings } from "../data/repo";
-import type { WorkHit } from "../data/openlibrary";
-import { describeLookup, lookupFor, resolveHit } from "../data/lookup";
+import { addWork, ensureAuthorRefs, findByExternalKey, useAuthorIndex, useWorks, useLookupSettings } from "../data/repo";
+import { hitByline, PAGE_SIZE, type AuthorRef, type LookupQuery, type WorkHit } from "../data/openlibrary";
+import { describeLookup, lookupFor, providerOf, resolveHit } from "../data/lookup";
 import { Cover } from "./Cover";
+import { AuthorPicker } from "./AuthorPicker";
 
 const ACQ_LABEL: Record<Acquisition, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 
 /**
  * Two steps: find (lookup for books/comics, otherwise manual), then the
  * Reason and tags. Acquisition is a folded-away detail, defaulting to Wanted;
- * items land on the To… shelf (ADR 0006 amendment).
+ * items land on the To… shelf (ADR 0006 amendment). The find step asks Title
+ * and Author apart (ADR 0052): either alone searches, a picked Author narrows
+ * to their key and links the Work, and an Author with no Title is their
+ * bibliography by another door. Twenty hits, "More" pages the provider that
+ * answered.
  */
 export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { open: boolean; onOpenChange: (o: boolean) => void; defaultType?: WorkTypeId }) {
   const items = useWorks();
+  const authorIndex = useAuthorIndex();
   const [type, setType] = useState<WorkTypeId>(defaultType);
-  const [query, setQuery] = useState("");
+  const [title, setTitle] = useState("");
+  const [authorText, setAuthorText] = useState("");
+  const [authorIds, setAuthorIds] = useState<string[]>([]);
   const [hits, setHits] = useState<WorkHit[]>([]);
+  const [page, setPage] = useState(1);
+  const [more, setMore] = useState(false);
   const [searching, setSearching] = useState(false);
   const [pick, setPick] = useState<WorkHit | null>(null);
+  /** The picked hit's authors, shown as chips and found-or-created on Add — removable before then. */
+  const [hitAuthors, setHitAuthors] = useState<AuthorRef[]>([]);
   const [manual, setManual] = useState(false);
-  const [title, setTitle] = useState("");
-  const [creator, setCreator] = useState("");
   const [year, setYear] = useState("");
   const [size, setSize] = useState("");
   const [reason, setReason] = useState("");
@@ -56,12 +66,15 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
   useEffect(() => {
     if (!open) return;
     setType(defaultType);
-    setQuery("");
-    setHits([]);
-    setPick(null);
-    setManual(false);
     setTitle("");
-    setCreator("");
+    setAuthorText("");
+    setAuthorIds([]);
+    setHits([]);
+    setPage(1);
+    setMore(false);
+    setPick(null);
+    setHitAuthors([]);
+    setManual(false);
     setYear("");
     setSize("");
     setReason("");
@@ -69,17 +82,31 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
     setTags([]);
   }, [open, defaultType]);
 
-  // Debounced lookup; last keystroke wins.
+  // The picked Author narrows the search: by key when resolved, by name otherwise.
+  const pickedAuthor = authorIds.length ? authorIndex.get(authorIds[0]) : undefined;
+  const query = useMemo<LookupQuery | null>(() => {
+    const t = title.trim();
+    const a = pickedAuthor ? pickedAuthor.title : authorText.trim();
+    if (t.length < 3 && !pickedAuthor && a.length < 3) return null;
+    return { ...(t ? { title: t } : {}), ...(a ? { author: a } : {}), ...(pickedAuthor?.externalKey ? { authorKey: pickedAuthor.externalKey } : {}) };
+  }, [title, authorText, pickedAuthor]);
+
+  // Debounced lookup; last keystroke wins. A new query starts at page one.
   useEffect(() => {
-    if (!search || manual || query.trim().length < 3) {
+    if (!search || manual || !query) {
       setHits([]);
+      setMore(false);
       return;
     }
     const ctl = new AbortController();
     const t = setTimeout(() => {
       setSearching(true);
-      search(query.trim(), ctl.signal)
-        .then(setHits)
+      search({ ...query, page: 1 }, ctl.signal)
+        .then((res) => {
+          setHits(res);
+          setPage(1);
+          setMore(res.length >= PAGE_SIZE);
+        })
         .catch((err: Error) => {
           if (err.name !== "AbortError") toast.error("Lookup failed — add it manually");
         })
@@ -91,6 +118,21 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
     };
   }, [query, type, settings, manual]); // `search` derives from type + settings
 
+  async function loadMore() {
+    if (!search || !query || !hits.length) return;
+    const next = page + 1;
+    setSearching(true);
+    try {
+      const res = await search({ ...query, page: next, provider: providerOf(hits[0]) });
+      setHits((h) => [...h, ...res.filter((r) => !h.some((x) => x.externalKey === r.externalKey))]);
+      setPage(next);
+      setMore(res.length >= PAGE_SIZE);
+    } catch (e) {
+      toast.error((e as Error).message || "Lookup failed");
+    } finally {
+      setSearching(false);
+    }
+  }
 
   async function choose(raw: WorkHit) {
     const dup = findByExternalKey(items, raw.externalKey);
@@ -101,7 +143,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
     const h = await resolveHit(raw);
     setPick(h);
     setTitle(h.title);
-    setCreator(h.creator);
+    setHitAuthors(h.authors);
     setYear(h.year ? String(h.year) : "");
     setSize(h.size ? String(h.size) : "");
   }
@@ -110,10 +152,12 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
 
   async function submit() {
     if (!title.trim()) return void toast.error("Title required");
+    const fromHit = await ensureAuthorRefs(hitAuthors);
+    const authors = [...new Set([...authorIds, ...fromHit])];
     await addWork({
       medium: type,
       title,
-      creator,
+      authors,
       externalKey: pick?.externalKey ?? "",
       coverUrl: pick?.coverUrl ?? "",
       year: Number(year) || 0,
@@ -125,6 +169,29 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
     toast.success(`${title.trim()} added to ${def.wantLabel}`);
     onOpenChange(false);
   }
+
+  /** Chips for the Authors the Work will get: the picked ones and the hit's, each removable. */
+  const authorChips = (
+    <div className="flex flex-wrap gap-1">
+      {authorIds.map((id) => (
+        <span key={id} className="bg-muted inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs">
+          {authorIndex.get(id)?.title ?? "…"}
+          <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Remove author" onClick={() => setAuthorIds((a) => a.filter((x) => x !== id))}>
+            <X className="size-3" />
+          </button>
+        </span>
+      ))}
+      {hitAuthors.map((a, i) => (
+        <span key={`${a.externalKey ?? a.name}-${i}`} className="bg-muted inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs" title={a.externalKey ? "From Open Library" : "Name only"}>
+          {a.name}
+          <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={`Remove ${a.name}`} onClick={() => setHitAuthors((l) => l.filter((_, j) => j !== i))}>
+            <X className="size-3" />
+          </button>
+        </span>
+      ))}
+      {authorIds.length + hitAuthors.length === 0 && <span className="text-muted-foreground text-xs">No author</span>}
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -140,6 +207,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
               onValueChange={(v) => {
                 setType(v as WorkTypeId);
                 setPick(null);
+                setHitAuthors([]);
                 setManual(false);
                 setHits([]);
               }}
@@ -159,14 +227,18 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
 
           {!step2 && (
             <div className="grid gap-2">
-              <Label htmlFor="media-search">Search {describeLookup(type, settings)}</Label>
-              <div className="relative">
-                <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
-                <Input id="media-search" className="pl-8" value={query} autoFocus placeholder="Title or author (3+ letters)" onChange={(e) => setQuery(e.target.value)} />
+              <p className="text-muted-foreground text-xs">Search {describeLookup(type, settings)} — title, author, or both.</p>
+              <div className="grid gap-2">
+                <Label htmlFor="media-title-search">Title</Label>
+                <Input id="media-title-search" value={title} autoFocus placeholder="Title (3+ letters)" onChange={(e) => setTitle(e.target.value)} />
               </div>
-              {searching && <p className="text-muted-foreground text-xs">Searching…</p>}
+              <div className="grid gap-2">
+                <Label htmlFor="media-author-search">{def.creatorLabel}</Label>
+                <AuthorPicker id="media-author-search" value={authorIds} onChange={setAuthorIds} text={authorText} onTextChange={setAuthorText} placeholder="Author — yours first, then Open Library" />
+              </div>
+              {searching && hits.length === 0 && <p className="text-muted-foreground text-xs">Searching…</p>}
               {hits.length > 0 && (
-                <ul className="grid max-h-64 gap-1 overflow-y-auto">
+                <ul className="grid max-h-72 gap-1 overflow-y-auto">
                   {hits.map((h) => (
                     <li key={h.externalKey}>
                       <button type="button" className="hover:bg-accent flex w-full items-center gap-3 rounded-md border p-2 text-left" onClick={() => void choose(h)}>
@@ -174,7 +246,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium">{h.title}</span>
                           <span className="text-muted-foreground block truncate text-xs">
-                            {h.creator}
+                            {hitByline(h)}
                             {h.year ? ` · ${h.year}` : ""}
                             {h.size ? ` · ${h.size} ${def.sizeUnit}` : ""}
                           </span>
@@ -182,8 +254,16 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
                       </button>
                     </li>
                   ))}
+                  {more && (
+                    <li>
+                      <Button variant="outline" size="sm" className="w-full" disabled={searching} onClick={() => void loadMore()}>
+                        {searching ? "Loading…" : "More"}
+                      </Button>
+                    </li>
+                  )}
                 </ul>
               )}
+              {!searching && query && hits.length === 0 && <p className="text-muted-foreground text-xs">Nothing found.</p>}
               <Button variant="ghost" className="justify-start" onClick={() => setManual(true)}>
                 Can't find it — enter manually
               </Button>
@@ -193,15 +273,25 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
           {step2 && (
             <>
               {pick && (
-                <div className="flex items-center gap-3">
-                  <Cover item={{ title: pick.title, coverUrl: pick.coverUrl, type }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium">{pick.title}</div>
-                    <div className="text-muted-foreground truncate text-xs">{pick.creator}</div>
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-3">
+                    <Cover item={{ title: pick.title, coverUrl: pick.coverUrl, type }} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">{pick.title}</div>
+                      <div className="text-muted-foreground truncate text-xs">{[pick.year || "", pick.size ? `${pick.size} ${def.sizeUnit}` : ""].filter(Boolean).join(" · ")}</div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setPick(null);
+                        setHitAuthors([]);
+                      }}
+                    >
+                      Change
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setPick(null)}>
-                    Change
-                  </Button>
+                  {authorChips}
                 </div>
               )}
               {!pick && (
@@ -210,11 +300,11 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
                     <Label htmlFor="media-title">Title</Label>
                     <Input id="media-title" value={title} autoFocus onChange={(e) => setTitle(e.target.value)} />
                   </div>
-                  <div className="grid grid-cols-[1fr_5rem_5rem] gap-2">
-                    <div className="grid gap-2">
-                      <Label htmlFor="media-creator">{def.creatorLabel}</Label>
-                      <Input id="media-creator" value={creator} onChange={(e) => setCreator(e.target.value)} />
-                    </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="media-authors">{def.creatorLabel}</Label>
+                    <AuthorPicker id="media-authors" value={authorIds} onChange={setAuthorIds} placeholder="Add an author…" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
                     <div className="grid gap-2">
                       <Label htmlFor="media-year">Year</Label>
                       <Input id="media-year" type="number" value={year} onChange={(e) => setYear(e.target.value)} />

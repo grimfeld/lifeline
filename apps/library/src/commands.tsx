@@ -1,6 +1,7 @@
 import type { CommandDef } from "@lifeline/core";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
-import { Library as LibraryIcon, Plus, Settings2, SlidersHorizontal } from "lucide-react";
+import { Library as LibraryIcon, Plus, Settings2, SlidersHorizontal, UserPen } from "lucide-react";
+import { ResolveAuthorsDialog } from "./components/ResolveAuthorsDialog";
 import { AddWorkDialog } from "./components/AddWorkDialog";
 import { QuickAdd } from "./components/QuickAdd";
 import { LookupSettingsDialog } from "./components/LookupSettingsDialog";
@@ -24,5 +25,6 @@ export const libraryCommands: CommandDef[] = [
   { id: "library.quick-add", title: "Add book…", keywords: ["book", "comic", "read", "library", "quick"], icon: Plus, dialog: QuickAddCommandDialog, capture: true },
   { id: "library.add", title: "Add book with details", keywords: ["book", "comic", "read", "details", "library"], icon: SlidersHorizontal, dialog: AddWorkDialog },
   { id: "library.open", title: "Go to Library", keywords: ["library", "books", "comics", "reading", "nightstand", "shelf"], icon: LibraryIcon, run: ({ navigate }) => navigate(APP_HREF) },
+  { id: "library.resolve-authors", title: "Resolve authors…", keywords: ["library", "author", "authors", "open library", "resolve", "bibliography"], icon: UserPen, dialog: ResolveAuthorsDialog },
   { id: "library.lookup-settings", title: "Library lookup settings…", keywords: ["library", "lookup", "metadata", "api", "key", "comicvine", "google books", "enrich", "covers"], icon: Settings2, dialog: LookupSettingsDialog },
 ];

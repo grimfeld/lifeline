@@ -15,7 +15,7 @@ function item(p: Partial<Work>): Work {
     tags: [],
     folder: "",
     createdAt: "2026-01-01",
-    creator: "",
+    authors: [],
     externalKey: "",
     coverUrl: "",
     size: 0,
@@ -111,9 +111,9 @@ describe("shelves and slots (ADR 0006 amendment)", () => {
     expect(onShelf(item({ engagement: "DONE" }), "UNSTARTED")).toBe(false);
   });
   it("parses quick titles", () => {
-    expect(parseQuickTitle("Dune — Frank Herbert")).toEqual({ title: "Dune", creator: "Frank Herbert" });
-    expect(parseQuickTitle("Heat by Michael Mann")).toEqual({ title: "Heat", creator: "Michael Mann" });
-    expect(parseQuickTitle("Spider-Man")).toEqual({ title: "Spider-Man", creator: "" });
-    expect(parseQuickTitle("Kind of Blue - Miles Davis")).toEqual({ title: "Kind of Blue", creator: "Miles Davis" });
+    expect(parseQuickTitle("Dune — Frank Herbert")).toEqual({ title: "Dune", author: "Frank Herbert" });
+    expect(parseQuickTitle("Heat by Michael Mann")).toEqual({ title: "Heat", author: "Michael Mann" });
+    expect(parseQuickTitle("Spider-Man")).toEqual({ title: "Spider-Man", author: "" });
+    expect(parseQuickTitle("Kind of Blue - Miles Davis")).toEqual({ title: "Kind of Blue", author: "Miles Davis" });
   });
 });

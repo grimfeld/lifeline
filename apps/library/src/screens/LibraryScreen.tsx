@@ -12,6 +12,7 @@ import { WorkDetailDialog } from "../components/WorkDetailDialog";
 import { EditWorkDialog, WorkRow } from "../components/WorkRow";
 import { QuickAdd } from "../components/QuickAdd";
 import { LookupSettingsDialog } from "../components/LookupSettingsDialog";
+import { useAuthorNames } from "../components/AuthorNames";
 
 export type Medium = WorkTypeId | "all";
 
@@ -104,6 +105,7 @@ function emptyMessage(shelf: Shelf): string {
 /** The Library (ADR 0024): the Gallery you land on, the Nightstand one tab away. */
 export function LibraryScreen() {
   const items = useWorks();
+  const authorNames = useAuthorNames();
   const [addOpen, setAddOpen] = useState(false);
   const [lookupOpen, setLookupOpen] = useState(false);
   const [editing, setEditing] = useState<Work | null>(null);
@@ -122,7 +124,7 @@ export function LibraryScreen() {
 
   const ofMedium = useMemo(() => items.filter((m) => type === "all" || m.type === type), [items, type]);
   const shelfCounts = useMemo(() => new Map<Shelf, number>(SHELVES.map((s) => [s, ofMedium.filter((m) => onShelf(m, s)).length])), [ofMedium]);
-  const gallery = useMemo(() => sortGallery(ofMedium.filter((m) => onShelf(m, shelf)).filter((m) => matchesSearch(m, q)), sort), [ofMedium, shelf, q, sort]);
+  const gallery = useMemo(() => sortGallery(ofMedium.filter((m) => onShelf(m, shelf)).filter((m) => matchesSearch(m, q, authorNames)), sort), [ofMedium, shelf, q, sort, authorNames]);
   // Resolve by id so the dialog re-renders with the live record after each transition.
   const viewing = viewingId ? (items.find((m) => m.id === viewingId) ?? null) : null;
   const slottedCount = items.filter((m) => m.slot > 0).length;

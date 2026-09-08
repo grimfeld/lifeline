@@ -13,6 +13,7 @@ import { useLookupSettings } from "../data/repo";
 import { lookupFor } from "../data/lookup";
 import { refreshFromSource } from "../data/enrichActions";
 import { FindMetadataDialog } from "./FindMetadataDialog";
+import { AuthorNames } from "./AuthorNames";
 
 /** "Find metadata" / "Refresh from source" — the lookup row under the header (ADR 0006 amendment). */
 function LookupActions({ item }: { item: Work }) {
@@ -90,8 +91,8 @@ export function WorkDetailDialog({ item, all, onClose, onEdit }: { item: Work | 
                 {slotted && <span className="text-muted-foreground mt-1 shrink-0 text-xs">#{item.slot}</span>}
               </div>
               <div className="text-muted-foreground text-sm">
-                {item.creator}
-                {item.year ? ` · ${item.year}` : ""}
+                <AuthorNames item={item} />
+                {item.year ? `${item.authors.length ? " · " : ""}${item.year}` : ""}
                 {item.size ? ` · ${item.size} ${def.sizeUnit}` : ""}
               </div>
             </div>

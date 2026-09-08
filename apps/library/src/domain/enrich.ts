@@ -9,12 +9,15 @@ import type { Work } from "./types";
  * identity; "Enrich all" auto-applies only an exact title(+year) match.
  */
 
-type Fillable = Pick<Work, "creator" | "year" | "size" | "coverUrl" | "externalKey">;
+type Fillable = Pick<Work, "year" | "size" | "coverUrl" | "externalKey">;
 
-/** Fill only the empty fields ("" / 0) from the hit; externalKey is set whenever the item has none. */
+/**
+ * Fill only the empty fields ("" / 0) from the hit; externalKey is set
+ * whenever the item has none. Authors are filled by the caller (they are
+ * Documents to find-or-create, ADR 0052) — only when the item has none.
+ */
 export function applyHit(item: Fillable, hit: WorkHit): Patch {
   const patch: Patch = {};
-  if (!item.creator && hit.creator) patch.creator = hit.creator;
   if (!item.year && hit.year) patch.year = hit.year;
   if (!item.size && hit.size) patch.size = hit.size;
   if (!item.coverUrl && hit.coverUrl) patch.coverUrl = hit.coverUrl;
@@ -22,7 +25,7 @@ export function applyHit(item: Fillable, hit: WorkHit): Patch {
   return patch;
 }
 
-/** Overwrite cover/size/year from the source (never title or creator). Empty hit values leave the field alone. */
+/** Overwrite cover/size/year from the source (never title or Authors). Empty hit values leave the field alone. */
 export function refreshFromHit(item: Fillable, hit: WorkHit): Patch {
   const patch: Patch = {};
   if (hit.coverUrl && hit.coverUrl !== item.coverUrl) patch.coverUrl = hit.coverUrl;
