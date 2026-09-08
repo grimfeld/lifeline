@@ -69,7 +69,12 @@ async function isDefaultWorkspace(id: string): Promise<boolean> {
 
 export function useWorkspaceScreens(): UserScreen[] {
   const wsId = useCurrentWorkspaceId();
-  return useLiveQuery(() => screensOfWorkspace(), [wsId], [] as UserScreen[]);
+  // The querier must itself be `async`: Dexie only keeps its liveQuery zone
+  // alive across native awaits when it sees an AsyncFunction. A plain arrow
+  // returning `screensOfWorkspace()` lost the zone at the first await (the
+  // Workspace read), so the `screens` query that followed was never tracked
+  // and the sidebar did not react to a Screen being made or deleted.
+  return useLiveQuery(async () => screensOfWorkspace(), [wsId], [] as UserScreen[]);
 }
 
 /** The Screen this Workspace opens as Home on the phone, if one holds it. */
