@@ -7,6 +7,9 @@ import { saveLookupSettings, useWorks, useLookupSettings } from "../data/repo";
 import { describeLookup } from "../data/lookup";
 import { applyPick, enrichable, enrichAll, type EnrichProgress, type NeedsPick } from "../data/enrichActions";
 import { Cover } from "./Cover";
+import { hitByline } from "../data/openlibrary";
+import { useByline } from "./AuthorNames";
+import { ResolveAuthorsSection } from "./ResolveAuthorsDialog";
 
 type KeyField = "comicvineKey" | "googleBooksKey";
 
@@ -20,6 +23,7 @@ function PickRow({ entry, onApplied }: { entry: NeedsPick; onApplied: () => void
   const [key, setKey] = useState(entry.hits[0]?.externalKey ?? "");
   const [busy, setBusy] = useState(false);
   const hit = entry.hits.find((h) => h.externalKey === key);
+  const who = useByline(entry.item);
   async function apply() {
     if (!hit) return;
     setBusy(true);
@@ -39,7 +43,7 @@ function PickRow({ entry, onApplied }: { entry: NeedsPick; onApplied: () => void
         <Cover item={entry.item} className="h-10 w-7 shrink-0" />
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium">{entry.item.title}</span>
-          <span className="text-muted-foreground block truncate text-xs">{[entry.item.creator, entry.item.year || ""].filter(Boolean).join(" · ") || "—"}</span>
+          <span className="text-muted-foreground block truncate text-xs">{[who, entry.item.year || ""].filter(Boolean).join(" · ") || "—"}</span>
         </span>
       </div>
       <div className="flex items-center gap-2">
@@ -50,7 +54,7 @@ function PickRow({ entry, onApplied }: { entry: NeedsPick; onApplied: () => void
           <SelectContent>
             {entry.hits.map((h) => (
               <SelectItem key={h.externalKey} value={h.externalKey}>
-                {[h.title, h.creator, h.year || ""].filter(Boolean).join(" · ")}
+                {[h.title, hitByline(h), h.year || ""].filter(Boolean).join(" · ")}
               </SelectItem>
             ))}
           </SelectContent>
@@ -197,6 +201,8 @@ export function LookupSettingsDialog({ open, onOpenChange }: { open: boolean; on
               </div>
             )}
           </section>
+
+          <ResolveAuthorsSection open={open} />
         </div>
       </DialogContent>
     </Dialog>

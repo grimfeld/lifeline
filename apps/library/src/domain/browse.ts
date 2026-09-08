@@ -2,11 +2,12 @@ import type { Engagement, Work } from "./types";
 import { workType, type WorkTypeId } from "./workTypes";
 
 /**
- * Free-text search over title, creator, reason and tags. Empty needle matches
- * all. A leading `#` restricts the needle to tags (`#garden`); a bare word also
- * matches items tagged with it (`garden`).
+ * Free-text search over title, Author names, reason and tags. Empty needle
+ * matches all. A leading `#` restricts the needle to tags (`#garden`); a bare
+ * word also matches items tagged with it (`garden`). `authorNames` resolves a
+ * Work's Author ids to names (ADR 0052) — the caller has the index.
  */
-export function matchesSearch(m: Work, q: string): boolean {
+export function matchesSearch(m: Work, q: string, authorNames: (m: Work) => string[] = () => []): boolean {
   const raw = q.trim().toLowerCase();
   if (!raw) return true;
   const tags = m.tags ?? [];
@@ -14,7 +15,7 @@ export function matchesSearch(m: Work, q: string): boolean {
     const needle = raw.slice(1);
     return !needle || tags.some((t) => t.includes(needle));
   }
-  return [m.title, m.creator, m.reason].some((s) => s.toLowerCase().includes(raw)) || tags.some((t) => t.includes(raw));
+  return [m.title, m.reason, ...authorNames(m)].some((s) => s.toLowerCase().includes(raw)) || tags.some((t) => t.includes(raw));
 }
 
 /** Gallery orderings. */

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
-import type { WorkHit } from "../data/openlibrary";
+import { hitByline, type WorkHit } from "../data/openlibrary";
 import { describeLookup } from "../data/lookup";
 import { applyPick, findCandidates } from "../data/enrichActions";
 import { useLookupSettings } from "../data/repo";
@@ -16,7 +16,7 @@ export function HitRow({ hit, type, onPick, disabled }: { hit: WorkHit; type: Wo
       <Cover item={{ title: hit.title, coverUrl: hit.coverUrl, type }} className="h-12 w-8 shrink-0" />
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium">{hit.title}</span>
-        <span className="text-muted-foreground block truncate text-xs">{[hit.creator, hit.year || "", hit.size ? `${hit.size} ${def.sizeUnit}` : ""].filter(Boolean).join(" · ")}</span>
+        <span className="text-muted-foreground block truncate text-xs">{[hitByline(hit), hit.year || "", hit.size ? `${hit.size} ${def.sizeUnit}` : ""].filter(Boolean).join(" · ")}</span>
       </span>
     </button>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeLookup, lookupFor, lookupGapMs, resolveHit } from "./lookup";
+import { describeLookup, lookupFor, lookupGapMs, providerOf, resolveHit } from "./lookup";
 
 describe("lookupFor / describeLookup", () => {
   it("books and comics never need a key; ComicVine joins with one", () => {
@@ -19,10 +19,15 @@ describe("lookupFor / describeLookup", () => {
 });
 
 describe("resolveHit", () => {
-  const base = { externalKey: "openlibrary:/works/1", title: "Dune", creator: "", year: 0, size: 0, coverUrl: "" };
+  const base = { externalKey: "openlibrary:/works/1", title: "Dune", authors: [], year: 0, size: 0, coverUrl: "" };
   it("merges lazy fields, dropping empties", async () => {
-    const hit = { ...base, resolve: async () => ({ creator: "Frank Herbert", size: 0 }) };
-    expect(await resolveHit(hit)).toEqual({ ...base, creator: "Frank Herbert" });
+    const hit = { ...base, resolve: async () => ({ authors: [{ name: "Frank Herbert" }], size: 0, coverUrl: "" }) };
+    expect(await resolveHit(hit)).toEqual({ ...base, authors: [{ name: "Frank Herbert" }] });
+    expect(await resolveHit({ ...base, resolve: async () => ({ authors: [] }) })).toEqual(base);
+  });
+  it("names a hit's provider", () => {
+    expect(providerOf(base)).toBe("openlibrary");
+    expect(providerOf({ externalKey: "googlebooks:x" })).toBe("googlebooks");
   });
   it("keeps the plain hit when resolve fails", async () => {
     const hit = { ...base, resolve: async () => { throw new Error("boom"); } };

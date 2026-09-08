@@ -23,8 +23,8 @@ export interface WorkTypeDef {
 const READ = { UNSTARTED: "Unread", IN_PROGRESS: "Reading", DONE: "Read", ABANDONED: "Abandoned" };
 
 export const WORK_TYPES: WorkTypeDef[] = [
-  { id: "book", label: "Book", plural: "Books", creatorLabel: "Author", sizeUnit: "pages", slotCount: 5, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", wantLabel: "To read" },
-  { id: "comic", label: "Comic", plural: "Comics", creatorLabel: "Author / artist", sizeUnit: "issues", slotCount: 3, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", wantLabel: "To read" },
+  { id: "book", label: "Book", plural: "Books", creatorLabel: "Authors", sizeUnit: "pages", slotCount: 5, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", wantLabel: "To read" },
+  { id: "comic", label: "Comic", plural: "Comics", creatorLabel: "Authors", sizeUnit: "issues", slotCount: 3, cover: "portrait", engagement: READ, startVerb: "Start", finishVerb: "Finish", wantLabel: "To read" },
 ];
 
 export const WORK_TYPE_IDS: WorkTypeId[] = WORK_TYPES.map((t) => t.id);

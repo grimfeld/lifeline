@@ -3,20 +3,28 @@ import type { Patch } from "../domain/rules";
 import type { Work, LookupSettings } from "../domain/types";
 import { lookupFor, lookupGapMs, resolveHit, type LookupKeys } from "./lookup";
 import type { WorkHit } from "./openlibrary";
-import { patchWork } from "./repo";
+import { ensureAuthorRefs, patchWork } from "./repo";
 
 /** Lookup-driven writes: find candidates for an item, apply a pick, refresh, enrich all. */
 
 export async function findCandidates(item: Work, settings: LookupKeys, signal?: AbortSignal): Promise<WorkHit[]> {
   const search = lookupFor(item.type, settings);
   if (!search) return [];
-  return search(item.title, signal);
+  return search({ title: item.title }, signal);
 }
 
-/** Apply a chosen hit (after lazy resolve) to the item — empty fields only. Returns the patch (may be {}). */
+/**
+ * Apply a chosen hit (after lazy resolve) to the item — empty fields only,
+ * and its Authors only when the item has none (find-or-create, ADR 0052).
+ * Returns the patch (may be {}).
+ */
 export async function applyPick(item: Work, hit: WorkHit): Promise<Patch> {
   const full = await resolveHit(hit);
   const patch = applyHit(item, full);
+  if ((item.authors ?? []).length === 0 && full.authors.length > 0) {
+    const authors = await ensureAuthorRefs(full.authors);
+    if (authors.length) patch.authors = authors;
+  }
   if (Object.keys(patch).length) await patchWork(item, patch);
   return patch;
 }

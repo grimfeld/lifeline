@@ -16,6 +16,7 @@ const KINDS: { value: FieldKind; label: string }[] = [
   { value: "geo", label: "Coordinates" },
   { value: "list", label: "List" },
   { value: "link", label: "Link to Document" },
+  { value: "links", label: "Links to Documents" },
 ];
 
 type Row = { key: string; label: string; kind: FieldKind; options: string; linkType: string };
@@ -46,7 +47,7 @@ function fromRows(rows: Row[]): FieldDef[] {
             return { value: v.trim(), label: (l ?? v).trim() };
           });
       }
-      if (r.kind === "link" && r.linkType) f.linkType = r.linkType;
+      if ((r.kind === "link" || r.kind === "links") && r.linkType) f.linkType = r.linkType;
       return f;
     });
 }
@@ -176,7 +177,7 @@ export function TypeEditor({
                   ))}
                 </SelectContent>
               </Select>
-              {r.kind === "link" ? (
+              {r.kind === "link" || r.kind === "links" ? (
                 <Select value={r.linkType || "__any__"} onValueChange={(v) => setRows(rows.map((x, j) => (j === i ? { ...x, linkType: v === "__any__" ? "" : v } : x)))}>
                   <SelectTrigger className="h-8">
                     <SelectValue />
