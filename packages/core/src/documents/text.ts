@@ -28,10 +28,12 @@ function fieldToProperty(f: FieldDef, v: unknown, codec: TextCodec): PropertyVal
     case "list":
     case "multiselect":
       return Array.isArray(v) ? v.map(String) : [String(v)];
-    case "link": {
-      const ids = Array.isArray(v) ? v.map(String) : [String(v)];
+    case "link":
+    case "links": {
+      const ids = (Array.isArray(v) ? v.map(String) : [String(v)]).filter(Boolean);
+      if (ids.length === 0) return undefined;
       const names = ids.map((id) => `[[${codec.linkName?.(id) ?? id}]]`);
-      return names.length === 1 ? names[0] : names;
+      return f.kind === "links" || names.length > 1 ? names : names[0];
     }
     case "json":
       return JSON.stringify(v);
@@ -41,7 +43,7 @@ function fieldToProperty(f: FieldDef, v: unknown, codec: TextCodec): PropertyVal
 }
 
 function propertyToField(f: FieldDef, v: PropertyValue | undefined, codec: TextCodec): unknown {
-  if (v === undefined || v === "") return f.kind === "list" || f.kind === "multiselect" ? [] : null;
+  if (v === undefined || v === "") return f.kind === "list" || f.kind === "multiselect" || f.kind === "links" ? [] : null;
   switch (f.kind) {
     case "boolean":
       return v === "true" || v === 1 || v === "1" || v === "yes";
@@ -66,14 +68,15 @@ function propertyToField(f: FieldDef, v: PropertyValue | undefined, codec: TextC
         return null;
       }
     }
-    case "link": {
+    case "link":
+    case "links": {
       const names = Array.isArray(v) ? v.map(String) : [String(v)];
       const ids = names.map((n) => {
         const m = LINK_WRAP.exec(n.trim());
         const name = m ? m[1] : n.trim();
         return codec.resolveLink?.(name) ?? name;
       });
-      return ids.length === 1 ? ids[0] : ids;
+      return f.kind === "links" ? ids : ids.length === 1 ? ids[0] : ids;
     }
     default:
       return Array.isArray(v) ? v.join(", ") : String(v);
@@ -120,7 +123,7 @@ export function textToDocument(text: string, current: Document, def: DocumentTyp
     if (f.hidden) continue;
     const next = propertyToField(f, properties[f.key], codec);
     const cur = current[f.key] ?? null;
-    const same = JSON.stringify(next) === JSON.stringify(cur ?? (f.kind === "list" || f.kind === "multiselect" ? [] : null));
+    const same = JSON.stringify(next) === JSON.stringify(cur ?? (f.kind === "list" || f.kind === "multiselect" || f.kind === "links" ? [] : null));
     if (same) continue;
     if (f.guarded) {
       rejected.push(f.key);

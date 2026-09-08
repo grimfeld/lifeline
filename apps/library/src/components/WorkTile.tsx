@@ -6,6 +6,7 @@ import { Cover } from "./Cover";
 import type { Work } from "../domain/types";
 import { BoughtToggle, ReadToggle } from "./QuickActions";
 import { WorkActionsMenu } from "./WorkActions";
+import { useByline } from "./AuthorNames";
 
 /**
  * One Gallery tile: cover (or the titled fallback) with a two-line caption.
@@ -16,6 +17,7 @@ import { WorkActionsMenu } from "./WorkActions";
  */
 export function WorkTile({ item, all, onOpen, onEdit }: { item: Work; all: Work[]; onOpen: (m: Work) => void; onEdit?: (m: Work) => void }) {
   const def = workType(item.type);
+  const who = useByline(item);
   const abandoned = item.engagement === "ABANDONED";
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE";
@@ -64,8 +66,8 @@ export function WorkTile({ item, all, onOpen, onEdit }: { item: Work; all: Work[
       <button type="button" onClick={() => onOpen(item)} className="focus-visible:ring-ring min-w-0 rounded px-0.5 text-left focus-visible:ring-2 focus-visible:outline-none">
         <div className={cn("truncate text-xs font-medium", abandoned && "text-muted-foreground line-through")}>{item.title}</div>
         <div className="text-muted-foreground truncate text-[11px]">
-          {item.creator}
-          {item.creator && item.year ? " · " : ""}
+          {who}
+          {who && item.year ? " · " : ""}
           {item.year || ""}
         </div>
       </button>

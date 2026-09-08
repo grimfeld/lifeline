@@ -29,6 +29,8 @@ import { Cover } from "./Cover";
 import { WorkActionsMenu, useAct } from "./WorkActions";
 import { ACQ_LABEL } from "./AddWorkDialog";
 import { displayTitle, docHref, normalizeTag, useLinkIndex, useTagVocabulary } from "@lifeline/core";
+import { AuthorNames } from "./AuthorNames";
+import { AuthorPicker } from "./AuthorPicker";
 
 /** Documents mentioning this item via [[wikilink]] (ADR 0018). Muted, read-only. */
 function MentionedIn({ itemId }: { itemId: string }) {
@@ -59,7 +61,7 @@ function MentionedIn({ itemId }: { itemId: string }) {
 
 export function EditWorkDialog({ item, onClose }: { item: Work | null; onClose: () => void }) {
   const [title, setTitle] = useState("");
-  const [creator, setCreator] = useState("");
+  const [authors, setAuthors] = useState<string[]>([]);
   const [year, setYear] = useState("");
   const [size, setSize] = useState("");
   const [reason, setReason] = useState("");
@@ -70,7 +72,7 @@ export function EditWorkDialog({ item, onClose }: { item: Work | null; onClose: 
   useEffect(() => {
     if (!item) return;
     setTitle(item.title);
-    setCreator(item.creator);
+    setAuthors(item.authors);
     setYear(item.year ? String(item.year) : "");
     setSize(item.size ? String(item.size) : "");
     setReason(item.reason);
@@ -91,11 +93,11 @@ export function EditWorkDialog({ item, onClose }: { item: Work | null; onClose: 
             <Label>Title</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
-          <div className="grid grid-cols-[1fr_5rem_5rem] gap-2">
-            <div className="grid gap-2">
-              <Label>{def.creatorLabel}</Label>
-              <Input value={creator} onChange={(e) => setCreator(e.target.value)} />
-            </div>
+          <div className="grid gap-2">
+            <Label>{def.creatorLabel}</Label>
+            <AuthorPicker value={authors} onChange={setAuthors} placeholder="Add an author…" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
             <div className="grid gap-2">
               <Label>Year</Label>
               <Input type="number" value={year} onChange={(e) => setYear(e.target.value)} />
@@ -143,7 +145,7 @@ export function EditWorkDialog({ item, onClose }: { item: Work | null; onClose: 
               if (!title.trim()) return void toast.error("Title required");
               void patchWork(item, {
                 title: title.trim(),
-                creator: creator.trim(),
+                authors,
                 year: Number(year) || 0,
                 size: Number(size) || 0,
                 reason: reason.trim(),
@@ -185,8 +187,9 @@ export function WorkRow({ item, all, onEdit, compact = false }: { item: Work; al
           {slotted && <span className="text-muted-foreground shrink-0 text-xs">#{item.slot}</span>}
         </div>
         <div className="text-muted-foreground truncate text-xs">
-          {item.creator}
-          {item.year ? ` · ${item.year}` : ""}
+          <AuthorNames item={item} stop />
+          {item.authors.length && item.year ? " · " : ""}
+          {item.year || ""}
           {!compact && item.size ? ` · ${item.size} ${def.sizeUnit}` : ""}
         </div>
         {!compact && item.reason && <div className="text-muted-foreground line-clamp-2 text-xs italic">{item.reason}</div>}

@@ -7,6 +7,7 @@ import { freeSlots, promote } from "../domain/rules";
 import { pickIndex, surprisePool } from "../domain/cardQueries";
 import { patchWork, useWorks } from "../data/repo";
 import { Cover } from "../components/Cover";
+import { AuthorNames } from "../components/AuthorNames";
 import { mediumOf } from "./shared";
 
 /** Card: one random owned-but-unstarted item from the backlog; reroll or slot it. */
@@ -39,7 +40,7 @@ export function SurpriseCard({ settings }: CardProps) {
       <Cover item={pick} className={def.cover === "square" ? "size-28 text-xs" : "h-40 w-28 text-xs"} />
       <div className="min-w-0 w-full">
         <div className="line-clamp-2 text-sm font-medium leading-tight">{pick.title}</div>
-        {pick.creator && <div className="text-muted-foreground truncate text-xs">{pick.creator}</div>}
+        {pick.authors.length > 0 && <div className="text-muted-foreground truncate text-xs"><AuthorNames item={pick} plain /></div>}
         {pick.reason && <div className="text-muted-foreground mt-1 line-clamp-3 text-xs italic">{pick.reason}</div>}
         <Badge variant="outline" className="mt-1 text-[10px]">
           {def.label}

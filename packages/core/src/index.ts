@@ -48,6 +48,7 @@ export {
   type LifelineDB,
 } from "./data/db";
 export { put, remove, get, all } from "./data/repo";
+export { sharedLiveQuery } from "./data/live";
 export { pb, login, logout, useAuth } from "./data/pb";
 export { startSync, syncNow, requestSync, useSyncState, type SyncState } from "./data/sync";
 export { accountConflict, boundAccount, currentAccount, pendingWriteCount, switchAccount, type AccountRef } from "./data/account";

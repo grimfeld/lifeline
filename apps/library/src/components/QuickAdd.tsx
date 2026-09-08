@@ -3,7 +3,7 @@ import { cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValu
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import { deleteWork, parseQuickTitle, quickAddWork, useLookupSettings } from "../data/repo";
 import { lookupFor, resolveHit } from "../data/lookup";
-import type { WorkHit } from "../data/openlibrary";
+import { hitByline, type WorkHit } from "../data/openlibrary";
 import { Cover } from "./Cover";
 
 const LAST_TYPE_KEY = "media:quick-type";
@@ -65,7 +65,7 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
     }
     const ctl = new AbortController();
     const t = setTimeout(() => {
-      search(q, ctl.signal)
+      search({ text: q }, ctl.signal)
         .then((res) => {
           setHits(res.slice(0, 5));
           setHighlight(-1);
@@ -79,12 +79,12 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
     };
   }, [text, type, settings]);
 
-  async function add(input: { title: string; creator?: string; hit?: WorkHit }) {
+  async function add(input: { title: string; author?: string; hit?: WorkHit }) {
     const title = input.title.trim();
     if (!title) return;
-    // Lazy enrichment (TMDB director/runtime, RAWG developers) happens only on pick.
+    // Lazy enrichment happens only on pick; a hit's Authors are found or created (ADR 0052).
     const hit = input.hit ? await resolveHit(input.hit) : undefined;
-    const id = await quickAddWork({ medium: type, title, creator: input.creator || hit?.creator, hit });
+    const id = await quickAddWork({ medium: type, title, author: input.author, hit });
     writeLastType(type);
     toast.success(`Added to ${def.wantLabel}`, {
       description: title,
@@ -125,7 +125,7 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
       e.preventDefault();
       if (showHits && highlight >= 0 && hits[highlight]) {
         const h = hits[highlight];
-        void add({ title: h.title, creator: h.creator, hit: h });
+        void add({ title: h.title, hit: h });
       } else {
         const parsed = parseQuickTitle(text);
         void add(parsed);
@@ -133,7 +133,7 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
     }
   }
 
-  const placeholder = `Add ${/^[aeiou]/i.test(def.label) ? "an" : "a"} ${def.label.toLowerCase()} — ${def.creatorLabel.toLowerCase()}…`;
+  const placeholder = `Add ${/^[aeiou]/i.test(def.label) ? "an" : "a"} ${def.label.toLowerCase()} — author…`;
 
   const mediumPicker = compact ? (
     <Select value={type} onValueChange={(v) => setType(v as WorkTypeId)}>
@@ -193,13 +193,13 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
                     className={cn("hover:bg-accent flex w-full items-center gap-2 rounded-sm px-1.5 py-1 text-left", i === highlight && "bg-accent")}
                     onMouseEnter={() => setHighlight(i)}
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => void add({ title: h.title, creator: h.creator, hit: h })}
+                    onClick={() => void add({ title: h.title, hit: h })}
                   >
                     <Cover item={{ title: h.title, coverUrl: h.coverUrl, type }} className="h-8 w-6 shrink-0" />
                     <span className="min-w-0">
                       <span className="block truncate text-sm">{h.title}</span>
                       <span className="text-muted-foreground block truncate text-xs">
-                        {[h.creator, h.year || ""].filter(Boolean).join(" · ")}
+                        {[hitByline(h), h.year || ""].filter(Boolean).join(" · ")}
                       </span>
                     </span>
                   </button>

@@ -32,7 +32,8 @@ export function CellValue({ doc, field }: { doc: Document; field: FieldDef }) {
     case "list":
       return <span>{Array.isArray(v) ? v.join(", ") : String(v)}</span>;
     case "link":
-      return <LinkValue ids={Array.isArray(v) ? v.map(String) : [String(v)]} />;
+    case "links":
+      return <LinkValue ids={(Array.isArray(v) ? v.map(String) : [String(v)]).filter(Boolean)} />;
     case "url":
       return (
         <a href={String(v)} target="_blank" rel="noreferrer" className="text-primary truncate hover:underline">
