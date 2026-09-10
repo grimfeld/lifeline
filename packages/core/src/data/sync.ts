@@ -107,6 +107,23 @@ async function createAttachment(recordId: string, local: SyncedRecord): Promise<
   if (created.file) await db().collection<SyncedRecord & { file?: string }>(ATTACHMENTS).update(recordId, { file: created.file });
 }
 
+/**
+ * A record this device holds that the server has, but not for this Account:
+ * the read came back 404 (the view rule hid it), then the create said the id
+ * is taken. Left over from before Accounts existed (ADR 0039), when every
+ * sign-in pulled every row — the write can never land, so retrying is noise.
+ */
+class ForeignRecordError extends Error {
+  constructor(collection: string, recordId: string) {
+    super(`${collection}/${recordId} belongs to another account (left over from before Accounts) — erase this device's local data to clean it up`);
+  }
+}
+
+function isForeignRecord(err: unknown): boolean {
+  const e = err as { status?: number; response?: { data?: { id?: { code?: string } } } };
+  return e?.status === 400 && e.response?.data?.id?.code === "validation_not_unique";
+}
+
 /** PocketBase says a collection is missing when the server hasn't run a migration yet. */
 function isMissingCollection(err: unknown): boolean {
   const e = err as { status?: number; response?: { message?: string } };
@@ -155,8 +172,13 @@ async function pushOnce(): Promise<void> {
         }
       } catch (err) {
         if ((err as { status?: number }).status === 404) {
-          if (collection === ATTACHMENTS) await createAttachment(recordId, local);
-          else await col.create({ ...toRemote(collection, local), id: recordId });
+          try {
+            if (collection === ATTACHMENTS) await createAttachment(recordId, local);
+            else await col.create({ ...toRemote(collection, local), id: recordId });
+          } catch (createErr) {
+            if (isForeignRecord(createErr)) throw new ForeignRecordError(collection, recordId);
+            throw createErr;
+          }
         } else {
           throw err;
         }
@@ -167,6 +189,9 @@ async function pushOnce(): Promise<void> {
       if (isMissingCollection(err)) {
         skipCollections.add(collection);
         failures.push(`server has no "${collection}" collection yet — run the PocketBase migrations`);
+      } else if (err instanceof ForeignRecordError) {
+        // Report it first: the other failures are usually this one's shadow.
+        failures.unshift(err.message);
       } else {
         const msg = (err as { response?: { message?: string }; message?: string }).response?.message ?? (err as Error).message ?? String(err);
         failures.push(`${collection}/${recordId}: ${msg}`);
