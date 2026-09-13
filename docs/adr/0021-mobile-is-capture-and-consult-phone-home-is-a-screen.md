@@ -517,3 +517,31 @@ Cards stack in one column, and it is composed where it is read (2026-08-31).
 
 The parity clause is unchanged and still the rule: a page earns phone tuning by
 being used on a phone. Nothing here grants parity to anything.
+
+## Amendment (2026-09-13): the slack was not enough to tell a finger from a reflow
+
+The 2026-09-05 amendment above gave the receding header "a few pixels of slack
+so the caret band's own scrolling does not read as the user asking". That slack
+was sized against the band's steady-state nudge, and the same amendment
+introduced something an order of magnitude larger: **collapsing the header
+resizes the editor's box**, by around 160px, on every frame of a 200ms
+transition. The caret band is a fraction of that box, so each frame re-lays the
+caret out and scrolls the scroller far past eight pixels.
+
+That closed a loop. The collapse scrolled up; the scroll read as the user asking
+for the header back; the header came back, which resized the box again, which
+scrolled again — and the line being written oscillated up and down for as long
+as the caret stayed in the body.
+
+**The rule is now cause, not distance.** CodeMirror offers no "this update
+scrolled the view" flag to separate the editor's own reflow from a gesture, so
+the editor stamps when its box last moved — on a real height change, and on the
+margins being reconfigured — and a scroll landing within a short settling window
+of that stamp is not the user. The slack stays; it still covers the band's
+ordinary nudge while the box is still. `isUserScrollUp` holds both rules as one
+pure function, beside `caretRoom`, for the same reason: the arithmetic of where
+the caret sits is the part worth testing.
+
+Nothing about the amendment's intent changes — scrolling up is still the ask,
+typing still puts the header away, and the nav and the accessory bar are still
+untouched.
