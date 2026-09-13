@@ -26,6 +26,7 @@ import {
 } from "./editorExtensions";
 import { attachmentDrop } from "./attachmentCommands";
 import { caretRoom } from "./caretRoom";
+import { isUserScrollUp } from "./userScroll";
 import { ACCESSORY_BAR_HEIGHT, EditorAccessoryBar } from "./EditorAccessoryBar";
 import { textChange } from "./textDiff";
 import "./editor.css";
@@ -105,6 +106,11 @@ export function MarkdownEditor({
   const [view, setView] = useState<EditorView | null>(null);
   /** The scroller's height: the band and the tail below are fractions of it. */
   const [boxHeight, setBoxHeight] = useState(0);
+  /**
+   * When the editor's own box last moved. A scroll just after it is the caret
+   * band settling into the new box, not the user — see `isUserScrollUp`.
+   */
+  const boxChangedAt = useRef(-Infinity);
   const attachments = useAttachments();
 
   useEffect(() => {
@@ -209,7 +215,15 @@ export function MarkdownEditor({
   useEffect(() => {
     if (!view) return;
     const scroller = view.scrollDOM;
-    const read = () => setBoxHeight(scroller.clientHeight);
+    const read = () =>
+      setBoxHeight((prev) => {
+        const next = scroller.clientHeight;
+        // Stamped on a real change only: the observer also fires for widths and
+        // for the resize that ends where it started, neither of which moves the
+        // caret, and a stamp for those would swallow the user's next scroll.
+        if (next !== prev) boxChangedAt.current = performance.now();
+        return next;
+      });
     const observer = new ResizeObserver(read);
     observer.observe(scroller);
     read();
@@ -225,9 +239,12 @@ export function MarkdownEditor({
     let last = scroller.scrollTop;
     const onScroll = () => {
       const now = scroller.scrollTop;
-      // A few pixels of slack, or the scroll the caret band itself performs
-      // would read as the user asking for the chrome back.
-      if (now < last - 8) setRevealed(true);
+      // Slack for the caret band's own nudge, and a settling window for the
+      // bigger reflow that follows the box changing — the collapsing header
+      // resizes the scroller for 200ms, and reading that as the user asking
+      // brought the header back, which resized it again (the focused line
+      // oscillated). `isUserScrollUp` holds both rules.
+      if (isUserScrollUp(last, now, performance.now() - boxChangedAt.current)) setRevealed(true);
       last = now;
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });
@@ -249,6 +266,10 @@ export function MarkdownEditor({
   useEffect(() => {
     const covered = isMobile && focused ? ACCESSORY_BAR_HEIGHT : 0;
     const { top, bottom, tail } = caretRoom(boxHeight, covered);
+    // New margins re-lay the caret out, which scrolls: the same settling window
+    // the box gets, or the bar appearing on focus would read as the user asking
+    // for the chrome back at the very moment it was being put away.
+    boxChangedAt.current = performance.now();
     viewRef.current?.dispatch({
       effects: room.reconfigure([
         EditorView.scrollMargins.of(() => ({ top, bottom })),
