@@ -77,6 +77,40 @@ export function setPhoneNavHeight(px: number): void {
   for (const listener of navHeightListeners) listener();
 }
 
+/**
+ * Keep the screen on while something is running; released on unmount or when
+ * the tab hides. A browser capability like the two above, and asked for by
+ * anything that is watched rather than touched — the workout timer counting
+ * down, a Writing being read aloud from the page (both would otherwise go dark
+ * mid-use, since neither takes input while it runs).
+ */
+export function useWakeLock(active: boolean): void {
+  useEffect(() => {
+    if (!active) return;
+    let lock: { release(): Promise<void> } | null = null;
+    let alive = true;
+    const acquire = async () => {
+      try {
+        if (document.visibilityState === "visible" && "wakeLock" in navigator) {
+          lock = await (navigator as Navigator & { wakeLock: { request(t: "screen"): Promise<{ release(): Promise<void> }> } }).wakeLock.request("screen");
+        }
+      } catch {
+        /* denied */
+      }
+    };
+    const onVisible = () => {
+      if (alive && document.visibilityState === "visible") void acquire();
+    };
+    void acquire();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      alive = false;
+      document.removeEventListener("visibilitychange", onVisible);
+      void lock?.release();
+    };
+  }, [active]);
+}
+
 /** How much of the frame's bottom the phone nav occupies; 0 above `md`, and on the server. */
 export function usePhoneNavHeight(): number {
   return useSyncExternalStore(

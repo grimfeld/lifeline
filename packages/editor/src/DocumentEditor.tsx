@@ -28,6 +28,7 @@ import {
 } from "@lifeline/core";
 import { BookOpen, Code2, Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Pencil, SlidersHorizontal, Table2, Trash2 } from "lucide-react";
 import { MarkdownEditor } from "./MarkdownEditor";
+import { ReadTimer } from "./ReadTimer";
 import { MarkdownView } from "./MarkdownView";
 import { FieldsForm } from "./FieldsForm";
 import { LinksPanel } from "./LinksPanel";
@@ -397,9 +398,15 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
             {hasBody && (
               <div className="flex min-h-0 flex-1 flex-col px-3 md:px-4">
                 {mode === "read" ? (
-                  <div className="min-h-0 flex-1 overflow-y-auto py-3" onDoubleClick={() => setMode("edit")}>
-                    <MarkdownView body={body} index={index} docDate={docDate} />
-                  </div>
+                  <>
+                    <div className="min-h-0 flex-1 overflow-y-auto py-3" onDoubleClick={() => setMode("edit")}>
+                      <MarkdownView body={body} index={index} docDate={docDate} />
+                    </div>
+                    {/* Reading a Writing aloud is a Talk (CONTEXT.md), and the clock
+                        is what you want while giving one. Declared by the type, so
+                        reading mode needs to know nothing about Writings. */}
+                    {def?.readTimer && <ReadTimer />}
+                  </>
                 ) : (
                   <MarkdownEditor
                     value={body}
