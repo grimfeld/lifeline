@@ -6,7 +6,8 @@ import { elapsedSeconds, expandWorkout, formatClock, offsetOf, pause, positionAt
 import { isNewPR } from "../domain/prs";
 import { MODE_LABEL, WORKOUT_HREF, type BlockResult, type Workout } from "../domain/types";
 import { allSessions, saveSession, useExercises, useWorkout } from "../data/repo";
-import { arm, beepCount, beepDone, beepGo, beepRest, say, useAudioPrefs, useWakeLock } from "../feedback";
+import { useWakeLock } from "@lifeline/core";
+import { arm, beepCount, beepDone, beepGo, beepRest, say, useAudioPrefs } from "../feedback";
 import { SessionResultsDialog } from "../components/SessionResultsDialog";
 
 /** Results the timer can fill by itself: AMRAP round taps, For Time stops, rounds reached. */

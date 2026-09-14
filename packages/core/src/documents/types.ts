@@ -146,6 +146,14 @@ export interface DocumentTypeDef {
   linkable?: boolean | { aliasesField?: string; subtitle?: (doc: Document) => string | undefined; expand?: (name: string) => string[] | null; mentions?: boolean };
   /** Locatable (data-declarable Contract): the geo field holding `[lat, lon]`, or a reader. */
   locatable?: string | ((doc: Document) => { lat: number; lon: number } | null);
+  /**
+   * Reading mode offers a stopwatch. For types whose Documents are *performed*
+   * from the page rather than consulted — a Writing given aloud (CONTEXT.md's
+   * Talk) — where the thing worth knowing while reading is how long you have
+   * been going. Declared by the owning App, like the flags above, so reading
+   * mode never has to know which types exist.
+   */
+  readTimer?: boolean;
   /** Route that opens one Document. Default: the Vault's generic page `/vault/d/<id>`. */
   href?: (doc: Document) => string;
   /** Sync conflict hook (ADR 0010): may rescue a losing local edit. Absent = plain LWW. */

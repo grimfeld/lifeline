@@ -42,6 +42,9 @@ export const writingType: DocumentTypeDef = {
   body: "required",
   folder: "Writings",
   linkable: { subtitle: (d) => (d.project ? String(d.project) : undefined) },
+  // A Writing is the one type that gets read *aloud* — a Talk (CONTEXT.md) is a
+  // Writing given to a room, and the clock is what you want while giving it.
+  readTimer: true,
   // No `href`: the default is the Vault's document page, which is where a
   // Writing is now written (ADR 0045). It was the one type that overrode this.
   fields: [

@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 /**
  * The timer's voice and beeps (ADR 0021 amendment): short synthesised tones
@@ -112,30 +112,5 @@ export function useAudioPrefs(): { muted: boolean; voice: boolean; toggleMuted: 
   return { muted: m, voice: v, toggleMuted: () => write(MUTE_KEY, !m), toggleVoice: () => write(VOICE_KEY, !v) };
 }
 
-/** Keep the screen on while the timer runs; released on unmount or when the tab hides. */
-export function useWakeLock(active: boolean): void {
-  useEffect(() => {
-    if (!active) return;
-    let lock: { release(): Promise<void> } | null = null;
-    let alive = true;
-    const acquire = async () => {
-      try {
-        if (document.visibilityState === "visible" && "wakeLock" in navigator) {
-          lock = await (navigator as Navigator & { wakeLock: { request(t: "screen"): Promise<{ release(): Promise<void> }> } }).wakeLock.request("screen");
-        }
-      } catch {
-        /* denied */
-      }
-    };
-    const onVisible = () => {
-      if (alive && document.visibilityState === "visible") void acquire();
-    };
-    void acquire();
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      alive = false;
-      document.removeEventListener("visibilitychange", onVisible);
-      void lock?.release();
-    };
-  }, [active]);
-}
+// `useWakeLock` moved to Core (`media.ts`): the workout timer is no longer the
+// only thing that must stay lit — a Writing read aloud wants the same.
