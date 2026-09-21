@@ -33,7 +33,6 @@ import {
   MoreHorizontal,
   Plus,
   Settings2,
-  Smartphone,
   Tag,
   Trash2,
 } from "lucide-react";
@@ -41,7 +40,6 @@ import { TagChips } from "@lifeline/ui";
 import { TagPicker } from "../components/TagPicker";
 import { CardPicker } from "../components/CardPicker";
 import { CardSettingsForm } from "../components/CardSettingsForm";
-import { setPhoneHome } from "../mobile/phoneHome";
 
 const Grid = WidthProvider(GridLayout);
 
@@ -334,11 +332,6 @@ export function UserScreenPage({ screenId }: { screenId?: string } = {}) {
     await put<UserScreen>("screens", { ...screen!, tags });
   }
 
-  async function useAsPhoneHome() {
-    await setPhoneHome(screen!.id);
-    toast.success(`“${screen!.name}” is the phone home`);
-  }
-
   async function deleteScreen() {
     await remove("screens", screen!.id);
     toast.success(`Screen "${screen!.name}" deleted`);
@@ -388,9 +381,6 @@ export function UserScreenPage({ screenId }: { screenId?: string } = {}) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem disabled={screen.phoneHome} onClick={() => void useAsPhoneHome()}>
-                <Smartphone /> {screen.phoneHome ? "Is the phone home" : "Use as phone home"}
-              </DropdownMenuItem>
               {/* Rule 1 of ADR 0049: a Screen claiming a Module is where that
                   Module's slot lands — the user's own Cards instead of an index. */}
               <DropdownMenuSub>

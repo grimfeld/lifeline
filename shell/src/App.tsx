@@ -17,7 +17,7 @@ import { FrameLayout } from "./components/FrameLayout";
 import { useFrameMemory } from "./components/FrameSwitcher";
 import { MobileNav } from "./mobile/MobileNav";
 import { PhoneHeader } from "./mobile/PhoneHeader";
-import { PhoneHomePage } from "./mobile/PhoneHomePage";
+import { SettingsPage } from "./settings/SettingsPage";
 import { ModulePage } from "./modules/ModulePage";
 
 function HomeRedirect() {
@@ -46,7 +46,7 @@ function DashboardFrame() {
         <Routes>
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/screen/:id" element={<UserScreenPage />} />
-          <Route path="/phone" element={<PhoneHomePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/module/:id" element={<ModulePage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/week" element={<WeekPage />} />

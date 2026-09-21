@@ -187,9 +187,13 @@ workspaces…" navigates to `/settings`.
   justification for the primitive was overstated at the time; 0047 had already
   given it three jobs.
 - `workspaces` gains `bar`, so **ADR 0039's three lists are untouched** — the
-  collection already exists and already carries `owner`. A Workspace with no
-  `bar` seeds on first read rather than in a migration, so there is no second
-  code path for a row written before this.
+  collection already exists and already carries `owner`. It still needs a
+  schema migration (`1757600000_workspace_bar.js`): PocketBase's schema is
+  strict and `toRemote` pushes a non-Document record whole, so an undeclared
+  `bar` is dropped on the way in — silently, and only as seen from the user's
+  *other* devices. There is no **backfill**, though: a Workspace with no `bar`
+  seeds from its own Modules on first read, so old rows and new take one code
+  path and nothing re-pulls.
 - `screens.phoneHome` comes out of `UserScreen`, with the `/phone` route,
   `PhoneHomePage`, `createStarterPhoneHome`, `usePhoneHomeScreen`,
   `setPhoneHome`, the sidebar's badge and context-menu item and the Screen

@@ -17,6 +17,7 @@ import {
 } from "@lifeline/ui";
 import {
   MODULES,
+  SURFACES,
   basePath,
   moduleOfApp,
   navSectionsOf,
@@ -30,9 +31,9 @@ import {
   type NavSection,
   type UserScreen,
 } from "@lifeline/core";
-import { CalendarDays, ChevronRight, Clock, Columns3, EyeOff, LayoutDashboard, MapPin, Plus, Settings2, Smartphone, Sparkles, Table2, Waypoints } from "lucide-react";
+import { ChevronRight, EyeOff, LayoutDashboard, Plus, Settings, Settings2, Smartphone, Sparkles, Table2 } from "lucide-react";
+import { SURFACE_ICONS } from "../navIcons";
 import { SyncBadge } from "./SyncBadge";
-import { setPhoneHome } from "../mobile/phoneHome";
 import { FrameSwitcher } from "./FrameSwitcher";
 import { WorkspacePicker } from "./WorkspacePicker";
 import { useCollapsedSections, useHiddenBases, useOpenGroups } from "./sidebarPrefs";
@@ -186,13 +187,12 @@ export function Sidebar({ className }: { className?: string } = {}) {
                 <div>
                   <NavLink to={`/screen/${s.id}`} className={navClass}>
                     <LayoutDashboard className="size-4" /> {s.name}
-                    {s.phoneHome && <Smartphone className="text-muted-foreground ml-auto size-3.5" />}
                   </NavLink>
                 </div>
               </ContextMenuTrigger>
               <ContextMenuContent>
-                <ContextMenuItem onClick={() => void setPhoneHome(s.id)}>
-                  <Smartphone className="size-4" /> Use as phone home
+                <ContextMenuItem onClick={() => navigate("/settings")}>
+                  <Smartphone className="size-4" /> Put on the phone bar…
                 </ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
@@ -208,21 +208,14 @@ export function Sidebar({ className }: { className?: string } = {}) {
         </Section>
 
         <Section id="surfaces" title="Surfaces">
-          <NavLink to="/calendar" className={navClass}>
-            <CalendarDays className="size-4" /> Calendar
-          </NavLink>
-          <NavLink to="/week" className={navClass}>
-            <Columns3 className="size-4" /> Week
-          </NavLink>
-          <NavLink to="/schedule" className={navClass}>
-            <Clock className="size-4" /> Schedule
-          </NavLink>
-          <NavLink to="/map" className={navClass}>
-            <MapPin className="size-4" /> Map
-          </NavLink>
-          <NavLink to="/graph" className={navClass}>
-            <Waypoints className="size-4" /> Graph
-          </NavLink>
+          {SURFACES.map((s) => {
+            const Icon = SURFACE_ICONS[s.id] ?? Table2;
+            return (
+              <NavLink key={s.id} to={s.path} className={navClass}>
+                <Icon className="size-4" /> {s.title}
+              </NavLink>
+            );
+          })}
         </Section>
 
         <Section id="apps" title="Apps">
@@ -292,7 +285,10 @@ export function Sidebar({ className }: { className?: string } = {}) {
       </nav>
 
       <Separator />
-      <div className="p-2">
+      <div className="flex flex-col gap-1 p-2">
+        <NavLink to="/settings" className={navClass}>
+          <Settings className="size-4" /> Settings
+        </NavLink>
         <SyncBadge />
       </div>
 
