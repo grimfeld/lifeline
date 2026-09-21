@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Textarea, toast } from "@lifeline/ui";
 import type { Habit, Negative } from "../domain/types";
-import { completeHabit, logNegative, useHabits, useNegatives } from "../data/repo";
+import { completeHabit, deleteCompletion, logNegative, useHabits, useNegatives } from "../data/repo";
 import { celebrateCompletion, mournNegative } from "../feedback/feedback";
 
 function nowLocalInput(): string {
@@ -38,7 +38,15 @@ export function CompleteHabitDialog({ open, onOpenChange, habit }: { open: boole
 
   async function submit() {
     const r = await completeHabit(habit.id, { occurredAt: new Date(when).toISOString(), note });
-    if (r) celebrateCompletion({ habitTitle: r.habit.title, xpAmount: r.xpAmount, previousLevel: r.previousLevel, nextLevel: r.nextLevel, levelDelta: r.levelDelta });
+    if (r)
+      celebrateCompletion({
+        habitTitle: r.habit.title,
+        xpAmount: r.xpAmount,
+        previousLevel: r.previousLevel,
+        nextLevel: r.nextLevel,
+        levelDelta: r.levelDelta,
+        onUndo: () => deleteCompletion(r.completionId),
+      });
     onOpenChange(false);
   }
 
@@ -124,7 +132,14 @@ export function LogNegativeDialog({ open, onOpenChange, negative }: { open: bool
 
   async function submit() {
     const r = await logNegative(negative.id, { occurredAt: new Date(when).toISOString(), note });
-    if (r?.ok) mournNegative({ negativeTitle: r.negative.title, victimTitle: r.victim.title, victimId: r.victim.id, damage: r.damage });
+    if (r?.ok)
+      mournNegative({
+        negativeTitle: r.negative.title,
+        victimTitle: r.victim.title,
+        victimId: r.victim.id,
+        damage: r.damage,
+        onUndo: () => deleteCompletion(r.completionId),
+      });
     else if (r && !r.ok) toast.error(r.reason === "no-habits" ? "No habit to hit — create a habit first" : "Rival habit is gone — re-pair the negative first");
     onOpenChange(false);
   }

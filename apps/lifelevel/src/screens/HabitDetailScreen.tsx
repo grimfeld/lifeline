@@ -160,7 +160,17 @@ export function HabitDetailScreen() {
                   <span className="text-muted-foreground">{new Date(r.occurredAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</span>
                 </span>
               </div>
-              <Button size="icon" variant="ghost" className="size-7 shrink-0" title="Delete log" onClick={() => void deleteCompletion(r.id)}>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="size-7 shrink-0"
+                title={r.kind === "completion" ? "Delete this completion" : "Delete this negative log"}
+                onClick={() =>
+                  void deleteCompletion(r.id).then(() =>
+                    toast.success(r.kind === "completion" ? "Completion removed — its XP with it" : "Negative log removed — the XP damage is undone"),
+                  )
+                }
+              >
                 <Trash2 className="size-3.5" />
               </Button>
             </li>

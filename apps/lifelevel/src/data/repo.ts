@@ -135,6 +135,11 @@ export async function updateNegative(negative: Negative, input: NegativeInput): 
   await putDocument<Negative>({ ...negative, title: input.title.trim(), gravity: input.gravity, affectsHabitId: input.affectsHabitId, tags: normalizeTags(input.tags) });
 }
 
+/**
+ * Deleting a Negative takes its own Completions with it (ADR 0026, the same
+ * honest-quitting cascade as a Habit): the damage it did is undone, and the
+ * Habits it hit climb back out of that much debt.
+ */
 export async function deleteNegative(negativeId: string): Promise<void> {
   const own = await documentsWhere<NegativeCompletion>(NEGATIVE_COMPLETION, "negativeId", negativeId);
   for (const c of own) await removeDocument(c.id);
@@ -142,6 +147,8 @@ export async function deleteNegative(negativeId: string): Promise<void> {
 }
 
 export interface CompletionReward {
+  /** The ledger row just written — what an "Undo" strikes out again. */
+  completionId: string;
   habit: Habit;
   xpAmount: number;
   previousLevel: number;
@@ -175,6 +182,7 @@ export async function completeHabit(habitId: string, opts?: { occurredAt?: strin
   const next = computeProgression(habits, negatives, [...habitCompletions, row], negativeCompletions, now).habits;
   const d = diffHabit(prev, next, habitId);
   return {
+    completionId: row.id,
     habit: normalizeHabit(habit),
     xpAmount: xpGainForPositiveCompletion(habit.difficulty),
     previousLevel: d?.previousLevel ?? prev.find((s) => s.habitId === habitId)?.level ?? 1,
@@ -184,7 +192,7 @@ export async function completeHabit(habitId: string, opts?: { occurredAt?: strin
 }
 
 export type LogNegativeResult =
-  | { ok: true; negative: Negative; victim: Habit; damage: number }
+  | { ok: true; completionId: string; negative: Negative; victim: Habit; damage: number }
   | { ok: false; reason: "no-habits" | "unpaired" };
 
 /**
@@ -206,7 +214,7 @@ export async function logNegative(negativeId: string, opts?: { occurredAt?: stri
     victim = habits[Math.floor(Math.random() * habits.length)];
   }
   const occurredAt = opts?.occurredAt ?? new Date().toISOString();
-  await putDocument<NegativeCompletion>({
+  const row = await putDocument<NegativeCompletion>({
     type: NEGATIVE_COMPLETION,
     title: `Logged ${occurredAt.slice(0, 10)}`,
     negativeId,
@@ -214,9 +222,14 @@ export async function logNegative(negativeId: string, opts?: { occurredAt?: stri
     occurredAt,
     note: opts?.note?.trim() ?? "",
   });
-  return { ok: true, negative: normalizeNegative(negative), victim, damage: damageForNegativeCompletion(negative.gravity) };
+  return { ok: true, completionId: row.id, negative: normalizeNegative(negative), victim, damage: damageForNegativeCompletion(negative.gravity) };
 }
 
+/**
+ * Strike one row from the ledger — a mis-tap undone, or a log deleted from a
+ * Habit's ledger. The facts are the only thing stored, so removing one is all
+ * it takes: XP, Level and debt re-derive without it (ADR 0026).
+ */
 export async function deleteCompletion(id: string): Promise<void> {
   await removeDocument(id);
 }
