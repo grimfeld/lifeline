@@ -60,3 +60,4 @@ export * from "./documents/ops";
 export * from "./attachments";
 export * from "./private";
 export * from "./workspaces";
+export * from "./bar";

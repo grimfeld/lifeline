@@ -4,7 +4,8 @@ import { WORKSPACES, type SyncedRecord, type UserScreen } from "./data/db";
 import { all, put } from "./data/repo";
 import { hasPulledOnce } from "./data/sync";
 import { newId } from "./ids";
-import { MODULES } from "./manifest";
+import { MODULES, type BarSlot } from "./manifest";
+import { seedBar } from "./bar";
 
 /**
  * Workspaces (ADR 0047): a user-created, named set of Modules, with the option
@@ -21,8 +22,14 @@ import { MODULES } from "./manifest";
 
 export interface WorkspaceRecord extends SyncedRecord {
   name: string;
-  /** Module ids, in the user's own order — the phone's bar takes the first three. */
+  /** Module ids, in the user's own order. */
   modules: string[];
+  /**
+   * The Phone bar's two custom slots (ADR 0053), positions kept — a `null` is
+   * an empty slot, never a slot that closed up. Absent on a Workspace written
+   * before the bar existed, which then seeds from `modules` on read.
+   */
+  bar?: (BarSlot | null)[];
   /** Off by default. When on, this Workspace reads and writes only what it holds. */
   separated?: boolean;
   sort: number;
@@ -138,6 +145,10 @@ export async function createWorkspace(name: string, modules: string[], separated
     id: newId(),
     name,
     modules,
+    // Seeded once, from this Workspace's own Modules (ADR 0053), so that
+    // switching Workspace still reconfigures the phone — by an arrangement the
+    // user then owns rather than by a derivation that keeps reasserting itself.
+    bar: seedBar(modules),
     separated,
     sort: (list[list.length - 1]?.sort ?? 0) + 1,
     updatedAt: new Date().toISOString(),
@@ -209,7 +220,7 @@ export async function deleteWorkspace(id: string, releaseDocuments: (scope: stri
 
   const screens = (await all<UserScreen>("screens")).filter((s) => s.workspace === id);
   for (const s of screens) {
-    await put<UserScreen>("screens", { ...s, workspace: fallback.id, phoneHome: false });
+    await put<UserScreen>("screens", { ...s, workspace: fallback.id });
   }
 
   await put<WorkspaceRecord>(WORKSPACES, { ...ws, deleted: 1 });

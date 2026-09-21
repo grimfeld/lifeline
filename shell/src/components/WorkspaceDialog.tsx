@@ -4,18 +4,15 @@ import {
   Checkbox,
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   Input,
   Label,
   Separator,
-  cn,
   toast,
 } from "@lifeline/ui";
 import {
-  MODULES,
   createWorkspace,
   deleteWorkspace,
   documentsHeldBy,
@@ -23,81 +20,43 @@ import {
   releaseWorkspaceDocuments,
   saveWorkspace,
   setCurrentWorkspace,
-  useCurrentWorkspace,
   useWorkspaces,
   type WorkspaceRecord,
 } from "@lifeline/core";
-import { AlertTriangle, Lock, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Trash2 } from "lucide-react";
 
 /**
- * Creating, editing and deleting Workspaces (ADR 0047), and the separation
- * toggle (ADR 0048) with the warning that has to be at the toggle rather than
- * in a docs page: turning it on starts the Workspace empty, because separation
- * is a sealed box and not an overlay.
+ * Creating a Workspace (ADR 0047), with the separation toggle (ADR 0048) and
+ * the warning that has to be at the toggle rather than in a docs page: turning
+ * it on starts the Workspace empty, because separation is a sealed box and not
+ * an overlay.
+ *
+ * Creating only. Listing and editing moved to `/settings` (ADR 0053), so that
+ * the `workspaces` record has one front door — its Modules seed the Phone bar,
+ * and editing the two in different places would couple them by a rule the user
+ * cannot see. This stays a dialog because it is also the fresh-account
+ * bootstrap, which runs when there is no page to stand on.
  */
 export function WorkspaceDialog({
   open,
   onOpenChange,
-  createFirst,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  /** Open straight on the form — "New workspace" from the picker, and the fresh-account case. */
+  /** Retained for call sites; creating is now all this dialog does. */
   createFirst?: boolean;
 }) {
   const workspaces = useWorkspaces();
-  const current = useCurrentWorkspace();
-  const [editing, setEditing] = useState<WorkspaceRecord | "new" | null>(createFirst ? "new" : null);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
-        {editing ? (
-          <WorkspaceForm
-            workspace={editing === "new" ? undefined : editing}
-            onDone={() => (createFirst ? onOpenChange(false) : setEditing(null))}
-            canDelete={workspaces.length > 1}
-          />
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle>Workspaces</DialogTitle>
-              <DialogDescription>
-                A Workspace is a set of Modules. Which Modules it holds decides what its sidebar and phone bar list — never what the
-                Schedule, the Vault or the palette can reach.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-1">
-              {workspaces.map((w) => (
-                <button
-                  key={w.id}
-                  className={cn(
-                    "hover:bg-accent/50 flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm",
-                    w.id === current?.id && "bg-accent/40",
-                  )}
-                  onClick={() => setEditing(w)}
-                >
-                  {w.separated ? <Lock className="size-4 shrink-0" /> : <span className="size-4 shrink-0" />}
-                  <span className="font-medium">{w.name}</span>
-                  <span className="text-muted-foreground ml-auto text-xs">
-                    {w.modules.length === MODULES.length ? "All modules" : `${w.modules.length} module${w.modules.length === 1 ? "" : "s"}`}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditing("new")}>
-                <Plus /> New workspace
-              </Button>
-            </DialogFooter>
-          </>
-        )}
+        <WorkspaceForm onDone={() => onOpenChange(false)} canDelete={workspaces.length > 1} />
       </DialogContent>
     </Dialog>
   );
 }
 
-function WorkspaceForm({
+export function WorkspaceForm({
   workspace,
   onDone,
   canDelete,
@@ -165,16 +124,13 @@ function WorkspaceForm({
         <div className="flex flex-col gap-1.5">
           <Label>Modules</Label>
           <p className="text-muted-foreground text-xs">
-            The first three take the phone's bottom bar, in this order. A workspace holding everything is a worse phone than a focused one.
+            What this workspace's sidebar and Bases list. A new workspace's phone bar starts from these; rearrange it under Phone bar.
           </p>
           <div className="grid grid-cols-2 gap-1">
             {inhabitedModules().map((m) => (
               <label key={m.id} className="hover:bg-accent/50 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm">
                 <Checkbox checked={modules.includes(m.id)} onCheckedChange={() => toggle(m.id)} />
                 {m.title}
-                {modules.indexOf(m.id) > -1 && modules.indexOf(m.id) < 3 && (
-                  <span className="text-muted-foreground ml-auto text-[10px]">bar {modules.indexOf(m.id) + 1}</span>
-                )}
               </label>
             ))}
           </div>
