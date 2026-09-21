@@ -82,6 +82,56 @@ export function moduleById(id: string | undefined): ModuleDef | undefined {
   return id ? MODULES.find((m) => m.id === id) : undefined;
 }
 
+/**
+ * A Core Surface: a fixed, hand-written page over many types through a
+ * Contract (CONTEXT.md "Surface"). The list is Core's, as the Modules are;
+ * the pages themselves are the shell's, and so are the icons — `SURFACE_ICONS`
+ * sits beside `MODULE_ICONS` so Core keeps no view dependency for the sake of
+ * a sidebar row or a bar slot.
+ *
+ * It exists because the Phone bar and its picker need to enumerate Surfaces
+ * (ADR 0053), and until then they were five hardcoded `NavLink`s in the
+ * sidebar — the only one of the five kinds of page with nothing behind it.
+ */
+export interface SurfaceDef {
+  id: string;
+  title: string;
+  path: string;
+}
+
+/** Core's Surfaces, in sidebar order. */
+export const SURFACES: SurfaceDef[] = [
+  { id: "calendar", title: "Calendar", path: "/calendar" },
+  { id: "week", title: "Week", path: "/week" },
+  { id: "schedule", title: "Schedule", path: "/schedule" },
+  { id: "map", title: "Map", path: "/map" },
+  { id: "graph", title: "Graph", path: "/graph" },
+];
+
+export function surfaceById(id: string | undefined): SurfaceDef | undefined {
+  return id ? SURFACES.find((s) => s.id === id) : undefined;
+}
+
+/**
+ * One slot of the **Phone bar** (ADR 0053): a tagged reference to any
+ * destination the sidebar offers, never a bare route — a route cannot say
+ * which object it came from, and the slot has to know in order to find its
+ * title, its icon, and whether the thing still exists.
+ *
+ * `label` overrides the referent's title for this slot alone. The cell is
+ * about 78px at `text-[10px]`, and the sidebar's names are not written for it:
+ * the Module titled "Note-taking" is "Notes" on a bar. It lives on the slot
+ * rather than on the thing pointed at because a phone-sized label is a fact
+ * about the bar, not about the Screen the desk shares.
+ */
+export type BarSlotKind = "module" | "surface" | "screen" | "appScreen";
+
+export interface BarSlot {
+  kind: BarSlotKind;
+  id: string;
+  label?: string;
+}
+
 export interface AppScreenDef {
   id: string;
   title: string;

@@ -2,25 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Sheet, SheetContent, SheetTitle, cn } from "@lifeline/ui";
 import {
-  MODULES,
+  BAR_PINNED,
   appsOfModule,
   useAllCommands,
+  useBarSlots,
   useIsMobile,
   useKeyboardInset,
   setPhoneNavHeight,
-  frameOfPath,
-  frames,
   useWorkspaceModules,
-  DASHBOARD_FRAME,
   type CommandDef,
 } from "@lifeline/core";
-import { LayoutDashboard, Menu, Plus } from "lucide-react";
-import { MODULE_ICONS } from "./moduleIcons";
-import { Sidebar } from "../components/Sidebar";
-import { SyncBadge } from "../components/SyncBadge";
-import { FrameSwitcher } from "../components/FrameSwitcher";
-import { usePhoneHome } from "./phoneHome";
-
+import { Plus } from "lucide-react";
+import { SURFACE_ICONS, slotIcon } from "../navIcons";
 
 type DialogCommand = CommandDef & { appId: string };
 
@@ -30,27 +23,29 @@ function slot(active: boolean) {
 }
 
 /**
- * The phone's bottom bar (ADR 0049): **☰ · Home · the Workspace's Modules · +**.
+ * The **Phone bar** (ADR 0053): `Calendar · Schedule · ✛ · [slot] · [slot]`.
  *
- * The middle belongs to the Modules, capped at three in the Workspace's own
- * order with the rest behind ☰ — so the phone's primary navigation is
- * reconfigured by which Modules the Workspace holds, and a Workspace holding
- * everything is a worse phone than a focused one. That supersedes the slot
- * lists of ADR 0021's per-Frame bars: one bar now, in both Frames, since what
- * differs between them is chrome the Modules already carry.
+ * The two views of time are pinned on the left because they are what a phone
+ * is taken out of a pocket for, and neither belongs to a Module — so under
+ * ADR 0049's derivation, the one composition rule it allowed, they could never
+ * win a slot at all. Capture is pinned in the centre because the other cells
+ * are places to go and this one is a thing to do.
  *
- * The two switchers — Workspace and Frame — moved to the header (PhoneHeader),
- * which is where the Vault crossing lives now that its slot is spent.
+ * The two on the right are the user's, arranged in Settings and stored on the
+ * Workspace, so switching Workspace still reconfigures the phone — by an
+ * arrangement rather than by which shelves the Workspace happens to hold. A
+ * slot whose destination is gone renders empty rather than being refilled, so
+ * the pinned three never move under the thumb.
+ *
+ * `☰` is not here any more; it opens the drawer from the header (PhoneHeader).
  *
  * Rendered below `md` only.
  */
 export function MobileNav() {
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [activeDialog, setActiveDialog] = useState<DialogCommand | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const home = usePhoneHome();
   const nav = useRef<HTMLElement>(null);
   const isMobile = useIsMobile();
   // iOS never shrinks the layout viewport for the keyboard, so the frame — and
@@ -60,6 +55,7 @@ export function MobileNav() {
   const inset = useKeyboardInset(isMobile);
 
   const modules = useWorkspaceModules();
+  const slots = useBarSlots();
   const ActiveDialogComponent = activeDialog?.dialog;
 
   /**
@@ -72,18 +68,6 @@ export function MobileNav() {
    */
   const captureApps = new Set(modules.flatMap((m) => appsOfModule(m).map((a) => a.id)));
   const captures = useAllCommands().filter((c) => c.capture && (modules.length === 0 || captureApps.has(c.appId)));
-
-  const homeHref = home ? `/screen/${home.id}` : "/phone";
-  const homeActive = location.pathname === homeHref || location.pathname === "/phone";
-
-  const frameId = frameOfPath(location.pathname);
-  const ws = frames().find((w) => w.id === frameId);
-  const FrameSidebar = frameId !== DASHBOARD_FRAME ? ws?.sidebar : undefined;
-
-  // Three, in the Workspace's own order; the rest are behind ☰. Four usable
-  // slots is the whole constraint, and a Workspace that wants more of them is a
-  // Workspace that has not been decided (ADR 0049).
-  const barModules = modules.slice(0, 3).map((id) => MODULES.find((m) => m.id === id)!).filter(Boolean);
 
   // Whatever the nav actually measures — its safe-area padding included, and 0
   // once `md:hidden` takes it out — is what the editor's accessory bar stacks on
@@ -101,13 +85,6 @@ export function MobileNav() {
     };
   }, []);
 
-  // Any tap that navigates closes the drawer. A frame sidebar is not made of
-  // links — the Vault's tree, search hits and tags are buttons that navigate — so
-  // watching the location is the only signal that covers all of them.
-  useEffect(() => {
-    setDrawerOpen(false);
-  }, [location.pathname, location.search]);
-
   function pickCapture(c: DialogCommand) {
     setCaptureOpen(false);
     if (c.dialog) setActiveDialog(c);
@@ -124,50 +101,44 @@ export function MobileNav() {
         // so its safe-area padding would only be dead height.
         style={inset > 0 ? { marginBottom: inset, paddingBottom: 0 } : undefined}
       >
-        <button className={slot(false)} onClick={() => setDrawerOpen(true)}>
-          <Menu className="size-5" /> Menu
-        </button>
-        <button className={slot(homeActive)} onClick={() => navigate(homeHref)}>
-          <LayoutDashboard className="size-5" /> Home
-        </button>
-        {barModules.map((m) => {
-          const Icon = MODULE_ICONS[m.id] ?? LayoutDashboard;
-          const href = `/module/${m.id}`;
+        {BAR_PINNED.map((s) => {
+          const Icon = SURFACE_ICONS[s.id];
           return (
-            <button key={m.id} className={slot(location.pathname === href)} onClick={() => navigate(href)}>
-              <Icon className="size-5" /> {m.title}
+            <button key={s.id} className={slot(location.pathname === s.path)} onClick={() => navigate(s.path)}>
+              <Icon className="size-5" /> {s.title}
             </button>
           );
         })}
+
         <button className={slot(false)} onClick={() => setCaptureOpen(true)}>
           <Plus className="size-5" /> Capture
         </button>
+
+        {slots.map((s, i) => {
+          if (!s) {
+            // Empty rather than closed up: the cell holds its place so the three
+            // pinned ones never shift, and says what it is for (ADR 0053).
+            return (
+              <button
+                key={`empty-${i}`}
+                className={cn(slot(false), "opacity-40")}
+                title="Choose what this slot opens"
+                onClick={() => navigate("/settings")}
+              >
+                <Plus className="size-5" /> Set
+              </button>
+            );
+          }
+          const Icon = s.icon ?? slotIcon(s.slot.kind, s.slot.id);
+          return (
+            <button key={`${s.slot.kind}:${s.slot.id}`} className={slot(location.pathname === s.path)} onClick={() => navigate(s.path)}>
+              <Icon className="size-5" /> <span className="max-w-full truncate px-0.5">{s.title}</span>
+            </button>
+          );
+        })}
       </nav>
 
-      {/* ☰ drawer: the current frame's sidebar, off-canvas — the whole desktop frame,
-          switcher and sync included, or the phone would be stuck in the frame it is in. */}
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="left" aria-describedby={undefined} className="overflow-hidden p-0">
-          <SheetTitle className="sr-only">Navigation</SheetTitle>
-          {FrameSidebar ? (
-            <div className="bg-sidebar text-sidebar-foreground flex min-h-0 flex-1 flex-col">
-              <FrameSwitcher />
-              <div className="flex min-h-0 flex-1 flex-col">
-                <FrameSidebar />
-              </div>
-              <div className="border-t p-2">
-                <SyncBadge />
-              </div>
-            </div>
-          ) : (
-            /* flex-1 + min-h-0, or the sidebar grows to its content height inside the
-               sheet and its own nav never becomes the scroller. */
-            <Sidebar className="min-h-0 w-full flex-1 border-r-0" />
-          )}
-        </SheetContent>
-      </Sheet>
-
-      {/* "+" capture sheet: the Apps' capture commands, straight to their dialogs. */}
+      {/* "✛" capture sheet: the Apps' capture commands, straight to their dialogs. */}
       <Sheet open={captureOpen} onOpenChange={setCaptureOpen}>
         <SheetContent side="bottom" aria-describedby={undefined}>
           <SheetTitle>Capture</SheetTitle>
