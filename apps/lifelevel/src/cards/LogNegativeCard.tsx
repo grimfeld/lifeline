@@ -1,6 +1,8 @@
 import { useMemo } from "react";
+import { useNavigate } from "react-router";
 import { matchesTagFilter, useTagFilter, type CardProps } from "@lifeline/core";
 import { computeProgression } from "../domain/progression";
+import { LIFELEVEL_HREF } from "../domain/daylog";
 import { useHabitCompletions, useHabits, useNegativeCompletions, useNegatives, useProgressionNow } from "../data/repo";
 import { NegativeCard } from "../components/NegativeCard";
 
@@ -12,6 +14,7 @@ export function LogNegativeCard(_props: CardProps) {
   const negativeCompletions = useNegativeCompletions();
   const now = useProgressionNow();
   const filter = useTagFilter();
+  const navigate = useNavigate();
 
   const states = useMemo(
     () => computeProgression(habits, negatives, habitCompletions, negativeCompletions, now).negatives,
@@ -35,7 +38,8 @@ export function LogNegativeCard(_props: CardProps) {
             rivalTitle={rival?.title}
             rivalMissing={!!s.affectsHabitId && !rival}
             noHabits={habits.length === 0}
-            onOpen={() => undefined}
+            /* A dashboard Card holds no editor of its own: editing and deleting are on the Life Level screen. */
+            onOpen={() => navigate(LIFELEVEL_HREF)}
           />
         );
       })}

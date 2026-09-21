@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, cn } from "@lifeline/ui";
 import { Check, Circle } from "lucide-react";
 import type { ComputedHabitState } from "../domain/types";
-import { completeHabit } from "../data/repo";
+import { completeHabit, deleteCompletion } from "../data/repo";
 import { celebrateCompletion, decayWarningOnce, ensureFeedbackStyles, HIT_EVENT } from "../feedback/feedback";
 
 export function formatTimeUntil(nextIso: string, now: Date): string {
@@ -93,7 +93,14 @@ export function HabitCard({ state, now, onOpen }: { state: ComputedHabitState; n
     try {
       const r = await completeHabit(state.habitId);
       if (r) {
-        celebrateCompletion({ habitTitle: r.habit.title, xpAmount: r.xpAmount, previousLevel: r.previousLevel, nextLevel: r.nextLevel, levelDelta: r.levelDelta });
+        celebrateCompletion({
+          habitTitle: r.habit.title,
+          xpAmount: r.xpAmount,
+          previousLevel: r.previousLevel,
+          nextLevel: r.nextLevel,
+          levelDelta: r.levelDelta,
+          onUndo: () => deleteCompletion(r.completionId),
+        });
         setFlash(true);
         window.setTimeout(() => setFlash(false), 700);
       }

@@ -124,26 +124,73 @@ function showLevelUpOverlay(habitName: string, fromLevel: number, toLevel: numbe
   }, reducedMotion() ? 900 : 1400);
 }
 
-/** A completion landed: ding (or fanfare + burst on level-up) and a toast. */
-export function celebrateCompletion(p: { habitTitle: string; xpAmount: number; previousLevel: number; nextLevel: number; levelDelta: number }): void {
+/**
+ * The Undo action every logging toast carries: one tap takes the row back out
+ * of the ledger, which is all it takes to undo the XP (ADR 0026 — nothing
+ * numeric is stored, so the numbers simply re-derive without it).
+ */
+function undoAction(undo: (() => void | Promise<void>) | undefined, done: string) {
+  if (!undo) return undefined;
+  return {
+    label: "Undo",
+    onClick: () => {
+      void (async () => {
+        try {
+          await undo();
+          toast.success(done, { duration: 2200 });
+        } catch {
+          toast.error("Could not undo that log");
+        }
+      })();
+    },
+  };
+}
+
+/**
+ * A completion landed: ding (or fanfare + burst on level-up) and a toast. The
+ * toast is also where a mis-tap is taken back, so it carries Undo — including
+ * on a level-up, where the level the tap just bought goes back with it.
+ */
+export function celebrateCompletion(p: {
+  habitTitle: string;
+  xpAmount: number;
+  previousLevel: number;
+  nextLevel: number;
+  levelDelta: number;
+  /** Strike this Completion from the ledger again (a mis-tap). Omit for no Undo. */
+  onUndo?: () => void | Promise<void>;
+}): void {
+  const action = undoAction(p.onUndo, "Completion removed — the XP is back where it was");
   if (p.levelDelta > 0) {
     playSound("levelUpFanfare");
     vibrate([40, 60, 40]);
     confettiBurst();
     showLevelUpOverlay(p.habitTitle, p.previousLevel, p.nextLevel);
+    // The overlay is the celebration; the toast is what makes the tap reversible.
+    toast.success(`Lv ${p.previousLevel} → Lv ${p.nextLevel} · ${p.habitTitle}`, { duration: 5000, action });
   } else {
     playSound("positiveDing");
     vibrate(15);
-    toast.success(`+${Math.round(p.xpAmount)} XP · ${p.habitTitle}`, { duration: 2200 });
+    toast.success(`+${Math.round(p.xpAmount)} XP · ${p.habitTitle}`, { duration: action ? 5000 : 2200, action });
   }
 }
 
-/** A Negative landed: thunk, toast, and a shake on the victim's card. */
-export function mournNegative(p: { negativeTitle: string; victimTitle: string; victimId: string; damage: number }): void {
+/** A Negative landed: thunk, toast (with Undo, for the mis-tap), and a shake on the victim's card. */
+export function mournNegative(p: {
+  negativeTitle: string;
+  victimTitle: string;
+  victimId: string;
+  damage: number;
+  /** Strike this Completion from the ledger again (a mis-tap). Omit for no Undo. */
+  onUndo?: () => void | Promise<void>;
+}): void {
   playSound("negativeThunk");
   vibrate([25, 40, 25]);
   emitHabitHit(p.victimId);
-  toast.error(`${p.negativeTitle}: −${Math.round(p.damage)} XP from ${p.victimTitle}`, { duration: 3200 });
+  toast.error(`${p.negativeTitle}: −${Math.round(p.damage)} XP from ${p.victimTitle}`, {
+    duration: p.onUndo ? 6000 : 3200,
+    action: undoAction(p.onUndo, `Log removed — ${p.victimTitle} has its XP back`),
+  });
 }
 
 const decayWarned = new Set<string>();
