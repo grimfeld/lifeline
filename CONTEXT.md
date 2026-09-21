@@ -105,8 +105,8 @@ One placed copy of a Card on one Screen, with its position and, for configurable
 _Avoid_: widget, tile
 
 ### Phone home
-The one Screen the phone opens as Home. On a phone, Lifeline is capture-and-consult: the phone home's Cards stacked in one column, the Phone bar beside it, and a capture sheet of capture Commands; everything else stays reachable but is shaped for the desktop. Designated on a Screen ("Use as phone home"); at most one Screen per Workspace holds it, on every device alike — so switching Workspace on the phone changes what Home *is*. The stack is edited where it is read: a Screen is composed on the phone as well as at the desk.
-_Avoid_: mobile app (it is the same app), home screen (the OS thing)
+_Retired_ — the phone has no Home. It was the one Screen a **Phone bar** slot opened, designated per Workspace, and it never became what it claimed: the app's own root sent the phone to the first Screen and never once consulted the flag. With the slot gone there was nothing left reading it, so the designation goes with it and a Screen reaches the bar the way any destination does — by being put in a slot. What the term stood for survives without a name: on a phone Lifeline is capture-and-consult, a Screen's Cards stack in one column, and a Screen is composed on the phone as well as at the desk.
+_Avoid_: mobile app (it is the same app), home screen (the OS thing), Home (there is no such slot; say the Screen)
 
 ### Phone bar
 The five slots at the foot of the phone, in both Frames. Two are fixed and Core's — the **Calendar** and **Schedule** Surfaces, on the left, because the two views of time are what the phone is opened for and neither should ever be something a user has to have chosen. The centre is **capture**, fixed, because the bar's other slots are places to go and capture is a thing to do; it is the one control that must be reachable at thumb height from every page. The two on the right are the user's: each points at any destination the sidebar offers — a Module, a Surface, a Screen, an App screen. A Workspace's bar is its own and travels with it, seeded from that Workspace's own Modules when it is made, and arranged afterwards in **Settings**; so switching Workspace still reconfigures the phone, by the user's arrangement rather than by which shelves the Workspace happens to hold. `☰` is not in the bar: the sidebar opens from the header's top left.
@@ -452,7 +452,7 @@ _Avoid_: notes (one type), library, folder
 
 ### Dashboard
 The Frame where data is **read and operated**: Screens of Cards, Surfaces, App screens and Bases. What changes here changes through a defined operation — a form, a dialog, a click whose effect is known — never through free text. An App screen lists, filters and starts things; the body it opens belongs to the Vault.
-_Avoid_: home (the phone's Home is one Screen), main app, frame (say which), workspace (a different axis)
+_Avoid_: home (the phone has none; say the Screen), main app, frame (say which), workspace (a different axis)
 
 ### Folder
 Where a Document lives: a `/`-separated path (root when empty). Every Document has one; only the Vault cares — its tree, and the phone's Vault tabs, which *are* Folders. A Folder exists because Documents are in it; titles are unique within a Folder for a given type. Notes live in `Notes`, clippings in `Clippings`, writings in `Writings`, daily notes in `Journal/YYYY/MM`, templates in `Templates`, private ones in `Private`. A type's home Folder is where a new Document of it lands, never a rule about where its Documents may live — a Note in `Private` is still a Note. What a Folder decides is what "+" creates in it; what furniture a Document gets is decided by its type, never by where it sits.
