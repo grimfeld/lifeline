@@ -57,8 +57,6 @@ export interface UserScreen extends SyncedRecord {
   sort: number;
   /** Screen-level Tag filter (ADR 0014): every tagFilterable Card on it obeys. */
   tags?: string[];
-  /** The one Screen the phone's bottom bar opens as Home (grill 2026-08-20). Synced; at most one Screen *per Workspace* holds it (ADR 0047). */
-  phoneHome?: boolean;
   /** The Workspace this Screen belongs to (ADR 0047). Always set; "" only in rows made before Workspaces existed. */
   workspace?: string;
   /** The Module this Screen claims, and is then where that Module lands in this Workspace (ADR 0049). */

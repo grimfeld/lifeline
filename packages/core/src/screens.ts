@@ -77,23 +77,6 @@ export function useWorkspaceScreens(): UserScreen[] {
   return useLiveQuery(async () => screensOfWorkspace(), [wsId], [] as UserScreen[]);
 }
 
-/** The Screen this Workspace opens as Home on the phone, if one holds it. */
-export function usePhoneHomeScreen(): UserScreen | undefined {
-  return useWorkspaceScreens().find((s) => s.phoneHome);
-}
-
-/**
- * Make `id` this Workspace's phone home, clearing the flag on its siblings.
- * Uniqueness is **per Workspace** (ADR 0047), not global as it was: switching
- * Workspace on the phone is meant to change what Home is.
- */
-export async function setPhoneHome(id: string): Promise<void> {
-  for (const s of await screensOfWorkspace()) {
-    if (s.id === id && !s.phoneHome) await put<UserScreen>(SCREENS, { ...s, phoneHome: true });
-    else if (s.id !== id && s.phoneHome) await put<UserScreen>(SCREENS, { ...s, phoneHome: false });
-  }
-}
-
 /** The Screen claiming a Module in this Workspace — where that Module lands (ADR 0049, rule 1). */
 export function useModuleScreen(moduleId: string | undefined): UserScreen | undefined {
   const screens = useWorkspaceScreens();

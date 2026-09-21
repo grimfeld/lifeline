@@ -25,7 +25,6 @@ import { WorkspaceDialog } from "./WorkspaceDialog";
 export function WorkspacePicker({ className }: { className?: string }) {
   const workspaces = useWorkspaces();
   const current = useCurrentWorkspace();
-  const [manage, setManage] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
 
@@ -81,12 +80,11 @@ export function WorkspacePicker({ className }: { className?: string }) {
           <DropdownMenuItem onClick={() => setCreating(true)}>
             <Plus className="size-4" /> New workspace
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setManage("")}>
-            <Settings2 className="size-4" /> Manage workspaces…
+          <DropdownMenuItem onClick={() => navigate("/settings")}>
+            <Settings2 className="size-4" /> Settings…
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {manage !== null && <WorkspaceDialog open onOpenChange={(o) => !o && setManage(null)} />}
       {creating && <WorkspaceDialog open createFirst onOpenChange={(o) => !o && setCreating(false)} />}
     </>
   );
