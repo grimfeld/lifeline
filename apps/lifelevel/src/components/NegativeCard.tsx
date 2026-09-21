@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, cn } from "@lifeline/ui";
+import { Pencil } from "lucide-react";
 import type { ComputedNegativeState } from "../domain/types";
-import { logNegative } from "../data/repo";
+import { deleteCompletion, logNegative } from "../data/repo";
 import { mournNegative } from "../feedback/feedback";
 
 /**
@@ -22,6 +23,7 @@ export function NegativeCard({
   rivalMissing: boolean;
   /** No Habits exist at all: nothing to hit. */
   noHabits: boolean;
+  /** Open the editor — where a Negative is renamed, re-paired, and deleted. */
   onOpen: () => void;
 }) {
   const [pending, setPending] = useState(false);
@@ -32,7 +34,13 @@ export function NegativeCard({
     try {
       const r = await logNegative(state.negativeId);
       if (r?.ok) {
-        mournNegative({ negativeTitle: r.negative.title, victimTitle: r.victim.title, victimId: r.victim.id, damage: r.damage });
+        mournNegative({
+          negativeTitle: r.negative.title,
+          victimTitle: r.victim.title,
+          victimId: r.victim.id,
+          damage: r.damage,
+          onUndo: () => deleteCompletion(r.completionId),
+        });
       }
     } finally {
       setPending(false);
@@ -47,7 +55,13 @@ export function NegativeCard({
             {state.name}
           </button>
         </CardTitle>
-        <Badge variant="destructive">{state.gravity}</Badge>
+        <div className="flex shrink-0 items-center gap-1">
+          <Badge variant="destructive">{state.gravity}</Badge>
+          {/* Deleting a Negative lives in its editor; without this the only way in is guessing the title is a button. */}
+          <Button size="icon" variant="ghost" className="size-7" title="Edit or delete" onClick={onOpen}>
+            <Pencil className="size-3.5" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="grid gap-2">
         <p className="text-muted-foreground text-xs">

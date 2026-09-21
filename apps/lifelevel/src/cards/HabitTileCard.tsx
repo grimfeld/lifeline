@@ -4,7 +4,7 @@ import { Badge, Button, CardUnavailable, cn } from "@lifeline/ui";
 import type { CardOption, CardProps, CardSettings } from "@lifeline/core";
 import { computeProgression } from "../domain/progression";
 import { habitHref } from "../domain/daylog";
-import { completeHabit, useHabitCompletions, useHabits, useNegativeCompletions, useNegatives, useProgressionNow } from "../data/repo";
+import { completeHabit, deleteCompletion, useHabitCompletions, useHabits, useNegativeCompletions, useNegatives, useProgressionNow } from "../data/repo";
 import { celebrateCompletion } from "../feedback/feedback";
 import { DoneTodayBadge, formatTimeUntil, XpBar } from "../components/HabitCard";
 
@@ -44,7 +44,15 @@ export function HabitTileCard({ settings, configure }: CardProps) {
     setPending(true);
     try {
       const r = await completeHabit(habit!.id);
-      if (r) celebrateCompletion({ habitTitle: r.habit.title, xpAmount: r.xpAmount, previousLevel: r.previousLevel, nextLevel: r.nextLevel, levelDelta: r.levelDelta });
+      if (r)
+        celebrateCompletion({
+          habitTitle: r.habit.title,
+          xpAmount: r.xpAmount,
+          previousLevel: r.previousLevel,
+          nextLevel: r.nextLevel,
+          levelDelta: r.levelDelta,
+          onUndo: () => deleteCompletion(r.completionId),
+        });
     } finally {
       setPending(false);
     }
