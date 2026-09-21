@@ -16,6 +16,7 @@ import {
   useSlotOptions,
   useWorkspaces,
   type BarSlot,
+  type SlotOption,
 } from "@lifeline/core";
 import { Check, Lock, Plus, Smartphone, X } from "lucide-react";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
@@ -93,7 +94,7 @@ function PhoneBarSection() {
         </div>
         {config.map((s, i) => {
           const found = s ? options.find((o) => sameSlot(o.slot, s)) : undefined;
-          const Icon = s ? slotIcon(s.kind, s.id) : Plus;
+          const Icon = s ? (found?.icon ?? slotIcon(s.kind, s.id)) : Plus;
           return (
             <button
               key={i}
@@ -117,7 +118,7 @@ function PhoneBarSection() {
             key={i}
             index={i}
             slot={s}
-            title={s ? options.find((o) => sameSlot(o.slot, s))?.title : undefined}
+            option={s ? options.find((o) => sameSlot(o.slot, s)) : undefined}
             onPick={() => setPicking(i)}
             onClear={() => void set(i, null)}
             onLabel={(label) => void set(i, s && { ...s, label })}
@@ -139,14 +140,14 @@ function PhoneBarSection() {
 function SlotRow({
   index,
   slot,
-  title,
+  option,
   onPick,
   onClear,
   onLabel,
 }: {
   index: number;
   slot: BarSlot | null;
-  title: string | undefined;
+  option: SlotOption | undefined;
   onPick: () => void;
   onClear: () => void;
   onLabel: (label: string) => void;
@@ -161,8 +162,9 @@ function SlotRow({
   }
   // A slot whose destination is gone is *shown* gone rather than quietly
   // dropped: the user chose it, and only the user replaces it (ADR 0053).
-  const gone = title === undefined;
-  const Icon = slotIcon(slot.kind, slot.id);
+  const gone = option === undefined;
+  const title = option?.title;
+  const Icon = option?.icon ?? slotIcon(slot.kind, slot.id);
   const value = draft ?? slot.label ?? "";
   return (
     <div className="flex items-center gap-2 rounded-md border px-3 py-2">
@@ -211,7 +213,7 @@ function SlotPicker({
             {options
               .filter((o) => o.group === g)
               .map((o) => {
-                const Icon = slotIcon(o.slot.kind, o.slot.id);
+                const Icon = o.icon ?? slotIcon(o.slot.kind, o.slot.id);
                 return (
                   <button
                     key={`${o.slot.kind}:${o.slot.id}`}

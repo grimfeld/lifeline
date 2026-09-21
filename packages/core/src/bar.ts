@@ -143,6 +143,8 @@ export interface SlotOption {
   title: string;
   /** The picker's heading: "Modules", "Surfaces", "Screens", or the App's name. */
   group: string;
+  /** As in `ResolvedSlot`: an App screen brings its own, the rest get theirs in the shell. */
+  icon?: React.ComponentType<{ className?: string }>;
 }
 
 /**
@@ -165,7 +167,7 @@ export function useSlotOptions(): SlotOption[] {
     for (const s of SURFACES) out.push({ slot: { kind: "surface", id: s.id }, title: s.title, group: "Surfaces" });
     for (const s of screens) out.push({ slot: { kind: "screen", id: s.id }, title: s.name, group: "Screens" });
     for (const s of screensOf().filter((x) => !x.hidden))
-      out.push({ slot: { kind: "appScreen", id: s.id }, title: s.title, group: appById(s.appId)?.title ?? "Apps" });
+      out.push({ slot: { kind: "appScreen", id: s.id }, title: s.title, group: appById(s.appId)?.title ?? "Apps", icon: s.icon });
     return out;
   }, [modules, screens]);
 }
