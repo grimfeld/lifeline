@@ -6,7 +6,7 @@ import { toggleDone, toggleOwned } from "../domain/rules";
 import { patchWork } from "../data/repo";
 
 /**
- * The Library's one-click gestures (CONTEXT.md: Shelf, Shopping list), shared
+ * The Library's one-click gestures (CONTEXT.md: Shelf, Wanted list), shared
  * by the Gallery tile overlay and the detail dialog so every place offers
  * exactly the same gestures. Read toggles the Shelf — finishing frees the
  * Nightstand slot, undoing never takes it back. Bought toggles Wanted ⇄ Owned

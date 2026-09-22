@@ -1,7 +1,7 @@
 import type { AppManifest } from "@lifeline/core";
 import { Gamepad2 } from "lucide-react";
 import { ArcadeScreen } from "./screens/ArcadeScreen";
-import { ShoppingListCard } from "./cards/ShoppingListCard";
+import { WantedListCard } from "./cards/WantedListCard";
 import { InProgressCard } from "./cards/InProgressCard";
 import { FinishedCard } from "./cards/FinishedCard";
 import { SurpriseCard } from "./cards/SurpriseCard";
@@ -28,9 +28,9 @@ export const arcadeApp: AppManifest = {
     {
       id: "arcade.shopping",
       tagFilterable: true,
-      title: "Game shopping list",
+      title: "Game wanted list",
       description: "Games you want but don't own, oldest wish first",
-      component: ShoppingListCard,
+      component: WantedListCard,
       defaultSize: { w: 3, h: 4 },
       minSize: { w: 2, h: 3 },
     },

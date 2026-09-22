@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { onShelf, shelfLabel } from "./browse";
 import { parseQuickTitle } from "../data/repo";
 import type { Work } from "./types";
-import { abandon, finish, shelfOfShame, shoppingList, start } from "./rules";
+import { abandon, finish, shelfOfShame, wantedList, start } from "./rules";
 
 function item(p: Partial<Work>): Work {
   return {
@@ -29,8 +29,8 @@ describe("derived views", () => {
     ]);
     expect(s.map((m) => m.id)).toEqual(["o", "n"]);
   });
-  it("shoppingList lists every Wanted item, oldest wish first", () => {
-    const list = shoppingList([
+  it("wantedList lists every Wanted item, oldest wish first", () => {
+    const list = wantedList([
       item({ id: "young", acquisition: "WANTED", addedOn: "2026-06-01" }),
       item({ id: "owned", acquisition: "OWNED" }),
       item({ id: "old", acquisition: "WANTED", addedOn: "2025-01-01" }),
