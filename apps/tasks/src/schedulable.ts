@@ -5,7 +5,7 @@ import {
   type Urgency,
 } from "@lifeline/core";
 import { deriveItems, describeRecurrence } from "./domain/occurrences";
-import { moveItem, setCompleted, useOverrides, useTasks } from "./data/repo";
+import { moveItem, setCompleted, setEstimate, useOverrides, useTasks } from "./data/repo";
 
 export const APP_ID = "tasks";
 
@@ -44,6 +44,7 @@ export const tasksSchedulable: SchedulableProvider = {
         urgency,
         completedOn: it.completedOn,
         tags: it.task.tags ?? [],
+        estimateMin: it.task.estimate,
       };
     });
   },
@@ -54,5 +55,9 @@ export const tasksSchedulable: SchedulableProvider = {
 
   async move(itemId, to) {
     await moveItem(itemId, to);
+  },
+
+  async setEstimate(itemId, minutes) {
+    await setEstimate(itemId, minutes);
   },
 };

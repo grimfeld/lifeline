@@ -7,6 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  EstimatePicker,
   Input,
   Label,
   Select,
@@ -17,9 +18,11 @@ import {
   TagInput,
   Textarea,
   toast,
+  usePushFlow,
 } from "@lifeline/ui";
 import {
   normalizeTag,
+  pushSurfaceItem,
   todayStr,
   useBacklinks,
   useLinkIndex,
@@ -32,6 +35,7 @@ import {
 } from "@lifeline/core";
 import type { Recurrence, Task } from "../domain/types";
 import { addTask, updateTask } from "../data/repo";
+import { APP_ID } from "../schedulable";
 
 /** Monday-first display order; values are Core weekdays (0 = Sunday). */
 export const WEEKDAYS: { value: Weekday; label: string }[] = [
@@ -105,6 +109,8 @@ export function TaskDialog({
   const [monthDays, setMonthDays] = useState<number[]>([1]);
   const [yearDates, setYearDates] = useState<{ month: number; day: number }[]>([{ month: 1, day: 1 }]);
   const [tags, setTags] = useState<string[]>([]);
+  const [estimate, setEstimate] = useState<number | null>(null);
+  const pushFlow = usePushFlow();
   const suggestions = useTagVocabulary().map((v) => v.tag);
 
   useEffect(() => {
@@ -118,6 +124,7 @@ export function TaskDialog({
     setMonthDays(r?.kind === "monthly" ? r.days : [1]);
     setYearDates(r?.kind === "yearly" ? r.dates : [{ month: 1, day: 1 }]);
     setTags(task?.tags ?? []);
+    setEstimate(task?.estimate ?? null);
   }, [open, task, defaultDate, handoff]);
 
   function buildRecurrence(): Recurrence | null {
@@ -136,22 +143,23 @@ export function TaskDialog({
     return null;
   }
 
-  async function submit() {
+  /** Validates and saves; false when the form is not saveable. */
+  async function save(): Promise<boolean> {
     if (!title.trim()) {
       toast.error("Title required");
-      return;
+      return false;
     }
     if (kind === "weekly" && weekdays.length === 0) {
       toast.error("Pick at least one weekday");
-      return;
+      return false;
     }
     if (kind === "monthly" && monthDays.length === 0) {
       toast.error("Pick at least one day of the month");
-      return;
+      return false;
     }
     if (kind === "yearly" && yearDates.length === 0) {
       toast.error("Add at least one date");
-      return;
+      return false;
     }
     const recurrence = buildRecurrence();
     if (task) {
@@ -162,195 +170,223 @@ export function TaskDialog({
         recurrence,
         date: recurrence ? null : date || null,
         completedOn: recurrence ? null : task.completedOn,
+        estimate,
         tags,
       });
       toast.success("Task updated");
     } else {
-      await addTask({ title: title.trim(), notes: notes.trim(), recurrence, date: date || null, tags });
+      await addTask({ title: title.trim(), notes: notes.trim(), recurrence, date: date || null, estimate, tags });
       toast.success("Task added");
     }
-    onOpenChange(false);
+    return true;
   }
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{task ? "Edit task" : "New task"}</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="task-title">Title</Label>
-            <Input
-              id="task-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Call the dentist"
-              autoFocus
-              onKeyDown={(e) => e.key === "Enter" && void submit()}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label>Type</Label>
-            <Select value={kind} onValueChange={(v) => setKind(v as Kind)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="one-time">One-time</SelectItem>
-                <SelectItem value="weekly">Weekly recurring</SelectItem>
-                <SelectItem value="monthly">Monthly recurring</SelectItem>
-                <SelectItem value="yearly">Yearly recurring</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+  async function submit() {
+    if (await save()) onOpenChange(false);
+  }
 
-          {kind === "one-time" ? (
+  /** Push (ADR 0054) from the dialog: save what is typed, then push the one-time Task as saved. */
+  async function saveAndPush() {
+    if (!task || !(await save())) return;
+    onOpenChange(false);
+    const item = { appId: APP_ID, itemId: task.id, date: date || null, estimateMin: estimate };
+    pushFlow.push({ title: title.trim(), estimateMin: estimate, run: (min) => pushSurfaceItem(item, min) });
+  }
+
+  const pushable = !!task && kind === "one-time" && !task.completedOn && task.status === "active";
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{task ? "Edit task" : "New task"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="task-date">Day</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="task-date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-                <Button
-                  type="button"
-                  variant={date ? "outline" : "secondary"}
-                  onClick={() => setDate("")}
-                >
-                  Unassigned
+              <Label htmlFor="task-title">Title</Label>
+              <Input
+                id="task-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Call the dentist"
+                autoFocus
+                onKeyDown={(e) => e.key === "Enter" && void submit()}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Type</Label>
+              <Select value={kind} onValueChange={(v) => setKind(v as Kind)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="one-time">One-time</SelectItem>
+                  <SelectItem value="weekly">Weekly recurring</SelectItem>
+                  <SelectItem value="monthly">Monthly recurring</SelectItem>
+                  <SelectItem value="yearly">Yearly recurring</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {kind === "one-time" ? (
+              <div className="grid gap-2">
+                <Label htmlFor="task-date">Day</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="task-date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant={date ? "outline" : "secondary"}
+                    onClick={() => setDate("")}
+                  >
+                    Unassigned
+                  </Button>
+                </div>
+                {!date && (
+                  <p className="text-muted-foreground text-xs">
+                    Stays in the Unassigned pool until you drop it on a day.
+                  </p>
+                )}
+              </div>
+            ) : kind === "weekly" ? (
+              <div className="grid gap-2">
+                <Label>Repeats on</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {WEEKDAYS.map((wd) => {
+                    const on = weekdays.includes(wd.value);
+                    return (
+                      <button
+                        key={wd.value}
+                        type="button"
+                        aria-pressed={on}
+                        className={cn(
+                          "rounded-md border px-2.5 py-1 text-sm transition-colors",
+                          on
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "hover:bg-accent",
+                        )}
+                        onClick={() =>
+                          setWeekdays((cur) =>
+                            on ? cur.filter((x) => x !== wd.value) : [...cur, wd.value],
+                          )
+                        }
+                      >
+                        {wd.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : kind === "monthly" ? (
+              <div className="grid gap-2">
+                <Label>Days of the month</Label>
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => {
+                    const on = monthDays.includes(d);
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        aria-pressed={on}
+                        className={cn("rounded-md border py-1 text-sm tabular-nums transition-colors", on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent")}
+                        onClick={() => setMonthDays((cur) => (on ? cur.filter((x) => x !== d) : [...cur, d]))}
+                      >
+                        {d}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-muted-foreground text-xs">The 29th–31st fall on the last day of shorter months.</p>
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                <Label>Dates in the year</Label>
+                <div className="grid gap-1">
+                  {yearDates.map((d, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <Select value={String(d.month)} onValueChange={(v) => setYearDates((cur) => cur.map((x, j) => (j === i ? { ...x, month: Number(v) } : x)))}>
+                        <SelectTrigger className="h-8 w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MONTHS.map((m, k) => (
+                            <SelectItem key={m} value={String(k + 1)}>
+                              {m}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={31}
+                        className="h-8 w-20"
+                        value={d.day}
+                        onChange={(e) => {
+                          const n = Math.min(31, Math.max(1, Number(e.target.value) || 1));
+                          setYearDates((cur) => cur.map((x, j) => (j === i ? { ...x, day: n } : x)));
+                        }}
+                        aria-label="Day"
+                      />
+                      <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => setYearDates((cur) => cur.filter((_, j) => j !== i))} disabled={yearDates.length === 1} aria-label="Remove date">
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" size="sm" variant="outline" className="justify-self-start" onClick={() => setYearDates((cur) => [...cur, { month: 1, day: 1 }])}>
+                  + Add a date
                 </Button>
               </div>
-              {!date && (
-                <p className="text-muted-foreground text-xs">
-                  Stays in the Unassigned pool until you drop it on a day.
-                </p>
-              )}
-            </div>
-          ) : kind === "weekly" ? (
-            <div className="grid gap-2">
-              <Label>Repeats on</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {WEEKDAYS.map((wd) => {
-                  const on = weekdays.includes(wd.value);
-                  return (
-                    <button
-                      key={wd.value}
-                      type="button"
-                      aria-pressed={on}
-                      className={cn(
-                        "rounded-md border px-2.5 py-1 text-sm transition-colors",
-                        on
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "hover:bg-accent",
-                      )}
-                      onClick={() =>
-                        setWeekdays((cur) =>
-                          on ? cur.filter((x) => x !== wd.value) : [...cur, wd.value],
-                        )
-                      }
-                    >
-                      {wd.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : kind === "monthly" ? (
-            <div className="grid gap-2">
-              <Label>Days of the month</Label>
-              <div className="grid grid-cols-7 gap-1">
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => {
-                  const on = monthDays.includes(d);
-                  return (
-                    <button
-                      key={d}
-                      type="button"
-                      aria-pressed={on}
-                      className={cn("rounded-md border py-1 text-sm tabular-nums transition-colors", on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent")}
-                      onClick={() => setMonthDays((cur) => (on ? cur.filter((x) => x !== d) : [...cur, d]))}
-                    >
-                      {d}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-muted-foreground text-xs">The 29th–31st fall on the last day of shorter months.</p>
-            </div>
-          ) : (
-            <div className="grid gap-2">
-              <Label>Dates in the year</Label>
-              <div className="grid gap-1">
-                {yearDates.map((d, i) => (
-                  <div key={i} className="flex items-center gap-1">
-                    <Select value={String(d.month)} onValueChange={(v) => setYearDates((cur) => cur.map((x, j) => (j === i ? { ...x, month: Number(v) } : x)))}>
-                      <SelectTrigger className="h-8 w-28">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MONTHS.map((m, k) => (
-                          <SelectItem key={m} value={String(k + 1)}>
-                            {m}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={31}
-                      className="h-8 w-20"
-                      value={d.day}
-                      onChange={(e) => {
-                        const n = Math.min(31, Math.max(1, Number(e.target.value) || 1));
-                        setYearDates((cur) => cur.map((x, j) => (j === i ? { ...x, day: n } : x)));
-                      }}
-                      aria-label="Day"
-                    />
-                    <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => setYearDates((cur) => cur.filter((_, j) => j !== i))} disabled={yearDates.length === 1} aria-label="Remove date">
-                      ×
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              <Button type="button" size="sm" variant="outline" className="justify-self-start" onClick={() => setYearDates((cur) => [...cur, { month: 1, day: 1 }])}>
-                + Add a date
-              </Button>
-            </div>
-          )}
+            )}
 
-          <div className="grid gap-2">
-            <Label htmlFor="task-notes">Notes</Label>
-            <Textarea
-              id="task-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional"
-              rows={3}
-            />
+            <div className="grid gap-2">
+              <Label htmlFor="task-estimate">Estimate</Label>
+              <EstimatePicker id="task-estimate" value={estimate} onChange={setEstimate} />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="task-notes">Notes</Label>
+              <Textarea
+                id="task-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional"
+                rows={3}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="task-tags">Tags</Label>
+              <TagInput
+                id="task-tags"
+                value={tags}
+                onChange={setTags}
+                suggestions={suggestions}
+                normalize={normalizeTag}
+                placeholder="Add tag…"
+              />
+            </div>
+            {task && <MentionedIn taskId={task.id} />}
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="task-tags">Tags</Label>
-            <TagInput
-              id="task-tags"
-              value={tags}
-              onChange={setTags}
-              suggestions={suggestions}
-              normalize={normalizeTag}
-              placeholder="Add tag…"
-            />
-          </div>
-          {task && <MentionedIn taskId={task.id} />}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={() => void submit()}>{task ? "Save" : "Add task"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+            {pushable && (
+              <Button variant="outline" className="sm:mr-auto" onClick={() => void saveAndPush()} title="Save, then find this Task time in the Schedule">
+                Push
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void submit()}>{task ? "Save" : "Add task"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {pushFlow.dialog}
+    </>
   );
 }

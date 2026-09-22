@@ -30,6 +30,8 @@ export interface Task extends Document {
   completedOn: DateStr | null;
   /** Recurring only. null = one-time. */
   recurrence: Recurrence | null;
+  /** The Estimate (ADR 0054): whole minutes; a recurring Task's Occurrences inherit it. null = none given. */
+  estimate: number | null;
   /** Recurring Tasks generate Occurrences from this day on (the Document's createdAt). */
   createdAt: DateStr;
 }
