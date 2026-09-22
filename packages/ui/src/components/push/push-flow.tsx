@@ -50,7 +50,7 @@ export function EstimatePicker({
         id={id}
         type="number"
         min={1}
-        step={5}
+        step={1}
         inputMode="numeric"
         placeholder="min"
         className={cn("h-7 w-20 text-xs")}
@@ -86,18 +86,22 @@ function describeOutcome(o: PushOutcome): string {
   return `${day} ${o.start}–${o.end}`;
 }
 
+/** One toast for every Push: each replaces the last, so only the newest Undo is live — an older one would undo a state already moved on. */
+const TOAST_ID = "push";
+
 async function perform(req: PushRequest, estimateMin?: number): Promise<void> {
   try {
     const outcome = await req.run(estimateMin);
     if (!outcome) {
-      toast.error("Nothing free in the next 2 weeks");
+      toast.error("Nothing free in the next 2 weeks", { id: TOAST_ID });
       return;
     }
     toast.success(`Pushed to ${describeOutcome(outcome)}`, {
+      id: TOAST_ID,
       action: { label: "Undo", onClick: () => void outcome.undo() },
     });
   } catch (e) {
-    toast.error(e instanceof Error ? e.message : String(e));
+    toast.error(e instanceof Error ? e.message : String(e), { id: TOAST_ID });
   }
 }
 
