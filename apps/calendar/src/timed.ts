@@ -1,55 +1,61 @@
-import { getDocument, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
+import { getDocument, type DateStr, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
 import { daysOf, describeTime } from "./domain/events";
 import { bandsIn, describeBlocker, isOneOff } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
-import { addEvent, moveEvent, rescheduleEvent, useEvents } from "./data/repo";
-import { rescheduleTimeBlocker, useTimeBlockers } from "./data/blockers";
+import { addEvent, allEvents, moveEvent, rescheduleEvent, useEvents } from "./data/repo";
+import { allTimeBlockers, rescheduleTimeBlocker, useTimeBlockers } from "./data/blockers";
 import { addEventFromTemplate, useEventTemplates } from "./data/templates";
 import { addBlockerFromTemplate, useBlockerTemplates } from "./data/blockerTemplates";
-import { BLOCKER_TEMPLATE_TYPE, TIME_BLOCKER_TYPE } from "./domain/types";
+import { BLOCKER_TEMPLATE_TYPE, TIME_BLOCKER_TYPE, type Event, type TimeBlocker } from "./domain/types";
 
 export const APP_ID = "calendar";
+
+/** Events and Time blocker bands in range, as Timed items — one per day each occupies. */
+function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { start: DateStr; end: DateStr }): TimedItem[] {
+  const items: TimedItem[] = [];
+  // Time blockers (ADR 0027) are painted per day: a weekly rule's bands are fixed, a one-off's (ADR 0029) may be dragged.
+  for (const band of bandsIn(blockers, range)) {
+    items.push({
+      key: `${APP_ID}/blocker:${band.blocker.id}@${band.date}+${band.start}`,
+      appId: APP_ID,
+      itemId: band.blocker.id,
+      title: band.blocker.title,
+      subtitle: describeBlocker(band.blocker),
+      date: band.date,
+      start: band.start,
+      end: band.end,
+      tags: band.blocker.tags ?? [],
+      color: band.blocker.color ?? undefined,
+      background: true,
+      fixed: !isOneOff(band.blocker),
+    });
+  }
+  for (const ev of events) {
+    for (const date of daysOf(ev, range)) {
+      items.push({
+        key: `${APP_ID}/${ev.id}@${date}`,
+        appId: APP_ID,
+        itemId: ev.id,
+        title: ev.title,
+        subtitle: describeTime(ev),
+        date,
+        start: ev.start,
+        end: ev.end,
+        tags: ev.tags ?? [],
+      });
+    }
+  }
+  return items;
+}
 
 /** Events on time surfaces: one item per day the event occupies. */
 export const calendarTimed: TimedProvider = {
   appId: APP_ID,
   useItems(range) {
-    const events = useEvents();
-    const blockers = useTimeBlockers();
-    const items: TimedItem[] = [];
-    // Time blockers (ADR 0027) are painted per day: a weekly rule's bands are fixed, a one-off's (ADR 0029) may be dragged.
-    for (const band of bandsIn(blockers, range)) {
-      items.push({
-        key: `${APP_ID}/blocker:${band.blocker.id}@${band.date}+${band.start}`,
-        appId: APP_ID,
-        itemId: band.blocker.id,
-        title: band.blocker.title,
-        subtitle: describeBlocker(band.blocker),
-        date: band.date,
-        start: band.start,
-        end: band.end,
-        tags: band.blocker.tags ?? [],
-        color: band.blocker.color ?? undefined,
-        background: true,
-        fixed: !isOneOff(band.blocker),
-      });
-    }
-    for (const ev of events) {
-      for (const date of daysOf(ev, range)) {
-        items.push({
-          key: `${APP_ID}/${ev.id}@${date}`,
-          appId: APP_ID,
-          itemId: ev.id,
-          title: ev.title,
-          subtitle: describeTime(ev),
-          date,
-          start: ev.start,
-          end: ev.end,
-          tags: ev.tags ?? [],
-        });
-      }
-    }
-    return items;
+    return timedItemsOf(useEvents(), useTimeBlockers(), range);
+  },
+  async itemsIn(range) {
+    return timedItemsOf(await allEvents(), await allTimeBlockers(), range);
   },
   async move(itemId, to) {
     if (await isBlocker(itemId)) await rescheduleTimeBlocker(itemId, to, null, null);
