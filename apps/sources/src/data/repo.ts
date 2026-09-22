@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { newId, normalizeTags, putDocument, removeDocument, useDocuments } from "@lifeline/core";
+import { documentsOf, newId, normalizeTags, putDocument, removeDocument, useDocuments } from "@lifeline/core";
 import { COLOR_SLOTS, DEFAULT_REFRESH, SOURCE_TYPE, type CalendarSub, type Embed, type Feed, type LiveValue, type Source, type SourceKind } from "../domain/types";
 import { normalizeEmbedUrl } from "../domain/url";
 
@@ -25,6 +25,9 @@ export function useFeeds(): Feed[] {
 }
 export function useCalendarSubs(): CalendarSub[] {
   return useOfKind<CalendarSub>("ical");
+}
+export async function allCalendarSubs(): Promise<CalendarSub[]> {
+  return (await documentsOf<Source>(SOURCE_TYPE)).map(normalize).filter((s): s is CalendarSub => s.kind === "ical");
 }
 export function useLiveValues(): LiveValue[] {
   return useOfKind<LiveValue>("value");

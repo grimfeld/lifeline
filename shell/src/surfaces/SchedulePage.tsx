@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
 import { Badge, Button, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, toast } from "@lifeline/ui";
 import {
+  BLOCK_DEFAULT_MIN,
   addDays,
 
   canRescheduleTimed,
@@ -39,7 +40,7 @@ import { TagFilterBar } from "../components/TagFilterBar";
 
 const HOUR_PX = 56;
 const SNAP_MIN = 15;
-const DEFAULT_MIN = 30;
+const DEFAULT_MIN = BLOCK_DEFAULT_MIN;
 const POOL = "pool";
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 

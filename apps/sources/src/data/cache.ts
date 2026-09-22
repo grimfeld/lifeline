@@ -79,6 +79,12 @@ export function useSourceCache(s: Source | undefined): SourceCacheEntry | undefi
   return entry;
 }
 
+/** The cached entries of many Sources, read once (no fetch): what Push reads (ADR 0054). */
+export async function cachedEntries(ids: string[]): Promise<Map<string, SourceCacheEntry>> {
+  const entries = ids.length ? await table().where("id").anyOf(ids).toArray() : [];
+  return new Map(entries.map((e) => [e.id, e]));
+}
+
 /** Same for many Sources at once (the Timed provider): one entry per source id. */
 export function useSourceCaches(sources: Source[]): Map<string, SourceCacheEntry> {
   const ids = sources.map((s) => s.id);

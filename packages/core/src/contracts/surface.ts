@@ -2,8 +2,9 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Placement } from "../data/db";
 import { newId } from "../ids";
 import { put, remove } from "../data/repo";
-import { appById, schedulableProviders } from "../registry";
-import { nowClock, todayStr, type DateStr } from "../dates";
+import { appById, schedulableProviders, timedProviders } from "../registry";
+import { addDays, nowClock, todayStr, type DateStr } from "../dates";
+import { freeStretch, planPush, PUSH_HORIZON_DAYS, type TakenSpan } from "./push";
 import type { SchedulableItem, SchedulableProvider } from "./schedulable";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
@@ -289,4 +290,75 @@ export async function removePlacementsOf(appId: string, itemId: string | ((itemI
   const rows = await db().collection<Placement>("placements").where("[appId+itemId]").between([appId, ""], [appId, "￿"]).toArray();
   const match = typeof itemId === "string" ? (id: string) => id === itemId : itemId;
   for (const pl of rows) if (!pl.deleted && match(pl.itemId)) await unplaceItem(pl.id);
+}
+
+/** Whether an App's items can be pushed (ADR 0054): it must take an Estimate. */
+export function canPush(appId: string): boolean {
+  return !!schedulableProviders().find((p) => p.appId === appId)?.setEstimate;
+}
+
+export interface PushResult {
+  date: DateStr;
+  start: string;
+  end: string;
+  /** An existing block was pushed (else a new one was made). */
+  moved: boolean;
+  /** Put things back as they were: remove the new block, or return the pushed one. */
+  undo(): Promise<void>;
+}
+
+/** Hours already taken across [range]: every timed Event and blocker band Push can read, and every Time block but `exceptId`. */
+async function takenHours(range: { start: DateStr; end: DateStr }, exceptId: string | undefined): Promise<TakenSpan[]> {
+  const out: TakenSpan[] = [];
+  for (const provider of timedProviders()) {
+    if (!provider.itemsIn) continue;
+    for (const item of await provider.itemsIn(range)) if (item.start) out.push({ date: item.date, start: item.start, end: item.end });
+  }
+  const placements = await db().collection<Placement>("placements").where("deleted").equals(0).toArray();
+  for (const pl of placements) {
+    if (!pl.start || pl.id === exceptId || pl.date < range.start || pl.date > range.end) continue;
+    out.push({ date: pl.date, start: pl.start, end: pl.end ?? null });
+  }
+  return out;
+}
+
+/**
+ * Push (ADR 0054): find the item time in the Schedule's hours. With no block
+ * ahead, a new Time block of the Estimate goes into the first free stretch;
+ * with one, the earliest block ahead moves later at its own length. An
+ * `estimateMin` passed here is the answer to "how long?" and is kept by the
+ * owning App first. Resolves null when nothing is free within the horizon —
+ * nothing is written then.
+ */
+export async function pushSurfaceItem(
+  item: Pick<SchedulableItem, "appId" | "itemId" | "date" | "estimateMin">,
+  estimateMin?: number,
+): Promise<PushResult | null> {
+  const provider = schedulableProviders().find((p) => p.appId === item.appId);
+  if (!provider?.setEstimate) throw new Error(`${appById(item.appId)?.title ?? item.appId} items can't be pushed`);
+  const minutes = estimateMin ?? item.estimateMin;
+  if (!minutes || minutes <= 0) throw new Error("Push needs an Estimate");
+  if (estimateMin && estimateMin !== item.estimateMin) await provider.setEstimate(item.itemId, estimateMin);
+
+  const blocks = (await placementsOf(item.appId, item.itemId)).filter(isBlock);
+  const plan = planPush({
+    itemDate: item.date,
+    blocks: blocks.map((b) => ({ id: b.id, date: b.date, start: b.start!, end: b.end ?? null })),
+    estimateMin: minutes,
+    today: todayStr(),
+    now: nowClock(),
+  });
+  const range = { start: plan.from.date, end: addDays(plan.from.date, PUSH_HORIZON_DAYS - 1) };
+  const stretch = freeStretch(await takenHours(range, plan.blockId), plan.from, plan.minutes);
+  if (!stretch) return null;
+
+  const time = { start: stretch.start, end: stretch.end };
+  const pushed = plan.blockId ? blocks.find((b) => b.id === plan.blockId) : undefined;
+  if (pushed) {
+    await moveTimeBlock(pushed.id, stretch.date, time);
+    const back = { start: pushed.start!, end: pushed.end ?? null };
+    return { ...stretch, moved: true, undo: () => moveTimeBlock(pushed.id, pushed.date, back) };
+  }
+  const id = await addTimeBlock(item.appId, item.itemId, stretch.date, time);
+  return { ...stretch, moved: false, undo: () => unplaceItem(id) };
 }
