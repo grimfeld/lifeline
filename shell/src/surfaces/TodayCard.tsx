@@ -8,6 +8,7 @@ import {
   useTimedItems,
 } from "@lifeline/core";
 import { Check } from "lucide-react";
+import { PushButton } from "./push";
 
 /**
  * Cross-app Today feed: every Schedulable item landing on today, plus today's
@@ -68,6 +69,7 @@ export function TodayCard() {
           )}
           <span className={cn("truncate text-sm", b.completedOn && "text-muted-foreground line-through")}>{b.title}</span>
           <span className="ml-auto size-2 shrink-0 rounded-full" style={{ background: b.color ?? "var(--muted-foreground)" }} title={appById(b.appId)?.title} />
+          <PushButton item={b} />
         </li>
       ))}
       {[...open, ...done].map((item) => (
@@ -100,6 +102,7 @@ export function TodayCard() {
             style={{ background: item.color ?? "var(--muted-foreground)" }}
             title={appById(item.appId)?.title}
           />
+          <PushButton item={item} />
         </li>
       ))}
     </ul>

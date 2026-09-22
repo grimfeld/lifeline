@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { appById, formatTime, hourWindow, layoutColumns, todayStr, toHours, useSurfaceItems, useTimedItems, type CardProps } from "@lifeline/core";
+import { appById, formatTime, hourWindow, layoutColumns, todayStr, toHours, useSurfaceItems, useTimedItems, type CardProps, type SurfaceItem } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
+import { PushButton } from "./push";
 
 const HOUR_PX = 48;
 
@@ -23,9 +24,9 @@ export function AgendaCard({ settings }: CardProps) {
   // Time blocks (ADR 0015): planned work shows beside Events.
   const blocks = useSurfaceItems({ start: today, end: today }).filter((i) => i.start);
   const items = useMemo(
-    () => [
+    (): { key: string; appId: string; itemId: string; title: string; date: string; start: string | null; end: string | null; color?: string; block?: SurfaceItem }[] => [
       ...timedItems,
-      ...blocks.map((b) => ({ key: `${b.key}#${b.placementId}`, appId: b.appId, itemId: b.itemId, title: `${b.completedOn ? "✓ " : ""}${b.title}`, date: b.displayDate, start: b.start!, end: b.end ?? null, color: b.color })),
+      ...blocks.map((b) => ({ key: `${b.key}#${b.placementId}`, appId: b.appId, itemId: b.itemId, title: `${b.completedOn ? "✓ " : ""}${b.title}`, date: b.displayDate, start: b.start!, end: b.end ?? null, color: b.color, block: b })),
     ],
     [timedItems, blocks],
   );
@@ -109,6 +110,10 @@ export function AgendaCard({ settings }: CardProps) {
                   }}
                   title={`${formatTime(item.start)}${item.end ? `–${formatTime(item.end)}` : ""} ${item.title}`}
                 >
+                  {/* A Time block tall enough for a tap target offers Push (ADR 0054). */}
+                  {item.block && (e - s) * HOUR_PX >= 28 && (
+                    <PushButton item={item.block} className="absolute top-0 right-0 size-5 text-white/80 hover:bg-white/20 hover:text-white" />
+                  )}
                   <div className="truncate font-medium">{item.title}</div>
                   <div className="truncate opacity-80">
                     {formatTime(item.start)}
