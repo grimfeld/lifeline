@@ -52,7 +52,7 @@ export const release = (): Patch => ({ acquisition: "GONE" });
 /** Undo a mis-clicked buy: back to Wanted, the acquired day cleared. */
 export const unacquire = (): Patch => ({ acquisition: "WANTED", acquiredOn: "" });
 
-/** Bought as one click (CONTEXT.md, Shopping list): Wanted ⇄ Owned. Borrowed and Gone stay deliberate menu moves. */
+/** Bought as one click (CONTEXT.md, Wanted list): Wanted ⇄ Owned. Borrowed and Gone stay deliberate menu moves. */
 export const toggleOwned = (item: Work, today = todayStr()): Patch =>
   item.acquisition === "OWNED" ? unacquire() : acquire("OWNED", today);
 
@@ -74,7 +74,7 @@ export const shelfOfShame = (items: Work[]) =>
 export const finishedIn = (items: Work[], year: number) =>
   items.filter((m) => m.finishedOn.startsWith(String(year)));
 /** Every Wanted item, wherever it lives — slotted ones (buy now) first, then oldest wish first. */
-export const shoppingList = (items: Work[]) =>
+export const wantedList = (items: Work[]) =>
   items
     .filter((m) => m.acquisition === "WANTED")
     .sort((a, b) => Number(isBuySignal(b)) - Number(isBuySignal(a)) || (a.addedOn || "9999").localeCompare(b.addedOn || "9999"));

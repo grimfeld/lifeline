@@ -11,7 +11,7 @@ export type Engagement = (typeof ENGAGEMENT)[number];
 
 /**
  * A game (ADR 0024), owned by the Arcade App. Keeps Acquisition and the
- * Shopping list; has no Nightstand slots. Days are "YYYY-MM-DD" text; ""
+ * Wanted list; has no Nightstand slots. Days are "YYYY-MM-DD" text; ""
  * means "not yet".
  */
 export interface Work extends Document {

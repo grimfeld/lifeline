@@ -4,7 +4,7 @@ import { LibraryScreen } from "./screens/LibraryScreen";
 import { AuthorScreen } from "./screens/AuthorScreen";
 import { AuthorPanel } from "./components/AuthorPanel";
 import { NightstandCard } from "./cards/NightstandCard";
-import { ShoppingListCard } from "./cards/ShoppingListCard";
+import { WantedListCard } from "./cards/WantedListCard";
 import { InProgressCard } from "./cards/InProgressCard";
 import { FinishedCard } from "./cards/FinishedCard";
 import { SurpriseCard } from "./cards/SurpriseCard";
@@ -50,13 +50,13 @@ export const libraryApp: AppManifest = {
     {
       id: "library.shopping",
       tagFilterable: true,
-      title: "Book shopping list",
+      title: "Book wanted list",
       description: "Books and comics you want but don't own — slotted ones first",
-      component: ShoppingListCard,
+      component: WantedListCard,
       defaultSize: { w: 3, h: 4 },
       minSize: { w: 2, h: 3 },
       settings: { medium: mediumField },
-      instanceTitle: (s) => titleWithMedium("Shopping list", s.medium),
+      instanceTitle: (s) => titleWithMedium("Wanted list", s.medium),
     },
     {
       id: "library.in-progress",

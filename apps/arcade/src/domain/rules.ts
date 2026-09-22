@@ -28,6 +28,6 @@ export const shelfOfShame = (items: Work[]) =>
 
 export const finishedIn = (items: Work[], year: number) => items.filter((m) => m.finishedOn.startsWith(String(year)));
 
-/** Every Wanted item, oldest wish first — the Shopping list (ADR 0024: Arcade keeps Acquisition). */
-export const shoppingList = (items: Work[]) =>
+/** Every Wanted item, oldest wish first — the Wanted list (ADR 0024: Arcade keeps Acquisition). */
+export const wantedList = (items: Work[]) =>
   items.filter((m) => m.acquisition === "WANTED").sort((a, b) => (a.addedOn || "9999").localeCompare(b.addedOn || "9999"));
