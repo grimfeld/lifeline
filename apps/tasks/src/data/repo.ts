@@ -31,6 +31,7 @@ function normalizeTask(t: Task): Task {
     date: t.date || null,
     completedOn: t.completedOn || null,
     recurrence: t.recurrence || null,
+    estimate: Number(t.estimate) > 0 ? Math.round(Number(t.estimate)) : null,
     tags: t.tags ?? [],
   };
 }
@@ -52,6 +53,7 @@ export async function addTask(input: {
   notes?: string;
   date?: DateStr | null;
   recurrence?: Recurrence | null;
+  estimate?: number | null;
   tags?: string[];
 }): Promise<string> {
   const id = newId();
@@ -64,6 +66,7 @@ export async function addTask(input: {
     date: input.recurrence ? null : (input.date ?? null),
     completedOn: null,
     recurrence: input.recurrence ?? null,
+    estimate: input.estimate ?? null,
     createdAt: todayStr(),
     tags: normalizeTags(input.tags),
   });
@@ -127,6 +130,12 @@ async function writeOverride(
     sourceDate,
     ...next,
   });
+}
+
+/** Give an item's Task its Estimate (ADR 0054): an Occurrence's lands on its recurring Task. */
+export async function setEstimate(itemId: ItemId, minutes: number | null): Promise<void> {
+  const task = await getTask(parseItemId(itemId).taskId);
+  if (task && task.estimate !== minutes) await putDocument<Task>({ ...task, estimate: minutes });
 }
 
 /** Unified intent: mark an item done (`on`) or not done (null). */

@@ -17,6 +17,8 @@ export interface SchedulableItem {
   completedOn?: DateStr | null;
   /** The entity's Tags (ADR 0014); Occurrences inherit their Task's. */
   tags?: string[];
+  /** The Estimate (ADR 0054): whole minutes the App expects it to take. null/absent = none given yet. */
+  estimateMin?: number | null;
 }
 
 /**
@@ -45,4 +47,11 @@ export interface SchedulableProvider {
    * "stay" — it stays where it was and reads as missed.
    */
   overduePolicy: "roll-forward" | "stay";
+  /**
+   * Optional delegate of "the user gave this item an Estimate" (ADR 0054).
+   * An App that implements it reports `estimateMin` on its items and earns
+   * them a Push; an App without it gets none, since Push must be able to
+   * keep the Estimate it asks for.
+   */
+  setEstimate?(itemId: string, minutes: number): Promise<void>;
 }

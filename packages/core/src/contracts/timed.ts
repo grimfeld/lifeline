@@ -68,6 +68,12 @@ export interface TimedProvider {
   appId: string;
   /** React hook. Live items whose day falls in [start, end]. */
   useItems(range: { start: DateStr; end: DateStr }): TimedItem[];
+  /**
+   * The same items, read once outside React — what Push (ADR 0054) reads
+   * for the hours already taken. A provider without it holds no hours as far
+   * as Push can tell.
+   */
+  itemsIn?(range: { start: DateStr; end: DateStr }): Promise<TimedItem[]>;
   /** Optional delegate of "the user dragged this to another day". */
   move?(itemId: string, to: DateStr): Promise<void>;
   /** Optional delegate of "the user dragged/resized this on the Schedule" (ADR 0015): new day and time (null = all day). */
