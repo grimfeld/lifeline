@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { completedInRange, dayLabel, groupByDay } from "./completed";
 import type { OccurrenceOverride, Task } from "./types";
 
-const base = { updatedAt: "2026-01-01T00:00:00.000Z", deleted: 0 as const, notes: "", tags: [] as string[], folder: "" };
+const base = { updatedAt: "2026-01-01T00:00:00.000Z", deleted: 0 as const, notes: "", tags: [] as string[], folder: "", estimate: null };
 
 function oneTime(id: string, completedOn: string | null, extra: Partial<Task> = {}): Task {
   return {

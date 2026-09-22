@@ -10,6 +10,7 @@ import { WeekPage } from "./surfaces/WeekPage";
 import { MapPage } from "./surfaces/MapPage";
 import { GraphPage } from "./surfaces/GraphPage";
 import { SchedulePage } from "./surfaces/SchedulePage";
+import { PushProvider } from "./surfaces/push";
 import { UserScreenPage } from "./screens/UserScreenPage";
 import { BasePage } from "./bases/BasePage";
 import { BasesIndex } from "./bases/BasesIndex";
@@ -94,23 +95,25 @@ export default function App() {
     void ensureDefaultWorkspace();
   }, [syncState]);
   return (
-    <div className="bg-background text-foreground flex h-dvh flex-col overflow-hidden">
-      {backgroundApps().map((a) => (
-        <AppBackground key={a.id} app={a} />
-      ))}
-      <PhoneHeader />
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <Routes>
-          {frames().map((w) => (
-            <Route key={w.id} path={`${w.path}/*`} element={<FrameLayout frame={w} />} />
-          ))}
-          <Route path="/*" element={<DashboardFrame />} />
-        </Routes>
+    <PushProvider>
+      <div className="bg-background text-foreground flex h-dvh flex-col overflow-hidden">
+        {backgroundApps().map((a) => (
+          <AppBackground key={a.id} app={a} />
+        ))}
+        <PhoneHeader />
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <Routes>
+            {frames().map((w) => (
+              <Route key={w.id} path={`${w.path}/*`} element={<FrameLayout frame={w} />} />
+            ))}
+            <Route path="/*" element={<DashboardFrame />} />
+          </Routes>
+        </div>
+        <MobileNav />
+        <CommandPalette />
+        <PrivateDialogs />
+        <Toaster position="bottom-right" />
       </div>
-      <MobileNav />
-      <CommandPalette />
-      <PrivateDialogs />
-      <Toaster position="bottom-right" />
-    </div>
+    </PushProvider>
   );
 }

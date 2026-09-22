@@ -31,7 +31,7 @@ An interface defined by Core that a Document type implements (Schedulable, Timed
 _Avoid_: capability, trait, API, decorator
 
 ### Schedulable
-The first Contract: an entity that can be placed onto a time surface (calendar, week view). The owning App supplies title/identity/status and behavior hooks — e.g. what completing a placement means, and what happens when a placement's time passes uncompleted (keep / roll forward / drop). A Chore rolls its placement forward until completed; a simple task's placement just passes.
+The first Contract: an entity that can be placed onto a time surface (calendar, week view). The owning App supplies title/identity/status and behavior hooks — e.g. what completing a placement means, and what happens when a placement's time passes uncompleted (keep / roll forward / drop). A Chore rolls its placement forward until completed; a simple task's placement just passes. The App may also report an item's **Estimate**, which is what earns the item a **Push**.
 
 ### Timed
 The second Contract: an entity that happens at a fixed time on a day (start/end, or all day) and is not work — nothing to complete. Surfaces draw Timed items above the day's Schedulable work. The Calendar App's Events are the first implementation; the owning App may allow moving them to another day, may offer Event templates for quick add, and may report background items — Time blocker bands, which hour-scaled Surfaces paint behind everything and day-granular ones leave out.
@@ -60,6 +60,10 @@ _Avoid_: TimeBlock, occurrence, booking
 ### Time block
 A Placement that carries a start (and end) time: one planned stretch of an item in the Schedule's hours. An item may have as many Time blocks as it needs — a long Task split over Monday and Wednesday — on any days, without its own day changing; a block is planning, never the item. A block has no done state of its own: its tick is the item's tick and completes the item, which then drops every block still ahead (starting after the moment of completion) and keeps the past ones as record. Blocks show where hours show — the Schedule, the Agenda card — and in the Today feed as that day's work; day-granular planning views (Week planner, month Calendar) show the item on its own day only. Dragged off the hours, a block is simply gone — into the pool, the item keeps its day; into a day's strip, the item takes that day. When the item rolls forward as overdue, the time is dropped. Blocks never repeat on their own.
 _Avoid_: appointment, event (that's the Calendar App's timed thing), slot (the empty grid cell), session / instance / occurrence (of a block — say "a Task's Time blocks")
+
+### Push
+One tap that finds an item time in the Schedule's hours, owned by Core and offered on any Schedulable item whose App reports an **Estimate** — the Tasks App first. With no block ahead, Push makes one Time block of the Estimate's length in the first **free** stretch; with one ahead, it pushes the earliest such block, at its own length, to the first free stretch after it — from its end if it has not begun, from now if it has — so Push only ever moves later and never nudges a block into its own old time. Free means covered by no timed Event, no other Time block and no Time blocker, weekly or one-off; all-day Events and switched-off blockers take no hours. The stretch is one piece, on the Schedule's quarter-hour grid, searched from now — or from the item's own day when that is still ahead — and up to two weeks out; it may fall after the item's day, which never moves. Nothing free, nothing written. An item with no Estimate asks for one first and keeps it. Undoable; never offered on a done or archived item.
+_Avoid_: reschedule, auto-schedule, snooze, defer, Move (that changes the day), find time
 
 ### Schedule
 The hour-scaled Surface (day or week) where Time blocks and Events are laid out and dragged, over the bands of the day's Time blockers, beside the Event templates offered for quick add. Its chips — the pool and each day's untimed strip — are sources: dragging one onto an hour makes a new Time block and leaves the chip in place, greyed while blocks lie ahead; dragging a block moves that block alone. Distinct from the Week planner (day-granular) and the month Calendar.
@@ -119,6 +123,10 @@ _Avoid_: preferences, options, config, admin, account (one sign-in, a different 
 ### Task
 A unit of work owned by the Tasks App. One-time (optionally assigned to a day) or recurring. Absorbs calendar's old Task/Backlog and week-planner's tasks. Completable; implements Schedulable.
 _Avoid_: todo, item
+
+### Estimate
+How long a Task is expected to take, in whole minutes, guessed in advance — optional, and the user's own. A recurring Task carries one Estimate on its definition and every Occurrence inherits it. It sizes the Time block a **Push** makes; it never records how long the work actually took, and nothing measures it against the blocks.
+_Avoid_: duration (what actually passed — a Session's, a Tally's), length (a block's or a template's), effort, points
 
 ### Occurrence
 One instance of a recurring Task, generated by its recurrence rule (weekly on weekdays, monthly on days of the month, or yearly on dates — month-length dates clamp like Chores). Each Occurrence completes and moves independently. Recurring Tasks have no single "done" state — only their Occurrences do. (Period-reopen semantics are not a Task concept; that need is served by the Chore App.) Occurrences are derived, never stored; only the ones that were moved or completed leave a sparse per-Occurrence override keyed by task + source day. A missed Occurrence **lapses** as soon as the rule produces the next one (ADR 0036): a recurring Task is overdue at most once — for the Occurrence it is currently on — and a lapsed one keeps its day as record, without urgency, still tickable there. Moving an Occurrence onto today or later takes it out of that reckoning.
