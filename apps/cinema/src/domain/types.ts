@@ -7,7 +7,7 @@ export type Engagement = (typeof ENGAGEMENT)[number];
 
 /**
  * A film or series (ADR 0024), owned by the Cinema App. Streamed media have
- * **no Acquisition** — you never own them, so there is no shopping list and
+ * **no Acquisition** — you never own them, so there is no Wanted list and
  * no acquired day. Days are "YYYY-MM-DD" text; "" means "not yet".
  */
 export interface Work extends Document {

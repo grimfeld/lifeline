@@ -3,7 +3,7 @@ import { onShelf, shelfLabel } from "./browse";
 import { hasSlots, SLOTTED_TYPES } from "./workTypes";
 import { parseQuickTitle } from "../data/repo";
 import type { Work } from "./types";
-import { abandon, finish, freeSlots, isBuySignal, isFull, isStale, nightstand, promote, shelfOfShame, shoppingList, slotAge, toggleDone, toggleOwned } from "./rules";
+import { abandon, finish, freeSlots, isBuySignal, isFull, isStale, nightstand, promote, shelfOfShame, wantedList, slotAge, toggleDone, toggleOwned } from "./rules";
 
 function item(p: Partial<Work>): Work {
   return {
@@ -84,9 +84,9 @@ describe("signals", () => {
   });
 });
 
-describe("shoppingList", () => {
+describe("wantedList", () => {
   it("lists every Wanted item, slotted first then oldest wish first", () => {
-    const list = shoppingList([
+    const list = wantedList([
       item({ id: "young", acquisition: "WANTED", slot: 0, addedOn: "2026-06-01" }),
       item({ id: "owned", acquisition: "OWNED", slot: 0 }),
       item({ id: "old", acquisition: "WANTED", slot: 0, addedOn: "2025-01-01" }),
