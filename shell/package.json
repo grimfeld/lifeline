@@ -30,6 +30,7 @@
     "@lifeline/app-prices": "workspace:*",
     "@lifeline/app-mood": "workspace:*",
     "@lifeline/app-pantry": "workspace:*",
+    "@lifeline/app-shopping": "workspace:*",
     "@lifeline/app-sources": "workspace:*",
     "@lifeline/app-stats": "workspace:*",
     "@lifeline/app-tasks": "workspace:*",

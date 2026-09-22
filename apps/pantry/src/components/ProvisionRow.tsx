@@ -4,6 +4,7 @@ import { todayStr } from "@lifeline/core";
 import type { Provision } from "../domain/types";
 import { DEFAULT_EXPIRY_WINDOW_DAYS, expiresSoon, isExpired, isRunningLow } from "../domain/rules";
 import { adjustQuantity } from "../data/repo";
+import { HandOffMenu } from "./HandOffMenu";
 
 function Step({ label, icon: Icon, disabled, onClick }: { label: string; icon: typeof Plus; disabled?: boolean; onClick: () => void }) {
   return (
@@ -36,6 +37,7 @@ export function ProvisionRow({ p, onOpen, storageName }: { p: Provision; onOpen?
       {p.unit ? <span className="text-muted-foreground shrink-0 text-xs">{p.unit}</span> : null}
       {expired ? <span className="text-destructive shrink-0 text-xs">expired {p.expires}</span> : soon ? <span className="shrink-0 text-xs text-amber-600 dark:text-amber-500">by {p.expires}</span> : null}
       {storageName ? <span className="text-muted-foreground ml-auto shrink-0 text-xs">{storageName}</span> : null}
+      {low ? <HandOffMenu handoff={() => ({ title: p.title, text: p.unit })} /> : null}
     </li>
   );
 }
