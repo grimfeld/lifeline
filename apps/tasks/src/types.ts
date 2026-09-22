@@ -23,6 +23,7 @@ export const taskType: DocumentTypeDef = {
     { key: "date", label: "Day", kind: "date", guarded: true, column: true },
     { key: "completedOn", label: "Completed on", kind: "date", guarded: true, column: true },
     { key: "recurrence", label: "Recurrence", kind: "text", guarded: true, hidden: true },
+    { key: "estimate", label: "Estimate (min)", kind: "number", column: true },
     { key: "notes", label: "Notes", kind: "longtext" },
   ],
   builtIn: true,
