@@ -42,7 +42,7 @@ A Contract: an entity that accepts a logged occurrence from any other App — a 
 _Avoid_: trackable, sink, hook (the Contract's own word for its functions)
 
 ### Intake
-Core Contract (behaviour — code only): an App that accepts a Handoff from any other App and makes one of its own Documents from it, through its own form. The accepting App declares what it makes ("Clipping", "Task", "Event") and opens its dialog prefilled with the Handoff; nothing is written until that dialog saves, so ownership stays whole. The sending App only lists the Intakes Core knows and never names a keeper. The Clipper, Tasks and Calendar are the first implementers; how Mail keeps a Message.
+Core Contract (behaviour — code only): an App that accepts a Handoff from any other App and makes one of its own Documents from it, through its own form. The accepting App declares what it makes ("Clipping", "Task", "Event") and opens its dialog prefilled with the Handoff; nothing is written until that dialog saves, so ownership stays whole. The sending App only lists the Intakes Core knows and never names a keeper. The Clipper, Tasks, Calendar and the Shopping list (a Need) are the implementers; how Mail keeps a Message.
 _Avoid_: clip (one implementer's verb), import, share (the phone OS's word), capture (a Command's flag)
 
 ### Handoff
@@ -300,12 +300,12 @@ A family App's main screen and the view you land on: the wall-to-wall cover grid
 _Avoid_: library (an App), grid (a rendering), backlog
 
 ### Nightstand
-Library only, for books and comics: the small capped set of items currently claiming attention — in progress and next up. A Slot is held for the whole time an item is in progress and freed only by finishing or dropping. Caps are fixed in code (books 5, comics 3); no other family has slots. A Nightstand item that isn't owned yet is the instruction to buy it *now* — it heads the Shopping list. Lives in its own tab, never on the Gallery.
+Library only, for books and comics: the small capped set of items currently claiming attention — in progress and next up. A Slot is held for the whole time an item is in progress and freed only by finishing or dropping. Caps are fixed in code (books 5, comics 3); no other family has slots. A Nightstand item that isn't owned yet is the instruction to buy it *now* — it heads the Wanted list. Lives in its own tab, never on the Gallery.
 _Avoid_: queue, TBR, wishlist, priority
 
-### Shopping list
+### Wanted list
 Every Wanted work of a family that still has **Acquisition** — Library and Arcade only (streamed media are never owned, so Cinema and the Discotheque have no Acquisition at all): Nightstand ones first (next up — buy now), then the rest, oldest first. Marking one as acquired takes it off the list; in the Library, **Bought** is one click on the work itself — Wanted ⇄ Owned, clicking again un-buys — while Borrowed and Gone stay deliberate menu moves. The Shelf never moves the list: a book read but still Wanted stays on it. A Card per App, never furniture on the Gallery.
-_Avoid_: wishlist (that word hides the buy-now head of the list), cart
+_Avoid_: wishlist (that word hides the buy-now head of the list), cart, shopping list (the Shopping list App's own list)
 
 ### Marks
 Cinema and Discotheque only: what I make of a work, beside where it stands on the Shelf. **Liked** (a heart, on or off) and a **Rating** (one to five whole stars; unrated is its own state, not zero stars). Each is one click on the Gallery tile or the detail; neither implies the other, neither moves the Shelf, and a Shelf move never touches them. Marks are facts about the work, not events: nothing lands in the Daylog, nothing feeds Life Level.
@@ -523,7 +523,7 @@ _Avoid_: location (Locatable's word), place, zone, pantry as a kind (the App's n
 
 ### Minimum
 The optional threshold on a Provision below which it is **running low**: quantity under the Minimum, or zero even without one. Running low is a reading over Provisions, not a list you edit.
-_Avoid_: shopping list (Library's books), reorder point, restock threshold
+_Avoid_: shopping list (a list you write — running low is read), reorder point, restock threshold
 
 ### Prices
 The price App: what regular purchases cost, where, and over time. Owns Products, Shops and Receipts; holds no link to the Ledger (bank facts) or to Pantry (stock), and every history, comparison and change figure is derived from Lines, never stored.
@@ -552,6 +552,18 @@ _Avoid_: price (ambiguous — a Line's is the price paid), rate, normalised pric
 ### Price change
 The derived reading of how a Product's unit price moved over a span, always **per Shop**: earliest to latest non-promo unit price at that Shop inside the span. The all-Products figure is the median of the per-Shop changes over Products with at least two points at that Shop in the span. No cross-Shop number exists — a switch of Shop is not inflation.
 _Avoid_: inflation (fine in prose), trend, index
+
+### Shopping list
+The App for things to buy at the next chance: anything that crosses the mind, written down in seconds so it is remembered in the shop. Owns Needs and Aisles; shelved in the House Module beside Pantry, and its add is a capture Command, so it sits on the phone's capture sheet.
+_Avoid_: wishlist, cart, errands, Wanted list (Library and Arcade's Wanted works)
+
+### Need
+One thing to buy, owned by the Shopping list App: a title in my own words ("AA batteries", "card for Mum") and an optional note (how many, which brand, "the blue one") — nothing structured, so it is written in seconds. Has no day and is never Schedulable — the right moment for it is a place, not a time. Ticked in the shop, it is **Bought**: dated, off the list, kept — and typed again, the same Need comes back to the list, Aisle and note and all, rather than a second one being made; a wrong tick is simply undone. One Need per thing, however often it is bought: the same thing is the same title, case and outer spaces aside — "Milk" is "milk", "oat milk" is another Need, and nothing is merged on a guess. Adding one already on the list makes nothing new, and renaming a Need onto another's title is refused. Deleting a Need, listed or Bought, forgets it for good — how a one-off stops being offered back. Also made from any App's Handoff through the Shopping list's Intake — Pantry sends a running-low Provision this way — and a Handoff naming a thing already Bought brings that Need back like typing it would. Never recurs: a staple that keeps running out is Pantry's running low, not a Need that repeats. Not a Task (a Task is work on a day; planning a trip to the shop is a Task, and its Needs stay on the list). Deliberately *not* Linkable — "milk" is a word, not a subject, and would swallow every `[[milk]]` meant for something written about. Not a fact for the Daylog — the Receipt is.
+_Avoid_: item (Media item is taken), entry (a Stat's), errand, task, grocery
+
+### Aisle
+A loose, user-defined heading the Shopping list is grouped under — "Supermarket", "Pharmacy", "Online", whatever is handy. Aisles are put in my own order — the order I walk them — and a Need sits under at most one; one without an Aisle is buyable anywhere and heads the list. A grouping for reading the list, nothing more: it says nothing about which Shop, and nothing is refused for being in the wrong one. Deleting an Aisle is never blocked: its Needs simply become buyable anywhere.
+_Avoid_: section (the sidebar's and the Bible's), shop (Prices' chain), Storage (Pantry's), category (the Ledger's)
 
 ### Mail
 The email App: a window onto Gmail, never a copy of it. Owns Mailboxes; reads messages live from Google and keeps them only in a local cache, so nothing about a message enters the Document store unless the user keeps it on purpose. Reads and triages — archive, mark read, star, label — and never sends: replying opens the message in Gmail.
