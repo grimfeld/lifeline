@@ -1,0 +1,124 @@
+import { useEffect, useMemo, useState } from "react";
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, toast } from "@lifeline/ui";
+import { faceOf, type Fine } from "../domain/types";
+import { activeOffences } from "../domain/derive";
+import { formatCents } from "../domain/money";
+import { deleteFine, logFine, updateFine, useOffences } from "../data/repo";
+
+/** Now as a `datetime-local` value. */
+export function nowLocalInput(): string {
+  return localInputOf(new Date().toISOString());
+}
+
+function localInputOf(iso: string): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/**
+ * Log a Fine with the details (ADR 0054): which Offence, when it really
+ * happened (backdating allowed, into a past month too), an optional note.
+ * The amount is never typed — it is the Offence's price. In edit mode only
+ * the moment and the note move; Delete is there for the mis-tap.
+ */
+export function FineDialog({ open, onOpenChange, fine, offenceId }: { open: boolean; onOpenChange: (open: boolean) => void; /** Present = edit mode. */ fine?: Fine; /** Preselect (a long-press on its button). */ offenceId?: string }) {
+  const offences = useOffences();
+  const active = useMemo(() => activeOffences(offences), [offences]);
+  const [pick, setPick] = useState("");
+  const [when, setWhen] = useState(nowLocalInput());
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setPick(fine?.offenceId ?? offenceId ?? active[0]?.id ?? "");
+    setWhen(fine ? localInputOf(fine.occurredAt) : nowLocalInput());
+    setNote(fine?.note ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, fine, offenceId]);
+
+  const picked = offences.find((o) => o.id === pick);
+
+  async function save() {
+    const occurredAt = new Date(when).toISOString();
+    try {
+      if (fine) {
+        await updateFine(fine, picked, { occurredAt, note });
+        toast.success("Fine updated");
+      } else {
+        if (!picked) return void toast.error("Pick an offence");
+        await logFine(picked, { occurredAt, note });
+        toast.success(`${formatCents(picked.price)} in the jar · ${picked.name}`);
+      }
+    } catch (err) {
+      return void toast.error((err as Error).message);
+    }
+    onOpenChange(false);
+  }
+
+  async function remove() {
+    if (!fine) return;
+    await deleteFine(fine.id);
+    toast.success("Fine deleted");
+    onOpenChange(false);
+  }
+
+  const noneToLog = !fine && active.length === 0;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{fine ? "Edit fine" : "Log a fine"}</DialogTitle>
+        </DialogHeader>
+        {noneToLog ? (
+          <p className="text-muted-foreground text-sm">No offences yet — make one in the Swear Jar first.</p>
+        ) : (
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label>Offence</Label>
+              {fine ? (
+                <p className="text-sm">
+                  {picked ? `${faceOf(picked)} ${picked.name}` : "A deleted offence"} · <span className="tabular-nums">{formatCents(fine.amount)}</span>
+                </p>
+              ) : (
+                <Select value={pick} onValueChange={setPick}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pick an offence" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {active.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>
+                        {faceOf(o)} {o.name} — {formatCents(o.price)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="fn-when">When it happened</Label>
+              <Input id="fn-when" type="datetime-local" value={when} max={nowLocalInput()} onChange={(e) => setWhen(e.target.value)} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="fn-note">Note (optional)</Label>
+              <Textarea id="fn-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+            </div>
+          </div>
+        )}
+        <DialogFooter className="gap-2 sm:justify-between">
+          {fine ? (
+            <Button variant="ghost" onClick={() => void remove()}>
+              Delete
+            </Button>
+          ) : (
+            <span />
+          )}
+          <Button onClick={() => void save()} disabled={noneToLog || !when}>
+            {fine ? "Save" : "Fine me"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -271,6 +271,18 @@ _Avoid_: pool, envelope, pot (an accumulating Category's balance), target (Ledge
 One hand-typed amount taken from an Allowance on a day, with an optional label — an internal Document owned by the Pocket App, reported on the Daylog ("€12 · Eating out · lunch"). A belief, not a fact — the bank's Transaction, when imported into the Ledger, is the fact.
 _Avoid_: withdrawal (implies an Account), transaction (a Ledger fact), expense (a Transaction kind), entry (a Stat's)
 
+### Swear Jar
+The self-fining App: Offences and the Fines logged against them, a jar of money the user owes themself for things they did. Trust-based — no proof, no witness, no one to answer to. Its own list, deliberately apart from Life Level's Negative activities (which cost XP and need a Habit to hit) and from Pocket (money the user *has*; the Jar is money the user *owes*). Nothing in it is ever a Transaction. The jar is a **month**: what it holds is the sum of the calendar month's Fines, derived at read and never stored — nothing is emptied, paid out or reset; on the 1st it simply reads zero because no Fine has landed yet, and past months stay readable as history. Fines may be backdated, into a past month too.
+_Avoid_: penalty, punishment app, reset (nothing is reset — the month turns), payout, Negative activity (Life Level's), budget
+
+### Offence
+A named, priced thing the user fines themself for — "Snoozed the alarm · €2" — owned by the Swear Jar App. Its price is a positive amount in the app-wide currency; it may wear a **face** (optional emoji and colour, as an Allowance does). No cap, no limit, no schedule — a jar is not a budget, and a limit would only invite "I'm over already, why stop". Never deleted while Fines reference it — **archived** instead: out of the logging picker, its past Fines and months kept whole. Hard delete only when it has no Fines. Only the user logs against an Offence — it is owned up to, never charged: no other App fines anyone (not Loggable). A single Fine logged by mistake is simply deleted — a mis-tap is not an incident.
+_Avoid_: sin, rule, vice, Negative activity (Life Level's), habit
+
+### Fine
+One logged incident of an Offence, an internal Document owned by the Swear Jar App: the moment it happened (date and time, user-settable) and an optional note. Carries the amount the Offence cost *when it was logged* — a fact, never re-valued: repricing an Offence changes only the Fines still to come, and a closed month never moves. One Fine is one incident, at the Offence's price, never a hand-typed amount; swearing twice is two Fines. Reported on the Daylog ("€2 · Snoozed the alarm").
+_Avoid_: entry (a Stat's), Completion (Life Level's), Spend (Pocket's), transaction (a Ledger fact), penalty, coin
+
 ### Media item
 _Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus **Quotes** (born as the Commonplace book) for Quotes. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry a creator (in the Library, **Authors** — Documents of their own since ADR 0052; a string elsewhere), year, size, cover by URL and an optional **Reason** (who sent me here — offered at add, never required). The old "Studied" mark is gone.
 _Avoid_: media (as a type id or an App — neither exists), title, copy, edition, studied
