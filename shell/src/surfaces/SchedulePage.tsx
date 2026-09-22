@@ -4,6 +4,7 @@ import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDr
 import { Badge, Button, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, toast } from "@lifeline/ui";
 import {
   BLOCK_DEFAULT_MIN,
+  canPush,
   addDays,
 
   canRescheduleTimed,
@@ -35,7 +36,8 @@ import {
   type SurfaceTimedItem,
   type TimedTemplate,
 } from "@lifeline/core";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Inbox, LayoutTemplate, Plus, Trash2, Zap } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, ChevronLeft, ChevronRight, Inbox, LayoutTemplate, Plus, Trash2, Zap } from "lucide-react";
+import { usePush } from "./push";
 import { TagFilterBar } from "../components/TagFilterBar";
 
 const HOUR_PX = 56;
@@ -73,12 +75,32 @@ function addHours(start: string, h: number): string {
   return toClock(Math.min(24, toHours(start) + h));
 }
 
+/** Push (ADR 0054) on a chip or block: a small icon that must not start a drag. Nothing where Push is not offered. */
+function PushIcon({ item, className }: { item: WorkItem; className?: string }) {
+  const push = usePush(item);
+  if (!push) return null;
+  return (
+    <button
+      className={cn("text-muted-foreground hover:text-foreground shrink-0", className)}
+      title="Push — find it time"
+      aria-label={`Push ${item.title}`}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        push();
+      }}
+    >
+      <CalendarClock className="size-3" />
+    </button>
+  );
+}
+
 /**
  * A draggable chip: an untimed work item (strip or pool) or an all-day timed
  * item. A chip is a source (ADR 0028): dragging it onto an hour makes a new
  * Time block and leaves the chip here, greyed while `planned` blocks lie ahead.
  */
-function Chip({ id, data, title, color, done, planned, onComplete }: { id: string; data: Record<string, unknown>; title: string; color?: string; done?: boolean; planned?: number; onComplete?: () => void }) {
+function Chip({ id, data, title, color, done, planned, onComplete, work }: { id: string; data: Record<string, unknown>; title: string; color?: string; done?: boolean; planned?: number; onComplete?: () => void; work?: WorkItem }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data });
   const scheduled = !!planned && planned > 0;
   return (
@@ -86,7 +108,7 @@ function Chip({ id, data, title, color, done, planned, onComplete }: { id: strin
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={cn("bg-card flex cursor-grab items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs select-none", isDragging && "opacity-40", (done || scheduled) && "opacity-60", scheduled && "border-dashed")}
+      className={cn("group bg-card flex cursor-grab items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs select-none", isDragging && "opacity-40", (done || scheduled) && "opacity-60", scheduled && "border-dashed")}
       title={scheduled ? `${title} · ${planned} block${planned === 1 ? "" : "s"} planned — drag again for another` : title}
     >
       {onComplete && !done && (
@@ -104,6 +126,7 @@ function Chip({ id, data, title, color, done, planned, onComplete }: { id: strin
       )}
       {done && <Check className="text-muted-foreground size-3 shrink-0" />}
       <span className={cn("truncate", done && "line-through")}>{title}</span>
+      {work && <PushIcon item={work} className="hidden group-hover:block max-md:block" />}
       {scheduled && <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">×{planned}</span>}
       <span className={cn("size-1.5 shrink-0 rounded-full", !scheduled && "ml-auto")} style={{ background: color ?? "var(--muted-foreground)" }} />
     </div>
@@ -159,9 +182,10 @@ function Block({ entry, from, cols, col, onResize, onComplete, onRemove }: { ent
         )}
         {done && <Check className="size-3 shrink-0" />}
         <span className={cn("truncate font-medium", done && "line-through")}>{entry.item.title}</span>
+        {isBlock && <PushIcon item={entry.item} className="ml-auto hidden group-hover:block" />}
         {isBlock && onRemove && (
           <button
-            className="text-muted-foreground hover:text-foreground ml-auto hidden shrink-0 group-hover:block"
+            className={cn("text-muted-foreground hover:text-foreground hidden shrink-0 group-hover:block", !canPush(entry.item.appId) && "ml-auto")}
             title="Remove this block"
             onPointerDown={(ev) => ev.stopPropagation()}
             onClick={(ev) => {
@@ -216,7 +240,7 @@ function Strip({ date, work, allDay, onCompleteChip }: { date: DateStr; work: Wo
         <Chip key={t.key} id={`timed:${t.key}`} data={{ timed: t }} title={t.title} color={t.color} />
       ))}
       {work.map((w) => (
-        <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} done={!!w.completedOn} planned={w.blocksAhead} onComplete={() => onCompleteChip(w)} />
+        <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} done={!!w.completedOn} planned={w.blocksAhead} onComplete={() => onCompleteChip(w)} work={w} />
       ))}
       {allDay.length === 0 && work.length === 0 && <div className="text-muted-foreground px-1 text-[10px]">untimed</div>}
     </div>
@@ -428,7 +452,7 @@ function PoolColumn({ items, onComplete, collapsible }: { items: WorkItem[]; onC
   const { setNodeRef, isOver } = useDroppable({ id: POOL });
   const [open, setOpen] = useState(false);
   const chips = items.map((w) => (
-    <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} planned={w.blocksAhead} onComplete={() => onComplete(w)} />
+    <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} planned={w.blocksAhead} onComplete={() => onComplete(w)} work={w} />
   ));
   if (collapsible) {
     return (

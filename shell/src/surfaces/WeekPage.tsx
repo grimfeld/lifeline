@@ -51,7 +51,8 @@ import {
   type SurfaceItem,
   type SurfaceTimedItem,
 } from "@lifeline/core";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, GripVertical, Inbox, MapPin, Pin, PinOff } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, ChevronLeft, ChevronRight, GripVertical, Inbox, MapPin, Pin, PinOff } from "lucide-react";
+import { usePush } from "./push";
 
 const POOL = "pool";
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -93,6 +94,7 @@ function ItemCard({
   });
   const done = !!item.completedOn;
   const canPool = canUnplace(item.appId);
+  const push = usePush(item);
   return (
     <div
       ref={setNodeRef}
@@ -151,6 +153,11 @@ function ItemCard({
               }}
             >
               <Check /> Complete
+            </DropdownMenuItem>
+          )}
+          {push && (
+            <DropdownMenuItem onClick={push}>
+              <CalendarClock /> Push
             </DropdownMenuItem>
           )}
           {!done && (
