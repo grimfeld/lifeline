@@ -25,6 +25,7 @@
 @source "../../apps/ledger/src";
 @source "../../apps/pocket/src";
 @source "../../apps/pantry/src";
+@source "../../apps/shopping/src";
 @source "../../apps/mood/src";
 @source "../../apps/prices/src";
 @source "./";
