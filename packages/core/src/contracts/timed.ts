@@ -84,6 +84,17 @@ export interface TimedProvider {
   useTemplates?(): TimedTemplate[];
   /** Optional delegate of "the user quick-added this template here" (null start = all day). */
   createFromTemplate?(templateId: string, date: DateStr, start: TimeStr | null): Promise<void>;
+  /**
+   * Optional delegate of "the user removed this from the hours" (ADR 0056).
+   * Returns the Undo: the App puts back what it deleted, whole — Core never
+   * learns the item's fields. An item the App will not remove here (a weekly
+   * Time blocker, a rule) throws.
+   */
+  remove?(itemId: string): Promise<() => Promise<void>>;
+  /** Optional delegate of "the user renamed this on the hours". */
+  rename?(itemId: string, title: string): Promise<void>;
+  /** Optional route that opens the item where its App edits it in full. */
+  href?(itemId: string): string;
 }
 
 export interface SurfaceTimedItem extends TimedItem {
@@ -168,6 +179,36 @@ export async function moveTimedItem(item: Pick<TimedItem, "appId" | "itemId">, t
   const provider = timedProviders().find((p) => p.appId === item.appId);
   if (!provider?.move) throw new Error(`${appById(item.appId)?.title ?? item.appId} items can't be moved`);
   await provider.move(item.itemId, to);
+}
+
+function providerOf(appId: string): TimedProvider | undefined {
+  return timedProviders().find((p) => p.appId === appId);
+}
+
+export function canRemoveTimed(item: Pick<TimedItem, "appId" | "fixed">): boolean {
+  return !item.fixed && !!providerOf(item.appId)?.remove;
+}
+
+/** Remove a Timed item through its App (ADR 0056); resolves to the App's Undo. */
+export async function removeTimedItem(item: Pick<TimedItem, "appId" | "itemId">): Promise<() => Promise<void>> {
+  const provider = providerOf(item.appId);
+  if (!provider?.remove) throw new Error(`${appById(item.appId)?.title ?? item.appId} items can't be removed here`);
+  return provider.remove(item.itemId);
+}
+
+export function canRenameTimed(item: Pick<TimedItem, "appId" | "background">): boolean {
+  return !item.background && !!providerOf(item.appId)?.rename;
+}
+
+export async function renameTimedItem(item: Pick<TimedItem, "appId" | "itemId">, title: string): Promise<void> {
+  const provider = providerOf(item.appId);
+  if (!provider?.rename) throw new Error(`${appById(item.appId)?.title ?? item.appId} items can't be renamed here`);
+  await provider.rename(item.itemId, title);
+}
+
+/** Where the owning App edits the item in full; undefined when it offers no route. */
+export function timedHref(item: Pick<TimedItem, "appId" | "itemId">): string | undefined {
+  return providerOf(item.appId)?.href?.(item.itemId);
 }
 
 /** "09:00" → "9:00 AM" style per locale; all-day → "". */

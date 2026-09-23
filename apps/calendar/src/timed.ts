@@ -1,4 +1,4 @@
-import { getDocument, type DateStr, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
+import { getDocument, patchDocument, putDocument, removeDocument, vaultDocPath, type DateStr, type DocumentInput, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
 import { daysOf, describeTime } from "./domain/events";
 import { bandsIn, describeBlocker, isOneOff } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
@@ -6,7 +6,7 @@ import { addEvent, allEvents, moveEvent, rescheduleEvent, useEvents } from "./da
 import { allTimeBlockers, rescheduleTimeBlocker, useTimeBlockers } from "./data/blockers";
 import { addEventFromTemplate, useEventTemplates } from "./data/templates";
 import { addBlockerFromTemplate, useBlockerTemplates } from "./data/blockerTemplates";
-import { BLOCKER_TEMPLATE_TYPE, TIME_BLOCKER_TYPE, type Event, type TimeBlocker } from "./domain/types";
+import { BLOCKER_TEMPLATE_TYPE, EVENT_TYPE, TIME_BLOCKER_TYPE, type Event, type TimeBlocker } from "./domain/types";
 
 export const APP_ID = "calendar";
 
@@ -102,6 +102,24 @@ export const calendarTimed: TimedProvider = {
     const row = await getDocument(templateId);
     if (row?.type === BLOCKER_TEMPLATE_TYPE) await addBlockerFromTemplate(templateId, date, start);
     else await addEventFromTemplate(templateId, date, start);
+  },
+  // Removed from the Schedule (ADR 0056): the Undo puts back the same Document, notes and Tags and id.
+  async remove(itemId) {
+    const row = await getDocument(itemId);
+    if (!row || (row.type !== EVENT_TYPE && row.type !== TIME_BLOCKER_TYPE)) throw new Error("That item is gone");
+    if (row.type === TIME_BLOCKER_TYPE && !(row as TimeBlocker).date) throw new Error("A weekly blocker is a rule — edit it on the Events screen's Blockers tab");
+    await removeDocument(itemId);
+    return async () => {
+      await putDocument(row as DocumentInput);
+    };
+  },
+  async rename(itemId, title) {
+    const row = await getDocument(itemId);
+    if (row?.type !== EVENT_TYPE) throw new Error("That event is gone");
+    await patchDocument(itemId, { title });
+  },
+  href(itemId) {
+    return vaultDocPath(itemId);
   },
 };
 

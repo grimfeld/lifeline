@@ -54,4 +54,6 @@ export interface SchedulableProvider {
    * keep the Estimate it asks for.
    */
   setEstimate?(itemId: string, minutes: number): Promise<void>;
+  /** Optional route that opens the item where its App edits it in full. */
+  href?(itemId: string): string;
 }
