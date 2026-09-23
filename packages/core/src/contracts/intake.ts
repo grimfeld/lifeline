@@ -1,4 +1,5 @@
 import type React from "react";
+import { useSyncExternalStore } from "react";
 import { registeredApps } from "../registry";
 
 /**
@@ -45,4 +46,42 @@ export function allIntakes(): (IntakeDef & { appId: string; key: string })[] {
 /** One Intake by its `${appId}/${id}` key. */
 export function intakeByKey(key: string): (IntakeDef & { appId: string; key: string }) | undefined {
   return allIntakes().find((i) => i.key === key);
+}
+
+// --- the Intake a sender last chose (per-device, never synced) ---
+
+const LAST_PREFIX = "lifeline.intake.last.";
+const listeners = new Set<() => void>();
+
+/**
+ * The key of the Intake last chosen from this sending App on this device, or
+ * "" when none. Remembered per sender — Mail's "Clipping" never becomes
+ * Pantry's default — and a convenience only: the sender still names no
+ * receiver, the user did.
+ */
+export function lastIntakeKey(sender: string): string {
+  try {
+    return localStorage.getItem(LAST_PREFIX + sender) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function rememberIntake(sender: string, key: string): void {
+  try {
+    localStorage.setItem(LAST_PREFIX + sender, key);
+  } catch {
+    /* private mode: nothing is remembered */
+  }
+  listeners.forEach((l) => l());
+}
+
+function subscribe(cb: () => void) {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
+
+/** The sender's last Intake key, live across every row that offers one. */
+export function useLastIntakeKey(sender: string): string {
+  return useSyncExternalStore(subscribe, () => lastIntakeKey(sender), () => "");
 }

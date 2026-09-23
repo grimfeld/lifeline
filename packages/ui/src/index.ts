@@ -25,3 +25,4 @@ export * from "./components/ui/tag-input";
 export * from "./typeIcons";
 export * from "./colorSlots";
 export * from "./components/push/push-flow";
+export * from "./components/intake/intake-button";
