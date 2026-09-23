@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { appById, formatTime, hourWindow, layoutColumns, todayStr, toHours, useSurfaceItems, useTimedItems, type CardProps, type SurfaceItem } from "@lifeline/core";
+import { useNavigate } from "react-router";
+import { appById, formatTime, hourWindow, layoutColumns, todayStr, toHours, useSurfaceItems, useTimedItems, type CardProps, type SurfaceItem, type SurfaceTimedItem } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 import { PushButton } from "./push";
+import { HoursEditor, type HoursEditing } from "./HoursEditor";
 
 const HOUR_PX = 48;
 
@@ -24,8 +26,8 @@ export function AgendaCard({ settings }: CardProps) {
   // Time blocks (ADR 0015): planned work shows beside Events.
   const blocks = useSurfaceItems({ start: today, end: today }).filter((i) => i.start);
   const items = useMemo(
-    (): { key: string; appId: string; itemId: string; title: string; date: string; start: string | null; end: string | null; color?: string; block?: SurfaceItem }[] => [
-      ...timedItems,
+    (): { key: string; appId: string; itemId: string; title: string; date: string; start: string | null; end: string | null; color?: string; block?: SurfaceItem; timed?: SurfaceTimedItem }[] => [
+      ...timedItems.map((t) => ({ ...t, timed: t })),
       ...blocks.map((b) => ({ key: `${b.key}#${b.placementId}`, appId: b.appId, itemId: b.itemId, title: `${b.completedOn ? "✓ " : ""}${b.title}`, date: b.displayDate, start: b.start!, end: b.end ?? null, color: b.color, block: b })),
     ],
     [timedItems, blocks],
@@ -39,6 +41,10 @@ export function AgendaCard({ settings }: CardProps) {
   const nowH = now.getHours() + now.getMinutes() / 60;
   const scroller = useRef<HTMLDivElement>(null);
   const didScroll = useRef(false);
+  // The Schedule's editor, on the same hours (CONTEXT.md — Schedule). The card only consults: an empty hour adds nothing.
+  const navigate = useNavigate();
+  const [editing, setEditing] = useState<(HoursEditing & { id: number }) | null>(null);
+  const open = (target: HoursEditing["target"], anchor: HTMLElement) => setEditing({ target, anchor, id: Date.now() });
 
   useEffect(() => {
     if (didScroll.current || !scroller.current) return;
@@ -76,7 +82,8 @@ export function AgendaCard({ settings }: CardProps) {
             return (
               <div
                 key={b.key}
-                className="pointer-events-none absolute right-0 left-10 z-0 border-y"
+                className={cn("absolute right-0 left-10 z-0 border-y", b.fixed ? "pointer-events-none" : "cursor-pointer")}
+                onClick={b.fixed ? undefined : (ev) => open({ kind: "timed", item: b }, ev.currentTarget)}
                 style={{
                   top: (s - from) * HOUR_PX,
                   height: (e - s) * HOUR_PX,
@@ -100,7 +107,11 @@ export function AgendaCard({ settings }: CardProps) {
               return (
                 <div
                   key={item.key}
-                  className="absolute overflow-hidden rounded-sm px-1.5 py-0.5 text-xs text-white"
+                  className="absolute cursor-pointer overflow-hidden rounded-sm px-1.5 py-0.5 text-xs text-white"
+                  onClick={(ev) => {
+                    if (item.block) open({ kind: "work", item: item.block }, ev.currentTarget);
+                    else if (item.timed) open({ kind: "timed", item: item.timed }, ev.currentTarget);
+                  }}
                   style={{
                     top: (s - from) * HOUR_PX + 1,
                     height: (e - s) * HOUR_PX - 2,
@@ -112,7 +123,9 @@ export function AgendaCard({ settings }: CardProps) {
                 >
                   {/* A Time block tall enough for a tap target offers Push (ADR 0054). */}
                   {item.block && (e - s) * HOUR_PX >= 28 && (
-                    <PushButton item={item.block} className="absolute top-0 right-0 size-5 text-white/80 hover:bg-white/20 hover:text-white" />
+                    <span onClick={(ev) => ev.stopPropagation()}>
+                      <PushButton item={item.block} className="absolute top-0 right-0 size-5 text-white/80 hover:bg-white/20 hover:text-white" />
+                    </span>
                   )}
                   <div className="truncate font-medium">{item.title}</div>
                   <div className="truncate opacity-80">
@@ -136,6 +149,16 @@ export function AgendaCard({ settings }: CardProps) {
       </div>
       {items.length === 0 && (
         <div className="text-muted-foreground -mt-2 pb-1 text-center text-xs">Nothing timed today.</div>
+      )}
+      {editing && (
+        <HoursEditor
+          key={editing.id}
+          editing={editing}
+          defaultDay={today}
+          inView={(d) => d === today}
+          onGo={(d) => navigate(`/schedule?d=${d}`)}
+          onClose={() => setEditing(null)}
+        />
       )}
     </div>
   );

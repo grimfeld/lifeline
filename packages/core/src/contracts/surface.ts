@@ -224,6 +224,29 @@ export async function unplaceItem(placementId: string): Promise<void> {
   await remove("placements", placementId);
 }
 
+/** Where a Time block sits now — what an Undo puts it back to. */
+export async function timeBlockAt(placementId: string): Promise<{ date: DateStr; start: string; end: string | null } | undefined> {
+  const pl = await db().collection<Placement>("placements").get(placementId);
+  if (!pl || pl.deleted || !pl.start) return undefined;
+  return { date: pl.date, start: pl.start, end: pl.end ?? null };
+}
+
+/**
+ * Remove one Time block, the item untouched (ADR 0028); resolves to its Undo,
+ * which brings the same Placement back (ADR 0056).
+ */
+export async function removeTimeBlock(placementId: string): Promise<() => Promise<void>> {
+  const pl = await db().collection<Placement>("placements").get(placementId);
+  if (!pl || pl.deleted) throw new Error("That block is gone");
+  await unplaceItem(placementId);
+  return () => put<Placement>("placements", { ...pl, deleted: 0 });
+}
+
+/** Where the owning App edits an item in full; undefined when it offers no route. */
+export function schedulableHref(item: Pick<SchedulableItem, "appId" | "itemId">): string | undefined {
+  return schedulableProviders().find((p) => p.appId === item.appId)?.href?.(item.itemId);
+}
+
 /**
  * Move via a surface: the owning App decides what a move means when it
  * implements the hook (a task changes its day); otherwise Core pins it with a
