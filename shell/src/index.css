@@ -101,14 +101,18 @@ aside nav:hover {
 
 /* Touch ergonomics (grill 2026-08-20): on coarse pointers, give every button
    in the content area an invisible enlarged hit box so 24px tick-offs are
-   thumb-workable. Purely a hit-area bump - no visual size change. */
-@media (pointer: coarse) {
-  main button {
-    position: relative;
-  }
-  main button::after {
-    content: "";
-    position: absolute;
-    inset: -8px;
+   thumb-workable. Purely a hit-area bump - no visual size change. In the base
+   layer so a button's own position utility (absolute, fixed) still wins -
+   unlayered, it forced every absolute button on a phone back into the flow. */
+@layer base {
+  @media (pointer: coarse) {
+    main button {
+      position: relative;
+    }
+    main button::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+    }
   }
 }
