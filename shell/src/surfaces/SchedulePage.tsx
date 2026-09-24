@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
-import { Badge, Button, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, toast } from "@lifeline/ui";
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from "@dnd-kit/core";
+import { Badge, Button, cn, Input, toast } from "@lifeline/ui";
 import {
   BLOCK_DEFAULT_MIN,
   canPush,
   addDays,
-
   canRescheduleTimed,
   completeSurfaceItem,
   composeTagFilter,
@@ -39,15 +38,21 @@ import {
 import { CalendarClock, Check, ChevronDown, ChevronLeft, ChevronRight, Inbox, LayoutTemplate, Plus, Trash2, Zap } from "lucide-react";
 import { usePush } from "./push";
 import { TagFilterBar } from "../components/TagFilterBar";
+import { HoursEditor, type HoursEditing, type HoursTarget } from "./HoursEditor";
+import { AddAtHour, type AddingAt } from "./AddAtHour";
+import { SNAP_MIN, snap, toClock } from "./hours";
 
 const HOUR_PX = 56;
-const SNAP_MIN = 15;
+/** Long enough that a flick to scroll never lifts a block; short enough to feel like a press. */
+const LONG_PRESS_MS = 350;
 const DEFAULT_MIN = BLOCK_DEFAULT_MIN;
 const POOL = "pool";
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type WorkItem = (SurfaceItem | (PoolItem & { displayDate?: undefined; placementId?: undefined; start?: undefined; end?: undefined })) & { color?: string };
 type Entry = { kind: "block"; item: SurfaceItem; start: string; end: string } | { kind: "timed"; item: SurfaceTimedItem; start: string; end: string };
+/** Where a lifted item will land: drawn in the grid while the drag hovers a day. */
+type Ghost = { date: DateStr; startH: number; lenH: number };
 /** A Time blocker's band on one day (ADR 0027): painted behind everything. A weekly rule's band is fixed; a one-off's (ADR 0029) drags and resizes. */
 type Band = { key: string; title: string; start: string; end: string; color?: string; fixed: boolean; item: SurfaceTimedItem };
 
@@ -60,14 +65,6 @@ function hourLabel(hour: number, compact: boolean): string {
   });
 }
 
-function toClock(hours: number): string {
-  const h = Math.max(0, Math.min(24, hours));
-  const total = Math.round(h * 60);
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
-function snap(hours: number): number {
-  return Math.round((hours * 60) / SNAP_MIN) * (SNAP_MIN / 60);
-}
 function durationOf(start: string, end: string | null | undefined, fallbackMin = DEFAULT_MIN): number {
   return end ? Math.max(SNAP_MIN / 60, toHours(end) - toHours(start)) : fallbackMin / 60;
 }
@@ -100,7 +97,7 @@ function PushIcon({ item, className }: { item: WorkItem; className?: string }) {
  * item. A chip is a source (ADR 0028): dragging it onto an hour makes a new
  * Time block and leaves the chip here, greyed while `planned` blocks lie ahead.
  */
-function Chip({ id, data, title, color, done, planned, onComplete, work }: { id: string; data: Record<string, unknown>; title: string; color?: string; done?: boolean; planned?: number; onComplete?: () => void; work?: WorkItem }) {
+function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen }: { id: string; data: Record<string, unknown>; title: string; color?: string; done?: boolean; planned?: number; onComplete?: () => void; work?: WorkItem; onOpen?: (el: HTMLElement) => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data });
   const scheduled = !!planned && planned > 0;
   return (
@@ -108,7 +105,8 @@ function Chip({ id, data, title, color, done, planned, onComplete, work }: { id:
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={cn("group bg-card flex cursor-grab items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs select-none", isDragging && "opacity-40", (done || scheduled) && "opacity-60", scheduled && "border-dashed")}
+      className={cn("group bg-card flex cursor-grab items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs select-none max-md:py-1.5", isDragging && "opacity-40", (done || scheduled) && "opacity-60", scheduled && "border-dashed")}
+      onClick={(ev) => onOpen?.(ev.currentTarget)}
       title={scheduled ? `${title} · ${planned} block${planned === 1 ? "" : "s"} planned — drag again for another` : title}
     >
       {onComplete && !done && (
@@ -134,7 +132,7 @@ function Chip({ id, data, title, color, done, planned, onComplete, work }: { id:
 }
 
 /** A block on the timeline: draggable, resizable at the bottom edge. */
-function Block({ entry, from, cols, col, onResize, onComplete, onRemove }: { entry: Entry; from: number; cols: number; col: number; onResize: (endHours: number) => void; onComplete?: () => void; onRemove?: () => void }) {
+function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, onOpen }: { entry: Entry; from: number; cols: number; col: number; touch: boolean; onResize: (endHours: number) => void; onComplete?: () => void; onRemove?: () => void; onOpen: (el: HTMLElement) => void }) {
   const isBlock = entry.kind === "block";
   // One item may have several blocks (ADR 0028): the Placement, not the item, is the draggable.
   const id = isBlock ? `block:${entry.item.placementId}` : `timed:${entry.item.key}`;
@@ -165,6 +163,7 @@ function Block({ entry, from, cols, col, onResize, onComplete, onRemove }: { ent
       onPointerDownCapture={(ev) => {
         grab.current = ev.clientY - ev.currentTarget.getBoundingClientRect().top;
       }}
+      onClick={(ev) => onOpen(ev.currentTarget)}
     >
       <div className="flex items-center gap-1">
         {isBlock && !done && onComplete && (
@@ -202,8 +201,10 @@ function Block({ entry, from, cols, col, onResize, onComplete, onRemove }: { ent
           {formatTime(entry.start)}–{formatTime(entry.end)}
         </div>
       )}
+      {/* On a phone the edge was a 12px target that fought the scroll: length is set in the editor there. */}
+      {!touch && (
       <div
-        className={cn("absolute inset-x-0 bottom-0 cursor-ns-resize touch-none", short ? "h-1.5" : "h-2 max-md:h-3")}
+        className={cn("absolute inset-x-0 bottom-0 cursor-ns-resize touch-none", short ? "h-1.5" : "h-2")}
         aria-hidden
         onPointerDown={(ev) => {
           ev.stopPropagation();
@@ -224,23 +225,23 @@ function Block({ entry, from, cols, col, onResize, onComplete, onRemove }: { ent
           resizing.current = null;
           if (next !== e) onResize(next);
         }}
-      >
-        {!short && <span className="bg-foreground/30 absolute inset-x-0 bottom-0.5 mx-auto h-0.5 w-6 rounded-full md:hidden" />}
-      </div>
+        onClick={(ev) => ev.stopPropagation()}
+      />
+      )}
     </div>
   );
 }
 
 /** The untimed row of a day: work without a time + all-day events. Lives outside the scroller. */
-function Strip({ date, work, allDay, onCompleteChip }: { date: DateStr; work: WorkItem[]; allDay: SurfaceTimedItem[]; onCompleteChip: (item: WorkItem) => void }) {
+function Strip({ date, work, allDay, onCompleteChip, onOpen }: { date: DateStr; work: WorkItem[]; allDay: SurfaceTimedItem[]; onCompleteChip: (item: WorkItem) => void; onOpen: (target: HoursTarget, el: HTMLElement) => void }) {
   const stripDrop = useDroppable({ id: `strip:${date}` });
   return (
     <div ref={stripDrop.setNodeRef} className={cn("min-h-12 max-h-32 space-y-1 overflow-y-auto border-l p-1 max-md:max-h-24", stripDrop.isOver && "bg-accent/40")}>
       {allDay.map((t) => (
-        <Chip key={t.key} id={`timed:${t.key}`} data={{ timed: t }} title={t.title} color={t.color} />
+        <Chip key={t.key} id={`timed:${t.key}`} data={{ timed: t }} title={t.title} color={t.color} onOpen={(el) => onOpen({ kind: "timed", item: t }, el)} />
       ))}
       {work.map((w) => (
-        <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} done={!!w.completedOn} planned={w.blocksAhead} onComplete={() => onCompleteChip(w)} work={w} />
+        <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} done={!!w.completedOn} planned={w.blocksAhead} onComplete={() => onCompleteChip(w)} work={w} onOpen={(el) => onOpen({ kind: "work", item: w }, el)} />
       ))}
       {allDay.length === 0 && work.length === 0 && <div className="text-muted-foreground px-1 text-[10px]">untimed</div>}
     </div>
@@ -248,7 +249,7 @@ function Strip({ date, work, allDay, onCompleteChip }: { date: DateStr; work: Wo
 }
 
 /** One Time blocker band, clipped to the visible hours. A weekly band is inert; a one-off band drags and resizes (ADR 0029). */
-function BandLayer({ band, from, to, onResize }: { band: Band; from: number; to: number; onResize: (endHours: number) => void }) {
+function BandLayer({ band, from, to, touch, onResize, onOpen }: { band: Band; from: number; to: number; touch: boolean; onResize: (endHours: number) => void; onOpen: (el: HTMLElement) => void }) {
   const s = Math.max(from, toHours(band.start));
   const e = Math.min(to, toHours(band.end));
   const color = band.color ?? "var(--muted-foreground)";
@@ -267,11 +268,11 @@ function BandLayer({ band, from, to, onResize }: { band: Band; from: number; to:
       </div>
     );
   }
-  return <OneOffBand band={band} s={s} e={e} style={style} title={title} onResize={onResize} />;
+  return <OneOffBand band={band} s={s} e={e} style={style} title={title} touch={touch} onResize={onResize} onOpen={onOpen} />;
 }
 
 /** A one-off blocker's band: still behind everything, but a draggable with a resize edge. */
-function OneOffBand({ band, s, e, style, title, onResize }: { band: Band; s: number; e: number; style: React.CSSProperties; title: string; onResize: (endHours: number) => void }) {
+function OneOffBand({ band, s, e, style, title, touch, onResize, onOpen }: { band: Band; s: number; e: number; style: React.CSSProperties; title: string; touch: boolean; onResize: (endHours: number) => void; onOpen: (el: HTMLElement) => void }) {
   const grab = useRef(0);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${band.item.key}`, data: { timed: band.item, grab } });
   const resizing = useRef<{ startY: number; startEnd: number } | null>(null);
@@ -286,10 +287,12 @@ function OneOffBand({ band, s, e, style, title, onResize }: { band: Band; s: num
       onPointerDownCapture={(ev) => {
         grab.current = ev.clientY - ev.currentTarget.getBoundingClientRect().top;
       }}
+      onClick={(ev) => onOpen(ev.currentTarget)}
     >
       <span className="text-muted-foreground absolute top-0.5 left-1 truncate text-[10px]">{band.title}</span>
+      {!touch && (
       <div
-        className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none max-md:h-3"
+        className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
         aria-hidden
         onPointerDown={(ev) => {
           ev.stopPropagation();
@@ -310,7 +313,9 @@ function OneOffBand({ band, s, e, style, title, onResize }: { band: Band; s: num
           resizing.current = null;
           if (next !== e) onResize(next);
         }}
+        onClick={(ev) => ev.stopPropagation()}
       />
+      )}
     </div>
   );
 }
@@ -328,6 +333,9 @@ function DayColumn({
   onBandResize,
   onComplete,
   onRemove,
+  onOpen,
+  touch,
+  ghost,
 }: {
   date: DateStr;
   from: number;
@@ -336,7 +344,11 @@ function DayColumn({
   bands: Band[];
   today: DateStr;
   nowH: number;
-  onSlotClick: (date: DateStr, hours: number) => void;
+  touch: boolean;
+  /** Where the lifted item will land, while a drag hovers this day. */
+  ghost: Ghost | null;
+  onOpen: (target: HoursTarget, el: HTMLElement) => void;
+  onSlotClick: (date: DateStr, hours: number, point: { x: number; y: number }) => void;
   onResize: (entry: Entry, endHours: number) => void;
   onBandResize: (band: Band, endHours: number) => void;
   onComplete: (item: SurfaceItem) => void;
@@ -349,22 +361,48 @@ function DayColumn({
     <div className="flex min-w-0 flex-col">
       <div ref={colDrop.setNodeRef} className={cn("relative", colDrop.isOver && "bg-accent/20")} style={{ height }} data-col={date}>
         {bands.map((b) => (
-          <BandLayer key={b.key} band={b} from={from} to={to} onResize={(h) => onBandResize(b, h)} />
+          <BandLayer key={b.key} band={b} from={from} to={to} touch={touch} onResize={(h) => onBandResize(b, h)} onOpen={(el) => onOpen({ kind: "timed", item: b.item }, el)} />
         ))}
         {Array.from({ length: to - from }, (_, i) => (
           <div
             key={i}
             className="border-border/60 absolute right-0 left-0 border-t"
             style={{ top: i * HOUR_PX, height: HOUR_PX }}
-            onDoubleClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              onSlotClick(date, snap(from + i + (e.clientY - rect.top) / HOUR_PX));
+            // A phone adds on a tap (the browser sends none after a scroll); a desk keeps the double-click.
+            {...{
+              [touch ? "onClick" : "onDoubleClick"]: (e: React.MouseEvent<HTMLDivElement>) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const hours = Math.min(to - SNAP_MIN / 60, snap(from + i + (e.clientY - rect.top) / HOUR_PX - SNAP_MIN / 120));
+                onSlotClick(date, hours, { x: e.clientX, y: e.clientY });
+              },
             }}
           />
         ))}
         {laid.map(({ item: en, col, cols }) => (
-          <Block key={en.kind === "block" ? en.item.placementId : en.item.key} entry={en} from={from} col={col} cols={cols} onResize={(h) => onResize(en, h)} onComplete={en.kind === "block" ? () => onComplete(en.item) : undefined} onRemove={en.kind === "block" ? () => onRemove(en.item) : undefined} />
+          <Block
+            key={en.kind === "block" ? en.item.placementId : en.item.key}
+            entry={en}
+            from={from}
+            col={col}
+            cols={cols}
+            touch={touch}
+            onResize={(h) => onResize(en, h)}
+            onComplete={en.kind === "block" ? () => onComplete(en.item) : undefined}
+            onRemove={en.kind === "block" ? () => onRemove(en.item) : undefined}
+            onOpen={(el) => onOpen(en.kind === "block" ? { kind: "work", item: en.item } : { kind: "timed", item: en.item }, el)}
+          />
         ))}
+        {ghost && (
+          <div
+            className="border-primary bg-primary/10 pointer-events-none absolute inset-x-0.5 z-[3] rounded-md border-2 border-dashed px-1.5 py-0.5"
+            style={{ top: (ghost.startH - from) * HOUR_PX + 1, height: Math.max(18, ghost.lenH * HOUR_PX - 2) }}
+          >
+            {/* Bottom right: the lifted chip rides the top left under the finger. */}
+            <span className="bg-background text-primary absolute right-1 bottom-0.5 rounded px-1 text-[11px] font-semibold tabular-nums">
+              {formatTime(toClock(ghost.startH))}–{formatTime(toClock(ghost.startH + ghost.lenH))}
+            </span>
+          </div>
+        )}
         {date === today && nowH >= from && nowH <= to && (
           <div className="pointer-events-none absolute right-0 left-0 z-10 flex items-center" style={{ top: (nowH - from) * HOUR_PX }}>
             <span className="bg-destructive size-2 rounded-full" />
@@ -448,11 +486,11 @@ function TemplatePalette({ templates, onAdd, collapsible }: { templates: TimedTe
  * The Unplaced pool: a full-height column beside the grid on the desktop, a
  * collapsed drawer above it on a phone (where the grid needs the whole width).
  */
-function PoolColumn({ items, onComplete, collapsible }: { items: WorkItem[]; onComplete: (item: WorkItem) => void; collapsible?: boolean }) {
+function PoolColumn({ items, onComplete, onOpen, collapsible }: { items: WorkItem[]; onComplete: (item: WorkItem) => void; onOpen: (target: HoursTarget, el: HTMLElement) => void; collapsible?: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: POOL });
   const [open, setOpen] = useState(false);
   const chips = items.map((w) => (
-    <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} planned={w.blocksAhead} onComplete={() => onComplete(w)} work={w} />
+    <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} planned={w.blocksAhead} onComplete={() => onComplete(w)} work={w} onOpen={(el) => onOpen({ kind: "work", item: w }, el)} />
   ));
   if (collapsible) {
     return (
@@ -567,9 +605,20 @@ export function SchedulePage() {
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: LONG_PRESS_MS, tolerance: 8 } }),
   );
   const [active, setActive] = useState<{ title: string } | null>(null);
+  const [ghost, setGhost] = useState<Ghost | null>(null);
+  // A drag ends with a click on whatever it was released over: that click is not a tap.
+  const lastDrag = useRef(0);
+  const [editing, setEditing] = useState<(HoursEditing & { id: number }) | null>(null);
+  const [adding, setAdding] = useState<AddingAt | null>(null);
+  const open = (target: HoursTarget, anchor: HTMLElement) => {
+    if (Date.now() - lastDrag.current < 350) return;
+    // The sheet takes the lower half of a phone: bring what is being edited above it.
+    if (isMobile && anchor.closest("[data-col]")) anchor.scrollIntoView({ block: "start", behavior: "smooth" });
+    setEditing({ target, anchor, id: Date.now() });
+  };
   const pointer = useRef<{ y: number; grab: number }>({ y: 0, grab: 0 });
   const scroller = useRef<HTMLDivElement>(null);
   const didScroll = useRef(false);
@@ -601,20 +650,46 @@ export function SchedulePage() {
     const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate; grab?: { current: number } };
     pointer.current = { y, grab: d.grab?.current ?? 0 };
     setActive({ title: d.item?.title ?? d.timed?.title ?? d.template?.title ?? "" });
+    // The press took: a phone says so before the finger moves.
+    if ("touches" in ev) navigator.vibrate?.(10);
+  }
+  /** The hour a drag over a day column lands on. Live rect: the grid may have auto-scrolled during the drag. */
+  function landing(e: Pick<DragEndEvent, "active" | "over">): { date: DateStr; startH: number } | null {
+    const overId = e.over ? String(e.over.id) : "";
+    if (!overId.startsWith("col:")) return null;
+    const date = overId.slice(4);
+    const isBlockDrag = String(e.active.id).startsWith("block:") || String(e.active.id).startsWith("timed:");
+    const colEl = document.querySelector<HTMLElement>(`[data-col="${date}"]`);
+    const colTop = colEl ? colEl.getBoundingClientRect().top : e.over!.rect.top;
+    const top = pointer.current.y - (isBlockDrag ? pointer.current.grab : 8) - colTop;
+    return { date, startH: Math.max(from, Math.min(to - SNAP_MIN / 60, snap(from + top / HOUR_PX))) };
+  }
+  /** How long the lifted thing lasts, in hours; null when it lands as all-day. */
+  function lengthOf(d: { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate }): number | null {
+    if (d.template) return d.template.durationMin === null ? null : d.template.durationMin / 60;
+    if (d.item) return d.item.start ? durationOf(d.item.start, d.item.end) : DEFAULT_MIN / 60;
+    if (d.timed) return d.timed.start ? durationOf(d.timed.start, d.timed.end, 60) : 1;
+    return null;
+  }
+  function onDragMove(e: DragMoveEvent) {
+    const at = landing(e);
+    const lenH = at && lengthOf(e.active.data.current as Parameters<typeof lengthOf>[0]);
+    const next = at && lenH ? { ...at, lenH } : null;
+    setGhost((g) => (g?.date === next?.date && g?.startH === next?.startH && g?.lenH === next?.lenH ? g : next));
+  }
+  function endDrag() {
+    setActive(null);
+    setGhost(null);
+    lastDrag.current = Date.now();
   }
   function onDragEnd(e: DragEndEvent) {
-    setActive(null);
+    endDrag();
     if (!e.over) return;
     const overId = String(e.over.id);
     const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate };
-    const isBlockDrag = String(e.active.id).startsWith("block:") || String(e.active.id).startsWith("timed:");
-    if (overId.startsWith("col:")) {
-      const date = overId.slice(4);
-      // Live rect at drop time: the container may have auto-scrolled during the drag.
-      const colEl = document.querySelector<HTMLElement>(`[data-col="${date}"]`);
-      const colTop = colEl ? colEl.getBoundingClientRect().top : e.over.rect.top;
-      const top = pointer.current.y - (isBlockDrag ? pointer.current.grab : 8) - colTop;
-      const startH = Math.max(from, Math.min(to - SNAP_MIN / 60, snap(from + top / HOUR_PX)));
+    const at = landing(e);
+    if (at) {
+      const { date, startH } = at;
       const start = toClock(startH);
       if (d.template) {
         const t = d.template;
@@ -648,17 +723,6 @@ export function SchedulePage() {
     }
   }
 
-  const [creating, setCreating] = useState<{ date: DateStr; hours: number } | null>(null);
-  const [newTitle, setNewTitle] = useState("");
-  async function createAt() {
-    if (!creating || !newTitle.trim() || !creator?.create) return;
-    const start = toClock(creating.hours);
-    await creator.create({ title: newTitle.trim(), date: creating.date, start, end: addHours(start, 1) });
-    toast.success(`${newTitle.trim()} at ${formatTime(start)}`);
-    setCreating(null);
-    setNewTitle("");
-  }
-
   /** The bolt on a template chip: onto the open day, at the template's own time. */
   function addTemplate(t: TimedTemplate) {
     if (t.background) return void toast.error("Drop a blocker template on an hour");
@@ -672,7 +736,15 @@ export function SchedulePage() {
   const openCount = items.filter((i) => !i.start && !i.completedOn).length;
 
   return (
-    <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={pointerWithin}
+      autoScroll={{ threshold: { x: 0, y: 0.15 }, acceleration: 12 }}
+      onDragStart={onDragStart}
+      onDragMove={onDragMove}
+      onDragEnd={onDragEnd}
+      onDragCancel={endDrag}
+    >
       <div className="flex h-full flex-col gap-3 p-4 max-md:gap-2 max-md:p-3">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-xl font-semibold tracking-tight">Schedule</h1>
@@ -702,8 +774,8 @@ export function SchedulePage() {
                 size="icon"
                 variant="outline"
                 className="size-8 md:hidden"
-                aria-label="New event"
-                onClick={() => setCreating({ date: anchor, hours: anchor === today ? Math.min(snap(nowH), to - 1) : Math.max(from, 9) })}
+                aria-label="Add"
+                onClick={() => setAdding({ date: anchor, hours: anchor === today ? Math.min(snap(nowH), to - 1) : Math.max(from, 9), point: null })}
               >
                 <Plus />
               </Button>
@@ -715,7 +787,7 @@ export function SchedulePage() {
 
         <div className="grid min-h-0 flex-1 grid-cols-[13rem_1fr] gap-2 max-md:flex max-md:flex-col">
           <div className="flex min-h-0 flex-col gap-2 max-md:contents">
-            <PoolColumn items={pool as WorkItem[]} onComplete={(w) => completeSurfaceItem(w as SurfaceItem).catch(fail)} collapsible={isMobile} />
+            <PoolColumn items={pool as WorkItem[]} onComplete={(w) => completeSurfaceItem(w as SurfaceItem).catch(fail)} onOpen={open} collapsible={isMobile} />
             <TemplatePalette templates={templates} onAdd={addTemplate} collapsible={isMobile} />
           </div>
           <div className="flex min-h-0 min-w-0 flex-col rounded-lg border max-md:flex-1">
@@ -731,7 +803,7 @@ export function SchedulePage() {
               <div className="text-muted-foreground px-1 pt-1 text-[10px]">all day</div>
               {days.map((d) => {
                 const st = stripFor(d);
-                return <Strip key={d} date={d} work={st.work} allDay={st.allDay} onCompleteChip={(w) => completeSurfaceItem(w as SurfaceItem).then(() => toast.success(`${w.title} done`)).catch(fail)} />;
+                return <Strip key={d} date={d} work={st.work} allDay={st.allDay} onOpen={open} onCompleteChip={(w) => completeSurfaceItem(w as SurfaceItem).then(() => toast.success(`${w.title} done`)).catch(fail)} />;
               })}
             </div>
             <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
@@ -755,9 +827,12 @@ export function SchedulePage() {
                       bands={bandsFor(d)}
                       today={today}
                       nowH={nowH}
-                      onSlotClick={(date, hours) => {
-                        if (!creator?.create) return;
-                        setCreating({ date, hours });
+                      touch={isMobile}
+                      ghost={ghost?.date === d ? ghost : null}
+                      onOpen={open}
+                      onSlotClick={(date, hours, point) => {
+                        if (Date.now() - lastDrag.current < 350) return;
+                        setAdding({ date, hours, point });
                       }}
                       onResize={(en, endH) => {
                         const end = toClock(endH);
@@ -778,53 +853,24 @@ export function SchedulePage() {
         </div>
         <p className="text-muted-foreground shrink-0 text-[11px]">
           {isMobile
-            ? "Press and hold to drag · + adds an event · ⚡ adds a template to this day."
-            : "Drag work or a template into a slot to plan it — a chip stays and can be planned again · drag a block to the strip or the pool to remove it · resize the bottom edge · double-click a slot to add an event · shaded bands are your time blockers; one-off bands drag."}
+            ? "Tap anything to edit it · tap an empty hour to add · press and hold to drag."
+            : "Click anything to edit it · double-click a slot to add · drag work or a template into a slot to plan it — a chip stays and can be planned again · drag a block to the strip or the pool to remove it · resize the bottom edge · shaded bands are your time blockers; one-off bands drag."}
         </p>
       </div>
 
       <DragOverlay dropAnimation={null}>{active && <div className="bg-card rounded-md border px-2 py-1 text-xs shadow-md">{active.title}</div>}</DragOverlay>
 
-      <Dialog open={creating !== null} onOpenChange={(o) => !o && setCreating(null)}>
-        <DialogContent className="sm:max-w-xs">
-          <DialogHeader>
-            <DialogTitle>
-              New event {creating && `· ${formatHuman(creating.date)} ${formatTime(toClock(creating.hours))}`}
-            </DialogTitle>
-          </DialogHeader>
-          <Input autoFocus placeholder="Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void createAt()} />
-          {templates.some((t) => !t.background) && (
-            <div className="grid gap-1.5">
-              <span className="text-muted-foreground text-xs">Or from a template</span>
-              <div className="flex flex-wrap gap-1.5">
-                {templates.filter((t) => !t.background).map((t) => (
-                  <Button
-                    key={t.key}
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      if (!creating) return;
-                      const start = toClock(creating.hours);
-                      createFromTimedTemplate(t, creating.date, t.durationMin === null ? null : start)
-                        .then(() => toast.success(t.durationMin === null ? `${t.title} on ${formatHuman(creating.date)}` : `${t.title} at ${formatTime(start)}`))
-                        .catch(fail);
-                      setCreating(null);
-                      setNewTitle("");
-                    }}
-                  >
-                    {t.title}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button onClick={() => void createAt()} disabled={!newTitle.trim()}>
-              Add
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {editing && (
+        <HoursEditor
+          key={editing.id}
+          editing={editing}
+          defaultDay={anchor}
+          inView={(d) => days.includes(d)}
+          onGo={(d) => go(d)}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {adding && <AddAtHour at={adding} templates={templates} pool={pool as (PoolItem & { color?: string })[]} onClose={() => setAdding(null)} />}
     </DndContext>
   );
 }
