@@ -1,10 +1,11 @@
 import {
   todayStr,
+  vaultDocPath,
   type SchedulableItem,
   type SchedulableProvider,
   type Urgency,
 } from "@lifeline/core";
-import { deriveItems, describeRecurrence } from "./domain/occurrences";
+import { deriveItems, describeRecurrence, parseItemId } from "./domain/occurrences";
 import { moveItem, setCompleted, setEstimate, useOverrides, useTasks } from "./data/repo";
 
 export const APP_ID = "tasks";
@@ -59,5 +60,10 @@ export const tasksSchedulable: SchedulableProvider = {
 
   async setEstimate(itemId, minutes) {
     await setEstimate(itemId, minutes);
+  },
+
+  // An Occurrence opens its Task: the rule is what gets edited.
+  href(itemId) {
+    return vaultDocPath(parseItemId(itemId).taskId);
   },
 };
