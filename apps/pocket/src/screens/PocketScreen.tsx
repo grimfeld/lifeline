@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button, Card, CardContent, cn, toast } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
-import { ChevronDown, ChevronRight, Pencil, Plus, RefreshCw, Wallet, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Plus, RefreshCw, Wallet } from "lucide-react";
 import { faceColor, faceOf, type Allowance, type Bucket, type Spend } from "../domain/types";
 import { allowanceRows, renewable, sortRows, canRenew, jarLevel, type AllowanceRow } from "../domain/derive";
 import { daysLeft, periodLabel } from "../domain/period";
@@ -9,6 +9,7 @@ import { formatCents } from "../domain/money";
 import { renewAllowance, useAllowances, useSpends } from "../data/repo";
 import { AllowanceEditorDialog } from "../components/AllowanceEditorDialog";
 import { SpendDialog } from "../components/SpendDialog";
+import { AllowanceSheet } from "../components/AllowanceSheet";
 import { Jar } from "../components/Jar";
 
 const BUCKETS: { key: Bucket; title: string; empty: string }[] = [
@@ -19,10 +20,11 @@ const BUCKETS: { key: Bucket; title: string; empty: string }[] = [
 
 /**
  * Pocket (ADR 0037): every Allowance in three buckets — running today,
- * starting later, ended — each with what is left, its Spends one click
- * away. Renewal is a tap, never automatic. What runs today stands as a shelf
- * of jars (CONTEXT: Allowance's face), draining as Spends land; the rest are
- * rows with a small jar in the margin.
+ * starting later, ended — each with what is left. Renewal is a tap, never
+ * automatic. What runs today stands as a shelf of jars (CONTEXT: Allowance's
+ * face), draining as Spends land: tapping a jar is always a Spend, one tap.
+ * The rest are rows with a small jar in the margin; a row opens its
+ * Allowance. Opened, an Allowance is a sheet — its Spends, Spend, Edit, Renew.
  */
 export function PocketScreen() {
   const allowances = useAllowances();
@@ -37,12 +39,12 @@ export function PocketScreen() {
   const [spendOpen, setSpendOpen] = useState(false);
   const [editingSpend, setEditingSpend] = useState<Spend | undefined>();
   const [showPast, setShowPast] = useState(false);
-  const [openTile, setOpenTile] = useState<string | undefined>();
+  const [sheetId, setSheetId] = useState<string | undefined>();
 
   const current = rows.filter((r) => r.bucket === "current");
   const totalLeft = current.reduce((s, r) => s + r.left, 0);
   const totalGranted = current.reduce((s, r) => s + r.allowance.amount, 0);
-  const openRow = openTile ? current.find((r) => r.allowance.id === openTile) : undefined;
+  const sheetRow = sheetId ? rows.find((r) => r.allowance.id === sheetId) : undefined;
 
   async function renewAll() {
     let n = 0;
@@ -80,14 +82,9 @@ export function PocketScreen() {
 
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-4 p-4">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Wallet className="size-5" />
         <h1 className="flex-1 text-lg font-semibold">Pocket</h1>
-        {ended.length > 0 && (
-          <Button variant="outline" onClick={() => void renewAll()}>
-            <RefreshCw /> Renew {ended.length} ended
-          </Button>
-        )}
         <Button variant="outline" onClick={() => setNewOpen(true)}>
           <Plus /> New allowance
         </Button>
@@ -107,6 +104,18 @@ export function PocketScreen() {
         </div>
       )}
 
+      {ended.length > 0 && (
+        <div className="bg-muted/50 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+          <RefreshCw className="text-muted-foreground size-4 shrink-0" />
+          <span className="flex-1">
+            {ended.length} allowance{ended.length === 1 ? "" : "s"} ended
+          </span>
+          <Button size="sm" variant="outline" onClick={() => void renewAll()}>
+            {ended.length === 1 ? "Renew" : "Renew all"}
+          </Button>
+        </div>
+      )}
+
       {BUCKETS.map(({ key, title, empty }) => {
         const bucketRows = rows.filter((r) => r.bucket === key);
         if (bucketRows.length === 0 && !empty) return null;
@@ -120,20 +129,26 @@ export function PocketScreen() {
             </button>
             {bucketRows.length === 0 && <p className="text-muted-foreground text-sm">{empty}</p>}
             {key === "current" && bucketRows.length > 0 && (
-              <>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {bucketRows.map((row) => (
-                    <JarTile key={row.allowance.id} row={row} today={today} open={openTile === row.allowance.id} onEdit={() => setEditing(row.allowance)} onSpend={() => openSpend(row.allowance.id)} onToggle={() => setOpenTile((v) => (v === row.allowance.id ? undefined : row.allowance.id))} />
-                  ))}
-                </div>
-                {openRow && <SpendsPanel row={openRow} onClose={() => setOpenTile(undefined)} onSpend={() => openSpend(openRow.allowance.id)} onEdit={() => setEditing(openRow.allowance)} onEditSpend={editSpend} />}
-              </>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {bucketRows.map((row) => (
+                  <JarTile key={row.allowance.id} row={row} today={today} onEdit={() => setEditing(row.allowance)} onSpend={() => openSpend(row.allowance.id)} onOpen={() => setSheetId(row.allowance.id)} />
+                ))}
+              </div>
             )}
-            {key !== "current" && !collapsed && bucketRows.map((row) => <AllowanceLine key={row.allowance.id} row={row} today={today} renewable={canRenew(row.allowance, allowances)} onEdit={() => setEditing(row.allowance)} onSpend={() => openSpend(row.allowance.id)} onEditSpend={editSpend} onRenew={() => void renew(row.allowance)} />)}
+            {key !== "current" && !collapsed && bucketRows.map((row) => <AllowanceLine key={row.allowance.id} row={row} renewable={canRenew(row.allowance, allowances)} onEdit={() => setEditing(row.allowance)} onSpend={() => openSpend(row.allowance.id)} onOpen={() => setSheetId(row.allowance.id)} onRenew={() => void renew(row.allowance)} />)}
           </div>
         );
       })}
 
+      <AllowanceSheet
+        row={sheetRow}
+        onOpenChange={(o) => !o && setSheetId(undefined)}
+        renewable={!!sheetRow && sheetRow.bucket === "past" && canRenew(sheetRow.allowance, allowances)}
+        onSpend={() => sheetRow && openSpend(sheetRow.allowance.id)}
+        onEdit={() => sheetRow && setEditing(sheetRow.allowance)}
+        onRenew={() => sheetRow && void renew(sheetRow.allowance)}
+        onEditSpend={editSpend}
+      />
       <AllowanceEditorDialog open={newOpen} onOpenChange={setNewOpen} />
       <AllowanceEditorDialog open={!!editing} onOpenChange={(o) => !o && setEditing(undefined)} allowance={editing} spendCount={editing ? rows.find((r) => r.allowance.id === editing.id)?.spends.length : 0} />
       <SpendDialog open={spendOpen} onOpenChange={setSpendOpen} allowanceId={spendFor} spend={editingSpend} />
@@ -141,131 +156,86 @@ export function PocketScreen() {
   );
 }
 
-/** A running Allowance as a jar on the shelf: tap the jar to spend, the name to edit, the footer for its Spends. */
-function JarTile({ row, today, open, onEdit, onSpend, onToggle }: { row: AllowanceRow; today: string; open: boolean; onEdit: () => void; onSpend: () => void; onToggle: () => void }) {
+/**
+ * A running Allowance as a jar on the shelf. The whole card spends — the "+"
+ * on the jar says so — and only two things on it are not a Spend: the pencil
+ * (edit) and the chip beneath (open the Allowance).
+ */
+function JarTile({ row, today, onEdit, onSpend, onOpen }: { row: AllowanceRow; today: string; onEdit: () => void; onSpend: () => void; onOpen: () => void }) {
   const a = row.allowance;
   const over = row.left < 0;
   const left = daysLeft(a, today);
   const n = row.spends.length;
   return (
-    <Card className={cn("relative py-0", open && "ring-ring ring-1")}>
-      <button className="text-muted-foreground hover:text-foreground hover:bg-accent absolute top-1.5 right-1.5 rounded-md p-1.5" onClick={onEdit} aria-label={`Edit ${a.name}`} title="Edit">
-        <Pencil className="size-3.5" />
-      </button>
-      <CardContent className="grid justify-items-center gap-1 px-2 py-3 text-center">
-        <button className="group grid justify-items-center gap-1 rounded-md px-2 pt-1" onClick={onSpend} aria-label={`Spend from ${a.name}`} title="Spend">
-          <span className="relative">
-            <Jar level={jarLevel(row)} over={over} color={faceColor(a)} className="motion-safe:transition-transform motion-safe:group-hover:scale-105" />
-            <span className="pointer-events-none absolute inset-x-0 top-[39px] text-2xl leading-none drop-shadow-sm">{faceOf(a)}</span>
+    <Card className="group/tile relative py-0">
+      <button className="hover:bg-accent/30 active:bg-accent/50 absolute inset-0 rounded-xl motion-safe:transition-colors" onClick={onSpend} aria-label={`Spend from ${a.name}`} title="Spend" />
+      <PencilButton name={a.name} onEdit={onEdit} className="absolute top-1 right-1 z-10" />
+      <CardContent className="pointer-events-none grid justify-items-center gap-1 px-2 pt-4 pb-3 text-center">
+        <span className="relative">
+          <Jar level={jarLevel(row)} over={over} color={faceColor(a)} className="motion-safe:transition-transform motion-safe:group-hover/tile:scale-105 motion-safe:group-active/tile:scale-95" />
+          <span className="absolute inset-x-0 top-[39px] text-2xl leading-none drop-shadow-sm">{faceOf(a)}</span>
+          <span className="bg-primary text-primary-foreground ring-card absolute -right-1.5 bottom-0 grid size-5 place-items-center rounded-full ring-2" aria-hidden>
+            <Plus className="size-3.5" strokeWidth={3} />
           </span>
-          <span className={cn("text-xl font-semibold tabular-nums", over && "text-destructive")}>{formatCents(row.left)}</span>
-        </button>
-        <button className="group grid w-full justify-items-center rounded-md px-1 leading-tight" onClick={onEdit} title="Edit">
-          <span className="w-full truncate text-sm font-medium group-hover:underline">{a.name}</span>
-          <span className="text-muted-foreground text-xs">{periodLabel(a)}</span>
-        </button>
-        <span className="text-muted-foreground text-xs">
+        </span>
+        <span className={cn("text-xl font-semibold tabular-nums", over && "text-destructive")}>{formatCents(row.left)}</span>
+        <span className="w-full truncate text-sm leading-tight font-medium">{a.name}</span>
+        <span className="text-muted-foreground text-xs leading-tight">
+          {periodLabel(a)}
+          <br />
           {left} day{left === 1 ? "" : "s"} left
         </span>
-        <button className="text-muted-foreground hover:text-foreground mt-1 flex items-center gap-1 text-xs" onClick={onToggle} aria-expanded={open}>
-          {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+        <button className="bg-card hover:bg-accent active:bg-accent pointer-events-auto relative z-10 mt-1 flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs tabular-nums" onClick={onOpen} aria-label={`Open ${a.name}`}>
           {n} spend{n === 1 ? "" : "s"} · {formatCents(row.spent)}
+          <ChevronRight className="text-muted-foreground size-3" />
         </button>
       </CardContent>
     </Card>
   );
 }
 
-/** The Spends of the open jar, beneath the shelf — too narrow to live inside a tile. */
-function SpendsPanel({ row, onClose, onSpend, onEdit, onEditSpend }: { row: AllowanceRow; onClose: () => void; onSpend: () => void; onEdit: () => void; onEditSpend: (s: Spend) => void }) {
-  const a = row.allowance;
-  return (
-    <Card className="py-0">
-      <CardContent className="grid gap-1 px-3 py-2">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-base leading-none">{faceOf(a)}</span>
-          <span className="min-w-0 flex-1 truncate font-medium">
-            {a.name}
-            <span className="text-muted-foreground ml-2 text-xs font-normal">{periodLabel(a)}</span>
-          </span>
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {formatCents(row.spent)} / {formatCents(a.amount)}
-          </span>
-          <Button size="sm" variant="outline" onClick={onEdit}>
-            <Pencil /> Edit
-          </Button>
-          <Button size="sm" variant="outline" onClick={onSpend}>
-            <Plus /> Spend
-          </Button>
-          <Button size="icon" variant="ghost" className="size-7" onClick={onClose} aria-label="Close">
-            <X className="size-4" />
-          </Button>
-        </div>
-        <SpendList spends={row.spends} onEditSpend={onEditSpend} />
-      </CardContent>
-    </Card>
-  );
-}
-
-function SpendList({ spends, onEditSpend }: { spends: Spend[]; onEditSpend: (s: Spend) => void }) {
-  return (
-    <div className="mt-1 grid gap-0.5 border-t pt-2">
-      {spends.length === 0 && <p className="text-muted-foreground text-xs">Nothing spent yet.</p>}
-      {spends.map((s) => (
-        <button key={s.id} className="hover:bg-accent/50 flex items-center gap-3 rounded-sm px-2 py-1 text-left text-sm" onClick={() => onEditSpend(s)}>
-          <span className="text-muted-foreground w-28 shrink-0 text-xs">{formatHuman(s.date)}</span>
-          <span className="min-w-0 flex-1 truncate">{s.label || <span className="text-muted-foreground">—</span>}</span>
-          <span className="tabular-nums">{formatCents(s.amount)}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/** An upcoming or ended Allowance as a row, its jar small in the margin. */
-function AllowanceLine({ row, today, renewable, onEdit, onSpend, onEditSpend, onRenew }: { row: AllowanceRow; today: string; renewable: boolean; onEdit: () => void; onSpend: () => void; onEditSpend: (s: Spend) => void; onRenew: () => void }) {
-  const [open, setOpen] = useState(false);
+/** An upcoming or ended Allowance as a row, its jar small in the margin. The row opens the Allowance; the buttons on it do what they say. */
+function AllowanceLine({ row, renewable, onEdit, onSpend, onOpen, onRenew }: { row: AllowanceRow; renewable: boolean; onEdit: () => void; onSpend: () => void; onOpen: () => void; onRenew: () => void }) {
   const a = row.allowance;
   const over = row.left < 0;
-  const left = daysLeft(a, today);
+  const n = row.spends.length;
 
   return (
-    <Card className="py-0">
-      <CardContent className="grid gap-1 px-3 py-2">
-        <div className="flex items-center gap-3 text-sm">
-          <button className="flex items-center gap-1 text-left" onClick={() => setOpen((v) => !v)} aria-label={open ? "Hide spends" : "Show spends"}>
-            {open ? <ChevronDown className="text-muted-foreground size-4" /> : <ChevronRight className="text-muted-foreground size-4" />}
-          </button>
+    <Card className="relative py-0">
+      <button className="hover:bg-accent/30 active:bg-accent/50 absolute inset-0 rounded-xl" onClick={onOpen} aria-label={`Open ${a.name}`} />
+      <CardContent className="pointer-events-none grid gap-0.5 px-3 py-2">
+        <div className="flex items-center gap-2 text-sm">
           <Jar level={jarLevel(row)} over={over} color={faceColor(a)} size="sm" />
           <span className="w-5 shrink-0 text-center text-base leading-none">{faceOf(a)}</span>
-          <button className="group flex min-w-0 flex-1 items-center gap-1 text-left font-medium" onClick={onEdit}>
-            <span className="truncate group-hover:underline">{a.name}</span>
-            <span className="text-muted-foreground ml-1 shrink-0 text-xs font-normal">{periodLabel(a)}</span>
-            <Pencil className="text-muted-foreground size-3 shrink-0 opacity-0 group-hover:opacity-100" />
-          </button>
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {formatCents(row.spent)} / {formatCents(a.amount)}
-          </span>
-          <span className={`w-24 text-right font-semibold tabular-nums ${over ? "text-destructive" : ""}`}>{formatCents(row.left)}</span>
+          <span className="min-w-0 flex-1 truncate font-medium">{a.name}</span>
+          <span className={cn("shrink-0 font-semibold tabular-nums", over && "text-destructive")}>{formatCents(row.left)}</span>
+          <PencilButton name={a.name} onEdit={onEdit} className="pointer-events-auto relative z-10" />
           {row.bucket !== "past" && (
-            <Button size="sm" variant="outline" onClick={onSpend}>
-              Spend
+            <Button size="sm" variant="outline" className="pointer-events-auto relative z-10" onClick={onSpend}>
+              <Plus /> Spend
             </Button>
           )}
           {row.bucket === "past" && renewable && (
-            <Button size="sm" variant="outline" onClick={onRenew}>
+            <Button size="sm" variant="outline" className="pointer-events-auto relative z-10" onClick={onRenew}>
               <RefreshCw /> Renew
             </Button>
           )}
         </div>
-        <div className="text-muted-foreground flex justify-between pl-7 text-xs">
-          <span>
-            {row.spends.length} spend{row.spends.length === 1 ? "" : "s"}
+        <div className="text-muted-foreground flex flex-wrap justify-between gap-x-3 pl-12 text-xs">
+          <span className="tabular-nums">
+            {periodLabel(a)} · {n} spend{n === 1 ? "" : "s"} · {formatCents(row.spent)} / {formatCents(a.amount)}
           </span>
-          <span>{row.bucket === "current" ? `${left} day${left === 1 ? "" : "s"} left` : row.bucket === "upcoming" ? `starts ${formatHuman(a.from)}` : "ended"}</span>
+          <span>{row.bucket === "upcoming" ? `starts ${formatHuman(a.from)}` : "ended"}</span>
         </div>
-        {open && <SpendList spends={row.spends} onEditSpend={onEditSpend} />}
       </CardContent>
     </Card>
+  );
+}
+
+function PencilButton({ name, onEdit, className }: { name: string; onEdit: () => void; className?: string }) {
+  return (
+    <Button size="icon" variant="ghost" className={cn("text-muted-foreground hover:text-foreground size-8", className)} onClick={onEdit} aria-label={`Edit ${name}`} title="Edit">
+      <Pencil className="size-3.5" />
+    </Button>
   );
 }
