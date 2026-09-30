@@ -18,6 +18,7 @@ import {
   deleteWorkspace,
   documentsHeldBy,
   inhabitedModules,
+  isDefaultWorkspace,
   releaseWorkspaceDocuments,
   saveWorkspace,
   separatedWhenCreated,
@@ -72,6 +73,9 @@ export function WorkspaceForm({
   // Workspace made after it is a separate world of its own.
   const separated = workspace ? !!workspace.separated : separatedWhenCreated(workspaces.length);
   const canDelete = !!workspace && canDeleteWorkspace(workspace, workspaces);
+  // Unseparated but not the default: an older or duplicate Workspace that reads
+  // the shared content alongside the default, and can go.
+  const isDefault = !workspace || isDefaultWorkspace(workspace, workspaces);
 
   function toggle(id: string) {
     setModules((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
@@ -142,9 +146,11 @@ export function WorkspaceForm({
 
         {!separated ? (
           <p className="text-muted-foreground rounded-md border p-2 text-xs">
-            {workspace
-              ? "The default workspace: it reads everything that is shared. It cannot be deleted — a deleted workspace's content comes back here."
-              : "Your first workspace is the default: it reads everything that is shared."}
+            {!workspace
+              ? "Your first workspace is the default: it reads everything that is shared."
+              : isDefault
+                ? "The default workspace: it reads everything that is shared. It cannot be deleted — a deleted workspace's content comes back here."
+                : "Reads everything that is shared, like the default, and holds nothing of its own. Deleting it loses no content; its screens move to the default."}
           </p>
         ) : workspace ? (
           <p className="text-muted-foreground rounded-md border p-2 text-xs">
