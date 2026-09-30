@@ -30,7 +30,11 @@ export interface WorkspaceRecord extends SyncedRecord {
    * before the bar existed, which then seeds from `modules` on read.
    */
   bar?: (BarSlot | null)[];
-  /** Off by default. When on, this Workspace reads and writes only what it holds. */
+  /**
+   * Set on every Workspace but the default (ADR 0057): it reads and writes
+   * only what it holds. The default — the one created first — reads the
+   * shared content. Decided at creation, never toggled.
+   */
   separated?: boolean;
   sort: number;
 }
@@ -44,6 +48,30 @@ export interface WorkspaceRecord extends SyncedRecord {
  */
 export function scopeOf(ws: WorkspaceRecord | undefined): string {
   return ws?.separated ? ws.id : "";
+}
+
+/**
+ * A Workspace is a separate world of data (ADR 0057): the first one made is
+ * the **default** and reads the shared content; every one made after it is
+ * separated, and starts empty. There is no Workspace that shares the
+ * default's data with fewer Modules — that was only ever a shorter sidebar.
+ */
+export function separatedWhenCreated(existing: number): boolean {
+  return existing > 0;
+}
+
+/** The default Workspace: the one that reads the shared content. */
+export function isDefaultWorkspace(ws: WorkspaceRecord | undefined): boolean {
+  return !!ws && !ws.separated;
+}
+
+/**
+ * Whether a Workspace may be deleted: never the last, and never the default —
+ * it is where shared content is read, and where a deleted Workspace's content
+ * is released to. Without it, released content would be visible nowhere.
+ */
+export function canDeleteWorkspace(ws: WorkspaceRecord, list: WorkspaceRecord[]): boolean {
+  return list.length > 1 && !isDefaultWorkspace(ws);
 }
 
 // --- which Workspace this device is in (per-device, never synced) ---
@@ -139,8 +167,10 @@ export async function saveWorkspace(ws: Omit<WorkspaceRecord, "updatedAt" | "del
   await put<WorkspaceRecord>(WORKSPACES, ws);
 }
 
-export async function createWorkspace(name: string, modules: string[], separated = false): Promise<WorkspaceRecord> {
+/** Make a Workspace. Whether it is separated is not a choice: the first is the default, every later one is separated (ADR 0057). */
+export async function createWorkspace(name: string, modules: string[]): Promise<WorkspaceRecord> {
   const list = await allWorkspaces();
+  const separated = separatedWhenCreated(list.length);
   const ws: WorkspaceRecord = {
     id: newId(),
     name,
@@ -159,9 +189,8 @@ export async function createWorkspace(name: string, modules: string[], separated
 }
 
 /**
- * The one Workspace a fresh account starts with: every Module, unseparated,
- * so the app before Workspaces and the app after it are the same app until a
- * second Workspace is made (ADR 0047).
+ * The one Workspace a fresh account starts with: every Module, and — being the
+ * first — the default, reading the shared content (ADR 0047, ADR 0057).
  *
  * Existing accounts are migrated server-side instead (PocketBase migration
  * 1757200000), so this only ever fires for a genuinely empty account — and it
@@ -205,14 +234,17 @@ async function ensureOnce(): Promise<void> {
  * only thing here without one.
  *
  * Refuses the last Workspace: there is always at least one, which is what
- * spares the whole app a second code path for having none.
+ * spares the whole app a second code path for having none. Refuses the default
+ * too (ADR 0057): released content becomes shared, and the default is the one
+ * Workspace that reads it — so it is also where the Screens go.
  */
 export async function deleteWorkspace(id: string, releaseDocuments: (scope: string) => Promise<void>): Promise<void> {
   const list = await allWorkspaces();
   if (list.length < 2) throw new Error("The last Workspace cannot be deleted");
   const ws = list.find((w) => w.id === id);
   if (!ws) return;
-  const fallback = list.find((w) => w.id !== id)!;
+  if (!canDeleteWorkspace(ws, list)) throw new Error("The default Workspace cannot be deleted");
+  const fallback = list.find((w) => w.id !== id && isDefaultWorkspace(w)) ?? list.find((w) => w.id !== id)!;
 
   // Held Documents first: if this half fails, the Workspace is still there to
   // reach them through. Doing it the other way round strands them.

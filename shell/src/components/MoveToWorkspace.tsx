@@ -20,7 +20,7 @@ import { Check, Lock } from "lucide-react";
  *
  * Offered wherever a Document is: in bulk from a Base's selection, and singly
  * from a Document's own menu. The destinations are the separated Workspaces
- * plus "Shared", which is where every unseparated Workspace reads from.
+ * plus "Shared", which is what the default Workspace reads (ADR 0057).
  */
 export function MoveToWorkspaceDialog({
   ids,
@@ -39,7 +39,7 @@ export function MoveToWorkspaceDialog({
   const currentScope = current?.separated ? current.id : "";
 
   const destinations = [
-    { id: "", name: "Shared", hint: "Visible in every workspace that is not separated", separated: false },
+    { id: "", name: "Shared", hint: "Visible in the default workspace", separated: false },
     ...workspaces
       .filter((w) => w.separated)
       .map((w) => ({ id: w.id, name: w.name, hint: "Visible only in this workspace", separated: true })),

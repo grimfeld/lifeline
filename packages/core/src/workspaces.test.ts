@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scopeOf, type WorkspaceRecord } from "./workspaces";
+import { canDeleteWorkspace, isDefaultWorkspace, scopeOf, separatedWhenCreated, type WorkspaceRecord } from "./workspaces";
 import { inScope } from "./documents/store";
 
 const ws = (over: Partial<WorkspaceRecord> = {}): WorkspaceRecord => ({
@@ -98,5 +98,32 @@ describe("the workspaces collection's server shape", () => {
     const migration = await fs.readFile(path.join(here, "../../../pocketbase/pb_migrations/1757400000_workspaces.js"), "utf8");
     expect(migration).toContain('name: "updated"');
     expect(migration).toContain('name: "created"');
+  });
+});
+
+describe("a Workspace is a separate world (ADR 0057)", () => {
+  it("makes the first Workspace the default and every later one separated", () => {
+    expect(separatedWhenCreated(0)).toBe(false);
+    expect(separatedWhenCreated(1)).toBe(true);
+    expect(separatedWhenCreated(4)).toBe(true);
+  });
+
+  it("calls the Workspace that reads the shared content the default", () => {
+    expect(isDefaultWorkspace(ws({ separated: false }))).toBe(true);
+    expect(isDefaultWorkspace(ws({}))).toBe(true);
+    expect(isDefaultWorkspace(ws({ separated: true }))).toBe(false);
+    expect(isDefaultWorkspace(undefined)).toBe(false);
+  });
+
+  it("never deletes the default, whose shared content a deleted Workspace releases into", () => {
+    const personal = ws({ id: "p", separated: false });
+    const work = ws({ id: "w", separated: true });
+    expect(canDeleteWorkspace(work, [personal, work])).toBe(true);
+    expect(canDeleteWorkspace(personal, [personal, work])).toBe(false);
+  });
+
+  it("never deletes the last Workspace", () => {
+    const work = ws({ id: "w", separated: true });
+    expect(canDeleteWorkspace(work, [work])).toBe(false);
   });
 });
