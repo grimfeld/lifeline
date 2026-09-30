@@ -18,6 +18,17 @@ describe("replay", () => {
     expect(replay(rs)).toEqual(replay([...rs].reverse()));
   });
 
+  it("spaces a new Prompt out by days after one pass — it does not come back within the sitting", () => {
+    const held = replay([{ grade: "pass", at: day(0) }]);
+    expect(held.state).toBe("review");
+    expect(held.due!.getTime() - new Date(day(0)).getTime()).toBeGreaterThanOrEqual(24 * 60 * 60 * 1000);
+  });
+
+  it("brings a failed new Prompt back within minutes", () => {
+    const held = replay([{ grade: "fail", at: day(0) }]);
+    expect(held.due!.getTime() - new Date(day(0)).getTime()).toBeLessThanOrEqual(60 * 1000);
+  });
+
   it("spaces a Prompt further out with each pass", () => {
     const one = replay([{ grade: "pass", at: day(0) }]);
     const three = replay([

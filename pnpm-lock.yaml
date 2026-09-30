@@ -975,6 +975,9 @@ importers:
       '@lifeline/app-discotheque':
         specifier: workspace:*
         version: link:../apps/discotheque
+      '@lifeline/app-languages':
+        specifier: workspace:*
+        version: link:../apps/languages
       '@lifeline/app-ledger':
         specifier: workspace:*
         version: link:../apps/ledger
