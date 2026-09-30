@@ -43,8 +43,8 @@ export const mailApp: AppManifest = {
   types: [mailboxType],
   // Local-only cache of Threads, Messages and Labels (never synced — leading underscore).
   localTables: [{ name: MAIL_CACHE, indexes: ["kind", "[mailboxId+kind]", "threadId", "date"] }],
-  // Names no Module (ADR 0047), so the screen stays a top-level sidebar row —
-  // present in every Workspace: no shelf fits, and one screen does not earn a new one.
+  // Its own Module, a Module of one App (ADR 0057): Mail is somewhere you go.
+  module: "mail",
   screens: [{ id: "mail.main", title: "Mail", path: "mail", icon: Mail, component: MailScreen }],
   cards: [
     {

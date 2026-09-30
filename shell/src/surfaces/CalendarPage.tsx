@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { TimeAppLinks } from "./TimeAppLinks";
 import { TagFilterBar } from "../components/TagFilterBar";
 import {
   Badge,
@@ -159,6 +160,7 @@ export function CalendarPage() {
         </Badge>
         <div className="ml-auto flex items-center gap-1">
           <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2" />
+          <TimeAppLinks />
           <Button size="icon" variant="outline" className="size-8" onClick={() => shift(-1)}>
             <ChevronLeft />
           </Button>

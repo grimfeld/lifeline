@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 import { Sheet, SheetContent, SheetTitle, cn } from "@lifeline/ui";
 import {
   BAR_PINNED,
+  appById,
   appsOfModule,
   useAllCommands,
   useBarSlots,
@@ -66,8 +67,12 @@ export function MobileNav() {
    * no Clippings screen to find it again. The palette stays open: it is the
    * escape hatch, and always was.
    */
+  // An App in no Module (the Calendar App, ADR 0057) is gated by none: its
+  // Events live on the general time Surfaces, which every Workspace has.
   const captureApps = new Set(modules.flatMap((m) => appsOfModule(m).map((a) => a.id)));
-  const captures = useAllCommands().filter((c) => c.capture && (modules.length === 0 || captureApps.has(c.appId)));
+  const captures = useAllCommands().filter(
+    (c) => c.capture && (modules.length === 0 || captureApps.has(c.appId) || !appById(c.appId)?.module),
+  );
 
   // Whatever the nav actually measures — its safe-area padding included, and 0
   // once `md:hidden` takes it out — is what the editor's accessory bar stacks on

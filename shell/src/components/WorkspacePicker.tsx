@@ -14,15 +14,13 @@ import { Check, ChevronsUpDown, Lock, Plus, Settings2 } from "lucide-react";
 import { WorkspaceDialog } from "./WorkspaceDialog";
 
 /**
- * The Workspace picker (ADR 0047): name + chevron at the very top of the
- * sidebar, above the Frame switcher. Not a second segmented control — two
- * stacked segmented controls is a mess, and the number of Workspaces is
- * unbounded where the number of Frames is two.
+ * The Workspace picker (ADR 0047): the top cell of the Rail (`compact`, ADR
+ * 0057), and name + chevron in the phone's header.
  *
  * The phone header uses the same component (ADR 0049), which is why the
  * trigger is sized by its container rather than fixed.
  */
-export function WorkspacePicker({ className }: { className?: string }) {
+export function WorkspacePicker({ className, compact = false }: { className?: string; compact?: boolean }) {
   const workspaces = useWorkspaces();
   const current = useCurrentWorkspace();
   const [creating, setCreating] = useState(false);
@@ -37,10 +35,16 @@ export function WorkspacePicker({ className }: { className?: string }) {
   if (!current) {
     return (
       <>
-        <Button variant="ghost" className={cn("h-8 w-full justify-start gap-1.5 px-2", className)} onClick={() => setCreating(true)}>
-          <span className="text-muted-foreground truncate">Setting up…</span>
-          <Plus className="text-muted-foreground ml-auto size-3.5 shrink-0" />
-        </Button>
+        {compact ? (
+          <Button variant="outline" size="icon" className={cn("size-9", className)} title="Setting up… — make a workspace" onClick={() => setCreating(true)}>
+            <Plus className="text-muted-foreground size-4" />
+          </Button>
+        ) : (
+          <Button variant="ghost" className={cn("h-8 w-full justify-start gap-1.5 px-2", className)} onClick={() => setCreating(true)}>
+            <span className="text-muted-foreground truncate">Setting up…</span>
+            <Plus className="text-muted-foreground ml-auto size-3.5 shrink-0" />
+          </Button>
+        )}
         {creating && <WorkspaceDialog open createFirst onOpenChange={(o) => !o && setCreating(false)} />}
       </>
     );
@@ -50,13 +54,20 @@ export function WorkspacePicker({ className }: { className?: string }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className={cn("h-8 w-full justify-start gap-1.5 px-2 font-medium", className)}>
-            {current.separated && <Lock className="text-muted-foreground size-3.5 shrink-0" />}
-            <span className="truncate">{current.name}</span>
-            <ChevronsUpDown className="text-muted-foreground ml-auto size-3.5 shrink-0" />
-          </Button>
+          {compact ? (
+            // The Rail's top cell (ADR 0057): the Workspace as its initial.
+            <Button variant="outline" size="icon" className={cn("size-9 text-sm font-semibold", className)} title={`Workspace: ${current.name}`}>
+              {current.name.trim().charAt(0).toUpperCase() || "?"}
+            </Button>
+          ) : (
+            <Button variant="ghost" className={cn("h-8 w-full justify-start gap-1.5 px-2 font-medium", className)}>
+              {current.separated && <Lock className="text-muted-foreground size-3.5 shrink-0" />}
+              <span className="truncate">{current.name}</span>
+              <ChevronsUpDown className="text-muted-foreground ml-auto size-3.5 shrink-0" />
+            </Button>
+          )}
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuContent align="start" side={compact ? "right" : "bottom"} className="w-56">
           {workspaces.map((w) => (
             <DropdownMenuItem
               key={w.id}

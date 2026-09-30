@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appsOfModule, inhabitedModules, moduleOfApp, navSectionsOf } from "./registry";
+import { appsOfModule, inhabitedModules, moduleOfApp, moduleOfPath, moduleScreens, navSectionsOf } from "./registry";
 import { initApps } from "./registry";
 import { DASHBOARD_FRAME, VAULT_FRAME, type AppManifest, type AppScreenDef } from "./manifest";
 
@@ -23,7 +23,7 @@ const app = (id: string, module: string | undefined, screens: AppScreenDef[]): A
 
 initApps([
   app("tasks", "tasks", [screen("tasks")]),
-  app("library", "culture", [screen("library"), screen("shelf-detail", { hidden: true })]),
+  app("library", "culture", [screen("library"), screen("shelf-detail", { hidden: true, path: "library/shelf/:id" })]),
   app("chores", "house", [screen("chores"), screen("journal", { frame: VAULT_FRAME })]),
   app("loose", undefined, [screen("hub")]),
   app("odd", "nonexistent", [screen("odd")]),
@@ -83,5 +83,35 @@ describe("navSectionsOf", () => {
     const only = navSectionsOf(DASHBOARD_FRAME, ["culture"]);
     expect(only.map((s) => s.group?.id)).toEqual([undefined, "culture"]);
     expect(only[0].screens.map((s) => s.id)).toEqual(["hub", "odd"]);
+  });
+});
+
+describe("moduleOfPath", () => {
+  it("finds the Module of an App screen, detail routes included", () => {
+    expect(moduleOfPath("/app/tasks")).toBe("tasks");
+    expect(moduleOfPath("/app/library/shelf/42")).toBe("culture");
+  });
+
+  it("finds a Module by its own page, and by a hand-written layout's home", () => {
+    expect(moduleOfPath("/module/house")).toBe("house");
+    expect(moduleOfPath("/vault/d/abc")).toBe("notes");
+  });
+
+  it("is undefined for Core's destinations and for an App in no Module", () => {
+    expect(moduleOfPath("/schedule")).toBeUndefined();
+    expect(moduleOfPath("/base/task")).toBeUndefined();
+    expect(moduleOfPath("/app/hub")).toBeUndefined();
+    expect(moduleOfPath("/module/nonexistent")).toBeUndefined();
+  });
+
+  it("does not take a longer path that merely starts with a route", () => {
+    expect(moduleOfPath("/app/tasksmith")).toBeUndefined();
+  });
+});
+
+describe("moduleScreens", () => {
+  it("lists a Module's listed Dashboard screens only", () => {
+    expect(moduleScreens("culture").map((s) => s.id)).toEqual(["library"]);
+    expect(moduleScreens("house").map((s) => s.id)).toEqual(["chores"]);
   });
 });
