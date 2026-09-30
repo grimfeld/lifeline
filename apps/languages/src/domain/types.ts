@@ -1,0 +1,88 @@
+import type { Document } from "@lifeline/core";
+
+export const APP_ID = "languages";
+export const LANGUAGES_HREF = "/app/languages";
+
+/** Document type ids (ADR 0058). */
+export const LANGUAGE = "language";
+export const WORD = "language_word";
+export const SENTENCE = "language_sentence";
+export const DECK = "language_deck";
+export const RECALL = "language_recall";
+
+/** The daily new cap a Language starts with (CONTEXT.md "Prompt"). */
+export const DEFAULT_NEW_CAP = 10;
+
+/**
+ * A Language (CONTEXT.md "Language"): the partition inside the Module. Every
+ * Word, Sentence and Deck belongs to exactly one. Archived instead of deleted
+ * while it holds anything.
+ */
+export interface Language extends Document {
+  type: typeof LANGUAGE;
+  /** "Spanish" — also the title. */
+  name: string;
+  /** How many new Prompts enter practice per day at most. */
+  newCap: number;
+  archived: boolean;
+}
+
+/** A Word (CONTEXT.md "Word"): a term met in the wild, its meaning in the user's own words. Yields forward and reverse. */
+export interface Word extends Document {
+  type: typeof WORD;
+  languageId: string;
+  /** "tener ganas de" — also the title. */
+  term: string;
+  meaning: string;
+  notes: string;
+  /** Where it was met: a URL, a note, "Pedro at dinner". */
+  origin: string;
+  paused: boolean;
+  /** ISO instant it was added — what "oldest added first" orders new Prompts by. */
+  addedAt: string;
+}
+
+/** A Sentence (CONTEXT.md "Sentence"): text with `{{blanks}}`, one Prompt per blank. */
+export interface Sentence extends Document {
+  type: typeof SENTENCE;
+  languageId: string;
+  /** "Tengo {{ganas}} de {{comer}}". */
+  text: string;
+  /** In the user's own words, shown with each Prompt. */
+  translation: string;
+  origin: string;
+  paused: boolean;
+  addedAt: string;
+}
+
+/** A Deck (CONTEXT.md "Deck"): a chosen set of Words and Sentences inside one Language. Membership is the Deck's. */
+export interface Deck extends Document {
+  type: typeof DECK;
+  languageId: string;
+  name: string;
+  /** Ids of Words and Sentences. */
+  members: string[];
+}
+
+export type Grade = "pass" | "fail";
+
+/**
+ * A Recall (CONTEXT.md "Recall", ADR 0058, internal): one self-graded attempt
+ * at one Prompt — the only fact the App keeps about practice. `languageId` is
+ * copied from the item so "the day's first Recall in this Language" is one
+ * read.
+ */
+export interface Recall extends Document {
+  type: typeof RECALL;
+  languageId: string;
+  /** The Word or Sentence the Prompt came from. */
+  itemId: string;
+  /** "forward", "reverse", or "blank:<text>". */
+  slot: string;
+  grade: Grade;
+  /** ISO instant. */
+  at: string;
+}
+
+/** A Word or a Sentence — what Prompts come from. */
+export type Item = Word | Sentence;
