@@ -3,6 +3,7 @@ import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
 import type { LoggableProvider } from "./contracts/loggable";
+import type { TallyingDef } from "./contracts/tallying";
 import type { IntakeDef } from "./contracts/intake";
 import type { CardSettings, CardSettingsSchema } from "./cards";
 import type { Document, DocumentTypeDef } from "./documents/types";
@@ -248,6 +249,8 @@ export interface AppManifest {
   daylog?: DaylogProvider;
   /** Loggable (ADR 0031): this App's entities other Apps may log occurrences into. */
   loggable?: LoggableProvider;
+  /** Tallying (ADR 0059): this App's types whose Documents may carry Tallies, and what an occurrence of each reports. */
+  tallying?: TallyingDef[];
   /** Intake (ADR 0050): the ways this App accepts a Handoff from another App — each a dialog opened prefilled. */
   intakes?: IntakeDef[];
   /**

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { documentsOf, documentsWhere, getDocument, logTo, newId, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments } from "@lifeline/core";
-import { EXERCISE, SESSION, WORKOUT, type Block, type BlockResult, type Category, type Exercise, type Measure, type Movement, type Session, type Tally, type Workout } from "../domain/types";
+import { documentsOf, documentsWhere, fireTallies, getDocument, newId, talliesOf, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments } from "@lifeline/core";
+import { EXERCISE, SESSION, WORKOUT, type Block, type BlockResult, type Category, type Exercise, type Measure, type Movement, type Session, type Workout } from "../domain/types";
+import type { Tally } from "@lifeline/core";
 
 /** PocketBase returns absent fields as "" / undefined; re-establish shapes on read. */
 function normalizeExercise(e: Exercise): Exercise {
@@ -32,13 +33,13 @@ function normalizeWorkout(w: Workout): Workout {
     ...w,
     notes: w.notes ?? "",
     blocks: Array.isArray(w.blocks) ? w.blocks.map(normalizeBlock) : [],
-    tallies: Array.isArray(w.tallies) ? (w.tallies as Tally[]).filter((t) => t && typeof t.target === "string") : [],
+    tallies: talliesOf(w),
     tags: w.tags ?? [],
   };
 }
 
 function normalizeSession(s: Session): Session {
-  return { ...s, results: Array.isArray(s.results) ? s.results : [], notes: s.notes ?? "", tallied: !!s.tallied, durationMin: Number(s.durationMin) || 0, tags: s.tags ?? [] };
+  return { ...s, results: Array.isArray(s.results) ? s.results : [], notes: s.notes ?? "", durationMin: Number(s.durationMin) || 0, tags: s.tags ?? [] };
 }
 
 function byTitle<T extends { title: string }>(a: T, b: T): number {
@@ -169,9 +170,9 @@ export interface SessionInput {
 }
 
 /**
- * Save a run of a Workout (ADR 0030) and fire its Tallies once (ADR 0031).
- * The Session is written first and marked `tallied` after, so a failing
- * target never loses the Session and a retry never double-logs.
+ * Save a run of a Workout (ADR 0030) and report it as the Workout's
+ * occurrence (ADR 0059): Core fires the Workout's Tallies, once per Session.
+ * The Session is written first, so a failing target never loses it.
  */
 export async function saveSession(input: SessionInput): Promise<Session> {
   const { date, time: start } = localParts(input.startedAt);
@@ -189,19 +190,13 @@ export async function saveSession(input: SessionInput): Promise<Session> {
     durationMin,
     results: input.results,
     notes: input.notes?.trim() ?? "",
-    tallied: false,
     tags: input.workout.tags ?? [],
   });
-  const errors: string[] = [];
-  for (const t of input.workout.tallies) {
-    try {
-      await logTo(t.target, { at: input.endedAt, value: t.value === "duration" ? durationMin : 1, note: `Workout · ${input.workout.title}` });
-    } catch (err) {
-      errors.push((err as Error).message);
-    }
+  try {
+    await fireTallies(input.workout, { key: row.id, at: input.endedAt, values: { duration: durationMin }, note: `Workout · ${input.workout.title}` });
+  } catch (err) {
+    throw new Error(`Session saved; ${(err as Error).message}`);
   }
-  await patchDocument(row.id, { tallied: true });
-  if (errors.length) throw new Error(`Session saved; some tallies failed: ${errors.join("; ")}`);
   return normalizeSession(row);
 }
 
