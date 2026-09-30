@@ -15,6 +15,7 @@ export * from "./contracts/intake";
 export * from "./contracts/locatable";
 export * from "./contracts/taggable";
 export * from "./contracts/tagfilter";
+export * from "./contracts/scope";
 export * from "./tags";
 export * from "./geocode";
 export * from "./markdown";

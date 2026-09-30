@@ -8,6 +8,7 @@ import { freeStretch, planPush, PUSH_HORIZON_DAYS, type TakenSpan } from "./push
 import type { SchedulableItem, SchedulableProvider } from "./schedulable";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
+import { inSurfaceScope, useSurfaceScope } from "./scope";
 
 /**
  * A Schedulable item resolved for display. One item yields one row on its
@@ -122,6 +123,7 @@ function groupByItem(placements: Placement[]): Map<string, Placement[]> {
 export function useSurfaceItems(range: { start: DateStr; end: DateStr }, opts?: { tags?: TagFilter }): SurfaceItem[] {
   const ambient = useTagFilter();
   const filter = opts?.tags ?? ambient;
+  const scope = useSurfaceScope();
   const perProvider = useProviderItems(range);
   const placements = usePlacements();
 
@@ -131,6 +133,7 @@ export function useSurfaceItems(range: { start: DateStr; end: DateStr }, opts?: 
 
   const out: SurfaceItem[] = [];
   for (const { provider, items } of perProvider) {
+    if (!inSurfaceScope(scope, provider.appId)) continue;
     const color = appById(provider.appId)?.color;
     const resolve: ResolveOptions = { ownsMoves: !!provider.move, overduePolicy: provider.overduePolicy, today, now };
     for (const item of items) {
@@ -153,11 +156,13 @@ export function usePoolItems(opts?: { tags?: TagFilter }): PoolItem[] {
   const filter = opts?.tags ?? ambient;
   const today = todayStr();
   const now = nowClock();
+  const scope = useSurfaceScope();
   const perProvider = useProviderItems({ start: today, end: today });
   const placements = usePlacements();
   const byItem = groupByItem(placements);
   const out: PoolItem[] = [];
   for (const { provider, items } of perProvider) {
+    if (!inSurfaceScope(scope, provider.appId)) continue;
     const color = appById(provider.appId)?.color;
     for (const item of items) {
       const own = byItem.get(item.key) ?? [];

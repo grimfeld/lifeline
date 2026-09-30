@@ -95,7 +95,7 @@ function Places() {
           />
         );
       })}
-      <Route path="/module/:id" element={<ModulePage />} />
+      <Route path="/module/:id/*" element={<ModulePage />} />
       {screensOf().map((s) => {
         const Component = s.component;
         const moduleId = appById(s.appId)?.module;
