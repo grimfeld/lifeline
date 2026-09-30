@@ -4,9 +4,11 @@ import type { Grade } from "./types";
 /**
  * The schedule is policy (ADR 0058): FSRS with default weights, no fuzz — so
  * replaying the same Recalls always gives the same schedule, on any device.
- * Changing these re-values every Prompt at once.
+ * One short learning step: a new Prompt passed once is spaced out at once,
+ * and only a failed one comes back within the sitting. Changing any of this
+ * re-values every Prompt at once.
  */
-const scheduler = fsrs(generatorParameters({ enable_fuzz: false }));
+const scheduler = fsrs(generatorParameters({ enable_fuzz: false, learning_steps: ["1m"], relearning_steps: ["10m"] }));
 
 export type HeldState = "new" | "learning" | "review" | "relearning";
 
