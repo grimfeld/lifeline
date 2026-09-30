@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import { Button } from "@lifeline/ui";
-import { registeredApps, screenRoute } from "@lifeline/core";
+import { registeredApps, screenRoute, useSurfaceScope } from "@lifeline/core";
 
 /**
  * The screens of the Apps that live on the time Surfaces (ADR 0057): an App
@@ -10,7 +10,10 @@ import { registeredApps, screenRoute } from "@lifeline/core";
  */
 export function TimeAppLinks() {
   const navigate = useNavigate();
-  const screens = registeredApps()
+  // Embedded in a Module, the Surface shows that Module's items only, and an
+  // App that belongs to no Module has nothing to manage there.
+  const scope = useSurfaceScope();
+  const screens = scope ? [] : registeredApps()
     .filter((a) => a.timed && !a.module)
     .flatMap((a) => a.screens.filter((s) => !s.hidden));
   return (
