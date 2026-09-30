@@ -2,6 +2,7 @@ import type { DateStr } from "../dates";
 import { appById, timedProviders } from "../registry";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
+import { inSurfaceScope, useSurfaceScope } from "./scope";
 
 /** "HH:MM" local wall-clock time. */
 export type TimeStr = string;
@@ -117,10 +118,16 @@ export function useTimedItems(range: { start: DateStr; end: DateStr }, opts?: { 
     // eslint-disable-next-line react-hooks/rules-of-hooks
     items: p.useItems(range),
   }));
+  const scope = useSurfaceScope();
   const out: SurfaceTimedItem[] = [];
   for (const { provider, items } of perProvider) {
     const color = appById(provider.appId)?.color;
-    for (const item of items) if (item.background || matchesTagFilter(item.tags, filter)) out.push({ ...item, color: item.color ?? color });
+    const scoped = inSurfaceScope(scope, provider.appId);
+    // Background bands (Time blockers) are the shape of the hours, not items,
+    // so a Module's embedded Schedule keeps them whatever its scope (ADR 0057).
+    for (const item of items) {
+      if (item.background || (scoped && matchesTagFilter(item.tags, filter))) out.push({ ...item, color: item.color ?? color });
+    }
   }
   return out.sort((a, b) =>
     a.date.localeCompare(b.date) || (a.start ?? "").localeCompare(b.start ?? "") || a.title.localeCompare(b.title),

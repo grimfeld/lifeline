@@ -40,9 +40,7 @@ export const SCREENS = "screens";
 
 /**
  * Every Screen of one Workspace, in sort order (ADR 0047: a Screen belongs to
- * the Workspace it was made in, separated or not — it is what gives an
- * unseparated Workspace a face of its own when its Modules decide only the
- * length of its sidebar).
+ * the Workspace it was made in, the default one included).
  *
  * Rows written before Workspaces existed carry no `workspace`; they read as
  * belonging to the default Workspace, so a device that has not yet pulled the
