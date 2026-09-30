@@ -9,7 +9,8 @@ import {
   CommandList,
   CommandSeparator,
 } from "@lifeline/ui";
-import { appById, registeredApps, screenRoute, useAllCommands, useWorkspaceScreens, type CommandDef } from "@lifeline/core";
+import { appById, moduleById, moduleHome, registeredApps, screenRoute, useAllCommands, useWorkspaceModules, useWorkspaceScreens, type CommandDef } from "@lifeline/core";
+import { MODULE_ICONS } from "../navIcons";
 import { CalendarDays, Clock, Columns3, LayoutDashboard, MapPin, Terminal } from "lucide-react";
 
 type DialogCommand = CommandDef & { appId: string };
@@ -20,6 +21,7 @@ export function CommandPalette() {
   const navigate = useNavigate();
 
   const screens = useWorkspaceScreens();
+  const modules = useWorkspaceModules();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -47,6 +49,16 @@ export function CommandPalette() {
         <CommandList>
           <CommandEmpty>No results.</CommandEmpty>
           <CommandGroup heading="Go to">
+            {modules.map((id) => {
+              const m = moduleById(id);
+              if (!m) return null;
+              const Icon = MODULE_ICONS[id] ?? LayoutDashboard;
+              return (
+                <CommandItem key={`module-${id}`} onSelect={() => pick(() => navigate(moduleHome(m)))}>
+                  <Icon /> {m.title}
+                </CommandItem>
+              );
+            })}
             {screens.map((s) => (
               <CommandItem key={s.id} onSelect={() => pick(() => navigate(`/screen/${s.id}`))}>
                 <LayoutDashboard /> {s.name}

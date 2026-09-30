@@ -1,39 +1,28 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
-import { Button, Sheet, SheetContent, SheetTitle, cn } from "@lifeline/ui";
-import { DASHBOARD_FRAME, VAULT_FRAME, frameOfPath, frames } from "@lifeline/core";
-import { LayoutDashboard, Menu, NotebookText } from "lucide-react";
+import { useLocation } from "react-router";
+import { Button, Sheet, SheetContent, SheetTitle } from "@lifeline/ui";
+import { moduleOfPath } from "@lifeline/core";
+import { Menu } from "lucide-react";
 import { WorkspacePicker } from "../components/WorkspacePicker";
-import { Sidebar } from "../components/Sidebar";
+import { Rail } from "../components/Rail";
 import { SyncBadge } from "../components/SyncBadge";
-import { FrameSwitcher, lastLocation } from "../components/FrameSwitcher";
+import { layoutOf, ModuleNav } from "../modules/ModuleLayout";
 
 /**
- * The phone's header: **☰ · the Workspace picker · the Frame toggle**.
+ * The phone's header: **☰ · the Workspace picker**.
  *
- * `☰` is here rather than in the bar (ADR 0053), which frees the slot the
- * drawer used to hold and puts the menu where a phone's menu goes. The two
- * switchers keep the places ADR 0049 gave them: you do not switch machines
- * from the dock, and the Vault crossing stays visible rather than falling back
- * into the drawer, which is the dead end ADR 0045's amendment exists to
- * prevent.
- *
- * The drawer lives here too, since the button that opens it does.
+ * `☰` opens the drawer: the open Module's own navigation — on the desk, the
+ * Module's sidebar — and below it the Rail with its labels (ADR 0057), every
+ * place the desk's Rail offers. The Phone bar stays Core's short list
+ * of the same Rail; a Module's tabs sit at the top of its own content.
  */
 export function PhoneHeader() {
   const location = useLocation();
-  const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const moduleId = moduleOfPath(location.pathname);
+  const FrameSidebar = layoutOf(moduleId)?.sidebar;
 
-  const frame = frameOfPath(location.pathname);
-  const inVault = frame === VAULT_FRAME;
-  const other = inVault ? DASHBOARD_FRAME : VAULT_FRAME;
-  const OtherIcon = inVault ? LayoutDashboard : NotebookText;
-
-  const ws = frames().find((w) => w.id === frame);
-  const FrameSidebar = frame !== DASHBOARD_FRAME ? ws?.sidebar : undefined;
-
-  // Any tap that navigates closes the drawer. A frame sidebar is not made of
+  // Any tap that navigates closes the drawer. A Module's sidebar is not made of
   // links — the Vault's tree, search hits and tags are buttons that navigate —
   // so watching the location is the only signal that covers all of them.
   useEffect(() => {
@@ -49,38 +38,23 @@ export function PhoneHeader() {
         <div className="min-w-0 flex-1">
           <WorkspacePicker />
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn("gap-1.5 px-2 text-xs", inVault && "text-foreground")}
-          title={inVault ? "Go to the Dashboard" : "Go to the Vault"}
-          onClick={() => navigate(lastLocation(other))}
-        >
-          <OtherIcon className="size-4" />
-          {inVault ? "Dashboard" : "Vault"}
-        </Button>
       </header>
 
-      {/* The current frame's sidebar, off-canvas — the whole desktop frame,
-          switcher and sync included, or the phone would be stuck in the frame it is in. */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="left" aria-describedby={undefined} className="overflow-hidden p-0">
+        <SheetContent side="left" aria-describedby={undefined} className="bg-sidebar text-sidebar-foreground gap-0 overflow-y-auto p-0">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
-          {FrameSidebar ? (
-            <div className="bg-sidebar text-sidebar-foreground flex min-h-0 flex-1 flex-col">
-              <FrameSwitcher />
-              <div className="flex min-h-0 flex-1 flex-col">
-                <FrameSidebar />
-              </div>
-              <div className="border-t p-2">
-                <SyncBadge />
-              </div>
+          {/* The open Module's own navigation first — it is what the drawer is
+              most often opened for — then the Rail. A frame sidebar (the
+              Vault's tree) scrolls itself, so it gets a height of its own. */}
+          {moduleId && (
+            <div className={FrameSidebar ? "flex h-[70dvh] shrink-0 flex-col border-b" : "flex shrink-0 flex-col border-b"}>
+              {FrameSidebar ? <FrameSidebar /> : <ModuleNav moduleId={moduleId} />}
             </div>
-          ) : (
-            /* flex-1 + min-h-0, or the sidebar grows to its content height inside the
-               sheet and its own nav never becomes the scroller. */
-            <Sidebar className="min-h-0 w-full flex-1 border-r-0" />
           )}
+          <Rail expanded />
+          <div className="border-t p-2">
+            <SyncBadge />
+          </div>
         </SheetContent>
       </Sheet>
     </>

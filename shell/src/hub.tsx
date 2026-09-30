@@ -2,7 +2,6 @@ import { useDocumentTypes, VAULT_FRAME, type AppManifest } from "@lifeline/core"
 import { FileText, Hash, LayoutDashboard, MapPin, Sun, Table2, Vault, Waypoints } from "lucide-react";
 import { TodayCard } from "./surfaces/TodayCard";
 import { AgendaCard } from "./surfaces/AgendaCard";
-import { lastLocation } from "./components/FrameSwitcher";
 import { MapCard, useLocatableAppOptions } from "./surfaces/MapCard";
 import { TagsCard } from "./surfaces/TagsCard";
 import { CountTile, DocumentCard, useDocumentOptions, useViewOptions, ViewCard } from "./surfaces/DocumentCards";
@@ -13,7 +12,7 @@ import { VaultDocPage } from "./vault/VaultDocPage";
 /**
  * The shell's own manifest: Core's Surfaces packaged like any App's cards
  * (so they appear in the card picker), the generic Document Cards (ADR 0018),
- * and the Vault frame (ADR 0012, amended).
+ * and the Vault — the Note-taking Module's layout (ADR 0057).
  */
 export const hubApp: AppManifest = {
   id: "hub",
@@ -160,18 +159,18 @@ export const hubApp: AppManifest = {
   ],
   commands: [
     {
-      id: "hub.go-dashboard",
-      title: "Go to Dashboard",
-      keywords: ["frame", "screens"],
+      id: "hub.go-screens",
+      title: "Go to Screens",
+      keywords: ["dashboard", "cards", "layout"],
       icon: LayoutDashboard,
-      run: ({ navigate }) => navigate(lastLocation("dashboard")),
+      run: ({ navigate }) => navigate("/screens"),
     },
     {
       id: "hub.go-vault",
       title: "Go to Vault",
-      keywords: ["frame", "notes", "journal", "editor"],
+      keywords: ["notes", "note-taking", "journal", "editor"],
       icon: Vault,
-      run: ({ navigate }) => navigate(lastLocation(VAULT_FRAME)),
+      run: ({ navigate }) => navigate("/vault"),
     },
     {
       id: "hub.go-bases",
