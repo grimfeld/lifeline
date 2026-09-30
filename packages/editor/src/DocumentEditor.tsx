@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import { useOpenDocument } from "./openDocument";
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, cn, toast } from "@lifeline/ui";
 import {
   isLinkable,
@@ -66,6 +67,7 @@ export interface DocumentEditorProps {
  */
 export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn }: DocumentEditorProps) {
   const navigate = useNavigate();
+  const openDoc = useOpenDocument();
   const isMobile = useIsMobile();
   const [panelOpen, setPanelOpen] = useState(showPanel);
   /** Phone: the panel is a right sheet, not a column — it starts closed whatever `showPanel` says. */
@@ -146,7 +148,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
     (ref: LinkRef, name: string) => {
       if (ref.kind === "doc") {
         const d = index.byId.get(ref.id);
-        if (d) navigate(docHref(d));
+        if (d) openDoc(d);
         return;
       }
       if (ref.kind === "locked") return openPrivateDialog("unlock");
@@ -156,7 +158,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
         navigate(docHref(n));
       });
     },
-    [index, navigate, onCreateUnresolved],
+    [index, navigate, openDoc, onCreateUnresolved],
   );
   const context = useMemo(() => ({ docDate, openRef }), [docDate, openRef]);
 

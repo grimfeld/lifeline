@@ -1,17 +1,16 @@
 import { useState } from "react";
-import { Link } from "react-router";
 import { Checkbox, TagChips, cn } from "@lifeline/ui";
-import { displayTitle, docHref, documentType, formatHuman, patchDocument, readGeo, useAllDocuments, type Document, type FieldDef } from "@lifeline/core";
-import { FieldControl } from "@lifeline/editor";
+import { displayTitle, documentType, formatHuman, patchDocument, readGeo, useAllDocuments, type Document, type FieldDef } from "@lifeline/core";
+import { DocLink, FieldControl } from "@lifeline/editor";
 
 /** Read-only rendering of one field value. */
 export function CellValue({ doc, field }: { doc: Document; field: FieldDef }) {
   const v = doc[field.key];
   if (field.key === "title") {
     return (
-      <Link to={docHref(doc)} className="font-medium hover:underline">
+      <DocLink doc={doc} className="font-medium hover:underline">
         {displayTitle(doc, documentType(doc.type))}
-      </Link>
+      </DocLink>
     );
   }
   if (field.key === "tags" || field.kind === "multiselect") return Array.isArray(v) && v.length > 0 ? <TagChips tags={v.map(String)} size="xs" /> : <span className="text-muted-foreground">—</span>;
@@ -60,9 +59,9 @@ function LinkValue({ ids }: { ids: string[] }) {
       {ids.map((id) => {
         const d = docs.find((x) => x.id === id);
         return d ? (
-          <Link key={id} to={docHref(d)} className="hover:underline">
+          <DocLink key={id} doc={d} className="hover:underline">
             [[{displayTitle(d, documentType(d.type))}]]
-          </Link>
+          </DocLink>
         ) : (
           <span key={id} className="text-muted-foreground">
             {id}
