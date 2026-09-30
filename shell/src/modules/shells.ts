@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from "react";
 import { moneyShell } from "./money/MoneyModule";
 import { progressShell } from "./progress/ProgressModule";
+import { houseShell } from "./house/HouseModule";
 
 /**
  * A hand-written Module (ADR 0057): its own chrome, and pages of its own. The
@@ -27,4 +28,5 @@ export interface ModuleShell {
 export const MODULE_SHELLS: Record<string, ModuleShell> = {
   money: moneyShell,
   progress: progressShell,
+  house: houseShell,
 };
