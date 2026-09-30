@@ -6,6 +6,7 @@ import { ReportsScreen } from "./screens/ReportsScreen";
 import { BalancesCard, BudgetMonthCard, DuesCard, QuickAddCard } from "./cards/LedgerCards";
 import { ledgerCommands } from "./commands";
 import { ledgerDaylog } from "./daylog";
+import { AccountPeek, CategoryPeek, TransactionPeek } from "./components/LedgerPeeks";
 import { formatCents, formatSigned } from "./domain/money";
 import {
   ACCOUNT,
@@ -61,6 +62,7 @@ const transactionType: DocumentTypeDef = {
   ],
   indexes: ["date", "categoryId", "accountId"],
   href: () => REGISTER_HREF,
+  peek: TransactionPeek,
   order: 80,
   builtIn: true,
 };
@@ -80,6 +82,7 @@ const accountType: DocumentTypeDef = {
   ],
   linkable: { subtitle: (d) => (d as LedgerAccount).flavor },
   href: () => `${REGISTER_HREF}?tab=accounts`,
+  peek: AccountPeek,
   order: 81,
   builtIn: true,
 };
@@ -100,6 +103,7 @@ const categoryType: DocumentTypeDef = {
   ],
   linkable: { subtitle: (d) => ((d as LedgerCategory).group ? `${(d as LedgerCategory).group} · ${(d as LedgerCategory).kind}` : (d as LedgerCategory).kind) },
   href: () => BUDGET_HREF,
+  peek: CategoryPeek,
   order: 82,
   builtIn: true,
 };

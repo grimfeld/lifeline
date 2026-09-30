@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useNavigate } from "react-router";
 import { cn } from "@lifeline/ui";
-import { docHref, extractBlocks, isImageName, openPrivateDialog, splitFrontmatter, type LinkIndex } from "@lifeline/core";
+import { extractBlocks, isImageName, openPrivateDialog, splitFrontmatter, type LinkIndex } from "@lifeline/core";
 import { DaylogBlock } from "./DaylogBlock";
+import { useOpenDocument } from "./openDocument";
 import { AttachmentImage } from "./AttachmentImage";
 import "./editor.css";
 
@@ -14,7 +14,7 @@ import "./editor.css";
  * fences rendered live. A leading frontmatter block is not shown.
  */
 export function MarkdownView({ body, index, docDate, className, compact }: { body: string; index: LinkIndex; docDate?: string | null; className?: string; compact?: boolean }) {
-  const navigate = useNavigate();
+  const openDoc = useOpenDocument();
   const { content } = useMemo(() => splitFrontmatter(body), [body]);
   // Turn [[Name|alias]] into markdown links with a wikilink: scheme so ReactMarkdown keeps them as <a>.
   const prepared = useMemo(() => {
@@ -56,7 +56,7 @@ export function MarkdownView({ body, index, docDate, className, compact }: { bod
                     e.preventDefault();
                     if (ref.kind === "doc") {
                       const d = index.byId.get(ref.id);
-                      if (d) navigate(docHref(d));
+                      if (d) openDoc(d);
                     } else if (ref.kind === "locked") openPrivateDialog("unlock");
                   }}
                 >

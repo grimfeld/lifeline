@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import { useOpenDocument } from "@lifeline/editor";
 import {
   buildGraph,
   docHref,
@@ -57,6 +58,7 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
 
 export function GraphPage() {
   const navigate = useNavigate();
+  const openDoc = useOpenDocument();
   const index = useLinkIndex();
   const types = useDocumentTypes();
   const [prefs, setPrefsState] = useState<GraphPrefs>(loadPrefs);
@@ -104,7 +106,7 @@ export function GraphPage() {
   const open = (node: GraphNode) => {
     if (node.kind === "doc" && node.docId) {
       const d = index.byId.get(node.docId);
-      if (d) navigate(docHref(d));
+      if (d) openDoc(d);
       return;
     }
     if (node.kind === "ghost") {

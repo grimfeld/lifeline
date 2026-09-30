@@ -3,29 +3,49 @@ import { NavLink } from "react-router";
 import { cn } from "@lifeline/ui";
 import {
   appsOfModule,
-  basePath,
   frames,
   moduleById,
+  ModuleSurfaceScope,
   moduleScreens,
   screenRoute,
-  useDocumentTypes,
   type FrameDef,
 } from "@lifeline/core";
-import { LayoutDashboard, Table2 } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { useTabHref, useVaultTabMemory, VAULT_TABS, type VaultTab } from "../mobile/vaultTabs";
+import { MODULE_SHELLS } from "./shells";
+import { navRowClass, RawDataLinks } from "./RawDataLinks";
 
 /**
  * Everything to the right of the Rail when a Module is open (ADR 0057). A
- * Module with a hand-written layout brings its own — today only Note-taking,
- * whose layout is the Vault. Every other Module gets the **stand-in** until
- * its turn comes: its Apps' screens in a plain list, the old sidebar cut down
- * to one Module. Openly temporary.
+ * hand-written Module brings its own layout (`MODULE_SHELLS`), and Note-taking
+ * brings the Vault. Every other Module gets the **stand-in** until its turn
+ * comes: its Apps' screens in a plain list, the old sidebar cut down to one
+ * Module. Openly temporary.
+ *
+ * Whatever is inside is in the Module's Surface scope, so a Surface a Module
+ * embeds shows that Module's items only.
  *
  * `bare` marks content that manages its own scrolling (a frame's routes).
  */
 export function ModuleLayout({ moduleId, bare = false, children }: { moduleId: string; bare?: boolean; children: ReactNode }) {
+  return (
+    <ModuleSurfaceScope moduleId={moduleId}>
+      <ModuleChrome moduleId={moduleId} bare={bare}>
+        {children}
+      </ModuleChrome>
+    </ModuleSurfaceScope>
+  );
+}
+
+function ModuleChrome({ moduleId, bare, children }: { moduleId: string; bare: boolean; children: ReactNode }) {
+  const shell = MODULE_SHELLS[moduleId];
+  if (shell) return <shell.Layout bare={bare}>{children}</shell.Layout>;
   const layout = layoutOf(moduleId);
   if (layout) return <FrameModuleLayout moduleId={moduleId} frame={layout} bare={bare}>{children}</FrameModuleLayout>;
+  // A Module of one screen (Tasks, Mail) wears no chrome of its own: a sidebar
+  // holding one link is chrome for nothing, so the App's screen takes the
+  // whole width, and its Bases stay one tap away on the Rail.
+  if (isSingleScreen(moduleId)) return <main className={cn("min-w-0 flex-1", bare ? "overflow-hidden" : "overflow-y-auto")}>{children}</main>;
   return (
     <>
       <aside className="bg-sidebar text-sidebar-foreground flex w-56 shrink-0 flex-col border-r max-md:hidden">
@@ -37,6 +57,11 @@ export function ModuleLayout({ moduleId, bare = false, children }: { moduleId: s
       </div>
     </>
   );
+}
+
+/** Whether a Module on the stand-in shows a single screen, and so wears no chrome of its own. */
+export function isSingleScreen(moduleId: string): boolean {
+  return !MODULE_SHELLS[moduleId] && !layoutOf(moduleId) && moduleScreens(moduleId).length <= 1;
 }
 
 /** A Module's hand-written layout, if it has one: the frame mounted at its home. */
@@ -73,8 +98,6 @@ export function ModuleNav({ moduleId }: { moduleId: string }) {
   const m = moduleById(moduleId);
   const screens = moduleScreens(moduleId);
   const apps = appsOfModule(moduleId).filter((a) => screens.some((s) => s.appId === a.id));
-  const appIds = new Set(appsOfModule(moduleId).map((a) => a.id));
-  const types = useDocumentTypes().filter((t) => !t.internal && t.appId && appIds.has(t.appId));
   const grouped = apps.length > 1;
 
   return (
@@ -88,34 +111,15 @@ export function ModuleNav({ moduleId }: { moduleId: string }) {
             .map((s) => {
               const Icon = s.icon ?? LayoutDashboard;
               return (
-                <NavLink key={s.id} to={screenRoute(s)} className={navClass}>
+                <NavLink key={s.id} to={screenRoute(s)} className={navRowClass}>
                   <Icon className="size-4" /> {s.title}
                 </NavLink>
               );
             })}
         </div>
       ))}
-      {types.length > 0 && (
-        <div className="flex flex-col gap-0.5">
-          <div className="text-muted-foreground px-2 py-1 text-xs font-medium">Raw data</div>
-          {types.map((t) => {
-            const Icon = t.icon ?? Table2;
-            return (
-              <NavLink key={t.id} to={basePath(t.id)} className={navClass}>
-                <Icon className="size-4" /> {t.label}
-              </NavLink>
-            );
-          })}
-        </div>
-      )}
+      <RawDataLinks moduleId={moduleId} />
     </nav>
-  );
-}
-
-function navClass({ isActive }: { isActive: boolean }) {
-  return cn(
-    "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
-    isActive ? "bg-accent text-accent-foreground font-medium" : "hover:bg-accent/50",
   );
 }
 

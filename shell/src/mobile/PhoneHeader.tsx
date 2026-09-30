@@ -6,7 +6,8 @@ import { Menu } from "lucide-react";
 import { WorkspacePicker } from "../components/WorkspacePicker";
 import { Rail } from "../components/Rail";
 import { SyncBadge } from "../components/SyncBadge";
-import { layoutOf, ModuleNav } from "../modules/ModuleLayout";
+import { isSingleScreen, layoutOf, ModuleNav } from "../modules/ModuleLayout";
+import { MODULE_SHELLS } from "../modules/shells";
 
 /**
  * The phone's header: **☰ · the Workspace picker**.
@@ -20,7 +21,9 @@ export function PhoneHeader() {
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const moduleId = moduleOfPath(location.pathname);
-  const FrameSidebar = layoutOf(moduleId)?.sidebar;
+  const shell = moduleId ? MODULE_SHELLS[moduleId] : undefined;
+  const FrameSidebar = shell ? undefined : layoutOf(moduleId)?.sidebar;
+  const ShellNav = shell?.Nav;
 
   // Any tap that navigates closes the drawer. A Module's sidebar is not made of
   // links — the Vault's tree, search hits and tags are buttons that navigate —
@@ -46,9 +49,9 @@ export function PhoneHeader() {
           {/* The open Module's own navigation first — it is what the drawer is
               most often opened for — then the Rail. A frame sidebar (the
               Vault's tree) scrolls itself, so it gets a height of its own. */}
-          {moduleId && (
+          {moduleId && (!shell || ShellNav) && !isSingleScreen(moduleId) && (
             <div className={FrameSidebar ? "flex h-[70dvh] shrink-0 flex-col border-b" : "flex shrink-0 flex-col border-b"}>
-              {FrameSidebar ? <FrameSidebar /> : <ModuleNav moduleId={moduleId} />}
+              {ShellNav ? <ShellNav /> : FrameSidebar ? <FrameSidebar /> : <ModuleNav moduleId={moduleId} />}
             </div>
           )}
           <Rail expanded />
