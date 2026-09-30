@@ -4,7 +4,7 @@ import type { AppManifest } from "../manifest";
 import type { DocumentTypeDef } from "./types";
 import { homeModuleOf, opensInPlace } from "./peek";
 
-const type = (id: string): DocumentTypeDef => ({ id, label: id, titleRule: "free", body: "optional", fields: [] });
+const type = (id: string): DocumentTypeDef => ({ id, label: id, titleRule: "name", body: "optional", fields: [], builtIn: true });
 
 const app = (id: string, module: string | undefined, typeId: string): AppManifest => ({
   id,
