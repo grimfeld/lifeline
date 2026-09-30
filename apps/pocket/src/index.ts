@@ -4,6 +4,7 @@ import { HandCoins, Wallet } from "lucide-react";
 import { PocketScreen } from "./screens/PocketScreen";
 import { AllowancesCard } from "./cards/PocketCards";
 import { pocketCommands } from "./commands";
+import { AllowancePeek } from "./components/AllowancePeek";
 import { pocketDaylog } from "./daylog";
 import { formatCents } from "./domain/money";
 import { allowanceTitle, periodLabel } from "./domain/period";
@@ -35,6 +36,7 @@ const allowanceType: DocumentTypeDef = {
   indexes: ["from"],
   linkable: { subtitle: (d) => `${periodLabel(d as Allowance)} · ${formatCents((d as Allowance).amount)}` },
   href: () => POCKET_HREF,
+  peek: AllowancePeek,
   order: 85,
   builtIn: true,
 };

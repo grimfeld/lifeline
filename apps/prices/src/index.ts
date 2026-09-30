@@ -8,6 +8,7 @@ import { pricesDaylog } from "./daylog";
 import { formatCents } from "./domain/money";
 import { receiptTitle } from "./domain/derive";
 import { APP_ID, LINE, MEASURES, MEASURE_LABEL, MEASURE_PER, PRICES_COLOR, PRICES_HREF, PRODUCT, RECEIPT, SHOP, productHref, type Line, type Product, type Receipt, type Shop } from "./domain/types";
+import { ProductPeek } from "./components/ProductPeek";
 
 /**
  * The `price_product` type (ADR 0045): a thing bought again — a name and a
@@ -26,6 +27,7 @@ const productType: DocumentTypeDef = {
   ],
   linkable: { subtitle: (d) => `Product · €${MEASURE_PER[(d as Product).measure] ?? ""}` },
   href: (d) => productHref(d.id),
+  peek: ProductPeek,
   order: 87,
   builtIn: true,
 };
