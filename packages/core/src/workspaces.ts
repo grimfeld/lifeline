@@ -60,9 +60,23 @@ export function separatedWhenCreated(existing: number): boolean {
   return existing > 0;
 }
 
-/** The default Workspace: the one that reads the shared content. */
-export function isDefaultWorkspace(ws: WorkspaceRecord | undefined): boolean {
-  return !!ws && !ws.separated;
+/**
+ * The default Workspace: the first unseparated one, in `allWorkspaces` order.
+ *
+ * Not simply "any unseparated one". An Account can hold several: every
+ * Workspace made before ADR 0057 with separation left off, and the duplicate
+ * "Personal"s a device makes when it bootstraps before seeing the server's
+ * (signed out, or before the bootstrap was serialised). Were each of them the
+ * default, none could be deleted and the duplicates would be permanent. The
+ * others read the shared content too, hold nothing of their own, and are
+ * deletable like any other.
+ */
+export function defaultWorkspace(list: WorkspaceRecord[]): WorkspaceRecord | undefined {
+  return list.find((w) => !w.separated);
+}
+
+export function isDefaultWorkspace(ws: WorkspaceRecord | undefined, list: WorkspaceRecord[]): boolean {
+  return !!ws && defaultWorkspace(list)?.id === ws.id;
 }
 
 /**
@@ -71,7 +85,7 @@ export function isDefaultWorkspace(ws: WorkspaceRecord | undefined): boolean {
  * is released to. Without it, released content would be visible nowhere.
  */
 export function canDeleteWorkspace(ws: WorkspaceRecord, list: WorkspaceRecord[]): boolean {
-  return list.length > 1 && !isDefaultWorkspace(ws);
+  return list.length > 1 && !isDefaultWorkspace(ws, list);
 }
 
 // --- which Workspace this device is in (per-device, never synced) ---
@@ -121,7 +135,11 @@ export function useCurrentWorkspaceId(): string {
 // --- reading them ---
 
 export async function allWorkspaces(): Promise<WorkspaceRecord[]> {
-  return (await all<WorkspaceRecord>(WORKSPACES)).sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name));
+  // The id tie-break makes the order total: duplicate "Personal"s share a name
+  // and often a sort, and every device must agree on which one is the default.
+  return (await all<WorkspaceRecord>(WORKSPACES)).sort(
+    (a, b) => a.sort - b.sort || a.name.localeCompare(b.name) || a.id.localeCompare(b.id),
+  );
 }
 
 /**
@@ -244,7 +262,7 @@ export async function deleteWorkspace(id: string, releaseDocuments: (scope: stri
   const ws = list.find((w) => w.id === id);
   if (!ws) return;
   if (!canDeleteWorkspace(ws, list)) throw new Error("The default Workspace cannot be deleted");
-  const fallback = list.find((w) => w.id !== id && isDefaultWorkspace(w)) ?? list.find((w) => w.id !== id)!;
+  const fallback = defaultWorkspace(list) ?? list.find((w) => w.id !== id)!;
 
   // Held Documents first: if this half fails, the Workspace is still there to
   // reach them through. Doing it the other way round strands them.

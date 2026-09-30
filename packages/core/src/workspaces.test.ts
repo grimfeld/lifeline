@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canDeleteWorkspace, isDefaultWorkspace, scopeOf, separatedWhenCreated, type WorkspaceRecord } from "./workspaces";
+import { canDeleteWorkspace, defaultWorkspace, isDefaultWorkspace, scopeOf, separatedWhenCreated, type WorkspaceRecord } from "./workspaces";
 import { inScope } from "./documents/store";
 
 const ws = (over: Partial<WorkspaceRecord> = {}): WorkspaceRecord => ({
@@ -109,10 +109,37 @@ describe("a Workspace is a separate world (ADR 0057)", () => {
   });
 
   it("calls the Workspace that reads the shared content the default", () => {
-    expect(isDefaultWorkspace(ws({ separated: false }))).toBe(true);
-    expect(isDefaultWorkspace(ws({}))).toBe(true);
-    expect(isDefaultWorkspace(ws({ separated: true }))).toBe(false);
-    expect(isDefaultWorkspace(undefined)).toBe(false);
+    const shared = ws({ separated: false });
+    expect(isDefaultWorkspace(shared, [shared])).toBe(true);
+    const legacy = ws({});
+    expect(isDefaultWorkspace(legacy, [legacy])).toBe(true);
+    const sealed = ws({ separated: true });
+    expect(isDefaultWorkspace(sealed, [sealed])).toBe(false);
+    expect(isDefaultWorkspace(undefined, [])).toBe(false);
+  });
+
+  /**
+   * Regression: an Account with four unseparated "Personal"s — duplicates from
+   * devices that bootstrapped before seeing the server's — could delete none of
+   * them, because every unseparated Workspace counted as the default.
+   */
+  it("has exactly one default, the first unseparated, so duplicates can be deleted", () => {
+    const p1 = ws({ id: "p1", name: "Personal", sort: 0 });
+    const p2 = ws({ id: "p2", name: "Personal", sort: 1, separated: false });
+    const work = ws({ id: "w", name: "Work", sort: 1, separated: true });
+    const p3 = ws({ id: "p3", name: "Personal", sort: 2, separated: false });
+    const list = [p1, p2, work, p3];
+    expect(defaultWorkspace(list)?.id).toBe("p1");
+    expect(canDeleteWorkspace(p1, list)).toBe(false);
+    expect(canDeleteWorkspace(p2, list)).toBe(true);
+    expect(canDeleteWorkspace(p3, list)).toBe(true);
+    expect(canDeleteWorkspace(work, list)).toBe(true);
+  });
+
+  it("skips separated Workspaces when finding the default", () => {
+    const work = ws({ id: "w", sort: 0, separated: true });
+    const personal = ws({ id: "p", sort: 1, separated: false });
+    expect(defaultWorkspace([work, personal])?.id).toBe("p");
   });
 
   it("never deletes the default, whose shared content a deleted Workspace releases into", () => {
