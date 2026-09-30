@@ -6,7 +6,7 @@ import { Menu } from "lucide-react";
 import { WorkspacePicker } from "../components/WorkspacePicker";
 import { Rail } from "../components/Rail";
 import { SyncBadge } from "../components/SyncBadge";
-import { layoutOf, ModuleNav } from "../modules/ModuleLayout";
+import { isSingleScreen, layoutOf, ModuleNav } from "../modules/ModuleLayout";
 import { MODULE_SHELLS } from "../modules/shells";
 
 /**
@@ -49,7 +49,7 @@ export function PhoneHeader() {
           {/* The open Module's own navigation first — it is what the drawer is
               most often opened for — then the Rail. A frame sidebar (the
               Vault's tree) scrolls itself, so it gets a height of its own. */}
-          {moduleId && (!shell || ShellNav) && (
+          {moduleId && (!shell || ShellNav) && !isSingleScreen(moduleId) && (
             <div className={FrameSidebar ? "flex h-[70dvh] shrink-0 flex-col border-b" : "flex shrink-0 flex-col border-b"}>
               {ShellNav ? <ShellNav /> : FrameSidebar ? <FrameSidebar /> : <ModuleNav moduleId={moduleId} />}
             </div>
