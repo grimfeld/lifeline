@@ -13,12 +13,14 @@ import {
   toast,
 } from "@lifeline/ui";
 import {
+  canDeleteWorkspace,
   createWorkspace,
   deleteWorkspace,
   documentsHeldBy,
   inhabitedModules,
   releaseWorkspaceDocuments,
   saveWorkspace,
+  separatedWhenCreated,
   setCurrentWorkspace,
   useWorkspaces,
   type WorkspaceRecord,
@@ -26,10 +28,10 @@ import {
 import { AlertTriangle, Trash2 } from "lucide-react";
 
 /**
- * Creating a Workspace (ADR 0047), with the separation toggle (ADR 0048) and
- * the warning that has to be at the toggle rather than in a docs page: turning
- * it on starts the Workspace empty, because separation is a sealed box and not
- * an overlay.
+ * Creating a Workspace (ADR 0047). There is no separation toggle (ADR 0057):
+ * the first Workspace is the default and reads the shared content, every later
+ * one is separated — and the warning that it starts empty sits right here,
+ * because separation is a sealed box and not an overlay.
  *
  * Creating only. Listing and editing moved to `/settings` (ADR 0053), so that
  * the `workspaces` record has one front door — its Modules seed the Phone bar,
@@ -46,11 +48,10 @@ export function WorkspaceDialog({
   /** Retained for call sites; creating is now all this dialog does. */
   createFirst?: boolean;
 }) {
-  const workspaces = useWorkspaces();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
-        <WorkspaceForm onDone={() => onOpenChange(false)} canDelete={workspaces.length > 1} />
+        <WorkspaceForm onDone={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );
@@ -59,17 +60,18 @@ export function WorkspaceDialog({
 export function WorkspaceForm({
   workspace,
   onDone,
-  canDelete,
 }: {
   workspace?: WorkspaceRecord;
   onDone: () => void;
-  canDelete: boolean;
 }) {
+  const workspaces = useWorkspaces();
   const [name, setName] = useState(workspace?.name ?? "");
   const [modules, setModules] = useState<string[]>(workspace?.modules ?? inhabitedModules().map((m) => m.id));
-  const [separated, setSeparated] = useState(!!workspace?.separated);
   const [busy, setBusy] = useState(false);
-  const wasSeparated = !!workspace?.separated;
+  // Not a choice (ADR 0057): the default reads the shared content, every
+  // Workspace made after it is a separate world of its own.
+  const separated = workspace ? !!workspace.separated : separatedWhenCreated(workspaces.length);
+  const canDelete = !!workspace && canDeleteWorkspace(workspace, workspaces);
 
   function toggle(id: string) {
     setModules((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
@@ -79,9 +81,9 @@ export function WorkspaceForm({
     if (!name.trim()) return;
     setBusy(true);
     try {
-      if (workspace) await saveWorkspace({ ...workspace, name: name.trim(), modules, separated });
+      if (workspace) await saveWorkspace({ ...workspace, name: name.trim(), modules });
       else {
-        const ws = await createWorkspace(name.trim(), modules, separated);
+        const ws = await createWorkspace(name.trim(), modules);
         setCurrentWorkspace(ws.id);
       }
       onDone();
@@ -94,8 +96,8 @@ export function WorkspaceForm({
     if (!workspace) return;
     const held = workspace.separated ? await documentsHeldBy(workspace.id) : [];
     const msg = held.length
-      ? `Delete “${workspace.name}”? Its ${held.length} document${held.length === 1 ? "" : "s"} become shared and its screens move to the first workspace. Nothing is deleted.`
-      : `Delete “${workspace.name}”? Its screens move to the first workspace.`;
+      ? `Delete “${workspace.name}”? Its ${held.length} document${held.length === 1 ? "" : "s"} become shared and its screens move to the default workspace. Nothing is deleted.`
+      : `Delete “${workspace.name}”? Its screens move to the default workspace.`;
     if (!confirm(msg)) return;
     setBusy(true);
     try {
@@ -124,7 +126,7 @@ export function WorkspaceForm({
         <div className="flex flex-col gap-1.5">
           <Label>Modules</Label>
           <p className="text-muted-foreground text-xs">
-            What this workspace's sidebar and Bases list. A new workspace's phone bar starts from these; rearrange it under Phone bar.
+            Which Modules stand on this workspace's Rail. A new workspace's phone bar starts from these; rearrange it under Phone bar.
           </p>
           <div className="grid grid-cols-2 gap-1">
             {inhabitedModules().map((m) => (
@@ -138,31 +140,30 @@ export function WorkspaceForm({
 
         <Separator />
 
-        <div className="flex flex-col gap-1.5">
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <Checkbox checked={separated} onCheckedChange={(v) => setSeparated(!!v)} />
-            Keep this workspace's content separate
-          </label>
-          {separated && !wasSeparated && (
-            <p className="text-destructive flex gap-2 rounded-md border border-current/30 p-2 text-xs">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              <span>
-                This workspace will start <strong>empty</strong>. Separation is a sealed box, not a filter: it will see only what is
-                created in it from now on, and none of what you already have. Existing content crosses only by being moved, one
-                document at a time or in bulk from a Base.
-              </span>
-            </p>
-          )}
-          {!separated && wasSeparated && (
-            <p className="text-muted-foreground rounded-md border p-2 text-xs">
-              New content will be shared again. What this workspace already holds stays held until you move it out.
-            </p>
-          )}
-        </div>
+        {!separated ? (
+          <p className="text-muted-foreground rounded-md border p-2 text-xs">
+            {workspace
+              ? "The default workspace: it reads everything that is shared. It cannot be deleted — a deleted workspace's content comes back here."
+              : "Your first workspace is the default: it reads everything that is shared."}
+          </p>
+        ) : workspace ? (
+          <p className="text-muted-foreground rounded-md border p-2 text-xs">
+            A separate world: this workspace sees only what it holds. Content crosses by being moved, and deleting the workspace releases what it holds to the default.
+          </p>
+        ) : (
+          <p className="text-destructive flex gap-2 rounded-md border border-current/30 p-2 text-xs">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <span>
+              A new workspace is a <strong>separate world</strong> and starts <strong>empty</strong>: it sees only what is created in it
+              from now on, and none of what you already have. Existing content crosses only by being moved, one document at a time or in
+              bulk from a Base.
+            </span>
+          </p>
+        )}
       </div>
 
       <DialogFooter className="sm:justify-between">
-        {workspace && canDelete ? (
+        {canDelete ? (
           <Button variant="ghost" className="text-destructive" disabled={busy} onClick={() => void remove()}>
             <Trash2 /> Delete
           </Button>

@@ -290,7 +290,7 @@ function WorkspacesSection() {
       {target && (
         <Dialog open onOpenChange={(o) => !o && setEditing(null)}>
           <DialogContent className="sm:max-w-lg">
-            <WorkspaceForm workspace={target} onDone={() => setEditing(null)} canDelete={workspaces.length > 1} />
+            <WorkspaceForm workspace={target} onDone={() => setEditing(null)} />
           </DialogContent>
         </Dialog>
       )}
