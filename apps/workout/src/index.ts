@@ -6,6 +6,7 @@ import { RecentSessionsCard, StartWorkoutCard } from "./cards/WorkoutCards";
 import { workoutCommands } from "./commands";
 import { workoutTimed } from "./timed";
 import { workoutDaylog } from "./daylog";
+import { workoutTallying } from "./tallying";
 import { describeWorkout } from "./domain/intervals";
 import { APP_ID, CATEGORIES, EXERCISE, MEASURE_LABEL, MEASURES, SESSION, WORKOUT, WORKOUT_HREF, type Exercise, type Session, type Workout } from "./domain/types";
 
@@ -62,7 +63,6 @@ const sessionType: DocumentTypeDef = {
     { key: "startedAt", label: "Started", kind: "datetime", guarded: true, hidden: true },
     { key: "endedAt", label: "Ended", kind: "datetime", guarded: true, hidden: true },
     { key: "results", label: "Results", kind: "json", guarded: true },
-    { key: "tallied", label: "Tallied", kind: "boolean", guarded: true, hidden: true },
     { key: "notes", label: "Notes", kind: "longtext" },
   ],
   indexes: ["workoutId", "date"],
@@ -108,7 +108,8 @@ export const workoutApp: AppManifest = {
   commands: workoutCommands,
   timed: workoutTimed,
   daylog: workoutDaylog,
+  tallying: workoutTallying,
 };
 
 export { WORKOUT, EXERCISE, SESSION };
-export type { Workout, Exercise, Session, Block, Movement, Tally } from "./domain/types";
+export type { Workout, Exercise, Session, Block, Movement } from "./domain/types";

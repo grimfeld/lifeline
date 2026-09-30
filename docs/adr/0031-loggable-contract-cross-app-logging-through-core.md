@@ -13,3 +13,5 @@ A Workout Session should count as a Habit Completion (Life Level) or a Stat Entr
 - Stats implements Loggable for Stats (Entry: value at a moment; Boolean Stats take "one"), Life Level for Habits (Completion at a moment). Negative activities are not targets.
 - A Tally fires on Session save and is recorded on the Session (`tallied`), so editing or re-saving never double-logs; deleting the Session does not un-log (the Entry/Completion is the receiver's Document, with its own delete).
 - Any App may offer targets or send to them: Chores or Tasks feeding a Habit needs only a Tally-like field on their side.
+
+> The sending side (the per-App Tally) is superseded by ADR 0059: Tallying is a Core Contract.

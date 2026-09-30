@@ -15,14 +15,16 @@ import {
   SelectTrigger,
   SelectValue,
   TagInput,
+  TallyEditor,
   Textarea,
   toast,
 } from "@lifeline/ui";
-import { newId, normalizeTag, useLoggableTargets, useTagVocabulary, type LoggableTarget } from "@lifeline/core";
+import { newId, normalizeTag, useLoggableTargets, useTagVocabulary, type Tally } from "@lifeline/core";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { describeBlock, formatClock, workoutSeconds } from "../domain/intervals";
-import { defaultBlock, emptyMovement, MODE_LABEL, MODES, type Block, type Exercise, type Mode, type Movement, type Tally, type Workout } from "../domain/types";
+import { defaultBlock, emptyMovement, MODE_LABEL, MODES, type Block, type Exercise, type Mode, type Movement, type Workout } from "../domain/types";
 import { addWorkout, updateWorkout, useExercises } from "../data/repo";
+import { SESSION_TALLY_VALUES } from "../tallying";
 import { ExerciseEditorDialog } from "./ExerciseEditorDialog";
 
 const NEW_EXERCISE = "__new__";
@@ -198,33 +200,6 @@ function BlockEditor({
   );
 }
 
-function TallyRow({ t, targets, onChange, onRemove }: { t: Tally; targets: LoggableTarget[]; onChange: (t: Tally) => void; onRemove: () => void }) {
-  const target = targets.find((x) => x.key === t.target);
-  return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border p-2 text-sm">
-      <span className="text-muted-foreground text-xs">tallies to</span>
-      <span className="font-medium">{target?.title ?? t.target}</span>
-      {target?.subtitle && <span className="text-muted-foreground text-xs">{target.subtitle}</span>}
-      {target?.wants === "number" ? (
-        <Select value={t.value} onValueChange={(v) => onChange({ ...t, value: v as Tally["value"] })}>
-          <SelectTrigger className="h-8 w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="one">+1{target.unit ? ` ${target.unit}` : ""}</SelectItem>
-            <SelectItem value="duration">+ duration (min)</SelectItem>
-          </SelectContent>
-        </Select>
-      ) : (
-        <span className="text-muted-foreground text-xs">one completion</span>
-      )}
-      <Button size="icon" variant="ghost" className="ml-auto size-8" onClick={onRemove} aria-label="Remove tally">
-        <Trash2 className="size-3.5" />
-      </Button>
-    </div>
-  );
-}
-
 /** A Workout (ADR 0030): Blocks of intervals with their Movements, and the Tallies its Sessions fire (ADR 0031). */
 export function WorkoutEditorDialog({ open, onOpenChange, workout }: { open: boolean; onOpenChange: (open: boolean) => void; workout?: Workout }) {
   const exercises = useExercises();
@@ -236,7 +211,6 @@ export function WorkoutEditorDialog({ open, onOpenChange, workout }: { open: boo
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [tallies, setTallies] = useState<Tally[]>([]);
   const [newExercise, setNewExercise] = useState<{ block: number; movement: number } | null>(null);
-  const [addTally, setAddTally] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -245,7 +219,6 @@ export function WorkoutEditorDialog({ open, onOpenChange, workout }: { open: boo
     setTags(workout?.tags ?? []);
     setBlocks(workout?.blocks ?? [defaultBlock(newId(), "tabata")]);
     setTallies(workout?.tallies ?? []);
-    setAddTally("");
   }, [open, workout]);
 
   const setBlock = (i: number, b: Block) => setBlocks((cur) => cur.map((x, j) => (j === i ? b : x)));
@@ -275,7 +248,6 @@ export function WorkoutEditorDialog({ open, onOpenChange, workout }: { open: boo
   }
 
   const total = workoutSeconds({ blocks });
-  const available = targets.filter((t) => !tallies.some((x) => x.target === t.key));
 
   return (
     <>
@@ -307,37 +279,7 @@ export function WorkoutEditorDialog({ open, onOpenChange, workout }: { open: boo
             </div>
             <div className="grid gap-2">
               <Label>Tallies</Label>
-              {tallies.map((t, i) => (
-                <TallyRow key={t.target} t={t} targets={targets} onChange={(nt) => setTallies((cur) => cur.map((x, j) => (j === i ? nt : x)))} onRemove={() => setTallies((cur) => cur.filter((_, j) => j !== i))} />
-              ))}
-              {available.length > 0 ? (
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={addTally || undefined}
-                    onValueChange={(key) => {
-                      const t = targets.find((x) => x.key === key);
-                      if (!t) return;
-                      setTallies((cur) => [...cur, { target: key, value: "one" }]);
-                      setAddTally("");
-                    }}
-                  >
-                    <SelectTrigger className="h-8 w-64">
-                      <SelectValue placeholder="Log each session to…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {available.map((t) => (
-                        <SelectItem key={t.key} value={t.key}>
-                          {t.title}
-                          {t.subtitle ? ` · ${t.subtitle}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <span className="text-muted-foreground text-xs">A Habit completion or a Stat entry, once per session.</span>
-                </div>
-              ) : (
-                targets.length === 0 && <p className="text-muted-foreground text-xs">No Habits or Stats to tally to yet.</p>
-              )}
+              <TallyEditor tallies={tallies} onChange={setTallies} targets={targets} values={SESSION_TALLY_VALUES} occurrence="session" />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="wo-notes">Notes</Label>

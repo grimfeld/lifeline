@@ -42,7 +42,7 @@ A Contract: an entity that accepts a logged occurrence from any other App — a 
 _Avoid_: trackable, sink, hook (the Contract's own word for its functions)
 
 ### Intake
-Core Contract (behaviour — code only): an App that accepts a Handoff from any other App and makes one of its own Documents from it, through its own form. The accepting App declares what it makes ("Clipping", "Task", "Event") and opens its dialog prefilled with the Handoff; nothing is written until that dialog saves, so ownership stays whole. The sending App only lists the Intakes Core knows and never names a keeper. The Clipper, Tasks, Calendar and the Shopping list (a Need) are the implementers; how Mail keeps a Message.
+Core Contract (behaviour — code only): an App that accepts a Handoff from any other App and makes one of its own Documents from it, through its own form. The accepting App declares what it makes ("Clipping", "Task", "Event") and opens its dialog prefilled with the Handoff; nothing is written until that dialog saves, so ownership stays whole. The sending App only lists the Intakes Core knows and never names a keeper. The Clipper, Tasks, Calendar, the Shopping list (a Need) and Languages (a Word, or a Sentence — two Intakes, the user picks) are the implementers; how Mail keeps a Message.
 _Avoid_: clip (one implementer's verb), import, share (the phone OS's word), capture (a Command's flag)
 
 ### Handoff
@@ -50,8 +50,12 @@ What one App hands to another's Intake: a title, a text in markdown, an origin U
 _Avoid_: payload, message (a Mail thing), draft
 
 ### Tally
-A Workout's standing instruction to log each of its Sessions somewhere Loggable — "tallies to Habit *Train*", "tallies to Stat *Minutes trained* (+duration)". Carries the target and what value to send (one, the duration, a Block's result). Fires when the Session is saved, never again.
+A standing instruction on a Document to log each of its **occurrences** somewhere Loggable — a Workout "tallies to Habit *Train*" (each Session), a Language "tallies to Habit *Spanish*" (each day practised). Carries the target and what value to send (one, the duration, a Block's result). Core's, through the Tallying Contract, and kept on the Document it sits on, so it follows it wherever it goes. Fires once per occurrence, when the occurrence happens, and never again — never retracted either: what it logged is the receiving App's Document, with that App's own undo. Never backfilled: a Tally set up today logs nothing for yesterday.
 _Avoid_: feed (a Source kind), sync, bridge (the idea, not the thing), hook
+
+### Tallying
+Core Contract (behaviour — code only), the sending side of Loggable: a Document type whose Documents may carry Tallies. The owning App declares what an occurrence is and which values it offers, and reports each one as it happens — Workout a saved Session (one, duration), Languages a Language's first Recall of the day (one). Core keeps the Tallies, offers the one "tallies to…" editor over every Loggable target, fires them, and makes sure one occurrence logs once.
+_Avoid_: Loggable (the receiving side), trigger, automation, rule (a Categorize rule's word)
 
 ### Placement
 A Schedulable entity's assignment to a day — and optionally a time slot — on a surface. Owned by the surface (Core), referencing the foreign entity by App + id; the time is the surface's, never the App's (a Task still only knows its day). An entity may have any number of Placements — several Time blocks across several days — and none of them moves the entity's own day. Distinct from the entity itself: deleting a Placement never deletes the entity. Subsumes calendar's old "TimeBlock".
@@ -612,3 +616,39 @@ _Avoid_: tag (Lifeline's word, on Documents only), folder (a Document's place), 
 ### Triage
 What the Mail App does to a Thread, always at Google and never in Lifeline's own store: archive (out of Inbox), mark read or unread, star or unstar, add or remove a Label, and trash (Gmail's thirty-day bin). Nothing else — no spam, no permanent delete, no mute, and no snooze, which Gmail does not expose. Keeping a Message is not triage: it makes a Clipping, a Task or an Event through an Intake and leaves the Thread where it is.
 _Avoid_: process, action (a Command's word), sort (a View's)
+
+### Languages
+The language-retention App and the Module of the same name: Words and Sentences the user met in the wild, kept from being forgotten by spaced repetition. Lifeline never originates the material — no suggested words, no curated Decks, no generated lists; the user decides what is learnt, and any automation only does labour on what they chose. Its purpose is **retention**, not acquisition: meeting new material happens outside. Nothing arrives in bulk: every Word and Sentence is added one at a time, because each one was met.
+_Avoid_: Lexica (the standalone app it descends from), study (the Bible App's word), learning (conflates acquisition with retention), course, lessons
+
+### Word
+A piece of vocabulary the user met and chose to keep, owned by the Languages App: the term in the target Language (which may be several words — "tener ganas de"), its meaning in the user's own words, optional notes, and an optional **origin** — where it was met (a link to a Clipping, a URL, "Pedro at dinner"), kept because remembering the encounter helps remember the word. Yields two Prompts: **forward** (shown the term, recall the meaning) and **reverse** (shown the meaning, recall the term). Editing a Word never resets it: its forward and reverse Prompts stay the same Prompts whatever is fixed. Added by hand, by a capture Command in seconds, or through its own Intake from a Handoff (the selected text becomes the term). A Word or Sentence may be **paused**: still listed, its Recalls kept, its Prompts out of every Practice until unpaused, when the schedule resumes from its Recalls (overdue, honestly, if time has passed). Deleting one takes its Recalls with it — they mean nothing without their Prompts — and every Deck simply loses it. Deliberately *not* Linkable, nor is a Sentence — practice material, not a subject: `[[casa]]` or `[[pan]]` would swallow links meant for other things, and one term may exist in two Languages.
+_Avoid_: vocab, term (one of its fields), card, flashcard, entry (a Stat's), lemma
+
+### Sentence
+A sentence the user met, with one or more parts marked as blanks, owned by the Languages App. May carry a **translation** in the user's own words, shown with each of its Prompts so a blank has one answer, not several ("Tengo ____ de comer" — *I feel like eating*). Carries an optional origin like a Word; most often made through its own **Intake** from a Handoff — a sentence selected in a Clipping or a Mail Message, its origin kept. Yields one Prompt per blank, and a blank is known by its own text — adding, removing or reordering blanks leaves the others' Recalls where they were, while changing a blank's text makes a new Prompt that starts fresh (the old one's Recalls stay, counting for nothing). "Cloze" names the technique, not the thing.
+_Avoid_: cloze (the technique), phrase, example, card
+
+### Prompt
+One question the Languages App derives from a Word or a Sentence — a Word's forward or reverse, one blank of a Sentence. Never authored by hand: the user writes the Word or Sentence, the App derives its Prompts. Never stored either: a Prompt's schedule — when it is next **due**, how well it is held — is derived at read by replaying its Recalls, so each Prompt is scheduled on its own and nothing can drift from the Recalls it came from. A Prompt with no Recalls yet is **new**; new Prompts enter practice at most the Language's **daily new cap** at a time (oldest added first), always after the Prompts already due — a throttle so a big day of adding never buries what is at risk of being forgotten, never a goal to meet. Two Prompts of the same Word or Sentence never come back to back.
+_Avoid_: card (a Screen's UI block), flashcard, question, item
+
+### Recall
+One attempt at a Prompt: the user recalls the answer in their head, reveals it, and grades themself **pass** or **fail** — two answers, never a scale of how hard it felt, and never typed in or checked by the App; the grade is always the user's. A fact, stored as an internal Document with its Prompt and the moment it happened: the Recalls are the only thing the Languages App keeps about practice, and every schedule and figure is read from them. The schedule is policy — a change to how Recalls are valued re-values every Prompt at once. A mis-tapped Recall is struck out and everything re-derives without it.
+_Avoid_: review (Cinema and Discotheque's body), attempt (fine in prose), answer, rep, entry
+
+### Deck
+A user-made grouping of Words and Sentences of one Language, owned by the Languages App, so a Practice can be narrowed to it ("Kitchen", "Work emails"). The user chooses what goes in; nothing is filed automatically. Membership belongs to the Deck, never to the Word: a Word sits in any number of Decks, and a deleted Word simply leaves them. Not a Tag — a Tag crosses every type and every Language; a Deck is a chosen set inside one Language, and what a Practice is narrowed by.
+_Avoid_: collection (a Stat kind), list, set, Playlist (Cinema and Discotheque's), tag
+
+### Practice
+One sitting of Recalls in the Languages Module: the active Language's due Prompts first, then new ones up to the daily new cap, optionally narrowed to one Deck (the cap still counts across the whole Language). Stored nowhere — the Recalls it leaves are the facts; stopping halfway loses nothing.
+_Avoid_: session (a Workout's run), review (Cinema's body), round, lesson, drill
+
+### Retention
+The share of a Language's Recalls passed over the last 30 days, leaving out each Prompt's very first Recall (meeting it is not remembering it). Derived, never stored; the one figure the Languages App gives about how practice is going, beside what is due today, what new Prompts are waiting, and the due counts of the week ahead. No streak, no heatmap, no score — Life Level owns those, reached through a Tally.
+_Avoid_: accuracy, score, mastery, success rate, known / held (no threshold decides that a Prompt is learnt)
+
+### Language
+A target language the user keeps material in (Spanish, German), created by the user and owned by the Languages App. The partition inside the Module: every Word, Sentence and Deck belongs to exactly one Language, a Deck never mixes two, and the Module shows one **active** Language at a time. Carries the daily new cap for its Prompts (10 unless changed). May carry Tallies: a day with at least one Recall in it is one occurrence, logged at that first Recall. Never deleted while it holds Words, Sentences or Decks — **archived** instead: out of the switcher, no Practice, its Tallies silent, everything kept; unarchived, it resumes where its Recalls left it. Hard delete only when empty. A lens inside one Module, never a Workspace — Spanish and German are not separate worlds of data. There is no language pair: the meaning side of a Word is free text the App does not track.
+_Avoid_: locale, language pair, L1/L2

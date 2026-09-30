@@ -24,7 +24,6 @@ function session(id: string, date: string, movements: MovementResult[]): Session
     durationMin: 30,
     results: [{ blockId: "b", mode: "emom", rounds: null, extraReps: null, seconds: null, movements }],
     notes: "",
-    tallied: true,
   };
 }
 const deadlift = { id: "dl", measure: "load" as const };
