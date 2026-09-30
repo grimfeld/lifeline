@@ -29,6 +29,7 @@ export * from "./documents/links";
 export * from "./documents/mentions";
 export * from "./documents/graph";
 export * from "./documents/href";
+export * from "./documents/peek";
 export * from "./documents/text";
 export * from "./documents/views";
 export {

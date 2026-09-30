@@ -33,6 +33,7 @@ import { SettingsPage } from "./settings/SettingsPage";
 import { ModulePage } from "./modules/ModulePage";
 import { ModuleLayout } from "./modules/ModuleLayout";
 import { lastPlace, useResume } from "./nav/resume";
+import { PeekHost } from "./peek/PeekHost";
 
 /** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
 function ResumeRedirect() {
@@ -163,6 +164,7 @@ export default function App() {
         </div>
         <MobileNav />
         <CommandPalette />
+        <PeekHost />
         <PrivateDialogs />
         <Toaster position="bottom-right" />
       </div>

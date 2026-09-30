@@ -156,6 +156,13 @@ export interface DocumentTypeDef {
   readTimer?: boolean;
   /** Route that opens one Document. Default: the Vault's generic page `/vault/d/<id>`. */
   href?: (doc: Document) => string;
+  /**
+   * The owning App's **Peek** (ADR 0057): its small view of one Document,
+   * opened where the user is — fields and main operations, never a page. Core
+   * frames it with the title and the ways through to the Home Module and the
+   * Vault. Absent: Core's generic Peek, the Document's plain fields.
+   */
+  peek?: React.ComponentType<{ doc: Document }>;
   /** Sync conflict hook (ADR 0010): may rescue a losing local edit. Absent = plain LWW. */
   onConflict?: (local: Document, server: Document) => Promise<void>;
   /**
