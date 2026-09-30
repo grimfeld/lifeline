@@ -82,6 +82,7 @@ export const MODULES: ModuleDef[] = [
   { id: "money", title: "Money" },
   { id: "notes", title: "Note-taking", home: "/vault" },
   { id: "progress", title: "Progress" },
+  { id: "languages", title: "Languages" },
   { id: "mail", title: "Mail" },
 ];
 

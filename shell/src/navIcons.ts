@@ -5,6 +5,7 @@ import {
   Columns3,
   Home,
   Landmark,
+  Languages,
   LayoutDashboard,
   ListTodo,
   Mail,
@@ -26,6 +27,7 @@ export const MODULE_ICONS: Record<string, React.ComponentType<{ className?: stri
   money: Landmark,
   notes: NotebookText,
   progress: TrendingUp,
+  languages: Languages,
   mail: Mail,
 };
 

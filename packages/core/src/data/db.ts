@@ -118,8 +118,9 @@ export interface ViewFilter {
  *        `documents` and `screens` so a scoped read is an index hit, not a scan
  *   20 — Mail App (ADR 0051): local `_mail_cache` table
  *   21 — Tallying (ADR 0059): local `_tally_fires` marks
+ *   22 — Languages App (ADR 0058): `[type+languageId]`, `[type+itemId]` added
  */
-const DB_VERSION = 21;
+const DB_VERSION = 22;
 
 /** Stores that existed before ADR 0018; deleted on upgrade so a client re-pulls into `documents`. */
 const LEGACY_STORES = [

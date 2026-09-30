@@ -34,6 +34,7 @@
     "@lifeline/app-sources": "workspace:*",
     "@lifeline/app-stats": "workspace:*",
     "@lifeline/app-swearjar": "workspace:*",
+    "@lifeline/app-languages": "workspace:*",
     "@lifeline/app-tasks": "workspace:*",
     "@lifeline/app-workout": "workspace:*",
     "@lifeline/app-writer": "workspace:*",
