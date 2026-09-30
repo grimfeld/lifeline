@@ -7,6 +7,7 @@ import {
   Landmark,
   LayoutDashboard,
   ListTodo,
+  Mail,
   MapPin,
   NotebookText,
   TrendingUp,
@@ -16,16 +17,16 @@ import {
 /**
  * Pixels for Core's Modules and Surfaces. Both lists are Core's (ADR 0047,
  * ADR 0053) and the icons are the shell's, so Core keeps no view dependency
- * for the sake of a sidebar row or a Phone bar slot.
+ * for the sake of a Rail icon or a Phone bar slot.
  */
 export const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   house: Home,
   tasks: ListTodo,
-  schedules: CalendarDays,
   culture: BookOpen,
   money: Landmark,
   notes: NotebookText,
   progress: TrendingUp,
+  mail: Mail,
 };
 
 export const SURFACE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {

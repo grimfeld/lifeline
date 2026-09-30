@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
+import { TimeAppLinks } from "./TimeAppLinks";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from "@dnd-kit/core";
 import { Badge, Button, cn, Input, toast } from "@lifeline/ui";
 import {
@@ -752,6 +753,7 @@ export function SchedulePage() {
           <Badge variant="secondary">{openCount} open</Badge>
           <div className="ml-auto flex items-center gap-1">
             <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2" />
+            <TimeAppLinks />
             <div className="bg-muted/60 mr-2 grid grid-cols-2 gap-0.5 rounded-lg p-0.5 max-md:hidden">
               {(["day", "week"] as const).map((v) => (
                 <button key={v} className={cn("rounded-md px-2 py-1 text-xs font-medium capitalize", view === v ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")} onClick={() => go(anchor, v)}>

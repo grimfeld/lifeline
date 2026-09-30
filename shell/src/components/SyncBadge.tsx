@@ -21,7 +21,12 @@ const LABELS: Record<string, string> = {
   error: "Sync error",
 };
 
-export function SyncBadge() {
+/**
+ * Sync state, sign-in, sign-out and erase. `compact` is the Rail's cell: the
+ * state as one icon that syncs (or asks to sign in) on click — the account
+ * rows live in Settings, where the full badge is.
+ */
+export function SyncBadge({ compact = false }: { compact?: boolean } = {}) {
   const { state, pending, error } = useSyncState();
   const { loggedIn, email } = useAuth();
   const [open, setOpen] = useState(false);
@@ -91,18 +96,26 @@ export function SyncBadge() {
   return (
     <>
       <button
-        className="hover:bg-accent/50 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs"
+        className={
+          compact
+            ? "hover:bg-accent/50 text-muted-foreground relative flex size-9 items-center justify-center rounded-md"
+            : "hover:bg-accent/50 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs"
+        }
         onClick={() => (loggedIn ? void syncNow() : setOpen(true))}
-        title={loggedIn ? (state === "error" && error ? `Sync error: ${error}\nClick to retry` : "Sync now") : "Sign in to sync"}
+        title={
+          (loggedIn ? (state === "error" && error ? `Sync error: ${error}\nClick to retry` : `${LABELS[state] ?? state} — sync now`) : "Sign in to sync") +
+          (pending > 0 ? ` (${pending} pending)` : "")
+        }
       >
-        <Icon className={`size-3.5 ${state === "syncing" ? "animate-spin" : ""} ${state === "error" ? "text-destructive" : ""}`} />
-        <span className="truncate">
+        <Icon className={`${compact ? "size-4" : "size-3.5"} ${state === "syncing" ? "animate-spin" : ""} ${state === "error" ? "text-destructive" : ""}`} />
+        {compact && pending > 0 && <span className="bg-primary absolute top-1.5 right-1.5 size-1.5 rounded-full" />}
+        <span className={compact ? "sr-only" : "truncate"}>
           {loggedIn ? (LABELS[state] ?? state) : "Sign in to sync"}
           {pending > 0 && ` · ${pending} pending`}
         </span>
-        {loggedIn && <RefreshCw className="text-muted-foreground ml-auto size-3" />}
+        {loggedIn && !compact && <RefreshCw className="text-muted-foreground ml-auto size-3" />}
       </button>
-      {loggedIn && (
+      {loggedIn && !compact && (
         <button
           className="hover:bg-accent/50 text-muted-foreground flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs"
           onClick={() => {
@@ -114,14 +127,16 @@ export function SyncBadge() {
           <span className="truncate">{email} · sign out</span>
         </button>
       )}
-      <button
-        className="hover:bg-accent/50 text-muted-foreground flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs"
-        onClick={() => void askErase()}
-        title="Delete everything stored on this device and download this account's data again"
-      >
-        <Trash2 className="size-3" />
-        <span className="truncate">Erase local data…</span>
-      </button>
+      {!compact && (
+        <button
+          className="hover:bg-accent/50 text-muted-foreground flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs"
+          onClick={() => void askErase()}
+          title="Delete everything stored on this device and download this account's data again"
+        >
+          <Trash2 className="size-3" />
+          <span className="truncate">Erase local data…</span>
+        </button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-xs">

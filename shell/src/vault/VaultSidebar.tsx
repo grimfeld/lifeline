@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, cn } from "@lifeline/ui";
-import { CalendarDays, FolderTree, Hash, Plus, Search, Settings2 } from "lucide-react";
-import { screensOf, singularOf, VAULT_FRAME } from "@lifeline/core";
+import { CalendarDays, FolderTree, Hash, LayoutDashboard, Plus, Search, Settings2 } from "lucide-react";
+import { moduleScreens, screenRoute, screensOf, singularOf, VAULT_FRAME } from "@lifeline/core";
 import { FileTree } from "./FileTree";
 import { SearchPane } from "./SearchPane";
 import { TagsPane } from "./TagsPane";
@@ -11,7 +11,10 @@ import { useCreatableTypes } from "./useVaultDocs";
 
 type Tab = "files" | "search" | "tags";
 
-/** The Vault's own sidebar (ADR 0012, amended): Files / Search / Tags, New…, Today. */
+/**
+ * The Vault's own sidebar — the Note-taking Module's layout (ADR 0057): New…,
+ * Today, the Module's App screens, then Files / Search / Tags.
+ */
 export function VaultSidebar() {
   const [tab, setTab] = useState<Tab>("files");
   const [newType, setNewType] = useState<string | null>(null);
@@ -57,6 +60,25 @@ export function VaultSidebar() {
               </Button>
             );
           })}
+      </div>
+      <div className="flex flex-wrap gap-0.5 px-2 pt-2">
+        {moduleScreens("notes").map((s) => {
+          const I = s.icon ?? LayoutDashboard;
+          return (
+            <NavLink
+              key={s.id}
+              to={screenRoute(s)}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs",
+                  isActive ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                )
+              }
+            >
+              <I className="size-3.5" /> {s.title}
+            </NavLink>
+          );
+        })}
       </div>
       <div className="mx-2 mt-2 flex gap-0.5 border-b">
         {tabs.map((t) => (

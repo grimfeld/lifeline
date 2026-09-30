@@ -193,3 +193,34 @@ export function frameOfPath(pathname: string): string {
   const w = frames().find((w) => pathname === w.path || pathname.startsWith(w.path + "/"));
   return w?.id ?? DASHBOARD_FRAME;
 }
+
+/**
+ * Which Module a pathname is inside (ADR 0057), or undefined for Core's own
+ * destinations — the general Surfaces, the Bases, Screens and Settings — and
+ * for the bare screens of an App that names no Module.
+ */
+export function moduleOfPath(pathname: string): string | undefined {
+  const under = (root: string) => pathname === root || pathname.startsWith(root + "/");
+  for (const m of MODULES) if (m.home && under(m.home)) return m.id;
+  const direct = /^\/module\/([^/]+)/.exec(pathname);
+  if (direct) return MODULES.some((m) => m.id === direct[1]) ? direct[1] : undefined;
+  // An App screen: the longest registered route that holds the path wins
+  // ("/app/ledger/budget" over "/app/ledger"), and it is in its App's Module.
+  let best = -1;
+  let found: string | undefined;
+  for (const s of screensOf()) {
+    const route = screenRoute(s).replace(/\/:[^/]+.*$/, "");
+    if (under(route) && route.length > best) {
+      best = route.length;
+      found = appById(s.appId)?.module;
+    }
+  }
+  return found && MODULES.some((m) => m.id === found) ? found : undefined;
+}
+
+/** The listed screens of a Module's Apps, in registry order — what its stand-in layout lists. */
+export function moduleScreens(moduleId: string): (AppScreenDef & { appId: string })[] {
+  const ids = new Set(appsOfModule(moduleId).map((a) => a.id));
+  return screensOf().filter((s) => !s.hidden && ids.has(s.appId));
+}
+
