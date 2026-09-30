@@ -1,8 +1,20 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router";
 import { Toaster } from "@lifeline/ui";
-import { backgroundApps, ensureDefaultWorkspace, frames, screenRoute, screensOf, useSyncState, useWorkspaceScreens, type AppManifest } from "@lifeline/core";
-import { Sidebar } from "./components/Sidebar";
+import {
+  MODULES,
+  appById,
+  backgroundApps,
+  ensureDefaultWorkspace,
+  frames,
+  screenRoute,
+  screensOf,
+  useCurrentWorkspaceId,
+  useSyncState,
+  type AppManifest,
+  type FrameDef,
+} from "@lifeline/core";
+import { Rail } from "./components/Rail";
 import { CommandPalette } from "./components/CommandPalette";
 import { PrivateDialogs } from "./vault/PrivateDialogs";
 import { CalendarPage } from "./surfaces/CalendarPage";
@@ -12,20 +24,20 @@ import { GraphPage } from "./surfaces/GraphPage";
 import { SchedulePage } from "./surfaces/SchedulePage";
 import { PushProvider } from "./surfaces/push";
 import { UserScreenPage } from "./screens/UserScreenPage";
+import { ScreensIndex } from "./screens/ScreensIndex";
 import { BasePage } from "./bases/BasePage";
 import { BasesIndex } from "./bases/BasesIndex";
-import { FrameLayout } from "./components/FrameLayout";
-import { useFrameMemory } from "./components/FrameSwitcher";
 import { MobileNav } from "./mobile/MobileNav";
 import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
 import { ModulePage } from "./modules/ModulePage";
+import { ModuleLayout } from "./modules/ModuleLayout";
+import { lastPlace, useResume } from "./nav/resume";
 
-function HomeRedirect() {
-  const screens = useWorkspaceScreens();
-  if (screens === undefined) return null; // still loading
-  if (screens.length > 0) return <Navigate to={`/screen/${screens[0].id}`} replace />;
-  return <Navigate to="/calendar" replace />;
+/** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
+function ResumeRedirect() {
+  const workspaceId = useCurrentWorkspaceId();
+  return <Navigate to={lastPlace(workspaceId)} replace />;
 }
 
 function LegacyNoteRedirect() {
@@ -38,42 +50,86 @@ function LegacyVaultRedirect() {
   return <Navigate to={`/vault/${rest ?? ""}`.replace("/vault/n/", "/vault/d/")} replace />;
 }
 
-/** The built-in Dashboard frame: user Screens, Surfaces and the Apps' dashboard screens. */
-function DashboardFrame() {
+/** A Core destination — a general Surface, the Bases, Screens, Settings: no chrome but the Rail's. */
+function CorePage({ children }: { children: ReactNode }) {
+  return <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>;
+}
+
+/** The routes of a hand-written Module layout (the Vault), below its path. */
+function FrameRoutes({ frame }: { frame: FrameDef }) {
   return (
-    <>
-      <Sidebar className="max-md:hidden" />
-      <main className="min-w-0 flex-1 overflow-y-auto">
-        <Routes>
-          <Route path="/" element={<HomeRedirect />} />
-          <Route path="/screen/:id" element={<UserScreenPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/module/:id" element={<ModulePage />} />
-          <Route path="/calendar" element={<CalendarPage />} />
-          <Route path="/week" element={<WeekPage />} />
-          <Route path="/map" element={<MapPage />} />
-          <Route path="/graph" element={<GraphPage />} />
-          <Route path="/schedule" element={<SchedulePage />} />
-          <Route path="/base" element={<BasesIndex />} />
-          <Route path="/base/:type" element={<BasePage />} />
-          {screensOf().map((s) => {
-            const Component = s.component;
-            return <Route key={s.id} path={`/app/${s.path}`} element={<Component />} />;
-          })}
-          {/* Legacy Notes URLs (before the frame split, and before the Vault rename). */}
-          <Route path="/app/notes" element={<Navigate to="/vault" replace />} />
-          <Route path="/app/notes/:id" element={<LegacyNoteRedirect />} />
-          <Route path="/notes/*" element={<LegacyVaultRedirect />} />
-          {/* Screens that moved to another frame keep their old /app/ URLs as redirects. */}
-          {frames()
-            .flatMap((w) => screensOf(w.id))
-            .map((s) => (
-              <Route key={`redirect-${s.id}`} path={`/app/${s.path}`} element={<Navigate to={screenRoute(s)} replace />} />
-            ))}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-    </>
+    <Routes>
+      {frame.home && <Route index element={<Navigate to={frame.home} replace />} />}
+      {screensOf(frame.id).map((s) => {
+        const Component = s.component;
+        return <Route key={s.id} path={s.path || "/"} element={<Component />} />;
+      })}
+      <Route path="*" element={<Navigate to={frame.home || "."} replace />} />
+    </Routes>
+  );
+}
+
+/** The Module whose layout a frame is — the one whose home is the frame's path. */
+function moduleOfFrame(frame: FrameDef): string | undefined {
+  return MODULES.find((m) => m.home === frame.path)?.id;
+}
+
+/**
+ * Every place, beside the Rail (ADR 0057): Modules, each in its own layout,
+ * and Core's destinations with no chrome but the Rail. An App screen is shown
+ * inside its App's Module; one whose App names no Module (the Calendar App's
+ * Events) is shown bare, reached from the palette.
+ */
+function Places() {
+  return (
+    <Routes>
+      <Route path="/" element={<ResumeRedirect />} />
+      {frames().map((f) => {
+        const moduleId = moduleOfFrame(f);
+        const routes = <FrameRoutes frame={f} />;
+        return (
+          <Route
+            key={f.id}
+            path={`${f.path}/*`}
+            element={moduleId ? <ModuleLayout moduleId={moduleId} bare>{routes}</ModuleLayout> : <CorePage>{routes}</CorePage>}
+          />
+        );
+      })}
+      <Route path="/module/:id" element={<ModulePage />} />
+      {screensOf().map((s) => {
+        const Component = s.component;
+        const moduleId = appById(s.appId)?.module;
+        const known = moduleId && MODULES.some((m) => m.id === moduleId);
+        return (
+          <Route
+            key={s.id}
+            path={`/app/${s.path}`}
+            element={known ? <ModuleLayout moduleId={moduleId}><Component /></ModuleLayout> : <CorePage><Component /></CorePage>}
+          />
+        );
+      })}
+      <Route path="/calendar" element={<CorePage><CalendarPage /></CorePage>} />
+      <Route path="/week" element={<CorePage><WeekPage /></CorePage>} />
+      <Route path="/schedule" element={<CorePage><SchedulePage /></CorePage>} />
+      <Route path="/map" element={<CorePage><MapPage /></CorePage>} />
+      <Route path="/graph" element={<CorePage><GraphPage /></CorePage>} />
+      <Route path="/base" element={<CorePage><BasesIndex /></CorePage>} />
+      <Route path="/base/:type" element={<CorePage><BasePage /></CorePage>} />
+      <Route path="/screens" element={<CorePage><ScreensIndex /></CorePage>} />
+      <Route path="/screen/:id" element={<CorePage><UserScreenPage /></CorePage>} />
+      <Route path="/settings" element={<CorePage><SettingsPage /></CorePage>} />
+      {/* Legacy Notes URLs (before the frame split, and before the Vault rename). */}
+      <Route path="/app/notes" element={<Navigate to="/vault" replace />} />
+      <Route path="/app/notes/:id" element={<LegacyNoteRedirect />} />
+      <Route path="/notes/*" element={<LegacyVaultRedirect />} />
+      {/* Screens that moved into the Vault keep their old /app/ URLs as redirects. */}
+      {frames()
+        .flatMap((w) => screensOf(w.id))
+        .map((s) => (
+          <Route key={`redirect-${s.id}`} path={`/app/${s.path}`} element={<Navigate to={screenRoute(s)} replace />} />
+        ))}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
@@ -84,7 +140,7 @@ function AppBackground({ app }: { app: AppManifest }) {
 }
 
 export default function App() {
-  useFrameMemory();
+  useResume();
   // A genuinely empty account makes its one Workspace here; an existing one was
   // given it by the server (PocketBase migration 1757400000), and this waits
   // for the first full pull rather than racing it into a second "Personal"
@@ -102,12 +158,8 @@ export default function App() {
         ))}
         <PhoneHeader />
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          <Routes>
-            {frames().map((w) => (
-              <Route key={w.id} path={`${w.path}/*`} element={<FrameLayout frame={w} />} />
-            ))}
-            <Route path="/*" element={<DashboardFrame />} />
-          </Routes>
+          <Rail className="max-md:hidden" />
+          <Places />
         </div>
         <MobileNav />
         <CommandPalette />

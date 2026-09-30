@@ -29,9 +29,10 @@ export interface CollectionDef {
 }
 
 /**
- * A Frame (ADR 0012): a full-screen environment over the same data with
- * its own chrome. Core provides the built-in "dashboard" frame and the
- * switcher; an App may provide another one (the Notes App provides "notes").
+ * A hand-written Module layout with routes of its own (ADR 0057). The word is
+ * left over from ADR 0012's Frames, which ADR 0057 retired: today it is only
+ * how the Vault — the Note-taking Module's layout — is mounted, under a Module
+ * whose `home` is this `path`.
  */
 export interface FrameDef {
   id: string;
@@ -39,7 +40,7 @@ export interface FrameDef {
   icon?: React.ComponentType<{ className?: string }>;
   /** URL root, e.g. "/notes". Every screen of this frame is routed below it. */
   path: string;
-  /** The frame's own sidebar (Core renders the switcher above it). */
+  /** The layout's own sidebar. */
   sidebar: React.ComponentType;
   /** Where the bare root path lands, relative to `path` (e.g. "journal"). */
   home: string;
@@ -49,34 +50,44 @@ export const DASHBOARD_FRAME = "dashboard";
 export const VAULT_FRAME = "vault";
 
 /**
- * A Module (ADR 0047): one shelf of Apps. Core owns the list, the titles and
- * the order — fixed in code, as the Nav groups it supersedes were — and an App
- * names the one Module it belongs to. An App naming none, or an unknown one,
- * keeps its screens as plain top-level rows.
+ * A Module (ADR 0057): **the thing the user opens** — a product over one
+ * domain, with its own layout and navigation. Core owns the list, the titles
+ * and the order; an App names the one Module it belongs to, and the Module
+ * arranges what its Apps supply while the Apps keep ownership of their types.
  *
- * A Module carries **chrome and only chrome** into a Workspace: its Apps'
- * screens, the Bases of the types those Apps own, and their capture Commands.
- * It never gates a Surface, the Vault, the palette or a card picker — those
- * work across Apps by Contract, and a Schedule that hid Tuesday's Chores
- * because this Workspace lacks the House Module would be lying about Tuesday.
- * Hiding is separation's job (ADR 0048) or nobody's.
+ * A Module scopes chrome — which Modules stand on a Workspace's Rail, its own
+ * embedded Surfaces, the capture sheet — never data (that is separation, ADR
+ * 0048) and never a general Surface, the Bases or the palette. An App naming
+ * no Module has no destination of its own (the Calendar App, whose Events live
+ * on the general time Surfaces).
  */
 export interface ModuleDef {
   id: string;
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
+  /**
+   * Where the Module lands, when it is not `/module/<id>`: a Module whose
+   * layout is a hand-written frame (Note-taking's is the Vault) lives under
+   * that frame's path.
+   */
+  home?: string;
 }
 
-/** Core's Modules, in order. A Workspace is assembled from these (ADR 0047). */
+/** Core's Modules, in Rail order. A Workspace takes a set of these (ADR 0057). */
 export const MODULES: ModuleDef[] = [
   { id: "house", title: "House" },
   { id: "tasks", title: "Tasks" },
-  { id: "schedules", title: "Schedules" },
   { id: "culture", title: "Culture" },
   { id: "money", title: "Money" },
-  { id: "notes", title: "Note-taking" },
+  { id: "notes", title: "Note-taking", home: "/vault" },
   { id: "progress", title: "Progress" },
+  { id: "mail", title: "Mail" },
 ];
+
+/** A Module's landing route. */
+export function moduleHome(m: ModuleDef): string {
+  return m.home ?? `/module/${m.id}`;
+}
 
 export function moduleById(id: string | undefined): ModuleDef | undefined {
   return id ? MODULES.find((m) => m.id === id) : undefined;
@@ -204,10 +215,9 @@ export interface AppManifest {
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
   /**
-   * The one Module this App belongs to (ADR 0047). An App names a Module, not
-   * one per screen: no App has ever wanted two, which is why the Nav group —
-   * which was per-screen and explicitly not a container — could become one.
-   * Absent or unknown leaves the App's screens as top-level sidebar rows.
+   * The one Module this App belongs to (ADR 0047, ADR 0057): its screens are
+   * shown inside that Module's layout. Absent means the App has no destination
+   * of its own — its screens still route, bare, and the palette reaches them.
    */
   module?: string;
   /** Accent color CSS value used for the App's items on shared surfaces. */

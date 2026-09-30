@@ -7,7 +7,6 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type ScreenLayoutItem, type UserScreen } from "./data/db";
-import { put } from "./data/repo";
 import { allWorkspaces, currentWorkspace, currentWorkspaceId, useCurrentWorkspaceId } from "./workspaces";
 
 /** The one-column reading of a layout: rows top to bottom, left to right within a row. */
@@ -77,16 +76,3 @@ export function useWorkspaceScreens(): UserScreen[] {
   return useLiveQuery(async () => screensOfWorkspace(), [wsId], [] as UserScreen[]);
 }
 
-/** The Screen claiming a Module in this Workspace — where that Module lands (ADR 0049, rule 1). */
-export function useModuleScreen(moduleId: string | undefined): UserScreen | undefined {
-  const screens = useWorkspaceScreens();
-  return moduleId ? screens.find((s) => s.module === moduleId) : undefined;
-}
-
-/** Claim a Module for a Screen, clearing the claim from whichever Screen held it here. */
-export async function claimModule(id: string, moduleId: string | undefined): Promise<void> {
-  for (const s of await screensOfWorkspace()) {
-    if (s.id === id && s.module !== moduleId) await put<UserScreen>(SCREENS, { ...s, module: moduleId });
-    else if (s.id !== id && moduleId && s.module === moduleId) await put<UserScreen>(SCREENS, { ...s, module: undefined });
-  }
-}

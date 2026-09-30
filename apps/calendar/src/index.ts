@@ -104,10 +104,12 @@ const blockerTemplateType: DocumentTypeDef = {
   builtIn: true,
 };
 
-/** The Calendar App owns Events (CONTEXT.md). The month/week grids are Core Surfaces. */
+/**
+ * The Calendar App owns Events (CONTEXT.md). The month/week grids are Core
+ * Surfaces, and so is where Events live: the App names no Module (ADR 0057).
+ */
 export const calendarApp: AppManifest = {
   id: APP_ID,
-  module: "schedules",
   title: "Calendar",
   icon: CalendarClock,
   color: "var(--chart-violet)",

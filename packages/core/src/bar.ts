@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import {
   SURFACES,
   moduleById,
+  moduleHome,
   surfaceById,
   type BarSlot,
   type BarSlotKind,
@@ -117,7 +118,7 @@ function destinationOf(
       // A Module this Workspace does not hold is not a destination here —
       // `ModulePage` turns it away, so the slot would land on a redirect.
       if (!m || !modules.includes(id)) return undefined;
-      return { title: m.title, path: `/module/${m.id}` };
+      return { title: m.title, path: moduleHome(m) };
     }
     case "surface": {
       const s = surfaceById(id);

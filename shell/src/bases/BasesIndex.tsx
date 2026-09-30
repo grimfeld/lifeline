@@ -14,9 +14,8 @@ import {
   type DocumentTypeDef,
   type DocumentTypeRecord,
 } from "@lifeline/core";
-import { Eye, EyeOff, LayoutTemplate, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { LayoutTemplate, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { TypeEditor } from "./TypeEditor";
-import { useHiddenBases } from "../components/sidebarPrefs";
 
 /** `/base`: every Document type with its count — the Bases list and the type manager (ADR 0019). */
 export function BasesIndex() {
@@ -25,7 +24,6 @@ export function BasesIndex() {
   const docs = useAllDocuments();
   const navigate = useNavigate();
   const [editing, setEditing] = useState<{ record: DocumentTypeRecord | null; base?: DocumentTypeDef } | null>(null);
-  const [hiddenBases, toggleHiddenBase] = useHiddenBases();
   const counts = useMemo(() => {
     const m = new Map<string, number>();
     for (const d of docs) m.set(d.type, (m.get(d.type) ?? 0) + 1);
@@ -67,17 +65,6 @@ export function BasesIndex() {
           </Badge>
         )}
         {t.overridden && <Badge variant="outline">edited</Badge>}
-        {!t.internal && (
-          <Button
-            size="icon"
-            variant="ghost"
-            className={hiddenBases.includes(t.id) ? "text-muted-foreground size-7" : "size-7"}
-            title={hiddenBases.includes(t.id) ? "Hidden from the sidebar on this device — click to show" : "Shown in the sidebar — click to hide (this device)"}
-            onClick={() => toggleHiddenBase(t.id)}
-          >
-            {hiddenBases.includes(t.id) ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-          </Button>
-        )}
         {t.body !== "none" && t.titleRule !== "derived" && (
           <Button size="icon" variant="ghost" className="size-7" title={templates.has(t.id.toLowerCase()) ? "Edit template (customised)" : "Edit template"} onClick={() => void editTemplate(t)}>
             <LayoutTemplate className="size-3.5" />

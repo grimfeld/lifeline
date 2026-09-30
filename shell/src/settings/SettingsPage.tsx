@@ -21,6 +21,7 @@ import {
 import { Check, Lock, Plus, Smartphone, X } from "lucide-react";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
 import { WorkspaceDialog, WorkspaceForm } from "../components/WorkspaceDialog";
+import { SyncBadge } from "../components/SyncBadge";
 
 /**
  * `/settings` (ADR 0053): where the user configures Lifeline itself rather
@@ -42,6 +43,13 @@ export function SettingsPage() {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-4 md:p-6">
       <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+      <section className="flex flex-col gap-2">
+        <h2 className="text-base font-medium">Account and sync</h2>
+        <div className="max-w-xs">
+          <SyncBadge />
+        </div>
+      </section>
+      <Separator />
       <PhoneBarSection />
       <Separator />
       <WorkspacesSection />
