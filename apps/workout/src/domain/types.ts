@@ -1,4 +1,4 @@
-import type { DateStr, Document, TimeStr } from "@lifeline/core";
+import type { DateStr, Document, Tally, TimeStr } from "@lifeline/core";
 
 export const APP_ID = "workout";
 export const WORKOUT_HREF = "/app/workout";
@@ -83,16 +83,6 @@ export interface Block {
   movements: Movement[];
 }
 
-/** What a Tally sends: one (a tick), or the Session's length in minutes. */
-export type TallyValue = "one" | "duration";
-
-/** A Workout's standing instruction to log Sessions somewhere Loggable (CONTEXT.md "Tally", ADR 0031). */
-export interface Tally {
-  /** A Loggable target key: `${appId}/${id}`. */
-  target: string;
-  value: TallyValue;
-}
-
 /** A plan for a training session (CONTEXT.md "Workout", ADR 0030). */
 export interface Workout extends Document {
   type: typeof WORKOUT;
@@ -139,8 +129,6 @@ export interface Session extends Document {
   durationMin: number;
   results: BlockResult[];
   notes: string;
-  /** The Workout's Tallies were logged when this Session was saved (never re-fired). */
-  tallied: boolean;
 }
 
 export function emptyMovement(exerciseId = ""): Movement {

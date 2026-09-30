@@ -27,3 +27,4 @@ export * from "./typeIcons";
 export * from "./colorSlots";
 export * from "./components/push/push-flow";
 export * from "./components/intake/intake-button";
+export * from "./components/tally/tally-editor";

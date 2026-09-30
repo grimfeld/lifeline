@@ -117,8 +117,9 @@ export interface ViewFilter {
  *   19 — Workspaces (ADR 0047/0048): synced `workspaces`; `workspace` indexed on
  *        `documents` and `screens` so a scoped read is an index hit, not a scan
  *   20 — Mail App (ADR 0051): local `_mail_cache` table
+ *   21 — Tallying (ADR 0059): local `_tally_fires` marks
  */
-const DB_VERSION = 20;
+const DB_VERSION = 21;
 
 /** Stores that existed before ADR 0018; deleted on upgrade so a client re-pulls into `documents`. */
 const LEGACY_STORES = [
@@ -134,6 +135,8 @@ export const ATTACHMENTS = "attachments";
 /** Workspaces (ADR 0047) — synced; which one this device is *in* is not. */
 export const WORKSPACES = "workspaces";
 export const BLOBS = "_blobs";
+/** Tallying (ADR 0059): which Tally already fired for which occurrence — per device, never synced. */
+export const TALLY_FIRES = "_tally_fires";
 
 /** Indexes every Document row gets; type-declared ones are added as `[type+field]`. */
 const DOCUMENT_BASE_INDEXES = [
@@ -164,6 +167,7 @@ export class LifelineDB extends Dexie {
       [DOCUMENT_TYPES]: "id, updatedAt, deleted, typeId",
       [ATTACHMENTS]: "id, updatedAt, deleted, name",
       [BLOBS]: "id",
+      [TALLY_FIRES]: "id",
       [DOCUMENTS]: Array.from(new Set([...DOCUMENT_BASE_INDEXES, ...documentIndexes.map(compileDocumentIndex)])).join(", "),
     };
     for (const c of localTables) {
