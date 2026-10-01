@@ -11,7 +11,9 @@ import { todayStr } from "@lifeline/core";
 import type { CommandDef } from "@lifeline/core";
 import { Check, ClipboardCheck, Plus } from "lucide-react";
 import { ChoreDialog } from "./components/ChoreDialog";
-import { completeChore, lastDoneMap, useChores, useCompletions } from "./data/repo";
+import { addChore, completeChore, lastDoneMap, useChores, useCompletions } from "./data/repo";
+import { readSchedule, SCHEDULE_HINT } from "./domain/readSchedule";
+import { describeSchedule } from "./domain/schedule";
 import { dueState } from "./domain/schedule";
 
 function AddChoreCommandDialog({
@@ -84,6 +86,22 @@ export const choreCommands: CommandDef[] = [
     keywords: ["new", "create", "chore"],
     icon: Plus,
     dialog: AddChoreCommandDialog,
+    args: [
+      { key: "title", label: "Title", kind: "text", required: true },
+      { key: "schedule", label: "Schedule", kind: "json", required: true, hint: SCHEDULE_HINT },
+      { key: "anchorDate", label: "First due", kind: "date", hint: "Interval chores only: the day the first cycle is due. Defaults to today." },
+      { key: "tags", label: "Tags", kind: "list" },
+    ],
+    async invoke(a) {
+      const schedule = readSchedule(a.schedule);
+      await addChore({
+        title: a.title as string,
+        schedule,
+        anchorDate: schedule.kind === "interval" ? ((a.anchorDate as string | undefined) ?? todayStr()) : null,
+        tags: (a.tags as string[] | undefined) ?? [],
+      });
+      return { message: `Added chore “${a.title}” (${describeSchedule(schedule)})` };
+    },
   },
   {
     id: "chores.complete",

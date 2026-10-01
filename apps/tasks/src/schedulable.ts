@@ -2,6 +2,7 @@ import {
   documentsOf,
   todayStr,
   useLiveQuery,
+  type DateStr,
   type Document,
   vaultDocPath,
   type SchedulableItem,
@@ -9,16 +10,21 @@ import {
   type Urgency,
 } from "@lifeline/core";
 import { deriveItems, describeRecurrence, parseItemId } from "./domain/occurrences";
-import { moveItem, setCompleted, setEstimate, useOverrides, useTasks } from "./data/repo";
-import { PROJECT } from "./domain/types";
+import { allOverrides, allTasks, moveItem, setCompleted, setEstimate, useOverrides, useTasks } from "./data/repo";
+import { PROJECT, type OccurrenceOverride, type Task } from "./domain/types";
 
 /**
  * Each Project's face, read from the Projects App's Documents (ADR 0060): what
  * a Task's chip wears to say which Project it serves — the emoji, else the
  * name's first letter, in the Project's colour.
  */
-function useProjectMarks(): Map<string, { text: string; color?: string }> {
-  const projects = useLiveQuery(() => documentsOf<Document>(PROJECT), [], [] as Document[]);
+function useProjectMarks(): ProjectMarks {
+  return marksOf(useLiveQuery(() => documentsOf<Document>(PROJECT), [], [] as Document[]));
+}
+
+type ProjectMarks = Map<string, { text: string; color?: string }>;
+
+function marksOf(projects: Document[]): ProjectMarks {
   return new Map(
     projects.map((p) => [
       p.id,
@@ -42,36 +48,42 @@ export const APP_ID = "tasks";
  * Moves are owned by the App: they change the task's day / the Occurrence's
  * override, never a Core Placement pin.
  */
+/** Tasks and Occurrences in range as Schedulable items — what `useItems` and `itemsIn` both report. */
+function itemsOf(tasks: Task[], overrides: OccurrenceOverride[], marks: ProjectMarks, range: { start: DateStr; end: DateStr }): SchedulableItem[] {
+  const today = todayStr();
+  return deriveItems(tasks, overrides, range, today).map((it): SchedulableItem => {
+    let urgency: Urgency = "none";
+    if (!it.completedOn && !it.lapsed && it.date !== null) {
+      urgency = it.date < today ? "overdue" : it.date === today ? "due-today" : "upcoming";
+    }
+    return {
+      key: `${APP_ID}/${it.itemId}`,
+      appId: APP_ID,
+      itemId: it.itemId,
+      title: it.task.title,
+      subtitle: it.task.recurrence
+        ? describeRecurrence(it.task.recurrence)
+        : it.task.notes || undefined,
+      date: it.date,
+      urgency,
+      completedOn: it.completedOn,
+      tags: it.task.tags ?? [],
+      estimateMin: it.task.estimate,
+      mark: it.task.project ? marks.get(it.task.project) : undefined,
+    };
+  });
+}
+
 export const tasksSchedulable: SchedulableProvider = {
   appId: APP_ID,
   overduePolicy: "stay",
 
   useItems(range) {
-    const tasks = useTasks();
-    const overrides = useOverrides();
-    const marks = useProjectMarks();
-    const today = todayStr();
-    return deriveItems(tasks, overrides, range, today).map((it): SchedulableItem => {
-      let urgency: Urgency = "none";
-      if (!it.completedOn && !it.lapsed && it.date !== null) {
-        urgency = it.date < today ? "overdue" : it.date === today ? "due-today" : "upcoming";
-      }
-      return {
-        key: `${APP_ID}/${it.itemId}`,
-        appId: APP_ID,
-        itemId: it.itemId,
-        title: it.task.title,
-        subtitle: it.task.recurrence
-          ? describeRecurrence(it.task.recurrence)
-          : it.task.notes || undefined,
-        date: it.date,
-        urgency,
-        completedOn: it.completedOn,
-        tags: it.task.tags ?? [],
-        estimateMin: it.task.estimate,
-        mark: it.task.project ? marks.get(it.task.project) : undefined,
-      };
-    });
+    return itemsOf(useTasks(), useOverrides(), useProjectMarks(), range);
+  },
+
+  async itemsIn(range) {
+    return itemsOf(await allTasks(), await allOverrides(), marksOf(await documentsOf<Document>(PROJECT)), range);
   },
 
   async complete(itemId, on) {

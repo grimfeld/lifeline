@@ -17,6 +17,11 @@ export function useChores(): Chore[] {
   return useDocuments<Chore>(CHORE);
 }
 
+/** Every completion, one per chore per day, read once outside React. */
+export async function allCompletions(): Promise<Completion[]> {
+  return uniqueCompletions(await documentsOf<Completion>(COMPLETION));
+}
+
 /** Every completion, one per chore per day (see `uniqueCompletions`). */
 export function useCompletions(): Completion[] {
   const raw = useDocuments<Completion>(COMPLETION);

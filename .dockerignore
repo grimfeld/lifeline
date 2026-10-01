@@ -1,0 +1,10 @@
+# Build context of mcp/Dockerfile (the repository root).
+**/node_modules
+**/dist
+**/.env
+.git
+pocketbase/pb_data
+pocketbase/pocketbase
+pocketbase/pocketbase.exe
+shell/src-tauri/target
+shell/src-tauri/gen
