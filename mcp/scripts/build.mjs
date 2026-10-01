@@ -7,11 +7,12 @@ import { build } from "esbuild";
 const entries = process.argv.slice(2);
 
 /**
- * Browser-only libraries the Apps' views import. The server never renders a
- * view, but some of these touch `window` the moment they load, so each is
- * swapped for scripts/inert.cjs.
+ * View-only libraries the Apps' screens import. The server never renders a
+ * view: some of these touch `window` the moment they load, and the rest
+ * (icons, UI kits) would only cost memory — lucide-react alone, as CommonJS,
+ * is every icon copied into every importer. Each is swapped for scripts/inert.cjs.
  */
-const BROWSER_ONLY = /^(leaflet|react-leaflet|@react-leaflet\/.*|recharts|tesseract\.js|@codemirror\/.*|@lezer\/.*|react-grid-layout|d3-force|d3-quadtree)(\/.*)?$/;
+const BROWSER_ONLY = /^(leaflet|react-leaflet|@react-leaflet\/.*|recharts|tesseract\.js|@codemirror\/.*|@lezer\/.*|react-grid-layout|d3-force|d3-quadtree|lucide-react|radix-ui|@radix-ui\/.*|cmdk|sonner|next-themes|@dnd-kit\/.*|@fontsource-variable\/.*)(\/.*)?$/;
 const INERT = readFileSync(new URL("./inert.cjs", import.meta.url), "utf8");
 
 const inert = {
@@ -28,6 +29,8 @@ await build({
   outExtension: { ".js": ".mjs" },
   bundle: true,
   platform: "node",
+  // ESM builds first, so unused exports shake out.
+  mainFields: ["module", "main"],
   format: "esm",
   target: "node22",
   sourcemap: true,

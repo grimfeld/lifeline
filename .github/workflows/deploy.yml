@@ -13,3 +13,15 @@ jobs:
         working-directory: pocketbase
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+  # The MCP server (ADR 0062), after PocketBase so a new migration is live
+  # before the tools that need it. Built from the repository root.
+  deploy-mcp:
+    needs: deploy
+    runs-on: ubuntu-latest
+    concurrency: deploy-mcp-group
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy . --config mcp/fly.toml --remote-only --ha=false
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
