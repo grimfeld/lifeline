@@ -19,6 +19,12 @@ export interface SchedulableItem {
   tags?: string[];
   /** The Estimate (ADR 0054): whole minutes the App expects it to take. null/absent = none given yet. */
   estimateMin?: number | null;
+  /**
+   * A small mark Surfaces put before the title, saying what the item belongs
+   * to — a Task's Project's face (ADR 0060). One emoji or letter, optionally
+   * coloured.
+   */
+  mark?: { text: string; color?: string };
 }
 
 /**

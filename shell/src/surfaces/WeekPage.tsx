@@ -53,6 +53,7 @@ import {
 } from "@lifeline/core";
 import { CalendarClock, Check, ChevronDown, ChevronLeft, ChevronRight, GripVertical, Inbox, MapPin, Pin, PinOff } from "lucide-react";
 import { usePush } from "./push";
+import { ItemMark, missed } from "./marks";
 
 const POOL = "pool";
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -133,6 +134,7 @@ function ItemCard({
             onTouchStart={(e) => e.stopPropagation()}
           >
             <span className={cn("block truncate leading-tight", done && "line-through")}>
+              <ItemMark mark={item.mark} />
               {item.title}
             </span>
             {item.subtitle && (
@@ -222,6 +224,7 @@ function TimedCard({ item }: { item: SurfaceTimedItem }) {
         "flex items-center gap-1.5 rounded-md border-l-2 bg-muted/60 px-2 py-1 text-xs",
         movable && "cursor-grab active:cursor-grabbing",
         isDragging && "opacity-40",
+        missed(item) && "text-destructive",
       )}
       style={{ borderLeftColor: item.color ?? "var(--muted-foreground)" }}
       title={`${appById(item.appId)?.title} · ${item.subtitle ?? item.title}`}
@@ -229,7 +232,7 @@ function TimedCard({ item }: { item: SurfaceTimedItem }) {
       {item.start ? (
         <span className="text-muted-foreground shrink-0">{formatTime(item.start)}</span>
       ) : (
-        <span className="text-muted-foreground shrink-0">All day</span>
+        <span className="text-muted-foreground shrink-0">{item.marker ? "Deadline" : "All day"}</span>
       )}
       <span className="truncate font-medium">{item.title}</span>
     </div>

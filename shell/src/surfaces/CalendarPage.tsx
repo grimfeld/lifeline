@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { TimeAppLinks } from "./TimeAppLinks";
+import { ItemMark, missed } from "./marks";
 import { TagFilterBar } from "../components/TagFilterBar";
 import {
   Badge,
@@ -48,7 +49,7 @@ const MONTHS = [
 function TimedChip({ item }: { item: SurfaceTimedItem }) {
   return (
     <div
-      className="flex w-full items-center gap-1 truncate rounded px-1 py-0.5 text-xs"
+      className={cn("flex w-full items-center gap-1 truncate rounded px-1 py-0.5 text-xs", missed(item) && "text-destructive font-medium")}
       title={`${appById(item.appId)?.title} · ${item.subtitle ?? item.title}`}
     >
       <span
@@ -78,7 +79,10 @@ function ItemChip({ item, onMove }: { item: SurfaceItem; onMove: (i: SurfaceItem
             className="size-1.5 shrink-0 rounded-full"
             style={{ background: item.color ?? "var(--muted-foreground)" }}
           />
-          <span className="truncate">{item.title}</span>
+          <span className="truncate">
+            <ItemMark mark={item.mark} />
+            {item.title}
+          </span>
           {item.placementId && <Pin className="text-muted-foreground ml-auto size-3 shrink-0" />}
         </button>
       </DropdownMenuTrigger>

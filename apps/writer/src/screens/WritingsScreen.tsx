@@ -4,7 +4,7 @@ import { Badge, Button, Dialog, DialogContent, DialogFooter, DialogHeader, Dialo
 import { basePath, excerpt, formatHuman } from "@lifeline/core";
 import { Feather, Plus, Table2 } from "lucide-react";
 import { newWriting, useWritings } from "../data";
-import { STATUSES, WRITING, wordCount, writingHref, type WritingStatus } from "../types";
+import { groupOf, STATUSES, WRITING, wordCount, writingHref, type WritingStatus } from "../types";
 
 /**
  * The Writer's desk: writings grouped by status, newest edit first; New writing.
@@ -16,7 +16,7 @@ export function WritingsScreen() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [project, setProject] = useState("");
+  const [group, setGroup] = useState("");
   const [status, setStatus] = useState<WritingStatus | "all">("all");
   const rows = useMemo(
     () => [...writings].filter((w) => status === "all" || (w.status || "draft") === status).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
@@ -25,10 +25,10 @@ export function WritingsScreen() {
   async function create() {
     if (!title.trim()) return;
     try {
-      const w = await newWriting({ title, project });
+      const w = await newWriting({ title, group });
       setOpen(false);
       setTitle("");
-      setProject("");
+      setGroup("");
       navigate(writingHref(w.id));
     } catch (e) {
       toast.error((e as Error).message);
@@ -81,7 +81,7 @@ export function WritingsScreen() {
                 <Badge variant="outline" className="text-[10px]">
                   {STATUSES.find((s) => s.value === (w.status || "draft"))?.label}
                 </Badge>
-                {w.project && <span>{w.project}</span>}
+                {groupOf(w) && <span>{groupOf(w)}</span>}
                 <span>{wordCount(w.body)} words</span>
                 <span>edited {formatHuman(w.updatedAt.slice(0, 10) || w.createdAt)}</span>
               </div>
@@ -96,7 +96,7 @@ export function WritingsScreen() {
             <DialogTitle>New writing</DialogTitle>
           </DialogHeader>
           <Input autoFocus placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void create()} />
-          <Input placeholder="Project (optional)" value={project} onChange={(e) => setProject(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void create()} />
+          <Input placeholder="Folder (optional) — e.g. Talks" value={group} onChange={(e) => setGroup(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void create()} />
           <DialogFooter>
             <Button onClick={() => void create()} disabled={!title.trim()}>
               Start writing

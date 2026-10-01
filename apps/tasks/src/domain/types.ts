@@ -34,6 +34,18 @@ export interface Task extends Document {
   estimate: number | null;
   /** Recurring Tasks generate Occurrences from this day on (the Document's createdAt). */
   createdAt: DateStr;
+  /** The Project it belongs to (ADR 0060), or null for a loose Task. */
+  project: string | null;
+  /** One of its Project's Milestones, or null. Never another Project's. */
+  milestone: string | null;
+  /**
+   * The Lane of its Project's Board it stands in. null — or a Lane that no
+   * longer exists — reads as the Project's first Lane; a ticked Task reads as
+   * standing in the done Lane whatever this says (ADR 0060).
+   */
+  lane: string | null;
+  /** Hand order within its Lane (lower first); null sorts after every ranked Task. */
+  rank: number | null;
 }
 
 /**
@@ -54,6 +66,14 @@ export interface OccurrenceOverride extends Document {
 /** Document type ids (ADR 0019). */
 export const TASK = "task";
 export const TASK_OCCURRENCE = "task_occurrence";
+
+/**
+ * The Projects App's types, which the Tasks App only *reads* (any App may read
+ * any Document): the Project a Task links to and its Milestones, so the Task's
+ * own dialog can offer them. Writing them is the Projects App's business.
+ */
+export const PROJECT = "project";
+export const PROJECT_MILESTONE = "project_milestone";
 
 /** Where a Task opens: the App has no per-task route, so the main screen. */
 export const TASKS_HREF = "/app/tasks";

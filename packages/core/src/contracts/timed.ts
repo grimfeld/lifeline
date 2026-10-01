@@ -40,6 +40,17 @@ export interface TimedItem {
    * one-off band leaves this unset and moves through `reschedule`.
    */
   fixed?: boolean;
+  /**
+   * A day that matters with nothing happening on it — a Project's Deadline
+   * (ADR 0061). Always all day, so it takes no hours; Surfaces draw it as a
+   * flag rather than an Event, and red once its day has passed.
+   */
+  marker?: boolean;
+}
+
+/** Whether a marker's day has passed (ADR 0061): it stays there, red, and never rolls forward. */
+export function isMissedMarker(item: Pick<TimedItem, "marker" | "date">, today: DateStr): boolean {
+  return !!item.marker && item.date < today;
 }
 
 /**

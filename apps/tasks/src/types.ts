@@ -1,6 +1,6 @@
 import type { DocumentTypeDef } from "@lifeline/core";
 import { ListTodo } from "lucide-react";
-import { TASK, TASK_OCCURRENCE, TASKS_HREF, type Recurrence } from "./domain/types";
+import { PROJECT, TASK, TASK_OCCURRENCE, TASKS_HREF, type Recurrence } from "./domain/types";
 import { describeRecurrence } from "./domain/occurrences";
 
 /**
@@ -25,6 +25,12 @@ export const taskType: DocumentTypeDef = {
     { key: "recurrence", label: "Recurrence", kind: "text", guarded: true, hidden: true },
     { key: "estimate", label: "Estimate (min)", kind: "number", column: true },
     { key: "notes", label: "Notes", kind: "longtext" },
+    // ADR 0060: where the Task stands in a Project. Moved through the App's
+    // intents only — changing Project must clear the Milestone and the Lane.
+    { key: "project", label: "Project", kind: "link", linkType: PROJECT, guarded: true, column: true },
+    { key: "milestone", label: "Milestone", kind: "text", guarded: true, hidden: true },
+    { key: "lane", label: "Lane", kind: "text", guarded: true, hidden: true },
+    { key: "rank", label: "Rank", kind: "number", guarded: true, hidden: true },
   ],
   builtIn: true,
 };

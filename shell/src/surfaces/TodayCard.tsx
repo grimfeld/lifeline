@@ -7,6 +7,7 @@ import {
   useSurfaceItems,
   useTimedItems,
 } from "@lifeline/core";
+import { ItemMark, missed } from "./marks";
 import { Check } from "lucide-react";
 import { PushButton } from "./push";
 
@@ -39,9 +40,9 @@ export function TodayCard() {
       {timed.map((t) => (
         <li key={t.key} className="flex items-center gap-2 rounded-md px-1 py-0.5">
           <span className="text-muted-foreground w-16 shrink-0 text-xs">
-            {t.start ? formatTime(t.start) : "All day"}
+            {t.start ? formatTime(t.start) : t.marker ? "Deadline" : "All day"}
           </span>
-          <span className="truncate text-sm">{t.title}</span>
+          <span className={cn("truncate text-sm", missed(t) && "text-destructive font-medium")}>{t.title}</span>
           <span
             className="ml-auto size-2 shrink-0 rounded-sm"
             style={{ background: t.color ?? "var(--muted-foreground)" }}
@@ -95,6 +96,7 @@ export function TodayCard() {
               item.completedOn && "text-muted-foreground line-through",
             )}
           >
+            <ItemMark mark={item.mark} />
             {item.title}
           </span>
           <span

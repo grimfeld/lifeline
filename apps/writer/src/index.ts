@@ -4,6 +4,7 @@ import { WritingsScreen } from "./screens/WritingsScreen";
 import { DraftsCard } from "./cards/DraftsCard";
 import { VersionsPanel } from "./VersionsPanel";
 import { APP_ID, versionType, WRITINGS_HREF, writingType } from "./types";
+import { useFoldProjects } from "./data";
 
 /** The Writer's pad (ADR 0019): owns `writing` (my own prose) and its internal `writing_version` snapshots. */
 export const writerApp: AppManifest = {
@@ -29,5 +30,7 @@ export const writerApp: AppManifest = {
   ],
   /** Versions ride along with a Writing wherever it is open (ADR 0045). */
   documentPanels: [{ id: "writer.versions", component: VersionsPanel }],
+  // ADR 0060: the old `project` field becomes a Folder, once, on every device.
+  useBackground: useFoldProjects,
   commands: [{ id: "writer.go", title: "Go to Writings", keywords: ["writer", "draft", "pad"], icon: Feather, run: ({ navigate }) => navigate(WRITINGS_HREF) }],
 };
