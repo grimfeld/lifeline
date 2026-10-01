@@ -145,6 +145,31 @@ export function useSurfaceItems(range: { start: DateStr; end: DateStr }, opts?: 
 }
 
 /**
+ * The same rows, and the pool, read once outside React — what an agent's
+ * agenda shows (ADR 0062). Only providers with `itemsIn` take part; no Tag
+ * filter or Surface scope applies, since there is no Surface.
+ */
+export async function surfaceItemsIn(range: { start: DateStr; end: DateStr }): Promise<{ items: SurfaceItem[]; pool: PoolItem[] }> {
+  const placements = await db().collection<Placement>("placements").where("deleted").equals(0).toArray();
+  const today = todayStr();
+  const now = nowClock();
+  const byItem = groupByItem(placements);
+  const items: SurfaceItem[] = [];
+  const pool: PoolItem[] = [];
+  for (const provider of schedulableProviders()) {
+    if (!provider.itemsIn) continue;
+    const color = appById(provider.appId)?.color;
+    const resolve: ResolveOptions = { ownsMoves: !!provider.move, overduePolicy: provider.overduePolicy, today, now };
+    for (const item of await provider.itemsIn(range)) {
+      const own = byItem.get(item.key) ?? [];
+      if (isPoolItem(item, own, !!provider.move)) pool.push({ ...item, color });
+      for (const row of resolveItemRows(item, own, resolve)) items.push({ ...row, color });
+    }
+  }
+  return { items: items.filter((i) => i.displayDate >= range.start && i.displayDate <= range.end), pool };
+}
+
+/**
  * Items no App has put on a day yet (natural date null, no day pin) — the
  * "unplaced" column of a planning surface. Time blocks do not take an item
  * out of the pool (ADR 0028): the chip stays, greyed while a block lies

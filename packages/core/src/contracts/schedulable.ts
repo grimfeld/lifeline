@@ -39,6 +39,12 @@ export interface SchedulableProvider {
    * plus overdue items regardless of range.
    */
   useItems(range: { start: DateStr; end: DateStr }): SchedulableItem[];
+  /**
+   * The same items, read once outside React — what an agent reads (ADR 0062),
+   * as Push reads a Timed provider's `itemsIn`. A provider without it is
+   * invisible to callers that have no React tree.
+   */
+  itemsIn?(range: { start: DateStr; end: DateStr }): Promise<SchedulableItem[]>;
   /** Delegate of "the user ticked this off on a surface". */
   complete(itemId: string, on: DateStr): Promise<void>;
   /**
