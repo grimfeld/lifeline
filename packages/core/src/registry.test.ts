@@ -32,7 +32,7 @@ initApps([
 
 describe("moduleOfApp", () => {
   it("resolves an App's Module", () => {
-    expect(moduleOfApp("tasks")?.title).toBe("Tasks");
+    expect(moduleOfApp("tasks")?.title).toBe("Projects");
   });
 
   it("is undefined for an App naming none or an unknown one", () => {

@@ -77,7 +77,9 @@ export interface ModuleDef {
 /** Core's Modules, in Rail order. A Workspace takes a set of these (ADR 0057). */
 export const MODULES: ModuleDef[] = [
   { id: "house", title: "House" },
-  { id: "tasks", title: "Tasks" },
+  // The Projects Module (ADR 0060): Tasks and Projects. Its id predates the name
+  // and stays, since Workspaces and Phone bars already store it.
+  { id: "tasks", title: "Projects" },
   { id: "culture", title: "Culture" },
   { id: "money", title: "Money" },
   { id: "notes", title: "Note-taking", home: "/vault" },

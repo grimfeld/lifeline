@@ -1,4 +1,5 @@
-import { createDocument, documentsWhere, getDocument, putDocument, removeDocument, useDocuments, useLiveQuery } from "@lifeline/core";
+import { createDocument, documentsOf, documentsWhere, getDocument, moveDocument, normalizeFolder, putDocument, removeDocument, useDocuments, useLiveQuery } from "@lifeline/core";
+import { useEffect } from "react";
 import { VERSION, WRITING, wordCount, type Version, type Writing } from "./types";
 
 export function useWritings(): Writing[] {
@@ -13,8 +14,41 @@ export function useVersions(writingId: string | undefined): Version[] {
   );
 }
 
-export async function newWriting(input: { title: string; project?: string }): Promise<Writing> {
-  return (await createDocument({ type: WRITING, title: input.title, fields: { status: "draft", project: input.project ?? "" } })) as Writing;
+/** A new Writing, in `Writings` or a Folder below it ("Talks" → `Writings/Talks`). */
+export async function newWriting(input: { title: string; group?: string }): Promise<Writing> {
+  const group = normalizeFolder(input.group ?? "");
+  return (await createDocument({ type: WRITING, title: input.title, folder: group ? `Writings/${group}` : "Writings", fields: { status: "draft" } })) as Writing;
+}
+
+/**
+ * The retired free-text `project` field (ADR 0060) becomes a Folder: a Writing
+ * that still carries one moves to `<its folder>/<project>` and drops the
+ * field. Runs on every device and is idempotent; a Writing whose title is
+ * already taken there keeps its field and is tried again next time.
+ */
+export async function foldProjectsIntoFolders(): Promise<void> {
+  for (const w of await documentsOf<Writing & { project?: unknown }>(WRITING)) {
+    const project = typeof w.project === "string" ? w.project.trim() : "";
+    if (w.project === undefined) continue;
+    try {
+      let doc: Writing & { project?: unknown } = w;
+      if (project) {
+        const folder = normalizeFolder(`${w.folder || "Writings"}/${project}`);
+        await moveDocument(w, folder);
+        doc = { ...w, folder };
+      }
+      const { project: _gone, ...rest } = doc;
+      await putDocument<Writing>(rest as Writing);
+    } catch (e) {
+      console.warn(`[writer] could not fold project "${project}" of "${w.title}" into a folder`, e);
+    }
+  }
+}
+
+export function useFoldProjects(): void {
+  useEffect(() => {
+    void foldProjectsIntoFolders();
+  }, []);
 }
 
 /** Take a Version: a snapshot of the current body, on purpose (never automatic). */

@@ -19,8 +19,12 @@ export interface Writing extends Document {
   type: typeof WRITING;
   body: string;
   status: WritingStatus;
-  /** Free grouping ("Novel", "Blog"). */
-  project: string;
+}
+
+/** Where the desk groups a Writing: its Folder below `Writings` ("Talks", "Novel"), or "" at the top. */
+export function groupOf(w: Pick<Writing, "folder">): string {
+  const f = w.folder ?? "";
+  return f === "Writings" ? "" : f.startsWith("Writings/") ? f.slice("Writings/".length) : f;
 }
 
 /** A Version (CONTEXT.md): a deliberate snapshot of a Writing's body. Internal type. */
@@ -41,7 +45,8 @@ export const writingType: DocumentTypeDef = {
   titleRule: "name",
   body: "required",
   folder: "Writings",
-  linkable: { subtitle: (d) => (d.project ? String(d.project) : undefined) },
+  // Grouped by Folder (`Writings/Talks`), never a field: "project" is the Projects App's word (ADR 0060).
+  linkable: { subtitle: (d) => groupOf(d) || undefined },
   // A Writing is the one type that gets read *aloud* — a Talk (CONTEXT.md) is a
   // Writing given to a room, and the clock is what you want while giving it.
   readTimer: true,
@@ -49,7 +54,6 @@ export const writingType: DocumentTypeDef = {
   // Writing is now written (ADR 0045). It was the one type that overrode this.
   fields: [
     { key: "status", label: "Status", kind: "select", options: [...STATUSES], column: true },
-    { key: "project", label: "Project", kind: "text", column: true },
   ],
   indexes: ["status"],
   /** A Version exists only in service of its Writing, so it goes down with it. */
