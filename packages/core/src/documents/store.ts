@@ -164,7 +164,15 @@ export async function patchDocument(id: string, patch: Record<string, unknown>):
  * releasing a Workspace on delete means writing rows it never showed here.
  */
 export async function moveDocumentsToWorkspace(ids: string[], workspace: string): Promise<void> {
+  // A type may name what goes with its Documents (a Project's Tasks): moved in
+  // the same act, so nothing is left behind pointing across the boundary.
+  const all = new Set(ids);
   for (const id of ids) {
+    const doc = await documentsTable().get(id);
+    if (!doc || doc.deleted) continue;
+    for (const f of (await documentTypeSync(doc.type)?.followers?.(doc)) ?? []) all.add(f);
+  }
+  for (const id of all) {
     const doc = await documentsTable().get(id);
     if (!doc || doc.deleted || (doc.workspace ?? "") === workspace) continue;
     await put<Document>(DOCUMENTS, { ...doc, workspace });

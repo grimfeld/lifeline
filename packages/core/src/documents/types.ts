@@ -173,6 +173,13 @@ export interface DocumentTypeDef {
    * hangs off it (ADR 0045). Throwing leaves the Document in place.
    */
   onDelete?: (doc: Document) => Promise<void>;
+  /**
+   * What goes with a Document when it moves to another Workspace (ADR 0048):
+   * the ids of the Documents that exist in its service and would otherwise be
+   * left pointing into a sealed box — a Project's Milestones, Lanes and Tasks
+   * (ADR 0060). Followed once, not recursively.
+   */
+  followers?: (doc: Document) => Promise<string[]>;
   /** Sort order in pickers / the Bases list. */
   order?: number;
   /** Built-in (code) vs user-defined (data). */

@@ -9,7 +9,6 @@ import { QuickAddCard } from "./cards/QuickAddCard";
 import { taskCommands } from "./commands";
 import { tasksSchedulable, APP_ID } from "./schedulable";
 import { tasksDaylog } from "./daylog";
-import { TASK, TASK_OCCURRENCE, TASKS_HREF } from "./domain/types";
 import { taskTypes } from "./types";
 
 export const tasksApp: AppManifest = {
@@ -88,5 +87,5 @@ export const tasksApp: AppManifest = {
   intakes: [{ id: "task", title: "Task", icon: ListTodo, dialog: TaskDialog }],
 };
 
-export { TASK, TASK_OCCURRENCE, TASKS_HREF };
-export type { Task, OccurrenceOverride, Recurrence } from "./domain/types";
+export * from "./data";
+export { TaskDialog } from "./components/TaskDialog";

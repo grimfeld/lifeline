@@ -33,6 +33,10 @@ function normalizeTask(t: Task): Task {
     recurrence: t.recurrence || null,
     estimate: Number(t.estimate) > 0 ? Math.round(Number(t.estimate)) : null,
     tags: t.tags ?? [],
+    project: t.project || null,
+    milestone: (t.project && t.milestone) || null,
+    lane: (t.project && t.lane) || null,
+    rank: t.rank === null || t.rank === undefined || t.rank === ("" as unknown) || !Number.isFinite(Number(t.rank)) ? null : Number(t.rank),
   };
 }
 
@@ -55,6 +59,9 @@ export async function addTask(input: {
   recurrence?: Recurrence | null;
   estimate?: number | null;
   tags?: string[];
+  project?: string | null;
+  milestone?: string | null;
+  lane?: string | null;
 }): Promise<string> {
   const id = newId();
   await putDocument<Task>({
@@ -69,6 +76,10 @@ export async function addTask(input: {
     estimate: input.estimate ?? null,
     createdAt: todayStr(),
     tags: normalizeTags(input.tags),
+    project: input.project ?? null,
+    milestone: input.project ? (input.milestone ?? null) : null,
+    lane: input.project ? (input.lane ?? null) : null,
+    rank: null,
   });
   return id;
 }
@@ -162,4 +173,54 @@ export async function moveItem(itemId: ItemId, to: DateStr | null): Promise<void
   }
   if (to === null) throw new Error("A recurring task's occurrence can't be unassigned");
   await writeOverride(taskId, sourceDate, { movedTo: to });
+}
+
+// --- a Task's place in a Project (ADR 0060) ---
+
+/** Every Task of a Project, read once — what the Projects App moves and releases with it. */
+export async function tasksOfProject(projectId: string): Promise<Task[]> {
+  return (await documentsOf<Task>(TASK)).map(normalizeTask).filter((t) => t.project === projectId);
+}
+
+/**
+ * Put a Task in a Project, or take it out (null). Changing Project clears the
+ * Milestone and the Lane: neither may belong to another Project, and the new
+ * Project's first Lane is where a Task with none stands.
+ */
+export async function setTaskProject(taskId: string, project: string | null, milestone: string | null = null): Promise<void> {
+  const task = await getTask(taskId);
+  if (!task) return;
+  const moved = task.project !== project;
+  const next = moved
+    ? { project, milestone: project ? milestone : null, lane: null, rank: null }
+    : { project, milestone: project ? milestone : null, lane: task.lane, rank: task.rank };
+  if (!moved && next.milestone === task.milestone) return;
+  await putDocument<Task>({ ...task, ...next });
+}
+
+/** Place a Task on its Project's Board: its Lane and its hand order there. */
+export async function placeTask(taskId: string, lane: string | null, rank: number | null): Promise<void> {
+  const task = await getTask(taskId);
+  if (!task || !task.project) return;
+  if (task.lane === lane && task.rank === rank) return;
+  await putDocument<Task>({ ...task, lane, rank });
+}
+
+/** A deleted Project releases its Tasks: they stay, as loose Tasks (ADR 0060). */
+export async function releaseTasksOf(projectId: string): Promise<void> {
+  for (const t of await tasksOfProject(projectId)) await putDocument<Task>({ ...t, project: null, milestone: null, lane: null, rank: null });
+}
+
+/** A deleted Milestone leaves its Tasks in the Project under no Milestone. */
+export async function clearMilestone(milestoneId: string): Promise<void> {
+  for (const t of (await documentsOf<Task>(TASK)).map(normalizeTask)) {
+    if (t.milestone === milestoneId) await putDocument<Task>({ ...t, milestone: null });
+  }
+}
+
+/** A deleted Lane sends its Tasks to the first Lane, which is where a Task with none stands. */
+export async function clearLane(laneId: string): Promise<void> {
+  for (const t of (await documentsOf<Task>(TASK)).map(normalizeTask)) {
+    if (t.lane === laneId) await putDocument<Task>({ ...t, lane: null });
+  }
 }

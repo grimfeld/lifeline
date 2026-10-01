@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { TimeAppLinks } from "./TimeAppLinks";
+import { ItemMark, missed } from "./marks";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from "@dnd-kit/core";
 import { Badge, Button, cn, Input, toast } from "@lifeline/ui";
 import {
@@ -98,7 +99,7 @@ function PushIcon({ item, className }: { item: WorkItem; className?: string }) {
  * item. A chip is a source (ADR 0028): dragging it onto an hour makes a new
  * Time block and leaves the chip here, greyed while `planned` blocks lie ahead.
  */
-function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen }: { id: string; data: Record<string, unknown>; title: string; color?: string; done?: boolean; planned?: number; onComplete?: () => void; work?: WorkItem; onOpen?: (el: HTMLElement) => void }) {
+function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen, late }: { id: string; data: Record<string, unknown>; title: string; color?: string; done?: boolean; planned?: number; onComplete?: () => void; work?: WorkItem; onOpen?: (el: HTMLElement) => void; late?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data });
   const scheduled = !!planned && planned > 0;
   return (
@@ -124,7 +125,10 @@ function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen 
         </button>
       )}
       {done && <Check className="text-muted-foreground size-3 shrink-0" />}
-      <span className={cn("truncate", done && "line-through")}>{title}</span>
+      <span className={cn("truncate", done && "line-through", late && "text-destructive font-medium")}>
+        <ItemMark mark={work?.mark} />
+        {title}
+      </span>
       {work && <PushIcon item={work} className="hidden group-hover:block max-md:block" />}
       {scheduled && <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">×{planned}</span>}
       <span className={cn("size-1.5 shrink-0 rounded-full", !scheduled && "ml-auto")} style={{ background: color ?? "var(--muted-foreground)" }} />
@@ -239,7 +243,7 @@ function Strip({ date, work, allDay, onCompleteChip, onOpen }: { date: DateStr; 
   return (
     <div ref={stripDrop.setNodeRef} className={cn("min-h-12 max-h-32 space-y-1 overflow-y-auto border-l p-1 max-md:max-h-24", stripDrop.isOver && "bg-accent/40")}>
       {allDay.map((t) => (
-        <Chip key={t.key} id={`timed:${t.key}`} data={{ timed: t }} title={t.title} color={t.color} onOpen={(el) => onOpen({ kind: "timed", item: t }, el)} />
+        <Chip key={t.key} id={`timed:${t.key}`} data={{ timed: t }} title={t.title} color={t.color} late={missed(t)} onOpen={(el) => onOpen({ kind: "timed", item: t }, el)} />
       ))}
       {work.map((w) => (
         <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} done={!!w.completedOn} planned={w.blocksAhead} onComplete={() => onCompleteChip(w)} work={w} onOpen={(el) => onOpen({ kind: "work", item: w }, el)} />

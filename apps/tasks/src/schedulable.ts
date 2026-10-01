@@ -1,5 +1,8 @@
 import {
+  documentsOf,
   todayStr,
+  useLiveQuery,
+  type Document,
   vaultDocPath,
   type SchedulableItem,
   type SchedulableProvider,
@@ -7,6 +10,25 @@ import {
 } from "@lifeline/core";
 import { deriveItems, describeRecurrence, parseItemId } from "./domain/occurrences";
 import { moveItem, setCompleted, setEstimate, useOverrides, useTasks } from "./data/repo";
+import { PROJECT } from "./domain/types";
+
+/**
+ * Each Project's face, read from the Projects App's Documents (ADR 0060): what
+ * a Task's chip wears to say which Project it serves — the emoji, else the
+ * name's first letter, in the Project's colour.
+ */
+function useProjectMarks(): Map<string, { text: string; color?: string }> {
+  const projects = useLiveQuery(() => documentsOf<Document>(PROJECT), [], [] as Document[]);
+  return new Map(
+    projects.map((p) => [
+      p.id,
+      {
+        text: (p.emoji as string) || Array.from(p.title.trim())[0]?.toUpperCase() || "•",
+        color: p.color ? `var(--chart-${String(p.color)})` : undefined,
+      },
+    ]),
+  );
+}
 
 export const APP_ID = "tasks";
 
@@ -27,6 +49,7 @@ export const tasksSchedulable: SchedulableProvider = {
   useItems(range) {
     const tasks = useTasks();
     const overrides = useOverrides();
+    const marks = useProjectMarks();
     const today = todayStr();
     return deriveItems(tasks, overrides, range, today).map((it): SchedulableItem => {
       let urgency: Urgency = "none";
@@ -46,6 +69,7 @@ export const tasksSchedulable: SchedulableProvider = {
         completedOn: it.completedOn,
         tags: it.task.tags ?? [],
         estimateMin: it.task.estimate,
+        mark: it.task.project ? marks.get(it.task.project) : undefined,
       };
     });
   },

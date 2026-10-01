@@ -28,6 +28,7 @@
     "@lifeline/app-pocket": "workspace:*",
     "@lifeline/app-mail": "workspace:*",
     "@lifeline/app-prices": "workspace:*",
+    "@lifeline/app-projects": "workspace:*",
     "@lifeline/app-mood": "workspace:*",
     "@lifeline/app-pantry": "workspace:*",
     "@lifeline/app-shopping": "workspace:*",

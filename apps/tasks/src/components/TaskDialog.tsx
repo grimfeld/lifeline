@@ -21,6 +21,9 @@ import {
   usePushFlow,
 } from "@lifeline/ui";
 import {
+  documentsOf,
+  useLiveQuery,
+  type Document,
   normalizeTag,
   pushSurfaceItem,
   todayStr,
@@ -33,7 +36,7 @@ import {
   type Handoff,
   type Weekday,
 } from "@lifeline/core";
-import type { Recurrence, Task } from "../domain/types";
+import { PROJECT, PROJECT_MILESTONE, type Recurrence, type Task } from "../domain/types";
 import { addTask, updateTask } from "../data/repo";
 import { APP_ID } from "../schedulable";
 
@@ -85,11 +88,32 @@ function MentionedIn({ taskId }: { taskId: string }) {
   );
 }
 
+const NONE = "__none";
+
+/**
+ * The Projects a Task may be put in, read from the Projects App's Documents
+ * (ADR 0060): the open ones, plus whichever the Task already stands in. With
+ * the chosen one's Milestones, in their order.
+ */
+function useProjectChoices(current: string | null, project: string | null) {
+  const projects = useLiveQuery(() => documentsOf<Document>(PROJECT), [], [] as Document[]);
+  const milestones = useLiveQuery(() => documentsOf<Document>(PROJECT_MILESTONE), [], [] as Document[]);
+  const open = projects
+    .filter((p) => p.id === current || (p.stage !== "done" && p.stage !== "dropped"))
+    .sort((a, b) => a.title.localeCompare(b.title));
+  const ofProject = milestones
+    .filter((m) => project && m.project === project)
+    .sort((a, b) => Number(a.rank ?? 0) - Number(b.rank ?? 0));
+  return { projects: open, milestones: ofProject };
+}
+
 export function TaskDialog({
   open,
   onOpenChange,
   task,
   defaultDate,
+  defaultProject,
+  defaultMilestone,
   handoff,
 }: {
   open: boolean;
@@ -98,6 +122,9 @@ export function TaskDialog({
   task?: Task;
   /** Create mode: preselected day (null = Unassigned). */
   defaultDate?: DateStr | null;
+  /** Create mode: the Project (and Milestone) the new Task goes in — made from a Project's page. */
+  defaultProject?: string | null;
+  defaultMilestone?: string | null;
   /** Create mode, Intake (ADR 0050): the title, and the origin in the notes. */
   handoff?: Handoff;
 }) {
@@ -110,6 +137,9 @@ export function TaskDialog({
   const [yearDates, setYearDates] = useState<{ month: number; day: number }[]>([{ month: 1, day: 1 }]);
   const [tags, setTags] = useState<string[]>([]);
   const [estimate, setEstimate] = useState<number | null>(null);
+  const [project, setProject] = useState<string | null>(null);
+  const [milestone, setMilestone] = useState<string | null>(null);
+  const choices = useProjectChoices(task?.project ?? null, project);
   const pushFlow = usePushFlow();
   const suggestions = useTagVocabulary().map((v) => v.tag);
 
@@ -125,7 +155,9 @@ export function TaskDialog({
     setYearDates(r?.kind === "yearly" ? r.dates : [{ month: 1, day: 1 }]);
     setTags(task?.tags ?? []);
     setEstimate(task?.estimate ?? null);
-  }, [open, task, defaultDate, handoff]);
+    setProject(task ? task.project : (defaultProject ?? null));
+    setMilestone(task ? task.milestone : (defaultMilestone ?? null));
+  }, [open, task, defaultDate, defaultProject, defaultMilestone, handoff]);
 
   function buildRecurrence(): Recurrence | null {
     if (kind === "weekly") return { kind: "weekly", weekdays: [...weekdays].sort() };
@@ -162,9 +194,14 @@ export function TaskDialog({
       return false;
     }
     const recurrence = buildRecurrence();
+    // ADR 0060: a Task that changes Project leaves its Lane and hand order behind.
+    const place = project === (task?.project ?? null)
+      ? { project, milestone: project ? milestone : null }
+      : { project, milestone: project ? milestone : null, lane: null, rank: null };
     if (task) {
       await updateTask({
         ...task,
+        ...place,
         title: title.trim(),
         notes: notes.trim(),
         recurrence,
@@ -175,7 +212,7 @@ export function TaskDialog({
       });
       toast.success("Task updated");
     } else {
-      await addTask({ title: title.trim(), notes: notes.trim(), recurrence, date: date || null, estimate, tags });
+      await addTask({ title: title.trim(), notes: notes.trim(), recurrence, date: date || null, estimate, tags, project: place.project, milestone: place.milestone });
       toast.success("Task added");
     }
     return true;
@@ -342,6 +379,50 @@ export function TaskDialog({
                 <Button type="button" size="sm" variant="outline" className="justify-self-start" onClick={() => setYearDates((cur) => [...cur, { month: 1, day: 1 }])}>
                   + Add a date
                 </Button>
+              </div>
+            )}
+
+            {(choices.projects.length > 0 || project) && (
+              <div className="grid gap-2">
+                <Label>Project</Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={project ?? NONE}
+                    onValueChange={(v) => {
+                      const next = v === NONE ? null : v;
+                      if (next !== project) setMilestone(null);
+                      setProject(next);
+                    }}
+                  >
+                    <SelectTrigger className="min-w-0 flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>No project</SelectItem>
+                      {choices.projects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.emoji ? `${String(p.emoji)} ` : ""}
+                          {p.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {project && choices.milestones.length > 0 && (
+                    <Select value={milestone ?? NONE} onValueChange={(v) => setMilestone(v === NONE ? null : v)}>
+                      <SelectTrigger className="min-w-0 flex-1" aria-label="Milestone">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>No milestone</SelectItem>
+                        {choices.milestones.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
               </div>
             )}
 
