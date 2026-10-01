@@ -3,6 +3,7 @@ import { moneyShell } from "./money/MoneyModule";
 import { progressShell } from "./progress/ProgressModule";
 import { houseShell } from "./house/HouseModule";
 import { cultureShell } from "./culture/CultureModule";
+import { projectsShell } from "./projects/ProjectsModule";
 
 /**
  * A hand-written Module (ADR 0057): its own chrome, and pages of its own. The
@@ -31,4 +32,5 @@ export const MODULE_SHELLS: Record<string, ModuleShell> = {
   progress: progressShell,
   house: houseShell,
   culture: cultureShell,
+  tasks: projectsShell,
 };

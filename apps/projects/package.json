@@ -1,0 +1,29 @@
+{
+  "name": "@lifeline/app-projects",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@lifeline/app-tasks": "workspace:*",
+    "@lifeline/core": "workspace:*",
+    "@lifeline/editor": "workspace:*",
+    "@lifeline/ui": "workspace:*",
+    "lucide-react": "^1.27.0",
+    "react-router": "^7.9.4"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "fake-indexeddb": "^6.2.5",
+    "typescript": "~5.8.3",
+    "vitest": "^4.1.10"
+  }
+}

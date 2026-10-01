@@ -7,7 +7,7 @@ import {
   Landmark,
   Languages,
   LayoutDashboard,
-  ListTodo,
+  FolderKanban,
   Mail,
   MapPin,
   NotebookText,
@@ -22,7 +22,7 @@ import {
  */
 export const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   house: Home,
-  tasks: ListTodo,
+  tasks: FolderKanban,
   culture: BookOpen,
   money: Landmark,
   notes: NotebookText,

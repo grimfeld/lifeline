@@ -7,6 +7,7 @@
 @source "../../packages/editor/src";
 @source "../../apps/chores/src";
 @source "../../apps/tasks/src";
+@source "../../apps/projects/src";
 @source "../../apps/calendar/src";
 @source "../../apps/stats/src";
 @source "../../apps/library/src";
