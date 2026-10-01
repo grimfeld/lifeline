@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter @lifeline/shell dev",
     "dev:all": "node scripts/dev-launcher.mjs",
+    "mcp": "pnpm --filter @lifeline/mcp dev",
     "import:calendar": "node scripts/import/import-calendar.mjs",
     "import:notch": "node scripts/import/import-notch.mjs",
     "import:nightstand": "node scripts/import/import-nightstand.mjs",

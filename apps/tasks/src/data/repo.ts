@@ -44,12 +44,20 @@ function normalizeOverride(o: OccurrenceOverride): OccurrenceOverride {
   return { ...o, movedTo: o.movedTo || null, completedOn: o.completedOn || null };
 }
 
+export async function allTasks(): Promise<Task[]> {
+  return (await documentsOf<Task>(TASK)).map(normalizeTask);
+}
+
+export async function allOverrides(): Promise<OccurrenceOverride[]> {
+  return (await documentsOf<OccurrenceOverride>(TASK_OCCURRENCE)).map(normalizeOverride);
+}
+
 export function useTasks(): Task[] {
-  return useLiveQuery(async () => (await documentsOf<Task>(TASK)).map(normalizeTask), [], [] as Task[]);
+  return useLiveQuery(allTasks, [], [] as Task[]);
 }
 
 export function useOverrides(): OccurrenceOverride[] {
-  return useLiveQuery(async () => (await documentsOf<OccurrenceOverride>(TASK_OCCURRENCE)).map(normalizeOverride), [], [] as OccurrenceOverride[]);
+  return useLiveQuery(allOverrides, [], [] as OccurrenceOverride[]);
 }
 
 export async function addTask(input: {

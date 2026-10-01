@@ -88,11 +88,42 @@ fly launch --no-deploy   # first time: creates the app + volume (fly volumes cre
 fly deploy
 ```
 
+## Agents (MCP, ADR 0062)
+
+`mcp/` is a remote MCP server: Claude (web, mobile, desktop, Claude Code) or any MCP client connects to
+`https://lifeline-mcp.fly.dev/mcp`, the person signs in with their Lifeline email and password on the server's own OAuth
+page, and the agent gets tools — `agenda`, `search_documents`, `get_document`, `complete_item`, `move_item`,
+`create_document`, `update_document`, plus one tool per headless Command (`tasks_add`, `chores_add`, `calendar_add_event`…).
+Each Account's calls run in a worker that is a headless device: Core and the Apps, unchanged, over an in-memory store that
+syncs with PocketBase like any phone. It never sees the Private folder and cannot delete.
+
+```sh
+pnpm --filter @lifeline/mcp build
+node --env-file=mcp/.env mcp/dist/server.mjs     # BASE_URL, PB_URL, PB_SUPERUSER_EMAIL, PB_SUPERUSER_PASSWORD, TZ
+node mcp/scripts/e2e.mjs http://localhost:8787 <email> <password>   # OAuth + every tool, against a scratch PocketBase
+```
+
+Deploy: create a superuser for the server alone in the PocketBase admin UI, then
+
+```sh
+fly launch --no-deploy --config mcp/fly.toml      # first time
+fly secrets set -a lifeline-mcp PB_SUPERUSER_EMAIL=… PB_SUPERUSER_PASSWORD=…
+fly deploy . --config mcp/fly.toml
+fly scale count 1 -a lifeline-mcp                  # one machine: sign-ins and devices live in its memory
+```
+
+In Claude: Settings → Connectors → Add custom connector → the `/mcp` URL. Connected clients are rows of `mcp_grants`;
+delete one to disconnect it.
+
+A Command becomes an agent tool by declaring `args` and `invoke` next to its dialog (see `tasks.add`): Core checks the
+arguments against the signature, the App runs its own operation. A Schedulable provider is readable by agents once it has
+`itemsIn`.
+
 ## Adding an App (ADR 0003)
 
 1. New package under `apps/<name>` exporting an `AppManifest` — collections, screens, cards, commands, contract implementations (`schedulable` for work that lands on days, `timed` for fixed-time things).
 2. Add the collections to a new `pocketbase/pb_migrations` file (server routes go in `pocketbase/pb_hooks`, loaded with `--hooksDir`) (same base fields: `id` 15-char, `updatedAt` text, `deleted` number, autodates).
-3. Register the manifest in `shell/src/main.tsx` (`initApps([...])`), add the package to `shell/package.json`, add its `src` to the `@source` list in `shell/src/index.css`, and bump `DB_VERSION` in `packages/core/src/data/db.ts` (Dexie needs it to migrate existing local databases).
+3. Register the manifest in `shell/src/main.tsx` (`initApps([...])`) and in `mcp/src/apps.ts`, add the package to `shell/package.json` and `mcp/package.json`, add its `src` to the `@source` list in `shell/src/index.css`, and bump `DB_VERSION` in `packages/core/src/data/db.ts` (Dexie needs it to migrate existing local databases).
 
 Everything else — offline storage, sync, palette entries, card picker, calendar presence — comes from Core.
 

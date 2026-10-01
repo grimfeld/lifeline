@@ -11,7 +11,9 @@ import { addDays, todayStr, type CommandDef } from "@lifeline/core";
 import { Check, ListChecks, ListTodo, Plus } from "lucide-react";
 import { TaskDialog } from "./components/TaskDialog";
 import { deriveItems } from "./domain/occurrences";
-import { setCompleted, useOverrides, useTasks } from "./data/repo";
+import { addTask, setCompleted, useOverrides, useTasks } from "./data/repo";
+import { readRecurrence, RECURRENCE_HINT } from "./domain/recurrence";
+import { PROJECT } from "./domain/types";
 
 function AddTaskCommandDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
   return <TaskDialog {...props} />;
@@ -77,6 +79,31 @@ export const taskCommands: CommandDef[] = [
     icon: Plus,
     dialog: AddTaskCommandDialog,
     capture: true,
+    args: [
+      { key: "title", label: "Title", kind: "text", required: true },
+      { key: "date", label: "Day", kind: "date", hint: "The day it is assigned to. Omit to leave it in the Unassigned pool; ignored for a recurring task." },
+      { key: "recurrence", label: "Repeats", kind: "json", hint: RECURRENCE_HINT },
+      { key: "notes", label: "Notes", kind: "longtext" },
+      { key: "estimate", label: "Estimate", kind: "number", hint: "Whole minutes the task should take." },
+      { key: "tags", label: "Tags", kind: "list" },
+      { key: "project", label: "Project", kind: "link", linkType: PROJECT, hint: "Id of the Project it serves." },
+    ],
+    async invoke(a) {
+      const recurrence = a.recurrence === undefined ? null : readRecurrence(a.recurrence);
+      const estimate = a.estimate === undefined ? null : Math.round(a.estimate as number);
+      if (estimate !== null && estimate <= 0) throw new Error("Estimate must be a positive number of minutes");
+      const id = await addTask({
+        title: a.title as string,
+        date: (a.date as string | undefined) ?? null,
+        recurrence,
+        notes: a.notes as string | undefined,
+        estimate,
+        tags: a.tags as string[] | undefined,
+        project: (a.project as string | undefined) ?? null,
+      });
+      const when = recurrence ? "recurring" : a.date ? `on ${a.date}` : "unassigned";
+      return { id, message: `Added task “${a.title}” (${when})` };
+    },
   },
   {
     id: "tasks.complete",
