@@ -1,0 +1,42 @@
+# Lifeline MCP server (ADR 0062). Deploy from the repository root:
+#   fly deploy . --config mcp/fly.toml
+# Secrets (once): fly secrets set -a lifeline-mcp PB_SUPERUSER_EMAIL=… PB_SUPERUSER_PASSWORD=…
+#
+# Run exactly ONE machine (`fly scale count 1 -a lifeline-mcp`): a sign-in in
+# progress and the Accounts' warm devices live in that machine's memory.
+
+app = 'lifeline-mcp'
+primary_region = 'fra'
+kill_signal = 'SIGTERM'
+# Time to push writes still queued in the devices before the machine stops.
+kill_timeout = 30
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  BASE_URL = 'https://lifeline-mcp.fly.dev'
+  # The public URL on purpose: it wakes a stopped PocketBase machine, the private network does not.
+  PB_URL = 'https://lifeline-pb.fly.dev'
+  PORT = '8787'
+  # The user's day: "today", overdue and due dates are computed in this zone.
+  TZ = 'Europe/Paris'
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+  [[http_service.checks]]
+    grace_period = '10s'
+    interval = '30s'
+    method = 'GET'
+    path = '/healthz'
+    timeout = '5s'
+
+[[vm]]
+  memory = '512mb'
+  cpus = 1

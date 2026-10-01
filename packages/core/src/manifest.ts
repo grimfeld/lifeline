@@ -6,7 +6,7 @@ import type { LoggableProvider } from "./contracts/loggable";
 import type { TallyingDef } from "./contracts/tallying";
 import type { IntakeDef } from "./contracts/intake";
 import type { CardSettings, CardSettingsSchema } from "./cards";
-import type { Document, DocumentTypeDef } from "./documents/types";
+import type { Document, DocumentTypeDef, FieldOption } from "./documents/types";
 import type { LinkIndex } from "./documents/links";
 
 /**
@@ -197,6 +197,29 @@ export interface CommandCtx {
   navigate: (path: string) => void;
 }
 
+/** Value shapes a Command argument takes. `json` is a structured value whose shape `hint` spells out (a Task's recurrence). */
+export type CommandArgKind = "text" | "longtext" | "number" | "boolean" | "date" | "time" | "select" | "multiselect" | "list" | "link" | "json";
+
+/** One argument of a Command's signature (CONTEXT.md "Command"). */
+export interface CommandArg {
+  key: string;
+  label: string;
+  kind: CommandArgKind;
+  required?: boolean;
+  /** select / multiselect. */
+  options?: FieldOption[];
+  /** link: the Document type (or family) the id must belong to. */
+  linkType?: string | string[];
+  /** What the value means, for a caller with no dialog to look at — an agent (ADR 0062). */
+  hint?: string;
+}
+
+/** What a headless Command run reports back: a sentence, and the Document it made or changed. */
+export interface CommandResult {
+  message: string;
+  id?: string;
+}
+
 export interface CommandDef {
   id: string;
   title: string;
@@ -208,6 +231,17 @@ export interface CommandDef {
   dialog?: React.ComponentType<{ open: boolean; onOpenChange: (open: boolean) => void }>;
   /** A capture command records something in seconds (clip, log entry, quick capture…). Listed in the phone's "+" capture sheet. */
   capture?: boolean;
+  /**
+   * The argument signature — what the dialog collects, declared as data so a
+   * caller without the dialog can supply it. Paired with `invoke`.
+   */
+  args?: CommandArg[];
+  /**
+   * The same operation run headless with `args` already collected (ADR 0062):
+   * no UI, no navigation — the App's own operation, so its invariants hold
+   * whoever calls. Throws with a readable message on bad input.
+   */
+  invoke?: (args: Record<string, unknown>) => Promise<CommandResult>;
 }
 
 /**
