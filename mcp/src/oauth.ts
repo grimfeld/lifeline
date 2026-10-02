@@ -6,7 +6,7 @@ import type { OAuthRegisteredClientsStore } from "@modelcontextprotocol/sdk/serv
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { InvalidGrantError, InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import type { OAuthClientInformationFull, OAuthTokenRevocationRequest, OAuthTokens } from "@modelcontextprotocol/sdk/shared/auth.js";
-import { SCOPE_READ, SCOPE_WRITE, SCOPES } from "./config";
+import { SCOPE_READ, SCOPE_WRITE } from "./config";
 import { loginPage } from "./login";
 
 /**
@@ -55,10 +55,14 @@ interface GrantRow {
   resource: string;
 }
 
-/** Scopes as granted: read always, write only when asked for and allowed on the page. */
-export function grantedScopes(requested: string[] | undefined, allowWrite: boolean): string[] {
-  const asked = requested?.length ? requested.filter((s) => SCOPES.includes(s)) : SCOPES;
-  return [SCOPE_READ, ...(allowWrite && asked.includes(SCOPE_WRITE) ? [SCOPE_WRITE] : [])];
+/**
+ * Scopes as granted: read always, write when "Allow changes" is ticked on the
+ * page. The page is the consent, whatever scopes the client asked for:
+ * claude.ai's connector asks without `lifeline:write`, and honouring that
+ * hid the checkbox and left every grant read-only.
+ */
+export function grantedScopes(allowWrite: boolean): string[] {
+  return [SCOPE_READ, ...(allowWrite ? [SCOPE_WRITE] : [])];
 }
 
 export class LifelineOAuth implements OAuthServerProvider {
@@ -99,7 +103,7 @@ export class LifelineOAuth implements OAuthServerProvider {
     this.sweep();
     const request = randomBytes(24).toString("base64url");
     this.pending.set(request, { client, params, expires: Date.now() + PENDING_MS });
-    res.status(200).type("html").send(loginPage({ request, clientName: client.client_name, redirectUri: params.redirectUri, write: grantedScopes(params.scopes, true).includes(SCOPE_WRITE) }));
+    res.status(200).type("html").send(loginPage({ request, clientName: client.client_name, redirectUri: params.redirectUri, write: true }));
   }
 
   /**
@@ -127,7 +131,7 @@ export class LifelineOAuth implements OAuthServerProvider {
       const auth = await new PocketBase(this.pbUrl).collection("users").authWithPassword(String(form.email ?? ""), String(form.password ?? ""));
       userId = auth.record.id;
     } catch {
-      res.status(401).type("html").send(loginPage({ request: form.request, clientName: p.client.client_name, redirectUri: p.params.redirectUri, write: grantedScopes(p.params.scopes, true).includes(SCOPE_WRITE), email: form.email, error: "Wrong email or password." }));
+      res.status(401).type("html").send(loginPage({ request: form.request, clientName: p.client.client_name, redirectUri: p.params.redirectUri, write: true, email: form.email, error: "Wrong email or password." }));
       return;
     }
     this.pending.delete(form.request!);
@@ -135,7 +139,7 @@ export class LifelineOAuth implements OAuthServerProvider {
     this.codes.set(code, {
       clientId: p.client.client_id,
       userId,
-      scopes: grantedScopes(p.params.scopes, form.allow_write === "on"),
+      scopes: grantedScopes(form.allow_write === "on"),
       codeChallenge: p.params.codeChallenge,
       redirectUri: p.params.redirectUri,
       resource: p.params.resource?.href,
