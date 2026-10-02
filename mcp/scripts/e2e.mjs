@@ -83,6 +83,7 @@ const seeded = {
   habit: await seed("habit", "Read", { difficulty: "normal" }),
   vice: await seed("negative", "Doomscroll", { gravity: "minor", affectsHabitId: "" }),
   freezer: await seed("storage", "Freezer", { kind: "freezer" }),
+  spanish: await seed("language", "Spanish", { name: "Spanish", newCap: 10, archived: false }),
 };
 ok(Object.values(seeded).every(Boolean), "seeded the things an agent cannot create");
 
@@ -240,6 +241,18 @@ const lilies = await call("museum_add", { title: "Water Lilies", form: "painting
 ok(!lilies.error && /Holdings/.test(lilies.data.message), "museum_add hangs an artwork in the Holdings, no lookup");
 const liliesAgain = await call("museum_add", { title: "water lilies", form: "painting", artist: "claude monet" });
 ok(liliesAgain.error && /already in the Holdings/.test(liliesAgain.data), "the same artwork by the same artist is refused and reported");
+
+console.log("Languages");
+const word = await call("languages_word", { language: "spanish", term: "tener ganas de", meaning: "to feel like" });
+ok(!word.error && /Spanish/.test(word.data.message), "languages_word adds a Word to a Language named by title");
+const wordAgain = await call("languages_word", { language: "Spanish", term: "Tener ganas de", meaning: "x" });
+ok(wordAgain.error && /already a Spanish word/.test(wordAgain.data), "the same term in the same Language is refused and reported");
+const noLanguage = await call("languages_word", { language: "Klingon", term: "Qapla'", meaning: "success" });
+ok(noLanguage.error && /no language called/.test(noLanguage.data), "a Word needs a Language that exists");
+const sentence = await call("languages_sentence", { language: "Spanish", text: "Tengo {{ganas}} de {{ir}}.", translation: "I feel like going." });
+ok(!sentence.error && /2 prompts/.test(sentence.data.message), "languages_sentence adds a cloze Sentence with its blanks");
+const noBlank = await call("languages_sentence", { language: "Spanish", text: "Hola." });
+ok(noBlank.error && /Mark at least one blank/.test(noBlank.data), "a Sentence without a blank is refused");
 
 await mcp.close();
 console.log("\nall checks passed");

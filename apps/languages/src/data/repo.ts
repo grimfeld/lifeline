@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { documentsWhere, fireTallies, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, talliesOf, useDocuments, type Document, type Tally } from "@lifeline/core";
+import { documentsOf, documentsWhere, fireTallies, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, talliesOf, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
 import { dayOf } from "../domain/practice";
 import { DECK, DEFAULT_NEW_CAP, LANGUAGE, RECALL, SENTENCE, WORD, type Deck, type Grade, type Item, type Language, type Recall, type Sentence, type Word } from "../domain/types";
@@ -163,6 +163,19 @@ function wordRowOf(input: WordInput) {
   if (!term) throw new Error("The word needs its term");
   if (!input.meaning.trim()) throw new Error("Write what it means");
   return { type: WORD, title: term, languageId: input.languageId, term, meaning: input.meaning.trim(), notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
+}
+
+/** Every Language, Word and Sentence, read once — what headless adds check against. */
+export async function allLanguages(): Promise<Language[]> {
+  return documentsOf<Language>(LANGUAGE);
+}
+
+export async function allWords(): Promise<Word[]> {
+  return documentsOf<Word>(WORD);
+}
+
+export async function allSentences(): Promise<Sentence[]> {
+  return documentsOf<Sentence>(SENTENCE);
 }
 
 export async function addWord(input: WordInput): Promise<string> {
