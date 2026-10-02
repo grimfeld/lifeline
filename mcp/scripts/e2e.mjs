@@ -86,6 +86,11 @@ ok(!ev.error, "calendar_add_event creates an event");
 const badEv = await call("calendar_add_event", { title: "x", date: tomorrow, start: "10:00", end: "09:00" });
 ok(badEv.error, "an event ending before it starts is refused");
 
+const noTemplate = await call("calendar_add_from_template", { template: "No such template" });
+ok(noTemplate.error && /no event_template called/.test(noTemplate.data), "calendar_add_from_template refuses an unknown template by title");
+const noProject = await call("tasks_add", { title: "x", project: "No such project" });
+ok(noProject.error && /no project called/.test(noProject.data), "a link argument resolves by exact title and refuses a miss");
+
 const agenda = await call("agenda", { start: today, end: tomorrow });
 const day = agenda.data.days[tomorrow] ?? [];
 ok(day.some((x) => x.title === "Buy stamps") && day.some((x) => x.title === "Dentist" && x.start === "09:30"), "agenda shows the task and the event tomorrow");

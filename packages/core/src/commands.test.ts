@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { invokeCommand, readCommandArgs } from "./commands";
+import { invokeCommand, pickLinked, readCommandArgs } from "./commands";
 import type { CommandArg, CommandDef } from "./manifest";
 
 const ARGS: CommandArg[] = [
@@ -41,5 +41,32 @@ describe("invokeCommand", () => {
 
   it("refuses a Command that has only a dialog", async () => {
     await expect(invokeCommand({ id: "t.x", title: "Dialog only" }, {})).rejects.toThrow("cannot be run without its dialog");
+  });
+});
+
+describe("pickLinked", () => {
+  const STAT: CommandArg = { key: "stat", label: "Stat", kind: "link", linkType: "stat" };
+  const docs = [
+    { id: "s1", type: "stat", title: "Weight" },
+    { id: "s2", type: "stat", title: "Steps" },
+    { id: "s3", type: "stat", title: "steps" },
+    { id: "n1", type: "note", title: "Weight" },
+  ];
+
+  it("takes an id of the right type", () => {
+    expect(pickLinked(STAT, "s2", docs)).toBe("s2");
+  });
+
+  it("takes an exact title, case-insensitive, of the right type only", () => {
+    expect(pickLinked(STAT, "  weight ", docs)).toBe("s1");
+  });
+
+  it("refuses a title that matches nothing, never guessing", () => {
+    expect(() => pickLinked(STAT, "Weigth", docs)).toThrow('Stat: no stat called “Weigth”');
+    expect(() => pickLinked(STAT, "n1", docs)).toThrow("no stat called");
+  });
+
+  it("refuses an ambiguous title and lists the candidates' ids", () => {
+    expect(() => pickLinked(STAT, "STEPS", docs)).toThrow(/2 stats are called “STEPS”.*s2.*s3/);
   });
 });

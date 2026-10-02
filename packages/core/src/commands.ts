@@ -1,4 +1,5 @@
-import { getDocument } from "./documents/store";
+import { allDocuments, documentsOf, getDocument } from "./documents/store";
+import type { Document } from "./documents/types";
 import type { CommandArg, CommandDef, CommandResult } from "./manifest";
 
 /**
@@ -26,6 +27,29 @@ function asStrings(arg: CommandArg, v: unknown): string[] {
   const list = typeof v === "string" ? v.split(",") : v;
   if (!Array.isArray(list) || list.some((x) => typeof x !== "string")) throw new Error(`${arg.label}: expected a list of text`);
   return list.map((x: string) => x.trim()).filter(Boolean);
+}
+
+function linkTypes(arg: CommandArg): string[] | undefined {
+  return arg.linkType === undefined ? undefined : Array.isArray(arg.linkType) ? arg.linkType : [arg.linkType];
+}
+
+/**
+ * A link argument names a Document by id or by its exact title,
+ * case-insensitive, among `docs` (already read through the store's gates, so
+ * the call's Workspace only). Never a guess: no match, or several, is an
+ * error the caller can act on.
+ */
+export function pickLinked(arg: CommandArg, value: string, docs: readonly Pick<Document, "id" | "type" | "title">[]): string {
+  const types = linkTypes(arg);
+  const ofType = types ? docs.filter((d) => types.includes(d.type)) : docs;
+  const byId = ofType.find((d) => d.id === value);
+  if (byId) return byId.id;
+  const wanted = value.trim().toLowerCase();
+  const hits = ofType.filter((d) => d.title.trim().toLowerCase() === wanted);
+  const what = types?.join(" or ") ?? "document";
+  if (hits.length === 1) return hits[0].id;
+  if (hits.length === 0) throw new Error(`${arg.label}: no ${what} called “${value}”`);
+  throw new Error(`${arg.label}: ${hits.length} ${what}s are called “${value}”; pass one id: ${hits.map((d) => d.id).join(", ")}`);
 }
 
 /** One argument, coerced to its kind; undefined when absent. Throws a readable message on a bad value. */
@@ -71,11 +95,12 @@ async function readArg(arg: CommandArg, v: unknown): Promise<unknown> {
     case "list":
       return asStrings(arg, v);
     case "link": {
-      const id = String(v);
-      const doc = await getDocument(id);
-      const types = arg.linkType === undefined ? undefined : Array.isArray(arg.linkType) ? arg.linkType : [arg.linkType];
-      if (!doc || (types && !types.includes(doc.type))) throw new Error(`${arg.label}: no ${types?.join(" or ") ?? "document"} with id ${id}`);
-      return id;
+      const value = String(v);
+      const types = linkTypes(arg);
+      const doc = await getDocument(value);
+      if (doc && (!types || types.includes(doc.type))) return value;
+      const candidates = types ? (await Promise.all(types.map((t) => documentsOf(t)))).flat() : await allDocuments();
+      return pickLinked(arg, value, candidates);
     }
     case "json": {
       if (typeof v === "string") {
