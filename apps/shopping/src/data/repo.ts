@@ -25,7 +25,7 @@ export function useAisles(): Aisle[] {
   return useMemo(() => sortAisles(rows.map(normalizeAisle)), [rows]);
 }
 
-const allNeeds = async () => (await documentsOf<Need>(NEED)).map(normalizeNeed);
+export const allNeeds = async () => (await documentsOf<Need>(NEED)).map(normalizeNeed);
 const now = () => new Date().toISOString();
 
 export type AddResult = { kind: "new" | "revive" | "listed"; id: string } | null;

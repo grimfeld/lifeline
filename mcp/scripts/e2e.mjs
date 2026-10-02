@@ -82,6 +82,7 @@ const seeded = {
   pushups: await seed("stat", "Push-ups", { kind: "additive", unit: "", defaultIncrement: 20, universeSize: 0, color: "" }),
   habit: await seed("habit", "Read", { difficulty: "normal" }),
   vice: await seed("negative", "Doomscroll", { gravity: "minor", affectsHabitId: "" }),
+  freezer: await seed("storage", "Freezer", { kind: "freezer" }),
 };
 ok(Object.values(seeded).every(Boolean), "seeded the things an agent cannot create");
 
@@ -197,6 +198,18 @@ const read = await call("lifelevel_complete", { habit: "read" });
 ok(!read.error && /XP/.test(read.data.message), "lifelevel_complete completes a Habit and reports the XP");
 const scrolled = await call("lifelevel_log_negative", { negative: "Doomscroll", date: today, time: "00:00" });
 ok(!scrolled.error && /Read/.test(scrolled.data.message), "lifelevel_log_negative hits a Habit");
+
+console.log("House");
+const milk = await call("shopping_add", { title: "Milk", note: "oat" });
+ok(!milk.error && /added/.test(milk.data.message), "shopping_add lists a Need");
+const milkAgain = await call("shopping_add", { title: " milk " });
+ok(milkAgain.error && /already on the shopping list/.test(milkAgain.data), "a Need already listed is refused and reported");
+const peas = await call("pantry_add", { title: "Peas", storage: "freezer", quantity: 2, unit: "bags" });
+ok(!peas.error, "pantry_add stocks a Provision in a Storage named by title");
+const peasAgain = await call("pantry_add", { title: "peas", storage: "Freezer" });
+ok(peasAgain.error && /already in that storage/.test(peasAgain.data), "the same Provision in the same Storage is refused and reported");
+const noStorage = await call("pantry_add", { title: "Ice" });
+ok(noStorage.error && /storage/i.test(noStorage.data), "a Provision needs its Storage named");
 
 await mcp.close();
 console.log("\nall checks passed");
