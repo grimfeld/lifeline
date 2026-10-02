@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { addAttachment, documentsWhere, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, type DateStr } from "@lifeline/core";
+import { addAttachment, documentsOf, documentsWhere, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, type DateStr } from "@lifeline/core";
 import { LINE, PRODUCT, RECEIPT, SHOP, isMeasure, type LabelMemory, type Line, type Measure, type Product, type Receipt, type Shop } from "../domain/types";
 import { normalizeLabel, receiptTitle } from "../domain/derive";
 
@@ -28,6 +28,14 @@ export function useProduct(id: string | undefined): Product | undefined {
   const row = useDocument<Product>(id);
   return useMemo(() => (row ? normalizeProduct(row) : undefined), [row]);
 }
+export async function allProducts(): Promise<Product[]> {
+  return (await documentsOf<Product>(PRODUCT)).map(normalizeProduct);
+}
+
+export async function allShops(): Promise<Shop[]> {
+  return (await documentsOf<Shop>(SHOP)).map(normalizeShop);
+}
+
 export function useShops(): Shop[] {
   const rows = useDocuments<Shop>(SHOP);
   return useMemo(() => rows.map(normalizeShop).sort((a, b) => a.title.localeCompare(b.title)), [rows]);
