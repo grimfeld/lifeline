@@ -211,5 +211,35 @@ ok(peasAgain.error && /already in that storage/.test(peasAgain.data), "the same 
 const noStorage = await call("pantry_add", { title: "Ice" });
 ok(noStorage.error && /storage/i.test(noStorage.data), "a Provision needs its Storage named");
 
+console.log("Culture");
+const dune = await call("cinema_quick_add", { title: "Dune", creator: "Denis Villeneuve" });
+ok(!dune.error && /To watch/.test(dune.data.message), "cinema_quick_add puts a raw title on the shelf, no lookup");
+const duneAgain = await call("cinema_quick_add", { title: "dune" });
+ok(duneAgain.error && /already on the shelf/.test(duneAgain.data), "the same title and kind is refused and reported");
+const watched = await call("cinema_mark_watched", { work: "Dune", rating: 4, liked: true });
+ok(!watched.error && /Watched · ★★★★ · liked/.test(watched.data.message), "cinema_mark_watched finishes, rates and likes it");
+const rewatched = await call("cinema_mark_watched", { work: "Dune" });
+ok(rewatched.error && /already Watched/.test(rewatched.data), "a work already Done is refused, never re-marked");
+const unknownFilm = await call("cinema_mark_watched", { work: "Arrival" });
+ok(unknownFilm.error && /no work called/.test(unknownFilm.data), "marking never adds a missing work");
+const badStars = await call("cinema_quick_add", { title: "Arrival" });
+const stars9 = await call("cinema_mark_watched", { work: "Arrival", rating: 9 });
+ok(!badStars.error && stars9.error && /whole number from 1/.test(stars9.data), "stars outside the scale are refused");
+const book = await call("library_quick_add", { title: "Dune", author: "Frank Herbert" });
+ok(!book.error && /To read/.test(book.data.message), "library_quick_add takes a book with its author");
+const blue = await call("discotheque_quick_add", { title: "Blue", creator: "Joni Mitchell" });
+const listened = await call("discotheque_mark_listened", { work: "blue", rating: 5 });
+ok(!blue.error && !listened.error && /Listened/.test(listened.data.message), "discotheque adds and marks an album listened");
+const game = await call("arcade_quick_add", { title: "Outer Wilds" });
+ok(!game.error && /To play/.test(game.data.message), "arcade_quick_add takes a game");
+const ambiguous = await call("commonplace_quote_add", { work: "Dune", text: "Fear is the mind-killer." });
+ok(ambiguous.error && /2 works are called/.test(ambiguous.data), "a quote's work named ambiguously lists the candidates");
+const quote = await call("commonplace_quote_add", { work: book.data.id, text: "Fear is the mind-killer.", locator: "p. 8" });
+ok(!quote.error && /Dune/.test(quote.data.message), "commonplace_quote_add files a quote under a work by id");
+const lilies = await call("museum_add", { title: "Water Lilies", form: "painting", artist: "Claude Monet", location: "Orangerie" });
+ok(!lilies.error && /Holdings/.test(lilies.data.message), "museum_add hangs an artwork in the Holdings, no lookup");
+const liliesAgain = await call("museum_add", { title: "water lilies", form: "painting", artist: "claude monet" });
+ok(liliesAgain.error && /already in the Holdings/.test(liliesAgain.data), "the same artwork by the same artist is refused and reported");
+
 await mcp.close();
 console.log("\nall checks passed");

@@ -1,9 +1,10 @@
-import type { CommandDef } from "@lifeline/core";
+import { pickLinked, type CommandDef } from "@lifeline/core";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { NotebookPen, Quote as QuoteIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { QuoteEditor } from "./components/QuoteEditor";
-import { useQuotedWorks } from "./data/works";
+import { allQuotedWorks, useQuotedWorks } from "./data/works";
+import { addQuote } from "./data/quotes";
 import { defaultCaptureItem } from "./domain/works";
 import { APP_HREF } from "./constants";
 
@@ -47,6 +48,28 @@ function AddQuoteCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 }
 
 export const commonplaceCommands: CommandDef[] = [
-  { id: "commonplace.quote-add", title: "Add quote…", keywords: ["quote", "passage", "highlight", "book", "film", "album", "capture", "commonplace"], icon: QuoteIcon, dialog: AddQuoteCommandDialog, capture: true },
+  {
+    id: "commonplace.quote-add",
+    title: "Add quote…",
+    keywords: ["quote", "passage", "highlight", "book", "film", "album", "capture", "commonplace"],
+    icon: QuoteIcon,
+    dialog: AddQuoteCommandDialog,
+    capture: true,
+    args: [
+      { key: "work", label: "Work", kind: "text", required: true, hint: "Id or exact title of the book, film, album or game it is from." },
+      { key: "text", label: "Quote", kind: "longtext", required: true },
+      { key: "locator", label: "Where", kind: "text", hint: "Page, timestamp, track…" },
+      { key: "comment", label: "Comment", kind: "longtext" },
+      { key: "tags", label: "Tags", kind: "list" },
+    ],
+    async invoke(a) {
+      const works = await allQuotedWorks();
+      const mediaId = pickLinked({ key: "work", label: "Work", kind: "link" }, a.work as string, works);
+      const text = (a.text as string).trim();
+      if (!text) throw new Error("Write the quote");
+      const q = await addQuote({ mediaId, text, locator: a.locator as string | undefined, comment: a.comment as string | undefined, tags: a.tags as string[] | undefined });
+      return { id: q.id, message: `Quote added to ${works.find((w) => w.id === mediaId)!.title}` };
+    },
+  },
   { id: "commonplace.open", title: "Go to Quotes", keywords: ["quotes", "passages", "highlights", "commonplace"], icon: NotebookPen, run: ({ navigate }) => navigate(APP_HREF) },
 ];
