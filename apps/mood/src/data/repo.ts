@@ -33,6 +33,11 @@ export async function setMood(date: DateStr, level: MoodLevel): Promise<void> {
   else await putDocument<Mood>({ type: MOOD, title: date, level });
 }
 
+/** The Mood already recorded for a day, or null — a headless set never replaces it. */
+export async function moodOn(date: DateStr): Promise<MoodLevel | null> {
+  return moodByDate(await documentsOf<Mood>(MOOD)).get(date) ?? null;
+}
+
 /** Clear a day back to "nothing recorded" — an absence, never a sixth mood. */
 export async function clearMood(date: DateStr): Promise<void> {
   const existing = (await documentsOf<Mood>(MOOD)).find((m) => m.title === date);
