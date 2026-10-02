@@ -78,6 +78,10 @@ const seeded = {
   offence: await seed("swearjar_offence", "Swearing", { name: "Swearing", price: 100, emoji: "", color: "", archived: false }),
   milk: await seed("price_product", "Milk", { measure: "l", labels: [] }),
   shop: await seed("price_shop", "Corner shop", { note: "" }),
+  weight: await seed("stat", "Weight", { kind: "measurement", unit: "kg", defaultIncrement: 0, universeSize: 0, color: "" }),
+  pushups: await seed("stat", "Push-ups", { kind: "additive", unit: "", defaultIncrement: 20, universeSize: 0, color: "" }),
+  habit: await seed("habit", "Read", { difficulty: "normal" }),
+  vice: await seed("negative", "Doomscroll", { gravity: "minor", affectsHabitId: "" }),
 };
 ok(Object.values(seeded).every(Boolean), "seeded the things an agent cannot create");
 
@@ -174,6 +178,25 @@ ok(!price.error && /Milk/.test(price.data.message), "prices_add records a shelf 
 const noProduct = await call("prices_add", { product: "Caviar", shop: "Corner shop", price: 99 });
 ok(noProduct.error && /no product called/.test(noProduct.data), "prices_add never invents a Product");
 ok(!names.includes("prices_scan"), "receipt scanning stays a dialog");
+
+console.log("Progress");
+const yesterday = new Date(Date.parse(today) - 86400000).toISOString().slice(0, 10);
+const mood = await call("mood_set", { mood: "good", date: yesterday });
+ok(!mood.error && /Good/.test(mood.data.message), "mood_set records a day's mood");
+const moodAgain = await call("mood_set", { mood: "great", date: yesterday });
+ok(moodAgain.error && /already has a mood/.test(moodAgain.data), "a day's mood is never replaced headless");
+const moodLater = await call("mood_set", { mood: "okay", date: tomorrow });
+ok(moodLater.error, "a day still to come has no mood");
+const weighed = await call("stats_log", { stat: "weight", value: 82.4 });
+ok(!weighed.error && /82\.4 kg/.test(weighed.data.message), "stats_log logs a reading to a Stat named by title");
+const pushed = await call("stats_log", { stat: "Push-ups" });
+ok(!pushed.error && /20/.test(pushed.data.message), "an additive Stat falls back on its own default increment");
+const noValue = await call("stats_log", { stat: "Weight" });
+ok(noValue.error && /needs a value/.test(noValue.data), "a reading without a value is refused");
+const read = await call("lifelevel_complete", { habit: "read" });
+ok(!read.error && /XP/.test(read.data.message), "lifelevel_complete completes a Habit and reports the XP");
+const scrolled = await call("lifelevel_log_negative", { negative: "Doomscroll", date: today, time: "00:00" });
+ok(!scrolled.error && /Read/.test(scrolled.data.message), "lifelevel_log_negative hits a Habit");
 
 await mcp.close();
 console.log("\nall checks passed");

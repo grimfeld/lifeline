@@ -116,6 +116,20 @@ async function readArg(arg: CommandArg, v: unknown): Promise<unknown> {
   }
 }
 
+/**
+ * The moment a headless record happened, from optional `date` and `time`
+ * arguments: undefined when neither is given (the App's own "now"), the day
+ * at `time` (noon by default) otherwise. A time alone is refused, and so is a
+ * moment still to come: a record says what happened.
+ */
+export function momentOf(date: string | undefined, time: string | undefined, now: Date = new Date()): string | undefined {
+  if (time !== undefined && date === undefined) throw new Error("A time needs a day");
+  if (date === undefined) return undefined;
+  const at = new Date(`${date}T${time ?? "12:00"}`);
+  if (at > now) throw new Error("That moment is still to come; only what happened can be logged");
+  return at.toISOString();
+}
+
 /** Check `raw` against the signature: unknown keys and missing required arguments are refused. */
 export async function readCommandArgs(args: CommandArg[], raw: Record<string, unknown>): Promise<Record<string, unknown>> {
   const known = new Set(args.map((a) => a.key));

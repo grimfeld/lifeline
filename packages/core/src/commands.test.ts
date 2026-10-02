@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { invokeCommand, pickLinked, readCommandArgs } from "./commands";
+import { invokeCommand, momentOf, pickLinked, readCommandArgs } from "./commands";
 import type { CommandArg, CommandDef } from "./manifest";
 
 const ARGS: CommandArg[] = [
@@ -41,6 +41,19 @@ describe("invokeCommand", () => {
 
   it("refuses a Command that has only a dialog", async () => {
     await expect(invokeCommand({ id: "t.x", title: "Dialog only" }, {})).rejects.toThrow("cannot be run without its dialog");
+  });
+});
+
+describe("momentOf", () => {
+  const now = new Date("2026-10-02T15:00:00");
+  it("is undefined without a day, the day at noon or at the time otherwise", () => {
+    expect(momentOf(undefined, undefined, now)).toBeUndefined();
+    expect(momentOf("2026-10-01", undefined, now)).toBe(new Date("2026-10-01T12:00").toISOString());
+    expect(momentOf("2026-10-02", "09:30", now)).toBe(new Date("2026-10-02T09:30").toISOString());
+  });
+  it("refuses a time alone and a moment still to come", () => {
+    expect(() => momentOf(undefined, "09:00", now)).toThrow("needs a day");
+    expect(() => momentOf("2026-10-02", "16:00", now)).toThrow("still to come");
   });
 });
 
