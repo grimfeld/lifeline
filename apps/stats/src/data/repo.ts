@@ -21,6 +21,10 @@ export function useStats(): Stat[] {
   );
 }
 
+export async function allStats(): Promise<Stat[]> {
+  return (await documentsOf<Stat>(STAT)).map(normalizeStat);
+}
+
 /** All entries, all-time: streaks and distinct counts need history, and personal scale is small. */
 export function useEntries(): Entry[] {
   return useLiveQuery(
