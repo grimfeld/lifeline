@@ -18,10 +18,8 @@ describe("tool catalogue", () => {
 });
 
 describe("grantedScopes", () => {
-  it("always grants read, and write only when asked for and allowed", () => {
-    expect(grantedScopes(undefined, true)).toEqual(["lifeline:read", "lifeline:write"]);
-    expect(grantedScopes(undefined, false)).toEqual(["lifeline:read"]);
-    expect(grantedScopes(["lifeline:read"], true)).toEqual(["lifeline:read"]);
-    expect(grantedScopes(["something:else"], true)).toEqual(["lifeline:read"]);
+  it("always grants read, and write exactly when Allow changes is ticked", () => {
+    expect(grantedScopes(true)).toEqual(["lifeline:read", "lifeline:write"]);
+    expect(grantedScopes(false)).toEqual(["lifeline:read"]);
   });
 });

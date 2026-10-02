@@ -33,6 +33,9 @@ const authorize = new URL(meta.authorization_endpoint);
 for (const [k, v] of Object.entries({ response_type: "code", client_id: client.client_id, redirect_uri: redirect, code_challenge: challenge, code_challenge_method: "S256", state: "xyz", scope: "lifeline:read lifeline:write", resource: `${base}/mcp` })) authorize.searchParams.set(k, v);
 const page = await (await fetch(authorize, { redirect: "manual" })).text();
 const request = page.match(/name="request" value="([^"]+)"/)?.[1];
+const readOnlyAsk = new URL(authorize);
+readOnlyAsk.searchParams.set("scope", "lifeline:read");
+ok(/name="allow_write"/.test(await (await fetch(readOnlyAsk, { redirect: "manual" })).text()), "Allow changes is offered even when the client asks for read only (claude.ai does)");
 ok(request, "authorize shows the sign-in page");
 
 const wrong = await fetch(`${base}/oauth/login`, { method: "POST", redirect: "manual", body: new URLSearchParams({ request, email, password: "nope" }) });
