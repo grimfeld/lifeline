@@ -8,6 +8,7 @@ import { TimeBlockerDialog } from "./components/TimeBlockerDialog";
 import { BlockerTemplateDialog } from "./components/BlockerTemplateDialog";
 import { addEventFromTemplate, useEventTemplates } from "./data/templates";
 import { addEvent } from "./data/repo";
+import { EVENT_TEMPLATE_TYPE } from "./domain/types";
 
 function AddEventCommandDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
   return <EventDialog {...props} />;
@@ -59,6 +60,26 @@ export const calendarCommands: CommandDef[] = [
       });
       const at = start ? ` at ${start}${end ? `–${end}` : ""}` : "";
       return { id, message: `Added event “${a.title}” on ${a.date}${at}` };
+    },
+  },
+  {
+    // Headless only (no dialog, so neither the palette nor the capture sheet
+    // lists it): the per-template quick-adds below are built from data at
+    // runtime, which a fixed tool list cannot mirror one by one.
+    id: "calendar.add-from-template",
+    title: "Add event from a template",
+    keywords: ["template", "preset", "event", "quick add"],
+    icon: Zap,
+    args: [
+      { key: "template", label: "Template", kind: "link", linkType: EVENT_TEMPLATE_TYPE, required: true, hint: "Id or exact title of an Event template." },
+      { key: "date", label: "Day", kind: "date", hint: "Defaults to today." },
+      { key: "start", label: "Start", kind: "time", hint: "Overrides the template's default start; ignored for an all-day template." },
+    ],
+    async invoke(a) {
+      const date = (a.date as string | undefined) ?? todayStr();
+      const added = await addEventFromTemplate(a.template as string, date, (a.start as string | undefined) ?? null);
+      if (!added) throw new Error("That Event template no longer exists");
+      return { id: added.id, message: `Added “${added.title}” on ${date}${added.start ? ` at ${added.start}` : ""}` };
     },
   },
   {

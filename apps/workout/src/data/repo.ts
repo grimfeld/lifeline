@@ -100,6 +100,10 @@ export function useWorkouts(): Workout[] {
   return useMemo(() => rows.map(normalizeWorkout).sort(byTitle), [rows]);
 }
 
+export async function allWorkouts(): Promise<Workout[]> {
+  return (await documentsOf<Workout>(WORKOUT)).map(normalizeWorkout).sort(byTitle);
+}
+
 export function useWorkout(id: string | undefined): Workout | undefined {
   const workouts = useWorkouts();
   return id ? workouts.find((w) => w.id === id) : undefined;

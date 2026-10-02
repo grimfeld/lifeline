@@ -64,6 +64,14 @@ export function useMilestones(): Milestone[] {
   return useLiveQuery(async () => (await documentsOf<Milestone>(PROJECT_MILESTONE)).map(normalizeMilestone), [], [] as Milestone[]);
 }
 
+export async function allProjects(): Promise<Project[]> {
+  return (await documentsOf<Project>(PROJECT)).map(normalizeProject);
+}
+
+export async function allMilestones(): Promise<Milestone[]> {
+  return (await documentsOf<Milestone>(PROJECT_MILESTONE)).map(normalizeMilestone);
+}
+
 export function useLanes(): Lane[] {
   return useLiveQuery(async () => (await documentsOf<Lane>(PROJECT_LANE)).map(normalizeLane), [], [] as Lane[]);
 }
