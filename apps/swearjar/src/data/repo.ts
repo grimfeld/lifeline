@@ -21,6 +21,10 @@ export function useOffences(): Offence[] {
   return useMemo(() => rows.map(normalizeOffence), [rows]);
 }
 
+export async function allOffences(): Promise<Offence[]> {
+  return (await documentsOf<Offence>(OFFENCE)).map(normalizeOffence);
+}
+
 export function useFines(): Fine[] {
   const rows = useDocuments<Fine>(FINE);
   return useMemo(() => rows.map(normalizeFine), [rows]);

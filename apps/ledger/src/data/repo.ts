@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { assertWitnessed } from "../domain/entry";
 import { documentsOf, documentsWhere, newId, normalizeTags, patchDocument, putDocument, removeDocument, todayStr, useDocuments, type DateStr } from "@lifeline/core";
 import {
   ACCOUNT,
@@ -72,6 +73,18 @@ export function useTransactions(): Transaction[] {
   return useMemo(() => rows.map(normalizeTransaction).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)), [rows]);
 }
 
+export async function allTransactions(): Promise<Transaction[]> {
+  return (await documentsOf<Transaction>(TRANSACTION)).map(normalizeTransaction);
+}
+
+export async function allAccounts(): Promise<LedgerAccount[]> {
+  return (await documentsOf<LedgerAccount>(ACCOUNT)).map(normalizeAccount);
+}
+
+export async function allCategories(): Promise<LedgerCategory[]> {
+  return (await documentsOf<LedgerCategory>(CATEGORY)).map(normalizeCategory);
+}
+
 export function useAccounts(): LedgerAccount[] {
   const rows = useDocuments<LedgerAccount>(ACCOUNT);
   return useMemo(() => rows.map(normalizeAccount).sort((a, b) => a.title.localeCompare(b.title)), [rows]);
@@ -129,6 +142,7 @@ export interface TransactionInput {
 }
 
 function validate(input: TransactionInput): void {
+  assertWitnessed(input.date, todayStr());
   if (input.kind === "transfer") {
     if (!input.fromAccountId || !input.toAccountId) throw new Error("A transfer needs both accounts");
     if (input.fromAccountId === input.toAccountId) throw new Error("A transfer needs two different accounts");

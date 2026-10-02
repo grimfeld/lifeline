@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocuments, type DateStr } from "@lifeline/core";
+import { documentsOf, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocuments, type DateStr } from "@lifeline/core";
 import { isColorSlot } from "@lifeline/ui";
 import { ALLOWANCE, SPEND, firstGrapheme, type Allowance, type PeriodKind, type Spend } from "../domain/types";
 import { allowanceTitle, endOf, nextFrom, normalizeFrom } from "../domain/period";
@@ -20,6 +20,14 @@ function normalizeSpend(s: Spend): Spend {
 export function useAllowances(): Allowance[] {
   const rows = useDocuments<Allowance>(ALLOWANCE);
   return useMemo(() => rows.map(normalizeAllowance), [rows]);
+}
+
+export async function allAllowances(): Promise<Allowance[]> {
+  return (await documentsOf<Allowance>(ALLOWANCE)).map(normalizeAllowance);
+}
+
+export async function allSpends(): Promise<Spend[]> {
+  return (await documentsOf<Spend>(SPEND)).map(normalizeSpend);
 }
 
 export function useSpends(): Spend[] {
