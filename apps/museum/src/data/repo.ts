@@ -38,6 +38,15 @@ function normalizeRoom(r: Room): Room {
 
 // --- artworks (the Holdings) ------------------------------------------------
 
+/** Every Artwork and Artist, read once — what a headless add checks for a twin against. */
+export async function allArtworks(): Promise<Artwork[]> {
+  return (await Promise.all(ART_FORM_IDS.map((t) => documentsOf<Artwork>(t)))).flat().map(normalizeArtwork);
+}
+
+export async function allArtists(): Promise<Artist[]> {
+  return (await documentsOf<Artist>(ARTIST)).map(normalizeArtist);
+}
+
 /** Every Artwork, across all five form types (one query per type, flattened). */
 export function useArtworks(): Artwork[] {
   const rows = useLiveQuery(
