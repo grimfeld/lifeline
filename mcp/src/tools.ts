@@ -172,7 +172,7 @@ function argSchema(arg: CommandArg): ZodTypeAny {
     default:
       s = z.string();
   }
-  const about = [arg.label, arg.hint].filter(Boolean).join(". ");
+  const about = [arg.label, arg.hint, arg.kind === "link" ? "Takes an id or the exact title" : undefined].filter(Boolean).join(". ");
   s = s.describe(about);
   return arg.required ? s : s.optional();
 }

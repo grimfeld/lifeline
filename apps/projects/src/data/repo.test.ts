@@ -1,11 +1,12 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { documentsOf, documentsTable, initApps, moveDocumentsToWorkspace, removeDocument } from "@lifeline/core";
+import { documentsOf, documentsTable, initApps, invokeCommand, moveDocumentsToWorkspace, removeDocument } from "@lifeline/core";
 import { addTask, setCompleted, setTaskProject, TASK, taskTypes, type Task } from "@lifeline/app-tasks/data";
 import { projectTypes } from "../types";
 import { PROJECT, PROJECT_LANE, PROJECT_MILESTONE, type Lane, type Milestone, type Project } from "../domain/types";
 import { boardOf } from "../domain/board";
-import { addMilestone, addProject, deleteLane, dropTask, lanesOf, setStage } from "./repo";
+import { addMilestone, addProject, deleteLane, dropTask, lanesOf, setDeadline, setStage } from "./repo";
+import { projectsTimed } from "../timed";
 
 initApps([
   { id: "tasks", title: "Tasks", types: taskTypes, screens: [], cards: [], commands: [] },
@@ -119,5 +120,28 @@ describe("moving a Project to another Workspace", () => {
     expect(ws(tid)).toBe("work");
     expect(ws(loose)).toBe("");
     expect(rows.filter((r) => r.type === PROJECT_LANE || r.type === PROJECT_MILESTONE).every((r) => r.workspace === "work")).toBe(true);
+  });
+});
+
+describe("agents", () => {
+  it("see Deadlines on the agenda through itemsIn", async () => {
+    const id = await addProject({ title: "Website" });
+    await setDeadline(id, "2026-10-09");
+    await addMilestone(id, "Copy done", "2026-10-05");
+    const items = await projectsTimed.itemsIn!({ start: "2026-10-01", end: "2026-10-07" });
+    expect(items.map((i) => [i.title.includes("Copy done"), i.date, i.marker])).toEqual([[true, "2026-10-05", true]]);
+  });
+
+  it("name a Project by its exact title in a headless Command's link argument", async () => {
+    const id = await addProject({ title: "Website" });
+    const def = {
+      id: "t.add",
+      title: "Add",
+      args: [{ key: "project", label: "Project", kind: "link" as const, linkType: PROJECT }],
+      invoke: async (a: Record<string, unknown>) => ({ id: a.project as string, message: "ok" }),
+    };
+    expect((await invokeCommand(def, { project: "website" })).id).toBe(id);
+    expect((await invokeCommand(def, { project: id })).id).toBe(id);
+    await expect(invokeCommand(def, { project: "Webside" })).rejects.toThrow("no project called");
   });
 });
