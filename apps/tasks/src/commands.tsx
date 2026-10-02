@@ -86,7 +86,7 @@ export const taskCommands: CommandDef[] = [
       { key: "notes", label: "Notes", kind: "longtext" },
       { key: "estimate", label: "Estimate", kind: "number", hint: "Whole minutes the task should take." },
       { key: "tags", label: "Tags", kind: "list" },
-      { key: "project", label: "Project", kind: "link", linkType: PROJECT, hint: "Id of the Project it serves." },
+      { key: "project", label: "Project", kind: "link", linkType: PROJECT, hint: "The Project it serves." },
     ],
     async invoke(a) {
       const recurrence = a.recurrence === undefined ? null : readRecurrence(a.recurrence);
