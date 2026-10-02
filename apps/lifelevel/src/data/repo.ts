@@ -156,6 +156,14 @@ export interface CompletionReward {
   levelDelta: number;
 }
 
+export async function allHabits(): Promise<Habit[]> {
+  return (await documentsOf<Habit>(HABIT)).map(normalizeHabit);
+}
+
+export async function allNegatives(): Promise<Negative[]> {
+  return (await documentsOf<Negative>(NEGATIVE)).map(normalizeNegative);
+}
+
 /**
  * Complete a Habit: append to the ledger and report what changed (for the
  * ding / level-up burst). `occurredAt` defaults to now; back-logging allowed.
