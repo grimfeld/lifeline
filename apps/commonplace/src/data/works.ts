@@ -5,6 +5,11 @@ import { WORK_TYPE_IDS, type QuotedWork } from "../domain/works";
 /** The Library's Authors (ADR 0052): a book's byline is its Authors' names, read here like any other Document. */
 const AUTHOR = "author";
 
+/** Every quotable work, read once — what a headless quote names its work against. */
+export async function allQuotedWorks(): Promise<QuotedWork[]> {
+  return (await Promise.all(WORK_TYPE_IDS.map((t) => documentsOf<QuotedWork>(t)))).flat();
+}
+
 /** Every quotable work across the family Apps' types (read-only; one query per type, flattened), with its byline resolved. */
 export function useQuotedWorks(): QuotedWork[] {
   const rows = useLiveQuery(
