@@ -38,6 +38,11 @@ export function useWorks(): Work[] {
   return useMemo(() => rows.map(normalize), [rows]);
 }
 
+/** Every work, read once — what headless Commands match titles against. */
+export async function allWorks(): Promise<Work[]> {
+  return (await Promise.all(WORK_TYPE_IDS.map((t) => documentsOf<Work>(t)))).flat().map(normalize);
+}
+
 export function useMediaItem(id: string | undefined): Work | undefined {
   const row = useDocument<Work>(id);
   return useMemo(() => (row ? normalize(row) : undefined), [row]);
