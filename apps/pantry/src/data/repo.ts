@@ -30,6 +30,10 @@ export function useProvisions(): Provision[] {
   return useMemo(() => rows.map(normalizeProvision), [rows]);
 }
 
+export async function allProvisions(): Promise<Provision[]> {
+  return (await documentsOf<Provision>(PROVISION)).map(normalizeProvision);
+}
+
 export function useStorages(): Storage[] {
   const rows = useDocuments<Storage>(STORAGE);
   return useMemo(() => sortStorages(rows.map(normalizeStorage)), [rows]);
