@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, newId, normalizeTags, putDocument, removeDocument, useDocuments } from "@lifeline/core";
+import { documentsOf, newId, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments } from "@lifeline/core";
 import { COLOR_SLOTS, DEFAULT_REFRESH, SOURCE_TYPE, type CalendarSub, type Embed, type Feed, type LiveValue, type Source, type SourceKind } from "../domain/types";
 import { normalizeEmbedUrl } from "../domain/url";
 
@@ -93,10 +93,10 @@ export async function addFeed(input: FeedInput): Promise<string> {
 export async function updateFeed(feed: Feed, input: FeedInput): Promise<void> {
   await putDocument<Feed>({ ...feed, ...scrubBase("feed", input) });
 }
-/** "Seen up to now": items published after this are new. */
+/** "Seen up to now": items published after this are new. Patched, so an edit made meanwhile is kept. */
 export async function markFeedSeen(feed: Feed, upTo: string = new Date().toISOString()): Promise<void> {
   if (feed.seenUpTo && feed.seenUpTo >= upTo) return;
-  await putDocument<Feed>({ ...feed, seenUpTo: upTo });
+  await patchDocument(feed.id, { seenUpTo: upTo });
 }
 
 // ---- Calendar subscription
