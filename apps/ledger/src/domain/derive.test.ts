@@ -97,6 +97,25 @@ describe("budget", () => {
     expect(rows[0].pot).toBe(-10_000);
     expect(rows[0].available).toBe(-10_000);
   });
+
+  it("each category's pot counts only its own spending, through the shown month", () => {
+    const trip = category("vacation", { target: 10_000, accumulating: true, createdAt: "2026-01-15" });
+    const car = category("car", { target: 5_000, accumulating: true, createdAt: "2026-02-01" });
+    const food = category("food", { target: 40_000 });
+    const ts = [
+      tx({ categoryId: "vacation", amount: 4_000, date: "2026-01-20" }),
+      tx({ categoryId: "car", amount: 1_000, date: "2026-03-02" }),
+      tx({ categoryId: "car", amount: 9_000, date: "2026-04-02" }),
+      tx({ categoryId: "food", amount: 15_000, date: "2026-03-05" }),
+      tx({ categoryId: "food", amount: 2_000, date: "2026-02-05" }),
+    ];
+    const rows = budgetRows([trip, car, food], [], ts, "2026-03");
+    expect(rows.map((r) => [r.category.id, r.spent, r.pot, r.available])).toEqual([
+      ["vacation", 0, 26_000, 26_000],
+      ["car", 1_000, 9_000, 9_000],
+      ["food", 15_000, null, 25_000],
+    ]);
+  });
 });
 
 describe("payeeIndex", () => {
