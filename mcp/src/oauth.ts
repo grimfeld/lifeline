@@ -23,6 +23,8 @@ const REFRESH_SECONDS = 90 * 24 * 60 * 60;
 const PENDING_MS = 10 * 60_000;
 const CODE_MS = 5 * 60_000;
 const VERIFY_CACHE_MS = 30_000;
+/** How often the hot paths clear expired entries. */
+const SWEEP_EVERY_MS = 60_000;
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 const token = (prefix: string) => `${prefix}_${randomBytes(32).toString("base64url")}`;
@@ -65,6 +67,37 @@ export function grantedScopes(allowWrite: boolean): string[] {
   return [SCOPE_READ, ...(allowWrite ? [SCOPE_WRITE] : [])];
 }
 
+/**
+ * The sign-in form's rate limit: at most `max` attempts per address per
+ * window. Expired windows are pruned as it goes, so addresses that tried
+ * once and left do not accumulate.
+ */
+export class LoginAttempts {
+  private attempts = new Map<string, { n: number; until: number }>();
+  private lastPrune = 0;
+
+  constructor(
+    private max = 10,
+    private windowMs = 15 * 60_000,
+  ) {}
+
+  /** Count one attempt from `key`; false when it is over the limit. */
+  hit(key: string, now = Date.now()): boolean {
+    if (now - this.lastPrune > SWEEP_EVERY_MS) {
+      this.lastPrune = now;
+      for (const [k, v] of this.attempts) if (v.until <= now) this.attempts.delete(k);
+    }
+    const a = this.attempts.get(key);
+    if (a && a.until > now && a.n >= this.max) return false;
+    this.attempts.set(key, a && a.until > now ? { n: a.n + 1, until: a.until } : { n: 1, until: now + this.windowMs });
+    return true;
+  }
+
+  get size(): number {
+    return this.attempts.size;
+  }
+}
+
 export class LifelineOAuth implements OAuthServerProvider {
   private pending = new Map<string, PendingAuthorization>();
   private codes = new Map<string, AuthorizationCode>();
@@ -93,8 +126,11 @@ export class LifelineOAuth implements OAuthServerProvider {
     },
   };
 
+  private lastSweep = 0;
+
   private sweep(): void {
     const now = Date.now();
+    this.lastSweep = now;
     for (const [k, v] of this.pending) if (v.expires < now) this.pending.delete(k);
     for (const [k, v] of this.codes) if (v.expires < now) this.codes.delete(k);
     for (const [k, v] of this.verified) if (v.until < now) this.verified.delete(k);
@@ -222,6 +258,8 @@ export class LifelineOAuth implements OAuthServerProvider {
   }
 
   async verifyAccessToken(accessToken: string): Promise<AuthInfo> {
+    // Every bearer call lands here, so this is where the cache is kept bounded.
+    if (Date.now() - this.lastSweep > SWEEP_EVERY_MS) this.sweep();
     const hash = sha256(accessToken);
     const hit = this.verified.get(hash);
     if (hit && hit.until > Date.now()) return hit.info;
