@@ -242,12 +242,29 @@ export async function renameDeck(d: Deck, name: string): Promise<void> {
   await putDocument<Deck>({ ...d, name: n, title: n });
 }
 
-/** Membership is the Deck's: a Word goes in or out of one Deck, and only items of the Deck's Language go in. */
-export async function setMembership(deck: Deck, item: Item, member: boolean): Promise<void> {
-  if (item.languageId !== deck.languageId) throw new Error("A deck holds one language only");
-  const has = deck.members.includes(item.id);
-  if (has === member) return;
-  await patchDocument(deck.id, { members: member ? [...deck.members, item.id] : deck.members.filter((x) => x !== item.id) });
+/** Membership writes per Deck, one after another: each reads the members the last one wrote. */
+const membershipWrites = new Map<string, Promise<void>>();
+
+/**
+ * Membership is the Deck's: a Word goes in or out of one Deck, and only items
+ * of the Deck's Language go in. The Deck is re-read under a per-Deck queue,
+ * so quick clicks made against the same (stale) Deck each keep their change.
+ */
+export function setMembership(deck: Deck, item: Item, member: boolean): Promise<void> {
+  if (item.languageId !== deck.languageId) return Promise.reject(new Error("A deck holds one language only"));
+  const write = async () => {
+    const current = await getDocument<Deck>(deck.id);
+    if (!current) throw new Error("That deck no longer exists");
+    const has = current.members.includes(item.id);
+    if (has === member) return;
+    await patchDocument(deck.id, { members: member ? [...current.members, item.id] : current.members.filter((x) => x !== item.id) });
+  };
+  const next = (membershipWrites.get(deck.id) ?? Promise.resolve()).catch(() => undefined).then(write);
+  membershipWrites.set(deck.id, next);
+  void next.finally(() => {
+    if (membershipWrites.get(deck.id) === next) membershipWrites.delete(deck.id);
+  }).catch(() => undefined);
+  return next;
 }
 
 export async function deleteDeck(id: string): Promise<void> {
