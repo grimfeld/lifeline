@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router";
 import { Toaster } from "@lifeline/ui";
 import {
@@ -19,9 +19,6 @@ import { CommandPalette } from "./components/CommandPalette";
 import { PrivateDialogs } from "./vault/PrivateDialogs";
 import { CalendarPage } from "./surfaces/CalendarPage";
 import { WeekPage } from "./surfaces/WeekPage";
-import { MapPage } from "./surfaces/MapPage";
-import { GraphPage } from "./surfaces/GraphPage";
-import { SchedulePage } from "./surfaces/SchedulePage";
 import { PushProvider } from "./surfaces/push";
 import { UserScreenPage } from "./screens/UserScreenPage";
 import { ScreensIndex } from "./screens/ScreensIndex";
@@ -34,6 +31,11 @@ import { ModulePage } from "./modules/ModulePage";
 import { ModuleLayout } from "./modules/ModuleLayout";
 import { lastPlace, useResume } from "./nav/resume";
 import { PeekHost } from "./peek/PeekHost";
+
+// The heavier Surfaces load when first visited, not with the shell (CR-23).
+const MapPage = lazy(() => import("./surfaces/MapPage").then((m) => ({ default: m.MapPage })));
+const GraphPage = lazy(() => import("./surfaces/GraphPage").then((m) => ({ default: m.GraphPage })));
+const SchedulePage = lazy(() => import("./surfaces/SchedulePage").then((m) => ({ default: m.SchedulePage })));
 
 /** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
 function ResumeRedirect() {
@@ -53,7 +55,11 @@ function LegacyVaultRedirect() {
 
 /** A Core destination — a general Surface, the Bases, Screens, Settings: no chrome but the Rail's. */
 function CorePage({ children }: { children: ReactNode }) {
-  return <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>;
+  return (
+    <main className="min-w-0 flex-1 overflow-y-auto">
+      <Suspense fallback={null}>{children}</Suspense>
+    </main>
+  );
 }
 
 /** The routes of a hand-written Module layout (the Vault), below its path. */
