@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Line, Product, Receipt } from "./types";
-import { cheapest, historyOf, latestUsual, matchProduct, median, normalizeLabel, observe, overallChange, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
+import { changesIn, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
 
 const product = (id: string, title: string, labels: Product["labels"] = []): Product => ({ id, type: "price_product", title, measure: "l", labels, tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0 }) as unknown as Product;
 const receipt = (id: string, shopId: string, date: string, total = 0): Receipt => ({ id, type: "price_receipt", title: "", shopId, date, branch: "", total, tags: [], folder: "", createdAt: date, updatedAt: "", deleted: 0 }) as unknown as Receipt;
@@ -94,6 +94,16 @@ describe("price change", () => {
     const o = overallChange(["p1", "p2"], obs, "2026-01-01", "2026-12-31");
     expect(o.n).toBe(2);
     expect(o.median).toBeCloseTo(5); // (+20 − 10) / 2
+  });
+  it("the one-pass groupings read the same as the per-product scans", () => {
+    const all = historiesByProduct(obs);
+    for (const id of ["p1", "p2"]) {
+      expect(all.get(id)).toEqual(historyOf(id, obs));
+      expect(changesIn(all.get(id)!, "2026-01-01", "2026-12-31")).toEqual(shopChanges(id, obs, "2026-01-01", "2026-12-31"));
+    }
+    expect(overallOf(["p1", "p2"].map((id) => changesIn(all.get(id)!, "2026-01-01", "2026-12-31")))).toEqual(overallChange(["p1", "p2"], obs, "2026-01-01", "2026-12-31"));
+    const byReceipt = linesByReceipt(lines);
+    for (const r of receipts) expect(byReceipt.get(r.id) ?? []).toEqual(linesOf(lines, r.id));
   });
   it("median", () => {
     expect(median([])).toBeNull();

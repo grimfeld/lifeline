@@ -46,7 +46,6 @@ export function matchProduct(products: readonly Product[], shopId: string, label
   return products.find((p) => p.labels.some((l) => l.shopId === shopId && l.label === key)) ?? products.find((p) => normalizeLabel(p.title) === key);
 }
 
-/** Matched Lines joined with their Receipt's Shop and day; a Line whose Receipt is gone is dropped. */
 /** The labels with this one remembered at this Shop — the same array when there is nothing to learn (no Shop, an empty label, or the Product's own name). */
 export function withLabel(product: Pick<Product, "title" | "labels">, shopId: string, label: string): LabelMemory[] {
   const key = normalizeLabel(label);
@@ -98,6 +97,7 @@ export function relabel(products: readonly Product[], oldShopId: string, newShop
   return out;
 }
 
+/** Matched Lines joined with their Receipt's Shop and day; a Line whose Receipt is gone is dropped. */
 export function observe(lines: readonly Line[], receipts: readonly Receipt[]): Observation[] {
   const byId = new Map(receipts.map((r) => [r.id, r]));
   const out: Observation[] = [];
@@ -124,16 +124,34 @@ export interface PricePoint {
 
 const byDate = (a: PricePoint, b: PricePoint) => a.date.localeCompare(b.date) || a.lineId.localeCompare(b.lineId);
 
+function pointOf(o: Observation): PricePoint {
+  return { date: o.date, unit: unitPrice(o.line), promo: o.line.promo, lineId: o.line.id, receiptId: o.line.receiptId };
+}
+
 /** A Product's points per Shop, oldest first. */
 export function historyOf(productId: string, obs: readonly Observation[]): Map<string, PricePoint[]> {
   const out = new Map<string, PricePoint[]>();
   for (const o of obs) {
     if (o.line.productId !== productId) continue;
     const list = out.get(o.shopId) ?? [];
-    list.push({ date: o.date, unit: unitPrice(o.line), promo: o.line.promo, lineId: o.line.id, receiptId: o.line.receiptId });
+    list.push(pointOf(o));
     out.set(o.shopId, list);
   }
   for (const list of out.values()) list.sort(byDate);
+  return out;
+}
+
+/** Every Product's history (see historyOf) in one pass — for screens that read them all. */
+export function historiesByProduct(obs: readonly Observation[]): Map<string, Map<string, PricePoint[]>> {
+  const out = new Map<string, Map<string, PricePoint[]>>();
+  for (const o of obs) {
+    let h = out.get(o.line.productId);
+    if (!h) out.set(o.line.productId, (h = new Map()));
+    const list = h.get(o.shopId);
+    if (list) list.push(pointOf(o));
+    else h.set(o.shopId, [pointOf(o)]);
+  }
+  for (const h of out.values()) for (const list of h.values()) list.sort(byDate);
   return out;
 }
 
@@ -168,8 +186,13 @@ export interface ShopChange {
  * says nothing. No cross-Shop figure — a switch of Shop is not inflation.
  */
 export function shopChanges(productId: string, obs: readonly Observation[], from: DateStr, to: DateStr): ShopChange[] {
+  return changesIn(historyOf(productId, obs), from, to);
+}
+
+/** shopChanges over a history already in hand. */
+export function changesIn(history: ReadonlyMap<string, PricePoint[]>, from: DateStr, to: DateStr): ShopChange[] {
   const out: ShopChange[] = [];
-  for (const [shopId, points] of historyOf(productId, obs)) {
+  for (const [shopId, points] of history) {
     const usual = points.filter((p) => !p.promo && p.date >= from && p.date <= to);
     if (usual.length < 2) continue;
     const first = usual[0];
@@ -189,8 +212,12 @@ export function median(nums: readonly number[]): number | null {
 
 /** The all-Products figure: the median of every per-Shop change over the span, and how many went in. */
 export function overallChange(productIds: readonly string[], obs: readonly Observation[], from: DateStr, to: DateStr): { median: number | null; n: number } {
-  const pcts: number[] = [];
-  for (const id of productIds) for (const c of shopChanges(id, obs, from, to)) pcts.push(c.pct);
+  return overallOf(productIds.map((id) => shopChanges(id, obs, from, to)));
+}
+
+/** overallChange over per-Product changes already in hand. */
+export function overallOf(changes: readonly (readonly ShopChange[])[]): { median: number | null; n: number } {
+  const pcts = changes.flatMap((cs) => cs.map((c) => c.pct));
   return { median: median(pcts), n: pcts.length };
 }
 
@@ -218,8 +245,22 @@ export function receiptTitle(shopName: string, date: DateStr): string {
 }
 
 /** Lines of one Receipt, in creation order. */
+const byCreated = (a: Line, b: Line) => a.createdAt.localeCompare(b.createdAt) || a.updatedAt.localeCompare(b.updatedAt);
+
 export function linesOf(lines: readonly Line[], receiptId: string): Line[] {
-  return lines.filter((l) => l.receiptId === receiptId).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.updatedAt.localeCompare(b.updatedAt));
+  return lines.filter((l) => l.receiptId === receiptId).sort(byCreated);
+}
+
+/** linesOf for every Receipt in one pass. */
+export function linesByReceipt(lines: readonly Line[]): Map<string, Line[]> {
+  const out = new Map<string, Line[]>();
+  for (const l of lines) {
+    const list = out.get(l.receiptId);
+    if (list) list.push(l);
+    else out.set(l.receiptId, [l]);
+  }
+  for (const list of out.values()) list.sort(byCreated);
+  return out;
 }
 
 export { addDays };
