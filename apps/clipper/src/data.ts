@@ -1,8 +1,21 @@
-import { createDocument, putDocument, useDocuments, type DateStr } from "@lifeline/core";
+import { createDocument, putDocument, todayStr, useDocuments, type DateStr } from "@lifeline/core";
 import { CLIPPING, type Clipping } from "./types";
 
 export function useClippings(): Clipping[] {
   return useDocuments<Clipping>(CLIPPING);
+}
+
+/** The local day a Clipping was captured on — `capturedAt` is a UTC instant, the Daylog's days are local. */
+export function capturedDay(capturedAt: string): DateStr | null {
+  const d = new Date(capturedAt);
+  return Number.isNaN(d.getTime()) ? null : todayStr(d);
+}
+
+/** "09:05", local, of when a Clipping was captured. */
+export function capturedClock(capturedAt: string): string | null {
+  const d = new Date(capturedAt);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 /** Record a Clipping: the text I pasted, plus where it came from. Title defaults to the source's host or the first words. */

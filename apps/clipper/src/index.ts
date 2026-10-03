@@ -5,7 +5,7 @@ import { ClipperScreen } from "./screens/ClipperScreen";
 import { QuickClipCard } from "./cards/QuickClipCard";
 import { RecentClippingsCard } from "./cards/RecentClippingsCard";
 import { ClipDialog } from "./ClipDialog";
-import { useClippings } from "./data";
+import { capturedClock, capturedDay, useClippings } from "./data";
 import { APP_ID, CLIPPINGS_HREF, clippingType, hostOf } from "./types";
 
 /** Daylog: what I clipped on a day. */
@@ -14,7 +14,7 @@ const clipperDaylog: DaylogProvider = {
   useItems(date) {
     const clippings = useClippings();
     return clippings
-      .filter((c) => String(c.capturedAt).slice(0, 10) === date)
+      .filter((c) => capturedDay(String(c.capturedAt)) === date)
       .map(
         (c): DaylogItem => ({
           key: `${APP_ID}/${c.id}`,
@@ -23,7 +23,7 @@ const clipperDaylog: DaylogProvider = {
           kind: "Clipped",
           title: c.title,
           subtitle: hostOf(String(c.source)) || undefined,
-          time: String(c.capturedAt).slice(11, 16) || null,
+          time: capturedClock(String(c.capturedAt)),
           href: docHref(c),
           tags: c.tags,
         }),
