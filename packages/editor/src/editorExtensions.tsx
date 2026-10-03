@@ -2,7 +2,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { RangeSetBuilder, StateEffect, StateField, type EditorState } from "@codemirror/state";
 import { autocompletion, type CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
-import { extractBlocks, extractLinks, extractTags, isImageEmbed, parseBlockOptions, normalizeTag, resolveAttachment, type Attachment, type LinkIndex, type LinkRef } from "@lifeline/core";
+import { extractBlocks, extractLinks, extractTags, isImageEmbed, parseBlockOptions, normalizeTag, resolveAttachment, todayStr, type Attachment, type LinkIndex, type LinkRef } from "@lifeline/core";
 import { DaylogBlock } from "./DaylogBlock";
 import { AttachmentImage } from "./AttachmentImage";
 
@@ -200,7 +200,7 @@ function buildBlocks(state: EditorState): DecorationSet {
     if (blk.lang !== "daylog") continue;
     if (focused && sel.from <= blk.to && sel.to >= blk.from) continue; // cursor inside while editing: show source
     const opts = parseBlockOptions(blk.body);
-    const date = opts.date || ctx?.docDate || new Date().toISOString().slice(0, 10);
+    const date = opts.date || ctx?.docDate || todayStr(); // the local day, not UTC's
     const apps = opts.apps ? opts.apps.split(/[\s,]+/).filter(Boolean) : undefined;
     b.add(blk.from, blk.to, Decoration.replace({ widget: new DaylogWidget(date, apps), block: true }));
   }

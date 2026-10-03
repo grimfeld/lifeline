@@ -2,7 +2,7 @@ import { useMemo, useRef } from "react";
 import ReactMarkdown, { defaultUrlTransform, type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@lifeline/ui";
-import { extractBlocks, isImageName, openPrivateDialog, splitFrontmatter, type LinkIndex } from "@lifeline/core";
+import { extractBlocks, isImageName, openPrivateDialog, splitFrontmatter, todayStr, type LinkIndex } from "@lifeline/core";
 import { DaylogBlock } from "./DaylogBlock";
 import { useOpenDocument } from "./openDocument";
 import { AttachmentImage } from "./AttachmentImage";
@@ -76,7 +76,7 @@ export function MarkdownView({ body, index, docDate, className, compact }: { bod
         const lang = /language-(\w+)/.exec(cls ?? "")?.[1];
         if (lang === "daylog") {
           const opts = parseOpts(String(children));
-          return <DaylogBlock date={opts.date || live.current.docDate || new Date().toISOString().slice(0, 10)} apps={opts.apps ? opts.apps.split(/[\s,]+/).filter(Boolean) : undefined} compact />;
+          return <DaylogBlock date={opts.date || live.current.docDate || todayStr()} apps={opts.apps ? opts.apps.split(/[\s,]+/).filter(Boolean) : undefined} compact />;
         }
         return (
           <code className={cls} {...rest}>
