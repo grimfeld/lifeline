@@ -7,7 +7,7 @@ import type { Due, LedgerAccount, Series, Transaction } from "../domain/types";
 import { balanceOf, formatMonth, isUncategorized, monthOf } from "../domain/derive";
 import { formatCents, formatSigned, parseAmount } from "../domain/money";
 import { describeDueDay, isOverdue, openDues } from "../domain/recur";
-import { describeCadence, nextOccurrence } from "../domain/series";
+import { coveredDate, describeCadence, nextOccurrence } from "../domain/series";
 import { matchRule, payeeCategoryIndex, suggestCategory } from "../domain/suggest";
 import { looksLikePaypal } from "../domain/paypal";
 import { categorizeTransaction, dismissDue, setSeriesMuted, useAccounts, useCategories, useCategorizeRules, useSeries, useTransactions } from "../data/repo";
@@ -437,7 +437,7 @@ export function DuesList({ dues, today, compact }: { dues: Due[]; today: string;
  * to look at its transactions.
  */
 function SeriesCard({ series, today, category, account, onShow }: { series: Series; today: string; category?: string; account?: string; onShow: () => void }) {
-  const next = nextOccurrence(series, series.lastDate);
+  const next = nextOccurrence(series, coveredDate(series));
   const quiet = series.muted || series.dormant;
   return (
     <Card className={`py-3 ${quiet ? "opacity-60" : ""}`}>
