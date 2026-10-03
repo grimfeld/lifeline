@@ -23,6 +23,13 @@ describe("parseRef", () => {
     expect(parseRef("Dune")).toBeNull();
     expect(parseRef("John 3:18-16")!.toVerse).toBeNull();
   });
+  it("bounds a verse by the longest chapter (Psalm 119, 176 verses)", () => {
+    expect(canonical(parseRef("Psalm 119:176")!)).toBe("Psalms 119:176");
+    expect(parseRef("Psalm 119:177")).toBeNull();
+    expect(parseRef("John 3:1-100000")).toBeNull();
+    expect(parseRef("John 3:16-4:100000")).toBeNull();
+    expect(expanders.verse("John 3:1-100000")).toBeNull();
+  });
   it("knows its kind", () => {
     expect(kindOf(parseRef("Acts")!)).toBe("book");
     expect(kindOf(parseRef("Acts 2")!)).toBe("chapter");
