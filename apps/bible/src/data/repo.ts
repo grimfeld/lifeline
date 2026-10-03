@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
-import { createDocument, documentsOf, normalizeTags, putDocument, todayStr, useDocuments, useLinkIndex, type Document, type LinkIndex } from "@lifeline/core";
+import { createDocument, documentsOf, normalizeTags, putDocument, todayStr, useDocuments, useLinkIndex, type Document, type DocumentInput, type LinkIndex } from "@lifeline/core";
 import { BOOK_ORDER, type CanonBook } from "../domain/canon";
-import { canonical, chapterTitle, chapterTitles, kindOf, parseRef, verseTitle, verseTitles, type Ref } from "../domain/refs";
+import { canonical, chapterTitle, kindOf, parseRef, verseTitle, verseTitles, type Ref } from "../domain/refs";
 import { BIBLE_BOOK, BIBLE_CHAPTER, CHARACTER, CONCEPT, REFERENCE_TYPES, STUDY_FOLDER, VERSE, type BibleBook, type BibleChapter, type Character, type Concept, type Verse } from "../domain/types";
 
 const SCRIPTURE_FOLDER = `${STUDY_FOLDER}/Scripture`;
@@ -58,14 +58,38 @@ export function useStudy(): Document[] {
 
 // ---- creation on first mention (ADR 0032) ----
 
-async function findByTitle<T extends Document>(type: string, title: string): Promise<T | undefined> {
-  return (await documentsOf<T>(type)).find((d) => norm(d.title) === norm(title));
+/**
+ * The scripture references already stored, read once per `ensureRef` and kept
+ * in step with what it creates: one scan per type rather than one per verse,
+ * and a Book or Chapter made for one part of a range is found by the rest.
+ */
+class RefLookup {
+  private byType = new Map<string, Promise<Map<string, Document>>>();
+
+  private table(type: string): Promise<Map<string, Document>> {
+    let t = this.byType.get(type);
+    if (!t) {
+      t = documentsOf(type).then((docs) => new Map(docs.map((d) => [norm(d.title), d])));
+      this.byType.set(type, t);
+    }
+    return t;
+  }
+
+  async find<T extends Document>(type: string, title: string): Promise<T | undefined> {
+    return (await this.table(type)).get(norm(title)) as T | undefined;
+  }
+
+  async put<T extends Document>(input: DocumentInput<T>): Promise<T> {
+    const created = await putDocument<T>(input);
+    (await this.table(created.type)).set(norm(created.title), created);
+    return created;
+  }
 }
 
-async function ensureBook(book: CanonBook): Promise<BibleBook> {
-  const found = await findByTitle<BibleBook>(BIBLE_BOOK, book.name);
+async function ensureBook(refs: RefLookup, book: CanonBook): Promise<BibleBook> {
+  const found = await refs.find<BibleBook>(BIBLE_BOOK, book.name);
   if (found) return found;
-  return putDocument<BibleBook>({
+  return refs.put<BibleBook>({
     type: BIBLE_BOOK,
     title: book.name,
     folder: SCRIPTURE_FOLDER,
@@ -76,41 +100,48 @@ async function ensureBook(book: CanonBook): Promise<BibleBook> {
   });
 }
 
-async function ensureChapter(book: CanonBook, chapter: number): Promise<BibleChapter> {
+async function ensureChapter(refs: RefLookup, book: CanonBook, chapter: number): Promise<BibleChapter> {
   const title = chapterTitle(book, chapter);
-  const found = await findByTitle<BibleChapter>(BIBLE_CHAPTER, title);
+  const found = await refs.find<BibleChapter>(BIBLE_CHAPTER, title);
   if (found) return found;
-  const b = await ensureBook(book);
-  return putDocument<BibleChapter>({ type: BIBLE_CHAPTER, title, folder: `${SCRIPTURE_FOLDER}/${book.name}`, bookId: b.id, book: book.name, chapter, body: "" });
+  const b = await ensureBook(refs, book);
+  return refs.put<BibleChapter>({ type: BIBLE_CHAPTER, title, folder: `${SCRIPTURE_FOLDER}/${book.name}`, bookId: b.id, book: book.name, chapter, body: "" });
 }
 
-async function ensureVerse(book: CanonBook, chapter: number, verse: number): Promise<Verse> {
+async function ensureVerse(refs: RefLookup, book: CanonBook, chapter: number, verse: number): Promise<Verse> {
   const title = verseTitle(book, chapter, verse);
-  const found = await findByTitle<Verse>(VERSE, title);
+  const found = await refs.find<Verse>(VERSE, title);
   if (found) return found;
-  const c = await ensureChapter(book, chapter);
-  return putDocument<Verse>({ type: VERSE, title, folder: `${SCRIPTURE_FOLDER}/${book.name}`, chapterId: c.id, bookId: c.bookId, book: book.name, chapter, verse, body: "" });
+  const c = await ensureChapter(refs, book, chapter);
+  return refs.put<Verse>({ type: VERSE, title, folder: `${SCRIPTURE_FOLDER}/${book.name}`, chapterId: c.id, bookId: c.bookId, book: book.name, chapter, verse, body: "" });
 }
 
-/** Every Document a reference stands for, created where missing; returns the one to open (the first). */
+/**
+ * Every Document a reference stands for, created where missing; returns the
+ * one to open (the first). One at a time, so a range's Book (and Chapter) is
+ * created once and found by the rest of it.
+ */
 export async function ensureRef(ref: Ref): Promise<Document> {
+  const refs = new RefLookup();
   switch (kindOf(ref)) {
     case "book":
-      return ensureBook(ref.book);
+      return ensureBook(refs, ref.book);
     case "chapter":
-      return ensureChapter(ref.book, ref.chapter!);
+      return ensureChapter(refs, ref.book, ref.chapter!);
     case "verse": {
-      const verses = verseTitles(ref);
-      if (verses.length === 0) {
+      if (verseTitles(ref).length === 0) {
         // cross-chapter: its chapters
-        const chapters = chapterTitles(ref).map((t) => Number(t.slice(ref.book.name.length + 1)));
-        const docs = await Promise.all(chapters.map((c) => ensureChapter(ref.book, c)));
-        return docs[0];
+        let first: BibleChapter | null = null;
+        for (let c = ref.chapter!; c <= ref.toChapter!; c++) {
+          const d = await ensureChapter(refs, ref.book, c);
+          first ??= d;
+        }
+        return first!;
       }
       const end = ref.toVerse ?? ref.verse!;
       let first: Verse | null = null;
       for (let v = ref.verse!; v <= end; v++) {
-        const d = await ensureVerse(ref.book, ref.chapter!, v);
+        const d = await ensureVerse(refs, ref.book, ref.chapter!, v);
         first ??= d;
       }
       return first!;
