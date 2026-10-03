@@ -113,16 +113,20 @@ export function RegisterScreen() {
     const index = payeeCategoryIndex(transactions);
     let n = 0;
     let vetoed = 0;
-    for (const t of uncategorized) {
-      const kind = t.kind as "expense" | "income";
-      if (matchRule(t.payee, kind, rules)?.never) {
-        vetoed++;
-        continue;
+    try {
+      for (const t of uncategorized) {
+        const kind = t.kind as "expense" | "income";
+        if (matchRule(t.payee, kind, rules)?.never) {
+          vetoed++;
+          continue;
+        }
+        const s = suggestCategory(t.payee, kind, index, rules);
+        if (!s) continue;
+        await categorizeTransaction(t.id, s.categoryId);
+        n++;
       }
-      const s = suggestCategory(t.payee, kind, index, rules);
-      if (!s) continue;
-      await categorizeTransaction(t.id, s.categoryId);
-      n++;
+    } catch (e) {
+      return void toast.error(`Auto-categorize stopped after ${n} of ${uncategorized.length}: ${e instanceof Error ? e.message : String(e)}`);
     }
     const left = vetoed > 0 ? ` — ${vetoed} left alone by a never rule` : n < uncategorized.length ? " — the rest need a hand" : "";
     if (n === 0) toast.info(`Nothing to go on for these payees${vetoed > 0 ? `, and ${vetoed} are never auto-categorized` : " — categorize a few by hand first"}`);
