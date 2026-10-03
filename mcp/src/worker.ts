@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { parentPort, workerData } from "node:worker_threads";
 import { db, initApps, lastSyncError, pb, syncNow } from "@lifeline/core";
 import { manifests } from "./apps";
+import { unsyncedWrite } from "./devices";
 import { runTool, ToolError } from "./handlers";
 
 /**
@@ -58,12 +59,12 @@ async function handle(req: DeviceRequest): Promise<DeviceResponse> {
     }
     if (Date.now() - lastPull > FRESH_MS) await sync();
     const result = await runTool(req.tool, req.args);
-    let warning: string | undefined;
+    let unsynced: object | undefined;
     if (req.write) {
       await sync();
-      if ((await pending()) > 0) warning = `Saved, but not yet on the server (${lastSyncError || "sync pending"}); it will be retried.`;
+      if ((await pending()) > 0) unsynced = unsyncedWrite(lastSyncError);
     }
-    return { id: req.id, ok: true, result: warning ? { ...(result as object), warning } : result, pending: await pending() };
+    return { id: req.id, ok: true, result: unsynced ? { ...(result as object), ...unsynced } : result, pending: await pending() };
   } catch (err) {
     return { id: req.id, ok: false, error: (err as Error).message ?? String(err), expected: err instanceof ToolError, pending: await pending().catch(() => -1) };
   }
