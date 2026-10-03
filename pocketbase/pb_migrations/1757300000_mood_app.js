@@ -36,9 +36,10 @@ migrate(
     const docs = app.findCollectionByNameOrId("documents");
     const dailies = app.findRecordsByFilter("documents", 'type = "daily"', "", 0, 0);
     const now = new Date().toISOString();
-    // One Mood per day per owner: a Mood already there wins over the field.
+    // One Mood per day per owner: a live Mood already there wins over the field
+    // (a tombstone does not — down() leaves those behind).
     const taken = {};
-    for (const r of app.findRecordsByFilter("documents", 'type = "mood"', "", 0, 0)) {
+    for (const r of app.findRecordsByFilter("documents", 'type = "mood" && deleted = 0', "", 0, 0)) {
       taken[r.getString("owner") + "|" + r.getString("title")] = true;
     }
 
@@ -73,12 +74,13 @@ migrate(
   (app) => {
     // Back into the daily notes: each Mood's level returns to its day's note,
     // and the Mood Documents go. A Mood on a day with no note is dropped —
-    // the field could not hold it.
+    // the field could not hold it. Moods are tombstoned, not deleted, so
+    // devices that already pulled them drop them too instead of keeping ghosts.
     const dailies = app.findRecordsByFilter("documents", 'type = "daily"', "", 0, 0);
     const byDate = {};
     for (const n of dailies) byDate[n.getString("owner") + "|" + n.getString("title")] = n;
     const now = new Date().toISOString();
-    for (const mood of app.findRecordsByFilter("documents", 'type = "mood"', "", 0, 0)) {
+    for (const mood of app.findRecordsByFilter("documents", 'type = "mood" && deleted = 0', "", 0, 0)) {
       const level = readLevel(readFields(mood).level);
       const note = byDate[mood.getString("owner") + "|" + mood.getString("title")];
       if (note && level !== null) {
@@ -88,7 +90,9 @@ migrate(
         note.set("updatedAt", now);
         app.save(note);
       }
-      app.delete(mood);
+      mood.set("deleted", 1);
+      mood.set("updatedAt", now);
+      app.save(mood);
     }
   },
 );
