@@ -9,7 +9,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@lifeline/ui";
-import { appById, moduleById, moduleHome, registeredApps, screenRoute, useAllCommands, useWorkspaceModules, useWorkspaceScreens, type CommandDef } from "@lifeline/core";
+import { appById, isModShortcut, moduleById, moduleHome, registeredApps, screenRoute, useAllCommands, useWorkspaceModules, useWorkspaceScreens, type CommandDef } from "@lifeline/core";
 import { MODULE_ICONS } from "../navIcons";
 import { CalendarDays, Clock, Columns3, LayoutDashboard, MapPin, Terminal } from "lucide-react";
 
@@ -25,7 +25,7 @@ export function CommandPalette() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      if (isModShortcut(e, "k")) {
         e.preventDefault();
         setOpen((o) => !o);
       }
