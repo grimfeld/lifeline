@@ -3,6 +3,7 @@ import { appById, timedProviders } from "../registry";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
 import { inSurfaceScope, useSurfaceScope } from "./scope";
+import { useStructuralMemo } from "../stable";
 
 /** "HH:MM" local wall-clock time. */
 export type TimeStr = string;
@@ -140,8 +141,9 @@ export function useTimedItems(range: { start: DateStr; end: DateStr }, opts?: { 
       if (item.background || (scoped && matchesTagFilter(item.tags, filter))) out.push({ ...item, color: item.color ?? color });
     }
   }
-  return out.sort((a, b) =>
-    a.date.localeCompare(b.date) || (a.start ?? "").localeCompare(b.start ?? "") || a.title.localeCompare(b.title),
+  // Stable while nothing changed, so the surfaces' memos can hit.
+  return useStructuralMemo(
+    out.sort((a, b) => a.date.localeCompare(b.date) || (a.start ?? "").localeCompare(b.start ?? "") || a.title.localeCompare(b.title)),
   );
 }
 
