@@ -1,11 +1,11 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { CardUnavailable, cn, toast } from "@lifeline/ui";
 import { openExternal, type CardOption, type CardProps, type CardSettings, type CardSettingsSchema } from "@lifeline/core";
 import { AlertTriangle } from "lucide-react";
 import { markFeedSeen, useFeeds } from "../data/repo";
 import { ago, useSourceCache } from "../data/cache";
 import { hostOf } from "../domain/url";
-import { isNewItem, parseFeed, sortFeedItems, type FeedItem } from "../domain/rss";
+import { isNewItem, parseFeed, seenUpToFor, sortFeedItems, type FeedItem } from "../domain/rss";
 import type { Feed } from "../domain/types";
 
 function useFeedOptions(): CardOption[] {
@@ -44,12 +44,16 @@ export function FeedList({ feed, count, className }: { feed: Feed; count: number
   const items: FeedItem[] = parsed && "items" in parsed ? sortFeedItems(parsed.items).slice(0, count) : [];
   const newCount = items.filter((i) => isNewItem(i, feed.seenUpTo)).length;
 
-  // Seen up to now once the list has been shown for a moment.
+  // Seen up to now (or a future-dated newest item) once the list has been shown for a moment.
+  // Keyed on the Feed's id and seenUpTo, not the object: an unrelated edit must not restart the wait.
+  const feedRef = useRef(feed);
+  feedRef.current = feed;
   useEffect(() => {
-    if (!items.length || newCount === 0) return;
-    const t = setTimeout(() => void markFeedSeen(feed), 4000);
+    if (newCount === 0) return;
+    const t = setTimeout(() => void markFeedSeen(feedRef.current, seenUpToFor(items)), 4000);
     return () => clearTimeout(t);
-  }, [feed, items.length, newCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- items are read when the timer fires
+  }, [feed.id, feed.seenUpTo, newCount]);
 
   if (!entry) return <div className="text-muted-foreground flex h-full items-center justify-center text-xs">Fetching…</div>;
   if (parsed && "error" in parsed) return <Problem text={parsed.error} />;
