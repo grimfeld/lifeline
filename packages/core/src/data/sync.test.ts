@@ -21,6 +21,7 @@ const fake = vi.hoisted(() => {
     /** Called after each getList, so a test can change the server mid-pull. */
     afterList: null as null | ((name: string, call: number) => void),
     listCalls: 0,
+    failGetOne: new Set<string>(),
   };
   const table = (name: string) => {
     let t = state.tables.get(name);
@@ -81,8 +82,8 @@ vi.mock("./pb", () => ({
         let rows = [...(fake.state.server.get(name) ?? [])];
         if (opts.filter) {
           const { params } = JSON.parse(opts.filter) as { params: Record<string, string> };
-          if (params.ids !== undefined) {
-            const ids = String(params.ids).split(",");
+          const ids = Object.keys(params).filter((k) => /^id\d+$/.test(k)).map((k) => params[k]);
+          if (ids.length) {
             rows = rows.filter((r) => ids.includes(r.id));
           } else {
             const u = params.u ?? params.c;
@@ -96,6 +97,7 @@ vi.mock("./pb", () => ({
         return { items };
       },
       getOne: async (id: string) => {
+        if (fake.state.failGetOne.has(id)) throw Object.assign(new Error("server error"), { status: 500 });
         const r = (fake.state.server.get(name) ?? []).find((x) => x.id === id);
         if (!r) throw Object.assign(new Error("not found"), { status: 404 });
         return r;
@@ -128,6 +130,7 @@ beforeEach(() => {
   fake.state.boundGate = null;
   fake.state.afterList = null;
   fake.state.listCalls = 0;
+  fake.state.failGetOne.clear();
 });
 
 describe("syncNow", () => {
@@ -160,5 +163,25 @@ describe("pull", () => {
     const local = fake.table("things");
     expect(local.size).toBe(250);
     expect(fake.state.meta.get("cursor:things")).toBe(stamp(5000));
+  });
+
+  it("holds back only the record whose push keeps failing, not the cursor (CR-08)", async () => {
+    fake.state.server.set("things", Array.from({ length: 10 }, (_, i) => serverRow(i)));
+    // A local edit to r0001, older than the server's, that cannot reach the server yet.
+    fake.table("things").set("r0001", { id: "r0001", updatedAt: "2026-01-01", deleted: 0, mine: true });
+    fake.state.outbox = [{ seq: 1, collection: "things", recordId: "r0001" }];
+    fake.state.failGetOne.add("r0001");
+
+    await syncNow();
+    expect(fake.state.meta.get("cursor:things")).toBe(stamp(9));
+    expect(fake.table("things").get("r0001")).toMatchObject({ mine: true });
+    expect(fake.table("things").size).toBe(10);
+
+    // The push resolves next cycle (the server copy wins); the server copy then
+    // still arrives although the cursor is already past it.
+    fake.state.failGetOne.clear();
+    await syncNow();
+    expect(fake.state.outbox).toEqual([]);
+    expect(fake.table("things").get("r0001")).toEqual({ id: "r0001", updatedAt: stamp(1), deleted: 0 });
   });
 });
