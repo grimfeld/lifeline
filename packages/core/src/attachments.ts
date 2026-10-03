@@ -5,8 +5,9 @@ import { pb } from "./data/pb";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
 import { extractLinks, isImageEmbed, normalizeName, renameLinks } from "./markdown";
-import { onWorkspaceChange, workspaceScope } from "./workspaces";
-import { allDocuments, putDocument } from "./documents/store";
+import { useLiveQuery } from "dexie-react-hooks";
+import { onWorkspaceChange, useCurrentWorkspaceId, workspaceScope } from "./workspaces";
+import { allDocuments, allDocumentsEveryWorkspace, putDocument } from "./documents/store";
 import { assertNoLockedReferrers, privateGate } from "./private";
 import type { Document } from "./documents/types";
 
@@ -269,11 +270,23 @@ export async function renameAttachment(att: Attachment, newName: string): Promis
   }
 }
 
-/** Every orphaned Attachment (no body embeds it). */
+/**
+ * Every orphaned Attachment of this Workspace: no body embeds it, in any
+ * Workspace. Bodies are read across Workspaces because the Attachment and the
+ * Document embedding it can sit on two sides of a boundary (one moved before
+ * Attachments followed their Documents), and deleting it there would take a
+ * live image.
+ */
 export async function orphanedAttachments(): Promise<Attachment[]> {
   // ADR 0038: a locked gate hides bodies; their embeds would look orphaned. Refuse rather than peek.
   if ((await privateGate()).locked) throw new Error("Unlock Private first");
-  return orphanedAmong(await allAttachments(), await allDocuments());
+  return orphanedAmong(await allAttachments(), await allDocumentsEveryWorkspace());
+}
+
+/** React hook: the orphaned Attachments, live — empty while Private is locked (see orphanedAttachments). */
+export function useOrphanedAttachments(): Attachment[] {
+  const wsId = useCurrentWorkspaceId();
+  return useLiveQuery(async () => ((await privateGate()).locked ? [] : await orphanedAttachments()), [wsId], [] as Attachment[]);
 }
 
 /** Tombstone an Attachment and drop its local bytes; the push clears the server file too. */
