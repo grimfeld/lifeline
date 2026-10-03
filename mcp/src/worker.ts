@@ -24,8 +24,14 @@ export type DeviceResponse =
   | { id: number; ok: true; result: unknown; pending: number }
   | { id: number; ok: false; error: string; expected: boolean; pending: number };
 
-/** A read within this long of the last pull reuses it. */
-const FRESH_MS = 2_000;
+/**
+ * How old the last pull may be before a call pulls again. A read tolerates a
+ * few seconds' staleness — an agent's burst of searches and gets shares one
+ * pull instead of each paying a round of every collection. A write acts on
+ * what it reads (last write wins), so it keeps the short window.
+ */
+const READ_FRESH_MS = 15_000;
+const WRITE_FRESH_MS = 2_000;
 
 const { pbUrl } = workerData as { pbUrl: string };
 initApps(manifests);
@@ -57,7 +63,7 @@ async function handle(req: DeviceRequest): Promise<DeviceResponse> {
       await sync();
       return { id: req.id, ok: true, result: null, pending: await pending() };
     }
-    if (Date.now() - lastPull > FRESH_MS) await sync();
+    if (Date.now() - lastPull > (req.write ? WRITE_FRESH_MS : READ_FRESH_MS)) await sync();
     const result = await runTool(req.tool, req.args);
     let unsynced: object | undefined;
     if (req.write) {
