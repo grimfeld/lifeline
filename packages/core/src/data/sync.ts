@@ -201,23 +201,33 @@ async function pushOnce(): Promise<void> {
   if (failures.length) throw new Error(failures[0] + (failures.length > 1 ? ` (+${failures.length - 1} more)` : ""));
 }
 
+const PULL_PAGE = 200;
+
 async function pullCollection(name: string): Promise<void> {
   const cursorKey = `cursor:${name}`;
   const cursor = (await db()._meta.get(cursorKey))?.value ?? "";
-  const filter = cursor ? pb.filter("updated > {:c}", { c: cursor }) : "";
-  let page = 1;
   let maxUpdated = cursor;
   // A record held back below leaves the cursor where it is, so the server copy
   // comes again next cycle instead of being skipped for good.
   let held = false;
+  // Keyset paging: each page starts after the last row of the one before, by
+  // (updated, id). Offset paging over `updated` skipped a row for good whenever
+  // an earlier one was edited mid-pull — every row after it shifted back one.
+  let after: PbRecord | undefined;
   for (;;) {
-    const res = await pb.collection(name).getList(page, 200, {
+    const filter = after
+      ? pb.filter("updated > {:u} || (updated = {:u} && id > {:id})", { u: after.updated, id: after.id })
+      : cursor
+        ? pb.filter("updated > {:c}", { c: cursor })
+        : "";
+    const res = await pb.collection(name).getList(1, PULL_PAGE, {
       filter,
-      sort: "updated",
+      sort: "updated,id",
       skipTotal: true,
     });
     const items = res.items as unknown as PbRecord[];
     if (items.length === 0) break;
+    after = items[items.length - 1];
     await db().transaction("rw", db().collection(name), db()._outbox, async () => {
       const pending = new Set(
         (await db()._outbox.where("collection").equals(name).toArray()).map((e) => e.recordId),
@@ -234,8 +244,7 @@ async function pullCollection(name: string): Promise<void> {
         if (shouldApply(local, incoming)) await db().collection(name).put(incoming);
       }
     });
-    if (items.length < 200) break;
-    page++;
+    if (items.length < PULL_PAGE) break;
   }
   if (maxUpdated !== cursor) {
     await db()._meta.put({ key: cursorKey, value: maxUpdated });
