@@ -4,7 +4,7 @@ import { Badge, Button, Input, Select, SelectContent, SelectItem, SelectTrigger,
 import { formatHuman, todayStr } from "@lifeline/core";
 import { Camera, Inbox, Pencil, Plus, Tag, TriangleAlert } from "lucide-react";
 import { MEASURE_UNIT, productHref, type Receipt, type Shop } from "../domain/types";
-import { cheapest, formatUnitPrice, historyOf, isUnmatched, linesOf, observe, overallChange, shopChanges, spanStart, sumOfLines, totalMismatch } from "../domain/derive";
+import { changesIn, cheapest, formatUnitPrice, historiesByProduct, isUnmatched, linesByReceipt, observe, overallOf, spanStart, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
 import { formatCents } from "../domain/money";
 import { useLines, useProducts, useReceipts, useShops } from "../data/repo";
 import { ProductDialog } from "../components/ProductDialog";
@@ -30,6 +30,8 @@ function Pct({ v }: { v: number }) {
  * register with the unmatched inbox one tap away, the price change reading
  * per Shop, and the Shops themselves.
  */
+const NO_HISTORY: ReadonlyMap<string, PricePoint[]> = new Map();
+
 export function PricesScreen() {
   const navigate = useNavigate();
   const products = useProducts();
@@ -52,6 +54,9 @@ export function PricesScreen() {
 
   const today = todayStr();
   const obs = useMemo(() => observe(lines, receipts), [lines, receipts]);
+  // Grouped once per data change, not rescanned per Product on every keystroke.
+  const histories = useMemo(() => historiesByProduct(obs), [obs]);
+  const byReceipt = useMemo(() => linesByReceipt(lines), [lines]);
   const shopName = (id: string) => shops.find((s) => s.id === id)?.title ?? "?";
   const unmatchedByReceipt = useMemo(() => {
     const m = new Map<string, number>();
@@ -65,11 +70,11 @@ export function PricesScreen() {
     return products
       .filter((p) => !q || p.title.toLowerCase().includes(q))
       .map((p) => {
-        const h = historyOf(p.id, obs);
+        const h = histories.get(p.id) ?? NO_HISTORY;
         const n = [...h.values()].reduce((s, pts) => s + pts.length, 0);
         return { p, best: cheapest(h), n, shops: h.size };
       });
-  }, [products, obs, search]);
+  }, [products, histories, search]);
 
   const receiptRows = useMemo(
     () =>
@@ -77,15 +82,15 @@ export function PricesScreen() {
         .filter((r) => !onlyUnmatched || (unmatchedByReceipt.get(r.id) ?? 0) > 0)
         .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
         .map((r) => {
-          const ls = linesOf(lines, r.id);
+          const ls = byReceipt.get(r.id) ?? [];
           return { r, ls, sum: sumOfLines(ls), mismatch: totalMismatch(r, ls), unmatched: unmatchedByReceipt.get(r.id) ?? 0 };
         }),
-    [receipts, lines, onlyUnmatched, unmatchedByReceipt],
+    [receipts, byReceipt, onlyUnmatched, unmatchedByReceipt],
   );
 
   const from = spanStart(months, today);
-  const changeRows = useMemo(() => products.map((p) => ({ p, changes: shopChanges(p.id, obs, from, today) })).filter((r) => r.changes.length > 0), [products, obs, from, today]);
-  const overall = useMemo(() => overallChange(products.map((p) => p.id), obs, from, today), [products, obs, from, today]);
+  const changeRows = useMemo(() => products.map((p) => ({ p, changes: changesIn(histories.get(p.id) ?? NO_HISTORY, from, today) })).filter((r) => r.changes.length > 0), [products, histories, from, today]);
+  const overall = useMemo(() => overallOf(changeRows.map((r) => r.changes)), [changeRows]);
 
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-4 p-4">
