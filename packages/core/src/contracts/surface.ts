@@ -1,5 +1,5 @@
-import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Placement } from "../data/db";
+import { sharedLiveQuery } from "../data/live";
 import { newId } from "../ids";
 import { put, remove } from "../data/repo";
 import { appById, schedulableProviders, timedProviders } from "../registry";
@@ -46,8 +46,13 @@ function useProviderItems(range: { start: DateStr; end: DateStr }) {
   }));
 }
 
+// Every live Placement, not a date range: an item's own row depends on its day
+// pin and its blocks still ahead wherever they lie, so a range read would draw
+// a pinned item on its natural day. One shared query instead of one per mount.
+const placementsLive = sharedLiveQuery(async () => db().collection<Placement>("placements").where("deleted").equals(0).toArray(), [] as Placement[]);
+
 function usePlacements(): Placement[] {
-  return useLiveQuery(() => db().collection<Placement>("placements").where("deleted").equals(0).toArray(), [], [] as Placement[]);
+  return placementsLive.use();
 }
 
 function isBlock(pl: Placement): boolean {
@@ -372,9 +377,10 @@ async function takenHours(range: { start: DateStr; end: DateStr }, exceptId: str
     if (!provider.itemsIn) continue;
     for (const item of await provider.itemsIn(range)) if (item.start) out.push({ date: item.date, start: item.start, end: item.end });
   }
-  const placements = await db().collection<Placement>("placements").where("deleted").equals(0).toArray();
+  // The `date` index bounds the read to the range; only Time blocks hold hours.
+  const placements = await db().collection<Placement>("placements").where("date").between(range.start, range.end, true, true).toArray();
   for (const pl of placements) {
-    if (!pl.start || pl.id === exceptId || pl.date < range.start || pl.date > range.end) continue;
+    if (pl.deleted || !pl.start || pl.id === exceptId) continue;
     out.push({ date: pl.date, start: pl.start, end: pl.end ?? null });
   }
   return out;
