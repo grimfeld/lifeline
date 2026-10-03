@@ -118,10 +118,16 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
       timer.current = null;
     }
     if (Object.keys(pending.current).length === 0) return;
-    const next = { ...docRef.current, ...pending.current } as Document;
+    const patch = pending.current;
+    const next = { ...docRef.current, ...patch } as Document;
     pending.current = {};
     if (typeof next.body === "string") written.current = [...written.current, next.body].slice(-10);
-    void write(next);
+    write(next).catch((err: unknown) => {
+      // The edit goes back in the queue (under anything typed since), so the
+      // next change or leaving the Document tries it again instead of dropping it.
+      pending.current = { ...patch, ...pending.current };
+      toast.error(`Couldn’t save — ${err instanceof Error ? err.message : String(err)}. It will be retried on your next change.`);
+    });
   }, [write]);
   const stage = useCallback(
     (patch: Partial<Document>, immediate = false) => {
@@ -154,10 +160,13 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
       }
       if (ref.kind === "locked") return openPrivateDialog("unlock");
       if (onCreateUnresolved) return onCreateUnresolved(name);
-      void putDocument({ type: "note", title: name, body: "" }).then((n) => {
-        toast.success(`Created “${name}”`);
-        navigate(docHref(n));
-      });
+      putDocument({ type: "note", title: name, body: "" }).then(
+        (n) => {
+          toast.success(`Created “${name}”`);
+          navigate(docHref(n));
+        },
+        (err: unknown) => toast.error(`Couldn’t create “${name}” — ${err instanceof Error ? err.message : String(err)}`),
+      );
     },
     [index, navigate, openDoc, onCreateUnresolved],
   );
@@ -218,8 +227,13 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
 
   async function remove() {
     flush();
-    if (removeFn) await removeFn();
-    else await removeDocument(doc.id);
+    try {
+      if (removeFn) await removeFn();
+      else await removeDocument(doc.id);
+    } catch (err) {
+      toast.error(`Couldn’t delete “${displayTitle(doc, def)}” — ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
     toast.success(`“${displayTitle(doc, def)}” deleted`);
     if (onDeleted) onDeleted();
     else navigate(basePath(doc.type));
