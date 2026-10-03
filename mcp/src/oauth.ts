@@ -69,6 +69,8 @@ export class LifelineOAuth implements OAuthServerProvider {
   private pending = new Map<string, PendingAuthorization>();
   private codes = new Map<string, AuthorizationCode>();
   private verified = new Map<string, { info: AuthInfo; until: number }>();
+  /** Refresh rotations in progress, by the spent token's hash. */
+  private rotating = new Map<string, Promise<OAuthTokens>>();
 
   constructor(
     /** Superuser client: the OAuth collections have no rules, so only it reads them. */
@@ -178,8 +180,30 @@ export class LifelineOAuth implements OAuthServerProvider {
     return { access_token: access, token_type: "bearer", expires_in: ACCESS_SECONDS, refresh_token: refresh, scope: c.scopes.join(" ") };
   }
 
-  /** Refresh: both tokens rotate, so a stolen refresh token stops working once the real client uses its own. */
+  /**
+   * Refresh: both tokens rotate, so a stolen refresh token stops working once
+   * the real client uses its own. A token is spent exactly once: PocketBase
+   * has no conditional update, so rotations of the same token are serialised
+   * here — this server runs as one machine (fly.toml) — and every concurrent
+   * use after the first is refused instead of each minting its own pair.
+   */
   async exchangeRefreshToken(client: OAuthClientInformationFull, refreshToken: string, scopes?: string[]): Promise<OAuthTokens> {
+    const hash = sha256(refreshToken);
+    const inFlight = this.rotating.get(hash);
+    if (inFlight) {
+      await inFlight.catch(() => undefined);
+      throw new InvalidGrantError("Invalid or expired refresh token");
+    }
+    const rotation = this.rotate(client, refreshToken, scopes);
+    this.rotating.set(hash, rotation);
+    try {
+      return await rotation;
+    } finally {
+      this.rotating.delete(hash);
+    }
+  }
+
+  private async rotate(client: OAuthClientInformationFull, refreshToken: string, scopes?: string[]): Promise<OAuthTokens> {
     const row = await this.grantBy("refresh_hash", refreshToken);
     if (!row || row.client_id !== client.client_id || isPast(row.refresh_expires)) throw new InvalidGrantError("Invalid or expired refresh token");
     const had = row.scopes.split(" ");
