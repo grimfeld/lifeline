@@ -1,7 +1,7 @@
 import { useEffect, useReducer } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../data/db";
-import { renameLinks } from "../markdown";
+import { normalizeName, renameLinks, renameLinksMany } from "../markdown";
 import { renderTemplate } from "../templates";
 import { todayStr } from "../dates";
 import { defaultFolder, docPath, isWithin, normalizeFolder, rebase, titleTaken } from "../folders";
@@ -77,6 +77,26 @@ async function rewriteReferrers(docs: Document[], before: Document, after: Docum
   }
 }
 
+/**
+ * The rows a Folder rename writes, each Document at most once: a moved one
+ * rebased, and every body with its path links following every move at once.
+ * Rewriting referrers per moved Document from one snapshot wrote stale rows —
+ * a sibling's move was reverted and an earlier rewrite lost. Pure.
+ */
+export function planFolderRename(docs: Document[], a: string, b: string): Document[] {
+  const renames = new Map<string, string>();
+  for (const n of docs) {
+    if (n.title && isWithin(n.folder, a)) renames.set(normalizeName(docPath(n)), docPath({ folder: rebase(n.folder, a, b), title: n.title }));
+  }
+  const out: Document[] = [];
+  for (const d of docs) {
+    const folder = rebase(d.folder, a, b);
+    const body = typeof d.body === "string" && d.body ? renameLinksMany(d.body, renames) : d.body;
+    if (folder !== d.folder || body !== d.body) out.push({ ...d, folder, body } as Document);
+  }
+  return out;
+}
+
 /** Rename (or move) a Folder: every descendant Document's folder is rebased; path links follow. */
 export async function renameFolder(from: string, to: string): Promise<void> {
   const a = normalizeFolder(from);
@@ -95,11 +115,7 @@ export async function renameFolder(from: string, to: string): Promise<void> {
     await assertMayEnterPrivate(target, documentTypeSync(n.type));
     if (titleTaken(staying.filter((d) => d.type === n.type), target, n.title)) throw new Error(`“${n.title}” already exists in ${target}`);
   }
-  for (const n of moved) {
-    const next = { ...n, folder: rebase(n.folder, a, b) } as Document;
-    await putDocument(next);
-    await rewriteReferrers(docs, n, next);
-  }
+  for (const row of planFolderRename(docs, a, b)) await putDocument(row);
   const extra = await extraFolders();
   await setExtraFolders(extra.map((f) => rebase(f, a, b)));
 }
