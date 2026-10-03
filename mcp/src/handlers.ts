@@ -24,6 +24,7 @@ import {
   setCurrentWorkspace,
   surfaceItemsIn,
   timedProviders,
+  titleTaken,
   todayStr,
   typeFieldsOf,
   type CommandArg,
@@ -319,21 +320,18 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     let doc = await visibleDocument(a.id);
     const def = documentTypeSync(doc.type);
     if (!def) throw new ToolError(`Unknown type “${doc.type}”`);
-    const changed: string[] = [];
-    if (a.folder !== undefined && normalizeFolder(String(a.folder)) !== doc.folder) {
-      assertNotPrivate(String(a.folder));
-      await moveDocument(doc, String(a.folder)).catch((e: Error) => {
-        throw new ToolError(e.message);
-      });
-      changed.push("folder");
-      doc = await visibleDocument(a.id);
-    }
-    if (a.title !== undefined && String(a.title).trim() !== doc.title) {
-      if (def.titleRule === "derived") throw new ToolError(`${def.label} take their title from their fields`);
-      await renameDocument(doc, String(a.title)).catch((e: Error) => {
-        throw new ToolError(e.message);
-      });
-      changed.push("title");
+    // Check everything first, so a refused field never leaves a half-applied move or rename behind.
+    const move = a.folder !== undefined && normalizeFolder(String(a.folder)) !== doc.folder;
+    if (move) assertNotPrivate(String(a.folder));
+    const rename = a.title !== undefined && String(a.title).trim() !== doc.title;
+    if (rename && def.titleRule === "derived") throw new ToolError(`${def.label} take their title from their fields`);
+    if (move || rename) {
+      // The same clashes moveDocument and renameDocument refuse, checked up front.
+      const sameType = (await allDocuments()).filter((d) => d.type === doc.type);
+      const folder = move ? normalizeFolder(String(a.folder)) : doc.folder;
+      if (move && titleTaken(sameType, folder, doc.title, doc.id)) throw new ToolError(`“${doc.title}” already exists in ${folder || "the root"}`);
+      const title = String(a.title ?? "").trim();
+      if (rename && title && titleTaken(sameType, folder, title, doc.id)) throw new ToolError(`“${title}” already exists in ${folder || "the root"}`);
     }
     const patch: Args = await readFields(def, (a.fields as Args | undefined) ?? {});
     if (a.body !== undefined) {
@@ -341,6 +339,21 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
       patch.body = a.body;
     }
     if (a.tags !== undefined) patch.tags = a.tags;
+
+    const changed: string[] = [];
+    if (move) {
+      await moveDocument(doc, String(a.folder)).catch((e: Error) => {
+        throw new ToolError(e.message);
+      });
+      changed.push("folder");
+      doc = await visibleDocument(a.id);
+    }
+    if (rename) {
+      await renameDocument(doc, String(a.title)).catch((e: Error) => {
+        throw new ToolError(e.message);
+      });
+      changed.push("title");
+    }
     if (Object.keys(patch).length) {
       await patchDocument(doc.id, patch);
       changed.push(...Object.keys(patch));
