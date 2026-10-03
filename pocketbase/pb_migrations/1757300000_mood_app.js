@@ -1,8 +1,9 @@
 /// <reference path="../pb_data/types.d.ts" />
 
 // ADR 0044: Mood becomes its own App. Every daily note carrying a `mood`
-// (1..5) becomes a Mood Document titled by that note's date, owned by the
-// same account, and the field leaves the note. `updatedAt` is bumped on the
+// (1..5) becomes a Mood Document titled by that note's date (its title, or
+// the day it was created when the title is not a date), owned by the same
+// account, and the field leaves the note. `updatedAt` is bumped on the
 // rewritten notes so LWW clients accept them on pull; the new Moods carry
 // the note's own date as `createdAt` so backdated history reads honestly.
 
@@ -46,13 +47,17 @@ migrate(
     for (const note of dailies) {
       const fields = readFields(note);
       const level = readLevel(fields.mood);
-      const date = note.getString("title");
       if (level === null) continue;
+      // The note's day: its title, else the day it was created. A note with
+      // neither keeps its field — removing it with no Mood to take it over
+      // would lose the mood outright.
+      const created = note.getString("createdAt").slice(0, 10);
+      const date = isDate(note.getString("title")) ? note.getString("title") : isDate(created) ? created : "";
+      if (!date) continue;
       delete fields.mood;
       note.set("fields", fields);
       note.set("updatedAt", now);
       app.save(note);
-      if (!isDate(date)) continue;
       const key = note.getString("owner") + "|" + date;
       if (taken[key]) continue;
       taken[key] = true;
@@ -79,6 +84,12 @@ migrate(
     const dailies = app.findRecordsByFilter("documents", 'type = "daily"', "", 0, 0);
     const byDate = {};
     for (const n of dailies) byDate[n.getString("owner") + "|" + n.getString("title")] = n;
+    // A note whose title is not a date gave its Mood the day it was created (up()).
+    for (const n of dailies) {
+      const created = n.getString("createdAt").slice(0, 10);
+      const key = n.getString("owner") + "|" + created;
+      if (!isDate(n.getString("title")) && isDate(created) && !byDate[key]) byDate[key] = n;
+    }
     const now = new Date().toISOString();
     for (const mood of app.findRecordsByFilter("documents", 'type = "mood" && deleted = 0', "", 0, 0)) {
       const level = readLevel(readFields(mood).level);
