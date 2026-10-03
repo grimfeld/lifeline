@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, CardContent, toast } from "@lifeline/ui";
 import { Check, Eye, X } from "lucide-react";
 import { practiceQueue, type HeldPrompt } from "../domain/practice";
@@ -28,6 +28,8 @@ export function PracticeRun({ language, items, recalls, deckName, onDone }: { la
   const [pending, setPending] = useState<{ key: string; id: string } | null>(null);
   const [lastItem, setLastItem] = useState("");
   const [count, setCount] = useState({ passed: 0, failed: 0 });
+  // Set before the Recall is written and cleared by the next reveal: a double tap grades once.
+  const graded = useRef(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30_000);
@@ -45,10 +47,23 @@ export function PracticeRun({ language, items, recalls, deckName, onDone }: { la
   const current: HeldPrompt | undefined = candidates.find((p) => p.itemId !== lastItem) ?? candidates[0];
   const item = current ? live.find((i) => i.id === current.itemId) : undefined;
 
+  function reveal() {
+    graded.current = false;
+    setRevealed(true);
+  }
+
   async function grade(g: Grade) {
-    if (!current || !item || !revealed) return;
+    if (!current || !item || !revealed || graded.current) return;
+    graded.current = true;
     const key = current.key;
-    const r = await recordRecall(item, current.slot, g);
+    let r: Awaited<ReturnType<typeof recordRecall>>;
+    try {
+      r = await recordRecall(item, current.slot, g);
+    } catch (e) {
+      graded.current = false;
+      toast.error((e as Error).message);
+      return;
+    }
     setPending({ key, id: r.id });
     setLastItem(item.id);
     setRevealed(false);
@@ -73,7 +88,7 @@ export function PracticeRun({ language, items, recalls, deckName, onDone }: { la
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
-        if (!revealed) setRevealed(true);
+        if (!revealed) reveal();
       } else if (revealed && (e.key === "1" || e.key.toLowerCase() === "f")) void grade("fail");
       else if (revealed && (e.key === "2" || e.key.toLowerCase() === "j")) void grade("pass");
     }
@@ -112,7 +127,7 @@ export function PracticeRun({ language, items, recalls, deckName, onDone }: { la
               </Button>
             </div>
           ) : (
-            <Button size="lg" variant="secondary" className="h-14 text-base" onClick={() => setRevealed(true)}>
+            <Button size="lg" variant="secondary" className="h-14 text-base" onClick={reveal}>
               <Eye /> Show answer
             </Button>
           )}
