@@ -112,5 +112,12 @@ export function bookByName(name: string): CanonBook | undefined {
   return BY_KEY.get(key(name));
 }
 
+/**
+ * Forms that are also everyday words (English, French): "is", "de", "am",
+ * "so", "job". Together with any form of one or two letters they are read in
+ * prose only when written as a reference would be — see `scanRefs`.
+ */
+export const WORD_FORMS = new Set(["is", "de", "am", "so", "ex", "la", "le", "ne", "es", "je", "da", "ho", "na", "re", "ac", "act", "pro", "cant", "job", "mark", "song", "acts", "numbers", "judges"]);
+
 /** Every written form, longest first — for the scanner's alternation. */
 export const BOOK_FORMS: string[] = [...BY_KEY.keys()].sort((a, b) => b.length - a.length);

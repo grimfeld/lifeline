@@ -1,5 +1,5 @@
 import { extractLinks, proseSegments } from "@lifeline/core";
-import { BOOK_FORMS, MAX_VERSE, bookByName, type CanonBook } from "./canon";
+import { BOOK_FORMS, MAX_VERSE, WORD_FORMS, bookByName, type CanonBook } from "./canon";
 
 /**
  * A scripture reference as read from text (ADR 0032). Three shapes:
@@ -20,8 +20,8 @@ const DASH = "[-–—]";
 const FORMS = BOOK_FORMS.map((f) => f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
 /** "Book 3:16-18", "Book 3.16", "Book 3", "Book" — book forms are case-insensitive, dots allowed after abbreviations. */
 const REF_RE = new RegExp(`^\\s*(${FORMS})\\.?\\s*(?:(\\d+)(?:[:.](\\d+)(?:\\s*${DASH}\\s*(?:(\\d+)[:.])?(\\d+))?)?)?\\s*$`, "i");
-/** The same, loose in prose: a word boundary before, nothing alphabetic right after. */
-const SCAN_RE = new RegExp(`(^|[^\\p{L}\\p{N}])(${FORMS})\\.?\\s+(\\d+)(?:[:.](\\d+)(?:\\s*${DASH}\\s*(?:(\\d+)[:.])?(\\d+))?)?(?![\\p{L}\\p{N}])`, "giu");
+/** The same, loose in prose: a word boundary before, nothing alphabetic right after. The dot is captured (see `writtenAsRef`). */
+const SCAN_RE = new RegExp(`(^|[^\\p{L}\\p{N}])(${FORMS})(\\.?)\\s+(\\d+)(?:[:.](\\d+)(?:\\s*${DASH}\\s*(?:(\\d+)[:.])?(\\d+))?)?(?![\\p{L}\\p{N}])`, "giu");
 
 function build(bookForm: string, ch?: string, v?: string, toCh?: string, toV?: string): Ref | null {
   const book = bookByName(bookForm);
@@ -128,6 +128,20 @@ export interface FoundRef {
 }
 
 /**
+ * A short or everyday-word book form ("is", "de", "mt") in prose is a
+ * reference only when written like one: capitalised ("Is 53:5"), dotted
+ * ("is. 53:5"), or — unless it is an everyday word, where "is 10:30" is a
+ * time — with chapter and verse ("mt 5:3").
+ */
+function writtenAsRef(form: string, dot: string, verse: string | undefined): boolean {
+  const word = form.toLowerCase();
+  const isWord = WORD_FORMS.has(word);
+  if (!isWord && word.length > 2) return true;
+  if (dot || form[0] !== word[0]) return true;
+  return !isWord && verse !== undefined;
+}
+
+/**
  * Bare references in a body — "see Rom 8:28", "(Jn 3:16–18)" — outside code
  * and outside existing wikilinks. Book names alone are not scanned: "John"
  * in prose is a person more often than a gospel.
@@ -143,7 +157,8 @@ export function scanRefs(body: string): FoundRef[] {
       const start = seg.offset + m.index + m[1].length;
       const end = seg.offset + m.index + m[0].length;
       if (inLink(start, end)) continue;
-      const ref = build(m[2], m[3], m[4], m[5], m[6]);
+      if (!writtenAsRef(m[2], m[3], m[5])) continue;
+      const ref = build(m[2], m[4], m[5], m[6], m[7]);
       if (!ref) continue;
       out.push({ text: seg.text.slice(m.index + m[1].length, m.index + m[0].length), from: start, to: end, ref });
     }
