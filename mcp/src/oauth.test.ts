@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type PocketBase from "pocketbase";
 import type { OAuthClientInformationFull } from "@modelcontextprotocol/sdk/shared/auth.js";
 import { InvalidGrantError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
-import { LifelineOAuth } from "./oauth";
+import { LifelineOAuth, LoginAttempts } from "./oauth";
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 const later = new Date(Date.now() + 86_400_000).toISOString().replace("T", " ");
@@ -42,5 +42,40 @@ describe("refresh-token rotation", () => {
     expect(update).toHaveBeenCalledTimes(1);
     // And once spent, it stays spent.
     await expect(oauth.exchangeRefreshToken(client, "llr_old")).rejects.toBeInstanceOf(InvalidGrantError);
+  });
+});
+
+describe("in-memory OAuth state stays bounded", () => {
+  it("drops expired entries from the access-token cache as tokens are verified", async () => {
+    vi.useFakeTimers();
+    try {
+      const row = { id: "g1", user: "u1", client_id: "c1", scopes: "lifeline:read", access_hash: sha256("lla_a"), access_expires: later, resource: "" };
+      const { admin } = fakeAdmin(row);
+      const oauth = new LifelineOAuth(admin, "http://pb");
+      const cache = (oauth as unknown as { verified: Map<string, unknown> }).verified;
+      const first = oauth.verifyAccessToken("lla_a");
+      await vi.advanceTimersByTimeAsync(10);
+      await first;
+      expect(cache.size).toBe(1);
+      // Long after that entry expired, verifying any token sweeps it out.
+      vi.setSystemTime(Date.now() + 10 * 60_000);
+      const second = oauth.verifyAccessToken("lla_unknown").catch((e: unknown) => e);
+      await vi.advanceTimersByTimeAsync(10);
+      expect(await second).toBeInstanceOf(Error);
+      expect(cache.size).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("limits sign-in attempts per address and forgets expired windows", () => {
+    const limit = new LoginAttempts(2, 1_000);
+    expect(limit.hit("a", 0)).toBe(true);
+    expect(limit.hit("a", 1)).toBe(true);
+    expect(limit.hit("a", 2)).toBe(false);
+    expect(limit.hit("b", 3)).toBe(true);
+    expect(limit.size).toBe(2);
+    expect(limit.hit("c", 120_000)).toBe(true);
+    expect(limit.size).toBe(1);
   });
 });
