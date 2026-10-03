@@ -91,8 +91,17 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
     return { ...(t ? { title: t } : {}), ...(a ? { author: a } : {}), ...(pickedAuthor?.externalKey ? { authorKey: pickedAuthor.externalKey } : {}) };
   }, [title, authorText, pickedAuthor]);
 
-  // Debounced lookup; last keystroke wins. A new query starts at page one.
+  // A "More" in flight belongs to the query it was asked for.
+  const moreCtl = useRef<AbortController | null>(null);
+
+  // Debounced lookup; last keystroke wins. A new query starts at page one,
+  // and drops the old query's "More" so its rows never land under the new hits.
   useEffect(() => {
+    if (moreCtl.current) {
+      moreCtl.current.abort();
+      moreCtl.current = null;
+      setSearching(false);
+    }
     if (!search || manual || !query) {
       setHits([]);
       setMore(false);
@@ -121,16 +130,23 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
   async function loadMore() {
     if (!search || !query || !hits.length) return;
     const next = page + 1;
+    moreCtl.current?.abort();
+    const ctl = new AbortController();
+    moreCtl.current = ctl;
     setSearching(true);
     try {
-      const res = await search({ ...query, page: next, provider: providerOf(hits[0]) });
+      const res = await search({ ...query, page: next, provider: providerOf(hits[0]) }, ctl.signal);
+      if (ctl.signal.aborted) return;
       setHits((h) => [...h, ...res.filter((r) => !h.some((x) => x.externalKey === r.externalKey))]);
       setPage(next);
       setMore(res.length >= PAGE_SIZE);
     } catch (e) {
-      toast.error((e as Error).message || "Lookup failed");
+      if (!ctl.signal.aborted) toast.error((e as Error).message || "Lookup failed");
     } finally {
-      setSearching(false);
+      if (moreCtl.current === ctl) {
+        moreCtl.current = null;
+        setSearching(false);
+      }
     }
   }
 
