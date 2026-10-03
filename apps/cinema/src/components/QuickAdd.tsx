@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { openPeek } from "@lifeline/core";
 import { cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import { deleteWork, parseQuickTitle, quickAddWork, useLookupSettings } from "../data/repo";
@@ -90,7 +91,14 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
     try {
       // Lazy enrichment (TMDB director/runtime, RAWG developers) happens only on pick.
       const hit = input.hit ? await resolveHit(input.hit) : undefined;
-      const id = await quickAddWork({ medium: type, title, creator: input.creator || hit?.creator, hit });
+      const { id, twin } = await quickAddWork({ medium: type, title, creator: input.creator || hit?.creator, hit });
+      if (twin) {
+        toast.warning(`Already on your list — ${workType(twin.type).engagement[twin.engagement]}`, {
+          description: twin.title,
+          action: { label: "Open", onClick: () => openPeek(twin.id) },
+        });
+        return;
+      }
       writeLastType(type);
       toast.success(`Added to ${def.wantLabel}`, {
         description: title,

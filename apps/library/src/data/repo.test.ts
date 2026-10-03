@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { documentsTable, getDocument, initApps, patchDocument } from "@lifeline/core";
 import { workTypeDefs, authorTypeDef } from "../types";
 import type { Work } from "../domain/types";
-import { addWork, allAuthors, ensureAuthor, normalize, patchWork } from "./repo";
+import { addWork, allAuthors, allWorks, ensureAuthor, normalize, patchWork, quickAddWork } from "./repo";
 
 initApps([{ id: "library", title: "Library", types: [...workTypeDefs, authorTypeDef], screens: [], cards: [], commands: [] }]);
 
@@ -27,6 +27,27 @@ describe("patchWork", () => {
     const id = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "" });
     await patchWork(await work(id), { tags: ["#SciFi", "scifi"] });
     expect((await work(id)).tags).toEqual(["scifi"]);
+  });
+});
+
+describe("quickAddWork", () => {
+  const hit = (externalKey: string) => ({ externalKey, coverUrl: "", year: 1965, size: 0, authors: [{ name: "Frank Herbert", externalKey: "openlibrary:/authors/OL1A" }] });
+
+  it("hands back the Work you already have instead of adding a twin (CR-53)", async () => {
+    const { id } = await quickAddWork({ medium: "book", title: "Dune", hit: hit("openlibrary:/works/OL1W") });
+    const again = await quickAddWork({ medium: "book", title: "Dune (40th anniversary)", hit: hit("openlibrary:/works/OL1W") });
+    expect(again.twin?.id).toBe(id);
+    const typed = await quickAddWork({ medium: "book", title: " dune ", author: "Someone Else" });
+    expect(typed.twin?.id).toBe(id);
+    expect(await allWorks()).toHaveLength(1);
+    expect(await allAuthors()).toHaveLength(1);
+  });
+
+  it("adds a same-titled Work in another medium, or with another identity", async () => {
+    await quickAddWork({ medium: "book", title: "Dune", hit: hit("openlibrary:/works/OL1W") });
+    expect((await quickAddWork({ medium: "comic", title: "Dune" })).twin).toBeUndefined();
+    expect((await quickAddWork({ medium: "book", title: "Dune", hit: hit("openlibrary:/works/OL2W") })).twin).toBeUndefined();
+    expect(await allWorks()).toHaveLength(3);
   });
 });
 
