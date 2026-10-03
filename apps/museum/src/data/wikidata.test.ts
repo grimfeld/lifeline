@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commonsUrl, coordsOf, dimensionsOf, formatYear, parseClaims } from "./wikidata";
+import { commonsUrl, coordsOf, dimensionsOf, formatYear, parseClaims, sizedImage } from "./wikidata";
 
 const item = (id: string) => ({ mainsnak: { datavalue: { value: { id } } } });
 const str = (v: string) => ({ mainsnak: { datavalue: { value: v } } });
@@ -66,5 +66,15 @@ describe("claims parsing", () => {
 describe("commonsUrl", () => {
   it("builds a Special:FilePath URL with underscores", () => {
     expect(commonsUrl("Mona Lisa.jpg")).toBe("https://commons.wikimedia.org/wiki/Special:FilePath/Mona_Lisa.jpg?width=1200");
+  });
+});
+
+describe("sizedImage", () => {
+  it("asks Commons for a tile-sized rendition of a stored wall-sized URL (CR-59)", () => {
+    expect(sizedImage(commonsUrl("Mona Lisa.jpg"), 400)).toBe("https://commons.wikimedia.org/wiki/Special:FilePath/Mona_Lisa.jpg?width=400");
+  });
+  it("leaves any other URL alone", () => {
+    expect(sizedImage("https://example.org/a.jpg?width=1200", 400)).toBe("https://example.org/a.jpg?width=1200");
+    expect(sizedImage("not a url", 400)).toBe("not a url");
   });
 });

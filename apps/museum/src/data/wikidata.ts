@@ -47,6 +47,19 @@ export function commonsUrl(filename: string, width = 1200): string {
   return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(filename.replace(/ /g, "_"))}?width=${width}`;
 }
 
+/**
+ * The same Commons image at another width — a grid tile needs a few hundred
+ * pixels, not the stored wall-sized rendition. Any other URL is left as is:
+ * only Commons is known to scale on request.
+ */
+export function sizedImage(url: string, width: number): string {
+  const prefix = "https://commons.wikimedia.org/wiki/Special:FilePath/";
+  if (!url.startsWith(prefix)) return url;
+  const u = new URL(url);
+  u.searchParams.set("width", String(width));
+  return u.toString();
+}
+
 // --- claim plumbing (exported for tests) -----------------------------------
 
 type Claims = Record<string, unknown[]>;
