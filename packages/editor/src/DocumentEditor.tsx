@@ -4,6 +4,7 @@ import { useOpenDocument } from "./openDocument";
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, cn, toast } from "@lifeline/ui";
 import {
   isLinkable,
+  isModShortcut,
   documentPanels,
   basePath,
   displayTitle,
@@ -142,7 +143,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   useEffect(() => () => flush(), [flush]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e") {
+      if (isModShortcut(e, "e")) {
         e.preventDefault();
         setMode((m) => (m === "read" ? "edit" : "read"));
       }
