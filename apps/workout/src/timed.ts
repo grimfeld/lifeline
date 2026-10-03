@@ -16,7 +16,8 @@ export function sessionItems(sessions: Session[], workouts: Workout[], range: { 
       subtitle: `${s.durationMin} min`,
       date: s.date,
       start: s.start,
-      end: s.end,
+      // A Session saved before sessionClock may end past midnight: hold it to its start day.
+      end: s.end < s.start ? "24:00" : s.end,
       tags: s.tags ?? [],
     });
   }
