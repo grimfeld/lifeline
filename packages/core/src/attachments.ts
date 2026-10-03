@@ -5,7 +5,7 @@ import { pb } from "./data/pb";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
 import { extractLinks, isImageEmbed, normalizeName, renameLinks } from "./markdown";
-import { workspaceScope } from "./workspaces";
+import { onWorkspaceChange, workspaceScope } from "./workspaces";
 import { allDocuments, putDocument } from "./documents/store";
 import { assertNoLockedReferrers, privateGate } from "./private";
 import type { Document } from "./documents/types";
@@ -124,7 +124,8 @@ export async function allAttachmentsUnscoped(): Promise<Attachment[]> {
   return db().collection<Attachment>(ATTACHMENTS).where("deleted").equals(0).toArray();
 }
 
-const allLive = sharedLiveQuery(() => allAttachments(), [] as Attachment[]);
+// Re-run on a Workspace switch: the scope lives in memory, where Dexie cannot see it change.
+const allLive = sharedLiveQuery(async () => allAttachments(), [] as Attachment[], { restartOn: onWorkspaceChange });
 
 /** React hook: every live Attachment. One shared query. */
 export function useAttachments(): Attachment[] {
