@@ -86,8 +86,9 @@ export async function addWork(input: {
 
 /** Apply a transition patch (or an edit) to an item. */
 export async function patchWork(item: Work, patch: Patch): Promise<void> {
-  const next = { ...item, ...patch };
-  await putDocument<Work>({ ...next, tags: normalizeTags(next.tags) });
+  // Only the patched fields, onto the stored row: writing the whole of a copy
+  // read earlier reverts whatever changed since ("Enrich all" undoing a rating).
+  await patchDocument(item.id, Array.isArray(patch.tags) ? { ...patch, tags: normalizeTags(patch.tags) } : patch);
 }
 
 export async function deleteWork(id: string): Promise<void> {
