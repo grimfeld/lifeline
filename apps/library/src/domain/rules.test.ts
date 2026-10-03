@@ -3,7 +3,7 @@ import { onShelf, shelfLabel } from "./browse";
 import { hasSlots, SLOTTED_TYPES } from "./workTypes";
 import { parseQuickTitle } from "../data/repo";
 import type { Work } from "./types";
-import { abandon, finish, freeSlots, isBuySignal, isFull, isStale, nightstand, promote, shelfOfShame, wantedList, slotAge, toggleDone, toggleOwned } from "./rules";
+import { abandon, finish, freeSlots, freeSlotsOf, isBuySignal, isFull, isStale, nightstand, promote, shelfOfShame, wantedList, slotAge, toggleDone, toggleOwned } from "./rules";
 
 function item(p: Partial<Work>): Work {
   return {
@@ -44,6 +44,14 @@ describe("slots per medium", () => {
     const items = [1, 2, 3].map((s) => item({ id: `c${s}`, type: "comic", slot: s }));
     expect(isFull(items, "comic")).toBe(true);
     expect(isFull(items, "book")).toBe(false);
+  });
+  it("freeSlotsOf answers once per shelf array: every tile asks the same, a new shelf asks again (CR-59)", () => {
+    const items = [item({ id: "a", slot: 1 })];
+    const first = freeSlotsOf(items, "book");
+    expect(first).toEqual([2, 3, 4, 5]);
+    expect(freeSlotsOf(items, "book")).toBe(first);
+    expect(freeSlotsOf(items, "comic")).toEqual([1, 2, 3]);
+    expect(freeSlotsOf([...items, item({ id: "b", slot: 2 })], "book")).toEqual([3, 4, 5]);
   });
 });
 
