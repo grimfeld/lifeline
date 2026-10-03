@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
+import { documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
 import { AUTHOR, SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Author, type Work, type LookupSettings } from "../domain/types";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
@@ -91,6 +91,18 @@ export async function patchWork(item: Work, patch: Patch): Promise<void> {
   await patchDocument(item.id, Array.isArray(patch.tags) ? { ...patch, tags: normalizeTags(patch.tags) } : patch);
 }
 
+/** The Commonplace book's Quote type (ADR 0024): a passage that cannot outlive its Work. */
+const QUOTE = "quote";
+
+/**
+ * The Work types' cascade (ADR 0045), run by every delete — this App's,
+ * the Vault's, a Base's: the Work's Quotes go with it.
+ */
+export async function cascadeWorkDelete(id: string): Promise<void> {
+  await removeDocumentsWhere(QUOTE, (q) => (q as { mediaId?: string }).mediaId === id);
+}
+
+/** Delete a Work; its type's cascade takes its Quotes. */
 export async function deleteWork(id: string): Promise<void> {
   await removeDocument(id);
 }

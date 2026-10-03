@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsWhere, normalizeTags, putDocument, removeDocument, todayStr, useDocuments } from "@lifeline/core";
+import { normalizeTags, putDocument, removeDocument, todayStr, useDocuments } from "@lifeline/core";
 import { QUOTES, type Quote } from "../domain/types";
 
 function normalize(q: Quote): Quote {
@@ -30,10 +30,4 @@ export async function updateQuote(q: Quote): Promise<void> {
 
 export async function deleteQuote(id: string): Promise<void> {
   await removeDocument(id);
-}
-
-/** Tombstone every quote of a Media item (called when the item is deleted). */
-export async function deleteQuotesOf(mediaId: string): Promise<void> {
-  const qs = await documentsWhere<Quote>(QUOTES, "mediaId", mediaId);
-  for (const q of qs) await removeDocument(q.id);
 }

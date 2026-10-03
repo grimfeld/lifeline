@@ -1,9 +1,9 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { documentsTable, getDocument, initApps, patchDocument } from "@lifeline/core";
+import { documentsOf, documentsTable, getDocument, initApps, patchDocument, putDocument, removeDocument } from "@lifeline/core";
 import { workTypeDefs, playlistTypeDef } from "../types";
-import type { Work } from "../domain/types";
-import { addWork, allWorks, normalize, patchWork, quickAddWork } from "./repo";
+import type { Playlist, Work } from "../domain/types";
+import { addPlaylist, addWork, allWorks, normalize, patchWork, quickAddWork } from "./repo";
 
 initApps([{ id: "cinema", title: "Cinema", types: [...workTypeDefs, playlistTypeDef], screens: [], cards: [], commands: [] }]);
 
@@ -21,6 +21,18 @@ describe("patchWork", () => {
     await patchWork(stale, { year: 1984, coverUrl: "https://covers/x.jpg" });
     const now = await work(id);
     expect([now.year, now.coverUrl, now.rating, now.liked]).toEqual([1984, "https://covers/x.jpg", 4, true]);
+  });
+});
+
+describe("deleting a work", () => {
+  it("takes its Quotes and its Playlist places with it, from wherever it is deleted (CR-57)", async () => {
+    const heat = await addWork({ medium: "movie", title: "Heat", reason: "" });
+    const ronin = await addWork({ medium: "movie", title: "Ronin", reason: "" });
+    const list = await addPlaylist({ title: "Heists", body: "", ranked: true, workIds: [heat, ronin] });
+    await putDocument({ type: "quote", mediaId: heat, text: "Don't let yourself get attached to anything." });
+    await removeDocument(heat); // the Vault's or a Base's delete, not the Cinema's own
+    expect(await documentsOf("quote")).toEqual([]);
+    expect((await getDocument<Playlist>(list))!.workIds).toEqual([ronin]);
   });
 });
 

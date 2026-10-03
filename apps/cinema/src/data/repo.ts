@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, todayStr, useDocument, useDocuments, useLiveQuery } from "@lifeline/core";
+import { documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, useLiveQuery } from "@lifeline/core";
 import { PLAYLIST, SETTINGS_TYPE, WORK_TYPE_IDS, type Playlist, type Work, type LookupSettings } from "../domain/types";
 import { removeFromPlaylist } from "../domain/playlist";
 import type { WorkTypeId } from "../domain/workTypes";
@@ -85,12 +85,24 @@ export async function patchWork(item: Work, patch: Patch): Promise<void> {
   await patchDocument(item.id, Array.isArray(patch.tags) ? { ...patch, tags: normalizeTags(patch.tags) } : patch);
 }
 
-/** Delete a work; it leaves every Playlist it sat in (membership is the Playlist's — ADR 0035). */
-export async function deleteWork(id: string): Promise<void> {
+/** The Commonplace book's Quote type (ADR 0024): a passage that cannot outlive its Work. */
+const QUOTE = "quote";
+
+/**
+ * The Work types' cascade (ADR 0045), run by every delete — this App's,
+ * the Vault's, a Base's: the Work's Quotes go with it, and it leaves every
+ * Playlist it sat in (membership is the Playlist's — ADR 0035).
+ */
+export async function cascadeWorkDelete(id: string): Promise<void> {
+  await removeDocumentsWhere(QUOTE, (q) => (q as { mediaId?: string }).mediaId === id);
   for (const p of await documentsOf<Playlist>(PLAYLIST)) {
     const ids = Array.isArray(p.workIds) ? p.workIds : [];
-    if (ids.includes(id)) await putDocument<Playlist>({ ...p, workIds: removeFromPlaylist(ids, id) });
+    if (ids.includes(id)) await patchDocument(p.id, { workIds: removeFromPlaylist(ids, id) });
   }
+}
+
+/** Delete a work; its type's cascade takes its Quotes and Playlist places. */
+export async function deleteWork(id: string): Promise<void> {
   await removeDocument(id);
 }
 
