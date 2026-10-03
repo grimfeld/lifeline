@@ -108,6 +108,15 @@ vi.mock("./pb", () => ({
 
 const { syncNow } = await import("./sync");
 
+const stamp = (i: number) => `2026-10-01 10:00:${String(Math.floor(i / 1000)).padStart(2, "0")}.${String(i % 1000).padStart(3, "0")}Z`;
+const serverRow = (i: number, over: Partial<ServerRow> = {}): ServerRow => ({
+  id: `r${String(i).padStart(4, "0")}`,
+  updated: stamp(i),
+  updatedAt: stamp(i),
+  deleted: 0,
+  ...over,
+});
+
 beforeEach(() => {
   fake.state.meta.clear();
   fake.state.outbox = [];
@@ -134,5 +143,22 @@ describe("syncNow", () => {
     // …and runs once the first has finished.
     await vi.waitFor(() => expect(fake.state.boundCalls).toBe(2));
     await vi.waitFor(() => expect(fake.state.listCalls).toBe(2));
+  });
+});
+
+describe("pull", () => {
+  it("does not skip a row when an earlier one is updated between pages (CR-05)", async () => {
+    fake.state.server.set("things", Array.from({ length: 250 }, (_, i) => serverRow(i)));
+    // Another device edits the first row while the first page is in hand: it
+    // moves to the end of the `updated` order, shifting every row after it.
+    fake.state.afterList = (name, call) => {
+      if (call !== 1) return;
+      const rows = fake.state.server.get(name)!;
+      rows[0] = { ...rows[0], updated: stamp(5000), updatedAt: stamp(5000) };
+    };
+    await syncNow();
+    const local = fake.table("things");
+    expect(local.size).toBe(250);
+    expect(fake.state.meta.get("cursor:things")).toBe(stamp(5000));
   });
 });
