@@ -18,6 +18,7 @@ export function SessionResultsDialog({
   workout,
   exercises,
   initial,
+  saving = false,
   onSave,
   onDiscard,
 }: {
@@ -25,6 +26,8 @@ export function SessionResultsDialog({
   workout: Workout;
   exercises: Exercise[];
   initial: BlockResult[];
+  /** A save is in flight: the buttons wait for it. */
+  saving?: boolean;
   onSave: (results: BlockResult[], notes: string) => void;
   onDiscard: () => void;
 }) {
@@ -42,7 +45,7 @@ export function SessionResultsDialog({
   const setMovement = (bi: number, mi: number, m: MovementResult) => setResult(bi, { ...results[bi], movements: results[bi].movements.map((x, j) => (j === mi ? m : x)) });
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onDiscard()}>
+    <Dialog open={open} onOpenChange={(o) => !o && !saving && onDiscard()}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>How did it go?</DialogTitle>
@@ -110,10 +113,12 @@ export function SessionResultsDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onDiscard}>
+          <Button variant="outline" disabled={saving} onClick={onDiscard}>
             Discard
           </Button>
-          <Button onClick={() => onSave(results, notes)}>Save session</Button>
+          <Button disabled={saving} onClick={() => onSave(results, notes)}>
+            {saving ? "Saving…" : "Save session"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
