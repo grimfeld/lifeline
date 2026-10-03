@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { todayStr } from "@lifeline/core";
 import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
 import type { ImportMapping, LedgerAccount } from "../domain/types";
-import { applyMapping, flagDuplicates, parseCsv, type ImportRow } from "../domain/csv";
+import { applyMapping, flagDuplicates, flagFuture, parseCsv, type ImportRow } from "../domain/csv";
 import { isOfx, parseOfx } from "../domain/ofx";
 import { matchRule, payeeCategoryIndex, suggestCategory, type Suggestion } from "../domain/suggest";
 import { looksLikePaypal, matchPaypal, type PaypalCandidate, type PaypalMatch } from "../domain/paypal";
@@ -48,7 +49,8 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
   const preview: ImportRow[] = useMemo(() => {
     const raw = ofxRows ?? (rows ? applyMapping(rows, mapping) : null);
     if (!raw) return [];
-    return flagDuplicates(raw, transactions, account.id);
+    // A row after today would be refused on post (ADR 0042): show it as a problem now.
+    return flagDuplicates(flagFuture(raw, todayStr()), transactions, account.id);
   }, [rows, ofxRows, mapping, transactions, account.id]);
 
   /** How many rows the bank filed under PayPal — nothing is asked for unless there are some. */
@@ -148,8 +150,9 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
     });
     if (chosen.length === 0) return void toast.error("Nothing ticked");
     setPosting(true);
+    let posted = 0;
     try {
-      const n = await importRows(chosen, account.id);
+      const n = await importRows(chosen, account.id, (count) => (posted = count));
       // The mapping is a CSV concern; OFX is self-describing.
       if (rows) await saveImportMapping(account.id, mapping);
       const bare = chosen.filter((r) => !r.categoryId).length;
@@ -158,6 +161,8 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
       toast.success((bare > 0 ? `Imported ${n} — ${bare} uncategorized, clear them in the Register` : `Imported ${n}, all categorized`) + paypalNote);
       onOpenChange(false);
       reset();
+    } catch (e) {
+      toast.error(`Import stopped after ${posted} of ${chosen.length} rows: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setPosting(false);
     }
@@ -261,7 +266,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
             )}
             <div className="text-muted-foreground text-xs">
               {preview.length} rows · {dupCount > 0 && <span className="text-amber-600">{dupCount} probable duplicates unticked · </span>}
-              {badCount > 0 && <span className="text-destructive">{badCount} unreadable · </span>}
+              {badCount > 0 && <span className="text-destructive">{badCount} not importable · </span>}
               negative = expense, positive = income; categories marked <span className="text-foreground">auto</span> come from how you categorized the payee before, <span className="text-foreground">rule</span> from a Categorize rule of yours, and <span className="text-foreground">never</span> is a payee you told the ledger not to guess — adjust any, the rest land uncategorized.
               {paypalMatches.size > 0 && <> Rows marked <span className="text-foreground">paypal</span> take their payee from the activity file; where two merchants fit the same amount and day, pick one.</>}
             </div>
@@ -318,7 +323,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
                       </td>
                       <td className="text-muted-foreground max-w-40 truncate px-2 py-1 text-xs">
                         {r.invalid
-                          ? "unreadable"
+                          ? r.future ? "after today" : "unreadable"
                           : r.duplicateOf
                             ? "already in the ledger?"
                             : [
