@@ -99,8 +99,8 @@ Status: `[ ]` open · `[x]` done
 
 ## Found while fixing
 
-- [ ] **CR-73 · bug · medium — `apps/mail` has no Tailwind `@source` line.** `shell/src/index.css`. Mail's components use Tailwind classes, so classes used only there are dropped from the build. *Fix:* add `@source "../../apps/mail/src";`.
-- [ ] **CR-74 · bug · low — The core typecheck fails on `workspaces.test.ts`.** `packages/core/src/workspaces.test.ts` imports `node:*` modules without `@types/node`, so `pnpm -r typecheck` fails on master. *Fix:* add `@types/node` to core's devDependencies and tsconfig, or exclude tests from the typecheck.
+- [x] **CR-73 · bug · medium — `apps/mail` has no Tailwind `@source` line.** `shell/src/index.css`. Mail's components use Tailwind classes, so classes used only there are dropped from the build. *Fix:* add `@source "../../apps/mail/src";`. *Fixed in PR #72.*
+- [x] **CR-74 · bug · low — The core typecheck fails on `workspaces.test.ts`.** `packages/core/src/workspaces.test.ts` imports `node:*` modules without `@types/node`, so `pnpm -r typecheck` fails on master. *Fix:* add `@types/node` to core's devDependencies and tsconfig, or exclude tests from the typecheck. *Fixed in PR #72.*
 
 ### Leads (not verified)
 
