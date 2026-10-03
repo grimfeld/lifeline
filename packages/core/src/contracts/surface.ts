@@ -4,7 +4,7 @@ import { newId } from "../ids";
 import { put, remove } from "../data/repo";
 import { appById, schedulableProviders, timedProviders } from "../registry";
 import { addDays, nowClock, todayStr, type DateStr } from "../dates";
-import { freeStretch, planPush, PUSH_HORIZON_DAYS, type TakenSpan } from "./push";
+import { freeStretch, planPush, PUSH_HORIZON_DAYS, spanEnd, type TakenSpan } from "./push";
 import type { SchedulableItem, SchedulableProvider } from "./schedulable";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
@@ -54,11 +54,16 @@ function isBlock(pl: Placement): boolean {
   return !!pl.start;
 }
 
-/** A block still lies ahead while it has not ended yet. */
+/**
+ * A block still lies ahead while it has not ended yet — its end read as Push
+ * reads it: an end at or before the start is midnight, an end-less block lasts
+ * the default length.
+ */
 function blockAhead(pl: Placement, today: DateStr, now: string): boolean {
   if (pl.date > today) return true;
   if (pl.date < today) return false;
-  return (pl.end ?? pl.start ?? "00:00") > now;
+  if (!pl.start) return false;
+  return spanEnd({ start: pl.start, end: pl.end ?? null }) > now;
 }
 
 export interface ResolveOptions {
