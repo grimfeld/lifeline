@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { openPeek } from "@lifeline/core";
 import { cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import { deleteWork, parseQuickTitle, quickAddWork, useLookupSettings } from "../data/repo";
 import { lookupFor, resolveHit } from "../data/lookup";
 import { hitByline, type WorkHit } from "../data/openlibrary";
 import { Cover } from "./Cover";
+import { ACQ_LABEL } from "./AddWorkDialog";
 
 const LAST_TYPE_KEY = "media:quick-type";
 const isType = (v: unknown): v is WorkTypeId => WORK_TYPES.some((t) => t.id === v);
@@ -90,7 +92,14 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
     try {
       // Lazy enrichment happens only on pick; a hit's Authors are found or created (ADR 0052).
       const hit = input.hit ? await resolveHit(input.hit) : undefined;
-      const id = await quickAddWork({ medium: type, title, author: input.author, hit });
+      const { id, twin } = await quickAddWork({ medium: type, title, author: input.author, hit });
+      if (twin) {
+        toast.warning(`Already on your list — ${ACQ_LABEL[twin.acquisition]}, ${workType(twin.type).engagement[twin.engagement]}`, {
+          description: twin.title,
+          action: { label: "Open", onClick: () => openPeek(twin.id) },
+        });
+        return;
+      }
       writeLastType(type);
       toast.success(`Added to ${def.wantLabel}`, {
         description: title,

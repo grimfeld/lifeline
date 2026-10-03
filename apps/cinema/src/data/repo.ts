@@ -124,12 +124,27 @@ export function findByExternalKey(items: Work[], key: string): Work | undefined 
 }
 
 /**
+ * The Work a quick add would twin: the same outside identity, else the same
+ * title in the same medium — unless both carry keys and they differ (two
+ * films called "Dune" are two films).
+ */
+export function findTwin(items: Work[], input: { medium: WorkTypeId; title: string; externalKey?: string }): Work | undefined {
+  const key = input.externalKey ?? "";
+  const title = input.title.trim().toLowerCase();
+  return findByExternalKey(items, key) ?? items.find((w) => w.type === input.medium && w.title.trim().toLowerCase() === title && (!key || !w.externalKey));
+}
+
+/**
  * Quick add (ADR 0006 amendment): title, optional creator, medium — straight
  * onto the To… shelf, nothing else asked. Optional lookup hit attaches
- * cover/year/external key. Returns the id (for Undo).
+ * cover/year/external key. Returns the new id (for Undo), or the twin it
+ * found instead — then nothing was added.
  */
-export async function quickAddWork(input: { medium: WorkTypeId; title: string; creator?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; creator: string } }): Promise<string> {
-  return addWork({
+export async function quickAddWork(input: { medium: WorkTypeId; title: string; creator?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; creator: string } }): Promise<{ id: string; twin?: Work }> {
+  // Already yours: nothing is created (no Work, no Author) — the caller says so.
+  const twin = findTwin(await allWorks(), { medium: input.medium, title: input.title, externalKey: input.hit?.externalKey });
+  if (twin) return { id: twin.id, twin };
+  const id = await addWork({
     medium: input.medium,
     title: input.title,
     creator: input.creator || input.hit?.creator || "",
@@ -139,6 +154,7 @@ export async function quickAddWork(input: { medium: WorkTypeId; title: string; c
     size: input.hit?.size ?? 0,
     reason: "",
   });
+  return { id };
 }
 
 /** Parse "Title — Creator" / "Title - Creator" / "Title by Creator" typed in a quick-add box. */

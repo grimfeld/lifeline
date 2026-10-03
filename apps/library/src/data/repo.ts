@@ -101,14 +101,29 @@ export function findByExternalKey(items: Work[], key: string): Work | undefined 
 }
 
 /**
+ * The Work a quick add would twin: the same outside identity, else the same
+ * title in the same medium — unless both carry keys and they differ (two
+ * films called "Dune" are two films).
+ */
+export function findTwin(items: Work[], input: { medium: WorkTypeId; title: string; externalKey?: string }): Work | undefined {
+  const key = input.externalKey ?? "";
+  const title = input.title.trim().toLowerCase();
+  return findByExternalKey(items, key) ?? items.find((w) => w.type === input.medium && w.title.trim().toLowerCase() === title && (!key || !w.externalKey));
+}
+
+/**
  * Quick add (ADR 0006 amendment): title, optional author, medium — straight
  * onto the To… shelf, nothing else asked. Optional lookup hit attaches
  * cover/year/external key and its Authors; a typed author is found or
- * created by name (ADR 0052). Returns the id (for Undo).
+ * created by name (ADR 0052). Returns the new id (for Undo), or the twin it
+ * found instead — then nothing was added.
  */
-export async function quickAddWork(input: { medium: WorkTypeId; title: string; author?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; authors: AuthorRef[] } }): Promise<string> {
+export async function quickAddWork(input: { medium: WorkTypeId; title: string; author?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; authors: AuthorRef[] } }): Promise<{ id: string; twin?: Work }> {
+  // Already yours: nothing is created (no Work, no Author) — the caller says so.
+  const twin = findTwin(await allWorks(), { medium: input.medium, title: input.title, externalKey: input.hit?.externalKey });
+  if (twin) return { id: twin.id, twin };
   const authors = input.hit?.authors.length ? await ensureAuthorRefs(input.hit.authors) : await ensureAuthorNames(splitAuthorNames(input.author ?? ""));
-  return addWork({
+  const id = await addWork({
     medium: input.medium,
     title: input.title,
     authors,
@@ -119,6 +134,7 @@ export async function quickAddWork(input: { medium: WorkTypeId; title: string; a
     acquisition: "WANTED",
     reason: "",
   });
+  return { id };
 }
 
 /** Parse "Title — Author" / "Title - Author" / "Title by Author" typed in a quick-add box. */
