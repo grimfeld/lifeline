@@ -6,6 +6,7 @@ import {
   allCommands,
   createDocument,
   db,
+  defaultFolder,
   defaultWorkspace,
   diffDays,
   documentTypeSync,
@@ -295,19 +296,22 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
       const tools = TOOLS.filter((t) => t.command?.startsWith(`${def.appId}.`)).map((t) => t.name);
       throw new ToolError(`${def.label} belong to the ${def.appId} App and are created through its own tools${tools.length ? `: ${tools.join(", ")}` : " (none can run headless yet)"}`);
     }
-    if (a.folder !== undefined) assertNotPrivate(String(a.folder));
+    // Resolve the folder the way createDocument would, and refuse Private before anything is written.
+    const folder = a.folder !== undefined ? normalizeFolder(String(a.folder)) : defaultFolder(def.id, String(a.title).trim(), def.folder ?? "");
+    if (inPrivateFolder(folder)) {
+      throw new ToolError(a.folder !== undefined ? "The Private folder is out of an agent's reach" : "The type's default folder is Private, out of an agent's reach");
+    }
     const fields = await readFields(def, (a.fields as Args | undefined) ?? {});
     // `tags` rides along with the fields: createDocument hands both to putDocument, which normalises them.
     const doc = await createDocument({
       type: def.id,
       title: String(a.title),
-      folder: a.folder as string | undefined,
+      folder,
       body: a.body as string | undefined,
       fields: a.tags ? { ...fields, tags: a.tags } : fields,
     }).catch((e: Error) => {
       throw new ToolError(e.message);
     });
-    if (inPrivateFolder(doc.folder)) throw new ToolError("The type's default folder is Private, out of an agent's reach");
     return { id: doc.id, message: `Created ${def.label.toLowerCase().replace(/s$/, "")} “${doc.title}”${doc.folder ? ` in ${doc.folder}` : ""}` };
   },
 
