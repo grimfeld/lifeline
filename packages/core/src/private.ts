@@ -281,6 +281,16 @@ export async function assertMayEnterPrivate(folder: string, def: DocumentTypeDef
   if ((await privateGate()).locked) throw new Error(`Unlock ${PRIVATE_FOLDER} first`);
 }
 
+/**
+ * Refuse a rename while locked Private notes exist: links inside them would be
+ * left pointing at the old name, since a rename rewrites only the bodies it can
+ * read and a locked device never writes a private Document. Refusing, not
+ * reading around the gate — the same answer Attachment clean-up gives (ADR 0038).
+ */
+export async function assertNoLockedReferrers(): Promise<void> {
+  if ((await privateLockedRefs()).ids.size) throw new Error(`Unlock ${PRIVATE_FOLDER} first — notes in it may link here`);
+}
+
 /** The Private folder itself is reserved once set up: no rename, move or delete. */
 export async function assertNotReservedFolder(path: string): Promise<void> {
   if (path === PRIVATE_FOLDER && (await privateGate()).configured) throw new Error(`${PRIVATE_FOLDER} is reserved`);

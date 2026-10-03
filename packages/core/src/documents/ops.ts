@@ -7,7 +7,7 @@ import { todayStr } from "../dates";
 import { defaultFolder, docPath, isWithin, normalizeFolder, rebase, titleTaken } from "../folders";
 import { documentTypeSync } from "./registry";
 import { allDocuments, putDocument } from "./store";
-import { assertMayEnterPrivate, assertNotReservedFolder, inPrivateFolder, privateGate } from "../private";
+import { assertMayEnterPrivate, assertNoLockedReferrers, assertNotReservedFolder, inPrivateFolder, privateGate } from "../private";
 import type { Document } from "./types";
 
 /**
@@ -46,6 +46,7 @@ export async function templateFor(type: string, title: string, docs?: Document[]
 export async function renameDocument(doc: Document, newTitle: string): Promise<void> {
   const title = newTitle.trim();
   if (!title || title === doc.title) return;
+  await assertNoLockedReferrers();
   const docs = await allDocuments();
   if (titleTaken(docs.filter((d) => d.type === doc.type), doc.folder, title, doc.id)) throw new Error(`“${title}” already exists in ${doc.folder || "the root"}`);
   const next = { ...doc, title } as Document;
@@ -58,6 +59,7 @@ export async function moveDocument(doc: Document, folder: string): Promise<void>
   const f = normalizeFolder(folder);
   if (f === doc.folder) return;
   await assertMayEnterPrivate(f, documentTypeSync(doc.type));
+  await assertNoLockedReferrers();
   const docs = await allDocuments();
   if (titleTaken(docs.filter((d) => d.type === doc.type), f, doc.title, doc.id)) throw new Error(`“${doc.title}” already exists in ${f || "the root"}`);
   const next = { ...doc, folder: f } as Document;
@@ -107,6 +109,7 @@ export async function renameFolder(from: string, to: string): Promise<void> {
   await assertNotReservedFolder(b);
   // Moving a folder into (or out of) Private needs the gate open: a locked store cannot see what it would move.
   if ((inPrivateFolder(a) || inPrivateFolder(b)) && (await privateGate()).locked) throw new Error("Unlock Private first");
+  await assertNoLockedReferrers();
   const docs = await allDocuments();
   const moved = docs.filter((n) => isWithin(n.folder, a));
   const staying = docs.filter((n) => !isWithin(n.folder, a));
