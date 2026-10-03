@@ -60,7 +60,8 @@ function toLocal(collection: string, r: PbRecord): SyncedRecord {
     if (typeof doc.folder !== "string") doc.folder = "";
     // Separation (ADR 0048): a row written before the field existed is shared.
     if (typeof doc.workspace !== "string") doc.workspace = "";
-    if (doc.body === null) delete doc.body;
+    // The wire always carries a body; a type that has none keeps none locally.
+    if (doc.body === null || (doc.body === "" && documentTypeSync(doc.type)?.body === "none")) delete doc.body;
     return doc;
   }
   return rest as unknown as SyncedRecord;
