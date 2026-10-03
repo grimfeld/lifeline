@@ -7,8 +7,9 @@ import { newId } from "./ids";
 import { extractLinks, isImageEmbed, normalizeName, renameLinks } from "./markdown";
 import { useLiveQuery } from "dexie-react-hooks";
 import { onWorkspaceChange, useCurrentWorkspaceId, workspaceScope } from "./workspaces";
-import { allDocuments, allDocumentsEveryWorkspace, putDocument } from "./documents/store";
-import { assertNoLockedReferrers, privateGate } from "./private";
+import { allDocumentsEveryWorkspace, putDocument } from "./documents/store";
+import { privateGate } from "./private";
+import { documentsForLinkRewrite } from "./documents/rewrite";
 import type { Document } from "./documents/types";
 
 /**
@@ -257,13 +258,14 @@ export async function renameAttachment(att: Attachment, newName: string): Promis
   const oldExt = /\.([A-Za-z0-9]+)$/.exec(att.name)?.[1];
   if (oldExt && !/\.[A-Za-z0-9]+$/.test(name)) name = `${name}.${oldExt}`;
   if (name === att.name) return;
-  await assertNoLockedReferrers();
   // Unscoped: names are unique per Account on the server, so a rename that only
   // avoided this Workspace's names would be accepted here and rejected on push.
   const all = await allAttachmentsUnscoped();
   if (all.some((a) => a.id !== att.id && normalizeName(a.name) === normalizeName(name))) throw new Error(`“${name}” is already taken`);
   await put<Attachment>(ATTACHMENTS, { ...att, name });
-  for (const d of await allDocuments()) {
+  // Around the Private gate, as every link rewrite is (documents/rewrite.ts): a
+  // locked note's embed must follow the rename too; nothing read is shown.
+  for (const d of await documentsForLinkRewrite()) {
     if (typeof d.body !== "string" || !d.body) continue;
     const body = renameLinks(d.body, att.name, name);
     if (body !== d.body) await putDocument({ ...d, body } as Document);
