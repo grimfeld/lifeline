@@ -168,8 +168,9 @@ export function useAuthorIndex(): Map<string, Author> {
 /**
  * The Author for a name (and optional Open Library identity): found by
  * external key, then by name or alias, else created — so a picked hit never
- * leaves a manual chore (ADR 0052). A found Author with no key takes the
- * hit's. Returns the id, "" for a blank name.
+ * leaves a manual chore (ADR 0052). A keyed hit matches by name only an
+ * Author with no key, which then takes the hit's. Returns the id, "" for a
+ * blank name.
  */
 export async function ensureAuthor(input: { name: string; externalKey?: string; aliases?: string[] }): Promise<string> {
   const name = input.name.replace(/\s+/g, " ").trim();
@@ -178,7 +179,9 @@ export async function ensureAuthor(input: { name: string; externalKey?: string; 
   const key = input.externalKey ?? "";
   const byKey = key ? all.find((a) => a.externalKey === key) : undefined;
   if (byKey) return byKey.id;
-  const byName = all.find((a) => answersTo(a, name));
+  // A name is no identity: a namesake with another key is someone else (two
+  // John Williamses), so with a key in hand only a keyless namesake answers.
+  const byName = all.find((a) => answersTo(a, name) && (!key || !a.externalKey));
   if (byName) {
     if (key && !byName.externalKey) await patchDocument(byName.id, { externalKey: key });
     return byName.id;
