@@ -61,3 +61,43 @@ describe("create_document", () => {
     expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ folder: "Journal", title: "Today" }));
   });
 });
+
+describe("update_document", () => {
+  beforeEach(() => {
+    types.set(journal.id, journal);
+    docs.set("d1", { id: "d1", type: journal.id, title: "Old", folder: "A", tags: [], createdAt: "", updatedAt: "" } as unknown as Document);
+  });
+
+  it("writes nothing when a field is invalid, even alongside a move and a rename", async () => {
+    await expect(runTool("update_document", { id: "d1", folder: "B", title: "New", fields: { nope: 1 } })).rejects.toBeInstanceOf(ToolError);
+    expect(core.moveDocument).not.toHaveBeenCalled();
+    expect(core.renameDocument).not.toHaveBeenCalled();
+    expect(core.patchDocument).not.toHaveBeenCalled();
+  });
+
+  it("writes nothing when the body is refused", async () => {
+    types.set(journal.id, { ...journal, body: "none" });
+    await expect(runTool("update_document", { id: "d1", folder: "B", body: "text" })).rejects.toThrow(/no body/);
+    expect(core.moveDocument).not.toHaveBeenCalled();
+  });
+
+  it("writes nothing when a derived title is renamed", async () => {
+    types.set(journal.id, { ...journal, titleRule: "derived" });
+    await expect(runTool("update_document", { id: "d1", folder: "B", title: "New" })).rejects.toThrow(/title/);
+    expect(core.moveDocument).not.toHaveBeenCalled();
+  });
+
+  it("writes nothing when the new title clashes in the target folder", async () => {
+    docs.set("d2", { id: "d2", type: journal.id, title: "New", folder: "B", tags: [], createdAt: "", updatedAt: "" } as unknown as Document);
+    await expect(runTool("update_document", { id: "d1", folder: "B", title: "New" })).rejects.toThrow(/already exists/);
+    expect(core.moveDocument).not.toHaveBeenCalled();
+  });
+
+  it("applies move, rename and fields once all are valid", async () => {
+    const result = (await runTool("update_document", { id: "d1", folder: "B", title: "New", fields: { mood: 3 } })) as { message: string };
+    expect(core.moveDocument).toHaveBeenCalled();
+    expect(core.renameDocument).toHaveBeenCalled();
+    expect(core.patchDocument).toHaveBeenCalledWith("d1", { mood: 3 });
+    expect(result.message).toBe("Updated folder, title, mood");
+  });
+});
