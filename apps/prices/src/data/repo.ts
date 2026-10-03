@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { addAttachment, documentsOf, documentsWhere, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, type DateStr } from "@lifeline/core";
 import { LINE, PRODUCT, RECEIPT, SHOP, isMeasure, type LabelMemory, type Line, type Measure, type Product, type Receipt, type Shop } from "../domain/types";
-import { normalizeLabel, receiptTitle } from "../domain/derive";
+import { receiptTitle, relabel, withLabel, withoutLabel, type LineMatch } from "../domain/derive";
 
 /** PocketBase returns absent fields as "" / undefined; re-establish shapes on read. */
 function normalizeProduct(p: Product): Product {
@@ -120,16 +120,13 @@ export async function mergeProduct(from: Product, into: Product): Promise<void> 
 // ---- Label memory ----
 
 async function rememberLabel(product: Product, shopId: string, label: string): Promise<void> {
-  const key = normalizeLabel(label);
-  if (!shopId || !key || key === normalizeLabel(product.title)) return;
-  if (product.labels.some((l) => l.shopId === shopId && l.label === key)) return;
-  await patchDocument(product.id, { labels: [...product.labels, { shopId, label: key }] });
+  const labels = withLabel(product, shopId, label);
+  if (labels !== product.labels) await patchDocument(product.id, { labels });
 }
 
 async function forgetLabel(product: Product, shopId: string, label: string): Promise<void> {
-  const key = normalizeLabel(label);
-  const labels = product.labels.filter((l) => !(l.shopId === shopId && l.label === key));
-  if (labels.length !== product.labels.length) await patchDocument(product.id, { labels });
+  const labels = withoutLabel(product, shopId, label);
+  if (labels !== product.labels) await patchDocument(product.id, { labels });
 }
 
 // ---- Receipts and Lines ----
@@ -183,19 +180,18 @@ export async function saveReceipt(input: ReceiptInput, shops: readonly Shop[], p
 
   const keep = new Set(input.lines.map((l) => l.id).filter(Boolean));
   for (const old of existing?.lines ?? []) if (!keep.has(old.id)) await removeDocument(old.id);
-  const byId = new Map(products.map((p) => [p.id, p]));
   const oldById = new Map((existing?.lines ?? []).map((l) => [l.id, l]));
+  const matches: LineMatch[] = [];
   for (const l of input.lines) {
     const row = { receiptId: receipt.id, productId: l.productId, label: l.label.trim(), amount: l.amount, price: Math.round(l.price), promo: !!l.promo, title: "" };
     const old = l.id ? oldById.get(l.id) : undefined;
     if (l.id) await patchDocument(l.id, row);
     else await putDocument<Line>({ type: LINE, ...row, folder: "", tags: [] } as unknown as Line);
-    // Unmatching forgets the label; matching (or re-matching) teaches it.
-    const before = old?.productId ? byId.get(old.productId) : undefined;
-    if (before && before.id !== l.productId) await forgetLabel(before, input.shopId, old?.label ?? row.label);
-    const p = l.productId ? byId.get(l.productId) : undefined;
-    if (p) await rememberLabel(p, input.shopId, row.label);
+    matches.push({ productId: row.productId, label: row.label, before: old && { productId: old.productId, label: old.label } });
   }
+  // One write per Product, built from every Line — patching each Line's label
+  // from the same snapshot let the second overwrite the first.
+  for (const [id, labels] of relabel(products, existing?.receipt.shopId ?? input.shopId, input.shopId, matches)) await patchDocument(id, { labels });
   return receipt.id;
 }
 

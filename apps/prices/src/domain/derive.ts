@@ -1,5 +1,5 @@
 import { addDays, formatHuman, type DateStr } from "@lifeline/core";
-import { MEASURE_PER, MEASURE_UNIT, type Line, type Measure, type Observation, type Product, type Receipt } from "./types";
+import { MEASURE_PER, MEASURE_UNIT, type LabelMemory, type Line, type Measure, type Observation, type Product, type Receipt } from "./types";
 
 /**
  * Every reading of Prices (ADR 0045) lives here, pure: unit price, history
@@ -47,6 +47,57 @@ export function matchProduct(products: readonly Product[], shopId: string, label
 }
 
 /** Matched Lines joined with their Receipt's Shop and day; a Line whose Receipt is gone is dropped. */
+/** The labels with this one remembered at this Shop — the same array when there is nothing to learn (no Shop, an empty label, or the Product's own name). */
+export function withLabel(product: Pick<Product, "title" | "labels">, shopId: string, label: string): LabelMemory[] {
+  const key = normalizeLabel(label);
+  if (!shopId || !key || key === normalizeLabel(product.title)) return product.labels;
+  if (product.labels.some((l) => l.shopId === shopId && l.label === key)) return product.labels;
+  return [...product.labels, { shopId, label: key }];
+}
+
+/** The labels with this one forgotten at this Shop — the same array when it was never remembered. */
+export function withoutLabel(product: Pick<Product, "labels">, shopId: string, label: string): LabelMemory[] {
+  const key = normalizeLabel(label);
+  const labels = product.labels.filter((l) => !(l.shopId === shopId && l.label === key));
+  return labels.length === product.labels.length ? product.labels : labels;
+}
+
+/** A Line as saved, and as it was before (absent for a new Line). */
+export interface LineMatch {
+  productId: string;
+  label: string;
+  before?: { productId: string; label: string };
+}
+
+/**
+ * What saving a Receipt's Lines teaches its Products, batched per Product:
+ * the new labels for every Product that changes. Each Line builds on the
+ * previous ones, so two Lines matching one Product both stick. A Line moved
+ * off a Product forgets its old label at the Shop the Receipt *was* at.
+ */
+export function relabel(products: readonly Product[], oldShopId: string, newShopId: string, lines: readonly LineMatch[]): Map<string, LabelMemory[]> {
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const out = new Map<string, LabelMemory[]>();
+  const current = (id: string) => {
+    const p = byId.get(id);
+    return p ? { ...p, labels: out.get(id) ?? p.labels } : undefined;
+  };
+  for (const l of lines) {
+    // Unmatching forgets the label; matching (or re-matching) teaches it.
+    const before = l.before?.productId ? current(l.before.productId) : undefined;
+    if (before && before.id !== l.productId) {
+      const labels = withoutLabel(before, oldShopId, l.before!.label || l.label);
+      if (labels !== before.labels) out.set(before.id, labels);
+    }
+    const p = l.productId ? current(l.productId) : undefined;
+    if (p) {
+      const labels = withLabel(p, newShopId, l.label);
+      if (labels !== p.labels) out.set(p.id, labels);
+    }
+  }
+  return out;
+}
+
 export function observe(lines: readonly Line[], receipts: readonly Receipt[]): Observation[] {
   const byId = new Map(receipts.map((r) => [r.id, r]));
   const out: Observation[] = [];

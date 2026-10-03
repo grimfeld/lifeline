@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Line, Product, Receipt } from "./types";
-import { cheapest, historyOf, latestUsual, matchProduct, median, normalizeLabel, observe, overallChange, receiptTitle, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
+import { cheapest, historyOf, latestUsual, matchProduct, median, normalizeLabel, observe, overallChange, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
 
 const product = (id: string, title: string, labels: Product["labels"] = []): Product => ({ id, type: "price_product", title, measure: "l", labels, tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0 }) as unknown as Product;
 const receipt = (id: string, shopId: string, date: string, total = 0): Receipt => ({ id, type: "price_receipt", title: "", shopId, date, branch: "", total, tags: [], folder: "", createdAt: date, updatedAt: "", deleted: 0 }) as unknown as Receipt;
@@ -16,6 +16,33 @@ describe("labels", () => {
     expect(matchProduct([milk], "carrefour", "LAIT 1/2 ECR")).toBeUndefined();
     expect(matchProduct([milk], "carrefour", "LAIT")?.id).toBe("p1");
     expect(matchProduct([milk], "carrefour", "")).toBeUndefined();
+  });
+});
+
+describe("relabel", () => {
+  it("two lines on one receipt matching one product both teach their label", () => {
+    const milk = product("p1", "Lait");
+    const out = relabel([milk], "lidl", "lidl", [
+      { productId: "p1", label: "LAIT 1/2 ECR" },
+      { productId: "p1", label: "LAIT UHT" },
+    ]);
+    expect(out.get("p1")).toEqual([
+      { shopId: "lidl", label: "LAIT 1/2 ECR" },
+      { shopId: "lidl", label: "LAIT UHT" },
+    ]);
+  });
+
+  it("a line moved off a product forgets its label at the shop the receipt was at", () => {
+    const milk = product("p1", "Lait", [{ shopId: "lidl", label: "LAIT UHT" }]);
+    const cream = product("p2", "Creme");
+    const out = relabel([milk, cream], "lidl", "aldi", [{ productId: "p2", label: "LAIT UHT", before: { productId: "p1", label: "LAIT UHT" } }]);
+    expect(out.get("p1")).toEqual([]);
+    expect(out.get("p2")).toEqual([{ shopId: "aldi", label: "LAIT UHT" }]);
+  });
+
+  it("nothing to learn writes nothing", () => {
+    const milk = product("p1", "Lait", [{ shopId: "lidl", label: "LAIT UHT" }]);
+    expect(relabel([milk], "lidl", "lidl", [{ productId: "p1", label: "lait uht" }, { productId: "p1", label: "Lait" }, { productId: "", label: "X" }]).size).toBe(0);
   });
 });
 
