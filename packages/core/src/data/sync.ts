@@ -279,17 +279,27 @@ export async function syncNow(): Promise<void> {
     queued = true;
     return;
   }
+  // Claimed before the first await: focus, online, the interval and the
+  // debounce can all fire together, and two cycles pushing the same new record
+  // make the second `create` fail as if the id belonged to another Account.
+  syncing = true;
   // One device, one Account (ADR 0039): never push this device's rows as
   // someone else, never pull someone else's rows into them.
-  const bound = await boundAccount();
-  if (bound && bound.id !== me.id) {
-    lastSyncError = `This device holds ${bound.email || "another account"}'s data — sign in as them, or erase it to switch`;
-    listeners.forEach((l) => l());
-    setState("error");
-    return;
+  try {
+    const bound = await boundAccount();
+    if (bound && bound.id !== me.id) {
+      lastSyncError = `This device holds ${bound.email || "another account"}'s data — sign in as them, or erase it to switch`;
+      listeners.forEach((l) => l());
+      setState("error");
+      syncing = false;
+      queued = false;
+      return;
+    }
+    if (!bound) await bindAccount(me);
+  } catch (err) {
+    syncing = false;
+    throw err;
   }
-  if (!bound) await bindAccount(me);
-  syncing = true;
   setState("syncing");
   const problems: string[] = [];
   try {
