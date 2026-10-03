@@ -44,6 +44,7 @@ import { HoursEditor, type HoursEditing, type HoursTarget } from "./HoursEditor"
 import { AddAtHour, type AddingAt } from "./AddAtHour";
 import { SNAP_MIN, snap, toClock } from "./hours";
 
+const NO_ENTRIES: Entry[] = [];
 const HOUR_PX = 56;
 /** Long enough that a flick to scroll never lifts a block; short enough to feel like a press. */
 const LONG_PRESS_MS = 350;
@@ -579,8 +580,8 @@ export function SchedulePage() {
   const pool = usePoolItems({ tags });
   const allTimed = useTimedItems({ start: first, end: last }, { tags });
   // Time blockers arrive through the Timed contract as background items (ADR 0027): bands, not things.
-  const timed = allTimed.filter((t) => !t.background);
-  const bandItems = allTimed.filter((t) => t.background && t.start);
+  const timed = useMemo(() => allTimed.filter((t) => !t.background), [allTimed]);
+  const bandItems = useMemo(() => allTimed.filter((t) => t.background && t.start), [allTimed]);
   const templates = useTimedTemplates();
   const creator = timedCreators()[0];
 
@@ -591,14 +592,24 @@ export function SchedulePage() {
   }, []);
   const nowH = now.getHours() + now.getMinutes() / 60;
 
-  const timedIn = timed.filter((t) => t.start);
-  const blocks = items.filter((i) => i.start);
+  // The read hooks hand out stable arrays while nothing changed, so these
+  // memos hit and a day column's layout is not redone on every render.
+  const timedIn = useMemo(() => timed.filter((t) => t.start), [timed]);
+  const blocks = useMemo(() => items.filter((i) => i.start), [items]);
   const { from, to } = useMemo(() => hourWindow([...timedIn, ...blocks.map((b) => ({ start: b.start!, end: b.end ?? null }))], 7, 23), [timedIn, blocks]);
 
-  const entriesFor = (d: DateStr): Entry[] => [
-    ...blocks.filter((b) => b.displayDate === d).map((b) => ({ kind: "block" as const, item: b, start: b.start!, end: b.end ?? addHours(b.start!, DEFAULT_MIN / 60) })),
-    ...timedIn.filter((t) => t.date === d).map((t) => ({ kind: "timed" as const, item: t, start: t.start!, end: t.end ?? addHours(t.start!, 1) })),
-  ];
+  const entriesByDay = useMemo(() => {
+    const out = new Map<DateStr, Entry[]>();
+    const add = (d: DateStr, e: Entry) => {
+      const list = out.get(d);
+      if (list) list.push(e);
+      else out.set(d, [e]);
+    };
+    for (const b of blocks) add(b.displayDate, { kind: "block", item: b, start: b.start!, end: b.end ?? addHours(b.start!, DEFAULT_MIN / 60) });
+    for (const t of timedIn) add(t.date, { kind: "timed", item: t, start: t.start!, end: t.end ?? addHours(t.start!, 1) });
+    return out;
+  }, [blocks, timedIn]);
+  const entriesFor = (d: DateStr): Entry[] => entriesByDay.get(d) ?? NO_ENTRIES;
   const bandsFor = (d: DateStr): Band[] =>
     bandItems
       .filter((b) => b.date === d)
