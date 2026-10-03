@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { documentsTable, getDocument, initApps, patchDocument } from "@lifeline/core";
+import { documentsOf, documentsTable, getDocument, initApps, patchDocument, putDocument, removeDocument, type Document } from "@lifeline/core";
 import { workTypeDefs, authorTypeDef } from "../types";
 import type { Work } from "../domain/types";
 import { addWork, allAuthors, allWorks, ensureAuthor, normalize, patchWork, quickAddWork } from "./repo";
@@ -27,6 +27,17 @@ describe("patchWork", () => {
     const id = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "" });
     await patchWork(await work(id), { tags: ["#SciFi", "scifi"] });
     expect((await work(id)).tags).toEqual(["scifi"]);
+  });
+});
+
+describe("deleting a Work", () => {
+  it("takes its Quotes with it, from wherever it is deleted (CR-57)", async () => {
+    const dune = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "" });
+    const emma = await addWork({ medium: "book", title: "Emma", acquisition: "WANTED", reason: "" });
+    await putDocument({ type: "quote", mediaId: dune, text: "Fear is the mind-killer." });
+    await putDocument({ type: "quote", mediaId: emma, text: "Badly done, Emma!" });
+    await removeDocument(dune); // the Vault's or a Base's delete, not the Library's own
+    expect((await documentsOf<Document & { mediaId: string }>("quote")).map((q) => q.mediaId)).toEqual([emma]);
   });
 });
 

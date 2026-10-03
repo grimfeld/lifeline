@@ -3,6 +3,7 @@ import { ListMusic, Music } from "lucide-react";
 import { ENGAGEMENT, PLAYLIST, type Work } from "./domain/types";
 import { WORK_TYPES } from "./domain/workTypes";
 import { APP_HREF } from "./constants";
+import { cascadeWorkDelete } from "./data/repo";
 
 const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
 
@@ -40,6 +41,8 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t) => ({
   order: 44,
   builtIn: true,
   fields: WORK_FIELDS,
+  // Its Quotes (and Playlist places) go with it, from wherever it is deleted (ADR 0045).
+  onDelete: (doc) => cascadeWorkDelete(doc.id),
 }));
 
 /** A Playlist (ADR 0035): its albums are an ordered, guarded list of ids; the body is its blurb. */
