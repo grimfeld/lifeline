@@ -81,12 +81,15 @@ export function TransactionEditorDialog({
 
   async function save(addAnother: boolean) {
     const cents = parseAmount(amount);
-    if (cents === null || cents <= 0) return void toast.error("Amount must be above zero");
+    // An adjustment is the reconcile gap, which goes either way: signed, never zero.
+    if (kind === "adjustment") {
+      if (cents === null || cents === 0) return void toast.error("Amount must not be zero");
+    } else if (cents === null || cents <= 0) return void toast.error("Amount must be above zero");
     if ((kind === "expense" || kind === "income") && !categoryId && !transaction?.importId) return void toast.error("Pick a category");
     const input = {
       kind,
       date,
-      amount: Math.abs(cents),
+      amount: kind === "adjustment" ? cents : Math.abs(cents),
       accountId,
       fromAccountId,
       toAccountId,
