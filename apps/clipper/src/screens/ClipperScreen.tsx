@@ -4,7 +4,7 @@ import { Badge, Button, Input, TagChips } from "@lifeline/ui";
 import { basePath, docHref, excerpt, formatHuman } from "@lifeline/core";
 import { Scissors, Table2 } from "lucide-react";
 import { ClipDialog } from "../ClipDialog";
-import { useClippings } from "../data";
+import { capturedDay, useClippings } from "../data";
 import { CLIPPING, hostOf } from "../types";
 
 /** The Clipper's App screen in the Vault: a capture button and the recent clippings, newest first. */
@@ -50,7 +50,7 @@ export function ClipperScreen() {
                 </a>
               )}
               {c.author && <span>{c.author}</span>}
-              {c.capturedAt && <span>captured {formatHuman(String(c.capturedAt).slice(0, 10))}</span>}
+              {capturedDay(String(c.capturedAt)) && <span>captured {formatHuman(capturedDay(String(c.capturedAt))!)}</span>}
               {c.tags.length > 0 && <TagChips tags={c.tags} size="xs" />}
             </div>
             <p className="text-muted-foreground mt-0.5 line-clamp-2 text-sm">{excerpt(c.body, 200)}</p>
