@@ -71,11 +71,14 @@ export function lookupGapMs(_type: WorkTypeId): number {
   return 300;
 }
 
-/** Merge a hit's lazy enrichment in (on pick). Failures keep the plain hit. */
-export async function resolveHit(hit: WorkHit): Promise<WorkHit> {
+/** How long a pick waits on a hit's lazy enrichment before adding the plain hit. */
+export const RESOLVE_TIMEOUT_MS = 8000;
+
+/** Merge a hit's lazy enrichment in (on pick). Failures, and a provider that hangs past the timeout, keep the plain hit. */
+export async function resolveHit(hit: WorkHit, signal: AbortSignal = AbortSignal.timeout(RESOLVE_TIMEOUT_MS)): Promise<WorkHit> {
   if (!hit.resolve) return hit;
   try {
-    const extra = await hit.resolve();
+    const extra = await hit.resolve(signal);
     const { resolve: _r, ...plain } = hit;
     return { ...plain, ...Object.fromEntries(Object.entries(extra).filter(([, v]) => v !== undefined && v !== "" && v !== 0 && !(Array.isArray(v) && v.length === 0))) } as WorkHit;
   } catch {
