@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Button, CardUnavailable } from "@lifeline/ui";
 import type { CardProps } from "@lifeline/core";
@@ -12,7 +12,13 @@ export function DueCard(_: CardProps) {
   const language = useActiveLanguage();
   const items = useItems(language?.id);
   const recalls = useLanguageRecalls(language?.id);
-  const q = useMemo(() => (language ? practiceQueue(items.filter((i) => !i.paused), recalls, { now: new Date(), newCap: language.newCap }) : null), [language, items, recalls]);
+  // Prompts fall due as time passes, not only when something is written: re-read the clock every minute.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const q = useMemo(() => (language ? practiceQueue(items.filter((i) => !i.paused), recalls, { now, newCap: language.newCap }) : null), [language, items, recalls, now]);
 
   if (!language || !q) return <CardUnavailable message="No language yet" />;
   return (
