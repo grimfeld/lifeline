@@ -34,6 +34,7 @@ import { MarkdownView } from "./MarkdownView";
 import { FieldsForm } from "./FieldsForm";
 import { LinksPanel } from "./LinksPanel";
 import { LocalGraphPanel } from "./LocalGraphPanel";
+import { draftedValues, settleDraft, type FieldDraft } from "./fieldDraft";
 
 export interface DocumentEditorProps {
   doc: Document;
@@ -194,11 +195,20 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
    */
   const hasFields = fields.some((f) => !f.hidden);
   const hasPanel = isLinkable(def) || !!def?.locatable;
-  const fieldValues = useMemo(() => {
-    const out: Record<string, unknown> = {};
-    for (const f of fields) out[f.key] = doc[f.key];
-    return out;
-  }, [doc, fields]);
+  /**
+   * What the form has typed and the stored Document has not caught up with:
+   * shown over the stored values, or a controlled input snaps back to the old
+   * value until the debounced save comes back and eats the keys typed meanwhile.
+   */
+  const [fieldDraft, setFieldDraft] = useState<FieldDraft>({});
+  useEffect(() => setFieldDraft((d) => settleDraft(d, doc as unknown as Record<string, unknown>)), [doc]);
+  const fieldValues = useMemo(() => draftedValues(fields, doc as unknown as Record<string, unknown>, fieldDraft), [doc, fields, fieldDraft]);
+  const changeFields = (next: Record<string, unknown>) => {
+    const changed: FieldDraft = {};
+    for (const [k, v] of Object.entries(next)) if (v !== fieldValues[k]) changed[k] = v;
+    setFieldDraft((d) => ({ ...d, ...changed }));
+    stage(changed as Partial<Document>);
+  };
 
   async function commitTitle() {
     if (def?.titleRule === "date" || def?.titleRule === "derived") return;
@@ -245,6 +255,8 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   function commitText() {
     const { patch, rejected } = textToDocument(text, doc, def, codec);
     if (rejected.length > 0) toast.message(`Guarded fields kept as they were: ${rejected.join(", ")}`);
+    // Raw text speaks for every Field; a draft left over from the form would hide what it wrote.
+    setFieldDraft({});
     stage(patch as Partial<Document>, true);
   }
 
@@ -373,7 +385,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
           <>
             <div className={cn("grid gap-2 border-b px-3 py-2 md:px-4", !detailsOpen && "max-md:hidden")}>
               {fields.some((f) => !f.hidden) && (
-                <FieldsForm def={{ fields }} value={fieldValues} allowGuarded={allowGuarded} onChange={(next) => stage(next as Partial<Document>)} />
+                <FieldsForm def={{ fields }} value={fieldValues} allowGuarded={allowGuarded} onChange={changeFields} />
               )}
               <div className="grid gap-1">
                 <Label htmlFor="doc-tags" className="text-muted-foreground text-xs">
