@@ -30,10 +30,11 @@ const { runTool, ToolError } = await import("./handlers");
 const journal: DocumentTypeDef = {
   id: "journal_entry",
   label: "Journal entries",
-  titleRule: "unique",
+  builtIn: false,
+  titleRule: "name",
   body: "required",
   fields: [{ key: "mood", label: "Mood", kind: "number" }],
-} as DocumentTypeDef;
+};
 
 beforeEach(() => {
   types.clear();
