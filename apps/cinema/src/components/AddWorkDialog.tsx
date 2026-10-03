@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Dialog,
@@ -103,21 +103,35 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "movie" }: { o
 
   const step2 = pick !== null || manual || !search;
 
+  // One add per press: a second press while the first awaits the store would add a twin.
+  const busyRef = useRef(false);
+  const [busy, setBusy] = useState(false);
+
   async function submit() {
     if (!title.trim()) return void toast.error("Title required");
-    await addWork({
-      medium: type,
-      title,
-      creator,
-      externalKey: pick?.externalKey ?? "",
-      coverUrl: pick?.coverUrl ?? "",
-      year: Number(year) || 0,
-      size: Number(size) || 0,
-      reason: reason.trim(),
-      tags,
-    });
-    toast.success(`${title.trim()} added to ${def.wantLabel}`);
-    onOpenChange(false);
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    try {
+      await addWork({
+        medium: type,
+        title,
+        creator,
+        externalKey: pick?.externalKey ?? "",
+        coverUrl: pick?.coverUrl ?? "",
+        year: Number(year) || 0,
+        size: Number(size) || 0,
+        reason: reason.trim(),
+        tags,
+      });
+      toast.success(`${title.trim()} added to ${def.wantLabel}`);
+      onOpenChange(false);
+    } catch (e) {
+      toast.error((e as Error).message || "Could not add it");
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
   }
 
   return (
@@ -235,7 +249,11 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "movie" }: { o
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          {step2 && <Button onClick={() => void submit()}>Add</Button>}
+          {step2 && (
+            <Button disabled={busy} onClick={() => void submit()}>
+              {busy ? "Adding…" : "Add"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
