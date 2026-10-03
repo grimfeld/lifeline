@@ -1,5 +1,5 @@
 import { extractLinks, proseSegments } from "@lifeline/core";
-import { BOOK_FORMS, bookByName, type CanonBook } from "./canon";
+import { BOOK_FORMS, MAX_VERSE, bookByName, type CanonBook } from "./canon";
 
 /**
  * A scripture reference as read from text (ADR 0032). Three shapes:
@@ -35,9 +35,10 @@ function build(bookForm: string, ch?: string, v?: string, toCh?: string, toV?: s
     chapter = 1;
   }
   if (chapter < 1 || chapter > book.chapters) return null;
-  if (verse !== null && verse < 1) return null;
+  if (verse !== null && (verse < 1 || verse > MAX_VERSE)) return null;
   const toChapter = toCh === undefined ? null : Number(toCh);
   let toVerse = toV === undefined ? null : Number(toV);
+  if (toVerse !== null && toVerse > MAX_VERSE) return null;
   if (toChapter !== null && (toChapter < chapter || toChapter > book.chapters)) return null;
   if (toChapter === null && toVerse !== null && verse !== null && toVerse <= verse) toVerse = null;
   return { book, chapter, verse, toVerse, toChapter };

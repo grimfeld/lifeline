@@ -89,6 +89,12 @@ export const CANON: CanonBook[] = [
   ...NT.map(([name, abbr, chapters]): CanonBook => ({ name, abbr, chapters, testament: "NT" })),
 ];
 
+/**
+ * No chapter has more verses than this (Psalm 119). Verse counts per chapter
+ * are not carried, but a verse or range end beyond it is not a reference.
+ */
+export const MAX_VERSE = 176;
+
 export const BOOK_ORDER = new Map(CANON.map((b, i) => [b.name, i]));
 
 function key(s: string): string {
