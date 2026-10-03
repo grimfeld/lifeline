@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Button, Card, CardContent, Input, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import { ChevronLeft, ChevronRight, PiggyBank, Plus } from "lucide-react";
-import type { LedgerCategory, MonthStr } from "../domain/types";
+import type { Allocation, LedgerCategory, MonthStr } from "../domain/types";
 import { budgetRows, formatMonth, incomeByCategory, monthAdd, targetFor, thisMonth, uncategorizedSpent, type BudgetRow } from "../domain/derive";
 import { editAmount, formatCents, parseAmount } from "../domain/money";
 import { setAllocation, useAllocations, useCategories, useTransactions } from "../data/repo";
@@ -76,7 +76,7 @@ export function BudgetScreen() {
         <div key={group} className="grid gap-1.5">
           {group && <h2 className="text-muted-foreground mt-1 text-xs font-semibold tracking-wide uppercase">{group}</h2>}
           {groupRows.map((row) => (
-            <BudgetRowLine key={row.category.id} row={row} month={month} onEdit={() => setEditing(row.category)} />
+            <BudgetRowLine key={row.category.id} row={row} month={month} allocations={allocations} onEdit={() => setEditing(row.category)} />
           ))}
         </div>
       ))}
@@ -107,12 +107,11 @@ export function BudgetScreen() {
   );
 }
 
-function BudgetRowLine({ row, month, onEdit }: { row: BudgetRow; month: MonthStr; onEdit: () => void }) {
-  const allocations = useAllocations();
-  const categories = useCategories();
+/** Takes its data from the screen: a hook per row re-normalized and re-sorted the same lists once per Category. */
+function BudgetRowLine({ row, month, allocations, onEdit }: { row: BudgetRow; month: MonthStr; allocations: Allocation[]; onEdit: () => void }) {
   const [editingTarget, setEditingTarget] = useState(false);
   const [draft, setDraft] = useState("");
-  const category = categories.find((c) => c.id === row.category.id) ?? row.category;
+  const category = row.category;
   const hasOverride = allocations.some((a) => a.categoryId === category.id && a.month === month);
   // Untracked (no Target, no pot): spending is just spending — never red, never a full bar.
   const over = row.available !== null && row.available < 0;
