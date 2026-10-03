@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Button, Card, CardContent, cn } from "@lifeline/ui";
-import { formatHuman } from "@lifeline/core";
+import { formatHuman, todayStr } from "@lifeline/core";
 import { Layers, Play } from "lucide-react";
-import { dueAhead, practiceQueue, retention } from "../domain/practice";
+import { dueAheadOfHeld, heldPrompts, introducedOn, queueOfHeld, retention, type PracticeQueue } from "../domain/practice";
 import type { Deck, Item, Language, Recall } from "../domain/types";
 import { PracticeRun } from "../components/PracticeRun";
 
@@ -21,9 +21,20 @@ export function PracticeTab({ language, items, decks, recalls }: { language: Lan
   const [running, setRunning] = useState<{ deck?: Deck } | null>(null);
   const now = useMemo(() => new Date(), [recalls]); // re-read the clock whenever practice changes something
   const live = useMemo(() => items.filter((i) => !i.paused), [items]);
-  const q = useMemo(() => practiceQueue(live, recalls, { now, newCap: language.newCap }), [live, recalls, now, language.newCap]);
+  // The Recalls are replayed once per change; the Language's queue, each Deck's and the week ahead all read these.
+  const held = useMemo(() => heldPrompts(live, recalls), [live, recalls]);
+  const introduced = useMemo(() => introducedOn(recalls, todayStr(now)), [recalls, now]);
+  const q = useMemo(() => queueOfHeld(held, introduced, { now, newCap: language.newCap }), [held, introduced, now, language.newCap]);
+  const deckQueues = useMemo(() => {
+    const out = new Map<string, PracticeQueue>();
+    for (const d of decks) {
+      const ids = new Set(d.members);
+      out.set(d.id, queueOfHeld(held.filter((p) => ids.has(p.itemId)), introduced, { now, newCap: language.newCap }));
+    }
+    return out;
+  }, [decks, held, introduced, now, language.newCap]);
   const ret = useMemo(() => retention(recalls, now), [recalls, now]);
-  const week = useMemo(() => dueAhead(live, recalls, now), [live, recalls, now]);
+  const week = useMemo(() => dueAheadOfHeld(held, now), [held, now]);
   const peak = Math.max(1, ...week.map((d) => d.count));
 
   if (running) {
@@ -53,7 +64,7 @@ export function PracticeTab({ language, items, decks, recalls }: { language: Lan
           <div className="grid gap-2 sm:grid-cols-2">
             {decks.map((d) => {
               const di = deckItems(d, live);
-              const dq = practiceQueue(di, recalls, { now, newCap: language.newCap });
+              const dq = deckQueues.get(d.id)!;
               return (
                 <button key={d.id} className="hover:bg-accent/50 flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm disabled:opacity-60" onClick={() => setRunning({ deck: d })} disabled={di.length === 0}>
                   <Layers className="text-muted-foreground size-4 shrink-0" />
