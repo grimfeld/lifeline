@@ -68,7 +68,7 @@ export function RegisterScreen() {
   const accounts = useAccounts();
   const categories = useCategories();
   const rules = useCategorizeRules();
-  const series = useSeries();
+  const series = useSeries(transactions);
 
   const [accountFilter, setAccountFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");

@@ -113,10 +113,11 @@ export function useSeriesOverrides(): SeriesOverride[] {
 
 /**
  * Every Recurring series the ledger shows (ADR 0034) — derived from the
- * Transactions on every read, with the hand-made overrides laid over.
+ * Transactions on every read, with the hand-made overrides laid over. The
+ * caller hands in its useTransactions() so the ledger is normalized and
+ * sorted once per screen, not once per hook.
  */
-export function useSeries(): Series[] {
-  const transactions = useTransactions();
+export function useSeries(transactions: Transaction[]): Series[] {
   const overrides = useSeriesOverrides();
   const today = todayStr();
   return useMemo(() => detectSeries(transactions, overrides, today), [transactions, overrides, today]);

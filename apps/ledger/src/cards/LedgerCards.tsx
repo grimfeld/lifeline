@@ -91,7 +91,7 @@ export function BudgetMonthCard(_props: CardProps) {
 
 /** Open Dues — the forecast is this list (ADR 0033), read off the ledger and never posted (ADR 0042). */
 export function DuesCard(_props: CardProps) {
-  const series = useSeries();
+  const series = useSeries(useTransactions());
   const today = todayStr();
   const dues = useMemo(() => openDues(series, today), [series, today]);
   return <DuesList dues={dues} today={today} compact />;
