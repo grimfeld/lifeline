@@ -128,6 +128,14 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb);
 }
 
+/**
+ * Run `cb` whenever this device switches Workspace. For live queries Dexie
+ * cannot re-run by itself: the scope they read lives here, in memory.
+ */
+export function onWorkspaceChange(cb: () => void): () => void {
+  return subscribe(cb);
+}
+
 export function useCurrentWorkspaceId(): string {
   return useSyncExternalStore(subscribe, currentWorkspaceId, () => "");
 }

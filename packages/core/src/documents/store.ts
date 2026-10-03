@@ -10,7 +10,7 @@ import { extractProseTags } from "../markdown";
 import { normalizeFolder } from "../folders";
 import { documentTypeSync } from "./registry";
 import { inPrivateFolder, privateGate, visibleUnder } from "../private";
-import { workspaceScope } from "../workspaces";
+import { onWorkspaceChange, useCurrentWorkspaceId, workspaceScope } from "../workspaces";
 import type { Document } from "./types";
 
 /**
@@ -71,17 +71,23 @@ export async function allDocuments(): Promise<Document[]> {
   return gated(await documentsTable().where("deleted").equals(0).toArray());
 }
 
+// The Workspace is a dependency of every read below although no table holds
+// it (it lives in memory, per device): a switch must re-run them, or each list
+// keeps showing the Workspace it was first read in.
+
 /** React hook: live rows of one type. */
 export function useDocuments<T extends Document = Document>(type: string | undefined): T[] {
-  return useLiveQuery(async () => (type ? await documentsOf<T>(type) : ([] as T[])), [type], [] as T[]);
+  const wsId = useCurrentWorkspaceId();
+  return useLiveQuery(async () => (type ? await documentsOf<T>(type) : ([] as T[])), [type, wsId], [] as T[]);
 }
 
 /** React hook: one Document by id (undefined while loading / when missing). */
 export function useDocument<T extends Document = Document>(id: string | undefined): T | undefined {
-  return useLiveQuery(async () => (id ? await getDocument<T>(id) : undefined), [id], undefined);
+  const wsId = useCurrentWorkspaceId();
+  return useLiveQuery(async () => (id ? await getDocument<T>(id) : undefined), [id, wsId], undefined);
 }
 
-const allLive = sharedLiveQuery(() => allDocuments(), [] as Document[]);
+const allLive = sharedLiveQuery(async () => allDocuments(), [] as Document[], { restartOn: onWorkspaceChange });
 
 /** React hook: every live Document (cross-type tooling). One shared query: every consumer sees the same array per change. */
 export function useAllDocuments(): Document[] {
