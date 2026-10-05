@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Sheet, SheetContent, SheetTitle, cn } from "@lifeline/ui";
 import {
+  BAR_LEFT_SLOT,
   BAR_PINNED,
   useBarSlots,
   useCaptureSheet,
@@ -23,19 +24,19 @@ function slot(active: boolean) {
 }
 
 /**
- * The **Phone bar** (ADR 0053): `Calendar · Schedule · ✛ · [slot] · [slot]`.
+ * The **Phone bar** (ADR 0053, ADR 0063): `Calendar · [slot] · ✛ · [slot] · [slot]`.
  *
- * The two views of time are pinned on the left because they are what a phone
- * is taken out of a pocket for, and neither belongs to a Module — so under
- * ADR 0049's derivation, the one composition rule it allowed, they could never
- * win a slot at all. Capture is pinned in the centre because the other cells
- * are places to go and this one is a thing to do.
+ * The Calendar is pinned at the far left because time is what a phone is
+ * taken out of a pocket for, and it belongs to no Module — so under ADR
+ * 0049's derivation, the one composition rule it allowed, it could never win a
+ * slot at all. Capture is pinned in the centre because the other cells are
+ * places to go and this one is a thing to do.
  *
- * The two on the right are the user's, arranged in Settings and stored on the
+ * The other three are the user's, arranged in Settings and stored on the
  * Workspace, so switching Workspace still reconfigures the phone — by an
  * arrangement rather than by which shelves the Workspace happens to hold. A
  * slot whose destination is gone renders empty rather than being refilled, so
- * the pinned three never move under the thumb.
+ * the pinned two never move under the thumb.
  *
  * `☰` is not here any more; it opens the drawer from the header (PhoneHeader).
  *
@@ -114,6 +115,29 @@ export function MobileNav() {
     );
   }
 
+  function slotCell(s: (typeof slots)[number], i: number) {
+    if (!s) {
+      // Empty rather than closed up: the cell holds its place so the two
+      // pinned ones never shift, and says what it is for (ADR 0053).
+      return (
+        <button
+          key={`empty-${i}`}
+          className={cn(slot(false), "opacity-40")}
+          title="Choose what this slot opens"
+          onClick={() => navigate("/settings")}
+        >
+          <Plus className="size-5" /> Set
+        </button>
+      );
+    }
+    const Icon = s.icon ?? slotIcon(s.slot.kind, s.slot.id);
+    return (
+      <button key={`${s.slot.kind}:${s.slot.id}`} className={slot(location.pathname === s.path)} onClick={() => navigate(s.path)}>
+        <Icon className="size-5" /> <span className="max-w-full truncate px-0.5">{s.title}</span>
+      </button>
+    );
+  }
+
   return (
     <>
       <nav
@@ -133,32 +157,13 @@ export function MobileNav() {
           );
         })}
 
+        {slotCell(slots[BAR_LEFT_SLOT], BAR_LEFT_SLOT)}
+
         <button className={slot(false)} onClick={() => setCaptureOpen(true)}>
           <Plus className="size-5" /> Capture
         </button>
 
-        {slots.map((s, i) => {
-          if (!s) {
-            // Empty rather than closed up: the cell holds its place so the three
-            // pinned ones never shift, and says what it is for (ADR 0053).
-            return (
-              <button
-                key={`empty-${i}`}
-                className={cn(slot(false), "opacity-40")}
-                title="Choose what this slot opens"
-                onClick={() => navigate("/settings")}
-              >
-                <Plus className="size-5" /> Set
-              </button>
-            );
-          }
-          const Icon = s.icon ?? slotIcon(s.slot.kind, s.slot.id);
-          return (
-            <button key={`${s.slot.kind}:${s.slot.id}`} className={slot(location.pathname === s.path)} onClick={() => navigate(s.path)}>
-              <Icon className="size-5" /> <span className="max-w-full truncate px-0.5">{s.title}</span>
-            </button>
-          );
-        })}
+        {slots.filter((_, i) => i !== BAR_LEFT_SLOT).map((s, i) => slotCell(s, i))}
       </nav>
 
       {/* "✛" capture sheet: pins, then groups; a fold opens its members in place. Hold a cell to pin it. */}

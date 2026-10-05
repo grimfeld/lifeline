@@ -8,6 +8,7 @@ import {
 } from "@lifeline/ui";
 import {
   BAR_PINNED,
+  BAR_SLOT_ORDER,
   CAPTURE_PINS_MAX,
   MODULES,
   movePin,
@@ -81,6 +82,23 @@ function PhoneBarSection() {
     setPicking(null);
   }
 
+  /** One of the user's cells in the preview, by its stored index. */
+  function slotCell(i: number, border: boolean) {
+    const s = config[i];
+    const found = s ? options.find((o) => sameSlot(o.slot, s)) : undefined;
+    const Icon = s ? (found?.icon ?? slotIcon(s.kind, s.id)) : Plus;
+    return (
+      <button
+        key={i}
+        className={cn("hover:bg-accent flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px]", border && "border-r", !s && "opacity-40")}
+        onClick={() => setPicking(i)}
+      >
+        <Icon className="size-5" />
+        <span className="max-w-full truncate px-0.5">{s ? (s.label?.trim() || found?.title || "Gone") : "Set"}</span>
+      </button>
+    );
+  }
+
   return (
     <section className="flex flex-col gap-3">
       <div>
@@ -88,7 +106,7 @@ function PhoneBarSection() {
           <Smartphone className="size-4" /> Phone bar
         </h2>
         <p className="text-muted-foreground text-sm">
-          The bar at the foot of the phone. Calendar, Schedule and capture are fixed; the last two are yours. This bar belongs to{" "}
+          The bar at the foot of the phone. Calendar and capture are fixed; the other three are yours. This bar belongs to{" "}
           <strong>{ws?.name ?? "this workspace"}</strong> — each workspace has its own.
         </p>
       </div>
@@ -104,35 +122,20 @@ function PhoneBarSection() {
             </div>
           );
         })}
+        {slotCell(BAR_SLOT_ORDER[0], true)}
         <div className="text-muted-foreground flex flex-1 flex-col items-center gap-0.5 border-r py-2 text-[10px]">
           <Plus className="size-5" /> Capture
           <Lock className="size-2.5 opacity-50" />
         </div>
-        {config.map((s, i) => {
-          const found = s ? options.find((o) => sameSlot(o.slot, s)) : undefined;
-          const Icon = s ? (found?.icon ?? slotIcon(s.kind, s.id)) : Plus;
-          return (
-            <button
-              key={i}
-              className={cn(
-                "hover:bg-accent flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px]",
-                i < config.length - 1 && "border-r",
-                !s && "opacity-40",
-              )}
-              onClick={() => setPicking(i)}
-            >
-              <Icon className="size-5" />
-              <span className="max-w-full truncate px-0.5">{s ? (s.label?.trim() || found?.title || "Gone") : "Set"}</span>
-            </button>
-          );
-        })}
+        {slotCell(BAR_SLOT_ORDER[1], true)}
+        {slotCell(BAR_SLOT_ORDER[2], false)}
       </div>
 
       <div className="flex flex-col gap-2">
-        {config.map((s, i) => (
+        {BAR_SLOT_ORDER.map((i, pos) => [config[i], i, pos] as const).map(([s, i, pos]) => (
           <SlotRow
             key={i}
-            index={i}
+            index={pos}
             slot={s}
             option={s ? options.find((o) => sameSlot(o.slot, s)) : undefined}
             onPick={() => setPicking(i)}

@@ -12,6 +12,7 @@ import {
 } from "@lifeline/ui";
 import {
   appById,
+  CALENDAR_VIEWS,
   moduleById,
   moduleHome,
   registeredApps,
@@ -24,7 +25,7 @@ import {
   type CommandDef,
 } from "@lifeline/core";
 import { MODULE_ICONS } from "../navIcons";
-import { CalendarDays, Clock, Columns3, LayoutDashboard, MapPin, Terminal } from "lucide-react";
+import { CalendarDays, LayoutDashboard, MapPin, Terminal } from "lucide-react";
 import { entryIcon, foldMembers } from "../capture/captureParts";
 
 type DialogCommand = CommandDef & { appId: string };
@@ -186,12 +187,12 @@ export function CommandPalette() {
             <CommandItem onSelect={() => pick(() => navigate("/calendar"))}>
               <CalendarDays /> Calendar
             </CommandItem>
-            <CommandItem onSelect={() => pick(() => navigate("/week"))}>
-              <Columns3 /> Week
-            </CommandItem>
-            <CommandItem onSelect={() => pick(() => navigate("/schedule"))}>
-              <Clock /> Schedule
-            </CommandItem>
+            {/* Each view by name, so "week" or "upcoming" finds it (ADR 0063). */}
+            {CALENDAR_VIEWS.map((v) => (
+              <CommandItem key={v.id} value={`Calendar ${v.title}`} onSelect={() => pick(() => navigate(`/calendar?view=${v.id}`))}>
+                <CalendarDays /> Calendar · {v.title}
+              </CommandItem>
+            ))}
             <CommandItem onSelect={() => pick(() => navigate("/map"))}>
               <MapPin /> Map
             </CommandItem>
