@@ -155,14 +155,17 @@ export function CalendarPage() {
 
   return (
     <div className="flex h-full flex-col gap-3 p-4">
-      <div className="flex items-center gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">
-          {MONTHS[anchor.m - 1]} {anchor.y}
-        </h1>
-        <Badge variant="secondary" className="ml-1">
-          {items.filter((i) => !i.completedOn && i.displayDate === today).length} today
-        </Badge>
-        <div className="ml-auto flex items-center gap-1">
+      {/* One row on desktop; on a phone the controls drop below the month so the bar never overflows. */}
+      <div className="flex flex-col gap-2 md:flex-row md:items-center">
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-semibold tracking-tight">
+            {MONTHS[anchor.m - 1]} {anchor.y}
+          </h1>
+          <Badge variant="secondary" className="ml-1">
+            {items.filter((i) => !i.completedOn && i.displayDate === today).length} today
+          </Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-1 md:ml-auto">
           <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2" />
           <TimeAppLinks />
           <Button size="icon" variant="outline" className="size-8" onClick={() => shift(-1)}>
