@@ -1,5 +1,5 @@
 import { CalendarDays, ClipboardList, Home, ShoppingBasket, ShoppingCart } from "lucide-react";
-import { CalendarPage } from "../../surfaces/CalendarPage";
+import { CalendarSurface } from "../../surfaces/CalendarSurface";
 import { ModuleCard } from "../ModuleCard";
 import { handModule, ModuleHomeHeader } from "../handModule";
 
@@ -23,6 +23,14 @@ function HouseHome() {
 }
 
 /**
+ * House's Calendar: the lens on Chores. Chores have no hours, so it offers
+ * the day-granular views only (ADR 0063).
+ */
+function HouseCalendar() {
+  return <CalendarSurface views={["month", "upcoming"]} />;
+}
+
+/**
  * House (ADR 0057). Chores, Pantry and the Shopping list keep their screens;
  * House arranges them, and embeds the Calendar Surface under its own scope —
  * the month of Chores, and nothing else, which is the lens the general
@@ -40,6 +48,6 @@ export const houseShell = handModule({
   ],
   pages: [
     { path: "", component: HouseHome },
-    { path: "calendar", component: CalendarPage },
+    { path: "calendar", component: HouseCalendar },
   ],
 });

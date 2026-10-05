@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { BAR_CUSTOM_SLOTS, BAR_PINNED, barToStore, sameSlot, seedBar } from "./bar";
+import { BAR_CUSTOM_SLOTS, BAR_LEFT_SLOT, BAR_PINNED, barToStore, sameSlot, seedBar } from "./bar";
 import { SURFACES } from "./manifest";
 
 describe("the Phone bar's pinned slots", () => {
-  it("is the Calendar and Schedule Surfaces, in that order", () => {
-    expect(BAR_PINNED.map((s) => s.id)).toEqual(["calendar", "schedule"]);
+  it("is the Calendar Surface alone (ADR 0063: Calendar and Schedule are one)", () => {
+    expect(BAR_PINNED.map((s) => s.id)).toEqual(["calendar"]);
   });
 
   /**
-   * The point of ADR 0053: these two belong to no Module, so under ADR 0049's
+   * The point of ADR 0053: the time Surfaces belong to no Module, so under ADR 0049's
    * derivation they could never have taken a slot at all.
    */
   it("pins Surfaces that no Module could have supplied", () => {
@@ -43,8 +43,11 @@ describe("seeding a new Workspace's bar", () => {
     ]);
   });
 
-  it("never seeds more slots than the bar has", () => {
-    expect(seedBar(["house", "tasks", "schedules", "culture", "money", "notes", "progress"])).toHaveLength(BAR_CUSTOM_SLOTS);
+  /** ADR 0063: the cell left of capture is the user's to fill — nothing is guessed into it. */
+  it("seeds only the two right of capture, leaving the left one empty", () => {
+    const bar = seedBar(["house", "tasks", "schedules", "culture", "money", "notes", "progress"]);
+    expect(bar).toHaveLength(2);
+    expect(barToStore(bar)[BAR_LEFT_SLOT]).toBeNull();
   });
 
   it("gives a Workspace holding nothing an empty bar rather than inventing one", () => {
@@ -78,12 +81,12 @@ describe("storing an arrangement", () => {
    * forbids.
    */
   it("keeps a hole rather than closing it up", () => {
-    expect(barToStore([null, tasks])).toEqual([null, tasks]);
+    expect(barToStore([null, tasks, null])).toEqual([null, tasks, null]);
   });
 
   it("pads a short arrangement to the bar's length", () => {
-    expect(barToStore([])).toEqual([null, null]);
-    expect(barToStore([tasks])).toEqual([tasks, null]);
+    expect(barToStore([])).toEqual([null, null, null]);
+    expect(barToStore([tasks])).toEqual([tasks, null, null]);
   });
 
   it("never stores more slots than the bar has", () => {
@@ -91,8 +94,14 @@ describe("storing an arrangement", () => {
     expect(barToStore(over)).toHaveLength(BAR_CUSTOM_SLOTS);
   });
 
+  /** ADR 0063: a bar stored with two slots keeps them on the right and reads its new cell as empty. */
+  it("reads a two-slot bar from before ADR 0063 with the left cell empty", () => {
+    const old = [tasks, { kind: "module" as const, id: "notes" }];
+    expect(barToStore(old)).toEqual([...old, null]);
+  });
+
   it("round-trips: what is stored reads back in the same positions", () => {
-    const arrangement = [null, { kind: "screen" as const, id: "s1", label: "Morning" }];
+    const arrangement = [null, { kind: "screen" as const, id: "s1", label: "Morning" }, null];
     expect(barToStore(barToStore(arrangement))).toEqual(arrangement);
   });
 });

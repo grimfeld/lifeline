@@ -15,12 +15,12 @@ import { WORKSPACES, type UserScreen } from "./data/db";
 import { useCurrentWorkspace, useWorkspaceModules, type WorkspaceRecord } from "./workspaces";
 
 /**
- * The **Phone bar** (ADR 0053): `Calendar · Schedule · ✛ · [slot] · [slot]`.
+ * The **Phone bar** (ADR 0053, ADR 0063): `Calendar · [slot] · ✛ · [slot] · [slot]`.
  *
- * The left two and the centre are Core's and are not configurable — the two
- * views of time are what a phone is taken out of a pocket for, and capture is
- * a verb where the other slots are places, so it is the one control that must
- * be at thumb height on every page. The two on the right are the user's.
+ * The far left and the centre are Core's and are not configurable — time is
+ * what a phone is taken out of a pocket for, and capture is a verb where the
+ * other slots are places, so it is the one control that must be at thumb
+ * height on every page. The other three are the user's.
  *
  * This supersedes ADR 0049's derivation of the bar from the Workspace's
  * Modules. A Module list says what a Workspace *shelves*, which is not where
@@ -29,11 +29,25 @@ import { useCurrentWorkspace, useWorkspaceModules, type WorkspaceRecord } from "
  * 0049 allowed was the one rule that could not reach them.
  */
 
-/** The two fixed Surfaces, left of centre, in bar order. */
-export const BAR_PINNED: SurfaceDef[] = ["calendar", "schedule"].map((id) => surfaceById(id)!);
+/** The fixed Surface at the far left. Calendar and Schedule were two until ADR 0063 made them one. */
+export const BAR_PINNED: SurfaceDef[] = ["calendar"].map((id) => surfaceById(id)!);
 
-/** How many slots the user arranges. Four usable cells at 390px is the whole constraint. */
-export const BAR_CUSTOM_SLOTS = 2;
+/**
+ * How many slots the user arranges. Stored in this order: the two right of
+ * capture first, then the one left of it — the cell ADR 0063 freed. A bar
+ * stored before then holds the right two and reads its new cell as empty,
+ * never filled for it.
+ */
+export const BAR_CUSTOM_SLOTS = 3;
+
+/** The stored index of the slot left of capture. */
+export const BAR_LEFT_SLOT = 2;
+
+/** The custom slots' stored indices in the order the bar shows them, left to right. */
+export const BAR_SLOT_ORDER = [BAR_LEFT_SLOT, 0, 1];
+
+/** How many slots a new Workspace is seeded with: the right two, as before ADR 0063. */
+const BAR_SEEDED_SLOTS = 2;
 
 /**
  * A new Workspace's starting bar, from its own Modules: Tasks and Note-taking
@@ -48,7 +62,7 @@ export const BAR_CUSTOM_SLOTS = 2;
 export function seedBar(modules: string[]): BarSlot[] {
   const preferred = ["tasks", "notes"].filter((m) => modules.includes(m));
   const rest = modules.filter((m) => !preferred.includes(m));
-  return [...preferred, ...rest].slice(0, BAR_CUSTOM_SLOTS).map((id) => ({ kind: "module" as const, id }));
+  return [...preferred, ...rest].slice(0, BAR_SEEDED_SLOTS).map((id) => ({ kind: "module" as const, id }));
 }
 
 /** A slot's referent, found. `undefined` where it no longer resolves. */
@@ -62,7 +76,7 @@ export interface ResolvedSlot {
 }
 
 /**
- * The current Workspace's two custom slots, resolved — `null` where a slot is
+ * The current Workspace's custom slots, resolved — `null` where a slot is
  * unset *or* where what it pointed at is gone (ADR 0053).
  *
  * The two cases are deliberately one: a slot whose Screen was deleted, or
@@ -106,6 +120,11 @@ function resolveSlot(slot: BarSlot | null | undefined, modules: string[], screen
   return { slot, title: slot.label?.trim() || found.title, path: found.path, icon: found.icon };
 }
 
+const LEGACY_TIME_SURFACES: Record<string, { title: string; view: string }> = {
+  week: { title: "Week", view: "week" },
+  schedule: { title: "Schedule", view: "day" },
+};
+
 function destinationOf(
   kind: BarSlotKind,
   id: string,
@@ -122,7 +141,11 @@ function destinationOf(
     }
     case "surface": {
       const s = surfaceById(id);
-      return s && { title: s.title, path: s.path };
+      if (s) return { title: s.title, path: s.path };
+      // The Week and Schedule Surfaces are views of the Calendar now (ADR 0063):
+      // a slot pointed at one still opens it, as that view.
+      const view = LEGACY_TIME_SURFACES[id];
+      return view && { title: view.title, path: `/calendar?view=${view.view}` };
     }
     case "screen": {
       const s = screens.find((x) => x.id === id);
