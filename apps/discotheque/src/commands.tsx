@@ -29,6 +29,8 @@ function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 export const discothequeCommands: CommandDef[] = [
   {
     id: "discotheque.quick-add",
+    fold: "culture.add",
+    foldLabel: "Album",
     title: "Add album…",
     keywords: ["album", "music", "listen", "discotheque", "quick"],
     icon: Plus,
@@ -50,6 +52,8 @@ export const discothequeCommands: CommandDef[] = [
   },
   {
     id: "discotheque.mark-listened",
+    fold: "culture.done",
+    foldLabel: "Listened to an album",
     title: "Mark listened…",
     keywords: ["listened", "heard", "done", "finish", "rate", "like", "album", "music", "discotheque", "log"],
     icon: Headphones,

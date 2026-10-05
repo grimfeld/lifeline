@@ -12,6 +12,8 @@ function AddArtworkCommandDialog(props: { open: boolean; onOpenChange: (o: boole
 export const museumCommands: CommandDef[] = [
   {
     id: "museum.add",
+    fold: "culture.add",
+    foldLabel: "Artwork",
     title: "Add artwork…",
     keywords: ["painting", "drawing", "photograph", "sculpture", "architecture", "art", "museum", "holdings"],
     icon: Plus,

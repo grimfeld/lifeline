@@ -8,7 +8,11 @@ import {
 } from "@lifeline/ui";
 import {
   BAR_PINNED,
+  CAPTURE_PINS_MAX,
   MODULES,
+  movePin,
+  saveCapturePins,
+  useCaptureSheet,
   saveBar,
   sameSlot,
   useBarConfig,
@@ -16,9 +20,11 @@ import {
   useSlotOptions,
   useWorkspaces,
   type BarSlot,
+  type CaptureEntry,
   type SlotOption,
 } from "@lifeline/core";
-import { Check, Lock, Plus, Smartphone, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Lock, Pin, Plus, Smartphone, X } from "lucide-react";
+import { entryIcon, foldMembers } from "../capture/captureParts";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
 import { WorkspaceDialog, WorkspaceForm } from "../components/WorkspaceDialog";
 import { SyncBadge } from "../components/SyncBadge";
@@ -51,6 +57,8 @@ export function SettingsPage() {
       </section>
       <Separator />
       <PhoneBarSection />
+      <Separator />
+      <CapturePinsSection />
       <Separator />
       <WorkspacesSection />
     </div>
@@ -142,6 +150,108 @@ function PhoneBarSection() {
         />
       )}
     </section>
+  );
+}
+
+// --- the capture sheet's pins ---
+
+/**
+ * The Workspace's capture pins (CONTEXT.md "Capture sheet"): the handful on
+ * top of the sheet and of the empty palette, in this order. Also pinned and
+ * unpinned by holding a cell on the sheet itself. Pins that no longer resolve
+ * are not shown, and any write here drops them.
+ */
+function CapturePinsSection() {
+  const ws = useCurrentWorkspace();
+  const { pinned, groups } = useCaptureSheet();
+  const [picking, setPicking] = useState(false);
+  const live = pinned.map((e) => e.key);
+
+  async function save(next: string[]) {
+    if (ws) await saveCapturePins(ws, next);
+  }
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div>
+        <h2 className="flex items-center gap-2 text-base font-medium">
+          <Pin className="size-4" /> Capture pins
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          Up to {CAPTURE_PINS_MAX} capture commands kept on top of the phone's capture sheet and of the empty palette, always in this order. They belong to{" "}
+          <strong>{ws?.name ?? "this workspace"}</strong>. On the phone, hold any capture command to pin or unpin it.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {pinned.map((e, i) => {
+          const Icon = entryIcon(e);
+          return (
+            <div key={e.key} className="flex items-center gap-2 rounded-md border px-3 py-2">
+              <Icon className="size-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate text-sm">{e.title}</span>
+              <Button size="icon" variant="ghost" className="size-7 shrink-0" title="Move up" disabled={i === 0} onClick={() => void save(movePin(live, e.key, -1))}>
+                <ArrowUp className="size-3.5" />
+              </Button>
+              <Button size="icon" variant="ghost" className="size-7 shrink-0" title="Move down" disabled={i === pinned.length - 1} onClick={() => void save(movePin(live, e.key, 1))}>
+                <ArrowDown className="size-3.5" />
+              </Button>
+              <Button size="icon" variant="ghost" className="size-7 shrink-0" title="Unpin" onClick={() => void save(live.filter((k) => k !== e.key))}>
+                <X className="size-3.5" />
+              </Button>
+            </div>
+          );
+        })}
+        {pinned.length < CAPTURE_PINS_MAX && (
+          <button className="hover:bg-accent/50 text-muted-foreground rounded-md border border-dashed px-3 py-2 text-left text-sm" onClick={() => setPicking(true)}>
+            {pinned.length === 0 ? "Nothing pinned yet. Pin a capture command…" : "Pin another…"}
+          </button>
+        )}
+      </div>
+
+      <Dialog open={picking} onOpenChange={setPicking}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-md" aria-describedby={undefined}>
+          <h2 className="text-base font-medium">Pin a capture command</h2>
+          <div className="flex flex-col gap-3">
+            {groups.map((g) => (
+              <div key={g.id} className="flex flex-col gap-0.5">
+                <p className="text-muted-foreground px-1 text-xs font-medium">{g.title}</p>
+                {g.entries.flatMap((e) => [
+                  <PinChoice key={e.key} entry={e} pinned={live.includes(e.key)} onPick={() => void save([...live, e.key]).then(() => setPicking(false))} />,
+                  ...(e.kind === "fold"
+                    ? foldMembers(e).map((m) => (
+                        <PinChoice
+                          key={m.entry.key}
+                          entry={m.entry}
+                          label={m.label}
+                          indent
+                          pinned={live.includes(m.entry.key)}
+                          onPick={() => void save([...live, m.entry.key]).then(() => setPicking(false))}
+                        />
+                      ))
+                    : []),
+                ])}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </section>
+  );
+}
+
+function PinChoice({ entry, label, indent, pinned, onPick }: { entry: CaptureEntry; label?: string; indent?: boolean; pinned: boolean; onPick: () => void }) {
+  const Icon = entryIcon(entry);
+  return (
+    <button
+      className={cn("hover:bg-accent/50 flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm disabled:opacity-50", indent && "ml-6")}
+      disabled={pinned}
+      onClick={onPick}
+    >
+      <Icon className="size-4 shrink-0" />
+      <span className="min-w-0 flex-1 truncate">{label ?? entry.title}</span>
+      {pinned && <Check className="size-3.5 shrink-0" />}
+    </button>
   );
 }
 
