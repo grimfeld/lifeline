@@ -29,6 +29,8 @@ function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 export const cinemaCommands: CommandDef[] = [
   {
     id: "cinema.quick-add",
+    fold: "culture.add",
+    foldLabel: "Film or series",
     title: "Add movie…",
     keywords: ["movie", "series", "film", "watch", "cinema", "quick"],
     icon: Plus,
@@ -50,6 +52,8 @@ export const cinemaCommands: CommandDef[] = [
   },
   {
     id: "cinema.mark-watched",
+    fold: "culture.done",
+    foldLabel: "Watched a film or series",
     title: "Mark watched…",
     keywords: ["watched", "seen", "done", "finish", "rate", "like", "movie", "series", "cinema", "log"],
     icon: Eye,

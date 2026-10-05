@@ -31,6 +31,12 @@ export interface WorkspaceRecord extends SyncedRecord {
    */
   bar?: (BarSlot | null)[];
   /**
+   * The capture sheet's pins (CONTEXT.md "Capture sheet"), in the user's
+   * order: `appId/commandId` or `fold:<id>`. Absent or empty on a new
+   * Workspace — pins are never seeded.
+   */
+  capturePins?: string[];
+  /**
    * Set on every Workspace but the default (ADR 0057): it reads and writes
    * only what it holds. The default — the one created first — reads the
    * shared content. Decided at creation, never toggled.
