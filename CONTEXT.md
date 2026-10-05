@@ -133,7 +133,7 @@ The phone's **Rail**: the five slots at the foot of the phone, Core's, the same 
 _Avoid_: tab bar, dock, bottom nav, navbar, menu (what ☰ opens), tabs (the Vault's Folder tabs are a different thing), toolbar
 
 ### Capture sheet
-What the Phone bar's centre opens: every capture Command the Workspace's Modules offer, found by *where it lives*, never by how often it is used. The user's **pinned** few (a handful — the ones reached for daily) sit on top, always in the same places; below them the rest, grouped under their Modules in Core's Module order. Nothing on it reorders itself: capture is muscle memory, and a Command that moves costs the seconds capture is for. No search of its own — typing is the palette's, which stays the escape hatch.
+What the Phone bar's centre opens: every capture Command the Workspace's Modules offer, found by *where it lives*, never by how often it is used. The user's **pinned** few (a handful — the ones reached for daily) sit on top, always in the same places; below them the rest, grouped under their Modules in Core's Module order. Nothing on it reorders itself: capture is muscle memory, and a Command that moves costs the seconds capture is for. No search of its own — typing is the palette's, which stays the escape hatch. Pins are the **Workspace's**, like its bar: arranged in Settings beside the Phone bar or by long-press on the sheet itself, and a new Workspace starts with **none** — nothing is guessed. A pin whose Command leaves the Workspace (its Module removed) is dropped and nothing takes its place.
 _Avoid_: quick-add menu, plus menu, launcher, favourites (say pinned)
 
 ### Settings
