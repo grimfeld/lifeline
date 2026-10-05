@@ -70,7 +70,7 @@ One tap that finds an item time in the Schedule's hours, owned by Core and offer
 _Avoid_: reschedule, auto-schedule, snooze, defer, Move (that changes the day), find time
 
 ### Calendar
-The one Surface for time, the way Google's calendar is one place: a single destination whose **views** — **Upcoming · Day · 3 Day · Week · Month** — are switched in place. Day, 3 Day and Week are hour-scaled and together are the **Schedule**; Month and Upcoming are day-granular, show each item on its own day only, and leave Time blocker bands out. The Unplaced pool is a drawer the Calendar offers in every view. Supersedes the separate month Calendar, Schedule and Week planner Surfaces. Not the **Calendar App**, which owns Events and has no destination of its own — say "the Calendar App" for that.
+The one Surface for time, the way Google's calendar is one place: a single destination whose **views** — **Upcoming · Day · 3 Day · Week · Month** — are switched in place. Day, 3 Day and Week are hour-scaled and together are the **Schedule**; Month and Upcoming are day-granular, show each item on its own day only, and leave Time blocker bands out. The Unplaced pool is a drawer the Calendar offers in every view. Every view shows the one **day in view**: switching view keeps it (Week shows its week, Month its month, Upcoming starts from it), and 3 Day starts on it rather than on a week boundary. Supersedes the separate month Calendar, Schedule and Week planner Surfaces. Not the **Calendar App**, which owns Events and has no destination of its own — say "the Calendar App" for that.
 _Avoid_: calendar view (say which view), Week planner (retired: Week is hour-scaled), time Surface
 
 ### Schedule
