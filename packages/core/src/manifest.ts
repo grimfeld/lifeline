@@ -88,6 +88,30 @@ export const MODULES: ModuleDef[] = [
   { id: "mail", title: "Mail" },
 ];
 
+/**
+ * A **fold** on the capture sheet: one listed entry standing for several
+ * capture Commands that are the same act on sibling types, or on one type's
+ * templates (CONTEXT.md "Capture sheet"). It only routes — picking a member
+ * opens that App's own dialog, so each App keeps its type and its form.
+ *
+ * Core's, like the Modules: an App names the fold it sits under and cannot
+ * invent one, or the sheet would grow menus inside menus.
+ */
+export interface FoldDef {
+  id: string;
+  title: string;
+}
+
+export const FOLDS: FoldDef[] = [
+  { id: "culture.add", title: "Add to Culture…" },
+  { id: "culture.done", title: "Mark done…" },
+  { id: "calendar.today", title: "Add today…" },
+];
+
+export function foldById(id: string | undefined): FoldDef | undefined {
+  return FOLDS.find((f) => f.id === id);
+}
+
 /** A Module's landing route. */
 export function moduleHome(m: ModuleDef): string {
   return m.home ?? `/module/${m.id}`;
@@ -229,8 +253,20 @@ export interface CommandDef {
   run?: (ctx: CommandCtx) => void | Promise<void>;
   /** Dialog opened when the command is picked. */
   dialog?: React.ComponentType<{ open: boolean; onOpenChange: (open: boolean) => void }>;
-  /** A capture command records something in seconds (clip, log entry, quick capture…). Listed in the phone's "+" capture sheet. */
+  /**
+   * A capture command leaves one new record in seconds, without going
+   * anywhere (CONTEXT.md "Command"). Listed in the phone's capture sheet and
+   * ranked first in the palette. Starting something live is not capture.
+   */
   capture?: boolean;
+  /**
+   * The Core fold (`FOLDS`) this capture Command sits under on the capture
+   * sheet: not listed in its group, reached through the fold's picker, still
+   * pinnable and in the palette (CONTEXT.md "Capture sheet").
+   */
+  fold?: string;
+  /** What the fold's picker calls this Command ("Film or series"). Falls back to the title. */
+  foldLabel?: string;
   /**
    * The argument signature — what the dialog collects, declared as data so a
    * caller without the dialog can supply it. Paired with `invoke`.

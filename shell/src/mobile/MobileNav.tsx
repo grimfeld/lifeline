@@ -1,22 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Sheet, SheetContent, SheetTitle, cn } from "@lifeline/ui";
 import {
   BAR_PINNED,
-  appById,
-  appsOfModule,
-  useAllCommands,
   useBarSlots,
+  useCaptureSheet,
   useIsMobile,
   useKeyboardInset,
   setPhoneNavHeight,
-  useWorkspaceModules,
-  type CommandDef,
+  type CaptureCommand,
+  type CaptureEntry,
 } from "@lifeline/core";
-import { Plus } from "lucide-react";
+import { ChevronLeft, Plus } from "lucide-react";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
+import { CaptureCell, SectionHeading, foldMembers, useTogglePin } from "../capture/captureParts";
 
-type DialogCommand = CommandDef & { appId: string };
+type FoldEntry = Extract<CaptureEntry, { kind: "fold" }>;
 
 /** One bottom-bar slot; shared by both bars and by the Vault's tab buttons. */
 function slot(active: boolean) {
@@ -44,7 +43,9 @@ function slot(active: boolean) {
  */
 export function MobileNav() {
   const [captureOpen, setCaptureOpen] = useState(false);
-  const [activeDialog, setActiveDialog] = useState<DialogCommand | null>(null);
+  const [activeDialog, setActiveDialog] = useState<CaptureCommand | null>(null);
+  // The fold whose members the sheet is showing in place of the groups.
+  const [openFold, setOpenFold] = useState<FoldEntry | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const nav = useRef<HTMLElement>(null);
@@ -55,24 +56,18 @@ export function MobileNav() {
   // gives for free (ADR 0021 amendment); there this reads 0, as it should.
   const inset = useKeyboardInset(isMobile);
 
-  const modules = useWorkspaceModules();
   const slots = useBarSlots();
   const ActiveDialogComponent = activeDialog?.dialog;
 
   /**
-   * The capture sheet lists this Workspace's Modules' Commands and no others
-   * (ADR 0047). A list of Commands is chrome, so gating it needs no new
-   * principle — and ungated it both buries the ones you want among twenty-three
-   * and, in a separated Workspace, offers to strand a Clipping where there is
-   * no Clippings screen to find it again. The palette stays open: it is the
-   * escape hatch, and always was.
+   * The capture sheet (CONTEXT.md "Capture sheet"): this Workspace's Modules'
+   * capture Commands and no others (ADR 0047), the user's pins on top, the
+   * rest grouped under their Modules — folds standing in for the Commands
+   * folded under them. The palette stays open: it is the escape hatch.
    */
-  // An App in no Module (the Calendar App, ADR 0057) is gated by none: its
-  // Events live on the general time Surfaces, which every Workspace has.
-  const captureApps = new Set(modules.flatMap((m) => appsOfModule(m).map((a) => a.id)));
-  const captures = useAllCommands().filter(
-    (c) => c.capture && (modules.length === 0 || captureApps.has(c.appId) || !appById(c.appId)?.module),
-  );
+  const sheet = useCaptureSheet();
+  const pinnedKeys = new Set(sheet.pinned.map((e) => e.key));
+  const togglePin = useTogglePin();
 
   // Whatever the nav actually measures — its safe-area padding included, and 0
   // once `md:hidden` takes it out — is what the editor's accessory bar stacks on
@@ -90,10 +85,33 @@ export function MobileNav() {
     };
   }, []);
 
-  function pickCapture(c: DialogCommand) {
-    setCaptureOpen(false);
+  function setSheetOpen(open: boolean) {
+    setCaptureOpen(open);
+    if (!open) setOpenFold(null);
+  }
+
+  function pick(entry: CaptureEntry) {
+    if (entry.kind === "fold") {
+      setOpenFold(entry);
+      return;
+    }
+    const c = entry.command;
+    setSheetOpen(false);
     if (c.dialog) setActiveDialog(c);
     else void c.run?.({ navigate });
+  }
+
+  function cell(entry: CaptureEntry, label?: string) {
+    return (
+      <CaptureCell
+        key={entry.key}
+        entry={entry}
+        label={label}
+        pinned={pinnedKeys.has(entry.key)}
+        onPick={() => pick(entry)}
+        onTogglePin={() => void togglePin(entry)}
+      />
+    );
   }
 
   return (
@@ -143,25 +161,44 @@ export function MobileNav() {
         })}
       </nav>
 
-      {/* "✛" capture sheet: the Apps' capture commands, straight to their dialogs. */}
-      <Sheet open={captureOpen} onOpenChange={setCaptureOpen}>
-        <SheetContent side="bottom" aria-describedby={undefined}>
-          <SheetTitle>Capture</SheetTitle>
-          <div className="grid grid-cols-2 gap-2 p-4">
-            {captures.map((c) => {
-              const Icon = c.icon;
-              return (
-                <button
-                  key={`${c.appId}/${c.id}`}
-                  className="border-input hover:bg-accent flex items-center gap-3 rounded-lg border p-3 text-left text-sm"
-                  onClick={() => pickCapture(c)}
-                >
-                  {Icon && <Icon className="size-5 shrink-0" />} {c.title}
+      {/* "✛" capture sheet: pins, then groups; a fold opens its members in place. Hold a cell to pin it. */}
+      <Sheet open={captureOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="bottom" aria-describedby={undefined} className="max-h-[85dvh]">
+          {openFold ? (
+            <>
+              <SheetTitle className="flex items-center gap-1">
+                <button className="hover:bg-accent -ml-1 rounded p-1" aria-label="Back" onClick={() => setOpenFold(null)}>
+                  <ChevronLeft className="size-5" />
                 </button>
-              );
-            })}
-            {captures.length === 0 && <p className="text-muted-foreground col-span-2 text-sm">No capture commands registered.</p>}
-          </div>
+                {openFold.title}
+              </SheetTitle>
+              <div className="grid grid-cols-2 gap-2 overflow-y-auto p-4">
+                {foldMembers(openFold).map((m) => cell(m.entry, m.label))}
+              </div>
+            </>
+          ) : (
+            <>
+              <SheetTitle>Capture</SheetTitle>
+              <div className="grid grid-cols-2 gap-2 overflow-y-auto p-4 pt-2">
+                {sheet.pinned.length > 0 && (
+                  <>
+                    <SectionHeading className="pt-0">Pinned</SectionHeading>
+                    {sheet.pinned.map((e) => cell(e))}
+                  </>
+                )}
+                {sheet.groups.map((g) => (
+                  <Fragment key={g.id}>
+                    <SectionHeading>{g.title}</SectionHeading>
+                    {g.entries.map((e) => cell(e))}
+                  </Fragment>
+                ))}
+                {sheet.groups.length === 0 && <p className="text-muted-foreground col-span-2 text-sm">No capture commands registered.</p>}
+                {sheet.pinned.length === 0 && sheet.groups.length > 0 && (
+                  <p className="text-muted-foreground col-span-2 px-1 pt-2 text-xs">Hold any of these to pin it on top.</p>
+                )}
+              </div>
+            </>
+          )}
         </SheetContent>
       </Sheet>
 

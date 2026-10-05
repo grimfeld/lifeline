@@ -26,6 +26,8 @@ function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 export const libraryCommands: CommandDef[] = [
   {
     id: "library.quick-add",
+    fold: "culture.add",
+    foldLabel: "Book or comic",
     title: "Add book…",
     keywords: ["book", "comic", "read", "library", "quick"],
     icon: Plus,
