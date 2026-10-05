@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { Navigate, Route, Routes, useParams } from "react-router";
+import { Navigate, Route, Routes, useParams, useSearchParams } from "react-router";
 import { Toaster } from "@lifeline/ui";
 import {
   MODULES,
@@ -17,11 +17,9 @@ import {
 import { Rail } from "./components/Rail";
 import { CommandPalette } from "./components/CommandPalette";
 import { PrivateDialogs } from "./vault/PrivateDialogs";
-import { CalendarPage } from "./surfaces/CalendarPage";
-import { WeekPage } from "./surfaces/WeekPage";
+import { CalendarPage } from "./surfaces/CalendarSurface";
 import { MapPage } from "./surfaces/MapPage";
 import { GraphPage } from "./surfaces/GraphPage";
-import { SchedulePage } from "./surfaces/SchedulePage";
 import { PushProvider } from "./surfaces/push";
 import { UserScreenPage } from "./screens/UserScreenPage";
 import { ScreensIndex } from "./screens/ScreensIndex";
@@ -49,6 +47,17 @@ function LegacyNoteRedirect() {
 function LegacyVaultRedirect() {
   const { "*": rest } = useParams();
   return <Navigate to={`/vault/${rest ?? ""}`.replace("/vault/n/", "/vault/d/")} replace />;
+}
+
+/**
+ * The Week planner and the Schedule are views of the Calendar now (ADR 0063):
+ * an old link lands on the matching view, the day kept.
+ */
+function LegacyTimeRedirect({ view }: { view: "week" | "schedule" }) {
+  const [params] = useSearchParams();
+  const d = params.get("d");
+  const to = view === "week" || params.get("view") === "week" ? "week" : "day";
+  return <Navigate to={`/calendar?view=${to}${d ? `&d=${d}` : ""}`} replace />;
 }
 
 /** A Core destination — a general Surface, the Bases, Screens, Settings: no chrome but the Rail's. */
@@ -110,8 +119,8 @@ function Places() {
         );
       })}
       <Route path="/calendar" element={<CorePage><CalendarPage /></CorePage>} />
-      <Route path="/week" element={<CorePage><WeekPage /></CorePage>} />
-      <Route path="/schedule" element={<CorePage><SchedulePage /></CorePage>} />
+      <Route path="/week" element={<LegacyTimeRedirect view="week" />} />
+      <Route path="/schedule" element={<LegacyTimeRedirect view="schedule" />} />
       <Route path="/map" element={<CorePage><MapPage /></CorePage>} />
       <Route path="/graph" element={<CorePage><GraphPage /></CorePage>} />
       <Route path="/base" element={<CorePage><BasesIndex /></CorePage>} />

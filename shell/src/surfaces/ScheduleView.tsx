@@ -1,16 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
-import { TimeAppLinks } from "./TimeAppLinks";
 import { ItemMark, missed } from "./marks";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from "@dnd-kit/core";
-import { Badge, Button, cn, Input, toast } from "@lifeline/ui";
+import { Button, cn, toast } from "@lifeline/ui";
 import {
   BLOCK_DEFAULT_MIN,
   canPush,
   addDays,
   canRescheduleTimed,
   completeSurfaceItem,
-  composeTagFilter,
   createFromTimedTemplate,
   formatHuman,
   formatTime,
@@ -23,26 +20,24 @@ import {
   scheduleSurfaceItem,
   startOfWeek,
   timedCreators,
-  todayStr,
   toHours,
   unplaceItem,
   usePoolItems,
   useSurfaceItems,
   useTimedItems,
   useTimedTemplates,
-  useIsMobile,
   type DateStr,
   type PoolItem,
   type SurfaceItem,
   type SurfaceTimedItem,
   type TimedTemplate,
 } from "@lifeline/core";
-import { CalendarClock, Check, ChevronDown, ChevronLeft, ChevronRight, Inbox, LayoutTemplate, Plus, Trash2, Zap } from "lucide-react";
+import { CalendarClock, Check, ChevronDown, Inbox, LayoutTemplate, Plus, Trash2, Zap } from "lucide-react";
 import { usePush } from "./push";
-import { TagFilterBar } from "../components/TagFilterBar";
 import { HoursEditor, type HoursEditing, type HoursTarget } from "./HoursEditor";
 import { AddAtHour, type AddingAt } from "./AddAtHour";
 import { SNAP_MIN, snap, toClock } from "./hours";
+import type { CalendarCtx } from "./CalendarSurface";
 
 const HOUR_PX = 56;
 /** Long enough that a flick to scroll never lifts a block; short enough to feel like a press. */
@@ -99,7 +94,7 @@ function PushIcon({ item, className }: { item: WorkItem; className?: string }) {
  * item. A chip is a source (ADR 0028): dragging it onto an hour makes a new
  * Time block and leaves the chip here, greyed while `planned` blocks lie ahead.
  */
-function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen, late }: { id: string; data: Record<string, unknown>; title: string; color?: string; done?: boolean; planned?: number; onComplete?: () => void; work?: WorkItem; onOpen?: (el: HTMLElement) => void; late?: boolean }) {
+function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen, late, compact }: { id: string; data: Record<string, unknown>; title: string; color?: string; done?: boolean; planned?: number; onComplete?: () => void; work?: WorkItem; onOpen?: (el: HTMLElement) => void; late?: boolean; compact?: boolean }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data });
   const scheduled = !!planned && planned > 0;
   return (
@@ -107,11 +102,12 @@ function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen,
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={cn("group bg-card flex cursor-grab items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs select-none max-md:py-1.5", isDragging && "opacity-40", (done || scheduled) && "opacity-60", scheduled && "border-dashed")}
+      className={cn("group bg-card flex cursor-grab items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs select-none max-md:py-1.5", compact && "gap-0.5 px-0.5 text-[10px]", isDragging && "opacity-40", (done || scheduled) && "opacity-60", scheduled && "border-dashed")}
       onClick={(ev) => onOpen?.(ev.currentTarget)}
       title={scheduled ? `${title} · ${planned} block${planned === 1 ? "" : "s"} planned — drag again for another` : title}
     >
-      {onComplete && !done && (
+      {/* Too narrow for controls (a phone's Week): the tap opens the editor, which ticks too. */}
+      {onComplete && !done && !compact && (
         <button
           className="hover:bg-accent flex size-4 shrink-0 items-center justify-center rounded-full border"
           onPointerDown={(e) => e.stopPropagation()}
@@ -129,9 +125,9 @@ function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen,
         <ItemMark mark={work?.mark} />
         {title}
       </span>
-      {work && <PushIcon item={work} className="hidden group-hover:block max-md:block" />}
-      {scheduled && <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">×{planned}</span>}
-      <span className={cn("size-1.5 shrink-0 rounded-full", !scheduled && "ml-auto")} style={{ background: color ?? "var(--muted-foreground)" }} />
+      {work && !compact && <PushIcon item={work} className="hidden group-hover:block max-md:block" />}
+      {scheduled && !compact && <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">×{planned}</span>}
+      {!compact && <span className={cn("size-1.5 shrink-0 rounded-full", !scheduled && "ml-auto")} style={{ background: color ?? "var(--muted-foreground)" }} />}
     </div>
   );
 }
@@ -238,17 +234,17 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
 }
 
 /** The untimed row of a day: work without a time + all-day events. Lives outside the scroller. */
-function Strip({ date, work, allDay, onCompleteChip, onOpen }: { date: DateStr; work: WorkItem[]; allDay: SurfaceTimedItem[]; onCompleteChip: (item: WorkItem) => void; onOpen: (target: HoursTarget, el: HTMLElement) => void }) {
+function Strip({ date, work, allDay, onCompleteChip, onOpen, compact }: { date: DateStr; work: WorkItem[]; allDay: SurfaceTimedItem[]; onCompleteChip: (item: WorkItem) => void; onOpen: (target: HoursTarget, el: HTMLElement) => void; compact?: boolean }) {
   const stripDrop = useDroppable({ id: `strip:${date}` });
   return (
-    <div ref={stripDrop.setNodeRef} className={cn("min-h-12 max-h-32 space-y-1 overflow-y-auto border-l p-1 max-md:max-h-24", stripDrop.isOver && "bg-accent/40")}>
+    <div ref={stripDrop.setNodeRef} className={cn("min-h-12 max-h-32 space-y-1 overflow-y-auto border-l p-1 max-md:max-h-24", compact && "p-0.5", stripDrop.isOver && "bg-accent/40")}>
       {allDay.map((t) => (
-        <Chip key={t.key} id={`timed:${t.key}`} data={{ timed: t }} title={t.title} color={t.color} late={missed(t)} onOpen={(el) => onOpen({ kind: "timed", item: t }, el)} />
+        <Chip key={t.key} id={`timed:${t.key}`} data={{ timed: t }} title={t.title} color={t.color} late={missed(t)} compact={compact} onOpen={(el) => onOpen({ kind: "timed", item: t }, el)} />
       ))}
       {work.map((w) => (
-        <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} done={!!w.completedOn} planned={w.blocksAhead} onComplete={() => onCompleteChip(w)} work={w} onOpen={(el) => onOpen({ kind: "work", item: w }, el)} />
+        <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} done={!!w.completedOn} planned={w.blocksAhead} onComplete={() => onCompleteChip(w)} work={w} compact={compact} onOpen={(el) => onOpen({ kind: "work", item: w }, el)} />
       ))}
-      {allDay.length === 0 && work.length === 0 && <div className="text-muted-foreground px-1 text-[10px]">untimed</div>}
+      {allDay.length === 0 && work.length === 0 && !compact && <div className="text-muted-foreground px-1 text-[10px]">untimed</div>}
     </div>
   );
 }
@@ -553,28 +549,17 @@ function DayStrip({ anchor, today, onPick }: { anchor: DateStr; today: DateStr; 
 }
 
 /**
- * The Schedule Surface (ADR 0015): hour-scaled day/week. Chips (strip or
- * pool) are sources: drag one onto a slot to make a Time block and the chip
+ * The Schedule (ADR 0015, ADR 0063): the Calendar's hour-scaled views — Day,
+ * 3 Day and Week. Chips (strip or pool) are sources: drag one onto a slot to make a Time block and the chip
  * stays, greyed while blocks lie ahead (ADR 0028); drag a block to move that
  * block alone; drag it to the strip or the pool to remove it. Resize the
  * bottom edge; double-click an empty slot to add an Event. Times live in
  * Placements; Events and one-off blockers (ADR 0029) retime through their App.
  */
-export function SchedulePage() {
-  const [params, setParams] = useSearchParams();
-  const isMobile = useIsMobile();
-  const today = todayStr();
-  // Seven columns cannot be read or dropped into on a phone: below `md` the
-  // Surface is always the single day, navigated by the day strip.
-  const view = !isMobile && params.get("view") === "week" ? "week" : "day";
-  const anchor: DateStr = /^\d{4}-\d{2}-\d{2}$/.test(params.get("d") ?? "") ? params.get("d")! : today;
-  const days: DateStr[] = view === "week" ? Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(anchor), i)) : [anchor];
+export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
+  const { view, anchor, today, days, tags, isMobile, go } = ctx;
   const first = days[0];
   const last = days[days.length - 1];
-  const go = (d: DateStr, v = view) => setParams({ ...(v === "week" ? { view: "week" } : {}), ...(d === today ? {} : { d }) });
-
-  const [tagFilter, setTagFilter] = useState<string[]>([]);
-  const tags = composeTagFilter(tagFilter);
   const items = useSurfaceItems({ start: first, end: last }, { tags });
   const pool = usePoolItems({ tags });
   const allTimed = useTimedItems({ start: first, end: last }, { tags });
@@ -737,8 +722,6 @@ export function SchedulePage() {
   }
 
   const gutter = isMobile ? "2.5rem" : "3rem";
-  const label = view === "week" ? `${formatHuman(first)} – ${formatHuman(last)}` : formatHuman(anchor);
-  const openCount = items.filter((i) => !i.start && !i.completedOn).length;
 
   return (
     <DndContext
@@ -751,45 +734,21 @@ export function SchedulePage() {
       onDragCancel={endDrag}
     >
       <div className="flex h-full flex-col gap-3 p-4 max-md:gap-2 max-md:p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-semibold tracking-tight">Schedule</h1>
-          <span className="text-muted-foreground text-sm">{label}</span>
-          <Badge variant="secondary">{openCount} open</Badge>
-          <div className="ml-auto flex items-center gap-1">
-            <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2" />
-            <TimeAppLinks />
-            <div className="bg-muted/60 mr-2 grid grid-cols-2 gap-0.5 rounded-lg p-0.5 max-md:hidden">
-              {(["day", "week"] as const).map((v) => (
-                <button key={v} className={cn("rounded-md px-2 py-1 text-xs font-medium capitalize", view === v ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")} onClick={() => go(anchor, v)}>
-                  {v}
-                </button>
-              ))}
-            </div>
-            <Button size="icon" variant="outline" className="size-8" onClick={() => go(addDays(anchor, view === "week" ? -7 : -1))} aria-label="Previous">
-              <ChevronLeft />
+        {ctx.header(
+          creator?.create && (
+            <Button
+              size="icon"
+              variant="outline"
+              className="size-8 md:hidden"
+              aria-label="Add"
+              onClick={() => setAdding({ date: anchor, hours: anchor === today ? Math.min(snap(nowH), to - 1) : Math.max(from, 9), point: null })}
+            >
+              <Plus />
             </Button>
-            <Button variant="outline" className="h-8" onClick={() => go(today)}>
-              Today
-            </Button>
-            <Button size="icon" variant="outline" className="size-8" onClick={() => go(addDays(anchor, view === "week" ? 7 : 1))} aria-label="Next">
-              <ChevronRight />
-            </Button>
-            <Input type="date" className="h-8 w-36 max-md:hidden" value={anchor} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
-            {creator?.create && (
-              <Button
-                size="icon"
-                variant="outline"
-                className="size-8 md:hidden"
-                aria-label="Add"
-                onClick={() => setAdding({ date: anchor, hours: anchor === today ? Math.min(snap(nowH), to - 1) : Math.max(from, 9), point: null })}
-              >
-                <Plus />
-              </Button>
-            )}
-          </div>
-        </div>
+          ),
+        )}
 
-        {isMobile && <DayStrip anchor={anchor} today={today} onPick={(d) => go(d)} />}
+        {isMobile && view === "day" && <DayStrip anchor={anchor} today={today} onPick={(d) => go(d)} />}
 
         <div className="grid min-h-0 flex-1 grid-cols-[13rem_1fr] gap-2 max-md:flex max-md:flex-col">
           <div className="flex min-h-0 flex-col gap-2 max-md:contents">
@@ -797,19 +756,25 @@ export function SchedulePage() {
             <TemplatePalette templates={templates} onAdd={addTemplate} collapsible={isMobile} />
           </div>
           <div className="flex min-h-0 min-w-0 flex-col rounded-lg border max-md:flex-1">
-            <div className="grid shrink-0 border-b max-md:hidden" style={{ gridTemplateColumns: `${gutter} repeat(${days.length}, minmax(0, 1fr))` }}>
+            <div className={cn("grid shrink-0 border-b", view === "day" && "max-md:hidden")} style={{ gridTemplateColumns: `${gutter} repeat(${days.length}, minmax(0, 1fr))` }}>
               <div />
               {days.map((d) => (
-                <div key={d} className={cn("border-l px-2 py-1 text-xs", d === today && "text-primary font-semibold")}>
-                  {DAY_NAMES[(new Date(d + "T12:00:00").getDay() + 6) % 7]} <span className="text-muted-foreground">{parts(d).day}</span>
-                </div>
+                <button
+                  key={d}
+                  className={cn("hover:bg-accent/40 border-l px-2 py-1 text-left text-xs max-md:px-0.5 max-md:text-center max-md:text-[10px]", d === today && "text-primary font-semibold")}
+                  onClick={() => view !== "day" && ctx.openDay(d)}
+                  title={view !== "day" ? `Open ${formatHuman(d)}` : undefined}
+                >
+                  {DAY_NAMES[(new Date(d + "T12:00:00").getDay() + 6) % 7]}{" "}
+                  <span className="text-muted-foreground max-md:block">{parts(d).day}</span>
+                </button>
               ))}
             </div>
             <div className="grid shrink-0 border-b" style={{ gridTemplateColumns: `${gutter} repeat(${days.length}, minmax(0, 1fr))` }}>
               <div className="text-muted-foreground px-1 pt-1 text-[10px]">all day</div>
               {days.map((d) => {
                 const st = stripFor(d);
-                return <Strip key={d} date={d} work={st.work} allDay={st.allDay} onOpen={open} onCompleteChip={(w) => completeSurfaceItem(w as SurfaceItem).then(() => toast.success(`${w.title} done`)).catch(fail)} />;
+                return <Strip key={d} date={d} work={st.work} allDay={st.allDay} compact={isMobile && view === "week"} onOpen={open} onCompleteChip={(w) => completeSurfaceItem(w as SurfaceItem).then(() => toast.success(`${w.title} done`)).catch(fail)} />;
               })}
             </div>
             <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">

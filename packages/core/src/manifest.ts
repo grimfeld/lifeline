@@ -141,8 +141,6 @@ export interface SurfaceDef {
 /** Core's Surfaces, in sidebar order. */
 export const SURFACES: SurfaceDef[] = [
   { id: "calendar", title: "Calendar", path: "/calendar" },
-  { id: "week", title: "Week", path: "/week" },
-  { id: "schedule", title: "Schedule", path: "/schedule" },
   { id: "map", title: "Map", path: "/map" },
   { id: "graph", title: "Graph", path: "/graph" },
 ];
