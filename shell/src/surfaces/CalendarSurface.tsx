@@ -9,6 +9,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
   Input,
+  PhoneDock,
 } from "@lifeline/ui";
 import {
   CALENDAR_VIEWS,
@@ -55,8 +56,11 @@ export interface CalendarCtx {
   go: (d: DateStr, view?: CalendarView) => void;
   /** Open one day: in Day view where this Calendar offers it, else Upcoming from that day. */
   openDay: (d: DateStr) => void;
-  /** The Calendar's header, with whatever the view adds to its controls. */
-  header: (extra?: ReactNode) => ReactNode;
+  /**
+   * The Calendar's header, with whatever the view adds to its controls, and a
+   * row of its own beneath them. In the phone dock on a phone.
+   */
+  header: (extra?: ReactNode, below?: ReactNode) => ReactNode;
 }
 
 const rememberKey = (place: string) => `lifeline:calendar-view:${place}`;
@@ -135,70 +139,75 @@ export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { v
   const swipe = useRef<{ x: number; y: number; t: number } | null>(null);
   const pageable = view !== "upcoming";
 
-  const header = (extra?: ReactNode) => (
-    // Swipes start below the header: its controls scroll sideways on their own.
-    <div className="flex flex-wrap items-center gap-2" data-no-swipe>
-      {isMobile ? (
-        // A phone has no width for five segments: the views are a menu under the title, as in Google's.
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-baseline gap-1.5 text-left" aria-label="Change view">
-              <h1 className="text-xl font-semibold tracking-tight">{CALENDAR_VIEWS.find((v) => v.id === view)!.title}</h1>
-              <span className="text-muted-foreground text-sm">{label(view, days, anchor)}</span>
-              <ChevronDown className="text-muted-foreground size-4 self-center" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuRadioGroup value={view} onValueChange={(v) => isCalendarView(v) && go(anchor, v)}>
-              {CALENDAR_VIEWS.filter((v) => views.includes(v.id)).map((v) => (
-                <DropdownMenuRadioItem key={v.id} value={v.id}>
-                  {v.title}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : (
-        <>
-          <h1 className="text-xl font-semibold tracking-tight">Calendar</h1>
-          <span className="text-muted-foreground text-sm">{label(view, days, anchor)}</span>
-        </>
-      )}
-      <div className="ml-auto flex items-center gap-1">
-        <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2" />
-        <TimeAppLinks />
-        {!isMobile && views.length > 1 && (
-          <div className="bg-muted/60 mr-2 flex gap-0.5 rounded-lg p-0.5" role="tablist" aria-label="View">
-            {CALENDAR_VIEWS.filter((v) => views.includes(v.id)).map((v) => (
-              <button
-                key={v.id}
-                role="tab"
-                aria-selected={view === v.id}
-                className={cn("rounded-md px-2 py-1 text-xs font-medium", view === v.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
-                onClick={() => go(anchor, v.id)}
-              >
-                {v.title}
+  const header = (extra?: ReactNode, below?: ReactNode) => (
+    // On a phone the header is the controls in the dock above the Phone bar,
+    // under the thumb; on the desk it heads the view. Swipes never start in it:
+    // its controls scroll sideways on their own.
+    <PhoneDock className="flex flex-col gap-2 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2" data-no-swipe>
+        {isMobile ? (
+          // A phone has no width for five segments: the views are a menu under the title, as in Google's.
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-baseline gap-1.5 text-left" aria-label="Change view">
+                <h1 className="text-xl font-semibold tracking-tight">{CALENDAR_VIEWS.find((v) => v.id === view)!.title}</h1>
+                <span className="text-muted-foreground text-sm">{label(view, days, anchor)}</span>
+                <ChevronDown className="text-muted-foreground size-4 self-center" />
               </button>
-            ))}
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuRadioGroup value={view} onValueChange={(v) => isCalendarView(v) && go(anchor, v)}>
+                {CALENDAR_VIEWS.filter((v) => views.includes(v.id)).map((v) => (
+                  <DropdownMenuRadioItem key={v.id} value={v.id}>
+                    {v.title}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <>
+            <h1 className="text-xl font-semibold tracking-tight">Calendar</h1>
+            <span className="text-muted-foreground text-sm">{label(view, days, anchor)}</span>
+          </>
         )}
-        {pageable && (
-          <Button size="icon" variant="outline" className="size-8" onClick={() => go(stepView(view, anchor, -1))} aria-label="Previous">
-            <ChevronLeft />
+        <div className="ml-auto flex items-center gap-1">
+          <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2" />
+          <TimeAppLinks />
+          {!isMobile && views.length > 1 && (
+            <div className="bg-muted/60 mr-2 flex gap-0.5 rounded-lg p-0.5" role="tablist" aria-label="View">
+              {CALENDAR_VIEWS.filter((v) => views.includes(v.id)).map((v) => (
+                <button
+                  key={v.id}
+                  role="tab"
+                  aria-selected={view === v.id}
+                  className={cn("rounded-md px-2 py-1 text-xs font-medium", view === v.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                  onClick={() => go(anchor, v.id)}
+                >
+                  {v.title}
+                </button>
+              ))}
+            </div>
+          )}
+          {pageable && (
+            <Button size="icon" variant="outline" className="size-8" onClick={() => go(stepView(view, anchor, -1))} aria-label="Previous">
+              <ChevronLeft />
+            </Button>
+          )}
+          <Button variant="outline" className="h-8" onClick={() => go(today)}>
+            Today
           </Button>
-        )}
-        <Button variant="outline" className="h-8" onClick={() => go(today)}>
-          Today
-        </Button>
-        {pageable && (
-          <Button size="icon" variant="outline" className="size-8" onClick={() => go(stepView(view, anchor, 1))} aria-label="Next">
-            <ChevronRight />
-          </Button>
-        )}
-        <Input type="date" className="h-8 w-36 max-md:hidden" value={anchor} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
-        {extra}
+          {pageable && (
+            <Button size="icon" variant="outline" className="size-8" onClick={() => go(stepView(view, anchor, 1))} aria-label="Next">
+              <ChevronRight />
+            </Button>
+          )}
+          <Input type="date" className="h-8 w-36 max-md:hidden" value={anchor} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
+          {extra}
+        </div>
       </div>
-    </div>
+      {below}
+    </PhoneDock>
   );
 
   const ctx: CalendarCtx = { view, anchor, today, days, tags, isMobile, go, openDay, header };
