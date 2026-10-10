@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Sheet, SheetContent, SheetTitle, cn } from "@lifeline/ui";
+import { PhoneDockHost, Sheet, SheetContent, SheetTitle, cn } from "@lifeline/ui";
 import {
   BAR_LEFT_SLOT,
   BAR_PINNED,
@@ -49,7 +49,7 @@ export function MobileNav() {
   const [openFold, setOpenFold] = useState<FoldEntry | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const nav = useRef<HTMLElement>(null);
+  const nav = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   // iOS never shrinks the layout viewport for the keyboard, so the frame — and
   // this nav at the foot of it — runs on underneath the keys. The nav reserves
@@ -70,9 +70,10 @@ export function MobileNav() {
   const pinnedKeys = new Set(sheet.pinned.map((e) => e.key));
   const togglePin = useTogglePin();
 
-  // Whatever the nav actually measures — its safe-area padding included, and 0
-  // once `md:hidden` takes it out — is what the editor's accessory bar stacks on
-  // top of. Observed rather than assumed: the padding comes and goes with the
+  // Whatever the nav actually measures — the phone dock above it and its
+  // safe-area padding included, and 0 once `md:hidden` takes it out — is what
+  // the editor's accessory bar stacks on top of, so it never hides the page's
+  // controls. Observed rather than assumed: the padding comes and goes with the
   // keyboard, and a guessed number would put the bar over the nav again.
   useEffect(() => {
     const el = nav.current;
@@ -140,31 +141,39 @@ export function MobileNav() {
 
   return (
     <>
-      <nav
+      <div
         ref={nav}
-        className="bg-background flex shrink-0 border-t pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="flex shrink-0 flex-col md:hidden"
         // The margin is the keyboard's strip, taken out of the frame so the nav
-        // ends above it; with the keyboard up the home indicator is behind it,
-        // so its safe-area padding would only be dead height.
-        style={inset > 0 ? { marginBottom: inset, paddingBottom: 0 } : undefined}
+        // ends above it.
+        style={inset > 0 ? { marginBottom: inset } : undefined}
       >
-        {BAR_PINNED.map((s) => {
-          const Icon = SURFACE_ICONS[s.id];
-          return (
-            <button key={s.id} className={slot(location.pathname === s.path)} onClick={() => navigate(s.path)}>
-              <Icon className="size-5" /> {s.title}
-            </button>
-          );
-        })}
+        {/* The page's controls and the Module's tabs, under the thumb. */}
+        <PhoneDockHost />
+        <nav
+          className="bg-background flex border-t pb-[env(safe-area-inset-bottom)]"
+          // With the keyboard up the home indicator is behind it, so its
+          // safe-area padding would only be dead height.
+          style={inset > 0 ? { paddingBottom: 0 } : undefined}
+        >
+          {BAR_PINNED.map((s) => {
+            const Icon = SURFACE_ICONS[s.id];
+            return (
+              <button key={s.id} className={slot(location.pathname === s.path)} onClick={() => navigate(s.path)}>
+                <Icon className="size-5" /> {s.title}
+              </button>
+            );
+          })}
 
-        {slotCell(slots[BAR_LEFT_SLOT], BAR_LEFT_SLOT)}
+          {slotCell(slots[BAR_LEFT_SLOT], BAR_LEFT_SLOT)}
 
-        <button className={slot(false)} onClick={() => setCaptureOpen(true)}>
-          <Plus className="size-5" /> Capture
-        </button>
+          <button className={slot(false)} onClick={() => setCaptureOpen(true)}>
+            <Plus className="size-5" /> Capture
+          </button>
 
-        {slots.filter((_, i) => i !== BAR_LEFT_SLOT).map((s, i) => slotCell(s, i))}
-      </nav>
+          {slots.filter((_, i) => i !== BAR_LEFT_SLOT).map((s, i) => slotCell(s, i))}
+        </nav>
+      </div>
 
       {/* "✛" capture sheet: pins, then groups; a fold opens its members in place. Hold a cell to pin it. */}
       <Sheet open={captureOpen} onOpenChange={setSheetOpen}>

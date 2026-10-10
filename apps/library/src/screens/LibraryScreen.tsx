@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Button, Card, CardContent, cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
-import { Settings2, SlidersHorizontal } from "lucide-react";
+import { Button, Card, CardContent, cn, Input, PhoneDock, PhoneFilters, usePhone, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
+import { Plus, Settings2, SlidersHorizontal } from "lucide-react";
 import { SLOTTED_TYPES, WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import type { Work } from "../domain/types";
 import { freeSlots, nightstand } from "../domain/rules";
@@ -107,6 +107,7 @@ export function LibraryScreen() {
   const items = useWorks();
   const authorNames = useAuthorNames();
   const [addOpen, setAddOpen] = useState(false);
+  const phone = usePhone();
   const [lookupOpen, setLookupOpen] = useState(false);
   const [editing, setEditing] = useState<Work | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
@@ -134,46 +135,56 @@ export function LibraryScreen() {
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">Library</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-              <SlidersHorizontal /> Add with details…
-            </Button>
-            <Button variant="ghost" size="icon-sm" aria-label="Library lookup settings" title="Lookup settings" onClick={() => setLookupOpen(true)}>
-              <Settings2 />
-            </Button>
-          </div>
+          <PhoneDock>
+            <div className="flex items-center gap-2 max-md:contents">
+              {/* Phone: an icon, so search, Filters and the adds share one line. */}
+              <Button variant="outline" size={phone ? "icon-sm" : "sm"} aria-label={phone ? "Add with details" : undefined} title={phone ? "Add with details" : undefined} onClick={() => setAddOpen(true)}>
+                {phone ? <Plus /> : <><SlidersHorizontal /> Add with details…</>}
+              </Button>
+              <Button variant="ghost" size="icon-sm" aria-label="Library lookup settings" title="Lookup settings" onClick={() => setLookupOpen(true)}>
+                <Settings2 />
+              </Button>
+            </div>
+          </PhoneDock>
         </div>
         <QuickAdd defaultType={type === "all" ? undefined : type} />
       </div>
 
       <Tabs defaultValue="gallery">
-        <TabsList>
-          <TabsTrigger value="gallery">Gallery</TabsTrigger>
-          <TabsTrigger value="nightstand">
-            Nightstand <span className="ml-1 tabular-nums opacity-60">{slottedCount}</span>
-          </TabsTrigger>
-        </TabsList>
+        <PhoneDock order={1}>
+          <TabsList>
+            <TabsTrigger value="gallery">Gallery</TabsTrigger>
+            <TabsTrigger value="nightstand">
+              Nightstand <span className="ml-1 tabular-nums opacity-60">{slottedCount}</span>
+            </TabsTrigger>
+          </TabsList>
+        </PhoneDock>
 
         <TabsContent value="gallery" className="grid gap-3 pt-2">
-          <div className="grid gap-2">
-            <ShelfControl value={shelf} onChange={setShelf} medium={type} counts={shelfCounts} />
-            <TypeChips value={type} onChange={setType} counts={typeCounts} />
-            <div className="flex flex-wrap gap-2">
-              <Input className="min-w-40 flex-1" placeholder="Search title, author, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
-              <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
-                <SelectTrigger className="w-44" aria-label="Sort">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {GALLERY_SORTS.map((f) => (
-                    <SelectItem key={f.value} value={f.value}>
-                      {f.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <PhoneDock>
+            {/* Desk: shelf and chips stay above the search (md:-order-1); phone: they and the sort go in the Filters sheet. */}
+            <div className="flex flex-1 flex-wrap gap-2 max-md:contents">
+              <Input className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search title, author, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <PhoneFilters active={+(shelf !== "ALL") + +(type !== "all") + +(sort !== "ADDED")}>
+                <div className="grid w-full gap-2 md:-order-1">
+                  <ShelfControl value={shelf} onChange={setShelf} medium={type} counts={shelfCounts} />
+                  <TypeChips value={type} onChange={setType} counts={typeCounts} />
+                </div>
+                <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
+                  <SelectTrigger className="w-44" aria-label="Sort">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GALLERY_SORTS.map((f) => (
+                      <SelectItem key={f.value} value={f.value}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </PhoneFilters>
             </div>
-          </div>
+          </PhoneDock>
           {gallery.length === 0 ? (
             <Card>
               <CardContent className="text-muted-foreground p-8 text-center text-sm">{q.trim() ? "Nothing matches that search." : emptyMessage(shelf)}</CardContent>

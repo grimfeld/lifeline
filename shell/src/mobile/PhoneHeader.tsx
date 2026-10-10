@@ -16,8 +16,8 @@ import { MODULE_SHELLS } from "../modules/shells";
  * navigation — on the desk, the Module's sidebar — with a back button to the
  * Rail with its labels (ADR 0057), every place the desk's Rail offers; the two
  * are never stacked in one list. Anywhere else it opens on the Rail. The Phone
- * bar stays Core's short list of the same Rail; a Module's tabs sit at the top
- * of its own content.
+ * bar stays Core's short list of the same Rail; a Module's tabs sit in the
+ * phone dock just above it, with the page's own controls.
  */
 export function PhoneHeader() {
   const location = useLocation();
