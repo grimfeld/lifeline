@@ -273,7 +273,7 @@ export function BasePage() {
           <Input className="h-7 w-48 pl-7 text-xs" placeholder="Search…" value={state.search} onChange={(e) => setState({ ...state, search: e.target.value })} />
         </div>
         <FilterBar def={def} filters={state.filters} onChange={(filters) => setState({ ...state, filters })} />
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="ghost" className="h-7 text-xs">
@@ -355,7 +355,7 @@ export function BasePage() {
         </div>
       )}
 
-      <div className={cn("min-h-0 flex-1", ["map", "board", "calendar"].includes(state.layout) ? "overflow-hidden" : "overflow-y-auto")}>
+      <div className={cn("min-h-0 flex-1", ["map", "board", "calendar"].includes(state.layout) ? "overflow-hidden" : "overflow-auto")}>
         <LayoutView docs={rows} def={def} columns={state.columns} layout={state.layout} picks={state} selected={selected} onSelect={select} onSort={toggleSort} sortBy={state.sortBy} sortDir={state.sortDir} />
       </div>
       <footer className="text-muted-foreground flex items-center gap-2 border-t px-4 py-1 text-xs">

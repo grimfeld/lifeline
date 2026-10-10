@@ -165,12 +165,12 @@ export function TagChips({ tags, className, onClick, size = "sm" }: { tags?: rea
               e.stopPropagation();
               onClick(t);
             }}
-            className={cn("rounded-md bg-secondary px-1.5 text-secondary-foreground hover:bg-secondary/70", size === "xs" ? "text-[10px] leading-4" : "text-xs leading-5")}
+            className={cn("max-w-full truncate rounded-md bg-secondary px-1.5 text-secondary-foreground hover:bg-secondary/70", size === "xs" ? "text-[10px] leading-4" : "text-xs leading-5")}
           >
             #{t}
           </button>
         ) : (
-          <span key={t} className={cn("rounded-md bg-secondary px-1.5 text-secondary-foreground", size === "xs" ? "text-[10px] leading-4" : "text-xs leading-5")}>
+          <span key={t} className={cn("max-w-full truncate rounded-md bg-secondary px-1.5 text-secondary-foreground", size === "xs" ? "text-[10px] leading-4" : "text-xs leading-5")}>
             #{t}
           </span>
         ),

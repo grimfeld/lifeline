@@ -129,10 +129,14 @@ aside nav:hover {
     main button {
       position: relative;
     }
+    /*
+     * Taller, not wider: a slop past a button's sides pokes out of the
+     * scroller it sits at the edge of, and the list then wobbles sideways.
+     */
     main button::after {
       content: "";
       position: absolute;
-      inset: -8px;
+      inset: -8px 0;
     }
   }
 }

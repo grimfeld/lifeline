@@ -40,8 +40,8 @@ export function PracticeTab({ language, items, decks, recalls }: { language: Lan
           <span className="text-muted-foreground text-sm">
             {q.due} due · {q.newToday} new today{q.newWaiting > q.newToday ? ` · ${q.newWaiting - q.newToday} more new waiting` : ""}
           </span>
-          <Button size="lg" className="mt-1 h-12 px-8 text-base" onClick={() => setRunning({})} disabled={items.length === 0}>
-            <Play /> Practise {language.name}
+          <Button size="lg" className="mt-1 h-12 max-w-full px-8 text-base" onClick={() => setRunning({})} disabled={items.length === 0}>
+            <Play /> <span className="truncate">Practise {language.name}</span>
           </Button>
           {items.length === 0 && <span className="text-muted-foreground text-xs">Add a word or a sentence you met to begin.</span>}
         </CardContent>

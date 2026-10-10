@@ -158,7 +158,7 @@ export function TaskRow({
             )}
             {task.notes && <span className="min-w-0 truncate">{task.recurrence ? "· " : ""}{task.notes}</span>}
             {(task.tags ?? []).length > 0 && (
-              <TagChips tags={task.tags} size="xs" className="shrink-0 flex-nowrap overflow-hidden" />
+              <TagChips tags={task.tags} size="xs" className="max-w-1/2 min-w-0 flex-nowrap overflow-hidden" />
             )}
           </div>
         </div>
