@@ -15,6 +15,8 @@ import {
   DropdownMenuTrigger,
   Input,
   Label,
+  PhoneDock,
+  PhoneFilters,
   cn,
   toast,
 } from "@lifeline/ui";
@@ -197,140 +199,148 @@ export function BasePage() {
             {app.title}
           </Badge>
         )}
-        <div className="ml-auto flex items-center gap-1">
-          {creatable && (
-            <Button size="sm" onClick={() => setNewOpen(true)}>
-              <Plus /> New {singularOf(def).toLowerCase()}
-            </Button>
-          )}
-          {app && def.href && (
-            <Button size="sm" variant="outline" onClick={() => navigate(def.href!({ id: "", type, title: "", tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0 }))}>
-              Open in {app.title}
-            </Button>
-          )}
-          <Button size="icon" variant="ghost" className="size-8" title="Document types" onClick={() => navigate("/base")}>
-            <Settings2 />
-          </Button>
-        </div>
-      </header>
-
-      {/* Views */}
-      <div className="flex flex-wrap items-center gap-1 border-b px-4 py-1.5">
-        <button className={cn("rounded-md px-2 py-1 text-sm", viewId === ALL_VIEW_ID ? "bg-accent font-medium" : "hover:bg-accent/50")} onClick={() => selectView(ALL_VIEW_ID)}>
-          All
-        </button>
-        {views.map((v) => (
-          <button key={v.id} className={cn("rounded-md px-2 py-1 text-sm", viewId === v.id ? "bg-accent font-medium" : "hover:bg-accent/50")} onClick={() => selectView(v.id)}>
-            {v.name}
-          </button>
-        ))}
-        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSaveAsOpen(true)}>
-          <Plus className="size-3" /> View
-        </Button>
-        {dirty && (
-          <span className="ml-auto flex items-center gap-1">
-            {view && (
-              <Button size="sm" variant="outline" className="h-7" onClick={() => void saveCurrent()}>
-                <Save /> Save “{view.name}”
+        <PhoneDock row className="justify-end">
+          <div className="ml-auto flex items-center gap-1">
+            {creatable && (
+              <Button size="sm" onClick={() => setNewOpen(true)}>
+                <Plus /> New {singularOf(def).toLowerCase()}
               </Button>
             )}
-            <Button size="sm" variant="ghost" className="h-7" onClick={() => setSaveAsOpen(true)}>
-              Save as…
-            </Button>
-            <Button size="sm" variant="ghost" className="h-7" onClick={() => setState(stateOf(view, def))}>
-              Reset
-            </Button>
-          </span>
-        )}
-        {view && !dirty && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="icon" variant="ghost" className="ml-auto size-7">
-                <MoreHorizontal />
+            {app && def.href && (
+              <Button size="sm" variant="outline" onClick={() => navigate(def.href!({ id: "", type, title: "", tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0 }))}>
+                Open in {app.title}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => {
-                  const name = window.prompt("Rename view", view.name);
-                  if (name?.trim()) void saveView({ ...view, name: name.trim() });
-                }}
-              >
-                Rename
-              </DropdownMenuItem>
-              <DropdownMenuItem variant="destructive" onClick={() => void removeView()}>
-                <Trash2 /> Delete view
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
+            )}
+            <Button size="icon" variant="ghost" className="size-8" title="Document types" onClick={() => navigate("/base")}>
+              <Settings2 />
+            </Button>
+          </div>
+        </PhoneDock>
+      </header>
 
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-1.5">
-        <div className="relative">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2" />
-          <Input className="h-7 w-48 pl-7 text-xs" placeholder="Search…" value={state.search} onChange={(e) => setState({ ...state, search: e.target.value })} />
-        </div>
-        <FilterBar def={def} filters={state.filters} onChange={(filters) => setState({ ...state, filters })} />
-        <div className="ml-auto flex items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="ghost" className="h-7 text-xs">
-                Sort: {allFields.find((f) => f.key === state.sortBy)?.label ?? state.sortBy} {state.sortDir === "asc" ? "↑" : "↓"} <ChevronDown className="size-3" />
+      {/* Views — on a phone the row itself is empty and its controls sit in the dock */}
+      <div className="flex flex-wrap items-center gap-1 border-b px-4 py-1.5 max-md:hidden">
+        <PhoneDock row order={1}>
+          <button className={cn("rounded-md px-2 py-1 text-sm", viewId === ALL_VIEW_ID ? "bg-accent font-medium" : "hover:bg-accent/50")} onClick={() => selectView(ALL_VIEW_ID)}>
+            All
+          </button>
+          {views.map((v) => (
+            <button key={v.id} className={cn("rounded-md px-2 py-1 text-sm", viewId === v.id ? "bg-accent font-medium" : "hover:bg-accent/50")} onClick={() => selectView(v.id)}>
+              {v.name}
+            </button>
+          ))}
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSaveAsOpen(true)}>
+            <Plus className="size-3" /> View
+          </Button>
+          {dirty && (
+            <span className="ml-auto flex items-center gap-1">
+              {view && (
+                <Button size="sm" variant="outline" className="h-7" onClick={() => void saveCurrent()}>
+                  <Save /> Save “{view.name}”
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" className="h-7" onClick={() => setSaveAsOpen(true)}>
+                Save as…
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {allFields.map((f) => (
-                <DropdownMenuItem key={f.key} onClick={() => toggleSort(f.key)}>
-                  {f.label}
-                  {state.sortBy === f.key && <span className="ml-auto text-xs">{state.sortDir}</span>}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="ghost" className="h-7 text-xs" title="Columns">
-                <Columns3 className="size-3.5" /> Columns
+              <Button size="sm" variant="ghost" className="h-7" onClick={() => setState(stateOf(view, def))}>
+                Reset
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
-              {allFields.map((f) => (
-                <DropdownMenuItem key={f.key} onSelect={(e) => e.preventDefault()} onClick={() => toggleColumn(f.key)}>
-                  <Checkbox checked={state.columns.includes(f.key)} className="pointer-events-none" /> {f.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {pickKey && pickCandidates.length > 0 && (
+            </span>
+          )}
+          {view && !dirty && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" title={`Field the ${LAYOUT_META[state.layout].label} layout reads`}>
-                  {pickLabel}: {pickedField?.label ?? "—"} <ChevronDown className="size-3" />
+                <Button size="icon" variant="ghost" className="ml-auto size-7">
+                  <MoreHorizontal />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {pickCandidates.map((f) => (
-                  <DropdownMenuItem key={f.key} onClick={() => setState({ ...state, [pickKey]: f.key })}>
-                    {f.label}
-                    {pickedField?.key === f.key && <span className="ml-auto text-xs">✓</span>}
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuItem
+                  onClick={() => {
+                    const name = window.prompt("Rename view", view.name);
+                    if (name?.trim()) void saveView({ ...view, name: name.trim() });
+                  }}
+                >
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={() => void removeView()}>
+                  <Trash2 /> Delete view
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          <div className="bg-muted/60 flex rounded-md p-0.5">
-            {layouts.map((id) => {
-              const l = LAYOUT_META[id];
-              return (
-                <button key={id} title={l.label} className={cn("rounded px-1.5 py-0.5", state.layout === id ? "bg-background shadow-sm" : "text-muted-foreground")} onClick={() => setState({ ...state, layout: id })}>
-                  <l.icon className="size-3.5" />
-                </button>
-              );
-            })}
+        </PhoneDock>
+      </div>
+
+      {/* Toolbar — likewise: search in the dock, the rest behind Filters */}
+      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-1.5 max-md:hidden">
+        <PhoneDock row>
+          <div className="relative max-md:min-w-0 max-md:flex-1">
+            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2" />
+            <Input className="h-7 w-48 pl-7 text-xs max-md:w-full" placeholder="Search…" value={state.search} onChange={(e) => setState({ ...state, search: e.target.value })} />
           </div>
-        </div>
+          <PhoneFilters active={state.filters.length}>
+            <FilterBar def={def} filters={state.filters} onChange={(filters) => setState({ ...state, filters })} />
+            <div className="ml-auto flex items-center gap-1 max-md:ml-0 max-md:flex-wrap">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs">
+                    Sort: {allFields.find((f) => f.key === state.sortBy)?.label ?? state.sortBy} {state.sortDir === "asc" ? "↑" : "↓"} <ChevronDown className="size-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {allFields.map((f) => (
+                    <DropdownMenuItem key={f.key} onClick={() => toggleSort(f.key)}>
+                      {f.label}
+                      {state.sortBy === f.key && <span className="ml-auto text-xs">{state.sortDir}</span>}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" title="Columns">
+                    <Columns3 className="size-3.5" /> Columns
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
+                  {allFields.map((f) => (
+                    <DropdownMenuItem key={f.key} onSelect={(e) => e.preventDefault()} onClick={() => toggleColumn(f.key)}>
+                      <Checkbox checked={state.columns.includes(f.key)} className="pointer-events-none" /> {f.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {pickKey && pickCandidates.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" title={`Field the ${LAYOUT_META[state.layout].label} layout reads`}>
+                      {pickLabel}: {pickedField?.label ?? "—"} <ChevronDown className="size-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {pickCandidates.map((f) => (
+                      <DropdownMenuItem key={f.key} onClick={() => setState({ ...state, [pickKey]: f.key })}>
+                        {f.label}
+                        {pickedField?.key === f.key && <span className="ml-auto text-xs">✓</span>}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <div className="bg-muted/60 flex rounded-md p-0.5">
+                {layouts.map((id) => {
+                  const l = LAYOUT_META[id];
+                  return (
+                    <button key={id} title={l.label} className={cn("rounded px-1.5 py-0.5", state.layout === id ? "bg-background shadow-sm" : "text-muted-foreground")} onClick={() => setState({ ...state, layout: id })}>
+                      <l.icon className="size-3.5" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </PhoneFilters>
+        </PhoneDock>
       </div>
 
       {/* Bulk actions */}

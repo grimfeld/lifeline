@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Badge, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
+import { Badge, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, PhoneDock, PhoneFilters, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
 import { ArchiveRestore, DoorOpen, Eye, Hammer, Plus } from "lucide-react";
 import { ART_FORMS } from "../domain/artForms";
 import type { Artwork, Exhibition } from "../domain/types";
@@ -121,14 +121,16 @@ export function MuseumScreen() {
     <div className="grid content-start gap-6 p-4">
       <header className="flex flex-wrap items-center gap-2">
         <h1 className="text-lg font-semibold">Museum</h1>
-        <div className="ml-auto flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setNewShow(true)}>
-            <DoorOpen className="size-4" /> New exhibition
-          </Button>
-          <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus className="size-4" /> Add artwork
-          </Button>
-        </div>
+        <PhoneDock row className="justify-end">
+          <div className="ml-auto flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setNewShow(true)}>
+              <DoorOpen className="size-4" /> New exhibition
+            </Button>
+            <Button size="sm" onClick={() => setAdding(true)}>
+              <Plus className="size-4" /> Add artwork
+            </Button>
+          </div>
+        </PhoneDock>
       </header>
 
       <section aria-label="Now hanging" className="grid gap-2">
@@ -146,15 +148,21 @@ export function MuseumScreen() {
       </section>
 
       <Tabs defaultValue="holdings">
-        <TabsList>
-          <TabsTrigger value="holdings">Holdings</TabsTrigger>
-          <TabsTrigger value="exhibitions">Exhibitions</TabsTrigger>
-        </TabsList>
+        <PhoneDock row order={1}>
+          <TabsList>
+            <TabsTrigger value="holdings">Holdings</TabsTrigger>
+            <TabsTrigger value="exhibitions">Exhibitions</TabsTrigger>
+          </TabsList>
+        </PhoneDock>
         <TabsContent value="holdings" className="grid gap-3 pt-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <FormChips value={formFilter} onChange={setFormFilter} counts={counts} />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search title or artist…" className="ml-auto h-8 w-56" />
-          </div>
+          <PhoneDock row>
+            <div className="flex flex-wrap items-center gap-3 max-md:contents">
+              <PhoneFilters active={formFilter === "all" ? 0 : 1}>
+                <FormChips value={formFilter} onChange={setFormFilter} counts={counts} />
+              </PhoneFilters>
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search title or artist…" className="ml-auto h-8 w-56 max-md:w-auto max-md:min-w-0 max-md:flex-1" />
+            </div>
+          </PhoneDock>
           {grid.length === 0 ? (
             <p className="text-muted-foreground text-sm">{artworks.length === 0 ? "The Holdings are empty — add your first artwork." : "Nothing matches."}</p>
           ) : (

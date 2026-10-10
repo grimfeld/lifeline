@@ -9,7 +9,7 @@ import {
   useLinkIndex,
   type GraphNode,
 } from "@lifeline/core";
-import { cn, GraphView, Input, toast } from "@lifeline/ui";
+import { cn, GraphView, Input, PhoneDock, PhoneFilters, toast } from "@lifeline/ui";
 import { Waypoints } from "lucide-react";
 import { TagFilterBar } from "../components/TagFilterBar";
 
@@ -100,6 +100,9 @@ export function GraphPage() {
     return new Set(model.nodes.filter((n) => n.label.toLowerCase().includes(needle)).map((n) => n.id));
   }, [q, model]);
 
+  const activeFilters =
+    (prefs.tagFilter.length > 0 ? 1 : 0) + (prefs.ghosts !== DEFAULTS.ghosts ? 1 : 0) + (prefs.tags !== DEFAULTS.tags ? 1 : 0) + (prefs.orphans !== DEFAULTS.orphans ? 1 : 0) + (prefs.hidden.length > 0 ? 1 : 0);
+
   const toggleType = (id: string) =>
     setPrefs({ hidden: prefs.hidden.includes(id) ? prefs.hidden.filter((t) => t !== id) : [...prefs.hidden, id] });
 
@@ -126,31 +129,35 @@ export function GraphPage() {
         <span className="text-muted-foreground text-xs tabular-nums">
           {model.nodes.length} nodes · {model.edges.length} links
         </span>
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find…" className="h-7 w-40 text-xs" />
-        <TagFilterBar value={prefs.tagFilter} onChange={(tagFilter) => setPrefs({ tagFilter })} />
-        <div className="ml-auto flex flex-wrap items-center gap-1">
-          <Chip on={prefs.ghosts} onClick={() => setPrefs({ ghosts: !prefs.ghosts })}>
-            Unresolved
-          </Chip>
-          <Chip on={prefs.tags} onClick={() => setPrefs({ tags: !prefs.tags })}>
-            Tags
-          </Chip>
-          <Chip on={prefs.orphans} onClick={() => setPrefs({ orphans: !prefs.orphans })}>
-            Orphans
-          </Chip>
-          <span className="bg-border mx-1 h-4 w-px" />
-          {linkableTypes.map((t) => {
-            const on = !hiddenSet.has(t.id);
-            const color = model.nodes.find((n) => n.type === t.id)?.color;
-            return (
-              <Chip key={t.id} on={on} onClick={() => toggleType(t.id)}>
-                <span className="size-2 rounded-full" style={{ background: color ?? "var(--chart-green)" }} />
-                {t.label}
-                {on && <span className="text-muted-foreground tabular-nums">{counts.get(t.id) ?? 0}</span>}
+        <PhoneDock row>
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find…" className="h-7 w-40 text-xs max-md:min-w-0 max-md:flex-1" />
+          <PhoneFilters active={activeFilters}>
+            <TagFilterBar value={prefs.tagFilter} onChange={(tagFilter) => setPrefs({ tagFilter })} />
+            <div className="ml-auto flex flex-wrap items-center gap-1 max-md:ml-0">
+              <Chip on={prefs.ghosts} onClick={() => setPrefs({ ghosts: !prefs.ghosts })}>
+                Unresolved
               </Chip>
-            );
-          })}
-        </div>
+              <Chip on={prefs.tags} onClick={() => setPrefs({ tags: !prefs.tags })}>
+                Tags
+              </Chip>
+              <Chip on={prefs.orphans} onClick={() => setPrefs({ orphans: !prefs.orphans })}>
+                Orphans
+              </Chip>
+              <span className="bg-border mx-1 h-4 w-px" />
+              {linkableTypes.map((t) => {
+                const on = !hiddenSet.has(t.id);
+                const color = model.nodes.find((n) => n.type === t.id)?.color;
+                return (
+                  <Chip key={t.id} on={on} onClick={() => toggleType(t.id)}>
+                    <span className="size-2 rounded-full" style={{ background: color ?? "var(--chart-green)" }} />
+                    {t.label}
+                    {on && <span className="text-muted-foreground tabular-nums">{counts.get(t.id) ?? 0}</span>}
+                  </Chip>
+                );
+              })}
+            </div>
+          </PhoneFilters>
+        </PhoneDock>
       </div>
       <div className="min-h-0 flex-1">
         <GraphView nodes={model.nodes} edges={model.edges} onSelect={open} storageKey="surface" highlight={highlight} />

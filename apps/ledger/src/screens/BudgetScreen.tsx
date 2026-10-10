@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, Card, CardContent, Input, toast } from "@lifeline/ui";
+import { Button, Card, CardContent, Input, PhoneDock, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import { ChevronLeft, ChevronRight, PiggyBank, Plus } from "lucide-react";
 import type { LedgerCategory, MonthStr } from "../domain/types";
@@ -45,13 +45,15 @@ export function BudgetScreen() {
       <div className="flex items-center gap-2">
         <PiggyBank className="size-5" />
         <h1 className="flex-1 text-lg font-semibold">Budget</h1>
-        <Button size="icon" variant="outline" className="size-8" onClick={() => setMonth((m) => monthAdd(m, -1))}>
-          <ChevronLeft />
-        </Button>
-        <span className="w-40 text-center font-medium">{formatMonth(month)}</span>
-        <Button size="icon" variant="outline" className="size-8" onClick={() => setMonth((m) => monthAdd(m, 1))}>
-          <ChevronRight />
-        </Button>
+        <PhoneDock row order={1} className="justify-center">
+          <Button size="icon" variant="outline" className="size-8" onClick={() => setMonth((m) => monthAdd(m, -1))}>
+            <ChevronLeft />
+          </Button>
+          <span className="w-40 text-center font-medium">{formatMonth(month)}</span>
+          <Button size="icon" variant="outline" className="size-8" onClick={() => setMonth((m) => monthAdd(m, 1))}>
+            <ChevronRight />
+          </Button>
+        </PhoneDock>
       </div>
 
       <div className="text-muted-foreground flex flex-wrap gap-x-6 gap-y-1 text-sm">

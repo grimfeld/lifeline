@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Badge, Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
+import { Badge, Button, Input, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { Camera, Inbox, Pencil, Plus, Tag, TriangleAlert } from "lucide-react";
 import { MEASURE_UNIT, productHref, type Receipt, type Shop } from "../domain/types";
@@ -92,35 +92,41 @@ export function PricesScreen() {
       <div className="flex flex-wrap items-center gap-2">
         <Tag className="size-5" />
         <h1 className="mr-auto text-lg font-semibold">Prices</h1>
-        <Button variant="outline" onClick={() => setPriceOpen(true)} disabled={products.length === 0 && shops.length === 0}>
-          <Plus /> Price
-        </Button>
-        <Button onClick={() => setScanOpen(true)}>
-          <Camera /> Scan receipt
-        </Button>
+        <PhoneDock row className="justify-end">
+          <Button variant="outline" onClick={() => setPriceOpen(true)} disabled={products.length === 0 && shops.length === 0}>
+            <Plus /> Price
+          </Button>
+          <Button onClick={() => setScanOpen(true)}>
+            <Camera /> Scan receipt
+          </Button>
+        </PhoneDock>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams(v === "products" ? {} : { tab: v }, { replace: true })}>
-        <TabsList>
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="receipts">
-            Receipts
-            {unmatchedTotal > 0 && (
-              <Badge variant="destructive" className="ml-1.5 px-1.5">
-                {unmatchedTotal}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="change">Change</TabsTrigger>
-          <TabsTrigger value="shops">Shops</TabsTrigger>
-        </TabsList>
+        <PhoneDock row order={1}>
+          <TabsList>
+            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="receipts">
+              Receipts
+              {unmatchedTotal > 0 && (
+                <Badge variant="destructive" className="ml-1.5 px-1.5">
+                  {unmatchedTotal}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="change">Change</TabsTrigger>
+            <TabsTrigger value="shops">Shops</TabsTrigger>
+          </TabsList>
+        </PhoneDock>
 
         <TabsContent value="products" className="grid gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products…" className="w-56" />
-            <Button variant="outline" className="ml-auto" onClick={() => setNewProduct(true)}>
-              <Plus /> Product
-            </Button>
+          <div className="flex flex-wrap items-center gap-2 empty:hidden">
+            <PhoneDock row>
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products…" className="w-56 min-w-0 max-md:flex-1" />
+              <Button variant="outline" className="ml-auto" onClick={() => setNewProduct(true)}>
+                <Plus /> Product
+              </Button>
+            </PhoneDock>
           </div>
           {productRows.length === 0 ? (
             <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">
