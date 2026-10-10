@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { Button, cn } from "@lifeline/ui";
+import { Button, PhoneDock, cn } from "@lifeline/ui";
 import { addDays, diffDays, fromParts, parts, todayStr, type DateStr } from "@lifeline/core";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { byRank } from "../domain/board";
@@ -43,18 +43,20 @@ export function TimelineScreen() {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight">Timeline</h1>
         <div className="ml-auto flex items-center gap-1">
-          <label className="text-muted-foreground mr-2 flex items-center gap-1.5 text-sm">
-            <input type="checkbox" checked={ended} onChange={(e) => setEnded(e.target.checked)} /> Done &amp; dropped
-          </label>
-          <Button variant="outline" size="icon" className="size-8" onClick={() => setFrom(monthStart(from, -1))} aria-label="Earlier">
-            <ChevronLeft />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setFrom(monthStart(today, -1))}>
-            Today
-          </Button>
-          <Button variant="outline" size="icon" className="size-8" onClick={() => setFrom(monthStart(from, 1))} aria-label="Later">
-            <ChevronRight />
-          </Button>
+          <PhoneDock row order={1} className="justify-end">
+            <label className="text-muted-foreground mr-2 flex items-center gap-1.5 text-sm">
+              <input type="checkbox" checked={ended} onChange={(e) => setEnded(e.target.checked)} /> Done &amp; dropped
+            </label>
+            <Button variant="outline" size="icon" className="size-8" onClick={() => setFrom(monthStart(from, -1))} aria-label="Earlier">
+              <ChevronLeft />
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setFrom(monthStart(today, -1))}>
+              Today
+            </Button>
+            <Button variant="outline" size="icon" className="size-8" onClick={() => setFrom(monthStart(from, 1))} aria-label="Later">
+              <ChevronRight />
+            </Button>
+          </PhoneDock>
         </div>
       </div>
 

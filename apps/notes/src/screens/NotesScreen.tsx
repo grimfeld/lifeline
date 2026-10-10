@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Badge, Button, Input, TagChips } from "@lifeline/ui";
+import { Badge, Button, Input, PhoneDock, TagChips } from "@lifeline/ui";
 import { basePath, docHref, documentType, excerpt, formatHuman, useDocuments } from "@lifeline/core";
 import { FileText, Plus, Table2 } from "lucide-react";
 import { NewTypedDialog } from "../commands";
@@ -36,7 +36,9 @@ export function NotesScreen() {
           <FileText className="text-muted-foreground size-5 shrink-0" />
           <h1 className="text-lg font-semibold tracking-tight">Notes</h1>
           <Badge variant="secondary">{notes.length}</Badge>
-          <div className="ml-auto flex items-center gap-1 md:order-last md:ml-0">
+        </div>
+        <PhoneDock row>
+          <div className="flex items-center gap-1">
             <Button size="sm" variant="ghost" asChild>
               <Link to={basePath(NOTE)} aria-label="Open the Notes Base">
                 <Table2 />
@@ -47,8 +49,8 @@ export function NotesScreen() {
               <Plus /> New
             </Button>
           </div>
-        </div>
-        <Input className="h-8 md:ml-4 md:w-56" placeholder="Search notes…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input className="h-8 max-md:order-first max-md:flex-1 md:ml-4 md:w-56" placeholder="Search notes…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </PhoneDock>
       </header>
       <ul className="min-h-0 flex-1 divide-y overflow-y-auto">
         {rows.length === 0 && (
