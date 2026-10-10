@@ -205,7 +205,7 @@ export function WorkoutScreen() {
           <Dumbbell className="size-6" /> Workout
         </h1>
         {tab === "workouts" && (
-          <PhoneDock row className="justify-end">
+          <PhoneDock>
             <Button
               onClick={() => {
                 setEditingWorkout(undefined);
@@ -217,7 +217,7 @@ export function WorkoutScreen() {
           </PhoneDock>
         )}
         {tab === "exercises" && (
-          <PhoneDock row className="justify-end">
+          <PhoneDock>
             <Button
               onClick={() => {
                 setEditingExercise(undefined);
@@ -231,8 +231,8 @@ export function WorkoutScreen() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setParams(v === "workouts" ? {} : { tab: v })}>
-        <PhoneDock row order={1}>
-          <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
+        <PhoneDock order={1}>
+          <TabsList className="md:max-w-full md:overflow-x-auto md:overflow-y-hidden">
             <TabsTrigger value="workouts">Workouts ({workouts.length})</TabsTrigger>
             <TabsTrigger value="exercises">Exercises ({exercises.length})</TabsTrigger>
             <TabsTrigger value="sessions">Sessions ({sessions.length})</TabsTrigger>

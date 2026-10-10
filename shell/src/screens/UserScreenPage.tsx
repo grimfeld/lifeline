@@ -355,8 +355,8 @@ export function UserScreenPage() {
         ) : (
           <TagChips tags={screen.tags} />
         )}
-        <PhoneDock row className="justify-end">
-          <div className="ml-auto flex items-center gap-1">
+        <PhoneDock>
+          <div className="ml-auto flex items-center gap-1 max-md:contents">
             {editing && (
               <Button variant="outline" className="h-8" onClick={() => setPickerOpen(true)}>
                 <Plus /> Add card
@@ -372,7 +372,7 @@ export function UserScreenPage() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost" className="size-8">
+                <Button size="icon" variant="ghost" className="size-8" aria-label="Screen actions" title="Screen actions">
                   <MoreHorizontal />
                 </Button>
               </DropdownMenuTrigger>

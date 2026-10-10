@@ -38,8 +38,8 @@ export function MapPage() {
         <span className="text-muted-foreground text-xs">
           {pins.length} {pins.length === 1 ? "pin" : "pins"}
         </span>
-        <PhoneDock row order={1}>
-          <div className="ml-auto flex flex-wrap gap-1 max-md:shrink-0 max-md:flex-nowrap">
+        <PhoneDock order={1}>
+          <div className="ml-auto flex flex-wrap gap-1 max-md:contents">
             {providers.map((p) => {
               const on = !hidden.has(p.value);
               const color = all.find((x) => x.type === p.value)?.color;
@@ -50,7 +50,7 @@ export function MapPage() {
                   onClick={() => toggle(p.value)}
                   aria-pressed={on}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors",
+                    "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors max-md:h-8 max-md:justify-center max-md:px-3",
                     on ? "bg-accent" : "text-muted-foreground opacity-60",
                   )}
                 >

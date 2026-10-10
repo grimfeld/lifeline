@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Badge, Button, Input, PhoneDock, TagChips } from "@lifeline/ui";
+import { Badge, Button, Input, PhoneDock, TagChips, usePhone } from "@lifeline/ui";
 import { basePath, docHref, excerpt, formatHuman } from "@lifeline/core";
 import { Scissors, Table2 } from "lucide-react";
 import { ClipDialog } from "../ClipDialog";
@@ -12,6 +12,7 @@ export function ClipperScreen() {
   const clippings = useClippings();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const phone = usePhone();
   const rows = useMemo(() => {
     const k = q.trim().toLowerCase();
     return [...clippings]
@@ -24,12 +25,12 @@ export function ClipperScreen() {
         <Scissors className="text-muted-foreground size-5" />
         <h1 className="text-lg font-semibold tracking-tight">Clippings</h1>
         <Badge variant="secondary">{clippings.length}</Badge>
-        <PhoneDock row>
-          <Input className="ml-4 h-8 w-56 max-md:ml-0 max-md:w-auto max-md:flex-1" placeholder="Search clippings…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="ml-auto flex shrink-0 items-center gap-1">
-            <Button size="sm" variant="ghost" asChild>
-              <Link to={basePath(CLIPPING)}>
-                <Table2 /> Base
+        <PhoneDock>
+          <Input className="ml-4 h-8 w-56 max-md:ml-0 max-md:w-auto" placeholder="Search clippings…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="ml-auto flex shrink-0 items-center gap-1 max-md:contents">
+            <Button size={phone ? "icon-sm" : "sm"} variant="ghost" asChild>
+              <Link to={basePath(CLIPPING)} aria-label={phone ? "Open the Clippings Base" : undefined}>
+                <Table2 />{!phone && " Base"}
               </Link>
             </Button>
             <Button size="sm" onClick={() => setOpen(true)}>

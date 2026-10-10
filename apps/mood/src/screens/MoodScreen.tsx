@@ -65,18 +65,18 @@ export function MoodScreen() {
     <div className="grid gap-4 p-1">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-lg font-semibold">Mood</h1>
-        <PhoneDock row order={1}>
-          <Tabs value={layout} onValueChange={(v) => chooseLayout(v as Layout)}>
+        <PhoneDock order={1}>
+          <Tabs value={layout} onValueChange={(v) => chooseLayout(v as Layout)} className="max-md:contents">
             <TabsList>
               <TabsTrigger value="month">Month</TabsTrigger>
               <TabsTrigger value="year">Year</TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 max-md:contents">
             <Button variant="ghost" size="icon" aria-label="Previous" onClick={() => step(-1)}>
               <ChevronLeft className="size-4" />
             </Button>
-            <span className="min-w-32 text-center text-sm font-medium max-md:min-w-24">{layout === "month" ? monthTitle(cursor.y, cursor.m) : cursor.y}</span>
+            <span className="min-w-32 text-center text-sm font-medium max-md:min-w-0 max-md:truncate">{layout === "month" ? monthTitle(cursor.y, cursor.m) : cursor.y}</span>
             <Button variant="ghost" size="icon" aria-label="Next" onClick={() => step(1)}>
               <ChevronRight className="size-4" />
             </Button>

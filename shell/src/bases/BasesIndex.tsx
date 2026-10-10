@@ -87,7 +87,7 @@ export function BasesIndex() {
       <header className="flex items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight">Bases</h1>
         <span className="text-muted-foreground text-sm">one per Document type — adding a type adds a Base</span>
-        <PhoneDock row className="justify-end">
+        <PhoneDock>
           <Button className="ml-auto" onClick={() => setEditing({ record: null })}>
             <Plus /> New type
           </Button>

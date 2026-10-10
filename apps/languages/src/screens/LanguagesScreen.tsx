@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Button, Card, CardContent, PhoneDock, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
+import { Button, Card, CardContent, PhoneDock, Tabs, TabsContent, TabsList, TabsTrigger, usePhone } from "@lifeline/ui";
 import { Languages as LanguagesIcon, Plus, Settings2 } from "lucide-react";
 import { setActiveLanguage, setLanguageArchived, useActiveLanguage, useDecks, useItems, useLanguageRecalls, useLanguages } from "../data/repo";
 import { LanguageDialog } from "../components/LanguageDialog";
@@ -29,22 +29,23 @@ export function LanguagesScreen() {
   const [newOpen, setNewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const archived = languages.filter((l) => l.archived);
+  const phone = usePhone();
 
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 md:p-6">
       <div className="flex flex-wrap items-center gap-2">
         <LanguagesIcon className="size-5" />
         <h1 className="mr-2 text-lg font-semibold">Languages</h1>
-        <PhoneDock row>
-          {active && <LanguageSelect languages={languages} value={active.id} onChange={setActiveLanguage} />}
+        <PhoneDock>
+          {active && <LanguageSelect languages={languages} value={active.id} onChange={setActiveLanguage} className="w-40 max-md:w-auto" />}
           {active && (
             <Button size="icon" variant="ghost" onClick={() => setEditOpen(true)} aria-label={`${active.name} settings`} title={`${active.name} settings`}>
               <Settings2 />
             </Button>
           )}
-          <span className="flex-1" />
-          <Button size="sm" variant="outline" onClick={() => setNewOpen(true)} aria-label="New language">
-            <Plus /> <span className="max-sm:hidden">Language</span>
+          <span className="flex-1 max-md:hidden" />
+          <Button size={phone ? "icon" : "sm"} variant="outline" onClick={() => setNewOpen(true)} aria-label="New language" title="New language">
+            <Plus /> {!phone && <span className="max-sm:hidden">Language</span>}
           </Button>
         </PhoneDock>
       </div>
@@ -61,7 +62,7 @@ export function LanguagesScreen() {
         </Card>
       ) : (
         <Tabs value={tab} onValueChange={(v) => setParams(v === "practice" ? {} : { tab: v })}>
-          <PhoneDock row order={1}>
+          <PhoneDock order={1}>
             <TabsList>
               <TabsTrigger value="practice">Practice</TabsTrigger>
               <TabsTrigger value="words">Words ({items.length})</TabsTrigger>

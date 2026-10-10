@@ -80,7 +80,7 @@ export function ReportsScreen() {
         <h1 className="text-lg font-semibold">Money reports</h1>
       </div>
 
-      <PhoneDock row>
+      <PhoneDock>
         <PhoneFilters active={activeFilterCount(filter) + (range === DEFAULT_RANGE ? 0 : 1)}>
           <ReportFilterBar
             filter={filter}
@@ -104,7 +104,7 @@ export function ReportsScreen() {
       </PhoneDock>
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams(v === "overview" ? {} : { tab: v }, { replace: true })}>
-        <PhoneDock row order={1}>
+        <PhoneDock order={1}>
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>

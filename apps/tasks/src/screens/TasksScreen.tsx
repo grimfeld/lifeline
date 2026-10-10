@@ -101,7 +101,7 @@ export function TasksScreen() {
     <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-6 p-4 sm:p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
-        <PhoneDock row className="justify-end">
+        <PhoneDock>
           <Button
             onClick={() => {
               setEditing(undefined);
@@ -121,7 +121,7 @@ export function TasksScreen() {
       />
 
       <Tabs defaultValue="open">
-        <PhoneDock row order={1}>
+        <PhoneDock order={1}>
           <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
             <TabsTrigger value="open">Open ({openCount})</TabsTrigger>
             <TabsTrigger value="recurring">Recurring ({groups.recurring.length})</TabsTrigger>

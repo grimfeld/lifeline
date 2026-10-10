@@ -10,9 +10,15 @@ import {
   DropdownMenuTrigger,
   Input,
   PhoneDock,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   cn,
   colorVar,
   toast,
+  usePhone,
 } from "@lifeline/ui";
 import { AlertTriangle, Inbox, LogIn, LogOut, MoreHorizontal, Plus, RefreshCw, Search, Settings2, Star, Tag, Trash2, X } from "lucide-react";
 import { searchThreads, useCachedLabels, useCachedThread, useCachedThreads, useLastRead, useListRefresh } from "../data/cache";
@@ -34,6 +40,7 @@ export function MailScreen() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const mobile = useIsMobile();
+  const phone = usePhone();
 
   const mailboxId = params.get("mailbox") || ALL;
   const threadId = params.get("thread") || undefined;
@@ -108,14 +115,14 @@ export function MailScreen() {
     <div className="flex h-full min-h-0 flex-col">
       <PhoneDock>
         <form
-          className="flex items-center gap-1 border-b px-2 py-1.5 max-md:border-b-0"
+          className="flex items-center gap-1 border-b px-2 py-1.5 max-md:h-8 max-md:rounded-lg max-md:border max-md:py-0 max-md:pr-0.5"
           onSubmit={(e) => {
             e.preventDefault();
             void runSearch();
           }}
         >
           <Search className="text-muted-foreground size-4 shrink-0" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search Gmail — from:, newer_than:2d, “exact words”" className="h-8 border-0 shadow-none focus-visible:ring-0" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={phone ? "Search Gmail" : "Search Gmail — from:, newer_than:2d, “exact words”"} className="h-8 border-0 shadow-none focus-visible:ring-0 max-md:h-7 max-md:bg-transparent max-md:px-1 dark:max-md:bg-transparent" />
           {(query || search) && (
             <Button
               type="button"
@@ -174,19 +181,44 @@ export function MailScreen() {
     <div className="flex h-[calc(100dvh-5rem)] min-h-0 flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-lg font-semibold">Mail</h1>
-        <PhoneDock row>
-          <div className="flex flex-wrap items-center gap-1 max-md:flex-nowrap">
-            <MailboxTab active={mailboxId === ALL} onClick={() => select(ALL)} label="All" />
-            {mailboxes.map((m) => (
-              <MailboxTab key={m.id} active={mailboxId === m.id} onClick={() => select(m.id)} label={m.title} color={colorVar(m.color)} mailbox={m} />
-            ))}
-          </div>
-          <span className="flex-1" />
+        <PhoneDock>
+          {phone ? (
+            mailboxes.length > 0 && (
+              <Select value={mailboxId} onValueChange={select}>
+                <SelectTrigger aria-label="Mailbox" className="min-w-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>All Mailboxes</SelectItem>
+                  {mailboxes.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      <MailboxDot mailbox={m} />
+                      {m.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )
+          ) : (
+            <div className="flex flex-wrap items-center gap-1">
+              <MailboxTab active={mailboxId === ALL} onClick={() => select(ALL)} label="All" />
+              {mailboxes.map((m) => (
+                <MailboxTab key={m.id} active={mailboxId === m.id} onClick={() => select(m.id)} label={m.title} color={colorVar(m.color)} mailbox={m} />
+              ))}
+            </div>
+          )}
+          {!phone && <span className="flex-1" />}
           {current && <MailboxMenu mailbox={current} onRemoved={() => select(ALL)} />}
-          <Button variant="outline" size="sm" onClick={() => void connect()}>
-            <Plus className="size-4" /> Connect a Mailbox
-          </Button>
-          <Button variant="ghost" size="sm" title="Mailboxes Base" onClick={() => navigate(basePath(MAILBOX))}>
+          {phone && mailboxes.length > 0 ? (
+            <Button variant="outline" size="icon-sm" aria-label="Connect a Mailbox" title="Connect a Mailbox" onClick={() => void connect()}>
+              <Plus className="size-4" />
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => void connect()}>
+              <Plus className="size-4" /> Connect a Mailbox
+            </Button>
+          )}
+          <Button variant="ghost" size={phone ? "icon-sm" : "sm"} title="Mailboxes Base" aria-label={phone ? "Mailboxes Base" : undefined} onClick={() => navigate(basePath(MAILBOX))}>
             <Settings2 className="size-4" />
           </Button>
         </PhoneDock>
@@ -202,7 +234,7 @@ export function MailScreen() {
           ) : (
             <div className="flex h-full min-h-0 flex-col">
               <PhoneDock order={1}>
-                <LabelRail labels={rail} labelId={labelId} onPick={setLabelId} horizontal />
+                <LabelSelect labels={rail} labelId={labelId} onPick={setLabelId} />
               </PhoneDock>
               {listPane}
             </div>
@@ -240,6 +272,11 @@ function MailboxTab({ active, onClick, label, color, mailbox }: { active: boolea
   );
 }
 
+function MailboxDot({ mailbox }: { mailbox: Mailbox }) {
+  const signedIn = useSignedIn(mailbox.address);
+  return <span className={cn("size-2 shrink-0 rounded-full", !signedIn && "opacity-30")} style={{ background: colorVar(mailbox.color) }} />;
+}
+
 function SignedOutRow({ mailbox }: { mailbox: Mailbox }) {
   return (
     <div className="flex items-center gap-2 text-xs">
@@ -254,11 +291,12 @@ function SignedOutRow({ mailbox }: { mailbox: Mailbox }) {
 
 function MailboxMenu({ mailbox, onRemoved }: { mailbox: Mailbox; onRemoved: () => void }) {
   const signedIn = useSignedIn(mailbox.address);
+  const phone = usePhone();
   const [confirm, setConfirm] = useState(false);
   return (
     <DropdownMenu onOpenChange={() => setConfirm(false)}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" aria-label="Mailbox menu">
+        <Button variant="ghost" size={phone ? "icon-sm" : "sm"} aria-label="Mailbox menu">
           <MoreHorizontal className="size-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -297,9 +335,32 @@ function MailboxMenu({ mailbox, onRemoved }: { mailbox: Mailbox; onRemoved: () =
 
 const LABEL_ICON: Record<string, typeof Inbox> = { INBOX: Inbox, STARRED: Star, TRASH: Trash2 };
 
-function LabelRail({ labels, labelId, onPick, horizontal }: { labels: Label[]; labelId: string; onPick: (id: string) => void; horizontal?: boolean }) {
+/** The Label rail on the phone: a select of the same Labels, in the dock. */
+function LabelSelect({ labels, labelId, onPick }: { labels: Label[]; labelId: string; onPick: (id: string) => void }) {
   return (
-    <nav className={cn(horizontal ? "flex gap-1 overflow-x-auto px-3 py-1.5 [scrollbar-width:none]" : "grid content-start gap-0.5 overflow-y-auto border-r p-1.5")} aria-label="Labels">
+    <Select value={labelId} onValueChange={onPick}>
+      <SelectTrigger aria-label="Label" className="min-w-0">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {labels.map((l) => {
+          const Icon = LABEL_ICON[l.id] ?? Tag;
+          return (
+            <SelectItem key={l.id} value={l.id}>
+              <Icon className="size-3.5" />
+              {l.name}
+              {l.id === INBOX && l.threadsUnread ? <span className="text-muted-foreground text-xs tabular-nums">{l.threadsUnread}</span> : null}
+            </SelectItem>
+          );
+        })}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function LabelRail({ labels, labelId, onPick }: { labels: Label[]; labelId: string; onPick: (id: string) => void }) {
+  return (
+    <nav className="grid content-start gap-0.5 overflow-y-auto border-r p-1.5" aria-label="Labels">
       {labels.map((l) => {
         const Icon = LABEL_ICON[l.id] ?? Tag;
         const active = l.id === labelId;

@@ -36,7 +36,7 @@ export function ScreensIndex() {
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 md:p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold tracking-tight">Screens</h1>
-        <PhoneDock row className="justify-end">
+        <PhoneDock>
           <Button size="sm" onClick={() => setOpen(true)}>
             <Plus /> New screen
           </Button>

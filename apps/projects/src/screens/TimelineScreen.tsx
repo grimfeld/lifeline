@@ -43,8 +43,8 @@ export function TimelineScreen() {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight">Timeline</h1>
         <div className="ml-auto flex items-center gap-1">
-          <PhoneDock row order={1} className="justify-end">
-            <label className="text-muted-foreground mr-2 flex items-center gap-1.5 text-sm">
+          <PhoneDock order={1}>
+            <label className="text-muted-foreground mr-2 flex items-center gap-1.5 text-sm max-md:mr-0">
               <input type="checkbox" checked={ended} onChange={(e) => setEnded(e.target.checked)} /> Done &amp; dropped
             </label>
             <Button variant="outline" size="icon" className="size-8" onClick={() => setFrom(monthStart(from, -1))} aria-label="Earlier">

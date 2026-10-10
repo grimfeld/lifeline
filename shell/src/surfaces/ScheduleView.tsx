@@ -526,7 +526,7 @@ function PoolColumn({ items, onComplete, onOpen, collapsible }: { items: WorkIte
 function DayStrip({ anchor, today, onPick }: { anchor: DateStr; today: DateStr; onPick: (d: DateStr) => void }) {
   const week = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(anchor), i));
   return (
-    <div className="flex shrink-0 gap-1">
+    <div className="flex shrink-0 basis-full gap-1">
       {week.map((d) => {
         const active = d === anchor;
         return (

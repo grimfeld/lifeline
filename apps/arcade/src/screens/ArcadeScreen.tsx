@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Button, Card, CardContent, cn, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { Settings2, SlidersHorizontal } from "lucide-react";
+import { Button, Card, CardContent, cn, Input, PhoneDock, PhoneFilters, usePhone, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { Plus, Settings2, SlidersHorizontal } from "lucide-react";
 import type { Work } from "../domain/types";
 import { useWorks } from "../data/repo";
 import { GALLERY_SORTS, matchesSearch, onShelf, SHELVES, shelfLabel, sortGallery, type GallerySort, type Shelf } from "../domain/browse";
@@ -51,6 +51,7 @@ function emptyMessage(shelf: Shelf): string {
 export function ArcadeScreen() {
   const items = useWorks();
   const [addOpen, setAddOpen] = useState(false);
+  const phone = usePhone();
   const [lookupOpen, setLookupOpen] = useState(false);
   const [editing, setEditing] = useState<Work | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
@@ -68,10 +69,11 @@ export function ArcadeScreen() {
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">Arcade</h1>
-          <PhoneDock row className="justify-end">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-                <SlidersHorizontal /> Add with details…
+          <PhoneDock>
+            <div className="flex items-center gap-2 max-md:contents">
+              {/* Phone: an icon, so search, Filters and the adds share one line. */}
+              <Button variant="outline" size={phone ? "icon-sm" : "sm"} aria-label={phone ? "Add with details" : undefined} title={phone ? "Add with details" : undefined} onClick={() => setAddOpen(true)}>
+                {phone ? <Plus /> : <><SlidersHorizontal /> Add with details…</>}
               </Button>
               <Button variant="ghost" size="icon-sm" aria-label="Arcade lookup settings" title="Lookup settings" onClick={() => setLookupOpen(true)}>
                 <Settings2 />
@@ -82,10 +84,10 @@ export function ArcadeScreen() {
         <QuickAdd />
       </div>
 
-      <PhoneDock row>
+      <PhoneDock>
         {/* Desk: the shelf stays above the search (md:-order-1); phone: it and the sort go in the Filters sheet. */}
-        <div className="flex flex-1 flex-wrap gap-2">
-          <Input className="min-w-40 flex-1" placeholder="Search title, developer, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex flex-1 flex-wrap gap-2 max-md:contents">
+          <Input className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search title, developer, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
           <PhoneFilters active={+(shelf !== "ALL") + +(sort !== "ADDED")}>
             <div className="w-full md:-order-1">
               <ShelfControl value={shelf} onChange={setShelf} counts={shelfCounts} />

@@ -106,7 +106,7 @@ export function DecksTab({ language, decks, items }: { language: Language; decks
     <div className="grid gap-3">
       <div className="flex items-center justify-between">
         <p className="text-muted-foreground text-sm">A deck is a set you choose, to practise on its own.</p>
-        <PhoneDock row className="justify-end">
+        <PhoneDock>
           <Button onClick={() => setAdding(true)}>
             <Plus /> Deck
           </Button>

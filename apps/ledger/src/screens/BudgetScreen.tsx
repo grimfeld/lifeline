@@ -45,12 +45,12 @@ export function BudgetScreen() {
       <div className="flex items-center gap-2">
         <PiggyBank className="size-5" />
         <h1 className="flex-1 text-lg font-semibold">Budget</h1>
-        <PhoneDock row order={1} className="justify-center">
-          <Button size="icon" variant="outline" className="size-8" onClick={() => setMonth((m) => monthAdd(m, -1))}>
+        <PhoneDock order={1}>
+          <Button size="icon" variant="outline" className="size-8" onClick={() => setMonth((m) => monthAdd(m, -1))} aria-label="Previous month">
             <ChevronLeft />
           </Button>
           <span className="w-40 text-center font-medium">{formatMonth(month)}</span>
-          <Button size="icon" variant="outline" className="size-8" onClick={() => setMonth((m) => monthAdd(m, 1))}>
+          <Button size="icon" variant="outline" className="size-8" onClick={() => setMonth((m) => monthAdd(m, 1))} aria-label="Next month">
             <ChevronRight />
           </Button>
         </PhoneDock>

@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { SlidersHorizontal } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -12,13 +12,20 @@ import { Sheet, SheetContent, SheetTitle } from "./sheet";
  * desk nothing moves: a `PhoneDock` renders its children where it stands.
  *
  * Two slots, so a page's own controls and its Module's navigation never trade
- * places: `page` on top, `module` against the bar. A page may put several rows
- * in its slot — its actions, then its tabs nearest the thumb (`order`).
+ * places: `page` on top, `module` against the bar.
  *
- * What goes in: whatever changes what the page shows (tabs, view switches,
- * date paging), its search, and its main add. What stays: the title, and the
- * header of a single thing's own page (back, edit, delete). Filters beyond a
- * search go behind `PhoneFilters`, so the dock stays a row or two.
+ * The `page` slot is **one line**: every `PhoneDock` a page renders pours its
+ * children into the same wrapping row, as direct items (`order` places them —
+ * higher is nearer the end). Each item grows to share the line, so whatever
+ * ends up alone on a line takes its full width; icon buttons keep their size.
+ * So give the dock *controls*, not wrappers: a div around a group grows, but
+ * the buttons inside it don't — mark such a div `max-md:contents`.
+ *
+ * What goes in: whatever changes what the page shows (tabs — which are a
+ * select on a phone — view switches, date paging), its search, and its main
+ * add. What stays: the title, quick-add fields, and the header of a single
+ * thing's own page (back, edit, delete). Filters beyond a search go behind
+ * `PhoneFilters`, so the line stays one line. (ADR 0064)
  */
 export type PhoneDockSlot = "page" | "module";
 
@@ -55,46 +62,39 @@ function useTarget(slot: PhoneDockSlot): HTMLElement | null {
   return useSyncExternalStore(subscribe, () => targets[slot], () => null);
 }
 
-const rowClass = "bg-background flex shrink-0 flex-col border-t empty:hidden";
+const slotClass = "bg-background shrink-0 border-t empty:hidden";
+
+/**
+ * The page line: wrapping, its items growing to fill each line. Items are the
+ * children of each `PhoneDock`'s `display: contents` wrapper (and of groups
+ * unwrapped with `max-md:contents` inside it), which hands them its order
+ * through `--dock-order` — the rules are in globals.css, `[data-phone-dock-line]`.
+ */
+const pageLine = cn(slotClass, "flex flex-wrap items-center gap-1.5 px-3 py-1.5");
 
 /** Where the dock's rows are mounted: once, right above the Phone bar. Phone only. */
 export function PhoneDockHost({ className }: { className?: string }) {
   return (
     <div className={cn("flex shrink-0 flex-col md:hidden", className)}>
-      <div ref={(el) => setTarget("page", el)} className={rowClass} />
-      <div ref={(el) => setTarget("module", el)} className={rowClass} />
+      <div ref={(el) => setTarget("page", el)} className={pageLine} data-phone-dock-line="" />
+      <div ref={(el) => setTarget("module", el)} className={cn(slotClass, "flex flex-col")} />
     </div>
   );
 }
 
-/** The usual dock row: one line of controls that scrolls sideways rather than wrapping. */
-export const phoneDockRow = "flex items-center gap-1.5 overflow-x-auto px-3 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
-
 /**
  * Controls that sit in the phone dock on a phone and where they stand on the
- * desk. `className` wraps them in the dock only — the desk keeps their own;
- * `row` is shorthand for `phoneDockRow`. `order` places this row among the
- * page's others (higher is nearer the bar); rows of equal order keep mount order.
+ * desk. On the page line `order` places them (default 0; tabs and view
+ * switches take 1, so they end the line nearest the thumb). The `module` slot
+ * holds one row and takes its children as they are.
  */
-export function PhoneDock({
-  slot = "page",
-  className,
-  row = false,
-  order,
-  children,
-}: {
-  slot?: PhoneDockSlot;
-  className?: string;
-  row?: boolean;
-  order?: number;
-  children: ReactNode;
-}) {
+export function PhoneDock({ slot = "page", order = 0, children }: { slot?: PhoneDockSlot; order?: number; children: ReactNode }) {
   const phone = usePhone();
   const target = useTarget(slot);
   if (!phone) return <>{children}</>;
   if (!target) return null;
   return createPortal(
-    <div className={cn(row && phoneDockRow, className)} style={order === undefined ? undefined : { order }}>
+    <div className="contents" style={{ "--dock-order": order } as CSSProperties}>
       {children}
     </div>,
     target,

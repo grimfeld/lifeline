@@ -92,7 +92,7 @@ export function PricesScreen() {
       <div className="flex flex-wrap items-center gap-2">
         <Tag className="size-5" />
         <h1 className="mr-auto text-lg font-semibold">Prices</h1>
-        <PhoneDock row className="justify-end">
+        <PhoneDock>
           <Button variant="outline" onClick={() => setPriceOpen(true)} disabled={products.length === 0 && shops.length === 0}>
             <Plus /> Price
           </Button>
@@ -103,7 +103,7 @@ export function PricesScreen() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams(v === "products" ? {} : { tab: v }, { replace: true })}>
-        <PhoneDock row order={1}>
+        <PhoneDock order={1}>
           <TabsList>
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="receipts">
@@ -121,9 +121,10 @@ export function PricesScreen() {
 
         <TabsContent value="products" className="grid gap-3">
           <div className="flex flex-wrap items-center gap-2 empty:hidden">
-            <PhoneDock row>
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products…" className="w-56 min-w-0 max-md:flex-1" />
-              <Button variant="outline" className="ml-auto" onClick={() => setNewProduct(true)}>
+            {/* Search and the product add lead the phone line; the receipt actions and tabs follow. */}
+            <PhoneDock order={-1}>
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products…" className="w-56 min-w-0 max-md:w-auto max-md:basis-40" />
+              <Button variant="outline" className="md:ml-auto" onClick={() => setNewProduct(true)}>
                 <Plus /> Product
               </Button>
             </PhoneDock>

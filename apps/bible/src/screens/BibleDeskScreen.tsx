@@ -164,8 +164,8 @@ export function BibleDeskScreen() {
           <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight md:text-2xl">
             <BookOpen className="size-5 shrink-0 md:size-6" /> Bible study
           </h1>
-          <PhoneDock row>
-            <div className="flex items-center gap-1 max-md:flex-1 md:ml-auto">
+          <PhoneDock>
+            <div className="flex items-center gap-1 max-md:contents md:ml-auto">
               <Input className="h-9 min-w-0 flex-1 md:h-8 md:w-44 md:flex-none" placeholder="Jn 3:16" value={lookup} onChange={(e) => setLookup(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void go()} aria-label="Look up a reference" />
               <Button size="sm" variant="outline" className="h-9 shrink-0 md:h-8" disabled={!parsed} onClick={() => void go()} title={parsed ? `Open ${canonical(parsed)}` : "Type a reference"}>
                 <Search /> {parsed ? canonical(parsed) : "Open"}
@@ -175,9 +175,9 @@ export function BibleDeskScreen() {
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setParams(v === "study" ? {} : { tab: v })}>
-          {/* Six tabs never fit a phone; the strip scrolls (justify-start, or the first tabs would be unreachable) and the chosen one is scrolled into view. */}
-          <PhoneDock row order={1}>
-            <TabsList ref={tabsRef} className="max-w-full justify-start overflow-x-auto overflow-y-hidden scroll-px-3">
+          {/* A narrow desk may not fit six tabs; the strip scrolls (justify-start, or the first tabs would be unreachable) and the chosen one is scrolled into view. On a phone it is a select. */}
+          <PhoneDock order={1}>
+            <TabsList ref={tabsRef} className="md:max-w-full md:justify-start md:overflow-x-auto md:overflow-y-hidden md:scroll-px-3">
               <TabsTrigger value="study">Study ({study.length})</TabsTrigger>
               <TabsTrigger value="scripture">Scripture</TabsTrigger>
               <TabsTrigger value="characters">Characters ({characters.length})</TabsTrigger>

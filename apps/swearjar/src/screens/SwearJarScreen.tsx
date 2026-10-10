@@ -53,7 +53,7 @@ export function SwearJarScreen() {
       <div className="flex flex-wrap items-center gap-2">
         <PiggyBank className="size-5" />
         <h1 className="flex-1 text-lg font-semibold">Swear Jar</h1>
-        <PhoneDock row className="justify-end">
+        <PhoneDock>
           <Button variant="outline" onClick={() => setNewOpen(true)}>
             <Plus /> New offence
           </Button>

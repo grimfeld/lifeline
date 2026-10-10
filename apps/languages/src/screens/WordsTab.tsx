@@ -59,9 +59,9 @@ export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck
 
   return (
     <div className="grid gap-3">
-      <PhoneDock row>
+      <PhoneDock>
         <div className="flex flex-wrap items-center gap-2 max-md:contents">
-          <div className="relative min-w-40 flex-1 max-md:min-w-28">
+          <div className="relative min-w-40 flex-1 max-md:min-w-32">
             <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" className="pl-8" />
           </div>
