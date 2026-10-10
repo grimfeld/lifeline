@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, Card, CardContent, cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { Button, Card, CardContent, cn, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { Settings2, SlidersHorizontal } from "lucide-react";
 import type { Work } from "../domain/types";
 import { useWorks } from "../data/repo";
@@ -68,36 +68,43 @@ export function ArcadeScreen() {
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">Arcade</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-              <SlidersHorizontal /> Add with details…
-            </Button>
-            <Button variant="ghost" size="icon-sm" aria-label="Arcade lookup settings" title="Lookup settings" onClick={() => setLookupOpen(true)}>
-              <Settings2 />
-            </Button>
-          </div>
+          <PhoneDock row className="justify-end">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
+                <SlidersHorizontal /> Add with details…
+              </Button>
+              <Button variant="ghost" size="icon-sm" aria-label="Arcade lookup settings" title="Lookup settings" onClick={() => setLookupOpen(true)}>
+                <Settings2 />
+              </Button>
+            </div>
+          </PhoneDock>
         </div>
         <QuickAdd />
       </div>
 
-      <div className="grid gap-2">
-        <ShelfControl value={shelf} onChange={setShelf} counts={shelfCounts} />
-        <div className="flex flex-wrap gap-2">
+      <PhoneDock row>
+        {/* Desk: the shelf stays above the search (md:-order-1); phone: it and the sort go in the Filters sheet. */}
+        <div className="flex flex-1 flex-wrap gap-2">
           <Input className="min-w-40 flex-1" placeholder="Search title, developer, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
-            <SelectTrigger className="w-44" aria-label="Sort">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {GALLERY_SORTS.map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <PhoneFilters active={+(shelf !== "ALL") + +(sort !== "ADDED")}>
+            <div className="w-full md:-order-1">
+              <ShelfControl value={shelf} onChange={setShelf} counts={shelfCounts} />
+            </div>
+            <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
+              <SelectTrigger className="w-44" aria-label="Sort">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {GALLERY_SORTS.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </PhoneFilters>
         </div>
-      </div>
+      </PhoneDock>
 
       {gallery.length === 0 ? (
         <Card>

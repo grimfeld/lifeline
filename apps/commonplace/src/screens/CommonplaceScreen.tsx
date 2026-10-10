@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { Card, CardContent, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { useQuotedWorks } from "../data/works";
 import { useQuotes } from "../data/quotes";
 import { searchQuotes } from "../domain/quotes";
@@ -103,40 +103,47 @@ export function CommonplaceScreen() {
             Quotes · <span className="tabular-nums">{quotes.length}</span>
           </h1>
         </div>
-        <TypeChips
-          value={type}
-          onChange={(t) => {
-            setType(t);
-            setItemId("all");
-          }}
-          counts={counts}
-        />
-        <div className="flex flex-wrap gap-2">
-          <Input className="min-w-40 flex-1" placeholder="Search quotes, comments, titles, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Select value={itemId} onValueChange={setItemId}>
-            <SelectTrigger className="w-48" aria-label="Item">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All items</SelectItem>
-              {itemOptions.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
-            <SelectTrigger className="w-32" aria-label="Sort">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="oldest">Oldest</SelectItem>
-              <SelectItem value="random">Random</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <PhoneDock row>
+          {/* Desk: the chips stay above the search (md:-order-1); phone: they and the selects go in the Filters sheet. */}
+          <div className="flex flex-1 flex-wrap gap-2">
+            <Input className="min-w-40 flex-1" placeholder="Search quotes, comments, titles, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <PhoneFilters active={+(type !== "all") + +(itemId !== "all") + +(sort !== "newest")}>
+              <div className="w-full md:-order-1 md:mb-1">
+                <TypeChips
+                  value={type}
+                  onChange={(t) => {
+                    setType(t);
+                    setItemId("all");
+                  }}
+                  counts={counts}
+                />
+              </div>
+              <Select value={itemId} onValueChange={setItemId}>
+                <SelectTrigger className="w-48" aria-label="Item">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All items</SelectItem>
+                  {itemOptions.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
+                <SelectTrigger className="w-32" aria-label="Sort">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="oldest">Oldest</SelectItem>
+                  <SelectItem value="random">Random</SelectItem>
+                </SelectContent>
+              </Select>
+            </PhoneFilters>
+          </div>
+        </PhoneDock>
       </div>
 
       {groups.length === 0 ? (

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, Card, CardContent, cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
+import { Button, Card, CardContent, cn, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
 import { Heart, SlidersHorizontal, Sparkles } from "lucide-react";
 import type { Work } from "../domain/types";
 import { useWorks } from "../data/repo";
@@ -92,46 +92,55 @@ export function DiscothequeScreen() {
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-tight">Discotheque</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-              <SlidersHorizontal /> Add with details…
-            </Button>
-            <Button variant="ghost" size="icon-sm" aria-label="Enrich from MusicBrainz" title="Enrich from MusicBrainz" onClick={() => setLookupOpen(true)}>
-              <Sparkles />
-            </Button>
-          </div>
+          <PhoneDock row className="justify-end">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
+                <SlidersHorizontal /> Add with details…
+              </Button>
+              <Button variant="ghost" size="icon-sm" aria-label="Enrich from MusicBrainz" title="Enrich from MusicBrainz" onClick={() => setLookupOpen(true)}>
+                <Sparkles />
+              </Button>
+            </div>
+          </PhoneDock>
         </div>
         <QuickAdd />
       </div>
 
       <Tabs defaultValue="gallery">
-        <TabsList>
-          <TabsTrigger value="gallery">Gallery</TabsTrigger>
-          <TabsTrigger value="playlists">
-            Playlists <span className="ml-1 tabular-nums opacity-60">{playlistCount}</span>
-          </TabsTrigger>
-        </TabsList>
+        <PhoneDock row order={1}>
+          <TabsList>
+            <TabsTrigger value="gallery">Gallery</TabsTrigger>
+            <TabsTrigger value="playlists">
+              Playlists <span className="ml-1 tabular-nums opacity-60">{playlistCount}</span>
+            </TabsTrigger>
+          </TabsList>
+        </PhoneDock>
 
         <TabsContent value="gallery" className="grid gap-3 pt-2">
-          <div className="grid gap-2">
-            <ShelfControl value={shelf} onChange={setShelf} counts={shelfCounts} />
-            <LikedChip value={likedOnly} onChange={setLikedOnly} count={likedCount} />
-            <div className="flex flex-wrap gap-2">
+          <PhoneDock row>
+            {/* Desk: shelf and chips stay above the search (md:-order-1); phone: they and the sort go in the Filters sheet. */}
+            <div className="flex flex-1 flex-wrap gap-2">
               <Input className="min-w-40 flex-1" placeholder="Search album, artist, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
-              <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
-                <SelectTrigger className="w-44" aria-label="Sort">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {GALLERY_SORTS.map((f) => (
-                    <SelectItem key={f.value} value={f.value}>
-                      {f.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <PhoneFilters active={+(shelf !== "ALL") + +likedOnly + +(sort !== "ADDED")}>
+                <div className="grid w-full gap-2 md:-order-1">
+                  <ShelfControl value={shelf} onChange={setShelf} counts={shelfCounts} />
+                  <LikedChip value={likedOnly} onChange={setLikedOnly} count={likedCount} />
+                </div>
+                <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
+                  <SelectTrigger className="w-44" aria-label="Sort">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GALLERY_SORTS.map((f) => (
+                      <SelectItem key={f.value} value={f.value}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </PhoneFilters>
             </div>
-          </div>
+          </PhoneDock>
 
           {gallery.length === 0 ? (
             <Card>
