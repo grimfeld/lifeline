@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
-import { cn } from "@lifeline/ui";
+import { cn, PhoneDock } from "@lifeline/ui";
 import {
   appsOfModule,
   frames,
@@ -124,26 +124,28 @@ export function ModuleNav({ moduleId }: { moduleId: string }) {
 }
 
 /**
- * The Module's own navigation on the phone: at the **top** of the screen, never
- * in the Phone bar, which is Core's (ADR 0057). One scrolling row of its App
- * screens — and for Note-taking, the Vault's Folder tabs first.
+ * The Module's own navigation on the phone: in the **phone dock**, right above
+ * the Phone bar but never in it — the bar is Core's (ADR 0057). One scrolling
+ * row of its App screens — and for Note-taking, the Vault's Folder tabs first.
  */
 function ModuleTabs({ moduleId }: { moduleId: string }) {
   const screens = moduleScreens(moduleId);
   const vault = moduleId === "notes";
   if (!vault && screens.length < 2) return null;
   return (
-    <div className="flex shrink-0 gap-1 overflow-x-auto border-b px-2 py-1.5 md:hidden">
-      {vault && <VaultTabs />}
-      {screens.map((s) => {
-        const Icon = s.icon ?? LayoutDashboard;
-        return (
-          <NavLink key={s.id} to={screenRoute(s)} className={tabClass}>
-            <Icon className="size-3.5" /> {s.title}
-          </NavLink>
-        );
-      })}
-    </div>
+    <PhoneDock slot="module">
+      <div className="flex gap-1 overflow-x-auto px-2 py-1.5 md:hidden">
+        {vault && <VaultTabs />}
+        {screens.map((s) => {
+          const Icon = s.icon ?? LayoutDashboard;
+          return (
+            <NavLink key={s.id} to={screenRoute(s)} className={tabClass}>
+              <Icon className="size-3.5" /> {s.title}
+            </NavLink>
+          );
+        })}
+      </div>
+    </PhoneDock>
   );
 }
 

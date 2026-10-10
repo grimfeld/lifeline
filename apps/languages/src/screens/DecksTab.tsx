@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Card, CardContent, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
+import { Button, Card, CardContent, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, PhoneDock, toast } from "@lifeline/ui";
 import { Layers, Plus } from "lucide-react";
 import { plainSentence } from "../domain/cloze";
 import { SENTENCE, type Deck, type Item, type Language, type Sentence, type Word } from "../domain/types";
@@ -106,9 +106,11 @@ export function DecksTab({ language, decks, items }: { language: Language; decks
     <div className="grid gap-3">
       <div className="flex items-center justify-between">
         <p className="text-muted-foreground text-sm">A deck is a set you choose, to practise on its own.</p>
-        <Button onClick={() => setAdding(true)}>
-          <Plus /> Deck
-        </Button>
+        <PhoneDock>
+          <Button onClick={() => setAdding(true)}>
+            <Plus /> Deck
+          </Button>
+        </PhoneDock>
       </div>
       {decks.length === 0 ? (
         <p className="text-muted-foreground text-sm">No decks in {language.name} yet.</p>

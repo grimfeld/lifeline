@@ -1,7 +1,7 @@
 # Layout tests
 
 Every screen, at phone (`mobile`, 360px) and desktop (`desktop`, 1280px) width,
-over a store filled with the longest content a person could type (ADR 0064).
+over a store filled with the longest content a person could type (ADR 0065).
 
 ```sh
 pnpm test:e2e                                                      # from the repo root

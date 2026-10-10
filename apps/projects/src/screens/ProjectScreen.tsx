@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router";
-import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
+import { Button, PhoneDock, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
 import { useTasks } from "@lifeline/app-tasks";
 import { MarkdownView } from "@lifeline/editor";
 import { useLinkIndex, vaultDocPath } from "@lifeline/core";
@@ -75,12 +75,14 @@ export function ProjectScreen() {
       </header>
 
       <Tabs defaultValue="work">
-        <TabsList>
-          <TabsTrigger value="work">Milestones</TabsTrigger>
-          <TabsTrigger value="board">Board</TabsTrigger>
-          <TabsTrigger value="material">Material</TabsTrigger>
-          {project.body && <TabsTrigger value="plan">Plan</TabsTrigger>}
-        </TabsList>
+        <PhoneDock order={1}>
+          <TabsList>
+            <TabsTrigger value="work">Milestones</TabsTrigger>
+            <TabsTrigger value="board">Board</TabsTrigger>
+            <TabsTrigger value="material">Material</TabsTrigger>
+            {project.body && <TabsTrigger value="plan">Plan</TabsTrigger>}
+          </TabsList>
+        </PhoneDock>
         <TabsContent value="work" className="pt-2">
           <Milestones project={project} milestones={milestones} tasks={tasks} />
         </TabsContent>
