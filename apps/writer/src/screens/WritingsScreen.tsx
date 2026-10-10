@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Badge, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, cn, toast } from "@lifeline/ui";
+import { Badge, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, PhoneDock, cn, toast } from "@lifeline/ui";
 import { basePath, excerpt, formatHuman } from "@lifeline/core";
 import { Feather, Plus, Table2 } from "lucide-react";
 import { newWriting, useWritings } from "../data";
@@ -8,8 +8,8 @@ import { groupOf, STATUSES, WRITING, wordCount, writingHref, type WritingStatus 
 
 /**
  * The Writer's desk: writings grouped by status, newest edit first; New writing.
- * Below `md` the header stacks (title row, then the status filter as a
- * scrollable strip) and a row is one tap target — see ADR 0021.
+ * Below `md` the status strip and the actions sit in the phone dock and a
+ * row is one tap target — see ADR 0021.
  */
 export function WritingsScreen() {
   const writings = useWritings();
@@ -41,34 +41,28 @@ export function WritingsScreen() {
           <Feather className="text-muted-foreground size-5 shrink-0" />
           <h1 className="text-lg font-semibold tracking-tight">Writings</h1>
           <Badge variant="secondary">{writings.length}</Badge>
-          <div className="ml-auto flex items-center gap-1 md:hidden">
+        </div>
+        <PhoneDock row order={1}>
+          <div className="flex gap-0.5 md:ml-4">
+            {(["all", ...STATUSES.map((s) => s.value)] as const).map((s) => (
+              <button key={s} className={cn("shrink-0 rounded-md px-2 py-1 text-xs md:py-0.5", status === s ? "bg-accent font-medium" : "text-muted-foreground hover:bg-accent/50")} onClick={() => setStatus(s)}>
+                {s === "all" ? "All" : STATUSES.find((x) => x.value === s)?.label}
+              </button>
+            ))}
+          </div>
+        </PhoneDock>
+        <PhoneDock row className="justify-end">
+          <div className="ml-auto flex items-center gap-1">
             <Button size="sm" variant="ghost" asChild>
-              <Link to={basePath(WRITING)} aria-label="Open the Writings Base">
-                <Table2 />
+              <Link to={basePath(WRITING)}>
+                <Table2 /> Base
               </Link>
             </Button>
             <Button size="sm" onClick={() => setOpen(true)}>
-              <Plus /> New
+              <Plus /> New writing
             </Button>
           </div>
-        </div>
-        <div className="-mx-3 flex gap-0.5 overflow-x-auto px-3 md:mx-0 md:ml-4 md:overflow-visible md:px-0">
-          {(["all", ...STATUSES.map((s) => s.value)] as const).map((s) => (
-            <button key={s} className={cn("shrink-0 rounded-md px-2 py-1 text-xs md:py-0.5", status === s ? "bg-accent font-medium" : "text-muted-foreground hover:bg-accent/50")} onClick={() => setStatus(s)}>
-              {s === "all" ? "All" : STATUSES.find((x) => x.value === s)?.label}
-            </button>
-          ))}
-        </div>
-        <div className="ml-auto flex items-center gap-1 max-md:hidden">
-          <Button size="sm" variant="ghost" asChild>
-            <Link to={basePath(WRITING)}>
-              <Table2 /> Base
-            </Link>
-          </Button>
-          <Button size="sm" onClick={() => setOpen(true)}>
-            <Plus /> New writing
-          </Button>
-        </div>
+        </PhoneDock>
       </header>
       <ul className="min-h-0 flex-1 divide-y overflow-y-auto">
         {rows.length === 0 && <li className="text-muted-foreground px-4 py-8 text-center text-sm">Nothing here yet. Start a new writing.</li>}
