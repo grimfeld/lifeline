@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Button, Input } from "@lifeline/ui";
+import { Button, Input, PhoneDock } from "@lifeline/ui";
 import { addDays, documentType, formatHuman, todayStr, useDocuments, useLinkIndex, type DateStr } from "@lifeline/core";
 import { DocumentEditor } from "@lifeline/editor";
 import { ChevronLeft, ChevronRight, PenLine } from "lucide-react";
@@ -9,8 +9,9 @@ import { ensureDailyNote } from "../data/repo";
 
 /**
  * /vault/journal?d=YYYY-MM-DD — the Journal: "the daily note open in the
- * Vault" with a date toolbar (ADR 0012). Today's note is created on first
- * visit so writing can start immediately.
+ * Vault" with a date toolbar (ADR 0012) — in the phone dock above the Phone
+ * bar on a phone. Today's note is created on first visit so writing can start
+ * immediately.
  */
 export function JournalScreen() {
   const [params] = useSearchParams();
@@ -35,32 +36,34 @@ export function JournalScreen() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-2 border-b px-4 py-1.5">
-        <Button size="icon" variant="ghost" className="size-7" onClick={() => go(addDays(date, -1))} aria-label="Previous day">
-          <ChevronLeft />
-        </Button>
-        <Button size="icon" variant="ghost" className="size-7" onClick={() => go(addDays(date, 1))} aria-label="Next day">
-          <ChevronRight />
-        </Button>
-        <Button variant={date === today ? "secondary" : "outline"} className="h-7" onClick={() => go(today)}>
-          Today
-        </Button>
-        <Input type="date" className="h-7 w-36" value={date} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
-        <div className="hidden items-center gap-1 xl:flex">
-          {strip.map((d) => (
-            <button
-              key={d}
-              onClick={() => go(d)}
-              title={formatHuman(d)}
-              aria-label={d}
-              className={`size-6 rounded text-[10px] tabular-nums ${d === date ? "bg-primary text-primary-foreground" : daysWithNotes.has(d) ? "bg-muted hover:bg-accent" : "text-muted-foreground hover:bg-accent"} ${d > today ? "opacity-40" : ""}`}
-            >
-              {Number(d.slice(-2))}
-            </button>
-          ))}
+      <PhoneDock>
+        <div className="flex items-center gap-2 border-b px-4 py-1.5 max-md:border-b-0 max-md:px-3">
+          <Button size="icon" variant="ghost" className="size-7" onClick={() => go(addDays(date, -1))} aria-label="Previous day">
+            <ChevronLeft />
+          </Button>
+          <Button size="icon" variant="ghost" className="size-7" onClick={() => go(addDays(date, 1))} aria-label="Next day">
+            <ChevronRight />
+          </Button>
+          <Button variant={date === today ? "secondary" : "outline"} className="h-7" onClick={() => go(today)}>
+            Today
+          </Button>
+          <Input type="date" className="h-7 w-36" value={date} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
+          <div className="hidden items-center gap-1 xl:flex">
+            {strip.map((d) => (
+              <button
+                key={d}
+                onClick={() => go(d)}
+                title={formatHuman(d)}
+                aria-label={d}
+                className={`size-6 rounded text-[10px] tabular-nums ${d === date ? "bg-primary text-primary-foreground" : daysWithNotes.has(d) ? "bg-muted hover:bg-accent" : "text-muted-foreground hover:bg-accent"} ${d > today ? "opacity-40" : ""}`}
+              >
+                {Number(d.slice(-2))}
+              </button>
+            ))}
+          </div>
+          <div className="text-muted-foreground ml-auto truncate text-xs">{note?.folder ? `/ ${note.folder.split("/").join(" / ")} /` : ""}</div>
         </div>
-        <div className="text-muted-foreground ml-auto truncate text-xs">{note?.folder ? `/ ${note.folder.split("/").join(" / ")} /` : ""}</div>
-      </div>
+      </PhoneDock>
       {note ? (
         <DocumentEditor key={note.id} doc={note} def={def} index={index} docDate={date} autoFocus={date === today} onDeleted={() => navigate("/vault/journal")} />
       ) : (

@@ -746,9 +746,8 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
               <Plus />
             </Button>
           ),
+          isMobile && view === "day" && <DayStrip anchor={anchor} today={today} onPick={(d) => go(d)} />,
         )}
-
-        {isMobile && view === "day" && <DayStrip anchor={anchor} today={today} onPick={(d) => go(d)} />}
 
         <div className="grid min-h-0 flex-1 grid-cols-[13rem_1fr] gap-2 max-md:flex max-md:flex-col">
           <div className="flex min-h-0 flex-col gap-2 max-md:contents">
