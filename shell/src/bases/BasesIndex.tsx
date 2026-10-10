@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
+import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, PhoneDock, toast } from "@lifeline/ui";
 import {
   appById,
   basePath,
@@ -87,9 +87,11 @@ export function BasesIndex() {
       <header className="flex items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight">Bases</h1>
         <span className="text-muted-foreground text-sm">one per Document type — adding a type adds a Base</span>
-        <Button className="ml-auto" onClick={() => setEditing({ record: null })}>
-          <Plus /> New type
-        </Button>
+        <PhoneDock row className="justify-end">
+          <Button className="ml-auto" onClick={() => setEditing({ record: null })}>
+            <Plus /> New type
+          </Button>
+        </PhoneDock>
       </header>
       <ul className="grid gap-1">
         {visible.map((t) => (

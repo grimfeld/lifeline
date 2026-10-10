@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Badge, Button, Card, CardContent, Input, cn } from "@lifeline/ui";
+import { Badge, Button, Card, CardContent, Input, PhoneDock, PhoneFilters, cn } from "@lifeline/ui";
 import { Pause, Play, Plus, Search } from "lucide-react";
 import { plainSentence } from "../domain/cloze";
 import { heldPrompts } from "../domain/practice";
@@ -59,31 +59,35 @@ export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck
 
   return (
     <div className="grid gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-40 flex-1">
-          <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" className="pl-8" />
+      <PhoneDock row>
+        <div className="flex flex-wrap items-center gap-2 max-md:contents">
+          <div className="relative min-w-40 flex-1 max-md:min-w-28">
+            <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" className="pl-8" />
+          </div>
+          <Button variant="outline" onClick={() => setAddingSentence(true)}>
+            <Plus /> Sentence
+          </Button>
+          <Button onClick={() => setAddingWord(true)}>
+            <Plus /> Word
+          </Button>
         </div>
-        <Button variant="outline" onClick={() => setAddingSentence(true)}>
-          <Plus /> Sentence
-        </Button>
-        <Button onClick={() => setAddingWord(true)}>
-          <Plus /> Word
-        </Button>
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {chips.map(([f, label]) => (
-          <button key={f} onClick={() => setFilter(f)} className={cn("rounded-full border px-3 py-1 text-xs", filter === f ? "bg-accent text-accent-foreground border-transparent font-medium" : "text-muted-foreground")}>
-            {label}
-          </button>
-        ))}
-        {decks.length > 0 && <span className="bg-border mx-1 h-4 w-px" />}
-        {decks.map((d) => (
-          <button key={d.id} onClick={() => setDeckId(deckId === d.id ? "" : d.id)} className={cn("rounded-full border px-3 py-1 text-xs", deckId === d.id ? "bg-accent text-accent-foreground border-transparent font-medium" : "text-muted-foreground")}>
-            {d.name}
-          </button>
-        ))}
-      </div>
+        <PhoneFilters active={(filter === "all" ? 0 : 1) + (deckId ? 1 : 0)}>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {chips.map(([f, label]) => (
+              <button key={f} onClick={() => setFilter(f)} className={cn("rounded-full border px-3 py-1 text-xs", filter === f ? "bg-accent text-accent-foreground border-transparent font-medium" : "text-muted-foreground")}>
+                {label}
+              </button>
+            ))}
+            {decks.length > 0 && <span className="bg-border mx-1 h-4 w-px" />}
+            {decks.map((d) => (
+              <button key={d.id} onClick={() => setDeckId(deckId === d.id ? "" : d.id)} className={cn("rounded-full border px-3 py-1 text-xs", deckId === d.id ? "bg-accent text-accent-foreground border-transparent font-medium" : "text-muted-foreground")}>
+                {d.name}
+              </button>
+            ))}
+          </div>
+        </PhoneFilters>
+      </PhoneDock>
 
       {shown.length === 0 ? (
         <p className="text-muted-foreground text-sm">{items.length === 0 ? "Nothing here yet — add a word you met today." : "Nothing matches."}</p>

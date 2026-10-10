@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, Card, CardContent, cn } from "@lifeline/ui";
+import { Button, Card, CardContent, PhoneDock, cn } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import { Archive, ChevronDown, ChevronLeft, ChevronRight, Pencil, PiggyBank, Plus } from "lucide-react";
 import { faceColor, faceOf, type Fine, type Offence } from "../domain/types";
@@ -53,12 +53,14 @@ export function SwearJarScreen() {
       <div className="flex flex-wrap items-center gap-2">
         <PiggyBank className="size-5" />
         <h1 className="flex-1 text-lg font-semibold">Swear Jar</h1>
-        <Button variant="outline" onClick={() => setNewOpen(true)}>
-          <Plus /> New offence
-        </Button>
-        <Button onClick={() => openFine()} disabled={active.length === 0}>
-          <Plus /> Fine…
-        </Button>
+        <PhoneDock row className="justify-end">
+          <Button variant="outline" onClick={() => setNewOpen(true)}>
+            <Plus /> New offence
+          </Button>
+          <Button onClick={() => openFine()} disabled={active.length === 0}>
+            <Plus /> Fine…
+          </Button>
+        </PhoneDock>
       </div>
 
       <Card className="py-0">

@@ -9,6 +9,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  PhoneDock,
   TagChips,
   Tabs,
   TabsContent,
@@ -117,23 +118,27 @@ export function EventsScreen() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
         {tab === "events" && (
-          <Button
-            onClick={() => {
-              setEditing(undefined);
-              setDialogOpen(true);
-            }}
-          >
-            <Plus /> New event
-          </Button>
+          <PhoneDock row className="justify-end">
+            <Button
+              onClick={() => {
+                setEditing(undefined);
+                setDialogOpen(true);
+              }}
+            >
+              <Plus /> New event
+            </Button>
+          </PhoneDock>
         )}
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setParams(v === "events" ? {} : { tab: v })}>
-        <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
-          <TabsTrigger value="events">Events</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="blockers">Blockers</TabsTrigger>
-        </TabsList>
+        <PhoneDock row order={1}>
+          <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
+            <TabsTrigger value="events">Events</TabsTrigger>
+            <TabsTrigger value="templates">Templates</TabsTrigger>
+            <TabsTrigger value="blockers">Blockers</TabsTrigger>
+          </TabsList>
+        </PhoneDock>
 
         <TabsContent value="events" className="grid min-w-0 gap-6 pt-4">
           {events.length === 0 && (
