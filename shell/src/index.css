@@ -107,6 +107,15 @@ aside nav:hover {
    layer so a button's own position utility (absolute, fixed) still wins -
    unlayered, it forced every absolute button on a phone back into the flow. */
 @layer base {
+  /*
+   * A word longer than its box (a URL, a code, a German compound) breaks
+   * rather than widening the box: \`anywhere\`, unlike \`break-word\`, also
+   * lets grid and flex tracks shrink below the word. Labels that should stay
+   * on one line say so with \`truncate\`. Checked by shell/e2e/screens.spec.ts.
+   */
+  body {
+    overflow-wrap: anywhere;
+  }
   @media (pointer: coarse) {
     main button {
       position: relative;
