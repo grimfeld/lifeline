@@ -16,6 +16,7 @@ import {
 } from "@lifeline/core";
 import { Rail } from "./components/Rail";
 import { CommandPalette } from "./components/CommandPalette";
+import { AccountDialogs } from "./components/AccountDialogs";
 import { PrivateDialogs } from "./vault/PrivateDialogs";
 import { CalendarPage } from "./surfaces/CalendarSurface";
 import { MapPage } from "./surfaces/MapPage";
@@ -175,6 +176,7 @@ export default function App() {
         <CommandPalette />
         <PeekHost />
         <PrivateDialogs />
+        <AccountDialogs />
         <Toaster position="bottom-right" />
       </div>
     </PushProvider>

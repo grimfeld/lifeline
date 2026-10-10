@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Badge, Button, Card, CardContent, GraphView, Input, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
+import { Badge, Button, Card, CardContent, GraphView, Input, PhoneDock, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
 import { buildGraph, displayTitle, docHref, documentType, excerpt, formatHuman, singularOf, useDocumentTypes, useLinkIndex, vaultDocPath, type Document } from "@lifeline/core";
 import { BookOpen, ChevronDown, ChevronRight, Plus, Search } from "lucide-react";
 import { canonical, parseRef } from "../domain/refs";
@@ -126,9 +126,9 @@ function BibleGraph() {
 
 /**
  * The study desk (ADR 0032), in the Vault: the study, the scripture touched,
- * characters, concepts, talks, the scoped graph. Below `md` the header stacks
- * (title row, then the lookup on a full-width row of its own) and the six tabs
- * become a strip that scrolls, the chosen one brought into view — see ADR 0021.
+ * characters, concepts, talks, the scoped graph. Below `md` the lookup and the
+ * six tabs go to the phone dock, the tabs a strip that scrolls, the chosen one
+ * brought into view — see ADR 0021.
  */
 export function BibleDeskScreen() {
   const navigate = useNavigate();
@@ -164,24 +164,28 @@ export function BibleDeskScreen() {
           <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight md:text-2xl">
             <BookOpen className="size-5 shrink-0 md:size-6" /> Bible study
           </h1>
-          <div className="flex items-center gap-1 md:ml-auto">
-            <Input className="h-9 min-w-0 flex-1 md:h-8 md:w-44 md:flex-none" placeholder="Jn 3:16" value={lookup} onChange={(e) => setLookup(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void go()} aria-label="Look up a reference" />
-            <Button size="sm" variant="outline" className="h-9 shrink-0 md:h-8" disabled={!parsed} onClick={() => void go()} title={parsed ? `Open ${canonical(parsed)}` : "Type a reference"}>
-              <Search /> {parsed ? canonical(parsed) : "Open"}
-            </Button>
-          </div>
+          <PhoneDock>
+            <div className="flex items-center gap-1 max-md:contents md:ml-auto">
+              <Input className="h-9 min-w-0 flex-1 md:h-8 md:w-44 md:flex-none" placeholder="Jn 3:16" value={lookup} onChange={(e) => setLookup(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void go()} aria-label="Look up a reference" />
+              <Button size="sm" variant="outline" className="h-9 shrink-0 md:h-8" disabled={!parsed} onClick={() => void go()} title={parsed ? `Open ${canonical(parsed)}` : "Type a reference"}>
+                <Search /> {parsed ? canonical(parsed) : "Open"}
+              </Button>
+            </div>
+          </PhoneDock>
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setParams(v === "study" ? {} : { tab: v })}>
-          {/* Six tabs never fit a phone; the strip scrolls (justify-start, or the first tabs would be unreachable) and the chosen one is scrolled into view. */}
-          <TabsList ref={tabsRef} className="max-w-full justify-start overflow-x-auto overflow-y-hidden scroll-px-3">
-            <TabsTrigger value="study">Study ({study.length})</TabsTrigger>
-            <TabsTrigger value="scripture">Scripture</TabsTrigger>
-            <TabsTrigger value="characters">Characters ({characters.length})</TabsTrigger>
-            <TabsTrigger value="concepts">Concepts ({concepts.length})</TabsTrigger>
-            <TabsTrigger value="talks">Talks ({talks.length})</TabsTrigger>
-            <TabsTrigger value="graph">Graph</TabsTrigger>
-          </TabsList>
+          {/* A narrow desk may not fit six tabs; the strip scrolls (justify-start, or the first tabs would be unreachable) and the chosen one is scrolled into view. On a phone it is a select. */}
+          <PhoneDock order={1}>
+            <TabsList ref={tabsRef} className="md:max-w-full md:justify-start md:overflow-x-auto md:overflow-y-hidden md:scroll-px-3">
+              <TabsTrigger value="study">Study ({study.length})</TabsTrigger>
+              <TabsTrigger value="scripture">Scripture</TabsTrigger>
+              <TabsTrigger value="characters">Characters ({characters.length})</TabsTrigger>
+              <TabsTrigger value="concepts">Concepts ({concepts.length})</TabsTrigger>
+              <TabsTrigger value="talks">Talks ({talks.length})</TabsTrigger>
+              <TabsTrigger value="graph">Graph</TabsTrigger>
+            </TabsList>
+          </PhoneDock>
 
           <TabsContent value="study" className="grid gap-1 pt-4">
             {study.length === 0 && (

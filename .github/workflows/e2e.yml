@@ -1,5 +1,5 @@
 name: Layout tests
-# Every screen at phone and desktop width over long content (ADR 0064).
+# Every screen at phone and desktop width over long content (ADR 0065).
 on:
   pull_request:
   push:

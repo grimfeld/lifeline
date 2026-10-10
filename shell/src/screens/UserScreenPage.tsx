@@ -17,6 +17,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  PhoneDock,
   cn,
   toast,
 } from "@lifeline/ui";
@@ -337,7 +338,7 @@ export function UserScreenPage() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Wraps below `md`: the actions take their own row rather than pushing the name off the screen. */}
+      {/* Wraps below `md`: the tag picker takes its own row; the actions sit in the dock. */}
       <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
         <h1 className="truncate text-lg font-semibold tracking-tight">{screen.name}</h1>
         {editing && <Badge variant="secondary">editing</Badge>}
@@ -354,33 +355,35 @@ export function UserScreenPage() {
         ) : (
           <TagChips tags={screen.tags} />
         )}
-        <div className="ml-auto flex items-center gap-1">
-          {editing && (
-            <Button variant="outline" className="h-8" onClick={() => setPickerOpen(true)}>
-              <Plus /> Add card
-            </Button>
-          )}
-          <Button
-            variant={editing ? "default" : "outline"}
-            className="h-8"
-            onClick={() => setEditing((e) => !e)}
-          >
-            {editing ? <Check /> : <LayoutGrid />}
-            {editing ? "Done" : "Edit"}
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="icon" variant="ghost" className="size-8">
-                <MoreHorizontal />
+        <PhoneDock>
+          <div className="ml-auto flex items-center gap-1 max-md:contents">
+            {editing && (
+              <Button variant="outline" className="h-8" onClick={() => setPickerOpen(true)}>
+                <Plus /> Add card
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem variant="destructive" onClick={() => void deleteScreen()}>
-                <Trash2 /> Delete screen
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            )}
+            <Button
+              variant={editing ? "default" : "outline"}
+              className="h-8"
+              onClick={() => setEditing((e) => !e)}
+            >
+              {editing ? <Check /> : <LayoutGrid />}
+              {editing ? "Done" : "Edit"}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost" className="size-8" aria-label="Screen actions" title="Screen actions">
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem variant="destructive" onClick={() => void deleteScreen()}>
+                  <Trash2 /> Delete screen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </PhoneDock>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">

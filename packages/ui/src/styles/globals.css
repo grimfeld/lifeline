@@ -168,3 +168,20 @@
     overscroll-behavior: none;
   }
 }
+/*
+ * The phone dock's page line (phone-dock.tsx, ADR 0064): its items are the
+ * children of each PhoneDock's `display: contents` wrapper, and of any group a
+ * page unwraps with `max-md:contents` inside it. Each takes the PhoneDock's
+ * order, may shrink, and grows to share its line — icon buttons excepted.
+ */
+[data-phone-dock-line] > * > *,
+[data-phone-dock-line] > * > .max-md\:contents > *,
+[data-phone-dock-line] > * > .max-md\:contents > .max-md\:contents > * {
+  order: var(--dock-order);
+  min-width: 0;
+}
+[data-phone-dock-line] > * > :not([data-size^="icon"]),
+[data-phone-dock-line] > * > .max-md\:contents > :not([data-size^="icon"]),
+[data-phone-dock-line] > * > .max-md\:contents > .max-md\:contents > :not([data-size^="icon"]) {
+  flex-grow: 1;
+}

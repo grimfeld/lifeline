@@ -8,6 +8,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  PhoneDock,
   TagChips,
   toast,
 } from "@lifeline/ui";
@@ -84,23 +85,25 @@ export function SourcesScreen() {
       <div className="flex items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight">Sources</h1>
         <span className="text-muted-foreground text-sm">{sources.length} source{sources.length === 1 ? "" : "s"}</span>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="ml-auto h-8">
-              <Plus /> New
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {KIND_ORDER.map((k) => {
-              const Icon = KIND_ICON[k];
-              return (
-                <DropdownMenuItem key={k} onClick={() => setDialog({ kind: k })}>
-                  <Icon /> New {KIND_LABEL[k]}
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <PhoneDock>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="ml-auto h-8">
+                <Plus /> New
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {KIND_ORDER.map((k) => {
+                const Icon = KIND_ICON[k];
+                return (
+                  <DropdownMenuItem key={k} onClick={() => setDialog({ kind: k })}>
+                    <Icon /> New {KIND_LABEL[k]}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </PhoneDock>
       </div>
       <div className="grid gap-4 overflow-y-auto">
         {sources.length === 0 && (
