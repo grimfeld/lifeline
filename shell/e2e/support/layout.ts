@@ -67,7 +67,19 @@ function findLayoutProblems(): LayoutProblem[] {
     // Third-party content that manages its own viewport.
     if (el.closest(".cm-editor, .leaflet-container, .recharts-wrapper, [data-scroll-x]")) continue;
     const by = el.scrollWidth - el.clientWidth;
-    if (by > TOLERANCE) report({ kind: "stray-scroll", where: describe(el), text: (el.textContent ?? "").trim().slice(0, 80), by });
+    if (by <= TOLERANCE) continue;
+    // Name the box reaching furthest past the edge: that is where the fix goes.
+    const edge = el.getBoundingClientRect().right;
+    let widest: Element = el;
+    let reach = edge;
+    for (const d of Array.from(el.querySelectorAll("*"))) {
+      const r = d.getBoundingClientRect();
+      if (r.width > 0 && r.right > reach + TOLERANCE) {
+        widest = d;
+        reach = r.right;
+      }
+    }
+    report({ kind: "stray-scroll", where: `${describe(el)}\n      widest: ${describe(widest)}`, text: (widest.textContent ?? "").trim().slice(0, 80), by });
   }
 
   // Spilled and cut text.
