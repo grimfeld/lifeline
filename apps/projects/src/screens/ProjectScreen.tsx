@@ -75,7 +75,7 @@ export function ProjectScreen() {
       </header>
 
       <Tabs defaultValue="work">
-        <PhoneDock row order={1}>
+        <PhoneDock order={1}>
           <TabsList>
             <TabsTrigger value="work">Milestones</TabsTrigger>
             <TabsTrigger value="board">Board</TabsTrigger>

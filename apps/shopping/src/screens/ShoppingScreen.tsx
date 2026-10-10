@@ -39,7 +39,7 @@ export function ShoppingScreen() {
         <h1 className="mr-auto text-lg font-semibold">
           Shopping list <span className="text-muted-foreground text-sm font-normal">{listed}</span>
         </h1>
-        <PhoneDock row className="justify-end">
+        <PhoneDock>
           <Button type="button" variant="outline" onClick={() => openAisle(null)}>
             New aisle
           </Button>

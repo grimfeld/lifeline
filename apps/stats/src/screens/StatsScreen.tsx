@@ -17,7 +17,7 @@ export function StatsScreen() {
     <div className="mx-auto grid w-full max-w-5xl gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Stats</h1>
-        <PhoneDock row className="justify-end">
+        <PhoneDock>
           <Button onClick={() => setEditorOpen(true)}>
             <Plus /> New stat
           </Button>

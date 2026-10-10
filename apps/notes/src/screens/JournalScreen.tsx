@@ -37,7 +37,7 @@ export function JournalScreen() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PhoneDock>
-        <div className="flex items-center gap-2 border-b px-4 py-1.5 max-md:border-b-0 max-md:px-3">
+        <div className="flex items-center gap-2 border-b px-4 py-1.5 max-md:contents">
           <Button size="icon" variant="ghost" className="size-7" onClick={() => go(addDays(date, -1))} aria-label="Previous day">
             <ChevronLeft />
           </Button>
@@ -47,7 +47,7 @@ export function JournalScreen() {
           <Button variant={date === today ? "secondary" : "outline"} className="h-7" onClick={() => go(today)}>
             Today
           </Button>
-          <Input type="date" className="h-7 w-36" value={date} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
+          <Input type="date" className="h-7 w-36 max-md:w-auto" value={date} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
           <div className="hidden items-center gap-1 xl:flex">
             {strip.map((d) => (
               <button
@@ -61,7 +61,7 @@ export function JournalScreen() {
               </button>
             ))}
           </div>
-          <div className="text-muted-foreground ml-auto truncate text-xs">{note?.folder ? `/ ${note.folder.split("/").join(" / ")} /` : ""}</div>
+          <div className="text-muted-foreground ml-auto truncate text-xs max-md:hidden">{note?.folder ? `/ ${note.folder.split("/").join(" / ")} /` : ""}</div>
         </div>
       </PhoneDock>
       {note ? (

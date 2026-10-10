@@ -143,7 +143,7 @@ export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { v
     // On a phone the header is the controls in the dock above the Phone bar,
     // under the thumb; on the desk it heads the view. Swipes never start in it:
     // its controls scroll sideways on their own.
-    <PhoneDock className="flex flex-col gap-2 px-3 py-2">
+    <PhoneDock>
       <div className="flex flex-wrap items-center gap-2" data-no-swipe>
         {isMobile ? (
           // A phone has no width for five segments: the views are a menu under the title, as in Google's.
@@ -171,7 +171,8 @@ export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { v
             <span className="text-muted-foreground text-sm">{label(view, days, anchor)}</span>
           </>
         )}
-        <div className="ml-auto flex items-center gap-1">
+        {/* On a phone the controls fill what's left of the line (or the next one), Today taking the slack */}
+        <div className="ml-auto flex items-center gap-1 max-md:flex-1">
           <TagFilterBar value={tagFilter} onChange={setTagFilter} className="mr-2" />
           <TimeAppLinks />
           {!isMobile && views.length > 1 && (
@@ -194,7 +195,7 @@ export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { v
               <ChevronLeft />
             </Button>
           )}
-          <Button variant="outline" className="h-8" onClick={() => go(today)}>
+          <Button variant="outline" className="h-8 max-md:flex-1" onClick={() => go(today)}>
             Today
           </Button>
           {pageable && (

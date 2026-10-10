@@ -35,8 +35,8 @@ export function LifeLevelScreen() {
     <div className="mx-auto grid w-full max-w-5xl gap-4 p-4 sm:gap-6 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Life Level</h1>
-        <PhoneDock row className="justify-end">
-          <div className="flex items-center gap-2">
+        <PhoneDock>
+          <div className="flex items-center gap-2 max-md:contents">
             <Button size="icon" variant="ghost" className="size-8" title={muted ? "Unmute sounds" : "Mute sounds"} onClick={toggle}>
               {muted ? <VolumeX /> : <Volume2 />}
             </Button>

@@ -5,23 +5,60 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { Tabs as TabsPrimitive } from "radix-ui"
 
 import { cn } from "../../lib/utils"
+import { usePhone } from "./phone-dock"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
+
+/**
+ * The value in view, held here as well as by Radix: on a phone the list is a
+ * select (tabs are cramped and fiddly under a thumb), and the select needs the
+ * value Radix does not share.
+ */
+const TabsValue = React.createContext<{ value: string | undefined; setValue: (v: string) => void } | null>(null)
 
 function Tabs({
   className,
   orientation = "horizontal",
+  value: controlled,
+  defaultValue,
+  onValueChange,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Root>) {
-  return (
-    <TabsPrimitive.Root
-      data-slot="tabs"
-      data-orientation={orientation}
-      className={cn(
-        "group/tabs flex gap-2 data-horizontal:flex-col",
-        className
-      )}
-      {...props}
-    />
+  const [uncontrolled, setUncontrolled] = React.useState(defaultValue)
+  const value = controlled ?? uncontrolled
+  const setValue = React.useCallback(
+    (v: string) => {
+      if (controlled === undefined) setUncontrolled(v)
+      onValueChange?.(v)
+    },
+    [controlled, onValueChange]
   )
+  return (
+    <TabsValue.Provider value={{ value, setValue }}>
+      <TabsPrimitive.Root
+        data-slot="tabs"
+        data-orientation={orientation}
+        className={cn(
+          "group/tabs flex gap-2 data-horizontal:flex-col",
+          className
+        )}
+        value={value}
+        onValueChange={setValue}
+        {...props}
+      />
+    </TabsValue.Provider>
+  )
+}
+
+/** The triggers under a list, through fragments and conditionals, as select options. */
+function triggersOf(children: React.ReactNode): { value: string; label: React.ReactNode; disabled?: boolean }[] {
+  const out: { value: string; label: React.ReactNode; disabled?: boolean }[] = []
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement(child)) return
+    const props = child.props as { value?: string; children?: React.ReactNode; disabled?: boolean }
+    if (child.type === TabsTrigger && props.value !== undefined) out.push({ value: props.value, label: props.children, disabled: props.disabled })
+    else if (props.children) out.push(...triggersOf(props.children))
+  })
+  return out
 }
 
 const tabsListVariants = cva(
@@ -39,12 +76,31 @@ const tabsListVariants = cva(
   }
 )
 
+/** The tab buttons on the desk; on a phone, a select of the same choices. */
 function TabsList({
   className,
   variant = "default",
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List> &
   VariantProps<typeof tabsListVariants>) {
+  const phone = usePhone()
+  const tabs = React.useContext(TabsValue)
+  if (phone && tabs) {
+    return (
+      <Select value={tabs.value} onValueChange={tabs.setValue}>
+        <SelectTrigger data-slot="tabs-list" aria-label={props["aria-label"] ?? "View"} className={cn("min-w-0 *:data-[slot=select-value]:gap-1.5", className)}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {triggersOf(props.children).map((t) => (
+            <SelectItem key={t.value} value={t.value} disabled={t.disabled}>
+              {t.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    )
+  }
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"

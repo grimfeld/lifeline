@@ -129,8 +129,8 @@ export function GraphPage() {
         <span className="text-muted-foreground text-xs tabular-nums">
           {model.nodes.length} nodes · {model.edges.length} links
         </span>
-        <PhoneDock row>
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find…" className="h-7 w-40 text-xs max-md:min-w-0 max-md:flex-1" />
+        <PhoneDock>
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find…" className="h-7 w-40 text-xs max-md:h-8 max-md:w-auto max-md:basis-32" />
           <PhoneFilters active={activeFilters}>
             <TagFilterBar value={prefs.tagFilter} onChange={(tagFilter) => setPrefs({ tagFilter })} />
             <div className="ml-auto flex flex-wrap items-center gap-1 max-md:ml-0">

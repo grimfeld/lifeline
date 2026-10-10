@@ -193,7 +193,7 @@ export function ChoresScreen() {
     <div className="mx-auto grid w-full max-w-3xl gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Chores</h1>
-        <PhoneDock row className="justify-end">
+        <PhoneDock>
           <Button
             onClick={() => {
               setEditing(undefined);

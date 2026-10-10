@@ -85,7 +85,7 @@ export function SourcesScreen() {
       <div className="flex items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight">Sources</h1>
         <span className="text-muted-foreground text-sm">{sources.length} source{sources.length === 1 ? "" : "s"}</span>
-        <PhoneDock row className="justify-end">
+        <PhoneDock>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="ml-auto h-8">

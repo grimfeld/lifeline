@@ -118,7 +118,7 @@ export function EventsScreen() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Events</h1>
         {tab === "events" && (
-          <PhoneDock row className="justify-end">
+          <PhoneDock>
             <Button
               onClick={() => {
                 setEditing(undefined);
@@ -132,8 +132,8 @@ export function EventsScreen() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setParams(v === "events" ? {} : { tab: v })}>
-        <PhoneDock row order={1}>
-          <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
+        <PhoneDock order={1}>
+          <TabsList className="md:max-w-full md:overflow-x-auto md:overflow-y-hidden">
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
             <TabsTrigger value="blockers">Blockers</TabsTrigger>

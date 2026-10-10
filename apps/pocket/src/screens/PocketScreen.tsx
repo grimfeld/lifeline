@@ -85,7 +85,7 @@ export function PocketScreen() {
       <div className="flex flex-wrap items-center gap-2">
         <Wallet className="size-5" />
         <h1 className="flex-1 text-lg font-semibold">Pocket</h1>
-        <PhoneDock row className="justify-end">
+        <PhoneDock>
           <Button variant="outline" onClick={() => setNewOpen(true)}>
             <Plus /> New allowance
           </Button>

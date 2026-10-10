@@ -141,7 +141,7 @@ The phone's **Rail**: the five slots at the foot of the phone, Core's, the same 
 _Avoid_: tab bar, dock, bottom nav, navbar, menu (what ☰ opens), tabs (the Vault's Folder tabs are a different thing), toolbar
 
 ### Phone dock
-The strip right above the Phone bar where a page's controls sit on the phone, under the thumb rather than at the top of the screen: a Module's tabs (the Vault's Folder tabs among them) against the bar, and above them the page's own controls — the Calendar's view, paging and Today, the Journal's date toolbar, an App's tabs, its search and its main add. Filters beyond a search fold behind one **Filters** button that opens them in a sheet, so the dock stays a row or two; titles, quick-add fields and a single thing's own header (back, edit, delete) stay at the top. Two slots, so a page's controls and its Module's navigation never trade places. On the desk nothing moves: the same controls stay where they stand. The editor's key bar stacks above the dock, not over it.
+The strip right above the Phone bar where a page's controls sit on the phone, under the thumb rather than at the top of the screen (ADR 0064): the Module's tabs against the bar, and above them **one line** of the page's own — tabs and view switches (a select on the phone, never a tab bar), date paging, its search, its main add. Filters beyond a search fold behind one **Filters** button that opens them in a sheet. Whatever is alone on a line takes the full width. Titles, quick-add fields and a single thing's own header (back, edit, delete) stay at the top. On the desk nothing moves. The editor's key bar stacks above the dock, not over it.
 _Avoid_: toolbar, bottom bar (the Phone bar is the bar), dock (alone — say Phone dock)
 
 ### Capture sheet

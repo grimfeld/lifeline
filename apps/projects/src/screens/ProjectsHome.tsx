@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Button, PhoneDock, cn } from "@lifeline/ui";
+import { Button, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, cn, usePhone } from "@lifeline/ui";
 import { useTasks, type Task } from "@lifeline/app-tasks";
 import { todayStr } from "@lifeline/core";
 import { ChevronRight, Columns3, List, Plus } from "lucide-react";
@@ -33,6 +33,7 @@ export function ProjectsHome() {
   const navigate = useNavigate();
   const [view, setView] = useState<"list" | "board">(readView);
   const [creating, setCreating] = useState(false);
+  const phone = usePhone();
 
   function choose(v: "list" | "board") {
     setView(v);
@@ -50,17 +51,33 @@ export function ProjectsHome() {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight">Projects</h1>
         <div className="ml-auto flex items-center gap-1">
-          <PhoneDock row order={1}>
-            <div className="flex rounded-md border p-0.5">
-              <Button variant={view === "list" ? "secondary" : "ghost"} size="sm" className="h-7" onClick={() => choose("list")} aria-pressed={view === "list"}>
-                <List /> List
-              </Button>
-              <Button variant={view === "board" ? "secondary" : "ghost"} size="sm" className="h-7" onClick={() => choose("board")} aria-pressed={view === "board"}>
-                <Columns3 /> Board
-              </Button>
-            </div>
+          <PhoneDock order={1}>
+            {phone ? (
+              <Select value={view} onValueChange={(v) => choose(v as "list" | "board")}>
+                <SelectTrigger aria-label="View" className="min-w-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="list">
+                    <List /> List
+                  </SelectItem>
+                  <SelectItem value="board">
+                    <Columns3 /> Board
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="flex rounded-md border p-0.5">
+                <Button variant={view === "list" ? "secondary" : "ghost"} size="sm" className="h-7" onClick={() => choose("list")} aria-pressed={view === "list"}>
+                  <List /> List
+                </Button>
+                <Button variant={view === "board" ? "secondary" : "ghost"} size="sm" className="h-7" onClick={() => choose("board")} aria-pressed={view === "board"}>
+                  <Columns3 /> Board
+                </Button>
+              </div>
+            )}
           </PhoneDock>
-          <PhoneDock row className="justify-end">
+          <PhoneDock>
             <Button size="sm" onClick={() => setCreating(true)}>
               <Plus /> Project
             </Button>

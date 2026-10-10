@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Badge, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, PhoneDock, cn, toast } from "@lifeline/ui";
+import { Badge, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, cn, toast, usePhone } from "@lifeline/ui";
 import { basePath, excerpt, formatHuman } from "@lifeline/core";
 import { Feather, Plus, Table2 } from "lucide-react";
 import { newWriting, useWritings } from "../data";
@@ -18,6 +18,7 @@ export function WritingsScreen() {
   const [title, setTitle] = useState("");
   const [group, setGroup] = useState("");
   const [status, setStatus] = useState<WritingStatus | "all">("all");
+  const phone = usePhone();
   const rows = useMemo(
     () => [...writings].filter((w) => status === "all" || (w.status || "draft") === status).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     [writings, status],
@@ -42,24 +43,48 @@ export function WritingsScreen() {
           <h1 className="text-lg font-semibold tracking-tight">Writings</h1>
           <Badge variant="secondary">{writings.length}</Badge>
         </div>
-        <PhoneDock row order={1}>
-          <div className="flex gap-0.5 md:ml-4">
-            {(["all", ...STATUSES.map((s) => s.value)] as const).map((s) => (
-              <button key={s} className={cn("shrink-0 rounded-md px-2 py-1 text-xs md:py-0.5", status === s ? "bg-accent font-medium" : "text-muted-foreground hover:bg-accent/50")} onClick={() => setStatus(s)}>
-                {s === "all" ? "All" : STATUSES.find((x) => x.value === s)?.label}
-              </button>
-            ))}
-          </div>
+        <PhoneDock order={1}>
+          {phone ? (
+            <Select value={status} onValueChange={(v) => setStatus(v as WritingStatus | "all")}>
+              <SelectTrigger aria-label="Status" className="min-w-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                {STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="flex gap-0.5 md:ml-4">
+              {(["all", ...STATUSES.map((s) => s.value)] as const).map((s) => (
+                <button
+                  key={s}
+                  className={cn(
+                    "shrink-0 rounded-md px-2 py-1 text-xs md:py-0.5",
+                    status === s ? "bg-accent font-medium" : "text-muted-foreground hover:bg-accent/50",
+                  )}
+                  onClick={() => setStatus(s)}
+                >
+                  {s === "all" ? "All" : STATUSES.find((x) => x.value === s)?.label}
+                </button>
+              ))}
+            </div>
+          )}
         </PhoneDock>
-        <PhoneDock row className="justify-end">
-          <div className="ml-auto flex items-center gap-1">
-            <Button size="sm" variant="ghost" asChild>
-              <Link to={basePath(WRITING)}>
-                <Table2 /> Base
+        <PhoneDock>
+          <div className="ml-auto flex items-center gap-1 max-md:contents">
+            <Button size={phone ? "icon-sm" : "sm"} variant="ghost" asChild>
+              <Link to={basePath(WRITING)} aria-label={phone ? "Open the Writings Base" : undefined}>
+                <Table2 />
+                {!phone && " Base"}
               </Link>
             </Button>
             <Button size="sm" onClick={() => setOpen(true)}>
-              <Plus /> New writing
+              <Plus /> {phone ? "New" : "New writing"}
             </Button>
           </div>
         </PhoneDock>

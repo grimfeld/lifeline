@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Badge, Button, Card, CardContent, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
+import { Badge, Button, Card, CardContent, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast, usePhone } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { ArrowLeftRight, Bell, BellOff, Import, Inbox, Landmark, ListChecks, Pencil, Plus, Scale, Search, Wand2 } from "lucide-react";
 import type { Due, LedgerAccount, Series, Transaction } from "../domain/types";
@@ -64,6 +64,7 @@ const SORT_LABEL: Record<SortKey, string> = {
  * 0034) with their Dues.
  */
 export function RegisterScreen() {
+  const phone = usePhone();
   const transactions = useTransactions();
   const accounts = useAccounts();
   const categories = useCategories();
@@ -161,15 +162,16 @@ export function RegisterScreen() {
       <div className="flex items-center gap-2">
         <Landmark className="size-5" />
         <h1 className="flex-1 text-lg font-semibold">Ledger</h1>
-        <PhoneDock row className="justify-end">
-          <Button onClick={() => setAddOpen(true)}>
-            <Plus /> Add transaction
+        <PhoneDock>
+          {/* On a phone the add is an icon, so the search keeps the line's room. */}
+          <Button size={phone ? "icon" : "default"} onClick={() => setAddOpen(true)} aria-label="Add transaction" title="Add transaction">
+            <Plus /> {!phone && "Add transaction"}
           </Button>
         </PhoneDock>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams(v === "transactions" ? {} : { tab: v }, { replace: true })}>
-        <PhoneDock row order={1}>
+        <PhoneDock order={1}>
           <TabsList>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="accounts">Accounts</TabsTrigger>
@@ -216,7 +218,7 @@ export function RegisterScreen() {
               </Button>
             </div>
           )}
-          <PhoneDock row>
+          <PhoneDock>
             <PhoneFilters active={[onlyUncategorized, accountFilter !== "all", categoryFilter !== "all", monthFilter !== "all", kindFilter !== "all", sort !== "date-desc"].filter(Boolean).length}>
               <div className="flex flex-wrap gap-2 max-md:flex-col max-md:*:w-full">
                 <Button variant={onlyUncategorized ? "default" : "outline"} onClick={() => setOnlyUncategorized((v) => !v)} aria-pressed={onlyUncategorized} title="Show only transactions with no category">
@@ -294,7 +296,7 @@ export function RegisterScreen() {
                 </Select>
               </div>
             </PhoneFilters>
-            <Input className="min-w-0 flex-1" placeholder="Search payee, note, amount (12,50) or date (10-03)…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input className="min-w-0 flex-1 max-md:basis-40" placeholder="Search payee, note, amount (12,50) or date (10-03)…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </PhoneDock>
           <div className="text-muted-foreground text-xs">
             {filtered.length} transaction{filtered.length === 1 ? "" : "s"}
