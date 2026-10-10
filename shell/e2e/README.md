@@ -8,6 +8,10 @@ pnpm test:e2e                                                      # from the re
 pnpm --filter @lifeline/shell test:e2e -- --project=mobile -g Tasks  # one screen, one width
 ```
 
+CI (`.github/workflows/e2e.yml`) runs it on every pull request and push to
+`master`, one job per width; on failure the HTML report and traces are uploaded
+as the `playwright-report-<width>` artifact (`npx playwright show-trace <zip>`).
+
 - `seed.setup.ts` runs first: `support/seed.ts` runs every headless Command,
   gives every Document type a Document with every Field filled, and places
   every Card on one Screen — all read from the registry, so new types, Fields,
