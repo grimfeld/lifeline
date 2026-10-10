@@ -98,16 +98,18 @@ function findLayoutProblems(): LayoutProblem[] {
       const s = el === host ? hostStyle : getComputedStyle(el);
       if (s.display === "contents") continue;
       if (isHidden(el, s)) break;
+      // Inside a sideways scroller, being past its edge is what scrolling is for.
+      if (isIntentionalScrollX(el)) break;
       const r = el.getBoundingClientRect();
       if (s.display !== "inline") {
         const by = Math.max(right - r.right, r.left - left);
         if (by > TOLERANCE) {
           const truncated = ellipsizes(s) && clipsX(s);
-          if (!truncated) report({ kind: clipsX(s) ? "cut" : "spill", where: describe(el), text: text.slice(0, 80), by: Math.round(by) });
+          if (!truncated) report({ kind: clipsX(s) ? "cut" : "spill", where: `${describe(host)}  ⟶ out of ${el === host ? "itself" : describe(el).split(" > ").pop()}`, text: text.slice(0, 80), by: Math.round(by) });
           break;
         }
       }
-      if (isIntentionalScrollX(el) || (ellipsizes(s) && clipsX(s))) break;
+      if (ellipsizes(s) && clipsX(s)) break;
       if (el !== host && (getComputedStyle(child).position === "fixed")) break;
     }
 
