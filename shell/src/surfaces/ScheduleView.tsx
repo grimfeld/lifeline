@@ -526,7 +526,7 @@ function PoolColumn({ items, onComplete, onOpen, collapsible }: { items: WorkIte
 function DayStrip({ anchor, today, onPick }: { anchor: DateStr; today: DateStr; onPick: (d: DateStr) => void }) {
   const week = Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(anchor), i));
   return (
-    <div className="flex shrink-0 gap-1">
+    <div className="flex shrink-0 basis-full gap-1">
       {week.map((d) => {
         const active = d === anchor;
         return (
@@ -746,9 +746,8 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
               <Plus />
             </Button>
           ),
+          isMobile && view === "day" && <DayStrip anchor={anchor} today={today} onPick={(d) => go(d)} />,
         )}
-
-        {isMobile && view === "day" && <DayStrip anchor={anchor} today={today} onPick={(d) => go(d)} />}
 
         <div className="grid min-h-0 flex-1 grid-cols-[13rem_1fr] gap-2 max-md:flex max-md:flex-col">
           <div className="flex min-h-0 flex-col gap-2 max-md:contents">

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Badge, Button, Input, cn } from "@lifeline/ui";
+import { Badge, Button, Input, PhoneDock, cn } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import { Archive, Pencil, Plus, Refrigerator, Snowflake, TriangleAlert } from "lucide-react";
 import type { Provision, Storage, StorageKind } from "../domain/types";
@@ -80,13 +80,16 @@ export function PantryScreen() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="mr-auto text-lg font-semibold">Pantry</h1>
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search the stocks…" className="w-48" />
-        <Button type="button" variant="outline" onClick={() => openStorage(null)}>
-          New storage
-        </Button>
-        <Button type="button" disabled={storages.length === 0} onClick={() => addProvisionIn(null)}>
-          <Plus className="size-4" /> Provision
-        </Button>
+        <PhoneDock>
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search the stocks…" className="w-48 min-w-0 max-md:w-auto max-md:basis-36" />
+          <Button type="button" variant="outline" onClick={() => openStorage(null)}>
+            <span className="max-md:hidden">New storage</span>
+            <span className="md:hidden">Storage</span>
+          </Button>
+          <Button type="button" disabled={storages.length === 0} onClick={() => addProvisionIn(null)}>
+            <Plus className="size-4" /> Provision
+          </Button>
+        </PhoneDock>
       </div>
 
       {(low.length > 0 || soon.length > 0) && (

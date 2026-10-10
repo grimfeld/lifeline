@@ -12,10 +12,19 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
   Input,
   Label,
+  PhoneDock,
+  PhoneFilters,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   cn,
+  usePhone,
   toast,
 } from "@lifeline/ui";
 import {
@@ -97,6 +106,7 @@ export function BasePage() {
   const { type = "" } = useParams<{ type: string }>();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
+  const phone = usePhone();
   const def = useDocumentType(type);
   const docs = useDocuments(type);
   const views = useViews(type);
@@ -148,6 +158,14 @@ export function BasePage() {
     setSaveName("");
     selectView(v.id);
   }
+  function renameView() {
+    if (!view) return;
+    const name = window.prompt("Rename view", view.name);
+    if (name?.trim()) void saveView({ ...view, name: name.trim() });
+  }
+  function openInApp() {
+    if (def?.href) navigate(def.href({ id: "", type, title: "", tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0 }));
+  }
   async function removeView() {
     if (!view) return;
     await deleteView(view.id);
@@ -197,140 +215,198 @@ export function BasePage() {
             {app.title}
           </Badge>
         )}
-        <div className="ml-auto flex items-center gap-1">
-          {creatable && (
-            <Button size="sm" onClick={() => setNewOpen(true)}>
-              <Plus /> New {singularOf(def).toLowerCase()}
-            </Button>
-          )}
-          {app && def.href && (
-            <Button size="sm" variant="outline" onClick={() => navigate(def.href!({ id: "", type, title: "", tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0 }))}>
-              Open in {app.title}
-            </Button>
-          )}
-          <Button size="icon" variant="ghost" className="size-8" title="Document types" onClick={() => navigate("/base")}>
-            <Settings2 />
-          </Button>
-        </div>
-      </header>
-
-      {/* Views */}
-      <div className="flex flex-wrap items-center gap-1 border-b px-4 py-1.5">
-        <button className={cn("rounded-md px-2 py-1 text-sm", viewId === ALL_VIEW_ID ? "bg-accent font-medium" : "hover:bg-accent/50")} onClick={() => selectView(ALL_VIEW_ID)}>
-          All
-        </button>
-        {views.map((v) => (
-          <button key={v.id} className={cn("rounded-md px-2 py-1 text-sm", viewId === v.id ? "bg-accent font-medium" : "hover:bg-accent/50")} onClick={() => selectView(v.id)}>
-            {v.name}
-          </button>
-        ))}
-        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSaveAsOpen(true)}>
-          <Plus className="size-3" /> View
-        </Button>
-        {dirty && (
-          <span className="ml-auto flex items-center gap-1">
-            {view && (
-              <Button size="sm" variant="outline" className="h-7" onClick={() => void saveCurrent()}>
-                <Save /> Save “{view.name}”
+        <PhoneDock>
+          <div className="ml-auto flex items-center gap-1 max-md:contents">
+            {creatable &&
+              (phone ? (
+                <Button size="icon" className="size-8" aria-label={`New ${singularOf(def).toLowerCase()}`} title={`New ${singularOf(def).toLowerCase()}`} onClick={() => setNewOpen(true)}>
+                  <Plus />
+                </Button>
+              ) : (
+                <Button size="sm" onClick={() => setNewOpen(true)}>
+                  <Plus /> New {singularOf(def).toLowerCase()}
+                </Button>
+              ))}
+            {/* On a phone these two sit in the views ⋯ menu */}
+            {!phone && app && def.href && (
+              <Button size="sm" variant="outline" onClick={openInApp}>
+                Open in {app.title}
               </Button>
             )}
-            <Button size="sm" variant="ghost" className="h-7" onClick={() => setSaveAsOpen(true)}>
-              Save as…
-            </Button>
-            <Button size="sm" variant="ghost" className="h-7" onClick={() => setState(stateOf(view, def))}>
-              Reset
-            </Button>
-          </span>
-        )}
-        {view && !dirty && (
+            {!phone && (
+              <Button size="icon" variant="ghost" className="size-8" title="Document types" onClick={() => navigate("/base")}>
+                <Settings2 />
+              </Button>
+            )}
+          </div>
+        </PhoneDock>
+      </header>
+
+      {/* Views — on a phone a select of them plus one ⋯ menu for the rest, in the dock */}
+      {phone ? (
+        <PhoneDock order={1}>
+          <Select value={viewId} onValueChange={selectView}>
+            <SelectTrigger size="sm" aria-label="View" className="h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_VIEW_ID}>All</SelectItem>
+              {views.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="icon" variant="ghost" className="ml-auto size-7">
+              <Button size="icon" variant={dirty ? "secondary" : "ghost"} className="size-8" aria-label="View actions" title="View actions">
                 <MoreHorizontal />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => {
-                  const name = window.prompt("Rename view", view.name);
-                  if (name?.trim()) void saveView({ ...view, name: name.trim() });
-                }}
-              >
-                Rename
-              </DropdownMenuItem>
-              <DropdownMenuItem variant="destructive" onClick={() => void removeView()}>
-                <Trash2 /> Delete view
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-1.5">
-        <div className="relative">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2" />
-          <Input className="h-7 w-48 pl-7 text-xs" placeholder="Search…" value={state.search} onChange={(e) => setState({ ...state, search: e.target.value })} />
-        </div>
-        <FilterBar def={def} filters={state.filters} onChange={(filters) => setState({ ...state, filters })} />
-        <div className="ml-auto flex items-center gap-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="ghost" className="h-7 text-xs">
-                Sort: {allFields.find((f) => f.key === state.sortBy)?.label ?? state.sortBy} {state.sortDir === "asc" ? "↑" : "↓"} <ChevronDown className="size-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {allFields.map((f) => (
-                <DropdownMenuItem key={f.key} onClick={() => toggleSort(f.key)}>
-                  {f.label}
-                  {state.sortBy === f.key && <span className="ml-auto text-xs">{state.sortDir}</span>}
+            <DropdownMenuContent align="end" className="min-w-48">
+              {dirty && view && (
+                <DropdownMenuItem onClick={() => void saveCurrent()}>
+                  <Save /> Save “{view.name}”
                 </DropdownMenuItem>
-              ))}
+              )}
+              <DropdownMenuItem onClick={() => setSaveAsOpen(true)}>
+                <Plus /> {dirty ? "Save as new view…" : "New view…"}
+              </DropdownMenuItem>
+              {dirty && <DropdownMenuItem onClick={() => setState(stateOf(view, def))}>Reset</DropdownMenuItem>}
+              {view && !dirty && (
+                <>
+                  <DropdownMenuItem onClick={renameView}>Rename view</DropdownMenuItem>
+                  <DropdownMenuItem variant="destructive" onClick={() => void removeView()}>
+                    <Trash2 /> Delete view
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
+              {app && def.href && <DropdownMenuItem onClick={openInApp}>Open in {app.title}</DropdownMenuItem>}
+              <DropdownMenuItem onClick={() => navigate("/base")}>
+                <Settings2 /> Document types
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="ghost" className="h-7 text-xs" title="Columns">
-                <Columns3 className="size-3.5" /> Columns
+        </PhoneDock>
+      ) : (
+        <div className="flex flex-wrap items-center gap-1 border-b px-4 py-1.5">
+          <button className={cn("rounded-md px-2 py-1 text-sm", viewId === ALL_VIEW_ID ? "bg-accent font-medium" : "hover:bg-accent/50")} onClick={() => selectView(ALL_VIEW_ID)}>
+            All
+          </button>
+          {views.map((v) => (
+            <button key={v.id} className={cn("rounded-md px-2 py-1 text-sm", viewId === v.id ? "bg-accent font-medium" : "hover:bg-accent/50")} onClick={() => selectView(v.id)}>
+              {v.name}
+            </button>
+          ))}
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSaveAsOpen(true)}>
+            <Plus className="size-3" /> View
+          </Button>
+          {dirty && (
+            <span className="ml-auto flex items-center gap-1">
+              {view && (
+                <Button size="sm" variant="outline" className="h-7" onClick={() => void saveCurrent()}>
+                  <Save /> Save “{view.name}”
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" className="h-7" onClick={() => setSaveAsOpen(true)}>
+                Save as…
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
-              {allFields.map((f) => (
-                <DropdownMenuItem key={f.key} onSelect={(e) => e.preventDefault()} onClick={() => toggleColumn(f.key)}>
-                  <Checkbox checked={state.columns.includes(f.key)} className="pointer-events-none" /> {f.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {pickKey && pickCandidates.length > 0 && (
+              <Button size="sm" variant="ghost" className="h-7" onClick={() => setState(stateOf(view, def))}>
+                Reset
+              </Button>
+            </span>
+          )}
+          {view && !dirty && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" title={`Field the ${LAYOUT_META[state.layout].label} layout reads`}>
-                  {pickLabel}: {pickedField?.label ?? "—"} <ChevronDown className="size-3" />
+                <Button size="icon" variant="ghost" className="ml-auto size-7">
+                  <MoreHorizontal />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {pickCandidates.map((f) => (
-                  <DropdownMenuItem key={f.key} onClick={() => setState({ ...state, [pickKey]: f.key })}>
-                    {f.label}
-                    {pickedField?.key === f.key && <span className="ml-auto text-xs">✓</span>}
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuItem onClick={renameView}>
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={() => void removeView()}>
+                  <Trash2 /> Delete view
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          <div className="bg-muted/60 flex rounded-md p-0.5">
-            {layouts.map((id) => {
-              const l = LAYOUT_META[id];
-              return (
-                <button key={id} title={l.label} className={cn("rounded px-1.5 py-0.5", state.layout === id ? "bg-background shadow-sm" : "text-muted-foreground")} onClick={() => setState({ ...state, layout: id })}>
-                  <l.icon className="size-3.5" />
-                </button>
-              );
-            })}
-          </div>
         </div>
+      )}
+
+      {/* Toolbar — likewise: search in the dock, the rest behind Filters */}
+      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-1.5 max-md:hidden">
+        <PhoneDock>
+          <div className="relative max-md:basis-28">
+            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2" />
+            <Input className="h-7 w-48 pl-7 text-xs max-md:h-8 max-md:w-full" placeholder="Search…" value={state.search} onChange={(e) => setState({ ...state, search: e.target.value })} />
+          </div>
+          <PhoneFilters active={state.filters.length}>
+            <FilterBar def={def} filters={state.filters} onChange={(filters) => setState({ ...state, filters })} />
+            <div className="ml-auto flex items-center gap-1 max-md:ml-0 max-md:flex-wrap">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs">
+                    Sort: {allFields.find((f) => f.key === state.sortBy)?.label ?? state.sortBy} {state.sortDir === "asc" ? "↑" : "↓"} <ChevronDown className="size-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {allFields.map((f) => (
+                    <DropdownMenuItem key={f.key} onClick={() => toggleSort(f.key)}>
+                      {f.label}
+                      {state.sortBy === f.key && <span className="ml-auto text-xs">{state.sortDir}</span>}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" title="Columns">
+                    <Columns3 className="size-3.5" /> Columns
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
+                  {allFields.map((f) => (
+                    <DropdownMenuItem key={f.key} onSelect={(e) => e.preventDefault()} onClick={() => toggleColumn(f.key)}>
+                      <Checkbox checked={state.columns.includes(f.key)} className="pointer-events-none" /> {f.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {pickKey && pickCandidates.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" title={`Field the ${LAYOUT_META[state.layout].label} layout reads`}>
+                      {pickLabel}: {pickedField?.label ?? "—"} <ChevronDown className="size-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {pickCandidates.map((f) => (
+                      <DropdownMenuItem key={f.key} onClick={() => setState({ ...state, [pickKey]: f.key })}>
+                        {f.label}
+                        {pickedField?.key === f.key && <span className="ml-auto text-xs">✓</span>}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <div className="bg-muted/60 flex rounded-md p-0.5">
+                {layouts.map((id) => {
+                  const l = LAYOUT_META[id];
+                  return (
+                    <button key={id} title={l.label} className={cn("rounded px-1.5 py-0.5", state.layout === id ? "bg-background shadow-sm" : "text-muted-foreground")} onClick={() => setState({ ...state, layout: id })}>
+                      <l.icon className="size-3.5" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </PhoneFilters>
+        </PhoneDock>
       </div>
 
       {/* Bulk actions */}
