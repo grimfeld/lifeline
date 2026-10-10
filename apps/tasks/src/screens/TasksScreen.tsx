@@ -1,16 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  Input,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-  toast,
-} from "@lifeline/ui";
+import { Badge, Button, Card, CardContent, Input, PhoneDock, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
 import { addDays, todayStr } from "@lifeline/core";
 import { Plus } from "lucide-react";
 import type { Task } from "../domain/types";
@@ -112,14 +101,16 @@ export function TasksScreen() {
     <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-6 p-4 sm:p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
-        <Button
-          onClick={() => {
-            setEditing(undefined);
-            setDialogOpen(true);
-          }}
-        >
-          <Plus /> New task
-        </Button>
+        <PhoneDock row className="justify-end">
+          <Button
+            onClick={() => {
+              setEditing(undefined);
+              setDialogOpen(true);
+            }}
+          >
+            <Plus /> New task
+          </Button>
+        </PhoneDock>
       </div>
 
       <Input
@@ -130,12 +121,14 @@ export function TasksScreen() {
       />
 
       <Tabs defaultValue="open">
-        <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
-          <TabsTrigger value="open">Open ({openCount})</TabsTrigger>
-          <TabsTrigger value="recurring">Recurring ({groups.recurring.length})</TabsTrigger>
-          <TabsTrigger value="done">Done</TabsTrigger>
-          <TabsTrigger value="archived">Archived ({groups.archived.length})</TabsTrigger>
-        </TabsList>
+        <PhoneDock row order={1}>
+          <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
+            <TabsTrigger value="open">Open ({openCount})</TabsTrigger>
+            <TabsTrigger value="recurring">Recurring ({groups.recurring.length})</TabsTrigger>
+            <TabsTrigger value="done">Done</TabsTrigger>
+            <TabsTrigger value="archived">Archived ({groups.archived.length})</TabsTrigger>
+          </TabsList>
+        </PhoneDock>
 
         <TabsContent value="open" className="grid min-w-0 grid-cols-1 gap-6 pt-4">
           {openCount === 0 && (
