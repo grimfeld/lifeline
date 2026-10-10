@@ -431,7 +431,7 @@ export function BasePage() {
         </div>
       )}
 
-      <div className={cn("min-h-0 flex-1", ["map", "board", "calendar"].includes(state.layout) ? "overflow-hidden" : "overflow-y-auto")}>
+      <div className={cn("min-h-0 flex-1", ["map", "board", "calendar"].includes(state.layout) ? "overflow-hidden" : "overflow-auto")}>
         <LayoutView docs={rows} def={def} columns={state.columns} layout={state.layout} picks={state} selected={selected} onSelect={select} onSort={toggleSort} sortBy={state.sortBy} sortDir={state.sortDir} />
       </div>
       <footer className="text-muted-foreground flex items-center gap-2 border-t px-4 py-1 text-xs">
