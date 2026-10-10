@@ -114,7 +114,8 @@ export function HeatmapCard({ settings, configure }: CardProps) {
       >
         <div />
         {monthLabels.map((label, i) => (
-          <div key={i} className="text-muted-foreground overflow-visible leading-none whitespace-nowrap">
+          // A month name overhangs its one-cell column into the empty ones after it, on purpose.
+          <div key={i} data-layout-ignore className="text-muted-foreground overflow-visible leading-none whitespace-nowrap">
             {label ?? ""}
           </div>
         ))}
