@@ -21,5 +21,7 @@ without an ellipsis, or makes a box scroll sideways that was not meant to.
   `min-w-0 flex-1` and the fixed bits `shrink-0`.
 - A box meant to scroll sideways (a week grid, a wide table, a tab strip) says
   so with `overflow-x-auto` or `data-scroll-x`.
+- Text that overhangs its box on purpose (a heatmap's month label running over
+  empty cells) carries `data-layout-ignore` and a comment saying why. Rare.
 
 Run it: `pnpm test:e2e` (or `pnpm --filter @lifeline/shell test:e2e -- --project=mobile -g Tasks`).

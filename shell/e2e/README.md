@@ -21,6 +21,9 @@ pnpm --filter @lifeline/shell test:e2e -- --project=mobile -g Tasks  # one scree
   - `stray-scroll` — a box scrolling sideways that did not ask to
     (`overflow-x-auto` / `data-scroll-x` mark the ones that do).
 
+  Text that overhangs its box on purpose opts out with `data-layout-ignore`
+  (and a comment saying why).
+
   Each line names the element whose text is out of place and the box it left.
   The element at fault is often a sibling: a long label without `min-w-0`
   pushing the count or button next to it out of the row.
