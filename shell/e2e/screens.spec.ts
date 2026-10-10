@@ -118,7 +118,7 @@ for (const screen of SCREENS) {
     }
     await open(page, path);
     await expectNoBrokenLayout(page, screen.name);
-    expect(errors, "no uncaught errors").toEqual([]);
+    expect(errors, `no uncaught errors:\n  ${errors.join("\n  ")}`).toEqual([]);
   });
 }
 

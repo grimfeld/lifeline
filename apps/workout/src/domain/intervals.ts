@@ -38,7 +38,7 @@ export function blockSeconds(b: Block): number {
 }
 
 export function workoutSeconds(w: Pick<Workout, "blocks">): number {
-  return w.blocks.reduce((n, b) => n + blockSeconds(b), 0);
+  return (w.blocks ?? []).reduce((n, b) => n + blockSeconds(b), 0);
 }
 
 /** "12:00", "1:05:00". */
@@ -66,9 +66,9 @@ export function describeBlock(b: Block): string {
   }
 }
 
-/** "3 blocks · 32:00" */
+/** "3 blocks · 32:00". A Workout made outside the App (a Base's new row) has no blocks yet. */
 export function describeWorkout(w: Pick<Workout, "blocks">): string {
-  const n = w.blocks.length;
+  const n = w.blocks?.length ?? 0;
   return `${n} block${n === 1 ? "" : "s"} · ${formatClock(workoutSeconds(w))}`;
 }
 
