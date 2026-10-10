@@ -26,6 +26,7 @@ without an ellipsis, or makes a box scroll sideways that was not meant to.
 
 ## Consequences
 
-A screen is not done until it passes at both widths. The suite runs against the
+A screen is not done until it passes at both widths. CI runs the suite on every
+pull request and push to `master`, a job per width. The suite runs against the
 Vite dev server and imports Core at its `/@fs` path to seed, so it needs no
 backend and no test hooks in the app.

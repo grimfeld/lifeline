@@ -24,4 +24,6 @@ without an ellipsis, or makes a box scroll sideways that was not meant to.
 - Text that overhangs its box on purpose (a heatmap's month label running over
   empty cells) carries `data-layout-ignore` and a comment saying why. Rare.
 
-Run it: `pnpm test:e2e` (or `pnpm --filter @lifeline/shell test:e2e -- --project=mobile -g Tasks`).
+CI runs it on every pull request and push to `master` (`.github/workflows/e2e.yml`,
+one job per width; the Playwright report is uploaded when it fails).
+Run it locally: `pnpm test:e2e` (or `pnpm --filter @lifeline/shell test:e2e -- --project=mobile -g Tasks`).
