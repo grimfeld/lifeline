@@ -116,6 +116,15 @@ aside nav:hover {
   body {
     overflow-wrap: anywhere;
   }
+  /*
+   * A grid item may shrink below its content, as if every one said
+   * \`min-w-0\`: otherwise one \`truncate\` label, whose minimum is its whole
+   * line, widens the track and pushes the page past the screen. Zero
+   * specificity, so an explicit \`min-w-*\` still wins.
+   */
+  :where(.grid, .inline-grid) > * {
+    min-width: 0;
+  }
   @media (pointer: coarse) {
     main button {
       position: relative;
