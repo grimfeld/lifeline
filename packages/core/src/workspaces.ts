@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { WORKSPACES, type SyncedRecord, type UserScreen } from "./data/db";
+import { WORKSPACES, type ScreenLayoutItem, type SyncedRecord, type UserScreen } from "./data/db";
 import { all, put } from "./data/repo";
 import { hasPulledOnce } from "./data/sync";
 import { newId } from "./ids";
@@ -36,6 +36,13 @@ export interface WorkspaceRecord extends SyncedRecord {
    * Workspace — pins are never seeded.
    */
   capturePins?: string[];
+  /**
+   * The user's own arrangement of each Module's Overview (ADR 0066), by Module
+   * id. Absent for a Module whose Overview was never edited: it follows the
+   * Module's default. Kept while the Module is away from the Workspace, and
+   * gone with the Workspace.
+   */
+  overviews?: Record<string, ScreenLayoutItem[]>;
   /**
    * Set on every Workspace but the default (ADR 0057): it reads and writes
    * only what it holds. The default — the one created first — reads the
