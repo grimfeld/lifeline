@@ -104,6 +104,10 @@ _Avoid_: Nav group (the retired name), App (one member — the part that owns ty
 _Retired_ — it was where a Module's slot landed: a Screen that claimed the Module, else a generated index of its App screens. A Module now ships its own layout, so where it lands is its own home page, written by hand.
 _Avoid_: Screen (a Module screen may *be* one, and is otherwise generated), App screen (what the index lists), home, launcher, folder
 
+### Overview
+The page a Module lands on when that Module declares one: Card instances on a grid, which the user can rearrange. The Module writes the **default** arrangement by hand, so it never opens blank. The user may move, resize, add and remove Cards. Each **Workspace** has its own arrangement of a Module's Overview. An Overview nobody has edited follows the Module's default, including later changes to it. The first edit makes the arrangement the user's own, and from then on it never changes by itself until the user chooses **Reset to default**. An Overview is not a Screen: it is never named, created or deleted, and it is not listed among Screens. It exists exactly when its Module is in the Workspace. If the Module leaves the Workspace, the user's arrangement is kept and comes back when the Module returns. Deleting the Workspace deletes its Overviews' arrangements; unlike Screens, they are not moved to another Workspace. The user may empty an Overview completely; it is never *created* empty. Its Cards behave exactly as they would on a Screen, and the Module does not scope them. The card picker offers every Card and lists the Module's own Apps' Cards first. Only some Modules declare an Overview (Money, House, Culture, Progress). The Vault, Mail and the other Modules that land straight on one page have none. A Module may give its Overview its own label in its navigation ("Now", "Today"); it is still the Overview.
+_Avoid_: home, home page, Module home (confused with Home Module), dashboard, Module screen (retired), Screen (an Overview belongs to its Module)
+
 ### Rail
 Core's only chrome on the desk: a narrow column of icons at the far left — the Workspace switcher on top, then the Workspace's Modules, then the general Surfaces, then the Bases, Screens and Settings at the foot. Everything to its right is the open Module's, laid out as that Module wants. The Rail is how you go *between* places; it never shows what is *inside* one.
 _Avoid_: sidebar (a Module may have one; the Rail is not it), dock, launcher, activity bar, nav
@@ -125,11 +129,11 @@ A user-created, named page composed of Cards on a grid layout (drag/resize). Use
 _Avoid_: page, view, workspace (a Screen is *in* one, not one)
 
 ### Card
-A self-contained UI block for use on Screens — small ("chores due today", "current streak") or large (full calendar grid). The unit of layout composition. A Card is a *kind*; what sits on a Screen is a Card instance. Two origins: **App Cards**, hand-written and registered by an App; and Core's **generic Cards** that work on any Document type — the **View card** (a Base View on a Screen), the **Document card** (one chosen Document, fields and body) and the **Count tile** (how many Documents a View holds). Capture/quick-add is always an App Card. Some Cards are **configurable**: they can't be shown without the user choosing something first (which Stat, which View, which Document).
+A self-contained UI block for use on Screens and Overviews — small ("chores due today", "current streak") or large (full calendar grid). The unit of layout composition. A Card is a *kind*; what sits on a Screen is a Card instance. Two origins: **App Cards**, hand-written and registered by an App; and Core's **generic Cards** that work on any Document type — the **View card** (a Base View on a Screen), the **Document card** (one chosen Document, fields and body) and the **Count tile** (how many Documents a View holds). Capture/quick-add is always an App Card. Some Cards are **configurable**: they can't be shown without the user choosing something first (which Stat, which View, which Document).
 _Avoid_: widget, block, tile (except Count tile), embed
 
 ### Card instance
-One placed copy of a Card on one Screen, with its position and, for configurable Cards, its chosen settings. The same Card may be placed many times on a Screen with different settings (a "Push-ups" tile next to a "Weight" tile). Removing an instance never touches the entity it points at.
+One placed copy of a Card on one Screen or one Overview, with its position and, for configurable Cards, its chosen settings. It may carry its own title (Pocket's Allowances placed as "What's left"). The same Card may be placed many times on a Screen with different settings (a "Push-ups" tile next to a "Weight" tile). Removing an instance never touches the entity it points at.
 _Avoid_: widget, tile
 
 ### Phone home
