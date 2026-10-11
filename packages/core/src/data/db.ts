@@ -44,6 +44,8 @@ export interface ScreenLayoutItem {
   cardId: string;
   /** Instance settings for configurable Cards. */
   settings?: CardSettings;
+  /** The instance's own title, over the Card's ("What's left" for Pocket's Allowances). Absent: the Card titles itself. */
+  title?: string;
   x: number;
   y: number;
   w: number;
