@@ -194,6 +194,49 @@ export function collectedItems(entries: { ts: string; item?: string }[]): Collec
   return [...byKey.values()];
 }
 
+/** A Collection's preset item list, trimmed and deduped by normalised name (first spelling wins). */
+export function cleanItemList(items: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of items) {
+    const name = raw.trim();
+    const key = normalizeItem(name);
+    if (!name || seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+  }
+  return out;
+}
+
+/** The denominator: a preset item list's length when there is one, else the typed universe size (0 = unknown). */
+export function collectionUniverse(stat: { items?: string[]; universeSize: number }): number {
+  return stat.items && stat.items.length > 0 ? stat.items.length : stat.universeSize || 0;
+}
+
+export interface ChecklistRow {
+  name: string;
+  /** False for an item collected but not in the preset list. */
+  listed: boolean;
+  /** When it was first collected; null while still to collect. */
+  collectedAt: string | null;
+}
+
+/**
+ * A Collection's checklist: the preset items in list order, each with when it
+ * was first collected (or null), then items collected that are not on the list
+ * (logged before it existed, or under another name) so they can still be unticked.
+ */
+export function checklist(items: readonly string[], entries: { ts: string; item?: string }[]): ChecklistRow[] {
+  const collected = new Map(collectedItems(entries).map((c) => [normalizeItem(c.name), c] as const));
+  const rows: ChecklistRow[] = cleanItemList(items).map((name) => {
+    const c = collected.get(normalizeItem(name));
+    collected.delete(normalizeItem(name));
+    return { name, listed: true, collectedAt: c?.firstTs ?? null };
+  });
+  for (const c of collected.values()) rows.push({ name: c.name, listed: false, collectedAt: c.firstTs });
+  return rows;
+}
+
 /** All-time cumulative distinct-item count, one step per new item. */
 export function collectionSeries(items: CollectedItem[]): ReadingPoint[] {
   return items.map((it, i) => ({
