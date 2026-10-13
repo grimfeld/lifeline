@@ -81,7 +81,7 @@ export function QuickLogButton({ stat, entries, className }: { stat: Stat; entri
       >
         {todayMarked ? <Check className="size-3.5" /> : <Plus className="size-3.5" />}
       </Button>
-      <AddEntryDialog open={open} onOpenChange={setOpen} stat={stat} entries={entries} />
+      <AddEntryDialog open={open} onOpenChange={setOpen} stat={stat} />
     </>
   );
 }
