@@ -4,7 +4,7 @@ import { momentOf, todayStr, type CommandDef } from "@lifeline/core";
 import { BarChart3, PenLine, Plus } from "lucide-react";
 import { StatEditorDialog } from "./components/StatEditorDialog";
 import { AddEntryDialog } from "./components/AddEntryDialog";
-import { addEntry, allStats, useEntries, useStats } from "./data/repo";
+import { addEntry, allStats, useStats } from "./data/repo";
 import { noonOf } from "./domain/aggregate";
 import { colorVar, STAT, type Stat } from "./domain/types";
 
@@ -14,7 +14,6 @@ function NewStatCommandDialog(props: { open: boolean; onOpenChange: (o: boolean)
 
 function LogEntryCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const stats = useStats();
-  const entries = useEntries();
   const [picked, setPicked] = useState<Stat | null>(null);
   if (picked) {
     return (
@@ -25,7 +24,6 @@ function LogEntryCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
           onOpenChange(o);
         }}
         stat={picked}
-        entries={entries.filter((e) => e.statId === picked.id)}
       />
     );
   }

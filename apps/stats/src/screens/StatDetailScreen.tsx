@@ -199,7 +199,7 @@ export function StatDetailScreen() {
         </section>
       )}
 
-      <AddEntryDialog open={logOpen} onOpenChange={setLogOpen} stat={stat} entries={entries} />
+      <AddEntryDialog open={logOpen} onOpenChange={setLogOpen} stat={stat} />
       <StatEditorDialog open={editOpen} onOpenChange={setEditOpen} stat={stat} />
       <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <DialogContent className="sm:max-w-sm">

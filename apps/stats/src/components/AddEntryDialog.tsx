@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
-import type { Entry, Stat } from "../domain/types";
-import { collectedItems, noonOf } from "../domain/aggregate";
+import type { Stat } from "../domain/types";
+import { noonOf } from "../domain/aggregate";
 import { addEntry } from "../data/repo";
 
 function nowLocalInput(): string {
@@ -16,19 +16,15 @@ export function AddEntryDialog({
   open,
   onOpenChange,
   stat,
-  entries,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   stat: Stat;
-  /** This stat's entries — for the collection item autocomplete. */
-  entries: Entry[];
 }) {
   const [value, setValue] = useState("");
   const [item, setItem] = useState("");
   const [when, setWhen] = useState(nowLocalInput());
   const [day, setDay] = useState(todayStr());
-  const known = useMemo(() => collectedItems(entries).map((i) => i.name), [entries]);
 
   useEffect(() => {
     if (!open) return;
@@ -74,12 +70,7 @@ export function AddEntryDialog({
               {stat.kind === "collection" ? (
                 <div className="grid gap-2">
                   <Label htmlFor="entry-item">Item</Label>
-                  <Input id="entry-item" list="entry-items" value={item} autoFocus onChange={(e) => setItem(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
-                  <datalist id="entry-items">
-                    {known.map((k) => (
-                      <option key={k} value={k} />
-                    ))}
-                  </datalist>
+                  <Input id="entry-item" autoComplete="off" value={item} autoFocus onChange={(e) => setItem(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
                 </div>
               ) : (
                 <div className="grid gap-2">
