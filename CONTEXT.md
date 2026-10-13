@@ -237,7 +237,7 @@ The best a Session ever reached for an Exercise, in that Exercise's measure — 
 _Avoid_: record (a Document), best, max
 
 ### Stat
-A named series the user tracks (push-ups, weight, workouts, countries visited). Defines what is tracked and how values are read — one of four kinds: **Additive** (entries add up), **Measurement** (point-in-time readings), **Boolean** (a day was done), **Collection** (distinct items collected, optionally against a universe size shown as a denominator). Holds no totals; kind is fixed after creation. Goals/targets are out of scope.
+A named series the user tracks (push-ups, weight, workouts, countries visited). Defines what is tracked and how values are read — one of four kinds: **Additive** (entries add up), **Measurement** (point-in-time readings), **Boolean** (a day was done), **Collection** (distinct items collected, optionally against a universe size shown as a denominator, or against a preset item list — then logging is ticking items off a checklist and the list's length is the denominator). Holds no totals; kind is fixed after creation. Goals/targets are out of scope.
 _Avoid_: metric, counter, habit (a Habit is the Life Level App's XP-bearing track — a Boolean Stat merely tracks days done), goal
 
 ### Entry
