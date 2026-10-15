@@ -11,15 +11,22 @@ import {
   documentToText,
   effectiveTags,
   extractProseTags,
+  fieldsOfDocument,
   formatHuman,
   geoOf,
   normalizeTag,
   putDocument,
   removeDocument,
+  restoreRole,
+  roleDef,
+  ROLES_KEY,
   singularOf,
   textToDocument,
   useIsMobile,
   useTagVocabulary,
+  wearableRoles,
+  withRoleFields,
+  wornRoles,
   writeGeo,
   type Document,
   openPrivateDialog,
@@ -27,7 +34,7 @@ import {
   type LinkIndex,
   type LinkRef,
 } from "@lifeline/core";
-import { BookOpen, Code2, Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Pencil, SlidersHorizontal, Table2, Trash2 } from "lucide-react";
+import { BookOpen, Code2, Shapes, Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Pencil, SlidersHorizontal, Table2, Trash2 } from "lucide-react";
 import { MarkdownEditor } from "./MarkdownEditor";
 import { ReadTimer } from "./ReadTimer";
 import { MarkdownView } from "./MarkdownView";
@@ -183,7 +190,30 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
     return stored;
   })();
   const hasBody = (def?.body ?? "optional") !== "none";
-  const fields = def?.fields ?? [];
+  // A worn Role's Fields (ADR 0069) sit beside the type's own, everywhere the type's would.
+  const fields = useMemo(() => fieldsOfDocument(doc, def), [doc, def]);
+  const textDef = useMemo(() => withRoleFields(doc, def), [doc, def]);
+  const worn = wornRoles(doc);
+  const wearable = wearableRoles(doc, def);
+  const currentRoles = Array.isArray(doc[ROLES_KEY]) ? (doc[ROLES_KEY] as string[]) : [];
+  function putOnRole(roleId: string) {
+    stage({ [ROLES_KEY]: [...currentRoles, roleId] } as Partial<Document>, true);
+  }
+  /** Taking a Role off drops its own Fields; the toast's Undo puts them back. */
+  function takeOffRole(roleId: string) {
+    const role = roleDef(roleId);
+    if (!role) return;
+    const own = new Set((def?.fields ?? []).map((f) => f.key));
+    const dropped: Record<string, unknown> = {};
+    const patch: Record<string, unknown> = { [ROLES_KEY]: currentRoles.filter((r) => r !== roleId) };
+    for (const f of role.fields) {
+      if (own.has(f.key)) continue;
+      if (doc[f.key] !== undefined) dropped[f.key] = doc[f.key];
+      patch[f.key] = undefined;
+    }
+    stage(patch as Partial<Document>, true);
+    toast.success(`No longer ${/^[aeiou]/i.test(role.label) ? "an" : "a"} ${role.label}`, { action: { label: "Undo", onClick: () => void restoreRole(doc.id, roleId, dropped) } });
+  }
   /**
    * The header's controls come from the type (ADR 0045), so a Document is
    * never offered a control that can do nothing for it:
@@ -239,11 +269,11 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
     [index],
   );
   useEffect(() => {
-    if (mode === "text") setText(documentToText(doc, def, codec));
+    if (mode === "text") setText(documentToText(doc, textDef, codec));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
   function commitText() {
-    const { patch, rejected } = textToDocument(text, doc, def, codec);
+    const { patch, rejected } = textToDocument(text, doc, textDef, codec);
     if (rejected.length > 0) toast.message(`Guarded fields kept as they were: ${rejected.join(", ")}`);
     stage(patch as Partial<Document>, true);
   }
@@ -349,6 +379,16 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
                 <DropdownMenuItem onClick={() => navigate(basePath(doc.type))}>
                   <Table2 /> Open {def?.label ?? "Base"}
                 </DropdownMenuItem>
+                {wearable.map((r) => (
+                  <DropdownMenuItem key={`on-${r.id}`} onClick={() => putOnRole(r.id)}>
+                    <Shapes /> Also {/^[aeiou]/i.test(r.label) ? "an" : "a"} {r.label}
+                  </DropdownMenuItem>
+                ))}
+                {worn.map((r) => (
+                  <DropdownMenuItem key={`off-${r.id}`} onClick={() => takeOffRole(r.id)}>
+                    <Shapes /> Not {/^[aeiou]/i.test(r.label) ? "an" : "a"} {r.label}
+                  </DropdownMenuItem>
+                ))}
                 <DropdownMenuItem variant="destructive" onClick={() => void remove()}>
                   <Trash2 /> Delete
                 </DropdownMenuItem>

@@ -121,8 +121,9 @@ export interface ViewFilter {
  *   20 — Mail App (ADR 0051): local `_mail_cache` table
  *   21 — Tallying (ADR 0059): local `_tally_fires` marks
  *   22 — Languages App (ADR 0058): `[type+languageId]`, `[type+itemId]` added
+ *   23 — Roles (ADR 0069): multi-entry `*roles` on `documents`, so "every wearer of a Role" is an index hit
  */
-const DB_VERSION = 22;
+const DB_VERSION = 23;
 
 /** Stores that existed before ADR 0018; deleted on upgrade so a client re-pulls into `documents`. */
 const LEGACY_STORES = [
@@ -147,6 +148,8 @@ const DOCUMENT_BASE_INDEXES = [
   // Separation (ADR 0048) filters every read by scope; `[type+workspace]` keeps
   // the common "this type, this Workspace" read an index hit.
   "workspace", "[type+workspace]",
+  // Roles (ADR 0069): the Roles a Document wears, one entry each.
+  "*roles",
 ];
 
 export function compileDocumentIndex(ix: string): string {
