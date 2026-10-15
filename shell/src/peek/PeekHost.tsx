@@ -17,6 +17,7 @@ import {
   vaultDocPath,
   type Document,
   type DocumentTypeDef,
+  fieldsOfDocument,
 } from "@lifeline/core";
 import { ArrowUpRight, NotebookPen, X } from "lucide-react";
 
@@ -104,7 +105,7 @@ function PeekBody({ doc, def }: { doc: Document; def: DocumentTypeDef | undefine
 /** Core's Peek for a type whose App brings none: the plain fields, and the body read-only. */
 function GenericPeek({ doc, def }: { doc: Document; def: DocumentTypeDef | undefined }) {
   const index = useLinkIndex();
-  const fields = (def?.fields ?? []).filter((f) => !f.hidden && doc[f.key] !== undefined && doc[f.key] !== null && doc[f.key] !== "");
+  const fields = fieldsOfDocument(doc, def).filter((f) => !f.hidden && doc[f.key] !== undefined && doc[f.key] !== null && doc[f.key] !== "");
   const body = typeof doc.body === "string" ? doc.body : "";
   return (
     <div className="flex flex-col gap-3">

@@ -7,6 +7,7 @@ import {
   defaultColumns,
   displayTitle,
   docHref,
+  fieldsOfDocument,
   useAllDocuments,
   useAllViews,
   useDocument,
@@ -113,7 +114,7 @@ export function DocumentCard({ settings, configure }: CardProps) {
       </button>
     );
   }
-  const fields = (def?.fields ?? []).filter((f) => !f.hidden && doc[f.key] !== undefined && doc[f.key] !== null && doc[f.key] !== "");
+  const fields = fieldsOfDocument(doc, def).filter((f) => !f.hidden && doc[f.key] !== undefined && doc[f.key] !== null && doc[f.key] !== "");
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <button className="flex items-center gap-1 px-1 text-left text-sm font-medium hover:underline" onClick={() => navigate(docHref(doc, def))}>
