@@ -11,7 +11,7 @@ The one basic block everything in Lifeline is made of. Every record a user can s
 _Avoid_: record, entity, item, page, file, note (one type), block (a body fragment)
 
 ### Document type
-The kind of a Document: its field schema, title rule, body policy and the Contracts it implements. Adding a type is meant to be cheap and automatically yields a Base. A type may be **internal**: its Documents exist only in service of another Document (a Writing's Versions) and are hidden from the Vault tree, link completion and the sidebar, and are neither a target nor a *source* of link relations — their wikilinks, Link fields and Tags belong to the Document they serve, so they raise no backlink, Ghost, tag entry or Unlinked mention of their own — though they still have a Base. Two origins, one registry: **built-in** types are defined in code and are the only ones an App's behaviour may depend on; **user-defined** types are created in-app and get everything generic (Base, form, body, generic Cards) plus the Contracts that can be declared from data alone — a Contract with behaviour hooks needs code. Subsumes the old "Note type".
+The kind of a Document: its field schema, title rule, body policy and the Contracts it implements. Adding a type is meant to be cheap and automatically yields a Base. A type may be **internal**: its Documents exist only in service of another Document (an Essay's Versions) and are hidden from the Vault tree, link completion and the sidebar, and are neither a target nor a *source* of link relations — their wikilinks, Link fields and Tags belong to the Document they serve, so they raise no backlink, Ghost, tag entry or Unlinked mention of their own — though they still have a Base. Two origins, one registry: **built-in** types are defined in code and are the only ones an App's behaviour may depend on; **user-defined** types are created in-app and get everything generic (Base, form, body, generic Cards) plus the Contracts that can be declared from data alone — a Contract with behaviour hooks needs code. Subsumes the old "Note type".
 _Avoid_: schema, collection (storage detail), category, template (a part of a type)
 
 
@@ -42,11 +42,11 @@ A Contract: an entity that accepts a logged occurrence from any other App — a 
 _Avoid_: trackable, sink, hook (the Contract's own word for its functions)
 
 ### Intake
-Core Contract (behaviour — code only): an App that accepts a Handoff from any other App and makes one of its own Documents from it, through its own form. The accepting App declares what it makes ("Clipping", "Task", "Event") and opens its dialog prefilled with the Handoff; nothing is written until that dialog saves, so ownership stays whole. The sending App only lists the Intakes Core knows and never names a keeper. The Clipper, Tasks, Calendar, the Shopping list (a Need) and Languages (a Word, or a Sentence — two Intakes, the user picks) are the implementers; how Mail keeps a Message.
+Core Contract (behaviour — code only): an App that accepts a Handoff from any other App and makes one of its own Documents from it, through its own form. The accepting App declares what it makes ("Quote", "Task", "Event") and opens its dialog prefilled with the Handoff; nothing is written until that dialog saves, so ownership stays whole. The sending App only lists the Intakes Core knows and never names a keeper. The Notes App (a Quote), Tasks, Calendar, the Shopping list (a Need) and Languages (a Word, or a Sentence — two Intakes, the user picks) are the implementers; how Mail keeps a Message.
 _Avoid_: clip (one implementer's verb), import, share (the phone OS's word), capture (a Command's flag)
 
 ### Handoff
-What one App hands to another's Intake: a title, a text in markdown, an origin URL, an author and a date — and nothing the sending App would have to know about the receiver. Each Intake reads it its own way: the Clipper keeps the text as body, Tasks takes the title and puts the origin in the note, Calendar takes the title and asks for the time.
+What one App hands to another's Intake: a title, a text in markdown, an origin URL, an author and a date — and nothing the sending App would have to know about the receiver. Each Intake reads it its own way: the Notes App keeps the text as the Quote's passage and asks for its Source, Tasks takes the title and puts the origin in the note, Calendar takes the title and asks for the time.
 _Avoid_: payload, message (a Mail thing), draft
 
 ### Tally
@@ -74,7 +74,7 @@ The one Surface for time, the way Google's calendar is one place: a single desti
 _Avoid_: calendar view (say which view), Week planner (retired: Week is hour-scaled), time Surface
 
 ### Schedule
-The Calendar's hour-scaled views (Day, 3 Day, Week), where Time blocks and Events are laid out and dragged, over the bands of the day's Time blockers, beside the Event templates offered for quick add. Its chips — the pool and each day's untimed strip — are sources: dragging one onto an hour makes a new Time block and leaves the chip in place, greyed while blocks lie ahead; dragging a block moves that block alone. Anything on the hours — a Time block, an Event, a one-off Time blocker — opens when tapped, wherever hours show, to be retimed by start and length, sent to another day, or removed. Changes take effect at once and are undone, never confirmed. A Time block is removed and its item stays; an Event or blocker is deleted by its App. A done item's block is record: it can be removed but not retimed. Tapping an empty hour of the Schedule adds there: an Event, from a template, or unplaced work. Distinct from the Calendar's day-granular views, Month and Upcoming.
+The Calendar's hour-scaled views (Day view, 3 Day view, Week view — always said with "view", since a Day and a Week are Journal Documents), where Time blocks and Events are laid out and dragged, over the bands of the day's Time blockers, beside the Event templates offered for quick add. Its chips — the pool and each day's untimed strip — are sources: dragging one onto an hour makes a new Time block and leaves the chip in place, greyed while blocks lie ahead; dragging a block moves that block alone. Anything on the hours — a Time block, an Event, a one-off Time blocker — opens when tapped, wherever hours show, to be retimed by start and length, sent to another day, or removed. Changes take effect at once and are undone, never confirmed. A Time block is removed and its item stays; an Event or blocker is deleted by its App. A done item's block is record: it can be removed but not retimed. Tapping an empty hour of the Schedule adds there: an Event, from a template, or unplaced work. Distinct from the Calendar's day-granular views, Month and Upcoming.
 
 ### Upcoming
 The Calendar's list view: it runs down the days from the one in view, each day a heading with what is on it beneath: all-day items and markers, then timed items in start order, then the day's work, tickable in place. Day-granular — it shows no hours, so Time blocker bands are left out. Each day reads the way the Today feed reads today: work blocked on that day is listed there at its block's time, pointing on to its own day, as well as on its own day; its tick is the item's. Empty days are skipped, today aside; a run of them reads as one "nothing on" line, so a free week is seen rather than lost. Past days are record. It is for reading what's coming, the phone's way of answering "what's next?". Distinct from the Schedule (hour-scaled) and Month.
@@ -97,7 +97,7 @@ A fixed, hand-written page an App ships over its own types (Gallery, Chores, a S
 _Avoid_: surface (Core-owned, cross-type), screen (user-composed), page
 
 ### Module
-**The thing the user opens**: a hand-written product over a domain — Money, House, Projects, Culture, Note-taking, Progress, Mail — with its own layout and navigation, written for that domain and no other. It composes what its Apps supply (App screens, Cards) and the Surfaces it embeds, and may mix them on one page: Money's home may put Pocket's Allowances beside the Ledger's Budget. The Apps inside it keep ownership of their types; the Module owns only the arrangement. So the user meets "Money", never Ledger, Pocket and Prices as three neighbours. **Whatever the user opens is a Module**: a Module of one App is fine (Mail), because the layout is still the Module's — and a Module of one screen wears no chrome of its own, since a sidebar holding one link is chrome for nothing. An App belongs to no Module only when it never needs a destination of its own — the Calendar App, whose Events live on the general time Surfaces and are managed from them. Only the Note-taking Module's layout is the **Vault**. Core owns the list, the titles and the order — fixed in code; an App names the one Module it belongs to and nothing else, and cannot invent one, and neither can the user. The user owns which Modules a **Workspace** takes: nobody needs a "Work" Module because a Work Workspace is the thing they wanted — work Tasks are still Tasks. A Module never gates a general Surface, the Bases, the command palette or a Screen's card picker; what it scopes is its own embedded Surfaces and every *list of things to run* — the phone's capture sheet shows the Workspace's Modules' capture Commands and no others. It never gates the *ability* to create: the palette reaches everything. **Modules scope chrome; Workspaces scope data.** Supersedes the Nav group, which was the same shelf when it held only screens and was explicitly not a container.
+**The thing the user opens**: a hand-written product over a domain — Money, House, Projects, Culture, Journal, Notes, Research, Manuscript, Thoughts, Progress, Mail — with its own layout and navigation, written for that domain and no other. It composes what its Apps supply (App screens, Cards) and the Surfaces it embeds, and may mix them on one page: Money's home may put Pocket's Allowances beside the Ledger's Budget. The Apps inside it keep ownership of their types; the Module owns only the arrangement. So the user meets "Money", never Ledger, Pocket and Prices as three neighbours. **Whatever the user opens is a Module**: a Module of one App is fine (Mail), because the layout is still the Module's — and a Module of one screen wears no chrome of its own, since a sidebar holding one link is chrome for nothing. An App belongs to no Module only when it never needs a destination of its own — the Calendar App, whose Events live on the general time Surfaces and are managed from them. The **Vault** is no Module's layout: it is the raw editor for bodies, beside the Bases. Core owns the list, the titles and the order — fixed in code; an App names the one Module it belongs to and nothing else, and cannot invent one, and neither can the user. The user owns which Modules a **Workspace** takes: nobody needs a "Work" Module because a Work Workspace is the thing they wanted — work Tasks are still Tasks. A Module never gates a general Surface, the Bases, the command palette or a Screen's card picker; what it scopes is its own embedded Surfaces and every *list of things to run* — the phone's capture sheet shows the Workspace's Modules' capture Commands and no others. It never gates the *ability* to create: the palette reaches everything. **Modules scope chrome; Workspaces scope data.** Supersedes the Nav group, which was the same shelf when it held only screens and was explicitly not a container.
 _Avoid_: Nav group (the retired name), App (one member — the part that owns types, not the thing the user opens), Frame (retired), category, folder, section, suite, plugin
 
 ### Module screen
@@ -113,7 +113,7 @@ Core's only chrome on the desk: a narrow column of icons at the far left — the
 _Avoid_: sidebar (a Module may have one; the Rail is not it), dock, launcher, activity bar, nav
 
 ### Home Module
-Where a Document opens when it is opened all the way: its type's owning App's Module — a Category in Money, a Chore in House. Every built-in type has exactly one; a user-defined type has none and opens in its Base; a type whose App has no Module (an Event) opens where it is shown. The body is the exception that holds everywhere: it is written in the Vault.
+Where a Document opens when it is opened all the way: its type's owning App's Module — a Category in Money, a Chore in House. Every built-in type has exactly one; a user-defined type has the one Module the user homes it in, or none, and then opens in its Base; a type whose App has no Module (an Event) opens where it is shown. The body is the exception that holds everywhere: it is written in the Vault.
 _Avoid_: home (the phone has none), owner (the App, not the Module), home Folder (where a new Document lands)
 
 ### Peek
@@ -161,8 +161,8 @@ A unit of work owned by the Tasks App. One-time (optionally assigned to a day) o
 _Avoid_: todo, item
 
 ### Project
-An outcome the user can declare **finished** that takes more than one step to reach — "Renovate the bathroom", "Plan the Lisbon trip". Has an end by definition: an ongoing area of responsibility (health, the car) is not a Project — that is what Tags, Workspaces and Modules already are. Lives in the Projects Module beside Tasks. A Task belongs to **at most one** Project, by a link on the Task; a Project's Tasks are whatever links to it, never a list it keeps, and a Task with no Project is simply a loose Task. A recurring Task may belong to one too, but it has no single done state, so it never counts toward the Project's progress. Stands in one of five **stages**: **Planned** (wanted, not started), **Active** (being worked now), **Paused** (started, deliberately parked), **Done** (the outcome reached) and **Dropped** (abandoned, kept as record). Done is **declared, never derived**: ticking the last Task offers to finish the Project and never finishes it, because the outcome is not the task list; finishing one with Tasks still open asks what becomes of them and never deletes them silently. A stage is about the user's attention in the Projects Module only — a Paused or Planned Project's Tasks still stand on every Surface as their own days say. Carries its **Outcome** — one line saying what finished looks like, shown at its head — and an optional body for the plan, written in the Vault. Linkable: its **material** — the Notes, Clippings, Receipts and anything else about it — is whatever links to it, gathered on the Project by type, never a list it keeps and never a Folder, so a Note about the bathroom is simply a Note. Moved to another Workspace, a Project takes its Milestones, Lanes and Tasks with it in the one act; its material has lives of its own and is only offered along, never carried. A single Task moved out of its Project's Workspace leaves the Project, its Milestone and its Lane behind. Dropping is how a Project is let go; deleting is for a mistake, and **releases**: the Project, its Milestones and its Lanes go, its Tasks stay as loose Tasks, done ones still the record of their days — wanting the Tasks gone too is two explicit steps. May wear a **face** (an optional emoji and colour, as an Allowance does), which its Tasks show as a small mark wherever they stand on the Surfaces. Reported on the Daylog when it starts (becomes Active), when one of its Milestones is reached and when it is finished — never when dropped.
-_Avoid_: area, goal, epic, initiative, a grouping of Writings (that is their Folder)
+An outcome the user can declare **finished** that takes more than one step to reach — "Renovate the bathroom", "Plan the Lisbon trip". Has an end by definition: an ongoing area of responsibility (health, the car) is not a Project — that is what Tags, Workspaces and Modules already are. Lives in the Projects Module beside Tasks. A Task belongs to **at most one** Project, by a link on the Task; a Project's Tasks are whatever links to it, never a list it keeps, and a Task with no Project is simply a loose Task. A recurring Task may belong to one too, but it has no single done state, so it never counts toward the Project's progress. Stands in one of five **stages**: **Planned** (wanted, not started), **Active** (being worked now), **Paused** (started, deliberately parked), **Done** (the outcome reached) and **Dropped** (abandoned, kept as record). Done is **declared, never derived**: ticking the last Task offers to finish the Project and never finishes it, because the outcome is not the task list; finishing one with Tasks still open asks what becomes of them and never deletes them silently. A stage is about the user's attention in the Projects Module only — a Paused or Planned Project's Tasks still stand on every Surface as their own days say. Carries its **Outcome** — one line saying what finished looks like, shown at its head — and an optional body for the plan, written in the Vault. Linkable: its **material** — the Notes, Quotes, Receipts and anything else about it — is whatever links to it, gathered on the Project by type, never a list it keeps and never a Folder, so a Note about the bathroom is simply a Note. Moved to another Workspace, a Project takes its Milestones, Lanes and Tasks with it in the one act; its material has lives of its own and is only offered along, never carried. A single Task moved out of its Project's Workspace leaves the Project, its Milestone and its Lane behind. Dropping is how a Project is let go; deleting is for a mistake, and **releases**: the Project, its Milestones and its Lanes go, its Tasks stay as loose Tasks, done ones still the record of their days — wanting the Tasks gone too is two explicit steps. May wear a **face** (an optional emoji and colour, as an Allowance does), which its Tasks show as a small mark wherever they stand on the Surfaces. Reported on the Daylog when it starts (becomes Active), when one of its Milestones is reached and when it is finished — never when dropped.
+_Avoid_: area, goal, epic, initiative, a grouping of Essays (that is their Tag)
 
 ### Deadline
 The day a Project or a Milestone is meant to be reached by — optional, the user's own promise, beside an optional **start** day. While its Project is Planned, Active or Paused, a Deadline stands on the time Surfaces as an all-day **marker** on its day ("⚑ Bathroom"): taking no hours, so Push plans straight through it, and dragged to another day it changes the Deadline through the Projects App, undoably. Missed, it stays on its own day, red, and never rolls forward — rolling would fake a new promise. It changes nothing by itself: no Task moves, no stage flips. Its Project Done or Dropped, or its Milestone reached, the marker is gone and the Deadline is kept as record on the Project. A hard outside date that work must meet (filing the tax return) is better a dated Task in the Project, which is work and is ticked. The start day never reaches the Surfaces.
@@ -248,7 +248,7 @@ _Avoid_: log, record, data point
 A Boolean Stat's run of consecutive marked days. The current streak ends today or yesterday — an unmarked today doesn't break it. Derived, period-independent.
 
 ### Mood
-How one day felt, on a fixed five-point scale — 😞 Rough, 😕 Meh, 😐 Okay, 🙂 Good, 😄 Great — one colour per step, owned by the Mood App as its only Document type. At most one per day (its title is the date); re-picking replaces it, and a day with none recorded is an absence, never a sixth mood. Settable on today or any past day — never a future one, which hasn't been felt yet. Reported to the Daylog, so the daily note still shows the day's mood; deliberately *not* Linkable — a date title would collide with the daily note's, and prose points at the day, not at the feeling. The scale is fixed in code so a colour means the same thing in every year of the grid. Was a `mood` field on the daily note until ADR 0044.
+How one day felt, on a fixed five-point scale — 😞 Rough, 😕 Meh, 😐 Okay, 🙂 Good, 😄 Great — one colour per step, owned by the Mood App as its only Document type. At most one per day (its title is the date); re-picking replaces it, and a day with none recorded is an absence, never a sixth mood. Settable on today or any past day — never a future one, which hasn't been felt yet. Reported to the Daylog, so the Day still shows the day's mood; deliberately *not* Linkable — a date title would collide with the Day's, and prose points at the day, not at the feeling. The scale is fixed in code so a colour means the same thing in every year of the grid. Was a `mood` field on the Day until ADR 0044.
 _Avoid_: entry (a Stat's word), completion (Life Level's), check-in, mood entry, feeling, rating
 
 ### Mood grid
@@ -380,7 +380,7 @@ Cinema and Discotheque only: what I make of a work, beside where it stands on th
 _Avoid_: score, favourite (say Liked), half-star, vote
 
 ### Review
-Cinema and Discotheque only: my own words about a work — its Document body. One per work, written from the detail, and everything a body gives for free follows: opened as text with the fields as frontmatter, wikilinks, `#tags` counted, Backlinks. Not a Note (it belongs to the work), not a Clipping (my words), not a Quote (a passage is the work's words).
+Cinema and Discotheque only: my own words about a work — its Document body. One per work, written from the detail, and everything a body gives for free follows: opened as text with the fields as frontmatter, wikilinks, `#tags` counted, Backlinks. Not a Note (a Note is about one thing the work said; a Review is about the work), not a Quote (a passage is the work's words).
 _Avoid_: comment, notes (a Note is a Document), diary entry (there is no diary — one Shelf, one Review per work)
 
 ### Playlist
@@ -388,46 +388,69 @@ Cinema and Discotheque only: a named, ordered selection of works I curate by han
 _Avoid_: list (a Base word and a layout), collection (a Stat kind), watchlist (that is the To watch shelf), queue, exhibition (the Museum's word)
 
 ### Note
-A body-first Document type owned by the Notes App: my own thinking about things. Links, tags and headings are derived from the body; its fields are its frontmatter. Daily notes are Notes.
-_Avoid_: document (the general block), page, file, clipping, writing
+A body-first Document in the **Notes** Module: my own words about a **Source** — what struck me in the podcast, the chapter, the article — and impossible without the Source it links to. Made from the Source, kept on the Source, found through the Source. A thought with no Source is a **Thought**; my words about a whole work for its own sake are a Review.
+_Avoid_: document (the general block), page, file, thought (no source), jot, annotation
+
+### Thought
+A body-first Document in the **Thoughts** Module: something that comes straight out of my head — an idea, a feeling, a reflection, a question (its optional **kind**) — with no Source, not tied to a day, not part of a Manuscript. It may mention anything; what it never has is a Source. Attaching one **converts** it into a Note, and detaching a Note's Source converts it back — one deliberate act that keeps the Document, so links to it survive. Never processed or emptied: Thoughts are a stream, not an inbox. Not a Mood (a Mood is one day's feeling on a fixed scale; a Thought about how I feel is prose).
+_Avoid_: note (that has a Source), idea (one kind of Thought), journal entry, fleeting note, mind
 
 ### Clipping
-A body-first Document type owned by the Clipper App: text I pasted from outside, carrying its source (URL or name, captured-at) beside the body. Lifeline never fetches it — I bring the text, the Clipper keeps it with its origin. Not my words. A Quote is *not* a Clipping — it belongs to its Media item.
-_Avoid_: note, bookmark, highlight, web clip (fine in prose, not as the term)
+_Retired_ — a passage taken from outside is a **Quote**, and every Quote has a Source.
 
 ### Reference
 Not a type: the informal name for any Document about a real-world thing (a person, a place, an organisation, a work) that other Documents link to. Person and place are user-defined types; works (books, films, albums, games) are References owned by their family App, Artworks by the Museum App. What makes something a Reference is being Linkable, not its type.
 _Avoid_: entity, contact, using "Reference" as a Document type name
 
 ### Writing
-A body-first Document type owned by the Writer's pad App: prose that is purely my own and *is* the thing (essay, story, draft), rather than notes *about* something. A Writing may have Versions.
-_Avoid_: note, draft (a state a Writing may be in), article
+_Retired_ — prose that *is* the thing splits by what it is built from: an **Essay** (argued from material, in Research) or a **Manuscript** (made up, in Manuscript).
+
+### Essay
+A body-first Document in the **Research** Module: prose that argues from my material — Notes, Quotes, Sources, Thoughts — an essay, an article, a thesis, a Talk. Its **material** is what it links to, plus what I pin to it; **candidates** are the Documents one link away from that material, offered and never added on their own. Essays on one topic are grouped by Tag; nothing contains them. May have Versions.
+_Avoid_: writing (retired), paper (fine in prose), article, draft (a state)
+
+### Manuscript
+A creative work I write in the **Manuscript** Module — a novel, a collection of poems — made of ordered **Chapters**, its own body holding the outline and plan. Has a status (draft, revised, done), not a separate draft type. Shown on the Manuscript Module's shelf of works. Not an Essay: it is made up, not argued from material.
+_Avoid_: book (a Library work), project (a Projects word), novel (one kind), writing
+
+### Chapter
+One ordered part of a Manuscript, with a body of its own. May have Versions.
+_Avoid_: section, part (fine in prose), scene (finer than a Chapter)
+
+### Outtake
+An internal Document type: a passage cut from a Chapter and kept with its Manuscript, so cutting never loses words. Restoring one puts it back as a new edit.
+_Avoid_: deleted scene (fine in prose), trash, scrap
 
 ### Version
-An internal Document type owned by the Writer's pad: a snapshot of a Writing's body taken on purpose by pressing a button — never automatic. Versions are kept side by side with the current text for comparison; restoring one is a new edit, not a rewind.
+An internal Document type: a snapshot of an Essay's or a Chapter's body taken on purpose by pressing a button — never automatic. Versions are kept side by side with the current text for comparison; restoring one is a new edit, not a rewind.
 _Avoid_: revision, history (implies automatic), backup (fine in prose)
 
 ### Note type
 _Retired_ — use **Document type**. (Was: a kind of Note fixing its title rule, Properties and template.)
 
 ### Field
-A typed value a Document type declares (mood, aliases, birthday, geo, employer…), edited as a form, shown as a Base column, and read/written as frontmatter when the Document is opened as text. Kinds: text, long text, number, boolean, date, datetime, select, multi-select, url, geo, list of text, and **Link**. No formulas — a computed value belongs to a View, not a type.
+A typed value a Document type declares (mood, aliases, birthday, geo, employer…), edited as a form, shown as a Base column, and read/written as frontmatter when the Document is opened as text. Kinds: text, long text, number, boolean, date, datetime, select, multi-select, url, geo, list of text, and **Link**. No formulas — a computed value belongs to a View, not a type. Every type has its own Fields, and the user may add Fields to any type, built-ins included; a built-in's own Fields stay its App's, the user's sit beside them.
 _Avoid_: property (old Notes word — same thing), metadata, attribute, column (a View's rendering of a Field)
 
 ### Link (field)
 A Field holding a reference to another Document, optionally restricted to one type (`employer → organisation`). Stored by id, written as a wikilink in frontmatter, clickable in Bases, and a source of Backlinks exactly like a wikilink in a body.
 _Avoid_: relation, foreign key, reference
 
-### Note template
-A Note whose body is the starting text for other Notes — the daily template, a meeting template. Lives in the `Templates` Folder; copied into a new Note's body once and forgotten, never a link. Owned by the Notes App. Not an Event template (that shapes an Event, not a body).
-_Avoid_: template (bare — say which), preset, skeleton
+### Template
+A body a Document type offers as the starting text for a new Document of that type — the Day's sections, a meeting Note, a Chapter skeleton. Every type has its own Templates; picking one copies it into the new body once and forgets it, never a link. Not an Event template (that shapes an Event, not a body).
+_Avoid_: note template (old name), template (bare, when an Event template is near), preset, skeleton
 
-### Daily note
-The Note whose title is a date — at most one per day; the Journal entry. Created from the daily Note template on first use; the day's hub, carrying a Daylog block.
-_Avoid_: journal entry (same thing — use "daily note"), log, diary page
+### Day
+The Journal's Document for one day, titled by its date — at most one per day, made from the Day's Template on first use: the day's page, carrying a Daylog block and showing the day's Mood. Was the "daily note" until Note came to mean writing on a Source.
+_Avoid_: daily note (old name), journal entry, log, diary page, entry (a Stat's)
+
+### Week, Month, Quarter, Year
+The Journal's review Documents for a longer stretch, one each per ISO week (`2026-W42`), month, quarter and year, titled by that stretch: each with its own Template, the Daylog rolled up over its days, and a way through to the Days and shorter stretches inside it.
+_Avoid_: weekly note, review (a Review is my words on a work), period summary
 
 ### Journal
-The Notes App's date-navigated Surface over daily notes.
+The Module for living day to day in writing: Days and their Weeks, Months, Quarters and Years, the user-defined types they talk about (people, places…), and a writing interface of its own built for heavy markdown pages. Agnostic about what those other types are — the user defines them and homes them here.
+_Avoid_: diary, vault (the raw editor)
 
 ### Wikilink
 `[[Name]]` in any Document's body. Resolves by name — case- and accent-insensitive, spaces collapsed — across every Linkable Document type — exact title first, then alias — with an optional type prefix (`[[media:Dune]]`) to disambiguate; once resolved, the link remembers its target so later collisions don't move it. Unresolved links stay unresolved (click to create a Note). The editor's completer shows the type of each candidate.
@@ -438,11 +461,15 @@ From the target's side: a Document that wikilinks to it. Every Linkable Document
 _Avoid_: incoming link, reference
 
 ### Unlinked mention
-A Linkable Document's title or alias appearing as plain prose in another Document's body, with no wikilink around it. Derived, never stored; offered from both ends in the links panel — the target sees who mentions it, the source sees which names it could link — and turned into a Wikilink only on request, never silently. A Document type may opt its Documents out as targets (daily notes, the Bible's scripture types with their own references). Not a Backlink (that needs a link).
-_Avoid_: unlinked reference (the Bible App's scripture-specific kind), suggestion, candidate
+A Linkable Document's title or alias appearing as plain prose in another Document's body, with no wikilink around it. Derived, never stored; offered from both ends in the links panel — the target sees who mentions it, the source sees which names it could link — and turned into a Wikilink only on request, never silently. A Document type may opt its Documents out as targets (Days). Not a Backlink (that needs a link).
+_Avoid_: unlinked reference, suggestion, candidate
 
 ### Linkable
 Core Contract: a Document type whose Documents are wikilink targets by title and alias, and receive backlinks. Declarable by data (a user-defined type just says so).
+
+### Role
+A built-in type's fields and behaviour lent to a Document of another type, so one Document can be two things: my user-defined Person `Ursula Le Guin` wears the **Author** Role, and her books link to her. A Document still has exactly **one type** — which decides its owner, title, body and Home Module — and any number of Roles. A Role's fields belong to the App that defines the Role; taking a Role off keeps the Document and drops only that Role's fields. Every Role comes with a **home type** for Documents that are that and nothing else (Library's Author, the Notes App's Source). **Source** and **Author** are Roles; my own words (Note, Quote, Thought, Day, Essay, Chapter) never wear Source.
+_Avoid_: type (a Document has one), tag, trait, mixin, subtype
 
 ### Graph
 The Core Surface drawing every Linkable Document as a node and every link relation — wikilink or Link field, merged per pair, undirected — as an edge, coloured by owning App like Pins. Unresolved names appear as Ghost nodes; Documents nothing links to (orphans) are hidden unless asked for; Tags may be shown as nodes on request. The layout is derived, never synced.
@@ -465,7 +492,7 @@ One Locatable entity drawn on a map: name, optional subtitle, coordinates, and a
 _Avoid_: marker (a rendering detail), place (a Note type), location (that's the coordinates, not the entity)
 
 ### Daylog
-Core Contract (behaviour — code only): an App reports what *happened* on a day — completed tasks, chore completions, logged entries, media started/finished, events. Rendered live wherever a Daylog block appears (a daily note's fenced `daylog` block, or a Card); never written as text.
+Core Contract (behaviour — code only): an App reports what *happened* on a day — completed tasks, chore completions, logged entries, media started/finished, events. Rendered live wherever a Daylog block appears (a Day's fenced `daylog` block, or a Card); never written as text.
 _Avoid_: timeline, activity feed, summary
 
 ### Tag
@@ -480,30 +507,34 @@ _Avoid_: view, saved search, override (nothing overrides — filters compose)
 _Retired_ — every Document carries Tags by construction; Core derives the vocabulary from the store. Contract items placed on Surfaces (Schedulable, Timed, Daylog, Pin…) still carry their Document's Tags, so Tag filters apply everywhere.
 
 ### Source
-Something outside Lifeline shown inside it, owned by the Sources App. Kinds are added over time; the first is the Embed. A Source is named, tagged and pickable for a Card; Lifeline never owns the data behind it.
-_Avoid_: integration (that is an App talking to a service), widget, feed (one future kind)
+A **Role**: what a Document wears when I take Notes and Quotes from it — a book, a film, an album, an article, a podcast episode, a video, a person I heard speak — and the hub I take them from: a Source gathers its Notes and Quotes, and is where new ones start. A Source may belong to a **parent Source** (a show and its episodes, a magazine and its articles), whose page gathers its children's Notes and Quotes too; a page or a minute is a **locator**, never a Source. Works keep their own type and family App and simply wear the Role; what is nobody else's — an article, a podcast, a video, a website — is the Notes App's own Source type. Shelved in the **Notes** Module by kind and Tags.
+_Avoid_: origin, reference (any Linkable thing), work (one kind of Source), window (the old meaning)
+
+### Window
+Something outside Lifeline shown inside it, unowned and not understood, kept by the Windows App in the Notes Module — a Feed's item becomes a Source in one tap. Kinds: Embed, Feed, Calendar subscription, Live value. Named, tagged and pickable for a Card; Lifeline never owns the data behind it. Was called "Source" until Source became the hub of Notes and Quotes.
+_Avoid_: source (the hub), integration (that is an App talking to a service), widget
 
 ### Embed
-A Source kind: a web page shown as-is in a frame, by URL. Lifeline displays it and does not understand it; a page that refuses to be framed stays blank and can only be opened outside. Optionally reloads itself on a period.
+A Window kind: a web page shown as-is in a frame, by URL. Lifeline displays it and does not understand it; a page that refuses to be framed stays blank and can only be opened outside. Optionally reloads itself on a period.
 _Avoid_: iframe (a rendering detail), link (that's a Wikilink), bookmark
 
 ### Feed
-A Source kind: an RSS/Atom URL Lifeline reads and lists — latest items, opened outside. Remembers only "seen up to when"; never the items themselves.
+A Window kind: an RSS/Atom URL Lifeline reads and lists — latest items, opened outside. Remembers only "seen up to when"; never the items themselves.
 _Avoid_: reader, subscription (that's a Calendar subscription), channel
 
 ### Calendar subscription
-A Source kind: an iCal URL whose events appear on the time Surfaces as read-only Timed items in the subscription's colour. They are never copied into the Calendar App's Events and can't be moved or completed.
+A Window kind: an iCal URL whose events appear on the time Surfaces as read-only Timed items in the subscription's colour. They are never copied into the Calendar App's Events and can't be moved or completed.
 _Avoid_: external calendar, imported calendar (nothing is imported), feed
 
 ### Live value
-A Source kind: a URL polled on a period, from whose response one value is read (a JSON path or a regex capture) and shown as a tile with a label and unit. Shows when it was last read; goes stale, never fakes.
+A Window kind: a URL polled on a period, from whose response one value is read (a JSON path or a regex capture) and shown as a tile with a label and unit. Shows when it was last read; goes stale, never fakes.
 _Avoid_: metric, sensor, stat (a Stat is owned data with history — a Live value has none)
 
 ### Conflict copy
 A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten unsynced local edits. Nothing is merged, nothing is lost.
 
 ### Workspace
-**A separate world of data, with the Modules that world needs.** One **default** Workspace reads the shared content; every other Workspace the user creates is **separated** — it holds its own content and sees nothing else. "Work" takes Tasks and Note-taking and holds work's Documents; the general Calendar in Work shows work's Tasks and Events and nothing personal, and Money is simply not there. The choice of Modules decides which Modules stand at the top level; separation decides the data. There is no Workspace that shares the default's data with fewer Modules — that was only ever a shorter sidebar.
+**A separate world of data, with the Modules that world needs.** One **default** Workspace reads the shared content; every other Workspace the user creates is **separated** — it holds its own content and sees nothing else. "Work" takes Tasks and Research and holds work's Documents; the general Calendar in Work shows work's Tasks and Events and nothing personal, and Money is simply not there. The choice of Modules decides which Modules stand at the top level; separation decides the data. There is no Workspace that shares the default's data with fewer Modules — that was only ever a shorter sidebar.
 _Avoid_: mode, space, profile, Account (one sign-in, a different axis), Module (what a Workspace takes)
 
 ### Separation
@@ -511,31 +542,31 @@ What every Workspace but the default is: its content kept to itself. Every Docum
 _Avoid_: pool (the Calendar's Unplaced drawer), private (the Private folder is a different gate), partition, tenancy, sandbox, sync (unrelated)
 
 ### Held / shared
-Which content a Document is. **Shared** (the default, the field empty) means every unseparated Workspace sees it and no separated one does. **Held** means exactly one separated Workspace sees it. No type is exempt — a separated Workspace with the Progress Module starts with an empty Exercise library and curates its own, because the reason to separate a Money Workspace is precisely that its Accounts and Categories should not be the personal ones. The types that are genuinely universal repair themselves by being used: the Bible App derives its Verses, Characters and Concepts from the names it finds (ADR 0032), so a Workspace regenerates them rather than importing them.
+Which content a Document is. **Shared** (the default, the field empty) means every unseparated Workspace sees it and no separated one does. **Held** means exactly one separated Workspace sees it. No type is exempt — a separated Workspace with the Progress Module starts with an empty Exercise library and curates its own, because the reason to separate a Money Workspace is precisely that its Accounts and Categories should not be the personal ones. The types that are genuinely universal repair themselves by being used: a separated Workspace builds them up again from use rather than importing them.
 _Avoid_: private, owned (an Account owns), scoped, global (say shared)
 
 ### Frame
-_Retired_ — it was the Vault/Dashboard axis (what you *do*), two chromes chosen by URL. Chrome now follows the **Module** (what it is *about*): each Module ships its own layout, so a separate word for "the chrome around a Module" names nothing the Module does not already. The Vault survives as the Note-taking Module's layout; the Dashboard is retired.
+_Retired_ — it was the Vault/Dashboard axis (what you *do*), two chromes chosen by URL. Chrome now follows the **Module** (what it is *about*): each Module ships its own layout, so a separate word for "the chrome around a Module" names nothing the Module does not already. The Vault survives as the raw editor for bodies; the Dashboard is retired.
 _Avoid_: Frame (say the Module, or the Vault)
 
 ### Attachment
-A file — for now an image — dropped or pasted into a Document's body and kept by Core beside the content: bytes, filename and kind, nothing else. Not a Document: no type, no Base, no Folder, no Tags, absent from the Vault tree; it exists only to be embedded from bodies by name, and any body-first type (Note, Clipping, Writing) may embed one. Renaming it rewrites every embed, as renaming a Note does. Deleting the embed never deletes the Attachment: one no body embeds any more is **orphaned**, kept, and removed only when the user asks to clean up.
+A file — for now an image — dropped or pasted into a Document's body and kept by Core beside the content: bytes, filename and kind, nothing else. Not a Document: no type, no Base, no Folder, no Tags, absent from the Vault tree; it exists only to be embedded from bodies by name, and any body-first type may embed one. Renaming it rewrites every embed, as renaming a Note does. Deleting the embed never deletes the Attachment: one no body embeds any more is **orphaned**, kept, and removed only when the user asks to clean up.
 _Avoid_: image (the kind, not the thing), file (a storage detail), asset, upload, media (the retired App)
 
 ### Vault
-The **Note-taking Module's Frame**, and the place content is **written**: Obsidian's chrome — tree, search, tags, links — around a markdown editor over any Document's frontmatter and body, whatever its type. Editing a body is what the Vault is for, so a body is edited here or it is edited in the wrong place — a Money or Progress Document with a body hands off to the Vault to have it written. Not a storage place — Documents live in one store whatever Frame shows them.
-_Avoid_: notes (one type), library, folder
+The **raw** editor for bodies, as a Base is the raw editor for fields: tree, search, tags, links around a markdown editor over any Document's frontmatter and body, whatever its type, for bulk and plain-text work. Not where bodies are *meant* to be written — each writing Module (Journal, Manuscript, Research, Notes, Thoughts) has its own interface — but always there, and any body with no interface of its own opens here. Not a storage place — Documents live in one store whatever shows them.
+_Avoid_: notes (one type), library, folder, journal (a Module)
 
 ### Dashboard
 The Frame where data is **read and operated**: Screens of Cards, Surfaces, App screens and Bases. What changes here changes through a defined operation — a form, a dialog, a click whose effect is known — never through free text. An App screen lists, filters and starts things; the body it opens belongs to the Vault.
 _Avoid_: home (the phone has none; say the Screen), main app, frame (say which), workspace (a different axis)
 
 ### Folder
-Where a Document lives: a `/`-separated path (root when empty). Every Document has one; only the Vault cares — its tree, and the phone's Vault tabs, which *are* Folders. A Folder exists because Documents are in it; titles are unique within a Folder for a given type. Notes live in `Notes`, clippings in `Clippings`, writings in `Writings`, daily notes in `Journal/YYYY/MM`, templates in `Templates`, private ones in `Private`. A type's home Folder is where a new Document of it lands, never a rule about where its Documents may live — a Note in `Private` is still a Note. What a Folder decides is what "+" creates in it; what furniture a Document gets is decided by its type, never by where it sits.
+Where a Document lives: a `/`-separated path (root when empty). Every Document has one; only the Vault cares — its tree, and the phone's Vault tabs, which *are* Folders. A Folder exists because Documents are in it; titles are unique within a Folder for a given type. Each body-first type has its home Folder, Days in `Journal/YYYY/MM`, templates in `Templates`, private ones in `Private`. A type's home Folder is where a new Document of it lands, never a rule about where its Documents may live — a Note in `Private` is still a Note. What a Folder decides is what "+" creates in it; what furniture a Document gets is decided by its type, never by where it sits.
 _Avoid_: directory, category (that's a Document type), tag
 
 ### Private folder
-The one reserved Folder, `Private` at the root (subfolders included), whose Documents are shown only while it is **unlocked**. It exists once the user has **set it up** — chosen its password — and adopts any plain `Private` folder already there. Only body-first Documents (Note, Clipping, Writing) may be created or moved into it; no Task, Event or other App Document ever hides there. A gate, not a safe: it keeps eyes off, not bytes secret — the text is stored like any other Document's. Same password on every device, usable offline; resetting it needs the account password and loses nothing.
+The one reserved Folder, `Private` at the root (subfolders included), whose Documents are shown only while it is **unlocked**. It exists once the user has **set it up** — chosen its password — and adopts any plain `Private` folder already there. Only body-first Documents may be created or moved into it; no Task, Event or other App Document ever hides there. A gate, not a safe: it keeps eyes off, not bytes secret — the text is stored like any other Document's. Same password on every device, usable offline; resetting it needs the account password and loses nothing.
 _Avoid_: vault (the Frame), encrypted/secret notes (they are not), locked folder (say "the Private folder is locked"), hidden folder
 
 ### Locked / Unlocked
@@ -546,36 +577,15 @@ _Avoid_: hidden (locked Documents are absent, not hidden in place), logged in / 
 _Retired_ — the App is now called **Quotes**; its id and ADR 0024 keep the old name.
 
 ### Bible study
-The Bible App: a lens over the study, not a second notebook. It owns the *references* of Bible study — Verses, Characters, Concepts — and scopes the material to them: the Notes (on verses, articles, speeches), Clippings (pasted articles) and Writings (talks) that link to a Verse, Character or Concept are *the* Bible study, wherever they live; the App lists them, draws their Graph, and reads verse references in any body. No Bible Note, no Bible Clipping, no Bible Writing: a Note is my thinking about things, whatever the thing.
-_Avoid_: Bible notes app, study notes (a type), scripture app
-
-### Verse
-One verse of scripture as a Linkable reference, owned by the Bible App — "John 3:16" and nothing else: no text is stored, a Verse is a hub that Notes and ideas connect through, the Bible itself stays on the shelf. Written as `[[John 3:16]]` in any body; a **range** written once — `[[John 3:16–18]]` — is one link in the text that resolves to every Verse in it. A bare reference in prose ("see Rom 8:28") is found and *offered* as a link, never linked behind your back. A Verse belongs to its Chapter, a Chapter to its Book; all three are created on first mention, never seeded.
-_Avoid_: scripture (the whole), passage (a range — fine in prose), reference (the informal word for any Linkable thing), citation
-
-### Chapter
-A chapter of a Book as its own Linkable Document, owned by the Bible App — "John 3" — that its Verses belong to, so a Note on the chapter and the Notes on its verses find each other. Has a body: the place for what the chapter as a whole is about.
-_Avoid_: section, pericope
-
-### Book
-A book of the Bible as its own Linkable Document, owned by the Bible App — "John", "Romans" — that its Chapters belong to. Has a body. The canon's names and their abbreviations are the App's, so `Jn`, `Rom`, `1 Cor` resolve.
-_Avoid_: book (a Library work — say "Bible book" when both are near), volume
-
-### Character
-A person of the Bible, owned by the Bible App and Linkable: Paul, Ruth, Pilate. Distinct from a user-defined `person` (someone I know) — a Character is met in the text, and a Note or Verse links to it.
-_Avoid_: person (my own contacts), figure, biblical person (fine in prose)
-
-### Concept
-An idea the study keeps returning to — grace, covenant, exile — owned by the Bible App and Linkable, so Notes, Verses and Characters gather under it. A Concept is a study's own vocabulary, not a Tag: it has a body of its own and can be written about.
-_Avoid_: theme (fine in prose), topic, tag, context (the setting; also a word Lifeline already uses for its glossary)
+_Retired_ — the Bible App is retired, and with it its Verses, Chapters, Books, Characters and Concepts. Study material is Notes and Quotes on Sources like any other.
 
 ### Talk
-Not a type: a Writing I give aloud — a sermon, a study-group talk. Marked by its Folder (`Writings/Talks`) or a `talk` Tag, it links the Verses, Characters and Concepts it draws on like any body and keeps Versions like any Writing. The Bible App lists such Writings under "Talks"; the day it is given is an Event, since a talk is given more than once.
-_Avoid_: sermon (fine in prose), speech (that's something I *heard* — a Note or Clipping about it), presentation
+Not a type: an Essay I give aloud — a sermon, a study-group talk — marked by a `talk` Tag. The day it is given is an Event, since a talk is given more than once.
+_Avoid_: sermon (fine in prose), speech (that's something I *heard* — a Note or Quote on it), presentation
 
 ### Quote
-A passage kept from a work of any family — its text, an optional locator (page, chapter, timestamp), an optional comment and tags — owned by the **Quotes** App (ADR 0024) and impossible without the work it links to, whatever App owns that work. Inserted into notes as a blockquote ending in a wikilink to the item; also a wikilink target by its opening words. Captured on a day, it is a Daylog fact ("Quoted").
-_Avoid_: highlight (a quote may be a thought you had about it, not only the text), excerpt, clipping
+A passage taken from a **Source** — a line of a book, a minute of a podcast, a pasted article — its text (short or long), an optional locator (page, chapter, timestamp), an optional comment and tags, owned by the Notes App and impossible without the Source it links to. Not my words. Absorbs the old Clipping.
+_Avoid_: clipping (retired), highlight, excerpt, web clip
 
 ### Pantry
 The stocks App: what food the household holds and where. Owns Provisions and Storages; tracks presence and quantity, not recipes or meal plans.
@@ -646,27 +656,27 @@ One Gmail conversation as the Mail App lists and triages it — the row in the l
 _Avoid_: conversation (fine in prose), email (ambiguous — say Thread or Message), item
 
 ### Message
-One email inside a Thread — sender, recipients, date, subject, body — as read from Gmail. Not a Document and never stored beyond the local cache; **keeping** one hands it as a Handoff to an Intake of your choosing — a Clipping (subject as title, sender as author, sent date as published, the Gmail link as source), a Task, an Event. The Thread is what you triage; the Message is what you read and keep.
+One email inside a Thread — sender, recipients, date, subject, body — as read from Gmail. Not a Document and never stored beyond the local cache; **keeping** one hands it as a Handoff to an Intake of your choosing — a Quote (subject as title, sender as author, sent date as published, the Gmail link as source), a Task, an Event. The Thread is what you triage; the Message is what you read and keep.
 _Avoid_: mail (the App), email (fine in prose), letter, clipping (what keeping makes)
 
 ### Label
-A Gmail label as the Mail App reads it — Inbox, Starred, and the user's own — belonging to one Mailbox and living at Google. The list is narrowed by one Label; triage adds or removes one on a Thread. Never a Tag: a Thread is not a Document, and keeping a Message carries no Label across — the Clipping is tagged by hand.
+A Gmail label as the Mail App reads it — Inbox, Starred, and the user's own — belonging to one Mailbox and living at Google. The list is narrowed by one Label; triage adds or removes one on a Thread. Never a Tag: a Thread is not a Document, and keeping a Message carries no Label across — the Quote is tagged by hand.
 _Avoid_: tag (Lifeline's word, on Documents only), folder (a Document's place), category (Gmail's own tabs are not surfaced), mailbox (the connected address)
 
 ### Triage
-What the Mail App does to a Thread, always at Google and never in Lifeline's own store: archive (out of Inbox), mark read or unread, star or unstar, add or remove a Label, and trash (Gmail's thirty-day bin). Nothing else — no spam, no permanent delete, no mute, and no snooze, which Gmail does not expose. Keeping a Message is not triage: it makes a Clipping, a Task or an Event through an Intake and leaves the Thread where it is.
+What the Mail App does to a Thread, always at Google and never in Lifeline's own store: archive (out of Inbox), mark read or unread, star or unstar, add or remove a Label, and trash (Gmail's thirty-day bin). Nothing else — no spam, no permanent delete, no mute, and no snooze, which Gmail does not expose. Keeping a Message is not triage: it makes a Quote, a Task or an Event through an Intake and leaves the Thread where it is.
 _Avoid_: process, action (a Command's word), sort (a View's)
 
 ### Languages
 The language-retention App and the Module of the same name: Words and Sentences the user met in the wild, kept from being forgotten by spaced repetition. Lifeline never originates the material — no suggested words, no curated Decks, no generated lists; the user decides what is learnt, and any automation only does labour on what they chose. Its purpose is **retention**, not acquisition: meeting new material happens outside. Nothing arrives in bulk: every Word and Sentence is added one at a time, because each one was met.
-_Avoid_: Lexica (the standalone app it descends from), study (the Bible App's word), learning (conflates acquisition with retention), course, lessons
+_Avoid_: Lexica (the standalone app it descends from), study (the retired Bible App's word), learning (conflates acquisition with retention), course, lessons
 
 ### Word
-A piece of vocabulary the user met and chose to keep, owned by the Languages App: the term in the target Language (which may be several words — "tener ganas de"), its meaning in the user's own words, optional notes, and an optional **origin** — where it was met (a link to a Clipping, a URL, "Pedro at dinner"), kept because remembering the encounter helps remember the word. Yields two Prompts: **forward** (shown the term, recall the meaning) and **reverse** (shown the meaning, recall the term). Editing a Word never resets it: its forward and reverse Prompts stay the same Prompts whatever is fixed. Added by hand, by a capture Command in seconds, or through its own Intake from a Handoff (the selected text becomes the term). A Word or Sentence may be **paused**: still listed, its Recalls kept, its Prompts out of every Practice until unpaused, when the schedule resumes from its Recalls (overdue, honestly, if time has passed). Deleting one takes its Recalls with it — they mean nothing without their Prompts — and every Deck simply loses it. Deliberately *not* Linkable, nor is a Sentence — practice material, not a subject: `[[casa]]` or `[[pan]]` would swallow links meant for other things, and one term may exist in two Languages.
+A piece of vocabulary the user met and chose to keep, owned by the Languages App: the term in the target Language (which may be several words — "tener ganas de"), its meaning in the user's own words, optional notes, and an optional **origin** — where it was met (a link to a Quote or a Source, a URL, "Pedro at dinner"), kept because remembering the encounter helps remember the word. Yields two Prompts: **forward** (shown the term, recall the meaning) and **reverse** (shown the meaning, recall the term). Editing a Word never resets it: its forward and reverse Prompts stay the same Prompts whatever is fixed. Added by hand, by a capture Command in seconds, or through its own Intake from a Handoff (the selected text becomes the term). A Word or Sentence may be **paused**: still listed, its Recalls kept, its Prompts out of every Practice until unpaused, when the schedule resumes from its Recalls (overdue, honestly, if time has passed). Deleting one takes its Recalls with it — they mean nothing without their Prompts — and every Deck simply loses it. Deliberately *not* Linkable, nor is a Sentence — practice material, not a subject: `[[casa]]` or `[[pan]]` would swallow links meant for other things, and one term may exist in two Languages.
 _Avoid_: vocab, term (one of its fields), card, flashcard, entry (a Stat's), lemma
 
 ### Sentence
-A sentence the user met, with one or more parts marked as blanks, owned by the Languages App. May carry a **translation** in the user's own words, shown with each of its Prompts so a blank has one answer, not several ("Tengo ____ de comer" — *I feel like eating*). Carries an optional origin like a Word; most often made through its own **Intake** from a Handoff — a sentence selected in a Clipping or a Mail Message, its origin kept. Yields one Prompt per blank, and a blank is known by its own text — adding, removing or reordering blanks leaves the others' Recalls where they were, while changing a blank's text makes a new Prompt that starts fresh (the old one's Recalls stay, counting for nothing). "Cloze" names the technique, not the thing.
+A sentence the user met, with one or more parts marked as blanks, owned by the Languages App. May carry a **translation** in the user's own words, shown with each of its Prompts so a blank has one answer, not several ("Tengo ____ de comer" — *I feel like eating*). Carries an optional origin like a Word; most often made through its own **Intake** from a Handoff — a sentence selected in a Quote or a Mail Message, its origin kept. Yields one Prompt per blank, and a blank is known by its own text — adding, removing or reordering blanks leaves the others' Recalls where they were, while changing a blank's text makes a new Prompt that starts fresh (the old one's Recalls stay, counting for nothing). "Cloze" names the technique, not the thing.
 _Avoid_: cloze (the technique), phrase, example, card
 
 ### Prompt
