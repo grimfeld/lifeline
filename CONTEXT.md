@@ -429,7 +429,7 @@ _Avoid_: revision, history (implies automatic), backup (fine in prose)
 _Retired_ — use **Document type**. (Was: a kind of Note fixing its title rule, Properties and template.)
 
 ### Field
-A typed value a Document type declares (mood, aliases, birthday, geo, employer…), edited as a form, shown as a Base column, and read/written as frontmatter when the Document is opened as text. Kinds: text, long text, number, boolean, date, datetime, select, multi-select, url, geo, list of text, and **Link**. No formulas — a computed value belongs to a View, not a type. Every type has its own Fields, and the user may add Fields to any type, built-ins included; a built-in's own Fields stay its App's, the user's sit beside them.
+A typed value a Document type declares (mood, aliases, birthday, geo, employer…), edited as a form, shown as a Base column, and read/written as frontmatter when the Document is opened as text. Kinds: text, long text, number, boolean, date, datetime, select, multi-select, url, geo, list of text, and **Link**. No formulas — a computed value belongs to a View, not a type. Every type has its own Fields, and the user may add Fields to any type, built-ins included; a built-in's own Fields stay its App's, the user's sit beside them. A Field is fixed once it exists: it can be relabelled, and its kind changed only to one every value it already holds still fits; removing it keeps the values Documents hold, and they return if it is added back.
 _Avoid_: property (old Notes word — same thing), metadata, attribute, column (a View's rendering of a Field)
 
 ### Link (field)
