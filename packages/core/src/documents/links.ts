@@ -3,6 +3,7 @@ import { extractLinks, isImageEmbed, normalizeName, type WikiLink } from "../mar
 import { docPath, normalizeFolder } from "../folders";
 import { aliasesOf, displayTitle, isLinkKind, singularOf, type Document, type DocumentTypeDef } from "./types";
 import { useAllDocuments } from "./store";
+import { fieldsOfDocument } from "./roles";
 import { usePrivateLockedRefs, type PrivateLockedRefs } from "../private";
 
 const NO_LOCKED: PrivateLockedRefs = { names: new Set(), ids: new Set() };
@@ -213,7 +214,7 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[], locke
       backlinks.set(r.id, list);
     }
     // Link fields (ADR 0019): a stored id is a reference too — one or several (ADR 0052).
-    for (const f of def?.fields ?? []) {
+    for (const f of fieldsOfDocument(d, def)) {
       if (!isLinkKind(f.kind)) continue;
       const v = d[f.key];
       const ids = Array.isArray(v) ? v : typeof v === "string" && v ? [v] : [];

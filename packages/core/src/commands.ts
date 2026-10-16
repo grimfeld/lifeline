@@ -1,4 +1,5 @@
 import { allDocuments, documentsOf, getDocument } from "./documents/store";
+import { documentsWithRole, hasRole } from "./documents/roles";
 import type { Document } from "./documents/types";
 import type { CommandArg, CommandDef, CommandResult } from "./manifest";
 
@@ -39,9 +40,9 @@ function linkTypes(arg: CommandArg): string[] | undefined {
  * the call's Workspace only). Never a guess: no match, or several, is an
  * error the caller can act on.
  */
-export function pickLinked(arg: CommandArg, value: string, docs: readonly Pick<Document, "id" | "type" | "title">[]): string {
+export function pickLinked(arg: CommandArg, value: string, docs: readonly (Pick<Document, "id" | "type" | "title"> & { roles?: unknown })[]): string {
   const types = linkTypes(arg);
-  const ofType = types ? docs.filter((d) => types.includes(d.type)) : docs;
+  const ofType = arg.linkRole ? docs.filter((d) => hasRole(d, arg.linkRole!)) : types ? docs.filter((d) => types.includes(d.type)) : docs;
   const byId = ofType.find((d) => d.id === value);
   if (byId) return byId.id;
   const wanted = value.trim().toLowerCase();
@@ -98,6 +99,10 @@ async function readArg(arg: CommandArg, v: unknown): Promise<unknown> {
       const value = String(v);
       const types = linkTypes(arg);
       const doc = await getDocument(value);
+      if (arg.linkRole) {
+        if (doc && hasRole(doc, arg.linkRole)) return value;
+        return pickLinked(arg, value, await documentsWithRole(arg.linkRole));
+      }
       if (doc && (!types || types.includes(doc.type))) return value;
       const candidates = types ? (await Promise.all(types.map((t) => documentsOf(t)))).flat() : await allDocuments();
       return pickLinked(arg, value, candidates);
