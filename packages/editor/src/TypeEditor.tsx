@@ -326,7 +326,7 @@ export function TypeEditor({
       </div>
       {(record || base) && (base ? base.body !== "none" : body !== "none") && (
         <div className="flex min-w-0 items-center gap-2 text-xs">
-          <span className="text-muted-foreground min-w-0 flex-1">New {label.trim() ? singularOf({ label }).toLowerCase() : "pages"} start from its Templates.</span>
+          <span className="text-muted-foreground min-w-0 flex-1">New ones start from its Templates.</span>
           <Link to={templatesPath(typeId)} onClick={onDone} className="shrink-0 underline underline-offset-2">
             {templates === 0 ? "Make a template" : `Templates · ${templates}`}
           </Link>
