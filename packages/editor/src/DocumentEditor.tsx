@@ -64,6 +64,8 @@ export interface DocumentEditorProps {
   save?: (next: Document) => Promise<unknown>;
   /** Delete the Document (default: removeDocument) — an App may cascade. */
   remove?: () => Promise<unknown>;
+  /** Nothing but the title and the page: the Fields and Tags strip is left out (a Manuscript's Focus). */
+  minimal?: boolean;
 }
 
 /**
@@ -72,7 +74,7 @@ export interface DocumentEditorProps {
  * the links panel. Saves are debounced. Text mode shows the frontmatter
  * projection; edits to guarded fields there are reverted with a notice.
  */
-export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn }: DocumentEditorProps) {
+export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn, minimal = false }: DocumentEditorProps) {
   const navigate = useNavigate();
   const openDoc = useOpenDocument();
   const isMobile = useIsMobile();
@@ -411,7 +413,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
           </div>
         ) : (
           <>
-            <div className={cn("grid gap-2 border-b px-3 py-2 md:px-4", !detailsOpen && "max-md:hidden")}>
+            <div className={cn("grid gap-2 border-b px-3 py-2 md:px-4", !detailsOpen && "max-md:hidden", minimal && "hidden")}>
               {fields.some((f) => !f.hidden) && (
                 <FieldsForm def={{ fields }} value={fieldValues} allowGuarded={allowGuarded} onChange={(next) => stage(next as Partial<Document>)} />
               )}
