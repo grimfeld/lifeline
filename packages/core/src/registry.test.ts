@@ -92,9 +92,12 @@ describe("moduleOfPath", () => {
     expect(moduleOfPath("/app/library/shelf/42")).toBe("culture");
   });
 
-  it("finds a Module by its own page, and by a hand-written layout's home", () => {
+  it("finds a Module by its own page", () => {
     expect(moduleOfPath("/module/house")).toBe("house");
-    expect(moduleOfPath("/vault/d/abc")).toBe("journal");
+  });
+
+  it("puts the Vault in no Module: it is Core's raw editor (ADR 0068)", () => {
+    expect(moduleOfPath("/vault/d/abc")).toBeUndefined();
   });
 
   it("is undefined for Core's destinations and for an App in no Module", () => {

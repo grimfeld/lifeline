@@ -16,6 +16,8 @@ export interface ModulePlace {
   page?: string;
   /** Or: the id of the App screen that is this place. */
   screen?: string;
+  /** Or: a route of its own — an App screen with its parameter filled in ("this week"). */
+  href?: string;
 }
 
 /**
@@ -33,7 +35,7 @@ export function handModule(opts: {
   const resolved = () =>
     opts.places.flatMap((p) => {
       const href =
-        p.page !== undefined ? (p.page ? `/module/${opts.id}/${p.page}` : `/module/${opts.id}`) : routeOfScreen(p.screen);
+        p.href ?? (p.page !== undefined ? (p.page ? `/module/${opts.id}/${p.page}` : `/module/${opts.id}`) : routeOfScreen(p.screen));
       return href ? [{ ...p, href }] : [];
     });
 

@@ -1,6 +1,9 @@
 import { useEffect } from "react";
-import { addDays, documentType, formatHuman, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, VAULT_FRAME, type AppManifest, type CardSettings } from "@lifeline/core";
-import { CalendarDays, LayoutTemplate, Lock, NotebookPen } from "lucide-react";
+import { addDays, documentType, formatHuman, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, type AppManifest, type CardSettings } from "@lifeline/core";
+import { CalendarDays, CalendarRange, LayoutTemplate, Library, Lock, NotebookPen } from "lucide-react";
+import { PeriodScreen } from "./screens/PeriodScreen";
+import { CollectionsScreen, JournalDocScreen } from "./screens/CollectionsScreen";
+import { TemplatesScreen } from "./screens/TemplatesScreen";
 import { JournalScreen } from "./screens/JournalScreen";
 import { TodayJournalCard } from "./cards/TodayJournalCard";
 import { DaylogCard } from "./cards/DaylogCard";
@@ -8,7 +11,7 @@ import { RecentNotesCard, useRecentTypeOptions } from "./cards/RecentNotesCard";
 import { noteCommands, useNotesCommands } from "./commands";
 import { registerNotesBridge } from "./data/bridge";
 import { noteTypes } from "./types";
-import { DAILY, TEMPLATE } from "./domain/types";
+import { DAILY, MONTH, QUARTER, TEMPLATE, WEEK, YEAR } from "./domain/types";
 
 registerNotesBridge();
 import { PeopleCard, peopleTitle, usePeopleTypeOptions } from "./cards/PeopleCard";
@@ -28,7 +31,7 @@ import { SavedSearchCard, searchTitle } from "./cards/SavedSearchCard";
 const APP_ID = "notes";
 
 /** Type defs with their icons attached (icons live here so src/types.ts stays UI-free for tests). */
-const ICONS = { [DAILY]: CalendarDays, [TEMPLATE]: LayoutTemplate, [PRIVATE_SETTINGS_TYPE]: Lock } as const;
+const ICONS = { [DAILY]: CalendarDays, [WEEK]: CalendarRange, [MONTH]: CalendarRange, [QUARTER]: CalendarRange, [YEAR]: CalendarRange, [TEMPLATE]: LayoutTemplate, [PRIVATE_SETTINGS_TYPE]: Lock } as const;
 const typesWithIcons = noteTypes.map((t) => ({ ...t, icon: ICONS[t.id as keyof typeof ICONS] }));
 
 const offsetKnob = { kind: "number" as const, label: "Day offset", default: 0, min: -365, max: 0 };
@@ -37,16 +40,25 @@ const offsetTitle = (base: string) => (s: CardSettings) => {
   return o === 0 ? base : o === -1 ? `${base} · yesterday` : `${base} · ${formatHuman(addDays(todayStr(), o))}`;
 };
 
-/** Notes App (ADR 0018/0019): owns the note, daily and template Document types; the Journal lives in the Vault. */
+/**
+ * The Journal App (ADR 0068; its id stays `notes` — Card ids live in synced
+ * layouts): Days, the review stretches, Templates, and the Journal's own
+ * writing interface. The Vault is only the raw editor now.
+ */
 export const notesApp: AppManifest = {
   id: APP_ID,
   module: "journal",
-  title: "Notes",
+  title: "Journal",
   icon: NotebookPen,
   color: "var(--chart-green)",
   types: typesWithIcons,
   screens: [
-    { id: "notes.journal", title: "Journal", path: "journal", icon: NotebookPen, component: JournalScreen, frame: VAULT_FRAME },
+    { id: "notes.journal", title: "Today", path: "journal", icon: NotebookPen, component: JournalScreen },
+    { id: "notes.period", title: "Review", path: "journal/p/:key", icon: CalendarRange, component: PeriodScreen, hidden: true },
+    { id: "notes.collections", title: "Collections", path: "journal/c", icon: Library, component: CollectionsScreen },
+    { id: "notes.collection", title: "Collection", path: "journal/c/:type", component: CollectionsScreen, hidden: true },
+    { id: "notes.templates", title: "Templates", path: "journal/templates", icon: LayoutTemplate, component: TemplatesScreen },
+    { id: "notes.doc", title: "Page", path: "journal/d/:id", component: JournalDocScreen, hidden: true },
   ],
   cards: [
     {

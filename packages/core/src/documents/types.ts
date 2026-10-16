@@ -125,6 +125,12 @@ export interface DocumentTypeDef {
   iconName?: string;
   /** Owning App id for built-in types; undefined for user-defined. */
   appId?: string;
+  /**
+   * A user-defined type's **Home Module** (ADR 0068): the one Module the user
+   * homes it in — Person and Place in the Journal — which lists it without
+   * knowing what it is. Built-ins take their App's Module and ignore this.
+   */
+  homeModule?: string;
   /** Exists only in service of another Document (a Writing's Versions): hidden from the tree, link completion and sidebar; still has a Base. */
   internal?: boolean;
   /** Shown in the Vault tree even without a body (body-first types). Defaults to body === "required". */
