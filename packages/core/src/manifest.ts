@@ -44,8 +44,8 @@ export interface FrameDef {
   path: string;
   /** The layout's own sidebar. */
   sidebar: React.ComponentType;
-  /** Where the bare root path lands, relative to `path` (e.g. "journal"). */
-  home: string;
+  /** Where the bare root path lands, relative to `path`; absent when a screen of its own sits at the root (the Vault's landing). */
+  home?: string;
 }
 
 export const DASHBOARD_FRAME = "dashboard";
@@ -83,10 +83,11 @@ export const MODULES: ModuleDef[] = [
   { id: "tasks", title: "Projects" },
   { id: "culture", title: "Culture" },
   { id: "money", title: "Money" },
-  // Writing splits by what is written (ADR 0068). The Journal keeps the Vault's
-  // layout until it has its own; Notes is the shelf of Sources, and keeps the
-  // old Note-taking id because Workspaces and Phone bars store it.
-  { id: "journal", title: "Journal", home: "/vault" },
+  // Writing splits by what is written (ADR 0068): the Journal has its own
+  // interface, and the Vault is Core's raw editor, no Module's layout. Notes is
+  // the shelf of Sources, keeping the old Note-taking id because Workspaces and
+  // Phone bars store it.
+  { id: "journal", title: "Journal" },
   { id: "notes", title: "Notes" },
   // Thoughts (ADR 0068): what comes straight out of my head, with no Source.
   { id: "thoughts", title: "Thoughts" },

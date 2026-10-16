@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { createDocument, defaultFolder, documentsOf, putDocument, todayStr, useAllDocuments, type DateStr } from "@lifeline/core";
 import { DAILY, NOTE_TYPES, TEMPLATE, THOUGHT, type Note } from "../domain/types";
+import { kindOfKey, periodFolder } from "../domain/periods";
 
 const isNoteType = (t: string) => (NOTE_TYPES as readonly string[]).includes(t);
 
@@ -42,6 +43,23 @@ export function ensureDailyNote(date: DateStr): Promise<Note> {
   if (pending) return pending;
   const p = (async () => (await dailyNote(date)) ?? createNote({ type: DAILY, title: date, folder: defaultFolder(DAILY, date) }))().finally(() => inflight.delete(date));
   inflight.set(date, p);
+  return p;
+}
+
+const periodsInflight = new Map<string, Promise<Note>>();
+
+/**
+ * Get-or-create the Document of a review stretch (a Week, Month, Quarter or
+ * Year), titled by its key, from its type's Template. Concurrent calls for one
+ * stretch share one creation, as a Day's do.
+ */
+export function ensurePeriod(key: string): Promise<Note> {
+  const kind = kindOfKey(key);
+  if (!kind) return Promise.reject(new Error(`“${key}” is not a week, month, quarter or year`));
+  const pending = periodsInflight.get(key);
+  if (pending) return pending;
+  const p = (async () => (await documentsOf<Note>(kind)).find((n) => n.title === key) ?? createNote({ type: kind, title: key, folder: periodFolder(key) }))().finally(() => periodsInflight.delete(key));
+  periodsInflight.set(key, p);
   return p;
 }
 

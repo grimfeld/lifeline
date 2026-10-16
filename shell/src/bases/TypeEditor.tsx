@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button, Checkbox, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TYPE_ICONS, Textarea, cn, toast, typeIcon } from "@lifeline/ui";
-import { normalizeFolder, saveDocumentType, singularOf, slugify, type BodyPolicy, type DocumentTypeDef, type DocumentTypeRecord, type FieldDef, type FieldKind } from "@lifeline/core";
+import { MODULES, normalizeFolder, saveDocumentType, singularOf, slugify, type BodyPolicy, type DocumentTypeDef, type DocumentTypeRecord, type FieldDef, type FieldKind } from "@lifeline/core";
 import { Plus, Trash2 } from "lucide-react";
 
 const KINDS: { value: FieldKind; label: string }[] = [
@@ -71,7 +71,12 @@ export function TypeEditor({
   const [body, setBody] = useState<BodyPolicy>(record?.body ?? base?.body ?? "optional");
   const [linkable, setLinkable] = useState(record?.linkable ?? (base ? !!base.linkable : true));
   const [template, setTemplate] = useState(record?.template ?? base?.template ?? "");
-  const [rows, setRows] = useState<Row[]>(record ? toRows(record.fields) : base ? toRows(base.fields) : [{ key: "aliases", label: "Aliases", kind: "list", options: "", linkType: "" }]);
+  // A built-in's own Fields stay its App's (CONTEXT.md "Field"): the form holds only the ones the user adds beside them.
+  const ownKeys = new Set((base?.fields ?? []).map((f) => f.key));
+  const [rows, setRows] = useState<Row[]>(
+    base ? toRows((record?.fields ?? []).filter((f) => !ownKeys.has(f.key))) : record ? toRows(record.fields) : [{ key: "aliases", label: "Aliases", kind: "list", options: "", linkType: "" }],
+  );
+  const [module, setModule] = useState(record?.module ?? "");
   const [locatableField] = useState(record?.locatableField ?? (typeof base?.locatable === "string" ? base.locatable : ""));
   const fixedFolder = base?.id === "daily" || base?.id === "template";
   const [busy, setBusy] = useState(false);
@@ -95,6 +100,7 @@ export function TypeEditor({
         linkable: base ? undefined : linkable,
         locatableField: base ? undefined : geoRows.some((r) => r.key === locatableField) ? locatableField : geoRows[0]?.key ?? "",
         template: base ? undefined : template,
+        module: base ? undefined : module,
         order: record?.order ?? 0,
       });
       toast.success(record || base ? `“${label.trim()}” updated` : `Type “${label.trim()}” created — its Base is ready`);
@@ -120,6 +126,30 @@ export function TypeEditor({
           <Label className="text-xs">Default folder</Label>
           <Input value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="Recipes (empty = root)" />
         </div>
+      )}
+      {!base && (
+        <div className="grid gap-1">
+          <Label className="text-xs">Home Module</Label>
+          <Select value={module || "__none__"} onValueChange={(v) => setModule(v === "__none__" ? "" : v)}>
+            <SelectTrigger className="h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">None — opens in its Base</SelectItem>
+              {MODULES.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-muted-foreground text-[10px]">Where its Documents live and open — People and Places in the Journal.</span>
+        </div>
+      )}
+      {base && base.fields.some((f) => !f.hidden) && (
+        <p className="text-muted-foreground text-xs">
+          Its own fields — {base.fields.filter((f) => !f.hidden).map((f) => f.label).join(", ")} — stay its App's. Fields added below sit beside them.
+        </p>
       )}
       {fixedFolder && <p className="text-muted-foreground text-xs">Folder is fixed by rule ({base?.id === "daily" ? "Journal/YYYY/MM" : "Templates"}).</p>}
       {!base && (

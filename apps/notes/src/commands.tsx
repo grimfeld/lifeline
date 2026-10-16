@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Textarea, toast } from "@lifeline/ui";
 import { createDocument, docHref, lockPrivate, openPrivateDialog, useDocumentTypes, usePrivateGate, type CommandDef, type DocumentTypeDef, singularOf } from "@lifeline/core";
 import { CalendarDays, FilePlus, ImageOff, KeyRound, Lock, LockOpen, Settings2, ShieldOff, Zap } from "lucide-react";
+import { TemplateSelect } from "@lifeline/editor";
 import { AttachmentsCleanupDialog } from "./components/AttachmentsCleanupDialog";
 import { appendToDaily } from "./data/repo";
 import { DAILY, TEMPLATE } from "./domain/types";
@@ -45,12 +46,13 @@ function QuickCaptureDialog({ open, onOpenChange }: { open: boolean; onOpenChang
 /** Title prompt; creates a Document of `type` from its template and opens it. */
 export function NewTypedDialog({ type, open, onOpenChange }: { type: DocumentTypeDef; open: boolean; onOpenChange: (o: boolean) => void }) {
   const [title, setTitle] = useState("");
+  const [templateId, setTemplateId] = useState("");
   const navigate = useNavigate();
   async function submit() {
     const t = title.trim();
     if (!t) return;
     try {
-      const d = await createDocument({ type: type.id, title: t });
+      const d = await createDocument({ type: type.id, title: t, templateId: templateId || undefined });
       setTitle("");
       onOpenChange(false);
       navigate(docHref(d));
@@ -65,6 +67,7 @@ export function NewTypedDialog({ type, open, onOpenChange }: { type: DocumentTyp
           <DialogTitle>New {singularOf(type).toLowerCase()}</DialogTitle>
         </DialogHeader>
         <Input autoFocus placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
+        <TemplateSelect type={type.id} value={templateId} onChange={setTemplateId} />
         <DialogFooter>
           <Button onClick={() => void submit()} disabled={!title.trim()}>
             Create
@@ -122,7 +125,9 @@ function NewNoteCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 }
 
 export const noteCommands: CommandDef[] = [
-  { id: "notes.today", title: "Open today's journal", keywords: ["daily", "diary", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/vault/journal") },
+  { id: "notes.today", title: "Open today", keywords: ["daily", "diary", "journal", "day"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal") },
+  { id: "notes.week", title: "Open this week's review", keywords: ["week", "weekly", "review", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal/p/week") },
+  { id: "notes.month", title: "Open this month's review", keywords: ["month", "monthly", "review", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal/p/month") },
   { id: "notes.new", title: "New note…", keywords: ["person", "place", "note"], icon: FilePlus, dialog: NewNoteCommandDialog },
   { id: "notes.capture", title: "Quick capture", keywords: ["journal", "log", "thought"], icon: Zap, dialog: QuickCaptureDialog, capture: true },
   { id: "notes.settings", title: "Document types & templates…", keywords: ["template", "type", "settings", "daily", "bases"], icon: Settings2, run: ({ navigate }) => navigate("/base") },
