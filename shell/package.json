@@ -18,7 +18,6 @@
     "@lifeline/app-calendar": "workspace:*",
     "@lifeline/app-chores": "workspace:*",
     "@lifeline/app-cinema": "workspace:*",
-    "@lifeline/app-clipper": "workspace:*",
     "@lifeline/app-commonplace": "workspace:*",
     "@lifeline/app-discotheque": "workspace:*",
     "@lifeline/app-languages": "workspace:*",

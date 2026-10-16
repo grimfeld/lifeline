@@ -9,7 +9,7 @@ import { useFoldProjects } from "./data";
 /** The Writer's pad (ADR 0019): owns `writing` (my own prose) and its internal `writing_version` snapshots. */
 export const writerApp: AppManifest = {
   id: APP_ID,
-  module: "notes",
+  module: "journal",
   title: "Writer's pad",
   icon: Feather,
   color: "var(--chart-violet)",

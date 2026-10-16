@@ -168,7 +168,7 @@ export const hubApp: AppManifest = {
     {
       id: "hub.go-vault",
       title: "Go to Vault",
-      keywords: ["notes", "note-taking", "journal", "editor"],
+      keywords: ["raw", "markdown", "files", "folders", "editor", "bulk"],
       icon: Vault,
       run: ({ navigate }) => navigate("/vault"),
     },
