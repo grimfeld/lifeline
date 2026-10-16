@@ -17,7 +17,6 @@ import { arcadeApp } from "@lifeline/app-arcade";
 import { commonplaceApp } from "@lifeline/app-commonplace";
 import { museumApp } from "@lifeline/app-museum";
 import { notesApp } from "@lifeline/app-notes";
-import { clipperApp } from "@lifeline/app-clipper";
 import { writerApp } from "@lifeline/app-writer";
 import { workoutApp } from "@lifeline/app-workout";
 import { bibleApp } from "@lifeline/app-bible";
@@ -37,7 +36,7 @@ import "./index.css";
 
 // Compile-time App registry (ADR 0003): every App joins here.
 setTypeIconResolver(typeIcon);
-initApps([hubApp, choresApp, pantryApp, shoppingApp, tasksApp, projectsApp, calendarApp, statsApp, lifelevelApp, libraryApp, cinemaApp, discothequeApp, arcadeApp, commonplaceApp, museumApp, notesApp, thoughtsApp, clipperApp, writerApp, sourcesApp, workoutApp, bibleApp, ledgerApp, pocketApp, pricesApp, moodApp, mailApp, swearjarApp, languagesApp]);
+initApps([hubApp, choresApp, pantryApp, shoppingApp, tasksApp, projectsApp, calendarApp, statsApp, lifelevelApp, libraryApp, cinemaApp, discothequeApp, arcadeApp, commonplaceApp, museumApp, notesApp, thoughtsApp, writerApp, sourcesApp, workoutApp, bibleApp, ledgerApp, pocketApp, pricesApp, moodApp, mailApp, swearjarApp, languagesApp]);
 startSync();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@lifeline/core": "workspace:*",
+    "@lifeline/editor": "workspace:*",
     "@lifeline/ui": "workspace:*",
     "lucide-react": "^1.27.0",
     "react-router": "^7.9.4"
