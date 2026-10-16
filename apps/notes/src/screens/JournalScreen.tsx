@@ -4,14 +4,16 @@ import { Button, Input, PhoneDock } from "@lifeline/ui";
 import { addDays, documentType, formatHuman, todayStr, useDocuments, useLinkIndex, type DateStr } from "@lifeline/core";
 import { DocumentEditor } from "@lifeline/editor";
 import { ChevronLeft, ChevronRight, PenLine } from "lucide-react";
-import { DAILY, journalHref, type Note } from "../domain/types";
+import { DAILY, JOURNAL_HREF, journalHref, type Note } from "../domain/types";
+import { JournalAside } from "../components/JournalAside";
 import { ensureDailyNote } from "../data/repo";
 
 /**
- * /vault/journal?d=YYYY-MM-DD — the Journal: "the daily note open in the
- * Vault" with a date toolbar (ADR 0012) — in the phone dock above the Phone
- * bar on a phone. Today's note is created on first visit so writing can start
- * immediately.
+ * /app/journal?d=YYYY-MM-DD — the Journal's Day page (ADR 0068): the Day
+ * written in the Journal's own interface, with a date toolbar (in the phone
+ * dock above the Phone bar on a phone) and, on a wide desk, the month, the
+ * reviews the day belongs to and the same day in earlier years beside it.
+ * Today's Day is created on first visit so writing can start immediately.
  */
 export function JournalScreen() {
   const [params] = useSearchParams();
@@ -65,7 +67,12 @@ export function JournalScreen() {
         </div>
       </PhoneDock>
       {note ? (
-        <DocumentEditor key={note.id} doc={note} def={def} index={index} docDate={date} autoFocus={date === today} onDeleted={() => navigate("/vault/journal")} />
+        <div className="flex min-h-0 flex-1">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <DocumentEditor key={note.id} doc={note} def={def} index={index} docDate={date} autoFocus={date === today} showPanel={false} onDeleted={() => navigate(JOURNAL_HREF)} />
+          </div>
+          <JournalAside date={date} />
+        </div>
       ) : (
         <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 text-sm">
           <div>

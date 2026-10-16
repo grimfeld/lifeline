@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, cn } from "@lifeline/ui";
-import { CalendarDays, FolderTree, Hash, LayoutDashboard, Plus, Search, Settings2 } from "lucide-react";
-import { moduleScreens, screenRoute, screensOf, singularOf, VAULT_FRAME } from "@lifeline/core";
+import { CalendarDays, FolderTree, Hash, Plus, Search, Settings2 } from "lucide-react";
+import { screensOf, singularOf, VAULT_FRAME } from "@lifeline/core";
 import { FileTree } from "./FileTree";
 import { SearchPane } from "./SearchPane";
 import { TagsPane } from "./TagsPane";
@@ -12,8 +12,9 @@ import { useCreatableTypes } from "./useVaultDocs";
 type Tab = "files" | "search" | "tags";
 
 /**
- * The Vault's own sidebar — the Note-taking Module's layout (ADR 0057): New…,
- * Today, the Module's App screens, then Files / Search / Tags.
+ * The Vault's own sidebar — Core's raw editor for bodies (ADR 0068): New…,
+ * then Files / Search / Tags. Writing has its own places; this is where bodies
+ * are moved, fixed and edited in bulk.
  */
 export function VaultSidebar() {
   const [tab, setTab] = useState<Tab>("files");
@@ -38,7 +39,7 @@ export function VaultSidebar() {
             {types.map((t) => {
               const I = t.icon;
               return (
-                <DropdownMenuItem key={t.id} onClick={() => (t.titleRule === "date" ? navigate("/vault/journal") : setNewType(t.id))}>
+                <DropdownMenuItem key={t.id} onClick={() => (t.titleRule === "date" ? navigate("/app/journal") : setNewType(t.id))}>
                   {I && <I />} {singularOf(t)}
                 </DropdownMenuItem>
               );
@@ -53,32 +54,12 @@ export function VaultSidebar() {
           .filter((s) => !s.hidden)
           .map((s) => {
             const I = s.icon ?? CalendarDays;
-            const journal = s.path === "journal";
             return (
-              <Button key={s.id} size="sm" variant="outline" className="h-7" title={journal ? "Today's journal" : s.title} onClick={() => navigate(`/vault/${s.path}`)}>
-                <I /> {journal ? "Today" : s.title}
+              <Button key={s.id} size="sm" variant="outline" className="h-7" title={s.title} onClick={() => navigate(`/vault/${s.path}`)}>
+                <I /> {s.title}
               </Button>
             );
           })}
-      </div>
-      <div className="flex flex-wrap gap-0.5 px-2 pt-2">
-        {moduleScreens("journal").map((s) => {
-          const I = s.icon ?? LayoutDashboard;
-          return (
-            <NavLink
-              key={s.id}
-              to={screenRoute(s)}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs",
-                  isActive ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                )
-              }
-            >
-              <I className="size-3.5" /> {s.title}
-            </NavLink>
-          );
-        })}
       </div>
       <div className="mx-2 mt-2 flex gap-0.5 border-b">
         {tabs.map((t) => (
