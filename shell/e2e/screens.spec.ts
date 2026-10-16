@@ -56,7 +56,6 @@ const SCREENS: ScreenCase[] = [
   { name: "Journal · Collections", path: "/app/journal/c" },
   { name: "Journal · Templates", path: "/app/journal/templates" },
   { name: "Journal · Page", path: "/app/journal/d/:id", type: "template" },
-  { name: "Vault · Bible study", path: "/vault/bible" },
   { name: "Vault · Thought", path: "/vault/d/:id", type: "thought" },
 
   // App screens.
@@ -92,7 +91,6 @@ const SCREENS: ScreenCase[] = [
   { name: "Window", path: "/app/sources/:id", type: "window" },
   { name: "Workout", path: "/app/workout" },
   { name: "Workout timer", path: "/app/workout/run/:id", type: "workout" },
-  { name: "Bible quick", path: "/app/bible" },
   { name: "Ledger", path: "/app/ledger" },
   { name: "Budget", path: "/app/ledger/budget" },
   { name: "Money reports", path: "/app/ledger/reports" },
