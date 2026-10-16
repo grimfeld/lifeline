@@ -34,7 +34,7 @@ describe("opensInPlace", () => {
   it("goes straight to a Document from inside its Home Module", () => {
     expect(opensInPlace({ type: "transaction" }, "/app/ledger")).toBe(true);
     expect(opensInPlace({ type: "transaction" }, "/module/money")).toBe(true);
-    expect(opensInPlace({ type: "daily" }, "/vault/d/abc")).toBe(true);
+    expect(opensInPlace({ type: "daily" }, "/app/notes")).toBe(true);
   });
 
   it("peeks from another Module, a general Surface or a Base", () => {
@@ -42,6 +42,10 @@ describe("opensInPlace", () => {
     expect(opensInPlace({ type: "daily" }, "/app/ledger")).toBe(false);
     expect(opensInPlace({ type: "transaction" }, "/calendar")).toBe(false);
     expect(opensInPlace({ type: "transaction" }, "/base/transaction")).toBe(false);
+  });
+
+  it("peeks from the Vault, which is no Module's (ADR 0068)", () => {
+    expect(opensInPlace({ type: "daily" }, "/vault/d/abc")).toBe(false);
   });
 
   it("always peeks a Document with no Home Module", () => {

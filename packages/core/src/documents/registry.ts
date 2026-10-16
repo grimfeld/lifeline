@@ -29,6 +29,8 @@ export interface DocumentTypeRecord extends SyncedRecord {
   locatableField?: string;
   template?: string;
   order: number;
+  /** The Module the user homes the type in (ADR 0068); "" or absent = none. Ignored on a built-in's override. */
+  module?: string;
 }
 
 // --- built-ins: set once at startup from the App manifests ---------------------
@@ -67,6 +69,7 @@ function toDef(r: DocumentTypeRecord): DocumentTypeDef {
     template: r.template ?? "",
     linkable: r.linkable !== false,
     locatable: r.locatableField || undefined,
+    homeModule: r.module || undefined,
     order: 100 + (r.order || 0),
     builtIn: false,
   };
@@ -78,7 +81,10 @@ function merge(user: DocumentTypeRecord[]): DocumentTypeDef[] {
     const r = byId.get(b.id);
     if (!r) return b;
     const d = toDef(r);
-    return { ...b, label: d.label, singular: undefined, icon: d.icon ?? b.icon, iconName: d.iconName, folder: d.folder, fields: d.fields, builtIn: true, overridden: true };
+    // The built-in's own Fields stay its App's (CONTEXT.md "Field"); the user's sit beside them, a key the App already declares kept as the App's.
+    const own = new Set(b.fields.map((f) => f.key));
+    const fields = [...b.fields, ...d.fields.filter((f) => !own.has(f.key))];
+    return { ...b, label: d.label, singular: undefined, icon: d.icon ?? b.icon, iconName: d.iconName, folder: d.folder, fields, builtIn: true, overridden: true };
   });
   const ids = new Set(builtins.map((t) => t.id));
   const extra = user.filter((r) => !ids.has(r.typeId)).map(toDef);
