@@ -4,7 +4,7 @@ import { Badge, Button, Input, toast } from "@lifeline/ui";
 import { createDocument, templatesFor, defaultTemplateFor, useAllDocuments, useDocumentTypes, isVaultType, type DocumentTypeDef } from "@lifeline/core";
 import { Plus } from "lucide-react";
 import { TEMPLATE } from "../domain/types";
-import { journalDocHref } from "./CollectionsScreen";
+import { journalDocHref } from "./TypesScreen";
 
 /**
  * /app/journal/templates — every Document type's own Templates (CONTEXT.md
