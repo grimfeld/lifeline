@@ -449,8 +449,8 @@ The Journal's review Documents for a longer stretch, one each per ISO week (`202
 _Avoid_: weekly note, review (a Review is my words on a work), period summary
 
 ### Journal
-The Module for living day to day in writing: Days and their Weeks, Months, Quarters and Years, the user-defined types they talk about (people, places…), and a writing interface of its own built for heavy markdown pages. Agnostic about what those other types are — the user defines them and homes them here.
-_Avoid_: diary, vault (the raw editor)
+The Module for living day to day in writing: Days and their Weeks, Months, Quarters and Years, the user-defined types they talk about (people, places…), and a writing interface of its own built for heavy markdown pages. Agnostic about what those other types are — the user defines them and homes them here. The Journal lists them as its **Types** and is where the user creates, edits and deletes them: a type made here is homed here, and one re-homed elsewhere leaves. It manages only the user-defined types homed in it — built-in types and types homed elsewhere are managed from Bases.
+_Avoid_: diary, vault (the raw editor), collections (for its Types — a Collection is a Stat kind)
 
 ### Wikilink
 `[[Name]]` in any Document's body. Resolves by name — case- and accent-insensitive, spaces collapsed — across every Linkable Document type — exact title first, then alias — with an optional type prefix (`[[media:Dune]]`) to disambiguate; once resolved, the link remembers its target so later collisions don't move it. Unresolved links stay unresolved (click to create a Note). The editor's completer shows the type of each candidate.
