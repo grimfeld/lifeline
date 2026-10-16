@@ -437,7 +437,7 @@ A Field holding a reference to another Document, optionally restricted to one ty
 _Avoid_: relation, foreign key, reference
 
 ### Template
-A body a Document type offers as the starting text for a new Document of that type — the Day's sections, a meeting Note, a Chapter skeleton. Every type has its own Templates; picking one copies it into the new body once and forgets it, never a link. Not an Event template (that shapes an Event, not a body).
+A body a Document type offers as the starting text for a new Document of that type — the Day's sections, a meeting Note, a Chapter skeleton. Every type has its own Templates; picking one copies it into the new body once and forgets it, never a link. A user-defined type's starting body comes only from its Templates; a built-in type may also carry a default of its own, used when it has none. Not an Event template (that shapes an Event, not a body).
 _Avoid_: note template (old name), template (bare, when an Event template is near), preset, skeleton
 
 ### Day
