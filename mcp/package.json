@@ -25,6 +25,7 @@
     "@lifeline/app-lifelevel": "workspace:*",
     "@lifeline/app-mail": "workspace:*",
     "@lifeline/app-mood": "workspace:*",
+    "@lifeline/app-thoughts": "workspace:*",
     "@lifeline/app-museum": "workspace:*",
     "@lifeline/app-notes": "workspace:*",
     "@lifeline/app-pantry": "workspace:*",
