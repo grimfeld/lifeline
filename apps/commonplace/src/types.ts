@@ -9,7 +9,7 @@ import { quoteName } from "./domain/quotes";
  * a Source cannot be one. Named here by id — the types belong to other Apps,
  * but which of them may wear this App's Role is this App's call.
  */
-const OWN_WORDS = new Set([NOTE, QUOTES, "thought", "daily", "writing", "writing_version", "template"]);
+const OWN_WORDS = new Set([NOTE, QUOTES, "thought", "daily", "week", "month", "quarter", "year", "essay", "writing_version", "manuscript", "chapter", "outtake", "template"]);
 
 /**
  * The Source Role (ADR 0069, ADR 0070): what makes a Document somewhere to take

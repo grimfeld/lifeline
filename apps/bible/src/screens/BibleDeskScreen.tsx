@@ -141,7 +141,7 @@ export function BibleDeskScreen() {
   const [lookup, setLookup] = useState("");
   const [newRef, setNewRef] = useState<typeof CHARACTER | typeof CONCEPT | null>(null);
   const parsed = parseRef(lookup);
-  const talks = useMemo(() => study.filter((d) => d.type === "writing"), [study]);
+  const talks = useMemo(() => study.filter((d) => d.type === "essay"), [study]);
   const tabsRef = useRef<HTMLDivElement>(null);
 
   // The strip scrolls below md, so the chosen tab has to be brought into view — otherwise the desk shows a tab nobody can see is active.

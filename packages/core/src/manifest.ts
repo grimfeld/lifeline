@@ -89,6 +89,8 @@ export const MODULES: ModuleDef[] = [
   // Phone bars store it.
   { id: "journal", title: "Journal" },
   { id: "notes", title: "Notes" },
+  { id: "research", title: "Research" },
+  { id: "manuscript", title: "Manuscript" },
   // Thoughts (ADR 0068): what comes straight out of my head, with no Source.
   { id: "thoughts", title: "Thoughts" },
   { id: "progress", title: "Progress" },
