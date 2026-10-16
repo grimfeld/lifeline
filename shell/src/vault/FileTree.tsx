@@ -158,7 +158,7 @@ export function FileTree() {
                 <span className="truncate font-medium">{node.name}</span>
               </button>
               <span className="hidden items-center group-hover:flex">
-                <Button size="icon" variant="ghost" className="size-5" title="New note here" onClick={() => setAction({ kind: "new-note", folder: node.path, type: "note" })}>
+                <Button size="icon" variant="ghost" className="size-5" title="New thought here" onClick={() => setAction({ kind: "new-note", folder: node.path, type: "thought" })}>
                   <FilePlus className="size-3" />
                 </Button>
                 <Button size="icon" variant="ghost" className="size-5" title="New folder" onClick={() => setAction({ kind: "new-folder", parent: node.path })}>
@@ -272,7 +272,7 @@ export function FileTree() {
           >
             {gate.configured && !gate.locked ? <LockOpen className="size-3" /> : <Lock className="size-3" />}
           </Button>
-          <Button size="icon" variant="ghost" className="size-5" title="New note" onClick={() => setAction({ kind: "new-note", folder: "", type: "note" })}>
+          <Button size="icon" variant="ghost" className="size-5" title="New thought" onClick={() => setAction({ kind: "new-note", folder: "", type: "thought" })}>
             <FilePlus className="size-3" />
           </Button>
           <Button size="icon" variant="ghost" className="size-5" title="New folder" onClick={() => setAction({ kind: "new-folder", parent: "" })}>
