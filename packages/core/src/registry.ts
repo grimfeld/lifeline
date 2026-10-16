@@ -5,6 +5,7 @@ import type { DaylogProvider } from "./contracts/daylog";
 import type { LoggableProvider } from "./contracts/loggable";
 import { openDb, type LifelineDB, type ScreenLayoutItem } from "./data/db";
 import { registerBuiltinTypes } from "./documents/registry";
+import { registerBuiltinRoles } from "./documents/roles";
 import type { DocumentTypeDef } from "./documents/types";
 import { resolveSettings, settingsTags, TAGS_FIELD, TAGS_SETTING, type CardSettings, type CardSettingsSchema } from "./cards";
 
@@ -19,6 +20,7 @@ export function initApps(manifests: AppManifest[]): LifelineDB {
   apps = manifests;
   const types = manifests.flatMap((a) => a.types.map((t) => ({ ...t, appId: a.id, builtIn: true })));
   registerBuiltinTypes(types);
+  registerBuiltinRoles(manifests.flatMap((a) => (a.roles ?? []).map((r) => ({ ...r, appId: a.id }))));
   return openDb(
     types.flatMap((t) => t.indexes ?? []),
     manifests.flatMap((a) => a.localTables ?? []),

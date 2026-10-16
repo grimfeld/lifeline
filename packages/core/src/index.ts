@@ -29,6 +29,7 @@ export * from "./folders";
 export * from "./documents/types";
 export * from "./documents/registry";
 export * from "./documents/store";
+export * from "./documents/roles";
 export * from "./documents/links";
 export * from "./documents/mentions";
 export * from "./documents/graph";

@@ -8,6 +8,7 @@ import type { IntakeDef } from "./contracts/intake";
 import type { CardSettings, CardSettingsSchema } from "./cards";
 import type { Document, DocumentTypeDef, FieldOption } from "./documents/types";
 import type { LinkIndex } from "./documents/links";
+import type { RoleDef } from "./documents/roles";
 
 /**
  * A panel an App adds to the side of every open Document in the Vault
@@ -232,6 +233,8 @@ export interface CommandArg {
   options?: FieldOption[];
   /** link: the Document type (or family) the id must belong to. */
   linkType?: string | string[];
+  /** link: the Role (ADR 0069) the Document must play; wins over `linkType`. */
+  linkRole?: string;
   /** What the value means, for a caller with no dialog to look at — an agent (ADR 0062). */
   hint?: string;
 }
@@ -296,6 +299,8 @@ export interface AppManifest {
   color?: string;
   /** Built-in Document types this App owns (ADR 0019). Their `appId` is filled in by the registry. */
   types: DocumentTypeDef[];
+  /** Roles this App lends to other types' Documents (ADR 0069). Their `appId` is filled in by the registry. */
+  roles?: RoleDef[];
   /** Local-only tables ("_"-prefixed), never synced. */
   localTables?: CollectionDef[];
   screens: AppScreenDef[];

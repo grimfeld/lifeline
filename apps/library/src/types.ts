@@ -1,4 +1,4 @@
-import type { DocumentTypeDef, FieldDef } from "@lifeline/core";
+import type { DocumentTypeDef, FieldDef, RoleDef } from "@lifeline/core";
 import { Book, BookOpen, UserPen } from "lucide-react";
 import { ACQUISITION, AUTHOR, ENGAGEMENT, SETTINGS_TYPE } from "./domain/types";
 import { WORK_TYPES, type WorkTypeId } from "./domain/workTypes";
@@ -14,7 +14,7 @@ const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRE
  * guarded (ADR 0019).
  */
 const WORK_FIELDS: FieldDef[] = [
-  { key: "authors", label: "Authors", kind: "links", linkType: AUTHOR, column: true },
+  { key: "authors", label: "Authors", kind: "links", linkRole: AUTHOR, column: true },
   { key: "year", label: "Year", kind: "number", column: true },
   { key: "size", label: "Size", kind: "number" },
   { key: "acquisition", label: "Owned", kind: "select", options: ACQUISITION.map((v) => ({ value: v, label: ACQ_LABELS[v] })), guarded: true, column: true },
@@ -75,6 +75,20 @@ export const authorTypeDef: DocumentTypeDef = {
     { key: "photoUrl", label: "Photo URL", kind: "url" },
     { key: "externalKey", label: "External key", kind: "text", hidden: true },
   ],
+};
+
+/**
+ * The Author Role (ADR 0069): what makes a Document an Author without making
+ * it of the Author type — my user-defined Person `Ursula Le Guin` wears it, and
+ * her books name her. Lends the Author's own facts; the wearer keeps its own
+ * title, aliases and body. The Author type is its home: an author who is
+ * nobody else is simply an Author.
+ */
+export const authorRole: RoleDef = {
+  id: AUTHOR,
+  label: "Author",
+  homeType: AUTHOR,
+  fields: authorTypeDef.fields.filter((f) => f.key !== "aliases"),
 };
 
 export const settingsTypeDef: DocumentTypeDef = {

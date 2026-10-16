@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, useLiveQuery, type Document } from "@lifeline/core";
+import { documentsOf, documentsWithRole, useLiveQuery, type Document } from "@lifeline/core";
 import { WORK_TYPE_IDS, type QuotedWork } from "../domain/works";
 
 /** The Library's Authors (ADR 0052): a book's byline is its Authors' names, read here like any other Document. */
@@ -14,7 +14,7 @@ export async function allQuotedWorks(): Promise<QuotedWork[]> {
 export function useQuotedWorks(): QuotedWork[] {
   const rows = useLiveQuery(
     async () => {
-      const [works, authors] = await Promise.all([Promise.all(WORK_TYPE_IDS.map((t) => documentsOf<QuotedWork>(t))), documentsOf<Document>(AUTHOR)]);
+      const [works, authors] = await Promise.all([Promise.all(WORK_TYPE_IDS.map((t) => documentsOf<QuotedWork>(t))), documentsWithRole<Document>(AUTHOR)]);
       return { works: works.flat(), authors };
     },
     [],
