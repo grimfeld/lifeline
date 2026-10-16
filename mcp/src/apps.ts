@@ -15,7 +15,6 @@ import { museumApp } from "@lifeline/app-museum";
 import { notesApp } from "@lifeline/app-notes";
 import { writerApp } from "@lifeline/app-writer";
 import { workoutApp } from "@lifeline/app-workout";
-import { bibleApp } from "@lifeline/app-bible";
 import { ledgerApp } from "@lifeline/app-ledger";
 import { pocketApp } from "@lifeline/app-pocket";
 import { swearjarApp } from "@lifeline/app-swearjar";
@@ -54,7 +53,6 @@ export const manifests: AppManifest[] = [
   manuscriptApp,
   sourcesApp,
   workoutApp,
-  bibleApp,
   ledgerApp,
   pocketApp,
   pricesApp,
