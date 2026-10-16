@@ -84,6 +84,8 @@ export const MODULES: ModuleDef[] = [
   { id: "culture", title: "Culture" },
   { id: "money", title: "Money" },
   { id: "notes", title: "Note-taking", home: "/vault" },
+  // Thoughts (ADR 0068): what comes straight out of my head, with no Source.
+  { id: "thoughts", title: "Thoughts" },
   { id: "progress", title: "Progress" },
   { id: "languages", title: "Languages" },
   { id: "mail", title: "Mail" },

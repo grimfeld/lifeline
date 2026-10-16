@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router";
 import { isWithin, useAllDocuments, useDocument, vaultDocPath, type Document } from "@lifeline/core";
-import { FileText, Feather, Scissors } from "lucide-react";
+import { Feather, Lightbulb, Scissors } from "lucide-react";
 
 export interface VaultTab {
   id: string;
@@ -22,7 +22,7 @@ export interface VaultTab {
  * keeps its slot on the Dashboard's bar instead.
  */
 export const VAULT_TABS: VaultTab[] = [
-  { id: "notes", title: "Notes", folder: "Notes", icon: FileText },
+  { id: "thoughts", title: "Thoughts", folder: "Thoughts", icon: Lightbulb },
   { id: "clippings", title: "Clippings", folder: "Clippings", icon: Scissors },
   { id: "writings", title: "Writings", folder: "Writings", icon: Feather },
 ];
