@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { addDays, documentType, formatHuman, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, type AppManifest, type CardSettings } from "@lifeline/core";
+import { addDays, documentType, formatHuman, migrateTypeTemplates, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, type AppManifest, type CardSettings } from "@lifeline/core";
 import { CalendarDays, CalendarRange, LayoutTemplate, Library, Lock, NotebookPen } from "lucide-react";
 import { PeriodScreen } from "./screens/PeriodScreen";
 import { CollectionsScreen, JournalDocScreen } from "./screens/CollectionsScreen";
@@ -271,10 +271,14 @@ export const notesApp: AppManifest = {
   ],
   commands: noteCommands,
   useCommands: useNotesCommands,
-  /** Once per launch: re-key a Private settings row saved under the old, unsyncable id (ADR 0038). */
+  /**
+   * Once per launch: re-key a Private settings row saved under the old, unsyncable id (ADR 0038),
+   * and move a user-defined type's old body-template text into a Template (CONTEXT.md "Template").
+   */
   useBackground: () => {
     useEffect(() => {
       void repairPrivateSettings().catch(() => {});
+      void migrateTypeTemplates().catch(() => {});
     }, []);
   },
 };
