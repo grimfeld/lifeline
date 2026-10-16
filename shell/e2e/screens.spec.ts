@@ -46,7 +46,7 @@ const SCREENS: ScreenCase[] = [
   // The Vault (Note-taking's layout).
   { name: "Vault · Journal", path: "/vault/journal" },
   { name: "Vault · Bible study", path: "/vault/bible" },
-  { name: "Vault · Note", path: "/vault/d/:id", type: "note" },
+  { name: "Vault · Thought", path: "/vault/d/:id", type: "thought" },
 
   // App screens.
   { name: "Chores", path: "/app/chores" },
@@ -68,7 +68,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Quotes", path: "/app/quotes" },
   { name: "Museum", path: "/app/museum" },
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
-  { name: "Notes", path: "/app/notes" },
+  { name: "Thoughts", path: "/app/thoughts" },
+  { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Clippings", path: "/app/clippings" },
   { name: "Writings", path: "/app/writings" },
   { name: "Sources", path: "/app/sources" },

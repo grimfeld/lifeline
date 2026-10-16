@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { createDocument, defaultFolder, documentsOf, putDocument, todayStr, useAllDocuments, type DateStr } from "@lifeline/core";
-import { DAILY, NOTE, NOTE_TYPES, TEMPLATE, type Note } from "../domain/types";
+import { DAILY, NOTE_TYPES, TEMPLATE, THOUGHT, type Note } from "../domain/types";
 
 const isNoteType = (t: string) => (NOTE_TYPES as readonly string[]).includes(t);
 
@@ -21,7 +21,7 @@ export async function allNotes(): Promise<Note[]> {
 
 /** Create a note-shaped Document from its type's template (Core handles folder rules and user templates). */
 export async function createNote(input: { type?: string; title: string; folder?: string; body?: string }): Promise<Note> {
-  return (await createDocument({ type: input.type ?? NOTE, title: input.title, folder: input.folder, body: input.body })) as Note;
+  return (await createDocument({ type: input.type ?? THOUGHT, title: input.title, folder: input.folder, body: input.body })) as Note;
 }
 
 export async function saveBody(note: Note, body: string): Promise<void> {

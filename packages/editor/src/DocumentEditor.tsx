@@ -160,7 +160,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
       }
       if (ref.kind === "locked") return openPrivateDialog("unlock");
       if (onCreateUnresolved) return onCreateUnresolved(name);
-      void putDocument({ type: "note", title: name, body: "" }).then((n) => {
+      void putDocument({ type: "thought", title: name, body: "" }).then((n) => {
         toast.success(`Created “${name}”`);
         navigate(docHref(n));
       });

@@ -1,9 +1,9 @@
 import { newId, PRIVATE_SETTINGS_TYPE, putDocument, todayStr, type Document, type DocumentTypeDef } from "@lifeline/core";
-import { DAILY, DAILY_TEMPLATE, NOTE, NOTES_FOLDER, TEMPLATE, journalHref, noteHref } from "./domain/types";
+import { DAILY, DAILY_TEMPLATE, TEMPLATE, journalHref, noteHref } from "./domain/types";
 
 /**
  * Sync conflict (ADR 0010): the server copy is newer than an unsynced local
- * edit. Keep the local text as a sibling note "<title> (conflict HH:MM)".
+ * edit. Keep the local text as a sibling of the same type, "<title> (conflict HH:MM)".
  */
 export async function onNoteConflict(local: Document, server: Document): Promise<void> {
   if (local.body === server.body && local.title === server.title) return;
@@ -11,7 +11,7 @@ export async function onNoteConflict(local: Document, server: Document): Promise
   const stamp = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   await putDocument({
     id: newId(),
-    type: NOTE,
+    type: local.type,
     folder: local.folder ?? "",
     title: `${local.title} (conflict ${stamp})`,
     body: typeof local.body === "string" ? local.body : "",
@@ -36,21 +36,6 @@ export const noteTypes: DocumentTypeDef[] = [
     href: (d) => journalHref(d.title),
     onConflict: onNoteConflict,
     order: 0,
-    builtIn: true,
-  },
-  {
-    id: NOTE,
-    label: "Notes",
-    iconName: "file-text",
-    titleRule: "name",
-    body: "required",
-    fields: [{ key: "aliases", label: "Aliases", kind: "list" }],
-    folder: NOTES_FOLDER,
-    template: "",
-    linkable: true,
-    href: (d) => noteHref(d),
-    onConflict: onNoteConflict,
-    order: 10,
     builtIn: true,
   },
   {

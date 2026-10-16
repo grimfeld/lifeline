@@ -2,10 +2,10 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Textarea, toast } from "@lifeline/ui";
 import { createDocument, docHref, lockPrivate, openPrivateDialog, useDocumentTypes, usePrivateGate, type CommandDef, type DocumentTypeDef, singularOf } from "@lifeline/core";
-import { CalendarDays, FilePlus, FileText, ImageOff, KeyRound, Lock, LockOpen, Settings2, ShieldOff, Zap } from "lucide-react";
+import { CalendarDays, FilePlus, ImageOff, KeyRound, Lock, LockOpen, Settings2, ShieldOff, Zap } from "lucide-react";
 import { AttachmentsCleanupDialog } from "./components/AttachmentsCleanupDialog";
 import { appendToDaily } from "./data/repo";
-import { DAILY, NOTES_HREF, TEMPLATE } from "./domain/types";
+import { DAILY, TEMPLATE } from "./domain/types";
 
 function QuickCaptureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const [text, setText] = useState("");
@@ -122,7 +122,6 @@ function NewNoteCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 }
 
 export const noteCommands: CommandDef[] = [
-  { id: "notes.go", title: "Go to Notes", keywords: ["desk", "notes", "study"], icon: FileText, run: ({ navigate }) => navigate(NOTES_HREF) },
   { id: "notes.today", title: "Open today's journal", keywords: ["daily", "diary", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/vault/journal") },
   { id: "notes.new", title: "New note…", keywords: ["person", "place", "note"], icon: FilePlus, dialog: NewNoteCommandDialog },
   { id: "notes.capture", title: "Quick capture", keywords: ["journal", "log", "thought"], icon: Zap, dialog: QuickCaptureDialog, capture: true },
