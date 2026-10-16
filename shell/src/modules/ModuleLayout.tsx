@@ -130,7 +130,7 @@ export function ModuleNav({ moduleId }: { moduleId: string }) {
  */
 function ModuleTabs({ moduleId }: { moduleId: string }) {
   const screens = moduleScreens(moduleId);
-  const vault = moduleId === "notes";
+  const vault = moduleId === "journal";
   if (!vault && screens.length < 2) return null;
   return (
     <PhoneDock slot="module">

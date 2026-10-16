@@ -50,6 +50,17 @@ describe("rolesOf", () => {
   });
 });
 
+describe("playedBy", () => {
+  it("a type the Role names plays it by construction, and cannot put it on", () => {
+    registerBuiltinRoles([AUTHOR, { ...SOURCE, playedBy: ["book"] }]);
+    const book = doc("b", "book", "Earthsea");
+    expect(hasRole(book, "source")).toBe(true);
+    expect(canWear(def("book"), { ...SOURCE, playedBy: ["book"] })).toBe(false);
+    expect(fieldsOfDocument({ ...book, roles: ["source"] }, def("book"))).toBe(def("book").fields);
+    expect(isLinkTarget({ linkRole: "source" }, book)).toBe(true);
+  });
+});
+
 describe("canWear", () => {
   it("any Linkable, non-internal type by default — never the home type, which plays it already", () => {
     expect(canWear(def("person"), AUTHOR)).toBe(true);

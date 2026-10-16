@@ -19,6 +19,11 @@ export interface RoleDef {
   label: string;
   /** The type whose Documents wear this Role by construction. */
   homeType: string;
+  /**
+   * Other types whose Documents play the Role by construction too, owned
+   * elsewhere — every book, film and album is a Source without putting it on.
+   */
+  playedBy?: string[];
   /** The Fields the Role lends. Keys must not collide with the wearer's own; a collision keeps the wearer's. */
   fields: FieldDef[];
   /** Which other types may wear it. Absent: any Linkable, non-internal type. */
@@ -41,15 +46,20 @@ export function roleDef(id: string): RoleDef | undefined {
   return roles.find((r) => r.id === id);
 }
 
+/** Whether Documents of a type play a Role by construction: its home type, or one it names as playing it. */
+export function playsByType(role: RoleDef, type: string): boolean {
+  return role.homeType === type || (role.playedBy ?? []).includes(type);
+}
+
 /** The Roles a Document wears on top of its type (its own `roles`, known ones only). */
 export function wornRoles(doc: Pick<Document, "type"> & { roles?: unknown }): RoleDef[] {
   const ids = Array.isArray(doc.roles) ? (doc.roles as unknown[]).filter((x): x is string => typeof x === "string") : [];
-  return roles.filter((r) => ids.includes(r.id) && r.homeType !== doc.type);
+  return roles.filter((r) => ids.includes(r.id) && !playsByType(r, doc.type));
 }
 
-/** Every Role a Document plays: the one its type is home to, plus the ones it wears. */
+/** Every Role a Document plays: the ones its type plays by construction, plus the ones it wears. */
 export function rolesOf(doc: Pick<Document, "type"> & { roles?: unknown }): RoleDef[] {
-  const home = roles.filter((r) => r.homeType === doc.type);
+  const home = roles.filter((r) => playsByType(r, doc.type));
   return [...home, ...wornRoles(doc)];
 }
 
@@ -59,7 +69,7 @@ export function hasRole(doc: Pick<Document, "type"> & { roles?: unknown }, roleI
 
 /** Whether Documents of a type may put a Role on. */
 export function canWear(def: DocumentTypeDef | undefined, role: RoleDef): boolean {
-  if (!def || def.internal || def.id === role.homeType) return false;
+  if (!def || def.internal || playsByType(role, def.id)) return false;
   return role.wearable ? role.wearable(def) : !!def.linkable;
 }
 
@@ -115,8 +125,9 @@ export function isLinkTarget(target: { linkType?: string | string[]; linkRole?: 
 export async function documentsWithRole<T extends Document = Document>(roleId: string): Promise<T[]> {
   const role = roleDef(roleId);
   if (!role) return [];
+  const types = [role.homeType, ...(role.playedBy ?? [])];
   const [home, wearers] = await Promise.all([
-    documentsTable().where("[type+deleted]").equals([role.homeType, 0]).toArray(),
+    Promise.all(types.map((t) => documentsTable().where("[type+deleted]").equals([t, 0]).toArray())).then((l) => l.flat()),
     documentsTable().where(ROLES_KEY).equals(roleId).toArray(),
   ]);
   const seen = new Set<string>();

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { quoteMarkdown, quoteName, quoteOfTheDay, searchQuotes } from "./quotes";
 import type { Quote } from "./types";
-import type { QuotedWork } from "./works";
+import type { SourceItem } from "./works";
 
-const q = (id: string, text: string, extra: Partial<Quote> = {}): Quote => ({ id, type: "quote", title: "", tags: [], folder: "", createdAt: "2026-08-19", mediaId: "m1", text, locator: "", comment: "", capturedOn: "2026-08-19", updatedAt: "", deleted: 0, ...extra });
-const item = { id: "m1", title: "Dune", creator: "Frank Herbert" } as QuotedWork;
+const q = (id: string, text: string, extra: Partial<Quote> = {}): Quote => ({ id, type: "quote", title: "", tags: [], folder: "", createdAt: "2026-08-19", source: "m1", body: text, locator: "", comment: "", capturedOn: "2026-08-19", updatedAt: "", deleted: 0, ...extra });
+const item = { id: "m1", title: "Dune", creator: "Frank Herbert" } as SourceItem;
 
 describe("quotes", () => {
   it("names a quote by its opening words", () => {

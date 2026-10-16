@@ -62,7 +62,7 @@ export function VaultSidebar() {
           })}
       </div>
       <div className="flex flex-wrap gap-0.5 px-2 pt-2">
-        {moduleScreens("notes").map((s) => {
+        {moduleScreens("journal").map((s) => {
           const I = s.icon ?? LayoutDashboard;
           return (
             <NavLink

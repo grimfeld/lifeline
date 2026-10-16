@@ -16,12 +16,12 @@ const app = (id: string, module: string | undefined, typeId: string): AppManifes
   commands: [],
 });
 
-initApps([app("ledger", "money", "transaction"), app("notes", "notes", "note"), app("calendar", undefined, "event")]);
+initApps([app("ledger", "money", "transaction"), app("notes", "journal", "daily"), app("calendar", undefined, "event")]);
 
 describe("homeModuleOf", () => {
   it("is the owning App's Module", () => {
     expect(homeModuleOf({ type: "transaction" })).toBe("money");
-    expect(homeModuleOf({ type: "note" })).toBe("notes");
+    expect(homeModuleOf({ type: "daily" })).toBe("journal");
   });
 
   it("is undefined for an App in no Module, and for a type no App owns", () => {
@@ -34,12 +34,12 @@ describe("opensInPlace", () => {
   it("goes straight to a Document from inside its Home Module", () => {
     expect(opensInPlace({ type: "transaction" }, "/app/ledger")).toBe(true);
     expect(opensInPlace({ type: "transaction" }, "/module/money")).toBe(true);
-    expect(opensInPlace({ type: "note" }, "/vault/d/abc")).toBe(true);
+    expect(opensInPlace({ type: "daily" }, "/vault/d/abc")).toBe(true);
   });
 
   it("peeks from another Module, a general Surface or a Base", () => {
     expect(opensInPlace({ type: "transaction" }, "/vault/d/abc")).toBe(false);
-    expect(opensInPlace({ type: "note" }, "/app/ledger")).toBe(false);
+    expect(opensInPlace({ type: "daily" }, "/app/ledger")).toBe(false);
     expect(opensInPlace({ type: "transaction" }, "/calendar")).toBe(false);
     expect(opensInPlace({ type: "transaction" }, "/base/transaction")).toBe(false);
   });

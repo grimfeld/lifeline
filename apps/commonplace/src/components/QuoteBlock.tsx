@@ -4,7 +4,7 @@ import { Button, cn, TagChips } from "@lifeline/ui";
 import { ClipboardCopy, NotebookPen, Pencil, Trash2 } from "lucide-react";
 import { deleteQuote } from "../data/quotes";
 import type { Quote } from "../domain/types";
-import type { QuotedWork } from "../domain/works";
+import type { SourceItem } from "../domain/works";
 import { QuoteEditor } from "./QuoteEditor";
 import { copyQuote, insertQuoteIntoJournal } from "./quoteActions";
 
@@ -15,20 +15,20 @@ export const locatorLabel = (loc: string) => (loc.trim() ? (/^\d+$/.test(loc.tri
  * One quote as a blockquote with hover actions (edit inline, delete, insert
  * into today's note, copy). `item` may be undefined when the work is gone.
  */
-export function QuoteBlock({ quote, item, showItem = false, className }: { quote: Quote; item: QuotedWork | undefined; showItem?: boolean; className?: string }) {
+export function QuoteBlock({ quote, item, showItem = false, className }: { quote: Quote; item: SourceItem | undefined; showItem?: boolean; className?: string }) {
   const [editing, setEditing] = useState(false);
   const navigate = useNavigate();
   if (editing) {
     return (
       <div className={cn("rounded-md border p-2", className)}>
-        <QuoteEditor mediaId={quote.mediaId} quote={quote} onDone={() => setEditing(false)} onCancel={() => setEditing(false)} />
+        <QuoteEditor source={quote.source} quote={quote} onDone={() => setEditing(false)} onCancel={() => setEditing(false)} />
       </div>
     );
   }
   const loc = locatorLabel(quote.locator);
   return (
     <div className={cn("group relative grid gap-1 rounded-md py-1 pr-1 pl-3", "border-muted-foreground/30 border-l-2", className)}>
-      <blockquote className="font-serif text-sm whitespace-pre-line italic">{quote.text}</blockquote>
+      <blockquote className="font-serif text-sm whitespace-pre-line italic">{quote.body}</blockquote>
       {(loc || showItem) && (
         <div className="text-muted-foreground text-xs">
           — {showItem && item ? `${item.title}${item.creator ? `, ${item.creator}` : ""}` : ""}
