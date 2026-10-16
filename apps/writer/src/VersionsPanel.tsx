@@ -4,7 +4,7 @@ import { MarkdownView } from "@lifeline/editor";
 import type { Document, LinkIndex } from "@lifeline/core";
 import { Camera, RotateCcw, Trash2 } from "lucide-react";
 import { deleteVersion, restore, snapshot, useVersions } from "./data";
-import { WRITING, wordCount, type Version, type Writing } from "./types";
+import { VERSIONED, wordCount, type Version } from "./types";
 
 /**
  * Versions in the Vault (ADR 0045): the pad's one non-generic feature, kept as
@@ -17,7 +17,8 @@ import { WRITING, wordCount, type Version, type Writing } from "./types";
  * needed for "take a version".
  */
 export function VersionsPanel({ doc, index }: { doc: Document; index: LinkIndex }) {
-  const writing = doc.type === WRITING ? (doc as Writing) : undefined;
+  // An Essay's or a Chapter's (ADR 0068): the two kinds of prose that *are* the thing.
+  const writing = (VERSIONED as readonly string[]).includes(doc.type) ? (doc as Document & { body: string }) : undefined;
   const versions = useVersions(writing?.id);
   const [label, setLabel] = useState("");
   const [compare, setCompare] = useState<Version | null>(null);
@@ -34,7 +35,7 @@ export function VersionsPanel({ doc, index }: { doc: Document; index: LinkIndex 
       <div className="mb-1 flex items-center gap-1 text-sm font-medium">
         Versions <span className="text-muted-foreground text-xs">· {versions.length}</span>
         {/* The pad kept a running word count in its toolbar; prose wants one. */}
-        <span className="text-muted-foreground ml-auto text-xs tabular-nums">{wordCount(writing.body)} words</span>
+        <span className="text-muted-foreground ml-auto text-xs tabular-nums">{wordCount(writing.body ?? "")} words</span>
       </div>
       <div className="mb-1 flex gap-1">
         <Input className="h-8 text-xs" placeholder="Label (optional)" value={label} onChange={(e) => setLabel(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void take()} />
@@ -68,7 +69,7 @@ export function VersionsPanel({ doc, index }: { doc: Document; index: LinkIndex 
  * phone. The pad compared inside its own page; a 16rem panel cannot hold two
  * texts, so the Vault compares over the editor instead (ADR 0045).
  */
-function CompareDialog({ writing, version, index, onClose }: { writing: Writing; version: Version | null; index: LinkIndex; onClose: () => void }) {
+function CompareDialog({ writing, version, index, onClose }: { writing: Document & { body: string }; version: Version | null; index: LinkIndex; onClose: () => void }) {
   return (
     <Dialog open={!!version} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[85dvh] gap-2 sm:max-w-4xl">
@@ -87,7 +88,7 @@ function CompareDialog({ writing, version, index, onClose }: { writing: Writing;
           </section>
           <section className="min-w-0 max-md:border-t max-md:pt-3 md:border-l md:pl-3">
             <h3 className="text-muted-foreground mb-1 text-xs font-medium">Current text</h3>
-            <MarkdownView body={writing.body} index={index} />
+            <MarkdownView body={writing.body ?? ""} index={index} />
           </section>
         </div>
         <DialogFooter>

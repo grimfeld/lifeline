@@ -362,6 +362,46 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.2.0)(jsdom@26.1.0)(vite@7.3.6(@types/node@26.2.0)(jiti@2.7.0)(lightningcss@1.32.0))
 
+  apps/manuscript:
+    dependencies:
+      '@lifeline/app-writer':
+        specifier: workspace:*
+        version: link:../writer
+      '@lifeline/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@lifeline/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
+      '@lifeline/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      lucide-react:
+        specifier: ^1.27.0
+        version: 1.31.0(react@19.2.8)
+      react-router:
+        specifier: ^7.9.4
+        version: 7.18.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.1.0
+        version: 19.2.4(@types/react@19.2.18)
+      react:
+        specifier: ^19.2.0
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.8(react@19.2.8)
+      typescript:
+        specifier: ~5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@26.2.0)(jsdom@26.1.0)(vite@7.3.6(@types/node@26.2.0)(jiti@2.7.0)(lightningcss@1.32.0))
+
   apps/mood:
     dependencies:
       '@lifeline/core':
@@ -868,6 +908,9 @@ importers:
       '@lifeline/app-mail':
         specifier: workspace:*
         version: link:../apps/mail
+      '@lifeline/app-manuscript':
+        specifier: workspace:*
+        version: link:../apps/manuscript
       '@lifeline/app-mood':
         specifier: workspace:*
         version: link:../apps/mood
@@ -1166,6 +1209,9 @@ importers:
       '@lifeline/app-mail':
         specifier: workspace:*
         version: link:../apps/mail
+      '@lifeline/app-manuscript':
+        specifier: workspace:*
+        version: link:../apps/manuscript
       '@lifeline/app-mood':
         specifier: workspace:*
         version: link:../apps/mood
