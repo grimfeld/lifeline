@@ -9,5 +9,6 @@ export * from "./DocumentEditor";
 export * from "./AttachmentImage";
 export * from "./openDocument";
 export * from "./TemplateSelect";
+export * from "./TypeEditor";
 export { pickImage, insertAttachments } from "./attachmentCommands";
 export { type EditorContext } from "./editorExtensions";
