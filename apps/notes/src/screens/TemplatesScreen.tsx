@@ -1,29 +1,34 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
 import { Badge, Button, Input, toast } from "@lifeline/ui";
 import { createDocument, templatesFor, defaultTemplateFor, useAllDocuments, useDocumentTypes, isVaultType, type DocumentTypeDef } from "@lifeline/core";
 import { Plus } from "lucide-react";
 import { TEMPLATE } from "../domain/types";
-import { journalDocHref } from "./CollectionsScreen";
+import { journalDocHref } from "./TypesScreen";
 
 /**
  * /app/journal/templates — every Document type's own Templates (CONTEXT.md
  * "Template"): the starting bodies a new Day, Week, Note or Chapter can be
- * made from. The one titled by the type id is its default; the type's code
- * template applies when it has none.
+ * made from. The one titled by the type id is its default; a built-in's code
+ * template applies when it has none. `#templates-<type>` scrolls to a type's
+ * own section — where the type editor's "Templates" link lands.
  */
 export function TemplatesScreen() {
   const navigate = useNavigate();
   const types = useDocumentTypes();
   const docs = useAllDocuments();
   const [names, setNames] = useState<Record<string, string>>({});
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash) document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ block: "start" });
+  }, [hash, types]);
   const bodied = useMemo(() => types.filter((t) => !t.internal && t.id !== TEMPLATE && t.titleRule !== "derived" && (isVaultType(t) || t.body !== "none")), [types]);
 
   async function add(t: DocumentTypeDef) {
     const title = (names[t.id] ?? "").trim() || (templatesFor(t.id, docs).length === 0 ? t.id : "");
     if (!title) return void toast.error("Name the template");
     try {
-      const d = await createDocument({ type: TEMPLATE, title, body: t.template ?? "", fields: { forType: t.id } });
+      const d = await createDocument({ type: TEMPLATE, title, body: t.builtIn ? (t.template ?? "") : "", fields: { forType: t.id } });
       setNames((n) => ({ ...n, [t.id]: "" }));
       navigate(journalDocHref(d.id));
     } catch (e) {
@@ -41,10 +46,10 @@ export function TemplatesScreen() {
         const mine = templatesFor(t.id, docs);
         const def = defaultTemplateFor(t.id, docs);
         return (
-          <section key={t.id} className="grid gap-2 rounded-lg border p-3">
+          <section key={t.id} id={`templates-${t.id}`} className="grid scroll-mt-4 gap-2 rounded-lg border p-3">
             <div className="flex min-w-0 items-center gap-2">
               <h2 className="min-w-0 flex-1 truncate text-sm font-medium">{t.label}</h2>
-              {mine.length === 0 && <span className="text-muted-foreground shrink-0 text-xs">{t.template ? "built-in default" : "starts empty"}</span>}
+              {mine.length === 0 && <span className="text-muted-foreground shrink-0 text-xs">{t.builtIn && t.template ? "built-in default" : "starts empty"}</span>}
             </div>
             {mine.length > 0 && (
               <ul className="grid gap-1">

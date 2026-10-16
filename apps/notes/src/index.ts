@@ -1,8 +1,8 @@
 import { useEffect } from "react";
-import { addDays, documentType, formatHuman, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, type AppManifest, type CardSettings } from "@lifeline/core";
-import { CalendarDays, CalendarRange, LayoutTemplate, Library, Lock, NotebookPen } from "lucide-react";
+import { addDays, documentType, formatHuman, migrateTypeTemplates, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, type AppManifest, type CardSettings } from "@lifeline/core";
+import { CalendarDays, CalendarRange, LayoutTemplate, Lock, NotebookPen, Shapes } from "lucide-react";
 import { PeriodScreen } from "./screens/PeriodScreen";
-import { CollectionsScreen, JournalDocScreen } from "./screens/CollectionsScreen";
+import { JournalDocScreen, OldCollectionsRedirect, TypesScreen } from "./screens/TypesScreen";
 import { TemplatesScreen } from "./screens/TemplatesScreen";
 import { JournalScreen } from "./screens/JournalScreen";
 import { TodayJournalCard } from "./cards/TodayJournalCard";
@@ -55,8 +55,11 @@ export const notesApp: AppManifest = {
   screens: [
     { id: "notes.journal", title: "Today", path: "journal", icon: NotebookPen, component: JournalScreen },
     { id: "notes.period", title: "Review", path: "journal/p/:key", icon: CalendarRange, component: PeriodScreen, hidden: true },
-    { id: "notes.collections", title: "Collections", path: "journal/c", icon: Library, component: CollectionsScreen },
-    { id: "notes.collection", title: "Collection", path: "journal/c/:type", component: CollectionsScreen, hidden: true },
+    { id: "notes.types", title: "Types", path: "journal/t", icon: Shapes, component: TypesScreen },
+    { id: "notes.type", title: "Type", path: "journal/t/:type", component: TypesScreen, hidden: true },
+    // The old "Collections" links, kept working.
+    { id: "notes.collections", title: "Collections", path: "journal/c", component: OldCollectionsRedirect, hidden: true },
+    { id: "notes.collection", title: "Collection", path: "journal/c/:type", component: OldCollectionsRedirect, hidden: true },
     { id: "notes.templates", title: "Templates", path: "journal/templates", icon: LayoutTemplate, component: TemplatesScreen },
     { id: "notes.doc", title: "Page", path: "journal/d/:id", component: JournalDocScreen, hidden: true },
   ],
@@ -271,10 +274,14 @@ export const notesApp: AppManifest = {
   ],
   commands: noteCommands,
   useCommands: useNotesCommands,
-  /** Once per launch: re-key a Private settings row saved under the old, unsyncable id (ADR 0038). */
+  /**
+   * Once per launch: re-key a Private settings row saved under the old, unsyncable id (ADR 0038),
+   * and move a user-defined type's old body-template text into a Template (CONTEXT.md "Template").
+   */
   useBackground: () => {
     useEffect(() => {
       void repairPrivateSettings().catch(() => {});
+      void migrateTypeTemplates().catch(() => {});
     }, []);
   },
 };
