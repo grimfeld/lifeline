@@ -49,13 +49,14 @@ export function defaultTemplateFor(type: string, docs: readonly Document[]): Doc
   return mine.find((d) => d.title.toLowerCase() === type.toLowerCase()) ?? (mine.length === 1 ? mine[0] : undefined);
 }
 
-/** Rendered starting body for a type: the picked Template, else its default one, else the type's code default. */
+/** Rendered starting body for a type: the picked Template, else its default one, else a built-in's code default. */
 export async function templateFor(type: string, title: string, docs?: Document[], templateId?: string): Promise<string> {
   const def = documentTypeSync(type);
   const all = docs ?? (await allDocuments());
   const picked = templateId ? templatesFor(type, all).find((d) => d.id === templateId) : undefined;
   const custom = picked ?? defaultTemplateFor(type, all);
-  const raw = custom && typeof custom.body === "string" ? custom.body : (def?.template ?? "");
+  // Only a built-in carries a default of its own; a user-defined type starts from its Templates alone (CONTEXT.md "Template").
+  const raw = custom && typeof custom.body === "string" ? custom.body : def?.builtIn ? (def.template ?? "") : "";
   return renderTemplate(raw, { title, date: def?.titleRule === "date" ? title : todayStr() });
 }
 
