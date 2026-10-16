@@ -11,7 +11,7 @@ The one basic block everything in Lifeline is made of. Every record a user can s
 _Avoid_: record, entity, item, page, file, note (one type), block (a body fragment)
 
 ### Document type
-The kind of a Document: its field schema, title rule, body policy and the Contracts it implements. Adding a type is meant to be cheap and automatically yields a Base. A type may be **internal**: its Documents exist only in service of another Document (an Essay's Versions) and are hidden from the Vault tree, link completion and the sidebar, and are neither a target nor a *source* of link relations — their wikilinks, Link fields and Tags belong to the Document they serve, so they raise no backlink, Ghost, tag entry or Unlinked mention of their own — though they still have a Base. Two origins, one registry: **built-in** types are defined in code and are the only ones an App's behaviour may depend on; **user-defined** types are created in-app and get everything generic (Base, form, body, generic Cards) plus the Contracts that can be declared from data alone — a Contract with behaviour hooks needs code. Subsumes the old "Note type".
+The kind of a Document: its field schema, title rule, body policy and the Contracts it implements. Adding a type is meant to be cheap and automatically yields a Base. A type may be **internal**: its Documents exist only in service of another Document (an Essay's Versions) and are hidden from the Vault tree, link completion and the sidebar, and are neither a target nor a *source* of link relations — their wikilinks, Link fields and Tags belong to the Document they serve, so they raise no backlink, Ghost, tag entry or Unlinked mention of their own — though they still have a Base. Two origins, one registry: **built-in** types are defined in code and are the only ones an App's behaviour may depend on; **user-defined** types are created in-app and get everything generic (Base, form, body, generic Cards) plus the Contracts that can be declared from data alone — a Contract with behaviour hooks needs code. A type is shared by every Workspace — only its Documents are separated. A user-defined type can be deleted only once no Document of it is left, in any Workspace — a Document never loses its type. Subsumes the old "Note type".
 _Avoid_: schema, collection (storage detail), category, template (a part of a type)
 
 
@@ -429,7 +429,7 @@ _Avoid_: revision, history (implies automatic), backup (fine in prose)
 _Retired_ — use **Document type**. (Was: a kind of Note fixing its title rule, Properties and template.)
 
 ### Field
-A typed value a Document type declares (mood, aliases, birthday, geo, employer…), edited as a form, shown as a Base column, and read/written as frontmatter when the Document is opened as text. Kinds: text, long text, number, boolean, date, datetime, select, multi-select, url, geo, list of text, and **Link**. No formulas — a computed value belongs to a View, not a type. Every type has its own Fields, and the user may add Fields to any type, built-ins included; a built-in's own Fields stay its App's, the user's sit beside them.
+A typed value a Document type declares (mood, aliases, birthday, geo, employer…), edited as a form, shown as a Base column, and read/written as frontmatter when the Document is opened as text. Kinds: text, long text, number, boolean, date, datetime, select, multi-select, url, geo, list of text, and **Link**. No formulas — a computed value belongs to a View, not a type. Every type has its own Fields, and the user may add Fields to any type, built-ins included; a built-in's own Fields stay its App's, the user's sit beside them. A Field is fixed once it exists: it can be relabelled, and its kind changed only to one every value it already holds still fits; removing it keeps the values Documents hold, and they return if it is added back.
 _Avoid_: property (old Notes word — same thing), metadata, attribute, column (a View's rendering of a Field)
 
 ### Link (field)
@@ -437,7 +437,7 @@ A Field holding a reference to another Document, optionally restricted to one ty
 _Avoid_: relation, foreign key, reference
 
 ### Template
-A body a Document type offers as the starting text for a new Document of that type — the Day's sections, a meeting Note, a Chapter skeleton. Every type has its own Templates; picking one copies it into the new body once and forgets it, never a link. Not an Event template (that shapes an Event, not a body).
+A body a Document type offers as the starting text for a new Document of that type — the Day's sections, a meeting Note, a Chapter skeleton. Every type has its own Templates; picking one copies it into the new body once and forgets it, never a link. A user-defined type's starting body comes only from its Templates; a built-in type may also carry a default of its own, used when it has none. Not an Event template (that shapes an Event, not a body).
 _Avoid_: note template (old name), template (bare, when an Event template is near), preset, skeleton
 
 ### Day
@@ -449,8 +449,8 @@ The Journal's review Documents for a longer stretch, one each per ISO week (`202
 _Avoid_: weekly note, review (a Review is my words on a work), period summary
 
 ### Journal
-The Module for living day to day in writing: Days and their Weeks, Months, Quarters and Years, the user-defined types they talk about (people, places…), and a writing interface of its own built for heavy markdown pages. Agnostic about what those other types are — the user defines them and homes them here.
-_Avoid_: diary, vault (the raw editor)
+The Module for living day to day in writing: Days and their Weeks, Months, Quarters and Years, the user-defined types they talk about (people, places…), and a writing interface of its own built for heavy markdown pages. Agnostic about what those other types are — the user defines them and homes them here. The Journal lists them as its **Types** and is where the user creates, edits and deletes them: a type made here is homed here, and one re-homed elsewhere leaves. It manages only the user-defined types homed in it — built-in types and types homed elsewhere are managed from Bases.
+_Avoid_: diary, vault (the raw editor), collections (for its Types — a Collection is a Stat kind)
 
 ### Wikilink
 `[[Name]]` in any Document's body. Resolves by name — case- and accent-insensitive, spaces collapsed — across every Linkable Document type — exact title first, then alias — with an optional type prefix (`[[media:Dune]]`) to disambiguate; once resolved, the link remembers its target so later collisions don't move it. Unresolved links stay unresolved (click to create a Note). The editor's completer shows the type of each candidate.

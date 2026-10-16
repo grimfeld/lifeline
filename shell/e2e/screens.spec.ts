@@ -16,6 +16,8 @@ interface ScreenCase {
   /** Route; a `:id` is filled with the first Document of `type`. */
   path: string;
   type?: string;
+  /** Other route parameters, filled as given (`{ key: "2026-W42" }` for `:key`). */
+  params?: Record<string, string>;
 }
 
 const SCREENS: ScreenCase[] = [
@@ -51,9 +53,12 @@ const SCREENS: ScreenCase[] = [
   // The Vault (Note-taking's layout).
   { name: "Vault", path: "/vault" },
   { name: "Journal · Today", path: "/app/journal" },
-  { name: "Journal · Week", path: "/app/journal/p/2026-W42" },
+  { name: "Journal · Week", path: "/app/journal/p/:key", params: { key: "2026-W42" } },
   { name: "Journal · Year", path: "/app/journal/p/2026" },
-  { name: "Journal · Collections", path: "/app/journal/c" },
+  { name: "Journal · Types", path: "/app/journal/t" },
+  { name: "Journal · Types (old link)", path: "/app/journal/c" },
+  { name: "Journal · One type", path: "/app/journal/t/:type", params: { type: "e2eperson" } },
+  { name: "Journal · One type (old link)", path: "/app/journal/c/:type", params: { type: "e2eperson" } },
   { name: "Journal · Templates", path: "/app/journal/templates" },
   { name: "Journal · Page", path: "/app/journal/d/:id", type: "template" },
   { name: "Vault · Thought", path: "/vault/d/:id", type: "thought" },
@@ -131,6 +136,7 @@ for (const screen of SCREENS) {
       expect(id, `a seeded ${screen.type}`).not.toBe("");
       path = path.replace(":id", id);
     }
+    for (const [k, v] of Object.entries(screen.params ?? {})) path = path.replace(`:${k}`, v);
     await open(page, path);
     await expectNoBrokenLayout(page, screen.name);
     expect(errors, `no uncaught errors:\n  ${errors.join("\n  ")}`).toEqual([]);
