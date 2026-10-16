@@ -83,7 +83,11 @@ export const MODULES: ModuleDef[] = [
   { id: "tasks", title: "Projects" },
   { id: "culture", title: "Culture" },
   { id: "money", title: "Money" },
-  { id: "notes", title: "Note-taking", home: "/vault" },
+  // Writing splits by what is written (ADR 0068). The Journal keeps the Vault's
+  // layout until it has its own; Notes is the shelf of Sources, and keeps the
+  // old Note-taking id because Workspaces and Phone bars store it.
+  { id: "journal", title: "Journal", home: "/vault" },
+  { id: "notes", title: "Notes" },
   // Thoughts (ADR 0068): what comes straight out of my head, with no Source.
   { id: "thoughts", title: "Thoughts" },
   { id: "progress", title: "Progress" },

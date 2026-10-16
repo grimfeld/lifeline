@@ -60,7 +60,7 @@ const BAR_SEEDED_SLOTS = 2;
  * has earned.
  */
 export function seedBar(modules: string[]): BarSlot[] {
-  const preferred = ["tasks", "notes"].filter((m) => modules.includes(m));
+  const preferred = ["tasks", "journal", "notes"].filter((m) => modules.includes(m));
   const rest = modules.filter((m) => !preferred.includes(m));
   return [...preferred, ...rest].slice(0, BAR_SEEDED_SLOTS).map((id) => ({ kind: "module" as const, id }));
 }

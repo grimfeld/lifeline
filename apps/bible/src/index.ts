@@ -101,7 +101,7 @@ const conceptType: DocumentTypeDef = {
 /** Bible App (ADR 0032): a lens over the study — owns the references, scopes the material. */
 export const bibleApp: AppManifest = {
   id: APP_ID,
-  module: "notes",
+  module: "journal",
   title: "Bible study",
   icon: BookOpen,
   color: "var(--chart-aqua)",

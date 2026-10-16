@@ -40,7 +40,7 @@ const offsetTitle = (base: string) => (s: CardSettings) => {
 /** Notes App (ADR 0018/0019): owns the note, daily and template Document types; the Journal lives in the Vault. */
 export const notesApp: AppManifest = {
   id: APP_ID,
-  module: "notes",
+  module: "journal",
   title: "Notes",
   icon: NotebookPen,
   color: "var(--chart-green)",

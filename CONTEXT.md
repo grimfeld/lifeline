@@ -574,7 +574,7 @@ The state of the Private folder on this device, right now. **Locked** (the defau
 _Avoid_: hidden (locked Documents are absent, not hidden in place), logged in / signed out (that's the account), open / closed (a Folder node in the tree)
 
 ### Commonplace book
-_Retired_ — the App is now called **Quotes**; its id and ADR 0024 keep the old name.
+_Retired_ — the App became **Quotes**, then the **Notes** App (ADR 0070), which owns Sources, Notes and Quotes; its id `commonplace` and ADR 0024 keep the old name.
 
 ### Bible study
 _Retired_ — the Bible App is retired, and with it its Verses, Chapters, Books, Characters and Concepts. Study material is Notes and Quotes on Sources like any other.

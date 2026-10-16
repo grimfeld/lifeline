@@ -94,7 +94,7 @@ describe("moduleOfPath", () => {
 
   it("finds a Module by its own page, and by a hand-written layout's home", () => {
     expect(moduleOfPath("/module/house")).toBe("house");
-    expect(moduleOfPath("/vault/d/abc")).toBe("notes");
+    expect(moduleOfPath("/vault/d/abc")).toBe("journal");
   });
 
   it("is undefined for Core's destinations and for an App in no Module", () => {
