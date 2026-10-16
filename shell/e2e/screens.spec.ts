@@ -45,6 +45,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Journal module", path: "/module/journal" },
   { name: "Notes module", path: "/module/notes" },
   { name: "Thoughts module", path: "/module/thoughts" },
+  { name: "Research module", path: "/module/research" },
+  { name: "Manuscript module", path: "/module/manuscript" },
 
   // The Vault (Note-taking's layout).
   { name: "Vault", path: "/vault" },
@@ -82,7 +84,10 @@ const SCREENS: ScreenCase[] = [
   { name: "Notes · Sources", path: "/app/notes" },
   { name: "Notes · Source", path: "/app/notes/s/:id", type: "source" },
   { name: "Notes · Note", path: "/app/notes/n/:id", type: "note" },
-  { name: "Writings", path: "/app/writings" },
+  { name: "Research", path: "/app/research" },
+  { name: "Essay", path: "/app/research/e/:id", type: "essay" },
+  { name: "Manuscripts", path: "/app/manuscripts" },
+  { name: "Manuscript", path: "/app/manuscripts/m/:id", type: "manuscript" },
   { name: "Windows", path: "/app/sources" },
   { name: "Window", path: "/app/sources/:id", type: "window" },
   { name: "Workout", path: "/app/workout" },
