@@ -35,6 +35,6 @@ describe("Word and Sentence through the Recallable Contract", () => {
 
   it("reads absent fields the way PocketBase returns them", () => {
     const bare = { ...base, id: "b", type: SENTENCE, title: "" } as unknown as Document;
-    expect(plain(materialOf(defOf(SENTENCE), bare))).toEqual({ id: "b", type: SENTENCE, title: "", topicId: "", addedAt: base.createdAt, live: true, slots: [] });
+    expect(plain(materialOf(defOf(SENTENCE), bare))).toEqual({ id: "b", type: SENTENCE, title: "", topicId: "", addedAt: base.createdAt, live: true, slots: [], originId: "" });
   });
 });

@@ -9,5 +9,5 @@ export interface MaterialDoc extends Material {
 
 /** One Recallable Document read as Material, through its type's declaration (ADR 0073). */
 export function materialOf(def: RecallableReading, doc: Document): MaterialDoc {
-  return { id: doc.id, type: doc.type, title: doc.title, topicId: def.topicOf(doc), addedAt: def.addedAt(doc), live: def.inPractice(doc), slots: def.slots(doc), doc };
+  return { id: doc.id, type: doc.type, title: doc.title, topicId: def.topicOf(doc), addedAt: def.addedAt(doc), live: def.inPractice(doc), slots: def.slots(doc), originId: def.originOf?.(doc) ?? "", doc };
 }

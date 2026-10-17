@@ -34,6 +34,11 @@ export interface RecallableDef {
   inPractice(doc: Document): boolean;
   /** ISO instant it was added: new Prompts enter practice oldest first. */
   addedAt(doc: Document): string;
+  /**
+   * The Document it was taken from, if it keeps one as a link (ADR 0073) —
+   * what a Practice narrowed to a Source reads through. Absent: none.
+   */
+  originOf?(doc: Document): string;
   face: React.ComponentType<RecallFaceProps>;
 }
 

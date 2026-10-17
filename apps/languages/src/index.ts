@@ -178,7 +178,7 @@ export const knowledgeApp: AppManifest = {
     {
       id: "languages.due",
       title: "Due today",
-      description: "What the active topic has due, one tap into practice",
+      description: "Everything due, by topic, one tap into practice",
       component: DueCard,
       defaultSize: { w: 3, h: 4 },
       minSize: { w: 2, h: 3 },

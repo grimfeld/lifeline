@@ -55,6 +55,29 @@ describe("practiceQueue", () => {
   });
 });
 
+describe("practiceQueue across Topics", () => {
+  const inTopic = (m: Material, topicId: string): Material => ({ ...m, topicId });
+  const recallIn = (r: Recall, topicId: string): Recall => ({ ...r, languageId: topicId });
+
+  it("holds each Topic to its own daily new cap", () => {
+    const items = [inTopic(word("a1", 1), "A"), inTopic(word("a2", 2), "A"), inTopic(word("b1", 3), "B"), inTopic(word("b2", 4), "B")];
+    const caps: Record<string, number> = { A: 1, B: 3 };
+    const q = practiceQueue(items, [], { now: new Date(at(10)), newCap: (t) => caps[t] });
+    const byTopic = (t: string) => q.queue.filter((p) => p.topicId === t).length;
+    expect(byTopic("A")).toBe(1);
+    expect(byTopic("B")).toBe(3);
+    expect(q.newToday).toBe(4);
+  });
+
+  it("counts today's introductions against their own Topic only", () => {
+    const items = [inTopic(word("a1", 1), "A"), inTopic(word("a2", 2), "A"), inTopic(word("b1", 3), "B")];
+    const recalls = [recallIn(recall("a1", "forward", "pass", at(10, 8)), "A")];
+    const q = practiceQueue(items, recalls, { now: new Date(at(10, 12)), newCap: () => 1 });
+    expect(q.queue.filter((p) => p.topicId === "A" && p.held.state === "new")).toHaveLength(0);
+    expect(q.queue.filter((p) => p.topicId === "B")).toHaveLength(1);
+  });
+});
+
 describe("introducedOn", () => {
   it("counts a Prompt on the day of its first Recall only", () => {
     const recalls = [recall("a", "forward", "pass", at(9)), recall("a", "forward", "pass", at(10)), recall("b", "forward", "fail", at(10))];

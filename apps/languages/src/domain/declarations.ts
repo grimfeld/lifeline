@@ -11,6 +11,7 @@ const shared = {
   topicOf: (d: Document) => String((d as Word).languageId ?? ""),
   inPractice: (d: Document) => !(d as Word).paused,
   addedAt: (d: Document) => (d as Word).addedAt || d.createdAt || "",
+  originOf: (d: Document) => String((d as Word).originId ?? ""),
 };
 
 /** How Knowledge's own types are read through the Recallable Contract (ADR 0073), faces aside. */

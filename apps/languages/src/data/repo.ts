@@ -1,8 +1,9 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { documentsOf, documentsWhere, fireTallies, getDocument, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useDocuments, type Document, type Tally } from "@lifeline/core";
+import { documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
 import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
+import { sourceChain, type SourceReading } from "../domain/sources";
 
 export type { MaterialDoc };
 import { DECK, DEFAULT_NEW_CAP, FACT, TOPIC, RECALL, SENTENCE, WORD, type Deck, type Fact, type Grade, type Item, type Material, type Topic, type Recall, type Sentence, type Word } from "../domain/types";
@@ -75,19 +76,56 @@ export function useItems(languageId: string | undefined): Item[] {
 }
 
 /**
- * Every Recallable Document of one Topic, whichever App owns it, read only
+ * Every Recallable Document in a Topic, whichever App owns it, read only
  * through the Contract (ADR 0073) — Practice knows no type by name.
  */
-export function useMaterial(topicId: string | undefined): MaterialDoc[] {
+export function useAllMaterial(): MaterialDoc[] {
   const defs = recallableDefs();
   // Hook order is stable: the declarations are fixed at compile time (ADR 0003).
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const rows = defs.map((d) => useDocuments(d.typeId));
   return useMemo(
-    () => (topicId ? defs.flatMap((d, i) => rows[i].map((doc) => materialOf(d, doc))).filter((m) => m.topicId === topicId) : []),
+    () => defs.flatMap((d, i) => rows[i].map((doc) => materialOf(d, doc))).filter((m) => m.topicId),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [topicId, ...rows],
+    rows,
   );
+}
+
+/** One Topic's material. */
+export function useMaterial(topicId: string | undefined): MaterialDoc[] {
+  const all = useAllMaterial();
+  return useMemo(() => (topicId ? all.filter((m) => m.topicId === topicId) : []), [all, topicId]);
+}
+
+/** The Role a Document plays to be a Source — the Notes App's, and the one Core knows Sources by (CONTEXT.md "Source"). */
+export const SOURCE_ROLE = "source";
+
+/**
+ * The Sources each piece of material counts toward, nearest first, read
+ * through its origin's links at every read (ADR 0073): a Note's or Quote's
+ * Source-Role field, then each Source's own — its parent. Material with no
+ * Source on the way is left out.
+ */
+export function useSourceChains(material: Material[]): { chains: Map<string, string[]>; titleOf: (id: string) => string } {
+  const docs = useAllDocuments();
+  return useMemo(() => {
+    const byId = new Map(docs.map((d) => [d.id, d]));
+    const read: SourceReading = {
+      get: (id) => (id ? byId.get(id) : undefined),
+      isSource: (d) => hasRole(d, SOURCE_ROLE),
+      linkedSource: (d) => {
+        const field = fieldsOfDocument(d, documentTypeSync(d.type)).find((f) => f.kind === "link" && f.linkRole === SOURCE_ROLE);
+        const v = field ? (d as Record<string, unknown>)[field.key] : "";
+        return typeof v === "string" ? v : "";
+      },
+    };
+    const chains = new Map<string, string[]>();
+    for (const m of material) {
+      const chain = sourceChain(m.originId, read);
+      if (chain.length) chains.set(m.id, chain);
+    }
+    return { chains, titleOf: (id: string) => byId.get(id)?.title || "Untitled" };
+  }, [docs, material]);
 }
 
 export function useTopicRecalls(languageId: string | undefined): Recall[] {

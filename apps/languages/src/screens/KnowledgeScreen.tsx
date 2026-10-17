@@ -15,7 +15,7 @@ type Tab = (typeof TABS)[number];
 /**
  * The Knowledge Module (CONTEXT.md "Knowledge"): one active Topic at a
  * time, switched in the header, its settings a dialog off the switcher — and
- * three tabs: Practice, Words, Decks.
+ * three tabs: Practice, Kept, Decks.
  */
 export function KnowledgeScreen() {
   const topics = useTopics();

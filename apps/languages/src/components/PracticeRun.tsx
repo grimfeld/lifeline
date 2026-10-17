@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Card, CardContent, toast } from "@lifeline/ui";
 import { recallableDef } from "@lifeline/core";
 import { Check, Eye, X } from "lucide-react";
-import { practiceQueue, type HeldPrompt } from "../domain/practice";
-import type { Grade, Topic, Recall } from "../domain/types";
+import { practiceQueue, type HeldPrompt, type NewCap } from "../domain/practice";
+import type { Grade, Recall } from "../domain/types";
 import { recordRecall, strikeRecall, type MaterialDoc } from "../data/repo";
 
 function whenLabel(d: Date, now: Date): string {
@@ -22,7 +22,15 @@ function whenLabel(d: Date, now: Date): string {
  * every grade, so a failed Prompt comes back within the sitting and stopping
  * halfway loses nothing. The last grade can be undone: the Recall is struck.
  */
-export function PracticeRun({ topic, items, recalls, deckName, onDone }: { topic: Topic; items: MaterialDoc[]; recalls: Recall[]; deckName?: string; onDone: () => void }) {
+export function PracticeRun({ label, items, recalls, newCap, onDone }: {
+  /** What this Practice covers, as its header says it: "Spanish · Kitchen", "Everything". */
+  label: string;
+  items: MaterialDoc[];
+  /** Every Recall of each Topic it touches — the cap counts across the whole Topic. */
+  recalls: Recall[];
+  newCap: NewCap;
+  onDone: () => void;
+}) {
   const [now, setNow] = useState(() => new Date());
   const [revealed, setRevealed] = useState(false);
   const [pending, setPending] = useState<{ key: string; id: string } | null>(null);
@@ -40,7 +48,7 @@ export function PracticeRun({ topic, items, recalls, deckName, onDone }: { topic
   }, [recalls, pending]);
 
   const live = useMemo(() => items.filter((i) => i.live), [items]);
-  const q = useMemo(() => practiceQueue(live, recalls, { now, newCap: topic.newCap }), [live, recalls, now, topic.newCap]);
+  const q = useMemo(() => practiceQueue(live, recalls, { now, newCap }), [live, recalls, now, newCap]);
   const candidates = q.queue.filter((p) => p.key !== pending?.key);
   const current: HeldPrompt | undefined = candidates.find((p) => p.itemId !== lastItem) ?? candidates[0];
   const item = current ? live.find((i) => i.id === current.itemId) : undefined;
@@ -87,12 +95,11 @@ export function PracticeRun({ topic, items, recalls, deckName, onDone }: { topic
 
   return (
     <div className="mx-auto grid w-full max-w-xl gap-4">
-      <div className="text-muted-foreground flex items-center justify-between text-sm">
-        <span>
-          {topic.name}
-          {deckName ? ` · ${deckName}` : ""} · {q.due} due · {q.newToday} new
+      <div className="text-muted-foreground flex items-center justify-between gap-2 text-sm">
+        <span className="min-w-0 flex-1 truncate">
+          {label} · {q.due} due · {q.newToday} new
         </span>
-        <Button size="sm" variant="ghost" onClick={onDone}>
+        <Button size="sm" variant="ghost" className="shrink-0" onClick={onDone}>
           Stop
         </Button>
       </div>
