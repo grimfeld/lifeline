@@ -103,7 +103,7 @@ function OuttakesView({ manuscriptId, chapters, current }: { manuscriptId: strin
               </Button>
             </div>
             <div className="font-serif text-sm">
-              <MarkdownView body={o.body} index={index} compact />
+              <MarkdownView body={o.body} index={index} compact origin={o.id} />
             </div>
           </div>
         ))

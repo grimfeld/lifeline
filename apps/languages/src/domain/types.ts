@@ -10,6 +10,8 @@ export const WORD = "language_word";
 export const SENTENCE = "language_sentence";
 export const DECK = "language_deck";
 export const RECALL = "language_recall";
+/** New with Knowledge (ADR 0073), so it carries Knowledge's name. */
+export const FACT = "knowledge_fact";
 
 /** The daily new cap a Topic starts with (CONTEXT.md "Prompt"). */
 export const DEFAULT_NEW_CAP = 10;
@@ -36,8 +38,10 @@ export interface Word extends Document {
   term: string;
   meaning: string;
   notes: string;
-  /** Where it was met: a URL, a note, "Pedro at dinner". */
+  /** Where it was met, in words or a URL: "Pedro at dinner". */
   origin: string;
+  /** Where it was met, as a link to the Document it came from (a Note, a Quote) — followed, never copied. Empty for none. */
+  originId: string;
   paused: boolean;
   /** ISO instant it was added — what "oldest added first" orders new Prompts by. */
   addedAt: string;
@@ -52,6 +56,7 @@ export interface Sentence extends Document {
   /** In the user's own words, shown with each Prompt. */
   translation: string;
   origin: string;
+  originId: string;
   paused: boolean;
   addedAt: string;
 }
@@ -61,7 +66,7 @@ export interface Deck extends Document {
   type: typeof DECK;
   languageId: string;
   name: string;
-  /** Ids of Words and Sentences. */
+  /** Ids of what it holds — Words, Sentences, Facts. */
   members: string[];
 }
 
@@ -76,7 +81,7 @@ export type Grade = "pass" | "fail";
 export interface Recall extends Document {
   type: typeof RECALL;
   languageId: string;
-  /** The Word or Sentence the Prompt came from. */
+  /** The Recallable Document the Prompt came from. */
   itemId: string;
   /** "forward", "reverse", or "blank:<text>". */
   slot: string;
@@ -85,8 +90,25 @@ export interface Recall extends Document {
   at: string;
 }
 
-/** A Word or a Sentence — Knowledge's own Recallable types. */
-export type Item = Word | Sentence;
+/**
+ * A Fact (CONTEXT.md "Fact"): a question and its answer, both in the user's
+ * own words. One Prompt, forward only — its answer is no cue for its question.
+ */
+export interface Fact extends Document {
+  type: typeof FACT;
+  languageId: string;
+  /** "When was the Peace of Westphalia?" — also the title. */
+  question: string;
+  answer: string;
+  notes: string;
+  origin: string;
+  originId: string;
+  paused: boolean;
+  addedAt: string;
+}
+
+/** A Word, a Sentence or a Fact — Knowledge's own Recallable types. */
+export type Item = Word | Sentence | Fact;
 
 /**
  * One Recallable Document as Practice reads it, through the Contract

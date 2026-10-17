@@ -120,7 +120,7 @@ export function SourceScreen() {
                 {n.locator && <span className="text-muted-foreground shrink-0 text-xs">{n.locator}</span>}
               </div>
               <div className="text-muted-foreground line-clamp-4 min-w-0 text-sm">
-                <MarkdownView body={n.body} index={index} compact />
+                <MarkdownView body={n.body} index={index} compact origin={n.id} />
               </div>
             </Link>
           ))

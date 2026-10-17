@@ -66,7 +66,7 @@ export function KnowledgeScreen() {
           <PhoneDock order={1}>
             <TabsList>
               <TabsTrigger value="practice">Practice</TabsTrigger>
-              <TabsTrigger value="words">Words ({items.length})</TabsTrigger>
+              <TabsTrigger value="words">Kept ({items.length})</TabsTrigger>
               <TabsTrigger value="decks">Decks ({decks.length})</TabsTrigger>
             </TabsList>
           </PhoneDock>

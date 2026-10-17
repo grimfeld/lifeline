@@ -440,7 +440,8 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
               </div>
             </div>
             {hasBody && (
-              <div className="flex min-h-0 flex-1 flex-col px-3 md:px-4">
+              // Names the Document, so selecting in its body — read or edited — can hand the passage off (ADR 0073).
+              <div className="flex min-h-0 flex-1 flex-col px-3 md:px-4" data-origin={doc.id}>
                 {mode === "read" ? (
                   <>
                     <div className="min-h-0 flex-1 overflow-y-auto py-3" onDoubleClick={() => setMode("edit")}>

@@ -28,7 +28,9 @@ export function QuoteBlock({ quote, item, showItem = false, className }: { quote
   const loc = locatorLabel(quote.locator);
   return (
     <div className={cn("group relative grid gap-1 rounded-md py-1 pr-1 pl-3", "border-muted-foreground/30 border-l-2", className)}>
-      <blockquote className="font-serif text-sm whitespace-pre-line italic">{quote.body}</blockquote>
+      <blockquote className="font-serif text-sm whitespace-pre-line italic" data-origin={quote.id}>
+        {quote.body}
+      </blockquote>
       {(loc || showItem) && (
         <div className="text-muted-foreground text-xs">
           — {showItem && item ? `${item.title}${item.creator ? `, ${item.creator}` : ""}` : ""}

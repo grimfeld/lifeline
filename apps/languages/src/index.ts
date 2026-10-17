@@ -1,16 +1,17 @@
 import type { AppManifest, Document, DocumentTypeDef } from "@lifeline/core";
-import { Brain, History, Layers, Shapes, TextCursorInput, WholeWord } from "lucide-react";
+import { Brain, History, Layers, MessageCircleQuestion, Shapes, TextCursorInput, WholeWord } from "lucide-react";
 import { KnowledgeScreen } from "./screens/KnowledgeScreen";
 import { DueCard } from "./cards/DueCard";
 import { ItemPeek } from "./components/ItemPeek";
 import { WordIntakeDialog } from "./components/WordDialog";
 import { SentenceIntakeDialog } from "./components/SentenceDialog";
+import { FactIntakeDialog } from "./components/FactDialog";
 import { knowledgeCommands } from "./commands";
 import { knowledgeRecallable } from "./recallable";
 import { knowledgeDaylog } from "./daylog";
 import { plainSentence } from "./domain/cloze";
 import { refuseDeletingUsedTopic, removeItemRecalls } from "./data/repo";
-import { APP_ID, DECK, TOPIC, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
+import { APP_ID, DECK, FACT, TOPIC, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Fact, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
 
 const WORDS_HREF = `${KNOWLEDGE_HREF}?tab=words`;
 
@@ -53,6 +54,7 @@ const wordType: DocumentTypeDef = {
     { key: "meaning", label: "Meaning", kind: "text", required: true, column: true },
     { key: "notes", label: "Notes", kind: "longtext" },
     { key: "origin", label: "Where met", kind: "text" },
+    { key: "originId", label: "Met in", kind: "link" },
     { key: "paused", label: "Paused", kind: "boolean", column: true },
     { key: "addedAt", label: "Added", kind: "datetime", guarded: true, hidden: true },
   ],
@@ -77,6 +79,7 @@ const sentenceType: DocumentTypeDef = {
     { key: "text", label: "Sentence", kind: "text", required: true, column: true },
     { key: "translation", label: "Translation", kind: "text", column: true },
     { key: "origin", label: "Where met", kind: "text" },
+    { key: "originId", label: "Met in", kind: "link" },
     { key: "paused", label: "Paused", kind: "boolean", column: true },
     { key: "addedAt", label: "Added", kind: "datetime", guarded: true, hidden: true },
   ],
@@ -85,6 +88,32 @@ const sentenceType: DocumentTypeDef = {
   peek: ItemPeek,
   onDelete: removeItemRecalls,
   order: 95,
+  builtIn: true,
+};
+
+/** A Fact (CONTEXT.md "Fact"): a question and its answer in the user's own words — one Prompt, forward only. Not Linkable. */
+const factType: DocumentTypeDef = {
+  id: FACT,
+  label: "Facts",
+  icon: MessageCircleQuestion,
+  titleRule: "derived",
+  titleOf: (d) => (d as Fact).question,
+  body: "none",
+  fields: [
+    { key: "languageId", label: "Topic", kind: "link", linkType: TOPIC, guarded: true, required: true, column: true },
+    { key: "question", label: "Question", kind: "text", required: true, column: true },
+    { key: "answer", label: "Answer", kind: "longtext", required: true, column: true },
+    { key: "notes", label: "Notes", kind: "longtext" },
+    { key: "origin", label: "Where met", kind: "text" },
+    { key: "originId", label: "Met in", kind: "link" },
+    { key: "paused", label: "Paused", kind: "boolean", column: true },
+    { key: "addedAt", label: "Added", kind: "datetime", guarded: true, hidden: true },
+  ],
+  indexes: ["languageId"],
+  href: () => WORDS_HREF,
+  peek: ItemPeek,
+  onDelete: removeItemRecalls,
+  order: 96,
   builtIn: true,
 };
 
@@ -99,11 +128,11 @@ const deckType: DocumentTypeDef = {
   fields: [
     { key: "languageId", label: "Topic", kind: "link", linkType: TOPIC, guarded: true, required: true, column: true },
     { key: "name", label: "Name", kind: "text", required: true, column: true },
-    { key: "members", label: "Words and sentences", kind: "links", linkType: [WORD, SENTENCE], guarded: true },
+    { key: "members", label: "Holds", kind: "links", linkType: [WORD, SENTENCE, FACT], guarded: true },
   ],
   indexes: ["languageId"],
   href: () => `${KNOWLEDGE_HREF}?tab=decks`,
-  order: 96,
+  order: 97,
   builtIn: true,
 };
 
@@ -121,14 +150,14 @@ const recallType: DocumentTypeDef = {
   body: "none",
   fields: [
     { key: "languageId", label: "Topic", kind: "link", linkType: TOPIC, guarded: true, required: true, column: true },
-    { key: "itemId", label: "Word or sentence", kind: "link", linkType: [WORD, SENTENCE], guarded: true, required: true, column: true },
+    { key: "itemId", label: "Kept", kind: "link", linkType: [WORD, SENTENCE, FACT], guarded: true, required: true, column: true },
     { key: "slot", label: "Prompt", kind: "text", guarded: true, column: true },
     { key: "grade", label: "Grade", kind: "select", options: [{ value: "pass", label: "Pass" }, { value: "fail", label: "Fail" }], guarded: true, column: true },
     { key: "at", label: "When", kind: "datetime", guarded: true, column: true },
   ],
   indexes: ["languageId", "itemId"],
   href: () => KNOWLEDGE_HREF,
-  order: 97,
+  order: 98,
   builtIn: true,
 };
 
@@ -143,7 +172,7 @@ export const knowledgeApp: AppManifest = {
   title: "Knowledge",
   icon: Brain,
   color: "var(--chart-teal)",
-  types: [topicType, wordType, sentenceType, deckType, recallType],
+  types: [topicType, wordType, sentenceType, factType, deckType, recallType],
   screens: [{ id: "languages.home", title: "Knowledge", path: "languages", icon: Brain, component: KnowledgeScreen }],
   cards: [
     {
@@ -162,8 +191,9 @@ export const knowledgeApp: AppManifest = {
   intakes: [
     { id: "word", title: "Word", icon: WholeWord, dialog: WordIntakeDialog },
     { id: "sentence", title: "Sentence", icon: TextCursorInput, dialog: SentenceIntakeDialog },
+    { id: "fact", title: "Fact", icon: MessageCircleQuestion, dialog: FactIntakeDialog },
   ],
 };
 
-export { TOPIC, WORD, SENTENCE, DECK, RECALL };
-export type { Topic, Word, Sentence, Deck, Recall };
+export { TOPIC, WORD, SENTENCE, FACT, DECK, RECALL };
+export type { Topic, Word, Sentence, Fact, Deck, Recall };
