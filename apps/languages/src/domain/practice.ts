@@ -44,6 +44,19 @@ export function introducedOn(recalls: Recall[], day: DateStr): number {
   return n;
 }
 
+/** Today's introductions per Topic — each Topic's daily new cap counts against its own (CONTEXT.md "Topic"). */
+export function introducedByTopic(recalls: Recall[], day: DateStr): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const list of recallsByPrompt(recalls).values()) {
+    const first = list.reduce((a, b) => (b.at < a.at ? b : a));
+    if (dayOf(first.at) === day) out.set(first.languageId, (out.get(first.languageId) ?? 0) + 1);
+  }
+  return out;
+}
+
+/** A daily new cap: one number for a Practice of one Topic, or each Topic's own for a Practice across several. */
+export type NewCap = number | ((topicId: string) => number);
+
 /**
  * Reorder so two Prompts of the same item never come back to back, where
  * any other order allows it — greedy, keeping the given order otherwise.
@@ -76,19 +89,27 @@ export interface PracticeQueue {
 }
 
 /**
- * One Practice's queue (CONTEXT.md "Practice"): the Topic's due Prompts
- * first, oldest due first, then new ones up to what the daily new cap still
- * allows today, oldest added first — siblings spaced apart. `items` are the
- * live Material it draws from (all of the Topic, or one
- * Deck's); `recalls` are the whole Topic's.
+ * One Practice's queue (CONTEXT.md "Practice"): due Prompts first, oldest
+ * due first, then new ones up to what each Topic's daily new cap still allows
+ * today, oldest added first — siblings spaced apart. `items` are the live
+ * Material it draws from (a Topic, a Deck, a Source's, or everything);
+ * `recalls` must hold every Recall of each Topic it touches, since the cap
+ * counts across the whole Topic however the Practice is narrowed.
  */
-export function practiceQueue(items: Material[], recalls: Recall[], opts: { now: Date; newCap: number }): PracticeQueue {
+export function practiceQueue(items: Material[], recalls: Recall[], opts: { now: Date; newCap: NewCap }): PracticeQueue {
   const now = opts.now.getTime();
   const all = heldPrompts(items, recalls);
   const dueNow = all.filter((p) => p.held.due && p.held.due.getTime() <= now).sort((a, b) => a.held.due!.getTime() - b.held.due!.getTime());
   const fresh = all.filter((p) => p.held.state === "new").sort((a, b) => a.addedAt.localeCompare(b.addedAt) || a.itemId.localeCompare(b.itemId) || a.order - b.order);
-  const allowed = Math.max(0, opts.newCap - introducedOn(recalls, todayStr(opts.now)));
-  const newOnes = fresh.slice(0, allowed);
+  const cap = opts.newCap;
+  const capOf = typeof cap === "number" ? () => cap : cap;
+  const introduced = introducedByTopic(recalls, todayStr(opts.now));
+  const left = new Map<string, number>();
+  const newOnes = fresh.filter((p) => {
+    const room = left.get(p.topicId) ?? Math.max(0, capOf(p.topicId) - (introduced.get(p.topicId) ?? 0));
+    left.set(p.topicId, Math.max(0, room - 1));
+    return room > 0;
+  });
   let queue = [...dueNow, ...newOnes];
   if (!queue.length) {
     queue = all.filter((p) => p.held.due && p.held.due.getTime() <= now + LEARN_AHEAD_MS).sort((a, b) => a.held.due!.getTime() - b.held.due!.getTime());

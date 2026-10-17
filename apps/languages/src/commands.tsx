@@ -102,6 +102,6 @@ export const knowledgeCommands: CommandDef[] = [
       return { id, message: `Fact kept in ${topic.title}` };
     },
   },
-  { id: "knowledge.practise", title: "Practise", keywords: ["knowledge", "practice", "practise", "review", "recall", "flashcards"], icon: Play, run: ({ navigate }) => navigate(KNOWLEDGE_HREF) },
+  { id: "knowledge.practise", title: "Practise everything", keywords: ["knowledge", "practice", "practise", "review", "recall", "due", "flashcards"], icon: Play, run: ({ navigate }) => navigate(`${KNOWLEDGE_HREF}?practice=all`) },
   { id: "knowledge.open", title: "Go to Knowledge", keywords: ["knowledge", "topics", "words", "decks"], icon: Brain, run: ({ navigate }) => navigate(KNOWLEDGE_HREF) },
 ];

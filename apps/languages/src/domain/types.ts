@@ -123,4 +123,6 @@ export interface Material {
   /** False while paused or no longer kept: out of every Practice, Recalls kept. */
   live: boolean;
   slots: string[];
+  /** The Document it was taken from — followed to its Source, never copied. Empty for none. */
+  originId: string;
 }

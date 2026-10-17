@@ -29,7 +29,7 @@ export function itemSlots(item: Item): string[] {
 
 /** A Word or Sentence read as Material — the same reading its Recallable declaration gives. */
 export function itemMaterial(item: Item): Material {
-  return { id: item.id, type: item.type, title: item.title, topicId: item.languageId, addedAt: item.addedAt, live: !item.paused, slots: itemSlots(item) };
+  return { id: item.id, type: item.type, title: item.title, topicId: item.languageId, addedAt: item.addedAt, live: !item.paused, slots: itemSlots(item), originId: item.originId ?? "" };
 }
 
 /** Every Prompt a piece of Material yields. */
