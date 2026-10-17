@@ -46,7 +46,7 @@ Core Contract (behaviour — code only): an App that accepts a Handoff from any 
 _Avoid_: clip (one implementer's verb), import, share (the phone OS's word), capture (a Command's flag)
 
 ### Handoff
-What one App hands to another's Intake: a title, a text in markdown, an origin URL, an author, a date and, when it came from one, the **origin Document** — and nothing the sending App would have to know about the receiver. Made by any App, or by **selecting text** in any body or passage — a Note, a Quote, a Thought, an Essay, a Day, a Mail Message — which offers every Intake Core knows, with the Document read from as its origin. Each Intake reads it its own way: the Notes App keeps the text as the Quote's passage and asks for its Source, Tasks takes the title and puts the origin in the note, Calendar takes the title and asks for the time.
+What one App hands to another's Intake: a title, a text in markdown, an origin URL, an author, a date and, when it came from one, the **origin Document** — and nothing the sending App would have to know about the receiver. Made by any App, or by **selecting text** in any Document's body or passage — a Note, a Quote, a Thought, an Essay, a Day — which offers every Intake Core knows, with the Document read from as its origin. A Mail Message, which is no Document, is handed off whole. Each Intake reads it its own way: the Notes App keeps the text as the Quote's passage and asks for its Source, Tasks takes the title and puts the origin in the note, Calendar takes the title and asks for the time.
 _Avoid_: payload, message (a Mail thing), draft
 
 ### Tally

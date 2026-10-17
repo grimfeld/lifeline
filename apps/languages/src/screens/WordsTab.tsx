@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
-import { Badge, Button, Card, CardContent, Input, PhoneDock, PhoneFilters, cn } from "@lifeline/ui";
-import { Pause, Play, Plus, Search } from "lucide-react";
-import { plainSentence } from "../domain/cloze";
+import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, PhoneDock, PhoneFilters, cn } from "@lifeline/ui";
+import { MessageCircleQuestion, Pause, Play, Plus, Search, TextCursorInput, WholeWord } from "lucide-react";
 import { heldPrompts } from "../domain/practice";
-import { itemMaterial } from "../domain/prompts";
-import { SENTENCE, type Deck, type Item, type Recall, type Sentence, type Word } from "../domain/types";
+import { itemLines, itemMaterial } from "../domain/prompts";
+import { FACT, SENTENCE, WORD, type Deck, type Fact, type Item, type Recall, type Sentence, type Word } from "../domain/types";
 import { setPaused } from "../data/repo";
 import { WordDialog } from "../components/WordDialog";
 import { SentenceDialog } from "../components/SentenceDialog";
+import { FactDialog } from "../components/FactDialog";
 
-type Filter = "all" | "words" | "sentences" | "paused";
+type Filter = "all" | "words" | "sentences" | "facts" | "paused";
 
 /** The soonest any of an item's Prompts is due — "new" while none has a Recall. */
 function nextHint(dues: (Date | null)[], now: Date): string {
@@ -21,13 +21,14 @@ function nextHint(dues: (Date | null)[], now: Date): string {
   return days < 1 ? "today" : days === 1 ? "tomorrow" : `in ${days} d`;
 }
 
-/** Every Word and Sentence of the active Topic: search, a Deck, paused — and the way in to add more. */
+/** Everything kept in the active Topic — Words, Sentences, Facts: search, a Deck, paused — and the way in to add more. */
 export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck[]; recalls: Recall[] }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [deckId, setDeckId] = useState("");
   const [addingWord, setAddingWord] = useState(false);
   const [addingSentence, setAddingSentence] = useState(false);
+  const [addingFact, setAddingFact] = useState(false);
   const [editing, setEditing] = useState<Item | undefined>();
 
   const now = useMemo(() => new Date(), [recalls]);
@@ -41,12 +42,12 @@ export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck
     const q = query.trim().toLocaleLowerCase();
     const deck = decks.find((d) => d.id === deckId);
     return items
-      .filter((i) => (filter === "words" ? i.type !== SENTENCE : filter === "sentences" ? i.type === SENTENCE : filter === "paused" ? i.paused : true))
+      .filter((i) => (filter === "words" ? i.type === WORD : filter === "sentences" ? i.type === SENTENCE : filter === "facts" ? i.type === FACT : filter === "paused" ? i.paused : true))
       .filter((i) => !deck || deck.members.includes(i.id))
       .filter((i) => {
         if (!q) return true;
-        const hay = i.type === SENTENCE ? `${plainSentence((i as Sentence).text)} ${(i as Sentence).translation}` : `${(i as Word).term} ${(i as Word).meaning}`;
-        return hay.toLocaleLowerCase().includes(q);
+        const { main, sub } = itemLines(i);
+        return `${main} ${sub}`.toLocaleLowerCase().includes(q);
       })
       .sort((a, b) => b.addedAt.localeCompare(a.addedAt));
   }, [items, decks, query, filter, deckId]);
@@ -55,6 +56,7 @@ export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck
     ["all", "All"],
     ["words", "Words"],
     ["sentences", "Sentences"],
+    ["facts", "Facts"],
     ["paused", "Paused"],
   ];
 
@@ -66,12 +68,24 @@ export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck
             <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" className="pl-8" />
           </div>
-          <Button variant="outline" onClick={() => setAddingSentence(true)}>
-            <Plus /> Sentence
-          </Button>
-          <Button onClick={() => setAddingWord(true)}>
-            <Plus /> Word
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                <Plus /> Add
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setAddingWord(true)}>
+                <WholeWord /> Word
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setAddingSentence(true)}>
+                <TextCursorInput /> Sentence
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setAddingFact(true)}>
+                <MessageCircleQuestion /> Fact
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <PhoneFilters active={(filter === "all" ? 0 : 1) + (deckId ? 1 : 0)}>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -91,21 +105,19 @@ export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck
       </PhoneDock>
 
       {shown.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{items.length === 0 ? "Nothing here yet — add a word you met today." : "Nothing matches."}</p>
+        <p className="text-muted-foreground text-sm">{items.length === 0 ? "Nothing kept here yet — add a word, a sentence or a fact." : "Nothing matches."}</p>
       ) : (
         <Card className="py-0">
           <CardContent className="grid gap-0.5 px-2 py-2">
             {shown.map((i) => {
-              const sentence = i.type === SENTENCE;
-              const main = sentence ? plainSentence((i as Sentence).text) : (i as Word).term;
-              const sub = sentence ? (i as Sentence).translation : (i as Word).meaning;
+              const { main, sub } = itemLines(i);
               return (
                 <div key={i.id} className={cn("hover:bg-accent/50 flex items-center gap-2 rounded-sm px-1 py-1 text-sm", i.paused && "opacity-60")}>
                   <button className="grid min-w-0 flex-1 text-left" onClick={() => setEditing(i)}>
                     <span className="truncate font-medium">{main}</span>
                     {sub && <span className="text-muted-foreground truncate text-xs">{sub}</span>}
                   </button>
-                  {sentence && <Badge variant="outline">sentence</Badge>}
+                  {i.type !== WORD && <Badge variant="outline">{i.type === SENTENCE ? "sentence" : "fact"}</Badge>}
                   <span className="text-muted-foreground w-16 shrink-0 text-right text-xs">{i.paused ? "paused" : nextHint(dues.get(i.id) ?? [], now)}</span>
                   <Button size="icon" variant="ghost" className="size-8 shrink-0" onClick={() => void setPaused(i.id, !i.paused)} aria-label={i.paused ? "Resume" : "Pause"} title={i.paused ? "Resume" : "Pause"}>
                     {i.paused ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
@@ -119,7 +131,9 @@ export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck
 
       <WordDialog open={addingWord} onOpenChange={setAddingWord} />
       <SentenceDialog open={addingSentence} onOpenChange={setAddingSentence} />
-      <WordDialog open={!!editing && editing.type !== SENTENCE} onOpenChange={(o) => !o && setEditing(undefined)} word={editing && editing.type !== SENTENCE ? (editing as Word) : undefined} />
+      <FactDialog open={addingFact} onOpenChange={setAddingFact} />
+      <WordDialog open={editing?.type === WORD} onOpenChange={(o) => !o && setEditing(undefined)} word={editing?.type === WORD ? (editing as Word) : undefined} />
+      <FactDialog open={editing?.type === FACT} onOpenChange={(o) => !o && setEditing(undefined)} fact={editing?.type === FACT ? (editing as Fact) : undefined} />
       <SentenceDialog open={!!editing && editing.type === SENTENCE} onOpenChange={(o) => !o && setEditing(undefined)} sentence={editing && editing.type === SENTENCE ? (editing as Sentence) : undefined} />
     </div>
   );

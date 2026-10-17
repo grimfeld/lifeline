@@ -1,7 +1,7 @@
 import type { DaylogItem, DaylogProvider } from "@lifeline/core";
 import { dayOf } from "./domain/practice";
-import { APP_ID, KNOWLEDGE_HREF, SENTENCE } from "./domain/types";
-import { useTopics, useRecalls, useSentences, useWords } from "./data/repo";
+import { APP_ID, FACT, KNOWLEDGE_HREF, SENTENCE } from "./domain/types";
+import { useFacts, useTopics, useRecalls, useSentences, useWords } from "./data/repo";
 
 /** "09:05" of an ISO instant, local. */
 function clockOf(iso: string): string {
@@ -21,6 +21,7 @@ export const knowledgeDaylog: DaylogProvider = {
     const recalls = useRecalls();
     const words = useWords();
     const sentences = useSentences();
+    const facts = useFacts();
     const out: DaylogItem[] = [];
     for (const l of topics) {
       const today = recalls.filter((r) => r.languageId === l.id && r.at && dayOf(r.at) === date).sort((a, b) => a.at.localeCompare(b.at));
@@ -28,11 +29,12 @@ export const knowledgeDaylog: DaylogProvider = {
         const passed = today.filter((r) => r.grade === "pass").length;
         out.push({ key: `${APP_ID}/practice/${l.id}`, appId: APP_ID, itemId: l.id, kind: "Practised", title: l.name, subtitle: `${today.length} recall${today.length === 1 ? "" : "s"} · ${passed} passed`, time: clockOf(today[0].at), href: KNOWLEDGE_HREF, tags: l.tags });
       }
-      const added = [...words, ...sentences].filter((i) => i.languageId === l.id && i.addedAt && dayOf(i.addedAt) === date);
+      const added = [...words, ...sentences, ...facts].filter((i) => i.languageId === l.id && i.addedAt && dayOf(i.addedAt) === date);
       if (added.length) {
         const nS = added.filter((i) => i.type === SENTENCE).length;
-        const nW = added.length - nS;
-        const what = [nW && `${nW} word${nW === 1 ? "" : "s"}`, nS && `${nS} sentence${nS === 1 ? "" : "s"}`].filter(Boolean).join(" · ");
+        const nF = added.filter((i) => i.type === FACT).length;
+        const nW = added.length - nS - nF;
+        const what = [nW && `${nW} word${nW === 1 ? "" : "s"}`, nS && `${nS} sentence${nS === 1 ? "" : "s"}`, nF && `${nF} fact${nF === 1 ? "" : "s"}`].filter(Boolean).join(" · ");
         out.push({ key: `${APP_ID}/added/${l.id}`, appId: APP_ID, itemId: l.id, kind: "Added", title: l.name, subtitle: what, href: `${KNOWLEDGE_HREF}?tab=words`, tags: l.tags });
       }
     }

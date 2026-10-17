@@ -7,10 +7,12 @@ import type { Sentence } from "../domain/types";
 import { addSentence, deleteItem, updateSentence, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
 import { originOf } from "./WordDialog";
+import { OriginLine } from "./OriginLine";
 
 export interface SentencePrefill {
   text?: string;
   origin?: string;
+  originId?: string;
 }
 
 /** Wrap the selected part of a textarea's value in `{{ }}`. */
@@ -40,6 +42,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open
   const [text, setText] = useState("");
   const [translation, setTranslation] = useState("");
   const [origin, setOrigin] = useState("");
+  const [originId, setOriginId] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -49,6 +52,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open
     setText(sentence?.text ?? prefill?.text ?? "");
     setTranslation(sentence?.translation ?? "");
     setOrigin(sentence?.origin ?? prefill?.origin ?? "");
+    setOriginId(sentence?.originId ?? prefill?.originId ?? "");
     setTags(sentence?.tags ?? []);
     setConfirmDelete(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,7 +77,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open
   }
 
   async function save() {
-    const input = { languageId, text, translation, origin, tags };
+    const input = { languageId, text, translation, origin, originId, tags };
     try {
       if (sentence) {
         await updateSentence(sentence, input);
@@ -131,12 +135,21 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open
             </div>
             <div className="grid gap-2">
               <Label htmlFor="st-translation">Translation</Label>
-              <Input id="st-translation" value={translation} onChange={(e) => setTranslation(e.target.value)} placeholder="Optional — I feel like eating" />
+              <Input id="st-translation" value={translation} onChange={(e) => setTranslation(e.target.value)} placeholder="Optional — a translation, or context; shown with every blank" />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="st-origin">Where you met it</Label>
-              <Input id="st-origin" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Optional" />
-            </div>
+            {originId ? (
+              <div className="flex min-w-0 items-center gap-2">
+                <OriginLine originId={originId} origin={origin} className="flex-1" />
+                <Button size="sm" variant="ghost" onClick={() => setOriginId("")} title="Keep it without this link">
+                  Unlink
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                <Label htmlFor="st-origin">Where you met it</Label>
+                <Input id="st-origin" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Optional" />
+              </div>
+            )}
             <div className="grid gap-2">
               <Label>Tags</Label>
               <TagInput value={tags} onChange={setTags} suggestions={suggestions} />
@@ -162,6 +175,6 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open
 
 /** The Sentence Intake (ADR 0050): the handed text becomes the sentence, blanks marked in the dialog. */
 export function SentenceIntakeDialog({ open, onOpenChange, handoff }: IntakeDialogProps) {
-  const prefill = useMemo(() => ({ text: (handoff.text.trim() || handoff.title).replace(/\s+/g, " "), origin: originOf(handoff) }), [handoff]);
+  const prefill = useMemo(() => ({ text: (handoff.text.trim() || handoff.title).replace(/\s+/g, " "), origin: originOf(handoff), originId: handoff.originId }), [handoff]);
   return <SentenceDialog open={open} onOpenChange={onOpenChange} prefill={prefill} />;
 }

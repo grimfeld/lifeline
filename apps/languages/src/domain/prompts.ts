@@ -1,5 +1,5 @@
-import { blankSlots } from "./cloze";
-import { SENTENCE, WORD, type Item, type Material } from "./types";
+import { blankSlots, plainSentence } from "./cloze";
+import { FACT, SENTENCE, WORD, type Item, type Material } from "./types";
 
 /**
  * A Prompt (CONTEXT.md "Prompt"): one question derived from a Recallable
@@ -21,8 +21,9 @@ export function promptKey(itemId: string, slot: string): string {
   return `${itemId}|${slot}`;
 }
 
-/** The slots of Knowledge's own types: a Word's forward and reverse, one per blank of a Sentence. */
+/** The slots of Knowledge's own types: a Word's forward and reverse, one per blank of a Sentence, a Fact's one forward. */
 export function itemSlots(item: Item): string[] {
+  if (item.type === FACT) return ["forward"];
   return item.type === WORD ? ["forward", "reverse"] : item.type === SENTENCE ? blankSlots(item.text ?? "") : [];
 }
 
@@ -34,4 +35,11 @@ export function itemMaterial(item: Item): Material {
 /** Every Prompt a piece of Material yields. */
 export function promptsOf(m: Material): Prompt[] {
   return m.slots.map((slot, order) => ({ key: promptKey(m.id, slot), itemId: m.id, slot, topicId: m.topicId, addedAt: m.addedAt, order }));
+}
+
+/** How a Word, Sentence or Fact reads in a list: its main line (term, sentence, question) and what glosses it. */
+export function itemLines(item: Item): { main: string; sub: string } {
+  if (item.type === SENTENCE) return { main: plainSentence(item.text ?? ""), sub: item.translation ?? "" };
+  if (item.type === FACT) return { main: item.question || item.title, sub: item.answer ?? "" };
+  return { main: item.term || item.title, sub: item.meaning ?? "" };
 }

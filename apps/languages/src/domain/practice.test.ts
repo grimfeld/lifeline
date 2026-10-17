@@ -7,10 +7,10 @@ import { RECALL, SENTENCE, WORD, type Grade, type Material, type Recall, type Se
 const at = (day: number, h = 9, m = 0) => new Date(2026, 8, day, h, m).toISOString();
 
 const word = (id: string, addedDay = 1): Material =>
-  itemMaterial({ id, type: WORD, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", term: id, meaning: "", notes: "", origin: "", paused: false, addedAt: at(addedDay) } as Word);
+  itemMaterial({ id, type: WORD, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", term: id, meaning: "", notes: "", origin: "", originId: "", paused: false, addedAt: at(addedDay) } as Word);
 
 const sentence = (id: string, text: string): Material =>
-  itemMaterial({ id, type: SENTENCE, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", text, translation: "", origin: "", paused: false, addedAt: at(1) } as Sentence);
+  itemMaterial({ id, type: SENTENCE, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", text, translation: "", origin: "", originId: "", paused: false, addedAt: at(1) } as Sentence);
 
 let n = 0;
 const recall = (itemId: string, slot: string, grade: Grade, when: string): Recall =>

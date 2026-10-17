@@ -1,6 +1,7 @@
 import type { RecallFaceProps } from "@lifeline/core";
 import { parseCloze } from "../domain/cloze";
-import type { Sentence, Word } from "../domain/types";
+import type { Fact, Sentence, Word } from "../domain/types";
+import { OriginLine } from "./OriginLine";
 
 /*
  * Every line is held to the card's width (`max-w-full`): centred grid items
@@ -25,6 +26,7 @@ export function WordFace({ doc, slot, revealed }: RecallFaceProps) {
           <div className="grid gap-2">
             <span className="text-primary text-2xl break-words">{answer}</span>
             {w.notes && <span className="text-muted-foreground text-sm whitespace-pre-wrap">{w.notes}</span>}
+            <OriginLine originId={w.originId} />
           </div>
         )}
       </div>
@@ -59,6 +61,27 @@ export function SentenceFace({ doc, slot, revealed }: RecallFaceProps) {
         )}
       </p>
       {sentence.translation && <span className="text-muted-foreground max-w-full text-sm break-words italic">{sentence.translation}</span>}
+      {revealed && <OriginLine originId={sentence.originId} className="max-w-full" />}
+    </div>
+  );
+}
+
+/** A Fact's one Prompt: its question, then its answer — with the notes, and where it was kept from. */
+export function FactFace({ doc, revealed }: RecallFaceProps) {
+  const f = doc as Fact;
+  return (
+    <div className="grid justify-items-center gap-4 text-center">
+      <span className="text-muted-foreground text-xs tracking-wide uppercase">Recall</span>
+      <span className="max-w-full text-2xl font-semibold break-words">{f.question || f.title}</span>
+      <div className="min-h-16 max-w-full">
+        {revealed && (
+          <div className="grid gap-2">
+            <span className="text-primary text-xl whitespace-pre-wrap break-words">{f.answer}</span>
+            {f.notes && <span className="text-muted-foreground text-sm whitespace-pre-wrap break-words">{f.notes}</span>}
+            <OriginLine originId={f.originId} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

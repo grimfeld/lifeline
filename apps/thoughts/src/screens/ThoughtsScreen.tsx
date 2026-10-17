@@ -62,7 +62,7 @@ export function ThoughtsScreen() {
                   )}
                 </div>
                 <div className="text-muted-foreground line-clamp-4 min-w-0 text-sm">
-                  <MarkdownView body={t.body} index={index} compact />
+                  <MarkdownView body={t.body} index={index} compact origin={t.id} />
                 </div>
                 {t.tags.length > 0 && <div className="text-muted-foreground min-w-0 text-xs">{t.tags.map((x) => `#${x}`).join(" ")}</div>}
               </Link>

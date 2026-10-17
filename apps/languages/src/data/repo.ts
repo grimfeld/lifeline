@@ -5,7 +5,7 @@ import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
 
 export type { MaterialDoc };
-import { DECK, DEFAULT_NEW_CAP, TOPIC, RECALL, SENTENCE, WORD, type Deck, type Grade, type Item, type Material, type Topic, type Recall, type Sentence, type Word } from "../domain/types";
+import { DECK, DEFAULT_NEW_CAP, FACT, TOPIC, RECALL, SENTENCE, WORD, type Deck, type Fact, type Grade, type Item, type Material, type Topic, type Recall, type Sentence, type Word } from "../domain/types";
 
 // ---- Shapes on read: PocketBase returns absent fields as "" / undefined ----
 
@@ -15,11 +15,15 @@ function normalizeTopic(l: Topic): Topic {
 }
 
 function normalizeWord(w: Word): Word {
-  return { ...w, languageId: w.languageId ?? "", term: w.term || w.title || "", meaning: w.meaning ?? "", notes: w.notes ?? "", origin: w.origin ?? "", paused: !!w.paused, addedAt: w.addedAt || w.createdAt || "", tags: w.tags ?? [] };
+  return { ...w, languageId: w.languageId ?? "", term: w.term || w.title || "", meaning: w.meaning ?? "", notes: w.notes ?? "", origin: w.origin ?? "", originId: w.originId ?? "", paused: !!w.paused, addedAt: w.addedAt || w.createdAt || "", tags: w.tags ?? [] };
 }
 
 function normalizeSentence(s: Sentence): Sentence {
-  return { ...s, languageId: s.languageId ?? "", text: s.text ?? "", translation: s.translation ?? "", origin: s.origin ?? "", paused: !!s.paused, addedAt: s.addedAt || s.createdAt || "", tags: s.tags ?? [] };
+  return { ...s, languageId: s.languageId ?? "", text: s.text ?? "", translation: s.translation ?? "", origin: s.origin ?? "", originId: s.originId ?? "", paused: !!s.paused, addedAt: s.addedAt || s.createdAt || "", tags: s.tags ?? [] };
+}
+
+function normalizeFact(f: Fact): Fact {
+  return { ...f, languageId: f.languageId ?? "", question: f.question || f.title || "", answer: f.answer ?? "", notes: f.notes ?? "", origin: f.origin ?? "", originId: f.originId ?? "", paused: !!f.paused, addedAt: f.addedAt || f.createdAt || "", tags: f.tags ?? [] };
 }
 
 function normalizeDeck(d: Deck): Deck {
@@ -47,6 +51,11 @@ export function useSentences(): Sentence[] {
   return useMemo(() => rows.map(normalizeSentence), [rows]);
 }
 
+export function useFacts(): Fact[] {
+  const rows = useDocuments<Fact>(FACT);
+  return useMemo(() => rows.map(normalizeFact), [rows]);
+}
+
 export function useDecks(): Deck[] {
   const rows = useDocuments<Deck>(DECK);
   return useMemo(() => rows.map(normalizeDeck).sort((a, b) => a.name.localeCompare(b.name)), [rows]);
@@ -57,11 +66,12 @@ export function useRecalls(): Recall[] {
   return useMemo(() => rows.map(normalizeRecall), [rows]);
 }
 
-/** Words and Sentences of one Topic, together — what Prompts come from. */
+/** Knowledge's own Words, Sentences and Facts of one Topic, together. */
 export function useItems(languageId: string | undefined): Item[] {
   const words = useWords();
   const sentences = useSentences();
-  return useMemo(() => (languageId ? [...words, ...sentences].filter((i) => i.languageId === languageId) : []), [words, sentences, languageId]);
+  const facts = useFacts();
+  return useMemo(() => (languageId ? [...words, ...sentences, ...facts].filter((i) => i.languageId === languageId) : []), [words, sentences, facts, languageId]);
 }
 
 /**
@@ -160,8 +170,8 @@ export async function deleteTopic(id: string): Promise<void> {
 
 /** The `onDelete` guard: a Topic that still holds anything is archived, never deleted. */
 export async function refuseDeletingUsedTopic(doc: Document): Promise<void> {
-  for (const type of [WORD, SENTENCE, DECK]) {
-    if ((await documentsWhere(type, "languageId", doc.id)).length) throw new Error("This topic still holds words, sentences or decks — archive it instead");
+  for (const type of [WORD, SENTENCE, FACT, DECK]) {
+    if ((await documentsWhere(type, "languageId", doc.id)).length) throw new Error("This topic still holds words, sentences, facts or decks — archive it instead");
   }
 }
 
@@ -173,6 +183,7 @@ export interface WordInput {
   meaning: string;
   notes?: string;
   origin?: string;
+  originId?: string;
   tags?: string[];
 }
 
@@ -181,10 +192,10 @@ function wordRowOf(input: WordInput) {
   if (!input.languageId) throw new Error("Pick a topic");
   if (!term) throw new Error("The word needs its term");
   if (!input.meaning.trim()) throw new Error("Write what it means");
-  return { type: WORD, title: term, languageId: input.languageId, term, meaning: input.meaning.trim(), notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
+  return { type: WORD, title: term, languageId: input.languageId, term, meaning: input.meaning.trim(), notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
 }
 
-/** Every Topic, Word and Sentence, read once — what headless adds check against. */
+/** Every Topic, Word, Sentence and Fact, read once — what headless adds check against. */
 export async function allTopics(): Promise<Topic[]> {
   return documentsOf<Topic>(TOPIC);
 }
@@ -212,6 +223,7 @@ export interface SentenceInput {
   text: string;
   translation?: string;
   origin?: string;
+  originId?: string;
   tags?: string[];
 }
 
@@ -219,7 +231,7 @@ function sentenceRowOf(input: SentenceInput) {
   const text = input.text.trim();
   if (!input.languageId) throw new Error("Pick a topic");
   if (!/\{\{\s*\S.*?\}\}/.test(text)) throw new Error("Mark at least one blank with {{ }}");
-  return { type: SENTENCE, title: plainSentence(text), languageId: input.languageId, text, translation: input.translation?.trim() ?? "", origin: input.origin?.trim() ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
+  return { type: SENTENCE, title: plainSentence(text), languageId: input.languageId, text, translation: input.translation?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
 }
 
 export async function addSentence(input: SentenceInput): Promise<string> {
@@ -230,6 +242,39 @@ export async function addSentence(input: SentenceInput): Promise<string> {
 /** A blank whose text changed becomes a new Prompt; the others keep their Recalls (ADR 0058). */
 export async function updateSentence(s: Sentence, input: SentenceInput): Promise<void> {
   await putDocument<Sentence>({ ...s, ...sentenceRowOf(input) });
+}
+
+export interface FactInput {
+  languageId: string;
+  question: string;
+  answer: string;
+  notes?: string;
+  origin?: string;
+  originId?: string;
+  tags?: string[];
+}
+
+/** Both sides are the user's own words (CONTEXT.md "Knowledge"): nothing here is ever drafted for them. */
+function factRowOf(input: FactInput) {
+  const question = input.question.trim();
+  if (!input.languageId) throw new Error("Pick a topic");
+  if (!question) throw new Error("Write the question");
+  if (!input.answer.trim()) throw new Error("Write the answer");
+  return { type: FACT, title: question, languageId: input.languageId, question, answer: input.answer.trim(), notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
+}
+
+export async function allFacts(): Promise<Fact[]> {
+  return documentsOf<Fact>(FACT);
+}
+
+export async function addFact(input: FactInput): Promise<string> {
+  const row = await putDocument<Fact>({ ...factRowOf(input), paused: false, addedAt: new Date().toISOString() } as unknown as Fact);
+  return row.id;
+}
+
+/** Editing never resets a Fact: its one Prompt stays the same Prompt. */
+export async function updateFact(f: Fact, input: FactInput): Promise<void> {
+  await putDocument<Fact>({ ...f, ...factRowOf(input) });
 }
 
 /** Paused: listed, Recalls kept, out of every Practice until unpaused. */
