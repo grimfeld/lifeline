@@ -67,11 +67,13 @@ export function SelectionIntake() {
   }
 
   const chosen = handing ? intakes.find((i) => i.key === handing.key) : undefined;
-  const keep = (e: { preventDefault: () => void }) => e.preventDefault(); // keep the selection while pressing
+  // Keep the selection while pressing. Pointer-down is left to the menu trigger, which opens on it
+  // (and itself keeps focus where it was); preventing it here would stop the menu opening.
+  const keep = (e: { preventDefault: () => void }) => e.preventDefault();
   const offer = shown && intakes.length > 0 && (
     <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild>
-        <Button size="sm" variant={phone ? "outline" : "secondary"} className="shadow-sm" onPointerDown={keep} onMouseDown={keep}>
+        <Button size="sm" variant={phone ? "outline" : "secondary"} className="shadow-sm" onMouseDown={keep}>
           <Send /> Hand off…
         </Button>
       </DropdownMenuTrigger>
