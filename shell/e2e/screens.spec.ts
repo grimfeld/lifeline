@@ -42,7 +42,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Culture", path: "/module/culture" },
   { name: "Money", path: "/module/money" },
   { name: "Progress", path: "/module/progress" },
-  { name: "Languages module", path: "/module/languages" },
+  { name: "Knowledge module", path: "/module/languages" },
   { name: "Mail module", path: "/module/mail" },
   { name: "Journal module", path: "/module/journal" },
   { name: "Notes module", path: "/module/notes" },
@@ -105,7 +105,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Mood", path: "/app/mood" },
   { name: "Mail", path: "/app/mail" },
   { name: "Swear Jar", path: "/app/swearjar" },
-  { name: "Languages", path: "/app/languages" },
+  { name: "Knowledge", path: "/app/languages" },
 ];
 
 async function firstOfType(page: Page, type: string): Promise<string> {

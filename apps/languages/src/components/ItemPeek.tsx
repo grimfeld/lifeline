@@ -4,8 +4,9 @@ import type { Document } from "@lifeline/core";
 import { Pause, Pencil, Play } from "lucide-react";
 import { plainSentence } from "../domain/cloze";
 import { heldPrompts } from "../domain/practice";
+import { itemMaterial } from "../domain/prompts";
 import { SENTENCE, type Item, type Sentence, type Word } from "../domain/types";
-import { setMembership, setPaused, useDecks, useItems, useLanguageRecalls, useLanguages } from "../data/repo";
+import { setMembership, setPaused, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
 import { WordDialog } from "./WordDialog";
 import { SentenceDialog } from "./SentenceDialog";
 
@@ -22,19 +23,19 @@ function dueLabel(d: Date | null, now: Date): string {
 }
 
 /**
- * The Languages Peek (ADR 0057): a Word or Sentence seen from wherever it was
+ * The Knowledge Peek (ADR 0057): a Word or Sentence seen from wherever it was
  * opened — its meaning or translation, where it was met, how each Prompt is
  * held, its Decks one tap in or out, and pause.
  */
 export function ItemPeek({ doc }: { doc: Document }) {
   const items = useItems((doc as Item).languageId);
   const item = items.find((i) => i.id === doc.id) ?? (doc as Item);
-  const recalls = useLanguageRecalls(item.languageId);
-  const language = useLanguages().find((l) => l.id === item.languageId);
+  const recalls = useTopicRecalls(item.languageId);
+  const topic = useTopics().find((l) => l.id === item.languageId);
   const decks = useDecks().filter((d) => d.languageId === item.languageId);
   const [editing, setEditing] = useState(false);
   const now = useMemo(() => new Date(), [recalls]);
-  const prompts = useMemo(() => heldPrompts([item], recalls), [item, recalls]);
+  const prompts = useMemo(() => heldPrompts([itemMaterial(item)], recalls), [item, recalls]);
   const sentence = item.type === SENTENCE;
 
   return (
@@ -43,7 +44,7 @@ export function ItemPeek({ doc }: { doc: Document }) {
         <span className="text-lg font-semibold">{sentence ? plainSentence((item as Sentence).text) : (item as Word).term}</span>
         <span className="text-muted-foreground">{sentence ? (item as Sentence).translation : (item as Word).meaning}</span>
         <span className="text-muted-foreground text-xs">
-          {language?.name ?? "Language"}
+          {topic?.name ?? "Topic"}
           {item.origin ? ` · met: ${item.origin}` : ""}
         </span>
       </div>

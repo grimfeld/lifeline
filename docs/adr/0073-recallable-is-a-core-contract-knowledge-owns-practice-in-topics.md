@@ -23,10 +23,11 @@ Languages kept Words and Sentences from being forgotten (ADR 0058). The same ret
 ## Consequences
 
 - Every Language becomes a Topic of the same name, keeping its cap, Tallies and archived state. Existing Recalls move to the Knowledge App unchanged, so no schedule shifts.
-- A Word, Sentence or Fact may sit in any Topic. Type ids keep their `language_` prefix rather than migrate.
+- A Word, Sentence or Fact may sit in any Topic.
+- Nothing stored is renamed, so the move needs no migration and no schedule can shift: a Topic is still the `language` type, every Word, Sentence, Deck and Recall keeps its `languageId`, and the other type ids keep their `language_` prefix. The App and Module keep the id `languages` (as the Projects Module keeps `tasks`), and with it the `/app/languages` URL, the Due Card's id and each device's remembered active Topic. Only what is shown changes.
 - A Topic's Tally occurrence is its first Recall of the day, now reported by Knowledge rather than Languages (ADR 0059 is otherwise unchanged).
 - Any App can make a type practicable by implementing Recallable, with no Knowledge or Core work. The Notes App is the first outside implementer: a **kept** Quote yields one Prompt (Source and locator → passage).
-- The MCP tools `languages_word` and `languages_sentence` become `knowledge_word` and `knowledge_sentence`, with no aliases. Saved prompts or Routines naming the old tools must be updated.
+- The MCP tools `languages_word` and `languages_sentence` become `knowledge_word` and `knowledge_sentence`, with no aliases. Saved prompts or Routines naming the old tools must be updated, and a capture-sheet pin on the old Commands drops off until re-pinned.
 - The Handoff (ADR 0050) gains an optional origin Document, and selecting text in any body offers every Intake. A Word, Sentence or Fact keeps its origin as a link; the Source it is narrowed by is read through that link, never stored, so narrowing by Source follows a Note to a new Source.
 - The Due Card shows everything due, broken down by Topic, and opens the *everything* Practice.
 - Delivery: (1) re-home Languages as Knowledge with Topics and no change in behaviour, checked by every Prompt's next due date being identical before and after; (2) Fact, selection-to-Intake and the origin Document on the Handoff; (3) Practice over everything and narrowed by Source; (4) other implementers when needed.

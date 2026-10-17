@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card, CardContent, toast } from "@lifeline/ui";
+import { recallableDef } from "@lifeline/core";
 import { Check, Eye, X } from "lucide-react";
 import { practiceQueue, type HeldPrompt } from "../domain/practice";
-import type { Grade, Item, Language, Recall } from "../domain/types";
-import { recordRecall, strikeRecall } from "../data/repo";
-import { PromptFace } from "./PromptFace";
+import type { Grade, Topic, Recall } from "../domain/types";
+import { recordRecall, strikeRecall, type MaterialDoc } from "../data/repo";
 
 function whenLabel(d: Date, now: Date): string {
   const mins = Math.round((d.getTime() - now.getTime()) / 60_000);
@@ -22,7 +22,7 @@ function whenLabel(d: Date, now: Date): string {
  * every grade, so a failed Prompt comes back within the sitting and stopping
  * halfway loses nothing. The last grade can be undone: the Recall is struck.
  */
-export function PracticeRun({ language, items, recalls, deckName, onDone }: { language: Language; items: Item[]; recalls: Recall[]; deckName?: string; onDone: () => void }) {
+export function PracticeRun({ topic, items, recalls, deckName, onDone }: { topic: Topic; items: MaterialDoc[]; recalls: Recall[]; deckName?: string; onDone: () => void }) {
   const [now, setNow] = useState(() => new Date());
   const [revealed, setRevealed] = useState(false);
   const [pending, setPending] = useState<{ key: string; id: string } | null>(null);
@@ -39,11 +39,13 @@ export function PracticeRun({ language, items, recalls, deckName, onDone }: { la
     if (pending && recalls.some((r) => r.id === pending.id)) setPending(null);
   }, [recalls, pending]);
 
-  const live = useMemo(() => items.filter((i) => !i.paused), [items]);
-  const q = useMemo(() => practiceQueue(live, recalls, { now, newCap: language.newCap }), [live, recalls, now, language.newCap]);
+  const live = useMemo(() => items.filter((i) => i.live), [items]);
+  const q = useMemo(() => practiceQueue(live, recalls, { now, newCap: topic.newCap }), [live, recalls, now, topic.newCap]);
   const candidates = q.queue.filter((p) => p.key !== pending?.key);
   const current: HeldPrompt | undefined = candidates.find((p) => p.itemId !== lastItem) ?? candidates[0];
   const item = current ? live.find((i) => i.id === current.itemId) : undefined;
+  // Each Prompt is drawn by the App that owns its Document (ADR 0073).
+  const Face = item ? recallableDef(item.type)?.face : undefined;
 
   async function grade(g: Grade) {
     if (!current || !item || !revealed) return;
@@ -87,7 +89,7 @@ export function PracticeRun({ language, items, recalls, deckName, onDone }: { la
     <div className="mx-auto grid w-full max-w-xl gap-4">
       <div className="text-muted-foreground flex items-center justify-between text-sm">
         <span>
-          {language.name}
+          {topic.name}
           {deckName ? ` · ${deckName}` : ""} · {q.due} due · {q.newToday} new
         </span>
         <Button size="sm" variant="ghost" onClick={onDone}>
@@ -95,11 +97,11 @@ export function PracticeRun({ language, items, recalls, deckName, onDone }: { la
         </Button>
       </div>
 
-      {current && item ? (
+      {current && item && Face ? (
         <>
           <Card className="min-h-72 py-0">
             <CardContent className="grid min-h-72 place-items-center px-6 py-10">
-              <PromptFace item={item} slot={current.slot} revealed={revealed} />
+              <Face doc={item.doc} slot={current.slot} revealed={revealed} />
             </CardContent>
           </Card>
           {revealed ? (

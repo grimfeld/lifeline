@@ -3,6 +3,7 @@ import { Badge, Button, Card, CardContent, Input, PhoneDock, PhoneFilters, cn } 
 import { Pause, Play, Plus, Search } from "lucide-react";
 import { plainSentence } from "../domain/cloze";
 import { heldPrompts } from "../domain/practice";
+import { itemMaterial } from "../domain/prompts";
 import { SENTENCE, type Deck, type Item, type Recall, type Sentence, type Word } from "../domain/types";
 import { setPaused } from "../data/repo";
 import { WordDialog } from "../components/WordDialog";
@@ -20,7 +21,7 @@ function nextHint(dues: (Date | null)[], now: Date): string {
   return days < 1 ? "today" : days === 1 ? "tomorrow" : `in ${days} d`;
 }
 
-/** Every Word and Sentence of the active Language: search, a Deck, paused — and the way in to add more. */
+/** Every Word and Sentence of the active Topic: search, a Deck, paused — and the way in to add more. */
 export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck[]; recalls: Recall[] }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -32,7 +33,7 @@ export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck
   const now = useMemo(() => new Date(), [recalls]);
   const dues = useMemo(() => {
     const m = new Map<string, (Date | null)[]>();
-    for (const p of heldPrompts(items, recalls)) m.set(p.itemId, [...(m.get(p.itemId) ?? []), p.held.due]);
+    for (const p of heldPrompts(items.map(itemMaterial), recalls)) m.set(p.itemId, [...(m.get(p.itemId) ?? []), p.held.due]);
     return m;
   }, [items, recalls]);
 

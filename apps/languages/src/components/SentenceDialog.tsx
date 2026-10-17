@@ -4,8 +4,8 @@ import { useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import { Brackets } from "lucide-react";
 import { parseCloze } from "../domain/cloze";
 import type { Sentence } from "../domain/types";
-import { addSentence, deleteItem, updateSentence, useActiveLanguage, useLanguages } from "../data/repo";
-import { LanguageSelect } from "./LanguageSelect";
+import { addSentence, deleteItem, updateSentence, useActiveTopic, useTopics } from "../data/repo";
+import { TopicSelect } from "./TopicSelect";
 import { originOf } from "./WordDialog";
 
 export interface SentencePrefill {
@@ -32,8 +32,8 @@ function blankSelection(el: HTMLTextAreaElement, value: string): { next: string;
  * translation shown with every Prompt so each blank has one answer.
  */
 export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open: boolean; onOpenChange: (open: boolean) => void; sentence?: Sentence; prefill?: SentencePrefill }) {
-  const languages = useLanguages();
-  const active = useActiveLanguage();
+  const topics = useTopics();
+  const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
   const area = useRef<HTMLTextAreaElement>(null);
   const [languageId, setLanguageId] = useState("");
@@ -96,7 +96,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open
     onOpenChange(false);
   }
 
-  const noLanguage = languages.filter((l) => !l.archived).length === 0;
+  const noTopic = topics.filter((l) => !l.archived).length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,11 +104,11 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open
         <DialogHeader>
           <DialogTitle>{sentence ? "Edit sentence" : "New sentence"}</DialogTitle>
         </DialogHeader>
-        {noLanguage ? (
-          <p className="text-muted-foreground text-sm">Add a language first, in Languages.</p>
+        {noTopic ? (
+          <p className="text-muted-foreground text-sm">Add a topic first, in Knowledge.</p>
         ) : (
           <div className="grid gap-4">
-            {!sentence && <LanguageSelect languages={languages} value={languageId} onChange={setLanguageId} />}
+            {!sentence && <TopicSelect topics={topics} value={languageId} onChange={setLanguageId} />}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="st-text">Sentence</Label>
@@ -151,7 +151,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open
           ) : (
             <span />
           )}
-          <Button onClick={() => void save()} disabled={noLanguage}>
+          <Button onClick={() => void save()} disabled={noTopic}>
             {sentence ? "Save" : "Add"}
           </Button>
         </DialogFooter>

@@ -1,25 +1,26 @@
 import type { Document } from "@lifeline/core";
 
+/** Stored ids keep the retired Languages name (ADR 0073): App, Module, URL, the `language` type and every `languageId`. */
 export const APP_ID = "languages";
-export const LANGUAGES_HREF = "/app/languages";
+export const KNOWLEDGE_HREF = "/app/languages";
 
-/** Document type ids (ADR 0058). */
-export const LANGUAGE = "language";
+/** Document type ids (ADR 0058) — stored, so a Topic is still the `language` type (ADR 0073). */
+export const TOPIC = "language";
 export const WORD = "language_word";
 export const SENTENCE = "language_sentence";
 export const DECK = "language_deck";
 export const RECALL = "language_recall";
 
-/** The daily new cap a Language starts with (CONTEXT.md "Prompt"). */
+/** The daily new cap a Topic starts with (CONTEXT.md "Prompt"). */
 export const DEFAULT_NEW_CAP = 10;
 
 /**
- * A Language (CONTEXT.md "Language"): the partition inside the Module. Every
+ * A Topic (CONTEXT.md "Topic"): the partition inside the Module. Every
  * Word, Sentence and Deck belongs to exactly one. Archived instead of deleted
  * while it holds anything.
  */
-export interface Language extends Document {
-  type: typeof LANGUAGE;
+export interface Topic extends Document {
+  type: typeof TOPIC;
   /** "Spanish" — also the title. */
   name: string;
   /** How many new Prompts enter practice per day at most. */
@@ -55,7 +56,7 @@ export interface Sentence extends Document {
   addedAt: string;
 }
 
-/** A Deck (CONTEXT.md "Deck"): a chosen set of Words and Sentences inside one Language. Membership is the Deck's. */
+/** A Deck (CONTEXT.md "Deck"): a chosen set of Words and Sentences inside one Topic. Membership is the Deck's. */
 export interface Deck extends Document {
   type: typeof DECK;
   languageId: string;
@@ -69,7 +70,7 @@ export type Grade = "pass" | "fail";
 /**
  * A Recall (CONTEXT.md "Recall", ADR 0058, internal): one self-graded attempt
  * at one Prompt — the only fact the App keeps about practice. `languageId` is
- * copied from the item so "the day's first Recall in this Language" is one
+ * copied from the item so "the day's first Recall in this Topic" is one
  * read.
  */
 export interface Recall extends Document {
@@ -84,5 +85,20 @@ export interface Recall extends Document {
   at: string;
 }
 
-/** A Word or a Sentence — what Prompts come from. */
+/** A Word or a Sentence — Knowledge's own Recallable types. */
 export type Item = Word | Sentence;
+
+/**
+ * One Recallable Document as Practice reads it, through the Contract
+ * (ADR 0073) — whatever App owns it. Practice knows nothing else about it.
+ */
+export interface Material {
+  id: string;
+  type: string;
+  title: string;
+  topicId: string;
+  addedAt: string;
+  /** False while paused or no longer kept: out of every Practice, Recalls kept. */
+  live: boolean;
+  slots: string[];
+}
