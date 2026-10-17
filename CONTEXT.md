@@ -57,6 +57,10 @@ _Avoid_: feed (a Source kind), sync, bridge (the idea, not the thing), hook
 Core Contract (behaviour — code only), the sending side of Loggable: a Document type whose Documents may carry Tallies. The owning App declares what an occurrence is and which values it offers, and reports each one as it happens — Workout a saved Session (one, duration), Languages a Language's first Recall of the day (one). Core keeps the Tallies, offers the one "tallies to…" editor over every Loggable target, fires them, and makes sure one occurrence logs once.
 _Avoid_: Loggable (the receiving side), trigger, automation, rule (a Categorize rule's word)
 
+### Recallable
+Core Contract (behaviour — code only): a Document type whose Documents yield **Prompts** to be kept from being forgotten. The owning App declares which Prompts a Document yields, what each one is known by, and how its question and answer are shown; it never schedules, grades or keeps anything about practice. The **Knowledge** App is the one consumer: it owns every Recall and every Practice over all Recallable types, as Stats and Life Level own what is logged to them. Any App may make its types Recallable without the Knowledge App knowing them by name.
+_Avoid_: quizzable, flashcard-able, reviewable (Review is Cinema's body), study
+
 ### Placement
 A Schedulable entity's assignment to a day — and optionally a time slot — on a surface. Owned by the surface (Core), referencing the foreign entity by App + id; the time is the surface's, never the App's (a Task still only knows its day). An entity may have any number of Placements — several Time blocks across several days — and none of them moves the entity's own day. Distinct from the entity itself: deleting a Placement never deletes the entity. Subsumes calendar's old "TimeBlock".
 _Avoid_: TimeBlock, occurrence, booking
@@ -680,11 +684,11 @@ A sentence the user met, with one or more parts marked as blanks, owned by the L
 _Avoid_: cloze (the technique), phrase, example, card
 
 ### Prompt
-One question the Languages App derives from a Word or a Sentence — a Word's forward or reverse, one blank of a Sentence. Never authored by hand: the user writes the Word or Sentence, the App derives its Prompts. Never stored either: a Prompt's schedule — when it is next **due**, how well it is held — is derived at read by replaying its Recalls, so each Prompt is scheduled on its own and nothing can drift from the Recalls it came from. A Prompt with no Recalls yet is **new**; new Prompts enter practice at most the Language's **daily new cap** at a time (oldest added first), always after the Prompts already due — a throttle so a big day of adding never buries what is at risk of being forgotten, never a goal to meet. Two Prompts of the same Word or Sentence never come back to back.
+One question derived from a Recallable Document by the App that owns it — a Word's forward or reverse, one blank of a Sentence. Never authored by hand: the user writes the Document, its App derives the Prompts. Never stored either: a Prompt's schedule, which is the Knowledge App's — when it is next **due**, how well it is held — is derived at read by replaying its Recalls, so each Prompt is scheduled on its own and nothing can drift from the Recalls it came from. A Prompt with no Recalls yet is **new**; new Prompts enter practice at most the Language's **daily new cap** at a time (oldest added first), always after the Prompts already due — a throttle so a big day of adding never buries what is at risk of being forgotten, never a goal to meet. Two Prompts of the same Word or Sentence never come back to back.
 _Avoid_: card (a Screen's UI block), flashcard, question, item
 
 ### Recall
-One attempt at a Prompt: the user recalls the answer in their head, reveals it, and grades themself **pass** or **fail** — two answers, never a scale of how hard it felt, and never typed in or checked by the App; the grade is always the user's. A fact, stored as an internal Document with its Prompt and the moment it happened: the Recalls are the only thing the Languages App keeps about practice, and every schedule and figure is read from them. The schedule is policy — a change to how Recalls are valued re-values every Prompt at once. A mis-tapped Recall is struck out and everything re-derives without it.
+One attempt at a Prompt: the user recalls the answer in their head, reveals it, and grades themself **pass** or **fail** — two answers, never a scale of how hard it felt, and never typed in or checked by the App; the grade is always the user's. A fact, stored as an internal Document owned by the **Knowledge** App with its Prompt and the moment it happened: the Recalls are the only thing kept about practice, whatever App the Prompt came from, and every schedule and figure is read from them. The schedule is policy — a change to how Recalls are valued re-values every Prompt at once. A mis-tapped Recall is struck out and everything re-derives without it.
 _Avoid_: review (Cinema and Discotheque's body), attempt (fine in prose), answer, rep, entry
 
 ### Deck
@@ -692,7 +696,7 @@ A user-made grouping of Words and Sentences of one Language, owned by the Langua
 _Avoid_: collection (a Stat kind), list, set, Playlist (Cinema and Discotheque's), tag
 
 ### Practice
-One sitting of Recalls in the Languages Module: the active Language's due Prompts first, then new ones up to the daily new cap, optionally narrowed to one Deck (the cap still counts across the whole Language). Stored nowhere — the Recalls it leaves are the facts; stopping halfway loses nothing.
+One sitting of Recalls, owned by the Knowledge App: due Prompts first, then new ones up to the daily new cap. Either **everything** — every due Prompt across all Recallable material at once — or narrowed to one Language, and further to one Deck (the cap still counts across the whole Language). Stored nowhere — the Recalls it leaves are the facts; stopping halfway loses nothing.
 _Avoid_: session (a Workout's run), review (Cinema's body), round, lesson, drill
 
 ### Retention
@@ -702,3 +706,7 @@ _Avoid_: accuracy, score, mastery, success rate, known / held (no threshold deci
 ### Language
 A target language the user keeps material in (Spanish, German), created by the user and owned by the Languages App. The partition inside the Module: every Word, Sentence and Deck belongs to exactly one Language, a Deck never mixes two, and the Module shows one **active** Language at a time. Carries the daily new cap for its Prompts (10 unless changed). May carry Tallies: a day with at least one Recall in it is one occurrence, logged at that first Recall. Never deleted while it holds Words, Sentences or Decks — **archived** instead: out of the switcher, no Practice, its Tallies silent, everything kept; unarchived, it resumes where its Recalls left it. Hard delete only when empty. A lens inside one Module, never a Workspace — Spanish and German are not separate worlds of data. There is no language pair: the meaning side of a Word is free text the App does not track.
 _Avoid_: locale, language pair, L1/L2
+
+### Knowledge
+The retention-and-synthesis App and the Module of the same name: it owns every Recall and every Practice over all **Recallable** material, whatever App it comes from — a Word, a Sentence, and what is kept from history, science or philosophy. Retention and synthesis, **never acquisition**: Lifeline never originates material or decides what is learnt next — no curricula, no paths, no suggested items; meeting new material happens outside, and understanding is written in the Notes Module. Nothing arrives in bulk: each thing kept was chosen.
+_Avoid_: learning (conflates acquisition with retention), study, course, curriculum, lessons, flashcards
