@@ -695,11 +695,11 @@ One attempt at a Prompt: the user recalls the answer in their head, reveals it, 
 _Avoid_: review (Cinema and Discotheque's body), attempt (fine in prose), answer, rep, entry
 
 ### Deck
-A user-made grouping of Recallable Documents of one Topic, so a Practice can be narrowed to it ("Kitchen", "Work emails"). The user chooses what goes in; nothing is filed automatically. Membership belongs to the Deck, never to the Word: a Word sits in any number of Decks, and a deleted Word simply leaves them. Not a Tag — a Tag crosses every type and every Topic; a Deck is a chosen set inside one Topic, and what a Practice is narrowed by.
+A user-made grouping of Recallable Documents of one Topic, owned by the Knowledge App, so a Practice can be narrowed to it ("Kitchen", "Work emails"). The user chooses what goes in; nothing is filed automatically. Membership belongs to the Deck, never to the Word: a Word sits in any number of Decks, and a deleted Word simply leaves them. Not a Tag — a Tag crosses every type and every Topic; a Deck is a chosen set inside one Topic, and what a Practice is narrowed by.
 _Avoid_: collection (a Stat kind), list, set, Playlist (Cinema and Discotheque's), tag
 
 ### Practice
-One sitting of Recalls, owned by the Knowledge App: due Prompts first, then new ones up to the daily new cap. Either **everything** — every due Prompt across all Recallable material at once — or narrowed to one Topic, and further to one Deck (the cap still counts across the whole Topic). In *everything*, each Topic's cap still holds for its own new Prompts. Stored nowhere — the Recalls it leaves are the facts; stopping halfway loses nothing.
+One sitting of Recalls, owned by the Knowledge App: due Prompts first, then new ones up to the daily new cap. Either **everything** — every due Prompt across all Recallable material at once — or narrowed to one Topic, and further to one Deck; or narrowed to one **Source** — what was kept from it, its child Sources' included, read from each item's origin and never filed by hand (each Topic's cap still counts across the whole Topic). In *everything*, each Topic's cap still holds for its own new Prompts. Stored nowhere — the Recalls it leaves are the facts; stopping halfway loses nothing.
 _Avoid_: session (a Workout's run), review (Cinema's body), round, lesson, drill
 
 ### Retention
