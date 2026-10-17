@@ -3,7 +3,7 @@ import {
   CalendarDays,
   Home,
   Landmark,
-  Languages,
+  Brain,
   LayoutDashboard,
   FolderKanban,
   Lightbulb,
@@ -33,7 +33,7 @@ export const MODULE_ICONS: Record<string, React.ComponentType<{ className?: stri
   manuscript: BookOpenText,
   thoughts: Lightbulb,
   progress: TrendingUp,
-  languages: Languages,
+  languages: Brain,
   mail: Mail,
 };
 

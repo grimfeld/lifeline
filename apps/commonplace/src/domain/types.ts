@@ -67,7 +67,16 @@ export interface Quote extends Document {
   locator: string;
   comment: string;
   capturedOn: DateStr;
+  /** Kept (ADR 0073, CONTEXT.md "Quote"): in Practice — recall the passage from its Source and locator. */
+  kept: boolean;
+  /** The Topic it is practised in, set the first time it is kept and never moved, so its Recalls stay in one Topic. */
+  topic: string;
+  /** ISO instant it was first kept — when its Prompt became new. */
+  keptAt: string;
 }
+
+/** The Knowledge App's Topic type (ADR 0073) — a kept Quote names one, read like any other Document. */
+export const TOPIC_TYPE = "language";
 
 export const APP_ID = "commonplace";
 export const SHELF_HREF = "/app/notes";

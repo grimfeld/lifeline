@@ -84,11 +84,11 @@ function CompareDialog({ writing, version, index, onClose }: { writing: Document
         <div className={cn("grid min-h-0 gap-3 overflow-y-auto md:grid-cols-2")}>
           <section className="min-w-0">
             <h3 className="text-muted-foreground mb-1 text-xs font-medium">This version</h3>
-            {version && <MarkdownView body={version.body} index={index} />}
+            {version && <MarkdownView body={version.body} index={index} origin={writing.id} />}
           </section>
           <section className="min-w-0 max-md:border-t max-md:pt-3 md:border-l md:pl-3">
             <h3 className="text-muted-foreground mb-1 text-xs font-medium">Current text</h3>
-            <MarkdownView body={writing.body ?? ""} index={index} />
+            <MarkdownView body={writing.body ?? ""} index={index} origin={writing.id} />
           </section>
         </div>
         <DialogFooter>

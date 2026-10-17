@@ -132,7 +132,7 @@ export function DocumentCard({ settings, configure }: CardProps) {
       )}
       {typeof doc.body === "string" && doc.body && (
         <div className="min-h-0 flex-1 overflow-y-auto px-1">
-          <MarkdownView body={doc.body} index={index} compact docDate={doc.type === "daily" ? doc.title : null} />
+          <MarkdownView body={doc.body} index={index} compact docDate={doc.type === "daily" ? doc.title : null} origin={doc.id} />
         </div>
       )}
     </div>

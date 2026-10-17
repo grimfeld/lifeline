@@ -15,6 +15,8 @@ import { familyField, quoteTagField, titleWithFamily, useQuotesOfTitle, useWorkO
 import { commonplaceCommands } from "./commands";
 import { commonplaceDaylog } from "./daylog";
 import { noteTypeDef, quoteTypeDef, sourceRole, sourceTypeDef } from "./types";
+import { quoteReading } from "./domain/recallable";
+import { QuoteFace } from "./components/QuoteFace";
 
 /**
  * The Notes App (ADR 0070), born as the Commonplace book (ADR 0024): a shelf
@@ -39,6 +41,8 @@ export const commonplaceApp: AppManifest = {
   documentPanels: [{ id: "commonplace.source", component: SourcePanel }],
   // Intake (ADR 0050, ADR 0070): a text handed over from another App — a kept mail — becomes a Quote with its Source, reviewed first.
   intakes: [{ id: "quote", title: "Quote", icon: QuoteIcon, dialog: QuoteIntakeDialog }],
+  // A kept Quote is practised by the Knowledge App (ADR 0073), which this App never names.
+  recallable: [{ ...quoteReading, face: QuoteFace }],
   cards: [
     {
       id: "commonplace.quote-random",

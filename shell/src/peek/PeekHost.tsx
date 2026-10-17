@@ -120,7 +120,7 @@ function GenericPeek({ doc, def }: { doc: Document; def: DocumentTypeDef | undef
         </dl>
       )}
       {doc.tags && doc.tags.length > 0 && <div className="text-muted-foreground text-xs">{doc.tags.map((t) => `#${t}`).join(" ")}</div>}
-      {body && <MarkdownView body={body} index={index} compact docDate={doc.type === "daily" ? doc.title : null} />}
+      {body && <MarkdownView body={body} index={index} compact docDate={doc.type === "daily" ? doc.title : null} origin={doc.id} />}
       {fields.length === 0 && !body && <p className="text-muted-foreground text-sm">Nothing more to show here.</p>}
     </div>
   );
