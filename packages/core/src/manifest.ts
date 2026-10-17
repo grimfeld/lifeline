@@ -4,6 +4,7 @@ import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
 import type { LoggableProvider } from "./contracts/loggable";
 import type { TallyingDef } from "./contracts/tallying";
+import type { RecallableDef } from "./contracts/recallable";
 import type { IntakeDef } from "./contracts/intake";
 import type { CardSettings, CardSettingsSchema } from "./cards";
 import type { Document, DocumentTypeDef, FieldOption } from "./documents/types";
@@ -94,7 +95,9 @@ export const MODULES: ModuleDef[] = [
   // Thoughts (ADR 0068): what comes straight out of my head, with no Source.
   { id: "thoughts", title: "Thoughts" },
   { id: "progress", title: "Progress" },
-  { id: "languages", title: "Languages" },
+  // Knowledge (ADR 0073): retention over every Recallable type, in Topics. It
+  // keeps the Languages id because Workspaces and Phone bars store it.
+  { id: "languages", title: "Knowledge" },
   { id: "mail", title: "Mail" },
 ];
 
@@ -338,6 +341,15 @@ export interface AppManifest {
   tallying?: TallyingDef[];
   /** Intake (ADR 0050): the ways this App accepts a Handoff from another App — each a dialog opened prefilled. */
   intakes?: IntakeDef[];
+  /** Recallable (ADR 0073): this App's types whose Documents yield Prompts for the Knowledge App to practise. */
+  recallable?: RecallableDef[];
+  /**
+   * Recallable, the practising side (ADR 0073): a Recallable Document — any
+   * App's — is being deleted; take down what this App keeps about practising
+   * it (the Knowledge App's Recalls). Run by Core from every place a Document
+   * can be deleted, after the type's own cascade.
+   */
+  forgetRecallable?: (doc: Document) => Promise<void>;
   /**
    * A React hook the shell runs once, always, for this App — live work that
    * belongs to no screen (ADR 0032: creating Verses from unresolved names).

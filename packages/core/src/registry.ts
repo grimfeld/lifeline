@@ -3,6 +3,7 @@ import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
 import type { LoggableProvider } from "./contracts/loggable";
+import type { RecallableDef } from "./contracts/recallable";
 import { openDb, type LifelineDB, type ScreenLayoutItem } from "./data/db";
 import { registerBuiltinTypes } from "./documents/registry";
 import { registerBuiltinRoles } from "./documents/roles";
@@ -68,6 +69,11 @@ export function timedProviders(): TimedProvider[] {
 
 export function daylogProviders(): DaylogProvider[] {
   return apps.flatMap((a) => (a.daylog ? [a.daylog] : []));
+}
+
+/** Every Recallable declaration (ADR 0073), in registry order, with the App that owns its type. */
+export function recallableDefs(): (RecallableDef & { appId: string })[] {
+  return apps.flatMap((a) => (a.recallable ?? []).map((d) => ({ ...d, appId: a.id })));
 }
 
 export function loggableProviders(): LoggableProvider[] {

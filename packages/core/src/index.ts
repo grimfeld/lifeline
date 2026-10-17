@@ -15,6 +15,7 @@ export * from "./contracts/push";
 export * from "./contracts/daylog";
 export * from "./contracts/loggable";
 export * from "./contracts/tallying";
+export * from "./contracts/recallable";
 export * from "./contracts/intake";
 export * from "./contracts/locatable";
 export * from "./contracts/taggable";

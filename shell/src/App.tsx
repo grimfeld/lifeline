@@ -33,6 +33,7 @@ import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
 import { lastPlace, useResume } from "./nav/resume";
 import { PeekHost } from "./peek/PeekHost";
+import { SelectionIntake } from "./intake/SelectionIntake";
 
 /** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
 function ResumeRedirect() {
@@ -183,6 +184,7 @@ export default function App() {
         <MobileNav />
         <CommandPalette />
         <PeekHost />
+        <SelectionIntake />
         <PrivateDialogs />
         <AccountDialogs />
         <Toaster position="bottom-right" />

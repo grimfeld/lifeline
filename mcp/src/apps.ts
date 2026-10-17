@@ -18,7 +18,7 @@ import { workoutApp } from "@lifeline/app-workout";
 import { ledgerApp } from "@lifeline/app-ledger";
 import { pocketApp } from "@lifeline/app-pocket";
 import { swearjarApp } from "@lifeline/app-swearjar";
-import { languagesApp } from "@lifeline/app-languages";
+import { knowledgeApp } from "@lifeline/app-languages";
 import { pantryApp } from "@lifeline/app-pantry";
 import { shoppingApp } from "@lifeline/app-shopping";
 import { moodApp } from "@lifeline/app-mood";
@@ -59,5 +59,5 @@ export const manifests: AppManifest[] = [
   moodApp,
   mailApp,
   swearjarApp,
-  languagesApp,
+  knowledgeApp,
 ];

@@ -13,7 +13,9 @@ export function BigQuote({ quote, item, className }: { quote: Quote; item: Sourc
   const attribution = [who, loc].filter(Boolean).join(" · ");
   return (
     <figure className={cn("flex h-full min-h-0 flex-col justify-center gap-2 overflow-y-auto", className)}>
-      <blockquote className="font-serif text-lg leading-snug whitespace-pre-line italic sm:text-xl">{quote.body}</blockquote>
+      <blockquote className="font-serif text-lg leading-snug whitespace-pre-line italic sm:text-xl" data-origin={quote.id}>
+        {quote.body}
+      </blockquote>
       {attribution && (
         <figcaption className="text-muted-foreground text-xs">
           <button type="button" className="underline-offset-2 hover:underline" onClick={() => navigate(APP_HREF)}>
