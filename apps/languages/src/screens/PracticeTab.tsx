@@ -3,31 +3,32 @@ import { Button, Card, CardContent, cn } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import { Layers, Play } from "lucide-react";
 import { dueAhead, practiceQueue, retention } from "../domain/practice";
-import type { Deck, Item, Language, Recall } from "../domain/types";
+import type { Deck, Topic, Recall } from "../domain/types";
+import type { MaterialDoc } from "../data/repo";
 import { PracticeRun } from "../components/PracticeRun";
 
-/** Items a Deck holds that still exist — a deleted Word simply leaves every Deck. */
-export function deckItems(deck: Deck, items: Item[]): Item[] {
+/** What a Deck holds that still exists — a deleted Word simply leaves every Deck. */
+export function deckItems<T extends { id: string }>(deck: Deck, items: T[]): T[] {
   const ids = new Set(deck.members);
   return items.filter((i) => ids.has(i.id));
 }
 
 /**
- * The Languages home (CONTEXT.md "Practice", "Retention"): what is due and
- * new, one tap into a Practice of the whole Language or of one Deck, then the
+ * The Knowledge home (CONTEXT.md "Practice", "Retention"): what is due and
+ * new, one tap into a Practice of the whole Topic or of one Deck, then the
  * two readings — Retention and the week ahead. No streak, no score.
  */
-export function PracticeTab({ language, items, decks, recalls }: { language: Language; items: Item[]; decks: Deck[]; recalls: Recall[] }) {
+export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; items: MaterialDoc[]; decks: Deck[]; recalls: Recall[] }) {
   const [running, setRunning] = useState<{ deck?: Deck } | null>(null);
   const now = useMemo(() => new Date(), [recalls]); // re-read the clock whenever practice changes something
-  const live = useMemo(() => items.filter((i) => !i.paused), [items]);
-  const q = useMemo(() => practiceQueue(live, recalls, { now, newCap: language.newCap }), [live, recalls, now, language.newCap]);
+  const live = useMemo(() => items.filter((i) => i.live), [items]);
+  const q = useMemo(() => practiceQueue(live, recalls, { now, newCap: topic.newCap }), [live, recalls, now, topic.newCap]);
   const ret = useMemo(() => retention(recalls, now), [recalls, now]);
   const week = useMemo(() => dueAhead(live, recalls, now), [live, recalls, now]);
   const peak = Math.max(1, ...week.map((d) => d.count));
 
   if (running) {
-    return <PracticeRun language={language} items={running.deck ? deckItems(running.deck, items) : items} recalls={recalls} deckName={running.deck?.name} onDone={() => setRunning(null)} />;
+    return <PracticeRun topic={topic} items={running.deck ? deckItems(running.deck, items) : items} recalls={recalls} deckName={running.deck?.name} onDone={() => setRunning(null)} />;
   }
 
   const ready = q.due + q.newToday;
@@ -41,7 +42,7 @@ export function PracticeTab({ language, items, decks, recalls }: { language: Lan
             {q.due} due · {q.newToday} new today{q.newWaiting > q.newToday ? ` · ${q.newWaiting - q.newToday} more new waiting` : ""}
           </span>
           <Button size="lg" className="mt-1 h-12 max-w-full px-8 text-base" onClick={() => setRunning({})} disabled={items.length === 0}>
-            <Play /> <span className="truncate">Practise {language.name}</span>
+            <Play /> <span className="truncate">Practise {topic.name}</span>
           </Button>
           {items.length === 0 && <span className="text-muted-foreground text-xs">Add a word or a sentence you met to begin.</span>}
         </CardContent>
@@ -53,7 +54,7 @@ export function PracticeTab({ language, items, decks, recalls }: { language: Lan
           <div className="grid gap-2 sm:grid-cols-2">
             {decks.map((d) => {
               const di = deckItems(d, live);
-              const dq = practiceQueue(di, recalls, { now, newCap: language.newCap });
+              const dq = practiceQueue(di, recalls, { now, newCap: topic.newCap });
               return (
                 <button key={d.id} className="hover:bg-accent/50 flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm disabled:opacity-60" onClick={() => setRunning({ deck: d })} disabled={di.length === 0}>
                   <Layers className="text-muted-foreground size-4 shrink-0" />

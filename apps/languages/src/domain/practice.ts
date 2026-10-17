@@ -1,7 +1,7 @@
 import { addDays, todayStr, type DateStr } from "@lifeline/core";
 import { promptKey, promptsOf, type Prompt } from "./prompts";
 import { replay, type Held } from "./schedule";
-import type { Item, Recall } from "./types";
+import type { Material, Recall } from "./types";
 
 /** Local day of an ISO instant. */
 export function dayOf(iso: string): DateStr {
@@ -24,14 +24,14 @@ export interface HeldPrompt extends Prompt {
   held: Held;
 }
 
-/** Every Prompt of the given items with how it is held, read from the Recalls. */
-export function heldPrompts(items: Item[], recalls: Recall[]): HeldPrompt[] {
+/** Every Prompt of the given Material with how it is held, read from the Recalls. */
+export function heldPrompts(items: Material[], recalls: Recall[]): HeldPrompt[] {
   const by = recallsByPrompt(recalls);
   return items.flatMap(promptsOf).map((p) => ({ ...p, held: replay(by.get(p.key) ?? []) }));
 }
 
 /**
- * How many Prompts met their first Recall today, across the whole Language —
+ * How many Prompts met their first Recall today, across the whole Topic —
  * what the daily new cap counts against, whichever Deck the Practice is
  * narrowed to (CONTEXT.md "Practice").
  */
@@ -76,13 +76,13 @@ export interface PracticeQueue {
 }
 
 /**
- * One Practice's queue (CONTEXT.md "Practice"): the Language's due Prompts
+ * One Practice's queue (CONTEXT.md "Practice"): the Topic's due Prompts
  * first, oldest due first, then new ones up to what the daily new cap still
  * allows today, oldest added first — siblings spaced apart. `items` are the
- * unpaused Words and Sentences it draws from (all of the Language, or one
- * Deck's); `recalls` are the whole Language's.
+ * live Material it draws from (all of the Topic, or one
+ * Deck's); `recalls` are the whole Topic's.
  */
-export function practiceQueue(items: Item[], recalls: Recall[], opts: { now: Date; newCap: number }): PracticeQueue {
+export function practiceQueue(items: Material[], recalls: Recall[], opts: { now: Date; newCap: number }): PracticeQueue {
   const now = opts.now.getTime();
   const all = heldPrompts(items, recalls);
   const dueNow = all.filter((p) => p.held.due && p.held.due.getTime() <= now).sort((a, b) => a.held.due!.getTime() - b.held.due!.getTime());
@@ -124,7 +124,7 @@ export function retention(recalls: Recall[], now: Date, days = 30): { passed: nu
 }
 
 /** Due counts for the week ahead: today (overdue included) and the six days after. New Prompts are not counted. */
-export function dueAhead(items: Item[], recalls: Recall[], now: Date, days = 7): { day: DateStr; count: number }[] {
+export function dueAhead(items: Material[], recalls: Recall[], now: Date, days = 7): { day: DateStr; count: number }[] {
   const today = todayStr(now);
   const out = Array.from({ length: days }, (_, i) => ({ day: addDays(today, i), count: 0 }));
   for (const p of heldPrompts(items, recalls)) {

@@ -1,12 +1,15 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { documentsOf, documentsWhere, fireTallies, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, talliesOf, useDocuments, type Document, type Tally } from "@lifeline/core";
+import { documentsOf, documentsWhere, fireTallies, getDocument, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
 import { dayOf } from "../domain/practice";
-import { DECK, DEFAULT_NEW_CAP, LANGUAGE, RECALL, SENTENCE, WORD, type Deck, type Grade, type Item, type Language, type Recall, type Sentence, type Word } from "../domain/types";
+import { materialOf, type MaterialDoc } from "../domain/material";
+
+export type { MaterialDoc };
+import { DECK, DEFAULT_NEW_CAP, TOPIC, RECALL, SENTENCE, WORD, type Deck, type Grade, type Item, type Material, type Topic, type Recall, type Sentence, type Word } from "../domain/types";
 
 // ---- Shapes on read: PocketBase returns absent fields as "" / undefined ----
 
-function normalizeLanguage(l: Language): Language {
+function normalizeTopic(l: Topic): Topic {
   const cap = Number(l.newCap);
   return { ...l, name: l.name || l.title || "", newCap: Number.isFinite(cap) && cap >= 0 ? Math.round(cap) : DEFAULT_NEW_CAP, archived: !!l.archived, tallies: talliesOf(l), tags: l.tags ?? [] };
 }
@@ -29,9 +32,9 @@ function normalizeRecall(r: Recall): Recall {
 
 // ---- Reads ----
 
-export function useLanguages(): Language[] {
-  const rows = useDocuments<Language>(LANGUAGE);
-  return useMemo(() => rows.map(normalizeLanguage).sort((a, b) => a.name.localeCompare(b.name)), [rows]);
+export function useTopics(): Topic[] {
+  const rows = useDocuments<Topic>(TOPIC);
+  return useMemo(() => rows.map(normalizeTopic).sort((a, b) => a.name.localeCompare(b.name)), [rows]);
 }
 
 export function useWords(): Word[] {
@@ -54,19 +57,35 @@ export function useRecalls(): Recall[] {
   return useMemo(() => rows.map(normalizeRecall), [rows]);
 }
 
-/** Words and Sentences of one Language, together — what Prompts come from. */
+/** Words and Sentences of one Topic, together — what Prompts come from. */
 export function useItems(languageId: string | undefined): Item[] {
   const words = useWords();
   const sentences = useSentences();
   return useMemo(() => (languageId ? [...words, ...sentences].filter((i) => i.languageId === languageId) : []), [words, sentences, languageId]);
 }
 
-export function useLanguageRecalls(languageId: string | undefined): Recall[] {
+/**
+ * Every Recallable Document of one Topic, whichever App owns it, read only
+ * through the Contract (ADR 0073) — Practice knows no type by name.
+ */
+export function useMaterial(topicId: string | undefined): MaterialDoc[] {
+  const defs = recallableDefs();
+  // Hook order is stable: the declarations are fixed at compile time (ADR 0003).
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const rows = defs.map((d) => useDocuments(d.typeId));
+  return useMemo(
+    () => (topicId ? defs.flatMap((d, i) => rows[i].map((doc) => materialOf(d, doc))).filter((m) => m.topicId === topicId) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [topicId, ...rows],
+  );
+}
+
+export function useTopicRecalls(languageId: string | undefined): Recall[] {
   const recalls = useRecalls();
   return useMemo(() => (languageId ? recalls.filter((r) => r.languageId === languageId) : []), [recalls, languageId]);
 }
 
-// ---- The active Language (per device, never synced) ----
+// ---- The active Topic (per device, never synced) ----
 
 const ACTIVE_KEY = "lifeline.languages.active";
 const listeners = new Set<() => void>();
@@ -79,7 +98,7 @@ function readActive(): string {
   }
 }
 
-export function setActiveLanguage(id: string): void {
+export function setActiveTopic(id: string): void {
   try {
     localStorage.setItem(ACTIVE_KEY, id);
   } catch {
@@ -89,10 +108,10 @@ export function setActiveLanguage(id: string): void {
 }
 
 /**
- * The Language the Module shows (CONTEXT.md "Language"): the one remembered on
+ * The Topic the Module shows (CONTEXT.md "Topic"): the one remembered on
  * this device, else the first unarchived one. Undefined when there is none.
  */
-export function useActiveLanguage(): Language | undefined {
+export function useActiveTopic(): Topic | undefined {
   const id = useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
@@ -101,48 +120,48 @@ export function useActiveLanguage(): Language | undefined {
     readActive,
     () => "",
   );
-  const live = useLanguages().filter((l) => !l.archived);
+  const live = useTopics().filter((l) => !l.archived);
   return live.find((l) => l.id === id) ?? live[0];
 }
 
-// ---- Languages ----
+// ---- Topics ----
 
-export interface LanguageInput {
+export interface TopicInput {
   name: string;
   newCap: number;
   tallies: Tally[];
 }
 
-function languageRowOf(input: LanguageInput) {
+function topicRowOf(input: TopicInput) {
   const name = input.name.trim();
-  if (!name) throw new Error("Give the language a name");
+  if (!name) throw new Error("Give the topic a name");
   const newCap = Math.max(0, Math.round(input.newCap));
   if (!Number.isFinite(newCap)) throw new Error("The daily new cap must be a number");
-  return { type: LANGUAGE, title: name, name, newCap, tallies: input.tallies, folder: "" } as const;
+  return { type: TOPIC, title: name, name, newCap, tallies: input.tallies, folder: "" } as const;
 }
 
-export async function addLanguage(input: LanguageInput): Promise<string> {
-  const row = await putDocument<Language>({ ...languageRowOf(input), archived: false, tags: [] } as unknown as Language);
+export async function addTopic(input: TopicInput): Promise<string> {
+  const row = await putDocument<Topic>({ ...topicRowOf(input), archived: false, tags: [] } as unknown as Topic);
   return row.id;
 }
 
-export async function updateLanguage(l: Language, input: LanguageInput): Promise<void> {
-  await putDocument<Language>({ ...l, ...languageRowOf(input) });
+export async function updateTopic(l: Topic, input: TopicInput): Promise<void> {
+  await putDocument<Topic>({ ...l, ...topicRowOf(input) });
 }
 
-/** Archived: out of the switcher, no Practice, its Tallies silent — everything kept (CONTEXT.md "Language"). */
-export async function setLanguageArchived(id: string, archived: boolean): Promise<void> {
+/** Archived: out of the switcher, no Practice, its Tallies silent — everything kept (CONTEXT.md "Topic"). */
+export async function setTopicArchived(id: string, archived: boolean): Promise<void> {
   await patchDocument(id, { archived });
 }
 
-export async function deleteLanguage(id: string): Promise<void> {
+export async function deleteTopic(id: string): Promise<void> {
   await removeDocument(id);
 }
 
-/** The `onDelete` guard: a Language that still holds anything is archived, never deleted. */
-export async function refuseDeletingUsedLanguage(doc: Document): Promise<void> {
+/** The `onDelete` guard: a Topic that still holds anything is archived, never deleted. */
+export async function refuseDeletingUsedTopic(doc: Document): Promise<void> {
   for (const type of [WORD, SENTENCE, DECK]) {
-    if ((await documentsWhere(type, "languageId", doc.id)).length) throw new Error("This language still holds words, sentences or decks — archive it instead");
+    if ((await documentsWhere(type, "languageId", doc.id)).length) throw new Error("This topic still holds words, sentences or decks — archive it instead");
   }
 }
 
@@ -159,15 +178,15 @@ export interface WordInput {
 
 function wordRowOf(input: WordInput) {
   const term = input.term.trim();
-  if (!input.languageId) throw new Error("Pick a language");
+  if (!input.languageId) throw new Error("Pick a topic");
   if (!term) throw new Error("The word needs its term");
   if (!input.meaning.trim()) throw new Error("Write what it means");
   return { type: WORD, title: term, languageId: input.languageId, term, meaning: input.meaning.trim(), notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
 }
 
-/** Every Language, Word and Sentence, read once — what headless adds check against. */
-export async function allLanguages(): Promise<Language[]> {
-  return documentsOf<Language>(LANGUAGE);
+/** Every Topic, Word and Sentence, read once — what headless adds check against. */
+export async function allTopics(): Promise<Topic[]> {
+  return documentsOf<Topic>(TOPIC);
 }
 
 export async function allWords(): Promise<Word[]> {
@@ -198,7 +217,7 @@ export interface SentenceInput {
 
 function sentenceRowOf(input: SentenceInput) {
   const text = input.text.trim();
-  if (!input.languageId) throw new Error("Pick a language");
+  if (!input.languageId) throw new Error("Pick a topic");
   if (!/\{\{\s*\S.*?\}\}/.test(text)) throw new Error("Mark at least one blank with {{ }}");
   return { type: SENTENCE, title: plainSentence(text), languageId: input.languageId, text, translation: input.translation?.trim() ?? "", origin: input.origin?.trim() ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
 }
@@ -242,9 +261,9 @@ export async function renameDeck(d: Deck, name: string): Promise<void> {
   await putDocument<Deck>({ ...d, name: n, title: n });
 }
 
-/** Membership is the Deck's: a Word goes in or out of one Deck, and only items of the Deck's Language go in. */
+/** Membership is the Deck's: a Word goes in or out of one Deck, and only items of the Deck's Topic go in. */
 export async function setMembership(deck: Deck, item: Item, member: boolean): Promise<void> {
-  if (item.languageId !== deck.languageId) throw new Error("A deck holds one language only");
+  if (item.languageId !== deck.languageId) throw new Error("A deck holds one topic only");
   const has = deck.members.includes(item.id);
   if (has === member) return;
   await patchDocument(deck.id, { members: member ? [...deck.members, item.id] : deck.members.filter((x) => x !== item.id) });
@@ -257,20 +276,21 @@ export async function deleteDeck(id: string): Promise<void> {
 // ---- Recalls ----
 
 /**
- * Record one Recall (ADR 0058) — and, when it is the Language's first of the
- * day, report the day as the Language's occurrence (ADR 0059), so its Tallies
- * fire. A failing Tally never loses the Recall.
+ * Record one Recall (ADR 0058) on a Prompt of any Recallable Material — and,
+ * when it is the Topic's first of the day, report the day as the Topic's
+ * occurrence (ADR 0059), so its Tallies fire. A failing Tally never loses the
+ * Recall.
  */
-export async function recordRecall(item: Item, slot: string, grade: Grade): Promise<{ id: string; tallyError?: string }> {
+export async function recordRecall(item: Material, slot: string, grade: Grade): Promise<{ id: string; tallyError?: string }> {
   const at = new Date().toISOString();
   const day = dayOf(at);
-  const earlier = (await documentsWhere<Recall>(RECALL, "languageId", item.languageId)).some((r) => r.at && dayOf(r.at) === day);
-  const row = await putDocument<Recall>({ type: RECALL, title: `${grade === "pass" ? "✓" : "✗"} ${item.title} · ${day}`, languageId: item.languageId, itemId: item.id, slot, grade, at, folder: "", tags: [] } as unknown as Recall);
+  const earlier = (await documentsWhere<Recall>(RECALL, "languageId", item.topicId)).some((r) => r.at && dayOf(r.at) === day);
+  const row = await putDocument<Recall>({ type: RECALL, title: `${grade === "pass" ? "✓" : "✗"} ${item.title} · ${day}`, languageId: item.topicId, itemId: item.id, slot, grade, at, folder: "", tags: [] } as unknown as Recall);
   if (earlier) return { id: row.id };
-  const language = await getDocument<Language>(item.languageId);
-  if (!language || language.archived) return { id: row.id };
+  const topic = await getDocument<Topic>(item.topicId);
+  if (!topic || topic.archived) return { id: row.id };
   try {
-    await fireTallies(language, { key: day, at, note: `Practised ${language.title}` });
+    await fireTallies(topic, { key: day, at, note: `Practised ${topic.title}` });
     return { id: row.id };
   } catch (err) {
     return { id: row.id, tallyError: (err as Error).message };

@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
 import { useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import type { Word } from "../domain/types";
-import { addWord, deleteItem, updateWord, useActiveLanguage, useLanguages } from "../data/repo";
-import { LanguageSelect } from "./LanguageSelect";
+import { addWord, deleteItem, updateWord, useActiveTopic, useTopics } from "../data/repo";
+import { TopicSelect } from "./TopicSelect";
 
 export interface WordPrefill {
   term?: string;
@@ -16,8 +16,8 @@ export interface WordPrefill {
  * term, meaning, Enter.
  */
 export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolean; onOpenChange: (open: boolean) => void; word?: Word; prefill?: WordPrefill }) {
-  const languages = useLanguages();
-  const active = useActiveLanguage();
+  const topics = useTopics();
+  const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
   const [languageId, setLanguageId] = useState("");
   const [term, setTerm] = useState("");
@@ -36,7 +36,7 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
     setOrigin(word?.origin ?? prefill?.origin ?? "");
     setTags(word?.tags ?? []);
     setConfirmDelete(false);
-    // `active` settles after the first render; a Word's own Language never moves.
+    // `active` settles after the first render; a Word's own Topic never moves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, word, prefill]);
 
@@ -74,7 +74,7 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
     onOpenChange(false);
   }
 
-  const noLanguage = languages.filter((l) => !l.archived).length === 0;
+  const noTopic = topics.filter((l) => !l.archived).length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -82,11 +82,11 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
         <DialogHeader>
           <DialogTitle>{word ? "Edit word" : "New word"}</DialogTitle>
         </DialogHeader>
-        {noLanguage ? (
-          <p className="text-muted-foreground text-sm">Add a language first, in Languages.</p>
+        {noTopic ? (
+          <p className="text-muted-foreground text-sm">Add a topic first, in Knowledge.</p>
         ) : (
           <div className="grid gap-4">
-            {!word && <LanguageSelect languages={languages} value={languageId} onChange={setLanguageId} />}
+            {!word && <TopicSelect topics={topics} value={languageId} onChange={setLanguageId} />}
             <div className="grid gap-2">
               <Label htmlFor="wd-term">Word</Label>
               <Input id="wd-term" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="tener ganas de" autoFocus lang="" />
@@ -115,11 +115,11 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
               {confirmDelete ? "Really delete" : "Delete"}
             </Button>
           ) : (
-            <Button variant="ghost" onClick={() => void save(true)} disabled={noLanguage}>
+            <Button variant="ghost" onClick={() => void save(true)} disabled={noTopic}>
               Save & add another
             </Button>
           )}
-          <Button onClick={() => void save()} disabled={noLanguage}>
+          <Button onClick={() => void save()} disabled={noTopic}>
             {word ? "Save" : "Add"}
           </Button>
         </DialogFooter>
