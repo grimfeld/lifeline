@@ -344,6 +344,13 @@ export interface AppManifest {
   /** Recallable (ADR 0073): this App's types whose Documents yield Prompts for the Knowledge App to practise. */
   recallable?: RecallableDef[];
   /**
+   * Recallable, the practising side (ADR 0073): a Recallable Document — any
+   * App's — is being deleted; take down what this App keeps about practising
+   * it (the Knowledge App's Recalls). Run by Core from every place a Document
+   * can be deleted, after the type's own cascade.
+   */
+  forgetRecallable?: (doc: Document) => Promise<void>;
+  /**
    * A React hook the shell runs once, always, for this App — live work that
    * belongs to no screen (ADR 0032: creating Verses from unresolved names).
    * Must be cheap; runs whether or not any of the App's pages is open.

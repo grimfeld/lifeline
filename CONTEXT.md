@@ -58,7 +58,7 @@ Core Contract (behaviour — code only), the sending side of Loggable: a Documen
 _Avoid_: Loggable (the receiving side), trigger, automation, rule (a Categorize rule's word)
 
 ### Recallable
-Core Contract (behaviour — code only): a Document type whose Documents yield **Prompts** to be kept from being forgotten. The owning App declares which Prompts a Document yields, what each one is known by, and how its question and answer are shown; it never schedules, grades or keeps anything about practice. The **Knowledge** App is the one consumer: it owns every Recall and every Practice over all Recallable types, as Stats and Life Level own what is logged to them. Any App may make its types Recallable without the Knowledge App knowing them by name.
+Core Contract (behaviour — code only): a Document type whose Documents yield **Prompts** to be kept from being forgotten. The owning App declares which Prompts a Document yields, what each one is known by, and how its question and answer are shown; it never schedules, grades or keeps anything about practice. The **Knowledge** App is the one consumer: it owns every Recall and every Practice over all Recallable types, as Stats and Life Level own what is logged to them. Any App may make its types Recallable without the Knowledge App knowing them by name. Deleting a Recallable Document, whatever App owns it, takes its practice with it: Core tells the practising App, which strikes the Recalls.
 _Avoid_: quizzable, flashcard-able, reviewable (Review is Cinema's body), study
 
 ### Placement
@@ -588,7 +588,7 @@ Not a type: an Essay I give aloud — a sermon, a study-group talk — marked by
 _Avoid_: sermon (fine in prose), speech (that's something I *heard* — a Note or Quote on it), presentation
 
 ### Quote
-A passage taken from a **Source** — a line of a book, a minute of a podcast, a pasted article — its text (short or long), an optional locator (page, chapter, timestamp), an optional comment and tags, owned by the Notes App and impossible without the Source it links to. Not my words. Absorbs the old Clipping. A Quote may be **kept**: given a Topic, it becomes Recallable with one Prompt — shown its Source and locator, recall the passage (its comment shown with the answer). Unkept Quotes stay out of every Practice; unkeeping keeps its Recalls, as pausing does. Its Prompt is known by the Quote, not by its text: fixing the passage never resets it, as editing a Word never does.
+A passage taken from a **Source** — a line of a book, a minute of a podcast, a pasted article — its text (short or long), an optional locator (page, chapter, timestamp), an optional comment and tags, owned by the Notes App and impossible without the Source it links to. Not my words. Absorbs the old Clipping. A Quote may be **kept**: given a Topic, it becomes Recallable with one Prompt — shown its Source and locator, recall the passage (its comment shown with the answer). Its Topic is chosen the first time it is kept and never moves, as a Word's never does; kept again, it returns there. Unkept Quotes stay out of every Practice; unkeeping keeps its Recalls, as pausing does. Its Prompt is known by the Quote, not by its text: fixing the passage never resets it, as editing a Word never does.
 _Avoid_: clipping (retired), highlight, excerpt, web clip
 
 ### Pantry

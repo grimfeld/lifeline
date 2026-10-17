@@ -61,7 +61,6 @@ const wordType: DocumentTypeDef = {
   indexes: ["languageId"],
   href: () => WORDS_HREF,
   peek: ItemPeek,
-  onDelete: removeItemRecalls,
   order: 94,
   builtIn: true,
 };
@@ -86,7 +85,6 @@ const sentenceType: DocumentTypeDef = {
   indexes: ["languageId"],
   href: () => WORDS_HREF,
   peek: ItemPeek,
-  onDelete: removeItemRecalls,
   order: 95,
   builtIn: true,
 };
@@ -112,7 +110,6 @@ const factType: DocumentTypeDef = {
   indexes: ["languageId"],
   href: () => WORDS_HREF,
   peek: ItemPeek,
-  onDelete: removeItemRecalls,
   order: 96,
   builtIn: true,
 };
@@ -188,6 +185,8 @@ export const knowledgeApp: AppManifest = {
   daylog: knowledgeDaylog,
   tallying: [{ typeId: TOPIC, occurrence: "day practised" }],
   recallable: knowledgeRecallable,
+  // Every Recallable Document's Recalls go when it is deleted — Knowledge's own types and any other App's (ADR 0073).
+  forgetRecallable: removeItemRecalls,
   intakes: [
     { id: "word", title: "Word", icon: WholeWord, dialog: WordIntakeDialog },
     { id: "sentence", title: "Sentence", icon: TextCursorInput, dialog: SentenceIntakeDialog },

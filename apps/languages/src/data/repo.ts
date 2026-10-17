@@ -206,10 +206,18 @@ export async function deleteTopic(id: string): Promise<void> {
   await removeDocument(id);
 }
 
-/** The `onDelete` guard: a Topic that still holds anything is archived, never deleted. */
+/**
+ * The `onDelete` guard: a Topic that still holds anything is archived, never
+ * deleted — its Decks, and anything Recallable kept in it, whichever App owns
+ * it (a kept Quote is the Notes App's).
+ */
 export async function refuseDeletingUsedTopic(doc: Document): Promise<void> {
-  for (const type of [WORD, SENTENCE, FACT, DECK]) {
-    if ((await documentsWhere(type, "languageId", doc.id)).length) throw new Error("This topic still holds words, sentences, facts or decks — archive it instead");
+  const refuse = () => {
+    throw new Error("This topic still holds things kept in it — archive it instead");
+  };
+  if ((await documentsWhere(DECK, "languageId", doc.id)).length) refuse();
+  for (const def of recallableDefs()) {
+    if ((await documentsOf(def.typeId)).some((d) => def.topicOf(d) === doc.id)) refuse();
   }
 }
 
@@ -324,7 +332,7 @@ export async function deleteItem(id: string): Promise<void> {
   await removeDocument(id);
 }
 
-/** The cascade: an item's Recalls mean nothing without its Prompts. Decks simply stop listing it on read. */
+/** The cascade, for any Recallable Document: its Recalls mean nothing without its Prompts. Decks simply stop listing it on read. */
 export async function removeItemRecalls(doc: Document): Promise<void> {
   await removeDocumentsWhere(RECALL, (r) => r.itemId === doc.id);
 }

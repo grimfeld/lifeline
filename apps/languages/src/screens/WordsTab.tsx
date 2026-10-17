@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, PhoneDock, PhoneFilters, cn } from "@lifeline/ui";
+import { openPeek } from "@lifeline/core";
+import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, PhoneDock, PhoneFilters, cn, usePhone } from "@lifeline/ui";
 import { MessageCircleQuestion, Pause, Play, Plus, Search, TextCursorInput, WholeWord } from "lucide-react";
 import { heldPrompts } from "../domain/practice";
 import { itemLines, itemMaterial } from "../domain/prompts";
 import { FACT, SENTENCE, WORD, type Deck, type Fact, type Item, type Recall, type Sentence, type Word } from "../domain/types";
-import { setPaused } from "../data/repo";
+import { setPaused, type MaterialDoc } from "../data/repo";
 import { WordDialog } from "../components/WordDialog";
 import { SentenceDialog } from "../components/SentenceDialog";
 import { FactDialog } from "../components/FactDialog";
@@ -22,7 +23,8 @@ function nextHint(dues: (Date | null)[], now: Date): string {
 }
 
 /** Everything kept in the active Topic — Words, Sentences, Facts: search, a Deck, paused — and the way in to add more. */
-export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck[]; recalls: Recall[] }) {
+export function WordsTab({ items, others = [], decks, recalls }: { items: Item[]; others?: MaterialDoc[]; decks: Deck[]; recalls: Recall[] }) {
+  const phone = usePhone();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [deckId, setDeckId] = useState("");
@@ -64,14 +66,15 @@ export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck
     <div className="grid gap-3">
       <PhoneDock>
         <div className="flex flex-wrap items-center gap-2 max-md:contents">
-          <div className="relative min-w-40 flex-1 max-md:min-w-32">
+          {/* A real starting width on a phone: the dock lets items shrink to nothing, and a search box must not. */}
+          <div className="relative min-w-40 flex-1 max-md:basis-28">
             <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" className="pl-8" />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button>
-                <Plus /> Add
+              <Button size={phone ? "icon" : "default"} aria-label="Add" title="Add a word, sentence or fact">
+                <Plus /> {!phone && "Add"}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -105,7 +108,9 @@ export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck
       </PhoneDock>
 
       {shown.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{items.length === 0 ? "Nothing kept here yet — add a word, a sentence or a fact." : "Nothing matches."}</p>
+        items.length === 0 && others.length > 0 ? null : (
+          <p className="text-muted-foreground text-sm">{items.length === 0 ? "Nothing kept here yet — add a word, a sentence or a fact." : "Nothing matches."}</p>
+        )
       ) : (
         <Card className="py-0">
           <CardContent className="grid gap-0.5 px-2 py-2">
@@ -127,6 +132,22 @@ export function WordsTab({ items, decks, recalls }: { items: Item[]; decks: Deck
             })}
           </CardContent>
         </Card>
+      )}
+
+      {others.length > 0 && (
+        <section className="grid gap-1.5">
+          <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">Also kept here</h2>
+          <Card className="py-0">
+            <CardContent className="grid gap-0.5 px-2 py-2">
+              {others.map((m) => (
+                <button key={m.id} className={cn("hover:bg-accent/50 flex min-w-0 items-center gap-2 rounded-sm px-1 py-1.5 text-left text-sm", !m.live && "opacity-60")} onClick={() => openPeek(m.id)}>
+                  <span className="min-w-0 flex-1 truncate">{m.title || "Untitled"}</span>
+                  <span className="text-muted-foreground shrink-0 text-xs">{m.live ? "" : "not kept"}</span>
+                </button>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
       )}
 
       <WordDialog open={addingWord} onOpenChange={setAddingWord} />

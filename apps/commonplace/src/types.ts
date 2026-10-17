@@ -1,6 +1,6 @@
 import type { DocumentTypeDef, RoleDef } from "@lifeline/core";
 import { NotebookPen, Quote as QuoteIcon, Radio } from "lucide-react";
-import { NOTE, NOTES_FOLDER, QUOTES, QUOTES_FOLDER, SOURCE, SOURCE_KINDS, SOURCE_ROLE, SOURCES_FOLDER, noteHref, quoteHref, sourceHref, sourceKindLabel, type Quote } from "./domain/types";
+import { NOTE, NOTES_FOLDER, QUOTES, QUOTES_FOLDER, SOURCE, SOURCE_KINDS, SOURCE_ROLE, SOURCES_FOLDER, TOPIC_TYPE, noteHref, quoteHref, sourceHref, sourceKindLabel, type Quote } from "./domain/types";
 import { WORK_TYPE_IDS } from "./domain/works";
 import { quoteName } from "./domain/quotes";
 
@@ -96,5 +96,8 @@ export const quoteTypeDef: DocumentTypeDef = {
     { key: "locator", label: "Where", kind: "text", column: true },
     { key: "comment", label: "Comment", kind: "longtext" },
     { key: "capturedOn", label: "Captured on", kind: "date", guarded: true, column: true },
+    { key: "kept", label: "Kept", kind: "boolean", guarded: true, column: true },
+    { key: "topic", label: "Kept in", kind: "link", linkType: TOPIC_TYPE, guarded: true },
+    { key: "keptAt", label: "Kept since", kind: "datetime", guarded: true, hidden: true },
   ],
 };

@@ -3,11 +3,15 @@ import { useSearchParams } from "react-router";
 import { Button, Card, CardContent, PhoneDock, Tabs, TabsContent, TabsList, TabsTrigger, usePhone } from "@lifeline/ui";
 import { Brain, Plus, Settings2 } from "lucide-react";
 import { setActiveTopic, setTopicArchived, useActiveTopic, useDecks, useItems, useMaterial, useTopicRecalls, useTopics } from "../data/repo";
+import { FACT, SENTENCE, WORD } from "../domain/types";
 import { TopicDialog } from "../components/TopicDialog";
 import { TopicSelect } from "../components/TopicSelect";
 import { PracticeTab } from "./PracticeTab";
 import { WordsTab } from "./WordsTab";
 import { DecksTab } from "./DecksTab";
+
+/** Knowledge's own Recallable types; everything else kept in a Topic belongs to another App. */
+const OWN_TYPES = new Set<string>([WORD, SENTENCE, FACT]);
 
 const TABS = ["practice", "words", "decks"] as const;
 type Tab = (typeof TABS)[number];
@@ -22,6 +26,8 @@ export function KnowledgeScreen() {
   const active = useActiveTopic();
   const items = useItems(active?.id);
   const material = useMaterial(active?.id);
+  // Kept here by other Apps — a kept Quote — read only through the Contract (ADR 0073).
+  const others = useMemo(() => material.filter((m) => !OWN_TYPES.has(m.type)), [material]);
   const recalls = useTopicRecalls(active?.id);
   const allDecks = useDecks();
   const decks = useMemo(() => allDecks.filter((d) => d.languageId === active?.id), [allDecks, active?.id]);
@@ -66,7 +72,7 @@ export function KnowledgeScreen() {
           <PhoneDock order={1}>
             <TabsList>
               <TabsTrigger value="practice">Practice</TabsTrigger>
-              <TabsTrigger value="words">Kept ({items.length})</TabsTrigger>
+              <TabsTrigger value="words">Kept ({items.length + others.length})</TabsTrigger>
               <TabsTrigger value="decks">Decks ({decks.length})</TabsTrigger>
             </TabsList>
           </PhoneDock>
@@ -74,7 +80,7 @@ export function KnowledgeScreen() {
             <PracticeTab topic={active} items={material} decks={decks} recalls={recalls} />
           </TabsContent>
           <TabsContent value="words" className="pt-3">
-            <WordsTab items={items} decks={decks} recalls={recalls} />
+            <WordsTab items={items} others={others} decks={decks} recalls={recalls} />
           </TabsContent>
           <TabsContent value="decks" className="pt-3">
             <DecksTab topic={active} decks={decks} items={items} />
@@ -94,7 +100,7 @@ export function KnowledgeScreen() {
       )}
 
       <TopicDialog open={newOpen} onOpenChange={setNewOpen} />
-      <TopicDialog open={editOpen} onOpenChange={setEditOpen} topic={active} holds={items.length + decks.length} />
+      <TopicDialog open={editOpen} onOpenChange={setEditOpen} topic={active} holds={material.length + decks.length} />
     </div>
   );
 }

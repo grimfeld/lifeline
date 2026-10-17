@@ -9,6 +9,7 @@ import { normalizeTags } from "../tags";
 import { extractProseTags } from "../markdown";
 import { normalizeFolder } from "../folders";
 import { documentTypeSync } from "./registry";
+import { recallableDefs, registeredApps } from "../registry";
 import { inPrivateFolder, privateGate, visibleUnder } from "../private";
 import { workspaceScope } from "../workspaces";
 import type { Document } from "./types";
@@ -135,7 +136,11 @@ export async function removeDocument(id: string): Promise<void> {
   // `removeDocumentsWhere` below tombstones directly, so a cascade that uses
   // it cannot re-enter this.
   const doc = await documentsTable().get(id);
-  if (doc && !doc.deleted) await documentTypeSync(doc.type)?.onDelete?.(doc);
+  if (doc && !doc.deleted) {
+    await documentTypeSync(doc.type)?.onDelete?.(doc);
+    // A Recallable Document's practice goes with it, whatever App owns it and whichever keeps the practice (ADR 0073).
+    if (recallableDefs().some((d) => d.typeId === doc.type)) for (const a of registeredApps()) await a.forgetRecallable?.(doc);
+  }
   await remove(DOCUMENTS, id);
 }
 
