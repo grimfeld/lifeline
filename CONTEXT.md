@@ -588,7 +588,7 @@ Not a type: an Essay I give aloud — a sermon, a study-group talk — marked by
 _Avoid_: sermon (fine in prose), speech (that's something I *heard* — a Note or Quote on it), presentation
 
 ### Quote
-A passage taken from a **Source** — a line of a book, a minute of a podcast, a pasted article — its text (short or long), an optional locator (page, chapter, timestamp), an optional comment and tags, owned by the Notes App and impossible without the Source it links to. Not my words. Absorbs the old Clipping.
+A passage taken from a **Source** — a line of a book, a minute of a podcast, a pasted article — its text (short or long), an optional locator (page, chapter, timestamp), an optional comment and tags, owned by the Notes App and impossible without the Source it links to. Not my words. Absorbs the old Clipping. A Quote may be **kept**: given a Topic, it becomes Recallable with one Prompt — shown its Source and locator, recall the passage (its comment shown with the answer). Unkept Quotes stay out of every Practice; unkeeping keeps its Recalls, as pausing does.
 _Avoid_: clipping (retired), highlight, excerpt, web clip
 
 ### Pantry

@@ -25,4 +25,6 @@ Languages kept Words and Sentences from being forgotten (ADR 0058). The same ret
 - Every Language becomes a Topic of the same name, keeping its cap, Tallies and archived state. Existing Recalls move to the Knowledge App unchanged, so no schedule shifts.
 - A Word, Sentence or Fact may sit in any Topic. Type ids keep their `language_` prefix rather than migrate.
 - A Topic's Tally occurrence is its first Recall of the day, now reported by Knowledge rather than Languages (ADR 0059 is otherwise unchanged).
-- Any App can make a type practicable by implementing Recallable, with no Knowledge or Core work.
+- Any App can make a type practicable by implementing Recallable, with no Knowledge or Core work. The Notes App is the first outside implementer: a **kept** Quote yields one Prompt (Source and locator → passage).
+- The MCP tools `languages_word` and `languages_sentence` become `knowledge_word` and `knowledge_sentence`, with no aliases. Saved prompts or Routines naming the old tools must be updated.
+- Delivery: (1) re-home Languages as Knowledge with Topics and no change in behaviour, checked by every Prompt's next due date being identical before and after; (2) Fact; (3) Practice over everything and narrowed by Source; (4) other implementers when needed.
