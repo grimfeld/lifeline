@@ -11,7 +11,7 @@ Languages kept Words and Sentences from being forgotten (ADR 0058). The same ret
 - A new **Knowledge** App is the one consumer. It owns the Recall (ADR 0058's only fact about practice, unchanged in kind), every Practice, the schedule policy and Retention. This is the Loggable pattern: the App that receives owns the facts, and Core owns no Document types.
 - The partition moves with practice. Knowledge cannot know implementers by name, so a Language (a Languages type) cannot be what it partitions by. The Knowledge App's **Topic** replaces it, with the daily new cap, the Tallies, archiving and its own Retention. Every Recallable Document belongs to one Topic.
 - Practice runs either over **everything** (each Topic's cap still holding) or narrowed to one Topic, and then to one Deck.
-- Languages stops being a Module and owns only Word and Sentence. The Languages Module folds into the **Knowledge** Module.
+- Languages is retired. Knowledge owns Word and Sentence, which are no longer bound to a language, and one new type, **Fact**: a question and its answer, forward only. A blanked passage is a Sentence; a two-way pair is a Word.
 
 ## Considered options
 
@@ -23,6 +23,6 @@ Languages kept Words and Sentences from being forgotten (ADR 0058). The same ret
 ## Consequences
 
 - Every Language becomes a Topic of the same name, keeping its cap, Tallies and archived state. Existing Recalls move to the Knowledge App unchanged, so no schedule shifts.
-- A Word is no longer bound to a language. A Word or a Sentence may sit in any Topic.
+- A Word, Sentence or Fact may sit in any Topic. Type ids keep their `language_` prefix rather than migrate.
 - A Topic's Tally occurrence is its first Recall of the day, now reported by Knowledge rather than Languages (ADR 0059 is otherwise unchanged).
 - Any App can make a type practicable by implementing Recallable, with no Knowledge or Core work.
