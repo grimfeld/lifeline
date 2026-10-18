@@ -41,7 +41,14 @@ without an ellipsis, or makes a box scroll sideways that was not meant to.
   empty cells) carries `data-layout-ignore` and a comment saying why. Rare.
 
 It is not in CI (too slow): run it before pushing a change that touches a screen.
-`pnpm test:e2e` (or `pnpm --filter @lifeline/shell test:e2e -- --project=mobile -g Tasks`).
+`pnpm test:e2e` (or `pnpm --filter @lifeline/shell test:e2e --project=mobile -g Tasks` —
+no `--` before the flags). It starts its own server on port 1421; set `E2E_PORT` to
+another port when that one is taken.
+
+## Several agents share this machine
+
+Work in a `git worktree` off `origin/master` (code, ADRs and CONTEXT.md alike); the
+main checkout belongs to whoever opened it.
 
 ## Agent skills
 
