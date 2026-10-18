@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Button, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetTitle, TYPE_ICONS, cn, toast, typeIcon, usePhone } from "@lifeline/ui";
 import {
@@ -19,6 +19,8 @@ import {
   fieldSummary,
   hasFieldSettings,
   hasFoldOut,
+  moveDraft,
+  moveOption,
   newFieldDraft,
   optionUsage,
   pasteOptions,
@@ -55,6 +57,7 @@ import {
 } from "@lifeline/core";
 import { Plus, Settings2, Trash2, X } from "lucide-react";
 import { ReportsEditor } from "./Reports";
+import { ReorderItem, Reorderable } from "./Reorder";
 
 const KINDS: FieldKind[] = ["text", "longtext", "number", "boolean", "date", "datetime", "select", "multiselect", "url", "geo", "list", "link", "links"];
 
@@ -286,24 +289,30 @@ export function TypeEditor({
       <div className="grid gap-1">
         <Label className="text-xs">Fields</Label>
         <div className="grid gap-2 md:gap-1">
-          {rows.map((r, i) => (
-            <FieldRow
-              key={r.uid}
-              row={r}
-              open={open.has(r.uid)}
-              focus={r.uid === added}
-              names={names}
-              linkTypes={linkTypes}
-              refusals={kindRefusals(r, KINDS, held)}
-              onToggle={() => toggle(r.uid)}
-              onChange={(d) => {
-                // Picking a kind with settings opens its fold-out straight away.
-                if (d.kind !== r.kind && hasFieldSettings(d.kind)) toggle(r.uid, true);
-                setRows(rows.map((x, j) => (j === i ? { ...d, uid: r.uid } : x)));
-              }}
-              onRemove={() => setRows(rows.filter((_, j) => j !== i))}
-            />
-          ))}
+          <Reorderable ids={rows.map((r) => r.uid)} onMove={(from, to) => setRows(moveDraft(rows, from, to))}>
+            {rows.map((r, i) => (
+              <ReorderItem key={r.uid} id={r.uid} label={r.label || "field"}>
+                {(handle) => (
+                  <FieldRow
+                    row={r}
+                    handle={handle}
+                    open={open.has(r.uid)}
+                    focus={r.uid === added}
+                    names={names}
+                    linkTypes={linkTypes}
+                    refusals={kindRefusals(r, KINDS, held)}
+                    onToggle={() => toggle(r.uid)}
+                    onChange={(d) => {
+                      // Picking a kind with settings opens its fold-out straight away.
+                      if (d.kind !== r.kind && hasFieldSettings(d.kind)) toggle(r.uid, true);
+                      setRows(rows.map((x, j) => (j === i ? { ...d, uid: r.uid } : x)));
+                    }}
+                    onRemove={() => setRows(rows.filter((_, j) => j !== i))}
+                  />
+                )}
+              </ReorderItem>
+            ))}
+          </Reorderable>
           <AddFieldMenu onPick={addField} />
         </div>
         {problems.map((p) => (
@@ -364,12 +373,13 @@ export function TypeEditor({
 }
 
 /**
- * One Field: Label · Kind · ⚙ · delete (spec #95). ⚙ only for kinds with
+ * One Field: handle · Label · Kind · ⚙ · delete (spec #95). ⚙ only for kinds with
  * settings, which open in a fold-out under the row; folded, the row shows
- * their summary. A phone gives it two lines: Label; then Kind, ⚙, delete.
+ * their summary. A phone gives it two lines: handle + Label; then Kind, ⚙, delete.
  */
 function FieldRow({
   row,
+  handle,
   open,
   focus,
   names,
@@ -380,6 +390,8 @@ function FieldRow({
   onRemove,
 }: {
   row: FieldDraft;
+  /** The drag handle (#101), first on the Label's line. */
+  handle: ReactNode;
   open: boolean;
   /** Just added: the label takes the focus. */
   focus?: boolean;
@@ -403,9 +415,11 @@ function FieldRow({
   }, [focus]);
   return (
     <div className="grid min-w-0 gap-1 rounded-md border p-1 md:border-0 md:p-0">
-      {/* A drag handle (#101) takes the first slot of this line. */}
       <div className="grid grid-cols-[minmax(0,1fr)_1.75rem_1.75rem] items-center gap-1 md:grid-cols-[minmax(0,1fr)_11.5rem_1.75rem_1.75rem]">
-        <Input ref={labelRef} className="col-span-3 h-8 min-w-0 md:col-span-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value))} />
+        <div className="col-span-3 flex min-w-0 items-center gap-1 md:col-span-1">
+          {handle}
+          <Input ref={labelRef} className="h-8 min-w-0 flex-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value))} />
+        </div>
         <Select value={row.kind} onValueChange={(v) => onChange({ ...row, kind: v as FieldKind })}>
           <SelectTrigger className="h-8 w-full min-w-0" aria-label="Field kind">
             <SelectValue />
@@ -569,10 +583,13 @@ function OptionList({ row, onChange }: { row: FieldDraft; onChange: (d: FieldDra
   return (
     <div className="grid min-w-0 gap-1">
       <Label className="text-xs">Options</Label>
+      <Reorderable ids={row.options.map((_, i) => i)} onMove={(from, to) => onChange(moveOption(row, from, to))}>
       {row.options.map((o, i) => {
         const used = usage[o.value] ?? 0;
         return (
-          <div key={i} className="flex min-w-0 items-center gap-1">
+          // Keyed by place, not value: an unsaved option's value follows its label as it's typed.
+          <ReorderItem key={i} id={i} label={o.label || "option"} className="flex min-w-0 items-center gap-1">{(handle) => <>
+            {handle}
             <Input
               ref={(el) => void (inputs.current[i] = el)}
               className="h-7 min-w-0 flex-1"
@@ -603,9 +620,10 @@ function OptionList({ row, onChange }: { row: FieldDraft; onChange: (d: FieldDra
             >
               <X className="size-3.5" />
             </Button>
-          </div>
+          </>}</ReorderItem>
         );
       })}
+      </Reorderable>
       <Button size="sm" variant="ghost" className="h-7 justify-self-start" onClick={() => add(row.options.length)}>
         <Plus /> Option
       </Button>
