@@ -7,12 +7,13 @@ import { SOURCE, SOURCE_KINDS, sourceKindLabel } from "./types";
  * Notes and Quotes from, without putting anything on. Reading them is always
  * allowed; every Note and Quote operation is this App's.
  */
-export const WORK_TYPE_IDS = ["book", "comic", "movie", "series", "music", "game"] as const;
+export const WORK_TYPE_IDS = ["book", "comic", "manga", "movie", "series", "music", "game"] as const;
 export type WorkTypeId = (typeof WORK_TYPE_IDS)[number];
 
 export const WORK_LABELS: Record<WorkTypeId, { label: string; plural: string; cover: "portrait" | "square" }> = {
   book: { label: "Book", plural: "Books", cover: "portrait" },
   comic: { label: "Comic", plural: "Comics", cover: "portrait" },
+  manga: { label: "Manga", plural: "Manga", cover: "portrait" },
   movie: { label: "Movie", plural: "Movies", cover: "portrait" },
   series: { label: "Series", plural: "Series", cover: "portrait" },
   music: { label: "Album", plural: "Albums", cover: "square" },

@@ -352,7 +352,7 @@ One logged incident of an Offence, an internal Document owned by the Swear Jar A
 _Avoid_: entry (a Stat's), Completion (Life Level's), Spend (Pocket's), transaction (a Ledger fact), penalty, coin
 
 ### Media item
-_Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus **Quotes** (born as the Commonplace book) for Quotes. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry a creator (in the Library, **Authors** — Documents of their own since ADR 0052; a string elsewhere), year, size, cover by URL and an optional **Reason** (who sent me here — offered at add, never required). The old "Studied" mark is gone.
+_Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics, manga), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus **Quotes** (born as the Commonplace book) for Quotes. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry a creator (in the Library, **Authors** — Documents of their own since ADR 0052; a string elsewhere), year, size, cover by URL and an optional **Reason** (who sent me here — offered at add, never required). The old "Studied" mark is gone.
 _Avoid_: media (as a type id or an App — neither exists), title, copy, edition, studied
 
 ### Author
@@ -367,12 +367,20 @@ _Avoid_: works list, catalogue, discography (the Discotheque's word, if it ever 
 Where a work stands with me, in its family's own verbs: **To read / watch / listen / play** (not started), **In progress**, **Done**, **Dropped**. One shelf per work; every family App's Gallery is browsed by shelf. In the Cinema, the Discotheque and the Library, **Done** is one click from any shelf — a film watched, an album heard, a book read — and clicking again undoes it; Marks and the Review survive either way, and in the Library finishing frees the Nightstand Slot, which undoing never takes back (re-slotting is deliberate).
 _Avoid_: status (too generic), backlog, engagement (the internal field name)
 
+### Part
+A numbered piece of a work, for the works made of them: a comic's **Issues**, a manga's or a book's **Chapters**, a series' **Episodes**, an album's **Tracks** — Part is the term, the medium's own word is what the user reads. Owned by the work's family App, belonging to exactly one work. Optional: a work has Parts only once the user tracks them, and a work without them behaves as before; films and games never have Parts. A Part has its number, an optional title typed by hand, its own read (watched, heard) day, its Marks and its Review. A Part exists only once it has something to say — a read day, a Mark, a Review; the rest of the work's run is simply the numbers its size describes. **Caught up to** N marks every Part up to N read *with no day* — "before Lifeline" — in one act, so a work added mid-run never needs its past ticked one by one; nothing of it lands in the Daylog. It is one position on the work — a number, or season and episode where numbering restarts — and catching up again moves it. **Next part** — the lowest unread Part, read today — is the everyday act, one tap from the work on the In progress and Nightstand Cards. Parts die with their work, follow it to another Workspace, and survive a change of medium, only their labels and numbering changing. Progress ("14 of 54") is derived from the Parts, never stored. The work's size is the run as far as it is known: reading or catching up past it raises it, and a blank size is **ongoing** — an end not yet known. The first Part read on an unstarted work starts it, exactly as **Start** does; reading the last known Part *offers* Done and never sets it — a work with no known end never offers. One read day per Part, the latest; rereads are not kept. A Part's Marks never roll up into its work's: an average may be shown beside them, never stored. The Daylog says one line per work per day ("Read 3 chapters of One Piece").
+_Avoid_: issue, chapter, episode, track (each fine as the medium's label, not as the term), item, entry
+
+### Group
+An optional numbered collection of a work's Parts, one level only — a series' **Seasons**, a manga's or a comic's **Volumes**, an album's **Discs**, a book's **Sections**. Like a Part it carries its own Marks and Review, and exists only once it has something to say. Whether Part numbers restart in each Group is the medium's, never the work's: a series' episodes and an album's tracks restart (S2E1), a manga's, a comic's and a book's chapters run on across Volumes. So a restarting Group is declared by its own size ("Season 3 has 8 episodes"), a running-on one by its first Part ("Volume 104 starts at chapter 1045", ending where the next begins) — and declaring it is enough for it to exist. Its Marks are its own, never an average of its Parts'.
+_Avoid_: season, volume, disc (each fine as the medium's label, not as the term), arc (a story's, not a structure's), set
+
 ### Gallery
-A family App's main screen and the view you land on: the wall-to-wall cover grid of everything the App owns, narrowed by Shelf, search and — where the App owns two types (Books|Comics, Movies|Series) — a medium chip. Landing is always on All, never pre-filtered.
+A family App's main screen and the view you land on: the wall-to-wall cover grid of everything the App owns, narrowed by Shelf, search and — where the App owns several types (Books|Comics|Manga, Movies|Series) — a medium chip. Landing is always on All, never pre-filtered.
 _Avoid_: library (an App), grid (a rendering), backlog
 
 ### Nightstand
-Library only, for books and comics: the small capped set of items currently claiming attention — in progress and next up. A Slot is held for the whole time an item is in progress and freed only by finishing or dropping. Caps are fixed in code (books 5, comics 3); no other family has slots. A Nightstand item that isn't owned yet is the instruction to buy it *now* — it heads the Wanted list. Lives in its own tab, never on the Gallery.
+Library only, for books, comics and manga: the small capped set of items currently claiming attention — in progress and next up. A Slot is held for the whole time an item is in progress and freed only by finishing or dropping. Caps are fixed in code (books 5, comics 3, manga 3); no other family has slots. A Nightstand item that isn't owned yet is the instruction to buy it *now* — it heads the Wanted list. Lives in its own tab, never on the Gallery.
 _Avoid_: queue, TBR, wishlist, priority
 
 ### Wanted list
@@ -380,11 +388,11 @@ Every Wanted work of a family that still has **Acquisition** — Library and Arc
 _Avoid_: wishlist (that word hides the buy-now head of the list), cart, shopping list (the Shopping list App's own list)
 
 ### Marks
-Cinema and Discotheque only: what I make of a work, beside where it stands on the Shelf. **Liked** (a heart, on or off) and a **Rating** (one to five whole stars; unrated is its own state, not zero stars). Each is one click on the Gallery tile or the detail; neither implies the other, neither moves the Shelf, and a Shelf move never touches them. Marks are facts about the work, not events: nothing lands in the Daylog, nothing feeds Life Level.
+Cinema, the Discotheque and the Library: what I make of a work, beside where it stands on the Shelf. **Liked** (a heart, on or off) and a **Rating** (one to five whole stars; unrated is its own state, not zero stars). Each is one click on the Gallery tile or the detail; neither implies the other, neither moves the Shelf, and a Shelf move never touches them. Marks are facts about the work, not events: nothing lands in the Daylog, nothing feeds Life Level.
 _Avoid_: score, favourite (say Liked), half-star, vote
 
 ### Review
-Cinema and Discotheque only: my own words about a work — its Document body. One per work, written from the detail, and everything a body gives for free follows: opened as text with the fields as frontmatter, wikilinks, `#tags` counted, Backlinks. Not a Note (a Note is about one thing the work said; a Review is about the work), not a Quote (a passage is the work's words).
+Cinema, the Discotheque and the Library: my own words about a work — its Document body. One per work, written from the detail, and everything a body gives for free follows: opened as text with the fields as frontmatter, wikilinks, `#tags` counted, Backlinks. Not a Note (a Note is about one thing the work said; a Review is about the work), not a Quote (a passage is the work's words).
 _Avoid_: comment, notes (a Note is a Document), diary entry (there is no diary — one Shelf, one Review per work)
 
 ### Playlist

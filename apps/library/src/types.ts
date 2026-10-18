@@ -3,15 +3,17 @@ import { Book, BookOpen, UserPen } from "lucide-react";
 import { ACQUISITION, AUTHOR, ENGAGEMENT, SETTINGS_TYPE } from "./domain/types";
 import { WORK_TYPES, type WorkTypeId } from "./domain/workTypes";
 import { APP_HREF } from "./constants";
+import { libraryParts } from "./parts";
 
 const ACQ_LABELS: Record<string, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
 
 /**
- * The fields books and comics share (ADR 0024): both axes plus the
+ * The fields books, comics and manga share (ADR 0024): both axes plus the
  * Nightstand slot — the reading family keeps everything the old Media model
  * had except Studied. Shelf moves, slots and the auto-stamped days are
- * guarded (ADR 0019).
+ * guarded (ADR 0019). The Marks are plain and the Review is the body
+ * (ADR 0074, as Cinema's — ADR 0035).
  */
 const WORK_FIELDS: FieldDef[] = [
   { key: "authors", label: "Authors", kind: "links", linkRole: AUTHOR, column: true },
@@ -19,6 +21,8 @@ const WORK_FIELDS: FieldDef[] = [
   { key: "size", label: "Size", kind: "number" },
   { key: "acquisition", label: "Owned", kind: "select", options: ACQUISITION.map((v) => ({ value: v, label: ACQ_LABELS[v] })), guarded: true, column: true },
   { key: "engagement", label: "Shelf", kind: "select", options: ENGAGEMENT.map((v) => ({ value: v, label: ENG_LABELS[v] })), guarded: true, column: true },
+  { key: "liked", label: "Liked", kind: "boolean", column: true },
+  { key: "rating", label: "Rating", kind: "number", column: true },
   { key: "reason", label: "Reason", kind: "longtext" },
   { key: "slot", label: "Nightstand slot", kind: "number", guarded: true },
   { key: "coverUrl", label: "Cover URL", kind: "url" },
@@ -28,11 +32,17 @@ const WORK_FIELDS: FieldDef[] = [
   { key: "slottedOn", label: "Slotted on", kind: "date", guarded: true },
   { key: "startedOn", label: "Started on", kind: "date", guarded: true },
   { key: "finishedOn", label: "Finished on", kind: "date", guarded: true },
+  // Parts (ADR 0074): moved through the Parts, never typed.
+  { key: "partsTracked", label: "Parts tracked", kind: "boolean", guarded: true },
+  { key: "caughtUpGroup", label: "Caught up to (group)", kind: "number", guarded: true, hidden: true },
+  { key: "caughtUpPart", label: "Caught up to", kind: "number", guarded: true },
+  { key: "partCount", label: "Chapters", kind: "number" },
 ];
 
 const ICONS: Record<WorkTypeId, { icon: typeof Book; name: string }> = {
   book: { icon: Book, name: "book-open" },
   comic: { icon: BookOpen, name: "book-open" },
+  manga: { icon: BookOpen, name: "book-open" },
 };
 
 /** One Document type per medium (type ids unchanged from Media — no data migration). */
@@ -43,13 +53,15 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t, i) => ({
   icon: ICONS[t.id].icon,
   iconName: ICONS[t.id].name,
   titleRule: "name",
-  body: "none",
+  body: "optional",
   linkable: { subtitle: () => t.label },
   href: () => APP_HREF,
   indexes: ["slot", "externalKey"],
   order: 40 + i,
   builtIn: true,
   fields: WORK_FIELDS,
+  // Its Parts and Groups die with it and follow it to another Workspace (ADR 0074).
+  ...libraryParts.workTypeHooks,
 }));
 
 /**
