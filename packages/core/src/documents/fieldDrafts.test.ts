@@ -4,6 +4,7 @@ import {
   fieldsFromDrafts,
   fieldSummary,
   hasFieldSettings,
+  hasFoldOut,
   newFieldDraft,
   optionValueFrom,
   rekeyField,
@@ -134,6 +135,13 @@ describe("A folded Field row", () => {
 
   it("has settings only for Choice, Multi-choice, Link and Links", () => {
     expect((["select", "multiselect", "link", "links", "text", "list", "geo"] as const).map((k) => hasFieldSettings(k))).toEqual([true, true, true, true, false, false, false]);
+  });
+
+  it("has a fold-out while unsaved, whatever its kind, so its key can be edited", () => {
+    expect(hasFoldOut(newFieldDraft("text", "Tags"))).toBe(true);
+    const [text, choice] = toFieldDrafts([{ key: "met", label: "Met", kind: "text" }, { key: "mood", label: "Mood", kind: "select" }]);
+    expect(hasFoldOut(text)).toBe(false);
+    expect(hasFoldOut(choice)).toBe(true);
   });
 
   it("sums up a Choice's options and a Link's target", () => {
