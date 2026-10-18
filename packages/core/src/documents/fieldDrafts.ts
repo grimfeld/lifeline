@@ -1,4 +1,5 @@
-import { isLinkKind, slugify, type FieldDef, type FieldKind, type FieldOption } from "./types";
+import type { FieldReading, KnownField } from "./knownFields";
+import { isChoiceKind, isLinkKind, slugify, type FieldDef, type FieldKind, type FieldOption } from "./types";
 
 /**
  * The Type editor's Field model (CONTEXT.md "Field", spec #95): a type's
@@ -27,16 +28,23 @@ export interface FieldDraft {
   /** Link / Links target. */
   target: LinkTarget;
   saved: boolean;
+  /** Added from the "+ Field" menu as a Known field: its key and kind are locked from the start (ADR 0078). */
+  asKnown?: boolean;
   /** The Field as loaded (undefined for a new one): everything the draft doesn't edit comes back from it. */
   from?: FieldDef;
 }
 
-const isChoiceKind = (k: FieldKind): boolean => k === "select" || k === "multiselect";
-
 /** Whether a kind has settings of its own — a Choice's options, a Link's target — shown in the row's fold-out. */
 export const hasFieldSettings = (k: FieldKind): boolean => isChoiceKind(k) || isLinkKind(k);
 
-/** Whether a row has a fold-out (⚙): its kind's settings, or — until the type is saved with it — the key, whatever the kind. A Known field has none: key and kind are locked (ADR 0078). */
+/**
+ * Whether a row's key and kind are locked as a Known field (ADR 0078): one
+ * added from the menu, or saved. A plain Field still being typed whose key
+ * happens to match one keeps its key box until it is saved.
+ */
+export const knownFieldLocked = (d: Pick<FieldDraft, "saved" | "asKnown">, reading: FieldReading): boolean => !!reading.known && (d.saved || !!d.asKnown);
+
+/** Whether a row has a fold-out (⚙): its kind's settings, or — until the type is saved with it — the key, whatever the kind. A locked Known field has none (knownFieldLocked). */
 export const hasFoldOut = (d: Pick<FieldDraft, "kind" | "saved">, known = false): boolean => !known && (!d.saved || hasFieldSettings(d.kind));
 
 /** How a folded row names types and Roles. */
@@ -93,6 +101,9 @@ export function toFieldDrafts(fields: FieldDef[]): FieldDraft[] {
 /** A blank draft for a Field being added. */
 export const newFieldDraft = (kind: FieldKind = "text", label = ""): FieldDraft => ({ key: fieldKeyFrom(label), label, kind, options: [], target: { to: "any" }, saved: false });
 
+/** A draft for a Known field picked from the "+ Field" menu: its own key and kind, locked (ADR 0078). */
+export const newKnownFieldDraft = (k: Pick<KnownField, "key" | "kind" | "label">): FieldDraft => ({ ...newFieldDraft(k.kind, k.label), key: k.key, asKnown: true });
+
 /** A new label; a new Field's key follows it until typed by hand. A saved Field's key never moves, nor a Known field's (ADR 0078). */
 export function relabelField(d: FieldDraft, label: string, known = false): FieldDraft {
   const follows = !d.saved && !known && d.key === fieldKeyFrom(d.label);
@@ -102,7 +113,7 @@ export function relabelField(d: FieldDraft, label: string, known = false): Field
 /** A key typed by hand — only until the type is saved with the Field. */
 export const rekeyField = (d: FieldDraft, key: string): FieldDraft => (d.saved ? d : { ...d, key });
 
-const sameList =(a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 function linkProps(d: FieldDraft): Pick<FieldDef, "linkType" | "linkRole"> {
   const was = d.from;
@@ -120,11 +131,20 @@ export function fieldFromDraft(d: FieldDraft): FieldDef | undefined {
   if (!d.key.trim()) return undefined;
   const key = d.saved ? d.key : fieldKeyFrom(d.key) || d.key.trim();
   const label = d.label.trim() || d.key.trim();
-  const { key: _k, label: _l, kind: _kind, options: wasOptions, linkType: _t, linkRole: _r, ...rest } = d.from ?? ({} as Partial<FieldDef>);
-  const f: FieldDef = { ...rest, key, label, kind: d.kind };
-  const sameKind = d.from?.kind === d.kind;
-  if (isChoiceKind(d.kind) ? d.options.length > 0 || wasOptions !== undefined : sameKind && wasOptions !== undefined)
-    f.options = isChoiceKind(d.kind) ? d.options.filter((o) => o.saved || (o.label.trim() && o.value)).map((o): FieldOption => ({ value: o.value, label: o.label.trim() || o.value })) : wasOptions;
+  const was = d.from;
+  const sameKind = was?.kind === d.kind;
+  // Every property the draft doesn't edit comes back from the Field as loaded; options and link target are worked out below.
+  const f: FieldDef = { ...was, key, label, kind: d.kind };
+  delete f.options;
+  delete f.linkType;
+  delete f.linkRole;
+  if (isChoiceKind(d.kind)) {
+    // An option left blank is dropped; a Choice that had options keeps the (possibly empty) list.
+    const options = d.options.filter((o) => o.saved || (o.label.trim() && o.value)).map((o): FieldOption => ({ value: o.value, label: o.label.trim() || o.value }));
+    if (d.options.length > 0 || was?.options !== undefined) f.options = options;
+  } else if (sameKind && was?.options !== undefined) {
+    f.options = was.options;
+  }
   if (isLinkKind(d.kind) || sameKind) Object.assign(f, linkProps(d));
   return f;
 }
@@ -167,7 +187,7 @@ export function renameOption(d: FieldDraft, i: number, label: string): FieldDraf
 export const removeOption = (d: FieldDraft, i: number): FieldDraft => ({ ...d, options: d.options.filter((_, j) => j !== i) });
 
 /** A list with item `from` moved to position `to` (spec #95 reorder): the form's Field order, a picker's option order. Out of range → the list as is. */
-export function moveDraft<T>(list: readonly T[], from: number, to: number): T[] {
+export function moveItem<T>(list: readonly T[], from: number, to: number): T[] {
   if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list as T[];
   const next = [...list];
   next.splice(to, 0, ...next.splice(from, 1));
@@ -176,6 +196,6 @@ export function moveDraft<T>(list: readonly T[], from: number, to: number): T[] 
 
 /** A Choice's options with option `from` moved to `to` — the order its picker shows. */
 export const moveOption = (d: FieldDraft, from: number, to: number): FieldDraft => {
-  const options = moveDraft(d.options, from, to);
+  const options = moveItem(d.options, from, to);
   return options === d.options ? d : { ...d, options };
 };

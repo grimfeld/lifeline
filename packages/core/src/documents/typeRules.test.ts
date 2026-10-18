@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldChangeProblems, fitsKind, kindRefusals, optionUsage, removedFieldValues, reservedKeyProblems, reservedKeyRefusal, typeDeleteRefusal } from "./typeRules";
+import { fieldChangeProblems, fitsKind, kindRefusals, optionUsage, removedFieldValues, ownKeyProblems, ownKeyRefusal, typeDeleteRefusal } from "./typeRules";
 import type { Document, FieldDef } from "./types";
 
 const doc = (fields: Record<string, unknown>): Document => ({ id: "x", type: "person", title: "P", tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0, ...fields }) as Document;
@@ -22,6 +22,15 @@ describe("fitsKind", () => {
     expect(fitsKind(["a"], { kind: "multiselect", options: [{ value: "a", label: "A" }] })).toBe(true);
     expect(fitsKind("id1", { kind: "links" })).toBe(false);
     expect(fitsKind([51.5, -0.1], { kind: "geo" })).toBe(true);
+  });
+
+  it("takes only one line for a URL or a Link, and for each of a Links' ids", () => {
+    expect(fitsKind("https://a.example", { kind: "url" })).toBe(true);
+    expect(fitsKind("see\nhttps://a.example", { kind: "url" })).toBe(false);
+    expect(fitsKind("ann", { kind: "link" })).toBe(true);
+    expect(fitsKind("ann\nbob", { kind: "link" })).toBe(false);
+    expect(fitsKind(["ann", "bob"], { kind: "links" })).toBe(true);
+    expect(fitsKind(["ann\nbob"], { kind: "links" })).toBe(false);
   });
 });
 
@@ -77,38 +86,37 @@ describe("typeDeleteRefusal", () => {
   });
 });
 
-describe("reservedKeyProblems", () => {
+describe("ownKeyProblems", () => {
   const f = (key: string, label = key): FieldDef => ({ key, label, kind: "text" });
 
   it("refuses a new Field keyed with one of a Document's own keys, saying why", () => {
-    expect(reservedKeyProblems([], [f("tags", "Tags"), f("mood")])).toEqual([{ key: "tags", label: "Tags", refused: true, message: "`tags` — every Document already has Tags" }]);
+    expect(ownKeyProblems([], [f("tags", "Tags"), f("mood")])).toEqual([{ key: "tags", label: "Tags", refused: true, message: "`tags` — every Document already has Tags" }]);
   });
 
   it("covers every Document key, Roles and Tallies", () => {
     const keys = ["id", "type", "title", "body", "tags", "folder", "createdAt", "updatedAt", "deleted", "workspace", "roles", "tallies"];
-    expect(reservedKeyProblems([], keys.map((k) => f(k))).map((p) => p.key)).toEqual(keys);
-    expect(reservedKeyProblems([], [f("tag"), f("titles"), f("role")])).toEqual([]);
+    expect(ownKeyProblems([], keys.map((k) => f(k))).map((p) => p.key)).toEqual(keys);
+    expect(ownKeyProblems([], [f("tag"), f("titles"), f("role")])).toEqual([]);
   });
 
   it("only warns about a saved Field that already collides, so it still saves", () => {
-    const [p] = reservedKeyProblems([f("folder", "Folder")], [f("folder", "Shelf")]);
+    const [p] = ownKeyProblems([f("folder", "Folder")], [f("folder", "Shelf")]);
     expect(p).toMatchObject({ key: "folder", label: "Shelf", refused: false });
     expect(p.message).toContain("every Document already has a Folder");
   });
 
-  it("gives the store's refusal only for new reserved keys", () => {
-    expect(reservedKeyRefusal([f("title")], [f("title"), f("mood")])).toBeUndefined();
-    expect(reservedKeyRefusal([f("title")], [f("title"), f("body", "Notes")])).toBe("Can't add “Notes”: `body` — every Document already has a body");
+  it("gives the store's refusal only for a new Field keyed with a Document's own key", () => {
+    expect(ownKeyRefusal([f("title")], [f("title"), f("mood")])).toBeUndefined();
+    expect(ownKeyRefusal([f("title")], [f("title"), f("body", "Notes")])).toBe("Can't add “Notes”: `body` — every Document already has a body");
   });
 });
 
 describe("kindRefusals", () => {
-  const kinds = ["text", "longtext", "number", "list", "select"] as const;
   const notes = { key: "notes", kind: "text" as const, options: [], saved: true };
 
   it("refuses, with a reason, the kinds a saved Field's values don't fit", () => {
     const docs = [doc({ notes: "two\nlines" }), doc({ notes: "one" }), doc({})];
-    const r = kindRefusals(notes, kinds, docs);
+    const r = kindRefusals(notes, docs);
     expect(r.number).toBe("2 Documents hold a value it can't take");
     expect(r.list).toBe("2 Documents hold a value it can't take");
     expect(r.longtext).toBeUndefined();
@@ -116,16 +124,16 @@ describe("kindRefusals", () => {
 
   it("checks Choice kinds against the draft's options, offering none yet as open", () => {
     const docs = [doc({ notes: "home" }), doc({ notes: "work" })];
-    expect(kindRefusals(notes, kinds, docs).select).toBeUndefined();
+    expect(kindRefusals(notes, docs).select).toBeUndefined();
     const some = { ...notes, options: [{ value: "home" }] };
-    expect(kindRefusals(some, kinds, docs).select).toBe("1 Document holds a choice its options don't offer");
-    expect(kindRefusals({ ...some, options: [{ value: "home" }, { value: "work" }] }, kinds, docs).select).toBeUndefined();
+    expect(kindRefusals(some, docs).select).toBe("1 Document holds an option its Choice doesn't offer");
+    expect(kindRefusals({ ...some, options: [{ value: "home" }, { value: "work" }] }, docs).select).toBeUndefined();
   });
 
   it("leaves every kind open on an unsaved Field and never refuses its current kind", () => {
     const docs = [doc({ notes: "two\nlines" })];
-    expect(kindRefusals({ ...notes, saved: false }, kinds, docs)).toEqual({});
-    expect(kindRefusals(notes, kinds, docs).text).toBeUndefined();
+    expect(kindRefusals({ ...notes, saved: false }, docs)).toEqual({});
+    expect(kindRefusals(notes, docs).text).toBeUndefined();
   });
 });
 

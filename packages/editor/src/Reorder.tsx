@@ -13,7 +13,7 @@ const underPointer: CollisionDetection = (args) => {
  * Put a list in order (spec #95, #101): each item has a handle — dragged with
  * a mouse on the desk, with a finger on a phone (the handle doesn't scroll the
  * page), or moved one step with ↑/↓ once focused. `onMove(from, to)` gets the
- * indexes; the caller moves its own list (core `moveDraft`).
+ * indexes; the caller moves its own list (core `moveItem`).
  */
 export function Reorderable({ ids, onMove, children }: { ids: (string | number)[]; onMove: (from: number, to: number) => void; children: ReactNode }) {
   const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 4 } }), useSensor(TouchSensor, { activationConstraint: { distance: 4 } }));

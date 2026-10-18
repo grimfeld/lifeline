@@ -4,7 +4,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, DOCUMENT_TYPES, type SyncedRecord } from "../data/db";
 import { put, remove } from "../data/repo";
 import { newId } from "../ids";
-import { reservedKeyRefusal } from "./typeRules";
+import { ownKeyRefusal } from "./typeRules";
 import type { BodyPolicy, DocumentTypeDef, FieldDef, ReportSetting } from "./types";
 
 /**
@@ -167,7 +167,7 @@ export function useUserDocumentTypes(): DocumentTypeRecord[] {
 export async function saveDocumentType(input: Omit<DocumentTypeRecord, "id" | "updatedAt" | "deleted"> & { id?: string }): Promise<DocumentTypeRecord> {
   const { id, ...rest } = input;
   const before = id ? await db().collection<DocumentTypeRecord>(DOCUMENT_TYPES).get(id) : undefined;
-  const refusal = reservedKeyRefusal(Array.isArray(before?.fields) ? before.fields : [], Array.isArray(rest.fields) ? rest.fields : []);
+  const refusal = ownKeyRefusal(Array.isArray(before?.fields) ? before.fields : [], Array.isArray(rest.fields) ? rest.fields : []);
   if (refusal) throw new Error(refusal);
   const rec: DocumentTypeRecord = { ...rest, id: id ?? newId(), updatedAt: "", deleted: 0 };
   await put<DocumentTypeRecord>(DOCUMENT_TYPES, rec);

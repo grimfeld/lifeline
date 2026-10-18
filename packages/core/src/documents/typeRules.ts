@@ -8,17 +8,19 @@ import { DOCUMENT_COMMON_KEYS, ROLES_KEY, type Document, type FieldDef, type Fie
 
 const isEmpty = (v: unknown): boolean => v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
 const isStrings = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
+const isLine = (v: unknown): v is string => typeof v === "string" && !v.includes("\n");
 
 /** Whether a stored value is a valid value of a Field of this kind. Empty fits every kind. */
 export function fitsKind(v: unknown, f: Pick<FieldDef, "kind" | "options">): boolean {
   if (isEmpty(v)) return true;
   const allowed = f.options ? new Set(f.options.map((o) => o.value)) : undefined;
   switch (f.kind) {
+    // A URL and a Link's id are one line, like a Text.
     case "text":
-      return typeof v === "string" && !v.includes("\n");
-    case "longtext":
     case "url":
     case "link":
+      return isLine(v);
+    case "longtext":
       return typeof v === "string";
     case "number":
       return typeof v === "number" && Number.isFinite(v);
@@ -33,8 +35,9 @@ export function fitsKind(v: unknown, f: Pick<FieldDef, "kind" | "options">): boo
     case "multiselect":
       return isStrings(v) && (!allowed || v.every((x) => allowed.has(x)));
     case "list":
-    case "links":
       return isStrings(v);
+    case "links":
+      return Array.isArray(v) && v.every(isLine);
     case "geo":
       return Array.isArray(v) && v.length === 2 && v.every((x) => typeof x === "number" && Number.isFinite(x));
     default:
@@ -42,7 +45,8 @@ export function fitsKind(v: unknown, f: Pick<FieldDef, "kind" | "options">): boo
   }
 }
 
-const KIND_LABEL: Record<string, string> = {
+/** The kinds a user's Field can have, in the Kind dropdown's order, each by its label (CONTEXT.md "Field"). */
+const KIND_LABEL: Record<Exclude<FieldKind, "json">, string> = {
   text: "Text",
   longtext: "Long text",
   number: "Number",
@@ -57,7 +61,8 @@ const KIND_LABEL: Record<string, string> = {
   link: "Link to Document",
   links: "Links to Documents",
 };
-export const kindLabel = (k: FieldKind): string => KIND_LABEL[k] ?? k;
+export const FIELD_KINDS = Object.keys(KIND_LABEL) as readonly FieldKind[];
+export const kindLabel = (k: FieldKind): string => (KIND_LABEL as Record<string, string>)[k] ?? k;
 
 /**
  * Why a type's new Fields cannot be saved over its old ones: a Field is fixed
@@ -95,7 +100,6 @@ export function fieldChangeProblems(before: readonly FieldDef[], after: readonly
  */
 export function kindRefusals(
   d: { key: string; kind: FieldKind; options: readonly Pick<FieldOption, "value">[]; saved: boolean },
-  kinds: readonly FieldKind[],
   docs: readonly Document[],
 ): Partial<Record<FieldKind, string>> {
   const out: Partial<Record<FieldKind, string>> = {};
@@ -104,12 +108,12 @@ export function kindRefusals(
   // No options yet means none to check against (an empty list is never saved).
   const options = d.options.length ? d.options.map((o) => ({ value: o.value, label: o.value })) : undefined;
   const holds = (n: number) => `${n} Document${n === 1 ? " holds" : "s hold"}`;
-  for (const kind of kinds) {
+  for (const kind of FIELD_KINDS) {
     if (kind === d.kind) continue;
     const misfits = values.filter((v) => !fitsKind(v, { kind, options })).length;
     if (!misfits) continue;
     const offPicker = options && values.every((v) => fitsKind(v, { kind }));
-    out[kind] = offPicker ? `${holds(misfits)} a choice its options don't offer` : `${holds(misfits)} a value it can't take`;
+    out[kind] = offPicker ? `${holds(misfits)} an option its Choice doesn't offer` : `${holds(misfits)} a value it can't take`;
   }
   return out;
 }
@@ -148,11 +152,11 @@ export function typeDeleteRefusal(label: string, count: TypeDocumentCount): stri
 
 /**
  * A Document's own keys, which are never Field keys (spec #95): a Field keyed
- * with one would collide with the Document's own value. `tallies` is the
- * Core-reserved field of contracts/tallying.ts (TALLIES_FIELD), named here so
- * the rule stays pure.
+ * with one would collide with the Document's own value. Beyond the common
+ * keys: the Roles it wears and Core's `tallies` (contracts/tallying.ts
+ * TALLIES_FIELD, named here so the rule stays pure).
  */
-const RESERVED_KEY_NAME: Record<string, string> = {
+const OWN_KEY_NAME: Record<string, string> = {
   id: "an id",
   type: "a type",
   title: "a title",
@@ -166,12 +170,12 @@ const RESERVED_KEY_NAME: Record<string, string> = {
   [ROLES_KEY]: "Roles",
   tallies: "Tallies",
 };
-export const RESERVED_FIELD_KEYS: readonly string[] = [...DOCUMENT_COMMON_KEYS, ROLES_KEY, "tallies"];
+export const DOCUMENT_OWN_KEYS: readonly string[] = [...DOCUMENT_COMMON_KEYS, ROLES_KEY, "tallies"];
 
-export const isReservedFieldKey = (key: string): boolean => RESERVED_FIELD_KEYS.includes(key);
+export const isDocumentOwnKey = (key: string): boolean => DOCUMENT_OWN_KEYS.includes(key);
 
 /** A Field whose key is one of a Document's own keys: `refused` when it is new, only warned about when already saved. */
-export interface ReservedKeyProblem {
+export interface OwnKeyProblem {
   key: string;
   label: string;
   refused: boolean;
@@ -179,19 +183,19 @@ export interface ReservedKeyProblem {
 }
 
 /** The Fields of `after` keyed with a Document's own key; a key already in `before` (saved) is kept with a warning. */
-export function reservedKeyProblems(before: readonly FieldDef[], after: readonly FieldDef[]): ReservedKeyProblem[] {
+export function ownKeyProblems(before: readonly FieldDef[], after: readonly FieldDef[]): OwnKeyProblem[] {
   const saved = new Set(before.map((f) => f.key));
   return after
-    .filter((f) => isReservedFieldKey(f.key))
+    .filter((f) => isDocumentOwnKey(f.key))
     .map((f) => {
-      const why = `\`${f.key}\` — every Document already has ${RESERVED_KEY_NAME[f.key]}`;
+      const why = `\`${f.key}\` — every Document already has ${OWN_KEY_NAME[f.key]}`;
       const refused = !saved.has(f.key);
       return { key: f.key, label: f.label, refused, message: refused ? why : `${why}: this Field's values clash with it — add a new Field and move them` };
     });
 }
 
-/** Why the type store refuses these Fields (a new reserved-key Field), or undefined when it can save them. */
-export function reservedKeyRefusal(before: readonly FieldDef[], after: readonly FieldDef[]): string | undefined {
-  const p = reservedKeyProblems(before, after).find((x) => x.refused);
+/** Why the type store refuses these Fields (a new Field keyed with a Document's own key), or undefined when it can save them. */
+export function ownKeyRefusal(before: readonly FieldDef[], after: readonly FieldDef[]): string | undefined {
+  const p = ownKeyProblems(before, after).find((x) => x.refused);
   return p && `Can't add “${p.label}”: ${p.message}`;
 }

@@ -1,4 +1,4 @@
-import { kindLabel } from "./typeRules";
+import { FIELD_KINDS, kindLabel } from "./typeRules";
 import type { FieldKind } from "./types";
 
 /**
@@ -14,20 +14,23 @@ export interface FieldKindChoice {
   note: string;
 }
 
-const NOTES: [FieldKind, string][] = [
-  ["text", "One line of text"],
-  ["longtext", "Several lines of text"],
-  ["number", "A number"],
-  ["boolean", "A tick box"],
-  ["date", "A day — adds a calendar layout to its Base, not the Calendar app"],
-  ["datetime", "A day and a time — adds a calendar layout to its Base, not the Calendar app"],
-  ["select", "One of a list of options — adds a board layout to its Base"],
-  ["multiselect", "Any of a list of options"],
-  ["url", "A web address — can be its Base's gallery image"],
-  ["list", "Several short values"],
-  ["link", "One Document — a backlink on it and an edge in the Graph"],
-  ["links", "Several Documents — backlinks on them and edges in the Graph"],
-];
+/** The plain kinds — every Field kind but geo, offered only as the Coordinates Known field (ADR 0078). */
+type PlainKind = Exclude<FieldKind, "geo" | "json">;
 
-/** The plain kinds, in the Kind dropdown's order — all but geo, offered only as the Coordinates Known field (ADR 0078). */
-export const ADD_FIELD_KINDS: readonly FieldKindChoice[] = NOTES.map(([kind, note]) => ({ kind, label: kindLabel(kind), note }));
+const NOTES: Record<PlainKind, string> = {
+  text: "One line of text",
+  longtext: "Several lines of text",
+  number: "A number",
+  boolean: "A tick box",
+  date: "A day — adds a calendar layout to its Base, not the Calendar app",
+  datetime: "A day and a time — adds a calendar layout to its Base, not the Calendar app",
+  select: "One of a list of options — adds a board layout to its Base",
+  multiselect: "Any of a list of options",
+  url: "A web address — can be its Base's gallery image",
+  list: "Several short values",
+  link: "One Document — a backlink on it and an edge in the Graph",
+  links: "Several Documents — backlinks on them and edges in the Graph",
+};
+
+/** The plain kinds in the Kind dropdown's order (FIELD_KINDS), each with its note. */
+export const ADD_FIELD_KINDS: readonly FieldKindChoice[] = FIELD_KINDS.filter((k): k is PlainKind => k in NOTES).map((kind) => ({ kind, label: kindLabel(kind), note: NOTES[kind] }));
