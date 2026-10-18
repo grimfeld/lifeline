@@ -7,6 +7,7 @@ import {
   backgroundApps,
   ensureDefaultWorkspace,
   frames,
+  isDemo,
   screenRoute,
   screensOf,
   useCurrentWorkspaceId,
@@ -31,7 +32,7 @@ import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
 import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
-import { lastPlace, useResume } from "./nav/resume";
+import { FALLBACK_PLACE, lastPlace, useResume } from "./nav/resume";
 import { PeekHost } from "./peek/PeekHost";
 import { SelectionIntake } from "./intake/SelectionIntake";
 
@@ -148,7 +149,8 @@ function Places() {
         .map((s) => (
           <Route key={`redirect-${s.id}`} path={`/app/${s.path}`} element={<Navigate to={screenRoute(s)} replace />} />
         ))}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Not `/`: the unknown path was just remembered as the last place, and resuming it would loop. */}
+      <Route path="*" element={<Navigate to={FALLBACK_PLACE} replace />} />
     </Routes>
   );
 }
@@ -186,7 +188,8 @@ export default function App() {
         <PeekHost />
         <SelectionIntake />
         <PrivateDialogs />
-        <AccountDialogs />
+        {/* The Demo never signs in (ADR 0077): no sign-in, no signed-out notice, no account switch. */}
+        {!isDemo() && <AccountDialogs />}
         <Toaster position="bottom-right" />
       </div>
     </PushProvider>
