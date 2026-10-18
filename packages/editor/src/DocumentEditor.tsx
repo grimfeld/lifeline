@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { useOpenDocument } from "./openDocument";
+import { useOpenLinkRef } from "./openDocument";
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, cn, toast } from "@lifeline/ui";
 import {
   isLinkable,
   documentPanels,
   basePath,
   displayTitle,
-  docHref,
   documentToText,
   effectiveTags,
   extractProseTags,
@@ -29,10 +28,8 @@ import {
   wornRoles,
   writeGeo,
   type Document,
-  openPrivateDialog,
   type DocumentTypeDef,
   type LinkIndex,
-  type LinkRef,
 } from "@lifeline/core";
 import { BookOpen, Code2, Shapes, Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Pencil, SlidersHorizontal, Table2, Trash2 } from "lucide-react";
 import { MarkdownEditor } from "./MarkdownEditor";
@@ -49,6 +46,8 @@ export interface DocumentEditorProps {
   index: LinkIndex;
   autoFocus?: boolean;
   showPanel?: boolean;
+  /** False when the host shows the links itself (the Journal's side column): no panel and no toggle for one. */
+  linksPanel?: boolean;
   /** The day a daylog fence defaults to (a daily note's date). */
   docDate?: string | null;
   /** What to do with an unresolved link the user opens. Default: create a `note` and open it. */
@@ -75,9 +74,8 @@ export interface DocumentEditorProps {
  * the links panel. Saves are debounced. Text mode shows the frontmatter
  * projection; edits to guarded fields there are reverted with a notice.
  */
-export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn, minimal = false }: DocumentEditorProps) {
+export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, linksPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn, minimal = false }: DocumentEditorProps) {
   const navigate = useNavigate();
-  const openDoc = useOpenDocument();
   const isMobile = useIsMobile();
   const [panelOpen, setPanelOpen] = useState(showPanel);
   /** Phone: the panel is a right sheet, not a column — it starts closed whatever `showPanel` says. */
@@ -152,22 +150,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const openRef = useCallback(
-    (ref: LinkRef, name: string) => {
-      if (ref.kind === "doc") {
-        const d = index.byId.get(ref.id);
-        if (d) openDoc(d);
-        return;
-      }
-      if (ref.kind === "locked") return openPrivateDialog("unlock");
-      if (onCreateUnresolved) return onCreateUnresolved(name);
-      void putDocument({ type: "thought", title: name, body: "" }).then((n) => {
-        toast.success(`Created “${name}”`);
-        navigate(docHref(n));
-      });
-    },
-    [index, navigate, openDoc, onCreateUnresolved],
-  );
+  const openRef = useOpenLinkRef(index, onCreateUnresolved);
   const context = useMemo(() => ({ docDate, openRef }), [docDate, openRef]);
 
   const stored = typeof doc.body === "string" ? doc.body : "";
@@ -207,7 +190,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
    *   not a wikilink target (a Template) has none of.
    */
   const hasFields = fields.some((f) => !f.hidden);
-  const hasPanel = isLinkable(def) || !!def?.locatable;
+  const hasPanel = linksPanel && (isLinkable(def) || !!def?.locatable);
   const fieldValues = useMemo(() => {
     const out: Record<string, unknown> = {};
     for (const f of fields) out[f.key] = doc[f.key];
