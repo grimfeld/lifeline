@@ -11,6 +11,18 @@ pnpm --filter @lifeline/shell test:e2e -- --project=mobile -g Tasks  # one scree
 It is not in CI (about 13 minutes for both widths): run it locally before
 pushing a change that touches a screen.
 
+## The Demo
+
+`demo.spec.ts` runs in its own `demo` project, against its own dev server
+(port 1422, started with `VITE_DEMO=1`) and a fresh, empty browser store — it
+does not use the layout seed. Each case runs at phone (360px) and desktop
+(1280px) width. Run it before pushing a change that touches the Demo or the
+shell's sign-in and sync surfaces (ADR 0077).
+
+```sh
+pnpm --filter @lifeline/shell test:e2e -- --project=demo
+```
+
 - `seed.setup.ts` runs first: `support/seed.ts` runs every headless Command,
   gives every Document type a Document with every Field filled, and places
   every Card on one Screen — all read from the registry, so new types, Fields,
