@@ -111,9 +111,20 @@ export async function seedInPage(arg: { coreUrl: string; longWord: string }): Pr
   await runCommands(false);
 
   // Two user-defined types homed in the Journal, so its Types page is checked
-  // holding one (filled below like any type) and one left empty.
+  // holding one (filled below like any type) and one left empty. The first's
+  // Choice and Links carry long option and type labels for the Type editor.
   const userTypes = [
-    { typeId: "e2eperson", label: long("People"), fields: [{ key: "born", label: long("Born"), kind: "date" }, { key: "aliases", label: "Aliases", kind: "list" }] },
+    {
+      typeId: "e2eperson",
+      label: long("People"),
+      fields: [
+        { key: "born", label: long("Born"), kind: "date" },
+        { key: "aliases", label: "Aliases", kind: "list" },
+        { key: "mood", label: long("Mood"), kind: "select", options: [{ value: "home", label: long("At home") }, { value: arg.longWord, label: arg.longWord }] },
+        { key: "met", label: long("Met at"), kind: "links", linkType: ["e2eperson", "e2eempty"] },
+        { key: "favourite", label: long("Favourite author"), kind: "link", linkRole: "author" },
+      ],
+    },
     { typeId: "e2eempty", label: long("Places"), fields: [] },
   ];
   for (const t of userTypes) await core.saveDocumentType({ ...t, icon: "user", folder: "", body: "optional", linkable: true, module: "journal", order: 0 });

@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { fieldsFromDrafts, newFieldDraft, optionsFromText, optionsText, optionValueFrom, toFieldDrafts, type LinkTarget } from "./fieldDrafts";
+import {
+  addOption,
+  fieldsFromDrafts,
+  fieldSummary,
+  hasFieldSettings,
+  newFieldDraft,
+  optionValueFrom,
+  rekeyField,
+  relabelField,
+  removeOption,
+  renameOption,
+  toFieldDrafts,
+  type FieldDraft,
+  type LinkTarget,
+} from "./fieldDrafts";
 import type { FieldDef } from "./types";
 
 const roundTrip = (fields: FieldDef[]) => fieldsFromDrafts(toFieldDrafts(fields));
@@ -80,15 +94,56 @@ describe("Choice options", () => {
     expect(fieldsFromDrafts([relabelled])[0].options).toEqual([{ value: "home", label: "At home" }]);
   });
 
-  it("reads and writes the editor's `value=Label` text unchanged", () => {
-    const options = [{ value: "home", label: "Home" }, { value: "out", label: "Eating out" }];
-    expect(optionsText(options)).toBe("home=Home, out=Eating out");
-    expect(optionsText([{ value: "a", label: "a" }])).toBe("a");
-    expect(optionsFromText("home=Home, out=Eating out ,, b").map(({ value, label }) => ({ value, label }))).toEqual([...options, { value: "b", label: "b" }]);
+  const mood = () => toFieldDrafts([{ key: "mood", label: "Mood", kind: "select", options: [{ value: "home", label: "Home" }] }])[0];
+  const saved = (d: FieldDraft) => fieldsFromDrafts([d])[0].options;
+
+  it("adds an option whose value follows its label until saved", () => {
+    const d = renameOption(addOption(mood()), 1, "Eating out");
+    expect(saved(d)).toEqual([{ value: "home", label: "Home" }, { value: "eating_out", label: "Eating out" }]);
+    expect(saved(renameOption(addOption(mood(), "Home"), 1, "Home"))).toEqual([{ value: "home", label: "Home" }, { value: "home_2", label: "Home" }]);
   });
 
-  it("marks options already saved on the Field as saved", () => {
-    const [d] = toFieldDrafts([{ key: "mood", label: "Mood", kind: "select", options: [{ value: "home", label: "Home" }] }]);
-    expect(optionsFromText("home=Home, new", d.options).map((o) => o.saved)).toEqual([true, false]);
+  it("renames a saved option's label only", () => {
+    expect(saved(renameOption(mood(), 0, "At home"))).toEqual([{ value: "home", label: "At home" }]);
+  });
+
+  it("removes an option, and leaves out one with no label yet", () => {
+    expect(saved(removeOption(addOption(mood(), "Out"), 0))).toEqual([{ value: "out", label: "Out" }]);
+    expect(saved(addOption(mood()))).toEqual([{ value: "home", label: "Home" }]);
+  });
+});
+
+describe("A Field's key", () => {
+  it("follows a new Field's label", () => {
+    const d = relabelField(relabelField(newFieldDraft(), "Met"), "Met at");
+    expect(d.key).toBe("met_at");
+    expect(d.label).toBe("Met at");
+  });
+
+  it("stops following once typed by hand, and can be typed until saved", () => {
+    const d = relabelField(rekeyField(relabelField(newFieldDraft(), "Met"), "where"), "Met at");
+    expect(d.key).toBe("where");
+    const [saved] = toFieldDrafts([{ key: "met", label: "Met", kind: "text" }]);
+    expect(rekeyField(saved, "other").key).toBe("met");
+    expect(relabelField(saved, "Met at").key).toBe("met");
+  });
+});
+
+describe("A folded Field row", () => {
+  const names = { typeLabel: (id: string) => ({ person: "Person", place: "Place" })[id] ?? id, roleLabel: (id: string) => (id === "author" ? "Author" : id) };
+
+  it("has settings only for Choice, Multi-choice, Link and Links", () => {
+    expect((["select", "multiselect", "link", "links", "text", "list", "geo"] as const).map((k) => hasFieldSettings(k))).toEqual([true, true, true, true, false, false, false]);
+  });
+
+  it("sums up a Choice's options and a Link's target", () => {
+    const opts = (n: number) => Array.from({ length: n }, (_, i) => ({ value: `v${i}`, label: `V${i}`, saved: false }));
+    expect(fieldSummary({ ...newFieldDraft("select"), options: opts(3) }, names)).toBe("3 options");
+    expect(fieldSummary({ ...newFieldDraft("multiselect"), options: opts(1) }, names)).toBe("1 option");
+    expect(fieldSummary(newFieldDraft("select"), names)).toBe("No options");
+    expect(fieldSummary(newFieldDraft("link"), names)).toBe("→ Any type");
+    expect(fieldSummary({ ...newFieldDraft("links"), target: { to: "types", types: ["person", "place"] } }, names)).toBe("→ Person, Place");
+    expect(fieldSummary({ ...newFieldDraft("link"), target: { to: "role", role: "author" } }, names)).toBe("→ Author (Role)");
+    expect(fieldSummary(newFieldDraft("text"), names)).toBe("");
   });
 });
