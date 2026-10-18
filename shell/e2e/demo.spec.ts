@@ -18,6 +18,34 @@ async function open(page: Page, path: string): Promise<void> {
   await page.waitForTimeout(1_000);
 }
 
+/**
+ * Today on the Calendar's Upcoming list — the day-by-day agenda a fresh phone
+ * opens on. Its label is the browser's own human date for today, so it follows
+ * a pinned clock.
+ */
+async function todayOnUpcoming(page: Page) {
+  const label = await page.evaluate(() => {
+    const n = new Date();
+    return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())).toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+  });
+  return page.getByRole("region", { name: label, exact: true });
+}
+
+/** Today's agenda holds an Event (a timed or all-day row) and work to tick (Tasks, Chores). */
+async function expectBusyToday(page: Page): Promise<void> {
+  await open(page, "/calendar?view=upcoming");
+  const today = await todayOnUpcoming(page);
+  await expect(today).toBeVisible();
+  await expect(today.getByText(/^(All day|\d{1,2}:\d{2}.*)$/).first()).toBeVisible();
+  await expect(today.getByRole("button", { name: /^Complete / })).not.toHaveCount(0);
+  expect(await today.getByRole("button", { name: /^Complete / }).count(), "work to tick today").toBeGreaterThanOrEqual(2);
+}
+
 /** Every trace a SyncBadge leaves: the sign-in prompt, the sync states, the erase row. */
 function syncBadges(page: Page) {
   return page.getByText(/Sign in to sync|Erase local data|^Synced$|Sync error|Not signed in/);
@@ -83,6 +111,45 @@ for (const w of WIDTHS) {
         await open(page, path);
         expect(new URL(page.url()).pathname, `${path} redirects away`).not.toMatch(/mail/);
       }
+    });
+
+    test("first open puts tasks, chores and events on today", async ({ page }) => {
+      await expectBusyToday(page);
+
+      await open(page, "/app/tasks");
+      await expect(page.getByRole("heading", { name: /^Today/ })).toBeVisible();
+      await open(page, "/app/chores");
+      await expect(page.getByRole("heading", { name: "Due today", exact: true })).toBeVisible();
+
+      await open(page, "/calendar?view=day");
+      const day = await page.evaluate(() => {
+        const n = new Date();
+        return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+      });
+      await expect(page.locator(`[data-col="${day}"]`)).not.toHaveText("");
+    });
+
+    test("an edit survives a reload, and the reload does not re-seed", async ({ page }) => {
+      await open(page, "/app/tasks");
+      // One tick per open Task on the Open list: a re-seed would add a second set.
+      const ticks = page.getByTitle("Mark done");
+      await expect(ticks).not.toHaveCount(0);
+      const seeded = await ticks.count();
+      await page.getByPlaceholder(/^Quick add/).fill("Return the library card");
+      await page.keyboard.press("Enter");
+      await expect(page.getByText("Return the library card", { exact: true })).toBeVisible();
+      await expect(ticks).toHaveCount(seeded + 1);
+
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      await expect(page.getByText("Return the library card", { exact: true })).toBeVisible();
+      await page.waitForTimeout(1_000);
+      await expect(ticks).toHaveCount(seeded + 1);
+    });
+
+    test("with the clock pinned to another day, that day's agenda is full", async ({ page }) => {
+      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+      await expectBusyToday(page);
     });
   });
 }
