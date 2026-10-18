@@ -1,4 +1,4 @@
-import type { Document, FieldDef, FieldKind } from "./types";
+import { DOCUMENT_COMMON_KEYS, ROLES_KEY, type Document, type FieldDef, type FieldKind } from "./types";
 
 /**
  * The rules for changing a user-defined type that already holds Documents
@@ -103,4 +103,54 @@ export function typeDeleteRefusal(label: string, count: TypeDocumentCount): stri
   if (count.total === 0) return undefined;
   const where = count.elsewhere === 0 ? "" : count.here === 0 ? `, all in other Workspaces` : ` (${count.elsewhere} in other Workspaces)`;
   return `${label} still has ${count.total} Document${count.total === 1 ? "" : "s"}${where}. Empty it first — a Document never loses its type.`;
+}
+
+/**
+ * A Document's own keys, which are never Field keys (spec #95): a Field keyed
+ * with one would collide with the Document's own value. `tallies` is the
+ * Core-reserved field of contracts/tallying.ts (TALLIES_FIELD), named here so
+ * the rule stays pure.
+ */
+const RESERVED_KEY_NAME: Record<string, string> = {
+  id: "an id",
+  type: "a type",
+  title: "a title",
+  body: "a body",
+  tags: "Tags",
+  folder: "a Folder",
+  createdAt: "a created date",
+  updatedAt: "an updated date",
+  deleted: "a deleted mark",
+  workspace: "a Workspace",
+  [ROLES_KEY]: "Roles",
+  tallies: "Tallies",
+};
+export const RESERVED_FIELD_KEYS: readonly string[] = [...DOCUMENT_COMMON_KEYS, ROLES_KEY, "tallies"];
+
+export const isReservedFieldKey = (key: string): boolean => RESERVED_FIELD_KEYS.includes(key);
+
+/** A Field whose key is one of a Document's own keys: `refused` when it is new, only warned about when already saved. */
+export interface ReservedKeyProblem {
+  key: string;
+  label: string;
+  refused: boolean;
+  message: string;
+}
+
+/** The Fields of `after` keyed with a Document's own key; a key already in `before` (saved) is kept with a warning. */
+export function reservedKeyProblems(before: readonly FieldDef[], after: readonly FieldDef[]): ReservedKeyProblem[] {
+  const saved = new Set(before.map((f) => f.key));
+  return after
+    .filter((f) => isReservedFieldKey(f.key))
+    .map((f) => {
+      const why = `\`${f.key}\` — every Document already has ${RESERVED_KEY_NAME[f.key]}`;
+      const refused = !saved.has(f.key);
+      return { key: f.key, label: f.label, refused, message: refused ? why : `${why}: this Field's values clash with it — add a new Field and move them` };
+    });
+}
+
+/** Why the type store refuses these Fields (a new reserved-key Field), or undefined when it can save them. */
+export function reservedKeyRefusal(before: readonly FieldDef[], after: readonly FieldDef[]): string | undefined {
+  const p = reservedKeyProblems(before, after).find((x) => x.refused);
+  return p && `Can't add “${p.label}”: ${p.message}`;
 }
