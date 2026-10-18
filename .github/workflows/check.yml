@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # check-ui compares against the merge base with master.
+          fetch-depth: 0
       # Takes its version from package.json's packageManager.
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -15,6 +18,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # UI rules on the lines this change adds (CODING_STANDARDS.md § UI, ADR 0079).
+      - run: node scripts/check-ui.mjs
+        env:
+          CHECK_UI_BASE: origin/${{ github.base_ref || 'master' }}
       - run: pnpm -r typecheck
       - run: pnpm -r test
       # Again on a French desk west of UTC: no test may lean on the runner's
