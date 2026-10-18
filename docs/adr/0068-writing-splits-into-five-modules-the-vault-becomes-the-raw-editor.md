@@ -31,3 +31,7 @@ The **Vault stays, demoted**: it is to bodies what a Base is to fields — the r
 - Every Document type has its own **Templates** (the old Notes-owned "Note template" goes).
 - Existing data migrates: Notes default to Thoughts (those linking exactly one work are offered as Notes on it), Clippings become Quotes, Writings become Essays (reassignable to a Manuscript), daily notes become Days. Tested on a `pb_data` copy first.
 - Five writing interfaces are five surfaces to build and maintain over one shared editor core.
+
+## Amendment: a Journal page shows its links in the Journal sidebar
+
+Connectability not moving was not enough while nobody could see it. Days and periods opened the editor with its links panel closed, so linking people and places from a Day meant knowing about a header toggle. Now every Day and period puts its **unlinked names** (with Link and Link all) and its **Backlinks** at the top of the Journal sidebar, above the calendar, Reviews and On this day. Period pages get that sidebar too. The editor's own panel toggle is hidden on Days and periods: it would only repeat the sidebar, and a Day's local graph adds little. On a phone, a Links button in the Phone dock opens the sidebar as a bottom sheet, with a badge counting the unlinked names. Pages of the Journal's Types keep the editor's panel, which shows their unlinked mentions, and gain **Link all** there. That Link all skips ambiguous names and locked Documents, and one undo reverts the whole batch. A period's sidebar also rolls up Reports (ADR 0076).

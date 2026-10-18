@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
-import { addDays, excerpt, formatHuman, todayStr, type DateStr } from "@lifeline/core";
+import { addDays, excerpt, formatHuman, todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNotes } from "../data/repo";
 import { onThisDay } from "../domain/journalStats";
 import { PERIOD_KINDS, PERIOD_LABELS, periodKey, periodLabel } from "../domain/periods";
 import { DAILY, PERIOD_TYPES, journalHref, periodHref } from "../domain/types";
+import { JournalLinks } from "./JournalLinks";
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -64,12 +65,16 @@ function MiniMonth({ date, written, onPick }: { date: DateStr; written: Set<stri
   );
 }
 
+const ASIDE = "flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-l p-3 max-lg:hidden";
+
 /**
- * The Journal's side column beside a Day (ADR 0068): the month at a glance,
- * the stretches the day belongs to — each a review of its own — and the same
- * day in earlier years.
+ * The Journal's side column beside a Day (ADR 0068): the Day's links first —
+ * the names it could link and what links to it — then the month at a glance,
+ * the stretches the day belongs to (each a review of its own) and the same day
+ * in earlier years.
  */
-export function JournalAside({ date }: { date: DateStr }) {
+export function JournalAside({ date, docId }: { date: DateStr; docId?: string }) {
+  const index = useLinkIndex();
   const navigate = useNavigate();
   const notes = useNotes();
   const dailies = useMemo(() => notes.filter((n) => n.type === DAILY), [notes]);
@@ -79,7 +84,8 @@ export function JournalAside({ date }: { date: DateStr }) {
   const earlier = useMemo(() => onThisDay([...written], date, { years: "all", alsoWeeks: false }), [written, date]);
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-l p-3 max-lg:hidden" aria-label="Journal">
+    <aside className={ASIDE} aria-label="Journal">
+      {docId && <JournalLinks docId={docId} index={index} />}
       <MiniMonth date={date} written={written} onPick={(d) => navigate(journalHref(d, todayStr()))} />
       <section className="grid gap-1">
         <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Reviews</h2>
@@ -107,6 +113,16 @@ export function JournalAside({ date }: { date: DateStr }) {
           ))
         )}
       </section>
+    </aside>
+  );
+}
+
+/** The side column beside a Week, Month, Quarter or Year: its links, as on a Day. */
+export function PeriodAside({ docId }: { docId: string }) {
+  const index = useLinkIndex();
+  return (
+    <aside className={ASIDE} aria-label="Links">
+      <JournalLinks docId={docId} index={index} />
     </aside>
   );
 }

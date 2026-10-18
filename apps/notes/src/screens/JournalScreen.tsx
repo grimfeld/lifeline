@@ -6,6 +6,7 @@ import { DocumentEditor } from "@lifeline/editor";
 import { ChevronLeft, ChevronRight, PenLine } from "lucide-react";
 import { DAILY, JOURNAL_HREF, journalHref, type Note } from "../domain/types";
 import { JournalAside } from "../components/JournalAside";
+import { JournalLinksButton } from "../components/JournalLinks";
 import { ensureDailyNote } from "../data/repo";
 
 /**
@@ -50,6 +51,7 @@ export function JournalScreen() {
             Today
           </Button>
           <Input type="date" className="h-7 w-36 max-md:w-auto" value={date} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
+          {note && <JournalLinksButton docId={note.id} index={index} />}
           <div className="hidden items-center gap-1 xl:flex">
             {strip.map((d) => (
               <button
@@ -69,9 +71,9 @@ export function JournalScreen() {
       {note ? (
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col">
-            <DocumentEditor key={note.id} doc={note} def={def} index={index} docDate={date} autoFocus={date === today} showPanel={false} onDeleted={() => navigate(JOURNAL_HREF)} />
+            <DocumentEditor key={note.id} doc={note} def={def} index={index} docDate={date} autoFocus={date === today} linksPanel={false} onDeleted={() => navigate(JOURNAL_HREF)} />
           </div>
-          <JournalAside date={date} />
+          <JournalAside date={date} docId={note.id} />
         </div>
       ) : (
         <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 text-sm">
