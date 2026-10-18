@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Badge, Button, Input, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
-import { Camera, Inbox, Pencil, Plus, Tag, TriangleAlert } from "lucide-react";
+import { Inbox, Pencil, Plus, ReceiptText, Tag, TriangleAlert } from "lucide-react";
 import { MEASURE_UNIT, productHref, type Receipt, type Shop } from "../domain/types";
 import { cheapest, formatUnitPrice, historyOf, isUnmatched, linesOf, observe, overallChange, shopChanges, spanStart, sumOfLines, totalMismatch } from "../domain/derive";
 import { formatCents } from "../domain/money";
@@ -10,7 +10,6 @@ import { useLines, useProducts, useReceipts, useShops } from "../data/repo";
 import { ProductDialog } from "../components/ProductDialog";
 import { ShopDialog } from "../components/ShopDialog";
 import { ReceiptDialog } from "../components/ReceiptDialog";
-import { ScanReceiptDialog } from "../components/ScanReceiptDialog";
 import { AddPriceDialog } from "../components/AddPriceDialog";
 import { shopColor } from "../components/PriceChart";
 
@@ -42,7 +41,6 @@ export function PricesScreen() {
   const [search, setSearch] = useState("");
   const [onlyUnmatched, setOnlyUnmatched] = useState(false);
   const [months, setMonths] = useState(6);
-  const [scanOpen, setScanOpen] = useState(false);
   const [priceOpen, setPriceOpen] = useState(false);
   const [newReceipt, setNewReceipt] = useState(false);
   const [openReceipt, setOpenReceipt] = useState<Receipt | null>(null);
@@ -96,8 +94,8 @@ export function PricesScreen() {
           <Button variant="outline" onClick={() => setPriceOpen(true)} disabled={products.length === 0 && shops.length === 0}>
             <Plus /> Price
           </Button>
-          <Button onClick={() => setScanOpen(true)}>
-            <Camera /> Scan receipt
+          <Button onClick={() => setNewReceipt(true)}>
+            <ReceiptText /> Receipt
           </Button>
         </PhoneDock>
       </div>
@@ -131,7 +129,7 @@ export function PricesScreen() {
           </div>
           {productRows.length === 0 ? (
             <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">
-              {products.length === 0 ? "No products yet. Scan a receipt, or add a product and a price by hand." : "Nothing matches."}
+              {products.length === 0 ? "No products yet. Add a receipt or a price, or have an agent read a receipt photo for you." : "Nothing matches."}
             </div>
           ) : (
             <ul className="divide-y rounded-md border">
@@ -170,12 +168,9 @@ export function PricesScreen() {
             <Button variant={onlyUnmatched ? "default" : "outline"} onClick={() => setOnlyUnmatched((v) => !v)} aria-pressed={onlyUnmatched}>
               <Inbox /> Unmatched
             </Button>
-            <Button variant="outline" className="ml-auto" onClick={() => setNewReceipt(true)} disabled={shops.length === 0}>
-              <Plus /> Receipt by hand
-            </Button>
           </div>
           {receiptRows.length === 0 ? (
-            <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">{receipts.length === 0 ? "No receipts yet — scan one." : "Nothing to show."}</div>
+            <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">{receipts.length === 0 ? "No receipts yet." : "Nothing to show."}</div>
           ) : (
             <ul className="divide-y rounded-md border">
               {receiptRows.map(({ r, ls, sum, mismatch, unmatched }) => (
@@ -280,7 +275,6 @@ export function PricesScreen() {
         </TabsContent>
       </Tabs>
 
-      <ScanReceiptDialog open={scanOpen} onOpenChange={setScanOpen} />
       <AddPriceDialog open={priceOpen} onOpenChange={setPriceOpen} />
       <ReceiptDialog open={newReceipt} onOpenChange={setNewReceipt} />
       <ReceiptDialog open={!!openReceipt} onOpenChange={(o) => !o && setOpenReceipt(null)} receipt={openReceipt} />

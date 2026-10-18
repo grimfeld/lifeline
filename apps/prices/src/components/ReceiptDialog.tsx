@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, cn, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
-import { Plus, TriangleAlert, X } from "lucide-react";
+import { ImagePlus, Plus, TriangleAlert, X } from "lucide-react";
 import { MEASURE_UNIT, type Line, type Receipt } from "../domain/types";
-import type { ReceiptDraft } from "../domain/parse";
 import { linesOf, sumOfLines } from "../domain/derive";
 import { editAmount, formatCents, parseAmount } from "../domain/money";
 import { deleteReceipt, saveReceipt, useLines, useProducts, useShops, type LineInput } from "../data/repo";
@@ -26,13 +25,14 @@ let nextKey = 1;
 const fresh = (over: Partial<EditLine> = {}): EditLine => ({ key: nextKey++, label: "", productId: "", amount: "1", price: "", promo: false, ...over });
 
 /**
- * The one Receipt form (ADR 0045): the review step of a scan (a draft plus
- * the photo, nothing saved until Save) and the register's edit of an
- * existing Receipt. Lines match to Products here; unmatched ones may be
- * saved and cleared later. The printed total is checked against the sum of
- * Lines and a mismatch is shown, never enforced.
+ * The one Receipt form (ADR 0045): "Add receipt…" typed in by hand and the
+ * register's edit of an existing Receipt. Lifeline reads no photo (ADR 0075);
+ * one may be kept beside the Lines, stored only on Save. Lines match to
+ * Products here; unmatched ones may be saved and cleared later. The printed
+ * total is checked against the sum of Lines and a mismatch is shown, never
+ * enforced.
  */
-export function ReceiptDialog({ open, onOpenChange, receipt, draft, photo }: { open: boolean; onOpenChange: (o: boolean) => void; receipt?: Receipt | null; draft?: ReceiptDraft | null; photo?: File | null }) {
+export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; onOpenChange: (o: boolean) => void; receipt?: Receipt | null }) {
   const shops = useShops();
   const products = useProducts();
   const allLines = useLines();
@@ -45,7 +45,8 @@ export function ReceiptDialog({ open, onOpenChange, receipt, draft, photo }: { o
   const [lines, setLines] = useState<EditLine[]>([]);
   const [newProductFor, setNewProductFor] = useState<number | null>(null);
   const [newShop, setNewShop] = useState(false);
-  const [showText, setShowText] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -57,16 +58,16 @@ export function ReceiptDialog({ open, onOpenChange, receipt, draft, photo }: { o
       setTotal(receipt.total > 0 ? editAmount(receipt.total) : "");
       setLines(existingLines.map((l) => fresh({ id: l.id, label: l.label, productId: l.productId, amount: String(l.amount), price: editAmount(l.price), promo: l.promo })));
     } else {
-      setShopId(draft?.shopId || shops[0]?.id || "");
-      setDate(draft?.date || todayStr());
-      setBranch(draft?.branch ?? "");
-      setTotal(draft && draft.total > 0 ? editAmount(draft.total) : "");
-      setLines(draft ? draft.lines.map((l) => fresh({ label: l.label, productId: l.productId, amount: String(l.amount), price: editAmount(l.price), promo: l.promo })) : [fresh()]);
+      setShopId(shops[0]?.id || "");
+      setDate(todayStr());
+      setBranch("");
+      setTotal("");
+      setLines([fresh()]);
     }
-    setShowText(false);
+    setPhoto(null);
     // Re-initialising on the existing Lines' arrival is wanted: they load async after the dialog opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, receipt, draft, existingLines.length]);
+  }, [open, receipt, existingLines.length]);
 
   const parsed = useMemo(() => lines.map((l) => ({ ...l, cents: parseAmount(l.price), amt: Number(l.amount.replace(",", ".")) })), [lines]);
   const sum = sumOfLines(parsed.map((l) => ({ price: l.cents ?? 0 })));
@@ -108,7 +109,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt, draft, photo }: { o
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{receipt ? receipt.title : draft ? "Review receipt" : "New receipt"}</DialogTitle>
+          <DialogTitle>{receipt ? receipt.title : "New receipt"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 md:grid-cols-[1fr_minmax(0,220px)]">
           <div className="grid content-start gap-4">
@@ -178,14 +179,10 @@ export function ReceiptDialog({ open, onOpenChange, receipt, draft, photo }: { o
 
           <div className="grid content-start gap-2">
             {photo ? <PendingPhoto file={photo} /> : receipt ? <ReceiptPhoto body={receipt.body} /> : null}
-            {draft?.text && (
-              <div>
-                <button type="button" className="text-muted-foreground text-xs underline" onClick={() => setShowText((v) => !v)}>
-                  {showText ? "Hide" : "Show"} what was read
-                </button>
-                {showText && <pre className="bg-muted mt-1 max-h-64 overflow-auto rounded-md p-2 text-[11px] leading-tight whitespace-pre-wrap">{draft.text}</pre>}
-              </div>
-            )}
+            <Button type="button" variant="outline" size="sm" className="justify-self-start" onClick={() => photoRef.current?.click()}>
+              <ImagePlus className="size-3.5" /> {photo ? "Another photo" : "Add photo"}
+            </Button>
+            <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
           </div>
         </div>
         <DialogFooter className="gap-2 sm:justify-between">
