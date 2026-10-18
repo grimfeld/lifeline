@@ -4,6 +4,7 @@ import { seedAgenda } from "./life/agenda";
 import { seedTracking } from "./life/tracking";
 import { seedWork } from "./life/work";
 import { seedMedia } from "./life/media";
+import { seedWriting } from "./life/writing";
 
 /**
  * The Demo life (CONTEXT.md "Demo", ADR 0077): a made-up person's life written
@@ -23,6 +24,7 @@ export async function seedDemo(visitDay: DateStr): Promise<void> {
   await seedWork(clock);
   await seedMedia(clock);
   await seedTracking(clock);
+  await seedWriting(clock);
 }
 
 /**
