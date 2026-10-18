@@ -1,6 +1,9 @@
 import {
   currentWorkspace,
   currentWorkspaceId,
+  defaultOverview,
+  saveOverview,
+  type OverviewSlot,
   newId,
   put,
   saveWorkspace,
@@ -55,4 +58,51 @@ export async function seedHome(_c: LifeClock): Promise<void> {
   await saveWorkspace({ ...ws, bar });
 
   rememberPlace(currentWorkspaceId(), `/screen/${id}`);
+}
+
+/**
+ * The key Overviews (ADR 0066), arranged the way someone who lives in them
+ * would: each Module's default Cards, then a few more that show history —
+ * a price over time, a chore heatmap, the year's finished books and films, a
+ * mood grid and a measured Stat. Saved per Workspace, as a user's edit is.
+ */
+export async function seedOverviews(_c: LifeClock): Promise<void> {
+  const milk = await idOf("price_product", "Semi-skimmed milk");
+  const heart = await idOf("stat", "Resting heart rate");
+  const arranged: Record<string, OverviewSlot[]> = {
+    money: [
+      { cardId: "pocket.allowances", title: "What's left" },
+      { cardId: "ledger.budget-month" },
+      { cardId: "ledger.balances" },
+      { cardId: "ledger.dues" },
+      { cardId: "prices.product", settings: { product: milk } },
+      { cardId: "ledger.quickadd" },
+    ],
+    house: [
+      { cardId: "chores.due-today" },
+      { cardId: "shopping.list" },
+      { cardId: "pantry.running-low" },
+      { cardId: "pantry.expiring" },
+      { cardId: "chores.heatmap", settings: { weeks: 6 }, wide: true },
+    ],
+    culture: [
+      { cardId: "library.in-progress", title: "Reading" },
+      { cardId: "cinema.in-progress", title: "Watching" },
+      { cardId: "discotheque.in-progress", title: "Listening" },
+      { cardId: "arcade.in-progress", title: "Playing" },
+      { cardId: "library.finished" },
+      { cardId: "cinema.finished" },
+      { cardId: "museum.on-display", wide: true },
+    ],
+    progress: [
+      { cardId: "mood.today" },
+      { cardId: "stats.habits" },
+      { cardId: "workout.start" },
+      { cardId: "swearjar.jar" },
+      { cardId: "mood.grid" },
+      { cardId: "stats.single", settings: { stat: heart, period: "month" } },
+      { cardId: "workout.recent" },
+    ],
+  };
+  for (const [moduleId, slots] of Object.entries(arranged)) await saveOverview(moduleId, defaultOverview(slots));
 }

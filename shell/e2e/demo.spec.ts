@@ -706,6 +706,23 @@ for (const w of WIDTHS) {
       if (w.isMobile) await expect(page.locator("nav").getByRole("button", { name: "Home", exact: true })).toBeVisible();
     });
 
+    test("the key Overviews are arranged with more Cards, each showing the seeded life", async ({ page }) => {
+      // What each shows, as text or (a cover, a grid cell) as its hover title.
+      const overviews: [string, (string | RegExp)[], RegExp[]][] = [
+        ["/module/money", ["What's left", "Balances", /Semi-skimmed milk/], []],
+        ["/module/house", ["Chores due today", "Chores · 6 weeks"], []],
+        ["/module/culture", ["Reading"], [/^Small Things Like These/, /^The Banshees of Inisherin/]],
+        ["/module/progress", [/Resting heart rate/, "Recent sessions"], [MOOD_CELL]],
+      ];
+      for (const [path, texts, titles] of overviews) {
+        await open(page, path);
+        const main = page.locator("main");
+        for (const t of texts) await expect(main.getByText(t).first(), `${path}: ${t}`).toBeAttached();
+        for (const t of titles) await expect(main.getByTitle(t).first(), `${path}: ${t}`).toBeAttached();
+        await expect(main.getByText("Not configured yet."), path).toHaveCount(0);
+      }
+    });
+
     test("every registered App's page opens with something of its own in it", async ({ page }) => {
       test.setTimeout(300_000);
       await open(page, "/settings");
