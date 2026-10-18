@@ -5,6 +5,7 @@ import { basePath, createDocument, displayTitle, documentType, excerpt, singular
 import { DocumentEditor, TemplateSelect, TypeEditor } from "@lifeline/editor";
 import { ArrowLeft, Pencil, Plus, Table2 } from "lucide-react";
 import { JOURNAL_HREF } from "../domain/types";
+import { TypeReports } from "../components/TypeReports";
 
 /** The Journal Module's id: what a user-defined type names to be homed here. */
 export const JOURNAL_MODULE = "journal";
@@ -65,6 +66,7 @@ export function TypesScreen() {
   const [adding, setAdding] = useState<DocumentTypeDef | null>(null);
   const [editing, setEditing] = useState<DocumentTypeDef | "new" | null>(null);
   const shown = only ? homed.filter((t) => t.id === only) : homed;
+  const index = useLinkIndex();
   const editingRecord = editing && editing !== "new" ? (records.find((r) => r.typeId === editing.id) ?? null) : null;
 
   return (
@@ -116,6 +118,7 @@ export function TypesScreen() {
                   </Link>
                 </Button>
               </div>
+              {only && <TypeReports type={t} index={index} />}
               {mine.length > 0 && (
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-2">
                   {(only ? mine : mine.slice(0, 12)).map((d) => (

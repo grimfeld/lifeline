@@ -6,6 +6,7 @@ import { MapCard, useLocatableAppOptions } from "./surfaces/MapCard";
 import { TagsCard } from "./surfaces/TagsCard";
 import { CountTile, DocumentCard, useDocumentOptions, useViewOptions, ViewCard } from "./surfaces/DocumentCards";
 import { GraphCard } from "./surfaces/GraphCard";
+import { REPORT_KIND_OPTIONS, REPORT_WINDOW_OPTIONS, ReportCard, useReportDocumentOptions, useReportTitle, useReportTypeOptions } from "./surfaces/ReportCard";
 import { VaultSidebar } from "./vault/VaultSidebar";
 import { VaultDocPage } from "./vault/VaultDocPage";
 import { VaultHome } from "./vault/VaultHome";
@@ -157,6 +158,22 @@ export const hubApp: AppManifest = {
         view: { kind: "entity", label: "View", required: true, useOptions: useViewOptions },
       },
       instanceTitle: (s) => useViewOptions().find((o) => o.value === s.view)?.label ?? "",
+    },
+    {
+      id: "hub.report",
+      title: "Report",
+      description: "A Report on a type or one Document: who comes up on the most Days, when it was last mentioned, a year as a heatmap",
+      component: ReportCard,
+      defaultSize: { w: 3, h: 3 },
+      minSize: { w: 2, h: 2 },
+      settings: {
+        kind: { kind: "select", label: "Report", default: "top", options: REPORT_KIND_OPTIONS },
+        type: { kind: "entity", label: "Type (for a ranking)", useOptions: useReportTypeOptions },
+        window: { kind: "select", label: "Over", default: "month", options: REPORT_WINDOW_OPTIONS },
+        n: { kind: "number", label: "How many", default: 5, min: 1, max: 50 },
+        doc: { kind: "entity", label: "Document (for one Document's Report)", useOptions: useReportDocumentOptions },
+      },
+      instanceTitle: useReportTitle,
     },
   ],
   commands: [
