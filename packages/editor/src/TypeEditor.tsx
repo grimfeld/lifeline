@@ -61,7 +61,9 @@ const toRows = (fields: FieldDef[]): Row[] => toFieldDrafts(fields).map(withUid)
 /**
  * Create / edit a user-defined Document type (ADR 0019), or customise a
  * built-in's label, icon, folder and the Fields beside its own: one editor,
- * opened from Bases and from the Journal's Types. Changes to a type that
+ * opened from Bases (shell/src/bases/BasesIndex.tsx) and from the Journal's
+ * Types (apps/notes/src/screens/TypesScreen.tsx); its Field rows are in
+ * Fields.tsx, their rules in core (fieldDrafts, typeRules, knownFields). Changes to a type that
  * holds Documents keep every value they hold (CONTEXT.md "Field"); deleting
  * waits until the type is empty (ADR 0072).
  */
