@@ -143,6 +143,21 @@ export function addOption(d: FieldDraft, label = "", at = d.options.length): Fie
   return { ...d, options };
 }
 
+/** A pasted list as option labels: one per line, or — on a single line — comma-separated. Blanks are dropped. */
+export function splitOptionLabels(text: string): string[] {
+  const parts = /[\r\n]/.test(text) ? text.split(/\r?\n|\r/) : text.split(",");
+  return parts.map((s) => s.trim()).filter(Boolean);
+}
+
+/** Several options pasted at option `i`: an empty option `i` takes the first label, the rest follow it in order. */
+export function pasteOptions(d: FieldDraft, i: number, labels: string[]): FieldDraft {
+  const [first, ...rest] = labels;
+  const fill = d.options[i] && !d.options[i].label.trim() && first !== undefined;
+  let out = fill ? renameOption(d, i, first) : d;
+  (fill ? rest : labels).forEach((label, n) => (out = addOption(out, label, i + 1 + n)));
+  return out;
+}
+
 /** A new label for option `i`; an unsaved option's value follows it, a saved one's is fixed. */
 export function renameOption(d: FieldDraft, i: number, label: string): FieldDraft {
   return { ...d, options: d.options.map((o, j) => (j !== i ? o : o.saved ? { ...o, label } : { ...o, label, value: optionValueFrom(label, otherValues(d.options, i)) })) };
@@ -150,3 +165,17 @@ export function renameOption(d: FieldDraft, i: number, label: string): FieldDraf
 
 /** A Choice's options without option `i`. */
 export const removeOption = (d: FieldDraft, i: number): FieldDraft => ({ ...d, options: d.options.filter((_, j) => j !== i) });
+
+/** A list with item `from` moved to position `to` (spec #95 reorder): the form's Field order, a picker's option order. Out of range → the list as is. */
+export function moveDraft<T>(list: readonly T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list as T[];
+  const next = [...list];
+  next.splice(to, 0, ...next.splice(from, 1));
+  return next;
+}
+
+/** A Choice's options with option `from` moved to `to` — the order its picker shows. */
+export const moveOption = (d: FieldDraft, from: number, to: number): FieldDraft => {
+  const options = moveDraft(d.options, from, to);
+  return options === d.options ? d : { ...d, options };
+};

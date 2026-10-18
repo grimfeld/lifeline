@@ -1,4 +1,4 @@
-import { DOCUMENT_COMMON_KEYS, ROLES_KEY, type Document, type FieldDef, type FieldKind } from "./types";
+import { DOCUMENT_COMMON_KEYS, ROLES_KEY, type Document, type FieldDef, type FieldKind, type FieldOption } from "./types";
 
 /**
  * The rules for changing a user-defined type that already holds Documents
@@ -71,7 +71,11 @@ export function fieldChangeProblems(before: readonly FieldDef[], after: readonly
   for (const f of after) {
     const was = old.get(f.key);
     if (!was) continue;
-    const misfits = docs.filter((d) => !fitsKind((d as Record<string, unknown>)[f.key], f)).length;
+    // Kind kept: a value that didn't fit the Field before (written elsewhere) isn't this change's doing.
+    const misfits = docs.filter((d) => {
+      const v = (d as Record<string, unknown>)[f.key];
+      return !fitsKind(v, f) && (was.kind !== f.kind || fitsKind(v, was));
+    }).length;
     if (misfits === 0) continue;
     const n = `${misfits} Document${misfits === 1 ? "" : "s"}`;
     problems.push(
@@ -83,12 +87,49 @@ export function fieldChangeProblems(before: readonly FieldDef[], after: readonly
   return problems;
 }
 
+/**
+ * For a saved Field, the kinds it can't switch to and why (spec #95): a kind
+ * is refused when a value it already holds — in any Workspace — wouldn't fit
+ * it. Choice kinds are checked against the draft's options. An unsaved Field
+ * holds nothing, so every kind is open; the Field's current kind is never refused.
+ */
+export function kindRefusals(
+  d: { key: string; kind: FieldKind; options: readonly Pick<FieldOption, "value">[]; saved: boolean },
+  kinds: readonly FieldKind[],
+  docs: readonly Document[],
+): Partial<Record<FieldKind, string>> {
+  const out: Partial<Record<FieldKind, string>> = {};
+  if (!d.saved) return out;
+  const values = docs.map((doc) => (doc as Record<string, unknown>)[d.key]).filter((v) => !isEmpty(v));
+  // No options yet means none to check against (an empty list is never saved).
+  const options = d.options.length ? d.options.map((o) => ({ value: o.value, label: o.value })) : undefined;
+  const holds = (n: number) => `${n} Document${n === 1 ? " holds" : "s hold"}`;
+  for (const kind of kinds) {
+    if (kind === d.kind) continue;
+    const misfits = values.filter((v) => !fitsKind(v, { kind, options })).length;
+    if (!misfits) continue;
+    const offPicker = options && values.every((v) => fitsKind(v, { kind }));
+    out[kind] = offPicker ? `${holds(misfits)} a choice its options don't offer` : `${holds(misfits)} a value it can't take`;
+  }
+  return out;
+}
+
 /** The Fields a change removes, each with how many Documents hold a value for it (they keep it). */
 export function removedFieldValues(before: readonly FieldDef[], after: readonly FieldDef[], docs: readonly Document[]): { field: FieldDef; count: number }[] {
   const kept = new Set(after.map((f) => f.key));
   return before
     .filter((f) => !kept.has(f.key))
     .map((field) => ({ field, count: docs.filter((d) => !isEmpty((d as Record<string, unknown>)[field.key])).length }));
+}
+
+/** How many Documents hold each value of a Choice / Multi-choice Field (spec #95): an option some hold can't be removed. */
+export function optionUsage(key: string, docs: readonly Document[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const d of docs) {
+    const v = (d as Record<string, unknown>)[key];
+    for (const x of new Set(Array.isArray(v) ? v : [v])) if (typeof x === "string" && x) counts[x] = (counts[x] ?? 0) + 1;
+  }
+  return counts;
 }
 
 /** How many Documents of a type there are, here and in every other Workspace. */

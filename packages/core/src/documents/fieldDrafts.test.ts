@@ -5,12 +5,16 @@ import {
   fieldSummary,
   hasFieldSettings,
   hasFoldOut,
+  moveDraft,
+  moveOption,
   newFieldDraft,
   optionValueFrom,
+  pasteOptions,
   rekeyField,
   relabelField,
   removeOption,
   renameOption,
+  splitOptionLabels,
   toFieldDrafts,
   type FieldDraft,
   type LinkTarget,
@@ -112,6 +116,30 @@ describe("Choice options", () => {
     expect(saved(removeOption(addOption(mood(), "Out"), 0))).toEqual([{ value: "out", label: "Out" }]);
     expect(saved(addOption(mood()))).toEqual([{ value: "home", label: "Home" }]);
   });
+
+  it("splits a pasted list into labels: one per line, or comma-separated", () => {
+    expect(splitOptionLabels("a, b, c")).toEqual(["a", "b", "c"]);
+    expect(splitOptionLabels("Home\r\nOut, late\n\n  Work  \n")).toEqual(["Home", "Out, late", "Work"]);
+    expect(splitOptionLabels("Just one")).toEqual(["Just one"]);
+    expect(splitOptionLabels(" , ,")).toEqual([]);
+    expect(splitOptionLabels(" \n \n")).toEqual([]);
+  });
+
+  it("pastes several options at an option: an empty one takes the first, the rest follow it", () => {
+    const d = pasteOptions(addOption(addOption(mood()), "Last"), 1, ["Out", "Work", "Home"]);
+    expect(saved(d)).toEqual([
+      { value: "home", label: "Home" },
+      { value: "out", label: "Out" },
+      { value: "work", label: "Work" },
+      { value: "home_2", label: "Home" },
+      { value: "last", label: "Last" },
+    ]);
+    expect(saved(pasteOptions(mood(), 0, ["Out", "Work"]))).toEqual([
+      { value: "home", label: "Home" },
+      { value: "out", label: "Out" },
+      { value: "work", label: "Work" },
+    ]);
+  });
 });
 
 describe("A Field's key", () => {
@@ -162,5 +190,32 @@ describe("A folded Field row", () => {
     expect(fieldSummary({ ...newFieldDraft("links"), target: { to: "types", types: ["person", "place"] } }, names)).toBe("→ Person, Place");
     expect(fieldSummary({ ...newFieldDraft("link"), target: { to: "role", role: "author" } }, names)).toBe("→ Author (Role)");
     expect(fieldSummary(newFieldDraft("text"), names)).toBe("");
+  });
+});
+
+describe("Reordering", () => {
+  const fields: FieldDef[] = [
+    { key: "a", label: "A", kind: "text" },
+    { key: "b", label: "B", kind: "number" },
+    { key: "c", label: "C", kind: "date" },
+  ];
+
+  it("saves Fields in the order they were moved to", () => {
+    const keys = (from: number, to: number) => fieldsFromDrafts(moveDraft(toFieldDrafts(fields), from, to)).map((f) => f.key);
+    expect(keys(0, 2)).toEqual(["b", "c", "a"]);
+    expect(keys(2, 0)).toEqual(["c", "a", "b"]);
+    expect(keys(1, 1)).toEqual(["a", "b", "c"]);
+  });
+
+  it("leaves the list as it is for a move out of range", () => {
+    const drafts = toFieldDrafts(fields);
+    expect(moveDraft(drafts, 0, 3)).toBe(drafts);
+    expect(moveDraft(drafts, -1, 0)).toBe(drafts);
+  });
+
+  it("saves a Choice's options in the order they were moved to", () => {
+    const choice: FieldDef = { key: "mood", label: "Mood", kind: "select", options: [{ value: "low", label: "Low" }, { value: "mid", label: "Mid" }, { value: "high", label: "High" }] };
+    const [d] = toFieldDrafts([choice]);
+    expect(fieldsFromDrafts([moveOption(d, 2, 0)])[0].options).toEqual([{ value: "high", label: "High" }, { value: "low", label: "Low" }, { value: "mid", label: "Mid" }]);
   });
 });
