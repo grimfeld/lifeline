@@ -26,6 +26,7 @@ import {
   kindLabel,
   normalizeFolder,
   removedFieldValues,
+  reservedKeyProblems,
   roleDef,
   saveDocumentType,
   singularOf,
@@ -120,11 +121,15 @@ export function TypeEditor({
   const next = fieldsFromDrafts(rows);
   const problems = fieldChangeProblems(savedFields, next, held);
   const removed = removedFieldValues(savedFields, next, held).filter((r) => r.count > 0);
+  // A Document's own keys are never Field keys (spec #95): a new one blocks saving, a saved one is only warned about.
+  const reserved = reservedKeyProblems(savedFields, next);
+  const reservedRefused = reserved.filter((p) => p.refused);
 
   async function save() {
     if (!label.trim() || !typeId) return;
     if (idTaken) return void toast.error(`A type with id “${typeId}” already exists`);
     if (problems.length) return void toast.error(problems[0]);
+    if (reservedRefused.length) return void toast.error(reservedRefused[0].message);
     setBusy(true);
     try {
       await saveDocumentType({
@@ -145,6 +150,8 @@ export function TypeEditor({
       });
       toast.success(record || base ? `“${label.trim()}” updated` : `Type “${label.trim()}” created — its Base is ready`);
       onDone();
+    } catch (e) {
+      toast.error((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -278,6 +285,11 @@ export function TypeEditor({
             {p}
           </p>
         ))}
+        {reserved.map((p) => (
+          <p key={p.key} className={cn("text-xs", p.refused ? "text-destructive" : "text-muted-foreground")}>
+            “{p.label}”: {p.message}
+          </p>
+        ))}
         {removed.map(({ field, count }) => (
           <p key={field.key} className="text-muted-foreground text-xs">
             {count} Document{count === 1 ? "" : "s"} have a value for “{field.label}” — they keep it, and it comes back if you add “{field.key}” again.
@@ -316,7 +328,7 @@ export function TypeEditor({
         <Button variant="outline" onClick={onDone}>
           Cancel
         </Button>
-        <Button onClick={() => void save()} disabled={busy || !label.trim() || idTaken || problems.length > 0}>
+        <Button onClick={() => void save()} disabled={busy || !label.trim() || idTaken || problems.length > 0 || reservedRefused.length > 0}>
           {record || base ? "Save" : "Create type"}
         </Button>
       </div>
