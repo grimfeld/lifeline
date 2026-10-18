@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent } from "react";
 import { Link } from "react-router";
-import { Button, Checkbox, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TYPE_ICONS, cn, toast, typeIcon } from "@lifeline/ui";
+import { Button, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetTitle, TYPE_ICONS, cn, toast, typeIcon, usePhone } from "@lifeline/ui";
 import {
+  ADD_FIELD_KINDS,
   DEFAULT_REPORTS,
   mentionable,
   type ReportSetting,
@@ -17,6 +18,7 @@ import {
   fieldsFromDrafts,
   fieldSummary,
   hasFieldSettings,
+  hasFoldOut,
   newFieldDraft,
   optionUsage,
   pasteOptions,
@@ -46,6 +48,7 @@ import {
   type FieldDef,
   type FieldDraft,
   type FieldKind,
+  type FieldKindChoice,
   type LinkTarget,
   type SummaryNames,
 } from "@lifeline/core";
@@ -100,6 +103,14 @@ export function TypeEditor({
   // Fold-outs open (by row uid): several may be open at once.
   const [open, setOpen] = useState<Set<number>>(() => new Set());
   const toggle = (uid: number, on = !open.has(uid)) => setOpen((s) => (on ? new Set(s).add(uid) : new Set([...s].filter((x) => x !== uid))));
+  // The row just added from "+ Field": its label takes the focus.
+  const [added, setAdded] = useState<number>();
+  function addField(kind: FieldKind) {
+    const r = withUid(newFieldDraft(kind));
+    setRows([...rows, r]);
+    setAdded(r.uid);
+    if (hasFieldSettings(kind)) toggle(r.uid, true);
+  }
   const [module, setModule] = useState(record?.module ?? defaultModule);
   const [reports, setReports] = useState<ReportSetting[]>(record?.reports ?? base?.reports ?? DEFAULT_REPORTS);
   // Reports count the Days that name a Document (ADR 0076): only a type that can be named has any.
@@ -130,6 +141,13 @@ export function TypeEditor({
   // A Document's own keys are never Field keys (spec #95): a new one blocks saving, a saved one is only warned about.
   const reserved = reservedKeyProblems(savedFields, next);
   const reservedRefused = reserved.filter((p) => p.refused);
+  // A new Field whose key is refused opens its fold-out, so the key is in reach.
+  const refusedKeys = reservedRefused.map((p) => p.key).join(" ");
+  useEffect(() => {
+    if (!refusedKeys) return;
+    const keys = refusedKeys.split(" ");
+    setOpen((s) => new Set([...s, ...rows.filter((r) => !r.saved && keys.includes(fieldsFromDrafts([r])[0]?.key ?? "")).map((r) => r.uid)]));
+  }, [refusedKeys]);
 
   async function save() {
     if (!label.trim() || !typeId) return;
@@ -272,6 +290,7 @@ export function TypeEditor({
               key={r.uid}
               row={r}
               open={open.has(r.uid)}
+              focus={r.uid === added}
               names={names}
               linkTypes={linkTypes}
               onToggle={() => toggle(r.uid)}
@@ -283,9 +302,7 @@ export function TypeEditor({
               onRemove={() => setRows(rows.filter((_, j) => j !== i))}
             />
           ))}
-          <Button size="sm" variant="outline" className="justify-self-start" onClick={() => setRows([...rows, withUid(newFieldDraft())])}>
-            <Plus /> Field
-          </Button>
+          <AddFieldMenu onPick={addField} />
         </div>
         {problems.map((p) => (
           <p key={p} className="text-destructive text-xs">
@@ -352,6 +369,7 @@ export function TypeEditor({
 function FieldRow({
   row,
   open,
+  focus,
   names,
   linkTypes,
   onToggle,
@@ -360,19 +378,29 @@ function FieldRow({
 }: {
   row: FieldDraft;
   open: boolean;
+  /** Just added: the label takes the focus. */
+  focus?: boolean;
   names: SummaryNames;
   linkTypes: DocumentTypeDef[];
   onToggle: () => void;
   onChange: (d: FieldDraft) => void;
   onRemove: () => void;
 }) {
-  const settings = hasFieldSettings(row.kind);
-  const summary = settings ? fieldSummary(row, names) : "";
+  // ⚙ for a kind with settings — and on any unsaved Field, whose key is still editable in the fold-out.
+  const settings = hasFoldOut(row);
+  const summary = hasFieldSettings(row.kind) ? fieldSummary(row, names) : "";
+  // Focused once the menu that added it has let go of the focus (it would pull an autoFocus back).
+  const labelRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!focus) return;
+    const t = setTimeout(() => labelRef.current?.focus(), 0);
+    return () => clearTimeout(t);
+  }, [focus]);
   return (
     <div className="grid min-w-0 gap-1 rounded-md border p-1 md:border-0 md:p-0">
       {/* A drag handle (#101) takes the first slot of this line. */}
       <div className="grid grid-cols-[minmax(0,1fr)_1.75rem_1.75rem] items-center gap-1 md:grid-cols-[minmax(0,1fr)_11.5rem_1.75rem_1.75rem]">
-        <Input className="col-span-3 h-8 min-w-0 md:col-span-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value))} />
+        <Input ref={labelRef} className="col-span-3 h-8 min-w-0 md:col-span-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value))} />
         <Select value={row.kind} onValueChange={(v) => onChange({ ...row, kind: v as FieldKind })}>
           <SelectTrigger className="h-8 w-full min-w-0" aria-label="Field kind">
             <SelectValue />
@@ -386,7 +414,7 @@ function FieldRow({
           </SelectContent>
         </Select>
         {settings ? (
-          <Button size="icon" variant={open ? "secondary" : "ghost"} className="size-7" onClick={onToggle} aria-label="Field settings" aria-expanded={open} title={summary}>
+          <Button size="icon" variant={open ? "secondary" : "ghost"} className="size-7" onClick={onToggle} aria-label="Field settings" aria-expanded={open} title={summary || "Key"}>
             <Settings2 className="size-3.5" />
           </Button>
         ) : (
@@ -396,7 +424,7 @@ function FieldRow({
           <Trash2 className="size-3.5" />
         </Button>
       </div>
-      {settings && !open && (
+      {summary && !open && (
         <button type="button" className="text-muted-foreground min-w-0 truncate px-1 text-left text-[10px]" onClick={onToggle}>
           {summary}
         </button>
@@ -409,6 +437,7 @@ function FieldRow({
 /** A Field's fold-out: its key (editable until saved), then a Choice's options or a Link's target. */
 function FieldSettings({ row, linkTypes, onChange }: { row: FieldDraft; linkTypes: DocumentTypeDef[]; onChange: (d: FieldDraft) => void }) {
   const choice = row.kind === "select" || row.kind === "multiselect";
+  const link = row.kind === "link" || row.kind === "links";
   return (
     <div className="bg-muted/40 grid min-w-0 gap-2 rounded-md p-2">
       {row.saved ? (
@@ -422,8 +451,59 @@ function FieldSettings({ row, linkTypes, onChange }: { row: FieldDraft; linkType
           <span className="text-muted-foreground hidden shrink-0 text-[10px] md:inline">Fixed once saved</span>
         </div>
       )}
-      {choice ? <OptionList row={row} onChange={onChange} /> : <LinkTargetPicker target={row.target} linkTypes={linkTypes} onChange={(target) => onChange({ ...row, target })} />}
+      {choice && <OptionList row={row} onChange={onChange} />}
+      {link && <LinkTargetPicker target={row.target} linkTypes={linkTypes} onChange={(target) => onChange({ ...row, target })} />}
     </div>
+  );
+}
+
+/**
+ * "+ Field": the plain kinds, each with what it unlocks (spec #95). A menu on
+ * the desk; on a phone a sheet from the bottom, its rows full width (ADR 0064).
+ */
+function AddFieldMenu({ onPick }: { onPick: (kind: FieldKind) => void }) {
+  const phone = usePhone();
+  const [open, setOpen] = useState(false);
+  const trigger = (
+    <Button size="sm" variant="outline" className="justify-self-start" onClick={phone ? () => setOpen(true) : undefined}>
+      <Plus /> Field
+    </Button>
+  );
+  const choice = (c: FieldKindChoice) => (
+    <span className="grid min-w-0 gap-0.5 text-left">
+      <span className="text-sm">{c.label}</span>
+      <span className="text-muted-foreground text-[11px] leading-snug">{c.note}</span>
+    </span>
+  );
+  if (phone)
+    return (
+      <>
+        {trigger}
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetContent side="bottom" aria-describedby={undefined} onCloseAutoFocus={(e) => e.preventDefault()}>
+            <SheetTitle>Add a Field</SheetTitle>
+            <div className="grid min-w-0 p-2">
+              {ADD_FIELD_KINDS.map((c) => (
+                <button key={c.kind} type="button" className="hover:bg-accent min-w-0 rounded-md px-2 py-2" onClick={() => (setOpen(false), onPick(c.kind))}>
+                  {choice(c)}
+                </button>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuContent className="w-80" onCloseAutoFocus={(e) => e.preventDefault()}>
+        {ADD_FIELD_KINDS.map((c) => (
+          <DropdownMenuItem key={c.kind} className="items-start py-1.5" onSelect={() => onPick(c.kind)}>
+            {choice(c)}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
