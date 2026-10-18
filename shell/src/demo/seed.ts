@@ -7,7 +7,7 @@ import { seedWork } from "./life/work";
 import { seedMedia } from "./life/media";
 import { seedWriting } from "./life/writing";
 import { seedWindows } from "./life/windows";
-import { seedHome } from "./life/screens";
+import { seedHome, seedOverviews } from "./life/screens";
 
 /**
  * The Demo life (CONTEXT.md "Demo", ADR 0077): a made-up person's life written
@@ -31,6 +31,7 @@ export async function seedDemo(visitDay: DateStr): Promise<void> {
   await seedMoney(clock);
   await seedWindows(clock);
   await seedHome(clock);
+  await seedOverviews(clock);
 }
 
 /**
