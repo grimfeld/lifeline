@@ -18,6 +18,7 @@ export default defineConfig({
   },
   clearScreen: false,
   // The Demo's dev server (ADR 0077) runs beside the real one in the e2e
-  // suite; each keeps its own optimised-deps cache so neither clobbers the other.
-  cacheDir: process.env.VITE_DEMO ? "node_modules/.vite-demo" : undefined,
+  // suite (twice: with and without a Source link); each keeps its own
+  // optimised-deps cache so none clobbers another.
+  cacheDir: process.env.VITE_DEMO ? (process.env.VITE_DEMO_SOURCE_URL ? "node_modules/.vite-demo-source" : "node_modules/.vite-demo") : undefined,
 });

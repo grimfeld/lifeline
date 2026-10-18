@@ -6,9 +6,20 @@
  * is never used, and nothing offers to sign in. The real and Tauri builds
  * never set it.
  */
-const DEMO = (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_DEMO === "1";
+const ENV = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+const DEMO = ENV?.VITE_DEMO === "1";
+const SOURCE_URL = ENV?.VITE_DEMO_SOURCE_URL?.trim() || undefined;
 
 /** Whether this is the Demo build. */
 export function isDemo(): boolean {
   return DEMO;
+}
+
+/**
+ * Where the Demo's Source link points (`VITE_DEMO_SOURCE_URL`), or undefined
+ * when the build sets none — the link is then not shown (the repository is
+ * private until it is published). Never set outside the Demo.
+ */
+export function demoSourceUrl(): string | undefined {
+  return DEMO ? SOURCE_URL : undefined;
 }
