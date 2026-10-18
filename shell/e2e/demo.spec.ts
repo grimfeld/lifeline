@@ -15,6 +15,8 @@ async function open(page: Page, path: string): Promise<void> {
   await page.goto(path);
   await page.waitForLoadState("networkidle");
   await expect(page.locator("#root")).not.toBeEmpty();
+  // First open writes the Demo life behind "Loading…"; leaving before it ends would start it over.
+  await expect(page.getByRole("status").filter({ hasText: /^Loading…$/ })).toHaveCount(0, { timeout: 30_000 });
   await page.waitForTimeout(1_000);
 }
 
@@ -150,6 +152,87 @@ for (const w of WIDTHS) {
     test("with the clock pinned to another day, that day's agenda is full", async ({ page }) => {
       await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
       await expectBusyToday(page);
+    });
+  });
+}
+
+// ---- Demo life: tracking (#110) ----------------------------------------------
+
+/** A day's local key `offset` days from the page's own (possibly pinned) clock. */
+async function pageDay(page: Page, offset = 0): Promise<string> {
+  return page.evaluate((n) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, offset);
+}
+
+/** Open a Stat's detail page from the Stats list. */
+async function openStat(page: Page, name: string): Promise<void> {
+  await open(page, "/app/stats");
+  await page.getByText(name, { exact: true }).first().click();
+  await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+}
+
+/** A boolean Stat's streak is live on the visit day, and its heatmap is marked for weeks back. */
+async function expectLiveStreak(page: Page): Promise<void> {
+  await open(page, "/app/stats");
+  const streaks = page.getByTitle("Current streak");
+  await expect(streaks.first()).toBeVisible();
+  const longest = Math.max(...(await streaks.allInnerTexts()).map((t) => Number(t.trim())));
+  expect(longest, "a streak on the Stats list").toBeGreaterThanOrEqual(7);
+
+  await openStat(page, "Stretching");
+  const run = await page.getByText(/day streak/).innerText();
+  expect(Number(run.match(/(\d+)\s*day streak/)?.[1]), "streak on the visit day").toBeGreaterThanOrEqual(7);
+  // The 30-day heatmap: yesterday marked, and most of the month too.
+  await expect(page.locator(`[title="${await pageDay(page, -1)}"][style*="background"]`)).toHaveCount(1);
+  expect(await page.locator('[title^="20"][style*="background"]').count(), "days marked over 30 days").toBeGreaterThanOrEqual(18);
+}
+
+/** A Mood grid cell with a mood recorded ("Tue, Oct 6 — 🙂 Good"), not "— no mood". */
+const MOOD_CELL = /— \S+ (Rough|Meh|Okay|Good|Great)$/;
+
+for (const w of WIDTHS) {
+  test.describe(`Demo life: tracking at ${w.name} width`, () => {
+    test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
+
+    test("a boolean Stat has a live streak and weeks of marks", async ({ page }) => {
+      await expectLiveStreak(page);
+    });
+
+    test("an additive Stat charts weeks of entries", async ({ page }) => {
+      await openStat(page, "Water");
+      await expect(page.getByText("No entries in this period.")).toHaveCount(0);
+      await expect(page.locator(".recharts-bar-rectangle").first()).toBeVisible();
+      expect(await page.locator(".recharts-bar-rectangle").count(), "days with water in 30 days").toBeGreaterThanOrEqual(20);
+    });
+
+    test("Life Level, Mood, Workout and Swear jar open with believable content", async ({ page }) => {
+      await open(page, "/app/lifelevel");
+      for (const h of ["Morning mobility", "Read before bed", "Strength training"]) {
+        await expect(page.getByText(h, { exact: true }).first()).toBeVisible();
+      }
+      await expect(page.getByText(/Doomscrolling/).first()).toBeVisible();
+
+      await open(page, "/app/mood");
+      expect(await page.getByRole("button", { name: MOOD_CELL }).count(), "moods this month").toBeGreaterThanOrEqual(1);
+
+      await open(page, "/app/workout?tab=sessions");
+      // A Session row: the Workout's name over "Sat, Oct 17 · 08:00–08:24 · 24 min".
+      await expect(page.getByText("Saturday AMRAP", { exact: true }).first()).toBeVisible();
+      expect(await page.getByText(/ · \d+ min$/).count(), "sessions in three weeks").toBeGreaterThanOrEqual(4);
+
+      await open(page, "/app/swearjar");
+      await expect(page.getByText("The jar is empty this month. Keep it that way.")).toHaveCount(0);
+      await expect(page.getByText("Doomscrolling past midnight").first()).toBeVisible();
+    });
+
+    test("with the clock pinned to another day, streaks and moods run up to it", async ({ page }) => {
+      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+      await expectLiveStreak(page);
+      await open(page, "/app/mood");
+      expect(await page.getByRole("button", { name: MOOD_CELL }).count(), "moods in March").toBeGreaterThanOrEqual(6);
     });
   });
 }
