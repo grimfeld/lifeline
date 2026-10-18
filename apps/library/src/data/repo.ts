@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
+import { documentsOf, documentsWithRole, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
 import { AUTHOR, SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Author, type Work, type LookupSettings } from "../domain/types";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
@@ -155,7 +155,8 @@ export function normalizeAuthor(a: Author): Author {
 }
 
 export async function allAuthors(): Promise<Author[]> {
-  return (await documentsOf<Author>(AUTHOR)).map(normalizeAuthor);
+  // Every Document playing the Author Role (ADR 0069): Authors, and whoever else wears it.
+  return (await documentsWithRole<Author>(AUTHOR)).map(normalizeAuthor);
 }
 
 // One shared query: every byline on the Gallery reads the same array per change, not one live query per tile.

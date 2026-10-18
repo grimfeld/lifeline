@@ -106,7 +106,7 @@ export function ProjectScreen() {
         </TabsContent>
         {project.body && (
           <TabsContent value="plan" className="pt-2">
-            <MarkdownView body={project.body} index={index} />
+            <MarkdownView body={project.body} index={index} origin={project.id} />
           </TabsContent>
         )}
       </Tabs>

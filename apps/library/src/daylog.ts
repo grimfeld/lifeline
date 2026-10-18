@@ -9,7 +9,7 @@ import { libraryParts } from "./parts";
  * What happened in Media on a day (ADR 0009): one fact per item whose
  * finished / started / acquired / added stamp is that day, in the medium's
  * words ("Read", "Watched", "Started", "Acquired", "Added"). Days carry no time.
- * Plus one line per work for the Parts read that day (ADR 0067) — never a catch-up.
+ * Plus one line per work for the Parts read that day (ADR 0074) — never a catch-up.
  */
 export const libraryDaylog: DaylogProvider = {
   appId: APP_ID,

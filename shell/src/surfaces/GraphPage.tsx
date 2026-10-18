@@ -114,7 +114,7 @@ export function GraphPage() {
     }
     if (node.kind === "ghost") {
       // A Ghost node is a hole in the vault: clicking it creates the Note.
-      void putDocument({ type: "note", title: node.label, body: "" }).then((n) => {
+      void putDocument({ type: "thought", title: node.label, body: "" }).then((n) => {
         toast.success(`Created “${node.label}”`);
         navigate(docHref(n));
       });

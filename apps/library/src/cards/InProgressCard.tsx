@@ -16,7 +16,7 @@ function startedLabel(startedOn: string, today: string): string {
   return d <= 0 ? "started today" : d === 1 ? "started 1 day ago" : `started ${d} days ago`;
 }
 
-/** Card: covers of everything currently being read, newest start first — with "+1" where Parts are tracked (ADR 0067). */
+/** Card: covers of everything currently being read, newest start first — with "+1" where Parts are tracked (ADR 0074). */
 export function InProgressCard({ settings }: CardProps) {
   const filter = useTagFilter();
   const items = useWorks().filter((m) => matchesTagFilter(m.tags, filter));

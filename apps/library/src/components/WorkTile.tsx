@@ -14,7 +14,7 @@ import { useByline } from "./AuthorNames";
  * abandoned-dimmed) and the slot number — and, like the Cinema's tile
  * (ADR 0035), a one-click strip along the cover's foot: Read, Bought, ⋯. The
  * strip appears on hover where there is a pointer and is always there on touch.
- * The heart is there too (Marks, ADR 0067).
+ * The heart is there too (Marks, ADR 0074).
  */
 export function WorkTile({ item, all, onOpen, onEdit }: { item: Work; all: Work[]; onOpen: (m: Work) => void; onEdit?: (m: Work) => void }) {
   const def = workType(item.type);

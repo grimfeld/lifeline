@@ -30,14 +30,22 @@ import { MobileNav } from "./mobile/MobileNav";
 import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
 import { ModulePage } from "./modules/ModulePage";
-import { ModuleLayout } from "./modules/ModuleLayout";
+import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
 import { lastPlace, useResume } from "./nav/resume";
 import { PeekHost } from "./peek/PeekHost";
+import { SelectionIntake } from "./intake/SelectionIntake";
 
 /** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
 function ResumeRedirect() {
   const workspaceId = useCurrentWorkspaceId();
   return <Navigate to={lastPlace(workspaceId)} replace />;
+}
+
+/** The Journal left the Vault for its own interface (ADR 0068): an old link lands on the same day. */
+function LegacyJournalRedirect() {
+  const [params] = useSearchParams();
+  const d = params.get("d");
+  return <Navigate to={`/app/journal${d ? `?d=${d}` : ""}`} replace />;
 }
 
 function LegacyNoteRedirect() {
@@ -102,10 +110,11 @@ function Places() {
           <Route
             key={f.id}
             path={`${f.path}/*`}
-            element={moduleId ? <ModuleLayout moduleId={moduleId} bare>{routes}</ModuleLayout> : <CorePage>{routes}</CorePage>}
+            element={moduleId ? <ModuleLayout moduleId={moduleId} bare>{routes}</ModuleLayout> : f.sidebar ? <FrameLayout frame={f} bare>{routes}</FrameLayout> : <CorePage>{routes}</CorePage>}
           />
         );
       })}
+      <Route path="/vault/journal" element={<LegacyJournalRedirect />} />
       <Route path="/module/:id/*" element={<ModulePage />} />
       {screensOf().map((s) => {
         const Component = s.component;
@@ -175,6 +184,7 @@ export default function App() {
         <MobileNav />
         <CommandPalette />
         <PeekHost />
+        <SelectionIntake />
         <PrivateDialogs />
         <AccountDialogs />
         <Toaster position="bottom-right" />

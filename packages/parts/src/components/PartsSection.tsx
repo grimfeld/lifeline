@@ -145,7 +145,7 @@ function RunLength<W extends PartsWork>({ kit, work, medium, total }: { kit: Par
 }
 
 /**
- * A work's Parts (CONTEXT.md, ADR 0067) on its detail: progress, Next part,
+ * A work's Parts (CONTEXT.md, ADR 0074) on its detail: progress, Next part,
  * Caught up to, and the run itself Group by Group — a tap reads a Part (or
  * opens it), a Group's heading opens the Group.
  */

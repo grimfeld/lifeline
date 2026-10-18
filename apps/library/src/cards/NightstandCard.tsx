@@ -12,7 +12,7 @@ import { mediumOf } from "./shared";
 import { NextPartButton } from "@lifeline/parts";
 import { libraryParts } from "../parts";
 
-/** Card: everything currently holding a slot (ADR 0006 amendment) — with stale and buy signals, and "+1" for a work whose Parts are tracked (ADR 0067). */
+/** Card: everything currently holding a slot (ADR 0006 amendment) — with stale and buy signals, and "+1" for a work whose Parts are tracked (ADR 0074). */
 export function NightstandCard({ settings }: CardProps) {
   const filter = useTagFilter();
   const items = useWorks().filter((m) => matchesTagFilter(m.tags, filter));

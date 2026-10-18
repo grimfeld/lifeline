@@ -70,7 +70,33 @@ export function layoutOf(moduleId: string | undefined): FrameDef | undefined {
   return home ? frames().find((f) => f.path === home) : undefined;
 }
 
-/** The Vault as the Note-taking Module's layout: its own sidebar, and on the phone its Folder tabs above. */
+/**
+ * A frame's own layout: its sidebar, and on the phone its Module's tabs — or,
+ * for the Vault, which is no Module's layout any more (ADR 0068), its Folder
+ * tabs.
+ */
+export function FrameLayout({ frame, bare = false, children }: { frame: FrameDef; bare?: boolean; children: ReactNode }) {
+  const Sidebar = frame.sidebar;
+  return (
+    <>
+      <aside className="bg-sidebar text-sidebar-foreground flex w-72 shrink-0 flex-col border-r max-md:hidden">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <Sidebar />
+        </div>
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <PhoneDock slot="module">
+          <div className="flex gap-1 overflow-x-auto px-2 py-1.5 md:hidden">
+            <VaultTabs />
+          </div>
+        </PhoneDock>
+        <main className={cn("min-w-0 flex-1", bare ? "overflow-hidden" : "overflow-y-auto")}>{children}</main>
+      </div>
+    </>
+  );
+}
+
+/** A frame mounted at a Module's home as that Module's layout: its own sidebar, and the Module's tabs on the phone. */
 function FrameModuleLayout({ moduleId, frame, bare, children }: { moduleId: string; frame: FrameDef; bare: boolean; children: ReactNode }) {
   const Sidebar = frame.sidebar;
   return (
@@ -130,12 +156,10 @@ export function ModuleNav({ moduleId }: { moduleId: string }) {
  */
 function ModuleTabs({ moduleId }: { moduleId: string }) {
   const screens = moduleScreens(moduleId);
-  const vault = moduleId === "notes";
-  if (!vault && screens.length < 2) return null;
+  if (screens.length < 2) return null;
   return (
     <PhoneDock slot="module">
       <div className="flex gap-1 overflow-x-auto px-2 py-1.5 md:hidden">
-        {vault && <VaultTabs />}
         {screens.map((s) => {
           const Icon = s.icon ?? LayoutDashboard;
           return (

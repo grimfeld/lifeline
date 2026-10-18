@@ -30,7 +30,7 @@ function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   );
 }
 
-/** "Hear next track…" (ADR 0067): pick a work, its next Part is heard today. */
+/** "Hear next track…" (ADR 0074): pick a work, its next Part is heard today. */
 function NextPartCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const works = useWorks();
   return (

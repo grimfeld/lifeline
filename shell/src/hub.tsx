@@ -8,11 +8,12 @@ import { CountTile, DocumentCard, useDocumentOptions, useViewOptions, ViewCard }
 import { GraphCard } from "./surfaces/GraphCard";
 import { VaultSidebar } from "./vault/VaultSidebar";
 import { VaultDocPage } from "./vault/VaultDocPage";
+import { VaultHome } from "./vault/VaultHome";
 
 /**
  * The shell's own manifest: Core's Surfaces packaged like any App's cards
  * (so they appear in the card picker), the generic Document Cards (ADR 0018),
- * and the Vault — the Note-taking Module's layout (ADR 0057).
+ * and the Vault — Core's raw editor for bodies (ADR 0068), as the Bases are for fields.
  */
 export const hubApp: AppManifest = {
   id: "hub",
@@ -25,9 +26,10 @@ export const hubApp: AppManifest = {
     icon: Vault,
     path: "/vault",
     sidebar: VaultSidebar,
-    home: "journal",
   },
   screens: [
+    // The raw editor's landing (ADR 0068): the Vault is no Module's layout, so it opens on nothing in particular.
+    { id: "hub.vault", title: "Vault", path: "", frame: VAULT_FRAME, hidden: true, component: VaultHome },
     {
       id: "hub.doc",
       title: "Document",
@@ -168,7 +170,7 @@ export const hubApp: AppManifest = {
     {
       id: "hub.go-vault",
       title: "Go to Vault",
-      keywords: ["notes", "note-taking", "journal", "editor"],
+      keywords: ["raw", "markdown", "files", "folders", "editor", "bulk"],
       icon: Vault,
       run: ({ navigate }) => navigate("/vault"),
     },

@@ -28,7 +28,7 @@ function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   );
 }
 
-/** "Next chapter of…" (ADR 0067): pick a work, its next Part is read today. */
+/** "Next chapter of…" (ADR 0074): pick a work, its next Part is read today. */
 function NextPartCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const works = useWorks();
   const authors = useAuthorIndex();

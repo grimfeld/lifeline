@@ -44,7 +44,7 @@ export interface PartsWork extends PartsHolder {
 }
 
 /**
- * What a family App tells the kit (ADR 0067). The App owns its Parts and
+ * What a family App tells the kit (ADR 0074). The App owns its Parts and
  * Groups — its own two types — and keeps its own Shelf: the kit calls back
  * for Start and Done rather than writing them itself.
  */

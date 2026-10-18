@@ -18,11 +18,11 @@
 @source "../../apps/commonplace/src";
 @source "../../apps/museum/src";
 @source "../../apps/notes/src";
+@source "../../apps/thoughts/src";
 @source "../../apps/sources/src";
-@source "../../apps/clipper/src";
 @source "../../apps/writer/src";
+@source "../../apps/manuscript/src";
 @source "../../apps/workout/src";
-@source "../../apps/bible/src";
 @source "../../apps/lifelevel/src";
 @source "../../apps/ledger/src";
 @source "../../apps/pocket/src";

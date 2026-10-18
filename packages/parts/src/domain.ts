@@ -1,7 +1,7 @@
 import type { DateStr, Document } from "@lifeline/core";
 
 /**
- * Parts and Groups (CONTEXT.md, ADR 0067): the numbered pieces a work is made
+ * Parts and Groups (CONTEXT.md, ADR 0074): the numbered pieces a work is made
  * of — issues, chapters, episodes, tracks — optionally collected into one
  * level of Groups (volumes, seasons, discs, sections). Everything here is
  * pure: the run is *derived* from the work's size, its catch-up position and
@@ -38,7 +38,7 @@ export interface Pos {
 
 export const NO_POS: Pos = { group: 0, number: 0 };
 
-/** The fields a work carries for its Parts (ADR 0067). */
+/** The fields a work carries for its Parts (ADR 0074). */
 export interface PartsHolder extends Document {
   size: number;
   /** The run's length when `size` counts something else (a book's pages). 0 = ongoing. */
@@ -249,7 +249,7 @@ export function raisedGroupSize(group: Group | undefined, pos: Pos): number | nu
   return group && group.size > 0 && pos.number > group.size ? pos.number : null;
 }
 
-/** A Part with nothing to say any more goes (ADR 0067). */
+/** A Part with nothing to say any more goes (ADR 0074). */
 export const partIsEmpty = (p: Pick<Part, "readOn" | "liked" | "rating" | "body" | "name">) => !p.readOn && !p.liked && !p.rating && !(p.body ?? "").trim() && !p.name.trim();
 export const groupIsEmpty = (g: Pick<Group, "size" | "firstPart" | "liked" | "rating" | "body" | "name">) =>
   !g.size && !g.firstPart && !g.liked && !g.rating && !(g.body ?? "").trim() && !g.name.trim();

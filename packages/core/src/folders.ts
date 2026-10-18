@@ -64,6 +64,8 @@ export const TEMPLATES_FOLDER = "Templates";
 /** Default folder for a note of a type when nothing else is chosen; user types may declare one. */
 export function defaultFolder(type: string, title: string, typeFolder = ""): string {
   if (type === "daily") return dailyFolder(title);
+  // The Journal's Weeks, Months, Quarters and Years sit beside their days, under their year.
+  if ((type === "week" || type === "month" || type === "quarter" || type === "year") && /^\d{4}/.test(title)) return `Journal/${title.slice(0, 4)}`;
   if (type === "template") return TEMPLATES_FOLDER;
   return normalizeFolder(typeFolder);
 }

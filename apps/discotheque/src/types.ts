@@ -25,7 +25,7 @@ const WORK_FIELDS: FieldDef[] = [
   { key: "addedOn", label: "Added on", kind: "date", guarded: true },
   { key: "startedOn", label: "Started on", kind: "date", guarded: true },
   { key: "finishedOn", label: "Finished on", kind: "date", guarded: true },
-  // Parts (ADR 0067): moved through the Parts, never typed.
+  // Parts (ADR 0074): moved through the Parts, never typed.
   { key: "partsTracked", label: "Parts tracked", kind: "boolean", guarded: true },
   { key: "caughtUpGroup", label: "Caught up to (group)", kind: "number", guarded: true, hidden: true },
   { key: "caughtUpPart", label: "Caught up to", kind: "number", guarded: true },
@@ -45,7 +45,7 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t) => ({
   order: 44,
   builtIn: true,
   fields: WORK_FIELDS,
-  // Its Parts and Groups die with it and follow it to another Workspace (ADR 0067).
+  // Its Parts and Groups die with it and follow it to another Workspace (ADR 0074).
   ...discothequeParts.workTypeHooks,
 }));
 

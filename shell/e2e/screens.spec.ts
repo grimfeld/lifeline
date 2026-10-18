@@ -16,6 +16,8 @@ interface ScreenCase {
   /** Route; a `:id` is filled with the first Document of `type`. */
   path: string;
   type?: string;
+  /** Other route parameters, filled as given (`{ key: "2026-W42" }` for `:key`). */
+  params?: Record<string, string>;
 }
 
 const SCREENS: ScreenCase[] = [
@@ -40,13 +42,26 @@ const SCREENS: ScreenCase[] = [
   { name: "Culture", path: "/module/culture" },
   { name: "Money", path: "/module/money" },
   { name: "Progress", path: "/module/progress" },
-  { name: "Languages module", path: "/module/languages" },
+  { name: "Knowledge module", path: "/module/languages" },
   { name: "Mail module", path: "/module/mail" },
+  { name: "Journal module", path: "/module/journal" },
+  { name: "Notes module", path: "/module/notes" },
+  { name: "Thoughts module", path: "/module/thoughts" },
+  { name: "Research module", path: "/module/research" },
+  { name: "Manuscript module", path: "/module/manuscript" },
 
   // The Vault (Note-taking's layout).
-  { name: "Vault · Journal", path: "/vault/journal" },
-  { name: "Vault · Bible study", path: "/vault/bible" },
-  { name: "Vault · Note", path: "/vault/d/:id", type: "note" },
+  { name: "Vault", path: "/vault" },
+  { name: "Journal · Today", path: "/app/journal" },
+  { name: "Journal · Week", path: "/app/journal/p/:key", params: { key: "2026-W42" } },
+  { name: "Journal · Year", path: "/app/journal/p/2026" },
+  { name: "Journal · Types", path: "/app/journal/t" },
+  { name: "Journal · Types (old link)", path: "/app/journal/c" },
+  { name: "Journal · One type", path: "/app/journal/t/:type", params: { type: "e2eperson" } },
+  { name: "Journal · One type (old link)", path: "/app/journal/c/:type", params: { type: "e2eperson" } },
+  { name: "Journal · Templates", path: "/app/journal/templates" },
+  { name: "Journal · Page", path: "/app/journal/d/:id", type: "template" },
+  { name: "Vault · Thought", path: "/vault/d/:id", type: "thought" },
 
   // App screens.
   { name: "Chores", path: "/app/chores" },
@@ -68,14 +83,19 @@ const SCREENS: ScreenCase[] = [
   { name: "Quotes", path: "/app/quotes" },
   { name: "Museum", path: "/app/museum" },
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
-  { name: "Notes", path: "/app/notes" },
-  { name: "Clippings", path: "/app/clippings" },
-  { name: "Writings", path: "/app/writings" },
-  { name: "Sources", path: "/app/sources" },
-  { name: "Source", path: "/app/sources/:id", type: "source" },
+  { name: "Thoughts", path: "/app/thoughts" },
+  { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
+  { name: "Notes · Sources", path: "/app/notes" },
+  { name: "Notes · Source", path: "/app/notes/s/:id", type: "source" },
+  { name: "Notes · Note", path: "/app/notes/n/:id", type: "note" },
+  { name: "Research", path: "/app/research" },
+  { name: "Essay", path: "/app/research/e/:id", type: "essay" },
+  { name: "Manuscripts", path: "/app/manuscripts" },
+  { name: "Manuscript", path: "/app/manuscripts/m/:id", type: "manuscript" },
+  { name: "Windows", path: "/app/sources" },
+  { name: "Window", path: "/app/sources/:id", type: "window" },
   { name: "Workout", path: "/app/workout" },
   { name: "Workout timer", path: "/app/workout/run/:id", type: "workout" },
-  { name: "Bible quick", path: "/app/bible" },
   { name: "Ledger", path: "/app/ledger" },
   { name: "Budget", path: "/app/ledger/budget" },
   { name: "Money reports", path: "/app/ledger/reports" },
@@ -85,7 +105,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Mood", path: "/app/mood" },
   { name: "Mail", path: "/app/mail" },
   { name: "Swear Jar", path: "/app/swearjar" },
-  { name: "Languages", path: "/app/languages" },
+  { name: "Knowledge", path: "/app/languages" },
 ];
 
 async function firstOfType(page: Page, type: string): Promise<string> {
@@ -116,6 +136,7 @@ for (const screen of SCREENS) {
       expect(id, `a seeded ${screen.type}`).not.toBe("");
       path = path.replace(":id", id);
     }
+    for (const [k, v] of Object.entries(screen.params ?? {})) path = path.replace(`:${k}`, v);
     await open(page, path);
     await expectNoBrokenLayout(page, screen.name);
     expect(errors, `no uncaught errors:\n  ${errors.join("\n  ")}`).toEqual([]);
