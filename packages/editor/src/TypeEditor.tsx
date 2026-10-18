@@ -24,6 +24,7 @@ import {
   renameOption,
   toFieldDrafts,
   kindLabel,
+  kindRefusals,
   normalizeFolder,
   removedFieldValues,
   reservedKeyProblems,
@@ -267,6 +268,7 @@ export function TypeEditor({
               open={open.has(r.uid)}
               names={names}
               linkTypes={linkTypes}
+              refusals={kindRefusals(r, KINDS, held)}
               onToggle={() => toggle(r.uid)}
               onChange={(d) => {
                 // Picking a kind with settings opens its fold-out straight away.
@@ -346,6 +348,7 @@ function FieldRow({
   open,
   names,
   linkTypes,
+  refusals,
   onToggle,
   onChange,
   onRemove,
@@ -354,6 +357,8 @@ function FieldRow({
   open: boolean;
   names: SummaryNames;
   linkTypes: DocumentTypeDef[];
+  /** Kinds this saved Field's held values wouldn't fit, each with why (kindRefusals). */
+  refusals: Partial<Record<FieldKind, string>>;
   onToggle: () => void;
   onChange: (d: FieldDraft) => void;
   onRemove: () => void;
@@ -370,11 +375,22 @@ function FieldRow({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {KINDS.map((k) => (
-              <SelectItem key={k} value={k}>
-                {kindLabel(k)}
-              </SelectItem>
-            ))}
+            {KINDS.map((k) => {
+              // A kind the held values don't fit is off, its reason on hover and in the item (a phone has no hover).
+              const why = refusals[k];
+              return (
+                <SelectItem key={k} value={k} disabled={!!why} title={why} className="data-disabled:pointer-events-auto">
+                  {why ? (
+                    <span className="grid min-w-0">
+                      <span>{kindLabel(k)}</span>
+                      <span className="text-muted-foreground text-[10px] whitespace-normal">{why}</span>
+                    </span>
+                  ) : (
+                    kindLabel(k)
+                  )}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
         {settings ? (
