@@ -4,9 +4,16 @@ import { defineConfig, devices } from "@playwright/test";
  * End-to-end layout tests (see e2e/README.md): every screen, at phone and
  * desktop widths, filled with the longest content a person could type.
  */
-const PORT = 1421;
+/** `E2E_PORT` moves all three dev servers, for a second checkout running its own suite beside this one. */
+const PORT = Number(process.env.E2E_PORT ?? 1421);
 /** The Demo build (ADR 0077): its own dev server, with the switch on. */
-const DEMO_PORT = 1422;
+const DEMO_PORT = PORT + 1;
+/**
+ * The Demo built with a Source link (VITE_DEMO_SOURCE_URL); the one on
+ * DEMO_PORT has none, like the Demo today. demo.spec.ts finds it as the port
+ * after DEMO_PORT.
+ */
+const DEMO_SOURCE_PORT = PORT + 2;
 
 export default defineConfig({
   testDir: "e2e",
@@ -55,6 +62,13 @@ export default defineConfig({
       command: `pnpm exec vite --port ${DEMO_PORT} --strictPort`,
       url: `http://localhost:${DEMO_PORT}`,
       env: { VITE_DEMO: "1" },
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: `pnpm exec vite --port ${DEMO_SOURCE_PORT} --strictPort`,
+      url: `http://localhost:${DEMO_SOURCE_PORT}`,
+      env: { VITE_DEMO: "1", VITE_DEMO_SOURCE_URL: "https://github.com/grimfeld/lifeline" },
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

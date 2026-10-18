@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
+import { layoutProblems } from "./support/layout";
 
 /**
  * The Demo (CONTEXT.md "Demo", ADR 0077): the build with `VITE_DEMO=1`, as a
@@ -220,6 +221,127 @@ for (const w of WIDTHS) {
       const day = await dayOnUpcoming(page, TALK_DAY);
       await day.scrollIntoViewIfNeeded();
       await expect(day.getByText(`⚑ ${TALK}`)).toBeVisible();
+    });
+  });
+}
+
+// --- The banner, Reset and the Source link (#107) ---
+
+/** The Source link the second Demo dev server is built with (playwright.config.ts). */
+const SOURCE_URL = "https://github.com/grimfeld/lifeline";
+
+function banner(page: Page) {
+  return page.getByRole("region", { name: "Demo", exact: true });
+}
+
+function demoSettings(page: Page) {
+  return page.getByRole("region", { name: "Demo settings", exact: true });
+}
+
+async function addTask(page: Page, title: string): Promise<void> {
+  await open(page, "/app/tasks");
+  await page.getByPlaceholder(/^Quick add/).fill(title);
+  await page.keyboard.press("Enter");
+  await expect(page.getByText(title, { exact: true })).toBeVisible();
+}
+
+/** Erase and re-seed through the app's own confirm Dialog, from wherever `scope` holds the Reset button. */
+async function reset(page: Page, scope: Locator): Promise<void> {
+  await scope.getByRole("button", { name: "Reset", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await Promise.all([page.waitForEvent("load"), dialog.getByRole("button", { name: "Reset", exact: true }).click()]);
+  await page.waitForLoadState("networkidle");
+  await expect(page.locator("#root")).not.toBeEmpty();
+}
+
+for (const w of WIDTHS) {
+  test.describe(`Demo banner and Reset at ${w.name} width`, () => {
+    test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
+
+    test("the banner shows on first open, at the top, and staying dismissed survives a reload", async ({ page }) => {
+      await open(page, "/calendar");
+      const bar = banner(page);
+      await expect(bar).toBeVisible();
+      await expect(bar).toContainText(/your changes stay in this browser/i);
+      // At the top on a phone too (ADR 0064): above the Phone header, not in the Phone dock.
+      expect((await bar.boundingBox())!.y).toBeLessThan(2);
+
+      await bar.getByRole("button", { name: "Dismiss" }).click();
+      await expect(bar).toHaveCount(0);
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("#root")).not.toBeEmpty();
+      await page.waitForTimeout(500);
+      await expect(banner(page)).toHaveCount(0);
+    });
+
+    test("the banner passes the layout checks", async ({ page }) => {
+      await open(page, "/calendar");
+      await expect(banner(page)).toBeVisible();
+      const texts = (await banner(page).innerText()).split(/\s*\n\s*/).filter(Boolean);
+      const problems = (await layoutProblems(page)).filter((p) => texts.some((t) => p.includes(t.slice(0, 20))));
+      expect(problems, `the banner has broken layout:\n  ${problems.join("\n  ")}`).toEqual([]);
+    });
+
+    test("Reset asks first, then removes an edit and brings back the seeded life dated around today", async ({ page }) => {
+      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+      await addTask(page, "Return the library card");
+
+      // Cancelling keeps everything.
+      await banner(page).getByRole("button", { name: "Reset", exact: true }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(page.getByText("Return the library card", { exact: true })).toBeVisible();
+
+      // A week later, Reset re-seeds around the new today.
+      await page.clock.setFixedTime(new Date("2027-03-17T09:30:00"));
+      await reset(page, banner(page));
+      await open(page, "/app/tasks");
+      await expect(page.getByTitle("Mark done")).not.toHaveCount(0);
+      await expect(page.getByText("Return the library card", { exact: true })).toHaveCount(0);
+      await expectBusyToday(page);
+    });
+
+    test("Reset stays in Settings after the banner is dismissed; Source is hidden when its URL is not set", async ({ page }) => {
+      await open(page, "/settings");
+      await expect(banner(page)).toBeVisible();
+      await expect(page.getByRole("link", { name: /Source/ })).toHaveCount(0);
+      await banner(page).getByRole("button", { name: "Dismiss" }).click();
+      await expect(banner(page)).toHaveCount(0);
+      await expect(demoSettings(page).getByRole("button", { name: "Reset", exact: true })).toBeVisible();
+      await expect(page.getByRole("link", { name: /Source/ })).toHaveCount(0);
+
+      await addTask(page, "Return the library card");
+      await open(page, "/settings");
+      await reset(page, demoSettings(page));
+      await open(page, "/app/tasks");
+      await expect(page.getByTitle("Mark done")).not.toHaveCount(0);
+      await expect(page.getByText("Return the library card", { exact: true })).toHaveCount(0);
+    });
+  });
+
+  test.describe(`Demo with a Source link at ${w.name} width`, () => {
+    test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
+    // That server listens on the port after the Demo's own.
+    test.use({
+      baseURL: async ({ baseURL }, use) => {
+        const u = new URL(baseURL!);
+        u.port = String(Number(u.port) + 1);
+        await use(u.origin);
+      },
+    });
+
+    test("the Source link opens the repo, from the banner and from Settings", async ({ page }) => {
+      await open(page, "/calendar");
+      const link = banner(page).getByRole("link", { name: /Source/ });
+      await expect(link).toHaveAttribute("href", SOURCE_URL);
+      await expect(link).toHaveAttribute("target", "_blank");
+
+      await banner(page).getByRole("button", { name: "Dismiss" }).click();
+      await open(page, "/settings");
+      await expect(demoSettings(page).getByRole("link", { name: /Source/ })).toHaveAttribute("href", SOURCE_URL);
+      await expect(demoSettings(page).getByRole("button", { name: "Reset", exact: true })).toBeVisible();
     });
   });
 }
