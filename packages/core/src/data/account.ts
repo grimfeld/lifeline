@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { pb } from "./pb";
+import { isDemo } from "../demo";
 
 /**
  * One device holds one Account's data at a time (CONTEXT.md "Account",
@@ -19,6 +20,8 @@ export interface AccountRef {
 
 /** The signed-in Account, if any. */
 export function currentAccount(): AccountRef | undefined {
+  // A Demo device is bound to no Account (CONTEXT.md "Demo"), whatever the browser remembers.
+  if (isDemo()) return undefined;
   const r = pb.authStore.record as { id: string; email?: string } | null;
   return pb.authStore.isValid && r ? { id: r.id, email: r.email ?? "" } : undefined;
 }

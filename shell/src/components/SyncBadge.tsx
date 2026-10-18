@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
-import { logout, pendingWriteCount, switchAccount, syncNow, useAuth, useSyncState } from "@lifeline/core";
+import { isDemo, logout, pendingWriteCount, switchAccount, syncNow, useAuth, useSyncState } from "@lifeline/core";
 import { Cloud, CloudOff, Loader2, RefreshCw, Trash2, User } from "lucide-react";
 import { openSignIn } from "./AccountDialogs";
 
@@ -16,8 +16,15 @@ const LABELS: Record<string, string> = {
  * Sync state, sign-in, sign-out and erase (the sign-in itself is AccountDialogs's). `compact` is the Rail's cell: the
  * state as one icon that syncs (or asks to sign in) on click — the account
  * rows live in Settings, where the full badge is.
+ *
+ * The Demo has nothing to sync and no one to sign in (ADR 0077): the badge is
+ * not there at all, wherever it is placed.
  */
 export function SyncBadge({ compact = false }: { compact?: boolean } = {}) {
+  return isDemo() ? null : <LiveSyncBadge compact={compact} />;
+}
+
+function LiveSyncBadge({ compact }: { compact: boolean }) {
   const { state, pending, error } = useSyncState();
   const { loggedIn, email } = useAuth();
   const [busy, setBusy] = useState(false);

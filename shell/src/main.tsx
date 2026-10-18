@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router";
-import { initApps, setTypeIconResolver, startSync } from "@lifeline/core";
+import { initApps, isDemo, setTypeIconResolver, startSync } from "@lifeline/core";
 import { typeIcon } from "@lifeline/ui";
 import { choresApp } from "@lifeline/app-chores";
 import { tasksApp } from "@lifeline/app-tasks";
@@ -34,9 +34,15 @@ import { hubApp } from "./hub";
 import App from "./App";
 import "./index.css";
 
-// Compile-time App registry (ADR 0003): every App joins here.
+// Compile-time App registry (ADR 0003): every App joins here. The Demo
+// (ADR 0077) leaves out the Apps that need a server: Mail reads Gmail through it.
+const SERVER_APPS = new Set([mailApp.id]);
 setTypeIconResolver(typeIcon);
-initApps([hubApp, choresApp, pantryApp, shoppingApp, tasksApp, projectsApp, calendarApp, statsApp, lifelevelApp, libraryApp, cinemaApp, discothequeApp, arcadeApp, commonplaceApp, museumApp, notesApp, thoughtsApp, writerApp, manuscriptApp, sourcesApp, workoutApp, ledgerApp, pocketApp, pricesApp, moodApp, mailApp, swearjarApp, knowledgeApp]);
+initApps(
+  [hubApp, choresApp, pantryApp, shoppingApp, tasksApp, projectsApp, calendarApp, statsApp, lifelevelApp, libraryApp, cinemaApp, discothequeApp, arcadeApp, commonplaceApp, museumApp, notesApp, thoughtsApp, writerApp, manuscriptApp, sourcesApp, workoutApp, ledgerApp, pocketApp, pricesApp, moodApp, mailApp, swearjarApp, knowledgeApp].filter(
+    (a) => !isDemo() || !SERVER_APPS.has(a.id),
+  ),
+);
 startSync();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

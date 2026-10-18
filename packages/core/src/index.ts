@@ -1,3 +1,4 @@
+export * from "./demo";
 export * from "./dates";
 export * from "./calendarViews";
 export * from "./ids";
