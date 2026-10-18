@@ -12,7 +12,7 @@ import { patchWork } from "../data/repo";
  * exactly the same gestures. Read toggles the Shelf — finishing frees the
  * Nightstand slot, undoing never takes it back. Bought toggles Wanted ⇄ Owned
  * and hides for Borrowed / Gone (those stay deliberate menu moves). Liked and
- * the stars are Marks (ADR 0067, as the Cinema's): neither moves the Shelf.
+ * the stars are Marks (ADR 0074, as the Cinema's): neither moves the Shelf.
  */
 
 const ICON = { sm: "size-3.5", md: "size-4" } as const;

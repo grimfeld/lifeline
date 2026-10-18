@@ -27,7 +27,7 @@ export function SourcePage() {
       <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 text-sm">
         That source no longer exists.
         <Button variant="outline" onClick={() => navigate(SOURCES_HREF)}>
-          <ArrowLeft /> Sources
+          <ArrowLeft /> Windows
         </Button>
       </div>
     );

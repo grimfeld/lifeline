@@ -17,11 +17,11 @@ export interface WorkTypeDef {
   startVerb: string;
   finishVerb: string;
   wantLabel: string;
-  /** How its Parts and Groups are spoken of (ADR 0067); null = it never has Parts. */
+  /** How its Parts and Groups are spoken of (ADR 0074); null = it never has Parts. */
   parts: PartsMedium | null;
 }
 
-/** An album's Tracks restart on each Disc (ADR 0067): "Disc 2 · Track 4". */
+/** An album's Tracks restart on each Disc (ADR 0074): "Disc 2 · Track 4". */
 const TRACKS: PartsMedium = { numbering: "restart", part: "Track", parts: "tracks", group: "Disc", groups: "discs", verb: "Heard" };
 
 export const WORK_TYPES: WorkTypeDef[] = [

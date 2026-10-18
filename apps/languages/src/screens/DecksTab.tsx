@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card, CardContent, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, PhoneDock, toast } from "@lifeline/ui";
 import { Layers, Plus } from "lucide-react";
-import { plainSentence } from "../domain/cloze";
-import { SENTENCE, type Deck, type Item, type Language, type Sentence, type Word } from "../domain/types";
+import { itemLines } from "../domain/prompts";
+import type { Deck, Item, Topic } from "../domain/types";
 import { addDeck, deleteDeck, renameDeck, setMembership } from "../data/repo";
 import { deckItems } from "./PracticeTab";
 
 function labelOf(i: Item): string {
-  return i.type === SENTENCE ? plainSentence((i as Sentence).text) : (i as Word).term;
+  return itemLines(i).main;
 }
 
-/** One Deck: its name, and which of the Language's Words and Sentences it holds — membership is the Deck's. */
-function DeckDialog({ open, onOpenChange, deck, language, items }: { open: boolean; onOpenChange: (open: boolean) => void; deck?: Deck; language: Language; items: Item[] }) {
+/** One Deck: its name, and which of the Topic's Words, Sentences and Facts it holds — membership is the Deck's. */
+function DeckDialog({ open, onOpenChange, deck, topic, items }: { open: boolean; onOpenChange: (open: boolean) => void; deck?: Deck; topic: Topic; items: Item[] }) {
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -34,7 +34,7 @@ function DeckDialog({ open, onOpenChange, deck, language, items }: { open: boole
         if (name.trim() !== deck.name) await renameDeck(deck, name);
         onOpenChange(false);
       } else {
-        await addDeck(language.id, name);
+        await addDeck(topic.id, name);
         toast.success(`${name.trim()} created — open it to choose what goes in`);
         onOpenChange(false);
       }
@@ -96,8 +96,8 @@ function DeckDialog({ open, onOpenChange, deck, language, items }: { open: boole
   );
 }
 
-/** The active Language's Decks: chosen sets a Practice can be narrowed to. */
-export function DecksTab({ language, decks, items }: { language: Language; decks: Deck[]; items: Item[] }) {
+/** The active Topic's Decks: chosen sets a Practice can be narrowed to. */
+export function DecksTab({ topic, decks, items }: { topic: Topic; decks: Deck[]; items: Item[] }) {
   const [adding, setAdding] = useState(false);
   const [openId, setOpenId] = useState<string | undefined>();
   const open = decks.find((d) => d.id === openId);
@@ -113,7 +113,7 @@ export function DecksTab({ language, decks, items }: { language: Language; decks
         </PhoneDock>
       </div>
       {decks.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No decks in {language.name} yet.</p>
+        <p className="text-muted-foreground text-sm">No decks in {topic.name} yet.</p>
       ) : (
         <Card className="py-0">
           <CardContent className="grid gap-0.5 px-2 py-2">
@@ -127,8 +127,8 @@ export function DecksTab({ language, decks, items }: { language: Language; decks
           </CardContent>
         </Card>
       )}
-      <DeckDialog open={adding} onOpenChange={setAdding} language={language} items={items} />
-      <DeckDialog open={!!open} onOpenChange={(o) => !o && setOpenId(undefined)} deck={open} language={language} items={items} />
+      <DeckDialog open={adding} onOpenChange={setAdding} topic={topic} items={items} />
+      <DeckDialog open={!!open} onOpenChange={(o) => !o && setOpenId(undefined)} deck={open} topic={topic} items={items} />
     </div>
   );
 }

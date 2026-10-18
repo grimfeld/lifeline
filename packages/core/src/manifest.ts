@@ -4,10 +4,12 @@ import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
 import type { LoggableProvider } from "./contracts/loggable";
 import type { TallyingDef } from "./contracts/tallying";
+import type { RecallableDef } from "./contracts/recallable";
 import type { IntakeDef } from "./contracts/intake";
 import type { CardSettings, CardSettingsSchema } from "./cards";
 import type { Document, DocumentTypeDef, FieldOption } from "./documents/types";
 import type { LinkIndex } from "./documents/links";
+import type { RoleDef } from "./documents/roles";
 
 /**
  * A panel an App adds to the side of every open Document in the Vault
@@ -43,8 +45,8 @@ export interface FrameDef {
   path: string;
   /** The layout's own sidebar. */
   sidebar: React.ComponentType;
-  /** Where the bare root path lands, relative to `path` (e.g. "journal"). */
-  home: string;
+  /** Where the bare root path lands, relative to `path`; absent when a screen of its own sits at the root (the Vault's landing). */
+  home?: string;
 }
 
 export const DASHBOARD_FRAME = "dashboard";
@@ -82,9 +84,20 @@ export const MODULES: ModuleDef[] = [
   { id: "tasks", title: "Projects" },
   { id: "culture", title: "Culture" },
   { id: "money", title: "Money" },
-  { id: "notes", title: "Note-taking", home: "/vault" },
+  // Writing splits by what is written (ADR 0068): the Journal has its own
+  // interface, and the Vault is Core's raw editor, no Module's layout. Notes is
+  // the shelf of Sources, keeping the old Note-taking id because Workspaces and
+  // Phone bars store it.
+  { id: "journal", title: "Journal" },
+  { id: "notes", title: "Notes" },
+  { id: "research", title: "Research" },
+  { id: "manuscript", title: "Manuscript" },
+  // Thoughts (ADR 0068): what comes straight out of my head, with no Source.
+  { id: "thoughts", title: "Thoughts" },
   { id: "progress", title: "Progress" },
-  { id: "languages", title: "Languages" },
+  // Knowledge (ADR 0073): retention over every Recallable type, in Topics. It
+  // keeps the Languages id because Workspaces and Phone bars store it.
+  { id: "languages", title: "Knowledge" },
   { id: "mail", title: "Mail" },
 ];
 
@@ -233,6 +246,8 @@ export interface CommandArg {
   options?: FieldOption[];
   /** link: the Document type (or family) the id must belong to. */
   linkType?: string | string[];
+  /** link: the Role (ADR 0069) the Document must play; wins over `linkType`. */
+  linkRole?: string;
   /** What the value means, for a caller with no dialog to look at — an agent (ADR 0062). */
   hint?: string;
 }
@@ -297,6 +312,8 @@ export interface AppManifest {
   color?: string;
   /** Built-in Document types this App owns (ADR 0019). Their `appId` is filled in by the registry. */
   types: DocumentTypeDef[];
+  /** Roles this App lends to other types' Documents (ADR 0069). Their `appId` is filled in by the registry. */
+  roles?: RoleDef[];
   /** Local-only tables ("_"-prefixed), never synced. */
   localTables?: CollectionDef[];
   screens: AppScreenDef[];
@@ -325,6 +342,15 @@ export interface AppManifest {
   tallying?: TallyingDef[];
   /** Intake (ADR 0050): the ways this App accepts a Handoff from another App — each a dialog opened prefilled. */
   intakes?: IntakeDef[];
+  /** Recallable (ADR 0073): this App's types whose Documents yield Prompts for the Knowledge App to practise. */
+  recallable?: RecallableDef[];
+  /**
+   * Recallable, the practising side (ADR 0073): a Recallable Document — any
+   * App's — is being deleted; take down what this App keeps about practising
+   * it (the Knowledge App's Recalls). Run by Core from every place a Document
+   * can be deleted, after the type's own cascade.
+   */
+  forgetRecallable?: (doc: Document) => Promise<void>;
   /**
    * A React hook the shell runs once, always, for this App — live work that
    * belongs to no screen (ADR 0032: creating Verses from unresolved names).

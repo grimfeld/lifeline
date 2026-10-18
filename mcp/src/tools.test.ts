@@ -15,6 +15,13 @@ describe("tool catalogue", () => {
     expect(add?.write).toBe(true);
     expect(Object.keys(add!.input)).toEqual(expect.arrayContaining(["title", "date", "recurrence", "workspace"]));
   });
+
+  it("names Knowledge's tools after Knowledge, with no Languages aliases (ADR 0073)", () => {
+    const names = TOOLS.map((t) => t.name);
+    expect(names).toEqual(expect.arrayContaining(["knowledge_word", "knowledge_sentence"]));
+    expect(names.filter((n) => n.startsWith("languages_"))).toEqual([]);
+    expect(Object.keys(TOOLS.find((t) => t.name === "knowledge_word")!.input)).toEqual(expect.arrayContaining(["topic", "term", "meaning"]));
+  });
 });
 
 describe("grantedScopes", () => {

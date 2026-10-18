@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, PhoneDock, toast } from "@lifeline/ui";
 import {
   appById,
   basePath,
-  createDocument,
   deleteDocumentType,
-  docHref,
+  deleteUserDocumentType,
   TEMPLATE_TYPE,
+  templatesFor,
+  templatesPath,
   useAllDocuments,
   useDocumentTypes,
   useUserDocumentTypes,
@@ -15,31 +16,34 @@ import {
   type DocumentTypeRecord,
 } from "@lifeline/core";
 import { LayoutTemplate, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { TypeEditor } from "./TypeEditor";
+import { TypeEditor } from "@lifeline/editor";
 
 /** `/base`: every Document type with its count — the Bases list and the type manager (ADR 0019). */
 export function BasesIndex() {
   const types = useDocumentTypes();
   const userTypes = useUserDocumentTypes();
   const docs = useAllDocuments();
-  const navigate = useNavigate();
   const [editing, setEditing] = useState<{ record: DocumentTypeRecord | null; base?: DocumentTypeDef } | null>(null);
   const counts = useMemo(() => {
     const m = new Map<string, number>();
     for (const d of docs) m.set(d.type, (m.get(d.type) ?? 0) + 1);
     return m;
   }, [docs]);
-  const templates = useMemo(() => new Map(docs.filter((d) => d.type === TEMPLATE_TYPE).map((d) => [d.title.toLowerCase(), d])), [docs]);
+  const templateDocs = useMemo(() => docs.filter((d) => d.type === TEMPLATE_TYPE), [docs]);
 
   async function removeType(r: DocumentTypeRecord, builtIn: boolean) {
-    const inUse = counts.get(r.typeId) ?? 0;
-    await deleteDocumentType(r.id);
-    toast.success(builtIn ? `“${r.label}” reset to its built-in default` : `Type “${r.label}” deleted${inUse ? ` — ${inUse} Document(s) keep their data` : ""}`);
-  }
-  async function editTemplate(t: DocumentTypeDef) {
-    const existing = templates.get(t.id.toLowerCase());
-    const d = existing ?? (await createDocument({ type: TEMPLATE_TYPE, title: t.id, body: t.template ?? "" }));
-    navigate(docHref(d));
+    if (builtIn) {
+      if (!window.confirm(`Reset “${r.label}” to its built-in default?`)) return;
+      await deleteDocumentType(r.id);
+      return void toast.success(`“${r.label}” reset to its built-in default`);
+    }
+    // ADR 0072: refused while any Document of the type is left, in any Workspace.
+    try {
+      await deleteUserDocumentType(r);
+    } catch (e) {
+      return void toast.error((e as Error).message);
+    }
+    toast.success(`Type “${r.label}” deleted`);
   }
 
   const visible = types.filter((t) => !t.internal);
@@ -66,8 +70,10 @@ export function BasesIndex() {
         )}
         {t.overridden && <Badge variant="outline">edited</Badge>}
         {t.body !== "none" && t.titleRule !== "derived" && (
-          <Button size="icon" variant="ghost" className="size-7" title={templates.has(t.id.toLowerCase()) ? "Edit template (customised)" : "Edit template"} onClick={() => void editTemplate(t)}>
-            <LayoutTemplate className="size-3.5" />
+          <Button asChild size="icon" variant="ghost" className="size-7" title={`Templates · ${templatesFor(t.id, templateDocs).length}`}>
+            <Link to={templatesPath(t.id)} aria-label={`${t.label} templates`}>
+              <LayoutTemplate className="size-3.5" />
+            </Link>
           </Button>
         )}
         <Button size="icon" variant="ghost" className="size-7" onClick={() => setEditing({ record: rec ?? null, base: t.builtIn ? t : undefined })} aria-label="Edit type">

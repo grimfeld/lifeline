@@ -17,11 +17,11 @@ export interface WorkTypeDef {
   startVerb: string;
   finishVerb: string;
   wantLabel: string;
-  /** How its Parts and Groups are spoken of (ADR 0067); null = it never has Parts. */
+  /** How its Parts and Groups are spoken of (ADR 0074); null = it never has Parts. */
   parts: PartsMedium | null;
 }
 
-/** A series' Episodes restart in each Season (ADR 0067): S2E4. A film never has Parts. */
+/** A series' Episodes restart in each Season (ADR 0074): S2E4. A film never has Parts. */
 const EPISODES: PartsMedium = { numbering: "restart", part: "Episode", parts: "episodes", group: "Season", groups: "seasons", verb: "Watched", abbrev: (g, n) => `S${g}E${n}` };
 
 const WATCH = { UNSTARTED: "Unwatched", IN_PROGRESS: "Watching", DONE: "Watched", ABANDONED: "Abandoned" };

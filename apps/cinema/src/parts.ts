@@ -6,7 +6,7 @@ import { workType } from "./domain/workTypes";
 import { APP_HREF, APP_ID } from "./constants";
 
 /**
- * The Cinema's Parts (ADR 0067): a series' Episodes and Seasons — its own two types.
+ * The Cinema's Parts (ADR 0074): a series' Episodes and Seasons — its own two types.
  * Numbering restarts in each Group. The first one heard or watched starts the
  * work exactly as Start does; the last known one offers Done.
  */

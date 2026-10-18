@@ -3,7 +3,7 @@ import { daylogEntries } from "./daylog";
 import type { Entry, Stat, StatKind } from "./types";
 
 function stat(id: string, kind: StatKind, title: string, unit = ""): Stat {
-  return { id, type: "stat", updatedAt: "", deleted: 0, title, tags: [], folder: "", kind, unit, color: "blue", defaultIncrement: 0, universeSize: 0, createdAt: "2026-01-01" };
+  return { id, type: "stat", updatedAt: "", deleted: 0, title, tags: [], folder: "", kind, unit, color: "blue", defaultIncrement: 0, universeSize: 0, items: [], createdAt: "2026-01-01" };
 }
 function entry(id: string, statId: string, local: string, value = 1, item = ""): Entry {
   return { id, type: "stat_entry", title: "", tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0, statId, value, item, ts: new Date(local).toISOString() };

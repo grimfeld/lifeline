@@ -1,7 +1,7 @@
 import type { PartsMedium } from "@lifeline/parts";
 
 /**
- * The Library's registry (ADR 0024, 0067): books, comics and manga — the reading family.
+ * The Library's registry (ADR 0024, 0074): books, comics and manga — the reading family.
  * The Document `type` IS the medium (ADR 0019 amendment); the registry
  * supplies the labels that differ between the two.
  */
@@ -20,7 +20,7 @@ export interface WorkTypeDef {
   startVerb: string;
   finishVerb: string;
   wantLabel: string;
-  /** How its Parts and Groups are spoken of (ADR 0067). Every reading medium runs on across its Groups. */
+  /** How its Parts and Groups are spoken of (ADR 0074). Every reading medium runs on across its Groups. */
   parts: PartsMedium;
 }
 

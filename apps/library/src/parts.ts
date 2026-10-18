@@ -6,7 +6,7 @@ import { workType } from "./domain/workTypes";
 import { APP_HREF, APP_ID } from "./constants";
 
 /**
- * The Library's Parts (ADR 0067): a book's Chapters, a comic's Issues, a
+ * The Library's Parts (ADR 0074): a book's Chapters, a comic's Issues, a
  * manga's Chapters, and their Sections and Volumes — the Library's own two
  * types. The first one read starts the work exactly as Start does; the last
  * known one offers Done.

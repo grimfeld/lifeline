@@ -75,7 +75,7 @@ function SourceRow({ source, onEdit }: { source: Source; onEdit: (s: Source) => 
   );
 }
 
-/** The Sources App's management screen: every Source by kind, add/edit/delete. */
+/** The Windows App's management screen (once the Sources App): every Window by kind, add/edit/delete. */
 export function SourcesScreen() {
   const sources = useSources();
   const [dialog, setDialog] = useState<{ kind: SourceKind; source?: Source } | null>(null);
@@ -83,7 +83,7 @@ export function SourcesScreen() {
   return (
     <div className="flex h-full flex-col gap-3 p-4">
       <div className="flex items-center gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">Sources</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Windows</h1>
         <span className="text-muted-foreground text-sm">{sources.length} source{sources.length === 1 ? "" : "s"}</span>
         <PhoneDock>
           <DropdownMenu>

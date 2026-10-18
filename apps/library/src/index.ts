@@ -19,10 +19,10 @@ import { WORK_TYPE_IDS, type Work } from "./domain/types";
 import { patchWork } from "./data/repo";
 import { abandon, finish, start } from "./domain/rules";
 import { libraryDaylog } from "./daylog";
-import { authorTypeDef, settingsTypeDef, workTypeDefs } from "./types";
+import { authorTypeDef, authorRole, settingsTypeDef, workTypeDefs } from "./types";
 import { libraryParts } from "./parts";
 
-/** Library App (ADR 0024, 0067): the reading family — books, comics and manga, Nightstand, Parts and all. */
+/** Library App (ADR 0024, 0074): the reading family — books, comics and manga, Nightstand, Parts and all. */
 export const libraryApp: AppManifest = {
   id: "library",
   module: "culture",
@@ -30,6 +30,7 @@ export const libraryApp: AppManifest = {
   icon: LibraryIcon,
   color: "var(--chart-magenta)",
   types: [...workTypeDefs, authorTypeDef, ...libraryParts.typeDefs, settingsTypeDef],
+  roles: [authorRole],
   screens: [
     { id: "library.main", title: "Library", path: "library", icon: LibraryIcon, component: LibraryScreen },
     // The Author's page (ADR 0052): routed, never listed — reached from a byline, the Vault or a Base.

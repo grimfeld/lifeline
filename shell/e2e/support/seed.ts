@@ -102,8 +102,17 @@ export async function seedInPage(arg: { coreUrl: string; longWord: string }): Pr
   };
   await runCommands(false);
 
+  // Two user-defined types homed in the Journal, so its Types page is checked
+  // holding one (filled below like any type) and one left empty.
+  const userTypes = [
+    { typeId: "e2eperson", label: long("People"), fields: [{ key: "born", label: long("Born"), kind: "date" }, { key: "aliases", label: "Aliases", kind: "list" }] },
+    { typeId: "e2eempty", label: long("Places"), fields: [] },
+  ];
+  for (const t of userTypes) await core.saveDocumentType({ ...t, icon: "user", folder: "", body: "optional", linkable: true, module: "journal", order: 0 });
+  for (let i = 0; i < 40 && !userTypes.every((t) => core.documentTypeSync(t.typeId)); i++) await new Promise((r) => setTimeout(r, 50));
+
   // Every Document type gets a Document with every Field filled.
-  const types = core.allDocumentTypes() as {
+  const types = (core.allDocumentTypes() as { id: string }[]).filter((t) => t.id !== "e2eempty") as {
     id: string;
     label: string;
     body: string;

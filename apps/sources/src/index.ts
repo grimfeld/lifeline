@@ -11,10 +11,10 @@ import { APP_ID, sourceHref } from "./hrefs";
 import { COLOR_SLOTS, SOURCE_CACHE, SOURCE_TYPE, SOURCES } from "./domain/types";
 import { hostOf } from "./domain/url";
 
-/** The `source` Document type (ADR 0019): one type for every kind; `kind` discriminates. */
+/** The `window` Document type (ADR 0019, ADR 0070): one type for every kind; `kind` discriminates. */
 const sourceType: DocumentTypeDef = {
   id: SOURCE_TYPE,
-  label: "Sources",
+  label: "Windows",
   icon: Globe,
   titleRule: "name",
   body: "none",
@@ -58,15 +58,15 @@ const sourceType: DocumentTypeDef = {
 export const sourcesApp: AppManifest = {
   id: APP_ID,
   module: "notes",
-  title: "Sources",
+  title: "Windows",
   icon: Globe,
   color: "var(--chart-red)",
   types: [sourceType],
   // Local-only fetch cache (never synced — leading underscore, ADR 0017).
   localTables: [{ name: SOURCE_CACHE, indexes: ["fetchedAt"] }],
   screens: [
-    { id: "sources.main", title: "Sources", path: "sources", icon: Globe, component: SourcesScreen },
-    { id: "sources.detail", title: "Source", path: "sources/:id", component: SourcePage, hidden: true },
+    { id: "sources.main", title: "Windows", path: "sources", icon: Globe, component: SourcesScreen },
+    { id: "sources.detail", title: "Window", path: "sources/:id", component: SourcePage, hidden: true },
   ],
   cards: [
     {

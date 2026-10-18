@@ -6,7 +6,7 @@ import { workType } from "./domain/workTypes";
 import { APP_HREF, APP_ID } from "./constants";
 
 /**
- * The Discotheque's Parts (ADR 0067): an album's Tracks and Discs — its own two types.
+ * The Discotheque's Parts (ADR 0074): an album's Tracks and Discs — its own two types.
  * Numbering restarts in each Group. The first one heard or watched starts the
  * work exactly as Start does; the last known one offers Done.
  */

@@ -30,7 +30,7 @@ function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   );
 }
 
-/** "Watch next episode…" (ADR 0067): pick a work, its next Part is watched today. */
+/** "Watch next episode…" (ADR 0074): pick a work, its next Part is watched today. */
 function NextPartCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const works = useWorks();
   return (

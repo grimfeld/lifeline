@@ -14,7 +14,7 @@ export const discothequeDaylog: DaylogProvider = {
   appId: APP_ID,
   useItems(date) {
     const items = useWorks();
-    // One line per work for the Parts heard or watched that day (ADR 0067) — never a catch-up.
+    // One line per work for the Parts heard or watched that day (ADR 0074) — never a catch-up.
     const parts = discothequeParts.useDaylogItems(date, items);
     return [...parts, ...daylogFacts(items, date).map<DaylogItem>(({ item, kind }) => ({
       key: `${APP_ID}/${item.id}`,
