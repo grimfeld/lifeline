@@ -1,6 +1,7 @@
 import { db, ensureDefaultWorkspace, todayStr, type DateStr } from "@lifeline/core";
 import { lifeClock } from "./persona";
 import { seedAgenda } from "./life/agenda";
+import { seedTracking } from "./life/tracking";
 import { seedWork } from "./life/work";
 import { seedMedia } from "./life/media";
 
@@ -21,6 +22,7 @@ export async function seedDemo(visitDay: DateStr): Promise<void> {
   await seedAgenda(clock);
   await seedWork(clock);
   await seedMedia(clock);
+  await seedTracking(clock);
 }
 
 /**
