@@ -1,6 +1,10 @@
 import { pickLinked, type CommandDef } from "@lifeline/core";
+import { NextPartDialog, partName } from "@lifeline/parts";
+import { discothequeParts } from "./parts";
+import { matchesSearch } from "./domain/browse";
+import { Cover } from "./components/Cover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
-import { Disc3, Headphones, ListPlus, Plus, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Disc3, Headphones, ListPlus, Plus, SlidersHorizontal, Sparkles , StepForward } from "lucide-react";
 import { AddWorkDialog } from "./components/AddWorkDialog";
 import { QuickAdd } from "./components/QuickAdd";
 import { EnrichDialog } from "./components/EnrichDialog";
@@ -8,7 +12,7 @@ import { MarkListenedDialog } from "./components/MarkListenedDialog";
 import { PlaylistDialog } from "./components/PlaylistDialog";
 import { APP_HREF } from "./constants";
 import { WORK_TYPES, workType, type WorkTypeId } from "./domain/workTypes";
-import { allWorks, quickAddWork, patchWork } from "./data/repo";
+import { allWorks, quickAddWork, patchWork, useWorks } from "./data/repo";
 import { finish } from "./domain/rules";
 import { RATING_MAX } from "./domain/types";
 
@@ -23,6 +27,23 @@ function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
         <QuickAdd autoFocus onAdded={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** "Hear next track…" (ADR 0074): pick a work, its next Part is heard today. */
+function NextPartCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const works = useWorks();
+  return (
+    <NextPartDialog
+      kit={discothequeParts}
+      works={works}
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Hear the next track"
+      matches={matchesSearch}
+      cover={(w) => <Cover item={w} className="shrink-0 rounded border" />}
+      byline={(w) => w.creator}
+    />
   );
 }
 
@@ -74,6 +95,26 @@ export const discothequeCommands: CommandDef[] = [
       if (stars !== undefined && (!Number.isInteger(stars) || stars < 1 || stars > RATING_MAX)) throw new Error(`Stars: a whole number from 1 to ${RATING_MAX}`);
       await patchWork(work, { ...finish(), ...(stars !== undefined ? { rating: stars } : {}), ...(a.liked !== undefined ? { liked: !!a.liked } : {}) });
       return { id, message: `${work.title}: ${done}${stars ? ` · ${"★".repeat(stars)}` : ""}${a.liked ? " · liked" : ""}` };
+    },
+  },
+  {
+    id: "discotheque.next-part",
+    fold: "culture.next",
+    foldLabel: "Next track",
+    title: "Hear next track…",
+    keywords: ["listen", "hear", "next", "track", "disc", "album", "progress", "discotheque", "+1"],
+    icon: StepForward,
+    dialog: NextPartCommandDialog,
+    capture: true,
+    args: [{ key: "work", label: "Work", kind: "text", required: true, hint: "Id or exact title of an album already on the shelf." }],
+    async invoke(a) {
+      const works = await allWorks();
+      const id = pickLinked({ key: "work", label: "Work", kind: "link" }, a.work as string, works);
+      const work = works.find((w) => w.id === id)!;
+      const medium = workType(work.type).parts;
+      if (!medium) throw new Error(`“${work.title}” has no parts; tell the user — nothing was changed`);
+      const outcome = await discothequeParts.readNext(work);
+      return { id, message: `${work.title}: ${partName(medium, outcome.pos)} heard${outcome.started ? " · started" : ""}${outcome.complete ? " · that was the last one — offer to mark it done" : ""}` };
     },
   },
   { id: "discotheque.new-playlist", title: "New playlist…", keywords: ["playlist", "list", "collection", "discotheque", "albums"], icon: ListPlus, dialog: PlaylistDialog },

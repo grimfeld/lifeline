@@ -1,4 +1,5 @@
 import type { AppManifest } from "@lifeline/core";
+import { cinemaParts } from "./parts";
 import { Clapperboard } from "lucide-react";
 import { CinemaScreen } from "./screens/CinemaScreen";
 import { InProgressCard } from "./cards/InProgressCard";
@@ -23,7 +24,7 @@ export const cinemaApp: AppManifest = {
   title: "Cinema",
   icon: Clapperboard,
   color: "var(--chart-red)",
-  types: [...workTypeDefs, playlistTypeDef, settingsTypeDef],
+  types: [...workTypeDefs, ...cinemaParts.typeDefs, playlistTypeDef, settingsTypeDef],
   screens: [{ id: "cinema.main", title: "Cinema", path: "cinema", icon: Clapperboard, component: CinemaScreen }],
   cards: [
     {
