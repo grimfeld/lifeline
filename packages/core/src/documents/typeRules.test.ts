@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldChangeProblems, fitsKind, removedFieldValues, reservedKeyProblems, reservedKeyRefusal, typeDeleteRefusal } from "./typeRules";
+import { fieldChangeProblems, fitsKind, kindRefusals, removedFieldValues, reservedKeyProblems, reservedKeyRefusal, typeDeleteRefusal } from "./typeRules";
 import type { Document, FieldDef } from "./types";
 
 const doc = (fields: Record<string, unknown>): Document => ({ id: "x", type: "person", title: "P", tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0, ...fields }) as Document;
@@ -49,6 +49,12 @@ describe("fieldChangeProblems", () => {
     expect(fieldChangeProblems([mood], [fewer], [doc({ mood: "up" })])).toEqual([]);
     expect(fieldChangeProblems([mood], [fewer], [doc({ mood: "down" })])[0]).toContain("no longer offered");
   });
+
+  it("doesn't blame a Field that keeps its kind for a value that didn't fit it already", () => {
+    const held = [doc({ born: "two\nlines" })];
+    expect(fieldChangeProblems([born], [{ ...born, label: "Birth" }], held)).toEqual([]);
+    expect(fieldChangeProblems([born], [{ ...born, kind: "number" }], held)).toHaveLength(1);
+  });
 });
 
 describe("removedFieldValues", () => {
@@ -93,5 +99,32 @@ describe("reservedKeyProblems", () => {
   it("gives the store's refusal only for new reserved keys", () => {
     expect(reservedKeyRefusal([f("title")], [f("title"), f("mood")])).toBeUndefined();
     expect(reservedKeyRefusal([f("title")], [f("title"), f("body", "Notes")])).toBe("Can't add “Notes”: `body` — every Document already has a body");
+  });
+});
+
+describe("kindRefusals", () => {
+  const kinds = ["text", "longtext", "number", "list", "select"] as const;
+  const notes = { key: "notes", kind: "text" as const, options: [], saved: true };
+
+  it("refuses, with a reason, the kinds a saved Field's values don't fit", () => {
+    const docs = [doc({ notes: "two\nlines" }), doc({ notes: "one" }), doc({})];
+    const r = kindRefusals(notes, kinds, docs);
+    expect(r.number).toBe("2 Documents hold a value it can't take");
+    expect(r.list).toBe("2 Documents hold a value it can't take");
+    expect(r.longtext).toBeUndefined();
+  });
+
+  it("checks Choice kinds against the draft's options, offering none yet as open", () => {
+    const docs = [doc({ notes: "home" }), doc({ notes: "work" })];
+    expect(kindRefusals(notes, kinds, docs).select).toBeUndefined();
+    const some = { ...notes, options: [{ value: "home" }] };
+    expect(kindRefusals(some, kinds, docs).select).toBe("1 Document holds a choice its options don't offer");
+    expect(kindRefusals({ ...some, options: [{ value: "home" }, { value: "work" }] }, kinds, docs).select).toBeUndefined();
+  });
+
+  it("leaves every kind open on an unsaved Field and never refuses its current kind", () => {
+    const docs = [doc({ notes: "two\nlines" })];
+    expect(kindRefusals({ ...notes, saved: false }, kinds, docs)).toEqual({});
+    expect(kindRefusals(notes, kinds, docs).text).toBeUndefined();
   });
 });
