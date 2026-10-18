@@ -36,6 +36,9 @@ const isChoiceKind = (k: FieldKind): boolean => k === "select" || k === "multise
 /** Whether a kind has settings of its own — a Choice's options, a Link's target — shown in the row's fold-out. */
 export const hasFieldSettings = (k: FieldKind): boolean => isChoiceKind(k) || isLinkKind(k);
 
+/** Whether a row has a fold-out (⚙): its kind's settings, or — until the type is saved with it — the key, whatever the kind. */
+export const hasFoldOut = (d: Pick<FieldDraft, "kind" | "saved">): boolean => !d.saved || hasFieldSettings(d.kind);
+
 /** How a folded row names types and Roles. */
 export interface SummaryNames {
   typeLabel: (id: string) => string;
