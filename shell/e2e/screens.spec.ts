@@ -73,6 +73,18 @@ const SCREENS: ScreenCase[] = [
       for (const g of await gears.all()) await g.click();
     },
   },
+  {
+    // The Type editor's "+ Field" menu open: a dropdown on the desk, a bottom sheet on a phone.
+    name: "Journal · Types · + Field menu",
+    path: "/app/journal/t",
+    then: async (page) => {
+      const local = page.getByRole("button", { name: "Work locally" });
+      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      await page.getByRole("button", { name: /^Edit the type People/ }).first().click();
+      await page.getByRole("dialog").getByRole("button", { name: "Field", exact: true }).click();
+      await expect(page.getByText("adds a board layout to its Base")).toBeVisible();
+    },
+  },
   { name: "Journal · One type", path: "/app/journal/t/:type", params: { type: "e2eperson" } },
   { name: "Journal · One type (old link)", path: "/app/journal/c/:type", params: { type: "e2eperson" } },
   { name: "Journal · Templates", path: "/app/journal/templates" },
