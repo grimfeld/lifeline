@@ -105,6 +105,7 @@ export interface FoldDef {
 export const FOLDS: FoldDef[] = [
   { id: "culture.add", title: "Add to Culture…" },
   { id: "culture.done", title: "Mark done…" },
+  { id: "culture.next", title: "Next part of…" },
   { id: "calendar.today", title: "Add today…" },
 ];
 

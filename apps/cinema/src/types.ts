@@ -3,6 +3,7 @@ import { Film, ListVideo, Tv } from "lucide-react";
 import { ENGAGEMENT, PLAYLIST, SETTINGS_TYPE, type Work } from "./domain/types";
 import { WORK_TYPES, type WorkTypeId } from "./domain/workTypes";
 import { APP_HREF } from "./constants";
+import { cinemaParts } from "./parts";
 
 const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
 
@@ -25,6 +26,10 @@ const WORK_FIELDS: FieldDef[] = [
   { key: "addedOn", label: "Added on", kind: "date", guarded: true },
   { key: "startedOn", label: "Started on", kind: "date", guarded: true },
   { key: "finishedOn", label: "Finished on", kind: "date", guarded: true },
+  // Parts (ADR 0067): moved through the Parts, never typed.
+  { key: "partsTracked", label: "Parts tracked", kind: "boolean", guarded: true },
+  { key: "caughtUpGroup", label: "Caught up to (group)", kind: "number", guarded: true, hidden: true },
+  { key: "caughtUpPart", label: "Caught up to", kind: "number", guarded: true },
 ];
 
 const ICONS: Record<WorkTypeId, { icon: typeof Film; name: string }> = {
@@ -46,6 +51,8 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t, i) => ({
   order: 42 + i,
   builtIn: true,
   fields: WORK_FIELDS,
+  // Its Parts and Groups die with it and follow it to another Workspace (ADR 0067).
+  ...cinemaParts.workTypeHooks,
 }));
 
 /** A Playlist (ADR 0035): its works are an ordered, guarded list of ids; the body is its blurb. */

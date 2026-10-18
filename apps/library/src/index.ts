@@ -20,15 +20,16 @@ import { patchWork } from "./data/repo";
 import { abandon, finish, start } from "./domain/rules";
 import { libraryDaylog } from "./daylog";
 import { authorTypeDef, settingsTypeDef, workTypeDefs } from "./types";
+import { libraryParts } from "./parts";
 
-/** Library App (ADR 0024): the reading family — books and comics, Nightstand and all. */
+/** Library App (ADR 0024, 0067): the reading family — books, comics and manga, Nightstand, Parts and all. */
 export const libraryApp: AppManifest = {
   id: "library",
   module: "culture",
   title: "Library",
   icon: LibraryIcon,
   color: "var(--chart-magenta)",
-  types: [...workTypeDefs, authorTypeDef, settingsTypeDef],
+  types: [...workTypeDefs, authorTypeDef, ...libraryParts.typeDefs, settingsTypeDef],
   screens: [
     { id: "library.main", title: "Library", path: "library", icon: LibraryIcon, component: LibraryScreen },
     // The Author's page (ADR 0052): routed, never listed — reached from a byline, the Vault or a Base.
@@ -40,7 +41,7 @@ export const libraryApp: AppManifest = {
       id: "library.nightstand",
       tagFilterable: true,
       title: "Nightstand",
-      description: "Books and comics holding a Nightstand slot — in progress and next up",
+      description: "Books, comics and manga holding a Nightstand slot — in progress and next up",
       component: NightstandCard,
       defaultSize: { w: 3, h: 6 },
       minSize: { w: 2, h: 3 },
@@ -51,7 +52,7 @@ export const libraryApp: AppManifest = {
       id: "library.shopping",
       tagFilterable: true,
       title: "Book wanted list",
-      description: "Books and comics you want but don't own — slotted ones first",
+      description: "Books, comics and manga you want but don't own — slotted ones first",
       component: WantedListCard,
       defaultSize: { w: 3, h: 4 },
       minSize: { w: 2, h: 3 },
