@@ -153,3 +153,79 @@ for (const w of WIDTHS) {
     });
   });
 }
+
+// ---- Demo life: writing and the Journal (#111) ----------------------------
+
+/** On a phone the Document panel (Reports, Backlinks) is a sheet behind a button. */
+async function openDocPanel(page: Page, isMobile: boolean): Promise<void> {
+  if (isMobile) await page.getByRole("button", { name: "Toggle links panel" }).click();
+}
+
+/** The Journal page on screen has links, and every one of them finds its page. */
+async function expectLinksResolve(page: Page): Promise<void> {
+  await expect(page.locator(".cm-wikilink").first()).toBeVisible();
+  await expect(page.locator(".cm-wikilink-unresolved")).toHaveCount(0);
+  // Every name in the seeded prose is linked: no "Unlinked names" left to tidy.
+  await expect(page.getByText(/^Unlinked names · [1-9]/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /unlinked/ })).toHaveCount(0);
+}
+
+for (const w of WIDTHS) {
+  test.describe(`Demo writing and Journal at ${w.name} width`, () => {
+    test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
+
+    test("the writing pages open with believable content", async ({ page }) => {
+      await open(page, "/app/journal");
+      await expect(page.getByText(/Huddle with/).first()).toBeVisible();
+      await expect(page.getByText("Histoire du jour")).toHaveCount(0);
+
+      const pages: [string, string | RegExp][] = [
+        ["/app/notes", "The Long Run"],
+        ["/app/quotes", /The body keeps/],
+        ["/app/research", "What rest is for"],
+        ["/app/manuscripts", "The Tide Tables"],
+        ["/app/thoughts", "Rehab is mostly patience"],
+        ["/app/languages?tab=words", "saudade"],
+      ];
+      for (const [path, text] of pages) {
+        await open(page, path);
+        await expect(page.locator("main").getByText(text).first(), path).toBeVisible();
+      }
+    });
+
+    test("a person's page shows backlinks and Reports from Journal Days", async ({ page }) => {
+      await open(page, "/app/journal/t/person");
+      await expect(page.getByText("Top mentioned")).toBeVisible();
+      await page.getByRole("link", { name: /^Aoife Brennan/ }).click();
+      await openDocPanel(page, w.isMobile);
+      await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
+      await expect(page.getByText("Last mentioned")).toBeVisible();
+      await expect(page.getByText(/\d+ this year · \d+ in all/)).toBeVisible();
+      const backlinks = page.getByRole("heading", { name: /^Backlinks · \d+$/ });
+      await expect(backlinks).toBeVisible();
+      expect(Number((await backlinks.textContent())!.split("·")[1]), "Days linking to Aoife").toBeGreaterThanOrEqual(4);
+    });
+
+    test("wikilinks in the seeded Days resolve to the seeded people and places", async ({ page }) => {
+      await open(page, "/app/journal");
+      await expectLinksResolve(page);
+      // A week of Days back: each one written links only to pages that exist.
+      for (let i = 0; i < 7; i++) {
+        await page.getByRole("button", { name: "Previous day" }).click();
+        await page.waitForTimeout(300);
+        if (await page.getByText(/^No entry for/).isVisible()) continue;
+        await expectLinksResolve(page);
+      }
+    });
+
+    test("the Journal is dated around the visit day", async ({ page }) => {
+      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+      await open(page, "/app/journal");
+      await expect(page.getByLabel("Jump to date")).toHaveValue("2027-03-10");
+      await expect(page.getByText(/Huddle with/).first()).toBeVisible();
+      await page.getByRole("button", { name: "Previous day" }).click();
+      await expect(page.getByLabel("Jump to date")).toHaveValue("2027-03-09");
+      await expectLinksResolve(page);
+    });
+  });
+}
