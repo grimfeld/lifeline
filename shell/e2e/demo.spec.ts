@@ -153,3 +153,72 @@ for (const w of WIDTHS) {
     });
   });
 }
+
+// ---- Demo life: money and household (#113) ----
+
+for (const w of WIDTHS) {
+  test.describe(`Demo money and household at ${w.name} width`, () => {
+    test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
+
+    test("the Ledger holds a few weeks of Transactions in categories", async ({ page }) => {
+      await open(page, "/app/ledger");
+      const main = page.locator("main");
+      // The register's summary line: "58 transactions · −€… · +€…".
+      await expect(main.getByText(/^\d{2,} transactions/)).toBeVisible();
+      // Each row reads "<day> <payee> · <category> …".
+      for (const row of [/Ballintemple Lettings · Rent/, /Quay Coffee · Eating out/, /Lidl · Groceries/]) {
+        await expect(main.getByRole("button", { name: row }).first()).toBeAttached();
+      }
+    });
+
+    test("the Money overview forecasts the rent and the salary", async ({ page }) => {
+      await open(page, "/module/money");
+      await expect(page.getByText("Upcoming bills").first()).toBeVisible();
+      await expect(page.getByText("Ballintemple Lettings").first()).toBeVisible();
+      await expect(page.getByText("Harbourside Physio").first()).toBeVisible();
+    });
+
+    test("Ledger balances add up to the opening balances and the seeded Transactions", async ({ page }) => {
+      // The seed has a fixed count of every Transaction, whatever the visit day,
+      // so each balance is a known sum: opening balance + income − spending ± transfers.
+      await open(page, "/module/money");
+      for (const [account, balance] of [
+        ["Current account", /^Current account\s*€5,079\.13$/],
+        ["Savings", /^Savings\s*€7,163\.60$/],
+        ["Credit card", /^Credit card\s*[-−]€489\.75$/],
+        ["Net worth", /^Net worth\s*€11,752\.98$/],
+      ] as const) {
+        await expect(page.getByText(account, { exact: true }).locator("..")).toHaveText(balance);
+      }
+    });
+
+    test("Pocket, Pantry and Shopping open with believable content", async ({ page }) => {
+      await open(page, "/app/pocket");
+      await expect(page.locator("main").getByText("Eating out").first()).toBeVisible();
+      await expect(page.locator("main").getByText("Coffee").first()).toBeVisible();
+
+      await open(page, "/app/pantry");
+      await expect(page.locator("main").getByText("Porridge oats").first()).toBeVisible();
+      await expect(page.locator("main").getByText("Frozen peas").first()).toBeVisible();
+
+      await open(page, "/app/shopping");
+      await expect(page.locator("main").getByText("Oat milk").first()).toBeVisible();
+      await expect(page.locator("main").getByText("Washing-up liquid").first()).toBeVisible();
+    });
+
+    test("a Product shows its price history across more than one shop", async ({ page }) => {
+      await open(page, "/app/prices");
+      await page.locator("main").getByText("Semi-skimmed milk").first().click();
+      await expect(page).toHaveURL(/\/app\/prices\/p\//);
+      await expect(page.locator("main").getByText("Tesco").first()).toBeVisible();
+      await expect(page.locator("main").getByText("Lidl").first()).toBeVisible();
+    });
+
+    test("with the clock pinned, the money moves with the visit day", async ({ page }) => {
+      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+      await open(page, "/app/pocket");
+      // A monthly Allowance runs over the visit day's month.
+      await expect(page.locator("main").getByText(/March 2027|Mar 2027/).first()).toBeVisible();
+    });
+  });
+}
