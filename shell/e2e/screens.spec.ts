@@ -18,6 +18,15 @@ interface ScreenCase {
   type?: string;
   /** Other route parameters, filled as given (`{ key: "2026-W42" }` for `:key`). */
   params?: Record<string, string>;
+  /** What to do once the screen is open, before it is checked — open a dialog. */
+  afterOpen?: (page: Page) => Promise<void>;
+}
+
+/** Journal → Types → the Type editor over the seeded People type. A fresh store greets with "You're signed out" over the page. */
+async function openPeopleTypeEditor(page: Page) {
+  const local = page.getByRole("button", { name: "Work locally" });
+  await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+  await page.getByRole("button", { name: /^Edit the type People/ }).first().click();
 }
 
 const SCREENS: ScreenCase[] = [
@@ -57,6 +66,27 @@ const SCREENS: ScreenCase[] = [
   { name: "Journal · Year", path: "/app/journal/p/2026" },
   { name: "Journal · Types", path: "/app/journal/t" },
   { name: "Journal · Types (old link)", path: "/app/journal/c" },
+  {
+    // The Type editor over the seeded type with long Field, option and type labels, every fold-out open.
+    name: "Journal · Types · Type editor",
+    path: "/app/journal/t",
+    afterOpen: async (page) => {
+      await openPeopleTypeEditor(page);
+      const gears = page.getByRole("dialog").getByRole("button", { name: "Field settings" });
+      await expect(gears.first()).toBeVisible();
+      for (const g of await gears.all()) await g.click();
+    },
+  },
+  {
+    // The Type editor's "+ Field" menu open: a dropdown on the desk, a bottom sheet on a phone.
+    name: "Journal · Types · + Field menu",
+    path: "/app/journal/t",
+    afterOpen: async (page) => {
+      await openPeopleTypeEditor(page);
+      await page.getByRole("dialog").getByRole("button", { name: "Field", exact: true }).click();
+      await expect(page.getByText("adds a board layout to its Base")).toBeVisible();
+    },
+  },
   { name: "Journal · One type", path: "/app/journal/t/:type", params: { type: "e2eperson" } },
   { name: "Journal · One type (old link)", path: "/app/journal/c/:type", params: { type: "e2eperson" } },
   { name: "Journal · Templates", path: "/app/journal/templates" },
@@ -138,6 +168,7 @@ for (const screen of SCREENS) {
     }
     for (const [k, v] of Object.entries(screen.params ?? {})) path = path.replace(`:${k}`, v);
     await open(page, path);
+    await screen.afterOpen?.(page);
     await expectNoBrokenLayout(page, screen.name);
     expect(errors, `no uncaught errors:\n  ${errors.join("\n  ")}`).toEqual([]);
   });
