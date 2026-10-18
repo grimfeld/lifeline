@@ -24,11 +24,10 @@ const NOTES: [FieldKind, string][] = [
   ["select", "One of a list of options — adds a board layout to its Base"],
   ["multiselect", "Any of a list of options"],
   ["url", "A web address — can be its Base's gallery image"],
-  ["geo", "A place — adds a map layout to its Base"],
   ["list", "Several short values"],
   ["link", "One Document — a backlink on it and an edge in the Graph"],
   ["links", "Several Documents — backlinks on them and edges in the Graph"],
 ];
 
-/** The plain kinds, in the Kind dropdown's order. */
+/** The plain kinds, in the Kind dropdown's order — all but geo, offered only as the Coordinates Known field (ADR 0078). */
 export const ADD_FIELD_KINDS: readonly FieldKindChoice[] = NOTES.map(([kind, note]) => ({ kind, label: kindLabel(kind), note }));

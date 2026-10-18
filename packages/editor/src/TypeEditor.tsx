@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
-import { Button, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetTitle, TYPE_ICONS, cn, toast, typeIcon, usePhone } from "@lifeline/ui";
+import { Button, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetTitle, TYPE_ICONS, cn, toast, typeIcon, usePhone } from "@lifeline/ui";
 import {
   ADD_FIELD_KINDS,
   DEFAULT_REPORTS,
@@ -19,6 +19,8 @@ import {
   fieldSummary,
   hasFieldSettings,
   hasFoldOut,
+  knownFieldReadings,
+  knownFieldsToAdd,
   newFieldDraft,
   rekeyField,
   relabelField,
@@ -46,10 +48,12 @@ import {
   type FieldDraft,
   type FieldKind,
   type FieldKindChoice,
+  type FieldReading,
+  type KnownFieldChoice,
   type LinkTarget,
   type SummaryNames,
 } from "@lifeline/core";
-import { Plus, Settings2, Trash2, X } from "lucide-react";
+import { BadgeCheck, Plus, Settings2, Trash2, X } from "lucide-react";
 import { ReportsEditor } from "./Reports";
 
 const KINDS: FieldKind[] = ["text", "longtext", "number", "boolean", "date", "datetime", "select", "multiselect", "url", "geo", "list", "link", "links"];
@@ -99,11 +103,14 @@ export function TypeEditor({
   const toggle = (uid: number, on = !open.has(uid)) => setOpen((s) => (on ? new Set(s).add(uid) : new Set([...s].filter((x) => x !== uid))));
   // The row just added from "+ Field": its label takes the focus.
   const [added, setAdded] = useState<number>();
-  function addField(kind: FieldKind) {
-    const r = withUid(newFieldDraft(kind));
+  function addField(pick: FieldKind | KnownFieldChoice) {
+    // A Known field comes with its key and label; picking Aliases on a type that isn't Linkable makes it Linkable (ADR 0078).
+    const known = typeof pick === "string" ? undefined : pick;
+    const r = withUid(known ? newFieldDraft(known.kind, known.label) : newFieldDraft(pick as FieldKind));
     setRows([...rows, r]);
     setAdded(r.uid);
-    if (hasFieldSettings(kind)) toggle(r.uid, true);
+    if (known?.makesLinkable) setLinkable(true);
+    if (!known && hasFieldSettings(r.kind)) toggle(r.uid, true);
   }
   const [module, setModule] = useState(record?.module ?? defaultModule);
   const [reports, setReports] = useState<ReportSetting[]>(record?.reports ?? base?.reports ?? DEFAULT_REPORTS);
@@ -116,6 +123,10 @@ export function TypeEditor({
   const typeId = record?.typeId ?? base?.id ?? slugify(singularOf({ label }));
   const idTaken = !record && !base && allTypes.some((t) => t.id === typeId);
   const geoRows = rows.filter((r) => r.kind === "geo" && r.key.trim());
+  // Known fields (ADR 0078): what each row is, and what "+ Field" may still add — a built-in's own Fields count as present.
+  const knownType = { builtIn: !!base, linkable: base ? !!base.linkable : linkable, locatableField };
+  const readings = knownFieldReadings(rows, knownType);
+  const knownToAdd = knownFieldsToAdd([...(base?.fields ?? []), ...rows], knownType);
   const docs = useAllDocuments();
   const templates = templatesFor(typeId, docs.filter((d) => d.type === TEMPLATE_TYPE)).length;
 
@@ -282,6 +293,7 @@ export function TypeEditor({
             <FieldRow
               key={r.uid}
               row={r}
+              reading={readings[i]}
               open={open.has(r.uid)}
               focus={r.uid === added}
               names={names}
@@ -295,7 +307,7 @@ export function TypeEditor({
               onRemove={() => setRows(rows.filter((_, j) => j !== i))}
             />
           ))}
-          <AddFieldMenu onPick={addField} />
+          <AddFieldMenu known={knownToAdd} onPick={addField} />
         </div>
         {problems.map((p) => (
           <p key={p} className="text-destructive text-xs">
@@ -360,6 +372,7 @@ export function TypeEditor({
  */
 function FieldRow({
   row,
+  reading,
   open,
   focus,
   names,
@@ -369,6 +382,8 @@ function FieldRow({
   onRemove,
 }: {
   row: FieldDraft;
+  /** Whether it is a Known field (ADR 0078), and the note its row carries. */
+  reading: FieldReading;
   open: boolean;
   /** Just added: the label takes the focus. */
   focus?: boolean;
@@ -379,7 +394,9 @@ function FieldRow({
   onRemove: () => void;
 }) {
   // ⚙ for a kind with settings — and on any unsaved Field, whose key is still editable in the fold-out.
-  const settings = hasFoldOut(row);
+  // A Known field's key and kind are locked: no fold-out, the Kind shown but not changed (ADR 0078).
+  const known = !!reading.known;
+  const settings = hasFoldOut(row, known);
   const summary = hasFieldSettings(row.kind) ? fieldSummary(row, names) : "";
   // Focused once the menu that added it has let go of the focus (it would pull an autoFocus back).
   const labelRef = useRef<HTMLInputElement>(null);
@@ -392,13 +409,14 @@ function FieldRow({
     <div className="grid min-w-0 gap-1 rounded-md border p-1 md:border-0 md:p-0">
       {/* A drag handle (#101) takes the first slot of this line. */}
       <div className="grid grid-cols-[minmax(0,1fr)_1.75rem_1.75rem] items-center gap-1 md:grid-cols-[minmax(0,1fr)_11.5rem_1.75rem_1.75rem]">
-        <Input ref={labelRef} className="col-span-3 h-8 min-w-0 md:col-span-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value))} />
-        <Select value={row.kind} onValueChange={(v) => onChange({ ...row, kind: v as FieldKind })}>
-          <SelectTrigger className="h-8 w-full min-w-0" aria-label="Field kind">
+        <Input ref={labelRef} className="col-span-3 h-8 min-w-0 md:col-span-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value, known))} />
+        <Select value={row.kind} disabled={known} onValueChange={(v) => onChange({ ...row, kind: v as FieldKind })}>
+          <SelectTrigger className="h-8 w-full min-w-0" aria-label="Field kind" title={known ? "A Known field's kind is locked" : undefined}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {KINDS.map((k) => (
+            {/* geo is added only as the Coordinates Known field; a Field that already is one keeps it. */}
+            {KINDS.filter((k) => k !== "geo" || row.kind === "geo").map((k) => (
               <SelectItem key={k} value={k}>
                 {kindLabel(k)}
               </SelectItem>
@@ -409,6 +427,10 @@ function FieldRow({
           <Button size="icon" variant={open ? "secondary" : "ghost"} className="size-7" onClick={onToggle} aria-label="Field settings" aria-expanded={open} title={summary || "Key"}>
             <Settings2 className="size-3.5" />
           </Button>
+        ) : known ? (
+          <span className="text-primary flex size-7 items-center justify-center" title="Known field — Lifeline acts on it; its key and kind are locked" aria-label="Known field">
+            <BadgeCheck className="size-4" />
+          </span>
         ) : (
           <span />
         )}
@@ -416,6 +438,12 @@ function FieldRow({
           <Trash2 className="size-3.5" />
         </Button>
       </div>
+      {reading.note && (
+        <p className={cn("min-w-0 px-1 text-[10px]", known ? "text-muted-foreground" : "text-amber-700 dark:text-amber-400")}>
+          {known && <span className="text-foreground font-medium">Known field · </span>}
+          {reading.note}
+        </p>
+      )}
       {summary && !open && (
         <button type="button" className="text-muted-foreground min-w-0 truncate px-1 text-left text-[10px]" onClick={onToggle}>
           {summary}
@@ -450,10 +478,11 @@ function FieldSettings({ row, linkTypes, onChange }: { row: FieldDraft; linkType
 }
 
 /**
- * "+ Field": the plain kinds, each with what it unlocks (spec #95). A menu on
+ * "+ Field": first the Known fields this type may still add (ADR 0078), then
+ * the plain kinds, each with what it unlocks (spec #95). A menu on
  * the desk; on a phone a sheet from the bottom, its rows full width (ADR 0064).
  */
-function AddFieldMenu({ onPick }: { onPick: (kind: FieldKind) => void }) {
+function AddFieldMenu({ known, onPick }: { known: KnownFieldChoice[]; onPick: (pick: FieldKind | KnownFieldChoice) => void }) {
   const phone = usePhone();
   const [open, setOpen] = useState(false);
   const trigger = (
@@ -461,7 +490,7 @@ function AddFieldMenu({ onPick }: { onPick: (kind: FieldKind) => void }) {
       <Plus /> Field
     </Button>
   );
-  const choice = (c: FieldKindChoice) => (
+  const choice = (c: FieldKindChoice | KnownFieldChoice) => (
     <span className="grid min-w-0 gap-0.5 text-left">
       <span className="text-sm">{c.label}</span>
       <span className="text-muted-foreground text-[11px] leading-snug">{c.note}</span>
@@ -474,7 +503,14 @@ function AddFieldMenu({ onPick }: { onPick: (kind: FieldKind) => void }) {
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent side="bottom" aria-describedby={undefined} onCloseAutoFocus={(e) => e.preventDefault()}>
             <SheetTitle>Add a Field</SheetTitle>
-            <div className="grid min-w-0 p-2">
+            <div className="grid min-w-0 overflow-y-auto p-2">
+              {known.length > 0 && <p className="text-muted-foreground px-2 pt-1 text-xs font-medium">Known fields</p>}
+              {known.map((k) => (
+                <button key={k.id} type="button" className="hover:bg-accent min-w-0 rounded-md px-2 py-2" onClick={() => (setOpen(false), onPick(k))}>
+                  {choice(k)}
+                </button>
+              ))}
+              {known.length > 0 && <p className="text-muted-foreground mt-1 border-t px-2 pt-2 text-xs font-medium">Kinds</p>}
               {ADD_FIELD_KINDS.map((c) => (
                 <button key={c.kind} type="button" className="hover:bg-accent min-w-0 rounded-md px-2 py-2" onClick={() => (setOpen(false), onPick(c.kind))}>
                   {choice(c)}
@@ -489,6 +525,18 @@ function AddFieldMenu({ onPick }: { onPick: (kind: FieldKind) => void }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       <DropdownMenuContent className="w-80" onCloseAutoFocus={(e) => e.preventDefault()}>
+        {known.length > 0 && (
+          <>
+            <DropdownMenuLabel className="text-muted-foreground text-xs">Known fields</DropdownMenuLabel>
+            {known.map((k) => (
+              <DropdownMenuItem key={k.id} className="items-start py-1.5" onSelect={() => onPick(k)}>
+                {choice(k)}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-muted-foreground text-xs">Kinds</DropdownMenuLabel>
+          </>
+        )}
         {ADD_FIELD_KINDS.map((c) => (
           <DropdownMenuItem key={c.kind} className="items-start py-1.5" onSelect={() => onPick(c.kind)}>
             {choice(c)}
