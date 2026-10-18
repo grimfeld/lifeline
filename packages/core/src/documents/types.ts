@@ -113,6 +113,17 @@ export type TitleRule = "name" | "date" | "derived";
  * owning App and registered through its manifest; user-defined types are
  * rows of Core's `document_types` collection. Both land in one registry.
  */
+/** The Report kinds a type may choose (ADR 0076): ranking kinds rank a type's Documents, the others describe one Document. */
+export type ReportKind = "top" | "quiet" | "last" | "count" | "heatmap";
+/** One chosen Report on a type, in the type's order, with its parameters. */
+export interface ReportSetting {
+  kind: ReportKind;
+  /** How many Documents a ranking Report lists. */
+  n?: number;
+  /** "Not mentioned in N days": the N. */
+  days?: number;
+}
+
 export interface DocumentTypeDef {
   /** Slug, immutable. */
   id: string;
@@ -197,6 +208,8 @@ export interface DocumentTypeDef {
   followers?: (doc: Document) => Promise<string[]>;
   /** Sort order in pickers / the Bases list. */
   order?: number;
+  /** The Reports the user chose for this type (ADR 0076); absent = the defaults (`reportsOf`). */
+  reports?: ReportSetting[];
   /** Built-in (code) vs user-defined (data). */
   builtIn: boolean;
   /** A built-in whose label/icon/fields were customised by a user record. */

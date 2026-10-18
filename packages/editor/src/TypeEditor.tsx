@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Button, Checkbox, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TYPE_ICONS, cn, toast, typeIcon } from "@lifeline/ui";
 import {
+  DEFAULT_REPORTS,
+  mentionable,
+  type ReportSetting,
   MODULES,
   basePath,
   countTypeDocuments,
@@ -28,6 +31,7 @@ import {
   type FieldKind,
 } from "@lifeline/core";
 import { Plus, Trash2 } from "lucide-react";
+import { ReportsEditor } from "./Reports";
 
 const KINDS: FieldKind[] = ["text", "longtext", "number", "boolean", "date", "datetime", "select", "multiselect", "url", "geo", "list", "link", "links"];
 
@@ -100,6 +104,9 @@ export function TypeEditor({
     record || base ? toRows(savedFields) : [{ key: "aliases", label: "Aliases", kind: "list", options: "", linkType: "", saved: false }],
   );
   const [module, setModule] = useState(record?.module ?? defaultModule);
+  const [reports, setReports] = useState<ReportSetting[]>(record?.reports ?? base?.reports ?? DEFAULT_REPORTS);
+  // Reports count the Days that name a Document (ADR 0076): only a type that can be named has any.
+  const hasReports = base ? mentionable(base) : linkable;
   const [locatableField] = useState(record?.locatableField ?? (typeof base?.locatable === "string" ? base.locatable : ""));
   const fixedFolder = base?.id === "daily" || base?.id === "template";
   const [busy, setBusy] = useState(false);
@@ -143,6 +150,7 @@ export function TypeEditor({
         // Kept as is: the startup move turns old text into a Template; a user type no longer reads it.
         template: base ? undefined : (record?.template ?? ""),
         module: base ? undefined : module,
+        reports: hasReports ? reports : (record?.reports ?? undefined),
         order: record?.order ?? 0,
       });
       toast.success(record || base ? `“${label.trim()}” updated` : `Type “${label.trim()}” created — its Base is ready`);
@@ -324,6 +332,13 @@ export function TypeEditor({
           </p>
         ))}
       </div>
+      {hasReports && (
+        <div className="grid gap-1">
+          <Label className="text-xs">Reports</Label>
+          <span className="text-muted-foreground text-[10px]">Figures from the Days that link to its Documents — on the type's page, each Document's page and the Journal's periods.</span>
+          <ReportsEditor value={reports} onChange={setReports} />
+        </div>
+      )}
       {(record || base) && (base ? base.body !== "none" : body !== "none") && (
         <div className="flex min-w-0 items-center gap-2 text-xs">
           <span className="text-muted-foreground min-w-0 flex-1">New ones start from its Templates.</span>
