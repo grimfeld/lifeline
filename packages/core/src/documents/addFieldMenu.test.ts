@@ -8,8 +8,8 @@ const typeWith = (kind: FieldKind) => ({ id: "t", label: "T", fields: [{ key: "f
 const noteOf = (kind: FieldKind) => ADD_FIELD_KINDS.find((c) => c.kind === kind)!.note;
 
 describe("The + Field menu's plain kinds", () => {
-  it("lists every kind once, in the Kind dropdown's order, by its label", () => {
-    expect(ADD_FIELD_KINDS.map((c) => c.kind)).toEqual(["text", "longtext", "number", "boolean", "date", "datetime", "select", "multiselect", "url", "geo", "list", "link", "links"]);
+  it("lists every kind but geo once, in the Kind dropdown's order, by its label — geo is offered only as the Coordinates Known field (ADR 0078)", () => {
+    expect(ADD_FIELD_KINDS.map((c) => c.kind)).toEqual(["text", "longtext", "number", "boolean", "date", "datetime", "select", "multiselect", "url", "list", "link", "links"]);
     expect(ADD_FIELD_KINDS.find((c) => c.kind === "select")?.label).toBe("Choice");
     expect(ADD_FIELD_KINDS.every((c) => c.note.length > 0)).toBe(true);
   });

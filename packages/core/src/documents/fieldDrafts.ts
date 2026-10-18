@@ -36,8 +36,8 @@ const isChoiceKind = (k: FieldKind): boolean => k === "select" || k === "multise
 /** Whether a kind has settings of its own — a Choice's options, a Link's target — shown in the row's fold-out. */
 export const hasFieldSettings = (k: FieldKind): boolean => isChoiceKind(k) || isLinkKind(k);
 
-/** Whether a row has a fold-out (⚙): its kind's settings, or — until the type is saved with it — the key, whatever the kind. */
-export const hasFoldOut = (d: Pick<FieldDraft, "kind" | "saved">): boolean => !d.saved || hasFieldSettings(d.kind);
+/** Whether a row has a fold-out (⚙): its kind's settings, or — until the type is saved with it — the key, whatever the kind. A Known field has none: key and kind are locked (ADR 0078). */
+export const hasFoldOut = (d: Pick<FieldDraft, "kind" | "saved">, known = false): boolean => !known && (!d.saved || hasFieldSettings(d.kind));
 
 /** How a folded row names types and Roles. */
 export interface SummaryNames {
@@ -93,9 +93,9 @@ export function toFieldDrafts(fields: FieldDef[]): FieldDraft[] {
 /** A blank draft for a Field being added. */
 export const newFieldDraft = (kind: FieldKind = "text", label = ""): FieldDraft => ({ key: fieldKeyFrom(label), label, kind, options: [], target: { to: "any" }, saved: false });
 
-/** A new label; a new Field's key follows it until typed by hand. A saved Field's key never moves. */
-export function relabelField(d: FieldDraft, label: string): FieldDraft {
-  const follows = !d.saved && d.key === fieldKeyFrom(d.label);
+/** A new label; a new Field's key follows it until typed by hand. A saved Field's key never moves, nor a Known field's (ADR 0078). */
+export function relabelField(d: FieldDraft, label: string, known = false): FieldDraft {
+  const follows = !d.saved && !known && d.key === fieldKeyFrom(d.label);
   return { ...d, label, ...(follows ? { key: fieldKeyFrom(label) } : {}) };
 }
 

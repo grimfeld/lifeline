@@ -32,6 +32,7 @@ export * from "./documents/registry";
 export * from "./documents/typeRules";
 export * from "./documents/fieldDrafts";
 export * from "./documents/addFieldMenu";
+export * from "./documents/knownFields";
 export * from "./documents/typeAdmin";
 export * from "./documents/store";
 export * from "./documents/roles";

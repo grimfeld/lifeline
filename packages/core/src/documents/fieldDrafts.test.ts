@@ -128,6 +128,11 @@ describe("A Field's key", () => {
     expect(rekeyField(saved, "other").key).toBe("met");
     expect(relabelField(saved, "Met at").key).toBe("met");
   });
+
+  it("is locked on a Known field, saved or not: its label is renamed, its key stays (ADR 0078)", () => {
+    const d = relabelField(newFieldDraft("list", "Aliases"), "Also known as", true);
+    expect([d.key, d.label]).toEqual(["aliases", "Also known as"]);
+  });
 });
 
 describe("A folded Field row", () => {
@@ -142,6 +147,10 @@ describe("A folded Field row", () => {
     const [text, choice] = toFieldDrafts([{ key: "met", label: "Met", kind: "text" }, { key: "mood", label: "Mood", kind: "select" }]);
     expect(hasFoldOut(text)).toBe(false);
     expect(hasFoldOut(choice)).toBe(true);
+  });
+
+  it("has no fold-out on a Known field — its key and kind are locked (ADR 0078)", () => {
+    expect(hasFoldOut(newFieldDraft("list", "Aliases"), true)).toBe(false);
   });
 
   it("sums up a Choice's options and a Link's target", () => {
