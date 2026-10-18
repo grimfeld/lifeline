@@ -16,6 +16,15 @@ describe("tool catalogue", () => {
     expect(Object.keys(add!.input)).toEqual(expect.arrayContaining(["title", "date", "recurrence", "workspace"]));
   });
 
+  it("hands an agent the receipt's Lines as rows, and the Products and Shops it may be missing (ADR 0075)", () => {
+    const receipt = TOOLS.find((t) => t.name === "prices_receipt")!;
+    expect(receipt.write).toBe(true);
+    const lines = receipt.input.lines.safeParse([{ label: "LAIT 1/2 ECR", price: 1.09, amount: 6, promo: false }]);
+    expect(lines.success).toBe(true);
+    expect(receipt.input.lines.safeParse([{ label: "LAIT" }]).success).toBe(false);
+    expect(TOOLS.map((t) => t.name)).toEqual(expect.arrayContaining(["prices_product_add", "prices_shop_add"]));
+  });
+
   it("names Knowledge's tools after Knowledge, with no Languages aliases (ADR 0073)", () => {
     const names = TOOLS.map((t) => t.name);
     expect(names).toEqual(expect.arrayContaining(["knowledge_word", "knowledge_sentence"]));
