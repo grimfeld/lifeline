@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldChangeProblems, fitsKind, removedFieldValues, typeDeleteRefusal } from "./typeRules";
+import { fieldChangeProblems, fitsKind, removedFieldValues, reservedKeyProblems, reservedKeyRefusal, typeDeleteRefusal } from "./typeRules";
 import type { Document, FieldDef } from "./types";
 
 const doc = (fields: Record<string, unknown>): Document => ({ id: "x", type: "person", title: "P", tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0, ...fields }) as Document;
@@ -68,5 +68,30 @@ describe("typeDeleteRefusal", () => {
     expect(typeDeleteRefusal("People", { here: 12, elsewhere: 0, total: 12 })).toMatch(/^People still has 12 Documents\. /);
     expect(typeDeleteRefusal("People", { here: 12, elsewhere: 200, total: 212 })).toContain("212 Documents (200 in other Workspaces)");
     expect(typeDeleteRefusal("People", { here: 0, elsewhere: 1, total: 1 })).toContain("1 Document, all in other Workspaces");
+  });
+});
+
+describe("reservedKeyProblems", () => {
+  const f = (key: string, label = key): FieldDef => ({ key, label, kind: "text" });
+
+  it("refuses a new Field keyed with one of a Document's own keys, saying why", () => {
+    expect(reservedKeyProblems([], [f("tags", "Tags"), f("mood")])).toEqual([{ key: "tags", label: "Tags", refused: true, message: "`tags` — every Document already has Tags" }]);
+  });
+
+  it("covers every Document key, Roles and Tallies", () => {
+    const keys = ["id", "type", "title", "body", "tags", "folder", "createdAt", "updatedAt", "deleted", "workspace", "roles", "tallies"];
+    expect(reservedKeyProblems([], keys.map((k) => f(k))).map((p) => p.key)).toEqual(keys);
+    expect(reservedKeyProblems([], [f("tag"), f("titles"), f("role")])).toEqual([]);
+  });
+
+  it("only warns about a saved Field that already collides, so it still saves", () => {
+    const [p] = reservedKeyProblems([f("folder", "Folder")], [f("folder", "Shelf")]);
+    expect(p).toMatchObject({ key: "folder", label: "Shelf", refused: false });
+    expect(p.message).toContain("every Document already has a Folder");
+  });
+
+  it("gives the store's refusal only for new reserved keys", () => {
+    expect(reservedKeyRefusal([f("title")], [f("title"), f("mood")])).toBeUndefined();
+    expect(reservedKeyRefusal([f("title")], [f("title"), f("body", "Notes")])).toBe("Can't add “Notes”: `body` — every Document already has a body");
   });
 });
