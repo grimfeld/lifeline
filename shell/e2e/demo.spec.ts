@@ -154,6 +154,76 @@ for (const w of WIDTHS) {
   });
 }
 
+/* ---- Demo life: time and work (#109) ---------------------------------- */
+
+const TALK = "Injury-prevention talk for the running club";
+/** The talk's deadline, in days from the visit day. */
+const TALK_DAY = 4;
+
+/** The Calendar's Upcoming day region `offset` days from the browser's today. */
+async function dayOnUpcoming(page: Page, offset: number) {
+  const label = await page.evaluate((o) => {
+    const n = new Date();
+    return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate() + o)).toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+  }, offset);
+  return page.getByRole("region", { name: label, exact: true });
+}
+
+for (const w of WIDTHS) {
+  test.describe(`Demo time and work at ${w.name} width`, () => {
+    test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
+
+    test("Tasks, Projects, Chores and Events open with a lived-in life", async ({ page }) => {
+      await open(page, "/app/tasks");
+      await expect(page.getByText("Make the workshop slides", { exact: true }).first()).toBeVisible();
+
+      await open(page, "/module/tasks");
+      await page.getByRole("link", { name: new RegExp(TALK) }).first().click();
+      await expect(page.getByText("Make the workshop slides").first()).toBeVisible();
+      await expect(page.getByText("Book the club room").first()).toBeVisible();
+
+      await open(page, "/app/chores");
+      await expect(page.getByText("Wash the car", { exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Upcoming", exact: true })).toBeVisible();
+
+      await open(page, "/app/events");
+      await expect(page.getByText(/^Portuguese lesson with Luís/).first()).toBeVisible();
+      await open(page, "/app/events?tab=templates");
+      await expect(page.getByText("Sea swim", { exact: true }).first()).toBeVisible();
+    });
+
+    test("the Project's deadline is a marker on the Calendar", async ({ page }) => {
+      await open(page, "/calendar?view=upcoming");
+      const day = await dayOnUpcoming(page, TALK_DAY);
+      await day.scrollIntoViewIfNeeded();
+      await expect(day.getByText(`⚑ ${TALK}`)).toBeVisible();
+    });
+
+    test("completing an overdue Chore rolls it forward", async ({ page }) => {
+      await open(page, "/app/chores");
+      const section = (name: string) => page.locator("section").filter({ has: page.getByRole("heading", { name, exact: true }) });
+      const row = section("Overdue").locator('[data-slot="card"]').filter({ hasText: "Wash the car" });
+      await expect(row).toBeVisible();
+      await row.getByTitle("Mark done").click();
+      await expect(section("Overdue").getByText("Wash the car")).toHaveCount(0);
+      await expect(section("Upcoming").getByText("Wash the car")).toBeVisible();
+    });
+
+    test("with the clock pinned, the deadline moves with the visit day", async ({ page }) => {
+      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+      await open(page, "/calendar?view=upcoming");
+      const day = await dayOnUpcoming(page, TALK_DAY);
+      await day.scrollIntoViewIfNeeded();
+      await expect(day.getByText(`⚑ ${TALK}`)).toBeVisible();
+    });
+  });
+}
+
 // ---- Demo life: writing and the Journal (#111) ----------------------------
 
 /** On a phone the Document panel (Reports, Backlinks) is a sheet behind a button. */
