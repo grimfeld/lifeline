@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldChangeProblems, fitsKind, removedFieldValues, reservedKeyProblems, reservedKeyRefusal, typeDeleteRefusal } from "./typeRules";
+import { fieldChangeProblems, fitsKind, optionUsage, removedFieldValues, reservedKeyProblems, reservedKeyRefusal, typeDeleteRefusal } from "./typeRules";
 import type { Document, FieldDef } from "./types";
 
 const doc = (fields: Record<string, unknown>): Document => ({ id: "x", type: "person", title: "P", tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0, ...fields }) as Document;
@@ -93,5 +93,18 @@ describe("reservedKeyProblems", () => {
   it("gives the store's refusal only for new reserved keys", () => {
     expect(reservedKeyRefusal([f("title")], [f("title"), f("mood")])).toBeUndefined();
     expect(reservedKeyRefusal([f("title")], [f("title"), f("body", "Notes")])).toBe("Can't add “Notes”: `body` — every Document already has a body");
+  });
+});
+
+describe("optionUsage", () => {
+  it("counts the Documents holding each option of a Choice or Multi-choice", () => {
+    const docs = [doc({ mood: "home" }), doc({ mood: "home" }), doc({ mood: "out" }), doc({}), doc({ mood: "" })];
+    expect(optionUsage("mood", docs)).toEqual({ home: 2, out: 1 });
+    const tags = [doc({ with: ["ann", "bob"] }), doc({ with: ["ann"] }), doc({ with: [] })];
+    expect(optionUsage("with", tags)).toEqual({ ann: 2, bob: 1 });
+  });
+
+  it("counts a Document once even when it repeats a value", () => {
+    expect(optionUsage("with", [doc({ with: ["ann", "ann"] })])).toEqual({ ann: 1 });
   });
 });
