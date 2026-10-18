@@ -233,8 +233,11 @@ export interface CommandCtx {
   navigate: (path: string) => void;
 }
 
-/** Value shapes a Command argument takes. `json` is a structured value whose shape `hint` spells out (a Task's recurrence). */
-export type CommandArgKind = "text" | "longtext" | "number" | "boolean" | "date" | "time" | "select" | "multiselect" | "list" | "link" | "json";
+/**
+ * Value shapes a Command argument takes. `json` is a structured value whose shape `hint` spells out (a Task's recurrence);
+ * `rows` is a list of records, each checked against the argument's own `of` signature (a Receipt's Lines, ADR 0075).
+ */
+export type CommandArgKind = "text" | "longtext" | "number" | "boolean" | "date" | "time" | "select" | "multiselect" | "list" | "link" | "json" | "rows";
 
 /** One argument of a Command's signature (CONTEXT.md "Command"). */
 export interface CommandArg {
@@ -250,6 +253,8 @@ export interface CommandArg {
   linkRole?: string;
   /** What the value means, for a caller with no dialog to look at — an agent (ADR 0062). */
   hint?: string;
+  /** rows: the signature every row is checked against. */
+  of?: CommandArg[];
 }
 
 /** What a headless Command run reports back: a sentence, and the Document it made or changed. */

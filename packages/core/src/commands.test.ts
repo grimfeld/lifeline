@@ -33,6 +33,39 @@ describe("readCommandArgs", () => {
   });
 });
 
+describe("rows arguments", () => {
+  const LINES: CommandArg[] = [
+    {
+      key: "lines",
+      label: "Lines",
+      kind: "rows",
+      required: true,
+      of: [
+        { key: "label", label: "Label", kind: "text", required: true },
+        { key: "price", label: "Price", kind: "number", required: true },
+        { key: "promo", label: "Promo", kind: "boolean" },
+      ],
+    },
+  ];
+
+  it("checks every row against the row signature", async () => {
+    expect(await readCommandArgs(LINES, { lines: [{ label: " Milk ", price: "1.2" }, { label: "Eggs", price: 3, promo: true }] })).toEqual({
+      lines: [
+        { label: "Milk", price: 1.2 },
+        { label: "Eggs", price: 3, promo: true },
+      ],
+    });
+    expect(await readCommandArgs(LINES, { lines: '[{"label":"Milk","price":1}]' })).toEqual({ lines: [{ label: "Milk", price: 1 }] });
+  });
+
+  it("names the row a bad value is in, and counts an empty list as missing", async () => {
+    await expect(readCommandArgs(LINES, { lines: [{ label: "Milk", price: 1 }, { label: "Eggs" }] })).rejects.toThrow("Lines, row 2: Price is required");
+    await expect(readCommandArgs(LINES, { lines: [{ label: "Milk", price: 1, colour: "red" }] })).rejects.toThrow("Lines, row 1: Unknown argument: colour");
+    await expect(readCommandArgs(LINES, { lines: ["Milk"] })).rejects.toThrow("Lines, row 1: expected a record");
+    await expect(readCommandArgs(LINES, { lines: [] })).rejects.toThrow("Lines is required");
+  });
+});
+
 describe("invokeCommand", () => {
   it("passes checked arguments to the App's invoke", async () => {
     const def: CommandDef = { id: "t.add", title: "Add", args: ARGS, invoke: async (a) => ({ message: `added ${a.title}` }) };
