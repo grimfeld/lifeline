@@ -18,6 +18,11 @@ Below `md` (768px) is the phone. On the desk nothing below applies.
 - `order={1}` for tabs/view switches (nearest the thumb); actions, search and Filters at the default 0.
 - Check with a phone-width (390px) screenshot as well as a desktop one.
 
+## UI
+
+Build from `@lifeline/ui` and its tokens; the rules are in `CODING_STANDARDS.md` § UI
+(ADR 0079), and `pnpm check:ui` checks the lines you add.
+
 ## Every screen holds long content, on a phone and on a desk (ADR 0065)
 
 A screen is not done until it survives the longest content a person could type.

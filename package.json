@@ -3,6 +3,8 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
+    "check": "node scripts/check-ui.mjs && pnpm -r typecheck && pnpm -r test",
+    "check:ui": "node scripts/check-ui.mjs",
     "dev": "pnpm --filter @lifeline/shell dev",
     "dev:all": "node scripts/dev-launcher.mjs",
     "mcp": "pnpm --filter @lifeline/mcp dev",
