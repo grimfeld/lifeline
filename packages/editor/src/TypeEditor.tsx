@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent } from "react";
 import { Link } from "react-router";
 import { Button, Checkbox, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TYPE_ICONS, cn, toast, typeIcon } from "@lifeline/ui";
 import {
@@ -18,6 +18,9 @@ import {
   fieldSummary,
   hasFieldSettings,
   newFieldDraft,
+  optionUsage,
+  pasteOptions,
+  splitOptionLabels,
   rekeyField,
   relabelField,
   removeOption,
@@ -57,6 +60,9 @@ type Row = FieldDraft & { uid: number };
 let nextUid = 0;
 const withUid = (d: FieldDraft): Row => ({ ...d, uid: nextUid++ });
 const toRows = (fields: FieldDef[]): Row[] => toFieldDrafts(fields).map(withUid);
+
+/** Every Document of the type being edited (counted, never shown) — what the option editor counts per option. */
+const HeldDocuments = createContext<Document[]>([]);
 
 /**
  * Create / edit a user-defined Document type (ADR 0019), or customise a
@@ -181,6 +187,7 @@ export function TypeEditor({
   const names: SummaryNames = { typeLabel: (id) => allTypes.find((t) => t.id === id)?.label ?? id, roleLabel: (id) => roleDef(id)?.label ?? id };
   const Icon = typeIcon(icon);
   return (
+    <HeldDocuments.Provider value={held}>
     <div className="grid min-w-0 gap-3">
       <div className="grid gap-1">
         <Label className="text-xs">Name</Label>
@@ -333,6 +340,7 @@ export function TypeEditor({
         </Button>
       </div>
     </div>
+    </HeldDocuments.Provider>
   );
 }
 
@@ -419,24 +427,90 @@ function FieldSettings({ row, linkTypes, onChange }: { row: FieldDraft; linkType
   );
 }
 
-/** A Choice's options, one line each: only the label is edited; the value is set when added (CONTEXT.md "Choice (field)"). */
+/**
+ * A Choice's options, one line each: only the label is edited; the value is set
+ * when added (CONTEXT.md "Choice (field)"). Typed like a list (spec #95): Enter
+ * adds the next, Backspace on an empty one removes it, a pasted list splits into
+ * one option each. An option Documents hold shows how many and can't be removed.
+ */
 function OptionList({ row, onChange }: { row: FieldDraft; onChange: (d: FieldDraft) => void }) {
+  const held = useContext(HeldDocuments);
+  const usage = useMemo(() => optionUsage(row.key, held), [row.key, held]);
+  // The "used by" column is there only when some option is held, so the labels line up either way.
+  const anyUsed = row.options.some((o) => usage[o.value]);
+  const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  // The option to focus once the change that adds or removes it has rendered.
+  const [focusAt, setFocusAt] = useState<number | null>(null);
+  useEffect(() => {
+    if (focusAt === null) return;
+    const el = inputs.current[focusAt];
+    el?.focus();
+    el?.setSelectionRange(el.value.length, el.value.length);
+    setFocusAt(null);
+  }, [focusAt]);
+  const add = (at: number) => {
+    onChange(addOption(row, "", at));
+    setFocusAt(at);
+  };
+  const onKey = (e: KeyboardEvent<HTMLInputElement>, i: number) => {
+    if (e.nativeEvent.isComposing) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      add(i + 1);
+    } else if (e.key === "Backspace" && row.options[i].label === "" && !usage[row.options[i].value]) {
+      e.preventDefault();
+      onChange(removeOption(row, i));
+      if (row.options.length > 1) setFocusAt(Math.max(0, i - 1));
+    }
+  };
+  const onPaste = (e: ClipboardEvent<HTMLInputElement>, i: number) => {
+    const labels = splitOptionLabels(e.clipboardData.getData("text"));
+    if (labels.length < 2) return;
+    e.preventDefault();
+    onChange(pasteOptions(row, i, labels));
+    setFocusAt(i + labels.length - (row.options[i].label.trim() ? 0 : 1));
+  };
   return (
     <div className="grid min-w-0 gap-1">
       <Label className="text-xs">Options</Label>
-      {row.options.map((o, i) => (
-        <div key={i} className="flex min-w-0 items-center gap-1">
-          <Input className="h-7 min-w-0 flex-1" placeholder="Option" aria-label="Option label" value={o.label} onChange={(e) => onChange(renameOption(row, i, e.target.value))} />
-          {/* The stored value, in a fixed column so the labels line up. */}
-          <span className="text-muted-foreground w-20 shrink-0 truncate font-mono text-[10px] md:w-36" title={o.value ? `Stored as “${o.value}”` : undefined}>
-            {o.value}
-          </span>
-          <Button size="icon" variant="ghost" className="size-7 shrink-0" onClick={() => onChange(removeOption(row, i))} aria-label="Remove option">
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      ))}
-      <Button size="sm" variant="ghost" className="h-7 justify-self-start" onClick={() => onChange(addOption(row))}>
+      {row.options.map((o, i) => {
+        const used = usage[o.value] ?? 0;
+        return (
+          <div key={i} className="flex min-w-0 items-center gap-1">
+            <Input
+              ref={(el) => void (inputs.current[i] = el)}
+              className="h-7 min-w-0 flex-1"
+              placeholder="Option"
+              aria-label="Option label"
+              value={o.label}
+              onChange={(e) => onChange(renameOption(row, i, e.target.value))}
+              onKeyDown={(e) => onKey(e, i)}
+              onPaste={(e) => onPaste(e, i)}
+            />
+            {/* The stored value, in a fixed column so the labels line up. */}
+            <span className="text-muted-foreground w-16 shrink-0 truncate font-mono text-[10px] md:w-32" title={o.value ? `Stored as “${o.value}”` : undefined}>
+              {o.value}
+            </span>
+            {anyUsed && (
+              <span className="text-muted-foreground w-14 shrink-0 truncate text-right text-[10px]" title={used ? `${used} Document${used === 1 ? "" : "s"} hold this option` : undefined}>
+                {used > 0 && `used by ${used}`}
+              </span>
+            )}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-7 shrink-0"
+              disabled={used > 0}
+              onClick={() => onChange(removeOption(row, i))}
+              aria-label={used ? `Used by ${used} — can't be removed` : "Remove option"}
+              title={used ? `Used by ${used} Document${used === 1 ? "" : "s"} — can't be removed` : undefined}
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
+        );
+      })}
+      <Button size="sm" variant="ghost" className="h-7 justify-self-start" onClick={() => add(row.options.length)}>
         <Plus /> Option
       </Button>
     </div>
