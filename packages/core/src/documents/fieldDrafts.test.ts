@@ -4,14 +4,17 @@ import {
   fieldsFromDrafts,
   fieldSummary,
   hasFieldSettings,
+  hasFoldOut,
   moveDraft,
   moveOption,
   newFieldDraft,
   optionValueFrom,
+  pasteOptions,
   rekeyField,
   relabelField,
   removeOption,
   renameOption,
+  splitOptionLabels,
   toFieldDrafts,
   type FieldDraft,
   type LinkTarget,
@@ -113,6 +116,30 @@ describe("Choice options", () => {
     expect(saved(removeOption(addOption(mood(), "Out"), 0))).toEqual([{ value: "out", label: "Out" }]);
     expect(saved(addOption(mood()))).toEqual([{ value: "home", label: "Home" }]);
   });
+
+  it("splits a pasted list into labels: one per line, or comma-separated", () => {
+    expect(splitOptionLabels("a, b, c")).toEqual(["a", "b", "c"]);
+    expect(splitOptionLabels("Home\r\nOut, late\n\n  Work  \n")).toEqual(["Home", "Out, late", "Work"]);
+    expect(splitOptionLabels("Just one")).toEqual(["Just one"]);
+    expect(splitOptionLabels(" , ,")).toEqual([]);
+    expect(splitOptionLabels(" \n \n")).toEqual([]);
+  });
+
+  it("pastes several options at an option: an empty one takes the first, the rest follow it", () => {
+    const d = pasteOptions(addOption(addOption(mood()), "Last"), 1, ["Out", "Work", "Home"]);
+    expect(saved(d)).toEqual([
+      { value: "home", label: "Home" },
+      { value: "out", label: "Out" },
+      { value: "work", label: "Work" },
+      { value: "home_2", label: "Home" },
+      { value: "last", label: "Last" },
+    ]);
+    expect(saved(pasteOptions(mood(), 0, ["Out", "Work"]))).toEqual([
+      { value: "home", label: "Home" },
+      { value: "out", label: "Out" },
+      { value: "work", label: "Work" },
+    ]);
+  });
 });
 
 describe("A Field's key", () => {
@@ -136,6 +163,13 @@ describe("A folded Field row", () => {
 
   it("has settings only for Choice, Multi-choice, Link and Links", () => {
     expect((["select", "multiselect", "link", "links", "text", "list", "geo"] as const).map((k) => hasFieldSettings(k))).toEqual([true, true, true, true, false, false, false]);
+  });
+
+  it("has a fold-out while unsaved, whatever its kind, so its key can be edited", () => {
+    expect(hasFoldOut(newFieldDraft("text", "Tags"))).toBe(true);
+    const [text, choice] = toFieldDrafts([{ key: "met", label: "Met", kind: "text" }, { key: "mood", label: "Mood", kind: "select" }]);
+    expect(hasFoldOut(text)).toBe(false);
+    expect(hasFoldOut(choice)).toBe(true);
   });
 
   it("sums up a Choice's options and a Link's target", () => {
