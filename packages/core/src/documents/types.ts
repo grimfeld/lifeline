@@ -102,6 +102,9 @@ export interface FieldDef {
 /** Whether a field kind holds Document ids — one (`link`) or several (`links`). */
 export const isLinkKind = (k: FieldKind): boolean => k === "link" || k === "links";
 
+/** Whether a field kind is a Choice — one option (`select`) or several (`multiselect`). */
+export const isChoiceKind = (k: FieldKind): boolean => k === "select" || k === "multiselect";
+
 /** Value shapes per field kind, as stored on the row. */
 export type FieldValue = string | number | boolean | string[] | [number, number] | null | undefined;
 

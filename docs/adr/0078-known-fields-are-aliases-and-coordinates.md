@@ -4,14 +4,14 @@ status: accepted
 
 # The Known fields are Aliases and Coordinates
 
-Two Fields mean something to Lifeline: an `aliases` list makes `[[links]]` find a Linkable type's Documents by other names, and a user-defined type's first geo Field puts its Documents on the map (Locatable). Until now people got either by happening to type the right key with the right kind, and nothing said that Aliases does nothing on a type that isn't Linkable, or that a second geo Field never reaches the map.
+Two Fields mean something to Lifeline: an `aliases` list makes `[[links]]` find a Linkable type's Documents by other names, and a user-defined type's geo Field puts its Documents on the map (Locatable). Until now people got either by happening to type the right key with the right kind, and nothing said that Aliases does nothing on a type that isn't Linkable, or that a second geo Field never reaches the map.
 
 The **Known fields** are exactly two (CONTEXT.md "Known field"):
 
-- **Aliases** — key `aliases`, kind List. Works on any Linkable type, built-in or user-defined.
-- **Coordinates** — kind geo, on a user-defined type only. A type has at most one: its first geo Field (its `locatableField`).
+- **Aliases** — key `aliases`, kind List. Works on any Linkable type, built-in or user-defined. Offered on any Linkable type and on a user-defined type that isn't (picking it turns Linkable on) — never on a built-in that isn't Linkable.
+- **Coordinates** — kind geo, on a user-defined type only. A type has at most one: the geo Field its `locatableField` names, else its first geo Field.
 
-A Field is Known only when its key *and* kind match. The Type editor's "+ Field" menu offers, first, the Known fields that work on the type and aren't on it yet; a Known field's row is marked, its key and kind locked, its label free. Because a type has at most one Coordinates field, geo is offered only as that Known field, never among the plain kinds. Picking Aliases on a type that isn't Linkable turns Linkable on; a new type starts with Aliases.
+A Field is Known only when its key *and* kind match. The Type editor's "+ Field" menu offers, first, the Known fields that work on the type and aren't on it yet; a Known field's row is marked, its key and kind locked, its label free. The lock holds for one added from the menu or already saved: a plain Field still being typed whose key happens to become `aliases` keeps its key box (and says it will be Aliases) until the type is saved. Any other unsaved Field has a ⚙ fold-out whatever its kind, so its key stays editable until saved. Because a type has at most one Coordinates field, geo is offered only as that Known field, never among the plain kinds. Picking Aliases on a type that isn't Linkable turns Linkable on; a new type starts with Aliases.
 
 A Document's own keys (`id, type, title, body, tags, folder, createdAt, updatedAt, deleted, workspace`, `roles`, `tallies`) are never Field keys — refused for a new Field in the editor and in the type store.
 

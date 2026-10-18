@@ -5,7 +5,9 @@ import {
   fieldSummary,
   hasFieldSettings,
   hasFoldOut,
-  moveDraft,
+  knownFieldLocked,
+  newKnownFieldDraft,
+  moveItem,
   moveOption,
   newFieldDraft,
   optionValueFrom,
@@ -177,6 +179,19 @@ describe("A folded Field row", () => {
     expect(hasFoldOut(choice)).toBe(true);
   });
 
+  it("locks a Known field's key and kind once it is added from the menu or saved (ADR 0078)", () => {
+    const aliases = { known: "aliases" as const };
+    expect(knownFieldLocked(newKnownFieldDraft({ key: "aliases", kind: "list", label: "Aliases" }), aliases)).toBe(true);
+    expect(knownFieldLocked(toFieldDrafts([{ key: "aliases", label: "Aliases", kind: "list" }])[0], aliases)).toBe(true);
+  });
+
+  it("doesn't lock a plain Field being typed whose key happens to match a Known field's", () => {
+    const typed = rekeyField(newFieldDraft("list", "Other names"), "aliases");
+    expect(knownFieldLocked(typed, { known: "aliases" })).toBe(false);
+    expect(hasFoldOut(typed, knownFieldLocked(typed, { known: "aliases" }))).toBe(true);
+    expect(knownFieldLocked(toFieldDrafts([{ key: "met", label: "Met", kind: "text" }])[0], {})).toBe(false);
+  });
+
   it("has no fold-out on a Known field — its key and kind are locked (ADR 0078)", () => {
     expect(hasFoldOut(newFieldDraft("list", "Aliases"), true)).toBe(false);
   });
@@ -201,7 +216,7 @@ describe("Reordering", () => {
   ];
 
   it("saves Fields in the order they were moved to", () => {
-    const keys = (from: number, to: number) => fieldsFromDrafts(moveDraft(toFieldDrafts(fields), from, to)).map((f) => f.key);
+    const keys = (from: number, to: number) => fieldsFromDrafts(moveItem(toFieldDrafts(fields), from, to)).map((f) => f.key);
     expect(keys(0, 2)).toEqual(["b", "c", "a"]);
     expect(keys(2, 0)).toEqual(["c", "a", "b"]);
     expect(keys(1, 1)).toEqual(["a", "b", "c"]);
@@ -209,8 +224,8 @@ describe("Reordering", () => {
 
   it("leaves the list as it is for a move out of range", () => {
     const drafts = toFieldDrafts(fields);
-    expect(moveDraft(drafts, 0, 3)).toBe(drafts);
-    expect(moveDraft(drafts, -1, 0)).toBe(drafts);
+    expect(moveItem(drafts, 0, 3)).toBe(drafts);
+    expect(moveItem(drafts, -1, 0)).toBe(drafts);
   });
 
   it("saves a Choice's options in the order they were moved to", () => {

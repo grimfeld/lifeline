@@ -19,7 +19,14 @@ interface ScreenCase {
   /** Other route parameters, filled as given (`{ key: "2026-W42" }` for `:key`). */
   params?: Record<string, string>;
   /** What to do once the screen is open, before it is checked — open a dialog. */
-  then?: (page: Page) => Promise<void>;
+  afterOpen?: (page: Page) => Promise<void>;
+}
+
+/** Journal → Types → the Type editor over the seeded People type. A fresh store greets with "You're signed out" over the page. */
+async function openPeopleTypeEditor(page: Page) {
+  const local = page.getByRole("button", { name: "Work locally" });
+  await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+  await page.getByRole("button", { name: /^Edit the type People/ }).first().click();
 }
 
 const SCREENS: ScreenCase[] = [
@@ -63,11 +70,8 @@ const SCREENS: ScreenCase[] = [
     // The Type editor over the seeded type with long Field, option and type labels, every fold-out open.
     name: "Journal · Types · Type editor",
     path: "/app/journal/t",
-    then: async (page) => {
-      // A fresh store greets with "You're signed out" over the page.
-      const local = page.getByRole("button", { name: "Work locally" });
-      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
-      await page.getByRole("button", { name: /^Edit the type People/ }).first().click();
+    afterOpen: async (page) => {
+      await openPeopleTypeEditor(page);
       const gears = page.getByRole("dialog").getByRole("button", { name: "Field settings" });
       await expect(gears.first()).toBeVisible();
       for (const g of await gears.all()) await g.click();
@@ -77,10 +81,8 @@ const SCREENS: ScreenCase[] = [
     // The Type editor's "+ Field" menu open: a dropdown on the desk, a bottom sheet on a phone.
     name: "Journal · Types · + Field menu",
     path: "/app/journal/t",
-    then: async (page) => {
-      const local = page.getByRole("button", { name: "Work locally" });
-      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
-      await page.getByRole("button", { name: /^Edit the type People/ }).first().click();
+    afterOpen: async (page) => {
+      await openPeopleTypeEditor(page);
       await page.getByRole("dialog").getByRole("button", { name: "Field", exact: true }).click();
       await expect(page.getByText("adds a board layout to its Base")).toBeVisible();
     },
@@ -166,7 +168,7 @@ for (const screen of SCREENS) {
     }
     for (const [k, v] of Object.entries(screen.params ?? {})) path = path.replace(`:${k}`, v);
     await open(page, path);
-    await screen.then?.(page);
+    await screen.afterOpen?.(page);
     await expectNoBrokenLayout(page, screen.name);
     expect(errors, `no uncaught errors:\n  ${errors.join("\n  ")}`).toEqual([]);
   });
