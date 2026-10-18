@@ -8,6 +8,7 @@ import { onThisDay } from "../domain/journalStats";
 import { PERIOD_KINDS, PERIOD_LABELS, periodKey, periodLabel } from "../domain/periods";
 import { DAILY, PERIOD_TYPES, journalHref, periodHref } from "../domain/types";
 import { JournalLinks } from "./JournalLinks";
+import { PeriodReports } from "./TypeReports";
 
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -117,12 +118,13 @@ export function JournalAside({ date, docId }: { date: DateStr; docId?: string })
   );
 }
 
-/** The side column beside a Week, Month, Quarter or Year: its links, as on a Day. */
-export function PeriodAside({ docId }: { docId: string }) {
+/** The side column beside a Week, Month, Quarter or Year: its links, as on a Day, then the period's Reports. */
+export function PeriodAside({ docId, periodKey }: { docId: string; periodKey: string }) {
   const index = useLinkIndex();
   return (
     <aside className={ASIDE} aria-label="Links">
       <JournalLinks docId={docId} index={index} />
+      <PeriodReports periodKey={periodKey} index={index} />
     </aside>
   );
 }

@@ -38,6 +38,7 @@ import { ReadTimer } from "./ReadTimer";
 import { MarkdownView } from "./MarkdownView";
 import { FieldsForm } from "./FieldsForm";
 import { LinksPanel } from "./LinksPanel";
+import { DocumentReports } from "./Reports";
 import { LocalGraphPanel } from "./LocalGraphPanel";
 
 export interface DocumentEditorProps {
@@ -268,6 +269,9 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
           />
         </div>
       )}
+      <div className="mb-3 empty:hidden">
+        <DocumentReports index={index} def={def} docId={doc.id} />
+      </div>
       <div className="mb-3">
         <LocalGraphPanel docId={doc.id} index={index} onOpen={openRef} />
       </div>

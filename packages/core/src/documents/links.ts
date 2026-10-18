@@ -268,7 +268,7 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[], locke
 }
 
 /** Whether a type's Documents may be offered as Unlinked mentions (CONTEXT.md): linkable, and not opted out. */
-function mentionable(def: DocumentTypeDef | undefined): boolean {
+export function mentionable(def: DocumentTypeDef | undefined): boolean {
   if (!isLinkable(def)) return false;
   const l = def!.linkable;
   return !(typeof l === "object" && l.mentions === false);

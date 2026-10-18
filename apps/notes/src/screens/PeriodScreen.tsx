@@ -9,6 +9,7 @@ import { PERIOD_KINDS, PERIOD_LABELS, daysOf, kindOfKey, partsOf, periodKey, per
 import { DAILY, journalHref, periodHref, type Note } from "../domain/types";
 import { PeriodAside } from "../components/JournalAside";
 import { JournalLinksButton } from "../components/JournalLinks";
+import { PeriodReports } from "../components/TypeReports";
 
 /** The stretch one step coarser: a Week's Month (by its Thursday), a Month's Quarter, a Quarter's Year. */
 function parentOf(key: string): string | undefined {
@@ -109,7 +110,9 @@ export function PeriodScreen() {
           <span className="min-w-0 truncate text-sm font-medium max-md:hidden">{periodLabel(key)}</span>
           {doc && (
             <div className="ml-auto max-md:contents">
-              <JournalLinksButton docId={doc.id} index={index} />
+              <JournalLinksButton docId={doc.id} index={index}>
+                <PeriodReports periodKey={key} index={index} />
+              </JournalLinksButton>
             </div>
           )}
         </div>
@@ -156,7 +159,7 @@ export function PeriodScreen() {
           )}
         </div>
       </div>
-      {doc && <PeriodAside docId={doc.id} />}
+      {doc && <PeriodAside docId={doc.id} periodKey={key} />}
       </div>
     </div>
   );
