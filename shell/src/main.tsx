@@ -45,10 +45,27 @@ initApps(
 );
 startSync();
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+const root = ReactDOM.createRoot(document.getElementById("root")!);
+const app = (
   <React.StrictMode>
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </React.StrictMode>,
+  </React.StrictMode>
 );
+
+if (isDemo()) {
+  // The Demo life is written before the first screen, so it opens lived-in (ADR 0077).
+  root.render(
+    <div className="text-muted-foreground flex h-dvh items-center justify-center text-sm" role="status">
+      Loading…
+    </div>,
+  );
+  // A chunk of its own: the real build never loads the Demo life.
+  void import("./demo/seed")
+    .then((m) => m.seedDemoIfNeeded())
+    .catch((e) => console.error("Demo life could not be seeded", e))
+    .then(() => root.render(app));
+} else {
+  root.render(app);
+}
