@@ -17,11 +17,17 @@ pushing a change that touches a screen.
 (port 1422, started with `VITE_DEMO=1`) and a fresh, empty browser store — it
 does not use the layout seed. Each case runs at phone (360px) and desktop
 (1280px) width. Run it before pushing a change that touches the Demo or the
-shell's sign-in and sync surfaces (ADR 0077).
+shell's sign-in and sync surfaces (ADR 0077). The Source link cases use a
+second Demo server on port 1423, built with `VITE_DEMO_SOURCE_URL` set; the one
+on 1422 has none, as the Demo does until the repository is public.
 
 ```sh
 pnpm --filter @lifeline/shell test:e2e -- --project=demo
 ```
+
+Servers already listening on 1421–1423 are reused, even another checkout's.
+`E2E_PORT=1531` moves all three (to 1531–1533) when a second checkout runs its
+suite at the same time.
 
 - `seed.setup.ts` runs first: `support/seed.ts` runs every headless Command,
   gives every Document type a Document with every Field filled, and places
