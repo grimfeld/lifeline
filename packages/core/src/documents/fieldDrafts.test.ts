@@ -5,6 +5,8 @@ import {
   fieldSummary,
   hasFieldSettings,
   hasFoldOut,
+  moveDraft,
+  moveOption,
   newFieldDraft,
   optionValueFrom,
   pasteOptions,
@@ -179,5 +181,32 @@ describe("A folded Field row", () => {
     expect(fieldSummary({ ...newFieldDraft("links"), target: { to: "types", types: ["person", "place"] } }, names)).toBe("→ Person, Place");
     expect(fieldSummary({ ...newFieldDraft("link"), target: { to: "role", role: "author" } }, names)).toBe("→ Author (Role)");
     expect(fieldSummary(newFieldDraft("text"), names)).toBe("");
+  });
+});
+
+describe("Reordering", () => {
+  const fields: FieldDef[] = [
+    { key: "a", label: "A", kind: "text" },
+    { key: "b", label: "B", kind: "number" },
+    { key: "c", label: "C", kind: "date" },
+  ];
+
+  it("saves Fields in the order they were moved to", () => {
+    const keys = (from: number, to: number) => fieldsFromDrafts(moveDraft(toFieldDrafts(fields), from, to)).map((f) => f.key);
+    expect(keys(0, 2)).toEqual(["b", "c", "a"]);
+    expect(keys(2, 0)).toEqual(["c", "a", "b"]);
+    expect(keys(1, 1)).toEqual(["a", "b", "c"]);
+  });
+
+  it("leaves the list as it is for a move out of range", () => {
+    const drafts = toFieldDrafts(fields);
+    expect(moveDraft(drafts, 0, 3)).toBe(drafts);
+    expect(moveDraft(drafts, -1, 0)).toBe(drafts);
+  });
+
+  it("saves a Choice's options in the order they were moved to", () => {
+    const choice: FieldDef = { key: "mood", label: "Mood", kind: "select", options: [{ value: "low", label: "Low" }, { value: "mid", label: "Mid" }, { value: "high", label: "High" }] };
+    const [d] = toFieldDrafts([choice]);
+    expect(fieldsFromDrafts([moveOption(d, 2, 0)])[0].options).toEqual([{ value: "high", label: "High" }, { value: "low", label: "Low" }, { value: "mid", label: "Mid" }]);
   });
 });

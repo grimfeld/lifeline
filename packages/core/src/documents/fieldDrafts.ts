@@ -165,3 +165,17 @@ export function renameOption(d: FieldDraft, i: number, label: string): FieldDraf
 
 /** A Choice's options without option `i`. */
 export const removeOption = (d: FieldDraft, i: number): FieldDraft => ({ ...d, options: d.options.filter((_, j) => j !== i) });
+
+/** A list with item `from` moved to position `to` (spec #95 reorder): the form's Field order, a picker's option order. Out of range → the list as is. */
+export function moveDraft<T>(list: readonly T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= list.length || to >= list.length) return list as T[];
+  const next = [...list];
+  next.splice(to, 0, ...next.splice(from, 1));
+  return next;
+}
+
+/** A Choice's options with option `from` moved to `to` — the order its picker shows. */
+export const moveOption = (d: FieldDraft, from: number, to: number): FieldDraft => {
+  const options = moveDraft(d.options, from, to);
+  return options === d.options ? d : { ...d, options };
+};
