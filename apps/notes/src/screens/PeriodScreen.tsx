@@ -7,6 +7,8 @@ import { ChevronLeft, ChevronRight, ChevronUp, PenLine } from "lucide-react";
 import { ensurePeriod, useNotes } from "../data/repo";
 import { PERIOD_KINDS, PERIOD_LABELS, daysOf, kindOfKey, partsOf, periodKey, periodLabel, periodRange, shiftPeriod, type PeriodKind } from "../domain/periods";
 import { DAILY, journalHref, periodHref, type Note } from "../domain/types";
+import { PeriodAside } from "../components/JournalAside";
+import { JournalLinksButton } from "../components/JournalLinks";
 
 /** The stretch one step coarser: a Week's Month (by its Thursday), a Month's Quarter, a Quarter's Year. */
 function parentOf(key: string): string | undefined {
@@ -105,12 +107,18 @@ export function PeriodScreen() {
             </Button>
           )}
           <span className="min-w-0 truncate text-sm font-medium max-md:hidden">{periodLabel(key)}</span>
+          {doc && (
+            <div className="ml-auto max-md:contents">
+              <JournalLinksButton docId={doc.id} index={index} />
+            </div>
+          )}
         </div>
       </PhoneDock>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="flex min-h-0 flex-1">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         {doc ? (
           <div className="flex min-h-[50vh] flex-col">
-            <DocumentEditor key={doc.id} doc={doc} def={documentType(kind)} index={index} showPanel={false} onDeleted={() => navigate(periodHref(key))} />
+            <DocumentEditor key={doc.id} doc={doc} def={documentType(kind)} index={index} linksPanel={false} onDeleted={() => navigate(periodHref(key))} />
           </div>
         ) : (
           <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-12 text-sm">
@@ -147,6 +155,8 @@ export function PeriodScreen() {
             </section>
           )}
         </div>
+      </div>
+      {doc && <PeriodAside docId={doc.id} />}
       </div>
     </div>
   );

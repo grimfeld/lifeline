@@ -26,6 +26,10 @@ The neutral part of the system: shell, Contracts, sync layer, command registry, 
 One sign-in, owning its own Documents and Core bookkeeping (Screens, Placements, Views, user-defined types, Attachments) outright. Nothing is shared or visible across Accounts; the server, never the client, decides which Account a record belongs to. One device holds one Account's data at a time.
 _Avoid_: user (the human), tenant, workspace (a container inside one Account), profile
 
+### Demo
+Lifeline as a stranger meets it: a device bound to no Account, holding a made-up life seeded on first open, that never syncs and cannot sign in. Everything a visitor does stays on their device, and they can **reset** it back to the seeded life. The life's dates follow the day of the visit, so today always has something on it.
+_Avoid_: sandbox (a word Separation already avoids), guest, trial, preview
+
 ### Contract
 An interface defined by Core that a Document type implements (Schedulable, Timed, Loggable, Linkable, Locatable, Taggable, Daylog…). Carries data shape *and* behaviour hooks — the consuming Surface calls the hook; the owning App decides what happens. Built-in types implement Contracts in code; user-defined types may declare the data-only ones (e.g. Locatable through a geo field). The five things that serve Documents — Card, Screen, Surface, App, Base — are *not* Contracts and have no collective name.
 _Avoid_: capability, trait, API, decorator
@@ -441,12 +445,16 @@ _Avoid_: revision, history (implies automatic), backup (fine in prose)
 _Retired_ — use **Document type**. (Was: a kind of Note fixing its title rule, Properties and template.)
 
 ### Field
-A typed value a Document type declares (mood, aliases, birthday, geo, employer…), edited as a form, shown as a Base column, and read/written as frontmatter when the Document is opened as text. Kinds: text, long text, number, boolean, date, datetime, select, multi-select, url, geo, list of text, and **Link**. No formulas — a computed value belongs to a View, not a type. Every type has its own Fields, and the user may add Fields to any type, built-ins included; a built-in's own Fields stay its App's, the user's sit beside them. A Field is fixed once it exists: it can be relabelled, and its kind changed only to one every value it already holds still fits; removing it keeps the values Documents hold, and they return if it is added back.
+A typed value a Document type declares (mood, aliases, birthday, geo, employer…), edited as a form, shown as a Base column, and read/written as frontmatter when the Document is opened as text. Kinds: text, long text, number, boolean, date, datetime, **Choice**, **Multi-choice**, url, geo, list of text, and **Link**. No formulas — a computed value belongs to a View, not a type. Every type has its own Fields, and the user may add Fields to any type, built-ins included; a built-in's own Fields stay its App's, the user's sit beside them. A Field is fixed once it exists: it can be relabelled, and its kind changed only to one every value it already holds still fits; removing it keeps the values Documents hold, and they return if it is added back.
 _Avoid_: property (old Notes word — same thing), metadata, attribute, column (a View's rendering of a Field)
 
 ### Link (field)
 A Field holding a reference to another Document, optionally restricted to one type (`employer → organisation`). Stored by id, written as a wikilink in frontmatter, clickable in Bases, and a source of Backlinks exactly like a wikilink in a body.
 _Avoid_: relation, foreign key, reference
+
+### Choice (field)
+A Field whose value is one of a fixed, ordered set of **options** (Multi-choice: several of them). An option has a label the user sees and renames freely, and a value fixed when it is added — what Documents hold. An option a Document holds can't be removed.
+_Avoid_: select, enum, dropdown (the control), choice (for one option)
 
 ### Template
 A body a Document type offers as the starting text for a new Document of that type — the Day's sections, a meeting Note, a Chapter skeleton. Every type has its own Templates; picking one copies it into the new body once and forgets it, never a link. A user-defined type's starting body comes only from its Templates; a built-in type may also carry a default of its own, used when it has none. Not an Event template (that shapes an Event, not a body).
@@ -473,11 +481,15 @@ From the target's side: a Document that wikilinks to it. Every Linkable Document
 _Avoid_: incoming link, reference
 
 ### Unlinked mention
-A Linkable Document's title or alias appearing as plain prose in another Document's body, with no wikilink around it. Derived, never stored; offered from both ends in the links panel — the target sees who mentions it, the source sees which names it could link — and turned into a Wikilink only on request, never silently. A Document type may opt its Documents out as targets (Days). Not a Backlink (that needs a link).
-_Avoid_: unlinked reference, suggestion, candidate
+A Linkable Document's title or alias appearing as plain prose in another Document's body, with no wikilink around it. Derived, never stored; offered from both ends in the links panel — the target sees who mentions it, the source sees which names it could link — and turned into a Wikilink only on request, never silently. A Document type may opt its Documents out as targets (Days). Not a Backlink (that needs a link). Seen from the source, a Document's **unlinked names**: the names in its own body it could link. Every Journal page shows its unlinked names and its backlinks; a Linkable page also shows its unlinked mentions.
+_Avoid_: unlinked reference, suggestion, candidate, "unlinked here" (old label for unlinked names)
 
 ### Linkable
 Core Contract: a Document type whose Documents are wikilink targets by title and alias, and receive backlinks. Declarable by data (a user-defined type just says so).
+
+### Report
+A read-only figure or table derived from the Documents of one type and the links to them — who was mentioned most this month, when a place was last mentioned, how often a person comes up over time. Each type chooses its own Reports. Derived, never logged, never stored. Shown on a Journal period, on one Document, on the type's own page, and placeable as a Card. Not a Stat (a Stat is a series the user logs).
+_Avoid_: stat, statistic, insight, summary, analytics
 
 ### Role
 A built-in type's fields and behaviour lent to a Document of another type, so one Document can be two things: my user-defined Person `Ursula Le Guin` wears the **Author** Role, and her books link to her. A Document still has exactly **one type** — which decides its owner, title, body and Home Module — and any number of Roles. A Role's fields belong to the App that defines the Role; taking a Role off keeps the Document and drops only that Role's fields. Every Role comes with a **home type** for Documents that are that and nothing else (Library's Author, the Notes App's Source). **Source** and **Author** are Roles; my own words (Note, Quote, Thought, Day, Essay, Chapter) never wear Source.
