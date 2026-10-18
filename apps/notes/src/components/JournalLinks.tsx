@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useUnlinkedIn, type LinkIndex } from "@lifeline/core";
 import { BacklinksSection, UnlinkedNamesSection, useOpenLinkRef } from "@lifeline/editor";
 import { Button, Sheet, SheetContent, SheetTitle } from "@lifeline/ui";
@@ -28,7 +28,7 @@ export function JournalLinks({ docId, index, onFollow }: { docId: string; index:
  * dock on a phone) opening the same links in a bottom sheet, its badge
  * counting the names left to link.
  */
-export function JournalLinksButton({ docId, index }: { docId: string; index: LinkIndex }) {
+export function JournalLinksButton({ docId, index, children }: { docId: string; index: LinkIndex; /** More for the sheet, under the links (a period's Reports). */ children?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const unlinked = useUnlinkedIn(index, docId).length;
   return (
@@ -42,6 +42,7 @@ export function JournalLinksButton({ docId, index }: { docId: string; index: Lin
           <SheetTitle>Links</SheetTitle>
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             <JournalLinks docId={docId} index={index} onFollow={() => setOpen(false)} />
+            {children && <div className="mt-4 grid min-w-0 gap-4 text-sm" onClickCapture={(e) => (e.target as HTMLElement).closest("a,button") && setOpen(false)}>{children}</div>}
           </div>
         </SheetContent>
       </Sheet>
