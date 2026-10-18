@@ -638,3 +638,78 @@ for (const w of WIDTHS) {
     });
   });
 }
+
+/* ---------------------------------------------------------------------------
+ * Demo Home and Overviews; every App non-empty (#114).
+ * ------------------------------------------------------------------------- */
+
+/** Core in the page, from the Demo's dev server — the same module the app runs. */
+const CORE_URL_DEMO = "/@fs/" + new URL("../../packages/core/src/index.ts", import.meta.url).pathname.replace(/^\/+/, "");
+
+interface AppPage {
+  app: string;
+  route: string;
+  titles: string[];
+}
+
+/**
+ * Every registered App's page and what it should show: read from the App
+ * registry, never a hand list, so a new App the Demo life misses fails here.
+ * The titles are only there to know what to look for on screen.
+ */
+async function appPages(page: Page): Promise<AppPage[]> {
+  return page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    const out: AppPage[] = [];
+    for (const a of core.registeredApps()) {
+      const screen = a.screens.find((s: { hidden?: boolean; path: string }) => !s.hidden && !s.path.includes(":"));
+      if (!screen) continue; // Hub: the Vault and the Bases, no App page of its own.
+      const titles: string[] = [];
+      for (const t of core.typesOfApp(a.id)) {
+        if (t.internal) continue;
+        for (const d of await core.documentsOf(t.id)) {
+          const title: string = core.displayTitle(d, t);
+          // How a page may show it: whole, by its name before " · " (Pocket's
+          // "Coffee · W43 2026"), or a dated one by its human date (a Mood Day).
+          titles.push(title, title.split(" · ")[0]);
+          if (/^\d{4}-\d{2}-\d{2}$/.test(title))
+            titles.push(new Date(`${title}T12:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" }));
+        }
+      }
+      out.push({ app: a.id, route: core.screenRoute({ ...screen, appId: a.id }), titles });
+    }
+    return out;
+  }, CORE_URL_DEMO);
+}
+
+for (const w of WIDTHS) {
+  test.describe(`Demo Home, Overviews and every App at ${w.name} width`, () => {
+    test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
+
+    test("every registered App's page opens with something of its own in it", async ({ page }) => {
+      test.setTimeout(300_000);
+      await open(page, "/settings");
+      const pages = await appPages(page);
+      expect(pages.length, "Apps found in the registry").toBeGreaterThan(20);
+      const empty: string[] = [];
+      for (const p of pages) {
+        if (p.titles.length === 0) {
+          empty.push(`${p.app}: nothing seeded`);
+          continue;
+        }
+        await open(page, p.route);
+        const main = page.locator("main").first();
+        // What it reads, and what its icons and grid cells say on hover.
+        const text = [
+          await main.innerText(),
+          ...(await main
+            .locator("[title], [aria-label]")
+            .evaluateAll((els) => els.map((e) => `${e.getAttribute("title") ?? ""} ${e.getAttribute("aria-label") ?? ""}`))),
+        ].join("\n");
+        if (!p.titles.some((t) => t.length >= 3 && text.includes(t)))
+          empty.push(`${p.app}: ${p.route} shows none of its Documents (${p.titles.slice(0, 3).join(" | ")}); it reads "${text.slice(0, 160).replace(/\s+/g, " ")}"`);
+      }
+      expect(empty, `Apps that open empty in the Demo:\n  ${empty.join("\n  ")}`).toEqual([]);
+    });
+  });
+}

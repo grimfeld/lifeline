@@ -65,6 +65,16 @@ export function refreshSource(s: Source): Promise<void> {
   return p;
 }
 
+/**
+ * Store a body as if it had just been fetched — what a successful refresh
+ * writes. For a Source whose URL this device cannot reach (the Demo has no
+ * fetch proxy, ADR 0077): it then shows this body until a fetch succeeds.
+ */
+export async function primeSourceCache(sourceId: string, res: { contentType: string; body: string }): Promise<void> {
+  const fetchedAt = new Date().toISOString();
+  await table().put({ id: sourceId, updatedAt: fetchedAt, deleted: 0, fetchedAt, ok: true, status: 200, ...res });
+}
+
 /** Live cache entry for a Source; triggers a fetch when missing/stale and re-checks on the period. */
 export function useSourceCache(s: Source | undefined): SourceCacheEntry | undefined {
   const entry = useLiveQuery(async () => (s ? await table().get(s.id) : undefined), [s?.id]);
