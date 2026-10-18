@@ -686,6 +686,26 @@ for (const w of WIDTHS) {
   test.describe(`Demo Home, Overviews and every App at ${w.name} width`, () => {
     test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
 
+    test("first open lands on Home: Cards filled from the seeded life, today's agenda on the hours", async ({ page }) => {
+      await open(page, "/");
+      await expect(page).toHaveURL(/\/screen\//);
+      await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
+      const main = page.locator("main");
+      // The hour-scaled agenda comes first, holding today's timed Events.
+      await expect(main.getByText("Today's agenda", { exact: true })).toBeVisible();
+      await expect(main.getByText(/^Team huddle with Sam/).first()).toBeVisible();
+      await expect(main.getByText(/^Climbing with Marcus/).first()).toBeAttached();
+      // Every other Card is set up and shows the life, not an empty state.
+      for (const title of ["Tasks today", "Chores due today", "Daily marks", "What's left", "Reading"]) {
+        await expect(main.getByText(title, { exact: true }).first(), title).toBeAttached();
+      }
+      await expect(main.getByText("Take out the recycling").first()).toBeAttached();
+      await expect(main.getByText("Normal People").first()).toBeAttached();
+      await expect(main.getByText("Not configured yet.")).toHaveCount(0);
+      // On the Phone bar, beside Calendar.
+      if (w.isMobile) await expect(page.locator("nav").getByRole("button", { name: "Home", exact: true })).toBeVisible();
+    });
+
     test("every registered App's page opens with something of its own in it", async ({ page }) => {
       test.setTimeout(300_000);
       await open(page, "/settings");
