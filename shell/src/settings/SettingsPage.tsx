@@ -30,6 +30,7 @@ import { entryIcon, foldMembers } from "../capture/captureParts";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
 import { WorkspaceDialog, WorkspaceForm } from "../components/WorkspaceDialog";
 import { SyncBadge } from "../components/SyncBadge";
+import { ResetDemoButton, SourceLink } from "../demo/DemoBanner";
 
 /**
  * `/settings` (ADR 0053): where the user configures Lifeline itself rather
@@ -74,12 +75,17 @@ export function SettingsPage() {
 /** In the Demo (ADR 0077), where Account and sync would be: what this device is instead. */
 function DemoSection() {
   return (
-    <section className="flex flex-col gap-2">
+    <section aria-label="Demo settings" className="flex flex-col gap-2">
       <h2 className="text-base font-medium">Demo</h2>
       <p className="text-muted-foreground text-sm">
         This is a demo of Lifeline, filled with a made-up person's life. Everything you add, change or delete stays in this
         browser: there is no account, nothing syncs, and no one else ever sees it.
       </p>
+      {/* Here as well as in the banner, so both stay reachable once it is dismissed. */}
+      <div className="flex flex-wrap gap-2">
+        <ResetDemoButton />
+        <SourceLink />
+      </div>
     </section>
   );
 }
