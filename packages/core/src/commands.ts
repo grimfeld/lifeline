@@ -118,6 +118,23 @@ async function readArg(arg: CommandArg, v: unknown): Promise<unknown> {
       if (typeof v !== "object") throw new Error(`${arg.label}: expected a structured value`);
       return v;
     }
+    case "rows": {
+      let list = v;
+      if (typeof list === "string") {
+        try {
+          list = JSON.parse(list);
+        } catch {
+          throw new Error(`${arg.label}: expected a list of rows`);
+        }
+      }
+      if (!Array.isArray(list)) throw new Error(`${arg.label}: expected a list of rows`);
+      const rows: Record<string, unknown>[] = [];
+      for (const [i, row] of list.entries()) {
+        if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error(`${arg.label}, row ${i + 1}: expected a record`);
+        rows.push(await readCommandArgs(arg.of ?? [], row as Record<string, unknown>).catch((e: Error) => Promise.reject(new Error(`${arg.label}, row ${i + 1}: ${e.message}`))));
+      }
+      return rows.length ? rows : undefined;
+    }
   }
 }
 

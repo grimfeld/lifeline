@@ -50,48 +50,56 @@ export async function seedInPage(arg: { coreUrl: string; longWord: string }): Pr
   const runCommands = async (final: boolean) => {
   for (const cmd of core.allCommands()) {
     if (!core.isInvocable(cmd) || commandsRun.has(cmd.id)) continue;
-    const raw: Record<string, unknown> = {};
     let hour = 9;
-    for (const a of cmd.args) {
-      switch (a.kind) {
-        case "text":
-        case "longtext":
-          raw[a.key] = long(a.label);
-          break;
-        case "number":
-          raw[a.key] = a.required ? 3 : undefined;
-          break;
-        case "date":
-          raw[a.key] = day;
-          break;
-        case "time":
-          raw[a.key] = `${pad(++hour)}:00`;
-          break;
-        case "select":
-          raw[a.key] = a.options?.[0]?.value;
-          break;
-        case "multiselect":
-          raw[a.key] = a.options?.slice(0, 1).map((o: { value: string }) => o.value);
-          break;
-        case "list":
-          raw[a.key] = [`${arg.longWord}-tag`];
-          break;
-        case "link": {
-          const [doc] = await docsOfType(a.linkType);
-          raw[a.key] = doc?.id;
-          break;
+    // A `rows` argument is filled with one row, by the same rules.
+    const fill = async (args: typeof cmd.args): Promise<Record<string, unknown>> => {
+      const raw: Record<string, unknown> = {};
+      for (const a of args) {
+        switch (a.kind) {
+          case "text":
+          case "longtext":
+            raw[a.key] = long(a.label);
+            break;
+          case "number":
+            raw[a.key] = a.required ? 3 : undefined;
+            break;
+          case "date":
+            raw[a.key] = day;
+            break;
+          case "time":
+            raw[a.key] = `${pad(++hour)}:00`;
+            break;
+          case "select":
+            raw[a.key] = a.options?.[0]?.value;
+            break;
+          case "multiselect":
+            raw[a.key] = a.options?.slice(0, 1).map((o: { value: string }) => o.value);
+            break;
+          case "list":
+            raw[a.key] = [`${arg.longWord}-tag`];
+            break;
+          case "link": {
+            const [doc] = await docsOfType(a.linkType);
+            raw[a.key] = doc?.id;
+            break;
+          }
+          case "json": {
+            // The hint spells the shape out by example; take the first one.
+            const example = a.hint?.match(/\{[^{}]*\}/)?.[0];
+            if (a.required && example) raw[a.key] = JSON.parse(example);
+            break;
+          }
+          case "rows":
+            raw[a.key] = [await fill(a.of ?? [])];
+            break;
+          default:
+            break;
         }
-        case "json": {
-          // The hint spells the shape out by example; take the first one.
-          const example = a.hint?.match(/\{[^{}]*\}/)?.[0];
-          if (a.required && example) raw[a.key] = JSON.parse(example);
-          break;
-        }
-        default:
-          break;
+        if (raw[a.key] === undefined) delete raw[a.key];
       }
-      if (raw[a.key] === undefined) delete raw[a.key];
-    }
+      return raw;
+    };
+    const raw = await fill(cmd.args);
     try {
       await core.invokeCommand(cmd, raw);
       commandsRun.add(cmd.id);

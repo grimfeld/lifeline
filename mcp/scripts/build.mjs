@@ -12,7 +12,7 @@ const entries = process.argv.slice(2);
  * (icons, UI kits) would only cost memory — lucide-react alone, as CommonJS,
  * is every icon copied into every importer. Each is swapped for scripts/inert.cjs.
  */
-const BROWSER_ONLY = /^(leaflet|react-leaflet|@react-leaflet\/.*|recharts|tesseract\.js|@codemirror\/.*|@lezer\/.*|react-grid-layout|d3-force|d3-quadtree|lucide-react|radix-ui|@radix-ui\/.*|cmdk|sonner|next-themes|@dnd-kit\/.*|@fontsource-variable\/.*)(\/.*)?$/;
+const BROWSER_ONLY = /^(leaflet|react-leaflet|@react-leaflet\/.*|recharts|@codemirror\/.*|@lezer\/.*|react-grid-layout|d3-force|d3-quadtree|lucide-react|radix-ui|@radix-ui\/.*|cmdk|sonner|next-themes|@dnd-kit\/.*|@fontsource-variable\/.*)(\/.*)?$/;
 const INERT = readFileSync(new URL("./inert.cjs", import.meta.url), "utf8");
 
 const inert = {

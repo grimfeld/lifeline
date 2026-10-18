@@ -169,6 +169,9 @@ function argSchema(arg: CommandArg): ZodTypeAny {
     case "json":
       s = z.record(z.string(), z.unknown());
       break;
+    case "rows":
+      s = z.array(z.object(Object.fromEntries((arg.of ?? []).map((a) => [a.key, argSchema(a)]))));
+      break;
     default:
       s = z.string();
   }
