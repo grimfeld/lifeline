@@ -33,6 +33,28 @@ export interface FieldDraft {
 
 const isChoiceKind = (k: FieldKind): boolean => k === "select" || k === "multiselect";
 
+/** Whether a kind has settings of its own — a Choice's options, a Link's target — shown in the row's fold-out. */
+export const hasFieldSettings = (k: FieldKind): boolean => isChoiceKind(k) || isLinkKind(k);
+
+/** How a folded row names types and Roles. */
+export interface SummaryNames {
+  typeLabel: (id: string) => string;
+  roleLabel: (id: string) => string;
+}
+
+/** A folded row's one-line summary of its settings: "3 options", "→ Person"; empty for kinds without settings. */
+export function fieldSummary(d: Pick<FieldDraft, "kind" | "options" | "target">, names: SummaryNames): string {
+  if (isChoiceKind(d.kind)) {
+    const n = d.options.length;
+    return n === 0 ? "No options" : `${n} option${n === 1 ? "" : "s"}`;
+  }
+  if (!isLinkKind(d.kind)) return "";
+  const t = d.target;
+  if (t.to === "role") return `→ ${names.roleLabel(t.role)} (Role)`;
+  if (t.to === "types" && t.types.length) return `→ ${t.types.map(names.typeLabel).join(", ")}`;
+  return "→ Any type";
+}
+
 /** A frontmatter key from a label or a typed key: `Met at` → `met_at`. */
 export const fieldKeyFrom = (label: string): string => slugify(label).replace(/-/g, "_");
 
@@ -68,7 +90,16 @@ export function toFieldDrafts(fields: FieldDef[]): FieldDraft[] {
 /** A blank draft for a Field being added. */
 export const newFieldDraft = (kind: FieldKind = "text", label = ""): FieldDraft => ({ key: fieldKeyFrom(label), label, kind, options: [], target: { to: "any" }, saved: false });
 
-const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+/** A new label; a new Field's key follows it until typed by hand. A saved Field's key never moves. */
+export function relabelField(d: FieldDraft, label: string): FieldDraft {
+  const follows = !d.saved && d.key === fieldKeyFrom(d.label);
+  return { ...d, label, ...(follows ? { key: fieldKeyFrom(label) } : {}) };
+}
+
+/** A key typed by hand — only until the type is saved with the Field. */
+export const rekeyField = (d: FieldDraft, key: string): FieldDraft => (d.saved ? d : { ...d, key });
+
+const sameList =(a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 function linkProps(d: FieldDraft): Pick<FieldDef, "linkType" | "linkRole"> {
   const was = d.from;
@@ -90,7 +121,7 @@ export function fieldFromDraft(d: FieldDraft): FieldDef | undefined {
   const f: FieldDef = { ...rest, key, label, kind: d.kind };
   const sameKind = d.from?.kind === d.kind;
   if (isChoiceKind(d.kind) ? d.options.length > 0 || wasOptions !== undefined : sameKind && wasOptions !== undefined)
-    f.options = isChoiceKind(d.kind) ? d.options.map((o): FieldOption => ({ value: o.value, label: o.label })) : wasOptions;
+    f.options = isChoiceKind(d.kind) ? d.options.filter((o) => o.saved || (o.label.trim() && o.value)).map((o): FieldOption => ({ value: o.value, label: o.label.trim() || o.value })) : wasOptions;
   if (isLinkKind(d.kind) || sameKind) Object.assign(f, linkProps(d));
   return f;
 }
@@ -100,19 +131,19 @@ export function fieldsFromDrafts(drafts: FieldDraft[]): FieldDef[] {
   return drafts.map(fieldFromDraft).filter((f): f is FieldDef => !!f);
 }
 
-/** Options as the editor's comma box shows them: `home=Home, out` (value=Label, or the value alone when they match). */
-export const optionsText = (options: FieldOption[]): string => options.map((o) => (o.value === o.label ? o.value : `${o.value}=${o.label}`)).join(", ");
+const otherValues = (options: OptionDraft[], skip: number) => options.filter((_, j) => j !== skip).map((o) => o.value);
 
-/** The comma box read back as options; values the Field already had (`prior`) stay marked saved. */
-export function optionsFromText(text: string, prior: OptionDraft[] = []): OptionDraft[] {
-  const saved = new Set(prior.filter((o) => o.saved).map((o) => o.value));
-  return text
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => {
-      const [v, l] = s.split("=");
-      const value = v.trim();
-      return { value, label: (l ?? v).trim(), saved: saved.has(value) };
-    });
+/** A Choice's options with one more at `at` (default: the end); its value comes from its label. */
+export function addOption(d: FieldDraft, label = "", at = d.options.length): FieldDraft {
+  const options = [...d.options];
+  options.splice(at, 0, { value: optionValueFrom(label, options.map((o) => o.value)), label, saved: false });
+  return { ...d, options };
 }
+
+/** A new label for option `i`; an unsaved option's value follows it, a saved one's is fixed. */
+export function renameOption(d: FieldDraft, i: number, label: string): FieldDraft {
+  return { ...d, options: d.options.map((o, j) => (j !== i ? o : o.saved ? { ...o, label } : { ...o, label, value: optionValueFrom(label, otherValues(d.options, i)) })) };
+}
+
+/** A Choice's options without option `i`. */
+export const removeOption = (d: FieldDraft, i: number): FieldDraft => ({ ...d, options: d.options.filter((_, j) => j !== i) });

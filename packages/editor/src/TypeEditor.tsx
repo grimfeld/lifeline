@@ -12,10 +12,16 @@ import {
   deleteUserDocumentType,
   documentsOfTypeEverywhere,
   fieldChangeProblems,
+  addOption,
+  allRoles,
   fieldsFromDrafts,
+  fieldSummary,
+  hasFieldSettings,
   newFieldDraft,
-  optionsFromText,
-  optionsText,
+  rekeyField,
+  relabelField,
+  removeOption,
+  renameOption,
   toFieldDrafts,
   kindLabel,
   normalizeFolder,
@@ -37,20 +43,19 @@ import {
   type FieldDraft,
   type FieldKind,
   type LinkTarget,
+  type SummaryNames,
 } from "@lifeline/core";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Settings2, Trash2, X } from "lucide-react";
 import { ReportsEditor } from "./Reports";
 
 const KINDS: FieldKind[] = ["text", "longtext", "number", "boolean", "date", "datetime", "select", "multiselect", "url", "geo", "list", "link", "links"];
 
-/** One Field row of the form: a core Field draft (spec #95) plus the comma box's text as typed. */
-type Row = FieldDraft & { optionsText: string };
+/** One Field row of the form: a core Field draft (spec #95) with a stable id for its fold-out. */
+type Row = FieldDraft & { uid: number };
 
-const toRows = (fields: FieldDef[]): Row[] => toFieldDrafts(fields).map((d) => ({ ...d, optionsText: optionsText(d.options) }));
-const blankRow = (key = "", label = "", kind: FieldKind = "text"): Row => ({ ...newFieldDraft(kind), key, label, optionsText: "" });
-/** The "Links to" picker's value: one type, Any, or a restriction it can't show (several types, a Role), kept as is. */
-const KEPT = "__kept__";
-const linkPick = (t: LinkTarget): string => (t.to === "any" ? "__any__" : t.to === "types" && t.types.length === 1 ? t.types[0] : KEPT);
+let nextUid = 0;
+const withUid = (d: FieldDraft): Row => ({ ...d, uid: nextUid++ });
+const toRows = (fields: FieldDef[]): Row[] => toFieldDrafts(fields).map(withUid);
 
 /**
  * Create / edit a user-defined Document type (ADR 0019), or customise a
@@ -83,8 +88,11 @@ export function TypeEditor({
   const ownKeys = new Set((base?.fields ?? []).map((f) => f.key));
   const savedFields = useMemo(() => (record?.fields ?? []).filter((f) => !ownKeys.has(f.key)), [record, base]);
   const [rows, setRows] = useState<Row[]>(
-    record || base ? toRows(savedFields) : [blankRow("aliases", "Aliases", "list")],
+    record || base ? toRows(savedFields) : [withUid(newFieldDraft("list", "Aliases"))],
   );
+  // Fold-outs open (by row uid): several may be open at once.
+  const [open, setOpen] = useState<Set<number>>(() => new Set());
+  const toggle = (uid: number, on = !open.has(uid)) => setOpen((s) => (on ? new Set(s).add(uid) : new Set([...s].filter((x) => x !== uid))));
   const [module, setModule] = useState(record?.module ?? defaultModule);
   const [reports, setReports] = useState<ReportSetting[]>(record?.reports ?? base?.reports ?? DEFAULT_REPORTS);
   // Reports count the Days that name a Document (ADR 0076): only a type that can be named has any.
@@ -162,7 +170,8 @@ export function TypeEditor({
     }
   }
 
-  const setRow = (i: number, patch: Partial<Row>) => setRows(rows.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const linkTypes = allTypes.filter((t) => !t.internal);
+  const names: SummaryNames = { typeLabel: (id) => allTypes.find((t) => t.id === id)?.label ?? id, roleLabel: (id) => roleDef(id)?.label ?? id };
   const Icon = typeIcon(icon);
   return (
     <div className="grid min-w-0 gap-3">
@@ -245,66 +254,22 @@ export function TypeEditor({
         <Label className="text-xs">Fields</Label>
         <div className="grid gap-2 md:gap-1">
           {rows.map((r, i) => (
-            <div key={i} className="grid grid-cols-[1fr_1fr_28px] items-center gap-1 rounded-md border p-1 md:grid-cols-[1fr_1fr_130px_1fr_28px] md:border-0 md:p-0">
-              <Input
-                className="h-8 min-w-0"
-                placeholder="key"
-                value={r.key}
-                readOnly={r.saved}
-                title={r.saved ? "A field's key is fixed once saved — change its label instead" : undefined}
-                aria-label="Field key"
-                onChange={(e) => setRow(i, { key: e.target.value })}
-              />
-              <Input className="h-8 min-w-0" placeholder="Label" aria-label="Field label" value={r.label} onChange={(e) => setRow(i, { label: e.target.value })} />
-              <Button size="icon" variant="ghost" className="size-7 md:order-last" onClick={() => setRows(rows.filter((_, j) => j !== i))} aria-label="Remove field">
-                <Trash2 className="size-3.5" />
-              </Button>
-              <Select value={r.kind} onValueChange={(v) => setRow(i, { kind: v as FieldKind })}>
-                <SelectTrigger className="h-8 min-w-0" aria-label="Field kind">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {KINDS.map((k) => (
-                    <SelectItem key={k} value={k}>
-                      {kindLabel(k)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {r.kind === "link" || r.kind === "links" ? (
-                <Select value={linkPick(r.target)} onValueChange={(v) => v !== KEPT && setRow(i, { target: v === "__any__" ? { to: "any" } : { to: "types", types: [v] } })}>
-                  <SelectTrigger className="h-8 min-w-0" aria-label="Links to">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__any__">Any type</SelectItem>
-                    {linkPick(r.target) === KEPT && (
-                      <SelectItem value={KEPT}>
-                        {r.target.to === "role" ? `Role: ${roleDef(r.target.role)?.label ?? r.target.role}` : r.target.to === "types" ? r.target.types.map((id) => allTypes.find((t) => t.id === id)?.label ?? id).join(", ") : ""}
-                      </SelectItem>
-                    )}
-                    {allTypes
-                      .filter((t) => !t.internal)
-                      .map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  className="h-8 min-w-0"
-                  aria-label="Choices"
-                  placeholder={r.kind === "select" || r.kind === "multiselect" ? "a, b=Label B" : ""}
-                  disabled={r.kind !== "select" && r.kind !== "multiselect"}
-                  value={r.optionsText}
-                  onChange={(e) => setRow(i, { optionsText: e.target.value, options: optionsFromText(e.target.value, r.options) })}
-                />
-              )}
-            </div>
+            <FieldRow
+              key={r.uid}
+              row={r}
+              open={open.has(r.uid)}
+              names={names}
+              linkTypes={linkTypes}
+              onToggle={() => toggle(r.uid)}
+              onChange={(d) => {
+                // Picking a kind with settings opens its fold-out straight away.
+                if (d.kind !== r.kind && hasFieldSettings(d.kind)) toggle(r.uid, true);
+                setRows(rows.map((x, j) => (j === i ? { ...d, uid: r.uid } : x)));
+              }}
+              onRemove={() => setRows(rows.filter((_, j) => j !== i))}
+            />
           ))}
-          <Button size="sm" variant="outline" className="justify-self-start" onClick={() => setRows([...rows, blankRow()])}>
+          <Button size="sm" variant="outline" className="justify-self-start" onClick={() => setRows([...rows, withUid(newFieldDraft())])}>
             <Plus /> Field
           </Button>
         </div>
@@ -355,6 +320,166 @@ export function TypeEditor({
           {record || base ? "Save" : "Create type"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * One Field: Label · Kind · ⚙ · delete (spec #95). ⚙ only for kinds with
+ * settings, which open in a fold-out under the row; folded, the row shows
+ * their summary. A phone gives it two lines: Label; then Kind, ⚙, delete.
+ */
+function FieldRow({
+  row,
+  open,
+  names,
+  linkTypes,
+  onToggle,
+  onChange,
+  onRemove,
+}: {
+  row: FieldDraft;
+  open: boolean;
+  names: SummaryNames;
+  linkTypes: DocumentTypeDef[];
+  onToggle: () => void;
+  onChange: (d: FieldDraft) => void;
+  onRemove: () => void;
+}) {
+  const settings = hasFieldSettings(row.kind);
+  const summary = settings ? fieldSummary(row, names) : "";
+  return (
+    <div className="grid min-w-0 gap-1 rounded-md border p-1 md:border-0 md:p-0">
+      {/* A drag handle (#101) takes the first slot of this line. */}
+      <div className="grid grid-cols-[minmax(0,1fr)_1.75rem_1.75rem] items-center gap-1 md:grid-cols-[minmax(0,1fr)_11.5rem_1.75rem_1.75rem]">
+        <Input className="col-span-3 h-8 min-w-0 md:col-span-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value))} />
+        <Select value={row.kind} onValueChange={(v) => onChange({ ...row, kind: v as FieldKind })}>
+          <SelectTrigger className="h-8 w-full min-w-0" aria-label="Field kind">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {KINDS.map((k) => (
+              <SelectItem key={k} value={k}>
+                {kindLabel(k)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {settings ? (
+          <Button size="icon" variant={open ? "secondary" : "ghost"} className="size-7" onClick={onToggle} aria-label="Field settings" aria-expanded={open} title={summary}>
+            <Settings2 className="size-3.5" />
+          </Button>
+        ) : (
+          <span />
+        )}
+        <Button size="icon" variant="ghost" className="size-7" onClick={onRemove} aria-label="Remove field">
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
+      {settings && !open && (
+        <button type="button" className="text-muted-foreground min-w-0 truncate px-1 text-left text-[10px]" onClick={onToggle}>
+          {summary}
+        </button>
+      )}
+      {settings && open && <FieldSettings row={row} linkTypes={linkTypes} onChange={onChange} />}
+    </div>
+  );
+}
+
+/** A Field's fold-out: its key (editable until saved), then a Choice's options or a Link's target. */
+function FieldSettings({ row, linkTypes, onChange }: { row: FieldDraft; linkTypes: DocumentTypeDef[]; onChange: (d: FieldDraft) => void }) {
+  const choice = row.kind === "select" || row.kind === "multiselect";
+  return (
+    <div className="bg-muted/40 grid min-w-0 gap-2 rounded-md p-2">
+      {row.saved ? (
+        <p className="text-muted-foreground text-[10px]">
+          Key <code className="text-foreground">{row.key}</code> — fixed once saved; rename its label instead.
+        </p>
+      ) : (
+        <div className="flex min-w-0 items-center gap-2">
+          <Label className="shrink-0 text-xs">Key</Label>
+          <Input className="h-7 min-w-0 flex-1" placeholder="key" aria-label="Field key" value={row.key} onChange={(e) => onChange(rekeyField(row, e.target.value))} />
+          <span className="text-muted-foreground hidden shrink-0 text-[10px] md:inline">Fixed once saved</span>
+        </div>
+      )}
+      {choice ? <OptionList row={row} onChange={onChange} /> : <LinkTargetPicker target={row.target} linkTypes={linkTypes} onChange={(target) => onChange({ ...row, target })} />}
+    </div>
+  );
+}
+
+/** A Choice's options, one line each: only the label is edited; the value is set when added (CONTEXT.md "Choice (field)"). */
+function OptionList({ row, onChange }: { row: FieldDraft; onChange: (d: FieldDraft) => void }) {
+  return (
+    <div className="grid min-w-0 gap-1">
+      <Label className="text-xs">Options</Label>
+      {row.options.map((o, i) => (
+        <div key={i} className="flex min-w-0 items-center gap-1">
+          <Input className="h-7 min-w-0 flex-1" placeholder="Option" aria-label="Option label" value={o.label} onChange={(e) => onChange(renameOption(row, i, e.target.value))} />
+          {/* The stored value, in a fixed column so the labels line up. */}
+          <span className="text-muted-foreground w-20 shrink-0 truncate font-mono text-[10px] md:w-36" title={o.value ? `Stored as “${o.value}”` : undefined}>
+            {o.value}
+          </span>
+          <Button size="icon" variant="ghost" className="size-7 shrink-0" onClick={() => onChange(removeOption(row, i))} aria-label="Remove option">
+            <X className="size-3.5" />
+          </Button>
+        </div>
+      ))}
+      <Button size="sm" variant="ghost" className="h-7 justify-self-start" onClick={() => onChange(addOption(row))}>
+        <Plus /> Option
+      </Button>
+    </div>
+  );
+}
+
+/** A Link's target: Any, one or several types, or a Role (ADR 0069). */
+function LinkTargetPicker({ target, linkTypes, onChange }: { target: LinkTarget; linkTypes: DocumentTypeDef[]; onChange: (t: LinkTarget) => void }) {
+  const roles = allRoles();
+  const chosen = target.to === "types" ? target.types : [];
+  // The types it names come first (seen without scrolling), as they were when the fold-out opened — even ones the list doesn't offer (internal, gone).
+  const [first] = useState(chosen);
+  const label = (id: string) => linkTypes.find((t) => t.id === id)?.label ?? id;
+  const offered = [...first, ...linkTypes.map((t) => t.id).filter((id) => !first.includes(id))].map((id) => ({ id, label: label(id) }));
+  const roleIds = [...roles.map((r) => r.id), ...(target.to === "role" && !roles.some((r) => r.id === target.role) ? [target.role] : [])];
+  const pickMode = (v: string) => onChange(v === "types" ? { to: "types", types: chosen } : v === "role" ? { to: "role", role: target.to === "role" ? target.role : (roles[0]?.id ?? "") } : { to: "any" });
+  const tick = (id: string, on: boolean) => onChange({ to: "types", types: on ? [...chosen, id] : chosen.filter((x) => x !== id) });
+  return (
+    <div className="grid min-w-0 gap-1">
+      <Label className="text-xs">Links to</Label>
+      <Select value={target.to} onValueChange={pickMode}>
+        <SelectTrigger className="h-8 w-full min-w-0 md:w-48" aria-label="Links to">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="any">Any type</SelectItem>
+          <SelectItem value="types">Types</SelectItem>
+          {roleIds.length > 0 && <SelectItem value="role">A Role</SelectItem>}
+        </SelectContent>
+      </Select>
+      {target.to === "types" && (
+        <div className="grid max-h-48 min-w-0 gap-1 overflow-y-auto py-1 md:grid-cols-2">
+          {offered.map((t) => (
+            <label key={t.id} className="flex min-w-0 items-start gap-2 text-xs">
+              <Checkbox className="mt-px shrink-0"checked={chosen.includes(t.id)} onCheckedChange={(c) => tick(t.id, c === true)} />
+              <span className="min-w-0">{t.label}</span>
+            </label>
+          ))}
+        </div>
+      )}
+      {target.to === "role" && (
+        <Select value={target.role} onValueChange={(role) => onChange({ to: "role", role })}>
+          <SelectTrigger className="h-8 w-full min-w-0 md:w-48" aria-label="Role">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {roleIds.map((id) => (
+              <SelectItem key={id} value={id}>
+                {roleDef(id)?.label ?? id}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+      {target.to === "role" && <span className="text-muted-foreground text-[10px]">Documents of its home type, and any Document wearing it.</span>}
     </div>
   );
 }
