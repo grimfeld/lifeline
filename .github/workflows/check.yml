@@ -1,0 +1,26 @@
+name: Check
+on:
+  pull_request:
+  push:
+    branches: [master]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Takes its version from package.json's packageManager.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r typecheck
+      - run: pnpm -r test
+      # Again on a French desk west of UTC: no test may lean on the runner's
+      # English locale or UTC clock. No e2e here — too slow (CLAUDE.md, ADR 0065).
+      - run: pnpm -r test
+        env:
+          LANG: fr_FR.UTF-8
+          LC_ALL: fr_FR.UTF-8
+          TZ: America/Los_Angeles

@@ -1,4 +1,4 @@
-import { z, type ZodRawShape, type ZodTypeAny } from "zod";
+import { z, type ZodTypeAny } from "zod";
 import { isInvocable, type CommandArg, type CommandDef } from "@lifeline/core";
 import { manifests } from "./apps";
 
@@ -18,7 +18,8 @@ export interface ToolSpec {
   name: string;
   title: string;
   description: string;
-  input: ZodRawShape;
+  /** Classic zod types, so a field can be `.safeParse`d (ZodRawShape types them as core `$ZodType`s). */
+  input: Record<string, ZodTypeAny>;
   /** Needs the lifeline:write scope; hidden from read-only connections. */
   write: boolean;
   /** For command tools: the Command id it runs. */
