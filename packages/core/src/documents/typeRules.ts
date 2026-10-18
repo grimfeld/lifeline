@@ -91,6 +91,16 @@ export function removedFieldValues(before: readonly FieldDef[], after: readonly 
     .map((field) => ({ field, count: docs.filter((d) => !isEmpty((d as Record<string, unknown>)[field.key])).length }));
 }
 
+/** How many Documents hold each value of a Choice / Multi-choice Field (spec #95): an option some hold can't be removed. */
+export function optionUsage(key: string, docs: readonly Document[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const d of docs) {
+    const v = (d as Record<string, unknown>)[key];
+    for (const x of new Set(Array.isArray(v) ? v : [v])) if (typeof x === "string" && x) counts[x] = (counts[x] ?? 0) + 1;
+  }
+  return counts;
+}
+
 /** How many Documents of a type there are, here and in every other Workspace. */
 export interface TypeDocumentCount {
   here: number;
