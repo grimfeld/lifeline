@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Button, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetTitle, TYPE_ICONS, cn, toast, typeIcon, usePhone } from "@lifeline/ui";
 import {
@@ -21,13 +21,19 @@ import {
   hasFoldOut,
   knownFieldReadings,
   knownFieldsToAdd,
+  moveDraft,
+  moveOption,
   newFieldDraft,
+  optionUsage,
+  pasteOptions,
+  splitOptionLabels,
   rekeyField,
   relabelField,
   removeOption,
   renameOption,
   toFieldDrafts,
   kindLabel,
+  kindRefusals,
   normalizeFolder,
   removedFieldValues,
   reservedKeyProblems,
@@ -55,6 +61,7 @@ import {
 } from "@lifeline/core";
 import { BadgeCheck, Plus, Settings2, Trash2, X } from "lucide-react";
 import { ReportsEditor } from "./Reports";
+import { ReorderItem, Reorderable } from "./Reorder";
 
 const KINDS: FieldKind[] = ["text", "longtext", "number", "boolean", "date", "datetime", "select", "multiselect", "url", "geo", "list", "link", "links"];
 
@@ -64,6 +71,9 @@ type Row = FieldDraft & { uid: number };
 let nextUid = 0;
 const withUid = (d: FieldDraft): Row => ({ ...d, uid: nextUid++ });
 const toRows = (fields: FieldDef[]): Row[] => toFieldDrafts(fields).map(withUid);
+
+/** Every Document of the type being edited (counted, never shown) — what the option editor counts per option. */
+const HeldDocuments = createContext<Document[]>([]);
 
 /**
  * Create / edit a user-defined Document type (ADR 0019), or customise a
@@ -210,6 +220,7 @@ export function TypeEditor({
   const names: SummaryNames = { typeLabel: (id) => allTypes.find((t) => t.id === id)?.label ?? id, roleLabel: (id) => roleDef(id)?.label ?? id };
   const Icon = typeIcon(icon);
   return (
+    <HeldDocuments.Provider value={held}>
     <div className="grid min-w-0 gap-3">
       <div className="grid gap-1">
         <Label className="text-xs">Name</Label>
@@ -289,24 +300,31 @@ export function TypeEditor({
       <div className="grid gap-1">
         <Label className="text-xs">Fields</Label>
         <div className="grid gap-2 md:gap-1">
-          {rows.map((r, i) => (
-            <FieldRow
-              key={r.uid}
-              row={r}
-              reading={readings[i]}
-              open={open.has(r.uid)}
-              focus={r.uid === added}
-              names={names}
-              linkTypes={linkTypes}
-              onToggle={() => toggle(r.uid)}
-              onChange={(d) => {
-                // Picking a kind with settings opens its fold-out straight away.
-                if (d.kind !== r.kind && hasFieldSettings(d.kind)) toggle(r.uid, true);
-                setRows(rows.map((x, j) => (j === i ? { ...d, uid: r.uid } : x)));
-              }}
-              onRemove={() => setRows(rows.filter((_, j) => j !== i))}
-            />
-          ))}
+          <Reorderable ids={rows.map((r) => r.uid)} onMove={(from, to) => setRows(moveDraft(rows, from, to))}>
+            {rows.map((r, i) => (
+              <ReorderItem key={r.uid} id={r.uid} label={r.label || "field"}>
+                {(handle) => (
+                  <FieldRow
+                    row={r}
+                    reading={readings[i]}
+                    handle={handle}
+                    open={open.has(r.uid)}
+                    focus={r.uid === added}
+                    names={names}
+                    linkTypes={linkTypes}
+                    refusals={kindRefusals(r, KINDS, held)}
+                    onToggle={() => toggle(r.uid)}
+                    onChange={(d) => {
+                      // Picking a kind with settings opens its fold-out straight away.
+                      if (d.kind !== r.kind && hasFieldSettings(d.kind)) toggle(r.uid, true);
+                      setRows(rows.map((x, j) => (j === i ? { ...d, uid: r.uid } : x)));
+                    }}
+                    onRemove={() => setRows(rows.filter((_, j) => j !== i))}
+                  />
+                )}
+              </ReorderItem>
+            ))}
+          </Reorderable>
           <AddFieldMenu known={knownToAdd} onPick={addField} />
         </div>
         {problems.map((p) => (
@@ -362,21 +380,24 @@ export function TypeEditor({
         </Button>
       </div>
     </div>
+    </HeldDocuments.Provider>
   );
 }
 
 /**
- * One Field: Label · Kind · ⚙ · delete (spec #95). ⚙ only for kinds with
+ * One Field: handle · Label · Kind · ⚙ · delete (spec #95). ⚙ only for kinds with
  * settings, which open in a fold-out under the row; folded, the row shows
- * their summary. A phone gives it two lines: Label; then Kind, ⚙, delete.
+ * their summary. A phone gives it two lines: handle + Label; then Kind, ⚙, delete.
  */
 function FieldRow({
   row,
   reading,
+  handle,
   open,
   focus,
   names,
   linkTypes,
+  refusals,
   onToggle,
   onChange,
   onRemove,
@@ -384,11 +405,15 @@ function FieldRow({
   row: FieldDraft;
   /** Whether it is a Known field (ADR 0078), and the note its row carries. */
   reading: FieldReading;
+  /** The drag handle (#101), first on the Label's line. */
+  handle: ReactNode;
   open: boolean;
   /** Just added: the label takes the focus. */
   focus?: boolean;
   names: SummaryNames;
   linkTypes: DocumentTypeDef[];
+  /** Kinds this saved Field's held values wouldn't fit, each with why (kindRefusals). */
+  refusals: Partial<Record<FieldKind, string>>;
   onToggle: () => void;
   onChange: (d: FieldDraft) => void;
   onRemove: () => void;
@@ -407,20 +432,33 @@ function FieldRow({
   }, [focus]);
   return (
     <div className="grid min-w-0 gap-1 rounded-md border p-1 md:border-0 md:p-0">
-      {/* A drag handle (#101) takes the first slot of this line. */}
       <div className="grid grid-cols-[minmax(0,1fr)_1.75rem_1.75rem] items-center gap-1 md:grid-cols-[minmax(0,1fr)_11.5rem_1.75rem_1.75rem]">
-        <Input ref={labelRef} className="col-span-3 h-8 min-w-0 md:col-span-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value, known))} />
+        <div className="col-span-3 flex min-w-0 items-center gap-1 md:col-span-1">
+          {handle}
+          <Input ref={labelRef} className="h-8 min-w-0 flex-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value, known))} />
+        </div>
         <Select value={row.kind} disabled={known} onValueChange={(v) => onChange({ ...row, kind: v as FieldKind })}>
           <SelectTrigger className="h-8 w-full min-w-0" aria-label="Field kind" title={known ? "A Known field's kind is locked" : undefined}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {/* geo is added only as the Coordinates Known field; a Field that already is one keeps it. */}
-            {KINDS.filter((k) => k !== "geo" || row.kind === "geo").map((k) => (
-              <SelectItem key={k} value={k}>
-                {kindLabel(k)}
-              </SelectItem>
-            ))}
+            {KINDS.filter((k) => k !== "geo" || row.kind === "geo").map((k) => {
+              // A kind the held values don't fit is off, its reason on hover and in the item (a phone has no hover).
+              const why = refusals[k];
+              return (
+                <SelectItem key={k} value={k} disabled={!!why} title={why} className="data-disabled:pointer-events-auto">
+                  {why ? (
+                    <span className="grid min-w-0">
+                      <span>{kindLabel(k)}</span>
+                      <span className="text-muted-foreground text-[10px] whitespace-normal">{why}</span>
+                    </span>
+                  ) : (
+                    kindLabel(k)
+                  )}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
         {settings ? (
@@ -547,24 +585,94 @@ function AddFieldMenu({ known, onPick }: { known: KnownFieldChoice[]; onPick: (p
   );
 }
 
-/** A Choice's options, one line each: only the label is edited; the value is set when added (CONTEXT.md "Choice (field)"). */
+/**
+ * A Choice's options, one line each: only the label is edited; the value is set
+ * when added (CONTEXT.md "Choice (field)"). Typed like a list (spec #95): Enter
+ * adds the next, Backspace on an empty one removes it, a pasted list splits into
+ * one option each. An option Documents hold shows how many and can't be removed.
+ */
 function OptionList({ row, onChange }: { row: FieldDraft; onChange: (d: FieldDraft) => void }) {
+  const held = useContext(HeldDocuments);
+  const usage = useMemo(() => optionUsage(row.key, held), [row.key, held]);
+  // The "used by" column is there only when some option is held, so the labels line up either way.
+  const anyUsed = row.options.some((o) => usage[o.value]);
+  const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  // The option to focus once the change that adds or removes it has rendered.
+  const [focusAt, setFocusAt] = useState<number | null>(null);
+  useEffect(() => {
+    if (focusAt === null) return;
+    const el = inputs.current[focusAt];
+    el?.focus();
+    el?.setSelectionRange(el.value.length, el.value.length);
+    setFocusAt(null);
+  }, [focusAt]);
+  const add = (at: number) => {
+    onChange(addOption(row, "", at));
+    setFocusAt(at);
+  };
+  const onKey = (e: KeyboardEvent<HTMLInputElement>, i: number) => {
+    if (e.nativeEvent.isComposing) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      add(i + 1);
+    } else if (e.key === "Backspace" && row.options[i].label === "" && !usage[row.options[i].value]) {
+      e.preventDefault();
+      onChange(removeOption(row, i));
+      if (row.options.length > 1) setFocusAt(Math.max(0, i - 1));
+    }
+  };
+  const onPaste = (e: ClipboardEvent<HTMLInputElement>, i: number) => {
+    const labels = splitOptionLabels(e.clipboardData.getData("text"));
+    if (labels.length < 2) return;
+    e.preventDefault();
+    onChange(pasteOptions(row, i, labels));
+    setFocusAt(i + labels.length - (row.options[i].label.trim() ? 0 : 1));
+  };
   return (
     <div className="grid min-w-0 gap-1">
       <Label className="text-xs">Options</Label>
-      {row.options.map((o, i) => (
-        <div key={i} className="flex min-w-0 items-center gap-1">
-          <Input className="h-7 min-w-0 flex-1" placeholder="Option" aria-label="Option label" value={o.label} onChange={(e) => onChange(renameOption(row, i, e.target.value))} />
-          {/* The stored value, in a fixed column so the labels line up. */}
-          <span className="text-muted-foreground w-20 shrink-0 truncate font-mono text-[10px] md:w-36" title={o.value ? `Stored as “${o.value}”` : undefined}>
-            {o.value}
-          </span>
-          <Button size="icon" variant="ghost" className="size-7 shrink-0" onClick={() => onChange(removeOption(row, i))} aria-label="Remove option">
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      ))}
-      <Button size="sm" variant="ghost" className="h-7 justify-self-start" onClick={() => onChange(addOption(row))}>
+      <Reorderable ids={row.options.map((_, i) => i)} onMove={(from, to) => onChange(moveOption(row, from, to))}>
+      {row.options.map((o, i) => {
+        const used = usage[o.value] ?? 0;
+        return (
+          // Keyed by place, not value: an unsaved option's value follows its label as it's typed.
+          <ReorderItem key={i} id={i} label={o.label || "option"} className="flex min-w-0 items-center gap-1">{(handle) => <>
+            {handle}
+            <Input
+              ref={(el) => void (inputs.current[i] = el)}
+              className="h-7 min-w-0 flex-1"
+              placeholder="Option"
+              aria-label="Option label"
+              value={o.label}
+              onChange={(e) => onChange(renameOption(row, i, e.target.value))}
+              onKeyDown={(e) => onKey(e, i)}
+              onPaste={(e) => onPaste(e, i)}
+            />
+            {/* The stored value, in a fixed column so the labels line up. */}
+            <span className="text-muted-foreground w-16 shrink-0 truncate font-mono text-[10px] md:w-32" title={o.value ? `Stored as “${o.value}”` : undefined}>
+              {o.value}
+            </span>
+            {anyUsed && (
+              <span className="text-muted-foreground w-14 shrink-0 truncate text-right text-[10px]" title={used ? `${used} Document${used === 1 ? "" : "s"} hold this option` : undefined}>
+                {used > 0 && `used by ${used}`}
+              </span>
+            )}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-7 shrink-0"
+              disabled={used > 0}
+              onClick={() => onChange(removeOption(row, i))}
+              aria-label={used ? `Used by ${used} — can't be removed` : "Remove option"}
+              title={used ? `Used by ${used} Document${used === 1 ? "" : "s"} — can't be removed` : undefined}
+            >
+              <X className="size-3.5" />
+            </Button>
+          </>}</ReorderItem>
+        );
+      })}
+      </Reorderable>
+      <Button size="sm" variant="ghost" className="h-7 justify-self-start" onClick={() => add(row.options.length)}>
         <Plus /> Option
       </Button>
     </div>
