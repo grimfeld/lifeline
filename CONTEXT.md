@@ -456,6 +456,10 @@ _Avoid_: relation, foreign key, reference
 A Field whose value is one of a fixed, ordered set of **options** (Multi-choice: several of them). An option has a label the user sees and renames freely, and a value fixed when it is added — what Documents hold. An option a Document holds can't be removed.
 _Avoid_: select, enum, dropdown (the control), choice (for one option)
 
+### Known field
+A Field whose key and kind Lifeline recognises and acts on: **Aliases** (other names a Linkable type's Documents are found by) and **Coordinates** (puts a type's Documents on the map — what makes a user-defined type Locatable). Any other Field just holds a value; what its kind unlocks (a board for a Choice, a calendar layout for a date) is the kind's doing, not the Field's. Tags, title and folder are not Fields — every Document has them.
+_Avoid_: system field, magic field, reserved field, preset
+
 ### Template
 A body a Document type offers as the starting text for a new Document of that type — the Day's sections, a meeting Note, a Chapter skeleton. Every type has its own Templates; picking one copies it into the new body once and forgets it, never a link. A user-defined type's starting body comes only from its Templates; a built-in type may also carry a default of its own, used when it has none. Not an Event template (that shapes an Event, not a body).
 _Avoid_: note template (old name), template (bare, when an Event template is near), preset, skeleton

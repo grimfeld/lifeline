@@ -42,3 +42,17 @@ without an ellipsis, or makes a box scroll sideways that was not meant to.
 
 It is not in CI (too slow): run it before pushing a change that touches a screen.
 `pnpm test:e2e` (or `pnpm --filter @lifeline/shell test:e2e -- --project=mobile -g Tasks`).
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live as GitHub issues on grimfeld/lifeline (`gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five: needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` (the glossary) + `docs/adr/` at the root. See `docs/agents/domain.md`.
