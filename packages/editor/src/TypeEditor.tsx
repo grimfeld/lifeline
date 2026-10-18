@@ -12,9 +12,15 @@ import {
   deleteUserDocumentType,
   documentsOfTypeEverywhere,
   fieldChangeProblems,
+  fieldsFromDrafts,
+  newFieldDraft,
+  optionsFromText,
+  optionsText,
+  toFieldDrafts,
   kindLabel,
   normalizeFolder,
   removedFieldValues,
+  roleDef,
   saveDocumentType,
   singularOf,
   slugify,
@@ -28,47 +34,23 @@ import {
   type DocumentTypeDef,
   type DocumentTypeRecord,
   type FieldDef,
+  type FieldDraft,
   type FieldKind,
+  type LinkTarget,
 } from "@lifeline/core";
 import { Plus, Trash2 } from "lucide-react";
 import { ReportsEditor } from "./Reports";
 
 const KINDS: FieldKind[] = ["text", "longtext", "number", "boolean", "date", "datetime", "select", "multiselect", "url", "geo", "list", "link", "links"];
 
-/** One Field row of the form; `saved` rows keep their key — a Field is fixed once it exists (CONTEXT.md "Field"). */
-type Row = { key: string; label: string; kind: FieldKind; options: string; linkType: string; saved: boolean };
+/** One Field row of the form: a core Field draft (spec #95) plus the comma box's text as typed. */
+type Row = FieldDraft & { optionsText: string };
 
-function toRows(fields: FieldDef[]): Row[] {
-  return fields.map((f) => ({
-    key: f.key,
-    label: f.label,
-    kind: f.kind,
-    options: f.options ? f.options.map((o) => (o.value === o.label ? o.value : `${o.value}=${o.label}`)).join(", ") : "",
-    linkType: Array.isArray(f.linkType) ? "" : (f.linkType ?? ""),
-    saved: true,
-  }));
-}
-function fromRows(rows: Row[]): FieldDef[] {
-  return rows
-    .filter((r) => r.key.trim())
-    .map((r) => {
-      const key = r.saved ? r.key : slugify(r.key).replace(/-/g, "_") || r.key.trim();
-      const label = r.label.trim() || r.key.trim();
-      const f: FieldDef = { key, label, kind: r.kind };
-      if (r.kind === "select" || r.kind === "multiselect") {
-        f.options = r.options
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .map((s) => {
-            const [v, l] = s.split("=");
-            return { value: v.trim(), label: (l ?? v).trim() };
-          });
-      }
-      if ((r.kind === "link" || r.kind === "links") && r.linkType) f.linkType = r.linkType;
-      return f;
-    });
-}
+const toRows = (fields: FieldDef[]): Row[] => toFieldDrafts(fields).map((d) => ({ ...d, optionsText: optionsText(d.options) }));
+const blankRow = (key = "", label = "", kind: FieldKind = "text"): Row => ({ ...newFieldDraft(kind), key, label, optionsText: "" });
+/** The "Links to" picker's value: one type, Any, or a restriction it can't show (several types, a Role), kept as is. */
+const KEPT = "__kept__";
+const linkPick = (t: LinkTarget): string => (t.to === "any" ? "__any__" : t.to === "types" && t.types.length === 1 ? t.types[0] : KEPT);
 
 /**
  * Create / edit a user-defined Document type (ADR 0019), or customise a
@@ -101,7 +83,7 @@ export function TypeEditor({
   const ownKeys = new Set((base?.fields ?? []).map((f) => f.key));
   const savedFields = useMemo(() => (record?.fields ?? []).filter((f) => !ownKeys.has(f.key)), [record, base]);
   const [rows, setRows] = useState<Row[]>(
-    record || base ? toRows(savedFields) : [{ key: "aliases", label: "Aliases", kind: "list", options: "", linkType: "", saved: false }],
+    record || base ? toRows(savedFields) : [blankRow("aliases", "Aliases", "list")],
   );
   const [module, setModule] = useState(record?.module ?? defaultModule);
   const [reports, setReports] = useState<ReportSetting[]>(record?.reports ?? base?.reports ?? DEFAULT_REPORTS);
@@ -127,7 +109,7 @@ export function TypeEditor({
       live = false;
     };
   }, [record, base, typeId]);
-  const next = fromRows(rows);
+  const next = fieldsFromDrafts(rows);
   const problems = fieldChangeProblems(savedFields, next, held);
   const removed = removedFieldValues(savedFields, next, held).filter((r) => r.count > 0);
 
@@ -290,12 +272,17 @@ export function TypeEditor({
                 </SelectContent>
               </Select>
               {r.kind === "link" || r.kind === "links" ? (
-                <Select value={r.linkType || "__any__"} onValueChange={(v) => setRow(i, { linkType: v === "__any__" ? "" : v })}>
+                <Select value={linkPick(r.target)} onValueChange={(v) => v !== KEPT && setRow(i, { target: v === "__any__" ? { to: "any" } : { to: "types", types: [v] } })}>
                   <SelectTrigger className="h-8 min-w-0" aria-label="Links to">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__any__">Any type</SelectItem>
+                    {linkPick(r.target) === KEPT && (
+                      <SelectItem value={KEPT}>
+                        {r.target.to === "role" ? `Role: ${roleDef(r.target.role)?.label ?? r.target.role}` : r.target.to === "types" ? r.target.types.map((id) => allTypes.find((t) => t.id === id)?.label ?? id).join(", ") : ""}
+                      </SelectItem>
+                    )}
                     {allTypes
                       .filter((t) => !t.internal)
                       .map((t) => (
@@ -311,13 +298,13 @@ export function TypeEditor({
                   aria-label="Choices"
                   placeholder={r.kind === "select" || r.kind === "multiselect" ? "a, b=Label B" : ""}
                   disabled={r.kind !== "select" && r.kind !== "multiselect"}
-                  value={r.options}
-                  onChange={(e) => setRow(i, { options: e.target.value })}
+                  value={r.optionsText}
+                  onChange={(e) => setRow(i, { optionsText: e.target.value, options: optionsFromText(e.target.value, r.options) })}
                 />
               )}
             </div>
           ))}
-          <Button size="sm" variant="outline" className="justify-self-start" onClick={() => setRows([...rows, { key: "", label: "", kind: "text", options: "", linkType: "", saved: false }])}>
+          <Button size="sm" variant="outline" className="justify-self-start" onClick={() => setRows([...rows, blankRow()])}>
             <Plus /> Field
           </Button>
         </div>

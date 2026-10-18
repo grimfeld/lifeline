@@ -30,6 +30,7 @@ export * from "./folders";
 export * from "./documents/types";
 export * from "./documents/registry";
 export * from "./documents/typeRules";
+export * from "./documents/fieldDrafts";
 export * from "./documents/typeAdmin";
 export * from "./documents/store";
 export * from "./documents/roles";
