@@ -1,6 +1,10 @@
 import { pickLinked, type CommandDef } from "@lifeline/core";
+import { NextPartDialog, partName } from "@lifeline/parts";
+import { cinemaParts } from "./parts";
+import { matchesSearch } from "./domain/browse";
+import { Cover } from "./components/Cover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
-import { Clapperboard, Eye, ListPlus, Plus, Settings2, SlidersHorizontal } from "lucide-react";
+import { Clapperboard, Eye, ListPlus, Plus, Settings2, SlidersHorizontal , StepForward } from "lucide-react";
 import { AddWorkDialog } from "./components/AddWorkDialog";
 import { QuickAdd } from "./components/QuickAdd";
 import { LookupSettingsDialog } from "./components/LookupSettingsDialog";
@@ -8,7 +12,7 @@ import { MarkWatchedDialog } from "./components/MarkWatchedDialog";
 import { PlaylistDialog } from "./components/PlaylistDialog";
 import { APP_HREF } from "./constants";
 import { WORK_TYPES, workType, type WorkTypeId } from "./domain/workTypes";
-import { allWorks, quickAddWork, patchWork } from "./data/repo";
+import { allWorks, quickAddWork, patchWork, useWorks } from "./data/repo";
 import { finish } from "./domain/rules";
 import { RATING_MAX } from "./domain/types";
 
@@ -23,6 +27,23 @@ function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
         <QuickAdd autoFocus onAdded={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** "Watch next episode…" (ADR 0067): pick a work, its next Part is watched today. */
+function NextPartCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const works = useWorks();
+  return (
+    <NextPartDialog
+      kit={cinemaParts}
+      works={works}
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Watch the next episode"
+      matches={matchesSearch}
+      cover={(w) => <Cover item={w} className="shrink-0 rounded border" />}
+      byline={(w) => w.creator}
+    />
   );
 }
 
@@ -74,6 +95,26 @@ export const cinemaCommands: CommandDef[] = [
       if (stars !== undefined && (!Number.isInteger(stars) || stars < 1 || stars > RATING_MAX)) throw new Error(`Stars: a whole number from 1 to ${RATING_MAX}`);
       await patchWork(work, { ...finish(), ...(stars !== undefined ? { rating: stars } : {}), ...(a.liked !== undefined ? { liked: !!a.liked } : {}) });
       return { id, message: `${work.title}: ${done}${stars ? ` · ${"★".repeat(stars)}` : ""}${a.liked ? " · liked" : ""}` };
+    },
+  },
+  {
+    id: "cinema.next-part",
+    fold: "culture.next",
+    foldLabel: "Next episode",
+    title: "Watch next episode…",
+    keywords: ["watch", "next", "episode", "season", "series", "progress", "cinema", "+1"],
+    icon: StepForward,
+    dialog: NextPartCommandDialog,
+    capture: true,
+    args: [{ key: "work", label: "Work", kind: "text", required: true, hint: "Id or exact title of a series already on the shelf." }],
+    async invoke(a) {
+      const works = await allWorks();
+      const id = pickLinked({ key: "work", label: "Work", kind: "link" }, a.work as string, works);
+      const work = works.find((w) => w.id === id)!;
+      const medium = workType(work.type).parts;
+      if (!medium) throw new Error(`“${work.title}” has no parts; tell the user — nothing was changed`);
+      const outcome = await cinemaParts.readNext(work);
+      return { id, message: `${work.title}: ${partName(medium, outcome.pos)} watched${outcome.started ? " · started" : ""}${outcome.complete ? " · that was the last one — offer to mark it done" : ""}` };
     },
   },
   { id: "cinema.new-playlist", title: "New playlist…", keywords: ["playlist", "list", "collection", "cinema", "movies"], icon: ListPlus, dialog: PlaylistDialog },

@@ -24,6 +24,12 @@ export function normalize(m: Work): Work {
     slottedOn: m.slottedOn ?? "",
     startedOn: m.startedOn ?? "",
     finishedOn: m.finishedOn ?? "",
+    liked: !!m.liked,
+    rating: m.rating || 0,
+    partsTracked: !!m.partsTracked,
+    caughtUpGroup: m.caughtUpGroup || 0,
+    caughtUpPart: m.caughtUpPart || 0,
+    partCount: m.partCount || 0,
     tags: m.tags ?? [],
   };
 }
@@ -79,6 +85,12 @@ export async function addWork(input: {
     slottedOn: "",
     startedOn: "",
     finishedOn: "",
+    liked: false,
+    rating: 0,
+    partsTracked: false,
+    caughtUpGroup: 0,
+    caughtUpPart: 0,
+    partCount: 0,
     tags: normalizeTags(input.tags),
   });
   return row.id;

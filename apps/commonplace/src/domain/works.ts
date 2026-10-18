@@ -6,12 +6,13 @@ import type { Document } from "@lifeline/core";
  * is a Quote operation, owned here. This registry only names what a quote
  * can come from and how to draw its cover.
  */
-export const WORK_TYPE_IDS = ["book", "comic", "movie", "series", "music", "game"] as const;
+export const WORK_TYPE_IDS = ["book", "comic", "manga", "movie", "series", "music", "game"] as const;
 export type WorkTypeId = (typeof WORK_TYPE_IDS)[number];
 
 export const WORK_LABELS: Record<WorkTypeId, { label: string; plural: string; cover: "portrait" | "square" }> = {
   book: { label: "Book", plural: "Books", cover: "portrait" },
   comic: { label: "Comic", plural: "Comics", cover: "portrait" },
+  manga: { label: "Manga", plural: "Manga", cover: "portrait" },
   movie: { label: "Movie", plural: "Movies", cover: "portrait" },
   series: { label: "Series", plural: "Series", cover: "portrait" },
   music: { label: "Album", plural: "Albums", cover: "square" },

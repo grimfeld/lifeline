@@ -4,7 +4,7 @@ import { Check, MoreHorizontal, Play } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import { Cover } from "./Cover";
 import type { Work } from "../domain/types";
-import { BoughtToggle, ReadToggle } from "./QuickActions";
+import { BoughtToggle, LikeToggle, ReadToggle } from "./QuickActions";
 import { WorkActionsMenu } from "./WorkActions";
 import { useByline } from "./AuthorNames";
 
@@ -14,6 +14,7 @@ import { useByline } from "./AuthorNames";
  * abandoned-dimmed) and the slot number — and, like the Cinema's tile
  * (ADR 0035), a one-click strip along the cover's foot: Read, Bought, ⋯. The
  * strip appears on hover where there is a pointer and is always there on touch.
+ * The heart is there too (Marks, ADR 0067).
  */
 export function WorkTile({ item, all, onOpen, onEdit }: { item: Work; all: Work[]; onOpen: (m: Work) => void; onEdit?: (m: Work) => void }) {
   const def = workType(item.type);
@@ -50,6 +51,7 @@ export function WorkTile({ item, all, onOpen, onEdit }: { item: Work; all: Work[
         >
           <ReadToggle item={item} />
           <BoughtToggle item={item} />
+          <LikeToggle item={item} />
           <WorkActionsMenu
             item={item}
             all={all}

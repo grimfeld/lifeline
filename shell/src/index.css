@@ -5,6 +5,7 @@
 /* Tailwind must see classes used inside workspace source packages. */
 @source "../../packages/ui/src";
 @source "../../packages/editor/src";
+@source "../../packages/parts/src";
 @source "../../apps/chores/src";
 @source "../../apps/tasks/src";
 @source "../../apps/projects/src";

@@ -24,6 +24,9 @@ function item(p: Partial<Work>): Work {
     finishedOn: "",
     liked: false,
     rating: 0,
+    partsTracked: false,
+    caughtUpGroup: 0,
+    caughtUpPart: 0,
     ...p,
   };
 }
