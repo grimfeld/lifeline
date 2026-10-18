@@ -345,3 +345,68 @@ for (const w of WIDTHS) {
     });
   });
 }
+
+/* ---------------------------------------------------------------------------
+ * Demo life: media (#112) — Library, Cinema, Discotheque, Arcade, Museum.
+ * ------------------------------------------------------------------------- */
+
+/** The metadata services the media Apps can ask: none may be asked on first open. */
+const METADATA_HOSTS =
+  /(^|\.)(openlibrary\.org|googleapis\.com|comicvine\.gamespot\.com|themoviedb\.org|tmdb\.org|musicbrainz\.org|coverartarchive\.org|rawg\.io|wikidata\.org|wikimedia\.org|nominatim\.openstreetmap\.org)$/;
+
+const MEDIA_PAGES = [
+  { path: "/app/library", works: ["Normal People", "Vinland Saga"] },
+  { path: "/app/cinema", works: ["Derry Girls", "Past Lives"] },
+  { path: "/app/discotheque", works: ["Blue", "Com Que Voz"] },
+  { path: "/app/arcade", works: ["Stardew Valley", "Outer Wilds"] },
+  { path: "/app/museum", works: ["The Taking of Christ", "Saint Fin Barre's Cathedral"] },
+] as const;
+
+for (const w of WIDTHS) {
+  test.describe(`Demo media at ${w.name} width`, () => {
+    test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
+
+    test("Library, Cinema, Discotheque, Arcade and Museum open with their works", async ({ page }) => {
+      for (const { path, works } of MEDIA_PAGES) {
+        await open(page, path);
+        for (const title of works) await expect(page.getByText(title, { exact: true }).first(), `${title} on ${path}`).toBeVisible();
+      }
+    });
+
+    test("the next Part of a work in progress can be marked done", async ({ page }) => {
+      await open(page, "/module/culture");
+      await page.getByRole("button", { name: "Watched S2E3", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Watched S2E4", exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Read Chapter 12", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Read Chapter 13", exact: true })).toBeVisible();
+    });
+
+    test("first open asks no external metadata service", async ({ page }) => {
+      const asked: string[] = [];
+      page.on("request", (r) => {
+        if (METADATA_HOSTS.test(new URL(r.url()).hostname)) asked.push(r.url());
+      });
+      await open(page, "/module/culture");
+      for (const { path } of MEDIA_PAGES) await open(page, path);
+      // An Author's page looks their bibliography up whenever they carry an external key.
+      await open(page, "/app/library");
+      await page.getByRole("button", { name: "Open Normal People" }).first().click();
+      await page.getByRole("dialog").getByRole("link", { name: "Sally Rooney" }).first().click();
+      await expect(page).toHaveURL(/\/app\/library\/authors\//);
+      await expect(page.getByText("Sally Rooney").first()).toBeVisible();
+      await page.waitForLoadState("networkidle");
+      expect(asked, "requests to metadata services").toEqual([]);
+    });
+
+    test("with the clock pinned to another day, the media dates follow it", async ({ page }) => {
+      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+      // Hung twelve days before the visit.
+      await open(page, "/app/museum");
+      await expect(page.getByText(/since 2027-02-26/)).toBeVisible();
+      // Started twelve days before the visit, too.
+      await open(page, "/app/cinema");
+      await page.getByRole("button", { name: "Open Derry Girls" }).first().click();
+      await expect(page.getByRole("dialog").getByText("2027-02-26", { exact: true })).toBeVisible();
+    });
+  });
+}
