@@ -36,6 +36,7 @@ import {
 } from "@lifeline/core";
 import { BookOpen, Code2, Shapes, Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Pencil, SlidersHorizontal, Table2, Trash2 } from "lucide-react";
 import { MarkdownEditor } from "./MarkdownEditor";
+import { bodyToEdit, createEchoes, noteStaged, noteWritten } from "./bodyEcho";
 import { ReadTimer } from "./ReadTimer";
 import { MarkdownView } from "./MarkdownView";
 import { FieldsForm } from "./FieldsForm";
@@ -112,10 +113,8 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   /** Pending edits not yet flushed. */
   const pending = useRef<Partial<Document>>({});
   const timer = useRef<number | null>(null);
-  /** The body the editor holds; ahead of the stored one until a write comes back. */
-  const editorBody = useRef<string | null>(null);
-  /** Bodies handed to the store and not read back yet (see `body` below). */
-  const written = useRef<string[]>([]);
+  /** Our own bodies on their way through the store (see `body` below). */
+  const echoes = useRef(createEchoes());
   const write = useCallback(async (next: Document) => {
     if (saveRef.current) await saveRef.current(next);
     else await putDocument(next as Document & { type: string });
@@ -128,12 +127,12 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
     if (Object.keys(pending.current).length === 0) return;
     const next = { ...docRef.current, ...pending.current } as Document;
     pending.current = {};
-    if (typeof next.body === "string") written.current = [...written.current, next.body].slice(-10);
+    if (typeof next.body === "string") noteWritten(echoes.current, typeof docRef.current.body === "string" ? docRef.current.body : "", next.body);
     void write(next);
   }, [write]);
   const stage = useCallback(
     (patch: Partial<Document>, immediate = false) => {
-      if (typeof patch.body === "string") editorBody.current = patch.body;
+      if (typeof patch.body === "string") noteStaged(echoes.current, patch.body);
       pending.current = { ...pending.current, ...patch };
       if (immediate) return flush();
       if (timer.current) window.clearTimeout(timer.current);
@@ -172,25 +171,8 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   const context = useMemo(() => ({ docDate, openRef }), [docDate, openRef]);
 
   const stored = typeof doc.body === "string" ? doc.body : "";
-  /**
-   * The text the editor works on. The stored body lags behind the keystrokes
-   * for the length of a write's round trip, so a Document arriving with a body
-   * we ourselves wrote is our own write catching up, not news, and must not be
-   * pushed back into the editor — it would undo whatever was typed meanwhile
-   * (erasing characters fast used to fight the editor, the last one reappearing
-   * over and over as each save came back). Anything else — another device's
-   * edit, a Restore, text mode — is news and wins.
-   */
-  const body = (() => {
-    if (editorBody.current === null || stored === editorBody.current) {
-      written.current = [];
-      return stored;
-    }
-    if (typeof pending.current.body === "string" || written.current.includes(stored)) return editorBody.current;
-    editorBody.current = null;
-    written.current = [];
-    return stored;
-  })();
+  /** The text the editor works on: our own writes coming back are not news (`bodyEcho`). */
+  const body = bodyToEdit(echoes.current, stored, typeof pending.current.body === "string");
   const hasBody = (def?.body ?? "optional") !== "none";
   // A worn Role's Fields (ADR 0069) sit beside the type's own, everywhere the type's would.
   const fields = useMemo(() => fieldsOfDocument(doc, def), [doc, def]);
