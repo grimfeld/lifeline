@@ -30,10 +30,6 @@ _Avoid_: user (the human), tenant, workspace (a container inside one Account), p
 Lifeline as a stranger meets it: a device bound to no Account, holding a made-up life seeded on first open, that never syncs and cannot sign in. Everything a visitor does stays on their device, and they can **reset** it back to the seeded life. The life's dates follow the day of the visit, so today always has something on it.
 _Avoid_: sandbox (a word Separation already avoids), guest, trial, preview
 
-### Demo
-Lifeline as a stranger meets it: a device bound to no Account, holding a made-up life seeded on first open, that never syncs and cannot sign in. Everything a visitor does stays on their device, and they can **reset** it back to the seeded life. The life's dates follow the day of the visit, so today always has something on it.
-_Avoid_: sandbox (a word Separation already avoids), guest, trial, preview
-
 ### Contract
 An interface defined by Core that a Document type implements (Schedulable, Timed, Loggable, Linkable, Locatable, Taggable, Daylog…). Carries data shape *and* behaviour hooks — the consuming Surface calls the hook; the owning App decides what happens. Built-in types implement Contracts in code; user-defined types may declare the data-only ones (e.g. Locatable through a geo field). The five things that serve Documents — Card, Screen, Surface, App, Base — are *not* Contracts and have no collective name.
 _Avoid_: capability, trait, API, decorator

@@ -17,4 +17,7 @@ export default defineConfig({
     strictPort: true,
   },
   clearScreen: false,
+  // The Demo's dev server (ADR 0077) runs beside the real one in the e2e
+  // suite; each keeps its own optimised-deps cache so neither clobbers the other.
+  cacheDir: process.env.VITE_DEMO ? "node_modules/.vite-demo" : undefined,
 });

@@ -1,5 +1,6 @@
 import { ATTACHMENTS, BLOBS, db, DOCUMENTS, syncedCollectionNames, type SyncedRecord } from "./db";
 import { pb } from "./pb";
+import { isDemo } from "../demo";
 import { bindAccount, boundAccount, currentAccount } from "./account";
 import { shouldApply } from "./reconcile";
 import { documentTypeSync } from "../documents/registry";
@@ -261,7 +262,7 @@ const pulledKey = (name: string) => `pulled:${name}`;
  * Signed out it is vacuously true: no sync is coming, so nothing should wait.
  */
 export async function hasPulledOnce(collection: string): Promise<boolean> {
-  if (!pb.authStore.isValid) return true;
+  if (isDemo() || !pb.authStore.isValid) return true;
   return !!(await db()._meta.get(pulledKey(collection)));
 }
 
@@ -270,6 +271,7 @@ let queued = false;
 let started = false;
 
 export async function syncNow(): Promise<void> {
+  if (isDemo()) return;
   const me = currentAccount();
   if (!me) {
     setState("unauthenticated");
@@ -337,7 +339,8 @@ export function requestSync(): void {
 const PULL_INTERVAL_MS = 30_000;
 
 export function startSync(): void {
-  if (started) return;
+  // The Demo has no backend (ADR 0077): local writes fill the outbox, which nothing drains.
+  if (started || isDemo()) return;
   started = true;
   void syncNow();
   setInterval(() => void syncNow(), PULL_INTERVAL_MS);
