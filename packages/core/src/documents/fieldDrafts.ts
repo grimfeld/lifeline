@@ -36,6 +36,9 @@ const isChoiceKind = (k: FieldKind): boolean => k === "select" || k === "multise
 /** Whether a kind has settings of its own — a Choice's options, a Link's target — shown in the row's fold-out. */
 export const hasFieldSettings = (k: FieldKind): boolean => isChoiceKind(k) || isLinkKind(k);
 
+/** Whether a row has a fold-out (⚙): its kind's settings, or — until the type is saved with it — the key, whatever the kind. */
+export const hasFoldOut = (d: Pick<FieldDraft, "kind" | "saved">): boolean => !d.saved || hasFieldSettings(d.kind);
+
 /** How a folded row names types and Roles. */
 export interface SummaryNames {
   typeLabel: (id: string) => string;
@@ -138,6 +141,21 @@ export function addOption(d: FieldDraft, label = "", at = d.options.length): Fie
   const options = [...d.options];
   options.splice(at, 0, { value: optionValueFrom(label, options.map((o) => o.value)), label, saved: false });
   return { ...d, options };
+}
+
+/** A pasted list as option labels: one per line, or — on a single line — comma-separated. Blanks are dropped. */
+export function splitOptionLabels(text: string): string[] {
+  const parts = /[\r\n]/.test(text) ? text.split(/\r?\n|\r/) : text.split(",");
+  return parts.map((s) => s.trim()).filter(Boolean);
+}
+
+/** Several options pasted at option `i`: an empty option `i` takes the first label, the rest follow it in order. */
+export function pasteOptions(d: FieldDraft, i: number, labels: string[]): FieldDraft {
+  const [first, ...rest] = labels;
+  const fill = d.options[i] && !d.options[i].label.trim() && first !== undefined;
+  let out = fill ? renameOption(d, i, first) : d;
+  (fill ? rest : labels).forEach((label, n) => (out = addOption(out, label, i + 1 + n)));
+  return out;
 }
 
 /** A new label for option `i`; an unsaved option's value follows it, a saved one's is fixed. */
