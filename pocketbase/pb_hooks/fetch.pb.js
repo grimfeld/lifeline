@@ -2,8 +2,8 @@
 
 // External fetch proxy (ADR 0017): GET /api/lifeline/fetch?url=<http(s) url>
 // Signed-in users only. `headers` (JSON object) is forwarded to the target
-// (API keys), never cookies. Capped in size and
-// time. Returns the body verbatim with the upstream content-type.
+// (API keys), never cookies. Public hosts only (fetch_guard.js). Capped in
+// size and time. Returns the body verbatim with the upstream content-type.
 
 routerAdd(
   "GET",
@@ -14,6 +14,8 @@ routerAdd(
     const TIMEOUT_S = 10;
     const url = e.request.url.query().get("url") || "";
     if (!/^https?:\/\/[^\s]+$/i.test(url)) return e.json(400, { error: "url must be http(s)" });
+    const blocked = require(`${__hooks}/fetch_guard.js`).blockedReason(url);
+    if (blocked) return e.json(400, { error: blocked });
     const headers = { "User-Agent": "Lifeline/1.0 (+source fetch)" };
     const extra = e.request.url.query().get("headers") || "";
     if (extra) {

@@ -61,7 +61,8 @@ function toLocal(collection: string, r: PbRecord): SyncedRecord {
     if (typeof doc.folder !== "string") doc.folder = "";
     // Separation (ADR 0048): a row written before the field existed is shared.
     if (typeof doc.workspace !== "string") doc.workspace = "";
-    if (doc.body === null) delete doc.body;
+    // The wire always carries a body; a type that has none keeps none locally.
+    if (doc.body === null || (doc.body === "" && documentTypeSync(doc.type)?.body === "none")) delete doc.body;
     return doc;
   }
   return rest as unknown as SyncedRecord;
@@ -202,45 +203,84 @@ async function pushOnce(): Promise<void> {
   if (failures.length) throw new Error(failures[0] + (failures.length > 1 ? ` (+${failures.length - 1} more)` : ""));
 }
 
+const PULL_PAGE = 200;
+/** Held-back ids re-fetched per request: each is one `id = …` clause of the filter. */
+const HELD_CHUNK = 50;
+
+/**
+ * Store a page of pulled rows. A row with a locally-queued write is newer
+ * intent and is left for push to resolve (the LWW check happens there); its id
+ * is added to `held` so the server copy is fetched again once push is done.
+ */
+async function applyPulled(name: string, items: PbRecord[], held: Set<string>): Promise<void> {
+  await db().transaction("rw", db().collection(name), db()._outbox, async () => {
+    const pending = new Set(
+      (await db()._outbox.where("collection").equals(name).toArray()).map((e) => e.recordId),
+    );
+    for (const r of items) {
+      if (pending.has(r.id)) {
+        held.add(r.id);
+        continue;
+      }
+      held.delete(r.id);
+      const local = await db().collection(name).get(r.id);
+      const incoming = toLocal(name, r);
+      if (shouldApply(local, incoming)) await db().collection(name).put(incoming);
+    }
+  });
+}
+
 async function pullCollection(name: string): Promise<void> {
   const cursorKey = `cursor:${name}`;
+  const heldKey = `held:${name}`;
   const cursor = (await db()._meta.get(cursorKey))?.value ?? "";
-  const filter = cursor ? pb.filter("updated > {:c}", { c: cursor }) : "";
-  let page = 1;
   let maxUpdated = cursor;
-  // A record held back below leaves the cursor where it is, so the server copy
-  // comes again next cycle instead of being skipped for good.
-  let held = false;
+  // Rows held back by an earlier pull, by id. Holding back the whole cursor
+  // instead let one record whose push kept failing freeze it, so every cycle
+  // re-downloaded a growing window; now the cursor always advances and only
+  // the held rows are asked for again, by id, once their push has resolved.
+  const held = new Set<string>(parseIds((await db()._meta.get(heldKey))?.value));
+  const before = [...held].sort().join(",");
+  if (held.size) {
+    const pending = new Set((await db()._outbox.where("collection").equals(name).toArray()).map((e) => e.recordId));
+    const due = [...held].filter((id) => !pending.has(id));
+    // A due id the server no longer returns has nothing to wait for.
+    for (const id of due) held.delete(id);
+    for (let i = 0; i < due.length; i += HELD_CHUNK) {
+      const chunk = due.slice(i, i + HELD_CHUNK);
+      const params = Object.fromEntries(chunk.map((id, j) => [`id${j}`, id]));
+      const filter = pb.filter(chunk.map((_, j) => `id = {:id${j}}`).join(" || "), params);
+      const res = await pb.collection(name).getList(1, HELD_CHUNK, { filter, skipTotal: true });
+      await applyPulled(name, res.items as unknown as PbRecord[], held);
+    }
+  }
+  // Keyset paging: each page starts after the last row of the one before, by
+  // (updated, id). Offset paging over `updated` skipped a row for good whenever
+  // an earlier one was edited mid-pull — every row after it shifted back one.
+  let after: PbRecord | undefined;
   for (;;) {
-    const res = await pb.collection(name).getList(page, 200, {
+    const filter = after
+      ? pb.filter("updated > {:u} || (updated = {:u} && id > {:id})", { u: after.updated, id: after.id })
+      : cursor
+        ? pb.filter("updated > {:c}", { c: cursor })
+        : "";
+    const res = await pb.collection(name).getList(1, PULL_PAGE, {
       filter,
-      sort: "updated",
+      sort: "updated,id",
       skipTotal: true,
     });
     const items = res.items as unknown as PbRecord[];
     if (items.length === 0) break;
-    await db().transaction("rw", db().collection(name), db()._outbox, async () => {
-      const pending = new Set(
-        (await db()._outbox.where("collection").equals(name).toArray()).map((e) => e.recordId),
-      );
-      for (const r of items) {
-        // A locally-queued write is newer intent: let push resolve it (LWW check happens there).
-        if (pending.has(r.id)) {
-          held = true;
-          continue;
-        }
-        if (!held && r.updated > maxUpdated) maxUpdated = r.updated;
-        const local = await db().collection(name).get(r.id);
-        const incoming = toLocal(name, r);
-        if (shouldApply(local, incoming)) await db().collection(name).put(incoming);
-      }
-    });
-    if (items.length < 200) break;
-    page++;
+    after = items[items.length - 1];
+    await applyPulled(name, items, held);
+    if (after.updated > maxUpdated) maxUpdated = after.updated;
+    if (items.length < PULL_PAGE) break;
   }
   if (maxUpdated !== cursor) {
     await db()._meta.put({ key: cursorKey, value: maxUpdated });
   }
+  const now = [...held].sort().join(",");
+  if (now !== before) await db()._meta.put({ key: heldKey, value: JSON.stringify([...held]) });
   // "This collection has been pulled at least once" — written whether or not
   // anything came back, which the cursor above cannot say: it only advances
   // when a row arrives, so a collection the server has no rows for never
@@ -250,6 +290,15 @@ async function pullCollection(name: string): Promise<void> {
 }
 
 const pulledKey = (name: string) => `pulled:${name}`;
+
+function parseIds(raw: string | undefined): string[] {
+  try {
+    const v: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Whether one collection has been pulled at least once on this device — the
@@ -280,17 +329,27 @@ export async function syncNow(): Promise<void> {
     queued = true;
     return;
   }
+  // Claimed before the first await: focus, online, the interval and the
+  // debounce can all fire together, and two cycles pushing the same new record
+  // make the second `create` fail as if the id belonged to another Account.
+  syncing = true;
   // One device, one Account (ADR 0039): never push this device's rows as
   // someone else, never pull someone else's rows into them.
-  const bound = await boundAccount();
-  if (bound && bound.id !== me.id) {
-    lastSyncError = `This device holds ${bound.email || "another account"}'s data — sign in as them, or erase it to switch`;
-    listeners.forEach((l) => l());
-    setState("error");
-    return;
+  try {
+    const bound = await boundAccount();
+    if (bound && bound.id !== me.id) {
+      lastSyncError = `This device holds ${bound.email || "another account"}'s data — sign in as them, or erase it to switch`;
+      listeners.forEach((l) => l());
+      setState("error");
+      syncing = false;
+      queued = false;
+      return;
+    }
+    if (!bound) await bindAccount(me);
+  } catch (err) {
+    syncing = false;
+    throw err;
   }
-  if (!bound) await bindAccount(me);
-  syncing = true;
   setState("syncing");
   const problems: string[] = [];
   try {

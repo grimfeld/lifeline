@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   documentsOf,
   todayStr,
@@ -19,8 +20,12 @@ import { PROJECT, type OccurrenceOverride, type Task } from "./domain/types";
  * name's first letter, in the Project's colour.
  */
 function useProjectMarks(): ProjectMarks {
-  return marksOf(useLiveQuery(() => documentsOf<Document>(PROJECT), [], [] as Document[]));
+  const projects = useLiveQuery(() => documentsOf<Document>(PROJECT), [], NO_PROJECTS);
+  return useMemo(() => marksOf(projects), [projects]);
 }
+
+/** One empty list while loading, so the memo above holds across renders. */
+const NO_PROJECTS: Document[] = [];
 
 type ProjectMarks = Map<string, { text: string; color?: string }>;
 
@@ -79,7 +84,14 @@ export const tasksSchedulable: SchedulableProvider = {
   overduePolicy: "stay",
 
   useItems(range) {
-    return itemsOf(useTasks(), useOverrides(), useProjectMarks(), range);
+    const tasks = useTasks();
+    const overrides = useOverrides();
+    const marks = useProjectMarks();
+    const today = todayStr();
+    const { start, end } = range;
+    // Surfaces call this on every render: derive again only when an input
+    // moves — today included, which itemsOf reads for urgency and lapsing.
+    return useMemo(() => itemsOf(tasks, overrides, marks, { start, end }), [tasks, overrides, marks, start, end, today]);
   },
 
   async itemsIn(range) {
