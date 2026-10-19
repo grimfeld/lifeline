@@ -14,7 +14,7 @@ import { addQuote } from "@lifeline/app-commonplace/src/data/quotes";
 import { addChapter, cutToOuttake, newManuscript } from "@lifeline/app-manuscript/src/data/repo";
 import { addDeck, addTopic, setMembership } from "@lifeline/app-languages/src/data/repo";
 import type { Deck, Item } from "@lifeline/app-languages/src/domain/types";
-import { ensurePeriod } from "@lifeline/app-notes/src/data/repo";
+import { dailyNote, ensureDailyNote, ensurePeriod } from "@lifeline/app-notes/src/data/repo";
 import { periodKey } from "@lifeline/app-notes/src/domain/periods";
 import { PEOPLE, PLACES, type LifeClock, type PersonKey, type PlaceKey } from "../persona";
 import { madeOn, run } from "./act";
@@ -189,18 +189,26 @@ function journalDays(): [number, string][] {
   ];
 }
 
-async function seedJournal(c: LifeClock): Promise<void> {
-  // In English, so the visitor's own new Days start from it too (the built-in one is not).
-  await createDocument({
-    type: "template",
-    title: "daily",
-    folder: "Templates",
-    body: "```daylog\n```\n\n### What happened\n\n### Who I saw\n\n### Grateful for\n\n",
-    fields: { forType: "daily" },
-  });
+const DAY_TEMPLATE = "```daylog\n```\n\n### What happened\n\n### Who I saw\n\n### Grateful for\n\n";
 
+/**
+ * The Journal's Day Template, in English, so the visitor's own new Days start
+ * from it too (the built-in one is not). Written with the first screen, before
+ * the visitor can open a Day (seed.ts).
+ */
+export async function seedDayTemplate(): Promise<void> {
+  await createDocument({ type: "template", title: "daily", folder: "Templates", body: DAY_TEMPLATE, fields: { forType: "daily" } });
+}
+
+async function seedJournal(c: LifeClock): Promise<void> {
   for (const [offset, text] of journalDays()) {
-    const d = await createDocument({ type: "daily", title: c.day(offset), body: day(text) });
+    // Got or made as the Journal does: the visitor may already have opened
+    // today's Day while this slice was written behind Home. Anything they
+    // typed there stays, under the seeded entry.
+    const before = await dailyNote(c.day(offset));
+    const typed = before && before.body.trim() !== DAY_TEMPLATE.trim() ? before.body : "";
+    const d = await ensureDailyNote(c.day(offset));
+    await patchDocument(d.id, { body: typed ? `${day(text)}\n${typed}` : day(text) });
     await madeOn(d.id, c.day(offset));
   }
 

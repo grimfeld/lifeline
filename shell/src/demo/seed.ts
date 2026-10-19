@@ -6,7 +6,7 @@ import { seedTracking } from "./life/tracking";
 import { seedMoney } from "./life/money";
 import { seedWork } from "./life/work";
 import { seedMedia } from "./life/media";
-import { seedWriting } from "./life/writing";
+import { seedDayTemplate, seedWriting } from "./life/writing";
 import { seedWindows } from "./life/windows";
 import { seedHome, seedOverviews } from "./life/screens";
 
@@ -25,6 +25,8 @@ async function seedFirstScreen(clock: LifeClock): Promise<void> {
   await ensureDefaultWorkspace();
   await seedAgenda(clock);
   await seedHome(clock);
+  // Before anything can open a Day, so a Day made then starts from it.
+  await seedDayTemplate();
 }
 
 /** The rest of the life, written while the visitor already looks at Home. */
