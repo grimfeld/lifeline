@@ -1,16 +1,17 @@
 import { useEffect } from "react";
-import { addDays, documentType, formatHuman, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, VAULT_FRAME, type AppManifest, type CardSettings } from "@lifeline/core";
-import { CalendarDays, FileText, LayoutTemplate, Lock, NotebookPen } from "lucide-react";
+import { addDays, documentType, formatHuman, migrateTypeTemplates, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, type AppManifest, type CardSettings } from "@lifeline/core";
+import { CalendarDays, CalendarRange, LayoutTemplate, Lock, NotebookPen, Shapes } from "lucide-react";
+import { PeriodScreen } from "./screens/PeriodScreen";
+import { JournalDocScreen, OldCollectionsRedirect, TypesScreen } from "./screens/TypesScreen";
+import { TemplatesScreen } from "./screens/TemplatesScreen";
 import { JournalScreen } from "./screens/JournalScreen";
-import { NotesScreen } from "./screens/NotesScreen";
 import { TodayJournalCard } from "./cards/TodayJournalCard";
 import { DaylogCard } from "./cards/DaylogCard";
 import { RecentNotesCard, useRecentTypeOptions } from "./cards/RecentNotesCard";
 import { noteCommands, useNotesCommands } from "./commands";
 import { registerNotesBridge } from "./data/bridge";
-import { migrateRootNotes } from "./data/migrate";
 import { noteTypes } from "./types";
-import { DAILY, NOTE, TEMPLATE } from "./domain/types";
+import { DAILY, MONTH, QUARTER, TEMPLATE, WEEK, YEAR } from "./domain/types";
 
 registerNotesBridge();
 import { PeopleCard, peopleTitle, usePeopleTypeOptions } from "./cards/PeopleCard";
@@ -30,7 +31,7 @@ import { SavedSearchCard, searchTitle } from "./cards/SavedSearchCard";
 const APP_ID = "notes";
 
 /** Type defs with their icons attached (icons live here so src/types.ts stays UI-free for tests). */
-const ICONS = { [DAILY]: CalendarDays, [NOTE]: FileText, [TEMPLATE]: LayoutTemplate, [PRIVATE_SETTINGS_TYPE]: Lock } as const;
+const ICONS = { [DAILY]: CalendarDays, [WEEK]: CalendarRange, [MONTH]: CalendarRange, [QUARTER]: CalendarRange, [YEAR]: CalendarRange, [TEMPLATE]: LayoutTemplate, [PRIVATE_SETTINGS_TYPE]: Lock } as const;
 const typesWithIcons = noteTypes.map((t) => ({ ...t, icon: ICONS[t.id as keyof typeof ICONS] }));
 
 const offsetKnob = { kind: "number" as const, label: "Day offset", default: 0, min: -365, max: 0 };
@@ -39,18 +40,28 @@ const offsetTitle = (base: string) => (s: CardSettings) => {
   return o === 0 ? base : o === -1 ? `${base} · yesterday` : `${base} · ${formatHuman(addDays(todayStr(), o))}`;
 };
 
-/** Notes App (ADR 0018/0019): owns the note, daily and template Document types; the Journal lives in the Vault. */
+/**
+ * The Journal App (ADR 0068; its id stays `notes` — Card ids live in synced
+ * layouts): Days, the review stretches, Templates, and the Journal's own
+ * writing interface. The Vault is only the raw editor now.
+ */
 export const notesApp: AppManifest = {
   id: APP_ID,
-  module: "notes",
-  title: "Notes",
+  module: "journal",
+  title: "Journal",
   icon: NotebookPen,
   color: "var(--chart-green)",
   types: typesWithIcons,
   screens: [
-    // The desk is a Dashboard index in Study beside Writings and Clippings; the Journal stays the Vault's (ADR 0045).
-    { id: "notes.desk", title: "Notes", path: "notes", icon: FileText, component: NotesScreen },
-    { id: "notes.journal", title: "Journal", path: "journal", icon: NotebookPen, component: JournalScreen, frame: VAULT_FRAME },
+    { id: "notes.journal", title: "Today", path: "journal", icon: NotebookPen, component: JournalScreen },
+    { id: "notes.period", title: "Review", path: "journal/p/:key", icon: CalendarRange, component: PeriodScreen, hidden: true },
+    { id: "notes.types", title: "Types", path: "journal/t", icon: Shapes, component: TypesScreen },
+    { id: "notes.type", title: "Type", path: "journal/t/:type", component: TypesScreen, hidden: true },
+    // The old "Collections" links, kept working.
+    { id: "notes.collections", title: "Collections", path: "journal/c", component: OldCollectionsRedirect, hidden: true },
+    { id: "notes.collection", title: "Collection", path: "journal/c/:type", component: OldCollectionsRedirect, hidden: true },
+    { id: "notes.templates", title: "Templates", path: "journal/templates", icon: LayoutTemplate, component: TemplatesScreen },
+    { id: "notes.doc", title: "Page", path: "journal/d/:id", component: JournalDocScreen, hidden: true },
   ],
   cards: [
     {
@@ -264,17 +275,16 @@ export const notesApp: AppManifest = {
   commands: noteCommands,
   useCommands: useNotesCommands,
   /**
-   * Once per launch: re-key a Private settings row saved under the old,
-   * unsyncable id (ADR 0038), and move Notes left loose at the root into the
-   * `Notes` Folder they now default to (ADR 0046).
+   * Once per launch: re-key a Private settings row saved under the old, unsyncable id (ADR 0038),
+   * and move a user-defined type's old body-template text into a Template (CONTEXT.md "Template").
    */
   useBackground: () => {
     useEffect(() => {
       void repairPrivateSettings().catch(() => {});
-      void migrateRootNotes().catch(() => {});
+      void migrateTypeTemplates().catch(() => {});
     }, []);
   },
 };
 
-export { NOTE, DAILY, TEMPLATE, type Note } from "./domain/types";
+export { DAILY, TEMPLATE, type Note } from "./domain/types";
 export { noteTypes } from "./types";

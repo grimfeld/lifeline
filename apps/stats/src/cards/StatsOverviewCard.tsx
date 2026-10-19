@@ -16,9 +16,9 @@ function Row({ stat, entries }: { stat: Stat; entries: Entry[] }) {
           <Flame className="size-3" style={{ color: s.color }} /> {s.streak}
         </span>
       )}
-      <span className="ml-auto shrink-0 text-sm font-medium tabular-nums">
+      <span className="ml-auto flex max-w-1/2 shrink-0 items-baseline text-sm font-medium tabular-nums">
         {s.big}
-        {s.unit && <span className="text-muted-foreground ml-1 text-xs font-normal">{s.unit}</span>}
+        {s.unit && <span className="text-muted-foreground ml-1 min-w-0 truncate text-xs font-normal">{s.unit}</span>}
       </span>
       <QuickLogButton stat={stat} entries={entries} className="size-6" />
     </li>

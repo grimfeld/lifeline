@@ -4,6 +4,7 @@ import { progressShell } from "./progress/ProgressModule";
 import { houseShell } from "./house/HouseModule";
 import { cultureShell } from "./culture/CultureModule";
 import { projectsShell } from "./projects/ProjectsModule";
+import { journalShell } from "./journal/JournalModule";
 
 /**
  * A hand-written Module (ADR 0057): its own chrome, and pages of its own. The
@@ -11,8 +12,8 @@ import { projectsShell } from "./projects/ProjectsModule";
  * screens, Cards, the Surfaces it embeds under its scope — and the Module owns
  * only the arrangement.
  *
- * A Module listed here replaces its stand-in. Note-taking is not listed: its
- * layout is the Vault, mounted at its own home (`ModuleDef.home`).
+ * A Module listed here replaces its stand-in. The Vault is no Module's layout
+ * any more (ADR 0068): it is Core's raw editor for bodies.
  */
 export interface ModuleShell {
   /**
@@ -33,4 +34,5 @@ export const MODULE_SHELLS: Record<string, ModuleShell> = {
   house: houseShell,
   culture: cultureShell,
   tasks: projectsShell,
+  journal: journalShell,
 };

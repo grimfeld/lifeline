@@ -3,7 +3,7 @@ import { Button, toast } from "@lifeline/ui";
 import { Plus } from "lucide-react";
 import { createDocument, docHref, useLinkIndex, type CardProps } from "@lifeline/core";
 import { unresolvedEntries } from "../domain/mentions";
-import { NOTE } from "../domain/types";
+import { THOUGHT } from "../domain/types";
 
 /** Card: [[links]] that resolve to nothing; "+" creates the note (knobs: count, sort). */
 export function UnresolvedCard({ settings }: CardProps) {
@@ -15,7 +15,7 @@ export function UnresolvedCard({ settings }: CardProps) {
 
   async function create(name: string) {
     try {
-      const n = await createDocument({ type: NOTE, title: name });
+      const n = await createDocument({ type: THOUGHT, title: name });
       navigate(docHref(n));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not create note");

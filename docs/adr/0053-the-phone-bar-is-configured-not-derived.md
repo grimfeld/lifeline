@@ -1,5 +1,7 @@
 # The Phone bar is configured, not derived
 
+> The two pinned time slots are one since ADR 0063: Calendar and Schedule merged into one Calendar Surface, and the freed cell is the user's. The rest stands.
+
 ADR 0049 gave the phone's bottom bar to the Workspace's Modules — `☰ · Home ·
 up to three Modules · +` — and said so in the strongest terms available: that
 this was "the whole of the 'different modules with their own navigation' ask

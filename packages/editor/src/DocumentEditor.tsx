@@ -1,38 +1,44 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { useOpenDocument } from "./openDocument";
+import { useOpenLinkRef } from "./openDocument";
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, cn, toast } from "@lifeline/ui";
 import {
   isLinkable,
   documentPanels,
   basePath,
   displayTitle,
-  docHref,
   documentToText,
   effectiveTags,
   extractProseTags,
+  fieldsOfDocument,
   formatHuman,
   geoOf,
   normalizeTag,
   putDocument,
   removeDocument,
+  restoreRole,
+  roleDef,
+  ROLES_KEY,
   singularOf,
   textToDocument,
   useIsMobile,
   useTagVocabulary,
+  wearableRoles,
+  withRoleFields,
+  wornRoles,
   writeGeo,
   type Document,
-  openPrivateDialog,
   type DocumentTypeDef,
   type LinkIndex,
-  type LinkRef,
 } from "@lifeline/core";
-import { BookOpen, Code2, Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Pencil, SlidersHorizontal, Table2, Trash2 } from "lucide-react";
+import { BookOpen, Code2, Shapes, Link2, MoreHorizontal, PanelRightClose, PanelRightOpen, Pencil, SlidersHorizontal, Table2, Trash2 } from "lucide-react";
 import { MarkdownEditor } from "./MarkdownEditor";
+import { bodyToEdit, createEchoes, noteStaged, noteWritten } from "./bodyEcho";
 import { ReadTimer } from "./ReadTimer";
 import { MarkdownView } from "./MarkdownView";
 import { FieldsForm } from "./FieldsForm";
 import { LinksPanel } from "./LinksPanel";
+import { DocumentReports } from "./Reports";
 import { LocalGraphPanel } from "./LocalGraphPanel";
 
 export interface DocumentEditorProps {
@@ -41,6 +47,8 @@ export interface DocumentEditorProps {
   index: LinkIndex;
   autoFocus?: boolean;
   showPanel?: boolean;
+  /** False when the host shows the links itself (the Journal's side column): no panel and no toggle for one. */
+  linksPanel?: boolean;
   /** The day a daylog fence defaults to (a daily note's date). */
   docDate?: string | null;
   /** What to do with an unresolved link the user opens. Default: create a `note` and open it. */
@@ -57,6 +65,8 @@ export interface DocumentEditorProps {
   save?: (next: Document) => Promise<unknown>;
   /** Delete the Document (default: removeDocument) — an App may cascade. */
   remove?: () => Promise<unknown>;
+  /** Nothing but the title and the page: the Fields and Tags strip is left out (a Manuscript's Focus). */
+  minimal?: boolean;
 }
 
 /**
@@ -65,9 +75,8 @@ export interface DocumentEditorProps {
  * the links panel. Saves are debounced. Text mode shows the frontmatter
  * projection; edits to guarded fields there are reverted with a notice.
  */
-export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn }: DocumentEditorProps) {
+export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, linksPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn, minimal = false }: DocumentEditorProps) {
   const navigate = useNavigate();
-  const openDoc = useOpenDocument();
   const isMobile = useIsMobile();
   const [panelOpen, setPanelOpen] = useState(showPanel);
   /** Phone: the panel is a right sheet, not a column — it starts closed whatever `showPanel` says. */
@@ -103,10 +112,8 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
   /** Pending edits not yet flushed. */
   const pending = useRef<Partial<Document>>({});
   const timer = useRef<number | null>(null);
-  /** The body the editor holds; ahead of the stored one until a write comes back. */
-  const editorBody = useRef<string | null>(null);
-  /** Bodies handed to the store and not read back yet (see `body` below). */
-  const written = useRef<string[]>([]);
+  /** Our own bodies on their way through the store (see `body` below). */
+  const echoes = useRef(createEchoes());
   const write = useCallback(async (next: Document) => {
     if (saveRef.current) await saveRef.current(next);
     else await putDocument(next as Document & { type: string });
@@ -119,12 +126,12 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
     if (Object.keys(pending.current).length === 0) return;
     const next = { ...docRef.current, ...pending.current } as Document;
     pending.current = {};
-    if (typeof next.body === "string") written.current = [...written.current, next.body].slice(-10);
+    if (typeof next.body === "string") noteWritten(echoes.current, typeof docRef.current.body === "string" ? docRef.current.body : "", next.body);
     void write(next);
   }, [write]);
   const stage = useCallback(
     (patch: Partial<Document>, immediate = false) => {
-      if (typeof patch.body === "string") editorBody.current = patch.body;
+      if (typeof patch.body === "string") noteStaged(echoes.current, patch.body);
       pending.current = { ...pending.current, ...patch };
       if (immediate) return flush();
       if (timer.current) window.clearTimeout(timer.current);
@@ -144,46 +151,37 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const openRef = useCallback(
-    (ref: LinkRef, name: string) => {
-      if (ref.kind === "doc") {
-        const d = index.byId.get(ref.id);
-        if (d) openDoc(d);
-        return;
-      }
-      if (ref.kind === "locked") return openPrivateDialog("unlock");
-      if (onCreateUnresolved) return onCreateUnresolved(name);
-      void putDocument({ type: "note", title: name, body: "" }).then((n) => {
-        toast.success(`Created “${name}”`);
-        navigate(docHref(n));
-      });
-    },
-    [index, navigate, openDoc, onCreateUnresolved],
-  );
+  const openRef = useOpenLinkRef(index, onCreateUnresolved);
   const context = useMemo(() => ({ docDate, openRef }), [docDate, openRef]);
 
   const stored = typeof doc.body === "string" ? doc.body : "";
-  /**
-   * The text the editor works on. The stored body lags behind the keystrokes
-   * for the length of a write's round trip, so a Document arriving with a body
-   * we ourselves wrote is our own write catching up, not news, and must not be
-   * pushed back into the editor — it would undo whatever was typed meanwhile
-   * (erasing characters fast used to fight the editor, the last one reappearing
-   * over and over as each save came back). Anything else — another device's
-   * edit, a Restore, text mode — is news and wins.
-   */
-  const body = (() => {
-    if (editorBody.current === null || stored === editorBody.current) {
-      written.current = [];
-      return stored;
-    }
-    if (typeof pending.current.body === "string" || written.current.includes(stored)) return editorBody.current;
-    editorBody.current = null;
-    written.current = [];
-    return stored;
-  })();
+  /** The text the editor works on: our own writes coming back are not news (`bodyEcho`). */
+  const body = bodyToEdit(echoes.current, stored, typeof pending.current.body === "string");
   const hasBody = (def?.body ?? "optional") !== "none";
-  const fields = def?.fields ?? [];
+  // A worn Role's Fields (ADR 0069) sit beside the type's own, everywhere the type's would.
+  const fields = useMemo(() => fieldsOfDocument(doc, def), [doc, def]);
+  const textDef = useMemo(() => withRoleFields(doc, def), [doc, def]);
+  const worn = wornRoles(doc);
+  const wearable = wearableRoles(doc, def);
+  const currentRoles = Array.isArray(doc[ROLES_KEY]) ? (doc[ROLES_KEY] as string[]) : [];
+  function putOnRole(roleId: string) {
+    stage({ [ROLES_KEY]: [...currentRoles, roleId] } as Partial<Document>, true);
+  }
+  /** Taking a Role off drops its own Fields; the toast's Undo puts them back. */
+  function takeOffRole(roleId: string) {
+    const role = roleDef(roleId);
+    if (!role) return;
+    const own = new Set((def?.fields ?? []).map((f) => f.key));
+    const dropped: Record<string, unknown> = {};
+    const patch: Record<string, unknown> = { [ROLES_KEY]: currentRoles.filter((r) => r !== roleId) };
+    for (const f of role.fields) {
+      if (own.has(f.key)) continue;
+      if (doc[f.key] !== undefined) dropped[f.key] = doc[f.key];
+      patch[f.key] = undefined;
+    }
+    stage(patch as Partial<Document>, true);
+    toast.success(`No longer ${/^[aeiou]/i.test(role.label) ? "an" : "a"} ${role.label}`, { action: { label: "Undo", onClick: () => void restoreRole(doc.id, roleId, dropped) } });
+  }
   /**
    * The header's controls come from the type (ADR 0045), so a Document is
    * never offered a control that can do nothing for it:
@@ -193,7 +191,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
    *   not a wikilink target (a Template) has none of.
    */
   const hasFields = fields.some((f) => !f.hidden);
-  const hasPanel = isLinkable(def) || !!def?.locatable;
+  const hasPanel = linksPanel && (isLinkable(def) || !!def?.locatable);
   const fieldValues = useMemo(() => {
     const out: Record<string, unknown> = {};
     for (const f of fields) out[f.key] = doc[f.key];
@@ -239,11 +237,11 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
     [index],
   );
   useEffect(() => {
-    if (mode === "text") setText(documentToText(doc, def, codec));
+    if (mode === "text") setText(documentToText(doc, textDef, codec));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
   function commitText() {
-    const { patch, rejected } = textToDocument(text, doc, def, codec);
+    const { patch, rejected } = textToDocument(text, doc, textDef, codec);
     if (rejected.length > 0) toast.message(`Guarded fields kept as they were: ${rejected.join(", ")}`);
     stage(patch as Partial<Document>, true);
   }
@@ -271,6 +269,9 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
           />
         </div>
       )}
+      <div className="mb-3 empty:hidden">
+        <DocumentReports index={index} def={def} docId={doc.id} />
+      </div>
       <div className="mb-3">
         <LocalGraphPanel docId={doc.id} index={index} onOpen={openRef} />
       </div>
@@ -349,6 +350,16 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
                 <DropdownMenuItem onClick={() => navigate(basePath(doc.type))}>
                   <Table2 /> Open {def?.label ?? "Base"}
                 </DropdownMenuItem>
+                {wearable.map((r) => (
+                  <DropdownMenuItem key={`on-${r.id}`} onClick={() => putOnRole(r.id)}>
+                    <Shapes /> Also {/^[aeiou]/i.test(r.label) ? "an" : "a"} {r.label}
+                  </DropdownMenuItem>
+                ))}
+                {worn.map((r) => (
+                  <DropdownMenuItem key={`off-${r.id}`} onClick={() => takeOffRole(r.id)}>
+                    <Shapes /> Not {/^[aeiou]/i.test(r.label) ? "an" : "a"} {r.label}
+                  </DropdownMenuItem>
+                ))}
                 <DropdownMenuItem variant="destructive" onClick={() => void remove()}>
                   <Trash2 /> Delete
                 </DropdownMenuItem>
@@ -371,7 +382,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
           </div>
         ) : (
           <>
-            <div className={cn("grid gap-2 border-b px-3 py-2 md:px-4", !detailsOpen && "max-md:hidden")}>
+            <div className={cn("grid gap-2 border-b px-3 py-2 md:px-4", !detailsOpen && "max-md:hidden", minimal && "hidden")}>
               {fields.some((f) => !f.hidden) && (
                 <FieldsForm def={{ fields }} value={fieldValues} allowGuarded={allowGuarded} onChange={(next) => stage(next as Partial<Document>)} />
               )}
@@ -398,7 +409,8 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, d
               </div>
             </div>
             {hasBody && (
-              <div className="flex min-h-0 flex-1 flex-col px-3 md:px-4">
+              // Names the Document, so selecting in its body — read or edited — can hand the passage off (ADR 0073).
+              <div className="flex min-h-0 flex-1 flex-col px-3 md:px-4" data-origin={doc.id}>
                 {mode === "read" ? (
                   <>
                     <div className="min-h-0 flex-1 overflow-y-auto py-3" onDoubleClick={() => setMode("edit")}>

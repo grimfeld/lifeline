@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Badge, Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
+import { Badge, Button, Input, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
-import { Camera, Inbox, Pencil, Plus, Tag, TriangleAlert } from "lucide-react";
+import { Inbox, Pencil, Plus, ReceiptText, Tag, TriangleAlert } from "lucide-react";
 import { MEASURE_UNIT, productHref, type Receipt, type Shop } from "../domain/types";
 import { changesIn, cheapest, formatUnitPrice, historiesByProduct, isUnmatched, linesByReceipt, observe, overallOf, spanStart, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
 import { formatCents } from "../domain/money";
@@ -10,7 +10,6 @@ import { useLines, useProducts, useReceipts, useShops } from "../data/repo";
 import { ProductDialog } from "../components/ProductDialog";
 import { ShopDialog } from "../components/ShopDialog";
 import { ReceiptDialog } from "../components/ReceiptDialog";
-import { ScanReceiptDialog } from "../components/ScanReceiptDialog";
 import { AddPriceDialog } from "../components/AddPriceDialog";
 import { shopColor } from "../components/PriceChart";
 
@@ -44,7 +43,6 @@ export function PricesScreen() {
   const [search, setSearch] = useState("");
   const [onlyUnmatched, setOnlyUnmatched] = useState(false);
   const [months, setMonths] = useState(6);
-  const [scanOpen, setScanOpen] = useState(false);
   const [priceOpen, setPriceOpen] = useState(false);
   const [newReceipt, setNewReceipt] = useState(false);
   const [openReceipt, setOpenReceipt] = useState<Receipt | null>(null);
@@ -97,39 +95,46 @@ export function PricesScreen() {
       <div className="flex flex-wrap items-center gap-2">
         <Tag className="size-5" />
         <h1 className="mr-auto text-lg font-semibold">Prices</h1>
-        <Button variant="outline" onClick={() => setPriceOpen(true)} disabled={products.length === 0 && shops.length === 0}>
-          <Plus /> Price
-        </Button>
-        <Button onClick={() => setScanOpen(true)}>
-          <Camera /> Scan receipt
-        </Button>
+        <PhoneDock>
+          <Button variant="outline" onClick={() => setPriceOpen(true)} disabled={products.length === 0 && shops.length === 0}>
+            <Plus /> Price
+          </Button>
+          <Button onClick={() => setNewReceipt(true)}>
+            <ReceiptText /> Receipt
+          </Button>
+        </PhoneDock>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams(v === "products" ? {} : { tab: v }, { replace: true })}>
-        <TabsList>
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="receipts">
-            Receipts
-            {unmatchedTotal > 0 && (
-              <Badge variant="destructive" className="ml-1.5 px-1.5">
-                {unmatchedTotal}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="change">Change</TabsTrigger>
-          <TabsTrigger value="shops">Shops</TabsTrigger>
-        </TabsList>
+        <PhoneDock order={1}>
+          <TabsList>
+            <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="receipts">
+              Receipts
+              {unmatchedTotal > 0 && (
+                <Badge variant="destructive" className="ml-1.5 px-1.5">
+                  {unmatchedTotal}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="change">Change</TabsTrigger>
+            <TabsTrigger value="shops">Shops</TabsTrigger>
+          </TabsList>
+        </PhoneDock>
 
         <TabsContent value="products" className="grid gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products…" className="w-56" />
-            <Button variant="outline" className="ml-auto" onClick={() => setNewProduct(true)}>
-              <Plus /> Product
-            </Button>
+          <div className="flex flex-wrap items-center gap-2 empty:hidden">
+            {/* Search and the product add lead the phone line; the receipt actions and tabs follow. */}
+            <PhoneDock order={-1}>
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products…" className="w-56 min-w-0 max-md:w-auto max-md:basis-40" />
+              <Button variant="outline" className="md:ml-auto" onClick={() => setNewProduct(true)}>
+                <Plus /> Product
+              </Button>
+            </PhoneDock>
           </div>
           {productRows.length === 0 ? (
             <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">
-              {products.length === 0 ? "No products yet. Scan a receipt, or add a product and a price by hand." : "Nothing matches."}
+              {products.length === 0 ? "No products yet. Add a receipt or a price, or have an agent read a receipt photo for you." : "Nothing matches."}
             </div>
           ) : (
             <ul className="divide-y rounded-md border">
@@ -168,12 +173,9 @@ export function PricesScreen() {
             <Button variant={onlyUnmatched ? "default" : "outline"} onClick={() => setOnlyUnmatched((v) => !v)} aria-pressed={onlyUnmatched}>
               <Inbox /> Unmatched
             </Button>
-            <Button variant="outline" className="ml-auto" onClick={() => setNewReceipt(true)} disabled={shops.length === 0}>
-              <Plus /> Receipt by hand
-            </Button>
           </div>
           {receiptRows.length === 0 ? (
-            <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">{receipts.length === 0 ? "No receipts yet — scan one." : "Nothing to show."}</div>
+            <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">{receipts.length === 0 ? "No receipts yet." : "Nothing to show."}</div>
           ) : (
             <ul className="divide-y rounded-md border">
               {receiptRows.map(({ r, ls, sum, mismatch, unmatched }) => (
@@ -278,7 +280,6 @@ export function PricesScreen() {
         </TabsContent>
       </Tabs>
 
-      <ScanReceiptDialog open={scanOpen} onOpenChange={setScanOpen} />
       <AddPriceDialog open={priceOpen} onOpenChange={setPriceOpen} />
       <ReceiptDialog open={newReceipt} onOpenChange={setNewReceipt} />
       <ReceiptDialog open={!!openReceipt} onOpenChange={(o) => !o && setOpenReceipt(null)} receipt={openReceipt} />

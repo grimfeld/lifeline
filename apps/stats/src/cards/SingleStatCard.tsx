@@ -10,6 +10,7 @@ import { colorVar, type Entry, type Period, type Stat } from "../domain/types";
 import {
   booleanHeadline,
   collectedItems,
+  collectionUniverse,
   currentStreak,
   dailySeries,
   formatValue,
@@ -71,7 +72,8 @@ function Body({ stat, entries, period }: { stat: Stat; entries: Entry[]; period:
       }
       case "collection": {
         const n = collectedItems(entries).length;
-        return { kind: stat.kind, n, universe: stat.universeSize, pct: stat.universeSize > 0 ? Math.min(100, (n / stat.universeSize) * 100) : null };
+        const universe = collectionUniverse(stat);
+        return { kind: stat.kind, n, universe, pct: universe > 0 ? Math.min(100, (n / universe) * 100) : null };
       }
     }
   }, [stat, entries, period]);

@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { Navigate, Route, Routes, useParams } from "react-router";
+import { Navigate, Route, Routes, useParams, useSearchParams } from "react-router";
 import { Toaster } from "@lifeline/ui";
 import {
   MODULES,
@@ -7,6 +7,7 @@ import {
   backgroundApps,
   ensureDefaultWorkspace,
   frames,
+  isDemo,
   screenRoute,
   screensOf,
   useCurrentWorkspaceId,
@@ -16,12 +17,11 @@ import {
 } from "@lifeline/core";
 import { Rail } from "./components/Rail";
 import { CommandPalette } from "./components/CommandPalette";
+import { AccountDialogs } from "./components/AccountDialogs";
 import { PrivateDialogs } from "./vault/PrivateDialogs";
-import { CalendarPage } from "./surfaces/CalendarPage";
-import { WeekPage } from "./surfaces/WeekPage";
+import { CalendarPage } from "./surfaces/CalendarSurface";
 import { MapPage } from "./surfaces/MapPage";
 import { GraphPage } from "./surfaces/GraphPage";
-import { SchedulePage } from "./surfaces/SchedulePage";
 import { PushProvider } from "./surfaces/push";
 import { UserScreenPage } from "./screens/UserScreenPage";
 import { ScreensIndex } from "./screens/ScreensIndex";
@@ -31,14 +31,23 @@ import { MobileNav } from "./mobile/MobileNav";
 import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
 import { ModulePage } from "./modules/ModulePage";
-import { ModuleLayout } from "./modules/ModuleLayout";
-import { lastPlace, useResume } from "./nav/resume";
+import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
+import { FALLBACK_PLACE, lastPlace, useResume } from "./nav/resume";
 import { PeekHost } from "./peek/PeekHost";
+import { SelectionIntake } from "./intake/SelectionIntake";
+import { DemoBanner, DemoFilling } from "./demo/DemoBanner";
 
 /** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
 function ResumeRedirect() {
   const workspaceId = useCurrentWorkspaceId();
   return <Navigate to={lastPlace(workspaceId)} replace />;
+}
+
+/** The Journal left the Vault for its own interface (ADR 0068): an old link lands on the same day. */
+function LegacyJournalRedirect() {
+  const [params] = useSearchParams();
+  const d = params.get("d");
+  return <Navigate to={`/app/journal${d ? `?d=${d}` : ""}`} replace />;
 }
 
 function LegacyNoteRedirect() {
@@ -49,6 +58,17 @@ function LegacyNoteRedirect() {
 function LegacyVaultRedirect() {
   const { "*": rest } = useParams();
   return <Navigate to={`/vault/${rest ?? ""}`.replace("/vault/n/", "/vault/d/")} replace />;
+}
+
+/**
+ * The Week planner and the Schedule are views of the Calendar now (ADR 0063):
+ * an old link lands on the matching view, the day kept.
+ */
+function LegacyTimeRedirect({ view }: { view: "week" | "schedule" }) {
+  const [params] = useSearchParams();
+  const d = params.get("d");
+  const to = view === "week" || params.get("view") === "week" ? "week" : "day";
+  return <Navigate to={`/calendar?view=${to}${d ? `&d=${d}` : ""}`} replace />;
 }
 
 /** A Core destination — a general Surface, the Bases, Screens, Settings: no chrome but the Rail's. */
@@ -92,10 +112,11 @@ function Places() {
           <Route
             key={f.id}
             path={`${f.path}/*`}
-            element={moduleId ? <ModuleLayout moduleId={moduleId} bare>{routes}</ModuleLayout> : <CorePage>{routes}</CorePage>}
+            element={moduleId ? <ModuleLayout moduleId={moduleId} bare>{routes}</ModuleLayout> : f.sidebar ? <FrameLayout frame={f} bare>{routes}</FrameLayout> : <CorePage>{routes}</CorePage>}
           />
         );
       })}
+      <Route path="/vault/journal" element={<LegacyJournalRedirect />} />
       <Route path="/module/:id/*" element={<ModulePage />} />
       {screensOf().map((s) => {
         const Component = s.component;
@@ -110,8 +131,8 @@ function Places() {
         );
       })}
       <Route path="/calendar" element={<CorePage><CalendarPage /></CorePage>} />
-      <Route path="/week" element={<CorePage><WeekPage /></CorePage>} />
-      <Route path="/schedule" element={<CorePage><SchedulePage /></CorePage>} />
+      <Route path="/week" element={<LegacyTimeRedirect view="week" />} />
+      <Route path="/schedule" element={<LegacyTimeRedirect view="schedule" />} />
       <Route path="/map" element={<CorePage><MapPage /></CorePage>} />
       <Route path="/graph" element={<CorePage><GraphPage /></CorePage>} />
       <Route path="/base" element={<CorePage><BasesIndex /></CorePage>} />
@@ -129,7 +150,8 @@ function Places() {
         .map((s) => (
           <Route key={`redirect-${s.id}`} path={`/app/${s.path}`} element={<Navigate to={screenRoute(s)} replace />} />
         ))}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Not `/`: the unknown path was just remembered as the last place, and resuming it would loop. */}
+      <Route path="*" element={<Navigate to={FALLBACK_PLACE} replace />} />
     </Routes>
   );
 }
@@ -157,6 +179,9 @@ export default function App() {
         {backgroundApps().map((a) => (
           <AppBackground key={a.id} app={a} />
         ))}
+        {/* Above everything, the Phone header included: ADR 0064 keeps banners at the top. */}
+        {isDemo() && <DemoBanner />}
+        {isDemo() && <DemoFilling />}
         <PhoneHeader />
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <Rail className="max-md:hidden" />
@@ -165,7 +190,10 @@ export default function App() {
         <MobileNav />
         <CommandPalette />
         <PeekHost />
+        <SelectionIntake />
         <PrivateDialogs />
+        {/* The Demo never signs in (ADR 0077): no sign-in, no signed-out notice, no account switch. */}
+        {!isDemo() && <AccountDialogs />}
         <Toaster position="bottom-right" />
       </div>
     </PushProvider>

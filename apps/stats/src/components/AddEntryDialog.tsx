@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
+import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import type { Entry, Stat } from "../domain/types";
-import { collectedItems, noonOf } from "../domain/aggregate";
-import { addEntry } from "../data/repo";
+import { checklist, noonOf } from "../domain/aggregate";
+import { addEntry, uncollectItem } from "../data/repo";
 
 function nowLocalInput(): string {
   const d = new Date();
@@ -11,7 +11,11 @@ function nowLocalInput(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-/** Log (or mark) an entry. Backdating is allowed: `ts` is when it happened. */
+/**
+ * Log (or mark) an entry. Backdating is allowed: `ts` is when it happened.
+ * A Collection with preset items is a checklist instead: ticking logs the item
+ * at "When", unticking deletes its entries (the item stays on the list).
+ */
 export function AddEntryDialog({
   open,
   onOpenChange,
@@ -21,14 +25,16 @@ export function AddEntryDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   stat: Stat;
-  /** This stat's entries — for the collection item autocomplete. */
+  /** This stat's entries — for what a checklist shows as ticked. */
   entries: Entry[];
 }) {
   const [value, setValue] = useState("");
   const [item, setItem] = useState("");
   const [when, setWhen] = useState(nowLocalInput());
   const [day, setDay] = useState(todayStr());
-  const known = useMemo(() => collectedItems(entries).map((i) => i.name), [entries]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const isChecklist = stat.kind === "collection" && stat.items.length > 0;
+  const rows = useMemo(() => (isChecklist ? checklist(stat.items, entries) : []), [isChecklist, stat.items, entries]);
 
   useEffect(() => {
     if (!open) return;
@@ -37,6 +43,17 @@ export function AddEntryDialog({
     setWhen(nowLocalInput());
     setDay(todayStr());
   }, [open, stat]);
+
+  async function toggle(name: string, collected: boolean) {
+    if (busy) return;
+    setBusy(name);
+    try {
+      if (collected) await uncollectItem(stat.id, name);
+      else await addEntry({ statId: stat.id, value: 1, item: name, ts: new Date(when).toISOString() });
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function submit() {
     if (stat.kind === "boolean") {
@@ -71,15 +88,27 @@ export function AddEntryDialog({
             </div>
           ) : (
             <>
-              {stat.kind === "collection" ? (
+              {isChecklist ? (
+                <ul className="-mx-1 grid max-h-[50vh] gap-0.5 overflow-y-auto">
+                  {rows.map((r) => {
+                    const collected = r.collectedAt !== null;
+                    const id = `entry-check-${r.name}`;
+                    return (
+                      <li key={r.name} className="hover:bg-accent/50 flex items-center gap-3 rounded-md px-1 py-1.5">
+                        <Checkbox id={id} checked={collected} disabled={busy === r.name} onCheckedChange={() => void toggle(r.name, collected)} />
+                        <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer text-sm">
+                          {r.name}
+                          {!r.listed && <span className="text-muted-foreground ml-1 text-xs">(not on the list)</span>}
+                        </label>
+                        {r.collectedAt && <span className="text-muted-foreground shrink-0 text-xs">{new Date(r.collectedAt).toLocaleDateString()}</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : stat.kind === "collection" ? (
                 <div className="grid gap-2">
                   <Label htmlFor="entry-item">Item</Label>
-                  <Input id="entry-item" list="entry-items" value={item} autoFocus onChange={(e) => setItem(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
-                  <datalist id="entry-items">
-                    {known.map((k) => (
-                      <option key={k} value={k} />
-                    ))}
-                  </datalist>
+                  <Input id="entry-item" autoComplete="off" value={item} autoFocus onChange={(e) => setItem(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
                 </div>
               ) : (
                 <div className="grid gap-2">
@@ -91,17 +120,23 @@ export function AddEntryDialog({
                 </div>
               )}
               <div className="grid gap-2">
-                <Label htmlFor="entry-when">When</Label>
+                <Label htmlFor="entry-when">{isChecklist ? "Ticked items are logged at" : "When"}</Label>
                 <Input id="entry-when" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
               </div>
             </>
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={() => void submit()}>{stat.kind === "boolean" ? "Mark" : "Log"}</Button>
+          {isChecklist ? (
+            <Button onClick={() => onOpenChange(false)}>Done</Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => void submit()}>{stat.kind === "boolean" ? "Mark" : "Log"}</Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

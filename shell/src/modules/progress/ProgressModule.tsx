@@ -1,26 +1,24 @@
 import { BarChart3, Dumbbell, PiggyBank, Smile, Sun, Trophy } from "lucide-react";
-import { ModuleCard } from "../ModuleCard";
-import { handModule, ModuleHomeHeader } from "../handModule";
+import { overviewPage } from "../Overview";
+import { handModule } from "../handModule";
 
 /**
- * Progress's home: everything logged today, on one page — the mood, the daily
- * marks, the workout to start, the jar. Each is its App's own Card; the page
- * is what no one of them could be, the day's logging in one place.
+ * Progress's Overview, "Today": everything logged today, on one page — the
+ * mood, the daily marks, the workout to start, the jar. Each is its App's own
+ * Card; the page is what no one of them could be, the day's logging in one
+ * place. The default; each Workspace may rearrange it (ADR 0066).
  */
-function ProgressToday() {
-  const day = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
-  return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-4 md:p-6">
-      <ModuleHomeHeader title="Today" subtitle={day} />
-      <div className="grid gap-4 md:grid-cols-2">
-        <ModuleCard cardId="mood.today" />
-        <ModuleCard cardId="stats.habits" />
-        <ModuleCard cardId="workout.start" />
-        <ModuleCard cardId="swearjar.jar" />
-      </div>
-    </div>
-  );
-}
+const ProgressToday = overviewPage({
+  moduleId: "progress",
+  title: "Today",
+  subtitle: () => new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }),
+  defaults: [
+    { cardId: "mood.today" },
+    { cardId: "stats.habits" },
+    { cardId: "workout.start" },
+    { cardId: "swearjar.jar" },
+  ],
+});
 
 /**
  * Progress (ADR 0057): Today first — what gets logged — then each App's own

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { NavLink } from "react-router";
-import { cn } from "@lifeline/ui";
+import { cn, PhoneDock } from "@lifeline/ui";
 import {
   appsOfModule,
   frames,
@@ -70,7 +70,33 @@ export function layoutOf(moduleId: string | undefined): FrameDef | undefined {
   return home ? frames().find((f) => f.path === home) : undefined;
 }
 
-/** The Vault as the Note-taking Module's layout: its own sidebar, and on the phone its Folder tabs above. */
+/**
+ * A frame's own layout: its sidebar, and on the phone its Module's tabs — or,
+ * for the Vault, which is no Module's layout any more (ADR 0068), its Folder
+ * tabs.
+ */
+export function FrameLayout({ frame, bare = false, children }: { frame: FrameDef; bare?: boolean; children: ReactNode }) {
+  const Sidebar = frame.sidebar;
+  return (
+    <>
+      <aside className="bg-sidebar text-sidebar-foreground flex w-72 shrink-0 flex-col border-r max-md:hidden">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <Sidebar />
+        </div>
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <PhoneDock slot="module">
+          <div className="flex gap-1 overflow-x-auto px-2 py-1.5 md:hidden">
+            <VaultTabs />
+          </div>
+        </PhoneDock>
+        <main className={cn("min-w-0 flex-1", bare ? "overflow-hidden" : "overflow-y-auto")}>{children}</main>
+      </div>
+    </>
+  );
+}
+
+/** A frame mounted at a Module's home as that Module's layout: its own sidebar, and the Module's tabs on the phone. */
 function FrameModuleLayout({ moduleId, frame, bare, children }: { moduleId: string; frame: FrameDef; bare: boolean; children: ReactNode }) {
   const Sidebar = frame.sidebar;
   return (
@@ -124,26 +150,26 @@ export function ModuleNav({ moduleId }: { moduleId: string }) {
 }
 
 /**
- * The Module's own navigation on the phone: at the **top** of the screen, never
- * in the Phone bar, which is Core's (ADR 0057). One scrolling row of its App
- * screens — and for Note-taking, the Vault's Folder tabs first.
+ * The Module's own navigation on the phone: in the **phone dock**, right above
+ * the Phone bar but never in it — the bar is Core's (ADR 0057). One scrolling
+ * row of its App screens — and for Note-taking, the Vault's Folder tabs first.
  */
 function ModuleTabs({ moduleId }: { moduleId: string }) {
   const screens = moduleScreens(moduleId);
-  const vault = moduleId === "notes";
-  if (!vault && screens.length < 2) return null;
+  if (screens.length < 2) return null;
   return (
-    <div className="flex shrink-0 gap-1 overflow-x-auto border-b px-2 py-1.5 md:hidden">
-      {vault && <VaultTabs />}
-      {screens.map((s) => {
-        const Icon = s.icon ?? LayoutDashboard;
-        return (
-          <NavLink key={s.id} to={screenRoute(s)} className={tabClass}>
-            <Icon className="size-3.5" /> {s.title}
-          </NavLink>
-        );
-      })}
-    </div>
+    <PhoneDock slot="module">
+      <div className="flex gap-1 overflow-x-auto px-2 py-1.5 md:hidden">
+        {screens.map((s) => {
+          const Icon = s.icon ?? LayoutDashboard;
+          return (
+            <NavLink key={s.id} to={screenRoute(s)} className={tabClass}>
+              <Icon className="size-3.5" /> {s.title}
+            </NavLink>
+          );
+        })}
+      </div>
+    </PhoneDock>
   );
 }
 
