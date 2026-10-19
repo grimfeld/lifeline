@@ -1,4 +1,5 @@
 export * from "./lib/utils";
+export { useCommitDraft } from "./lib/useCommitDraft";
 export * from "./components/ui/alert-dialog";
 export * from "./components/ui/badge";
 export * from "./components/ui/button";
@@ -9,6 +10,8 @@ export * from "./components/ui/combobox";
 export * from "./components/ui/dialog";
 export * from "./components/ui/dropdown-menu";
 export * from "./components/ui/field";
+export * from "./components/ui/commit-field";
+export * from "./components/ui/choice-field";
 export * from "./components/ui/input";
 export * from "./components/ui/label";
 export * from "./components/ui/popover";

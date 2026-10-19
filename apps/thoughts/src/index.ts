@@ -5,6 +5,7 @@ import { ThoughtScreen } from "./screens/ThoughtScreen";
 import { RecentThoughtsCard } from "./cards/RecentThoughtsCard";
 import { thoughtsCommands } from "./commands";
 import { thoughtTypeDef } from "./types";
+import { ThoughtPeek } from "./components/ThoughtPeek";
 import { THOUGHT_KINDS, kindLabel } from "./domain/types";
 
 /** Thoughts App (ADR 0068): what comes straight out of my head, kept as a stream. The Thoughts Module's only App. */
@@ -14,7 +15,7 @@ export const thoughtsApp: AppManifest = {
   title: "Thoughts",
   icon: Lightbulb,
   color: "var(--chart-yellow)",
-  types: [{ ...thoughtTypeDef, icon: Lightbulb }],
+  types: [{ ...thoughtTypeDef, icon: Lightbulb, peekEdit: ThoughtPeek }],
   screens: [
     { id: "thoughts.main", title: "Thoughts", path: "thoughts", icon: Lightbulb, component: ThoughtsScreen },
     { id: "thoughts.one", title: "Thought", path: "thoughts/:id", component: ThoughtScreen, hidden: true },

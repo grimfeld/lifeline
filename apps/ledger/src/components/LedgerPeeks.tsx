@@ -1,19 +1,21 @@
-import { useMemo, useState } from "react";
-import { Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, cn, toast } from "@lifeline/ui";
+import { useId, useMemo, useState } from "react";
+import { Badge, Button, Checkbox, CommitField, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, cn, toast } from "@lifeline/ui";
 import { todayStr, type Document } from "@lifeline/core";
-import { KIND_LABEL, type LedgerAccount, type LedgerCategory, type Transaction } from "../domain/types";
+import { ACCOUNT_FLAVORS, KIND_LABEL, type AccountFlavor, type LedgerAccount, type LedgerCategory, type Transaction } from "../domain/types";
 import { balanceOf, formatMonth, spentByCategory, targetFor, thisMonth } from "../domain/derive";
 import { touchesAccount } from "../domain/report";
-import { formatCents, formatSigned } from "../domain/money";
-import { categorizeTransaction, useAccounts, useAllocations, useCategories, useTransactions } from "../data/repo";
+import { editAmount, formatCents, formatSigned, parseAmount } from "../domain/money";
+import { categorizeTransaction, editAccount, editCategory, editTransaction, setAccountArchived, useAccounts, useAllocations, useCategories, useTransactions } from "../data/repo";
 import { TransactionEditorDialog } from "./TransactionEditorDialog";
 
 /**
- * The Ledger's Peeks (ADR 0057): a Transaction, an Account or a Category seen
- * from wherever a link to it was followed — the Vault, a Base, another Module
- * — with the operations worth doing without leaving: file a Transaction under
- * a Category, open it in the entry form. Core frames them with the title and
- * the way through to Money.
+ * The Ledger's Peeks (ADR 0057, editable by ADR 0085): a Transaction, an
+ * Account or a Category seen from wherever a link to it was followed — the
+ * Vault, a Base, another Module — its own Fields edited in place through the
+ * Ledger's operations, which check them as the entry form does. What is the
+ * Ledger's alone (a Transaction's kind, a Category's kind) is shown, and moves
+ * only through the entry form or an operation. Core frames them with the
+ * title and the way through to Money.
  */
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -25,62 +27,83 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
+/** A labelled pick from a list, written as soon as it is picked. */
+function PickField({ label, value, options, placeholder, onPick, className }: { label: string; value: string; options: { value: string; label: string }[]; placeholder?: string; onPick: (v: string) => Promise<unknown>; className?: string }) {
+  const id = useId();
+  return (
+    <div className="grid min-w-0 gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Select value={value || undefined} onValueChange={(v) => void onPick(v).catch((err: Error) => toast.error(`Couldn’t change the ${label.toLowerCase()}: ${err.message}`))}>
+        <SelectTrigger id={id} className={cn("w-full min-w-0", className)}>
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+/** A typed amount in cents — `empty` when nothing is typed and that is allowed — or the reason it is not one. */
+function cents(text: string, { signed = false, empty }: { signed?: boolean; empty?: number } = {}): number {
+  if (!text.trim() && empty !== undefined) return empty;
+  const c = parseAmount(text);
+  if (c === null) throw new Error("Type an amount, like 12,50");
+  if (!signed && c < 0) throw new Error("The amount can’t be negative");
+  return c;
+}
+
 export function TransactionPeek({ doc }: { doc: Document }) {
   const t = doc as Transaction;
   const accounts = useAccounts();
   const categories = useCategories();
   const [editing, setEditing] = useState(false);
-  const accountName = (id: string) => accounts.find((a) => a.id === id)?.title ?? "—";
   const categorizable = t.kind === "expense" || t.kind === "income";
   const choices = categories.filter((c) => c.kind === t.kind);
   const amount = t.kind === "adjustment" ? formatSigned(t.amount) : formatCents(t.amount);
+  const accountOptions = accounts.filter((a) => !a.archived || [t.accountId, t.fromAccountId, t.toAccountId].includes(a.id)).map((a) => ({ value: a.id, label: a.title }));
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-baseline gap-2">
-        <span className={cn("text-2xl font-semibold tabular-nums", t.kind === "income" && "text-emerald-500")}>
+        <span className={cn("text-2xl font-semibold tabular-nums", t.kind === "income" && "text-success")}>
           {t.kind === "expense" ? "−" : t.kind === "income" ? "+" : ""}
           {amount}
         </span>
         <Badge variant="secondary">{KIND_LABEL[t.kind]}</Badge>
       </div>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
-        <Row label="Day">{t.date}</Row>
-        {t.payee && <Row label="Payee">{t.payee}</Row>}
-        {t.kind === "transfer" ? (
-          <Row label="Accounts">
-            {accountName(t.fromAccountId)} → {accountName(t.toAccountId)}
-          </Row>
-        ) : (
-          <Row label="Account">{accountName(t.accountId)}</Row>
-        )}
-        {t.note && <Row label="Note">{t.note}</Row>}
-      </dl>
-      {categorizable && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-muted-foreground text-xs font-medium">Category</span>
-          <Select
-            value={t.categoryId || undefined}
-            onValueChange={(v) =>
-              void categorizeTransaction(t.id, v).then(() => toast.success(`Filed under ${categories.find((c) => c.id === v)?.title ?? "category"}`))
-            }
-          >
-            <SelectTrigger className={cn("w-full", !t.categoryId && "border-amber-500/60")}>
-              <SelectValue placeholder="Uncategorized — choose one" />
-            </SelectTrigger>
-            <SelectContent>
-              {choices.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.group ? `${c.group} · ${c.title}` : c.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="grid grid-cols-2 gap-3">
+        <CommitField label="Amount" inputMode="decimal" value={editAmount(Number(t.amount) || 0)} onCommit={(text) => editTransaction(t, { amount: cents(text, { signed: t.kind === "adjustment" }) })} />
+        <CommitField label="Day" type="date" value={t.date ?? ""} onCommit={(date) => editTransaction(t, { date })} />
+      </div>
+      {t.kind !== "transfer" && <CommitField label="Payee" value={t.payee ?? ""} placeholder="Albert Heijn" onCommit={(payee) => editTransaction(t, { payee })} />}
+      {t.kind === "transfer" ? (
+        <div className="grid grid-cols-2 gap-3">
+          <PickField label="From" value={t.fromAccountId} options={accountOptions} placeholder="Account" onPick={(fromAccountId) => editTransaction(t, { fromAccountId })} />
+          <PickField label="To" value={t.toAccountId} options={accountOptions} placeholder="Account" onPick={(toAccountId) => editTransaction(t, { toAccountId })} />
         </div>
+      ) : (
+        <PickField label="Account" value={t.accountId} options={accountOptions} placeholder="Account" onPick={(accountId) => editTransaction(t, { accountId })} />
       )}
+      {categorizable && (
+        <PickField
+          label="Category"
+          value={t.categoryId}
+          options={choices.map((c) => ({ value: c.id, label: c.group ? `${c.group} · ${c.title}` : c.title }))}
+          placeholder="Uncategorized — choose one"
+          className={cn(!t.categoryId && "border-warning")}
+          onPick={(v) => categorizeTransaction(t.id, v).then(() => toast.success(`Filed under ${categories.find((c) => c.id === v)?.title ?? "category"}`))}
+        />
+      )}
+      <CommitField label="Note" multiline value={t.note ?? ""} onCommit={(note) => editTransaction(t, { note })} />
       <div>
         <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-          Edit…
+          Kind, tags, delete…
         </Button>
       </div>
       <TransactionEditorDialog open={editing} onOpenChange={setEditing} transaction={t} />
@@ -109,6 +132,10 @@ export function AccountPeek({ doc }: { doc: Document }) {
         </Badge>
         {a.archived && <Badge variant="outline">archived</Badge>}
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <PickField label="Kind" value={a.flavor} options={ACCOUNT_FLAVORS.map((f) => ({ value: f, label: f }))} className="capitalize" onPick={(flavor) => editAccount(a, { flavor: flavor as AccountFlavor })} />
+        <CommitField label="Opening balance" inputMode="decimal" value={editAmount(Number(a.openingBalance) || 0)} onCommit={(text) => editAccount(a, { openingBalance: cents(text, { signed: true, empty: 0 }) })} />
+      </div>
       <div className="flex flex-col gap-1">
         <span className="text-muted-foreground text-xs font-medium">Latest</span>
         {recent.length === 0 ? (
@@ -119,11 +146,17 @@ export function AccountPeek({ doc }: { doc: Document }) {
               <li key={t.id} className="flex justify-between gap-3 border-b py-1 last:border-0">
                 <span className="text-muted-foreground w-20 shrink-0 tabular-nums">{t.date}</span>
                 <span className="min-w-0 flex-1 truncate">{t.payee || KIND_LABEL[t.kind]}</span>
-                <span className="tabular-nums">{t.kind === "adjustment" ? formatSigned(t.amount) : formatCents(t.amount)}</span>
+                <span className="shrink-0 tabular-nums">{t.kind === "adjustment" ? formatSigned(t.amount) : formatCents(t.amount)}</span>
               </li>
             ))}
           </ul>
         )}
+      </div>
+      <div>
+        {/* Archived is the Ledger's (guarded): it moves only through this operation. */}
+        <Button size="sm" variant="outline" onClick={() => void setAccountArchived(a.id, !a.archived).then(() => toast.success(a.archived ? "Account back in use" : "Account archived"))}>
+          {a.archived ? "Unarchive" : "Archive"}
+        </Button>
       </div>
     </div>
   );
@@ -143,9 +176,18 @@ export function CategoryPeek({ doc }: { doc: Document }) {
         <Badge variant="secondary" className="capitalize">
           {c.kind}
         </Badge>
-        {c.group && <span>{c.group}</span>}
         {c.accumulating && <Badge variant="outline">accumulating</Badge>}
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <CommitField label="Group" value={c.group ?? ""} placeholder="Fixed costs" onCommit={(group) => editCategory(c, { group })} />
+        <CommitField label="Monthly target" inputMode="decimal" value={c.target ? editAmount(Number(c.target) || 0) : ""} placeholder="400" onCommit={(text) => editCategory(c, { target: cents(text, { empty: 0 }) })} />
+      </div>
+      {c.kind === "expense" && (
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox checked={!!c.accumulating} onCheckedChange={(v) => void editCategory(c, { accumulating: v === true })} />
+          Accumulating — unspent target rolls into next month
+        </label>
+      )}
       {c.kind === "expense" && (
         <div className="flex flex-col gap-1">
           <span className="text-muted-foreground text-xs font-medium capitalize">{formatMonth(month)}</span>

@@ -3,9 +3,9 @@ import { useNavigate, useSearchParams } from "react-router";
 import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, PhoneDock, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import { Dumbbell, MoreHorizontal, Pencil, Play, Plus, Trash2, Trophy } from "lucide-react";
-import { describeBlock, describeWorkout } from "../domain/intervals";
+import { describeBlock, describeWorkout, resultsSummary } from "../domain/intervals";
 import { formatMeasure, prOf } from "../domain/prs";
-import { MODE_LABEL, WORKOUT_HREF, type Exercise, type Session, type Workout } from "../domain/types";
+import { WORKOUT_HREF, type Exercise, type Session, type Workout } from "../domain/types";
 import { deleteExercise, deleteSession, deleteWorkout, useExercises, useSessions, useWorkouts } from "../data/repo";
 import { WorkoutEditorDialog } from "../components/WorkoutEditorDialog";
 import { ExerciseEditorDialog } from "../components/ExerciseEditorDialog";
@@ -109,14 +109,7 @@ function ExerciseRow({ e, sessions, onEdit }: { e: Exercise; sessions: Session[]
 
 function SessionRow({ s, workouts, exercises }: { s: Session; workouts: Map<string, Workout>; exercises: Map<string, Exercise> }) {
   const w = workouts.get(s.workoutId);
-  const summary = s.results
-    .map((r) => {
-      const label = w?.blocks.find((b) => b.id === r.blockId)?.label || MODE_LABEL[r.mode];
-      if (r.mode === "amrap") return `${label} ${r.rounds ?? 0}${r.extraReps ? `+${r.extraReps}` : ""}`;
-      if (r.mode === "fortime") return `${label} ${r.seconds === null ? "cap" : `${Math.floor(r.seconds / 60)}:${String(r.seconds % 60).padStart(2, "0")}`}`;
-      return `${label} ${r.rounds ?? "?"} rds`;
-    })
-    .join(" · ");
+  const summary = resultsSummary(s, w);
   return (
     <Card className="py-3">
       <CardContent className="flex items-center gap-3 px-4">

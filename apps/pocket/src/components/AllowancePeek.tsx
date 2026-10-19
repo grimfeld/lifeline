@@ -1,25 +1,34 @@
 import { useState } from "react";
-import { Button, cn } from "@lifeline/ui";
+import { Button, CommitField, cn } from "@lifeline/ui";
 import { todayStr, type Document } from "@lifeline/core";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { faceColor, type Allowance } from "../domain/types";
 import { jarLevel, spendsOf } from "../domain/derive";
 import { daysLeft, periodLabel } from "../domain/period";
-import { formatCents } from "../domain/money";
-import { useSpends } from "../data/repo";
+import { editAmount, formatCents, parseAmount } from "../domain/money";
+import { updateAllowance, useSpends, type AllowanceInput } from "../data/repo";
+import { AllowanceEditorDialog } from "./AllowanceEditorDialog";
 import { Jar } from "./Jar";
 import { SpendDialog } from "./SpendDialog";
 
+/** One or more of an Allowance's own Fields written through `updateAllowance`, which checks them and re-derives the title. */
+function save(a: Allowance, patch: Partial<AllowanceInput>): Promise<void> {
+  return updateAllowance(a, { name: a.name, period: a.period, from: a.from, to: a.to, amount: a.amount, emoji: a.emoji, color: a.color, tags: a.tags, ...patch });
+}
+
 /**
- * Pocket's Peek (ADR 0057): an Allowance seen from wherever a link to it was
- * followed — a daily note's "Eating out · September 2026", a Base — with what
- * is left, how long it has to last, and the one operation that matters: spend
- * from it, without leaving.
+ * Pocket's Peek (ADR 0057, editable by ADR 0085): an Allowance seen from
+ * wherever a link to it was followed — a daily note's "Eating out · September
+ * 2026", a Base — with what is left, how long it has to last, and the one
+ * operation that matters: spend from it, without leaving. Its name and amount
+ * are edited in place; its period (guarded: snapped to the period's first
+ * day) and face in the Allowance's own dialog.
  */
 export function AllowancePeek({ doc }: { doc: Document }) {
   const a = doc as Allowance;
   const spends = useSpends();
   const [spending, setSpending] = useState(false);
+  const [editing, setEditing] = useState(false);
   const own = spendsOf(a.id, spends);
   const spent = own.reduce((s, x) => s + x.amount, 0);
   const left = a.amount - spent;
@@ -39,9 +48,25 @@ export function AllowancePeek({ doc }: { doc: Document }) {
           </span>
         </div>
       </div>
-      <div>
+      <div className="grid grid-cols-2 gap-3">
+        <CommitField label="Name" value={a.name} onCommit={(name) => save(a, { name })} />
+        <CommitField
+          label="Amount"
+          inputMode="decimal"
+          value={editAmount(a.amount)}
+          onCommit={(text) => {
+            const cents = parseAmount(text);
+            if (cents === null || cents <= 0) throw new Error("Amount must be above zero");
+            return save(a, { amount: cents });
+          }}
+        />
+      </div>
+      <div className="flex flex-wrap gap-2">
         <Button size="sm" onClick={() => setSpending(true)}>
           <Plus /> Spend
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+          <Pencil /> Period and face…
         </Button>
       </div>
       <div className="flex flex-col gap-1">
@@ -61,6 +86,7 @@ export function AllowancePeek({ doc }: { doc: Document }) {
         )}
       </div>
       <SpendDialog open={spending} onOpenChange={setSpending} allowanceId={a.id} />
+      <AllowanceEditorDialog open={editing} onOpenChange={setEditing} allowance={a} spendCount={own.length} />
     </div>
   );
 }

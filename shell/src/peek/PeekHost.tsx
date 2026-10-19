@@ -1,33 +1,44 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Button, Sheet, SheetClose, SheetContent, SheetTitle } from "@lifeline/ui";
-import { MarkdownView } from "@lifeline/editor";
+import { Button, Sheet, SheetClose, SheetContent, SheetTitle, Tip, cn } from "@lifeline/ui";
 import {
+  backPeek,
   closePeek,
+  InPeekContext,
   displayTitle,
   docHref,
   homeModuleOf,
+  isModShortcut,
   moduleById,
   singularOf,
   useDocument,
   useDocumentType,
   useIsMobile,
-  useLinkIndex,
   usePeekedId,
+  usePeekStack,
   vaultDocPath,
   type Document,
   type DocumentTypeDef,
-  fieldsOfDocument,
 } from "@lifeline/core";
-import { ArrowUpRight, NotebookPen, X } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, BookOpen, NotebookPen, Pencil, X } from "lucide-react";
+import { PeekContent } from "./PeekContent";
 
 /**
  * The **Peek** (ADR 0057): one Document opened where the user is — over the
  * Vault, a general Surface, a Base, another Module — so that following a link
- * never throws them out of what they were doing. The body is the owning App's
- * (`DocumentTypeDef.peek`) or, failing one, Core's plain fields; the frame is
+ * never throws them out of what they were doing. What it shows is
+ * `PeekContent`'s (the owner's part and the user's own Fields, ADR 0085); the frame is
  * Core's, with the ways through: to the Document's Home Module, and to the
  * Vault where its body is written.
+ *
+ * Following a link inside it replaces what it shows, with a back control in
+ * its header (ADR 0085): a Peek never opens over another Peek.
+ *
+ * Its body is read until the user asks to write it — ✎ in the header, or
+ * `⌘E` inside the Peek — and then written with the Vault's editor. Writing is
+ * the Document's: it ends when the Peek closes or moves to another one, so a
+ * Peek always opens to read. While writing, the panel widens on the desk (the
+ * page behind still shows) and the sheet takes the phone's whole height.
  *
  * A side panel on the desk, a bottom sheet on the phone. Mounted once.
  */
@@ -37,49 +48,86 @@ export function PeekHost() {
   const def = useDocumentType(doc?.type);
   const isMobile = useIsMobile();
   const location = useLocation();
+  /** The Document whose body is being written; any other (or none) is read. */
+  const [writingId, setWritingId] = useState<string | null>(null);
+  const writable = !!doc && def?.body !== "none";
+  const writing = writable && writingId === doc.id;
+  const toggleWriting = () => doc && setWritingId(writing ? null : doc.id);
 
   // Going anywhere closes it: the Peek belongs to the place it was opened over.
   useEffect(() => {
     closePeek();
   }, [location.pathname]);
+  // Closed, it opens to read next time — even on the same Document.
+  useEffect(() => {
+    if (!id) setWritingId(null);
+  }, [id]);
 
   return (
     <Sheet open={!!id} onOpenChange={(o) => !o && closePeek()}>
       <SheetContent
         aria-describedby={undefined}
         side={isMobile ? "bottom" : "right"}
-        className={isMobile ? "max-h-[80dvh] gap-0 p-0" : "w-full gap-0 p-0 sm:max-w-md"}
+        className={
+          isMobile
+            ? cn("gap-0 p-0", writing ? "h-dvh max-h-dvh rounded-t-none" : "max-h-[80dvh]")
+            : cn("w-full gap-0 p-0", writing ? "sm:max-w-2xl" : "sm:max-w-md")
+        }
+        // The Peek's own ⌘E: the page's editor behind it leaves a key from in here alone.
+        onKeyDown={(e) => {
+          if (writable && isModShortcut(e.nativeEvent, "e")) {
+            e.preventDefault();
+            toggleWriting();
+          }
+        }}
       >
-        {doc ? (
-          <PeekBody doc={doc} def={def} />
-        ) : (
-          <>
-            <SheetTitle className="sr-only">Peek</SheetTitle>
-            <p className="text-muted-foreground p-6 text-sm">This document is gone.</p>
-          </>
-        )}
+        {/* Links followed in here replace what the Peek shows (ADR 0085). */}
+        <InPeekContext.Provider value={true}>
+          {doc ? (
+            <PeekBody key={doc.id} doc={doc} def={def} writing={writing} onToggleWriting={writable ? toggleWriting : undefined} />
+          ) : (
+            <>
+              <div className="absolute top-2 right-10">
+                <PeekBack />
+              </div>
+              <SheetTitle className="sr-only">Peek</SheetTitle>
+              <p className="text-muted-foreground p-6 text-sm">This document is gone.</p>
+            </>
+          )}
+        </InPeekContext.Provider>
       </SheetContent>
     </Sheet>
   );
 }
 
-function PeekBody({ doc, def }: { doc: Document; def: DocumentTypeDef | undefined }) {
+function PeekBody({ doc, def, writing, onToggleWriting }: { doc: Document; def: DocumentTypeDef | undefined; writing: boolean; onToggleWriting?: () => void }) {
   const navigate = useNavigate();
   const home = moduleById(homeModuleOf(doc));
   const href = docHref(doc, def);
   const vault = vaultDocPath(doc.id);
   const writable = def?.body !== "none";
   const Icon = def?.icon;
-  const AppPeek = def?.peek;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="relative flex flex-col gap-1 border-b px-4 pt-4 pb-3 pr-10">
-        <SheetClose asChild>
-          <Button variant="ghost" size="icon" className="absolute top-2 right-2 size-8" title="Close">
-            <X />
-          </Button>
-        </SheetClose>
+      <div className="relative flex flex-col gap-1 border-b px-4 pt-4 pb-3 pr-26">
+        <div className="absolute top-2 right-2 flex items-center">
+          <PeekBack />
+          {onToggleWriting && (
+            <Tip label={writing ? "Read (⌘E)" : "Write (⌘E)"}>
+              <Button variant="ghost" size="icon-sm" aria-label={writing ? "Read" : "Write"} aria-pressed={writing} onClick={onToggleWriting}>
+                {writing ? <BookOpen /> : <Pencil />}
+              </Button>
+            </Tip>
+          )}
+          <Tip label="Close">
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon-sm">
+                <X />
+              </Button>
+            </SheetClose>
+          </Tip>
+        </div>
         <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
           {Icon && <Icon className="size-3.5" />}
           {def ? singularOf(def) : doc.type}
@@ -87,7 +135,9 @@ function PeekBody({ doc, def }: { doc: Document; def: DocumentTypeDef | undefine
         </div>
         <SheetTitle className="px-0 pt-0 text-base leading-snug">{displayTitle(doc, def)}</SheetTitle>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">{AppPeek ? <AppPeek doc={doc} /> : <GenericPeek doc={doc} def={def} />}</div>
+      <div className={cn("min-h-0 flex-1 overflow-y-auto px-4 py-3", writing && "flex flex-col")}>
+        <PeekContent doc={doc} def={def} writing={writing} onWrite={onToggleWriting && !writing ? onToggleWriting : undefined} />
+      </div>
       <div className="flex flex-wrap gap-2 border-t px-4 py-3">
         <Button size="sm" onClick={() => navigate(href)}>
           <ArrowUpRight /> {home ? `Open in ${home.title}` : "Open"}
@@ -102,32 +152,15 @@ function PeekBody({ doc, def }: { doc: Document; def: DocumentTypeDef | undefine
   );
 }
 
-/** Core's Peek for a type whose App brings none: the plain fields, and the body read-only. */
-function GenericPeek({ doc, def }: { doc: Document; def: DocumentTypeDef | undefined }) {
-  const index = useLinkIndex();
-  const fields = fieldsOfDocument(doc, def).filter((f) => !f.hidden && doc[f.key] !== undefined && doc[f.key] !== null && doc[f.key] !== "");
-  const body = typeof doc.body === "string" ? doc.body : "";
+/** Back to what the Peek showed before a link was followed in it; only there when there is a before. */
+function PeekBack() {
+  const stack = usePeekStack();
+  if (stack.length < 2) return null;
   return (
-    <div className="flex flex-col gap-3">
-      {fields.length > 0 && (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-          {fields.map((f) => (
-            <div key={f.key} className="contents">
-              <dt className="text-muted-foreground">{f.label}</dt>
-              <dd className="min-w-0 break-words">{formatValue(doc[f.key])}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-      {doc.tags && doc.tags.length > 0 && <div className="text-muted-foreground text-xs">{doc.tags.map((t) => `#${t}`).join(" ")}</div>}
-      {body && <MarkdownView body={body} index={index} compact docDate={doc.type === "daily" ? doc.title : null} origin={doc.id} />}
-      {fields.length === 0 && !body && <p className="text-muted-foreground text-sm">Nothing more to show here.</p>}
-    </div>
+    <Tip label="Back">
+      <Button variant="ghost" size="icon-sm" onClick={backPeek}>
+        <ArrowLeft />
+      </Button>
+    </Tip>
   );
-}
-
-function formatValue(v: unknown): string {
-  if (Array.isArray(v)) return v.join(", ");
-  if (typeof v === "boolean") return v ? "Yes" : "No";
-  return String(v);
 }

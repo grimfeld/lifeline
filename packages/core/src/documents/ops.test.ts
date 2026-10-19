@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { defaultTemplateFor, planFolderRename, templatesFor } from "./ops";
-import type { Document } from "./types";
+import { defaultTemplateFor, onlyTemplateFor, planFolderRename, templateStartsFor, templatesFor } from "./ops";
+import type { Document, DocumentTypeDef } from "./types";
 
 const tpl = (id: string, title: string, forType?: string): Document =>
   ({ id, type: "template", title, body: `# ${title}`, tags: [], folder: "Templates", createdAt: "2026-01-01", updatedAt: "", deleted: 0, ...(forType ? { forType } : {}) }) as Document;
@@ -18,6 +18,44 @@ describe("templatesFor", () => {
     expect(defaultTemplateFor("daily", docs)?.id).toBe("a");
     expect(defaultTemplateFor("note", docs)?.id).toBe("c");
     expect(defaultTemplateFor("daily", [tpl("b", "Gratitude day", "daily"), tpl("e", "Short day", "daily")])).toBeUndefined();
+  });
+});
+
+describe("onlyTemplateFor (quick make)", () => {
+  it("is the type's Template when it has exactly one, and none when it has several or none", () => {
+    expect(onlyTemplateFor("person", [tpl("p", "Someone", "person"), tpl("c", "Meeting", "note")])?.id).toBe("p");
+    // Even one titled by the type id is not picked over another: quick make asks nothing, so it takes no side.
+    expect(onlyTemplateFor("daily", [tpl("a", "daily"), tpl("b", "Gratitude day", "daily")])).toBeUndefined();
+    expect(onlyTemplateFor("place", [tpl("c", "Meeting", "note")])).toBeUndefined();
+  });
+});
+
+describe("templateStartsFor (an empty body in a Peek, ADR 0085)", () => {
+  const body = (id: string, title: string, text: string, forType: string): Document => ({ ...tpl(id, title, forType), body: text }) as Document;
+  const marie = { id: "m", type: "person", title: "Marie", body: "", tags: [] } as unknown as Document;
+  const person = { id: "person", label: "People", builtIn: false } as unknown as DocumentTypeDef;
+  const now = new Date(2026, 9, 19, 9, 5);
+
+  it("offers each of the type's Templates, filled for this Document", () => {
+    const docs = [body("a", "Friend", "# {{title}}\nMet on {{date}} at {{time}}", "person"), body("b", "Colleague", "Works at", "person"), body("c", "Meeting", "x", "note")];
+    expect(templateStartsFor(marie, person, docs, now)).toEqual([
+      { id: "a", title: "Friend", body: "# Marie\nMet on 2026-10-19 at 09:05" },
+      { id: "b", title: "Colleague", body: "Works at" },
+    ]);
+  });
+
+  it("dates a Day's Template by the Day itself", () => {
+    const day = { id: "d", type: "daily", title: "2026-03-01", body: "", tags: [] } as unknown as Document;
+    const daily = { id: "daily", label: "Days", builtIn: true, titleRule: "date" } as unknown as DocumentTypeDef;
+    expect(templateStartsFor(day, daily, [body("a", "Gratitude", "{{date}}", "daily")], now)).toEqual([{ id: "a", title: "Gratitude", body: "2026-03-01" }]);
+  });
+
+  it("offers a built-in's own default only when it has no Templates, and nothing for a user type without any", () => {
+    const note = { id: "c", type: "note", title: "Idea", body: "", tags: [] } as unknown as Document;
+    const noteDef = { id: "note", label: "Notes", builtIn: true, template: "## {{title}}" } as unknown as DocumentTypeDef;
+    expect(templateStartsFor(note, noteDef, [], now)).toEqual([{ id: "", title: "Default", body: "## Idea" }]);
+    expect(templateStartsFor(note, noteDef, [body("t", "Meeting", "Agenda", "note")], now)).toEqual([{ id: "t", title: "Meeting", body: "Agenda" }]);
+    expect(templateStartsFor(marie, person, [], now)).toEqual([]);
   });
 });
 

@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
+import { selectText } from "./support/selection";
 
 /**
  * Every screen of the app, at phone and desktop width (the `mobile` and
@@ -172,6 +173,34 @@ async function pickerWithWorkspaces(page: Page) {
   await page.getByRole("combobox", { name: "Workspace" }).waitFor();
 }
 
+/**
+ * A Peek (ADR 0085) of the first Document of `type`, opened over the page —
+ * with, when `userField` is given, a long-labelled Field of the user's added
+ * to that (built-in) type first, so it is drawn beneath the App's part.
+ * `write` turns its body's writing on, as ✎ does.
+ */
+function peekOf(type: string, userField?: boolean, write?: boolean) {
+  return async (page: Page) => {
+    await workLocally(page);
+    await page.evaluate(
+      async ({ coreUrl, type, userField, label }) => {
+        const core = await import(/* @vite-ignore */ coreUrl);
+        if (userField) await core.saveDocumentType({ typeId: type, label: "Books", icon: "book", folder: "", order: 0, fields: [{ key: "lentTo", label, kind: "text" }] });
+        for (let i = 0; i < 50 && userField && !core.documentType(type)?.fields.some((f: { key: string }) => f.key === "lentTo"); i++) await new Promise((r) => setTimeout(r, 100));
+        const [doc] = await core.documentsOf(type);
+        if (userField) await core.patchDocument(doc.id, { lentTo: label });
+        core.openPeek(doc.id);
+      },
+      { coreUrl: CORE_URL, type, userField: !!userField, label: longText("Lent to") },
+    );
+    await page.getByRole("dialog").waitFor();
+    if (write) {
+      await page.getByRole("dialog").getByRole("button", { name: "Write", exact: true }).click();
+      await page.getByRole("dialog").locator(".cm-content").waitFor();
+    }
+  };
+}
+
 /** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
 const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
 
@@ -183,6 +212,56 @@ async function sharedAndSaved(page: Page) {
   await page.getByRole("button", { name: "Open the Task" }).click();
   await page.getByRole("dialog", { name: "New task" }).getByRole("button", { name: "Add task" }).click();
   await page.getByRole("button", { name: "Go back" }).waitFor();
+}
+
+/**
+ * Today's Day naming a seeded Person with a very long title (of the seeded
+ * type with a very long label), that name selected and the Selection menu
+ * open: Link first, then every Intake under its Module. A second Person, also
+ * very long, is there for "Link to…" to find.
+ */
+async function openSelectionMenu(page: Page) {
+  await workLocally(page);
+  const name = await page.evaluate(
+    async ({ coreUrl, name, other }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const now = new Date();
+      const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      let day: { id: string } | undefined;
+      for (let i = 0; i < 40 && !day; i++) {
+        day = ((await core.documentsOf("daily")) as { id: string; title: string }[]).find((d) => d.title === today);
+        if (!day) await new Promise((r) => setTimeout(r, 100));
+      }
+      await core.createDocument({ type: "e2eperson", title: name });
+      await core.createDocument({ type: "e2eperson", title: other });
+      await core.patchDocument(day!.id, { body: `Met ${name} today.` });
+      return name;
+    },
+    { coreUrl: CORE_URL, name: longText("Selected person"), other: longText("Linked person") },
+  );
+  const body = page.locator(".cm-content");
+  await expect(body).toContainText(name);
+  await selectText(body, name);
+  await page.getByRole("button", { name: "Selection menu" }).click();
+  await expect(page.getByRole("dialog", { name: "Selection menu" }).getByRole("option").first()).toContainText("Link to Selected person");
+}
+
+/** The Selection menu's "Link to…": every Linkable Document, the seeded very long ones among them. */
+async function openLinkSearch(page: Page) {
+  await openSelectionMenu(page);
+  const menu = page.getByRole("dialog", { name: "Selection menu" });
+  await menu.getByRole("option", { name: "Link to…" }).click();
+  await expect(menu.getByRole("option").first()).toBeVisible();
+}
+
+/** "Link to…" with another Person picked: the very long words, the very long title, and "add as alias". */
+async function openLinkAlias(page: Page) {
+  await openLinkSearch(page);
+  const menu = page.getByRole("dialog", { name: "Selection menu" });
+  await menu.getByRole("combobox", { name: "Search Documents" }).fill("Linked person");
+  await menu.getByRole("option", { name: /Linked person/ }).first().click();
+  await expect(menu.getByRole("checkbox")).toBeVisible();
 }
 
 const SCREENS: ScreenCase[] = [
@@ -204,6 +283,9 @@ const SCREENS: ScreenCase[] = [
   { name: "Handoff · picker", path: `/handoff#${encodeHandoff({ title: longText("A page"), text: "", url: `https://example.com/${LONG_WORD}` })}`, afterOpen: pickerWithWorkspaces },
   { name: "Handoff · unreadable", path: "/handoff#v1.not-a-handoff", afterOpen: workLocally },
   { name: "Handoff · Saved", path: "/handoff/done", afterOpen: workLocally },
+  { name: "Selection menu", path: "/app/journal", afterOpen: openSelectionMenu },
+  { name: "Selection menu · Link to…", path: "/app/journal", afterOpen: openLinkSearch },
+  { name: "Selection menu · add as alias", path: "/app/journal", afterOpen: openLinkAlias },
   { name: "Handoff · shared", path: LONG_SHARE, afterOpen: workLocally },
   { name: "Handoff · shared, Saved", path: LONG_SHARE, afterOpen: sharedAndSaved },
 
@@ -223,6 +305,51 @@ const SCREENS: ScreenCase[] = [
 
   // The Vault (Note-taking's layout).
   { name: "Vault", path: "/vault", afterOpen: workLocally },
+  // A Peek edits (ADR 0085): a user-defined type's whole Peek, and a built-in's with the user's own Field beneath the App's part.
+  { name: "Vault · Peek of a user-defined type", path: "/vault", afterOpen: peekOf("e2eperson") },
+  { name: "Vault · Peek with the user's own Field", path: "/vault", afterOpen: peekOf("book", true) },
+  // …and writes its body with the Vault's editor, the panel widened (ADR 0085).
+  { name: "Vault · Peek writing its body", path: "/vault", afterOpen: peekOf("note", false, true) },
+  { name: "Vault · Peek of a user-defined type, writing", path: "/vault", afterOpen: peekOf("e2eperson", false, true) },
+  // The Apps' own editable Peeks (#182): Ledger, Pocket, Prices, Knowledge, Projects.
+  ...["ledger_transaction", "ledger_account", "ledger_category", "pocket_allowance", "price_product", "price_receipt", "price_shop", "language_word", "language_sentence", "knowledge_fact", "project"].map(
+    (type): ScreenCase => ({ name: `Vault · Peek of ${type}`, path: "/vault", afterOpen: peekOf(type) }),
+  ),
+  // The Apps' own editable parts (ADR 0085): a Task's and an Event's Fields edited through their App's controls.
+  { name: "Vault · Peek of a Task", path: "/vault", afterOpen: peekOf("task") },
+  { name: "Vault · Peek of an Event", path: "/vault", afterOpen: peekOf("event") },
+  { name: "Vault · Peek of a Project, writing beneath its App's part", path: "/vault", afterOpen: peekOf("project", false, true) },
+  // House's editable Peeks (ADR 0085): each App's own controls over a long-titled Document.
+  { name: "Vault · Peek of chore", path: "/vault/d/:id", type: "chore", afterOpen: peekOf("chore") },
+  { name: "Vault · Peek of provision", path: "/vault/d/:id", type: "provision", afterOpen: peekOf("provision") },
+  { name: "Vault · Peek of need", path: "/vault/d/:id", type: "need", afterOpen: peekOf("need") },
+  // The Progress Apps' editable Peeks (ADR 0085), each drawn by its App.
+  { name: "Vault · Peek of a Stat", path: "/vault", afterOpen: peekOf("stat") },
+  { name: "Vault · Peek of a Workout session", path: "/vault", afterOpen: peekOf("workout_session") },
+  { name: "Vault · Peek of a Habit", path: "/vault", afterOpen: peekOf("habit") },
+  { name: "Vault · Peek of a Negative activity", path: "/vault", afterOpen: peekOf("negative") },
+  { name: "Vault · Peek of a Mood", path: "/vault", afterOpen: peekOf("mood") },
+  { name: "Vault · Peek of a Fine", path: "/vault", afterOpen: peekOf("swearjar_fine") },
+  // The Culture Apps' editable Peeks (ADR 0085), each drawn by its own App.
+  { name: "Vault · Peek of a book", path: "/vault", afterOpen: peekOf("book") },
+  { name: "Vault · Peek of an Author", path: "/vault", afterOpen: peekOf("author") },
+  { name: "Vault · Peek of a film", path: "/vault", afterOpen: peekOf("movie") },
+  { name: "Vault · Peek of a Cinema playlist", path: "/vault", afterOpen: peekOf("cinema_playlist") },
+  { name: "Vault · Peek of an album", path: "/vault", afterOpen: peekOf("music") },
+  { name: "Vault · Peek of a Discotheque playlist", path: "/vault", afterOpen: peekOf("discotheque_playlist") },
+  { name: "Vault · Peek of a game", path: "/vault", afterOpen: peekOf("game") },
+  { name: "Vault · Peek of a painting", path: "/vault", afterOpen: peekOf("painting") },
+  { name: "Vault · Peek of a building", path: "/vault", afterOpen: peekOf("architecture") },
+  // The writing Apps' own editable parts (ADR 0085).
+  { name: "Vault · Peek of a Day", path: "/vault", afterOpen: peekOf("daily") },
+  { name: "Vault · Peek of a Week", path: "/vault", afterOpen: peekOf("week") },
+  { name: "Vault · Peek of a Source", path: "/vault", afterOpen: peekOf("source") },
+  { name: "Vault · Peek of a Note", path: "/vault", afterOpen: peekOf("note") },
+  { name: "Vault · Peek of a Quote", path: "/vault", afterOpen: peekOf("quote") },
+  { name: "Vault · Peek of an Essay", path: "/vault", afterOpen: peekOf("essay") },
+  { name: "Vault · Peek of a Manuscript", path: "/vault", afterOpen: peekOf("manuscript") },
+  { name: "Vault · Peek of a Chapter", path: "/vault", afterOpen: peekOf("chapter") },
+  { name: "Vault · Peek of a Thought", path: "/vault", afterOpen: peekOf("thought") },
   {
     // The file tree's "New thought" focused: a tooltip names it on the desk; a touch phone shows none (ADR 0079).
     name: "Vault · Tooltip",

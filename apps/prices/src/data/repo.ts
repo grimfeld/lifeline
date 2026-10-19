@@ -310,6 +310,20 @@ export async function saveReceipt(input: ReceiptInput, shops: readonly Shop[], p
   return receipt.id;
 }
 
+/**
+ * A Receipt's own Fields edited in place (its Peek, ADR 0085): the day, the
+ * branch and the printed total. Its Shop and Lines stay; the title follows
+ * the day; refused when the edit makes it the twin of another Receipt.
+ */
+export async function editReceipt(receipt: Receipt, patch: Partial<Pick<Receipt, "date" | "branch" | "total">>, shops: readonly Shop[]): Promise<void> {
+  const next = { shopId: receipt.shopId, date: patch.date ?? receipt.date, branch: (patch.branch ?? receipt.branch).trim(), total: Math.max(0, Math.round(patch.total ?? receipt.total)), lines: [] };
+  checkReceipt(next);
+  const twin = await sameReceipt(next, !!receipt.noticed, receipt.id);
+  if (twin) throw new Error(`${twin.title} already has this printed total`);
+  const shopName = shops.find((s) => s.id === receipt.shopId)?.title ?? "";
+  await patchDocument(receipt.id, { date: next.date, branch: next.branch, total: next.total, title: receiptTitle(shopName, next.date) });
+}
+
 /** The second amount a new Line takes when none is given: the Product's last at this Shop (lastSecondAmount), read once per Product. */
 function prefiller(shopId: string): (productId: string) => Promise<number> {
   let receipts: Receipt[] | undefined;

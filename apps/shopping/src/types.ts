@@ -2,6 +2,7 @@ import type { Document, DocumentTypeDef } from "@lifeline/core";
 import { ListChecks, ShoppingCart } from "lucide-react";
 import { SHOPPING_HREF } from "./constants";
 import { releaseAisle } from "./data/repo";
+import { NeedPeek } from "./components/NeedPeek";
 
 /**
  * A Need (ADR 0055): one thing to buy. Deliberately not Linkable — "milk"
@@ -17,6 +18,7 @@ export const needTypeDef: DocumentTypeDef = {
   indexes: ["aisleId"],
   order: 62,
   builtIn: true,
+  peekEdit: NeedPeek,
   fields: [
     { key: "note", label: "Note", kind: "text", column: true },
     // An Aisle is a heading, not a link target: set from the App, never a wikilink.

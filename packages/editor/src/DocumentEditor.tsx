@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { useOpenLinkRef } from "./openDocument";
+import { useOpenLinkRef, usePeekLinkRef } from "./openDocument";
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, cn, toast } from "@lifeline/ui";
 import {
   isLinkable,
@@ -69,6 +69,12 @@ export interface DocumentEditorProps {
   remove?: () => Promise<unknown>;
   /** Nothing but the title and the page: the Fields and Tags strip is left out (a Manuscript's Focus). */
   minimal?: boolean;
+  /**
+   * Nothing but the body's editor: no title, Fields, Tags, links panel or
+   * modes, and no `⌘E` of its own — a Peek writing a body (ADR 0085), whose
+   * frame draws the rest and owns the switch back to reading.
+   */
+  bodyOnly?: boolean;
 }
 
 /**
@@ -77,7 +83,7 @@ export interface DocumentEditorProps {
  * the links panel. Saves are debounced. Text mode shows the frontmatter
  * projection; edits to guarded fields there are reverted with a notice.
  */
-export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, linksPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn, minimal = false }: DocumentEditorProps) {
+export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, linksPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn, minimal = false, bodyOnly = false }: DocumentEditorProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [panelOpen, setPanelOpen] = useState(showPanel);
@@ -148,8 +154,13 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
     [flush],
   );
   useEffect(() => () => flush(), [flush]);
+  const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    if (bodyOnly) return;
     const onKey = (e: KeyboardEvent) => {
+      // A dialog over this editor (a Peek writing its own body) has the key to itself.
+      const dialog = e.target instanceof Element ? e.target.closest("[role=dialog]") : null;
+      if (dialog && !dialog.contains(root.current)) return;
       if (isModShortcut(e, "e")) {
         e.preventDefault();
         setMode((m) => (m === "read" ? "edit" : "read"));
@@ -157,10 +168,11 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [bodyOnly]);
 
   const openRef = useOpenLinkRef(index, onCreateUnresolved);
-  const context = useMemo(() => ({ docDate, openRef }), [docDate, openRef]);
+  const peekRef = usePeekLinkRef(index);
+  const context = useMemo(() => ({ docDate, openRef, peekRef }), [docDate, openRef, peekRef]);
 
   const stored = typeof doc.body === "string" ? doc.body : "";
   /** The text the editor works on: our own writes coming back are not news (`bodyEcho`). */
@@ -270,6 +282,26 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
     stage(patch as Partial<Document>, true);
   }
 
+  const editor = (
+    <MarkdownEditor
+      value={body}
+      onChange={(next) => stage({ body: next, tags: effectiveTags(explicitTags, next) })}
+      index={index}
+      context={context}
+      autoFocus={autoFocus}
+      onQuietChange={setQuiet}
+      placeholder="Write… [[ links any Document, #tags, ```daylog for the day's facts"
+    />
+  );
+  if (bodyOnly) {
+    return (
+      // Names the Document, so selecting in its body can open the Selection menu (ADR 0086).
+      <div ref={root} className="flex min-h-0 flex-1 flex-col" data-origin={doc.id}>
+        {editor}
+      </div>
+    );
+  }
+
   const Icon = def?.icon;
   const label = def ? singularOf(def) : doc.type;
   /** The right-hand panel's contents: a column on the desktop, a sheet on a phone. */
@@ -311,7 +343,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
     </>
   );
   return (
-    <div className="flex h-full min-h-0">
+    <div ref={root} className="flex h-full min-h-0">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* Collapsed rather than unmounted: the title Input keeps its state, and
             a height transition is what stops the text jumping under the caret. */}
@@ -446,15 +478,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
                     {def?.readTimer && <ReadTimer />}
                   </>
                 ) : (
-                  <MarkdownEditor
-                    value={body}
-                    onChange={(next) => stage({ body: next, tags: effectiveTags(explicitTags, next) })}
-                    index={index}
-                    context={context}
-                    autoFocus={autoFocus}
-                    onQuietChange={setQuiet}
-                    placeholder="Write… [[ links any Document, #tags, ```daylog for the day's facts"
-                  />
+                  editor
                 )}
               </div>
             )}

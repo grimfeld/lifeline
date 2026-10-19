@@ -186,12 +186,23 @@ export interface DocumentTypeDef {
   /** Route that opens one Document. Default: the Vault's generic page `/vault/d/<id>`. */
   href?: (doc: Document) => string;
   /**
-   * The owning App's **Peek** (ADR 0057): its small view of one Document,
-   * opened where the user is — fields and main operations, never a page. Core
-   * frames it with the title and the ways through to the Home Module and the
-   * Vault. Absent: Core's generic Peek, the Document's plain fields.
+   * The owning App's **read-only Peek part** (ADR 0057): its small view of one
+   * Document — fields and main operations, never a page. The fallback while
+   * the App has not written `peekEdit` (ADR 0085); absent both, Core lists the
+   * App's Fields read-only. Core frames either with the title, the body, the
+   * user's own Fields and the ways through to the Home Module and the Vault.
    */
-  peek?: React.ComponentType<{ doc: Document }>;
+  peek?: React.ComponentType<PeekProps>;
+  /**
+   * The owning App's **editable Peek part** (ADR 0085): how its own Fields are
+   * edited in place, through its own controls and operations — never Core's
+   * `FieldsForm`, and guarded Fields only through the App's operations. It
+   * draws only the Fields the App defined: the user's own Fields
+   * (`userFieldsOf`) are drawn and edited by Core beneath it, and the body,
+   * title and ways through are the frame's. When set it wins over `peek`
+   * (`peekPartOf`). A user-defined type has neither: Core draws its whole Peek.
+   */
+  peekEdit?: React.ComponentType<PeekProps>;
   /** Sync conflict hook (ADR 0010): may rescue a losing local edit. Absent = plain LWW. */
   onConflict?: (local: Document, server: Document) => Promise<void>;
   /**
@@ -217,6 +228,11 @@ export interface DocumentTypeDef {
   builtIn: boolean;
   /** A built-in whose label/icon/fields were customised by a user record. */
   overridden?: boolean;
+}
+
+/** What an App's Peek part is given: the Document as it now stands (live — it re-renders on every save). */
+export interface PeekProps {
+  doc: Document;
 }
 
 /** A Document of a known shape: `Document` narrowed by an App's own interface. */

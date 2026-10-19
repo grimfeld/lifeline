@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  Badge,
   Button,
   Card,
   CardContent,
@@ -12,7 +11,7 @@ import {
   TagChips,
   toast,
 } from "@lifeline/ui";
-import { formatHuman, todayStr } from "@lifeline/core";
+import { todayStr } from "@lifeline/core";
 import {
   Archive,
   ArchiveRestore,
@@ -27,6 +26,7 @@ import {
 import type { Chore } from "../domain/types";
 import { isDoneOn } from "../domain/completions";
 import { dueState, describeSchedule, type DueState } from "../domain/schedule";
+import { DueBadge } from "../components/DueBadge";
 import {
   completeChore,
   completionCount,
@@ -43,23 +43,6 @@ interface Row {
   due: DueState;
   /** Already completed today: the tick becomes a record, not a button. */
   doneToday: boolean;
-}
-
-function DueBadge({ due }: { due: DueState }) {
-  switch (due.state) {
-    case "overdue":
-      return (
-        <Badge variant="destructive">
-          {due.daysLate === 1 ? "1 day late" : `${due.daysLate} days late`}
-        </Badge>
-      );
-    case "due-today":
-      return <Badge>Due today</Badge>;
-    case "upcoming":
-      return <Badge variant="secondary">{formatHuman(due.dueOn)}</Badge>;
-    case "not-scheduled":
-      return null;
-  }
 }
 
 function ChoreRow({ row, onEdit }: { row: Row; onEdit: (c: Chore) => void }) {

@@ -36,7 +36,7 @@ const allowanceType: DocumentTypeDef = {
   indexes: ["from"],
   linkable: { subtitle: (d) => `${periodLabel(d as Allowance)} · ${formatCents((d as Allowance).amount)}` },
   href: () => POCKET_HREF,
-  peek: AllowancePeek,
+  peekEdit: AllowancePeek,
   order: 85,
   builtIn: true,
 };

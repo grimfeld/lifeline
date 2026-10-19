@@ -15,7 +15,7 @@ function readProductMeasure(d: Product) {
   const m = readMeasure(d);
   return measureOf({ ...m, ...readSecondary(d, m.dimension) });
 }
-import { ProductPeek } from "./components/ProductPeek";
+import { ProductPeek, ReceiptPeek, ShopPeek } from "./components/PricesPeeks";
 
 /**
  * The `price_product` type (ADR 0082, 0084): a thing bought again — a name
@@ -44,7 +44,7 @@ const productType: DocumentTypeDef = {
   ],
   linkable: { subtitle: (d) => `Product · €${perUnit(readProductMeasure(d as Product))}` },
   href: (d) => productHref(d.id),
-  peek: ProductPeek,
+  peekEdit: ProductPeek,
   order: 87,
   builtIn: true,
 };
@@ -59,6 +59,7 @@ const shopType: DocumentTypeDef = {
   fields: [{ key: "note", label: "Note", kind: "text", column: true }],
   linkable: { subtitle: () => "Shop" },
   href: () => `${PRICES_HREF}?tab=shops`,
+  peekEdit: ShopPeek,
   order: 88,
   builtIn: true,
 };
@@ -80,6 +81,7 @@ const receiptType: DocumentTypeDef = {
   ],
   indexes: ["shopId", "date"],
   href: () => `${PRICES_HREF}?tab=receipts`,
+  peekEdit: ReceiptPeek,
   order: 89,
   builtIn: true,
 };

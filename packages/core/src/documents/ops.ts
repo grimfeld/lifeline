@@ -9,7 +9,7 @@ import { documentTypeSync } from "./registry";
 import { allDocuments, putDocument } from "./store";
 import { assertMayEnterPrivate, assertNotReservedFolder, inPrivateFolder, privateGate } from "../private";
 import { documentsForLinkRewrite } from "./rewrite";
-import type { Document } from "./types";
+import type { Document, DocumentTypeDef } from "./types";
 
 /**
  * Generic Document operations the Vault needs (ADR 0013 semantics, now over
@@ -31,7 +31,20 @@ export async function createDocument(input: { type: string; title: string; folde
   return putDocument({ ...(input.fields ?? {}), type: input.type, title, folder, body });
 }
 
-/** The "template" Document type: a Document whose title is a type id and whose body seeds new Documents of that type. */
+/**
+ * **Quick make** (CONTEXT.md "Selection menu", ADR 0086): a user-defined
+ * type's Document made at once from a selection — titled by it, in the
+ * current Workspace (as every new Document is), from the type's only Template
+ * when it has exactly one, else with an empty body. No dialog: Core owns the
+ * type, so this is no Intake, and it is undone rather than confirmed.
+ * Throws, like `createDocument`, when the title is taken.
+ */
+export async function quickMake(type: string, title: string): Promise<Document> {
+  const only = onlyTemplateFor(type, await allDocuments());
+  return createDocument(only ? { type, title, templateId: only.id } : { type, title, body: "" });
+}
+
+/** The "template" Document type:a Document whose title is a type id and whose body seeds new Documents of that type. */
 export const TEMPLATE_TYPE = "template";
 
 /**
@@ -50,6 +63,16 @@ export function defaultTemplateFor(type: string, docs: readonly Document[]): Doc
   return mine.find((d) => d.title.toLowerCase() === type.toLowerCase()) ?? (mine.length === 1 ? mine[0] : undefined);
 }
 
+/**
+ * The Template a quick make starts from (ADR 0086): the type's Template when
+ * it has exactly one. With several there is no one to take unasked — the
+ * body starts empty, and the Peek offers them.
+ */
+export function onlyTemplateFor(type: string, docs: readonly Document[]): Document | undefined {
+  const mine = templatesFor(type, docs);
+  return mine.length === 1 ? mine[0] : undefined;
+}
+
 /** Rendered starting body for a type: the picked Template, else its default one, else a built-in's code default. */
 export async function templateFor(type: string, title: string, docs?: Document[], templateId?: string): Promise<string> {
   const def = documentTypeSync(type);
@@ -59,6 +82,26 @@ export async function templateFor(type: string, title: string, docs?: Document[]
   // Only a built-in carries a default of its own; a user-defined type starts from its Templates alone (CONTEXT.md "Template").
   const raw = custom && typeof custom.body === "string" ? custom.body : def?.builtIn ? (def.template ?? "") : "";
   return renderTemplate(raw, { title, date: def?.titleRule === "date" ? title : todayStr() });
+}
+
+/** A starting body a Peek offers for a Document whose body is empty: one Template, already filled for that Document. */
+export interface TemplateStart {
+  /** The Template Document's id; "" for a built-in's own default. */
+  id: string;
+  title: string;
+  body: string;
+}
+
+/**
+ * What an empty body may start from (ADR 0085, CONTEXT.md "Template"): each
+ * of the type's Templates, filled for this Document; a built-in with none
+ * offers its own default instead, and a user-defined type with none offers nothing.
+ */
+export function templateStartsFor(doc: Document, def: DocumentTypeDef | undefined, docs: readonly Document[], now: Date = new Date()): TemplateStart[] {
+  const vars = { title: doc.title, date: def?.titleRule === "date" ? doc.title : todayStr(now), now };
+  const mine = templatesFor(doc.type, docs).map((t) => ({ id: t.id, title: t.title, body: renderTemplate(typeof t.body === "string" ? t.body : "", vars) }));
+  if (mine.length > 0) return mine;
+  return def?.builtIn && def.template ? [{ id: "", title: "Default", body: renderTemplate(def.template, vars) }] : [];
 }
 
 /** Rename a Document and rewrite [[Old]] / [[Folder/Old]] → new in every body (Obsidian behaviour). */
