@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Line, Product, Receipt } from "./types";
-import { comparedBy, changesIn, promoOf, spreadOf, observeAll, rhythmOf, spendOf, countsAsSpent, needingAmount, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
+import { comparedBy, changesIn, overpaidOf, OVERPAID_WINDOW_DAYS, promoOf, spreadOf, observeAll, rhythmOf, spendOf, countsAsSpent, needingAmount, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
 
 const product = (id: string, title: string, labels: Product["labels"] = []): Product => ({ id, type: "price_product", title, measure: "l", labels, tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0 }) as unknown as Product;
 const receipt = (id: string, shopId: string, date: string, total = 0, noticed = false): Receipt => ({ id, type: "price_receipt", title: "", shopId, date, branch: "", total, noticed, tags: [], folder: "", createdAt: date, updatedAt: "", deleted: 0 }) as unknown as Receipt;
@@ -318,5 +318,71 @@ describe("compare-by (secondary Measure)", () => {
     const plain = { ...product("milk", "Milk"), dimension: "volume", unit: "L", countName: "", secondaryDimension: "", secondaryUnit: "kg", compareBy: "secondary" } as Product;
     const milk = observe([line("m1", "r1", "milk", 109, 1)], receipts);
     expect(comparedBy(milk, [plain], "secondary")).toEqual(milk);
+  });
+});
+
+describe("Overpaid (CONTEXT.md)", () => {
+  const span = { from: "2026-01-01", to: "2026-12-31" };
+
+  it("what a bought Line paid beyond the cheapest usual price another Shop asked on or before its day", () => {
+    const receipts = [receipt("a", "aldi", "2026-03-01"), receipt("b", "lidl", "2026-03-10")];
+    const lines = [line("a1", "a", "p1", 100), line("b1", "b", "p1", 300, 2)]; // Aldi €1.00/u; Lidl paid €1.50/u × 2
+    const o = overpaidOf("p1", observe(lines, receipts), span);
+    expect(o.total).toBe(100);
+    expect(o.cheapest).toEqual({ shopId: "aldi", unit: 100, date: "2026-03-01" });
+  });
+
+  it("ignores a price older than 90 days; one exactly 90 days old still counts", () => {
+    expect(OVERPAID_WINDOW_DAYS).toBe(90);
+    const receipts = [receipt("a", "aldi", "2026-01-01"), receipt("b", "lidl", "2026-04-01"), receipt("c", "lidl", "2026-04-02")]; // Apr 1 is 90 days after Jan 1
+    const lines = [line("a1", "a", "p1", 100), line("b1", "b", "p1", 150), line("c1", "c", "p1", 170)];
+    const o = overpaidOf("p1", observe(lines, receipts), span);
+    expect(o.total).toBe(50); // c1's only other-Shop price is 91 days old
+  });
+
+  it("compares with other Shops only, never the same Shop's own cheaper day", () => {
+    const receipts = [receipt("a", "lidl", "2026-03-01"), receipt("b", "lidl", "2026-03-10"), receipt("c", "aldi", "2026-02-25")];
+    const lines = [line("a1", "a", "p1", 80), line("b1", "b", "p1", 150), line("c1", "c", "p1", 120)];
+    const o = overpaidOf("p1", observe(lines, receipts), span);
+    expect(o.total).toBe(30); // b1 against Aldi's €1.20, not Lidl's own €0.80; a1 beat Aldi; c1 came before any other Shop's price
+  });
+
+  it("judges a promo Line like any other, and never takes a promo as another Shop's price", () => {
+    const receipts = [receipt("a", "aldi", "2026-03-01"), receipt("b", "aldi", "2026-03-02"), receipt("c", "lidl", "2026-03-10")];
+    const lines = [line("a1", "a", "p1", 100), line("b1", "b", "p1", 50, 1, true), line("c1", "c", "p1", 130, 1, true)];
+    const o = overpaidOf("p1", observe(lines, receipts), span);
+    expect(o.total).toBe(30); // Lidl's promo €1.30 against Aldi's usual €1.00, not Aldi's €0.50 promo
+    expect(o.cheapest).toEqual({ shopId: "aldi", unit: 100, date: "2026-03-01" });
+  });
+
+  it("a Sighting is a baseline but is never itself judged", () => {
+    const receipts = [receipt("a", "aldi", "2026-03-01", 0, true), receipt("b", "lidl", "2026-03-10"), receipt("c", "lidl", "2026-03-11", 0, true)];
+    const lines = [line("a1", "a", "p1", 100), line("b1", "b", "p1", 140), line("c1", "c", "p1", 500)];
+    expect(overpaidOf("p1", observe(lines, receipts), span).total).toBe(40);
+  });
+
+  it("a Line that needs an amount is neither judged nor a baseline", () => {
+    const receipts = [receipt("a", "aldi", "2026-03-01"), receipt("b", "aldi", "2026-03-02"), receipt("c", "lidl", "2026-03-10"), receipt("d", "lidl", "2026-03-11")];
+    const lines = [line("a1", "a", "p1", 100), { ...line("b1", "b", "p1", 10), needsAmount: true }, line("c1", "c", "p1", 120), { ...line("d1", "d", "p1", 900), needsAmount: true }];
+    expect(overpaidOf("p1", observe(lines, receipts), span).total).toBe(20);
+  });
+
+  it("reads the compared-by amount, and skips a Line without one, judged or as a baseline", () => {
+    // Croissants compared by weight: the second amount (kg) by Line; a1 and c1 never had one weighed.
+    const croissants = { ...product("p1", "Croissants"), dimension: "count", unit: "pc", countName: "", secondaryDimension: "mass", secondaryUnit: "kg", compareBy: "secondary" } as Product;
+    const weight: Record<string, number> = { b1: 0.5, d1: 0.25 };
+    const receipts = [receipt("a", "aldi", "2026-03-01"), receipt("b", "aldi", "2026-03-02"), receipt("c", "lidl", "2026-03-10"), receipt("d", "lidl", "2026-03-11")];
+    const lines = [line("a1", "a", "p1", 10, 4), line("b1", "b", "p1", 400, 4), line("c1", "c", "p1", 900, 4), line("d1", "d", "p1", 300, 4)].map((l) => ({ ...l, secondAmount: weight[l.id] }));
+    const o = overpaidOf("p1", comparedBy(observe(lines, receipts), [croissants]), span);
+    expect(o.total).toBe(100); // d1: €12/kg × 0.25 kg against Aldi's €8/kg
+    expect(o.cheapest).toEqual({ shopId: "aldi", unit: 800, date: "2026-03-02" });
+  });
+
+  it("judges only Lines inside the span, against prices that may lie before it", () => {
+    const receipts = [receipt("a", "aldi", "2025-12-20"), receipt("b", "lidl", "2025-12-25"), receipt("c", "lidl", "2026-01-05")];
+    const lines = [line("a1", "a", "p1", 100), line("b1", "b", "p1", 900), line("c1", "c", "p1", 125)];
+    expect(overpaidOf("p1", observe(lines, receipts), span)).toEqual({ total: 25, cheapest: { shopId: "aldi", unit: 100, date: "2025-12-20" } });
+    expect(overpaidOf("p1", observe(lines, receipts), { from: "", to: "2026-12-31" }).total).toBe(825);
+    expect(overpaidOf("nope", observe(lines, receipts), span)).toEqual({ total: 0, cheapest: undefined });
   });
 });

@@ -491,3 +491,71 @@ export function promoOf(productId: string, obs: readonly Observation[], span: Sp
     saving,
   };
 }
+
+/** How far back a price may lie and still say what another Shop asked (CONTEXT.md "Overpaid"); a constant, not a setting. */
+export const OVERPAID_WINDOW_DAYS = 90;
+
+/** The price an Overpaid Line is measured against: another Shop's usual unit price, and the day it was seen. */
+export interface Baseline {
+  shopId: string;
+  /** Cents per base unit of the compared-by dimension. */
+  unit: number;
+  date: DateStr;
+}
+
+export interface Overpaid {
+  /** Cents paid beyond the baseline over the span, rounded per Line. */
+  total: number;
+  /** Where it was cheapest: the baseline behind the latest overpaid Line; undefined when nothing was overpaid. */
+  cheapest?: Baseline;
+}
+
+/**
+ * What I paid for a Product over the span beyond the cheapest usual unit
+ * price any *other* Shop asked on or before each Line's day (CONTEXT.md
+ * "Overpaid"). Each other Shop offers its latest usual price by that day,
+ * and none older than OVERPAID_WINDOW_DAYS, so a stale price accuses no one
+ * — the same "latest usual" the cheapest-Shop reading uses. Bought Lines are
+ * judged, promos included (what was paid was paid); Sightings are baseline
+ * only; promos never are; needs-amount Lines and Lines without the
+ * compared-by amount are skipped both ways — pass observations read by
+ * comparedBy, so it compares the unit the Product chose. Baselines may lie
+ * before the span; only the Lines judged must lie in it.
+ */
+export function overpaidOf(productId: string, obs: readonly Observation[], span: Span): Overpaid {
+  const priced: { o: Observation; amount: number }[] = [];
+  const usual = new Map<string, PricePoint[]>();
+  for (const o of obs) {
+    if (o.line.productId !== productId || !countsPerUnit(o)) continue;
+    const amount = o.line.amount > 0 ? o.line.amount : 1;
+    priced.push({ o, amount });
+    if (o.line.promo) continue;
+    const list = usual.get(o.shopId) ?? [];
+    list.push({ ...pointOf(o), unit: o.line.price / amount });
+    usual.set(o.shopId, list);
+  }
+  for (const list of usual.values()) list.sort(byDate);
+
+  let total = 0;
+  let cheapest: Baseline | undefined;
+  let latest = "";
+  for (const { o, amount } of priced) {
+    if (!countsAsSpent(o) || !inSpan(o, span)) continue;
+    let best: Baseline | undefined;
+    for (const [shopId, points] of usual) {
+      if (shopId === o.shopId) continue;
+      const p = usualOn(points, o.date);
+      if (!p || diffDays(p.date, o.date) > OVERPAID_WINDOW_DAYS) continue;
+      if (!best || p.unit < best.unit) best = { shopId, unit: p.unit, date: p.date };
+    }
+    if (!best) continue;
+    const over = Math.round(o.line.price - best.unit * amount);
+    if (over <= 0) continue;
+    total += over;
+    if (o.date >= latest) {
+      latest = o.date;
+      cheapest = best;
+    }
+  }
+  return { total, cheapest };
+}
