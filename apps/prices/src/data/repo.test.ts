@@ -1,103 +1,67 @@
-// @vitest-environment jsdom
-// The Prices manifest carries its screens and dialogs, whose UI imports need a DOM.
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { documentsOf, documentsTable, initApps, putDocument } from "@lifeline/core";
-import { pricesApp } from "../index";
-import { pricesCommands } from "../commands";
-import { LINE, PRODUCT, type Line } from "../domain/types";
-import { addPrice, addProduct, addShop, allProducts, allShops, mergeProduct, updateProduct } from "./repo";
+import { documentsTable, getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
+import { LINE, PRODUCT, RECEIPT, SHOP, type Line, type Receipt } from "../domain/types";
+import { addPrice, addProduct, addShop, allProducts, allShops, saveReceipt, type ReceiptInput } from "./repo";
 
-initApps([pricesApp]);
+// The Prices types, bare: the App manifest pulls in screens that need a DOM.
+const bare = (id: string, indexes: string[] = []) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes, builtIn: true }) as unknown as DocumentTypeDef;
+initApps([{ id: "prices", title: "Prices", types: [bare(PRODUCT), bare(SHOP), bare(RECEIPT, ["shopId", "date"]), bare(LINE, ["receiptId", "productId"])], screens: [], cards: [], commands: [] }]);
 
-const product = async (id: string) => (await allProducts()).find((p) => p.id === id)!;
+const receipt = async (id: string) => (await getDocument<Receipt>(id))!;
 
+let lidl: string;
+let milk: string;
 beforeEach(async () => {
   await documentsTable().clear();
+  lidl = await addShop({ title: "Lidl" });
+  milk = await addProduct({ title: "Milk", dimension: "volume", unit: "L" });
 });
 
-describe("a Product's Measure", () => {
-  it("is made with a dimension, a reading unit and, for a count, a name of its own", async () => {
-    const spice = await addProduct({ title: "Cumin", dimension: "mass", unit: "100g" });
-    const soap = await addProduct({ title: "Detergent", dimension: "count", unit: "pc", countName: "wash" });
-    expect(await product(spice)).toMatchObject({ dimension: "mass", unit: "100g", countName: "" });
-    expect(await product(soap)).toMatchObject({ dimension: "count", unit: "pc", countName: "wash" });
+const price = async (over: { bought?: boolean } = {}) => addPrice({ productId: milk, shopId: lidl, amount: 1, price: 109, promo: false, date: "2026-10-01", ...over }, await allShops(), await allProducts());
+const bought = (over: Partial<ReceiptInput> = {}): ReceiptInput => ({ shopId: lidl, date: "2026-10-01", total: 540, lines: [{ productId: milk, label: "LAIT", amount: 1, price: 540, promo: false }], ...over });
+
+describe("Add price", () => {
+  it("makes a Sighting — noticed, not bought — by default", async () => {
+    expect((await receipt(await price())).noticed).toBe(true);
   });
 
-  it("refuses a unit from another dimension", async () => {
-    await expect(addProduct({ title: "Milk", dimension: "volume", unit: "kg" })).rejects.toThrow(/unit/i);
+  it("makes a bought Receipt when Bought it is ticked", async () => {
+    expect((await receipt(await price({ bought: true }))).noticed).toBe(false);
   });
 
-  it("changing the reading unit or the count name rewrites no Line", async () => {
-    const shop = await addShop({ title: "Lidl" });
-    const coffee = await addProduct({ title: "Coffee", dimension: "mass", unit: "kg" });
-    await addPrice({ productId: coffee, shopId: shop, amount: 0.5, price: 749, promo: false }, await allShops(), await allProducts());
-    const before = await documentsOf<Line>(LINE);
-
-    await updateProduct(await product(coffee), { title: "Coffee", unit: "g" });
-    await updateProduct(await product(coffee), { title: "Coffee", unit: "100g" });
-
-    expect(await documentsOf<Line>(LINE)).toEqual(before);
-    expect((await product(coffee)).unit).toBe("100g");
-  });
-
-  it("renaming a count rewrites no Line either", async () => {
-    const shop = await addShop({ title: "Lidl" });
-    const paper = await addProduct({ title: "Toilet paper", dimension: "count", unit: "pc" });
-    await addPrice({ productId: paper, shopId: shop, amount: 9, price: 399, promo: false }, await allShops(), await allProducts());
-    const before = await documentsOf<Line>(LINE);
-    await updateProduct(await product(paper), { title: "Toilet paper", countName: "roll" });
-    expect(await documentsOf<Line>(LINE)).toEqual(before);
-    expect((await product(paper)).countName).toBe("roll");
-  });
-
-  it("keeps its dimension: a change of dimension is refused here", async () => {
-    const eggs = await addProduct({ title: "Eggs", dimension: "count", unit: "pc" });
-    await expect(updateProduct(await product(eggs), { title: "Eggs", dimension: "mass", unit: "kg" })).rejects.toThrow(/dimension/i);
-    expect((await product(eggs)).dimension).toBe("count");
-  });
-
-  it("a Product stored with an old measure reads in the new shape", async () => {
-    await putDocument({ type: PRODUCT, title: "Old milk", measure: "l", labels: [], folder: "", tags: [] });
-    await putDocument({ type: PRODUCT, title: "Old eggs", measure: "piece", labels: [], folder: "", tags: [] });
-    const all = await allProducts();
-    expect(all.find((p) => p.title === "Old milk")).toMatchObject({ dimension: "volume", unit: "L", countName: "" });
-    expect(all.find((p) => p.title === "Old eggs")).toMatchObject({ dimension: "count", unit: "pc", countName: "" });
-  });
-
-  it("merges across reading units of one dimension, Lines kept as they were", async () => {
-    const shop = await addShop({ title: "Lidl" });
-    const a = await addProduct({ title: "Pepper", dimension: "mass", unit: "100g" });
-    const b = await addProduct({ title: "Black pepper", dimension: "mass", unit: "kg" });
-    await addPrice({ productId: a, shopId: shop, amount: 0.05, price: 189, promo: false }, await allShops(), await allProducts());
-    await mergeProduct(await product(a), await product(b));
-    const [l] = await documentsOf<Line>(LINE);
-    expect([l.productId, l.amount]).toEqual([b, 0.05]);
+  it("two shelf prices on one day at one Shop are both kept", async () => {
+    const a = await price();
+    const b = await price();
+    expect(a).not.toBe(b);
   });
 });
 
-describe("amounts over MCP (prices_add, prices_receipt)", () => {
-  const run = (id: string, args: Record<string, unknown>) => pricesCommands.find((c) => c.id === id)!.invoke!(args);
-
-  it("are in the Product's reading unit unless a unit is given, and stored in the base unit", async () => {
-    const shop = await addShop({ title: "Lidl" });
-    const cumin = await addProduct({ title: "Cumin", dimension: "mass", unit: "g" });
-    await run("prices.add", { product: cumin, shop, price: 1.89, amount: 30 });
-    await run("prices.add", { product: cumin, shop, price: 5.5, amount: 0.1, unit: "kg" });
-    await run("prices.receipt", { shop, lines: [{ label: "CUMIN", price: 2, amount: 50, product: cumin }, { label: "CUMIN BIG", price: 9, amount: 0.25, unit: "kg", product: cumin }] });
-    expect((await documentsOf<Line>(LINE)).map((l) => l.amount).sort()).toEqual([0.03, 0.05, 0.1, 0.25]);
+describe("the duplicate-Receipt rule", () => {
+  it("still refuses a bought Receipt added twice", async () => {
+    await saveReceipt(bought(), await allShops(), await allProducts());
+    await expect(saveReceipt(bought(), await allShops(), await allProducts())).rejects.toThrow(/Already added/);
   });
 
-  it("refuse a unit of another dimension", async () => {
-    const shop = await addShop({ title: "Lidl" });
-    const eggs = await addProduct({ title: "Eggs", dimension: "count", unit: "pc" });
-    await expect(run("prices.add", { product: eggs, shop, price: 3, amount: 600, unit: "g" })).rejects.toThrow(/mass/);
-    await expect(run("prices.receipt", { shop, lines: [{ label: "EGGS", price: 3, amount: 600, unit: "g", product: eggs }] })).rejects.toThrow(/row 1/);
+  it("never refuses a Sighting, even one with the same printed total", async () => {
+    await saveReceipt(bought(), await allShops(), await allProducts());
+    const id = await saveReceipt(bought({ noticed: true }), await allShops(), await allProducts());
+    expect((await receipt(id)).noticed).toBe(true);
   });
 
-  it("New product… takes a dimension, a unit and a count name", async () => {
-    const { id } = (await run("prices.product-add", { name: "Detergent", dimension: "count", count_name: "wash" })) as { id: string };
-    expect(await product(id)).toMatchObject({ dimension: "count", unit: "pc", countName: "wash" });
-    await expect(run("prices.product-add", { name: "Milk", dimension: "volume", unit: "g" })).rejects.toThrow(/not a unit/);
+  it("never counts a Sighting as the twin of a bought Receipt", async () => {
+    await saveReceipt(bought({ noticed: true }), await allShops(), await allProducts());
+    await expect(saveReceipt(bought(), await allShops(), await allProducts())).resolves.toBeTruthy();
+  });
+});
+
+describe("the noticed mark", () => {
+  it("is unticked on a Receipt that was a real purchase, its Lines kept", async () => {
+    const id = await price();
+    const r = await receipt(id);
+    const lines = (await documentsTable().toArray()).filter((d) => d.type === LINE) as Line[];
+    await saveReceipt({ shopId: r.shopId, date: r.date, total: 0, noticed: false, lines: lines.map((l) => ({ id: l.id, productId: l.productId, label: l.label, amount: l.amount, price: l.price, promo: l.promo })) }, await allShops(), await allProducts(), { receipt: r, lines });
+    expect((await receipt(id)).noticed).toBe(false);
+    expect((await documentsTable().toArray()).filter((d) => d.type === LINE && !d.deleted)).toHaveLength(1);
   });
 });

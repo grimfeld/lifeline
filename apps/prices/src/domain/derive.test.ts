@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Line, Product, Receipt } from "./types";
-import { changesIn, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
+import { changesIn, countsAsSpent, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
 
 const product = (id: string, title: string, labels: Product["labels"] = []): Product => ({ id, type: "price_product", title, measure: "l", labels, tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0 }) as unknown as Product;
-const receipt = (id: string, shopId: string, date: string, total = 0): Receipt => ({ id, type: "price_receipt", title: "", shopId, date, branch: "", total, tags: [], folder: "", createdAt: date, updatedAt: "", deleted: 0 }) as unknown as Receipt;
+const receipt = (id: string, shopId: string, date: string, total = 0, noticed = false): Receipt => ({ id, type: "price_receipt", title: "", shopId, date, branch: "", total, noticed, tags: [], folder: "", createdAt: date, updatedAt: "", deleted: 0 }) as unknown as Receipt;
 const line = (id: string, receiptId: string, productId: string, price: number, amount = 1, promo = false): Line => ({ id, type: "price_line", title: "", receiptId, productId, label: "", amount, price, promo, tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0 }) as unknown as Line;
 
 describe("labels", () => {
@@ -128,5 +128,26 @@ describe("receipt", () => {
   it("titles as shop · day", () => {
     expect(receiptTitle("Lidl", "2026-09-04")).toMatch(/^Lidl · /);
     expect(receiptTitle("", "2026-09-04")).toMatch(/^Receipt · /);
+  });
+});
+
+describe("Sightings (CONTEXT.md \"Sighting\")", () => {
+  const receipts = [receipt("bought", "lidl", "2026-01-10", 250), receipt("shelf", "aldi", "2026-01-11", 0, true)];
+  const lines = [line("l1", "bought", "p1", 100), line("l2", "shelf", "p1", 90)];
+  const obs = observe(lines, receipts);
+
+  it("an Observation carries its Receipt's noticed mark", () => {
+    expect(obs.map((o) => [o.line.id, o.noticed])).toEqual([
+      ["l1", false],
+      ["l2", true],
+    ]);
+  });
+  it("one shared filter: a Sighting counts per unit but never as spent", () => {
+    expect(obs.filter(countsAsSpent).map((o) => o.line.id)).toEqual(["l1"]);
+    expect(obs.filter(countsPerUnit).map((o) => o.line.id)).toEqual(["l1", "l2"]);
+  });
+  it("a noticed price still feeds history and the cheapest Shop", () => {
+    expect(historyOf("p1", obs).get("aldi")?.map((p) => p.unit)).toEqual([90]);
+    expect(cheapest(historyOf("p1", obs))?.shopId).toBe("aldi");
   });
 });

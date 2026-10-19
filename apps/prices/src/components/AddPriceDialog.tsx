@@ -11,8 +11,9 @@ import { ShopDialog } from "./ShopDialog";
 
 /**
  * The capture form for a price seen on a shelf (ADR 0082): product, shop,
- * amount, price — a one-Line Receipt with no printed total. Day defaults to
- * today. "Save & add another" keeps the shop and day.
+ * amount, price — a one-Line Receipt with no printed total, a Sighting
+ * unless "Bought it" is ticked (ADR 0084). Day defaults to today. "Save &
+ * add another" keeps the shop, the day and "Bought it".
  */
 export function AddPriceDialog({ open, onOpenChange, productId: presetProduct }: { open: boolean; onOpenChange: (o: boolean) => void; productId?: string }) {
   const products = useProducts();
@@ -22,6 +23,7 @@ export function AddPriceDialog({ open, onOpenChange, productId: presetProduct }:
   const [amount, setAmount] = useState("1");
   const [price, setPrice] = useState("");
   const [promo, setPromo] = useState(false);
+  const [bought, setBought] = useState(false);
   const [date, setDate] = useState(todayStr());
   const [newProduct, setNewProduct] = useState(false);
   const [newShop, setNewShop] = useState(false);
@@ -33,6 +35,7 @@ export function AddPriceDialog({ open, onOpenChange, productId: presetProduct }:
     setAmount("1");
     setPrice("");
     setPromo(false);
+    setBought(false);
     setDate(todayStr());
     // shops arrive async; defaulting once they do is wanted
   }, [open, presetProduct, shops]);
@@ -48,7 +51,7 @@ export function AddPriceDialog({ open, onOpenChange, productId: presetProduct }:
     if (cents === null || cents < 0) return void toast.error("Type the price paid");
     if (!(amt > 0)) return void toast.error("Amount must be above zero");
     try {
-      await addPrice({ productId, shopId, amount: amt, price: cents, promo, date }, shops, products);
+      await addPrice({ productId, shopId, amount: amt, price: cents, promo, bought, date }, shops, products);
       toast.success(preview ? `${product?.title}: ${preview}` : "Price added");
     } catch (e) {
       return void toast.error((e as Error).message);
@@ -91,10 +94,16 @@ export function AddPriceDialog({ open, onOpenChange, productId: presetProduct }:
               <Label htmlFor="ap-date">Day</Label>
               <Input id="ap-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
-            <label className="flex items-center gap-2 pb-2 text-sm">
-              <Checkbox checked={promo} onCheckedChange={(v) => setPromo(v === true)} /> Promo
-            </label>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-2 text-sm">
+              <label className="flex items-center gap-2">
+                <Checkbox checked={promo} onCheckedChange={(v) => setPromo(v === true)} /> Promo
+              </label>
+              <label className="flex items-center gap-2">
+                <Checkbox checked={bought} onCheckedChange={(v) => setBought(v === true)} /> Bought it
+              </label>
+            </div>
           </div>
+          {!bought && <p className="text-muted-foreground text-xs">Noticed, not bought: it counts for what things cost, never as spending.</p>}
           {preview && <p className="text-muted-foreground text-xs tabular-nums">{preview}</p>}
         </div>
         <DialogFooter className="gap-2">

@@ -43,6 +43,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
   const [date, setDate] = useState(todayStr());
   const [branch, setBranch] = useState("");
   const [total, setTotal] = useState("");
+  const [noticed, setNoticed] = useState(false);
   const [lines, setLines] = useState<EditLine[]>([]);
   const [newProductFor, setNewProductFor] = useState<number | null>(null);
   const [newShop, setNewShop] = useState(false);
@@ -57,6 +58,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
       setDate(receipt.date);
       setBranch(receipt.branch);
       setTotal(receipt.total > 0 ? editAmount(receipt.total) : "");
+      setNoticed(receipt.noticed);
       // Amounts are typed in the matched Product's reading unit; an unmatched Line's stays as stored.
       const shown = (l: Line) => {
         const p = products.find((x) => x.id === l.productId);
@@ -68,6 +70,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
       setDate(todayStr());
       setBranch("");
       setTotal("");
+      setNoticed(false);
       setLines([fresh()]);
     }
     setPhoto(null);
@@ -95,7 +98,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
     }
     setSaving(true);
     try {
-      await saveReceipt({ shopId, date, branch, total: totalCents ?? 0, photo: photo ?? undefined, lines: input }, shops, products, receipt ? { receipt, lines: existingLines } : undefined);
+      await saveReceipt({ shopId, date, branch, total: totalCents ?? 0, noticed, photo: photo ?? undefined, lines: input }, shops, products, receipt ? { receipt, lines: existingLines } : undefined);
       toast.success(receipt ? "Receipt saved" : `Receipt saved${unmatched > 0 ? ` — ${unmatched} line${unmatched === 1 ? "" : "s"} to match` : ""}`);
       onOpenChange(false);
     } catch (e) {
@@ -170,6 +173,11 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
                 <Plus className="size-3.5" /> Line
               </Button>
             </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox checked={noticed} onCheckedChange={(v) => setNoticed(v === true)} />
+              <span className="min-w-0">Noticed, not bought — a Sighting: it counts for what things cost, never as spending</span>
+            </label>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <span className="tabular-nums">

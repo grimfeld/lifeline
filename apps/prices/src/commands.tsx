@@ -115,6 +115,7 @@ export const pricesCommands: CommandDef[] = [
       { key: "amount", label: "Amount", kind: "number", hint: `How much the price buys. ${AMOUNT_UNITS} Defaults to 1.` },
       { key: "unit", label: "Unit", kind: "text", hint: UNIT_HINT },
       { key: "promo", label: "Promotion", kind: "boolean" },
+      { key: "bought", label: "Bought it", kind: "boolean", hint: "True only when the user bought it. Defaults to false: a price noticed on a shelf or a flyer, kept as a Sighting that never counts as spending." },
       { key: "date", label: "Day", kind: "date", hint: "Defaults to today." },
     ],
     async invoke(a) {
@@ -123,8 +124,8 @@ export const pricesCommands: CommandDef[] = [
       const product = products.find((p) => p.id === a.product);
       if (!product) throw new Error("Pick a product");
       const amount = storedAmount((a.amount as number | undefined) ?? 1, a.unit as string | undefined, product, "Amount");
-      const id = await addPrice({ productId: product.id, shopId: a.shop as string, amount, price: cents, promo: !!a.promo, date: (a.date as string | undefined) ?? todayStr() }, await allShops(), products);
-      return { id, message: `${product.title}: ${formatUnitPrice(unitPrice({ price: cents, amount }), product)}` };
+      const id = await addPrice({ productId: product.id, shopId: a.shop as string, amount, price: cents, promo: !!a.promo, bought: !!a.bought, date: (a.date as string | undefined) ?? todayStr() }, await allShops(), products);
+      return { id, message: `${product.title}: ${formatUnitPrice(unitPrice({ price: cents, amount }), product)}${a.bought ? "" : " (noticed, not bought)"}` };
     },
   },
   {
