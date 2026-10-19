@@ -72,7 +72,7 @@ function DeckDialog({ open, onOpenChange, deck, topic, items }: { open: boolean;
                   const inDeck = deck.members.includes(i.id);
                   return (
                     <label key={i.id} className="hover:bg-accent/50 flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-sm">
-                      <Checkbox checked={inDeck} onCheckedChange={(v) => void setMembership(deck, i, v === true)} />
+                      <Checkbox checked={inDeck} onCheckedChange={(v) => setMembership(deck, i, v === true).catch((e: Error) => toast.error(e.message))} />
                       <span className="min-w-0 flex-1 truncate">{labelOf(i)}</span>
                     </label>
                   );

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, CardContent, toast } from "@lifeline/ui";
 import { recallableDef } from "@lifeline/core";
 import { Check, Eye, X } from "lucide-react";
@@ -36,6 +36,11 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
   const [pending, setPending] = useState<{ key: string; id: string } | null>(null);
   const [lastItem, setLastItem] = useState("");
   const [count, setCount] = useState({ passed: 0, failed: 0 });
+  // Set before the Recall is written and cleared by the next reveal: a double tap grades once.
+  const graded = useRef(false);
+  useEffect(() => {
+    if (revealed) graded.current = false;
+  }, [revealed]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30_000);
@@ -56,9 +61,17 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
   const Face = item ? recallableDef(item.type)?.face : undefined;
 
   async function grade(g: Grade) {
-    if (!current || !item || !revealed) return;
+    if (!current || !item || !revealed || graded.current) return;
+    graded.current = true;
     const key = current.key;
-    const r = await recordRecall(item, current.slot, g);
+    let r: Awaited<ReturnType<typeof recordRecall>>;
+    try {
+      r = await recordRecall(item, current.slot, g);
+    } catch (e) {
+      graded.current = false;
+      toast.error((e as Error).message);
+      return;
+    }
     setPending({ key, id: r.id });
     setLastItem(item.id);
     setRevealed(false);

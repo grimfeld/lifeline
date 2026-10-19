@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dueAhead, introducedOn, practiceQueue, retention, spaceSiblings } from "./practice";
+import { dueAhead, dueAheadOfHeld, heldPrompts, introducedByTopic, introducedOn, practiceQueue, queueOfHeld, retention, spaceSiblings } from "./practice";
 import { itemMaterial } from "./prompts";
 import { RECALL, SENTENCE, WORD, type Grade, type Material, type Recall, type Sentence, type Word } from "./types";
 
@@ -52,6 +52,20 @@ describe("practiceQueue", () => {
   it("derives a Sentence's Prompts from its blanks", () => {
     const q = practiceQueue([sentence("s", "Tengo {{ganas}} de {{comer}}")], [], { now: new Date(at(10)), newCap: 10 });
     expect(q.queue.map((p) => p.slot).sort()).toEqual(["blank:comer", "blank:ganas"]);
+  });
+});
+
+describe("queueOfHeld / dueAheadOfHeld", () => {
+  it("narrowing the Topic's held Prompts to a Deck reads the same as replaying the Deck", () => {
+    const items = [word("a", 1), word("b", 2), word("c", 3)];
+    const recalls = [recall("a", "forward", "pass", at(2)), recall("a", "reverse", "fail", at(9)), recall("c", "forward", "pass", at(10, 8))];
+    const now = new Date(at(10, 12));
+    const held = heldPrompts(items, recalls);
+    const introduced = introducedByTopic(recalls, "2026-09-10");
+    const deck = new Set(["a", "c"]);
+    const narrowed = queueOfHeld(held.filter((p) => deck.has(p.itemId)), introduced, { now, newCap: 2 });
+    expect(narrowed).toEqual(practiceQueue(items.filter((i) => deck.has(i.id)), recalls, { now, newCap: 2 }));
+    expect(dueAheadOfHeld(held, now)).toEqual(dueAhead(items, recalls, now));
   });
 });
 

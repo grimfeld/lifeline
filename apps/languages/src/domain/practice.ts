@@ -97,13 +97,20 @@ export interface PracticeQueue {
  * counts across the whole Topic however the Practice is narrowed.
  */
 export function practiceQueue(items: Material[], recalls: Recall[], opts: { now: Date; newCap: NewCap }): PracticeQueue {
+  return queueOfHeld(heldPrompts(items, recalls), introducedByTopic(recalls, todayStr(opts.now)), opts);
+}
+
+/**
+ * `practiceQueue` over Prompts already held, given today's introductions per
+ * Topic — so a screen replays the Recalls once and narrows the held Prompts
+ * per Deck or Source, rather than replaying them for each.
+ */
+export function queueOfHeld(all: HeldPrompt[], introduced: Map<string, number>, opts: { now: Date; newCap: NewCap }): PracticeQueue {
   const now = opts.now.getTime();
-  const all = heldPrompts(items, recalls);
   const dueNow = all.filter((p) => p.held.due && p.held.due.getTime() <= now).sort((a, b) => a.held.due!.getTime() - b.held.due!.getTime());
   const fresh = all.filter((p) => p.held.state === "new").sort((a, b) => a.addedAt.localeCompare(b.addedAt) || a.itemId.localeCompare(b.itemId) || a.order - b.order);
   const cap = opts.newCap;
   const capOf = typeof cap === "number" ? () => cap : cap;
-  const introduced = introducedByTopic(recalls, todayStr(opts.now));
   const left = new Map<string, number>();
   const newOnes = fresh.filter((p) => {
     const room = left.get(p.topicId) ?? Math.max(0, capOf(p.topicId) - (introduced.get(p.topicId) ?? 0));
@@ -146,9 +153,14 @@ export function retention(recalls: Recall[], now: Date, days = 30): { passed: nu
 
 /** Due counts for the week ahead: today (overdue included) and the six days after. New Prompts are not counted. */
 export function dueAhead(items: Material[], recalls: Recall[], now: Date, days = 7): { day: DateStr; count: number }[] {
+  return dueAheadOfHeld(heldPrompts(items, recalls), now, days);
+}
+
+/** `dueAhead` over Prompts already held. */
+export function dueAheadOfHeld(held: HeldPrompt[], now: Date, days = 7): { day: DateStr; count: number }[] {
   const today = todayStr(now);
   const out = Array.from({ length: days }, (_, i) => ({ day: addDays(today, i), count: 0 }));
-  for (const p of heldPrompts(items, recalls)) {
+  for (const p of held) {
     if (!p.held.due) continue;
     const d = todayStr(p.held.due);
     const slot = d <= today ? out[0] : out.find((x) => x.day === d);

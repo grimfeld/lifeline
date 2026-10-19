@@ -44,7 +44,8 @@ async function call<T>(address: string, path: string, init: RequestInit = {}, qu
 }
 
 export interface ThreadPage {
-  threads: { id: string; snippet?: string; historyId?: string }[];
+  /** Absent when the list is empty — Gmail omits the field rather than send `[]`. */
+  threads?: { id: string; snippet?: string; historyId?: string }[];
   nextPageToken?: string;
   resultSizeEstimate?: number;
 }
