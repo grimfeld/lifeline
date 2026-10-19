@@ -21,7 +21,8 @@ describe("daylogEntries", () => {
     const items = daylogEntries(stats, entries, "2026-08-16");
     expect(items.map((i) => [i.kind, i.title, i.time, i.href])).toEqual([
       ["Logged", "+20 Push-ups", "07:05", "/app/stats/a"],
-      ["Measured", "Weight 72.5 kg", "08:30", "/app/stats/m"],
+      // Values read in the person's own number locale ("72.5" or "72,5").
+      ["Measured", `Weight ${(72.5).toLocaleString()} kg`, "08:30", "/app/stats/m"],
       ["Collected", "Japan · Countries", "12:00", "/app/stats/c"],
     ]);
     expect(items.every((i) => i.appId === "stats" && i.key.startsWith("stats/"))).toBe(true);

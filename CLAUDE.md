@@ -2,6 +2,10 @@
 
 Read `CONTEXT.md` (the language) and `docs/adr/` (the decisions) before changing behaviour.
 
+A new ADR takes its number from `pnpm adr:new "The decision, as a sentence"`, never by
+hand: it looks past every branch and worktree, so parallel work doesn't collide.
+`pnpm adr:check` (in CI) fails when a number is taken twice.
+
 ## Phone layout (ADR 0064) — follow on every page you touch
 
 Below `md` (768px) is the phone. On the desk nothing below applies.
@@ -17,6 +21,11 @@ Below `md` (768px) is the phone. On the desk nothing below applies.
   (segmented buttons, status chips) use a `Select` on the phone (`usePhone()`).
 - `order={1}` for tabs/view switches (nearest the thumb); actions, search and Filters at the default 0.
 - Check with a phone-width (390px) screenshot as well as a desktop one.
+
+## UI
+
+Build from `@lifeline/ui` and its tokens; the rules are in `CODING_STANDARDS.md` § UI
+(ADR 0079), and `pnpm check:ui` checks the lines you add.
 
 ## Every screen holds long content, on a phone and on a desk (ADR 0065)
 
@@ -41,7 +50,14 @@ without an ellipsis, or makes a box scroll sideways that was not meant to.
   empty cells) carries `data-layout-ignore` and a comment saying why. Rare.
 
 It is not in CI (too slow): run it before pushing a change that touches a screen.
-`pnpm test:e2e` (or `pnpm --filter @lifeline/shell test:e2e -- --project=mobile -g Tasks`).
+`pnpm test:e2e` (or `pnpm --filter @lifeline/shell test:e2e --project=mobile -g Tasks` —
+no `--` before the flags). It starts its own server on port 1421; set `E2E_PORT` to
+another port when that one is taken.
+
+## Several agents share this machine
+
+Work in a `git worktree` off `origin/master` (code, ADRs and CONTEXT.md alike); the
+main checkout belongs to whoever opened it.
 
 ## Agent skills
 
