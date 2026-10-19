@@ -9,24 +9,12 @@ import {
   DialogTitle,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   TagInput,
   toast,
 } from "@lifeline/ui";
-import { DIFFICULTIES, type Difficulty, type Habit } from "../domain/types";
+import type { Difficulty, Habit } from "../domain/types";
+import { DifficultyField } from "./ActivityFields";
 import { addHabit, updateHabit } from "../data/repo";
-
-export const DIFFICULTY_COPY: Record<Difficulty, string> = {
-  easy: "Easy — light lift, quick decay",
-  normal: "Normal",
-  hard: "Hard — more XP, gentler decay",
-  expert: "Expert",
-  master: "Master — top XP, slowest decay",
-};
 
 export function HabitEditorDialog({ open, onOpenChange, habit }: { open: boolean; onOpenChange: (o: boolean) => void; habit?: Habit }) {
   const [name, setName] = useState("");
@@ -67,22 +55,7 @@ export function HabitEditorDialog({ open, onOpenChange, habit }: { open: boolean
             <Label htmlFor="habit-name">Name</Label>
             <Input id="habit-name" value={name} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
           </div>
-          <div className="grid gap-2">
-            <Label>Difficulty</Label>
-            <Select value={difficulty} onValueChange={(v) => setDifficulty(v as Difficulty)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DIFFICULTIES.map((d) => (
-                  <SelectItem key={d} value={d}>
-                    {DIFFICULTY_COPY[d]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-muted-foreground text-xs">Self-assessed: how unpleasant it is plus how long it takes. Changing it later re-values all past XP.</p>
-          </div>
+          <DifficultyField id="habit-difficulty" value={difficulty} onChange={setDifficulty} />
           <div className="grid gap-2">
             <Label>Tags</Label>
             <TagInput value={tags} onChange={setTags} suggestions={suggestions} />

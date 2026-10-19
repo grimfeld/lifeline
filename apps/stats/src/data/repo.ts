@@ -127,3 +127,23 @@ export async function uncollectItem(statId: string, item: string): Promise<void>
   const entries = await documentsWhere<Entry>(STAT_ENTRY, "statId", statId);
   for (const e of entries) if (e.item && normalizeItem(e.item) === key) await removeDocument(e.id);
 }
+
+let editing: Promise<unknown> = Promise.resolve();
+
+/**
+ * Change some of a Stat's Fields (its Peek, ADR 0085): over the Stat as it is
+ * stored at that moment, one edit after another, so two edits landing together
+ * — a Peek closed with two fields typed in — never write back each other's
+ * old value. Goes through `updateStat`, so the Kind stays fixed and the rest is
+ * scrubbed for it.
+ */
+export function editStat(id: string, patch: Partial<Omit<StatInput, "kind" | "title" | "tags">>): Promise<void> {
+  const run = editing.then(async () => {
+    const row = await getDocument<Stat>(id);
+    if (!row || row.type !== STAT) return;
+    const s = normalizeStat(row);
+    await updateStat(s, { title: s.title, unit: s.unit, color: s.color, defaultIncrement: s.defaultIncrement, universeSize: s.universeSize, items: s.items, tags: s.tags ?? [], ...patch });
+  });
+  editing = run.catch(() => {});
+  return run;
+}

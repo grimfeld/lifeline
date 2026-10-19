@@ -4,6 +4,7 @@ import { Coins, Gavel, PiggyBank } from "lucide-react";
 import { SwearJarScreen } from "./screens/SwearJarScreen";
 import { JarCard } from "./cards/JarCard";
 import { swearjarCommands } from "./commands";
+import { FinePeek } from "./components/FinePeek";
 import { swearjarDaylog } from "./daylog";
 import { formatCents } from "./domain/money";
 import { dayKeyOf } from "./domain/derive";
@@ -57,6 +58,7 @@ const fineType: DocumentTypeDef = {
   ],
   indexes: ["offenceId"],
   href: () => SWEARJAR_HREF,
+  peekEdit: FinePeek,
   order: 92,
   builtIn: true,
 };

@@ -5,12 +5,12 @@ import { useAisles } from "../data/repo";
 const ANYWHERE = "__anywhere";
 
 /** Pick an Aisle, or none — buyable anywhere. */
-export function AisleSelect({ value, onChange, className }: { value: string; onChange: (aisleId: string) => void; className?: string }) {
+export function AisleSelect({ id, value, onChange, className }: { id?: string; value: string; onChange: (aisleId: string) => void; className?: string }) {
   const aisles = useAisles();
   const known = aisles.some((a) => a.id === value);
   return (
     <Select value={known ? value : ANYWHERE} onValueChange={(v) => onChange(v === ANYWHERE ? "" : v)}>
-      <SelectTrigger className={className}>
+      <SelectTrigger id={id} className={className}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

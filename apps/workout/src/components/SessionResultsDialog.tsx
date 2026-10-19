@@ -18,6 +18,7 @@ export function SessionResultsDialog({
   workout,
   exercises,
   initial,
+  initialNotes = "",
   saving = false,
   onSave,
   onDiscard,
@@ -26,6 +27,8 @@ export function SessionResultsDialog({
   workout: Workout;
   exercises: Exercise[];
   initial: BlockResult[];
+  /** A saved Session's notes, when its results are edited again (its Peek). */
+  initialNotes?: string;
   /** A save is in flight: the buttons wait for it. */
   saving?: boolean;
   onSave: (results: BlockResult[], notes: string) => void;
@@ -36,9 +39,9 @@ export function SessionResultsDialog({
   useEffect(() => {
     if (open) {
       setResults(initial);
-      setNotes("");
+      setNotes(initialNotes);
     }
-  }, [open, initial]);
+  }, [open, initial, initialNotes]);
 
   const exById = new Map(exercises.map((e) => [e.id, e]));
   const setResult = (i: number, r: BlockResult) => setResults((cur) => cur.map((x, j) => (j === i ? r : x)));

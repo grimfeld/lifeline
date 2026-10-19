@@ -2,6 +2,7 @@ import type { DocumentTypeDef } from "@lifeline/core";
 import { Smile } from "lucide-react";
 import { MOOD, MOOD_HREF, MOOD_STEPS, moodLabel } from "./domain/types";
 import { readLevel } from "./domain/grid";
+import { MoodPeek } from "./components/MoodPeek";
 
 const levelOptions = MOOD_STEPS.map((s) => ({ value: String(s.level), label: `${s.emoji} ${s.label}` }));
 
@@ -19,6 +20,7 @@ export const moodTypeDef: DocumentTypeDef = {
   titleRule: "date",
   body: "none",
   href: () => MOOD_HREF,
+  peekEdit: MoodPeek,
   order: 62,
   builtIn: true,
   fields: [{ key: "level", label: "Mood", kind: "select", options: levelOptions, column: true }],
