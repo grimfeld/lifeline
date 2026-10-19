@@ -3,7 +3,8 @@ import { addDays, formatHuman, todayStr } from "@lifeline/core";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { clearMood, setMood, useMoodsByDate } from "../data/repo";
-import { MOOD_STEPS, type MoodLevel } from "../domain/types";
+import type { MoodLevel } from "../domain/types";
+import { MoodPicker } from "./MoodPicker";
 
 /**
  * The palette's "Set mood…": five buttons for a day, today by default, with
@@ -36,21 +37,7 @@ export function SetMoodDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <ChevronRight className="size-4" />
           </Button>
         </div>
-        <div className="grid grid-cols-5 gap-2">
-          {MOOD_STEPS.map((s) => (
-            <button
-              key={s.level}
-              type="button"
-              title={`${s.emoji} ${s.label}`}
-              onClick={() => void pick(s.level)}
-              className={`flex flex-col items-center gap-1 rounded-md border-2 py-3 text-2xl transition-all ${current === s.level ? "border-foreground" : "border-transparent hover:opacity-80"}`}
-              style={{ background: s.color }}
-            >
-              <span>{s.emoji}</span>
-              <span className="text-[10px] leading-none text-white/90">{s.label}</span>
-            </button>
-          ))}
-        </div>
+        <MoodPicker current={current} onPick={(l) => void pick(l)} />
         {current !== null && (
           <Button variant="ghost" size="sm" onClick={() => void clearMood(date).then(() => onOpenChange(false))}>
             Clear this day

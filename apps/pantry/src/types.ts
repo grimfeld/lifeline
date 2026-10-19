@@ -3,6 +3,7 @@ import { Home, Utensils } from "lucide-react";
 import { PANTRY_HREF } from "./constants";
 import { STORAGE_KINDS } from "./domain/types";
 import { KIND_LABELS } from "./domain/rules";
+import { ProvisionPeek } from "./components/ProvisionPeek";
 
 const kindOptions = STORAGE_KINDS.map((k) => ({ value: k, label: KIND_LABELS[k] }));
 
@@ -25,6 +26,7 @@ export const provisionTypeDef: DocumentTypeDef = {
   indexes: ["storageId"],
   order: 60,
   builtIn: true,
+  peekEdit: ProvisionPeek,
   fields: [
     { key: "storageId", label: "Storage", kind: "link", linkType: "storage", column: true },
     { key: "quantity", label: "Quantity", kind: "number", column: true },

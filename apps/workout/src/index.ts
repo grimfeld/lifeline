@@ -4,6 +4,7 @@ import { WorkoutScreen } from "./screens/WorkoutScreen";
 import { TimerScreen } from "./screens/TimerScreen";
 import { RecentSessionsCard, StartWorkoutCard } from "./cards/WorkoutCards";
 import { workoutCommands } from "./commands";
+import { SessionPeek } from "./components/SessionPeek";
 import { workoutTimed } from "./timed";
 import { workoutDaylog } from "./daylog";
 import { workoutTallying } from "./tallying";
@@ -68,6 +69,7 @@ const sessionType: DocumentTypeDef = {
   indexes: ["workoutId", "date"],
   linkable: { subtitle: (d) => `${(d as Session).date} · ${(d as Session).durationMin} min` },
   href: () => `${WORKOUT_HREF}?tab=sessions`,
+  peekEdit: SessionPeek,
   order: 52,
   builtIn: true,
 };

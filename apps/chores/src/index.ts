@@ -1,6 +1,7 @@
 import type { AppManifest, DocumentTypeDef } from "@lifeline/core";
 import { CheckCircle2, ClipboardList } from "lucide-react";
 import { ChoresScreen } from "./screens/ChoresScreen";
+import { ChorePeek } from "./components/ChorePeek";
 import { DueTodayCard } from "./cards/DueTodayCard";
 import { HeatmapCard, useHeatmapInstanceTitle, useHeatmapChoreOptions } from "./cards/HeatmapCard";
 import { choreCommands } from "./commands";
@@ -12,7 +13,7 @@ import { CHORE, COMPLETION, type Chore, type Completion } from "./domain/types";
 /**
  * Built-in Document types owned by the Chores App (ADR 0019). `schedule`,
  * `status` and `anchorDate` are guarded: only the App's operations (edit
- * dialog, pause/resume) may write them — a Base shows them read-only.
+ * dialog, the Peek, pause/resume) may write them — a Base shows them read-only.
  */
 const choreType: DocumentTypeDef = {
   id: CHORE,
@@ -24,6 +25,7 @@ const choreType: DocumentTypeDef = {
   href: () => CHORES_HREF,
   order: 20,
   builtIn: true,
+  peekEdit: ChorePeek,
   fields: [
     { key: "status", label: "Status", kind: "select", guarded: true, column: true, options: [
       { value: "active", label: "Active" }, { value: "paused", label: "Paused" }, { value: "archived", label: "Archived" },
