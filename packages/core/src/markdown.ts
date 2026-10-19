@@ -280,11 +280,21 @@ export function proseSegments(text: string): { text: string; offset: number }[] 
 
 /** Rewrite every [[Old]] / [[Old#h]] / [[Old|alias]] to the new name. Case-insensitive on the name. */
 export function renameLinks(text: string, oldName: string, newName: string): string {
-  const links = extractLinks(text).filter((l) => normalizeName(l.name) === normalizeName(oldName));
+  return renameLinksMany(text, new Map([[normalizeName(oldName), newName]]));
+}
+
+/**
+ * Several renames in one pass: `renames` maps a normalised old name to its new
+ * name. One pass, so a link renamed once is never matched again by another pair.
+ */
+export function renameLinksMany(text: string, renames: ReadonlyMap<string, string>): string {
+  if (renames.size === 0) return text;
+  const links = extractLinks(text).filter((l) => renames.has(normalizeName(l.name)));
   if (links.length === 0) return text;
   let out = "";
   let pos = 0;
   for (const l of links) {
+    const newName = renames.get(normalizeName(l.name))!;
     out += text.slice(pos, l.from);
     out += `${l.embed ? "!" : ""}[[${newName}${l.heading ? `#${l.heading}` : ""}${l.alias ? `|${l.alias}` : ""}]]`;
     pos = l.to;

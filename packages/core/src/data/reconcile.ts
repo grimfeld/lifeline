@@ -22,9 +22,19 @@ export function sameRecord(a: unknown, b: unknown): boolean {
  * one already stored is never written. Every push comes back on the same
  * cycle's pull, and rewriting the row for it woke every live query — handing
  * an open editor its own body back mid-keystroke.
+ *
+ * A missing body and `""` are the same body: the wire always carries one, so a
+ * Document stored without a body (every `body: "none"` type) comes back with
+ * `""`, and comparing them strictly rewrote each of those rows on every push.
  */
 export function shouldApply(local: SyncedRecord | undefined, incoming: SyncedRecord): boolean {
   if (!local) return true;
   if (incoming.updatedAt < local.updatedAt) return false;
-  return !sameRecord(local, incoming);
+  return !sameRecord(withoutEmptyBody(local), withoutEmptyBody(incoming));
+}
+
+function withoutEmptyBody(r: SyncedRecord): SyncedRecord {
+  if ((r as { body?: unknown }).body !== "") return r;
+  const { body: _b, ...rest } = r as SyncedRecord & { body?: string };
+  return rest as SyncedRecord;
 }
