@@ -4,7 +4,7 @@ import { linesOf, sumOfLines } from "./domain/derive";
 import { formatCents } from "./domain/money";
 import { useLines, useReceipts, useShops } from "./data/repo";
 
-/** The Daylog Contract for Prices (ADR 0045): a shopping trip is a fact of its day — "Bought · Lidl · €54.20". */
+/** The Daylog Contract for Prices (ADR 0082): a shopping trip is a fact of its day — "Bought · Lidl · €54.20". */
 export const pricesDaylog: DaylogProvider = {
   appId: APP_ID,
   useItems(date) {

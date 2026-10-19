@@ -1,3 +1,7 @@
+---
+formerly: 0045
+---
+
 # Prices is its own App: Receipts own Lines, Products fix only a measure, the receipt reader sits behind one seam
 
 Tracking what groceries and other regular purchases cost, per shop and over time, could have lived in the Ledger (a receipt import that also posts the Transaction) or in Pantry (Provisions gaining a price history). Both were rejected: the Ledger accepts only bank facts (ADR 0033, 0042) and a receipt total typed from a photo would duplicate the bank row that arrives later; Pantry chose a bare counter with no bookkeeping beyond a tap (ADR 0043) and receipt lines would reintroduce batches through the back door. The decision is a **separate App, Prices**, with no reference to either — the Pocket precedent (ADR 0081): a cross-App link can come later through a Contract if by-eye comparison is shown to hurt.
