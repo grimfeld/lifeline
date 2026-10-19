@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Command as CommandPrimitive } from "cmdk"
 import { Popover as PopoverPrimitive } from "radix-ui"
-import { CheckIcon, PlusIcon } from "lucide-react"
+import { Check, Plus } from "lucide-react"
 
 import { cn } from "../../lib/utils"
 import { Input } from "./input"
@@ -35,8 +35,6 @@ export interface ComboboxProps<T extends ComboboxOption = ComboboxOption> {
    * an option whose value is already listed is dropped.
    */
   search?: (query: string, signal: AbortSignal) => Promise<readonly T[]>
-  /** Shortest query `search` is asked for (default 3). */
-  searchMinLength?: number
   /** Milliseconds of quiet typing before `search` runs (default 350). */
   searchDelay?: number
   /**
@@ -48,13 +46,7 @@ export interface ComboboxProps<T extends ComboboxOption = ComboboxOption> {
   createLabel?: (query: string) => React.ReactNode
   /** Where the Create row sits; `first` makes plain Enter create (a quick add), arrows reach the rest. */
   createPosition?: "first" | "last"
-  /** Draw an option's row yourself (icon, label and description are the default). */
-  renderOption?: (option: T) => React.ReactNode
-  /** Shown when the query matches nothing and there is no Create row; without it the list stays shut. */
-  emptyText?: React.ReactNode
-  /** Open the list on focus with an empty query (all `options`); by default it opens as you type. */
-  openOnFocus?: boolean
-  /** At most this many of `options` are listed (best matches first). */
+  /** At most this many rows are listed: the best matches of `options` first, then what `search` found. */
   limit?: number
   /** What the list is called to a screen reader (default "Suggestions"). */
   listLabel?: string
@@ -63,22 +55,22 @@ export interface ComboboxProps<T extends ComboboxOption = ComboboxOption> {
   id?: string
   placeholder?: string
   autoFocus?: boolean
-  disabled?: boolean
   "aria-label"?: string
   className?: string
-  inputClassName?: string
   /** Runs before the Combobox's own keys (Backspace on an empty query to drop a chip, say). */
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>
-  onBlur?: React.FocusEventHandler<HTMLInputElement>
 }
 
 const CREATE = "\u0000create"
+/** Shortest query `search` is asked for. */
+const SEARCH_MIN_LENGTH = 3
 
 /**
  * Search-as-you-type picker (ADR 0079): an input, and under it a list you
  * arrow through and pick from with Enter. Options are data — local ones
  * matched the way Wikilinks resolve, plus an optional async `search` — and
- * an optional "Create …" row when nothing matches exactly. Announced as a
+ * an optional "Create …" row when nothing matches exactly. The list opens as
+ * you type and stays shut while nothing matches. Announced as a
  * combobox with a listbox of options. On a phone the list is as wide as the
  * input and as tall as the room left above the keyboard.
  */
@@ -89,26 +81,19 @@ function Combobox<T extends ComboboxOption>({
   onQueryChange,
   options = [],
   search,
-  searchMinLength = 3,
   searchDelay = 350,
   onCreate,
   createLabel = (q) => <>Create “{q}”</>,
   createPosition = "last",
-  renderOption,
-  emptyText,
-  openOnFocus = false,
   limit,
   listLabel = "Suggestions",
   leading,
   id,
   placeholder,
   autoFocus,
-  disabled,
   "aria-label": ariaLabel,
   className,
-  inputClassName,
   onKeyDown,
-  onBlur,
 }: ComboboxProps<T>) {
   const [ownQuery, setOwnQuery] = React.useState("")
   const query = queryProp ?? ownQuery
@@ -127,7 +112,7 @@ function Combobox<T extends ComboboxOption>({
 
   const typed = query.trim()
   React.useEffect(() => {
-    if (!search || typed.length < searchMinLength) {
+    if (!search || typed.length < SEARCH_MIN_LENGTH) {
       setFound([])
       return
     }
@@ -145,18 +130,18 @@ function Combobox<T extends ComboboxOption>({
     }
     // `search` is usually an inline closure; the query drives the lookup.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [typed, searchMinLength, searchDelay])
+  }, [typed, searchDelay])
 
-  const local = React.useMemo(() => (typed || openOnFocus ? matchOptions(options, typed).slice(0, limit) : []), [options, typed, openOnFocus, limit])
   const rows = React.useMemo(() => {
+    const local = typed ? matchOptions(options, typed) : []
     const seen = new Set(local.map((o) => o.value))
-    return [...local, ...found.filter((o) => !seen.has(o.value) && (seen.add(o.value), true))]
-  }, [local, found])
+    return [...local, ...found.filter((o) => !seen.has(o.value) && (seen.add(o.value), true))].slice(0, limit)
+  }, [options, typed, found, limit])
   const create = !!onCreate && offersCreate(options, typed)
   const byValue = React.useMemo(() => new Map(rows.map((o) => [o.value, o])), [rows])
 
   const hasRows = rows.length > 0 || create
-  const open = focused && !dismissed && !disabled && (typed !== "" || openOnFocus) && (hasRows || !!emptyText)
+  const open = focused && !dismissed && typed !== "" && hasRows
 
   // What Enter picks: the first row whenever the rows change (cmdk keeps it on arrows).
   const firstRow = createPosition === "first" && create ? CREATE : (rows.find((o) => !o.disabled)?.value ?? (create ? CREATE : ""))
@@ -181,7 +166,7 @@ function Combobox<T extends ComboboxOption>({
 
   const createRow = create && (
     <ComboboxRow key={CREATE} value={CREATE} onSelect={pick}>
-      <PlusIcon />
+      <Plus />
       <span className="min-w-0 flex-1 truncate">{createLabel(typed)}</span>
     </ComboboxRow>
   )
@@ -214,18 +199,16 @@ function Combobox<T extends ComboboxOption>({
               value={query}
               placeholder={placeholder}
               autoFocus={autoFocus}
-              disabled={disabled}
               aria-label={ariaLabel}
-              className={cn(leading && "pl-8", inputClassName)}
+              className={cn(leading && "pl-8")}
               onChange={(e) => {
                 setQuery(e.target.value)
                 setDismissed(false)
               }}
               onFocus={() => setFocused(true)}
-              onBlur={(e) => {
+              onBlur={() => {
                 setFocused(false)
                 setDismissed(false)
-                onBlur?.(e)
               }}
               onKeyDown={(e) => {
                 onKeyDown?.(e)
@@ -263,22 +246,15 @@ function Combobox<T extends ComboboxOption>({
               {createPosition === "first" && createRow}
               {rows.map((o) => (
                 <ComboboxRow key={o.value} value={o.value} disabled={o.disabled} onSelect={pick}>
-                  {renderOption ? (
-                    renderOption(o)
-                  ) : (
-                    <>
-                      {o.icon}
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">{o.label}</span>
-                        {o.description && <span className="text-muted-foreground block truncate text-xs">{o.description}</span>}
-                      </span>
-                    </>
-                  )}
-                  {value != null && o.value === value && <CheckIcon className="ml-auto" />}
+                  {o.icon}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{o.label}</span>
+                    {o.description && <span className="text-muted-foreground block truncate text-xs">{o.description}</span>}
+                  </span>
+                  {value != null && o.value === value && <Check className="ml-auto" />}
                 </ComboboxRow>
               ))}
               {createPosition === "last" && createRow}
-              {!hasRows && emptyText && <div className="text-muted-foreground px-2 py-4 text-center text-sm">{emptyText}</div>}
             </CommandPrimitive.List>
           </PopoverPrimitive.Content>
         </PopoverPrimitive.Portal>
