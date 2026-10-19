@@ -3,13 +3,15 @@ import { moduleOrder } from "./intakeGroups";
 import { normalizeName } from "./markdown";
 import type { LinkIndex } from "./documents/links";
 import { maskProse, wikilinkFor } from "./documents/mentions";
+import { aliasesOf, type Document, type DocumentTypeDef } from "./documents/types";
 
 /**
  * The **Selection menu** (CONTEXT.md, ADR 0086): what selecting text in a
  * Document's body offers. Pure — the selection and its context go in, the
  * ordered groups come out; the shell only draws them.
  *
- * Top to bottom: **Link** (to the Document the text already names), then a
+ * Top to bottom: **Link** (to the Document the text already names, and
+ * "Link to…" a search over every Linkable Document), then a
  * group for each App in no Module (the Calendar, as on the capture sheet),
  * then each Module in Core's order with the one the user is in first, and
  * last **Other**, for user-defined types homed in no Module. A Module's group
@@ -41,6 +43,8 @@ export interface MenuIntake {
 export type SelectionEntry<I extends MenuIntake = MenuIntake> =
   /** Wrap the selection in a wikilink to the Document it already names. */
   | { kind: "link"; key: string; title: string; targetId: string; canonical: string; /** The target's title, as shown. */ target: string }
+  /** Search every Linkable Document (`linkTargets`) and link the selection to the one picked. */
+  | { kind: "search"; key: string; title: string }
   /** Open an App's Intake dialog with the selection as its Handoff. */
   | { kind: "intake"; key: string; title: string; intake: I }
   /** Make a user-defined type's Document at once, titled by the selection — Core's quick make, no Intake (ADR 0086). */
@@ -79,7 +83,7 @@ export interface SelectionMenuInput<I extends MenuIntake = MenuIntake> {
 
 export function buildSelectionMenu<I extends MenuIntake>(input: SelectionMenuInput<I>): SelectionGroup<I>[] {
   const { intakes, moduleOf, appTitle, currentModule } = input;
-  const link = linkEntry(input);
+  const link = [linkEntry(input), searchEntry(input)].filter((e): e is SelectionEntry<I> => !!e);
   const known = new Set(MODULES.map((m) => m.id));
   const byGroup = new Map<string, SelectionEntry<I>[]>();
   const add = (group: string, e: SelectionEntry<I>) => byGroup.set(group, [...(byGroup.get(group) ?? []), e]);
@@ -98,7 +102,7 @@ export function buildSelectionMenu<I extends MenuIntake>(input: SelectionMenuInp
     add(m && known.has(m) ? m : `app:${i.appId}`, { kind: "intake", key: `intake:${i.key}`, title: i.title, intake: i });
   }
 
-  const groups: SelectionGroup<I>[] = link ? [{ id: "link", title: "Link", entries: [link] }] : [];
+  const groups: SelectionGroup<I>[] = link.length ? [{ id: "link", title: "Link", entries: link }] : [];
   for (const [id, entries] of byGroup) {
     if (id.startsWith("app:")) groups.push({ id, title: appTitle(id.slice(4)) ?? id.slice(4), entries });
   }
@@ -138,6 +142,59 @@ function linkEntry<I extends MenuIntake>({ text, originId, body, placement, inde
   const title = index.byId.get(ref.id)?.title || name.canonical;
   const label = typeLabel(ref.type);
   return { kind: "link", key: `link:${ref.id}`, title: `Link to ${title}${label ? ` (${label})` : ""}`, targetId: ref.id, canonical: name.canonical, target: title };
+}
+
+/** "Link to…": offered wherever a link could be written — the text naming nothing, or naming the wrong thing. */
+function searchEntry<I extends MenuIntake>({ body, placement }: SelectionMenuInput<I>): SelectionEntry<I> | null {
+  if (!placement || !writeLink(body, placement, "x")) return null;
+  return { kind: "search", key: "link:search", title: "Link to…" };
+}
+
+/** A Document "Link to…" can link to. */
+export interface LinkCandidate {
+  id: string;
+  title: string;
+  /** What to write in `[[…]]` (see `LinkName.canonical`). */
+  canonical: string;
+  type: string;
+  subtitle?: string;
+}
+
+/**
+ * What "Link to…" searches: every Linkable Document once, other than the one
+ * the text was selected in, kept when its title or any alias holds `query`
+ * (case and accents aside). In the link index's order.
+ */
+export function linkTargets(index: LinkIndex, originId: string, query: string): LinkCandidate[] {
+  const q = normalizeName(query);
+  const out = new Map<string, LinkCandidate & { found: boolean }>();
+  for (const n of index.names()) {
+    if (n.ref.kind !== "doc" || n.ref.id === originId) continue;
+    const id = n.ref.id;
+    let t = out.get(id);
+    if (!t) {
+      const title = index.byId.get(id)?.title || n.canonical;
+      t = { id, title, canonical: n.canonical, type: n.type, subtitle: n.subtitle, found: !q || normalizeName(title).includes(q) };
+      out.set(id, t);
+    }
+    if (!t.found && normalizeName(n.name).includes(q)) t.found = true;
+  }
+  return [...out.values()].filter((t) => t.found).map(({ found: _, ...t }) => t);
+}
+
+/**
+ * The words as a new alias of the target (the Known Field Aliases, under the
+ * type's own key): its Aliases with them added, or null when they are its
+ * title or one of its aliases already (names compare as wikilinks do) — then
+ * "add as alias" is not offered.
+ */
+export function aliasWrite(words: string, target: Document, def: Pick<DocumentTypeDef, "linkable"> | null | undefined): { key: string; value: string[] } | null {
+  const w = normalizeName(words);
+  const aliases = aliasesOf(target, def);
+  if (!w || w === normalizeName(target.title) || aliases.some((a) => normalizeName(a) === w)) return null;
+  const l = def?.linkable;
+  const key = typeof l === "object" && l?.aliasesField ? l.aliasesField : "aliases";
+  return { key, value: [...aliases, words.trim()] };
 }
 
 /**

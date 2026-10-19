@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex } from "./documents/links";
 import type { Document, DocumentTypeDef } from "./documents/types";
-import { buildSelectionMenu, writeLink, type SelectionMenuInput } from "./selectionMenu";
+import { aliasWrite, buildSelectionMenu, linkTargets, writeLink, type SelectionMenuInput } from "./selectionMenu";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
   id, label: id + "s", titleRule: "name", body: "optional", fields: [], linkable: true, builtIn: true, ...extra,
@@ -48,6 +48,7 @@ const shape = (groups: ReturnType<typeof menu>) => groups.map((g) => [g.title, g
 describe("the Selection menu's groups", () => {
   it("puts each Intake under its App's Module, an App in no Module first, the rest in Core's Module order", () => {
     expect(shape(menu())).toEqual([
+      ["Link", ["Link to…"]],
       ["Calendar", ["Event"]],
       ["House", ["Need"]],
       ["Projects", ["Task"]],
@@ -57,35 +58,38 @@ describe("the Selection menu's groups", () => {
   });
 
   it("lists the Module the user is in first among the Modules, the others keeping their places", () => {
-    expect(shape(menu({ currentModule: "languages" })).map(([t]) => t)).toEqual(["Calendar", "Knowledge", "House", "Projects", "Notes"]);
+    expect(shape(menu({ currentModule: "languages" })).map(([t]) => t)).toEqual(["Link", "Calendar", "Knowledge", "House", "Projects", "Notes"]);
   });
 });
 
 describe("Link", () => {
+  /** The Link group's entry to the Document the text names, if any. */
+  const named = (groups: ReturnType<typeof menu>) => groups.find((g) => g.id === "link")?.entries.filter((e) => e.kind === "link") ?? [];
+
   it("comes first when the text names a Document by its title", () => {
     const [first] = menu({ text: "Pierre" });
     expect(first.title).toBe("Link");
-    expect(first.entries).toMatchObject([{ kind: "link", title: "Link to Pierre (Person)", targetId: "p2", canonical: "Pierre" }]);
+    expect(first.entries.slice(0, 1)).toMatchObject([{ kind: "link", title: "Link to Pierre (Person)", targetId: "p2", canonical: "Pierre" }]);
   });
 
   it("resolves an alias, case aside, and links to the title", () => {
     const [first] = menu({ text: "marie" });
-    expect(first.entries).toMatchObject([{ kind: "link", title: "Link to Marie Curie (Person)", targetId: "p1", canonical: "Marie Curie" }]);
+    expect(first.entries.slice(0, 1)).toMatchObject([{ kind: "link", title: "Link to Marie Curie (Person)", targetId: "p1", canonical: "Marie Curie" }]);
   });
 
   it("is not offered when the text names nothing", () => {
-    expect(menu({ text: "Marie Antoinette" }).some((g) => g.id === "link")).toBe(false);
+    expect(named(menu({ text: "Marie Antoinette" }))).toEqual([]);
   });
 
   it("is not offered for the Document the text was selected in", () => {
-    expect(menu({ text: "Today", originId: "n1" }).some((g) => g.id === "link")).toBe(false);
+    expect(named(menu({ text: "Today", originId: "n1" }))).toEqual([]);
   });
 
   it("is not offered when the selection cannot be linked where it is", () => {
     const inCode = "Run `Pierre` now";
-    expect(menu({ text: "Pierre", body: inCode, placement: { from: 5, to: 11 } }).some((g) => g.id === "link")).toBe(false);
-    expect(menu({ text: "Pierre", body: "**Pi**erre and Pierre", placement: { text: "Pierre", occurrence: 1, count: 2 } }).some((g) => g.id === "link")).toBe(false);
-    expect(menu({ text: "Pierre", placement: null }).some((g) => g.id === "link")).toBe(false);
+    expect(named(menu({ text: "Pierre", body: inCode, placement: { from: 5, to: 11 } }))).toEqual([]);
+    expect(named(menu({ text: "Pierre", body: "**Pi**erre and Pierre", placement: { text: "Pierre", occurrence: 1, count: 2 } }))).toEqual([]);
+    expect(named(menu({ text: "Pierre", placement: null }))).toEqual([]);
   });
 
   it("is offered from a rendered body when the occurrence can be placed", () => {
@@ -96,7 +100,70 @@ describe("Link", () => {
   it("writes the canonical path when the title is shared", () => {
     const shared = [doc("a", "person", "Alex", { folder: "Work" }), doc("b", "person", "Alex", { folder: "Home/Family" })];
     const [first] = menu({ text: "Alex", index: buildLinkIndex(shared, types), originId: "x" });
-    expect(first.entries).toMatchObject([{ targetId: "a", canonical: "Work/Alex" }]);
+    expect(first.entries.slice(0, 1)).toMatchObject([{ targetId: "a", canonical: "Work/Alex" }]);
+  });
+});
+
+describe("Link to…", () => {
+  const linkGroup = (groups: ReturnType<typeof menu>) => groups.find((g) => g.id === "link");
+
+  it("is offered in the Link group when the text names nothing, so any Document can be searched for", () => {
+    expect(shape(menu({ text: "Marie Antoinette" }))[0]).toEqual(["Link", ["Link to…"]]);
+    expect(linkGroup(menu({ text: "Marie Antoinette" }))?.entries).toMatchObject([{ kind: "search" }]);
+  });
+
+  it("follows the Document the text already names, for when it names the wrong one", () => {
+    expect(shape(menu({ text: "Pierre" }))[0]).toEqual(["Link", ["Link to Pierre (Person)", "Link to…"]]);
+  });
+
+  it("is not offered when the selection cannot be linked where it is", () => {
+    expect(linkGroup(menu({ text: "Pierre", body: "Run `Pierre` now", placement: { from: 5, to: 11 } }))).toBeUndefined();
+    expect(linkGroup(menu({ text: "Pierre", placement: null }))).toBeUndefined();
+  });
+
+  it("is found by typing \"link\"", () => {
+    expect(shape(menu({ query: "link" }))).toEqual([["Link", ["Link to…"]]]);
+  });
+});
+
+describe("linkTargets: what Link to… searches", () => {
+  const index = buildLinkIndex([...docs, doc("x1", "secret", "Hidden")], [...types, T("secret", { linkable: false })]);
+
+  it("lists every Linkable Document once, by title, less the one the text was selected in", () => {
+    expect(linkTargets(index, "n1", "").map((t) => t.title)).toEqual(["Marie Curie", "Pierre"]);
+  });
+
+  it("finds a Document by any part of its title or an alias, case aside", () => {
+    expect(linkTargets(index, "n1", "CURIE").map((t) => t.id)).toEqual(["p1"]);
+    expect(linkTargets(index, "n1", "mari").map((t) => t.id)).toEqual(["p1"]);
+    expect(linkTargets(index, "n1", "zzz")).toEqual([]);
+  });
+
+  it("carries what to write in the link", () => {
+    const shared = buildLinkIndex([doc("a", "person", "Alex", { folder: "Work" }), doc("b", "person", "Alex", { folder: "Home" })], types);
+    expect(linkTargets(shared, "x", "")).toMatchObject([{ id: "a", canonical: "Work/Alex" }, { id: "b", canonical: "Home/Alex" }]);
+  });
+});
+
+describe("aliasWrite: adding the selected words as an alias", () => {
+  const person = T("person");
+  const marie = doc("p1", "person", "Marie Curie", { aliases: ["Madame Curie"] });
+
+  it("adds the words to the target's Aliases when they differ from its title", () => {
+    expect(aliasWrite("Marie", marie, person)).toEqual({ key: "aliases", value: ["Madame Curie", "Marie"] });
+  });
+
+  it("starts the Aliases when the target has none", () => {
+    expect(aliasWrite("Pierre", doc("p2", "person", "Pierre Curie"), person)).toEqual({ key: "aliases", value: ["Pierre"] });
+  });
+
+  it("is not offered when the words are the title or already an alias, case aside", () => {
+    expect(aliasWrite("marie curie", marie, person)).toBeNull();
+    expect(aliasWrite("madame  curie", marie, person)).toBeNull();
+  });
+
+  it("writes to the type's own aliases Field", () => {
+    expect(aliasWrite("Marie", doc("p1", "person", "Marie Curie", { names: "Mme Curie" }), T("person", { linkable: { aliasesField: "names" } }))).toEqual({ key: "names", value: ["Mme Curie", "Marie"] });
   });
 });
 
@@ -112,6 +179,7 @@ describe("user-defined types: made from a short selection", () => {
   it("lists each under its Home Module, before the Module's Intakes, and those homed nowhere last under Other", () => {
     const shared = INTAKES.concat(intake("journal", "dream", "Dream"));
     expect(shape(withTypes({ intakes: shared, moduleOf: (a) => (a === "journal" ? "journal" : MODULE_OF[a]) }))).toEqual([
+      ["Link", ["Link to…"]],
       ["Calendar", ["Event"]],
       ["House", ["Need"]],
       ["Projects", ["Task"]],

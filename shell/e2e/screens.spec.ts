@@ -141,12 +141,13 @@ async function sharedAndSaved(page: Page) {
 /**
  * Today's Day naming a seeded Person with a very long title (of the seeded
  * type with a very long label), that name selected and the Selection menu
- * open: Link first, then every Intake under its Module.
+ * open: Link first, then every Intake under its Module. A second Person, also
+ * very long, is there for "Link to…" to find.
  */
 async function openSelectionMenu(page: Page) {
   await workLocally(page);
   const name = await page.evaluate(
-    async ({ coreUrl, name }) => {
+    async ({ coreUrl, name, other }) => {
       const core = await import(/* @vite-ignore */ coreUrl);
       const pad = (n: number) => String(n).padStart(2, "0");
       const now = new Date();
@@ -157,16 +158,34 @@ async function openSelectionMenu(page: Page) {
         if (!day) await new Promise((r) => setTimeout(r, 100));
       }
       await core.createDocument({ type: "e2eperson", title: name });
+      await core.createDocument({ type: "e2eperson", title: other });
       await core.patchDocument(day!.id, { body: `Met ${name} today.` });
       return name;
     },
-    { coreUrl: CORE_URL, name: longText("Selected person") },
+    { coreUrl: CORE_URL, name: longText("Selected person"), other: longText("Linked person") },
   );
   const body = page.locator(".cm-content");
   await expect(body).toContainText(name);
   await selectText(body, name);
   await page.getByRole("button", { name: "Selection menu" }).click();
   await expect(page.getByRole("dialog", { name: "Selection menu" }).getByRole("option").first()).toContainText("Link to Selected person");
+}
+
+/** The Selection menu's "Link to…": every Linkable Document, the seeded very long ones among them. */
+async function openLinkSearch(page: Page) {
+  await openSelectionMenu(page);
+  const menu = page.getByRole("dialog", { name: "Selection menu" });
+  await menu.getByRole("option", { name: "Link to…" }).click();
+  await expect(menu.getByRole("option").first()).toBeVisible();
+}
+
+/** "Link to…" with another Person picked: the very long words, the very long title, and "add as alias". */
+async function openLinkAlias(page: Page) {
+  await openLinkSearch(page);
+  const menu = page.getByRole("dialog", { name: "Selection menu" });
+  await menu.getByRole("combobox", { name: "Search Documents" }).fill("Linked person");
+  await menu.getByRole("option", { name: /Linked person/ }).first().click();
+  await expect(menu.getByRole("checkbox")).toBeVisible();
 }
 
 const SCREENS: ScreenCase[] = [
@@ -189,6 +208,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Handoff · unreadable", path: "/handoff#v1.not-a-handoff", afterOpen: workLocally },
   { name: "Handoff · Saved", path: "/handoff/done", afterOpen: workLocally },
   { name: "Selection menu", path: "/app/journal", afterOpen: openSelectionMenu },
+  { name: "Selection menu · Link to…", path: "/app/journal", afterOpen: openLinkSearch },
+  { name: "Selection menu · add as alias", path: "/app/journal", afterOpen: openLinkAlias },
   { name: "Handoff · shared", path: LONG_SHARE, afterOpen: workLocally },
   { name: "Handoff · shared, Saved", path: LONG_SHARE, afterOpen: sharedAndSaved },
 

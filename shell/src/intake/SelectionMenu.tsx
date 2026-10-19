@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import {
+  aliasWrite,
   allDocuments,
   allDocumentTypes,
   allIntakes,
@@ -11,6 +12,7 @@ import {
   getDocument,
   isLinkable,
   isModShortcut,
+  linkTargets,
   moduleOfPath,
   openPeek,
   patchDocument,
@@ -23,11 +25,13 @@ import {
   useLinkIndex,
   writeLink,
   type Handoff,
+  type LinkCandidate,
   type SelectionEntry,
 } from "@lifeline/core";
 import { readBodySelection, SELECTION_EVENT, type BodySelection } from "@lifeline/editor";
 import {
   Button,
+  Checkbox,
   Command,
   CommandEmpty,
   CommandGroup,
@@ -51,6 +55,19 @@ const LINGER_MS = 400;
 
 type Intake = ReturnType<typeof allIntakes>[number];
 
+/** "Link to…" lists at most this many Documents; typing narrows the rest. */
+const SEARCH_LIMIT = 50;
+
+/** A new alias as `aliasWrite` gives it: the target's Aliases Field, with the words added. */
+type AliasWrite = { key: string; value: string[] };
+
+/**
+ * What the open menu shows: its groups; "Link to…"'s search; or, for a target
+ * whose name the words are not, the link about to be written with the option
+ * (off) to add the words as its alias.
+ */
+type Pane = { kind: "menu" } | { kind: "search" } | { kind: "alias"; target: LinkCandidate; alias: AliasWrite; add: boolean };
+
 /**
  * The **Selection menu** (CONTEXT.md, ADR 0086): selecting text in any
  * Document's body offers to link it to the Document it names, to make a
@@ -59,6 +76,8 @@ type Intake = ReturnType<typeof allIntakes>[number];
  * `Ctrl+.`, filtered by typing; the groups and their order are Core's
  * (`buildSelectionMenu`), this only draws them and acts.
  *
+ * "Link to…" searches every Linkable Document; when the selected words are
+ * not the picked one's name, the link is offered with "add as alias" (off).
  * Linking rewrites the body in place — in an editor as one undoable edit, in a
  * rendered body through the store — and the user stays on the page. An Intake
  * opens its App's dialog prefilled with the Handoff; nothing is written until
@@ -75,6 +94,7 @@ export function SelectionMenu() {
   const [sel, setSel] = useState<BodySelection | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [pane, setPane] = useState<Pane>({ kind: "menu" });
   const [handing, setHanding] = useState<{ intake: Intake; handoff: Handoff } | null>(null);
   // The last selection seen: opening the menu (or a tap on its trigger) may clear the live one.
   const last = useRef<BodySelection | null>(null);
@@ -107,6 +127,7 @@ export function SelectionMenu() {
       last.current = now;
       setSel(now);
       setQuery("");
+      setPane({ kind: "menu" });
       setOpen(true);
     };
     document.addEventListener("selectionchange", read);
@@ -147,7 +168,10 @@ export function SelectionMenu() {
     : [];
 
   function openChange(next: boolean) {
-    if (next) setQuery("");
+    if (next) {
+      setQuery("");
+      setPane({ kind: "menu" });
+    }
     setOpen(next);
   }
 
@@ -181,9 +205,34 @@ export function SelectionMenu() {
       })();
   }
 
-  async function link(s: BodySelection, entry: Extract<SelectionEntry, { kind: "link" }>) {
-    const undo = await writeLinkAt(s, entry.canonical);
-    if (undo) toast.success(`Linked to ${entry.target}`, { action: { label: "Undo", onClick: undo } });
+  /** Add the selected words as the target's alias; returns how to take it back while it still stands as written. */
+  function addAlias(targetId: string, alias: AliasWrite): () => Promise<void> {
+    const before = index.byId.get(targetId)?.[alias.key];
+    void patchDocument(targetId, { [alias.key]: alias.value });
+    return async () => {
+      const now = (await getDocument(targetId))?.[alias.key];
+      if (JSON.stringify(now) === JSON.stringify(alias.value)) await patchDocument(targetId, { [alias.key]: before ?? [] });
+    };
+  }
+
+  /**
+   * Link the selection where it was selected, adding the words as the target's
+   * alias when asked; Undo puts the words back while the link is still as
+   * written, and takes the alias back too.
+   */
+  async function link(s: BodySelection, entry: { canonical: string; target: string; targetId: string }, alias?: AliasWrite) {
+    const unlink = await writeLinkAt(s, entry.canonical);
+    if (!unlink) return;
+    const undoAlias = alias ? addAlias(entry.targetId, alias) : null;
+    toast.success(`Linked to ${entry.target}`, {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          unlink();
+          if (undoAlias) void undoAlias();
+        },
+      },
+    });
   }
 
   /** Quick make: the Document at once, the selection linked to it when its type is Linkable, its Peek open; Undo takes both back. */
@@ -216,19 +265,43 @@ export function SelectionMenu() {
     });
   }
 
+  /** A Document picked from "Link to…": linked at once, unless the words could become its alias — then that is offered first. */
+  function pick(target: LinkCandidate) {
+    const s = last.current;
+    const doc = index.byId.get(target.id);
+    if (!s || !doc) return setOpen(false);
+    const alias = aliasWrite(s.text, doc, documentTypeSync(doc.type));
+    if (alias) return setPane({ kind: "alias", target, alias, add: false });
+    setOpen(false);
+    void link(s, { canonical: target.canonical, target: target.title, targetId: target.id });
+  }
+
+  function confirmAlias(p: Extract<Pane, { kind: "alias" }>) {
+    const s = last.current;
+    setOpen(false);
+    if (s) void link(s, { canonical: p.target.canonical, target: p.target.title, targetId: p.target.id }, p.add ? p.alias : undefined);
+  }
+
   function choose(entry: SelectionEntry<Intake>) {
     const s = last.current;
     setOpen(false);
     if (!s) return;
     if (entry.kind === "link") return void link(s, entry);
     if (entry.kind === "make") return void make(s, entry);
+    if (entry.kind === "search") {
+      setQuery("");
+      setPane({ kind: "search" });
+      setOpen(true);
+      return;
+    }
     rememberIntake(SENDER, entry.intake.key);
     setHanding({ intake: entry.intake, handoff: { title: origin?.title || s.text.slice(0, 80), text: s.text, originId: s.originId } });
   }
 
   // Keep the selection while pressing the trigger: its focus stays where it was.
   const keep = (e: { preventDefault: () => void }) => e.preventDefault();
-  const offer = shown && groups.length + (query ? 1 : 0) > 0 && (
+  const targets = shown && pane.kind === "search" ? linkTargets(index, shown.originId, query).slice(0, SEARCH_LIMIT) : [];
+  const offer = shown && (groups.length > 0 || query || pane.kind !== "menu") && (
     <Popover open={open} onOpenChange={openChange}>
       <PopoverTrigger asChild>
         <Button size="sm" variant={phone ? "outline" : "secondary"} className="shadow-sm" onMouseDown={keep} aria-label="Selection menu">
@@ -236,28 +309,57 @@ export function SelectionMenu() {
         </Button>
       </PopoverTrigger>
       <PopoverContent aria-label="Selection menu" align="start" side={phone ? "top" : "bottom"} className="w-72 max-w-[calc(100vw-2rem)] p-0">
-        <Command shouldFilter={false}>
-          <CommandInput value={query} onValueChange={setQuery} placeholder="Link or make…" aria-label="Filter" />
-          <CommandList>
-            <CommandEmpty>Nothing matches.</CommandEmpty>
-            {groups.map((g) => (
-              <CommandGroup key={g.id} heading={g.title}>
-                {g.entries.map((e) => (
-                  <CommandItem key={e.key} value={e.key} onSelect={() => choose(e)} className="min-w-0">
-                    {e.kind === "link" ? (
-                      <Link2 className="size-4 shrink-0" />
-                    ) : e.kind === "make" ? (
-                      <TypeIcon type={e.typeId} />
-                    ) : (
-                      e.intake.icon && <e.intake.icon className="size-4 shrink-0" />
-                    )}
-                    <span className="min-w-0 flex-1 truncate">{e.title}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            ))}
-          </CommandList>
-        </Command>
+        {pane.kind === "alias" ? (
+          <div className="grid min-w-0 gap-3 p-3 text-sm">
+            <p className="min-w-0">
+              Link “{shown.text}” to <span className="font-medium">{pane.target.title}</span>
+            </p>
+            <label className="flex min-w-0 items-center gap-2">
+              <Checkbox checked={pane.add} onCheckedChange={(v) => setPane({ ...pane, add: !!v })} className="shrink-0" />
+              <span className="min-w-0">Also add “{shown.text}” as an alias</span>
+            </label>
+            <Button size="sm" autoFocus onClick={() => confirmAlias(pane)}>
+              Link
+            </Button>
+          </div>
+        ) : pane.kind === "search" ? (
+          <Command shouldFilter={false}>
+            <CommandInput value={query} onValueChange={setQuery} placeholder="Link to…" aria-label="Search Documents" autoFocus />
+            <CommandList>
+              <CommandEmpty>No Document matches.</CommandEmpty>
+              {targets.map((t) => (
+                <CommandItem key={t.id} value={t.id} onSelect={() => pick(t)} className="min-w-0">
+                  <Link2 className="size-4 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                  {t.subtitle && <span className="max-w-[40%] shrink-0 truncate text-xs text-muted-foreground">{t.subtitle}</span>}
+                </CommandItem>
+              ))}
+            </CommandList>
+          </Command>
+        ) : (
+          <Command shouldFilter={false}>
+            <CommandInput value={query} onValueChange={setQuery} placeholder="Link or make…" aria-label="Filter" />
+            <CommandList>
+              <CommandEmpty>Nothing matches.</CommandEmpty>
+              {groups.map((g) => (
+                <CommandGroup key={g.id} heading={g.title}>
+                  {g.entries.map((e) => (
+                    <CommandItem key={e.key} value={e.key} onSelect={() => choose(e)} className="min-w-0">
+                      {e.kind === "intake" ? (
+                        e.intake.icon && <e.intake.icon className="size-4 shrink-0" />
+                      ) : e.kind === "make" ? (
+                        <TypeIcon type={e.typeId} />
+                      ) : (
+                        <Link2 className="size-4 shrink-0" />
+                      )}
+                      <span className="min-w-0 flex-1 truncate">{e.title}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))}
+            </CommandList>
+          </Command>
+        )}
       </PopoverContent>
     </Popover>
   );
