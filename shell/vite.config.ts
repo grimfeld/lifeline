@@ -2,14 +2,16 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
-import { intakesPlugin } from "./build/intakes";
+import { intakesPlugin } from "./build/intakes.ts";
+import { noStorePlugin } from "./build/noStore.ts";
 
 export default defineConfig(({ mode }) => {
   // VITE_* from the environment or a .env file, the environment winning.
   const env = loadEnv(mode, import.meta.dirname, "VITE_");
   return {
     // intakesPlugin: /intakes.json, the Intakes list the Lifeline extension reads (ADR 0080).
-    plugins: [react(), tailwindcss(), intakesPlugin()],
+    // noStorePlugin: the e2e dev server's responses are never cached (build/noStore.ts).
+    plugins: [react(), tailwindcss(), intakesPlugin(), noStorePlugin()],
     // The Demo switch as literals (packages/core/src/demo.ts, ADR 0077): the
     // real build sees `false` and drops every Demo branch.
     define: {

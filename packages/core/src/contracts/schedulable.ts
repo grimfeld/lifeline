@@ -40,7 +40,7 @@ export interface SchedulableProvider {
    */
   useItems(range: { start: DateStr; end: DateStr }): SchedulableItem[];
   /**
-   * The same items, read once outside React — what an agent reads (ADR 0062),
+   * The same items, read once outside React â€” what an agent reads (ADR 0062),
    * as Push reads a Timed provider's `itemsIn`. A provider without it is
    * invisible to callers that have no React tree.
    */

@@ -80,6 +80,8 @@ export default defineConfig({
     {
       command: `pnpm exec vite --port ${PORT} --strictPort`,
       url: `http://localhost:${PORT}`,
+      // Nothing cached by the browser: Chromium's HTTP cache stalls over many page loads (build/noStore.ts).
+      env: { LIFELINE_E2E_NO_STORE: "1" },
       reuseExistingServer: false,
       timeout: 120_000,
     },
