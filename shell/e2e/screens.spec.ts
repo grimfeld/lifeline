@@ -211,6 +211,10 @@ const SCREENS: ScreenCase[] = [
   // A Peek edits (ADR 0085): a user-defined type's whole Peek, and a built-in's with the user's own Field beneath the App's part.
   { name: "Vault · Peek of a user-defined type", path: "/vault", afterOpen: peekOf("e2eperson") },
   { name: "Vault · Peek with the user's own Field", path: "/vault", afterOpen: peekOf("book", true) },
+  // The Apps' own editable Peeks (#182): Ledger, Pocket, Prices, Knowledge, Projects.
+  ...["ledger_transaction", "ledger_account", "ledger_category", "pocket_allowance", "price_product", "price_receipt", "price_shop", "language_word", "language_sentence", "knowledge_fact", "project"].map(
+    (type): ScreenCase => ({ name: `Vault · Peek of ${type}`, path: "/vault", afterOpen: peekOf(type) }),
+  ),
   // The Apps' own editable parts (ADR 0085): a Task's and an Event's Fields edited through their App's controls.
   { name: "Vault · Peek of a Task", path: "/vault", afterOpen: peekOf("task") },
   { name: "Vault · Peek of an Event", path: "/vault", afterOpen: peekOf("event") },

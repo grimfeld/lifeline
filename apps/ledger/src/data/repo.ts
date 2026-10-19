@@ -193,6 +193,16 @@ export async function updateTransaction(t: Transaction, input: TransactionInput)
   });
 }
 
+/**
+ * Some of a Transaction's own Fields edited in place (its Peek, ADR 0085):
+ * the rest kept as they are, the whole checked as the entry form's save is.
+ * The kind and import identity are not among them — they are the Ledger's.
+ */
+export async function editTransaction(t: Transaction, patch: Partial<Pick<TransactionInput, "date" | "amount" | "accountId" | "fromAccountId" | "toAccountId" | "categoryId" | "payee" | "note">>): Promise<void> {
+  const n = normalizeTransaction(t);
+  await updateTransaction(n, { kind: n.kind, date: n.date, amount: n.amount, accountId: n.accountId, fromAccountId: n.fromAccountId, toAccountId: n.toAccountId, categoryId: n.categoryId, payee: n.payee, note: n.note, tags: n.tags, ...patch });
+}
+
 export async function deleteTransaction(id: string): Promise<void> {
   await removeDocument(id);
 }
@@ -254,6 +264,12 @@ export async function updateAccount(a: LedgerAccount, input: AccountInput): Prom
   await putDocument<LedgerAccount>({ ...a, title: input.title.trim(), flavor: input.flavor, openingBalance: input.openingBalance });
 }
 
+/** One of an Account's Fields edited in place (its Peek): the rest kept. */
+export async function editAccount(a: LedgerAccount, patch: Partial<Omit<AccountInput, "title">>): Promise<void> {
+  const n = normalizeAccount(a);
+  await updateAccount(n, { title: n.title, flavor: n.flavor, openingBalance: n.openingBalance, ...patch });
+}
+
 export async function setAccountArchived(id: string, archived: boolean): Promise<void> {
   await patchDocument(id, { archived });
 }
@@ -286,6 +302,12 @@ export async function addCategory(input: CategoryInput): Promise<string> {
 
 export async function updateCategory(c: LedgerCategory, input: CategoryInput): Promise<void> {
   await putDocument<LedgerCategory>({ ...c, title: input.title.trim(), kind: input.kind, group: input.group?.trim() ?? "", target: input.target ?? 0, accumulating: !!input.accumulating });
+}
+
+/** One of a Category's Fields edited in place (its Peek): the rest kept, its kind (guarded) never. */
+export async function editCategory(c: LedgerCategory, patch: Partial<Pick<CategoryInput, "group" | "target" | "accumulating">>): Promise<void> {
+  const n = normalizeCategory(c);
+  await updateCategory(n, { title: n.title, kind: n.kind, group: n.group, target: n.target, accumulating: n.accumulating, ...patch });
 }
 
 /**

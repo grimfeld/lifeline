@@ -60,7 +60,7 @@ const wordType: DocumentTypeDef = {
   ],
   indexes: ["languageId"],
   href: () => WORDS_HREF,
-  peek: ItemPeek,
+  peekEdit: ItemPeek,
   order: 94,
   builtIn: true,
 };
@@ -84,7 +84,7 @@ const sentenceType: DocumentTypeDef = {
   ],
   indexes: ["languageId"],
   href: () => WORDS_HREF,
-  peek: ItemPeek,
+  peekEdit: ItemPeek,
   order: 95,
   builtIn: true,
 };
@@ -109,7 +109,7 @@ const factType: DocumentTypeDef = {
   ],
   indexes: ["languageId"],
   href: () => WORDS_HREF,
-  peek: ItemPeek,
+  peekEdit: ItemPeek,
   order: 96,
   builtIn: true,
 };

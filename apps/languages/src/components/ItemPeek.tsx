@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { Button, cn, toast } from "@lifeline/ui";
+import { Button, CommitField, cn, toast } from "@lifeline/ui";
 import type { Document } from "@lifeline/core";
 import { Pause, Pencil, Play } from "lucide-react";
 import { heldPrompts } from "../domain/practice";
-import { itemLines, itemMaterial } from "../domain/prompts";
+import { itemMaterial } from "../domain/prompts";
 import { FACT, SENTENCE, WORD, type Fact, type Item, type Sentence, type Word } from "../domain/types";
-import { setMembership, setPaused, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
+import { setMembership, setPaused, updateFact, updateSentence, updateWord, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
 import { WordDialog } from "./WordDialog";
 import { SentenceDialog } from "./SentenceDialog";
 import { FactDialog } from "./FactDialog";
@@ -24,9 +24,38 @@ function dueLabel(d: Date | null, now: Date): string {
 }
 
 /**
- * The Knowledge Peek (ADR 0057): a Word, Sentence or Fact seen from wherever
- * it was opened — its meaning, translation or answer, where it was met, how each Prompt is
- * held, its Decks one tap in or out, and pause.
+ * Writes one or more of an item's own Fields through its App's update — which
+ * checks them as the dialog does (a Sentence keeps a blank, a Word its
+ * meaning) and keeps its Prompts (ADR 0058). The Topic is guarded and stays.
+ */
+function saveItem(item: Item, patch: Record<string, string>): Promise<void> {
+  const base = { languageId: item.languageId, origin: item.origin, originId: item.originId, tags: item.tags };
+  if (item.type === WORD) return updateWord(item, { ...base, term: item.term, meaning: item.meaning, notes: item.notes, ...patch });
+  if (item.type === SENTENCE) return updateSentence(item, { ...base, text: item.text, translation: item.translation, ...patch });
+  return updateFact(item, { ...base, question: item.question, answer: item.answer, notes: item.notes, ...patch });
+}
+
+/** The item's own Fields, edited in place: what is learned, its other side, notes, and where it was met unless that is a link. */
+function ItemFields({ item }: { item: Item }) {
+  const field = (key: string, label: string, value: string, opts: { multiline?: boolean; hint?: string } = {}) => (
+    <CommitField key={key} label={label} value={value} multiline={opts.multiline} hint={opts.hint} onCommit={(v) => saveItem(item, { [key]: v })} />
+  );
+  return (
+    <div className="grid gap-3">
+      {item.type === WORD && [field("term", "Word", item.term), field("meaning", "Meaning", item.meaning)]}
+      {item.type === SENTENCE && [field("text", "Sentence", item.text, { hint: "Mark each blank with {{ }}" }), field("translation", "Translation", item.translation)]}
+      {item.type === FACT && [field("question", "Question", item.question), field("answer", "Answer", item.answer, { multiline: true })]}
+      {!item.originId && field("origin", "Where you met it", item.origin)}
+      {item.type !== SENTENCE && field("notes", "Notes", item.notes, { multiline: true })}
+    </div>
+  );
+}
+
+/**
+ * The Knowledge Peek (ADR 0057, editable by ADR 0085): a Word, Sentence or
+ * Fact seen from wherever it was opened — its own Fields edited in place,
+ * where it was met, how each Prompt is held, its Decks one tap in or out, and
+ * pause.
  */
 export function ItemPeek({ doc }: { doc: Document }) {
   const items = useItems((doc as Item).languageId);
@@ -37,25 +66,19 @@ export function ItemPeek({ doc }: { doc: Document }) {
   const [editing, setEditing] = useState(false);
   const now = useMemo(() => new Date(), [recalls]);
   const prompts = useMemo(() => heldPrompts([itemMaterial(item)], recalls), [item, recalls]);
-  const { main, sub } = itemLines(item);
-  const notes = item.type === SENTENCE ? "" : (item as Word | Fact).notes;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-1">
-        <span className="text-lg font-semibold">{main}</span>
-        <span className="text-muted-foreground whitespace-pre-wrap">{sub}</span>
-        <span className="text-muted-foreground flex flex-wrap gap-x-1 text-xs">
-          <span>{topic?.name ?? "Topic"}</span>
-          {(item.originId || item.origin) && (
-            <>
-              <span>·</span>
-              <OriginLine originId={item.originId} origin={item.origin} />
-            </>
-          )}
-        </span>
-      </div>
-      {notes && <p className="text-sm whitespace-pre-wrap">{notes}</p>}
+      <span className="text-muted-foreground flex flex-wrap gap-x-1 text-xs">
+        <span>{topic?.name ?? "Topic"}</span>
+        {item.originId && (
+          <>
+            <span>·</span>
+            <OriginLine originId={item.originId} origin={item.origin} />
+          </>
+        )}
+      </span>
+      <ItemFields key={item.id} item={item} />
       <div className="flex flex-col gap-1">
         <span className="text-muted-foreground text-xs font-medium">Prompts</span>
         <ul className="flex flex-col text-sm">
