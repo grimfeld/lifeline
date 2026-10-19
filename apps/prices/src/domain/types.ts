@@ -106,6 +106,12 @@ export interface Line extends Document {
   amount: number;
   price: number;
   promo: boolean;
+  /**
+   * Needs an amount (ADR 0084): the Product changed dimension since this
+   * Line was typed, so its amount means nothing until retyped. Still spent;
+   * never per unit (see countsPerUnit).
+   */
+  needsAmount?: boolean;
 }
 
 /** A Line joined with its Receipt's Shop, day and noticed mark — what every reading works on. */

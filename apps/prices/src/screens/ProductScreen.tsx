@@ -1,26 +1,28 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Badge, Button, Card, CardContent, TagChips, cn } from "@lifeline/ui";
+import { Badge, Button, Card, CardContent, PhoneDock, TagChips, ToggleGroup, ToggleGroupItem, cn } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { ArrowLeft, Pencil, Plus } from "lucide-react";
 import { PRICES_HREF, type Receipt } from "../domain/types";
 import { formatAmount, formatUnitPrice, measureLabel, perUnit } from "../domain/measure";
-import { cheapest, historyOf, latestUsual, observe, spanStart, unitPrice, type PricePoint } from "../domain/derive";
+import { cheapest, historyOf, inSpan, latestUsual, observe, observeAll, spanOf, unitPrice, type PricePoint } from "../domain/derive";
 import { formatCents } from "../domain/money";
 import { useLines, useProduct, useReceipts, useShops } from "../data/repo";
 import { PriceChart, shopColor } from "../components/PriceChart";
 import { ProductDialog } from "../components/ProductDialog";
 import { AddPriceDialog } from "../components/AddPriceDialog";
 import { ReceiptDialog } from "../components/ReceiptDialog";
+import { ProductStats } from "../components/ProductStats";
 
+/** The page's one span (ADR 0084): every figure on it reads the same months. */
 const SPANS: { months: number; label: string }[] = [
-  { months: 3, label: "3m" },
-  { months: 6, label: "6m" },
-  { months: 12, label: "1y" },
+  { months: 3, label: "3 months" },
+  { months: 6, label: "6 months" },
+  { months: 12, label: "12 months" },
   { months: 0, label: "All" },
 ];
 
-/** One Product (ADR 0082): its unit price per Shop over time, the usual price at each, and every Line behind them. */
+/** One Product (ADR 0082): its unit price per Shop over time, the usual price at each, its statistics over one span (ADR 0084), and every Line behind them. */
 export function ProductScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -34,18 +36,19 @@ export function ProductScreen() {
   const [openReceipt, setOpenReceipt] = useState<Receipt | null>(null);
 
   const today = todayStr();
+  const all = useMemo(() => observeAll(lines, receipts), [lines, receipts]);
   const obs = useMemo(() => observe(lines, receipts), [lines, receipts]);
+  const span = useMemo(() => spanOf(months, today), [months, today]);
   const history = useMemo(() => (id ? historyOf(id, obs) : new Map<string, PricePoint[]>()), [id, obs]);
   const shown = useMemo(() => {
-    if (months === 0) return history;
-    const from = spanStart(months, today);
+    if (!span.from) return history;
     const out = new Map<string, PricePoint[]>();
     for (const [s, pts] of history) {
-      const kept = pts.filter((p) => p.date >= from);
+      const kept = pts.filter((p) => inSpan(p, span));
       if (kept.length) out.set(s, kept);
     }
     return out;
-  }, [history, months, today]);
+  }, [history, span]);
   const best = cheapest(history);
   const own = useMemo(() => obs.filter((o) => o.line.productId === id).sort((a, b) => b.date.localeCompare(a.date)), [obs, id]);
   const shopName = (sid: string) => shops.find((s) => s.id === sid)?.title ?? "?";
@@ -72,6 +75,16 @@ export function ProductScreen() {
           <Plus /> Price
         </Button>
       </div>
+
+      <PhoneDock order={1}>
+        <ToggleGroup value={String(months)} onValueChange={(v) => setMonths(Number(v))} aria-label="Span">
+          {SPANS.map((s) => (
+            <ToggleGroupItem key={s.months} value={String(s.months)} aria-label={s.label}>
+              {s.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </PhoneDock>
 
       {history.size > 0 && (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -100,18 +113,13 @@ export function ProductScreen() {
 
       <Card>
         <CardContent className="grid gap-2 p-3">
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground mr-auto text-xs font-semibold tracking-wide uppercase">Unit price · €{perUnit(product)}</span>
-            {SPANS.map((s) => (
-              <Button key={s.label} size="sm" variant={months === s.months ? "default" : "ghost"} className="h-7" onClick={() => setMonths(s.months)}>
-                {s.label}
-              </Button>
-            ))}
-          </div>
+          <h2 className="text-muted-foreground text-sm font-medium">Unit price · €{perUnit(product)}</h2>
           <PriceChart history={shown} shops={shops} measure={product} />
           <p className="text-muted-foreground text-[11px]">Hollow points are promos — history shows them, the usual price ignores them.</p>
         </CardContent>
       </Card>
+
+      <ProductStats product={product} shops={shops} all={all} obs={obs} span={span} />
 
       <div className="grid gap-1">
         <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">Every price</span>
