@@ -237,10 +237,14 @@ export function timedHref(item: Pick<TimedItem, "appId" | "itemId">): string | u
  */
 let timeFormat: Intl.DateTimeFormat | undefined;
 
-/** "09:00" → "9:00 AM" style per locale; all-day → "". */
+/**
+ * "09:00" → "9:00 AM" style per locale; all-day → "". Text that is no time
+ * (a bad synced or typed value) is "" too: `Intl.DateTimeFormat#format` throws
+ * on an invalid Date, and one bad item must not blank a whole screen.
+ */
 export function formatTime(t: TimeStr | null): string {
-  if (!t) return "";
-  const [h, m] = t.split(":").map(Number);
+  const hm = t ? /^(\d{1,2}):(\d{2})/.exec(t) : null;
+  if (!hm) return "";
   timeFormat ??= new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
-  return timeFormat.format(new Date(Date.UTC(2000, 0, 1, h, m)));
+  return timeFormat.format(new Date(Date.UTC(2000, 0, 1, Number(hm[1]), Number(hm[2]))));
 }
