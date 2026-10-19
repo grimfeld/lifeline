@@ -32,10 +32,16 @@ const ID_PREFIX = "peek-field-";
  *   Core never draws a control for a Field the App defined.
  *
  * Then, for every Peek, the **body**: read, or — once the frame says
- * `writing` — written with the Vault's own editor.
+ * `writing` — written with the Vault's own editor. An empty body offers the
+ * type's Templates either way; picked while reading, it asks the frame to
+ * write (`onWrite`) and the Template fills the editor once it is there.
  */
-export function PeekContent({ doc, def, writing = false }: { doc: Document; def: DocumentTypeDef | undefined; writing?: boolean }) {
+export function PeekContent({ doc, def, writing = false, onWrite }: { doc: Document; def: DocumentTypeDef | undefined; writing?: boolean; onWrite?: () => void }) {
   const part = peekPartOf(def);
+  /** A Template picked while reading, waiting for the editor to fill. */
+  const [start, setStart] = useState<string | null>(null);
+  const started = useCallback(() => setStart(null), []);
+  const empty = !(typeof doc.body === "string" && doc.body.trim());
   return (
     <div className={writing ? "flex flex-1 flex-col gap-3" : "flex flex-col gap-3"}>
       {/* Keyed by the Document: following a link replaces the Peek's Document, and its staged edits must not carry over. */}
@@ -47,7 +53,24 @@ export function PeekContent({ doc, def, writing = false }: { doc: Document; def:
           {def && <UserFields key={doc.id} doc={doc} fields={userFieldsOf(def)} />}
         </>
       )}
-      {def?.body !== "none" && (writing ? <BodyWriter key={doc.id} doc={doc} def={def} /> : <Body doc={doc} />)}
+      {def?.body !== "none" &&
+        (writing ? (
+          <BodyWriter key={doc.id} doc={doc} def={def} start={start} onStarted={started} />
+        ) : (
+          <>
+            {empty && onWrite && (
+              <TemplateStarts
+                doc={doc}
+                def={def}
+                onPick={(body) => {
+                  setStart(body);
+                  onWrite();
+                }}
+              />
+            )}
+            <Body doc={doc} />
+          </>
+        ))}
     </div>
   );
 }
@@ -190,16 +213,40 @@ function Body({ doc }: { doc: Document }) {
  * history. Only the body and its Tags are written, so a Field edited above a
  * moment ago is never sent back as it was.
  */
-function BodyWriter({ doc, def }: { doc: Document; def: DocumentTypeDef | undefined }) {
+function BodyWriter({ doc, def, start, onStarted }: { doc: Document; def: DocumentTypeDef | undefined; start: string | null; onStarted: () => void }) {
   const index = useLinkIndex();
   const id = doc.id;
   const save = useCallback((next: Document) => patchDocument(id, { body: next.body, tags: next.tags }), [id]);
   const empty = !(typeof doc.body === "string" && doc.body.trim());
+  const section = useRef<HTMLElement>(null);
+  const latest = useRef(doc);
+  latest.current = doc;
+  // A Template picked while reading: written once the editor is up (it loads
+  // lazily), so the editor takes it as a change of its own and Undo empties it.
+  useEffect(() => {
+    if (start === null) return;
+    let frame = 0;
+    let tries = 0;
+    const apply = () => {
+      if (!section.current?.querySelector(".cm-content") && ++tries < 300) return void (frame = requestAnimationFrame(apply));
+      onStarted();
+      void startFrom(latest.current, start);
+    };
+    apply();
+    return () => cancelAnimationFrame(frame);
+  }, [start, onStarted]);
   return (
-    <section aria-label="Body" className="flex min-h-64 flex-1 flex-col border-t">
-      {empty && <TemplateStarts doc={doc} def={def} />}
+    <section ref={section} aria-label="Body" className="flex min-h-64 flex-1 flex-col border-t">
+      {empty && start === null && <TemplateStarts doc={doc} def={def} onPick={(body) => void startFrom(doc, body)} />}
       <DocumentEditor doc={doc} def={def} index={index} docDate={dayOf(doc)} bodyOnly autoFocus save={save} />
     </section>
+  );
+}
+
+/** Fill an empty body from a Template, its Tags with it. */
+function startFrom(doc: Document, body: string): Promise<unknown> {
+  return patchDocument(doc.id, { body, tags: effectiveTags(doc.tags, body) }).catch((err: unknown) =>
+    toast.error("Couldn’t start from that Template", { description: err instanceof Error ? err.message : String(err) }),
   );
 }
 
@@ -208,17 +255,16 @@ function BodyWriter({ doc, def }: { doc: Document; def: DocumentTypeDef | undefi
  * one fills the body once — the editor takes it as a change of its own, so
  * Undo empties it again — and the offer is gone with the emptiness.
  */
-function TemplateStarts({ doc, def }: { doc: Document; def: DocumentTypeDef | undefined }) {
+function TemplateStarts({ doc, def, onPick }: { doc: Document; def: DocumentTypeDef | undefined; onPick: (body: string) => void }) {
   const docs = useAllDocuments();
   const starts = useMemo(() => templateStartsFor(doc, def, docs), [doc, def, docs]);
   if (starts.length === 0) return null;
-  const pick = (body: string) =>
-    patchDocument(doc.id, { body, tags: effectiveTags(doc.tags, body) }).catch((err: unknown) => toast.error(`Couldn’t start from that Template — ${err instanceof Error ? err.message : String(err)}`));
+  const pick = onPick;
   return (
     <div role="group" aria-label="Start from a Template" className="flex flex-wrap items-center gap-2 pt-3">
       <span className="text-muted-foreground text-xs">Start from</span>
       {starts.map((t) => (
-        <Button key={t.id || "default"} size="sm" variant="outline" className="max-w-full min-w-0" onClick={() => void pick(t.body)}>
+        <Button key={t.id || "default"} size="sm" variant="outline" className="max-w-full min-w-0" onClick={() => pick(t.body)}>
           <span className="truncate">{t.title}</span>
         </Button>
       ))}

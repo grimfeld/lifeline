@@ -136,7 +136,7 @@ function PeekBody({ doc, def, writing, onToggleWriting }: { doc: Document; def: 
         <SheetTitle className="px-0 pt-0 text-base leading-snug">{displayTitle(doc, def)}</SheetTitle>
       </div>
       <div className={cn("min-h-0 flex-1 overflow-y-auto px-4 py-3", writing && "flex flex-col")}>
-        <PeekContent doc={doc} def={def} writing={writing} />
+        <PeekContent doc={doc} def={def} writing={writing} onWrite={onToggleWriting && !writing ? onToggleWriting : undefined} />
       </div>
       <div className="flex flex-wrap gap-2 border-t px-4 py-3">
         <Button size="sm" onClick={() => navigate(href)}>

@@ -96,6 +96,21 @@ test("an empty body offers the type's Templates, and picking one fills it once",
   await expect(peek.getByRole("button", { name: template }), "offered only while the body is empty").toHaveCount(0);
 });
 
+test("a read Peek with an empty body offers the Templates too; picking one starts writing from it, undoably", async ({ page }) => {
+  const stamp = Date.now();
+  const title = `Empty read peek ${stamp}`;
+  const template = `Minutes ${stamp}`;
+  const peek = await peekNoteOverDay(page, [{ title, body: "" }], [{ title: template, body: "Minutes of {{title}}" }]);
+
+  await expect(peek.locator(".cm-content"), "still reading").toHaveCount(0);
+  await peek.getByRole("button", { name: template }).click();
+  const editor = peek.locator(".cm-content");
+  await expect(editor).toContainText(`Minutes of ${title}`);
+  await editor.click();
+  await page.keyboard.press("Control+z");
+  await expect(editor, "undone like any edit").not.toContainText("Minutes of");
+});
+
 test("the body is read and written beneath an App's own part too (a Project's)", async ({ page }) => {
   const title = `Peek project ${Date.now()}`;
   const peek = await peekNoteOverDay(page, [{ title, body: "The plan so far." }], [], "project");
