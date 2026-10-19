@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { decodeHandoff, HANDOFF_DONE_PATH, type HandoffDecodeError } from "@lifeline/handoff";
-import { intakeByKey } from "@lifeline/core";
+import { intakeByKey, pb } from "@lifeline/core";
 import { Button, PhoneDock } from "@lifeline/ui";
 import { CircleCheck } from "lucide-react";
+import { arrivingHandoff, dropPendingHandoff, keepPendingHandoff } from "./pending";
+import { HandoffSignIn } from "./HandoffSignIn";
 
 /** How long "Saved" shows before the page moves to its done address (where the extension closes its window). */
 const SAVED_MS = 800;
@@ -25,17 +27,30 @@ function Frame({ children }: { children: ReactNode }) {
  * never reaches a server log. It opens the Intake the sender named, prefilled;
  * nothing is written until that dialog saves. Then it says so and moves to
  * `/handoff/done`, the address the Lifeline extension waits for to close its
- * window.
+ * window. Signed out, it asks for sign-in first (or working locally); the
+ * Handoff waits in this tab's session storage meanwhile, out of the address.
  */
 export function HandoffPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  // Read once: the fragment is the Handoff, and moving on drops it.
-  const [decoded] = useState(() => decodeHandoff(location.hash));
+  // Read once: the fragment is the Handoff (or the one this tab already holds), and moving on drops it.
+  const [fragment] = useState(() => arrivingHandoff(location.hash));
+  const [decoded] = useState(() => decodeHandoff(fragment));
+  // Signed out, sign-in (or working locally) comes before the Intake step.
+  const [signInDone, setSignInDone] = useState(() => pb.authStore.isValid);
   const intake = decoded.ok && decoded.intake ? intakeByKey(decoded.intake) : undefined;
   const [stage, setStage] = useState<"open" | "cancelled" | "saved">("open");
   // The dialog closes after it saves: a ref, so that close is not taken for a cancel.
   const saved = useRef(false);
+
+  // Held in this tab while the page is open, and out of the address bar; leaving the page abandons it.
+  useEffect(() => {
+    if (!decoded.ok) return;
+    keepPendingHandoff(fragment);
+    if (location.hash) navigate({ pathname: location.pathname, search: location.search }, { replace: true });
+    return dropPendingHandoff;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
+  }, []);
 
   useEffect(() => {
     if (stage !== "saved") return;
@@ -60,7 +75,9 @@ export function HandoffPage() {
         <h1 className="text-xl font-semibold tracking-tight">{handoff.title || "Untitled"}</h1>
         {handoff.url && <p className="text-muted-foreground text-sm">{handoff.url}</p>}
       </div>
-      {!intake ? (
+      {!signInDone ? (
+        <HandoffSignIn onDone={() => setSignInDone(true)} />
+      ) : !intake ? (
         <p className="text-muted-foreground text-sm">
           {decoded.intake ? "The Intake this was sent to is not in this Lifeline." : "This Handoff names no Intake."} Send it again and choose what to make of it.
         </p>
@@ -81,6 +98,7 @@ export function HandoffPage() {
             onOpenChange={(o) => !o && !saved.current && setStage("cancelled")}
             onSaved={() => {
               saved.current = true;
+              dropPendingHandoff();
               setStage("saved");
             }}
             handoff={handoff}
