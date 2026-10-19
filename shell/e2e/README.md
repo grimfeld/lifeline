@@ -11,24 +11,6 @@ pnpm --filter @lifeline/shell test:e2e -- --project=mobile -g Tasks  # one scree
 It is not in CI (about 13 minutes for both widths): run it locally before
 pushing a change that touches a screen.
 
-## The Demo
-
-`demo.spec.ts` runs in its own `demo` project, against its own dev server
-(port 1422, started with `VITE_DEMO=1`) and a fresh, empty browser store — it
-does not use the layout seed. Each case runs at phone (360px) and desktop
-(1280px) width. Run it before pushing a change that touches the Demo or the
-shell's sign-in and sync surfaces (ADR 0077). The Source link cases use a
-second Demo server on port 1423, built with `VITE_DEMO_SOURCE_URL` set; the one
-on 1422 has none, as the Demo does until the repository is public.
-
-```sh
-pnpm --filter @lifeline/shell test:e2e -- --project=demo
-```
-
-Servers already listening on 1421–1423 are reused, even another checkout's.
-`E2E_PORT=1531` moves all three (to 1531–1533) when a second checkout runs its
-suite at the same time.
-
 - `seed.setup.ts` runs first: `support/seed.ts` runs every headless Command,
   gives every Document type a Document with every Field filled, and places
   every Card on one Screen — all read from the registry, so new types, Fields,
@@ -48,3 +30,38 @@ suite at the same time.
   Each line names the element whose text is out of place and the box it left.
   The element at fault is often a sibling: a long label without `min-w-0`
   pushing the count or button next to it out of the row.
+
+## The Demo
+
+`demo.spec.ts` runs in its own `demo` project, against a production build of
+the Demo (`vite build` with `VITE_DEMO=1`, served by `vite preview` on
+`E2E_PORT + 1`, 1422 by default) — never the layout seed. Each case runs at
+phone (360px) and desktop (1280px) width. Run it before pushing a change that
+touches the Demo or the shell's sign-in and sync surfaces (ADR 0077). The
+Source link cases use a second build on `E2E_PORT + 2`, with
+`VITE_DEMO_SOURCE_URL` set; the first has none, as the Demo does until the
+repository is public. Both builds take about half a minute before any case runs.
+
+- `demo.setup.ts` (the `demo-setup` project) opens the Demo once, lets it seed
+  its life and saves the store (IndexedDB included) to `.auth/demo.json`. Every
+  `demo` case starts from that life, dated on the run's day.
+- A case about a stranger's first open, a pinned clock, a reload or Reset needs
+  the store empty: put it in a `describe` with `test.use({ storageState: EMPTY })`.
+  It then seeds the life itself (a few seconds). Only those: seeding is the slow part.
+- The Demo build hands the suite its App registry on `window.lifelineDemo`
+  (`src/demo/inspect.ts`): the bundle cannot be imported from a test.
+- The project runs 2 workers, 30 seconds per case; the whole of it takes about
+  4 minutes. One case logs the first-open time.
+
+While iterating, run only your own cases, at one width; run the whole `demo`
+project once before reporting or merging. No `--` before the flags:
+
+```sh
+E2E_PORT=1701 pnpm --filter @lifeline/shell test:e2e --project=demo -g "Demo media at phone"  # yours, one width
+E2E_PORT=1701 pnpm --filter @lifeline/shell test:e2e --project=demo                          # all, once
+```
+
+Every server is started fresh, never reused: another checkout's server would
+serve other code. Agents side by side each pick their own `E2E_PORT` (it moves
+all three servers): check that it and the next two ports are free, and never
+take 1421–1423, the default checkout's.
