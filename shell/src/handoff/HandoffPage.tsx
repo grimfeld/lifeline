@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { decodeHandoff, HANDOFF_DONE_PATH, handoffFromShare, type HandoffDecoded, type HandoffDecodeError } from "@lifeline/handoff";
-import { allIntakes, allWorkspaces, currentWorkspaceId, docHref, getDocument, intakeByKey, lastIntakeKey, rememberIntake, setCurrentWorkspace, useWorkspaces, type WorkspaceRecord } from "@lifeline/core";
+import { decodeHandoff, encodeHandoff, HANDOFF_DONE_PATH, handoffFromShare, type HandoffDecodeError } from "@lifeline/handoff";
+import { allIntakes, allWorkspaces, currentWorkspaceId, docHref, getDocument, intakeByKey, lastIntakeKey, pb, rememberIntake, setCurrentWorkspace, useWorkspaces, type WorkspaceRecord } from "@lifeline/core";
 import { Button, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { CircleCheck, Lock } from "lucide-react";
+import { arrivingHandoff, dropPendingHandoff, keepPendingHandoff } from "./pending";
+import { HandoffSignIn } from "./HandoffSignIn";
 
 /** Per-device memory of the Intake last chosen for a Handoff from outside Lifeline, beside the selection's and each App's own. */
 const SENDER = "outside";
@@ -18,11 +20,15 @@ const UNREADABLE: Record<HandoffDecodeError, string> = {
   version: "It was sent by a newer Lifeline extension than this Lifeline can read. Reload Lifeline, then send it again.",
 };
 
-/** What arrived, and how: the share sheet sends query parameters (the manifest's GET share target), everything else a fragment. */
-function arrival(search: string, hash: string): { decoded: HandoffDecoded; shared: boolean } {
+/**
+ * What arrived, as a codec fragment, and how: the share sheet sends query
+ * parameters (the manifest's GET share target); everything else a fragment, or
+ * the one this tab already holds.
+ */
+function arrival(search: string, hash: string): { fragment: string; shared: boolean } {
   const q = new URLSearchParams(search);
-  if (hash.replace(/^#/, "") || !["title", "text", "url"].some((k) => q.has(k))) return { decoded: decodeHandoff(hash), shared: false };
-  return { decoded: { ok: true, handoff: handoffFromShare({ title: q.get("title"), text: q.get("text"), url: q.get("url") }) }, shared: true };
+  if (hash.replace(/^#/, "") || !["title", "text", "url"].some((k) => q.has(k))) return { fragment: arrivingHandoff(hash), shared: false };
+  return { fragment: encodeHandoff(handoffFromShare({ title: q.get("title"), text: q.get("text"), url: q.get("url") })), shared: true };
 }
 
 function Frame({ children }: { children: ReactNode }) {
@@ -35,7 +41,8 @@ function Frame({ children }: { children: ReactNode }) {
  * never reaches a server log. It opens the Intake the sender named, prefilled;
  * nothing is written until that dialog saves. Then it says so and moves to
  * `/handoff/done`, the address the Lifeline extension waits for to close its
- * window.
+ * window. Signed out, it asks for sign-in first (or working locally); the
+ * Handoff waits in this tab's session storage meanwhile, out of the address.
  *
  * Naming no Intake, or one this Lifeline does not know, it asks which Intake
  * receives it. With more than one Workspace it also asks where the Document
@@ -50,16 +57,20 @@ function Frame({ children }: { children: ReactNode }) {
 export function HandoffPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  // Read once: the address is the Handoff, and moving on drops it.
-  const [{ decoded, shared }] = useState(() => arrival(location.search, location.hash));
+  // Read once: the address is the Handoff (or the one this tab already holds), and moving on drops it.
+  const [{ fragment, shared }] = useState(() => arrival(location.search, location.hash));
+  const [decoded] = useState(() => decodeHandoff(fragment));
   const [made, setMade] = useState<string>();
+  // Signed out, sign-in (or working locally) comes before the Intake step.
+  const [signInDone, setSignInDone] = useState(() => pb.authStore.isValid);
   const named = decoded.ok && decoded.intake ? intakeByKey(decoded.intake) : undefined;
   const [intakeKey, setIntakeKey] = useState(() => named?.key ?? (intakeByKey(lastIntakeKey(SENDER)) ? lastIntakeKey(SENDER) : (allIntakes()[0]?.key ?? "")));
   const intake = intakeByKey(intakeKey);
   // Undefined until the first read: whether to ask for a Workspace waits on it.
   const live = useWorkspaces();
   const [first, setFirst] = useState<WorkspaceRecord[]>();
-  useEffect(() => void allWorkspaces().then(setFirst), []);
+  // Read again once signed in: a sign-in can bring the Account's Workspaces.
+  useEffect(() => void allWorkspaces().then(setFirst), [signInDone]);
   const workspaces = live.length > 0 ? live : first;
   const [workspaceId, setWorkspaceId] = useState<string>();
   const wsValue = workspaceId ?? (workspaces?.find((w) => w.id === currentWorkspaceId()) ?? workspaces?.[0])?.id ?? "";
@@ -67,10 +78,19 @@ export function HandoffPage() {
   // The dialog closes after it saves: a ref, so that close is not taken for a cancel.
   const saved = useRef(false);
 
-  // A named Intake opens at once — unless there is a Workspace to choose. Decided once, when the Workspaces are known.
+  // Held in this tab while the page is open, and out of the address bar; leaving the page abandons it.
   useEffect(() => {
-    if (stage === "pending" && workspaces) setStage(named && workspaces.length < 2 ? "open" : "choose");
-  }, [stage, workspaces, named]);
+    if (!decoded.ok) return;
+    keepPendingHandoff(fragment);
+    if (location.hash) navigate({ pathname: location.pathname, search: location.search }, { replace: true });
+    return dropPendingHandoff;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
+  }, []);
+
+  // After sign-in, a named Intake opens at once — unless there is a Workspace to choose. Decided once, when the Workspaces are known.
+  useEffect(() => {
+    if (stage === "pending" && signInDone && workspaces) setStage(named && workspaces.length < 2 ? "open" : "choose");
+  }, [stage, signInDone, workspaces, named]);
 
   function open() {
     if (!intake) return;
@@ -102,57 +122,61 @@ export function HandoffPage() {
         <h1 className="text-xl font-semibold tracking-tight">{handoff.title || "Untitled"}</h1>
         {handoff.url && <p className="text-muted-foreground text-sm">{handoff.url}</p>}
       </div>
-      {(stage === "choose" || stage === "cancelled") && (
-        <>
-          {stage === "cancelled" ? (
-            <p className="text-muted-foreground text-sm">Nothing was saved.</p>
-          ) : (
-            decoded.intake && !named && <p className="text-muted-foreground text-sm">The Intake this was sent to is not in this Lifeline. Choose another.</p>
-          )}
-          <div className="flex flex-wrap items-center gap-2 max-md:contents">
-            {(!named || stage === "cancelled") && (
-              <PhoneDock order={1}>
-                <Select value={intakeKey} onValueChange={setIntakeKey}>
-                  <SelectTrigger aria-label="Intake" className="min-w-32">
-                    <SelectValue placeholder="Make it a…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allIntakes().map((i) => (
-                      <SelectItem key={i.key} value={i.key}>
-                        {i.icon && <i.icon />}
-                        {i.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </PhoneDock>
+      {!signInDone ? (
+        <HandoffSignIn onDone={() => setSignInDone(true)} />
+      ) : (
+        (stage === "choose" || stage === "cancelled") && (
+          <>
+            {stage === "cancelled" ? (
+              <p className="text-muted-foreground text-sm">Nothing was saved.</p>
+            ) : (
+              decoded.intake && !named && <p className="text-muted-foreground text-sm">The Intake this was sent to is not in this Lifeline. Choose another.</p>
             )}
-            {workspaces && workspaces.length > 1 && (
-              <PhoneDock order={1}>
-                <Select value={wsValue} onValueChange={setWorkspaceId}>
-                  <SelectTrigger aria-label="Workspace" className="min-w-0 max-w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {workspaces.map((w) => (
-                      <SelectItem key={w.id} value={w.id}>
-                        {w.separated && <Lock />}
-                        <span className="truncate">{w.name}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="flex flex-wrap items-center gap-2 max-md:contents">
+              {(!named || stage === "cancelled") && (
+                <PhoneDock order={1}>
+                  <Select value={intakeKey} onValueChange={setIntakeKey}>
+                    <SelectTrigger aria-label="Intake" className="min-w-32">
+                      <SelectValue placeholder="Make it a…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allIntakes().map((i) => (
+                        <SelectItem key={i.key} value={i.key}>
+                          {i.icon && <i.icon />}
+                          {i.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </PhoneDock>
+              )}
+              {workspaces && workspaces.length > 1 && (
+                <PhoneDock order={1}>
+                  <Select value={wsValue} onValueChange={setWorkspaceId}>
+                    <SelectTrigger aria-label="Workspace" className="min-w-0 max-w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {workspaces.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>
+                          {w.separated && <Lock />}
+                          <span className="truncate">{w.name}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </PhoneDock>
+              )}
+              <PhoneDock>
+                <Button disabled={!intake} onClick={open}>
+                  {intake?.icon && <intake.icon />} Open the {intake?.title ?? "Intake"}
+                </Button>
               </PhoneDock>
-            )}
-            <PhoneDock>
-              <Button disabled={!intake} onClick={open}>
-                {intake?.icon && <intake.icon />} Open the {intake?.title ?? "Intake"}
-              </Button>
-            </PhoneDock>
-          </div>
-        </>
+            </div>
+          </>
+        )
       )}
-      {intake && (
+      {signInDone && intake && (
         <intake.dialog
           key={intake.key}
           open={stage === "open"}
@@ -160,6 +184,7 @@ export function HandoffPage() {
           onSaved={(id) => {
             saved.current = true;
             setMade(id);
+            dropPendingHandoff();
             setStage("saved");
           }}
           handoff={handoff}
