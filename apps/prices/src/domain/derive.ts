@@ -163,6 +163,16 @@ export function lastSecondAmount(obs: readonly Observation[], productId: string,
   return best?.line.secondAmount ?? 0;
 }
 
+/**
+ * Whether Lines of a Product lose their second amounts when it takes this
+ * Measure (ADR 0084): its secondary Measure goes or changes dimension — a
+ * primary leaving count takes the secondary with it. Never when it had none.
+ */
+export function clearsSecondAmounts(product: Pick<Product, "secondaryDimension">, next: Pick<Product, "dimension" | "secondaryDimension">): boolean {
+  const after = next.dimension === "count" ? next.secondaryDimension : "";
+  return !!product.secondaryDimension && after !== product.secondaryDimension;
+}
+
 /** The needs-amount inbox: matched Lines waiting for their amount in the Product's new dimension. */
 export function needingAmount<L extends Pick<Line, "productId" | "needsAmount">>(lines: readonly L[]): L[] {
   return lines.filter((l) => !!l.productId && l.needsAmount);

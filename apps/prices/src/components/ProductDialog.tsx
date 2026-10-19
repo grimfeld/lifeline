@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, toast } from "@lifeline/ui";
 import { useTagVocabulary } from "@lifeline/core";
-import { BASE_UNIT, DIMENSIONS, DIMENSION_LABEL, UNITS_OF, UNIT_LABEL, type Dimension, type Product, type Unit } from "../domain/types";
+import { BASE_UNIT, DIMENSIONS, DIMENSION_LABEL, SECONDARY_DIMENSIONS, UNITS_OF, UNIT_LABEL, type Basis, type Dimension, type Product, type SecondaryDimension, type Unit } from "../domain/types";
 import { perUnit } from "../domain/measure";
-import { linesToRetype } from "../domain/derive";
+import { clearsSecondAmounts, linesToRetype } from "../domain/derive";
 import { addProduct, deleteProduct, mergeProduct, updateProduct, useLines, useProducts } from "../data/repo";
 
 /**
@@ -12,7 +12,10 @@ import { addProduct, deleteProduct, mergeProduct, updateProduct, useLines, usePr
  * no price (amounts are kept in the dimension's base unit); a new dimension
  * applies at once and sends the Product's Lines to the needs-amount inbox,
  * after a confirmation that says how many. A count may wear a name of its
- * own. A Product with prices is merged into another of the same dimension
+ * own, and may also be weighed or measured: a secondary Measure, mass or
+ * volume, with compare-by saying which unit price leads. Removing it or
+ * changing its dimension clears the Lines' second amounts, said beforehand.
+ * A Product with prices is merged into another of the same dimension
  * rather than deleted.
  */
 export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; product?: Product | null; defaultTitle?: string; onCreated?: (id: string) => void }) {
@@ -23,6 +26,9 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
   const [dimension, setDimension] = useState<Dimension>("count");
   const [unit, setUnit] = useState<Unit>("pc");
   const [countName, setCountName] = useState("");
+  const [secondary, setSecondary] = useState<SecondaryDimension | "">("");
+  const [secondaryUnit, setSecondaryUnit] = useState<Unit>("kg");
+  const [compareBy, setCompareBy] = useState<Basis>("primary");
   const [tags, setTags] = useState<string[]>([]);
   const [mergeInto, setMergeInto] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -33,6 +39,9 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
     setDimension(product?.dimension ?? "count");
     setUnit(product?.unit ?? "pc");
     setCountName(product?.countName ?? "");
+    setSecondary(product?.secondaryDimension ?? "");
+    setSecondaryUnit(product?.secondaryUnit ?? "kg");
+    setCompareBy(product?.compareBy ?? "primary");
     setTags(product?.tags ?? []);
     setMergeInto("");
     setConfirming(false);
@@ -41,9 +50,15 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
   const mergeTargets = products.filter((p) => product && p.id !== product.id && p.dimension === product.dimension);
 
   const retype = product && !mergeInto ? linesToRetype(lines, product, dimension).length : 0;
+  const ownSecondary = dimension === "count" ? secondary : "";
+  // Second amounts this change would clear (ADR 0084), said before it happens.
+  const cleared = product && !mergeInto && clearsSecondAmounts(product, { dimension, secondaryDimension: ownSecondary }) ? lines.filter((l) => l.productId === product.id && (l.secondAmount ?? 0) > 0).length : 0;
+  const measure = { dimension, unit, countName: countName.trim(), secondaryDimension: ownSecondary, secondaryUnit, compareBy: ownSecondary ? compareBy : ("primary" as Basis) };
+  const primaryPer = perUnit({ dimension, unit, countName: countName.trim() });
+  const secondaryPer = ownSecondary ? perUnit({ dimension: ownSecondary, unit: secondaryUnit, countName: "" }) : "";
 
   async function save(confirmed = false) {
-    if (retype > 0 && !confirmed) return setConfirming(true);
+    if ((retype > 0 || cleared > 0) && !confirmed) return setConfirming(true);
     try {
       if (product) {
         if (mergeInto) {
@@ -51,9 +66,9 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
           if (!into) return;
           await mergeProduct(product, into);
           toast.success(`${product.title} merged into ${into.title}`);
-        } else await updateProduct(product, { title, dimension, unit, countName, tags });
+        } else await updateProduct(product, { title, ...measure, tags });
         if (retype > 0) toast.success(`${title.trim()} is now ${DIMENSION_LABEL[dimension].toLowerCase()} — ${retype} line${retype === 1 ? "" : "s"} to retype`);
-      } else onCreated?.(await addProduct({ title, dimension, unit, countName, tags }));
+      } else onCreated?.(await addProduct({ title, ...measure, tags }));
       onOpenChange(false);
     } catch (e) {
       toast.error((e as Error).message);
@@ -131,12 +146,79 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
               </div>
             )}
           </div>
+          {dimension === "count" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid min-w-0 gap-1.5">
+                <Label>Also measured</Label>
+                <Select
+                  value={secondary || "__none__"}
+                  onValueChange={(v) => {
+                    const d = v === "__none__" ? "" : (v as SecondaryDimension);
+                    // Back to the Product's own secondary restores its own unit.
+                    const own = product && d === product.secondaryDimension;
+                    setSecondary(d);
+                    setSecondaryUnit(own ? product.secondaryUnit : BASE_UNIT[d || "mass"]);
+                    if (!d) setCompareBy("primary");
+                  }}
+                >
+                  <SelectTrigger aria-label="Also measured" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Not measured</SelectItem>
+                    {SECONDARY_DIMENSIONS.map((d) => (
+                      <SelectItem key={d} value={d}>
+                        {DIMENSION_LABEL[d]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {secondary && (
+                <div className="grid min-w-0 gap-1.5">
+                  <Label>Measured in</Label>
+                  <Select value={secondaryUnit} onValueChange={(v) => setSecondaryUnit(v as Unit)}>
+                    <SelectTrigger aria-label="Measured in" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UNITS_OF[secondary].map((u) => (
+                        <SelectItem key={u} value={u}>
+                          {UNIT_LABEL[u]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {secondary && (
+                <div className="col-span-2 grid min-w-0 gap-1.5">
+                  <Label>Compare by</Label>
+                  <Select value={compareBy} onValueChange={(v) => setCompareBy(v as Basis)}>
+                    <SelectTrigger aria-label="Compare by" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="primary">€{primaryPer}</SelectItem>
+                      <SelectItem value="secondary">€{secondaryPer}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
           <p className="text-muted-foreground text-xs">
-            Prices compare €{perUnit({ dimension, unit, countName: countName.trim() })}. {product ? "A new unit or name moves no price." : "Pack size goes on each line, not here. A count can be named: roll, wash, sheet."}
+            Prices compare €{ownSecondary && compareBy === "secondary" ? secondaryPer : primaryPer}
+            {ownSecondary ? `, €${compareBy === "secondary" ? primaryPer : secondaryPer} beside` : ""}. {product ? "A new unit or name moves no price." : "Pack size goes on each line, not here. A count can be named: roll, wash, sheet."}
           </p>
           {retype > 0 && (
             <p className="text-warning text-xs" role="status">
               A new dimension: {retype} line{retype === 1 ? "" : "s"} will need an amount, retyped from the inbox. Until then they count as spent but not per unit.
+            </p>
+          )}
+          {cleared > 0 && (
+            <p className="text-warning text-xs" role="status">
+              {cleared} line{cleared === 1 ? "" : "s"} will lose {cleared === 1 ? "its" : "their"} second amount.
             </p>
           )}
           <div className="grid gap-1.5">
@@ -176,11 +258,10 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
         <AlertDialog open={confirming} onOpenChange={setConfirming}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>
-                Change {product?.title} to {DIMENSION_LABEL[dimension].toLowerCase()}?
-              </AlertDialogTitle>
+              <AlertDialogTitle>{retype > 0 ? `Change ${product?.title} to ${DIMENSION_LABEL[dimension].toLowerCase()}?` : `Change how ${product?.title} is measured?`}</AlertDialogTitle>
               <AlertDialogDescription>
-                {retype} line{retype === 1 ? "" : "s"} will need an amount. The change applies now; each line still counts as spent and stays out of every unit price until you type its amount in the inbox.
+                {retype > 0 && `${retype} line${retype === 1 ? "" : "s"} will need an amount. The change applies now; each line still counts as spent and stays out of every unit price until you type its amount in the inbox. `}
+                {cleared > 0 && `${cleared} second amount${cleared === 1 ? "" : "s"} will be cleared; those lines leave the secondary unit price.`}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

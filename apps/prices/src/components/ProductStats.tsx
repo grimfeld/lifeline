@@ -2,9 +2,9 @@ import { useMemo, type ReactNode } from "react";
 import { Card, CardContent } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import type { Observation, Product, Shop } from "../domain/types";
-import { overpaidOf, promoOf, rhythmOf, spendOf, spreadOf, type PriceStats, type Span } from "../domain/derive";
+import { comparedBy, overpaidOf, promoOf, rhythmOf, spendOf, spreadOf, type PriceStats, type Span } from "../domain/derive";
 import { formatCents } from "../domain/money";
-import { formatAmount, formatUnitPrice } from "../domain/measure";
+import { formatAmount, formatUnitPrice, measureOf } from "../domain/measure";
 import { shopColor } from "./PriceChart";
 
 const pct = (f: number) => `${Math.round(f * 100)}%`;
@@ -34,15 +34,19 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 /**
  * A Product's statistics over the page's one span (spec #161, ADR 0084):
  * spend and share, buying rhythm, price spread, promos, Overpaid. Every figure comes
- * from derive.ts; this only lays them out.
+ * from derive.ts; this only lays them out. The per-unit figures — spread,
+ * promos, Overpaid — read the Product's compared-by unit (ADR 0084); the
+ * amount bought per month stays in its primary Measure, which every Line has.
  */
 export function ProductStats({ product, shops, all, obs, span }: { product: Product; shops: readonly Shop[]; all: readonly Observation[]; obs: readonly Observation[]; span: Span }) {
   const spend = useMemo(() => spendOf(product.id, all, span), [product.id, all, span]);
   const rhythm = useMemo(() => rhythmOf(product.id, obs, span), [product.id, obs, span]);
-  const spread = useMemo(() => spreadOf(product.id, obs, span), [product.id, obs, span]);
-  const promo = useMemo(() => promoOf(product.id, obs, span), [product.id, obs, span]);
-  const overpaid = useMemo(() => overpaidOf(product.id, obs, span), [product.id, obs, span]);
-  const unit = (cents: number) => formatUnitPrice(cents, product);
+  const compared = useMemo(() => comparedBy(obs, [product]), [obs, product]);
+  const spread = useMemo(() => spreadOf(product.id, compared, span), [product.id, compared, span]);
+  const promo = useMemo(() => promoOf(product.id, compared, span), [product.id, compared, span]);
+  const overpaid = useMemo(() => overpaidOf(product.id, compared, span), [product.id, compared, span]);
+  const measure = measureOf(product);
+  const unit = (cents: number) => formatUnitPrice(cents, measure);
   const shopName = (id: string) => shops.find((s) => s.id === id)?.title ?? "?";
   const range = (s: PriceStats) => (s.n === 1 ? `${s.n} price` : `low ${unit(s.min)} · avg ${unit(s.avg)} · high ${unit(s.max)} · ${s.n} prices`);
 

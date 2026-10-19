@@ -4,8 +4,8 @@ import { Badge, Button, Input, PhoneDock, Select, SelectContent, SelectItem, Sel
 import { formatHuman, todayStr } from "@lifeline/core";
 import { Inbox, Pencil, Plus, ReceiptText, Ruler, Tag, TriangleAlert } from "lucide-react";
 import { productHref, type Receipt, type Shop } from "../domain/types";
-import { formatUnitPrice, perUnit } from "../domain/measure";
-import { changesIn, cheapest, historiesByProduct, isUnmatched, linesByReceipt, needingAmount, observe, overallOf, spanStart, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
+import { formatUnitPrice, measureOf, perUnit } from "../domain/measure";
+import { changesIn, cheapest, comparedBy, historiesByProduct, isUnmatched, linesByReceipt, needingAmount, observe, overallOf, spanStart, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
 import { formatCents } from "../domain/money";
 import { useLines, useProducts, useReceipts, useShops } from "../data/repo";
 import { ProductDialog } from "../components/ProductDialog";
@@ -65,7 +65,8 @@ export function PricesScreen() {
   const today = todayStr();
   const obs = useMemo(() => observe(lines, receipts), [lines, receipts]);
   // Grouped once per data change, not rescanned per Product on every keystroke.
-  const histories = useMemo(() => historiesByProduct(obs), [obs]);
+  // Each Product read by its compared-by unit (ADR 0084): cheapest and Price change follow it.
+  const histories = useMemo(() => historiesByProduct(comparedBy(obs, products)), [obs, products]);
   const byReceipt = useMemo(() => linesByReceipt(lines), [lines]);
   const shopName = (id: string) => shops.find((s) => s.id === id)?.title ?? "?";
   const unmatchedByReceipt = useMemo(() => {
@@ -172,7 +173,7 @@ export function PricesScreen() {
                 <li key={p.id}>
                   <button type="button" className="hover:bg-accent/50 flex w-full items-center gap-3 px-3 py-2 text-left text-sm" onClick={() => navigate(productHref(p.id))}>
                     <span className="min-w-0 flex-1 truncate">
-                      {p.title} <span className="text-muted-foreground text-xs">· {perUnit(p).slice(1)}</span>
+                      {p.title} <span className="text-muted-foreground text-xs">· {perUnit(measureOf(p)).slice(1)}</span>
                     </span>
                     <span className="text-muted-foreground hidden text-xs sm:inline">
                       {n} price{n === 1 ? "" : "s"} · {nShops} shop{nShops === 1 ? "" : "s"}
@@ -181,7 +182,7 @@ export function PricesScreen() {
                       <span className="flex items-center gap-1.5 tabular-nums">
                         <span className="size-2 rounded-full" style={{ background: shopColor(best.shopId, shops) }} />
                         <span className="text-muted-foreground max-w-24 truncate">{shopName(best.shopId)}</span>
-                        <span className="font-medium">{formatUnitPrice(best.point.unit, p)}</span>
+                        <span className="font-medium">{formatUnitPrice(best.point.unit, measureOf(p))}</span>
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -287,7 +288,7 @@ export function PricesScreen() {
                       <span className="size-2 shrink-0 rounded-full" style={{ background: shopColor(c.shopId, shops) }} />
                       <span className="w-28 truncate">{shopName(c.shopId)}</span>
                       <span className="tabular-nums">
-                        {formatUnitPrice(c.first.unit, p)} → {formatUnitPrice(c.last.unit, p)}
+                        {formatUnitPrice(c.first.unit, measureOf(p))} → {formatUnitPrice(c.last.unit, measureOf(p))}
                       </span>
                       <Pct v={c.pct} />
                     </div>

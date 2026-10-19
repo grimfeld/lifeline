@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { addAttachment, documentsOf, documentsWhere, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, type DateStr } from "@lifeline/core";
 import { LINE, PRODUCT, RECEIPT, SHOP, isDimension, isSecondaryDimension, isUnitOf, type Basis, type Dimension, type LabelMemory, type Line, type Product, type Receipt, type SecondaryDimension, type Shop, type Unit } from "../domain/types";
 import { fromAmount, readMeasure, readSecondary, secondaryMeasure } from "../domain/measure";
-import { lastSecondAmount, linesToRetype, observe, receiptTitle, relabel, withLabel, withoutLabel, type LineMatch } from "../domain/derive";
+import { clearsSecondAmounts, lastSecondAmount, linesToRetype, observe, receiptTitle, relabel, withLabel, withoutLabel, type LineMatch } from "../domain/derive";
 
 /**
  * PocketBase returns absent fields as "" / undefined; re-establish shapes on
@@ -166,7 +166,7 @@ export async function updateProduct(product: Product, input: Partial<Omit<Produc
   // Lines first: cut short, the inbox holds a few Lines too many — never an
   // old-dimension amount read as a price in the new one, nor a second amount
   // read in a secondary Measure it was never typed in.
-  const clearSeconds = !!product.secondaryDimension && secondMoved;
+  const clearSeconds = clearsSecondAmounts(product, { dimension: measure.dimension, secondaryDimension: secondary.secondaryDimension });
   if (moved || clearSeconds) {
     const lines = await documentsWhere<Line>(LINE, "productId", product.id);
     const retype = new Set(linesToRetype(lines, product, dimension).map((l) => l.id));

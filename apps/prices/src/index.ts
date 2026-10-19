@@ -7,8 +7,14 @@ import { pricesCommands } from "./commands";
 import { pricesDaylog } from "./daylog";
 import { formatCents } from "./domain/money";
 import { receiptTitle } from "./domain/derive";
-import { APP_ID, DIMENSIONS, DIMENSION_LABEL, LINE, PRICES_COLOR, PRICES_HREF, PRODUCT, RECEIPT, SHOP, productHref, UNIT_LABEL, type Line, type Product, type Receipt, type Shop, type Unit } from "./domain/types";
-import { perUnit, readMeasure } from "./domain/measure";
+import { APP_ID, DIMENSIONS, DIMENSION_LABEL, SECONDARY_DIMENSIONS, LINE, PRICES_COLOR, PRICES_HREF, PRODUCT, RECEIPT, SHOP, productHref, UNIT_LABEL, type Line, type Product, type Receipt, type Shop, type Unit } from "./domain/types";
+import { measureOf, perUnit, readMeasure, readSecondary } from "./domain/measure";
+
+/** A stored Product's compared-by Measure, whichever shape it was written in. */
+function readProductMeasure(d: Product) {
+  const m = readMeasure(d);
+  return measureOf({ ...m, ...readSecondary(d, m.dimension) });
+}
 import { ProductPeek } from "./components/ProductPeek";
 
 /**
@@ -16,7 +22,9 @@ import { ProductPeek } from "./components/ProductPeek";
  * and a Measure: a dimension, the unit it is read in, and a count's own
  * name. Dimension and unit are guarded: a unit must belong to its
  * dimension, and a new dimension goes through the Product dialog, which
- * sends the Product's Lines to the needs-amount inbox; the count name is free. `labels` is the App's memory of what
+ * sends the Product's Lines to the needs-amount inbox; the count name is free.
+ * A count may also be measured — a secondary dimension and unit, guarded the
+ * same way since a change clears second amounts — and compared by either. `labels` is the App's memory of what
  * each Shop prints for it (guarded, hidden).
  */
 const productType: DocumentTypeDef = {
@@ -29,9 +37,12 @@ const productType: DocumentTypeDef = {
     { key: "dimension", label: "Dimension", kind: "select", options: DIMENSIONS.map((d) => ({ value: d, label: DIMENSION_LABEL[d] })), guarded: true, required: true, column: true },
     { key: "unit", label: "Read in", kind: "select", options: (Object.keys(UNIT_LABEL) as Unit[]).map((u) => ({ value: u, label: UNIT_LABEL[u] })), guarded: true, required: true, column: true },
     { key: "countName", label: "Count name", kind: "text" },
+    { key: "secondaryDimension", label: "Also measured", kind: "select", options: SECONDARY_DIMENSIONS.map((d) => ({ value: d, label: DIMENSION_LABEL[d] })), guarded: true },
+    { key: "secondaryUnit", label: "Also measured in", kind: "select", options: (Object.keys(UNIT_LABEL) as Unit[]).map((u) => ({ value: u, label: UNIT_LABEL[u] })), guarded: true },
+    { key: "compareBy", label: "Compare by", kind: "select", options: [{ value: "primary", label: "Primary" }, { value: "secondary", label: "Secondary" }] },
     { key: "labels", label: "Remembered labels", kind: "json", guarded: true, hidden: true },
   ],
-  linkable: { subtitle: (d) => `Product · €${perUnit(readMeasure(d as Product))}` },
+  linkable: { subtitle: (d) => `Product · €${perUnit(readProductMeasure(d as Product))}` },
   href: (d) => productHref(d.id),
   peek: ProductPeek,
   order: 87,
@@ -93,6 +104,7 @@ const lineType: DocumentTypeDef = {
     { key: "price", label: "Paid (cents)", kind: "number", column: true },
     { key: "promo", label: "Promo", kind: "boolean", column: true },
     { key: "needsAmount", label: "Needs amount", kind: "boolean", guarded: true, column: true },
+    { key: "secondAmount", label: "Second amount (kg or L)", kind: "number" },
   ],
   indexes: ["receiptId", "productId"],
   href: () => `${PRICES_HREF}?tab=receipts`,
