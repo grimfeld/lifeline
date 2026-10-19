@@ -2,6 +2,10 @@
 
 Read `CONTEXT.md` (the language) and `docs/adr/` (the decisions) before changing behaviour.
 
+A new ADR takes its number from `pnpm adr:new "The decision, as a sentence"`, never by
+hand: it looks past every branch and worktree, so parallel work doesn't collide.
+`pnpm adr:check` (in CI) fails when a number is taken twice.
+
 ## Phone layout (ADR 0064) — follow on every page you touch
 
 Below `md` (768px) is the phone. On the desk nothing below applies.
