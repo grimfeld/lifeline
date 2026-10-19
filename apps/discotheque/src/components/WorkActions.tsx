@@ -19,7 +19,7 @@ export function useAct(item: Work) {
  * The full transition set for one item, as a dropdown. Shared by the detail
  * dialog and the cards so both offer exactly the same actions.
  */
-export function WorkActionsMenu({ item, onEdit, onDeleted, onOpenChange, trigger }: { item: Work; onEdit: (m: Work) => void; onDeleted?: () => void; onOpenChange?: (open: boolean) => void; trigger?: React.ReactNode }) {
+export function WorkActionsMenu({ item, onEdit, onDeleted, onOpenChange, trigger }: { item: Work; /** Absent where the work is already being edited (its Peek). */ onEdit?: (m: Work) => void; onDeleted?: () => void; onOpenChange?: (open: boolean) => void; trigger?: React.ReactNode }) {
   const def = workType(item.type);
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
@@ -66,9 +66,11 @@ export function WorkActionsMenu({ item, onEdit, onDeleted, onOpenChange, trigger
         <DropdownMenuItem onClick={() => setPlaylistOpen(true)}>
           <ListPlus /> Add to playlist…
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onEdit(item)}>
-          <Pencil /> Edit
-        </DropdownMenuItem>
+        {onEdit && (
+          <DropdownMenuItem onClick={() => onEdit(item)}>
+            <Pencil /> Edit
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           variant="destructive"
           onClick={() => {

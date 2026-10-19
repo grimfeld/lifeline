@@ -114,7 +114,7 @@ export async function deleteWork(id: string): Promise<void> {
 
 /* ---------- Playlists (ADR 0035) ---------- */
 
-function normalizePlaylist(p: Playlist): Playlist {
+export function normalizePlaylist(p: Playlist): Playlist {
   return { ...p, workIds: Array.isArray(p.workIds) ? p.workIds : [], ranked: p.ranked === true, body: p.body ?? "" };
 }
 

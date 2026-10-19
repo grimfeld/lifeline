@@ -5,6 +5,7 @@ import { WORK_TYPES, type WorkTypeId } from "./domain/workTypes";
 import { APP_HREF } from "./constants";
 import { cascadeWorkDelete } from "./data/repo";
 import { libraryParts } from "./parts";
+import { AuthorPeek, WorkPeek } from "./components/LibraryPeeks";
 
 const ACQ_LABELS: Record<string, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
@@ -61,6 +62,8 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t, i) => ({
   order: 40 + i,
   builtIn: true,
   fields: WORK_FIELDS,
+  // Edited where it is peeked, through the Library's own controls (ADR 0085).
+  peekEdit: WorkPeek,
   // Its Parts and Groups die with it and follow it to another Workspace (ADR 0074).
   ...libraryParts.workTypeHooks,
   // Its Quotes go with it too, from wherever it is deleted (ADR 0045).
@@ -86,6 +89,7 @@ export const authorTypeDef: DocumentTypeDef = {
   indexes: ["externalKey"],
   order: 42,
   builtIn: true,
+  peekEdit: AuthorPeek,
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "born", label: "Born", kind: "text", column: true },

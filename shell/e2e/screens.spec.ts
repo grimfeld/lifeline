@@ -225,6 +225,16 @@ const SCREENS: ScreenCase[] = [
   { name: "Vault · Peek of a Negative activity", path: "/vault", afterOpen: peekOf("negative") },
   { name: "Vault · Peek of a Mood", path: "/vault", afterOpen: peekOf("mood") },
   { name: "Vault · Peek of a Fine", path: "/vault", afterOpen: peekOf("swearjar_fine") },
+  // The Culture Apps' editable Peeks (ADR 0085), each drawn by its own App.
+  { name: "Vault · Peek of a book", path: "/vault", afterOpen: peekOf("book") },
+  { name: "Vault · Peek of an Author", path: "/vault", afterOpen: peekOf("author") },
+  { name: "Vault · Peek of a film", path: "/vault", afterOpen: peekOf("movie") },
+  { name: "Vault · Peek of a Cinema playlist", path: "/vault", afterOpen: peekOf("cinema_playlist") },
+  { name: "Vault · Peek of an album", path: "/vault", afterOpen: peekOf("music") },
+  { name: "Vault · Peek of a Discotheque playlist", path: "/vault", afterOpen: peekOf("discotheque_playlist") },
+  { name: "Vault · Peek of a game", path: "/vault", afterOpen: peekOf("game") },
+  { name: "Vault · Peek of a painting", path: "/vault", afterOpen: peekOf("painting") },
+  { name: "Vault · Peek of a building", path: "/vault", afterOpen: peekOf("architecture") },
   // The writing Apps' own editable parts (ADR 0085).
   { name: "Vault · Peek of a Day", path: "/vault", afterOpen: peekOf("daily") },
   { name: "Vault · Peek of a Week", path: "/vault", afterOpen: peekOf("week") },

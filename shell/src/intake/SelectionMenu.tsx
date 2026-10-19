@@ -1,17 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import {
+  allDocuments,
+  allDocumentTypes,
   allIntakes,
   appById,
+  buildLinkIndex,
   buildSelectionMenu,
   documentTypeSync,
   getDocument,
+  isLinkable,
   isModShortcut,
   moduleOfPath,
+  openPeek,
   patchDocument,
+  quickMake,
   rememberIntake,
+  removeDocument,
   singularOf,
   useDocument,
+  useDocumentTypes,
   useLinkIndex,
   writeLink,
   type Handoff,
@@ -45,15 +53,18 @@ type Intake = ReturnType<typeof allIntakes>[number];
 
 /**
  * The **Selection menu** (CONTEXT.md, ADR 0086): selecting text in any
- * Document's body offers to link it to the Document it names, or to hand it to
- * an App's Intake, grouped by where each lives. Opened by its trigger or
+ * Document's body offers to link it to the Document it names, to make a
+ * user-defined type's Document from it, or to hand it to an App's Intake,
+ * grouped by where each lives. Opened by its trigger or
  * `Ctrl+.`, filtered by typing; the groups and their order are Core's
  * (`buildSelectionMenu`), this only draws them and acts.
  *
  * Linking rewrites the body in place — in an editor as one undoable edit, in a
  * rendered body through the store — and the user stays on the page. An Intake
  * opens its App's dialog prefilled with the Handoff; nothing is written until
- * it saves.
+ * it saves. A user-defined type's Document is made at once instead (Core's
+ * quick make): titled by the selection, linked from it when the type is
+ * Linkable, opened in a Peek beside the page, and undone from the toast.
  *
  * On the desk the trigger floats just above the selection; on a phone it sits
  * in the dock (ADR 0064), clear of the system's own selection menu.
@@ -70,6 +81,7 @@ export function SelectionMenu() {
   const shown = sel ?? (open ? last.current : null);
   const origin = useDocument(shown?.originId);
   const index = useLinkIndex();
+  const types = useDocumentTypes();
 
   useEffect(() => {
     let linger: ReturnType<typeof setTimeout> | undefined;
@@ -124,6 +136,9 @@ export function SelectionMenu() {
           return def && singularOf(def);
         },
         intakes: allIntakes(),
+        userTypes: types
+          .filter((t) => !t.builtIn && !t.internal)
+          .map((t) => ({ id: t.id, title: singularOf(t), homeModule: t.homeModule, linkable: isLinkable(t) })),
         moduleOf: (appId) => appById(appId)?.module,
         appTitle: (appId) => appById(appId)?.title,
         currentModule: moduleOfPath(pathname),
@@ -136,38 +151,67 @@ export function SelectionMenu() {
     setOpen(next);
   }
 
-  /** Wrap the selection in a link where it was selected; Undo puts the words back while the link is still as written. */
-  function link(s: BodySelection, entry: Extract<SelectionEntry, { kind: "link" }>) {
-    if (!s.placement) return;
-    const done = `Linked to ${entry.target}`;
+  /**
+   * Wrap the selection in a link to `canonical` where it was selected — in an
+   * editor as one edit, in a rendered body through the store. Returns what
+   * puts the words back while the link is still as written, or null when the
+   * link could not be placed.
+   */
+  async function writeLinkAt(s: BodySelection, canonical: string): Promise<(() => void) | null> {
+    if (!s.placement) return null;
     const ed = s.editor;
     if (ed) {
-      const w = writeLink(ed.body(), s.placement, entry.canonical);
-      if (!w) return;
+      const w = writeLink(ed.body(), s.placement, canonical);
+      if (!w) return null;
       const words = ed.body().slice(w.from, w.to);
       ed.replace(w.from, w.to, w.insert);
-      toast.success(done, {
-        action: {
-          label: "Undo",
-          onClick: () => {
-            if (ed.body().slice(w.from, w.from + w.insert.length) === w.insert) ed.replace(w.from, w.from + w.insert.length, words);
-          },
-        },
-      });
+      return () => {
+        if (ed.body().slice(w.from, w.from + w.insert.length) === w.insert) ed.replace(w.from, w.from + w.insert.length, words);
+      };
+    }
+    const id = s.originId;
+    const current = await getDocument(id);
+    const before = typeof current?.body === "string" ? current.body : "";
+    const w = writeLink(before, s.placement, canonical);
+    if (!w) return null;
+    await patchDocument(id, { body: w.body });
+    return () =>
+      void (async () => {
+        if ((await getDocument(id))?.body === w.body) await patchDocument(id, { body: before });
+      })();
+  }
+
+  async function link(s: BodySelection, entry: Extract<SelectionEntry, { kind: "link" }>) {
+    const undo = await writeLinkAt(s, entry.canonical);
+    if (undo) toast.success(`Linked to ${entry.target}`, { action: { label: "Undo", onClick: undo } });
+  }
+
+  /** Quick make: the Document at once, the selection linked to it when its type is Linkable, its Peek open; Undo takes both back. */
+  async function make(s: BodySelection, entry: Extract<SelectionEntry, { kind: "make" }>) {
+    let made;
+    try {
+      made = await quickMake(entry.typeId, s.text);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
       return;
     }
-    const before = storedBody;
-    const w = writeLink(before, s.placement, entry.canonical);
-    if (!w) return;
-    const id = s.originId;
-    void patchDocument(id, { body: w.body });
-    toast.success(done, {
+    let unlink: (() => void) | null = null;
+    if (entry.linkable) {
+      // The canonical name as it now stands: a title shared with another Document is written with its Folder.
+      const name = buildLinkIndex(await allDocuments(), allDocumentTypes())
+        .names()
+        .find((n) => n.ref.kind === "doc" && n.ref.id === made.id);
+      unlink = await writeLinkAt(s, name?.canonical ?? made.title);
+    }
+    openPeek(made.id);
+    const id = made.id;
+    toast.success(`Made ${entry.title} ${made.title}`, {
       action: {
         label: "Undo",
-        onClick: () =>
-          void (async () => {
-            if ((await getDocument(id))?.body === w.body) await patchDocument(id, { body: before });
-          })(),
+        onClick: () => {
+          unlink?.();
+          void removeDocument(id);
+        },
       },
     });
   }
@@ -176,7 +220,8 @@ export function SelectionMenu() {
     const s = last.current;
     setOpen(false);
     if (!s) return;
-    if (entry.kind === "link") return link(s, entry);
+    if (entry.kind === "link") return void link(s, entry);
+    if (entry.kind === "make") return void make(s, entry);
     rememberIntake(SENDER, entry.intake.key);
     setHanding({ intake: entry.intake, handoff: { title: origin?.title || s.text.slice(0, 80), text: s.text, originId: s.originId } });
   }
@@ -199,7 +244,13 @@ export function SelectionMenu() {
               <CommandGroup key={g.id} heading={g.title}>
                 {g.entries.map((e) => (
                   <CommandItem key={e.key} value={e.key} onSelect={() => choose(e)} className="min-w-0">
-                    {e.kind === "link" ? <Link2 className="size-4 shrink-0" /> : e.intake.icon && <e.intake.icon className="size-4 shrink-0" />}
+                    {e.kind === "link" ? (
+                      <Link2 className="size-4 shrink-0" />
+                    ) : e.kind === "make" ? (
+                      <TypeIcon type={e.typeId} />
+                    ) : (
+                      e.intake.icon && <e.intake.icon className="size-4 shrink-0" />
+                    )}
                     <span className="min-w-0 flex-1 truncate">{e.title}</span>
                   </CommandItem>
                 ))}
@@ -220,4 +271,10 @@ export function SelectionMenu() {
       {handing && <handing.intake.dialog open onOpenChange={(o) => !o && setHanding(null)} handoff={handing.handoff} />}
     </>
   );
+}
+
+/** A type's own icon, as the sidebar and the Vault show it. */
+function TypeIcon({ type }: { type: string }) {
+  const Icon = documentTypeSync(type)?.icon;
+  return Icon ? <Icon className="size-4 shrink-0" /> : null;
 }

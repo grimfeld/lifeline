@@ -31,7 +31,20 @@ export async function createDocument(input: { type: string; title: string; folde
   return putDocument({ ...(input.fields ?? {}), type: input.type, title, folder, body });
 }
 
-/** The "template" Document type: a Document whose title is a type id and whose body seeds new Documents of that type. */
+/**
+ * **Quick make** (CONTEXT.md "Selection menu", ADR 0086): a user-defined
+ * type's Document made at once from a selection — titled by it, in the
+ * current Workspace (as every new Document is), from the type's only Template
+ * when it has exactly one, else with an empty body. No dialog: Core owns the
+ * type, so this is no Intake, and it is undone rather than confirmed.
+ * Throws, like `createDocument`, when the title is taken.
+ */
+export async function quickMake(type: string, title: string): Promise<Document> {
+  const only = onlyTemplateFor(type, await allDocuments());
+  return createDocument(only ? { type, title, templateId: only.id } : { type, title, body: "" });
+}
+
+/** The "template" Document type:a Document whose title is a type id and whose body seeds new Documents of that type. */
 export const TEMPLATE_TYPE = "template";
 
 /**
@@ -48,6 +61,16 @@ export function templatesFor(type: string, docs: readonly Document[]): Document[
 export function defaultTemplateFor(type: string, docs: readonly Document[]): Document | undefined {
   const mine = templatesFor(type, docs);
   return mine.find((d) => d.title.toLowerCase() === type.toLowerCase()) ?? (mine.length === 1 ? mine[0] : undefined);
+}
+
+/**
+ * The Template a quick make starts from (ADR 0086): the type's Template when
+ * it has exactly one. With several there is no one to take unasked — the
+ * body starts empty, and the Peek offers them.
+ */
+export function onlyTemplateFor(type: string, docs: readonly Document[]): Document | undefined {
+  const mine = templatesFor(type, docs);
+  return mine.length === 1 ? mine[0] : undefined;
 }
 
 /** Rendered starting body for a type: the picked Template, else its default one, else a built-in's code default. */
