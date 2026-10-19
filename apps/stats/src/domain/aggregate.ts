@@ -1,3 +1,4 @@
+import { weekdayOf } from "@lifeline/core";
 import type { Entry, Period } from "./types";
 
 /** Local-timezone YYYY-MM-DD key for an ISO timestamp. */
@@ -136,6 +137,29 @@ export function booleanHeadline(days: Set<string>, period: Period, now = new Dat
 export function shiftDay(key: string, delta: number): string {
   const [y, m, d] = key.split("-").map(Number);
   return dayKey(new Date(y, m - 1, d + delta));
+}
+
+export type DotCell = { day: string; state: "marked" | "empty" | "pad" };
+
+/**
+ * The DotGrid's columns: one per week (Monday first) from `first`'s week to
+ * today's, days outside [first, today] padded.
+ */
+export function dotGridWeeks(days: Set<string>, first: string, today: string): DotCell[][] {
+  // weekdayOf, not new Date(first): that parses as UTC midnight, the day before west of UTC.
+  const pad = (weekdayOf(first) + 6) % 7;
+  let cursor = shiftDay(first, -pad);
+  const weeks: DotCell[][] = [];
+  while (cursor <= today) {
+    const col: DotCell[] = [];
+    for (let i = 0; i < 7; i++) {
+      const state = cursor < first || cursor > today ? "pad" : days.has(cursor) ? "marked" : "empty";
+      col.push({ day: cursor, state });
+      cursor = shiftDay(cursor, 1);
+    }
+    weeks.push(col);
+  }
+  return weeks;
 }
 
 /** Consecutive marked days ending today or yesterday — an unmarked today doesn't break the run. */

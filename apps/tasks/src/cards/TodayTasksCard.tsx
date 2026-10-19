@@ -1,7 +1,7 @@
 import { Button, cn, toast } from "@lifeline/ui";
-import { addDays, matchesTagFilter, todayStr, useTagFilter } from "@lifeline/core";
+import { matchesTagFilter, todayStr, useTagFilter } from "@lifeline/core";
 import { Check, Repeat } from "lucide-react";
-import { deriveItems } from "../domain/occurrences";
+import { dueItems } from "../domain/occurrences";
 import { setCompleted, useOverrides, useTasks } from "../data/repo";
 
 /** Card: today's tasks (overdue one-time tasks included), tick-off inline. */
@@ -11,14 +11,8 @@ export function TodayTasksCard() {
   const filter = useTagFilter();
   const today = todayStr();
   // Lapsed Occurrences stay behind on their day (ADR 0036): a recurring task
-  // shows up here once, for the Occurrence it is on.
-  const items = deriveItems(tasks, overrides, { start: addDays(today, -60), end: today }, today).filter(
-    (i) =>
-      i.date !== null &&
-      !i.lapsed &&
-      (i.date === today || (i.date < today && !i.completedOn)) &&
-      matchesTagFilter(i.task.tags, filter),
-  );
+  // shows up here once, for the Occurrence it is on — however old.
+  const items = dueItems(tasks, overrides, today).filter((i) => matchesTagFilter(i.task.tags, filter));
   const open = items.filter((i) => !i.completedOn);
   const done = items.filter((i) => i.completedOn);
 

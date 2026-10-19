@@ -165,6 +165,17 @@ export function localParts(iso: string): { date: string; time: string } {
   return { date: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`, time: `${p(d.getHours())}:${p(d.getMinutes())}` };
 }
 
+/**
+ * A Session's local day and clock for the Timed contract: its start day, and
+ * an end that never precedes the start — a run past midnight ends at "24:00"
+ * on the day it started, the way a Time blocker band stops at midnight.
+ */
+export function sessionClock(startedAt: string, endedAt: string): { date: string; start: string; end: string } {
+  const { date, time: start } = localParts(startedAt);
+  const last = localParts(endedAt);
+  return { date, start, end: last.date > date ? "24:00" : last.time };
+}
+
 export interface SessionInput {
   workout: Workout;
   startedAt: string;
@@ -179,8 +190,7 @@ export interface SessionInput {
  * The Session is written first, so a failing target never loses it.
  */
 export async function saveSession(input: SessionInput): Promise<Session> {
-  const { date, time: start } = localParts(input.startedAt);
-  const end = localParts(input.endedAt).time;
+  const { date, start, end } = sessionClock(input.startedAt, input.endedAt);
   const durationMin = Math.max(1, Math.round((new Date(input.endedAt).getTime() - new Date(input.startedAt).getTime()) / 60_000));
   const row = await putDocument<Session>({
     type: SESSION,
