@@ -7,7 +7,7 @@ import type { Due, LedgerAccount, Series, Transaction } from "../domain/types";
 import { balanceOf, formatMonth, isUncategorized, monthOf } from "../domain/derive";
 import { formatCents, formatSigned, parseAmount } from "../domain/money";
 import { describeDueDay, isOverdue, openDues } from "../domain/recur";
-import { describeCadence, nextOccurrence } from "../domain/series";
+import { coveredDate, describeCadence, nextOccurrence } from "../domain/series";
 import { matchRule, payeeCategoryIndex, suggestCategory } from "../domain/suggest";
 import { looksLikePaypal } from "../domain/paypal";
 import { categorizeTransaction, dismissDue, setSeriesMuted, useAccounts, useCategories, useCategorizeRules, useSeries, useTransactions } from "../data/repo";
@@ -69,7 +69,7 @@ export function RegisterScreen() {
   const accounts = useAccounts();
   const categories = useCategories();
   const rules = useCategorizeRules();
-  const series = useSeries();
+  const series = useSeries(transactions);
 
   const [accountFilter, setAccountFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -114,16 +114,20 @@ export function RegisterScreen() {
     const index = payeeCategoryIndex(transactions);
     let n = 0;
     let vetoed = 0;
-    for (const t of uncategorized) {
-      const kind = t.kind as "expense" | "income";
-      if (matchRule(t.payee, kind, rules)?.never) {
-        vetoed++;
-        continue;
+    try {
+      for (const t of uncategorized) {
+        const kind = t.kind as "expense" | "income";
+        if (matchRule(t.payee, kind, rules)?.never) {
+          vetoed++;
+          continue;
+        }
+        const s = suggestCategory(t.payee, kind, index, rules);
+        if (!s) continue;
+        await categorizeTransaction(t.id, s.categoryId);
+        n++;
       }
-      const s = suggestCategory(t.payee, kind, index, rules);
-      if (!s) continue;
-      await categorizeTransaction(t.id, s.categoryId);
-      n++;
+    } catch (e) {
+      return void toast.error(`Auto-categorize stopped after ${n} of ${uncategorized.length}: ${e instanceof Error ? e.message : String(e)}`);
     }
     const left = vetoed > 0 ? ` — ${vetoed} left alone by a never rule` : n < uncategorized.length ? " — the rest need a hand" : "";
     if (n === 0) toast.info(`Nothing to go on for these payees${vetoed > 0 ? `, and ${vetoed} are never auto-categorized` : " — categorize a few by hand first"}`);
@@ -447,7 +451,7 @@ export function DuesList({ dues, today, compact }: { dues: Due[]; today: string;
  * to look at its transactions.
  */
 function SeriesCard({ series, today, category, account, onShow }: { series: Series; today: string; category?: string; account?: string; onShow: () => void }) {
-  const next = nextOccurrence(series, series.lastDate);
+  const next = nextOccurrence(series, coveredDate(series));
   const quiet = series.muted || series.dormant;
   return (
     <Card className={`py-3 ${quiet ? "opacity-60" : ""}`}>

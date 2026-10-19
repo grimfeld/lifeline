@@ -23,6 +23,15 @@ export function lastPlace(workspaceId: string): string {
   }
 }
 
+/** Make `path` the place `/` resumes to in a Workspace, as if the user had last stood there. */
+export function rememberPlace(workspaceId: string, path: string): void {
+  try {
+    localStorage.setItem(KEY(workspaceId), path);
+  } catch {
+    /* private mode: `/` falls back */
+  }
+}
+
 /**
  * Remembers where the user is (ADR 0057: `/` resumes) and binds ⌘1…⌘9 to the
  * Rail's Modules in order. Mount once.

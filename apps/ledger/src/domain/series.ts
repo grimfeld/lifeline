@@ -63,6 +63,18 @@ function anchorDayOf(dates: DateStr[]): number {
   return best;
 }
 
+/** The month a yearly series lands in: the commonest, ties to the newest (dates come newest first). An early payment in late December still names January. */
+function anchorMonthOf(dates: DateStr[]): number {
+  const count = new Map<number, number>();
+  for (const d of dates) {
+    const m = parts(d).m;
+    count.set(m, (count.get(m) ?? 0) + 1);
+  }
+  let best = parts(dates[0]).m;
+  for (const [m, n] of count) if (n > (count.get(best) ?? 0)) best = m;
+  return best;
+}
+
 /**
  * One payee's run, newest first, read as a series — or null. The run must
  * *end at the newest Transaction*: a series describes what is still
@@ -107,7 +119,7 @@ function readSeries(rows: Transaction[], today: DateStr, override: SeriesOverrid
     firstDate: dates[dates.length - 1],
     lastDate: dates[0],
     anchorDay: anchorDayOf(dates),
-    anchorMonth: parts(newest.date).m,
+    anchorMonth: anchorMonthOf(dates),
     dormant: diffDays(dates[0], today) > 2 * c.period,
     overrideId: override?.id ?? "",
     muted: !!override?.muted,
@@ -155,6 +167,40 @@ export function nextOccurrence(series: Series, after: DateStr): DateStr {
     case "yearly":
       return clampedDate(parts(after).y + 1, series.anchorMonth, series.anchorDay);
   }
+}
+
+/**
+ * The anchor day the newest occurrence paid for — the one nearest it, when
+ * within the cadence's tolerance — or the newest occurrence itself. Rent
+ * anchored on the 1st and paid on Aug 31 covers Sep 1, so the projection
+ * starts after Sep 1, not after August. Weekly and fortnightly series step
+ * from the payment itself and have no anchor.
+ */
+export function coveredDate(series: Series): DateStr {
+  const last = series.lastDate;
+  const { y, m } = parts(last);
+  let candidates: DateStr[];
+  switch (series.cadence) {
+    case "weekly":
+    case "fortnightly":
+      return last;
+    case "monthly":
+      candidates = [-1, 0, 1].map((k) => {
+        const i = y * 12 + (m - 1) + k;
+        return clampedDate(Math.floor(i / 12), (i % 12) + 1, series.anchorDay);
+      });
+      break;
+    case "yearly":
+      candidates = [y - 1, y, y + 1].map((yy) => clampedDate(yy, series.anchorMonth, series.anchorDay));
+      break;
+  }
+  const tolerance = CADENCES.find((c) => c.cadence === series.cadence)?.tolerance ?? 0;
+  let best: DateStr | null = null;
+  for (const c of candidates) {
+    const d = Math.abs(diffDays(last, c));
+    if (d <= tolerance && (best === null || d < Math.abs(diffDays(last, best)))) best = c;
+  }
+  return best ?? last;
 }
 
 function ordinal(n: number): string {

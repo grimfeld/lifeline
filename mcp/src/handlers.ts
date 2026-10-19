@@ -6,6 +6,7 @@ import {
   allCommands,
   createDocument,
   db,
+  defaultFolder,
   defaultWorkspace,
   diffDays,
   documentTypeSync,
@@ -23,6 +24,7 @@ import {
   setCurrentWorkspace,
   surfaceItemsIn,
   timedProviders,
+  titleTaken,
   todayStr,
   typeFieldsOf,
   fieldsOfDocument,
@@ -300,19 +302,22 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
       const tools = TOOLS.filter((t) => t.command?.startsWith(`${def.appId}.`)).map((t) => t.name);
       throw new ToolError(`${def.label} belong to the ${def.appId} App and are created through its own tools${tools.length ? `: ${tools.join(", ")}` : " (none can run headless yet)"}`);
     }
-    if (a.folder !== undefined) assertNotPrivate(String(a.folder));
+    // Resolve the folder the way createDocument would, and refuse Private before anything is written.
+    const folder = a.folder !== undefined ? normalizeFolder(String(a.folder)) : defaultFolder(def.id, String(a.title).trim(), def.folder ?? "");
+    if (inPrivateFolder(folder)) {
+      throw new ToolError(a.folder !== undefined ? "The Private folder is out of an agent's reach" : "The type's default folder is Private, out of an agent's reach");
+    }
     const fields = await readFields(def, (a.fields as Args | undefined) ?? {});
     // `tags` rides along with the fields: createDocument hands both to putDocument, which normalises them.
     const doc = await createDocument({
       type: def.id,
       title: String(a.title),
-      folder: a.folder as string | undefined,
+      folder,
       body: a.body as string | undefined,
       fields: a.tags ? { ...fields, tags: a.tags } : fields,
     }).catch((e: Error) => {
       throw new ToolError(e.message);
     });
-    if (inPrivateFolder(doc.folder)) throw new ToolError("The type's default folder is Private, out of an agent's reach");
     return { id: doc.id, message: `Created ${def.label.toLowerCase().replace(/s$/, "")} “${doc.title}”${doc.folder ? ` in ${doc.folder}` : ""}` };
   },
 
@@ -320,21 +325,18 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     let doc = await visibleDocument(a.id);
     const def = documentTypeSync(doc.type);
     if (!def) throw new ToolError(`Unknown type “${doc.type}”`);
-    const changed: string[] = [];
-    if (a.folder !== undefined && normalizeFolder(String(a.folder)) !== doc.folder) {
-      assertNotPrivate(String(a.folder));
-      await moveDocument(doc, String(a.folder)).catch((e: Error) => {
-        throw new ToolError(e.message);
-      });
-      changed.push("folder");
-      doc = await visibleDocument(a.id);
-    }
-    if (a.title !== undefined && String(a.title).trim() !== doc.title) {
-      if (def.titleRule === "derived") throw new ToolError(`${def.label} take their title from their fields`);
-      await renameDocument(doc, String(a.title)).catch((e: Error) => {
-        throw new ToolError(e.message);
-      });
-      changed.push("title");
+    // Check everything first, so a refused field never leaves a half-applied move or rename behind.
+    const move = a.folder !== undefined && normalizeFolder(String(a.folder)) !== doc.folder;
+    if (move) assertNotPrivate(String(a.folder));
+    const rename = a.title !== undefined && String(a.title).trim() !== doc.title;
+    if (rename && def.titleRule === "derived") throw new ToolError(`${def.label} take their title from their fields`);
+    if (move || rename) {
+      // The same clashes moveDocument and renameDocument refuse, checked up front.
+      const sameType = (await allDocuments()).filter((d) => d.type === doc.type);
+      const folder = move ? normalizeFolder(String(a.folder)) : doc.folder;
+      if (move && titleTaken(sameType, folder, doc.title, doc.id)) throw new ToolError(`“${doc.title}” already exists in ${folder || "the root"}`);
+      const title = String(a.title ?? "").trim();
+      if (rename && title && titleTaken(sameType, folder, title, doc.id)) throw new ToolError(`“${title}” already exists in ${folder || "the root"}`);
     }
     // A worn Role's Fields (ADR 0069) are written like the type's own.
     const patch: Args = await readFields(withRoleFields(doc, def) ?? def, (a.fields as Args | undefined) ?? {});
@@ -343,6 +345,21 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
       patch.body = a.body;
     }
     if (a.tags !== undefined) patch.tags = a.tags;
+
+    const changed: string[] = [];
+    if (move) {
+      await moveDocument(doc, String(a.folder)).catch((e: Error) => {
+        throw new ToolError(e.message);
+      });
+      changed.push("folder");
+      doc = await visibleDocument(a.id);
+    }
+    if (rename) {
+      await renameDocument(doc, String(a.title)).catch((e: Error) => {
+        throw new ToolError(e.message);
+      });
+      changed.push("title");
+    }
     if (Object.keys(patch).length) {
       await patchDocument(doc.id, patch);
       changed.push(...Object.keys(patch));

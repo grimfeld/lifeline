@@ -7,10 +7,10 @@ import {
   DialogTitle,
   toast,
 } from "@lifeline/ui";
-import { addDays, todayStr, type CommandDef } from "@lifeline/core";
+import { todayStr, type CommandDef } from "@lifeline/core";
 import { Check, ListChecks, ListTodo, Plus } from "lucide-react";
 import { TaskDialog } from "./components/TaskDialog";
-import { deriveItems } from "./domain/occurrences";
+import { dueItems } from "./domain/occurrences";
 import { addTask, setCompleted, useOverrides, useTasks } from "./data/repo";
 import { readRecurrence, RECURRENCE_HINT } from "./domain/recurrence";
 import { PROJECT } from "./domain/types";
@@ -30,9 +30,7 @@ function CompleteTaskCommandDialog({
   const overrides = useOverrides();
   const [done, setDone] = useState<string[]>([]);
   const today = todayStr();
-  const due = deriveItems(tasks, overrides, { start: addDays(today, -60), end: today }, today).filter(
-    (i) => i.date !== null && !i.completedOn && !i.lapsed,
-  );
+  const due = dueItems(tasks, overrides, today).filter((i) => !i.completedOn);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
