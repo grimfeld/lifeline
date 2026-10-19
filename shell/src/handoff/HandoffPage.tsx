@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { decodeHandoff, HANDOFF_DONE_PATH, type HandoffDecodeError } from "@lifeline/handoff";
-import { intakeByKey } from "@lifeline/core";
-import { Button, PhoneDock } from "@lifeline/ui";
-import { CircleCheck } from "lucide-react";
+import { allIntakes, allWorkspaces, currentWorkspaceId, intakeByKey, lastIntakeKey, rememberIntake, setCurrentWorkspace, useWorkspaces, type WorkspaceRecord } from "@lifeline/core";
+import { Button, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { CircleCheck, Lock } from "lucide-react";
+
+/** Per-device memory of the Intake last chosen for a Handoff from outside Lifeline, beside the selection's and each App's own. */
+const SENDER = "outside";
 
 /** How long "Saved" shows before the page moves to its done address (where the extension closes its window). */
 const SAVED_MS = 800;
@@ -26,16 +29,42 @@ function Frame({ children }: { children: ReactNode }) {
  * nothing is written until that dialog saves. Then it says so and moves to
  * `/handoff/done`, the address the Lifeline extension waits for to close its
  * window.
+ *
+ * Naming no Intake, or one this Lifeline does not know, it asks which Intake
+ * receives it. With more than one Workspace it also asks where the Document
+ * lands: the choice becomes the current Workspace before the dialog opens,
+ * because a dialog stamps the current Workspace on what it makes.
  */
 export function HandoffPage() {
   const location = useLocation();
   const navigate = useNavigate();
   // Read once: the fragment is the Handoff, and moving on drops it.
   const [decoded] = useState(() => decodeHandoff(location.hash));
-  const intake = decoded.ok && decoded.intake ? intakeByKey(decoded.intake) : undefined;
-  const [stage, setStage] = useState<"open" | "cancelled" | "saved">("open");
+  const named = decoded.ok && decoded.intake ? intakeByKey(decoded.intake) : undefined;
+  const [intakeKey, setIntakeKey] = useState(() => named?.key ?? (intakeByKey(lastIntakeKey(SENDER)) ? lastIntakeKey(SENDER) : (allIntakes()[0]?.key ?? "")));
+  const intake = intakeByKey(intakeKey);
+  // Undefined until the first read: whether to ask for a Workspace waits on it.
+  const live = useWorkspaces();
+  const [first, setFirst] = useState<WorkspaceRecord[]>();
+  useEffect(() => void allWorkspaces().then(setFirst), []);
+  const workspaces = live.length > 0 ? live : first;
+  const [workspaceId, setWorkspaceId] = useState<string>();
+  const wsValue = workspaceId ?? (workspaces?.find((w) => w.id === currentWorkspaceId()) ?? workspaces?.[0])?.id ?? "";
+  const [stage, setStage] = useState<"pending" | "choose" | "open" | "cancelled" | "saved">("pending");
   // The dialog closes after it saves: a ref, so that close is not taken for a cancel.
   const saved = useRef(false);
+
+  // A named Intake opens at once — unless there is a Workspace to choose. Decided once, when the Workspaces are known.
+  useEffect(() => {
+    if (stage === "pending" && workspaces) setStage(named && workspaces.length < 2 ? "open" : "choose");
+  }, [stage, workspaces, named]);
+
+  function open() {
+    if (!intake) return;
+    if (wsValue) setCurrentWorkspace(wsValue);
+    rememberIntake(SENDER, intake.key);
+    setStage("open");
+  }
 
   useEffect(() => {
     if (stage !== "saved") return;
@@ -60,32 +89,67 @@ export function HandoffPage() {
         <h1 className="text-xl font-semibold tracking-tight">{handoff.title || "Untitled"}</h1>
         {handoff.url && <p className="text-muted-foreground text-sm">{handoff.url}</p>}
       </div>
-      {!intake ? (
-        <p className="text-muted-foreground text-sm">
-          {decoded.intake ? "The Intake this was sent to is not in this Lifeline." : "This Handoff names no Intake."} Send it again and choose what to make of it.
-        </p>
-      ) : (
+      {(stage === "choose" || stage === "cancelled") && (
         <>
-          {stage === "cancelled" && (
-            <>
-              <p className="text-muted-foreground text-sm">Nothing was saved.</p>
-              <PhoneDock>
-                <Button className="justify-self-start" onClick={() => setStage("open")}>
-                  {intake.icon && <intake.icon />} Open the {intake.title} again
-                </Button>
-              </PhoneDock>
-            </>
+          {stage === "cancelled" ? (
+            <p className="text-muted-foreground text-sm">Nothing was saved.</p>
+          ) : (
+            decoded.intake && !named && <p className="text-muted-foreground text-sm">The Intake this was sent to is not in this Lifeline. Choose another.</p>
           )}
-          <intake.dialog
-            open={stage === "open"}
-            onOpenChange={(o) => !o && !saved.current && setStage("cancelled")}
-            onSaved={() => {
-              saved.current = true;
-              setStage("saved");
-            }}
-            handoff={handoff}
-          />
+          <div className="flex flex-wrap items-center gap-2 max-md:contents">
+            {(!named || stage === "cancelled") && (
+              <PhoneDock order={1}>
+                <Select value={intakeKey} onValueChange={setIntakeKey}>
+                  <SelectTrigger aria-label="Intake" className="min-w-32">
+                    <SelectValue placeholder="Make it a…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allIntakes().map((i) => (
+                      <SelectItem key={i.key} value={i.key}>
+                        {i.icon && <i.icon />}
+                        {i.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </PhoneDock>
+            )}
+            {workspaces && workspaces.length > 1 && (
+              <PhoneDock order={1}>
+                <Select value={wsValue} onValueChange={setWorkspaceId}>
+                  <SelectTrigger aria-label="Workspace" className="min-w-0 max-w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {workspaces.map((w) => (
+                      <SelectItem key={w.id} value={w.id}>
+                        {w.separated && <Lock />}
+                        <span className="truncate">{w.name}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </PhoneDock>
+            )}
+            <PhoneDock>
+              <Button disabled={!intake} onClick={open}>
+                {intake?.icon && <intake.icon />} Open the {intake?.title ?? "Intake"}
+              </Button>
+            </PhoneDock>
+          </div>
         </>
+      )}
+      {intake && (
+        <intake.dialog
+          key={intake.key}
+          open={stage === "open"}
+          onOpenChange={(o) => !o && !saved.current && setStage("cancelled")}
+          onSaved={() => {
+            saved.current = true;
+            setStage("saved");
+          }}
+          handoff={handoff}
+        />
       )}
     </Frame>
   );
