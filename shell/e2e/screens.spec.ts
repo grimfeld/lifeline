@@ -37,6 +37,32 @@ async function openProductEdit(page: Page) {
 }
 
 /**
+ * A Prices Product page → Edit → Merge into a Product of another dimension
+ * (ADR 0084): the picker lists it with its Measure, and the dialog says how
+ * many of the Product's Lines will need an amount.
+ */
+async function openProductMerge(page: Page) {
+  await workLocally(page);
+  const target = longText("Merge target");
+  await page.evaluate(
+    async ([coreUrl, title]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const id = location.pathname.split("/").pop();
+      const own = (await core.documentsOf("price_product")).find((p: { id: string }) => p.id === id);
+      for (const l of await core.documentsOf("price_line")) await core.patchDocument(l.id, { productId: id, needsAmount: false });
+      const dimension = own?.dimension === "length" ? "mass" : "length";
+      await core.putDocument({ type: "price_product", title, dimension, unit: dimension === "length" ? "m" : "kg", countName: "", labels: [], folder: "", tags: [] });
+    },
+    [CORE_URL, target],
+  );
+  await page.getByRole("button", { name: "Edit" }).first().click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("combobox", { name: "Merge into" }).click();
+  await page.getByRole("option", { name: new RegExp(`^${target.slice(0, 20)}`) }).click();
+  await expect(dialog.getByRole("status")).toContainText("will need an amount");
+}
+
+/**
  * Prices with the needs-amount inbox (ADR 0084): every seeded Line marked as
  * needing an amount — its Product changed dimension — so the loud banner
  * shows, then the inbox opened over it.
@@ -341,6 +367,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Price product", path: "/app/prices/p/:id", type: "price_product" },
   { name: "Prices · needs amount", path: "/app/prices", afterOpen: openNeedsAmount },
   { name: "Price product · edit", path: "/app/prices/p/:id", type: "price_product", afterOpen: openProductEdit },
+  { name: "Price product · merge", path: "/app/prices/p/:id", type: "price_product", afterOpen: openProductMerge },
   { name: "Mood", path: "/app/mood" },
   { name: "Swear Jar", path: "/app/swearjar" },
   { name: "Knowledge", path: "/app/languages" },

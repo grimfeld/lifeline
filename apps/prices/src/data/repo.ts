@@ -154,14 +154,16 @@ export async function deleteProduct(id: string): Promise<void> {
 }
 
 /**
- * Merge: Lines repoint, remembered labels carry over, the source goes. One
- * dimension only — amounts are in its base unit, so the reading units may
- * differ; across dimensions the unit prices would be nonsense.
+ * Merge, whatever the two Measures (ADR 0084): Lines repoint, remembered
+ * labels carry over, the source goes. Within one dimension amounts are in its
+ * base unit and carry over meaning the same; across dimensions the source's
+ * Lines arrive needing an amount in the target's Measure (see linesToRetype).
  */
 export async function mergeProduct(from: Product, into: Product): Promise<void> {
   if (from.id === into.id) throw new Error("Pick a different product to merge into");
-  if (from.dimension !== into.dimension) throw new Error("Only products of the same dimension merge");
-  for (const l of await documentsWhere<Line>(LINE, "productId", from.id)) await patchDocument(l.id, { productId: into.id });
+  const lines = await documentsWhere<Line>(LINE, "productId", from.id);
+  const retype = new Set(linesToRetype(lines, from, into.dimension).map((l) => l.id));
+  for (const l of lines) await patchDocument(l.id, retype.has(l.id) ? { productId: into.id, needsAmount: true } : { productId: into.id });
   const labels = [...into.labels];
   for (const l of from.labels) if (!labels.some((x) => x.shopId === l.shopId && x.label === l.label)) labels.push(l);
   await patchDocument(into.id, { labels });
