@@ -56,7 +56,8 @@ nearest existing pattern and don't hand-roll a new one.
 - **(check)** Sizes come from the scale: `text-2xs` (10px — badges, counts, axis ticks),
   `text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`; `text-3xl`/`4xl`
   for big display numbers only. No `text-[11px]`.
-- A page title is `text-xl font-semibold tracking-tight` (`PageHeader`, _coming_).
+- **(check)** A page title is `PageHeader` (`text-xl font-semibold tracking-tight`); no
+  `<h1>` outside the kit.
 - A section heading is sentence case, `text-sm font-medium text-muted-foreground` — no
   uppercase eyebrows.
 - Weights: `font-medium` by default, `font-semibold` for titles; numbers that line up get
@@ -84,9 +85,9 @@ nearest existing pattern and don't hand-roll a new one.
   dialog widths (`sm:max-w-md`).
 - **(check)** The phone hook is `usePhone()` from `@lifeline/ui`; `useIsMobile` is
   deprecated.
-- A page is `Page` (_coming_): `mx-auto grid w-full gap-4 p-4 md:p-6`, `width="reading"`
-  (max-w-3xl, default) or `"wide"` (max-w-6xl). Its title row is `PageHeader`, an empty
-  list `EmptyState` (_coming_).
+- A page is `Page`: `mx-auto grid w-full gap-4 p-4 md:p-6`, `width="reading"`
+  (max-w-3xl, default) or `"wide"` (max-w-6xl). Its title row is `PageHeader` (title +
+  actions), an empty list `EmptyState` (message + optional `action`).
 - Boxes are `rounded-lg border`; a Card is `Card`. Hover is `hover:bg-accent`.
 
 ### Deleting
@@ -110,8 +111,7 @@ nearest existing pattern and don't hand-roll a new one.
 
 ### Forms and feedback
 
-- A field is `Field` (_coming_: Label, control, hint, error); until then
-  `<div className="grid gap-2"><Label/>…</div>`.
+- A field is `Field` (Label, control, hint, error): `<Field label="Title" error={…}><Input/></Field>`.
 - A field's error shows under it, with `aria-invalid` on the control — not in a toast.
   Disabling submit until the form is valid is fine.
 - Toasts report what an action did: `toast.success` / `toast.error`, with a sentence a
