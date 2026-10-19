@@ -68,6 +68,10 @@ export async function saveNeed(id: string, patch: { title: string; note: string;
   return true;
 }
 
+/** Set a Need's note or Aisle where it is peeked; the title stays the dialog's, which refuses a clash. */
+export const patchNeed = (id: string, patch: Partial<Pick<Need, "note" | "aisleId">>) =>
+  patchDocument(id, patch.note === undefined ? patch : { ...patch, note: patch.note.trim() });
+
 /** Forgets it for good — how a one-off stops being offered back. */
 export const deleteNeed = (id: string) => removeDocument(id);
 
