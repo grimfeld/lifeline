@@ -27,7 +27,7 @@ export function parseYamlSubset(src: string): Properties {
   const lines = src.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const m = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(line);
+    const m = /^([A-Za-z0-9_-]+):(.*)$/s.exec(line); // the value is trimmed below; `\s*` before it made a long line slow
     if (!m) continue;
     const key = m[1];
     const rest = m[2].trim();
@@ -230,8 +230,9 @@ export function extractHeadings(text: string): Heading[] {
   text.split("\n").forEach((line, i) => {
     if (/^\s{0,3}(```|~~~)/.test(line)) inFence = !inFence;
     if (inFence) return;
-    const m = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
-    if (m) out.push({ level: m[1].length, text: m[2], line: i });
+    // The closing `#`s are cut by hand: `\s+(.+?)\s*#*\s*$` backtracked cubically on a long line.
+    const m = /^\s{0,3}(#{1,6})\s+(.+)$/s.exec(line);
+    if (m) out.push({ level: m[1].length, text: m[2].trimEnd().replace(/#+$/, "").trimEnd() || m[2][0], line: i });
   });
   return out;
 }
@@ -316,7 +317,7 @@ export function foldName(text: string): string {
 export function parseBlockOptions(body: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of body.split("\n")) {
-    const m = /^\s*([A-Za-z_-]+)\s*:\s*(.*)$/.exec(line);
+    const m = /^\s*([A-Za-z_-]+)\s*:(.*)$/s.exec(line);
     if (m) out[m[1]] = m[2].trim();
   }
   return out;

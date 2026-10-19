@@ -2,7 +2,7 @@ import { useMemo, useRef } from "react";
 import ReactMarkdown, { defaultUrlTransform, type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@lifeline/ui";
-import { extractBlocks, openPrivateDialog, splitFrontmatter, todayStr, type LinkIndex } from "@lifeline/core";
+import { extractBlocks, openPrivateDialog, parseBlockOptions, splitFrontmatter, todayStr, type LinkIndex } from "@lifeline/core";
 import { DaylogBlock } from "./DaylogBlock";
 import { useOpenDocument } from "./openDocument";
 import { AttachmentImage } from "./AttachmentImage";
@@ -77,7 +77,7 @@ export function MarkdownView({ body, index, docDate, className, compact, origin 
       code: ({ className: cls, children, ...rest }) => {
         const lang = /language-(\w+)/.exec(cls ?? "")?.[1];
         if (lang === "daylog") {
-          const opts = parseOpts(String(children));
+          const opts = parseBlockOptions(String(children));
           return <DaylogBlock date={opts.date || live.current.docDate || todayStr()} apps={opts.apps ? opts.apps.split(/[\s,]+/).filter(Boolean) : undefined} compact />;
         }
         return (
@@ -107,12 +107,3 @@ export function MarkdownView({ body, index, docDate, className, compact, origin 
 const REMARK_PLUGINS = [remarkGfm];
 /** The default transform blanks every scheme it does not know — our own two included. */
 const urlTransform = (url: string) => (url.startsWith("wikilink:") || url.startsWith("attachment:") ? url : defaultUrlTransform(url));
-
-function parseOpts(body: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const line of body.split("\n")) {
-    const m = /^\s*([A-Za-z_-]+)\s*:\s*(.*)$/.exec(line);
-    if (m) out[m[1]] = m[2].trim();
-  }
-  return out;
-}
