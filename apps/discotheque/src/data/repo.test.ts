@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+// The Work types carry the Parts kit (ADR 0074), whose UI imports need a DOM.
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { documentsTable, getDocument, initApps, patchDocument } from "@lifeline/core";

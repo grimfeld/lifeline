@@ -1,11 +1,14 @@
+// @vitest-environment jsdom
+// The Work types carry the Parts kit (ADR 0074), whose UI imports need a DOM.
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { documentsOf, documentsTable, getDocument, initApps, patchDocument, putDocument, removeDocument, type Document } from "@lifeline/core";
-import { workTypeDefs, authorTypeDef } from "../types";
+import { workTypeDefs, authorRole, authorTypeDef } from "../types";
+import { libraryParts } from "../parts";
 import type { Work } from "../domain/types";
 import { addWork, allAuthors, allWorks, ensureAuthor, normalize, patchWork, quickAddWork } from "./repo";
 
-initApps([{ id: "library", title: "Library", types: [...workTypeDefs, authorTypeDef], screens: [], cards: [], commands: [] }]);
+initApps([{ id: "library", title: "Library", types: [...workTypeDefs, authorTypeDef, ...libraryParts.typeDefs], roles: [authorRole], screens: [], cards: [], commands: [] }]);
 
 const work = async (id: string) => normalize((await getDocument<Work>(id))!);
 
