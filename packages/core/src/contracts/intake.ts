@@ -61,7 +61,7 @@ const listeners = new Set<() => void>();
 
 /**
  * The key of the Intake last chosen from this sending App on this device, or
- * "" when none. Remembered per sender — Mail's "Clipping" never becomes
+ * "" when none. Remembered per sender — a selection's "Quote" never becomes
  * Pantry's default — and a convenience only: the sender still names no
  * receiver, the user did.
  */

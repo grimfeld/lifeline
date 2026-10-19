@@ -52,7 +52,6 @@ const SCREENS: ScreenCase[] = [
   { name: "Money", path: "/module/money" },
   { name: "Progress", path: "/module/progress" },
   { name: "Knowledge module", path: "/module/languages" },
-  { name: "Mail module", path: "/module/mail" },
   { name: "Journal module", path: "/module/journal" },
   { name: "Notes module", path: "/module/notes" },
   { name: "Thoughts module", path: "/module/thoughts" },
@@ -133,7 +132,6 @@ const SCREENS: ScreenCase[] = [
   { name: "Prices", path: "/app/prices" },
   { name: "Price product", path: "/app/prices/p/:id", type: "price_product" },
   { name: "Mood", path: "/app/mood" },
-  { name: "Mail", path: "/app/mail" },
   { name: "Swear Jar", path: "/app/swearjar" },
   { name: "Knowledge", path: "/app/languages" },
 ];
