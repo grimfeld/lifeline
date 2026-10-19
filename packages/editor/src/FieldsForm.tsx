@@ -18,6 +18,7 @@ export function FieldsForm({
   onChange,
   allowGuarded,
   columns = 2,
+  idPrefix = "field-",
 }: {
   def: Pick<DocumentTypeDef, "fields">;
   /** Subset to render (defaults to all visible fields). */
@@ -26,6 +27,8 @@ export function FieldsForm({
   onChange: (next: FieldValues) => void;
   allowGuarded?: boolean;
   columns?: 1 | 2;
+  /** Prefix of the controls' ids — another form on the page (a Peek over the Vault's editor) needs its own. */
+  idPrefix?: string;
 }) {
   const latest = useRef(value);
   latest.current = value;
@@ -39,11 +42,11 @@ export function FieldsForm({
     <div className={columns === 2 ? "grid gap-2 sm:grid-cols-2" : "grid gap-2"}>
       {list.map((f) => (
         <div key={f.key} className={`grid gap-1 ${f.kind === "longtext" ? "sm:col-span-2" : ""}`}>
-          <Label htmlFor={`field-${f.key}`} className="text-muted-foreground text-xs">
+          <Label htmlFor={`${idPrefix}${f.key}`} className="text-muted-foreground text-xs">
             {f.label}
             {f.guarded && !allowGuarded && <span className="ml-1 opacity-60" title="Guarded: only its App changes this">🔒</span>}
           </Label>
-          <FieldControl def={f} value={value[f.key]} all={value} disabled={!!f.guarded && !allowGuarded} onChange={(v) => set(f.key, v)} onSet={set} />
+          <FieldControl def={f} id={`${idPrefix}${f.key}`} value={value[f.key]} all={value} disabled={!!f.guarded && !allowGuarded} onChange={(v) => set(f.key, v)} onSet={set} />
         </div>
       ))}
     </div>
@@ -52,6 +55,7 @@ export function FieldsForm({
 
 export function FieldControl({
   def,
+  id = `field-${def.key}`,
   value,
   all,
   disabled,
@@ -59,13 +63,14 @@ export function FieldControl({
   onSet,
 }: {
   def: FieldDef;
+  /** The control's id, for its label. */
+  id?: string;
   value: unknown;
   all: FieldValues;
   disabled?: boolean;
   onChange: (v: unknown) => void;
   onSet: (key: string, v: unknown) => void;
 }) {
-  const id = `field-${def.key}`;
   switch (def.kind) {
     case "text":
     case "url":
