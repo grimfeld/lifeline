@@ -13,7 +13,7 @@ describe("quotes", () => {
   });
   it("renders the blockquote with attribution", () => {
     expect(quoteMarkdown(q("a", "Fear is the mind-killer.", { locator: "p. 12" }), item)).toBe("> Fear is the mind-killer.\n> — [[Dune]], Frank Herbert, p. 12\n");
-    expect(quoteMarkdown(q("a", "Line one\nLine two"), undefined)).toBe("> Line one\n> Line two\n> —\n".replace("> —\n", "> —\n"));
+    expect(quoteMarkdown(q("a", "Line one\nLine two"), undefined)).toBe("> Line one\n> Line two\n> —\n");
   });
   it("quote of the day is stable per day and varies across days", () => {
     const pool = [q("a", "x"), q("b", "y"), q("c", "z")];
