@@ -1,18 +1,20 @@
 import { Link } from "react-router";
-import { Button } from "@lifeline/ui";
+import { Button, CommitField } from "@lifeline/ui";
 import { useTasks } from "@lifeline/app-tasks";
 import { todayStr, type Document } from "@lifeline/core";
 import { ArrowUpRight } from "lucide-react";
 import { byRank, nextTaskOf, progressOf } from "../domain/board";
 import { projectHref, type Project } from "../domain/types";
-import { useLanes, useMilestones } from "../data/repo";
+import { updateProject, useLanes, useMilestones } from "../data/repo";
 import { StageControl } from "./StageControl";
 import { Deadline, Progress } from "./parts";
 
 /**
- * The Projects App's Peek (ADR 0057): a Project seen from wherever a link to
- * it was followed — its Outcome, stage, Deadline, progress, next Task and
- * Milestones — with the stage one tap away and its page one more.
+ * The Projects App's Peek (ADR 0057, editable by ADR 0085): a Project seen
+ * from wherever a link to it was followed — its stage one tap away (moved
+ * only through `setStage`, the stage being guarded), its Outcome, start and
+ * Deadline edited in place through `updateProject`, its progress, next Task
+ * and Milestones, and its page one more tap.
  */
 export function ProjectPeek({ doc }: { doc: Document }) {
   const project = doc as Project;
@@ -26,7 +28,11 @@ export function ProjectPeek({ doc }: { doc: Document }) {
         <StageControl project={project} tasks={tasks} />
         {project.stage !== "done" && project.stage !== "dropped" && <Deadline deadline={(project.deadline as string) || null} />}
       </div>
-      {project.outcome && <p className="text-sm">{project.outcome}</p>}
+      <CommitField label="Outcome" value={project.outcome ?? ""} placeholder="What finished looks like" onCommit={(outcome) => updateProject(project, { title: project.title, outcome })} />
+      <div className="grid grid-cols-2 gap-3">
+        <CommitField label="Start" type="date" value={project.start ?? ""} onCommit={(start) => updateProject(project, { title: project.title, start: start || null })} />
+        <CommitField label="Deadline" type="date" value={project.deadline ?? ""} onCommit={(deadline) => updateProject(project, { title: project.title, deadline: deadline || null })} />
+      </div>
       <Progress {...progressOf(tasks, project.id)} />
       {next && (
         <p className="text-sm">

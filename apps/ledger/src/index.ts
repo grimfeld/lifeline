@@ -62,7 +62,7 @@ const transactionType: DocumentTypeDef = {
   ],
   indexes: ["date", "categoryId", "accountId"],
   href: () => REGISTER_HREF,
-  peek: TransactionPeek,
+  peekEdit: TransactionPeek,
   order: 80,
   builtIn: true,
 };
@@ -82,7 +82,7 @@ const accountType: DocumentTypeDef = {
   ],
   linkable: { subtitle: (d) => (d as LedgerAccount).flavor },
   href: () => `${REGISTER_HREF}?tab=accounts`,
-  peek: AccountPeek,
+  peekEdit: AccountPeek,
   order: 81,
   builtIn: true,
 };
@@ -103,7 +103,7 @@ const categoryType: DocumentTypeDef = {
   ],
   linkable: { subtitle: (d) => ((d as LedgerCategory).group ? `${(d as LedgerCategory).group} · ${(d as LedgerCategory).kind}` : (d as LedgerCategory).kind) },
   href: () => BUDGET_HREF,
-  peek: CategoryPeek,
+  peekEdit: CategoryPeek,
   order: 82,
   builtIn: true,
 };

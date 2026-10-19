@@ -24,7 +24,7 @@ export const projectsApp: AppManifest = {
   icon: FolderKanban,
   color: "var(--chart-violet)",
   // The Peek is the one part of a type that is a view: attached here, so the types stay importable without React.
-  types: [{ ...projectType, peek: ProjectPeek }, milestoneType, laneType],
+  types: [{ ...projectType, peekEdit: ProjectPeek }, milestoneType, laneType],
   screens: [
     { id: "projects.timeline", title: "Timeline", path: "projects/timeline", icon: ChartGantt, component: TimelineScreen },
     { id: "projects.detail", title: "Project", path: "projects/p/:id", component: ProjectScreen, hidden: true },
