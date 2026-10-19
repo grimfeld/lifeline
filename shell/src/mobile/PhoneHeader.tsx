@@ -75,7 +75,8 @@ export function PhoneHeader() {
           ) : (
             <>
               <Rail expanded />
-              <div className="border-t p-2">
+              {/* Gone with the badge where it renders nothing (the Demo, ADR 0077). */}
+              <div className="border-t p-2 empty:hidden">
                 <SyncBadge />
               </div>
             </>

@@ -1,3 +1,4 @@
+export * from "./demo";
 export * from "./dates";
 export * from "./calendarViews";
 export * from "./ids";
@@ -66,7 +67,7 @@ export { put, remove, get, all } from "./data/repo";
 export { sharedLiveQuery } from "./data/live";
 export { pb, login, logout, useAuth } from "./data/pb";
 export { startSync, syncNow, requestSync, useSyncState, lastSyncError, type SyncState } from "./data/sync";
-export { accountConflict, boundAccount, currentAccount, pendingWriteCount, switchAccount, type AccountRef } from "./data/account";
+export { accountConflict, boundAccount, currentAccount, eraseDevice, pendingWriteCount, switchAccount, type AccountRef } from "./data/account";
 export { useLiveQuery } from "dexie-react-hooks";
 export { liveQuery } from "dexie";
 export * from "./external";

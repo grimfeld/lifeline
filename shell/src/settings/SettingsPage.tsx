@@ -10,7 +10,8 @@ import {
   BAR_PINNED,
   BAR_SLOT_ORDER,
   CAPTURE_PINS_MAX,
-  MODULES,
+  inhabitedModules,
+  isDemo,
   movePin,
   saveCapturePins,
   useCaptureSheet,
@@ -29,6 +30,7 @@ import { entryIcon, foldMembers } from "../capture/captureParts";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
 import { WorkspaceDialog, WorkspaceForm } from "../components/WorkspaceDialog";
 import { SyncBadge } from "../components/SyncBadge";
+import { ResetDemoButton, SourceLink } from "../demo/DemoActions";
 
 /**
  * `/settings` (ADR 0053): where the user configures Lifeline itself rather
@@ -50,12 +52,16 @@ export function SettingsPage() {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-4 md:p-6">
       <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
-      <section className="flex flex-col gap-2">
-        <h2 className="text-base font-medium">Account and sync</h2>
-        <div className="max-w-xs">
-          <SyncBadge />
-        </div>
-      </section>
+      {isDemo() ? (
+        <DemoSection />
+      ) : (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-base font-medium">Account and sync</h2>
+          <div className="max-w-xs">
+            <SyncBadge />
+          </div>
+        </section>
+      )}
       <Separator />
       <PhoneBarSection />
       <Separator />
@@ -63,6 +69,24 @@ export function SettingsPage() {
       <Separator />
       <WorkspacesSection />
     </div>
+  );
+}
+
+/** In the Demo (ADR 0077), where Account and sync would be: what this device is instead. */
+function DemoSection() {
+  return (
+    <section aria-label="Demo settings" className="flex flex-col gap-2">
+      <h2 className="text-base font-medium">Demo</h2>
+      <p className="text-muted-foreground text-sm">
+        This is the Lifeline Demo, filled with a made-up person's life. Everything you add, change or delete stays in this
+        browser: there is no account, nothing syncs, and no one else ever sees it.
+      </p>
+      {/* Here as well as in the banner, so both stay reachable once it is dismissed. */}
+      <div className="flex flex-wrap gap-2">
+        <ResetDemoButton />
+        <SourceLink />
+      </div>
+    </section>
   );
 }
 
@@ -388,7 +412,7 @@ function WorkspacesSection() {
             {w.separated ? <Lock className="size-4 shrink-0" /> : <span className="size-4 shrink-0" />}
             <span className="font-medium">{w.name}</span>
             <span className="text-muted-foreground ml-auto text-xs">
-              {w.modules.length === MODULES.length ? "All modules" : `${w.modules.length} module${w.modules.length === 1 ? "" : "s"}`}
+              {w.modules.length === inhabitedModules().length ? "All modules" : `${w.modules.length} module${w.modules.length === 1 ? "" : "s"}`}
             </span>
           </button>
         ))}
