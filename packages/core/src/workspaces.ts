@@ -142,6 +142,14 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb);
 }
 
+/**
+ * Run `cb` whenever this device switches Workspace. For live queries Dexie
+ * cannot re-run by itself: the scope they read lives here, in memory.
+ */
+export function onWorkspaceChange(cb: () => void): () => void {
+  return subscribe(cb);
+}
+
 export function useCurrentWorkspaceId(): string {
   return useSyncExternalStore(subscribe, currentWorkspaceId, () => "");
 }
@@ -182,7 +190,7 @@ export function useCurrentWorkspace(): WorkspaceRecord | undefined {
 
 /**
  * The current Workspace's Modules, in the user's order, dropping any Core no
- * longer defines or no registered App inhabits (Mail in the Demo, ADR 0077).
+ * longer defines or no registered App inhabits (a retired App's, like Mail, ADR 0080).
  */
 export function useWorkspaceModules(): string[] {
   const ws = useCurrentWorkspace();

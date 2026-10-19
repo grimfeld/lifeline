@@ -54,7 +54,7 @@ export async function addOffence(input: OffenceInput): Promise<string> {
   return row.id;
 }
 
-/** Repricing touches no Fine already logged — each keeps what it cost then (ADR 0054). */
+/** Repricing touches no Fine already logged — each keeps what it cost then (ADR 0083). */
 export async function updateOffence(o: Offence, input: OffenceInput): Promise<void> {
   await putDocument<Offence>({ ...o, ...offenceRowOf(input) });
 }
@@ -66,7 +66,7 @@ export async function setOffenceArchived(id: string, archived: boolean): Promise
 
 /**
  * Hard delete only when it has no Fines — a used Offence is archived instead
- * (ADR 0054). The type's `onDelete` guard is what refuses, so the Vault and a
+ * (ADR 0083). The type's `onDelete` guard is what refuses, so the Vault and a
  * Base are held to it too.
  */
 export async function deleteOffence(id: string): Promise<void> {
@@ -86,7 +86,7 @@ function fineTitle(o: Pick<Offence, "name">, amount: number, occurredAt: string)
 }
 
 /**
- * Log one incident (ADR 0054): the Fine takes the Offence's price as it is
+ * Log one incident (ADR 0083): the Fine takes the Offence's price as it is
  * right now, and keeps it. `occurredAt` defaults to now; backdating allowed.
  */
 export async function logFine(o: Offence, opts?: { occurredAt?: string; note?: string }): Promise<string> {

@@ -19,7 +19,7 @@ function announce(title: string, res: AddResult) {
  * "milk ⏎ eggs ⏎ bread ⏎" is three Needs. Opened with a Handoff (the
  * Intake), it arrives prefilled and closes on its one save.
  */
-export function AddNeedDialog({ open, onOpenChange, handoff, defaultAisleId }: { open: boolean; onOpenChange: (o: boolean) => void; handoff?: Handoff; defaultAisleId?: string }) {
+export function AddNeedDialog({ open, onOpenChange, handoff, defaultAisleId, onSaved }: { open: boolean; onOpenChange: (o: boolean) => void; handoff?: Handoff; defaultAisleId?: string; onSaved?: (id: string) => void }) {
   const needs = useNeeds();
   const offered = useMemo(() => suggestions(needs), [needs]);
   const [title, setTitle] = useState("");
@@ -44,6 +44,7 @@ export function AddNeedDialog({ open, onOpenChange, handoff, defaultAisleId }: {
     const res = await addNeed({ title: t, note, aisleId });
     announce(t, res);
     if (handoff) {
+      if (res) onSaved?.(res.id);
       onOpenChange(false);
       return;
     }

@@ -124,18 +124,6 @@ for (const w of WIDTHS) {
       await expect(page.getByRole("heading", { name: "Account and sync" })).toHaveCount(0);
     });
 
-    test("Mail is not in the navigation and its routes do not open", async ({ page }) => {
-      await open(page, "/calendar");
-      if (w.isMobile) await page.getByTitle("Menu").click();
-      await expect(page.locator('a[href="/module/mail"], a[href^="/app/mail"]')).toHaveCount(0);
-      await expect(page.getByRole("link", { name: "Mail", exact: true })).toHaveCount(0);
-
-      for (const path of ["/app/mail", "/module/mail"]) {
-        await open(page, path);
-        await expect(page, `${path} redirects away`).not.toHaveURL(/mail/);
-      }
-    });
-
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
       // Writing the life takes seconds of its own, behind the first screen.

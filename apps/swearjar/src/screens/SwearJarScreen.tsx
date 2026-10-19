@@ -11,7 +11,7 @@ import { OffenceEditorDialog } from "../components/OffenceEditorDialog";
 import { FineDialog } from "../components/FineDialog";
 
 /**
- * The Swear Jar (ADR 0054): one calendar month's jar at a time — its total,
+ * The Swear Jar (ADR 0083): one calendar month's jar at a time — its total,
  * the Offences as one-tap buttons, the month per Offence, then its Fines.
  * Nothing resets; the arrows walk back through months already closed.
  */

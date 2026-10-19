@@ -40,9 +40,9 @@ describe("tree", () => {
     expect(root.notes.map((n) => n.title)).toEqual(["Root note"]);
   });
   it("titleTaken is per folder and case-insensitive", () => {
-    const notes = [note("1", "Paul", "People"), note("2", "Paul", "Characters")];
-    expect(titleTaken(notes, "People", "paul")).toBe(true);
-    expect(titleTaken(notes, "People", "paul", "1")).toBe(false);
-    expect(titleTaken(notes, "", "Paul")).toBe(false);
+    const notes = [note("1", "Alex", "People"), note("2", "Alex", "Characters")];
+    expect(titleTaken(notes, "People", "alex")).toBe(true);
+    expect(titleTaken(notes, "People", "alex", "1")).toBe(false);
+    expect(titleTaken(notes, "", "Alex")).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, newId, normalizeTags, putDocument, removeDocument, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
+import { documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
 import { SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Work, type LookupSettings } from "../domain/types";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
@@ -79,10 +79,23 @@ export async function addWork(input: {
 
 /** Apply a transition patch (or an edit) to an item. */
 export async function patchWork(item: Work, patch: Patch): Promise<void> {
-  const next = { ...item, ...patch };
-  await putDocument<Work>({ ...next, tags: normalizeTags(next.tags) });
+  // Only the patched fields, onto the stored row: writing the whole of a copy
+  // read earlier reverts whatever changed since ("Enrich all" undoing a rating).
+  await patchDocument(item.id, Array.isArray(patch.tags) ? { ...patch, tags: normalizeTags(patch.tags) } : patch);
 }
 
+/** The Notes App's Quote type (ADR 0070): a passage that cannot outlive its Source — here, the Work. */
+const QUOTE = "quote";
+
+/**
+ * The Work types' cascade (ADR 0045), run by every delete — this App's,
+ * the Vault's, a Base's: the Work's Quotes go with it.
+ */
+export async function cascadeWorkDelete(id: string): Promise<void> {
+  await removeDocumentsWhere(QUOTE, (q) => (q as { source?: string }).source === id);
+}
+
+/** Delete a game; its type's cascade takes its Quotes. */
 export async function deleteWork(id: string): Promise<void> {
   await removeDocument(id);
 }
@@ -93,12 +106,27 @@ export function findByExternalKey(items: Work[], key: string): Work | undefined 
 }
 
 /**
+ * The Work a quick add would twin: the same outside identity, else the same
+ * title in the same medium — unless both carry keys and they differ (two
+ * films called "Dune" are two films).
+ */
+export function findTwin(items: Work[], input: { medium: WorkTypeId; title: string; externalKey?: string }): Work | undefined {
+  const key = input.externalKey ?? "";
+  const title = input.title.trim().toLowerCase();
+  return findByExternalKey(items, key) ?? items.find((w) => w.type === input.medium && w.title.trim().toLowerCase() === title && (!key || !w.externalKey));
+}
+
+/**
  * Quick add (ADR 0006 amendment): title, optional creator, medium — straight
  * onto the To… shelf, nothing else asked. Optional lookup hit attaches
- * cover/year/external key. Returns the id (for Undo).
+ * cover/year/external key. Returns the new id (for Undo), or the twin it
+ * found instead — then nothing was added.
  */
-export async function quickAddWork(input: { medium: WorkTypeId; title: string; creator?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; creator: string } }): Promise<string> {
-  return addWork({
+export async function quickAddWork(input: { medium: WorkTypeId; title: string; creator?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; creator: string } }): Promise<{ id: string; twin?: Work }> {
+  // Already yours: nothing is created (no Work, no Author) — the caller says so.
+  const twin = findTwin(await allWorks(), { medium: input.medium, title: input.title, externalKey: input.hit?.externalKey });
+  if (twin) return { id: twin.id, twin };
+  const id = await addWork({
     medium: input.medium,
     title: input.title,
     creator: input.creator || input.hit?.creator || "",
@@ -109,6 +137,7 @@ export async function quickAddWork(input: { medium: WorkTypeId; title: string; c
     acquisition: "WANTED",
     reason: "",
   });
+  return { id };
 }
 
 /** Parse "Title — Creator" / "Title - Creator" / "Title by Creator" typed in a quick-add box. */

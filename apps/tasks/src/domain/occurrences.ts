@@ -202,6 +202,34 @@ export function deriveItems(
   );
 }
 
+/**
+ * What is on `today`: everything placed on today (done or not), plus every
+ * open overdue item — however old. No lookback window: a one-time Task stays
+ * overdue until done or moved (ADR 0004), and a recurring Task's current
+ * Occurrence carries its overdue standing however long ago the rule produced
+ * it (ADR 0036). The recurring range therefore starts at the earliest current
+ * source day (or open Occurrence moved into the past), which bounds the walk.
+ */
+export function dueItems(tasks: Task[], overrides: OccurrenceOverride[], today: DateStr = todayStr()): TaskItem[] {
+  const oneTime = tasks.filter((t) => !t.recurrence);
+  const recurring = tasks.filter((t) => t.recurrence);
+  let start = today;
+  for (const t of recurring) {
+    if (t.status !== "active") continue;
+    const cur = currentSourceDate(t, today);
+    if (cur !== null && cur < start) start = cur;
+  }
+  for (const o of overrides) {
+    if (o.movedTo && !o.completedOn && o.movedTo < start) start = o.movedTo;
+  }
+  return [
+    ...deriveItems(oneTime, [], { start: "0000-01-01", end: today }, today),
+    ...deriveItems(recurring, overrides, { start, end: today }, today),
+  ]
+    .filter((i) => i.date !== null && !i.lapsed && (i.date === today || !i.completedOn))
+    .sort((a, b) => a.date!.localeCompare(b.date!) || a.task.title.localeCompare(b.task.title));
+}
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 export function ordinal(n: number): string {
   const s = ["th", "st", "nd", "rd"];

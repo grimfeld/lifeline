@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { buildGraph, localGraph, useDocumentTypes, type LinkIndex, type LinkRef } from "@lifeline/core";
+import { buildLocalGraph, useDocumentTypes, type LinkIndex, type LinkRef } from "@lifeline/core";
 import { cn, GraphView } from "@lifeline/ui";
 
 /**
@@ -10,7 +10,7 @@ import { cn, GraphView } from "@lifeline/ui";
 export function LocalGraphPanel({ docId, index, onOpen }: { docId: string; index: LinkIndex; onOpen: (ref: LinkRef, name: string) => void }) {
   const types = useDocumentTypes();
   const [depth, setDepth] = useState<1 | 2>(1);
-  const model = useMemo(() => localGraph(buildGraph(index, types, { orphans: true }), docId, depth), [index, types, docId, depth]);
+  const model = useMemo(() => buildLocalGraph(index, types, docId, depth), [index, types, docId, depth]);
   if (model.nodes.length <= 1) return null;
   return (
     <section>

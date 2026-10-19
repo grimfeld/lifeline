@@ -23,7 +23,7 @@ import {
 import { AlertTriangle, ArrowDownToLine, Check, Play, ShoppingCart } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import { ACQUISITION, type Acquisition, type Work } from "../domain/types";
-import { acquire, finish, freeSlots, isBuySignal, isStale, promote, release, slotAge, start } from "../domain/rules";
+import { acquire, finish, freeSlotsOf, isBuySignal, isStale, promote, release, slotAge, start } from "../domain/rules";
 import { patchWork } from "../data/repo";
 import { Cover } from "./Cover";
 import { WorkActionsMenu, useAct } from "./WorkActions";
@@ -171,7 +171,7 @@ export function WorkRow({ item, all, onEdit, compact = false }: { item: Work; al
   const slotted = item.slot > 0;
   const age = slotAge(item);
   const stale = isStale(item);
-  const free = freeSlots(all, item.type);
+  const free = freeSlotsOf(all, item.type);
   const buy = isBuySignal(item);
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";

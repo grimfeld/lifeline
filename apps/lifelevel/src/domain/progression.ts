@@ -19,6 +19,26 @@ function hoursBetween(fromIso: string, to: Date): number {
   return Math.max(0, (to.getTime() - a) / 3_600_000);
 }
 
+/** Oldest first, parsing each instant once rather than twice per comparison. */
+function chronological<T extends { occurredAt: string }>(rows: T[]): T[] {
+  return rows
+    .map((row) => ({ row, at: Date.parse(row.occurredAt) }))
+    .sort((a, b) => a.at - b.at)
+    .map((x) => x.row);
+}
+
+/** Rows grouped by a key, each group keeping the input order. */
+function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {
+  const out = new Map<string, T[]>();
+  for (const row of rows) {
+    const k = key(row);
+    const list = out.get(k);
+    if (list) list.push(row);
+    else out.set(k, [row]);
+  }
+  return out;
+}
+
 function levelFromExp(exp: number, expPerLevel: number): number {
   if (expPerLevel <= 0) return 1;
   return Math.max(1, Math.floor(exp / expPerLevel) + 1);
@@ -74,12 +94,10 @@ export function computeProgression(
   now: Date,
 ): { habits: ComputedHabitState[]; negatives: ComputedNegativeState[] } {
   const negativesById = new Map(negatives.map((n) => [n.id, n]));
-  const habitCompletionsSorted = [...habitCompletions].sort(
-    (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
-  );
-  const negativeCompletionsSorted = [...negativeCompletions].sort(
-    (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
-  );
+  const negativeCompletionsSorted = chronological(negativeCompletions);
+  // One pass to group, rather than a filter over the whole ledger per Habit / Negative.
+  const habitCompletionsByHabit = groupBy(chronological(habitCompletions), (c) => c.habitId);
+  const negativeCompletionsByNegative = groupBy(negativeCompletionsSorted, (c) => c.negativeId);
 
   const penaltyByHabit = new Map<string, number>();
   for (const c of negativeCompletionsSorted) {
@@ -95,7 +113,7 @@ export function computeProgression(
   const today = dayKeyOf(now.toISOString());
 
   const habitsOut: ComputedHabitState[] = habits.map((act) => {
-    const mine = habitCompletionsSorted.filter((c) => c.habitId === act.id);
+    const mine = habitCompletionsByHabit.get(act.id) ?? [];
     const expPerLevel = expPerLevelFromDifficulty(act.difficulty);
     const completionCount = mine.length;
     const completionsToday = mine.filter((c) => dayKeyOf(c.occurredAt) === today).length;
@@ -186,7 +204,7 @@ export function computeProgression(
   });
 
   const negativesOut: ComputedNegativeState[] = negatives.map((act) => {
-    const mine = negativeCompletionsSorted.filter((c) => c.negativeId === act.id);
+    const mine = negativeCompletionsByNegative.get(act.id) ?? [];
     const lastOccurredAt =
       mine.length > 0 ? mine.reduce((best, c) => (c.occurredAt > best ? c.occurredAt : best), mine[0].occurredAt) : null;
     return {
