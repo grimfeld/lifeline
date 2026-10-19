@@ -11,8 +11,25 @@ jobs:
     concurrency: deploy-group
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The snapshot step diffs against the push's previous master.
+          fetch-depth: 0
       # Pinned to a commit: a moved tag or branch must not get the Fly token.
       - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # 1.5
+      # PocketBase migrates on boot and prod has no staging: snapshot the volume first
+      # when this push brings a migration, so a bad one can be rolled back. No snapshot,
+      # no deploy.
+      - name: Snapshot pb_data before a migration
+        run: |
+          if git diff --quiet ${{ github.event.before }} ${{ github.sha }} -- pocketbase/pb_migrations; then
+            echo "No migration in this push; no snapshot."
+            exit 0
+          fi
+          vol=$(flyctl volumes list -a lifeline-pb --json | jq -r '.[] | select(.name == "pb_data") | .id')
+          test -n "$vol"
+          flyctl volumes snapshots create "$vol" -a lifeline-pb
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       - run: flyctl deploy --remote-only --strategy immediate
         working-directory: pocketbase
         env:

@@ -131,6 +131,8 @@ export function HoursEditor({
   const created = useRef(false);
   const changed = useRef(false);
   const renamed = useRef(false);
+  /** The title last written, so a blur and then a close do not rename twice. */
+  const savedTitle = useRef(target.item.title);
   const ended = useRef(false);
   // Writes run in order: a quick second nudge must not race the block the first one made.
   const queue = useRef<Promise<void>>(Promise.resolve());
@@ -176,6 +178,8 @@ export function HoursEditor({
   /** Close, leaving one Undo for the whole visit when anything changed. */
   function finish(finalDate = date) {
     if (ended.current) return;
+    // Escape or a click outside unmounts the title field without a blur: keep what was typed.
+    commitTitle();
     ended.current = true;
     onClose();
     if (!changed.current && !renamed.current) return;
@@ -223,9 +227,10 @@ export function HoursEditor({
   }
 
   function commitTitle() {
-    if (!timed || !title.trim() || title.trim() === timed.title) return;
-    renamed.current = true;
     const next = title.trim();
+    if (!timed || ended.current || !next || next === savedTitle.current) return;
+    savedTitle.current = next;
+    renamed.current = true;
     run(() => renameTimedItem(timed, next));
   }
 

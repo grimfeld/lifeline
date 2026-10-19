@@ -9,6 +9,7 @@ import type { SchedulableItem, SchedulableProvider } from "./schedulable";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
 import { inSurfaceScope, useSurfaceScope } from "./scope";
+import { useStructuralMemo } from "../stable";
 
 /**
  * A Schedulable item resolved for display. One item yields one row on its
@@ -151,7 +152,8 @@ export function useSurfaceItems(range: { start: DateStr; end: DateStr }, opts?: 
       for (const row of resolveItemRows(item, byItem.get(item.key) ?? [], resolve)) out.push({ ...row, color });
     }
   }
-  return out.filter((i) => i.displayDate >= range.start && i.displayDate <= range.end);
+  // Stable while nothing changed, so the surfaces' memos can hit.
+  return useStructuralMemo(out.filter((i) => i.displayDate >= range.start && i.displayDate <= range.end));
 }
 
 /**
@@ -207,7 +209,7 @@ export function usePoolItems(opts?: { tags?: TagFilter }): PoolItem[] {
       out.push({ ...item, color, blocksAhead });
     }
   }
-  return out;
+  return useStructuralMemo(out);
 }
 
 /** Pin an item to a day without a time (the Core fallback for Apps that own no moves): one such pin per item. */

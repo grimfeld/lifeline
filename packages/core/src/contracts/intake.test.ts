@@ -16,9 +16,9 @@ describe("the Intake a sender last chose", () => {
 
   it("is remembered per sender", () => {
     rememberIntake("pantry", "shopping/need");
-    rememberIntake("mail", "clipper/clipping");
+    rememberIntake("selection", "commonplace/quote");
     expect(lastIntakeKey("pantry")).toBe("shopping/need");
-    expect(lastIntakeKey("mail")).toBe("clipper/clipping");
+    expect(lastIntakeKey("selection")).toBe("commonplace/quote");
   });
 
   it("forgets quietly when storage is unavailable", () => {

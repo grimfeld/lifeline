@@ -31,10 +31,13 @@ export function useOpenLinkRef(index: LinkIndex, onCreateUnresolved?: (name: str
       }
       if (ref.kind === "locked") return openPrivateDialog("unlock");
       if (onCreateUnresolved) return onCreateUnresolved(name);
-      void putDocument({ type: "thought", title: name, body: "" }).then((n) => {
-        toast.success(`Created “${name}”`);
-        navigate(docHref(n));
-      });
+      putDocument({ type: "thought", title: name, body: "" }).then(
+        (n) => {
+          toast.success(`Created “${name}”`);
+          navigate(docHref(n));
+        },
+        (err: unknown) => toast.error(`Couldn’t create “${name}” — ${err instanceof Error ? err.message : String(err)}`),
+      );
     },
     [index, navigate, openDoc, onCreateUnresolved],
   );

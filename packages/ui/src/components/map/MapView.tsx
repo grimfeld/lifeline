@@ -1,125 +1,41 @@
-import { useEffect, useMemo } from "react";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import "./map.css";
+import { lazy, Suspense, type ComponentProps } from "react";
 import { cn } from "../../lib/utils";
 
-/** What a map needs to draw one point. Surfaces map their contract items onto this. */
-export interface MapPin {
-  key: string;
-  name: string;
-  subtitle?: string;
-  lat: number;
-  lon: number;
-  /** CSS colour (App accent). */
-  color?: string;
-  href?: string;
-}
+export { OSM_ATTRIBUTION, OSM_TILES, type MapPin } from "./tiles";
 
-/** OSM raster tiles with the attribution their policy requires (ADR 0011). */
-export const OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-export const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors';
+/*
+ * The maps load Leaflet on first use: it is a large share of the bundle and
+ * most screens never draw a map. The components keep their names and props;
+ * until Leaflet arrives they hold their place with an empty panel.
+ */
+const MapViewImpl = lazy(() => import("./MapViewImpl").then((m) => ({ default: m.MapView })));
+const MiniMapImpl = lazy(() => import("./MiniMapImpl").then((m) => ({ default: m.MiniMap })));
 
-const WORLD: [number, number] = [30, 0];
-
-/** A coloured pin drawn from CSS, so no marker image assets are needed. */
-export function pinIcon(color = "var(--primary)", size = 22): L.DivIcon {
-  return L.divIcon({
-    className: "ll-pin",
-    html: `<span class="ll-pin-dot" style="--pin:${color};--pin-size:${size}px"></span>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-    popupAnchor: [0, -size],
-  });
-}
-
-function FitToPins({ pins, focus }: { pins: MapPin[]; focus?: string }) {
-  const map = useMap();
-  const signature = pins.map((p) => `${p.key}:${p.lat},${p.lon}`).join("|");
-  useEffect(() => {
-    const target = focus ? pins.find((p) => p.key === focus) : undefined;
-    if (target) {
-      map.setView([target.lat, target.lon], Math.max(map.getZoom(), 15));
-      return;
-    }
-    if (pins.length === 0) {
-      map.setView(WORLD, 2);
-      return;
-    }
-    if (pins.length === 1) {
-      map.setView([pins[0].lat, pins[0].lon], 13);
-      return;
-    }
-    map.fitBounds(L.latLngBounds(pins.map((p) => [p.lat, p.lon] as [number, number])), { padding: [32, 32], maxZoom: 15 });
-    // Refit only when the set of pins (or the focus) changes, not on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, signature, focus]);
-  return null;
-}
-
-/** Leaflet resizes lazily; nudge it when the container's box changes (cards resize, panels toggle). */
-function InvalidateOnResize() {
-  const map = useMap();
-  useEffect(() => {
-    const el = map.getContainer();
-    const ro = new ResizeObserver(() => map.invalidateSize({ animate: false }));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [map]);
-  return null;
-}
+export type MapViewProps = ComponentProps<typeof import("./MapViewImpl").MapView>;
+export type MiniMapProps = ComponentProps<typeof import("./MiniMapImpl").MiniMap>;
 
 /**
  * The map Surface's canvas: OSM tiles, one coloured pin per item, a popup
  * with name/subtitle/Open. Fits to the pins on mount and whenever they
  * change; `focus` centres on one pin instead.
  */
-export function MapView({
-  pins,
-  focus,
-  onOpen,
-  className,
-  zoomControl = true,
-}: {
-  pins: MapPin[];
-  /** Key of a pin to centre on (e.g. from a `?focus=` param). */
-  focus?: string;
-  onOpen?: (pin: MapPin) => void;
-  className?: string;
-  zoomControl?: boolean;
-}) {
-  const icons = useMemo(() => {
-    const m = new Map<string, L.DivIcon>();
-    for (const p of pins) {
-      const c = p.color ?? "var(--primary)";
-      if (!m.has(c)) m.set(c, pinIcon(c));
-    }
-    return m;
-  }, [pins]);
-
+export function MapView(props: MapViewProps) {
   return (
-    <div className={cn("relative h-full min-h-0 w-full overflow-hidden rounded-md", className)}>
-      <MapContainer center={WORLD} zoom={2} zoomControl={zoomControl} className="h-full w-full" attributionControl>
-        <TileLayer url={OSM_TILES} attribution={OSM_ATTRIBUTION} maxZoom={19} />
-        <InvalidateOnResize />
-        <FitToPins pins={pins} focus={focus} />
-        {pins.map((p) => (
-          <Marker key={p.key} position={[p.lat, p.lon]} icon={icons.get(p.color ?? "var(--primary)")}>
-            <Popup>
-              <div className="ll-popup">
-                <div className="ll-popup-name">{p.name}</div>
-                {p.subtitle && <div className="ll-popup-sub">{p.subtitle}</div>}
-                {onOpen && p.href && (
-                  <button type="button" className="ll-popup-open" onClick={() => onOpen(p)}>
-                    Open →
-                  </button>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
-    </div>
+    <Suspense fallback={<div className={cn("bg-muted/40 relative h-full min-h-0 w-full overflow-hidden rounded-md", props.className)} />}>
+      <MapViewImpl {...props} />
+    </Suspense>
+  );
+}
+
+/**
+ * One entity's own little map: a single pin, optionally draggable (drop
+ * writes the new coordinates back), with an "expand" affordance that opens
+ * the full map Surface on this pin.
+ */
+export function MiniMap(props: MiniMapProps) {
+  return (
+    <Suspense fallback={<div className={cn("bg-muted/40 relative h-40 w-full overflow-hidden rounded-md border", props.className)} />}>
+      <MiniMapImpl {...props} />
+    </Suspense>
   );
 }

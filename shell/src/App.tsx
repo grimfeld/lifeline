@@ -1,6 +1,7 @@
-import { useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { Navigate, Route, Routes, useParams, useSearchParams } from "react-router";
 import { Toaster } from "@lifeline/ui";
+import { HANDOFF_DONE_PATH, HANDOFF_PATH } from "@lifeline/handoff";
 import {
   MODULES,
   appById,
@@ -20,8 +21,6 @@ import { CommandPalette } from "./components/CommandPalette";
 import { AccountDialogs } from "./components/AccountDialogs";
 import { PrivateDialogs } from "./vault/PrivateDialogs";
 import { CalendarPage } from "./surfaces/CalendarSurface";
-import { MapPage } from "./surfaces/MapPage";
-import { GraphPage } from "./surfaces/GraphPage";
 import { PushProvider } from "./surfaces/push";
 import { UserScreenPage } from "./screens/UserScreenPage";
 import { ScreensIndex } from "./screens/ScreensIndex";
@@ -35,7 +34,12 @@ import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
 import { FALLBACK_PLACE, lastPlace, useResume } from "./nav/resume";
 import { PeekHost } from "./peek/PeekHost";
 import { SelectionIntake } from "./intake/SelectionIntake";
+import { HandoffPage, HandoffSaved } from "./handoff/HandoffPage";
 import { DemoBanner, DemoFilling } from "./demo/DemoBanner";
+
+// The heavier Surfaces load when first visited, not with the shell (CR-23).
+const MapPage = lazy(() => import("./surfaces/MapPage").then((m) => ({ default: m.MapPage })));
+const GraphPage = lazy(() => import("./surfaces/GraphPage").then((m) => ({ default: m.GraphPage })));
 
 /** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
 function ResumeRedirect() {
@@ -73,7 +77,11 @@ function LegacyTimeRedirect({ view }: { view: "week" | "schedule" }) {
 
 /** A Core destination — a general Surface, the Bases, Screens, Settings: no chrome but the Rail's. */
 function CorePage({ children }: { children: ReactNode }) {
-  return <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>;
+  return (
+    <main className="min-w-0 flex-1 overflow-y-auto">
+      <Suspense fallback={null}>{children}</Suspense>
+    </main>
+  );
 }
 
 /** The routes of a hand-written Module layout (the Vault), below its path. */
@@ -140,6 +148,8 @@ function Places() {
       <Route path="/screens" element={<CorePage><ScreensIndex /></CorePage>} />
       <Route path="/screen/:id" element={<CorePage><UserScreenPage /></CorePage>} />
       <Route path="/settings" element={<CorePage><SettingsPage /></CorePage>} />
+      <Route path={HANDOFF_PATH} element={<CorePage><HandoffPage /></CorePage>} />
+      <Route path={HANDOFF_DONE_PATH} element={<CorePage><HandoffSaved /></CorePage>} />
       {/* Legacy Notes URLs (before the frame split, and before the Vault rename). */}
       <Route path="/app/notes" element={<Navigate to="/vault" replace />} />
       <Route path="/app/notes/:id" element={<LegacyNoteRedirect />} />

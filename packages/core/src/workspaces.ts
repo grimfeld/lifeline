@@ -190,7 +190,7 @@ export function useCurrentWorkspace(): WorkspaceRecord | undefined {
 
 /**
  * The current Workspace's Modules, in the user's order, dropping any Core no
- * longer defines or no registered App inhabits (Mail in the Demo, ADR 0077).
+ * longer defines or no registered App inhabits (a retired App's, like Mail, ADR 0080).
  */
 export function useWorkspaceModules(): string[] {
   const ws = useCurrentWorkspace();
