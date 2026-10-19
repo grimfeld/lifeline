@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Button, Sheet, SheetClose, SheetContent, SheetTitle, Tip } from "@lifeline/ui";
-import { MarkdownView } from "@lifeline/editor";
 import {
   backPeek,
   closePeek,
@@ -14,21 +13,20 @@ import {
   useDocument,
   useDocumentType,
   useIsMobile,
-  useLinkIndex,
   usePeekedId,
   usePeekStack,
   vaultDocPath,
   type Document,
   type DocumentTypeDef,
-  fieldsOfDocument,
 } from "@lifeline/core";
 import { ArrowLeft, ArrowUpRight, NotebookPen, X } from "lucide-react";
+import { PeekContent } from "./PeekContent";
 
 /**
  * The **Peek** (ADR 0057): one Document opened where the user is — over the
  * Vault, a general Surface, a Base, another Module — so that following a link
- * never throws them out of what they were doing. The body is the owning App's
- * (`DocumentTypeDef.peek`) or, failing one, Core's plain fields; the frame is
+ * never throws them out of what they were doing. What it shows is
+ * `PeekContent`'s (the owner's part and the user's own Fields, ADR 0085); the frame is
  * Core's, with the ways through: to the Document's Home Module, and to the
  * Vault where its body is written.
  *
@@ -80,7 +78,6 @@ function PeekBody({ doc, def }: { doc: Document; def: DocumentTypeDef | undefine
   const vault = vaultDocPath(doc.id);
   const writable = def?.body !== "none";
   const Icon = def?.icon;
-  const AppPeek = def?.peek;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -98,7 +95,7 @@ function PeekBody({ doc, def }: { doc: Document; def: DocumentTypeDef | undefine
         </div>
         <SheetTitle className="px-0 pt-0 text-base leading-snug">{displayTitle(doc, def)}</SheetTitle>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">{AppPeek ? <AppPeek doc={doc} /> : <GenericPeek doc={doc} def={def} />}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3"><PeekContent doc={doc} def={def} /></div>
       <div className="flex flex-wrap gap-2 border-t px-4 py-3">
         <Button size="sm" onClick={() => navigate(href)}>
           <ArrowUpRight /> {home ? `Open in ${home.title}` : "Open"}
@@ -124,34 +121,4 @@ function PeekBack() {
       </Button>
     </Tip>
   );
-}
-
-/** Core's Peek for a type whose App brings none: the plain fields, and the body read-only. */
-function GenericPeek({ doc, def }: { doc: Document; def: DocumentTypeDef | undefined }) {
-  const index = useLinkIndex();
-  const fields = fieldsOfDocument(doc, def).filter((f) => !f.hidden && doc[f.key] !== undefined && doc[f.key] !== null && doc[f.key] !== "");
-  const body = typeof doc.body === "string" ? doc.body : "";
-  return (
-    <div className="flex flex-col gap-3">
-      {fields.length > 0 && (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-          {fields.map((f) => (
-            <div key={f.key} className="contents">
-              <dt className="text-muted-foreground">{f.label}</dt>
-              <dd className="min-w-0 break-words">{formatValue(doc[f.key])}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-      {doc.tags && doc.tags.length > 0 && <div className="text-muted-foreground text-xs">{doc.tags.map((t) => `#${t}`).join(" ")}</div>}
-      {body && <MarkdownView body={body} index={index} compact docDate={doc.type === "daily" ? doc.title : null} origin={doc.id} />}
-      {fields.length === 0 && !body && <p className="text-muted-foreground text-sm">Nothing more to show here.</p>}
-    </div>
-  );
-}
-
-function formatValue(v: unknown): string {
-  if (Array.isArray(v)) return v.join(", ");
-  if (typeof v === "boolean") return v ? "Yes" : "No";
-  return String(v);
 }

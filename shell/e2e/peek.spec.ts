@@ -2,89 +2,96 @@ import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
 
 /**
- * The Peek's back stack (ADR 0085): following a link inside a Peek replaces
- * what it shows, with a way back, and `Ctrl+Enter` on a wikilink in an editor
- * peeks it. Driven from a Day in the Journal, where both start.
+ * A Peek edits (ADR 0085): a user-defined type's Document is edited whole in
+ * Core's Peek, and the user's own Fields on a built-in type are edited beneath
+ * the App's part of its Peek.
  */
-
-const DAY_START = "Thinking about [[";
 
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
 }
 
-/** Two Thoughts, A linking to B, and today's Day linking to A — written through the app's own Core. */
-async function seedDay(page: Page, stamp: string) {
-  const a = `Peek A ${stamp}`;
-  const b = `Peek B ${stamp}`;
-  await page.goto("/app/journal");
-  await workLocally(page);
-  await expect(page.locator(".cm-content").first()).toBeVisible();
-  await page.evaluate(
-    async ({ coreUrl, a, b, start }) => {
+/** Runs in the page against the app's own Core module. */
+async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
+  return page.evaluate(
+    async ({ coreUrl, src, arg }) => {
       const core = await import(/* @vite-ignore */ coreUrl);
-      const pad = (n: number) => String(n).padStart(2, "0");
-      const now = new Date();
-      const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-      await core.putDocument({ type: "thought", title: b, body: "The end of the trail." });
-      await core.putDocument({ type: "thought", title: a, body: `Leads on to [[${b}]].` });
-      const day = ((await core.documentsOf("daily")) as { id: string; title: string }[]).find((d) => d.title === today);
-      if (!day) throw new Error("today's Day was not made");
-      await core.patchDocument(day.id, { body: `${start}${a}]] today.\n` });
+      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
     },
-    { coreUrl: CORE_URL, a, b, start: DAY_START },
+    { coreUrl: CORE_URL, src: fn.toString(), arg },
   );
-  return { a, b };
 }
 
-/**
- * Puts the cursor inside the Day's link, a few characters into its name — by
- * keyboard, since a long link wraps on a phone and its box's centre can fall
- * outside it.
- */
-async function cursorInLink(page: Page, title: string) {
-  await expect(page.locator(".cm-content")).toContainText(title);
-  await page.locator(".cm-content .cm-line", { hasText: "Thinking about" }).first().click();
-  await page.keyboard.press("Control+Home");
-  for (let i = 0; i < DAY_START.length + 2; i++) await page.keyboard.press("ArrowRight");
+/** Open the Peek of a Document once the type registry has picked up `type`. */
+async function peek(page: Page, id: string, type: string) {
+  await expect.poll(() => inCore(page, async (core, t: string) => !!core.documentType(t), type)).toBe(true);
+  await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
+  return page.getByRole("dialog");
 }
 
-test("Ctrl+Enter on a link in a Day peeks it; a link inside the Peek replaces it, and back returns", async ({ page }) => {
-  const { a, b } = await seedDay(page, String(Date.now()));
+test("a user-defined type's Document is edited in its Peek, and an alias added there resolves", async ({ page }) => {
+  const stamp = Date.now();
+  const typeId = `peekperson${stamp}`;
+  const title = `Marie ${stamp}`;
+  const alias = `Madame ${stamp}`;
+  await page.goto("/");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, a: { typeId: string; title: string }) => {
+      await core.saveDocumentType({
+        typeId: a.typeId,
+        label: "Peek people",
+        icon: "user",
+        folder: "",
+        body: "optional",
+        linkable: true,
+        locatableField: "home",
+        module: "journal",
+        order: 0,
+        fields: [
+          { key: "aliases", label: "Aliases", kind: "list" },
+          { key: "home", label: "Home", kind: "geo" },
+          { key: "born", label: "Born", kind: "date" },
+        ],
+      });
+      return (await core.putDocument({ type: a.typeId, title: a.title, body: "" })).id as string;
+    },
+    { typeId, title },
+  );
 
-  await cursorInLink(page, a);
-  await page.keyboard.press("Control+Enter");
-  const peekA = page.getByRole("dialog", { name: a });
-  await expect(peekA).toBeVisible();
-  await expect(peekA.getByRole("button", { name: "Back" }), "nothing to go back to yet").toHaveCount(0);
+  const dialog = await peek(page, id, typeId);
+  await dialog.getByLabel("Aliases").fill(alias);
+  await dialog.getByLabel("Born").fill("1867-11-07");
+  await dialog.getByLabel("Tags").fill("scientist");
+  await dialog.getByLabel("Tags").press("Enter");
 
-  await peekA.getByRole("link", { name: b }).click();
-  const peekB = page.getByRole("dialog", { name: b });
-  await expect(peekB).toBeVisible();
-  await expect(page.getByRole("dialog"), "a Peek never opens over another Peek").toHaveCount(1);
-  await expect(page).toHaveURL(/\/app\/journal/);
-
-  await peekB.getByRole("button", { name: "Back" }).click();
-  await expect(page.getByRole("dialog", { name: a })).toBeVisible();
-  await expect(page.getByRole("dialog", { name: a }).getByRole("button", { name: "Back" })).toHaveCount(0);
-
-  // Closing clears the stack: the next Peek starts anew, with nothing behind it.
-  await page.getByRole("dialog", { name: a }).getByRole("button", { name: "Close" }).click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await cursorInLink(page, a);
-  await page.keyboard.press("Control+Enter");
-  await expect(page.getByRole("dialog", { name: a })).toBeVisible();
-  await expect(page.getByRole("dialog", { name: a }).getByRole("button", { name: "Back" })).toHaveCount(0);
+  await expect
+    .poll(() => inCore(page, async (core, docId: string) => { const d = await core.getDocument(docId); return { aliases: d.aliases, born: d.born, tags: d.tags }; }, id))
+    .toEqual({ aliases: [alias], born: "1867-11-07", tags: ["scientist"] });
+  await expect
+    .poll(() => inCore(page, async (core, name: string) => core.linkIndexFor(await core.allDocuments(), core.allDocumentTypes()).resolve(name), alias))
+    .toEqual({ kind: "doc", id, type: typeId });
 });
 
-test("Ctrl+Enter away from a link keeps the editor's own binding", async ({ page }) => {
-  await seedDay(page, String(Date.now()));
-  const line = page.locator(".cm-content .cm-line", { hasText: "Thinking about" }).first();
-  await expect(line).toBeVisible();
-  await line.click({ position: { x: 4, y: 4 } });
-  const lines = await page.locator(".cm-content .cm-line").count();
-  await page.keyboard.press("Control+Enter");
-  await expect(page.locator(".cm-content .cm-line")).toHaveCount(lines + 1);
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+test("the user's own Field on Book is edited beneath the Library's part of a Book's Peek", async ({ page }) => {
+  const stamp = Date.now();
+  await page.goto("/");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, title: string) => {
+      await core.saveDocumentType({ typeId: "book", label: "Books", icon: "book", folder: "", order: 0, fields: [{ key: "lentTo", label: "Lent to", kind: "text" }] });
+      return (await core.putDocument({ type: "book", title, body: "" })).id as string;
+    },
+    `A book ${stamp}`,
+  );
+  await expect.poll(() => inCore(page, async (core) => core.documentType("book").fields.some((f: { key: string }) => f.key === "lentTo"), null)).toBe(true);
+
+  const dialog = await peek(page, id, "book");
+  await dialog.getByLabel("Lent to").fill("Pierre");
+  await expect.poll(() => inCore(page, async (core, docId: string) => (await core.getDocument(docId)).lentTo, id)).toBe("Pierre");
+  // The Library's own Fields stay the Library's: Core draws no control for them.
+  await expect(dialog.getByLabel("Year")).toHaveCount(0);
 });
