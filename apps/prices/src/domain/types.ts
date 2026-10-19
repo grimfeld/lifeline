@@ -96,6 +96,9 @@ export interface Receipt extends Document {
  * `amount` is in the base unit of the matched Product's dimension (6 for six
  * litres, 0.42 for 420 g whatever unit the Product reads in, 12 for a dozen); `price` is what was paid, in cents, after any
  * discount; `promo` marks a point every "usual price" reading skips.
+ * `needsAmount` marks a Line whose Product changed dimension (ADR 0084): its
+ * amount is in the old one, so until it is retyped the Line still counts as
+ * spent but stays out of every per-unit reading (see countsPerUnit).
  */
 export interface Line extends Document {
   type: typeof LINE;
@@ -106,6 +109,7 @@ export interface Line extends Document {
   amount: number;
   price: number;
   promo: boolean;
+  needsAmount: boolean;
 }
 
 /** A Line joined with its Receipt's Shop, day and noticed mark — what every reading works on. */

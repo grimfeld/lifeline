@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { addAttachment, documentsOf, documentsWhere, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, type DateStr } from "@lifeline/core";
 import { LINE, PRODUCT, RECEIPT, SHOP, isDimension, isUnitOf, type Dimension, type LabelMemory, type Line, type Product, type Receipt, type Shop, type Unit } from "../domain/types";
-import { readMeasure } from "../domain/measure";
-import { receiptTitle, relabel, withLabel, withoutLabel, type LineMatch } from "../domain/derive";
+import { fromAmount, readMeasure } from "../domain/measure";
+import { linesToRetype, receiptTitle, relabel, withLabel, withoutLabel, type LineMatch } from "../domain/derive";
 
 /**
  * PocketBase returns absent fields as "" / undefined; re-establish shapes on
@@ -22,7 +22,7 @@ function normalizeReceipt(r: Receipt): Receipt {
   return { ...r, shopId: r.shopId ?? "", date: r.date || r.createdAt, branch: r.branch ?? "", total: Math.max(0, Math.round(Number(r.total) || 0)), noticed: !!r.noticed, tags: r.tags ?? [] };
 }
 function normalizeLine(l: Line): Line {
-  return { ...l, receiptId: l.receiptId ?? "", productId: l.productId ?? "", label: l.label ?? "", amount: Number(l.amount) > 0 ? Number(l.amount) : 1, price: Math.round(Number(l.price) || 0), promo: !!l.promo, tags: l.tags ?? [] };
+  return { ...l, receiptId: l.receiptId ?? "", productId: l.productId ?? "", label: l.label ?? "", amount: Number(l.amount) > 0 ? Number(l.amount) : 1, price: Math.round(Number(l.price) || 0), promo: !!l.promo, needsAmount: !!l.needsAmount, tags: l.tags ?? [] };
 }
 
 // ---- Reads ----
@@ -41,6 +41,14 @@ export async function allProducts(): Promise<Product[]> {
 
 export async function allShops(): Promise<Shop[]> {
   return (await documentsOf<Shop>(SHOP)).map(normalizeShop);
+}
+
+export async function allReceipts(): Promise<Receipt[]> {
+  return (await documentsOf<Receipt>(RECEIPT)).map(normalizeReceipt);
+}
+
+export async function allLines(): Promise<Line[]> {
+  return (await documentsOf<Line>(LINE)).map(normalizeLine);
 }
 
 export function useShops(): Shop[] {
@@ -121,16 +129,21 @@ export async function addProduct(input: ProductInput): Promise<string> {
 }
 
 /**
- * Rename, retag, or read in another unit of the same dimension (ADR 0084).
- * Amounts are kept in the dimension's base unit, so a new reading unit or
- * count name rewrites no Line. The dimension itself stays put here.
+ * Rename, retag, or change the Measure (ADR 0084). Amounts are kept in the
+ * dimension's base unit, so a new reading unit or count name rewrites no
+ * Line. A new dimension applies at once and sends every Line of the Product
+ * to the needs-amount inbox (see linesToRetype) — nothing is converted.
  */
 export async function updateProduct(product: Product, input: Partial<Omit<ProductInput, "title">> & { title: string }): Promise<void> {
   const title = input.title.trim();
   if (!title) throw new Error("Give the product a name");
-  if (input.dimension && input.dimension !== product.dimension) throw new Error("A product's dimension cannot change yet");
-  const measure = measureFields(product.dimension, input.unit ?? product.unit, input.countName ?? product.countName);
+  const dimension = input.dimension ?? product.dimension;
+  const moved = dimension !== product.dimension;
+  const measure = measureFields(dimension, input.unit ?? (moved ? undefined : product.unit), input.countName ?? (moved ? "" : product.countName));
   if ((await allProducts()).some((p) => p.id !== product.id && sameName(p.title, title))) throw new Error(`There is already a product called “${title}”`);
+  // Lines first: cut short, the inbox holds a few Lines too many — never an
+  // old-dimension amount read as a price in the new one.
+  if (moved) await Promise.all(linesToRetype(await documentsWhere<Line>(LINE, "productId", product.id), product, dimension).map((l) => patchDocument(l.id, { needsAmount: true })));
   await putDocument<Product>({ ...product, title, ...measure, tags: normalizeTags(input.tags ?? product.tags) });
 }
 
@@ -177,6 +190,8 @@ export interface LineInput {
   amount: number;
   price: number;
   promo: boolean;
+  /** The amount was typed afresh: clears a needs-amount mark. Absent keeps an existing Line's mark. */
+  retyped?: boolean;
 }
 
 export interface ReceiptInput {
@@ -238,8 +253,8 @@ export async function saveReceipt(input: ReceiptInput, shops: readonly Shop[], p
   const oldById = new Map((existing?.lines ?? []).map((l) => [l.id, l]));
   const matches: LineMatch[] = [];
   for (const l of input.lines) {
-    const row = { receiptId: receipt.id, productId: l.productId, label: l.label.trim(), amount: l.amount, price: Math.round(l.price), promo: !!l.promo, title: "" };
     const old = l.id ? oldById.get(l.id) : undefined;
+    const row = { receiptId: receipt.id, productId: l.productId, label: l.label.trim(), amount: l.amount, price: Math.round(l.price), promo: !!l.promo, needsAmount: !l.retyped && !!old?.needsAmount, title: "" };
     if (l.id) await patchDocument(l.id, row);
     else await putDocument<Line>({ type: LINE, ...row, folder: "", tags: [] } as unknown as Line);
     matches.push({ productId: row.productId, label: row.label, before: old && { productId: old.productId, label: old.label } });
@@ -266,6 +281,15 @@ export async function matchLine(line: Line, product: Product, receipt: Receipt):
 export async function unmatchLine(line: Line, product: Product | undefined, receipt: Receipt): Promise<void> {
   await patchDocument(line.id, { productId: "" });
   if (product) await forgetLabel(product, receipt.shopId, line.label);
+}
+
+/**
+ * Clear one Line from the needs-amount inbox: its amount typed in the
+ * Product's reading unit, stored in the base unit (ADR 0084).
+ */
+export async function setLineAmount(line: Line, typed: number, product: Product): Promise<void> {
+  if (!(typed > 0)) throw new Error(`"${line.label || "A line"}" needs an amount above zero`);
+  await patchDocument(line.id, { amount: fromAmount(typed, product), needsAmount: false });
 }
 
 export interface PriceInput {

@@ -36,6 +36,21 @@ async function openProductEdit(page: Page) {
   await expect(page.getByRole("dialog")).toBeVisible();
 }
 
+/**
+ * Prices with the needs-amount inbox (ADR 0084): every seeded Line marked as
+ * needing an amount — its Product changed dimension — so the loud banner
+ * shows, then the inbox opened over it.
+ */
+async function openNeedsAmount(page: Page) {
+  await workLocally(page);
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    for (const l of await core.documentsOf("price_line")) await core.patchDocument(l.id, { needsAmount: true });
+  }, CORE_URL);
+  await page.getByRole("button", { name: /need.? an amount/ }).click();
+  await expect(page.getByRole("dialog", { name: "Lines that need an amount" })).toBeVisible();
+}
+
 /** Journal → Types → the Type editor over the seeded People type. */
 async function openPeopleTypeEditor(page: Page) {
   await workLocally(page);
@@ -324,6 +339,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Pocket", path: "/app/pocket" },
   { name: "Prices", path: "/app/prices" },
   { name: "Price product", path: "/app/prices/p/:id", type: "price_product" },
+  { name: "Prices · needs amount", path: "/app/prices", afterOpen: openNeedsAmount },
   { name: "Price product · edit", path: "/app/prices/p/:id", type: "price_product", afterOpen: openProductEdit },
   { name: "Mood", path: "/app/mood" },
   { name: "Swear Jar", path: "/app/swearjar" },

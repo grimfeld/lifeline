@@ -20,6 +20,9 @@ interface EditLine {
   amount: string;
   price: string;
   promo: boolean;
+  /** The stored Line needs an amount (ADR 0084); typing one clears it on save. */
+  needsAmount?: boolean;
+  retyped?: boolean;
 }
 
 let nextKey = 1;
@@ -64,7 +67,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
         const p = products.find((x) => x.id === l.productId);
         return String(p ? amountIn(l.amount, p) : l.amount);
       };
-      setLines(existingLines.map((l) => fresh({ id: l.id, label: l.label, productId: l.productId, amount: shown(l), price: editAmount(l.price), promo: l.promo })));
+      setLines(existingLines.map((l) => fresh({ id: l.id, label: l.label, productId: l.productId, amount: shown(l), price: editAmount(l.price), promo: l.promo, needsAmount: l.needsAmount })));
     } else {
       setShopId(shops[0]?.id || "");
       setDate(todayStr());
@@ -94,7 +97,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
       if (l.cents === null || l.cents < 0) return void toast.error(`"${l.label || "A line"}" needs a price`);
       if (!(l.amt > 0)) return void toast.error(`"${l.label || "A line"}" needs an amount above zero`);
       const product = products.find((p) => p.id === l.productId);
-      input.push({ id: l.id, label: l.label.trim() || product?.title || "", productId: l.productId, amount: product ? fromAmount(l.amt, product) : l.amt, price: l.cents, promo: l.promo });
+      input.push({ id: l.id, label: l.label.trim() || product?.title || "", productId: l.productId, amount: product ? fromAmount(l.amt, product) : l.amt, price: l.cents, promo: l.promo, retyped: l.retyped });
     }
     setSaving(true);
     try {
@@ -157,7 +160,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
                   <div key={l.key} className={cn("grid grid-cols-2 items-center gap-1.5 rounded-md border p-1.5 md:grid-cols-[1fr_1fr_64px_80px_28px_28px] md:border-0 md:p-0", !l.productId && "bg-amber-500/5 md:bg-transparent")}>
                     <Input value={l.label} onChange={(e) => update(l.key, { label: e.target.value })} placeholder="As printed" className="h-8 text-sm" />
                     <ProductSelect value={l.productId} onChange={(id) => update(l.key, { productId: id })} products={products} allowNone onNew={() => setNewProductFor(l.key)} className={cn("h-8 text-sm", !l.productId && "border-amber-500/60")} />
-                    <Input value={l.amount} onChange={(e) => update(l.key, { amount: e.target.value })} inputMode="decimal" className="text-sm" title={product ? `Amount in ${amountUnit(product)}` : "Amount"} placeholder={product ? amountUnit(product) : undefined} aria-label={product ? `Amount in ${amountUnit(product)}` : "Amount"} />
+                    <Input value={l.amount} onChange={(e) => update(l.key, { amount: e.target.value, retyped: true })} inputMode="decimal" className={cn("text-sm", l.needsAmount && !l.retyped && "border-warning")} aria-invalid={l.needsAmount && !l.retyped ? true : undefined} title={product ? `Amount in ${amountUnit(product)}` : "Amount"} placeholder={product ? amountUnit(product) : undefined} aria-label={product ? `Amount in ${amountUnit(product)}` : "Amount"} />
                     <Input value={l.price} onChange={(e) => update(l.key, { price: e.target.value })} inputMode="decimal" placeholder="0,00" className="h-8 text-sm" />
                     <label className="flex items-center justify-center gap-1 text-xs md:justify-start">
                       <Checkbox checked={l.promo} onCheckedChange={(v) => update(l.key, { promo: v === true })} />

@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, toast } from "@lifeline/ui";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, toast } from "@lifeline/ui";
 import { useTagVocabulary } from "@lifeline/core";
 import { BASE_UNIT, DIMENSIONS, DIMENSION_LABEL, UNITS_OF, UNIT_LABEL, type Dimension, type Product, type Unit } from "../domain/types";
 import { perUnit } from "../domain/measure";
-import { addProduct, deleteProduct, mergeProduct, updateProduct, useProducts } from "../data/repo";
+import { linesToRetype } from "../domain/derive";
+import { addProduct, deleteProduct, mergeProduct, updateProduct, useLines, useProducts } from "../data/repo";
 
 /**
- * A Product (ADR 0082, 0084): a name and a Measure — a dimension, fixed once
- * made, and the unit it is read in, which may change at any time (amounts are
- * kept in the dimension's base unit, so no price moves). A count may wear a
- * name of its own. A Product with prices is merged into another of the same
- * dimension rather than deleted.
+ * A Product (ADR 0082, 0084): a name and a Measure — a dimension and the unit
+ * it is read in, both changeable at any time. A new unit or count name moves
+ * no price (amounts are kept in the dimension's base unit); a new dimension
+ * applies at once and sends the Product's Lines to the needs-amount inbox,
+ * after a confirmation that says how many. A count may wear a name of its
+ * own. A Product with prices is merged into another of the same dimension
+ * rather than deleted.
  */
 export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; product?: Product | null; defaultTitle?: string; onCreated?: (id: string) => void }) {
   const products = useProducts();
+  const lines = useLines();
   const vocabulary = useTagVocabulary().map((v) => v.tag);
   const [title, setTitle] = useState("");
   const [dimension, setDimension] = useState<Dimension>("count");
@@ -21,6 +25,7 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
   const [countName, setCountName] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [mergeInto, setMergeInto] = useState("");
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -30,11 +35,15 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
     setCountName(product?.countName ?? "");
     setTags(product?.tags ?? []);
     setMergeInto("");
+    setConfirming(false);
   }, [open, product, defaultTitle]);
 
   const mergeTargets = products.filter((p) => product && p.id !== product.id && p.dimension === product.dimension);
 
-  async function save() {
+  const retype = product && !mergeInto ? linesToRetype(lines, product, dimension).length : 0;
+
+  async function save(confirmed = false) {
+    if (retype > 0 && !confirmed) return setConfirming(true);
     try {
       if (product) {
         if (mergeInto) {
@@ -42,7 +51,8 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
           if (!into) return;
           await mergeProduct(product, into);
           toast.success(`${product.title} merged into ${into.title}`);
-        } else await updateProduct(product, { title, unit, countName, tags });
+        } else await updateProduct(product, { title, dimension, unit, countName, tags });
+        if (retype > 0) toast.success(`${title.trim()} is now ${DIMENSION_LABEL[dimension].toLowerCase()} — ${retype} line${retype === 1 ? "" : "s"} to retype`);
       } else onCreated?.(await addProduct({ title, dimension, unit, countName, tags }));
       onOpenChange(false);
     } catch (e) {
@@ -78,11 +88,13 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
               <Select
                 value={dimension}
                 onValueChange={(v) => {
-                  setDimension(v as Dimension);
-                  setUnit(BASE_UNIT[v as Dimension]);
-                  setCountName("");
+                  const d = v as Dimension;
+                  // Back to the Product's own dimension restores its own unit and name.
+                  const own = product && d === product.dimension;
+                  setDimension(d);
+                  setUnit(own ? product.unit : BASE_UNIT[d]);
+                  setCountName(own ? product.countName : "");
                 }}
-                disabled={!!product}
               >
                 <SelectTrigger aria-label="Dimension" className="w-full">
                   <SelectValue />
@@ -120,8 +132,13 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
             )}
           </div>
           <p className="text-muted-foreground text-xs">
-            Prices compare €{perUnit({ dimension, unit, countName: countName.trim() })}. {product ? "The dimension stays; the unit or name can change any time — no price moves." : "Pack size goes on each line, not here. A count can be named: roll, wash, sheet."}
+            Prices compare €{perUnit({ dimension, unit, countName: countName.trim() })}. {product ? "A new unit or name moves no price." : "Pack size goes on each line, not here. A count can be named: roll, wash, sheet."}
           </p>
+          {retype > 0 && (
+            <p className="text-warning text-xs" role="status">
+              A new dimension: {retype} line{retype === 1 ? "" : "s"} will need an amount, retyped from the inbox. Until then they count as spent but not per unit.
+            </p>
+          )}
           <div className="grid gap-1.5">
             <Label>Tags</Label>
             <TagInput value={tags} onChange={setTags} suggestions={vocabulary} />
@@ -156,6 +173,24 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
             {product ? (mergeInto ? "Merge" : "Save") : "Add"}
           </Button>
         </DialogFooter>
+        <AlertDialog open={confirming} onOpenChange={setConfirming}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Change {product?.title} to {DIMENSION_LABEL[dimension].toLowerCase()}?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {retype} line{retype === 1 ? "" : "s"} will need an amount. The change applies now; each line still counts as spent and stays out of every unit price until you type its amount in the inbox.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction variant="default" onClick={() => void save(true)}>
+                Change measure
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
