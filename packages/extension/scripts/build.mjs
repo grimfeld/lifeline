@@ -17,7 +17,6 @@ const js = join(dist, ".js");
 const ENTRIES = {
   "background.js": "src/background.ts",
   "reader.js": "src/inject.ts",
-  "options.js": "src/options.ts",
 };
 
 rmSync(dist, { recursive: true, force: true });
@@ -41,14 +40,13 @@ for (const browser of ["chrome", "firefox"]) {
   const out = join(dist, browser);
   mkdirSync(out, { recursive: true });
   for (const file of Object.keys(ENTRIES)) cpSync(join(js, file), join(out, file));
-  // options.html and the icons (made from shell/public/icon-192.png).
+  // The icons (made from shell/public/icon-192.png).
   cpSync(join(root, "static"), out, { recursive: true });
   const manifest = manifestModule.manifest(browser);
   writeFileSync(join(out, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
   // Every file the manifest names must be in the folder, or the browser refuses to load it.
   const named = [
     ...(manifest.background.service_worker ? [manifest.background.service_worker] : manifest.background.scripts),
-    manifest.options_ui.page,
     ...Object.values(manifest.icons),
     ...Object.values(manifest.action.default_icon),
   ];

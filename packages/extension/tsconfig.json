@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
-  // Runs in the browser only: the page (reader), the background worker and the options page.
+  // Runs in the browser only: the page (reader), and the background worker.
   "compilerOptions": { "types": ["chrome"] },
   "include": ["src", "vite.config.ts"]
 }
