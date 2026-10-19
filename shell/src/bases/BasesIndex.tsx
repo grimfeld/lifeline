@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, PhoneDock, toast } from "@lifeline/ui";
+import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, PhoneDock, Tip, toast } from "@lifeline/ui";
 import {
   appById,
   basePath,
@@ -92,15 +92,16 @@ export function BasesIndex() {
           <Pencil className="size-3.5" />
         </Button>
         {rec && (
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            onClick={() => void askRemove(rec, !!t.builtIn)}
-            title={t.builtIn ? "Reset to default" : "Delete type"}
-            aria-label={t.builtIn ? `Reset ${t.label} to default` : `Delete the type ${t.label}`}
-          >
-            {t.builtIn ? <RotateCcw className="size-3.5" /> : <Trash2 className="size-3.5" />}
-          </Button>
+          <Tip label={t.builtIn ? "Reset to default" : "Delete type"}>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => void askRemove(rec, !!t.builtIn)}
+              aria-label={t.builtIn ? `Reset ${t.label} to default` : `Delete the type ${t.label}`}
+            >
+              {t.builtIn ? <RotateCcw className="size-3.5" /> : <Trash2 className="size-3.5" />}
+            </Button>
+          </Tip>
         )}
       </li>
     );
