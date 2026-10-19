@@ -159,7 +159,7 @@ export const calendarApp: AppManifest = {
   useCommands: useTemplateCommands,
   timed: calendarTimed,
   daylog: calendarDaylog,
-  // Intake (ADR 0050): something handed over from another App — a mail — becomes an Event; the day and time are asked here.
+  // Intake (ADR 0050): something handed over from another App — a selected booking — becomes an Event; the day and time are asked here.
   intakes: [{ id: "event", title: "Event", icon: CalendarClock, dialog: EventDialog }],
 };
 

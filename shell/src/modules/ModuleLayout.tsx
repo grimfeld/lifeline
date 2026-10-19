@@ -42,7 +42,7 @@ function ModuleChrome({ moduleId, bare, children }: { moduleId: string; bare: bo
   if (shell) return <shell.Layout bare={bare}>{children}</shell.Layout>;
   const layout = layoutOf(moduleId);
   if (layout) return <FrameModuleLayout moduleId={moduleId} frame={layout} bare={bare}>{children}</FrameModuleLayout>;
-  // A Module of one screen (Tasks, Mail) wears no chrome of its own: a sidebar
+  // A Module of one screen (Tasks) wears no chrome of its own: a sidebar
   // holding one link is chrome for nothing, so the App's screen takes the
   // whole width, and its Bases stay one tap away on the Rail.
   if (isSingleScreen(moduleId)) return <main className={cn("min-w-0 flex-1", bare ? "overflow-hidden" : "overflow-y-auto")}>{children}</main>;

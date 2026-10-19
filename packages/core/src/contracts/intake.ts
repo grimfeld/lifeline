@@ -1,33 +1,22 @@
 import type React from "react";
 import { useSyncExternalStore } from "react";
+import type { Handoff } from "@lifeline/handoff";
+import type { AppManifest } from "../manifest";
 import { registeredApps } from "../registry";
 
-/**
- * What one App hands to another's Intake (ADR 0050, CONTEXT.md "Handoff"):
- * a title, a text in markdown, where it came from, who wrote it, when — and
- * nothing the sender would have to know about the receiver.
- */
-export interface Handoff {
-  title: string;
-  /** Markdown. May be empty (a bare title). */
-  text: string;
-  /** Origin URL, when there is one. */
-  url?: string;
-  author?: string;
-  /** ISO instant or YYYY-MM-DD: when the material was written / sent. */
-  date?: string;
-  /**
-   * The Document it was taken from, when there is one (ADR 0073) — a Note, a
-   * Quote, a Thought a passage was selected in. A receiver may keep it as a
-   * link; what it says is read through the link, never copied.
-   */
-  originId?: string;
-}
+// The Handoff itself lives in the dependency-free codec package, which the
+// Lifeline extension shares (ADR 0080); Core re-exports it as its own.
+export type { Handoff };
 
 export interface IntakeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   handoff: Handoff;
+  /**
+   * Called once the dialog has saved, with the Document it made, just before it
+   * closes — the Handoff page (ADR 0080) tells a save from a cancel by it.
+   */
+  onSaved?: (id: string) => void;
 }
 
 /**
@@ -46,7 +35,12 @@ export interface IntakeDef {
 
 /** Read side: every App's Intakes, in registry order, each stamped with its App. */
 export function allIntakes(): (IntakeDef & { appId: string; key: string })[] {
-  return registeredApps().flatMap((a) => (a.intakes ?? []).map((i) => ({ ...i, appId: a.id, key: `${a.id}/${i.id}` })));
+  return intakesOf(registeredApps());
+}
+
+/** The Intakes of these Apps, in their order, each stamped with its App — the build reads the registry through it too. */
+export function intakesOf(apps: readonly AppManifest[]): (IntakeDef & { appId: string; key: string })[] {
+  return apps.flatMap((a) => (a.intakes ?? []).map((i) => ({ ...i, appId: a.id, key: `${a.id}/${i.id}` })));
 }
 
 /** One Intake by its `${appId}/${id}` key. */
@@ -61,7 +55,7 @@ const listeners = new Set<() => void>();
 
 /**
  * The key of the Intake last chosen from this sending App on this device, or
- * "" when none. Remembered per sender — Mail's "Clipping" never becomes
+ * "" when none. Remembered per sender — a selection's "Quote" never becomes
  * Pantry's default — and a convenience only: the sender still names no
  * receiver, the user did.
  */

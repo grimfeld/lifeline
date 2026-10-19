@@ -1,8 +1,9 @@
 import { createRoot, type Root } from "react-dom/client";
-import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
-import { RangeSetBuilder, StateEffect, StateField, type EditorState } from "@codemirror/state";
+import { Decoration, EditorView, MatchDecorator, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
+import { RangeSetBuilder, StateEffect, StateField, type EditorState, type Transaction } from "@codemirror/state";
+import { syntaxTree } from "@codemirror/language";
 import { autocompletion, type CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
-import { extractBlocks, extractLinks, extractTags, isImageEmbed, parseBlockOptions, normalizeTag, resolveAttachment, type Attachment, type LinkIndex, type LinkRef } from "@lifeline/core";
+import { extractBlocks, extractLinks, isImageEmbed, parseBlockOptions, normalizeTag, resolveAttachment, todayStr, type Attachment, type LinkIndex, type LinkRef } from "@lifeline/core";
 import { DaylogBlock } from "./DaylogBlock";
 import { AttachmentImage } from "./AttachmentImage";
 
@@ -43,52 +44,75 @@ export const attachmentsField = StateField.define<Attachment[]>({
 const linkMark = (cls: string) => Decoration.mark({ class: cls });
 const tagMark = Decoration.mark({ class: "cm-tag" });
 
-/** Wikilinks and tags decorated according to their resolution. */
+/** A wikilink (Core's LINK_RE) or a prose `#tag` (Core's TAG_RE), in one pass so the two never overlap. */
+const LINK_OR_TAG = new RegExp(String.raw`(!?)\[\[([^\]\n|#]+)(?:#([^\]\n|]+))?(?:\|([^\]\n]+))?\]\]|(^|[\s(])#([\p{L}\p{N}_/-]*[\p{L}_/-][\p{L}\p{N}_/-]*)`, "gu");
+
+const CODE_NODES = new Set(["FencedCode", "CodeBlock", "InlineCode"]);
+
+/**
+ * Whether `pos` is prose: not in code (where Core finds no links or tags
+ * either) and, for a tag, not on an ATX heading line. Read off the syntax
+ * tree, which the editor keeps incrementally, instead of re-splitting the
+ * whole note into prose segments.
+ */
+export function proseAt(state: EditorState, pos: number, tag = false): boolean {
+  for (let n: ReturnType<ReturnType<typeof syntaxTree>["resolveInner"]> | null = syntaxTree(state).resolveInner(pos, 1); n; n = n.parent) {
+    if (CODE_NODES.has(n.name)) return false;
+    if (tag && n.name.startsWith("ATXHeading")) return false;
+  }
+  return true;
+}
+
+const linkTagMatcher = new MatchDecorator({
+  regexp: LINK_OR_TAG,
+  decorate(add, from, to, m, view) {
+    if (m[6] !== undefined) {
+      const start = from + m[5].length;
+      if (normalizeTag(m[6]) && proseAt(view.state, start, true)) add(start, to, tagMark);
+      return;
+    }
+    if (!proseAt(view.state, from)) return;
+    const link = { embed: m[1] === "!", name: m[2].trim() };
+    const index = view.state.field(indexField, false);
+    const attachments = view.state.field(attachmentsField, false) ?? [];
+    // An image embed resolves against Attachments (ADR 0037), never the Document index.
+    const kind = isImageEmbed(link) ? (resolveAttachment(attachments, link.name) ? "doc" : "unresolved") : (index?.resolve(link.name).kind ?? "unresolved");
+    const cls = kind === "doc" ? "cm-wikilink" : kind === "locked" ? "cm-wikilink cm-wikilink-locked" : "cm-wikilink cm-wikilink-unresolved";
+    add(from, to, linkMark(cls));
+  },
+});
+
+/** Whether a transaction typed or removed a code fence or backtick — code may now start or end lines away from the edit. */
+function touchesCode(tr: Transaction): boolean {
+  let hit = false;
+  tr.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
+    if (hit) return;
+    hit = /[`~]/.test(inserted.toString()) || /[`~]/.test(tr.startState.sliceDoc(fromA, toA));
+  });
+  return hit;
+}
+
+/**
+ * Wikilinks and tags decorated according to their resolution — over the
+ * viewport only, rescanning just the changed lines on a keystroke (it used to
+ * rescan the whole note on every key and every scroll).
+ */
 export const wikilinkPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
     constructor(view: EditorView) {
-      this.decorations = build(view);
+      this.decorations = linkTagMatcher.createDeco(view);
     }
     update(u: ViewUpdate) {
-      if (u.docChanged || u.viewportChanged || u.transactions.some((t) => t.effects.some((e) => e.is(setIndex) || e.is(setAttachments)))) {
-        this.decorations = build(u.view);
-      }
+      const resolution = u.transactions.some((t) => t.effects.some((e) => e.is(setIndex) || e.is(setAttachments)));
+      // The parser caught up (no edit, a new tree), or code opened/closed: what is prose may have changed off the edited lines.
+      const reparsed = !u.docChanged && syntaxTree(u.state) !== syntaxTree(u.startState);
+      if (resolution || reparsed || u.transactions.some(touchesCode)) this.decorations = linkTagMatcher.createDeco(u.view);
+      else this.decorations = linkTagMatcher.updateDeco(u, this.decorations);
     }
   },
   { decorations: (v) => v.decorations },
 );
-
-function build(view: EditorView): DecorationSet {
-  const text = view.state.doc.toString();
-  const index = view.state.field(indexField, false);
-  const attachments = view.state.field(attachmentsField, false) ?? [];
-  const b = new RangeSetBuilder<Decoration>();
-  const marks: { from: number; to: number; deco: Decoration }[] = [];
-  for (const l of extractLinks(text)) {
-    // An image embed resolves against Attachments (ADR 0037), never the Document index.
-    const kind = isImageEmbed(l) ? (resolveAttachment(attachments, l.name) ? "doc" : "unresolved") : (index?.resolve(l.name).kind ?? "unresolved");
-    const cls = kind === "doc" ? "cm-wikilink" : kind === "locked" ? "cm-wikilink cm-wikilink-locked" : "cm-wikilink cm-wikilink-unresolved";
-    marks.push({ from: l.from, to: l.to, deco: linkMark(cls) });
-  }
-  // tags: re-scan lines for positions (extractTags gives names only)
-  const tagRe = /(^|[\s(])#([\p{L}\p{N}_/-]*[\p{L}_/-][\p{L}\p{N}_/-]*)/gu;
-  const known = new Set(extractTags(text));
-  let m: RegExpExecArray | null;
-  while ((m = tagRe.exec(text))) {
-    if (!known.has(normalizeTag(m[2]) ?? "")) continue;
-    const from = m.index + m[1].length;
-    marks.push({ from, to: from + 1 + m[2].length, deco: tagMark });
-  }
-  marks.sort((a, c) => a.from - c.from);
-  let last = -1;
-  for (const mk of marks) {
-    if (mk.from < last) continue;
-    b.add(mk.from, mk.to, mk.deco);
-    last = mk.to;
-  }
-  return b.finish();
-}
 
 /** Cmd/Ctrl-click (or click while not focused-editing) opens a wikilink. */
 export const wikilinkClick = EditorView.domEventHandlers({
@@ -180,31 +204,51 @@ export const focusedField = StateField.define<boolean>({
 });
 export const focusTracking = EditorView.focusChangeEffect.of((_state, focusing) => setFocused.of(focusing));
 
-/** Block decorations must come from a StateField (not a view plugin). */
-export const daylogField = StateField.define<DecorationSet>({
+/** The daylog blocks' widgets, where the blocks are, and which of them show their source. */
+interface DaylogBlocks {
+  deco: DecorationSet;
+  blocks: { from: number; to: number }[];
+  open: string;
+}
+
+/** The daylog blocks showing their source: the ones the cursor is in while the editor has focus. */
+function openBlocks(state: EditorState, blocks: { from: number; to: number }[]): string {
+  if (!(state.field(focusedField, false) ?? false)) return "";
+  const sel = state.selection.main;
+  return blocks
+    .filter((blk) => sel.from <= blk.to && sel.to >= blk.from)
+    .map((blk) => blk.from)
+    .join();
+}
+
+/**
+ * Block decorations must come from a StateField (not a view plugin). A cursor
+ * move rebuilds them only when it enters or leaves a block — not on every move.
+ */
+export const daylogField = StateField.define<DaylogBlocks>({
   create: (state) => buildBlocks(state),
-  update(deco, tr) {
-    if (tr.docChanged || tr.selection || tr.effects.some((e) => e.is(setContext) || e.is(setFocused))) return buildBlocks(tr.state);
-    return deco;
+  update(value, tr) {
+    if (tr.docChanged || tr.effects.some((e) => e.is(setContext))) return buildBlocks(tr.state);
+    if ((tr.selection || tr.effects.some((e) => e.is(setFocused))) && openBlocks(tr.state, value.blocks) !== value.open) return buildBlocks(tr.state);
+    return value;
   },
-  provide: (f) => EditorView.decorations.from(f),
+  provide: (f) => EditorView.decorations.from(f, (v) => v.deco),
 });
 
-function buildBlocks(state: EditorState): DecorationSet {
+function buildBlocks(state: EditorState): DaylogBlocks {
   const ctx = state.field(contextField, false);
-  const text = state.doc.toString();
   const b = new RangeSetBuilder<Decoration>();
-  const sel = state.selection.main;
-  const focused = state.field(focusedField, false) ?? false;
-  for (const blk of extractBlocks(text)) {
-    if (blk.lang !== "daylog") continue;
-    if (focused && sel.from <= blk.to && sel.to >= blk.from) continue; // cursor inside while editing: show source
+  const blocks = extractBlocks(state.doc.toString()).filter((blk) => blk.lang === "daylog");
+  const open = openBlocks(state, blocks);
+  const shown = new Set(open ? open.split(",").map(Number) : []);
+  for (const blk of blocks) {
+    if (shown.has(blk.from)) continue; // cursor inside while editing: show source
     const opts = parseBlockOptions(blk.body);
-    const date = opts.date || ctx?.docDate || new Date().toISOString().slice(0, 10);
+    const date = opts.date || ctx?.docDate || todayStr(); // the local day, not UTC's
     const apps = opts.apps ? opts.apps.split(/[\s,]+/).filter(Boolean) : undefined;
     b.add(blk.from, blk.to, Decoration.replace({ widget: new DaylogWidget(date, apps), block: true }));
   }
-  return b.finish();
+  return { deco: b.finish(), blocks, open };
 }
 
 /** An embedded image shown under its `![[name.png]]` line (ADR 0037); the text stays editable above it. */
@@ -237,11 +281,29 @@ class ImageWidget extends WidgetType {
 export const imageEmbedField = StateField.define<DecorationSet>({
   create: (state) => buildImages(state),
   update(deco, tr) {
-    if (tr.docChanged) return buildImages(tr.state);
-    return deco;
+    if (!tr.docChanged) return deco;
+    return affectsEmbeds(tr) ? buildImages(tr.state) : deco.map(tr.changes);
   },
   provide: (f) => EditorView.decorations.from(f),
 });
+
+/**
+ * Whether an edit can add, remove, rename or move an image embed's widget —
+ * otherwise the widgets just shift with the text, and the note is not
+ * rescanned for each keystroke.
+ */
+export function affectsEmbeds(tr: Transaction): boolean {
+  let hit = false;
+  tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+    if (hit) return;
+    // Brackets, `!`, fences and line breaks make or break an embed or its line.
+    const special = /[[\]!`~\n]/;
+    if (special.test(inserted.toString()) || special.test(tr.startState.sliceDoc(fromA, toA))) hit = true;
+    // Typing inside an embed's line (its name, say).
+    else if (/!\[\[/.test(tr.state.sliceDoc(tr.state.doc.lineAt(fromB).from, tr.state.doc.lineAt(toB).to))) hit = true;
+  });
+  return hit;
+}
 
 function buildImages(state: EditorState): DecorationSet {
   const text = state.doc.toString();
