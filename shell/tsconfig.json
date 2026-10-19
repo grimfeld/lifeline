@@ -2,6 +2,8 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "types": ["vite/client", "node"],
+    // vite.config.ts names its imports with their extension, as Vite's native config loader needs.
+    "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "paths": { "@/*": ["src/*"] }
   },

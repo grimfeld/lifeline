@@ -20,17 +20,11 @@ import { BROWSER_ONLY } from "../../mcp/scripts/browser-only.mjs";
 
 const shell = resolve(import.meta.dirname, "..");
 const ENTRY = "lifeline-intake-list";
-const INERT = "lifeline-inert";
 
-// The stand-in for the view-only libraries: an ES module, where the MCP build's (inert.cjs) is CommonJS for esbuild.
-// Any property, call or `new` on it returns it again; every named import is one of its properties.
-const INERT_MODULE = `const inert = new Proxy(function () {}, {
-  get: (_t, k) => (k === "__esModule" ? true : k === Symbol.toPrimitive ? () => "" : k === "then" ? undefined : inert),
-  apply: () => inert,
-  construct: () => inert,
-});
-export default inert;
-`;
+// The stand-in for the view-only libraries: the MCP build's own (inert.cjs). Being CommonJS,
+// every named import is a property read at run time, which returns it again — Rolldown
+// (Vite 8) has no synthetic named exports for an ES module stand-in to hand them out.
+const INERT = resolve(import.meta.dirname, "../../mcp/scripts/inert.cjs");
 
 const ENTRY_MODULE = `import { intakesOf } from "@lifeline/core";
 import { APPS } from ${JSON.stringify(join(shell, "src/apps.ts").replace(/\\/g, "/"))};
@@ -50,12 +44,12 @@ export async function intakeListJson(): Promise<string> {
         {
           name: "lifeline-intake-list",
           enforce: "pre",
-          resolveId: (id) => (id === ENTRY ? "\0" + ENTRY : BROWSER_ONLY.test(id) ? "\0" + INERT : undefined),
-          load: (id) => (id === "\0" + ENTRY ? ENTRY_MODULE : id === "\0" + INERT ? { code: INERT_MODULE, syntheticNamedExports: true } : undefined),
+          resolveId: (id) => (id === ENTRY ? "\0" + ENTRY : BROWSER_ONLY.test(id) ? INERT : undefined),
+          load: (id) => (id === "\0" + ENTRY ? ENTRY_MODULE : undefined),
         },
       ],
       ssr: { noExternal: true, target: "node" },
-      build: { ssr: true, outDir: out, emptyOutDir: true, minify: false, rollupOptions: { input: ENTRY, output: { format: "esm", entryFileNames: "intakes.mjs" } } },
+      build: { ssr: true, outDir: out, emptyOutDir: true, minify: false, rolldownOptions: { input: ENTRY, output: { format: "esm", entryFileNames: "intakes.mjs" } } },
     });
     const intakes = (await import(pathToFileURL(join(out, "intakes.mjs")).href)).default as IntakeEntry[];
     return JSON.stringify({ intakes }, null, 2) + "\n";
