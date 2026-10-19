@@ -3,7 +3,7 @@ import type { Allowance, Bucket, Spend } from "./types";
 import { bucketOf, nextFrom, spanOf } from "./period";
 
 /**
- * Derivations (ADR 0037): what is left, the buckets, what renewal would
+ * Derivations (ADR 0081): what is left, the buckets, what renewal would
  * make. Nothing here is stored — every number is read off the Allowances
  * and their Spends on every render.
  */

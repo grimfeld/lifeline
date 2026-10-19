@@ -10,7 +10,7 @@ import { OffenceButton } from "../components/OffenceButton";
 import { FineDialog } from "../components/FineDialog";
 
 /**
- * The jar (ADR 0054): this month's total, and every Offence one tap away —
+ * The jar (ADR 0083): this month's total, and every Offence one tap away —
  * the phone-home glance and the fastest way to own up. Hold a button for
  * the details form.
  */

@@ -11,7 +11,7 @@ import { allowanceTitle, periodLabel } from "./domain/period";
 import { ALLOWANCE, APP_ID, PERIOD_KINDS, PERIOD_LABEL, POCKET_HREF, SPEND, type Allowance, type Spend } from "./domain/types";
 
 /**
- * The `pocket_allowance` Document type (ADR 0037): a named sum for one
+ * The `pocket_allowance` Document type (ADR 0081): a named sum for one
  * period. Bodiless and Linkable — a daily note can point at
  * "Eating out · September 2026". The period fields are the App's (guarded):
  * `from` is snapped to the period's first day on write and `to` exists for a
@@ -41,7 +41,7 @@ const allowanceType: DocumentTypeDef = {
   builtIn: true,
 };
 
-/** The `pocket_spend` internal type (ADR 0037): one hand-typed amount taken from an Allowance on a day. */
+/** The `pocket_spend` internal type (ADR 0081): one hand-typed amount taken from an Allowance on a day. */
 const spendType: DocumentTypeDef = {
   id: SPEND,
   label: "Spends",
@@ -65,7 +65,7 @@ const spendType: DocumentTypeDef = {
   builtIn: true,
 };
 
-/** Pocket App (ADR 0037): the month in hand — Allowances and Spends, beliefs kept apart from the Ledger's facts. */
+/** Pocket App (ADR 0081): the month in hand — Allowances and Spends, beliefs kept apart from the Ledger's facts. */
 export const pocketApp: AppManifest = {
   id: APP_ID,
   module: "money",

@@ -2,7 +2,7 @@ import { addDays, daysInMonth, fromParts, parts, startOfWeek, type DateStr } fro
 import type { Allowance, Bucket, PeriodKind } from "./types";
 
 /**
- * Period math (ADR 0037). A period is a kind plus its first day; the last
+ * Period math (ADR 0081). A period is a kind plus its first day; the last
  * day derives for week / month / year and is stored only for a custom span.
  * Everything here is pure — the screen, the Card and the repo all read the
  * same rules.
