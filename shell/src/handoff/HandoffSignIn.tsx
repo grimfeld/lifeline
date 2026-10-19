@@ -9,7 +9,7 @@ import { SignInFields, useSignIn } from "../components/AccountDialogs";
  * syncs it, as it would anywhere else in Lifeline.
  */
 export function HandoffSignIn({ onDone }: { onDone: () => void }) {
-  const form = useSignIn(onDone);
+  const form = useSignIn({ onSignedIn: onDone });
   return (
     <section className="grid max-w-sm gap-3" aria-labelledby="handoff-sign-in">
       <div className="grid gap-1">

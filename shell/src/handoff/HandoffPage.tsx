@@ -25,13 +25,13 @@ const UNREADABLE: Record<HandoffDecodeError, string> = {
  * parameters (the manifest's GET share target); everything else a fragment, or
  * the one this tab already holds.
  */
-function arrival(search: string, hash: string): { fragment: string; shared: boolean } {
+function arrivingFragment(search: string, hash: string): { fragment: string; shared: boolean } {
   const q = new URLSearchParams(search);
   if (hash.replace(/^#/, "") || !["title", "text", "url"].some((k) => q.has(k))) return { fragment: arrivingHandoff(hash), shared: false };
   return { fragment: encodeHandoff(handoffFromShare({ title: q.get("title"), text: q.get("text"), url: q.get("url") })), shared: true };
 }
 
-function Frame({ children }: { children: ReactNode }) {
+function HandoffBody({ children }: { children: ReactNode }) {
   return <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 md:p-6">{children}</div>;
 }
 
@@ -58,7 +58,7 @@ export function HandoffPage() {
   const location = useLocation();
   const navigate = useNavigate();
   // Read once: the address is the Handoff (or the one this tab already holds), and moving on drops it.
-  const [{ fragment, shared }] = useState(() => arrival(location.search, location.hash));
+  const [{ fragment, shared }] = useState(() => arrivingFragment(location.search, location.hash));
   const [decoded] = useState(() => decodeHandoff(fragment));
   const [made, setMade] = useState<string>();
   // Signed out, sign-in (or working locally) comes before the Intake step.
@@ -67,11 +67,11 @@ export function HandoffPage() {
   const [intakeKey, setIntakeKey] = useState(() => named?.key ?? (intakeByKey(lastIntakeKey(SENDER)) ? lastIntakeKey(SENDER) : (allIntakes()[0]?.key ?? "")));
   const intake = intakeByKey(intakeKey);
   // Undefined until the first read: whether to ask for a Workspace waits on it.
-  const live = useWorkspaces();
-  const [first, setFirst] = useState<WorkspaceRecord[]>();
+  const liveWorkspaces = useWorkspaces();
+  const [readWorkspaces, setReadWorkspaces] = useState<WorkspaceRecord[]>();
   // Read again once signed in: a sign-in can bring the Account's Workspaces.
-  useEffect(() => void allWorkspaces().then(setFirst), [signInDone]);
-  const workspaces = live.length > 0 ? live : first;
+  useEffect(() => void allWorkspaces().then(setReadWorkspaces), [signInDone]);
+  const workspaces = liveWorkspaces.length > 0 ? liveWorkspaces : readWorkspaces;
   const [workspaceId, setWorkspaceId] = useState<string>();
   const wsValue = workspaceId ?? (workspaces?.find((w) => w.id === currentWorkspaceId()) ?? workspaces?.[0])?.id ?? "";
   const [stage, setStage] = useState<"pending" | "choose" | "open" | "cancelled" | "saved">("pending");
@@ -103,21 +103,21 @@ export function HandoffPage() {
     if (stage !== "saved" || shared) return;
     const t = setTimeout(() => navigate(HANDOFF_DONE_PATH, { replace: true }), SAVED_MS);
     return () => clearTimeout(t);
-  }, [stage, navigate]);
+  }, [stage, shared, navigate]);
 
   if (!decoded.ok) {
     return (
-      <Frame>
+      <HandoffBody>
         <h1 className="text-xl font-semibold tracking-tight">This Handoff can't be read</h1>
         <p className="text-muted-foreground text-sm">{UNREADABLE[decoded.error]}</p>
-      </Frame>
+      </HandoffBody>
     );
   }
   const { handoff } = decoded;
   if (stage === "saved") return <HandoffSaved made={shared ? made : undefined} what={intake?.title} />;
 
   return (
-    <Frame>
+    <HandoffBody>
       <div className="grid gap-1">
         <h1 className="text-xl font-semibold tracking-tight">{handoff.title || "Untitled"}</h1>
         {handoff.url && <p className="text-muted-foreground text-sm">{handoff.url}</p>}
@@ -134,7 +134,7 @@ export function HandoffPage() {
             )}
             <div className="flex flex-wrap items-center gap-2 max-md:contents">
               {(!named || stage === "cancelled") && (
-                <PhoneDock order={1}>
+                <PhoneDock>
                   <Select value={intakeKey} onValueChange={setIntakeKey}>
                     <SelectTrigger aria-label="Intake" className="min-w-32">
                       <SelectValue placeholder="Make it a…" />
@@ -151,7 +151,7 @@ export function HandoffPage() {
                 </PhoneDock>
               )}
               {workspaces && workspaces.length > 1 && (
-                <PhoneDock order={1}>
+                <PhoneDock>
                   <Select value={wsValue} onValueChange={setWorkspaceId}>
                     <SelectTrigger aria-label="Workspace" className="min-w-0 max-w-full">
                       <SelectValue />
@@ -190,7 +190,7 @@ export function HandoffPage() {
           handoff={handoff}
         />
       )}
-    </Frame>
+    </HandoffBody>
   );
 }
 
@@ -208,9 +208,9 @@ export function HandoffSaved({ made, what }: { made?: string; what?: string }) {
   // Opened by the share sheet there may be nothing to go back to: then home.
   const back = () => (window.history.length > 1 ? navigate(-1) : navigate("/", { replace: true }));
   return (
-    <Frame>
+    <HandoffBody>
       <div className="flex items-center gap-2">
-        <CircleCheck className="text-success size-5 shrink-0" />
+        <CircleCheck className="text-success size-4 shrink-0" />
         <h1 className="text-xl font-semibold tracking-tight">Saved</h1>
       </div>
       {made ? (
@@ -227,6 +227,6 @@ export function HandoffSaved({ made, what }: { made?: string; what?: string }) {
       ) : (
         <p className="text-muted-foreground text-sm">You can close this window.</p>
       )}
-    </Frame>
+    </HandoffBody>
   );
 }

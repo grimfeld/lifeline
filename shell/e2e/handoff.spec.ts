@@ -41,6 +41,33 @@ test("a Handoff naming an Intake opens its dialog prefilled, and saves", async (
   expect(await tasksTitled(page, title)).toBe(1);
 });
 
+test("a Handoff of a Need already on the list is still Saved", async ({ page }) => {
+  const title = `Oat milk ${Date.now()}`;
+  for (let i = 0; i < 2; i++) {
+    await page.goto(`/handoff#${encodeHandoff({ title, text: "" }, "shopping/need")}`);
+    await workLocally(page);
+    const dialog = page.getByRole("dialog", { name: "Add to the shopping list" });
+    await expect(dialog.getByLabel("Need")).toHaveValue(title);
+    await dialog.getByRole("button", { name: "Add", exact: true }).click();
+    // The second time it is already listed: nothing new is made, but the Handoff was kept all the same.
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await expect(page).toHaveURL((u) => u.pathname === HANDOFF_DONE_PATH);
+  }
+});
+
+test("Facts kept with “Save & add another” from a Handoff are Saved when the dialog closes", async ({ page }) => {
+  await page.goto(`/handoff#${encodeHandoff({ title: "On treaties", text: "The Peace of Westphalia was signed in 1648." }, "languages/fact")}`);
+  await workLocally(page);
+  const dialog = page.getByRole("dialog", { name: "New fact" });
+  await dialog.getByLabel("Question").fill(`When was the Peace of Westphalia? ${Date.now()}`);
+  await dialog.getByLabel("Answer").fill("1648");
+  await dialog.getByRole("button", { name: "Save & add another" }).click();
+  await expect(dialog.getByLabel("Question")).toHaveValue("");
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL((u) => u.pathname === HANDOFF_DONE_PATH);
+});
+
 test("a cancelled dialog writes nothing and returns to the picker", async ({ page }) => {
   const title = `Not this one ${Date.now()}`;
   await page.goto(`/handoff#${encodeHandoff({ title, text: "" }, "tasks/task")}`);
@@ -246,6 +273,32 @@ test("signed out, the page signs in and then opens the named Intake prefilled", 
   const dialog = page.getByRole("dialog", { name: "New task" });
   await expect(dialog.getByLabel("Title")).toHaveValue(title);
   await expect(dialog.getByLabel("Notes")).toHaveValue("https://example.com/a");
+});
+
+test("signing in as another Account, once the switch is confirmed, carries on with the same Handoff", async ({ page }) => {
+  await fakeServer(page, "e2e@example.com");
+  await page.goto("/");
+  await workLocally(page);
+  // This device holds another Account's data, all of it synced.
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    await core.db()._outbox.clear();
+    await core.db()._meta.bulkPut([
+      { key: "account", value: "someone-else" },
+      { key: "accountEmail", value: "else@example.com" },
+    ]);
+  }, CORE_URL);
+
+  const title = `After the switch ${Date.now()}`;
+  await page.goto(`/handoff#${encodeHandoff({ title, text: "" }, "tasks/task")}`);
+  await page.getByLabel("Email").fill("e2e@example.com");
+  await page.getByLabel("Password").fill("secret");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+
+  const confirm = page.getByRole("dialog", { name: "Switch account?" });
+  await confirm.getByRole("button", { name: "Erase and switch" }).click();
+  const dialog = page.getByRole("dialog", { name: "New task" });
+  await expect(dialog.getByLabel("Title")).toHaveValue(title);
 });
 
 test("a pending Handoff outlives a reload of the tab, and is gone once used", async ({ page }) => {
