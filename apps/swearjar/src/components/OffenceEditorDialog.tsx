@@ -6,7 +6,7 @@ import { editAmount, formatCents, parseAmount } from "../domain/money";
 import { addOffence, deleteOffence, setOffenceArchived, updateOffence } from "../data/repo";
 
 /**
- * New / edit Offence (ADR 0054): a name, a price, a face. Repricing says so
+ * New / edit Offence (ADR 0083): a name, a price, a face. Repricing says so
  * out loud — it only changes the Fines still to come. A used Offence offers
  * Archive where an unused one offers Delete.
  */

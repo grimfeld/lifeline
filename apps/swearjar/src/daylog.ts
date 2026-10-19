@@ -4,7 +4,7 @@ import { dayKeyOf, timeOf } from "./domain/derive";
 import { formatCents } from "./domain/money";
 import { useFines, useOffences } from "./data/repo";
 
-/** The Daylog Contract for the Swear Jar (ADR 0054): every Fine on the day it happened — "Fined · Snoozed the alarm · €2". */
+/** The Daylog Contract for the Swear Jar (ADR 0083): every Fine on the day it happened — "Fined · Snoozed the alarm · €2". */
 export const swearjarDaylog: DaylogProvider = {
   appId: APP_ID,
   useItems(date) {
