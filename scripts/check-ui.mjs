@@ -54,6 +54,12 @@ const LINE_RULES = [
     message: "layout switches at md (the phone line); sm: is only for dialog widths",
   },
   {
+    id: "page-title",
+    heading: "Type",
+    test: /<h1\b/,
+    message: "page title outside the kit — use PageHeader from @lifeline/ui",
+  },
+  {
     id: "phone-hook",
     heading: "Layout",
     test: /\buseIsMobile\b/,
