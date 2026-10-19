@@ -25,7 +25,7 @@ function Pct({ v }: { v: number }) {
 }
 
 /**
- * Prices (ADR 0045): Products with their cheapest Shop, the Receipt
+ * Prices (ADR 0082): Products with their cheapest Shop, the Receipt
  * register with the unmatched inbox one tap away, the price change reading
  * per Shop, and the Shops themselves.
  */
