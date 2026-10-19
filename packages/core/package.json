@@ -13,16 +13,16 @@
     "@lifeline/handoff": "workspace:^",
     "@tauri-apps/plugin-http": "^2",
     "@tauri-apps/plugin-opener": "^2",
-    "dexie": "^4.0.11",
+    "dexie": "^4.4.6",
     "dexie-react-hooks": "^1.1.7",
-    "pocketbase": "^0.27.2"
+    "pocketbase": "^0.28.1"
   },
   "peerDependencies": {
     "react": "^19.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.2.0",
-    "@types/react": "^19.1.0",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
     "fake-indexeddb": "^6.2.5",
     "typescript": "~5.8.3",
     "vitest": "^4.1.10"

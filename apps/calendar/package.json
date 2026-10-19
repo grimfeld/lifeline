@@ -12,14 +12,14 @@
   "dependencies": {
     "@lifeline/core": "workspace:*",
     "@lifeline/ui": "workspace:*",
-    "lucide-react": "^1.27.0",
+    "lucide-react": "^1.58.0",
     "react-router": "^7.9.4"
   },
   "peerDependencies": {
     "react": "^19.0.0"
   },
   "devDependencies": {
-    "@types/react": "^19.1.0",
+    "@types/react": "^19.3.0",
     "typescript": "~5.8.3",
     "vitest": "^4.1.10"
   }

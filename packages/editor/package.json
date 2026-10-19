@@ -11,16 +11,16 @@
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.0",
-    "@codemirror/commands": "^6.8.0",
+    "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-markdown": "^6.3.0",
-    "@codemirror/language": "^6.11.0",
-    "@codemirror/state": "^6.5.0",
-    "@codemirror/view": "^6.36.0",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.14",
     "@dnd-kit/core": "^6.3.1",
-    "@lezer/highlight": "^1.2.0",
+    "@lezer/highlight": "^1.2.5",
     "@lifeline/core": "workspace:*",
     "@lifeline/ui": "workspace:*",
-    "lucide-react": "^1.27.0",
+    "lucide-react": "^1.58.0",
     "react-router": "^7.9.4",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"
@@ -30,10 +30,10 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "typescript": "~5.8.3",
     "vitest": "^4.1.10"
   }
