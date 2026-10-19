@@ -14,10 +14,11 @@ import {
   isModShortcut,
   linkTargets,
   moduleOfPath,
+  closePeek,
   openPeek,
   patchDocument,
+  peekStack,
   quickMake,
-  rememberIntake,
   removeDocument,
   singularOf,
   useDocument,
@@ -47,13 +48,13 @@ import {
 } from "@lifeline/ui";
 import { Link2, TextSelect } from "lucide-react";
 
-/** Per-device memory of the Intake last chosen from a selection, beside each App's own (ADR 0050). A convenience only: it never orders the menu. */
-const SENDER = "selection";
-
 /** A selection that empties is let go after this long — long enough for the tap that opens the menu to land. */
 const LINGER_MS = 400;
 
 type Intake = ReturnType<typeof allIntakes>[number];
+
+/** Why an Undo did nothing: the link it would take back has moved or changed since. */
+const UNDO_MOVED = "Couldn’t undo — the text around the link has changed";
 
 /** "Link to…" lists at most this many Documents; typing narrows the rest. */
 const SEARCH_LIMIT = 50;
@@ -178,10 +179,11 @@ export function SelectionMenu() {
   /**
    * Wrap the selection in a link to `canonical` where it was selected — in an
    * editor as one edit, in a rendered body through the store. Returns what
-   * puts the words back while the link is still as written, or null when the
-   * link could not be placed.
+   * puts the words back — true when it did, false when the link is no longer
+   * as written (the text moved or changed) and was left alone — or null when
+   * the link could not be placed.
    */
-  async function writeLinkAt(s: BodySelection, canonical: string): Promise<(() => void) | null> {
+  async function writeLinkAt(s: BodySelection, canonical: string): Promise<(() => Promise<boolean>) | null> {
     if (!s.placement) return null;
     const ed = s.editor;
     if (ed) {
@@ -189,8 +191,10 @@ export function SelectionMenu() {
       if (!w) return null;
       const words = ed.body().slice(w.from, w.to);
       ed.replace(w.from, w.to, w.insert);
-      return () => {
-        if (ed.body().slice(w.from, w.from + w.insert.length) === w.insert) ed.replace(w.from, w.from + w.insert.length, words);
+      return async () => {
+        if (ed.body().slice(w.from, w.from + w.insert.length) !== w.insert) return false;
+        ed.replace(w.from, w.from + w.insert.length, words);
+        return true;
       };
     }
     const id = s.originId;
@@ -199,10 +203,11 @@ export function SelectionMenu() {
     const w = writeLink(before, s.placement, canonical);
     if (!w) return null;
     await patchDocument(id, { body: w.body });
-    return () =>
-      void (async () => {
-        if ((await getDocument(id))?.body === w.body) await patchDocument(id, { body: before });
-      })();
+    return async () => {
+      if ((await getDocument(id))?.body !== w.body) return false;
+      await patchDocument(id, { body: before });
+      return true;
+    };
   }
 
   /** Add the selected words as the target's alias; returns how to take it back while it still stands as written. */
@@ -227,24 +232,30 @@ export function SelectionMenu() {
     toast.success(`Linked to ${entry.target}`, {
       action: {
         label: "Undo",
-        onClick: () => {
-          unlink();
-          if (undoAlias) void undoAlias();
-        },
+        onClick: () =>
+          void (async () => {
+            if (!(await unlink())) toast.error(UNDO_MOVED);
+            if (undoAlias) await undoAlias();
+          })(),
       },
     });
   }
 
-  /** Quick make: the Document at once, the selection linked to it when its type is Linkable, its Peek open; Undo takes both back. */
+  /**
+   * Quick make: the Document at once, the selection linked to it when its type
+   * is Linkable, its Peek open. Undo takes both back and closes that Peek — but
+   * never leaves a link to nothing: when the link is no longer as written, the
+   * Document stays and the toast says why.
+   */
   async function make(s: BodySelection, entry: Extract<SelectionEntry, { kind: "make" }>) {
     let made;
     try {
       made = await quickMake(entry.typeId, s.text);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(`Couldn’t make the ${entry.title}`, { description: err instanceof Error ? err.message : String(err) });
       return;
     }
-    let unlink: (() => void) | null = null;
+    let unlink: (() => Promise<boolean>) | null = null;
     if (entry.linkable) {
       // The canonical name as it now stands: a title shared with another Document is written with its Folder.
       const name = buildLinkIndex(await allDocuments(), allDocumentTypes())
@@ -257,10 +268,12 @@ export function SelectionMenu() {
     toast.success(`Made ${entry.title} ${made.title}`, {
       action: {
         label: "Undo",
-        onClick: () => {
-          unlink?.();
-          void removeDocument(id);
-        },
+        onClick: () =>
+          void (async () => {
+            if (unlink && !(await unlink())) return void toast.error(`${UNDO_MOVED}, so ${made.title} stays`);
+            if (peekStack().includes(id)) closePeek();
+            await removeDocument(id);
+          })(),
       },
     });
   }
@@ -294,7 +307,6 @@ export function SelectionMenu() {
       setOpen(true);
       return;
     }
-    rememberIntake(SENDER, entry.intake.key);
     setHanding({ intake: entry.intake, handoff: { title: origin?.title || s.text.slice(0, 80), text: s.text, originId: s.originId } });
   }
 
