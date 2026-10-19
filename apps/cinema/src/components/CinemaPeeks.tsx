@@ -1,5 +1,5 @@
 import { Button, Checkbox, Label } from "@lifeline/ui";
-import { openPeek, type PeekProps } from "@lifeline/core";
+import { useOpenPeek, type PeekProps } from "@lifeline/core";
 import { PeekInput, WorkPeekFields } from "@lifeline/parts";
 import { ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
@@ -46,6 +46,8 @@ export function WorkPeek({ doc }: PeekProps) {
 export function PlaylistPeek({ doc }: PeekProps) {
   const playlist = normalizePlaylist(doc as Playlist);
   const items = useWorks();
+  // Inside the Peek a work opens in its place, with the way back (ADR 0085).
+  const peek = useOpenPeek();
   const works = worksOf(playlist, new Map(items.map((w) => [w.id, w])));
   return (
     <div className="grid gap-3">
@@ -55,7 +57,7 @@ export function PlaylistPeek({ doc }: PeekProps) {
           Ranked
         </Label>
       </div>
-      <PlaylistWorks playlist={playlist} works={works} onOpenWork={(w) => openPeek(w.id)} />
+      <PlaylistWorks playlist={playlist} works={works} onOpenWork={(w) => peek(w.id)} />
     </div>
   );
 }
