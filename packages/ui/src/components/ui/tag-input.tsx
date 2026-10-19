@@ -90,13 +90,13 @@ export function TagInput({ id, value, onChange, suggestions = [], placeholder = 
         onClick={() => inputRef.current?.focus()}
       >
         {value.map((t, i) => (
-          <span key={t} className="inline-flex h-6 items-center gap-0.5 rounded-md bg-secondary px-1.5 text-xs text-secondary-foreground">
-            #{t}
+          <span key={t} className="inline-flex min-h-6 max-w-full min-w-0 items-center gap-0.5 rounded-md bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">
+            <span className="min-w-0">#{t}</span>
             <button
               type="button"
               tabIndex={-1}
               aria-label={`Remove tag ${t}`}
-              className="rounded-sm text-muted-foreground hover:text-foreground"
+              className="shrink-0 rounded-sm text-muted-foreground hover:text-foreground"
               onClick={(e) => {
                 e.stopPropagation();
                 removeAt(i);

@@ -4,6 +4,7 @@ import { ResearchScreen } from "./screens/ResearchScreen";
 import { EssayScreen } from "./screens/EssayScreen";
 import { DraftsCard } from "./cards/DraftsCard";
 import { VersionsPanel } from "./VersionsPanel";
+import { EssayPeek } from "./EssayPeek";
 import { APP_ID, RESEARCH_HREF, essayType, versionType } from "./types";
 
 /**
@@ -16,7 +17,7 @@ export const writerApp: AppManifest = {
   title: "Research",
   icon: Feather,
   color: "var(--chart-violet)",
-  types: [{ ...essayType, icon: Feather }, versionType],
+  types: [{ ...essayType, icon: Feather, peekEdit: EssayPeek }, versionType],
   screens: [
     { id: "writer.desk", title: "Essays", path: "research", icon: Feather, component: ResearchScreen },
     { id: "writer.essay", title: "Essay", path: "research/e/:id", component: EssayScreen, hidden: true },

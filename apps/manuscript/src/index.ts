@@ -4,6 +4,7 @@ import { ShelfScreen } from "./screens/ShelfScreen";
 import { ManuscriptScreen } from "./screens/ManuscriptScreen";
 import { chapterType, manuscriptType, outtakeType } from "./types";
 import { SHELF_HREF } from "./domain/types";
+import { ChapterPeek, ManuscriptPeek } from "./components/ManuscriptPeeks";
 
 const commands: CommandDef[] = [
   { id: "manuscript.go", title: "Go to Manuscripts", keywords: ["manuscript", "novel", "poems", "book", "chapter", "writing", "fiction"], icon: BookOpenText, run: ({ navigate }) => navigate(SHELF_HREF) },
@@ -21,8 +22,8 @@ export const manuscriptApp: AppManifest = {
   icon: BookOpenText,
   color: "var(--chart-blue)",
   types: [
-    { ...manuscriptType, icon: BookOpenText },
-    { ...chapterType, icon: FileText },
+    { ...manuscriptType, icon: BookOpenText, peekEdit: ManuscriptPeek },
+    { ...chapterType, icon: FileText, peekEdit: ChapterPeek },
     { ...outtakeType, icon: Scissors },
   ],
   screens: [
