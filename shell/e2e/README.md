@@ -39,7 +39,8 @@ the Demo (`vite build` with `VITE_DEMO=1`, served by `vite preview` on
 phone (360px) and desktop (1280px) width. Run it before pushing a change that
 touches the Demo or the shell's sign-in and sync surfaces (ADR 0077). The
 Source link cases use a second build on `E2E_PORT + 2`, with
-`VITE_DEMO_SOURCE_URL` set; the first has none, as the Demo does until the
+`VITE_DEMO_SOURCE_URL` set (another origin, so its cases start from an empty
+store and seed the life themselves); the first has none, as the Demo does until the
 repository is public. Both builds take about half a minute before any case runs.
 
 - `demo.setup.ts` (the `demo-setup` project) opens the Demo once, lets it seed
@@ -47,7 +48,8 @@ repository is public. Both builds take about half a minute before any case runs.
   `demo` case starts from that life, dated on the run's day.
 - A case about a stranger's first open, a pinned clock, a reload or Reset needs
   the store empty: put it in a `describe` with `test.use({ storageState: EMPTY })`
-  and `test.describe.configure({ timeout: 60_000 })`. It then seeds the life
+  and `test.describe.configure({ timeout: SEEDING })` (60 seconds, 90 on CI,
+  where seeding is two to three times slower). It then seeds the life
   itself: Home shows in under a second, the rest is written behind it for about
   ten seconds ("Filling in the rest of the Demo…"), which `open()`/`settle()`
   wait out. Only those: seeding is the slow part.
