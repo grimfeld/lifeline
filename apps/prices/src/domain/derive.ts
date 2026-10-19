@@ -119,6 +119,20 @@ export function countsPerUnit(o: Observation): boolean {
   return !o.line.needsAmount;
 }
 
+/**
+ * The Lines a change of the Product's dimension sends to the needs-amount
+ * inbox — every Line of it, since no factor turns pieces into kilograms;
+ * none when the dimension stays (ADR 0084).
+ */
+export function linesToRetype<L extends Pick<Line, "productId">>(lines: readonly L[], product: Pick<Product, "id" | "dimension">, dimension: Product["dimension"]): L[] {
+  return dimension === product.dimension ? [] : lines.filter((l) => l.productId === product.id);
+}
+
+/** The needs-amount inbox: matched Lines waiting for their amount in the Product's new dimension. */
+export function needingAmount<L extends Pick<Line, "productId" | "needsAmount">>(lines: readonly L[]): L[] {
+  return lines.filter((l) => !!l.productId && l.needsAmount);
+}
+
 export function isUnmatched(line: Pick<Line, "productId">): boolean {
   return !line.productId;
 }

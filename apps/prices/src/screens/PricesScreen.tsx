@@ -2,16 +2,17 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Badge, Button, Input, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
-import { Inbox, Pencil, Plus, ReceiptText, Tag, TriangleAlert } from "lucide-react";
+import { Inbox, Pencil, Plus, ReceiptText, Ruler, Tag, TriangleAlert } from "lucide-react";
 import { productHref, type Receipt, type Shop } from "../domain/types";
 import { formatUnitPrice, perUnit } from "../domain/measure";
-import { changesIn, cheapest, historiesByProduct, isUnmatched, linesByReceipt, observe, overallOf, spanStart, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
+import { changesIn, cheapest, historiesByProduct, isUnmatched, linesByReceipt, needingAmount, observe, overallOf, spanStart, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
 import { formatCents } from "../domain/money";
 import { useLines, useProducts, useReceipts, useShops } from "../data/repo";
 import { ProductDialog } from "../components/ProductDialog";
 import { ShopDialog } from "../components/ShopDialog";
 import { ReceiptDialog } from "../components/ReceiptDialog";
 import { AddPriceDialog } from "../components/AddPriceDialog";
+import { NeedsAmountDialog } from "../components/NeedsAmountDialog";
 import { shopColor } from "../components/PriceChart";
 
 /** The register's filter on the noticed mark (ADR 0084). */
@@ -59,6 +60,7 @@ export function PricesScreen() {
   const [newProduct, setNewProduct] = useState(false);
   const [editShop, setEditShop] = useState<Shop | null>(null);
   const [newShop, setNewShop] = useState(false);
+  const [retyping, setRetyping] = useState(false);
 
   const today = todayStr();
   const obs = useMemo(() => observe(lines, receipts), [lines, receipts]);
@@ -71,6 +73,7 @@ export function PricesScreen() {
     for (const l of lines) if (isUnmatched(l)) m.set(l.receiptId, (m.get(l.receiptId) ?? 0) + 1);
     return m;
   }, [lines]);
+  const needsAmountTotal = useMemo(() => needingAmount(lines).length, [lines]);
   const unmatchedTotal = useMemo(() => [...unmatchedByReceipt.values()].reduce((a, b) => a + b, 0), [unmatchedByReceipt]);
 
   const productRows = useMemo(() => {
@@ -115,6 +118,22 @@ export function PricesScreen() {
           </Button>
         </PhoneDock>
       </div>
+
+      {/* The needs-amount inbox is loud on every tab, never hidden behind one (ADR 0084). */}
+      {needsAmountTotal > 0 && (
+        <button type="button" className="border-warning bg-warning/10 hover:bg-warning/15 focus-visible:ring-ring flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:outline-none" onClick={() => setRetyping(true)}>
+          <Ruler className="text-warning size-4 shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="font-medium tabular-nums">
+              {needsAmountTotal} line{needsAmountTotal === 1 ? "" : "s"} need{needsAmountTotal === 1 ? "s" : ""} an amount
+            </span>{" "}
+            — a product changed measure. Counted as spent, left out of unit prices until retyped.
+          </span>
+          <Badge variant="outline" className="border-warning text-warning shrink-0">
+            Retype
+          </Badge>
+        </button>
+      )}
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams(v === "products" ? {} : { tab: v }, { replace: true })}>
         <PhoneDock order={1}>
@@ -316,6 +335,7 @@ export function PricesScreen() {
       <ReceiptDialog open={newReceipt} onOpenChange={setNewReceipt} />
       <ReceiptDialog open={!!openReceipt} onOpenChange={(o) => !o && setOpenReceipt(null)} receipt={openReceipt} />
       <ProductDialog open={newProduct} onOpenChange={setNewProduct} />
+      <NeedsAmountDialog open={retyping} onOpenChange={setRetyping} lines={lines} products={products} receipts={receipts} shops={shops} />
       <ShopDialog open={newShop} onOpenChange={setNewShop} />
       <ShopDialog open={!!editShop} onOpenChange={(o) => !o && setEditShop(null)} shop={editShop} />
     </div>
