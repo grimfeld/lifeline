@@ -83,7 +83,7 @@ export const tasksApp: AppManifest = {
   commands: taskCommands,
   schedulable: tasksSchedulable,
   daylog: tasksDaylog,
-  // Intake (ADR 0050): something handed over from another App — a mail — becomes a Task to finish here.
+  // Intake (ADR 0050): something handed over from another App — a selected request — becomes a Task to finish here.
   intakes: [{ id: "task", title: "Task", icon: ListTodo, dialog: TaskDialog }],
 };
 
