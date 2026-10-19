@@ -6,7 +6,8 @@ import { documentsOf, documentsTable, initApps, putDocument } from "@lifeline/co
 import { pricesApp } from "../index";
 import { pricesCommands } from "../commands";
 import { LINE, PRODUCT, type Line } from "../domain/types";
-import { addPrice, addProduct, addShop, allProducts, allShops, mergeProduct, updateProduct } from "./repo";
+import { addPrice, addProduct, addShop, allLines, allProducts, allReceipts, allShops, mergeProduct, saveReceipt, setLineAmount, updateProduct } from "./repo";
+import { linesToRetype } from "../domain/derive";
 
 initApps([pricesApp]);
 
@@ -51,10 +52,71 @@ describe("a Product's Measure", () => {
     expect((await product(paper)).countName).toBe("roll");
   });
 
-  it("keeps its dimension: a change of dimension is refused here", async () => {
+  it("changes dimension at once, every Line of the Product then needing an amount", async () => {
+    const shop = await addShop({ title: "Lidl" });
     const eggs = await addProduct({ title: "Eggs", dimension: "count", unit: "pc" });
-    await expect(updateProduct(await product(eggs), { title: "Eggs", dimension: "mass", unit: "kg" })).rejects.toThrow(/dimension/i);
-    expect((await product(eggs)).dimension).toBe("count");
+    const milk = await addProduct({ title: "Milk", dimension: "volume", unit: "L" });
+    await addPrice({ productId: eggs, shopId: shop, amount: 12, price: 360, promo: false }, await allShops(), await allProducts());
+    await addPrice({ productId: eggs, shopId: shop, amount: 6, price: 199, promo: true }, await allShops(), await allProducts());
+    await addPrice({ productId: milk, shopId: shop, amount: 1, price: 109, promo: false }, await allShops(), await allProducts());
+
+    await updateProduct(await product(eggs), { title: "Eggs", dimension: "mass", unit: "kg" });
+
+    expect(await product(eggs)).toMatchObject({ dimension: "mass", unit: "kg", countName: "" });
+    const lines = await allLines();
+    expect(lines.filter((l) => l.productId === eggs).map((l) => [l.amount, l.needsAmount]).sort()).toEqual([
+      [12, true],
+      [6, true],
+    ]);
+    expect(lines.find((l) => l.productId === milk)?.needsAmount).toBe(false);
+  });
+
+  it("a change within the dimension marks nothing", async () => {
+    const shop = await addShop({ title: "Lidl" });
+    const coffee = await addProduct({ title: "Coffee", dimension: "mass", unit: "kg" });
+    await addPrice({ productId: coffee, shopId: shop, amount: 0.5, price: 749, promo: false }, await allShops(), await allProducts());
+    await updateProduct(await product(coffee), { title: "Coffee", dimension: "mass", unit: "g" });
+    expect((await allLines()).map((l) => l.needsAmount)).toEqual([false]);
+  });
+
+  it("tells beforehand how many Lines a change would send to the inbox", async () => {
+    const shop = await addShop({ title: "Lidl" });
+    const eggs = await addProduct({ title: "Eggs", dimension: "count", unit: "pc" });
+    await addPrice({ productId: eggs, shopId: shop, amount: 12, price: 360, promo: false }, await allShops(), await allProducts());
+    await addPrice({ productId: eggs, shopId: shop, amount: 6, price: 199, promo: false }, await allShops(), await allProducts());
+    const lines = await allLines();
+    expect(linesToRetype(lines, await product(eggs), "mass")).toHaveLength(2);
+    expect(linesToRetype(lines, await product(eggs), "count")).toHaveLength(0);
+  });
+
+  it("typing a Line's amount clears it from the inbox", async () => {
+    const shop = await addShop({ title: "Lidl" });
+    const eggs = await addProduct({ title: "Eggs", dimension: "count", unit: "pc" });
+    await addPrice({ productId: eggs, shopId: shop, amount: 12, price: 360, promo: false }, await allShops(), await allProducts());
+    await updateProduct(await product(eggs), { title: "Eggs", dimension: "mass", unit: "g" });
+    const [waiting] = await allLines();
+
+    await setLineAmount(waiting, 720, await product(eggs));
+
+    const [l] = await allLines();
+    expect([l.amount, l.needsAmount]).toEqual([0.72, false]);
+    await expect(setLineAmount(l, 0, await product(eggs))).rejects.toThrow(/above zero/);
+  });
+
+  it("re-saving a Receipt keeps its Lines' mark unless the amount was retyped", async () => {
+    const shop = await addShop({ title: "Lidl" });
+    const eggs = await addProduct({ title: "Eggs", dimension: "count", unit: "pc" });
+    const rid = await saveReceipt({ shopId: shop, date: "2026-10-01", total: 0, lines: [{ productId: eggs, label: "OEUFS", amount: 12, price: 360, promo: false }, { productId: eggs, label: "OEUFS BIO", amount: 6, price: 250, promo: false }] }, await allShops(), await allProducts());
+    await updateProduct(await product(eggs), { title: "Eggs", dimension: "mass", unit: "kg" });
+    const [receipt] = (await allReceipts()).filter((r) => r.id === rid);
+    const [a, b] = (await allLines()).sort((x, y) => x.label.localeCompare(y.label));
+
+    await saveReceipt({ shopId: shop, date: "2026-10-01", total: 0, lines: [{ ...a, retyped: true, amount: 0.72 }, { ...b }] }, await allShops(), await allProducts(), { receipt, lines: [a, b] });
+
+    expect((await allLines()).sort((x, y) => x.label.localeCompare(y.label)).map((l) => [l.label, l.amount, l.needsAmount])).toEqual([
+      ["OEUFS", 0.72, false],
+      ["OEUFS BIO", 6, true],
+    ]);
   });
 
   it("a Product stored with an old measure reads in the new shape", async () => {

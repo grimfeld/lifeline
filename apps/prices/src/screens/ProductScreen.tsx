@@ -141,9 +141,10 @@ export function ProductScreen() {
                     )}
                   </span>
                   <span className="text-muted-foreground tabular-nums">
-                    {formatAmount(o.line.amount, product)} · {formatCents(o.line.price)}
+                    {o.line.needsAmount ? <span className="text-warning">needs amount</span> : formatAmount(o.line.amount, product)} · {formatCents(o.line.price)}
                   </span>
-                  <span className="w-24 shrink-0 text-right font-medium tabular-nums">{formatUnitPrice(unitPrice(o.line), product)}</span>
+                  {/* A Line awaiting its amount says nothing per unit (ADR 0084). */}
+                  <span className="w-24 shrink-0 text-right font-medium tabular-nums">{o.line.needsAmount ? "—" : formatUnitPrice(unitPrice(o.line), product)}</span>
                 </button>
               </li>
             ))}

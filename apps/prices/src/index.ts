@@ -14,8 +14,9 @@ import { ProductPeek } from "./components/ProductPeek";
 /**
  * The `price_product` type (ADR 0082, 0084): a thing bought again — a name
  * and a Measure: a dimension, the unit it is read in, and a count's own
- * name. Dimension and unit are guarded (a unit must belong to its
- * dimension); the count name is free. `labels` is the App's memory of what
+ * name. Dimension and unit are guarded: a unit must belong to its
+ * dimension, and a new dimension goes through the Product dialog, which
+ * sends the Product's Lines to the needs-amount inbox; the count name is free. `labels` is the App's memory of what
  * each Shop prints for it (guarded, hidden).
  */
 const productType: DocumentTypeDef = {
@@ -91,6 +92,7 @@ const lineType: DocumentTypeDef = {
     { key: "amount", label: "Amount (kg, L, m or count)", kind: "number", column: true },
     { key: "price", label: "Paid (cents)", kind: "number", column: true },
     { key: "promo", label: "Promo", kind: "boolean", column: true },
+    { key: "needsAmount", label: "Needs amount", kind: "boolean", guarded: true, column: true },
   ],
   indexes: ["receiptId", "productId"],
   href: () => `${PRICES_HREF}?tab=receipts`,

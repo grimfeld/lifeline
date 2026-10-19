@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Line, Product, Receipt } from "./types";
-import { changesIn, promoOf, spreadOf, observeAll, rhythmOf, spendOf, countsAsSpent, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
+import { changesIn, promoOf, spreadOf, observeAll, rhythmOf, spendOf, countsAsSpent, needingAmount, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
 
 const product = (id: string, title: string, labels: Product["labels"] = []): Product => ({ id, type: "price_product", title, measure: "l", labels, tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0 }) as unknown as Product;
 const receipt = (id: string, shopId: string, date: string, total = 0, noticed = false): Receipt => ({ id, type: "price_receipt", title: "", shopId, date, branch: "", total, noticed, tags: [], folder: "", createdAt: date, updatedAt: "", deleted: 0 }) as unknown as Receipt;
@@ -149,6 +149,34 @@ describe("Sightings (CONTEXT.md \"Sighting\")", () => {
   it("a noticed price still feeds history and the cheapest Shop", () => {
     expect(historyOf("p1", obs).get("aldi")?.map((p) => p.unit)).toEqual([90]);
     expect(cheapest(historyOf("p1", obs))?.shopId).toBe("aldi");
+  });
+});
+
+describe("needs amount (CONTEXT.md \"Line\")", () => {
+  const receipts = [receipt("r1", "lidl", "2026-01-10", 300), receipt("r2", "lidl", "2026-03-10", 300), receipt("r3", "aldi", "2026-02-01", 300)];
+  const waiting = (l: Line): Line => ({ ...l, needsAmount: true });
+  // Eggs went from pieces to kilograms: the Aldi Line and the later Lidl one still carry piece counts.
+  const lines = [line("l1", "r1", "p1", 300, 0.6), waiting(line("l2", "r2", "p1", 360, 12)), waiting(line("l3", "r3", "p1", 200, 6))];
+  const obs = observe(lines, receipts);
+
+  it("still counts as spent but says nothing per unit", () => {
+    expect(obs.filter(countsAsSpent).map((o) => o.line.id)).toEqual(["l1", "l2", "l3"]);
+    expect(obs.filter(countsPerUnit).map((o) => o.line.id)).toEqual(["l1"]);
+  });
+  it("is kept out of history and the cheapest Shop", () => {
+    const h = historyOf("p1", obs);
+    expect([...h.keys()]).toEqual(["lidl"]);
+    expect(h.get("lidl")?.map((p) => p.lineId)).toEqual(["l1"]);
+    expect(cheapest(h)?.shopId).toBe("lidl");
+    expect(historiesByProduct(obs).get("p1")).toEqual(h);
+  });
+  it("is kept out of the price change", () => {
+    expect(shopChanges("p1", obs, "2026-01-01", "2026-12-31")).toEqual([]);
+    expect(overallChange(["p1"], obs, "2026-01-01", "2026-12-31").n).toBe(0);
+  });
+  it("is counted for the inbox", () => {
+    expect(needingAmount(lines).map((l) => l.id)).toEqual(["l2", "l3"]);
+    expect(needingAmount([...lines, waiting(line("u", "r1", "", 50))]).map((l) => l.id)).toEqual(["l2", "l3"]);
   });
 });
 
