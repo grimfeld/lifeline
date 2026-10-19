@@ -75,12 +75,15 @@ function check() {
 
   const baseRef = process.env.MIGRATIONS_BASE ?? "origin/master";
   let base = git("merge-base", baseRef, "HEAD").trim();
-  if (base === git("rev-parse", "HEAD").trim()) base = git("rev-parse", "HEAD~1").trim();
+  // On the base itself (a push to master) the change is HEAD's last commit, and the base's
+  // tip already holds what it adds: compare against the commit before it instead.
+  const before = base === git("rev-parse", "HEAD").trim() ? "HEAD~1" : baseRef;
+  if (before === "HEAD~1") base = git("rev-parse", "HEAD~1").trim();
   const added = migrations(lines(git("diff", "--name-only", "--diff-filter=A", base, "HEAD", "--", DIR)).map((f) => f.slice(DIR.length + 1)));
-  const onBase = onRefs([baseRef]).get(baseRef) ?? [];
+  const onBase = onRefs([before]).get(before) ?? [];
   const last = newest(onBase);
   for (const name of added) {
-    if (last && name < last) problems.push(`${name} sorts before ${last}, the newest on ${baseRef}`);
+    if (last && name < last) problems.push(`${name} sorts before ${last}, the newest on ${before}`);
   }
 
   // Numbers this change adds, against migrations other unmerged branches add. Not an error:
