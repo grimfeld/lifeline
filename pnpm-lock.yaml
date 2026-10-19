@@ -1002,6 +1002,9 @@ importers:
         specifier: ^19.0.0
         version: 19.2.8
     devDependencies:
+      '@types/node':
+        specifier: ^26.2.0
+        version: 26.2.0
       '@types/react':
         specifier: ^19.1.0
         version: 19.2.18
@@ -1032,6 +1035,9 @@ importers:
       '@codemirror/view':
         specifier: ^6.36.0
         version: 6.43.9
+      '@dnd-kit/core':
+        specifier: ^6.3.1
+        version: 6.3.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@lezer/highlight':
         specifier: ^1.2.0
         version: 1.2.3
