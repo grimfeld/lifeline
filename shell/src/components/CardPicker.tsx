@@ -20,18 +20,24 @@ import {
 import { ArrowLeft, Search } from "lucide-react";
 import { CardSettingsForm } from "./CardSettingsForm";
 
+const NO_APPS: string[] = [];
+
 /**
  * "Add a card": Cards grouped by App with search. Cards with a required
- * setting open a configure step before being added (ADR 0008).
+ * setting open a configure step before being added (ADR 0008). Every Card is
+ * offered; `firstApps` only puts some Apps' groups first (a Module's own, on its
+ * Overview — ADR 0066).
  */
 export function CardPicker({
   open,
   onOpenChange,
   onAdd,
+  firstApps = NO_APPS,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (cardId: string, settings: CardSettings) => void | Promise<void>;
+  firstApps?: string[];
 }) {
   const [query, setQuery] = useState("");
   const [configuring, setConfiguring] = useState<CardDef | null>(null);
@@ -39,7 +45,9 @@ export function CardPicker({
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return registeredApps()
+    const first = (id: string) => (firstApps.includes(id) ? 0 : 1);
+    return [...registeredApps()]
+      .sort((a, b) => first(a.id) - first(b.id))
       .map((app) => ({
         app,
         cards: app.cards.filter(
@@ -47,7 +55,7 @@ export function CardPicker({
         ),
       }))
       .filter((g) => g.cards.length > 0);
-  }, [query]);
+  }, [query, firstApps]);
 
   function reset() {
     setQuery("");

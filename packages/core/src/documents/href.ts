@@ -15,3 +15,8 @@ export function docHref(doc: Document, def: DocumentTypeDef | undefined = docume
 export function basePath(type: string): string {
   return `/base/${type}`;
 }
+
+/** Route of a type's Templates: they all live on the Journal's Templates page (ADR 0068), one section per type. */
+export function templatesPath(type: string): string {
+  return `/app/journal/templates#templates-${type}`;
+}

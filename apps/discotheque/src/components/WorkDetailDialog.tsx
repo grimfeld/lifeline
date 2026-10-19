@@ -1,6 +1,8 @@
 import { Badge, Button, cn, Dialog, DialogContent, DialogHeader, DialogTitle, TagChips, Textarea, toast } from "@lifeline/ui";
 import { ListPlus, MoreHorizontal, Pencil, Play, RefreshCw, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import { PartsSection } from "@lifeline/parts";
+import { discothequeParts } from "../parts";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
 import { setReview, start } from "../domain/rules";
@@ -133,7 +135,7 @@ export function WorkDetailDialog({ item, all: _all, onClose, onEdit }: { item: W
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="sr-only">{item.title}</DialogTitle>
         </DialogHeader>
@@ -170,6 +172,8 @@ export function WorkDetailDialog({ item, all: _all, onClose, onEdit }: { item: W
             <Playlists item={item} />
           </div>
         </div>
+
+        <PartsSection kit={discothequeParts} work={item} />
 
         <Review item={item} />
 

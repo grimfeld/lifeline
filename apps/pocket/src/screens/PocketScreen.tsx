@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, Card, CardContent, cn, toast } from "@lifeline/ui";
+import { Button, Card, CardContent, PhoneDock, cn, toast } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { ChevronDown, ChevronRight, Pencil, Plus, RefreshCw, Wallet } from "lucide-react";
 import { faceColor, faceOf, type Allowance, type Bucket, type Spend } from "../domain/types";
@@ -85,12 +85,14 @@ export function PocketScreen() {
       <div className="flex flex-wrap items-center gap-2">
         <Wallet className="size-5" />
         <h1 className="flex-1 text-lg font-semibold">Pocket</h1>
-        <Button variant="outline" onClick={() => setNewOpen(true)}>
-          <Plus /> New allowance
-        </Button>
-        <Button onClick={() => openSpend()} disabled={rows.length === 0}>
-          <Plus /> Spend
-        </Button>
+        <PhoneDock>
+          <Button variant="outline" onClick={() => setNewOpen(true)}>
+            <Plus /> New allowance
+          </Button>
+          <Button onClick={() => openSpend()} disabled={rows.length === 0}>
+            <Plus /> Spend
+          </Button>
+        </PhoneDock>
       </div>
 
       {current.length > 0 && (
