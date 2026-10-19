@@ -13,5 +13,6 @@ export * from "./openDocument";
 // lazily loaded editor (MarkdownEditorImpl) uses them.
 export * from "./TemplateSelect";
 export * from "./TypeEditor";
+export * from "./TypeRemoval";
 export { type EditorContext } from "./editorExtensions";
 export * from "./selection";

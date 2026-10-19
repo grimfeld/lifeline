@@ -7,9 +7,6 @@ import {
   type ReportSetting,
   MODULES,
   basePath,
-  countTypeDocuments,
-  deleteDocumentType,
-  deleteUserDocumentType,
   documentsOfTypeEverywhere,
   fieldChangeProblems,
   fieldFromDraft,
@@ -33,7 +30,6 @@ import {
   slugify,
   templatesFor,
   templatesPath,
-  typeDeleteRefusal,
   TEMPLATE_TYPE,
   useAllDocuments,
   type BodyPolicy,
@@ -47,6 +43,7 @@ import {
   type SummaryNames,
 } from "@lifeline/core";
 import { Trash2 } from "lucide-react";
+import { useTypeRemoval } from "./TypeRemoval";
 import { AddFieldMenu, FieldRow, HeldDocuments } from "./Fields";
 import { ReportsEditor } from "./Reports";
 import { ReorderItem, Reorderable } from "./Reorder";
@@ -115,6 +112,7 @@ export function TypeEditor({
   const fixedFolder = base?.id === "daily" || base?.id === "template";
   const [busy, setBusy] = useState(false);
   const [refusal, setRefusal] = useState("");
+  const removal = useTypeRemoval({ onRefused: setRefusal, onRemoved: onDone });
   const typeId = record?.typeId ?? base?.id ?? slugify(singularOf({ label }));
   const idTaken = !record && !base && allTypes.some((t) => t.id === typeId);
   const geoRows = rows.filter((r) => r.kind === "geo" && r.key.trim());
@@ -171,26 +169,6 @@ export function TypeEditor({
       toast.error((e as Error).message);
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function remove() {
-    if (!record) return;
-    if (base) {
-      if (!window.confirm(`Reset “${record.label}” to its built-in default? Fields you added keep their values on its Documents.`)) return;
-      await deleteDocumentType(record.id);
-      toast.success(`“${record.label}” reset to its built-in default`);
-      return onDone();
-    }
-    const why = typeDeleteRefusal(record.label, await countTypeDocuments(record.typeId));
-    if (why) return setRefusal(why);
-    if (!window.confirm(`Delete the type “${record.label}”? It has no Documents.`)) return;
-    try {
-      await deleteUserDocumentType(record);
-      toast.success(`Type “${record.label}” deleted`);
-      onDone();
-    } catch (e) {
-      setRefusal((e as Error).message);
     }
   }
 
@@ -346,7 +324,7 @@ export function TypeEditor({
         )}
         <div className="flex flex-wrap items-center justify-end gap-2">
           {record && (
-            <Button variant="ghost" className="text-destructive mr-auto" onClick={() => void remove()}>
+            <Button variant="destructive" className="mr-auto" onClick={() => void removal.ask(record, !!base)}>
               <Trash2 /> {base ? "Reset to default" : "Delete type"}
             </Button>
           )}
@@ -358,7 +336,7 @@ export function TypeEditor({
           </Button>
         </div>
       </div>
+      {removal.dialog}
     </HeldDocuments.Provider>
   );
 }
-

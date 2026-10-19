@@ -54,26 +54,45 @@ const LINE_RULES = [
     message: "layout switches at md (the phone line); sm: is only for dialog widths",
   },
   {
+    id: "page-title",
+    heading: "Type",
+    test: /<h1\b/,
+    message: "page title outside the kit — use PageHeader from @lifeline/ui",
+  },
+  {
     id: "phone-hook",
     heading: "Layout",
     test: /\buseIsMobile\b/,
     message: "useIsMobile is deprecated — use usePhone() from @lifeline/ui",
   },
+  {
+    id: "hand-listbox",
+    heading: "Components",
+    test: /\brole=["'{`]*listbox\b/,
+    message: "hand-rolled role=\"listbox\" — use Combobox from @lifeline/ui",
+  },
 ];
 
-/** Element rules: run on a whole JSX opening tag that starts on a checked line. */
+/** Element rules: run on a whole JSX opening tag that starts on a checked line; `before` is the source just ahead of it (three lines). */
 const ELEMENT_RULES = [
   {
     id: "control-size",
     heading: "Sizes",
     test: (tag) => KIT_CONTROLS.test(tag) && /className=[^>]*?(?<=[\s"'`{])(?:size|h)-(?:\d|\[)/.test(tag),
-    message: "size or height class on a kit control — use its size prop (icon, icon-sm, icon-xs, sm, xs, lg; SelectTrigger size=\"sm\")",
+    message: "size or height class on a kit control — use its size prop (icon, icon-sm, icon-xs, sm, xs, lg, touch;SelectTrigger size=\"sm\")",
   },
   {
     id: "icon-label",
     heading: "Icons",
-    test: (tag) => /^<Button\b/.test(tag) && /\bsize=["']icon/.test(tag) && !/\baria-label(?:ledby)?=/.test(tag),
-    message: "icon-only Button without aria-label",
+    // <Tip label> names the Button it wraps (through a trigger, too).
+    test: (tag, before) => /^<Button\b/.test(tag) && /\bsize=["']icon/.test(tag) && !/\baria-label(?:ledby)?=/.test(tag) && !/<Tip\b[^>]*\blabel=/.test(before),
+    message: "icon-only Button without aria-label (or a <Tip label> around it)",
+  },
+  {
+    id: "icon-title",
+    heading: "Components",
+    test: (tag) => /^<Button\b/.test(tag) && /\bsize=["']icon/.test(tag) && /(?<![\w-])title=/.test(tag),
+    message: "title= on an icon Button — wrap it in <Tip label> (Tooltip), which names it too",
   },
 ];
 
@@ -109,7 +128,7 @@ function changedLines() {
 
 const allowed = (lines, i, id) => [lines[i], lines[i - 1] ?? ""].some((l) => new RegExp(`ui-allow:\\s*${id}\\b`).test(l));
 
-/** JSX opening tags starting with a capital letter: [line index, tag text]. */
+/** JSX opening tags starting with a capital letter: [line index, tag text, the three lines before it]. */
 function openingTags(lines) {
   const tags = [];
   for (let i = 0; i < lines.length; i++) {
@@ -119,6 +138,7 @@ function openingTags(lines) {
       let j = i;
       let end = -1;
       for (;;) {
+        depth = 0; // each pass rescans the whole tag so far
         for (let k = 0; k < text.length; k++) {
           const c = text[k];
           if (c === "{") depth++;
@@ -132,7 +152,8 @@ function openingTags(lines) {
         j++;
         text += " " + lines[j];
       }
-      tags.push([i, end >= 0 ? text.slice(0, end + 1) : text]);
+      const before = [...lines.slice(Math.max(0, i - 3), i), lines[i].slice(0, m.index)].join(" ");
+      tags.push([i, end >= 0 ? text.slice(0, end + 1) : text, before]);
     }
   }
   return tags;
@@ -146,9 +167,9 @@ for (const [file, only] of changedLines()) {
     if (!checked(i)) return;
     for (const r of LINE_RULES) if (r.test.test(line) && !allowed(lines, i, r.id)) problems.push({ file, line: i + 1, r });
   });
-  for (const [i, tag] of openingTags(lines)) {
+  for (const [i, tag, before] of openingTags(lines)) {
     if (!checked(i)) continue;
-    for (const r of ELEMENT_RULES) if (r.test(tag) && !allowed(lines, i, r.id)) problems.push({ file, line: i + 1, r });
+    for (const r of ELEMENT_RULES) if (r.test(tag, before) && !allowed(lines, i, r.id)) problems.push({ file, line: i + 1, r });
   }
 }
 

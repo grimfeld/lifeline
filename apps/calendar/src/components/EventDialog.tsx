@@ -7,8 +7,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Field,
   Input,
-  Label,
   TagInput,
   Textarea,
   toast,
@@ -16,6 +16,16 @@ import {
 import { displayTitle, docHref, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff } from "@lifeline/core";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
+import { eventFormErrors, type EventFormErrors } from "../domain/eventForm";
+
+/** Each checked control's id — its input's and the one an error focuses — in the order the dialog shows them. */
+const FIELD_IDS: Record<keyof EventFormErrors, string> = {
+  title: "ev-title",
+  date: "ev-date",
+  endDate: "ev-end-date",
+  start: "ev-start",
+  end: "ev-end",
+};
 
 export function EventDialog({
   open,
@@ -43,6 +53,9 @@ export function EventDialog({
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
   const [tags, setTags] = useState<string[]>([]);
+  /** Errors show once saving has been tried, and clear as each field is fixed. */
+  const [tried, setTried] = useState(false);
+  const errors = tried ? eventFormErrors({ title, date, endDate, allDay, start, end }) : {};
   const suggestions = useTagVocabulary().map((v) => v.tag);
   const linkIndex = useLinkIndex();
   const backlinks = event ? linkIndex.backlinksTo(event.id) : [];
@@ -57,14 +70,17 @@ export function EventDialog({
     setStart(event?.start ?? "09:00");
     setEnd(event?.end ?? "10:00");
     setTags(event?.tags ?? []);
+    setTried(false);
   }, [open, event, defaultDate, handoff]);
 
   async function submit() {
-    if (!title.trim()) return void toast.error("Title required");
-    if (!date) return void toast.error("Day required");
-    if (!allDay && !start) return void toast.error("Start time required");
-    if (!allDay && end && end < start) return void toast.error("End must be after start");
-    if (allDay && endDate && endDate < date) return void toast.error("End day must be after the first day");
+    const invalid = Object.keys(eventFormErrors({ title, date, endDate, allDay, start, end }));
+    if (invalid.length) {
+      setTried(true);
+      const first = (Object.keys(FIELD_IDS) as (keyof EventFormErrors)[]).find((k) => invalid.includes(k));
+      if (first) document.getElementById(FIELD_IDS[first])?.focus();
+      return;
+    }
     const fields = {
       title: title.trim(),
       notes: notes.trim(),
@@ -92,57 +108,50 @@ export function EventDialog({
           <DialogTitle>{event ? "Edit event" : "New event"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="ev-title">Title</Label>
+          <Field label="Title" error={errors.title}>
             <Input
-              id="ev-title"
+              id={FIELD_IDS.title}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Dentist"
               autoFocus
               onKeyDown={(e) => e.key === "Enter" && void submit()}
             />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label htmlFor="ev-date">{allDay ? "First day" : "Day"}</Label>
-              <Input id="ev-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
+          </Field>
+          <div className="grid grid-cols-2 items-start gap-3">
+            <Field label={allDay ? "First day" : "Day"} error={errors.date}>
+              <Input id={FIELD_IDS.date} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </Field>
             {allDay ? (
-              <div className="grid gap-2">
-                <Label htmlFor="ev-end-date">Last day (optional)</Label>
+              <Field label="Last day (optional)" error={errors.endDate}>
                 <Input
-                  id="ev-end-date"
+                  id={FIELD_IDS.endDate}
                   type="date"
                   value={endDate}
                   min={date}
                   onChange={(e) => setEndDate(e.target.value)}
                 />
-              </div>
+              </Field>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="ev-start">Start</Label>
-                  <Input id="ev-start" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="ev-end">End</Label>
-                  <Input id="ev-end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
-                </div>
+              <div className="grid grid-cols-2 items-start gap-2">
+                <Field label="Start" error={errors.start}>
+                  <Input id={FIELD_IDS.start} type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+                </Field>
+                <Field label="End" error={errors.end}>
+                  <Input id={FIELD_IDS.end} type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+                </Field>
               </div>
             )}
           </div>
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={allDay} onCheckedChange={(v) => setAllDay(!!v)} /> All day
           </label>
-          <div className="grid gap-2">
-            <Label htmlFor="ev-notes">Notes</Label>
+          <Field label="Notes">
             <Textarea id="ev-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional" />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="ev-tags">Tags</Label>
+          </Field>
+          <Field label="Tags">
             <TagInput id="ev-tags" value={tags} onChange={setTags} suggestions={suggestions} normalize={normalizeTag} placeholder="Add tag…" />
-          </div>
+          </Field>
           {event && backlinks.length > 0 && (
             <div className="text-muted-foreground grid gap-1 text-xs">
               <span>

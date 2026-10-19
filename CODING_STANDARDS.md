@@ -31,10 +31,15 @@ nearest existing pattern and don't hand-roll a new one.
   A raw `<button>` is fine for a whole row or tile that acts as one (it gets
   `type="button"` and a `focus-visible:` style).
 - Single-choice switches (segments, status chips, shelf pickers) use `ToggleGroup`
-  (_coming_): it looks like `TabsList` and becomes a `Select` on a phone by itself.
-- Search-as-you-type pickers use `Combobox` (_coming_, `Command` + `Popover`), never a
+  (`ToggleGroupItem` per choice, named with `aria-label`): it looks like `TabsList` and
+  becomes a `Select` on a phone by itself. A media App's Shelf is `ShelfControl` from
+  `@lifeline/parts`.
+- Search-as-you-type pickers use `Combobox` (`Command` + `Popover`), never a
   hand-rolled `role="listbox"`.
-- Tooltips use `Tooltip` (_coming_) on the desk; `title=` is not a tooltip.
+- **(check)** Tooltips use `Tooltip` (`<Tip label>` for an icon Button); `title=` is not a
+  tooltip. It shows on the desk only, never on touch. `Tip` sets its `label` as the Button's
+  `aria-label`, so the name is written once and the tooltip shows exactly what a screen
+  reader hears.
 - A component copied between apps belongs in `packages/parts`.
 
 ### Colour
@@ -56,7 +61,8 @@ nearest existing pattern and don't hand-roll a new one.
 - **(check)** Sizes come from the scale: `text-2xs` (10px — badges, counts, axis ticks),
   `text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl`, `text-2xl`; `text-3xl`/`4xl`
   for big display numbers only. No `text-[11px]`.
-- A page title is `text-xl font-semibold tracking-tight` (`PageHeader`, _coming_).
+- **(check)** A page title is `PageHeader` (`text-xl font-semibold tracking-tight`); no
+  `<h1>` outside the kit.
 - A section heading is sentence case, `text-sm font-medium text-muted-foreground` — no
   uppercase eyebrows.
 - Weights: `font-medium` by default, `font-semibold` for titles; numbers that line up get
@@ -65,7 +71,8 @@ nearest existing pattern and don't hand-roll a new one.
 ### Sizes
 
 - **(check)** Kit controls are sized by their props, never by a `size-*`/`h-*` class:
-  Button `size` = `default` `sm` `xs` `lg` `icon` `icon-sm` `icon-xs` `icon-lg`;
+  Button `size` = `default` `sm` `xs` `lg` `icon` `icon-sm` `icon-xs` `icon-lg`, and
+  `touch` (44px) for phone buttons stacked full width, as in the AlertDialog;
   `SelectTrigger size="sm"`; `Input` is `h-8` already.
 - Icons are `size-3`, `size-3.5` or `size-4` (`size-5` in big tiles); an icon inside a
   `Button` needs no class.
@@ -75,7 +82,8 @@ nearest existing pattern and don't hand-roll a new one.
 ### Icons
 
 - lucide-react only, imported without the `Icon` suffix.
-- **(check)** Every icon-only `Button` has an `aria-label` (a raw icon `<button>` too).
+- **(check)** Every icon-only `Button` has an `aria-label` (a raw icon `<button>` too), or
+  a `<Tip label>` around it.
   `title` alone is not a label.
 
 ### Layout
@@ -84,9 +92,9 @@ nearest existing pattern and don't hand-roll a new one.
   dialog widths (`sm:max-w-md`).
 - **(check)** The phone hook is `usePhone()` from `@lifeline/ui`; `useIsMobile` is
   deprecated.
-- A page is `Page` (_coming_): `mx-auto grid w-full gap-4 p-4 md:p-6`, `width="reading"`
-  (max-w-3xl, default) or `"wide"` (max-w-6xl). Its title row is `PageHeader`, an empty
-  list `EmptyState` (_coming_).
+- A page is `Page`: `mx-auto grid w-full gap-4 p-4 md:p-6`, `width="reading"`
+  (max-w-3xl, default) or `"wide"` (max-w-6xl). Its title row is `PageHeader` (title +
+  actions), an empty list `EmptyState` (message + optional `action`).
 - Boxes are `rounded-lg border`; a Card is `Card`. Hover is `hover:bg-accent`.
 
 ### Deleting
@@ -95,7 +103,9 @@ nearest existing pattern and don't hand-roll a new one.
 - Delete at once and offer **Undo** in the toast (`toast.success("Deleted", { action:
   { label: "Undo", onClick } })`) — Documents are soft-deleted, so Undo always works.
 - Confirm only what Undo can't bring back — an empty type, a Workspace, something outside
-  Lifeline — with one `AlertDialog` (_coming_). No two-tap "Really delete" buttons.
+  Lifeline — with one `AlertDialog`: it says what will go, Cancel takes the focus, and the
+  `AlertDialogAction` names the action ("Delete type", not "OK"). No two-tap "Really
+  delete" buttons.
 - A destructive action is `variant="destructive"` (a `DropdownMenuItem` too), not
   `className="text-destructive"` on another variant.
 
@@ -110,8 +120,7 @@ nearest existing pattern and don't hand-roll a new one.
 
 ### Forms and feedback
 
-- A field is `Field` (_coming_: Label, control, hint, error); until then
-  `<div className="grid gap-2"><Label/>…</div>`.
+- A field is `Field` (Label, control, hint, error): `<Field label="Title" error={…}><Input/></Field>`.
 - A field's error shows under it, with `aria-invalid` on the control — not in a toast.
   Disabling submit until the form is valid is fine.
 - Toasts report what an action did: `toast.success` / `toast.error`, with a sentence a

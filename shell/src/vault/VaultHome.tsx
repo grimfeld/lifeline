@@ -37,7 +37,7 @@ export function VaultHome() {
               <Link to={`/vault/d/${d.id}`} className="min-w-0 flex-1 truncate hover:underline">
                 {displayTitle(d, types.find((t) => t.id === d.type))}
               </Link>
-              <span className="text-muted-foreground shrink-0 text-xs">{types.find((t) => t.id === d.type)?.label}</span>
+              <span className="text-muted-foreground max-w-1/3 truncate text-xs">{types.find((t) => t.id === d.type)?.label}</span>
               <Link to={docHref(d)} className="text-muted-foreground shrink-0 text-xs hover:underline">
                 its page
               </Link>
