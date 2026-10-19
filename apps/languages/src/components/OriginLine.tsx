@@ -15,7 +15,7 @@ export function OriginLine({ originId, origin, className }: { originId?: string;
     <span className={cn("text-muted-foreground min-w-0 text-xs", className)}>
       from{" "}
       {doc ? (
-        <button type="button" className="hover:text-foreground underline underline-offset-2 [overflow-wrap:anywhere]" onClick={() => peek(doc.id)}>
+        <button type="button" className="hover:text-foreground focus-visible:ring-ring rounded-sm focus-visible:ring-2 focus-visible:outline-none underline underline-offset-2 [overflow-wrap:anywhere]" onClick={() => peek(doc.id)}>
           {doc.title || "Untitled"}
         </button>
       ) : (

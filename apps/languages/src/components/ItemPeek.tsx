@@ -100,7 +100,12 @@ export function ItemPeek({ doc }: { doc: Document }) {
             {decks.map((d) => {
               const inDeck = d.members.includes(item.id);
               return (
-                <button key={d.id} onClick={() => setMembership(d, item, !inDeck).catch((e: Error) => toast.error(e.message))} className={cn("rounded-full border px-3 py-1 text-xs", inDeck ? "bg-accent text-accent-foreground border-transparent font-medium" : "text-muted-foreground")}>
+                <button
+                  key={d.id}
+                  type="button"
+                  aria-pressed={inDeck}
+                  onClick={() => setMembership(d, item, !inDeck).catch((e: Error) => toast.error(inDeck ? `Couldn’t take it out of ${d.name}` : `Couldn’t put it in ${d.name}`, { description: e.message }))}
+                  className={cn("focus-visible:ring-ring rounded-full border px-3 py-1 text-xs focus-visible:ring-2 focus-visible:outline-none", inDeck ? "bg-accent text-accent-foreground border-transparent font-medium" : "text-muted-foreground")}>
                   {d.name}
                 </button>
               );

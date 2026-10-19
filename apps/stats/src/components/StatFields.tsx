@@ -27,7 +27,7 @@ export function ColorSwatches({ value, onChange }: { value: ColorSlot; onChange:
           aria-label={c}
           aria-pressed={value === c}
           onClick={() => onChange(c)}
-          className={cn("size-7 rounded-full border-2 transition-transform", value === c ? "border-foreground scale-110" : "border-transparent")}
+          className={cn("focus-visible:ring-ring size-7 rounded-full border-2 transition-transform focus-visible:ring-2 focus-visible:outline-none", value === c ? "border-foreground scale-110" : "border-transparent")}
           style={{ background: colorVar(c) }}
         />
       ))}

@@ -9,10 +9,10 @@ export function MoodPicker({ current, onPick }: { current: MoodLevel | null; onP
         <button
           key={s.level}
           type="button"
-          title={`${s.emoji} ${s.label}`}
+          aria-label={s.label}
           aria-pressed={current === s.level}
           onClick={() => onPick(s.level)}
-          className={cn("flex min-w-0 flex-col items-center gap-1 rounded-md border-2 py-3 text-2xl transition-all", current === s.level ? "border-foreground" : "border-transparent hover:opacity-80")}
+          className={cn("focus-visible:ring-ring flex min-w-0 flex-col items-center gap-1 rounded-md border-2 py-3 text-2xl transition-all focus-visible:ring-2 focus-visible:outline-none", current === s.level ? "border-foreground" : "border-transparent hover:opacity-80")}
           style={{ background: s.color }}
         >
           <span>{s.emoji}</span>
