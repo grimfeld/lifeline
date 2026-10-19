@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
 import { useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import type { Fact } from "../domain/types";
 import { addFact, deleteItem, updateFact, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
 import { OriginLine } from "./OriginLine";
-import { originOf } from "./WordDialog";
+import { originOf, type ItemDialogProps } from "./WordDialog";
 
 export interface FactPrefill {
   /** The passage it is being kept from — shown beside the form, never put in as the answer. */
@@ -20,7 +20,7 @@ export interface FactPrefill {
  * ever filled in for them. Made from a selection, the passage stays in view
  * while they write, and "add another" keeps it for the next Fact.
  */
-export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: { open: boolean; onOpenChange: (open: boolean) => void; fact?: Fact; prefill?: FactPrefill; onSaved?: (id: string) => void }) {
+export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: ItemDialogProps & { fact?: Fact; prefill?: FactPrefill }) {
   const topics = useTopics();
   const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
@@ -32,6 +32,8 @@ export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: { ope
   const [originId, setOriginId] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // What this opening kept: a close after "Save & add another" still tells the caller it saved.
+  const kept = useRef("");
 
   useEffect(() => {
     if (!open) return;
@@ -43,6 +45,7 @@ export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: { ope
     setOriginId(fact?.originId ?? prefill?.originId ?? "");
     setTags(fact?.tags ?? []);
     setConfirmDelete(false);
+    kept.current = "";
     // `active` settles after the first render; a Fact's own Topic never moves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, fact, prefill]);
@@ -53,13 +56,12 @@ export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: { ope
 
   async function save(another = false) {
     const input = { languageId, question, answer, notes, origin, originId, tags };
-    let made = "";
     try {
       if (fact) {
         await updateFact(fact, input);
         toast.success("Fact updated");
       } else {
-        made = await addFact(input);
+        kept.current = await addFact(input);
         toast.success("Fact kept");
       }
     } catch (err) {
@@ -71,8 +73,12 @@ export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: { ope
       setNotes("");
       return;
     }
-    if (made) onSaved?.(made);
-    onOpenChange(false);
+    close(false);
+  }
+
+  function close(o: boolean) {
+    if (!o && kept.current) onSaved?.(kept.current);
+    onOpenChange(o);
   }
 
   async function remove() {
@@ -87,7 +93,7 @@ export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: { ope
   const context = prefill?.context?.trim();
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={close}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{fact ? "Edit fact" : "New fact"}</DialogTitle>

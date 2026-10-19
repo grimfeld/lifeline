@@ -48,9 +48,14 @@ export interface IntakeEntry {
   title: string;
 }
 
+/** The address of `path` ("/handoff") on a Lifeline at `base` ("https://lifeline.example", with or without a trailing slash). */
+export function addressOn(base: string, path: string): string {
+  return base.replace(/\/+$/, "") + path;
+}
+
 /** The published Intakes list's address on a Lifeline at `base` ("https://lifeline.example"). */
 export function intakeListUrl(base: string): string {
-  return base.replace(/\/+$/, "") + INTAKES_PATH;
+  return addressOn(base, INTAKES_PATH);
 }
 
 /**
@@ -91,7 +96,7 @@ export function encodeHandoff(handoff: Handoff, intake?: string): string {
 
 /** The Handoff page's address for a Handoff, on a Lifeline at `origin` ("https://lifeline.example"). */
 export function handoffUrl(origin: string, handoff: Handoff, intake?: string): string {
-  return `${origin.replace(/\/+$/, "")}${HANDOFF_PATH}#${encodeHandoff(handoff, intake)}`;
+  return `${addressOn(origin, HANDOFF_PATH)}#${encodeHandoff(handoff, intake)}`;
 }
 
 /** A fragment (with or without its `#`) back to a Handoff. Never throws: what cannot be read is a typed failure. */

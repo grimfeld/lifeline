@@ -11,6 +11,9 @@ describe("manifest", () => {
       expect([...m.permissions].sort()).toEqual(["activeTab", "contextMenus", "scripting", "storage"]);
       expect(m.host_permissions).toEqual(["https://lifeline.grimfeld.tech/*"]);
       expect(m).not.toHaveProperty("content_scripts");
+      // No options: the Lifeline it sends to is built in, so no other origin is ever asked for.
+      expect(m).not.toHaveProperty("optional_host_permissions");
+      expect(m).not.toHaveProperty("options_ui");
     }
   });
 

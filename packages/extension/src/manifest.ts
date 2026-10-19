@@ -22,9 +22,7 @@ export interface Manifest {
   action: { default_title: string; default_icon: Record<number, string> };
   permissions: string[];
   host_permissions: string[];
-  optional_host_permissions: string[];
   commands: Record<string, { suggested_key: { default: string }; description: string }>;
-  options_ui: { page: string; open_in_tab: boolean };
   background: { service_worker: string } | { scripts: string[] };
   browser_specific_settings?: { gecko: { id: string; strict_min_version: string } };
 }
@@ -40,20 +38,17 @@ export function manifest(browser: Browser): Manifest {
     action: { default_title: "Send to Lifeline", default_icon: { 32: "icon-32.png", 48: "icon-48.png" } },
     // Nothing is read from a page until the person sends it: activeTab + scripting, no content scripts.
     permissions: ["contextMenus", "activeTab", "scripting", "storage"],
-    // The Lifeline URL: the extension fetches its Intakes list, and sees its window reach the done address and closes it.
+    // Lifeline, and nowhere else: the extension fetches its Intakes list, and sees its window reach the done address and closes it.
     host_permissions: [lifelineHostPattern(DEFAULT_LIFELINE_URL)],
-    // A self-hosted Lifeline set in the options is asked for then, that one origin only.
-    optional_host_permissions: ["https://*/*", "http://*/*"],
     commands: {
       _execute_action: { suggested_key: { default: "Alt+Shift+L" }, description: "Send to Lifeline" },
     },
-    options_ui: { page: "options.html", open_in_tab: false },
   };
   if (browser === "chrome") return { ...common, background: { service_worker: "background.js" } };
   return {
     ...common,
     background: { scripts: ["background.js"] },
-    // 128: the first Firefox with optional_host_permissions (a self-hosted Lifeline).
-    browser_specific_settings: { gecko: { id: GECKO_ID, strict_min_version: "128.0" } },
+    // 109: the first Firefox with Manifest V3.
+    browser_specific_settings: { gecko: { id: GECKO_ID, strict_min_version: "109.0" } },
   };
 }
