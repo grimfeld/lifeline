@@ -11,8 +11,8 @@ import { usePhone } from "./phone-dock"
  * The one confirmation (ADR 0079): only for what Undo can't bring back — an empty
  * Document type, a Workspace. Radix focuses Cancel first and closes on Escape; the
  * action is `variant="destructive"` and names what it does ("Delete type").
- * On a phone it sits full width at the bottom, its buttons stacked full width at
- * the kit's largest size.
+ * On a phone it sits full width at the bottom, its buttons stacked full width and
+ * thumb-sized (Button size="touch", 44px).
  */
 function AlertDialog({
   ...props
@@ -128,10 +128,10 @@ function AlertDialogDescription({
 
 type ButtonSize = React.ComponentProps<typeof Button>["size"]
 
-/** The kit's largest button on a phone, where a thumb presses it; its default on the desk. The phone footer's column stretches it full width. */
+/** Thumb-sized on a phone, the default on the desk. The phone footer's column stretches it full width. */
 function useFooterSize(size: ButtonSize): ButtonSize {
   const phone = usePhone()
-  return size ?? (phone ? "lg" : "default")
+  return size ?? (phone ? "touch" : "default")
 }
 
 function AlertDialogAction({

@@ -71,7 +71,8 @@ nearest existing pattern and don't hand-roll a new one.
 ### Sizes
 
 - **(check)** Kit controls are sized by their props, never by a `size-*`/`h-*` class:
-  Button `size` = `default` `sm` `xs` `lg` `icon` `icon-sm` `icon-xs` `icon-lg`;
+  Button `size` = `default` `sm` `xs` `lg` `icon` `icon-sm` `icon-xs` `icon-lg`, and
+  `touch` (44px) for phone buttons stacked full width, as in the AlertDialog;
   `SelectTrigger size="sm"`; `Input` is `h-8` already.
 - Icons are `size-3`, `size-3.5` or `size-4` (`size-5` in big tiles); an icon inside a
   `Button` needs no class.

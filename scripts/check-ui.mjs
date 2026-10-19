@@ -79,7 +79,7 @@ const ELEMENT_RULES = [
     id: "control-size",
     heading: "Sizes",
     test: (tag) => KIT_CONTROLS.test(tag) && /className=[^>]*?(?<=[\s"'`{])(?:size|h)-(?:\d|\[)/.test(tag),
-    message: "size or height class on a kit control — use its size prop (icon, icon-sm, icon-xs, sm, xs, lg; SelectTrigger size=\"sm\")",
+    message: "size or height class on a kit control — use its size prop (icon, icon-sm, icon-xs, sm, xs, lg, touch;SelectTrigger size=\"sm\")",
   },
   {
     id: "icon-label",
