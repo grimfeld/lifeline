@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button, Card, CardContent, cn } from "@lifeline/ui";
-import { formatHuman } from "@lifeline/core";
+import { formatHuman, todayStr } from "@lifeline/core";
 import { BookOpen, Layers, Play, Shapes } from "lucide-react";
-import { dueAhead, practiceQueue, retention, type NewCap } from "../domain/practice";
+import { dueAheadOfHeld, heldPrompts, introducedByTopic, queueOfHeld, retention, type NewCap, type PracticeQueue } from "../domain/practice";
 import type { Deck, Topic, Recall } from "../domain/types";
 import { useAllMaterial, useRecalls, useSourceChains, useTopics, type MaterialDoc } from "../data/repo";
 import { PracticeRun } from "../components/PracticeRun";
@@ -59,11 +59,23 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
   const now = useMemo(() => new Date(), [allRecalls]); // re-read the clock whenever practice changes something
   const live = useMemo(() => items.filter((i) => i.live), [items]);
   const liveAll = useMemo(() => everything.filter((i) => i.live), [everything]);
-  const q = useMemo(() => practiceQueue(live, recalls, { now, newCap: topic.newCap }), [live, recalls, now, topic.newCap]);
-  const qAll = useMemo(() => practiceQueue(liveAll, allRecalls, { now, newCap: capOf }), [liveAll, allRecalls, now, capOf]);
+  // The Recalls are replayed once per change; the Topic's queue, each Deck's, each Source's and the week ahead all read these.
+  const held = useMemo(() => heldPrompts(live, recalls), [live, recalls]);
+  const heldAll = useMemo(() => heldPrompts(liveAll, allRecalls), [liveAll, allRecalls]);
+  const introduced = useMemo(() => introducedByTopic(allRecalls, todayStr(now)), [allRecalls, now]);
+  const q = useMemo(() => queueOfHeld(held, introduced, { now, newCap: topic.newCap }), [held, introduced, now, topic.newCap]);
+  const qAll = useMemo(() => queueOfHeld(heldAll, introduced, { now, newCap: capOf }), [heldAll, introduced, now, capOf]);
+  const deckQueues = useMemo(() => {
+    const out = new Map<string, PracticeQueue>();
+    for (const d of decks) {
+      const ids = new Set(d.members);
+      out.set(d.id, queueOfHeld(held.filter((p) => ids.has(p.itemId)), introduced, { now, newCap: topic.newCap }));
+    }
+    return out;
+  }, [decks, held, introduced, now, topic.newCap]);
   const ret = useMemo(() => retention(recalls, now), [recalls, now]);
   const retAll = useMemo(() => (liveTopics.length > 1 ? retention(allRecalls, now) : null), [liveTopics.length, allRecalls, now]);
-  const week = useMemo(() => dueAhead(live, recalls, now), [live, recalls, now]);
+  const week = useMemo(() => dueAheadOfHeld(held, now), [held, now]);
   const peak = Math.max(1, ...week.map((d) => d.count));
 
   // Every Source something was kept from, with what is ready from it — a Source's count includes its parts'.
@@ -71,9 +83,12 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
     const bySource = new Map<string, MaterialDoc[]>();
     for (const m of liveAll) for (const s of chains.get(m.id) ?? []) bySource.set(s, [...(bySource.get(s) ?? []), m]);
     return [...bySource]
-      .map(([id, ms]) => ({ id, title: titleOf(id), items: ms, q: practiceQueue(ms, allRecalls, { now, newCap: capOf }) }))
+      .map(([id, ms]) => {
+        const ids = new Set(ms.map((m) => m.id));
+        return { id, title: titleOf(id), items: ms, q: queueOfHeld(heldAll.filter((p) => ids.has(p.itemId)), introduced, { now, newCap: capOf }) };
+      })
       .sort((a, b) => b.q.due + b.q.newToday - (a.q.due + a.q.newToday) || a.title.localeCompare(b.title));
-  }, [liveAll, chains, titleOf, allRecalls, now, capOf]);
+  }, [liveAll, chains, titleOf, heldAll, introduced, now, capOf]);
 
   function start(run: Run) {
     if (run.kind === "all") setParams({ [PRACTICE_PARAM]: "all" });
@@ -131,7 +146,7 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
           <div className="grid gap-2 sm:grid-cols-2">
             {decks.map((d) => {
               const di = deckItems(d, live);
-              const dq = practiceQueue(di, recalls, { now, newCap: topic.newCap });
+              const dq = deckQueues.get(d.id)!;
               return (
                 <button key={d.id} className="hover:bg-accent/50 flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm disabled:opacity-60" onClick={() => start({ kind: "deck", deck: d })} disabled={di.length === 0}>
                   <Layers className="text-muted-foreground size-4 shrink-0" />
