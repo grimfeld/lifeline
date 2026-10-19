@@ -31,7 +31,9 @@ nearest existing pattern and don't hand-roll a new one.
   A raw `<button>` is fine for a whole row or tile that acts as one (it gets
   `type="button"` and a `focus-visible:` style).
 - Single-choice switches (segments, status chips, shelf pickers) use `ToggleGroup`
-  (_coming_): it looks like `TabsList` and becomes a `Select` on a phone by itself.
+  (`ToggleGroupItem` per choice, named with `aria-label`): it looks like `TabsList` and
+  becomes a `Select` on a phone by itself. A media App's Shelf is `ShelfControl` from
+  `@lifeline/parts`.
 - Search-as-you-type pickers use `Combobox` (_coming_, `Command` + `Popover`), never a
   hand-rolled `role="listbox"`.
 - Tooltips use `Tooltip` (_coming_) on the desk; `title=` is not a tooltip.

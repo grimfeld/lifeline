@@ -14,6 +14,7 @@ export * from "./components/ui/separator";
 export * from "./components/ui/sheet";
 export * from "./components/ui/sonner";
 export * from "./components/ui/tabs";
+export * from "./components/ui/toggle-group";
 export * from "./components/ui/textarea";
 export { toast } from "sonner";
 export * from "./components/ui/card-unavailable";

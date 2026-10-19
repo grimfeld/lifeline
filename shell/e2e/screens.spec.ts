@@ -29,6 +29,27 @@ async function openPeopleTypeEditor(page: Page) {
   await page.getByRole("button", { name: /^Edit the type People/ }).first().click();
 }
 
+/**
+ * A media App's Shelf switch (ToggleGroup): on the desk the arrow keys move
+ * between choices and Enter picks one; on a phone it is a select, left open.
+ */
+async function openShelf(page: Page) {
+  const local = page.getByRole("button", { name: "Work locally" });
+  await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+  if ((page.viewportSize()?.width ?? 0) < 768) {
+    await page.getByRole("combobox", { name: "Shelf" }).click();
+    await expect(page.getByRole("listbox")).toBeVisible();
+    return;
+  }
+  const shelf = page.getByRole("radiogroup", { name: "Shelf" });
+  await shelf.getByRole("radio", { checked: true }).focus();
+  await page.keyboard.press("ArrowRight");
+  const first = shelf.getByRole("radio").first();
+  await expect(first).toBeFocused(); // "All" is last: the arrow wraps round to the first Shelf
+  await page.keyboard.press("Enter");
+  await expect(first).toHaveAttribute("aria-checked", "true");
+}
+
 const SCREENS: ScreenCase[] = [
   // Core destinations.
   { name: "Calendar · Upcoming", path: "/calendar?view=upcoming" },
@@ -105,11 +126,11 @@ const SCREENS: ScreenCase[] = [
   { name: "Stat", path: "/app/stats/:id", type: "stat" },
   { name: "Life Level", path: "/app/lifelevel" },
   { name: "Habit", path: "/app/lifelevel/:id", type: "habit" },
-  { name: "Library", path: "/app/library" },
+  { name: "Library", path: "/app/library", afterOpen: openShelf },
   { name: "Author", path: "/app/library/authors/:id", type: "author" },
-  { name: "Cinema", path: "/app/cinema" },
-  { name: "Discotheque", path: "/app/discotheque" },
-  { name: "Arcade", path: "/app/arcade" },
+  { name: "Cinema", path: "/app/cinema", afterOpen: openShelf },
+  { name: "Discotheque", path: "/app/discotheque", afterOpen: openShelf },
+  { name: "Arcade", path: "/app/arcade", afterOpen: openShelf },
   { name: "Quotes", path: "/app/quotes" },
   { name: "Museum", path: "/app/museum" },
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
