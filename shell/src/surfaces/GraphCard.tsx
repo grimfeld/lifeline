@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router";
-import { buildGraph, docHref, localGraph, useDocumentTypes, useLinkIndex, type CardProps, type GraphNode } from "@lifeline/core";
+import { buildLocalGraph, docHref, useDocumentTypes, useLinkIndex, type CardProps, type GraphNode } from "@lifeline/core";
 import { CardUnavailable, GraphView } from "@lifeline/ui";
 
 /**
@@ -17,7 +17,7 @@ export function GraphCard({ settings, configure }: CardProps) {
   const depth: 1 | 2 = String(settings.depth) === "2" ? 2 : 1;
   const doc = docId ? index.byId.get(docId) : undefined;
   const model = useMemo(
-    () => (doc ? localGraph(buildGraph(index, types, { orphans: true }), doc.id, depth) : { nodes: [], edges: [] }),
+    () => (doc ? buildLocalGraph(index, types, doc.id, depth) : { nodes: [], edges: [] }),
     [index, types, doc, depth],
   );
   if (!doc) return <CardUnavailable message="This Document is gone." onConfigure={configure} />;

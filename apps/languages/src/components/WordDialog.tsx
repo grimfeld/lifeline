@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
 import { useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import type { Word } from "../domain/types";
 import { addWord, deleteItem, updateWord, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
 import { OriginLine } from "./OriginLine";
+
+/**
+ * A Word, Sentence or Fact dialog: an Intake's dialog without the Handoff, so
+ * it opens empty, prefilled or on an item to edit, and reports what it made.
+ */
+export type ItemDialogProps = Omit<IntakeDialogProps, "handoff">;
 
 export interface WordPrefill {
   term?: string;
@@ -17,7 +23,7 @@ export interface WordPrefill {
  * own words, notes and where it was met. Quick enough for the capture sheet:
  * term, meaning, Enter.
  */
-export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolean; onOpenChange: (open: boolean) => void; word?: Word; prefill?: WordPrefill }) {
+export function WordDialog({ open, onOpenChange, word, prefill, onSaved }: ItemDialogProps & { word?: Word; prefill?: WordPrefill }) {
   const topics = useTopics();
   const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
@@ -29,6 +35,8 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
   const [originId, setOriginId] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // What this opening kept: a close after "Save & add another" still tells the caller it saved.
+  const kept = useRef("");
 
   useEffect(() => {
     if (!open) return;
@@ -40,6 +48,7 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
     setOriginId(word?.originId ?? prefill?.originId ?? "");
     setTags(word?.tags ?? []);
     setConfirmDelete(false);
+    kept.current = "";
     // `active` settles after the first render; a Word's own Topic never moves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, word, prefill]);
@@ -55,7 +64,7 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
         await updateWord(word, input);
         toast.success("Word updated");
       } else {
-        await addWord(input);
+        kept.current = await addWord(input);
         toast.success(`${term.trim()} added`);
       }
     } catch (err) {
@@ -67,7 +76,12 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
       setNotes("");
       return;
     }
-    onOpenChange(false);
+    close(false);
+  }
+
+  function close(o: boolean) {
+    if (!o && kept.current) onSaved?.(kept.current);
+    onOpenChange(o);
   }
 
   async function remove() {
@@ -81,7 +95,7 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
   const noTopic = topics.filter((l) => !l.archived).length === 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={close}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{word ? "Edit word" : "New word"}</DialogTitle>
@@ -147,10 +161,10 @@ export function originOf(h: IntakeDialogProps["handoff"]): string {
 }
 
 /** The Word Intake (ADR 0050): the handed text becomes the term, its source the origin. */
-export function WordIntakeDialog({ open, onOpenChange, handoff }: IntakeDialogProps) {
+export function WordIntakeDialog({ open, onOpenChange, handoff, onSaved }: IntakeDialogProps) {
   const prefill = useMemo(() => {
     const text = handoff.text.trim();
     return { term: text && text.length <= 80 ? text : handoff.title, origin: originOf(handoff), originId: handoff.originId };
   }, [handoff]);
-  return <WordDialog open={open} onOpenChange={onOpenChange} prefill={prefill} />;
+  return <WordDialog open={open} onOpenChange={onOpenChange} prefill={prefill} onSaved={onSaved} />;
 }

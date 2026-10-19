@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentSourceDate, deriveItems, describeRecurrence, parseItemId, sourceDatesInRange } from "./occurrences";
+import { currentSourceDate, deriveItems, describeRecurrence, dueItems, parseItemId, sourceDatesInRange } from "./occurrences";
 import type { Weekday } from "@lifeline/core";
 import type { OccurrenceOverride, Task } from "./types";
 
@@ -194,5 +194,44 @@ describe("lapsed occurrences", () => {
     );
     expect(items.find((i) => i.itemId === "w|2026-08-10")!.lapsed).toBe(false);
     expect(items.find((i) => i.itemId === "w|2026-08-11")!.lapsed).toBe(true);
+  });
+});
+
+// What is on today: the Today tasks Card and the "Complete a task" Command.
+// No lookback window: an old one-time Task stays overdue (ADR 0004), and a
+// recurring Task's current Occurrence is overdue however long ago it fell
+// (ADR 0036).
+describe("dueItems", () => {
+  const today = "2026-08-13";
+  it("keeps a one-time task overdue however old it is", () => {
+    const items = dueItems([oneTime("old", "2025-01-02"), oneTime("future", "2026-08-20"), oneTime("pool", null)], [], today);
+    expect(items.map((i) => i.itemId)).toEqual(["old"]);
+  });
+
+  it("includes a yearly task's current occurrence from months ago", () => {
+    const y: Task = { ...weekly("y", []), recurrence: { kind: "yearly", dates: [{ month: 12, day: 25 }] }, createdAt: "2020-01-01" };
+    expect(dueItems([y], [], today).map((i) => i.itemId)).toEqual(["y|2025-12-25"]);
+    // Once ticked, a past occurrence leaves.
+    expect(dueItems([y], [ov("y", "2025-12-25", { completedOn: "2026-01-02" })], today)).toEqual([]);
+  });
+
+  it("shows a recurring task once: today's occurrence, not the lapsed ones", () => {
+    const items = dueItems([weekly("w", [1, 2, 3, 4, 5, 6, 0])], [], today);
+    expect(items.map((i) => i.itemId)).toEqual(["w|2026-08-13"]);
+  });
+
+  it("keeps today's completed items and drops earlier completed ones", () => {
+    const items = dueItems(
+      [oneTime("a", today, { completedOn: today }), oneTime("b", "2026-08-01", { completedOn: "2026-08-02" })],
+      [],
+      today,
+    );
+    expect(items.map((i) => i.itemId)).toEqual(["a"]);
+  });
+
+  it("includes an occurrence moved onto today from far away", () => {
+    const m: Task = { ...weekly("m", []), recurrence: { kind: "monthly", days: [1] }, createdAt: "2026-01-01" };
+    const items = dueItems([m], [ov("m", "2026-12-01", { movedTo: today })], today);
+    expect(items.map((i) => i.itemId)).toEqual(["m|2026-08-01", "m|2026-12-01"]);
   });
 });

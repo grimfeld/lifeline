@@ -4,7 +4,8 @@ import { WORKSPACES, type ScreenLayoutItem, type SyncedRecord, type UserScreen }
 import { all, put } from "./data/repo";
 import { hasPulledOnce } from "./data/sync";
 import { newId } from "./ids";
-import { MODULES, type BarSlot } from "./manifest";
+import { type BarSlot } from "./manifest";
+import { inhabitedModules } from "./registry";
 import { seedBar } from "./bar";
 
 /**
@@ -141,6 +142,14 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb);
 }
 
+/**
+ * Run `cb` whenever this device switches Workspace. For live queries Dexie
+ * cannot re-run by itself: the scope they read lives here, in memory.
+ */
+export function onWorkspaceChange(cb: () => void): () => void {
+  return subscribe(cb);
+}
+
 export function useCurrentWorkspaceId(): string {
   return useSyncExternalStore(subscribe, currentWorkspaceId, () => "");
 }
@@ -179,10 +188,13 @@ export function useCurrentWorkspace(): WorkspaceRecord | undefined {
   return useLiveQuery(currentWorkspace, [id], undefined);
 }
 
-/** The current Workspace's Modules, in the user's order, dropping any Core no longer defines. */
+/**
+ * The current Workspace's Modules, in the user's order, dropping any Core no
+ * longer defines or no registered App inhabits (a retired App's, like Mail, ADR 0080).
+ */
 export function useWorkspaceModules(): string[] {
   const ws = useCurrentWorkspace();
-  const known = new Set(MODULES.map((m) => m.id));
+  const known = new Set(inhabitedModules().map((m) => m.id));
   return (ws?.modules ?? []).filter((m) => known.has(m));
 }
 
@@ -253,7 +265,7 @@ async function ensureOnce(): Promise<void> {
   if (!(await hasPulledOnce(WORKSPACES))) return;
   await createWorkspace(
     "Personal",
-    MODULES.map((m) => m.id),
+    inhabitedModules().map((m) => m.id),
   );
 }
 

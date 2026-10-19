@@ -17,7 +17,7 @@ export function useProductCardTitle(settings: CardSettings): string {
   return useProducts().find((p) => p.id === settings.product)?.title ?? "";
 }
 
-/** Product price (ADR 0045): the cheapest Shop's usual price, every Shop's beside it, and the sparkline of all of them. */
+/** Product price (ADR 0082): the cheapest Shop's usual price, every Shop's beside it, and the sparkline of all of them. */
 export function ProductPriceCard({ settings, configure }: CardProps) {
   const id = settings.product as string;
   const navigate = useNavigate();

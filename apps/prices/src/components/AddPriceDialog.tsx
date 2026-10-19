@@ -10,7 +10,7 @@ import { ProductDialog } from "./ProductDialog";
 import { ShopDialog } from "./ShopDialog";
 
 /**
- * The capture form for a price seen on a shelf (ADR 0045): product, shop,
+ * The capture form for a price seen on a shelf (ADR 0082): product, shop,
  * amount, price — a one-Line Receipt with no printed total. Day defaults to
  * today. "Save & add another" keeps the shop and day.
  */

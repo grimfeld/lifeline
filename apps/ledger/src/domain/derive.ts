@@ -126,9 +126,15 @@ export function budgetRows(
   month: MonthStr,
 ): BudgetRow[] {
   const expense = categories.filter((c) => c.kind === "expense");
+  // One pass over the ledger for every Category, not one per Category.
+  const spentIn = spentByCategory(transactions, month);
+  const spentThrough = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.kind === "expense" && monthOf(t.date) <= month) spentThrough.set(t.categoryId, (spentThrough.get(t.categoryId) ?? 0) + t.amount);
+  }
   return expense.map((category) => {
     const target = targetFor(category, allocations, month);
-    const spent = spentByCategory(transactions, month).get(category.id) ?? 0;
+    const spent = spentIn.get(category.id) ?? 0;
     let pot: number | null = null;
     if (category.accumulating) {
       const start = monthOf(category.createdAt);
@@ -136,10 +142,7 @@ export function budgetRows(
       // Allocations accrue from the Category's first month through the shown month…
       for (let m = start; m <= month; m = monthAdd(m, 1)) sum += targetFor(category, allocations, m);
       // …and every cent ever spent on it through the shown month comes out.
-      for (const t of transactions) {
-        if (t.kind === "expense" && t.categoryId === category.id && monthOf(t.date) <= month) sum -= t.amount;
-      }
-      pot = sum;
+      pot = sum - (spentThrough.get(category.id) ?? 0);
     }
     const tracked = category.accumulating || target > 0;
     return { category, target, spent, tracked, available: tracked ? (pot ?? target - spent) : null, pot };

@@ -76,8 +76,10 @@ export interface ImportRow {
   payee: string;
   note: string;
   importId: string;
-  /** Unreadable date or amount — never posted, shown as a problem. */
+  /** Unreadable date or amount, or dated after today — never posted, shown as a problem. */
   invalid: boolean;
+  /** Dated after today: the ledger accepts only witnessed events (ADR 0042), so the row is invalid. */
+  future?: boolean;
   /** Probable duplicate of an existing Transaction — unticked by default, the user decides. */
   duplicateOf: string | null;
 }
@@ -101,6 +103,15 @@ export function applyMapping(rows: string[][], mapping: ImportMapping): ImportRo
       duplicateOf: null,
     };
   });
+}
+
+/**
+ * Mark rows dated after today invalid: the ledger refuses them on post
+ * (ADR 0042), so the preview says so up front instead of the import
+ * stopping halfway.
+ */
+export function flagFuture(rows: ImportRow[], today: DateStr): ImportRow[] {
+  return rows.map((r) => (!r.invalid && r.date !== null && r.date > today ? { ...r, invalid: true, future: true } : r));
 }
 
 /**

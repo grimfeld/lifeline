@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { HANDOFF_PATH } from "@lifeline/handoff";
 import { MODULES, currentWorkspaceId, moduleHome, useWorkspaceModules } from "@lifeline/core";
 
 /** Where `/` falls back to with nothing remembered: time is what the app is opened for (ADR 0057). */
@@ -22,6 +23,15 @@ export function lastPlace(workspaceId: string): string {
   }
 }
 
+/** Make `path` the place `/` resumes to in a Workspace, as if the user had last stood there. */
+export function rememberPlace(workspaceId: string, path: string): void {
+  try {
+    localStorage.setItem(KEY(workspaceId), path);
+  } catch {
+    /* private mode: `/` falls back */
+  }
+}
+
 /**
  * Remembers where the user is (ADR 0057: `/` resumes) and binds ⌘1…⌘9 to the
  * Rail's Modules in order. Mount once.
@@ -35,7 +45,8 @@ export function useResume() {
   // move: switching Workspace must not file the page being left under the
   // Workspace being entered, which is what a Workspace dependency would do.
   useEffect(() => {
-    if (location.pathname === "/") return;
+    // The Handoff page is a stop on the way in from outside (ADR 0080), never a place to resume.
+    if (location.pathname === "/" || location.pathname.startsWith(HANDOFF_PATH)) return;
     try {
       localStorage.setItem(KEY(currentWorkspaceId()), location.pathname + location.search);
     } catch {

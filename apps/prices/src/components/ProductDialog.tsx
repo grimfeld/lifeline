@@ -5,7 +5,7 @@ import { MEASURES, MEASURE_LABEL, type Measure, type Product } from "../domain/t
 import { addProduct, deleteProduct, mergeProduct, updateProduct, useProducts } from "../data/repo";
 
 /**
- * A Product (ADR 0045): a name and a measure fixed at creation. Editing
+ * A Product (ADR 0082): a name and a measure fixed at creation. Editing
  * renames; a Product with prices is merged into another of the same measure
  * rather than deleted.
  */

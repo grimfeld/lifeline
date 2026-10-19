@@ -32,6 +32,11 @@ function addDays(d: DateStr, n: number): DateStr {
  * (inclusive DateStr). RRULE/RDATE/EXDATE and per-instance overrides are handled by
  * ical.js; times are converted to the local zone; all-day events keep their dates.
  */
+/** Per recurring event: at most this many occurrences in a range… */
+const MAX_SHOWN = 5000;
+/** …and this many stepped over before it (a century of a daily event). */
+const MAX_SKIPPED = 50_000;
+
 export function expandIcal(body: string, rangeStart: DateStr, rangeEnd: DateStr): IcalOccurrence[] {
   const jcal = ICAL.parse(body);
   const comp = new ICAL.Component(jcal);
@@ -95,11 +100,18 @@ export function expandIcal(body: string, rangeStart: DateStr, rangeEnd: DateStr)
     }
     const it = ev.iterator();
     let next: ICAL.Time | null;
-    let guard = 0;
-    while ((next = it.next()) && guard++ < 5000) {
+    // Two guards: occurrences shown, and occurrences stepped over before the
+    // range — a daily event from 2010 has thousands of those and must still show.
+    let shown = 0;
+    let skipped = 0;
+    while ((next = it.next()) && shown < MAX_SHOWN && skipped < MAX_SKIPPED) {
       if (next.compare(rangeEndT) >= 0) break;
       const occ = ev.getOccurrenceDetails(next);
-      if (occ.endDate.compare(rangeStartT) < 0) continue;
+      if (occ.endDate.compare(rangeStartT) < 0) {
+        skipped++;
+        continue;
+      }
+      shown++;
       const item = occ.item;
       push(uid, item.summary ?? "(untitled)", occ.startDate, occ.endDate, item.location ?? undefined);
     }

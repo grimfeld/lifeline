@@ -10,7 +10,6 @@ import {
   LibraryBig,
   Feather,
   BookOpenText,
-  Mail,
   MapPin,
   NotebookText,
   TrendingUp,
@@ -34,7 +33,6 @@ export const MODULE_ICONS: Record<string, React.ComponentType<{ className?: stri
   thoughts: Lightbulb,
   progress: TrendingUp,
   languages: Brain,
-  mail: Mail,
 };
 
 export const SURFACE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {

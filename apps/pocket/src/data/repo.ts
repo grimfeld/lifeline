@@ -68,7 +68,7 @@ export async function addAllowance(input: AllowanceInput): Promise<string> {
   return row.id;
 }
 
-/** Editing in place — no history of the change is kept (ADR 0037). */
+/** Editing in place — no history of the change is kept (ADR 0081). */
 export async function updateAllowance(a: Allowance, input: AllowanceInput): Promise<void> {
   await putDocument<Allowance>({ ...a, ...rowOf(input) });
 }
@@ -80,7 +80,7 @@ export async function deleteAllowance(id: string): Promise<void> {
 }
 
 /**
- * Renew (ADR 0037): a fresh Allowance for the next week / month / year with
+ * Renew (ADR 0081): a fresh Allowance for the next week / month / year with
  * the same name, amount, face and tags and no Spends. Never automatic; refuses a
  * custom span and a second renewal of the same one.
  */

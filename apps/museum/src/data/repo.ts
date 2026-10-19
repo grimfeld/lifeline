@@ -118,7 +118,8 @@ export function useArtists(): Artist[] {
 /**
  * The Artist for a name (and optional Wikidata identity): found by external
  * key, then by name/alias (case-insensitive), else created — so lookups
- * never leave a manual chore and misspelled duplicates don't creep in.
+ * never leave a manual chore and misspelled duplicates don't creep in. A
+ * keyed hit matches by name only an Artist with no key, which takes the hit's.
  */
 export async function ensureArtist(input: { name: string; externalKey?: string }): Promise<string> {
   const name = input.name.trim();
@@ -128,7 +129,9 @@ export async function ensureArtist(input: { name: string; externalKey?: string }
   const byKey = key ? all.find((a) => a.externalKey === key) : undefined;
   if (byKey) return byKey.id;
   const lower = name.toLowerCase();
-  const byName = all.find((a) => a.title.toLowerCase() === lower || a.aliases.some((al) => al.toLowerCase() === lower));
+  // A name is no identity: a namesake with another key is someone else, so
+  // with a key in hand only a keyless namesake answers.
+  const byName = all.find((a) => (a.title.toLowerCase() === lower || a.aliases.some((al) => al.toLowerCase() === lower)) && (!key || !a.externalKey));
   if (byName) {
     if (key && !byName.externalKey) await patchDocument(byName.id, { externalKey: key });
     return byName.id;

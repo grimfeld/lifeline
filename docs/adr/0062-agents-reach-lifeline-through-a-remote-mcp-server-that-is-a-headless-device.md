@@ -18,7 +18,7 @@ The person signs in with **OAuth 2.1** on a page the server serves itself: claud
 ## Consequences
 
 - Every App must be registered in `mcp/src/apps.ts` as well as the shell (a test checks it). A worker loads the Apps' views too; the build swaps browser-only libraries for inert stand-ins.
-- One machine: pending sign-ins and warm devices live in its memory. A cold device pays one full pull of its Account; an idle one stops after 15 minutes, never while writes are still queued for the server.
+- One machine: pending sign-ins and warm devices live in its memory. A cold device pays one full pull of its Account; an idle one stops after 15 minutes, never while writes are still queued for the server. That queue is memory only (no volume, and PocketBase is what refused it), so a write the server has not taken is reported to the agent as `unconfirmed` — retried while the machine runs, lost if it stops first — and a shutdown logs what it leaves behind.
 - "Today" is the server's time zone (`TZ`), one for every Account.
 - The Private folder is out of an agent's reach whether or not a password is set: never listed, read or written. Agents cannot delete.
 - A read-only grant ("Allow changes" unticked) lists no write tools. Deleting a row of `mcp_grants` disconnects that client.

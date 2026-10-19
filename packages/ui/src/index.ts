@@ -24,7 +24,6 @@ export { toast } from "sonner";
 export * from "./components/ui/card-unavailable";
 export * from "./components/map/MapView";
 export * from "./components/graph/GraphView";
-export * from "./components/map/MiniMap";
 export * from "./components/map/GeoField";
 export * from "./components/ui/context-menu";
 export * from "./components/ui/tag-input";

@@ -66,21 +66,26 @@ export function GeoField({
     if (debounce.current) window.clearTimeout(debounce.current);
     if (search.trim().length < 3) {
       setSuggestions([]);
+      setSearching(false);
       return;
     }
+    // A slow answer for an older query must not land over a newer one's.
+    let alive = true;
     debounce.current = window.setTimeout(() => {
       setSearching(true);
       suggest(search)
         .then((hits) => {
+          if (!alive) return;
           setSuggestions(hits);
           setHighlight(0);
         })
         .catch((e) => {
-          if ((e as { name?: string }).name !== "AbortError") setError(e instanceof Error ? e.message : "Address search failed.");
+          if (alive && (e as { name?: string }).name !== "AbortError") setError(e instanceof Error ? e.message : "Address search failed.");
         })
-        .finally(() => setSearching(false));
+        .finally(() => alive && setSearching(false));
     }, 300);
     return () => {
+      alive = false;
       if (debounce.current) window.clearTimeout(debounce.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

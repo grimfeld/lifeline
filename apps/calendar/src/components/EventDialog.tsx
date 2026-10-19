@@ -33,6 +33,7 @@ export function EventDialog({
   event,
   defaultDate,
   handoff,
+  onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,6 +42,8 @@ export function EventDialog({
   defaultDate?: DateStr;
   /** Create mode, Intake (ADR 0050): the title and the origin; the day and time are asked here. */
   handoff?: Handoff;
+  /** Create mode: called with the new Event once it is saved (the Intake contract). */
+  onSaved?: (id: string) => void;
 }) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -91,8 +94,9 @@ export function EventDialog({
       await updateEvent({ ...event, ...fields });
       toast.success("Event updated");
     } else {
-      await addEvent(fields);
+      const id = await addEvent(fields);
       toast.success("Event added");
+      onSaved?.(id);
     }
     onOpenChange(false);
   }

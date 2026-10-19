@@ -31,7 +31,7 @@ function toCents(v: unknown, what: string): number | undefined {
 }
 
 /**
- * Two capture Commands (ADR 0045): the receipt at the kitchen table, the price spotted on a shelf.
+ * Two capture Commands (ADR 0082): the receipt at the kitchen table, the price spotted on a shelf.
  * Lifeline reads no photo (ADR 0075): an agent reads the receipt and runs "Add receipt…" headless,
  * making the Products and Shops it is missing first.
  */
