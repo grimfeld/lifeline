@@ -3,8 +3,9 @@ import { useNavigate, useParams } from "react-router";
 import { Badge, Button, Card, CardContent, PhoneDock, TagChips, ToggleGroup, ToggleGroupItem, cn } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { ArrowLeft, Pencil, Plus } from "lucide-react";
-import { MEASURE_LABEL, PRICES_HREF, type Receipt } from "../domain/types";
-import { cheapest, formatAmount, formatUnitPrice, historyOf, inSpan, latestUsual, observe, observeAll, spanOf, unitPrice, type PricePoint } from "../domain/derive";
+import { PRICES_HREF, type Receipt } from "../domain/types";
+import { formatAmount, formatUnitPrice, measureLabel, perUnit } from "../domain/measure";
+import { cheapest, historyOf, inSpan, latestUsual, observe, observeAll, spanOf, unitPrice, type PricePoint } from "../domain/derive";
 import { formatCents } from "../domain/money";
 import { useLines, useProduct, useReceipts, useShops } from "../data/repo";
 import { PriceChart, shopColor } from "../components/PriceChart";
@@ -63,7 +64,7 @@ export function ProductScreen() {
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold">{product.title}</h1>
           <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
-            <span>per {MEASURE_LABEL[product.measure].toLowerCase()}</span>
+            <span>{measureLabel(product)}</span>
             <TagChips tags={product.tags} size="xs" />
           </div>
         </div>
@@ -102,7 +103,7 @@ export function ProductScreen() {
                       </Badge>
                     )}
                   </div>
-                  <div className="text-xl font-semibold tabular-nums">{usual ? formatUnitPrice(usual.unit, product.measure) : "—"}</div>
+                  <div className="text-xl font-semibold tabular-nums">{usual ? formatUnitPrice(usual.unit, product) : "—"}</div>
                   <div className="text-muted-foreground text-xs">{usual ? `usual · ${formatHuman(usual.date)}` : "promo prices only"} · {n} point{n === 1 ? "" : "s"}</div>
                 </CardContent>
               </Card>
@@ -112,8 +113,8 @@ export function ProductScreen() {
 
       <Card>
         <CardContent className="grid gap-2 p-3">
-          <h2 className="text-muted-foreground text-sm font-medium">Unit price</h2>
-          <PriceChart history={shown} shops={shops} measure={product.measure} />
+          <h2 className="text-muted-foreground text-sm font-medium">Unit price · €{perUnit(product)}</h2>
+          <PriceChart history={shown} shops={shops} measure={product} />
           <p className="text-muted-foreground text-[11px]">Hollow points are promos — history shows them, the usual price ignores them.</p>
         </CardContent>
       </Card>
@@ -140,9 +141,9 @@ export function ProductScreen() {
                     )}
                   </span>
                   <span className="text-muted-foreground tabular-nums">
-                    {formatAmount(o.line.amount, product.measure)} · {formatCents(o.line.price)}
+                    {formatAmount(o.line.amount, product)} · {formatCents(o.line.price)}
                   </span>
-                  <span className="w-24 shrink-0 text-right font-medium tabular-nums">{formatUnitPrice(unitPrice(o.line), product.measure)}</span>
+                  <span className="w-24 shrink-0 text-right font-medium tabular-nums">{formatUnitPrice(unitPrice(o.line), product)}</span>
                 </button>
               </li>
             ))}

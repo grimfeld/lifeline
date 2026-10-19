@@ -15,7 +15,7 @@ let milk: string;
 beforeEach(async () => {
   await documentsTable().clear();
   lidl = await addShop({ title: "Lidl" });
-  milk = await addProduct({ title: "Milk", measure: "l" });
+  milk = await addProduct({ title: "Milk", dimension: "volume", unit: "L" });
 });
 
 const price = async (over: { bought?: boolean } = {}) => addPrice({ productId: milk, shopId: lidl, amount: 1, price: 109, promo: false, date: "2026-10-01", ...over }, await allShops(), await allProducts());

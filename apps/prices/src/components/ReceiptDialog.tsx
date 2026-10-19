@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, cn, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import { ImagePlus, Plus, TriangleAlert, X } from "lucide-react";
-import { MEASURE_UNIT, type Line, type Receipt } from "../domain/types";
+import type { Line, Receipt } from "../domain/types";
+import { amountIn, amountUnit, fromAmount } from "../domain/measure";
 import { linesOf, sumOfLines } from "../domain/derive";
 import { editAmount, formatCents, parseAmount } from "../domain/money";
 import { deleteReceipt, saveReceipt, useLines, useProducts, useShops, type LineInput } from "../data/repo";
@@ -58,7 +59,12 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
       setBranch(receipt.branch);
       setTotal(receipt.total > 0 ? editAmount(receipt.total) : "");
       setNoticed(receipt.noticed);
-      setLines(existingLines.map((l) => fresh({ id: l.id, label: l.label, productId: l.productId, amount: String(l.amount), price: editAmount(l.price), promo: l.promo })));
+      // Amounts are typed in the matched Product's reading unit; an unmatched Line's stays as stored.
+      const shown = (l: Line) => {
+        const p = products.find((x) => x.id === l.productId);
+        return String(p ? amountIn(l.amount, p) : l.amount);
+      };
+      setLines(existingLines.map((l) => fresh({ id: l.id, label: l.label, productId: l.productId, amount: shown(l), price: editAmount(l.price), promo: l.promo })));
     } else {
       setShopId(shops[0]?.id || "");
       setDate(todayStr());
@@ -70,7 +76,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
     setPhoto(null);
     // Re-initialising on the existing Lines' arrival is wanted: they load async after the dialog opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, receipt, existingLines.length]);
+  }, [open, receipt, existingLines.length, products.length]);
 
   const parsed = useMemo(() => lines.map((l) => ({ ...l, cents: parseAmount(l.price), amt: Number(l.amount.replace(",", ".")) })), [lines]);
   const sum = sumOfLines(parsed.map((l) => ({ price: l.cents ?? 0 })));
@@ -87,7 +93,8 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
       if (!l.label.trim() && l.cents === null) continue; // an empty row
       if (l.cents === null || l.cents < 0) return void toast.error(`"${l.label || "A line"}" needs a price`);
       if (!(l.amt > 0)) return void toast.error(`"${l.label || "A line"}" needs an amount above zero`);
-      input.push({ id: l.id, label: l.label.trim() || products.find((p) => p.id === l.productId)?.title || "", productId: l.productId, amount: l.amt, price: l.cents, promo: l.promo });
+      const product = products.find((p) => p.id === l.productId);
+      input.push({ id: l.id, label: l.label.trim() || product?.title || "", productId: l.productId, amount: product ? fromAmount(l.amt, product) : l.amt, price: l.cents, promo: l.promo });
     }
     setSaving(true);
     try {
@@ -150,7 +157,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
                   <div key={l.key} className={cn("grid grid-cols-2 items-center gap-1.5 rounded-md border p-1.5 md:grid-cols-[1fr_1fr_64px_80px_28px_28px] md:border-0 md:p-0", !l.productId && "bg-amber-500/5 md:bg-transparent")}>
                     <Input value={l.label} onChange={(e) => update(l.key, { label: e.target.value })} placeholder="As printed" className="h-8 text-sm" />
                     <ProductSelect value={l.productId} onChange={(id) => update(l.key, { productId: id })} products={products} allowNone onNew={() => setNewProductFor(l.key)} className={cn("h-8 text-sm", !l.productId && "border-amber-500/60")} />
-                    <Input value={l.amount} onChange={(e) => update(l.key, { amount: e.target.value })} inputMode="decimal" className="h-8 text-sm" title={product ? `Amount in ${MEASURE_UNIT[product.measure]}` : "Amount"} />
+                    <Input value={l.amount} onChange={(e) => update(l.key, { amount: e.target.value })} inputMode="decimal" className="text-sm" title={product ? `Amount in ${amountUnit(product)}` : "Amount"} placeholder={product ? amountUnit(product) : undefined} aria-label={product ? `Amount in ${amountUnit(product)}` : "Amount"} />
                     <Input value={l.price} onChange={(e) => update(l.key, { price: e.target.value })} inputMode="decimal" placeholder="0,00" className="h-8 text-sm" />
                     <label className="flex items-center justify-center gap-1 text-xs md:justify-start">
                       <Checkbox checked={l.promo} onCheckedChange={(v) => update(l.key, { promo: v === true })} />

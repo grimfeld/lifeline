@@ -2,8 +2,9 @@ import { useMemo, type ReactNode } from "react";
 import { Card, CardContent } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import type { Observation, Product, Shop } from "../domain/types";
-import { formatAmount, formatUnitPrice, promoOf, rhythmOf, spendOf, spreadOf, type PriceStats, type Span } from "../domain/derive";
+import { promoOf, rhythmOf, spendOf, spreadOf, type PriceStats, type Span } from "../domain/derive";
 import { formatCents } from "../domain/money";
+import { formatAmount, formatUnitPrice } from "../domain/measure";
 import { shopColor } from "./PriceChart";
 
 const pct = (f: number) => `${Math.round(f * 100)}%`;
@@ -40,7 +41,7 @@ export function ProductStats({ product, shops, all, obs, span }: { product: Prod
   const rhythm = useMemo(() => rhythmOf(product.id, obs, span), [product.id, obs, span]);
   const spread = useMemo(() => spreadOf(product.id, obs, span), [product.id, obs, span]);
   const promo = useMemo(() => promoOf(product.id, obs, span), [product.id, obs, span]);
-  const unit = (cents: number) => formatUnitPrice(cents, product.measure);
+  const unit = (cents: number) => formatUnitPrice(cents, product);
   const shopName = (id: string) => shops.find((s) => s.id === id)?.title ?? "?";
   const range = (s: PriceStats) => (s.n === 1 ? `${s.n} price` : `low ${unit(s.min)} · avg ${unit(s.avg)} · high ${unit(s.max)} · ${s.n} prices`);
 
@@ -58,7 +59,7 @@ export function ProductStats({ product, shops, all, obs, span }: { product: Prod
           <Figure label="Times bought" value={rhythm.times} />
           <Figure label="Average gap" value={rhythm.avgGapDays === null ? "—" : `${Math.round(rhythm.avgGapDays)} d`} />
           <Figure label="Last bought" value={rhythm.last ? formatHuman(rhythm.last) : "—"} />
-          <Figure label="Per month" value={rhythm.perMonth === null ? "—" : formatAmount(rhythm.perMonth, product.measure)} />
+          <Figure label="Per month" value={rhythm.perMonth === null ? "—" : formatAmount(rhythm.perMonth, product)} />
         </div>
       </Section>
 

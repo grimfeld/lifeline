@@ -79,7 +79,7 @@ const seeded = {
   groceries: await seed("ledger_category", "Groceries", { kind: "expense", group: "Food", target: 0, accumulating: false }),
   allowance: await seed("pocket_allowance", "Eating out", { name: "Eating out", period: "month", from: monthStart, to: "", amount: 10000, emoji: "", color: "" }),
   offence: await seed("swearjar_offence", "Swearing", { name: "Swearing", price: 100, emoji: "", color: "", archived: false }),
-  milk: await seed("price_product", "Milk", { measure: "l", labels: [] }),
+  milk: await seed("price_product", "Milk", { dimension: "volume", unit: "L", countName: "", labels: [] }),
   shop: await seed("price_shop", "Corner shop", { note: "" }),
   weight: await seed("stat", "Weight", { kind: "measurement", unit: "kg", defaultIncrement: 0, universeSize: 0, color: "" }),
   pushups: await seed("stat", "Push-ups", { kind: "additive", unit: "", defaultIncrement: 20, universeSize: 0, color: "" }),
