@@ -131,3 +131,50 @@ function fromBase64Url(s: string): Uint8Array {
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return bytes;
 }
+
+// --- the Android share target (ADR 0080) ---
+
+/** What a share target receives: the manifest's `share_target` sends each, any of which may be missing. */
+export interface ShareFields {
+  title?: string | null;
+  text?: string | null;
+  url?: string | null;
+}
+
+/** The share sheet's title, text and url as a Handoff. */
+export function handoffFromShare(fields: ShareFields): Handoff {
+  const title = (fields.title ?? "").trim();
+  const text = (fields.text ?? "").trim();
+  const url = (fields.url ?? "").trim();
+  const shared = url ? { text: text === url ? "" : text, url } : (liftUrl(text) ?? { text });
+  const handoff: Handoff = { title: title || hostOf(shared.url) || firstLine(shared.text), text: shared.text };
+  if (shared.url) handoff.url = shared.url;
+  return handoff;
+}
+
+function hostOf(url: string | undefined): string {
+  try {
+    return url ? new URL(url).host : "";
+  } catch {
+    return "";
+  }
+}
+
+function firstLine(text: string): string {
+  return text.split("\n").find((l) => l.trim())?.trim() ?? "";
+}
+
+// A URL in shared text: up to whitespace or a bracket, less the punctuation a sentence puts after it.
+const URL_IN_TEXT = /https?:\/\/[^\s<>"]+/i;
+const TRAILING = /[.,;:!?'")\]}»]+$/;
+
+/** The first URL in the text, and the text without it — the gap closed, its line breaks kept. */
+function liftUrl(text: string): { url: string; text: string } | undefined {
+  const m = URL_IN_TEXT.exec(text);
+  if (!m) return undefined;
+  const url = m[0].replace(TRAILING, "");
+  const before = text.slice(0, m.index).replace(/[ \t]+$/, "");
+  const after = text.slice(m.index + url.length).replace(/^[ \t]+/, "");
+  const gap = before && after && !before.endsWith("\n") && !after.startsWith("\n") ? " " : "";
+  return { url, text: (before + gap + after).replace(/\n{3,}/g, "\n\n").trim() };
+}

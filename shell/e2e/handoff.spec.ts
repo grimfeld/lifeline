@@ -142,6 +142,73 @@ test("a malformed Handoff shows a plain message", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+interface ShareTarget {
+  action: string;
+  method?: string;
+  params: Partial<Record<"title" | "text" | "url", string>>;
+}
+
+/**
+ * The address Android opens for "Share → Lifeline", built the way the browser
+ * builds it from the served manifest's GET share target: its action, each
+ * shared field under the parameter name the manifest gives it.
+ */
+async function shareUrl(page: Page, fields: Partial<Record<"title" | "text" | "url", string>>): Promise<string> {
+  const manifest = (await (await page.request.get("/manifest.webmanifest")).json()) as { share_target?: ShareTarget };
+  const target = manifest.share_target;
+  expect(target, "the manifest declares a share target").toBeTruthy();
+  expect(target!.method ?? "GET").toBe("GET");
+  const q = new URLSearchParams();
+  for (const [field, value] of Object.entries(fields)) {
+    const name = target!.params[field as keyof ShareTarget["params"]];
+    expect(name, `the share target takes ${field}`).toBeTruthy();
+    q.set(name!, value);
+  }
+  return `${target!.action}?${q}`;
+}
+
+test("the share sheet's fields prefill the Intake — a URL in the text becomes the origin, its host the title", async ({ page }) => {
+  const passage = `Worth reading ${Date.now()}`;
+  await page.goto(await shareUrl(page, { text: `${passage} https://essays.example.org/on-keeping?ref=share — a long passage` }));
+  await workLocally(page);
+  await expect(page.getByRole("heading", { name: "essays.example.org" })).toBeVisible();
+  await pickIntake(page, "Quote");
+  await page.getByRole("button", { name: "Open the Quote" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Keep as a Quote" });
+  await expect(dialog.getByLabel("Link")).toHaveValue("https://essays.example.org/on-keeping?ref=share");
+  await expect(dialog.getByLabel("Headline")).toHaveValue("essays.example.org");
+  await expect(dialog.getByLabel("Text")).toHaveValue(`${passage} — a long passage`);
+  await dialog.getByRole("button", { name: "Keep", exact: true }).click();
+
+  // From the share sheet there is no extension window to close: it offers to open what was made.
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL((u) => u.pathname === "/handoff");
+  await page.getByRole("button", { name: "Open the Quote" }).click();
+  await expect(page).toHaveURL((u) => !u.pathname.startsWith("/handoff"));
+  await expect(page.getByText(`${passage} — a long passage`).first()).toBeVisible();
+});
+
+test("from the share sheet, a saved Handoff offers to go back", async ({ page }) => {
+  await page.goto("/");
+  await workLocally(page);
+  const before = new URL(page.url()).pathname;
+  const title = `Shared task ${Date.now()}`;
+  await page.goto(await shareUrl(page, { title, text: "Look at this", url: "https://example.com/shared" }));
+  await workLocally(page);
+  await pickIntake(page, "Task");
+  await page.getByRole("button", { name: "Open the Task" }).click();
+  const dialog = page.getByRole("dialog", { name: "New task" });
+  await expect(dialog.getByLabel("Title")).toHaveValue(title);
+  await expect(dialog.getByLabel("Notes")).toHaveValue("https://example.com/shared");
+  await dialog.getByRole("button", { name: "Add task" }).click();
+
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Go back" }).click();
+  await expect(page).toHaveURL((u) => u.pathname === before);
+  expect(await tasksTitled(page, title)).toBe(1);
+});
+
 /**
  * Stands in for PocketBase (VITE_PB_URL, by default 127.0.0.1:8090): any password
  * signs in as one Account, and the sync that follows pulls an empty server.
