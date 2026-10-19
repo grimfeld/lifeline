@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { addAttachment, documentsOf, documentsWhere, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, type DateStr } from "@lifeline/core";
 import { LINE, PRODUCT, RECEIPT, SHOP, isDimension, isSecondaryDimension, isUnitOf, type Basis, type Dimension, type LabelMemory, type Line, type Product, type Receipt, type SecondaryDimension, type Shop, type Unit } from "../domain/types";
-import { fromAmount, readMeasure, readSecondary, secondaryMeasure } from "../domain/measure";
+import { fromAmount, matchedAmount, readMeasure, readSecondary, secondaryMeasure } from "../domain/measure";
 import { clearsSecondAmounts, lastSecondAmount, linesToRetype, observe, receiptTitle, relabel, withLabel, withoutLabel, type LineMatch } from "../domain/derive";
 
 /**
@@ -330,9 +330,13 @@ export async function deleteReceipt(id: string): Promise<void> {
   await removeDocument(id);
 }
 
-/** Clear one Line from the inbox: point it at a Product and teach the Product its label at this Shop. */
+/**
+ * Clear one Line from the inbox: point it at a Product and teach the Product
+ * its label at this Shop. The amount typed while unmatched is read in the
+ * Product's reading unit and stored in its base unit (matchedAmount).
+ */
 export async function matchLine(line: Line, product: Product, receipt: Receipt): Promise<void> {
-  await patchDocument(line.id, { productId: product.id });
+  await patchDocument(line.id, { productId: product.id, amount: matchedAmount(line, product) });
   await rememberLabel(product, receipt.shopId, line.label);
 }
 

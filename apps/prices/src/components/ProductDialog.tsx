@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, toast } from "@lifeline/ui";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, toast } from "@lifeline/ui";
 import { useTagVocabulary } from "@lifeline/core";
 import { BASE_UNIT, DIMENSIONS, DIMENSION_LABEL, SECONDARY_DIMENSIONS, UNITS_OF, UNIT_LABEL, type Basis, type Dimension, type Product, type SecondaryDimension, type Unit } from "../domain/types";
 import { amountUnit, measureLabel, perUnit } from "../domain/measure";
-import { clearsSecondAmounts, linesToRetype } from "../domain/derive";
+import { measureChange } from "../domain/derive";
 import { addProduct, deleteProduct, mergeProduct, updateProduct, useLines, useProducts } from "../data/repo";
+import { NONE, UnitSelect } from "./pickers";
 
 /**
  * A Product (ADR 0082, 0084): a name and a Measure — a dimension and the unit
@@ -52,14 +53,10 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
   const mergeTargets = products.filter((p) => product && p.id !== product.id);
   const into = mergeTargets.find((p) => p.id === mergeInto);
 
-  // Lines that will need an amount: the Product's own when its dimension
-  // changes, or — merging — when the target reads in another dimension.
-  const retype = product ? linesToRetype(lines, product, into ? into.dimension : dimension).length : 0;
-  const lineCount = `${retype} line${retype === 1 ? "" : "s"}`;
   const ownSecondary = dimension === "count" ? secondary : "";
-  // Second amounts the change or merge would clear (ADR 0084), said before it happens.
-  const clears = product && clearsSecondAmounts(product, into ?? { dimension, secondaryDimension: ownSecondary });
-  const cleared = clears ? lines.filter((l) => l.productId === product.id && (l.secondAmount ?? 0) > 0).length : 0;
+  // What the change — or, merging, the target's Measure — does to the Lines (ADR 0084), said before it happens.
+  const { retype, cleared } = product ? measureChange(product, into ?? { dimension, secondaryDimension: ownSecondary }, lines) : { retype: 0, cleared: 0 };
+  const lineCount = `${retype} line${retype === 1 ? "" : "s"}`;
   const clearedCount = `${cleared} second amount${cleared === 1 ? "" : "s"}`;
   const measure = { dimension, unit, countName: countName.trim(), secondaryDimension: ownSecondary, secondaryUnit, compareBy: ownSecondary ? compareBy : ("primary" as Basis) };
   const primaryPer = perUnit({ dimension, unit, countName: countName.trim() });
@@ -101,117 +98,65 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
           <DialogTitle>{product ? product.title : "New product"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
-          <div className="grid gap-1.5">
-            <Label htmlFor="product-title">Name</Label>
-            <Input id="product-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Lait demi-écrémé" autoFocus onKeyDown={(e) => e.key === "Enter" && void save()} />
-          </div>
+          <Field label="Name">
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Lait demi-écrémé" autoFocus onKeyDown={(e) => e.key === "Enter" && void save()} />
+          </Field>
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid min-w-0 gap-1.5">
-              <Label>Dimension</Label>
-              <Select
+            <Field label="Dimension" className="min-w-0">
+              <UnitSelect
                 value={dimension}
-                onValueChange={(v) => {
-                  const d = v as Dimension;
+                options={DIMENSIONS.map((d) => ({ value: d, label: DIMENSION_LABEL[d] }))}
+                onChange={(d) => {
                   // Back to the Product's own dimension restores its own unit and name.
                   const own = product && d === product.dimension;
                   setDimension(d);
                   setUnit(own ? product.unit : BASE_UNIT[d]);
                   setCountName(own ? product.countName : "");
                 }}
-              >
-                <SelectTrigger aria-label="Dimension" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DIMENSIONS.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {DIMENSION_LABEL[d]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              />
+            </Field>
             {dimension === "count" ? (
-              <div className="grid min-w-0 gap-1.5">
-                <Label htmlFor="product-count-name">Counted as</Label>
-                <Input id="product-count-name" value={countName} onChange={(e) => setCountName(e.target.value)} placeholder="pieces" />
-              </div>
+              <Field label="Counted as" className="min-w-0">
+                <Input value={countName} onChange={(e) => setCountName(e.target.value)} placeholder="pieces" />
+              </Field>
             ) : (
-              <div className="grid min-w-0 gap-1.5">
-                <Label>Read in</Label>
-                <Select value={unit} onValueChange={(v) => setUnit(v as Unit)} disabled={UNITS_OF[dimension].length < 2}>
-                  <SelectTrigger aria-label="Read in" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {UNITS_OF[dimension].map((u) => (
-                      <SelectItem key={u} value={u}>
-                        {UNIT_LABEL[u]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Field label="Read in" className="min-w-0">
+                <UnitSelect value={unit} onChange={setUnit} options={UNITS_OF[dimension].map((u) => ({ value: u, label: UNIT_LABEL[u] }))} disabled={UNITS_OF[dimension].length < 2} />
+              </Field>
             )}
           </div>
           {dimension === "count" && (
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid min-w-0 gap-1.5">
-                <Label>Also measured</Label>
-                <Select
-                  value={secondary || "__none__"}
-                  onValueChange={(v) => {
-                    const d = v === "__none__" ? "" : (v as SecondaryDimension);
+              <Field label="Also measured" className="min-w-0">
+                <UnitSelect
+                  value={secondary || NONE}
+                  options={[{ value: NONE, label: "Not measured" }, ...SECONDARY_DIMENSIONS.map((d) => ({ value: d, label: DIMENSION_LABEL[d] }))]}
+                  onChange={(v) => {
+                    const d = v === NONE ? "" : (v as SecondaryDimension);
                     // Back to the Product's own secondary restores its own unit.
                     const own = product && d === product.secondaryDimension;
                     setSecondary(d);
                     setSecondaryUnit(own ? product.secondaryUnit : BASE_UNIT[d || "mass"]);
                     if (!d) setCompareBy("primary");
                   }}
-                >
-                  <SelectTrigger aria-label="Also measured" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Not measured</SelectItem>
-                    {SECONDARY_DIMENSIONS.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {DIMENSION_LABEL[d]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                />
+              </Field>
               {secondary && (
-                <div className="grid min-w-0 gap-1.5">
-                  <Label>Measured in</Label>
-                  <Select value={secondaryUnit} onValueChange={(v) => setSecondaryUnit(v as Unit)}>
-                    <SelectTrigger aria-label="Measured in" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {UNITS_OF[secondary].map((u) => (
-                        <SelectItem key={u} value={u}>
-                          {UNIT_LABEL[u]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Field label="Measured in" className="min-w-0">
+                  <UnitSelect value={secondaryUnit} onChange={setSecondaryUnit} options={UNITS_OF[secondary].map((u) => ({ value: u, label: UNIT_LABEL[u] }))} />
+                </Field>
               )}
               {secondary && (
-                <div className="col-span-2 grid min-w-0 gap-1.5">
-                  <Label>Compare by</Label>
-                  <Select value={compareBy} onValueChange={(v) => setCompareBy(v as Basis)}>
-                    <SelectTrigger aria-label="Compare by" className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="primary">€{primaryPer}</SelectItem>
-                      <SelectItem value="secondary">€{secondaryPer}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Field label="Compare by" className="col-span-2 min-w-0">
+                  <UnitSelect<Basis>
+                    value={compareBy}
+                    onChange={setCompareBy}
+                    options={[
+                      { value: "primary", label: `€${primaryPer}` },
+                      { value: "secondary", label: `€${secondaryPer}` },
+                    ]}
+                  />
+                </Field>
               )}
             </div>
           )}
@@ -236,12 +181,12 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
           {product && mergeTargets.length > 0 && (
             <div className="grid gap-1.5">
               <Label>Merge into another product</Label>
-              <Select value={mergeInto || "__none__"} onValueChange={(v) => setMergeInto(v === "__none__" ? "" : v)}>
+              <Select value={mergeInto || NONE} onValueChange={(v) => setMergeInto(v === NONE ? "" : v)}>
                 <SelectTrigger aria-label="Merge into" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">— keep as is —</SelectItem>
+                  <SelectItem value={NONE}>— keep as is —</SelectItem>
                   {mergeTargets.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.title} · {measureLabel(p)}

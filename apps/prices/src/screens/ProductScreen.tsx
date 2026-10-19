@@ -1,26 +1,20 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Badge, Button, Card, CardContent, PhoneDock, TagChips, ToggleGroup, ToggleGroupItem, cn } from "@lifeline/ui";
+import { Badge, Button, Card, CardContent, TagChips, cn } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { ArrowLeft, Pencil, Plus } from "lucide-react";
 import { PRICES_HREF, type Basis, type Observation, type Receipt } from "../domain/types";
-import { formatAmount, formatUnitPrice, measureLabel, measureOf, otherBasis, perUnit, secondaryMeasure } from "../domain/measure";
-import { cheapest, comparedBy, historyOf, inSpan, latestUsual, observe, observeAll, spanOf, unitPrice, type PricePoint } from "../domain/derive";
+import { basisOf, formatAmount, formatUnitPrice, measureLabel, measureOf, otherBasis, perUnit, secondaryMeasure } from "../domain/measure";
+import { cheapest, comparedBy, historyOf, latestUsual, observe, observeAll, unitPriceOn, type PricePoint } from "../domain/derive";
+import { inSpan, spanOf } from "../domain/stats";
 import { formatCents } from "../domain/money";
 import { useLines, useProduct, useReceipts, useShops } from "../data/repo";
-import { PriceChart, shopColor } from "../components/PriceChart";
+import { PriceChart } from "../components/PriceChart";
 import { ProductDialog } from "../components/ProductDialog";
 import { AddPriceDialog } from "../components/AddPriceDialog";
 import { ReceiptDialog } from "../components/ReceiptDialog";
-import { ProductStats } from "../components/ProductStats";
-
-/** The page's one span (ADR 0084): every figure on it reads the same months. */
-const SPANS: { months: number; label: string }[] = [
-  { months: 3, label: "3 months" },
-  { months: 6, label: "6 months" },
-  { months: 12, label: "12 months" },
-  { months: 0, label: "All" },
-];
+import { Dot, ProductStats } from "../components/ProductStats";
+import { SpanPicker } from "../components/SpanPicker";
 
 /**
  * One Product (ADR 0082): its unit price per Shop over time, the usual price
@@ -64,14 +58,12 @@ export function ProductScreen() {
   const measure = measureOf(product);
   const otherMeasure = other ? measureOf(product, other) : undefined;
   const second = secondaryMeasure(product);
-  /** A Line's unit price on a basis, read in that basis' Measure; null when it has no amount for it. */
+  /** A Line's unit price on a basis, read in that basis' Measure; null when it says nothing per unit on it (unitPriceOn). */
   const priceOn = (o: Observation, basis: Basis): string | null => {
-    if (o.line.needsAmount) return null;
-    const amount = basis === "primary" ? o.line.amount : (o.line.secondAmount ?? 0);
-    if (basis === "secondary" && !(amount > 0)) return null;
-    return formatUnitPrice(unitPrice({ price: o.line.price, amount }), measureOf(product, basis));
+    const unit = unitPriceOn(o, product, basis);
+    return unit === null ? null : formatUnitPrice(unit, measureOf(product, basis));
   };
-  const leading: Basis = other === "primary" ? "secondary" : "primary";
+  const leading = basisOf(product);
 
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-4 p-4">
@@ -97,15 +89,7 @@ export function ProductScreen() {
         </Button>
       </div>
 
-      <PhoneDock order={1}>
-        <ToggleGroup value={String(months)} onValueChange={(v) => setMonths(Number(v))} aria-label="Span">
-          {SPANS.map((s) => (
-            <ToggleGroupItem key={s.months} value={String(s.months)} aria-label={s.label}>
-              {s.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </PhoneDock>
+      <SpanPicker months={months} onChange={setMonths} />
 
       {history.size > 0 && (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -116,7 +100,7 @@ export function ProductScreen() {
               <Card key={sid} className={cn(best?.shopId === sid && "border-emerald-600/50")}>
                 <CardContent className="grid gap-0.5 p-3">
                   <div className="flex items-center gap-1.5 text-sm font-medium">
-                    <span className="size-2 rounded-full" style={{ background: shopColor(sid, shops) }} />
+                    <Dot shopId={sid} shops={shops} />
                     {shopName(sid)}
                     {best?.shopId === sid && (
                       <Badge variant="outline" className="ml-auto border-emerald-600/50 text-emerald-600">
@@ -139,14 +123,14 @@ export function ProductScreen() {
         <CardContent className="grid gap-2 p-3">
           <h2 className="text-muted-foreground text-sm font-medium">Unit price · €{perUnit(measure)}</h2>
           <PriceChart history={shown} shops={shops} measure={measure} />
-          <p className="text-muted-foreground text-[11px]">Hollow points are promos — history shows them, the usual price ignores them.</p>
+          <p className="text-muted-foreground text-xs">Hollow points are promos — history shows them, the usual price ignores them.</p>
         </CardContent>
       </Card>
 
       <ProductStats product={product} shops={shops} all={all} obs={obs} span={span} />
 
       <div className="grid gap-1">
-        <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">Every price</span>
+        <h2 className="text-muted-foreground text-sm font-medium">Every price</h2>
         {own.length === 0 ? (
           <p className="text-muted-foreground text-sm">No prices yet — scan a receipt or add one.</p>
         ) : (
@@ -156,7 +140,7 @@ export function ProductScreen() {
                 <button type="button" className="hover:bg-accent/50 flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm" onClick={() => setOpenReceipt(receipts.find((r) => r.id === o.line.receiptId) ?? null)}>
                   <span className="text-muted-foreground w-24 shrink-0 tabular-nums">{formatHuman(o.date)}</span>
                   <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate">
-                    <span className="size-2 shrink-0 rounded-full" style={{ background: shopColor(o.shopId, shops) }} />
+                    <Dot shopId={o.shopId} shops={shops} />
                     {shopName(o.shopId)}
                     {o.line.promo && (
                       <Badge variant="outline" className="px-1 text-[10px]">

@@ -40,6 +40,18 @@ export function parseAmount(text: string): number | null {
   return Math.round(n * 100);
 }
 
+/**
+ * Parse a typed amount of something — 420 g, 0,42 kg, 6 — with a dot or a
+ * comma for the decimal; null when empty or not a number. Not money: no
+ * cents, no thousands separators (see parseAmount).
+ */
+export function parseNumber(text: string): number | null {
+  const s = text.trim().replace(",", ".");
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
 /** Cents → "12.50" for editing (dot decimal, no symbol, no thousands). */
 export function editAmount(cents: number): string {
   return (cents / 100).toFixed(2);

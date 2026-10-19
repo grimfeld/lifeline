@@ -37,6 +37,10 @@ describe("tool catalogue", () => {
     expect(receipt.input.lines.safeParse([{ label: "CROISSANTS X4", price: 2.4, amount: 4, second_amount: 240, second_unit: "g" }]).success).toBe(true);
     expect(Object.keys(TOOLS.find((t) => t.name === "prices_add")!.input)).toEqual(expect.arrayContaining(["second_amount", "second_unit", "bought"]));
     expect(Object.keys(TOOLS.find((t) => t.name === "prices_product_add")!.input)).toEqual(expect.arrayContaining(["secondary_dimension", "secondary_unit", "compare_by"]));
+    // The older measure arg still makes a Product: an agent written before ADR 0084 keeps working.
+    const productAdd = TOOLS.find((t) => t.name === "prices_product_add")!;
+    expect(productAdd.input.measure.safeParse("kg").success).toBe(true);
+    expect(productAdd.input.dimension.safeParse(undefined).success).toBe(true);
     expect(TOOLS.map((t) => t.name)).toEqual(expect.arrayContaining(["prices_product_add", "prices_shop_add"]));
   });
 

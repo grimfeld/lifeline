@@ -2,12 +2,19 @@ import { useMemo, type ReactNode } from "react";
 import { Card, CardContent } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import type { Observation, Product, Shop } from "../domain/types";
-import { comparedBy, overpaidOf, promoOf, rhythmOf, spendOf, spreadOf, type PriceStats, type Span } from "../domain/derive";
+import { comparedBy } from "../domain/derive";
+import { overpaidOf, promoOf, rhythmOf, spendOf, spreadOf, type PriceStats, type Span } from "../domain/stats";
 import { formatCents } from "../domain/money";
 import { formatAmount, formatUnitPrice, measureOf } from "../domain/measure";
 import { shopColor } from "./PriceChart";
 
-const pct = (f: number) => `${Math.round(f * 100)}%`;
+/** A fraction as a whole percent — a share, a frequency, a discount. */
+export const pct = (f: number) => `${Math.round(f * 100)}%`;
+
+/** A Shop's colour dot. */
+export function Dot({ shopId, shops }: { shopId: string; shops: readonly Shop[] }) {
+  return <span className="size-2 shrink-0 rounded-full" style={{ background: shopColor(shopId, shops) }} />;
+}
 
 /** One figure: a label above, the number, a quiet line under. */
 export function Figure({ label, value, hint }: { label: string; value: ReactNode; hint?: ReactNode }) {
@@ -34,7 +41,7 @@ export function Section({ title, children }: { title: string; children: ReactNod
 /**
  * A Product's statistics over the page's one span (spec #161, ADR 0084):
  * spend and share, buying rhythm, price spread, promos, Overpaid. Every figure comes
- * from derive.ts; this only lays them out. The per-unit figures — spread,
+ * from stats.ts; this only lays them out. The per-unit figures — spread,
  * promos, Overpaid — read the Product's compared-by unit (ADR 0084); the
  * amount bought per month stays in its primary Measure, which every Line has.
  */
@@ -81,7 +88,7 @@ export function ProductStats({ product, shops, all, obs, span }: { product: Prod
             {spread.perShop.map(({ shopId, stats }) => (
               <li key={shopId} className="grid gap-0.5">
                 <div className="flex items-baseline gap-2 text-sm">
-                  <span className="size-2 shrink-0 rounded-full" style={{ background: shopColor(shopId, shops) }} />
+                  <Dot shopId={shopId} shops={shops} />
                   <span className="min-w-0 flex-1 truncate">{shopName(shopId)}</span>
                   <span className="shrink-0 tabular-nums">{unit(stats.median)}</span>
                 </div>
@@ -110,7 +117,7 @@ export function ProductStats({ product, shops, all, obs, span }: { product: Prod
               label="Cheapest at"
               value={
                 <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="size-2 shrink-0 rounded-full" style={{ background: shopColor(overpaid.cheapest.shopId, shops) }} />
+                  <Dot shopId={overpaid.cheapest.shopId} shops={shops} />
                   <span className="min-w-0 truncate">{shopName(overpaid.cheapest.shopId)}</span>
                 </span>
               }

@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Badge, Button, Input, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
+import { Badge, Button, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { Inbox, Pencil, Plus, ReceiptText, Ruler, Tag, TriangleAlert } from "lucide-react";
 import { productHref, type Receipt, type Shop } from "../domain/types";
-import { formatUnitPrice, measureOf, perUnit } from "../domain/measure";
-import { changesIn, cheapest, comparedBy, historiesByProduct, isUnmatched, linesByReceipt, needingAmount, observe, overallOf, spanStart, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
+import { formatUnitPrice, measureOf, unitName } from "../domain/measure";
+import { changesIn, cheapest, comparedBy, historiesByProduct, isUnmatched, linesByReceipt, needingAmount, observe, overallOf, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
 import { formatCents } from "../domain/money";
+import { spanOf } from "../domain/stats";
 import { useLines, useProducts, useReceipts, useShops } from "../data/repo";
 import { ProductDialog } from "../components/ProductDialog";
 import { ShopDialog } from "../components/ShopDialog";
@@ -103,8 +104,8 @@ export function PricesScreen() {
     [receipts, byReceipt, onlyUnmatched, kind, unmatchedByReceipt],
   );
 
-  const from = spanStart(months, today);
-  const changeRows = useMemo(() => products.map((p) => ({ p, changes: changesIn(histories.get(p.id) ?? NO_HISTORY, from, today) })).filter((r) => r.changes.length > 0), [products, histories, from, today]);
+  const span = spanOf(months, today);
+  const changeRows = useMemo(() => products.map((p) => ({ p, changes: changesIn(histories.get(p.id) ?? NO_HISTORY, span.from, span.to) })).filter((r) => r.changes.length > 0), [products, histories, span.from, span.to]);
   const overall = useMemo(() => overallOf(changeRows.map((r) => r.changes)), [changeRows]);
 
   return (
@@ -176,7 +177,7 @@ export function PricesScreen() {
                 <li key={p.id}>
                   <button type="button" className="hover:bg-accent/50 flex w-full items-center gap-3 px-3 py-2 text-left text-sm" onClick={() => navigate(productHref(p.id))}>
                     <span className="min-w-0 flex-1 truncate">
-                      {p.title} <span className="text-muted-foreground text-xs">· {perUnit(measureOf(p)).slice(1)}</span>
+                      {p.title} <span className="text-muted-foreground text-xs">· {unitName(measureOf(p))}</span>
                     </span>
                     <span className="text-muted-foreground hidden text-xs sm:inline">
                       {n} price{n === 1 ? "" : "s"} · {nShops} shop{nShops === 1 ? "" : "s"}
@@ -203,22 +204,27 @@ export function PricesScreen() {
               <Inbox className="size-4" /> {unmatchedTotal} unmatched line{unmatchedTotal === 1 ? "" : "s"} — the inbox. Open a receipt to match them to products.
             </button>
           )}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant={onlyUnmatched ? "default" : "outline"} onClick={() => setOnlyUnmatched((v) => !v)} aria-pressed={onlyUnmatched}>
-              <Inbox /> Unmatched
-            </Button>
-            <Select value={kind} onValueChange={(v) => setKind(v as Kind)}>
-              <SelectTrigger className="w-40" aria-label="Bought or noticed">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {KINDS.map((k) => (
-                  <SelectItem key={k.value} value={k.value}>
-                    {k.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap items-center gap-2 empty:hidden">
+            {/* The register's filters (ADR 0064): in place on the desk, a Filters sheet from the Phone dock on a phone. */}
+            <PhoneDock>
+              <PhoneFilters active={+onlyUnmatched + +(kind !== "all")}>
+                <Button variant={onlyUnmatched ? "default" : "outline"} onClick={() => setOnlyUnmatched((v) => !v)} aria-pressed={onlyUnmatched}>
+                  <Inbox /> Unmatched
+                </Button>
+                <Select value={kind} onValueChange={(v) => setKind(v as Kind)}>
+                  <SelectTrigger className="w-40 max-md:w-full" aria-label="Bought or noticed">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {KINDS.map((k) => (
+                      <SelectItem key={k.value} value={k.value}>
+                        {k.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </PhoneFilters>
+            </PhoneDock>
           </div>
           {receiptRows.length === 0 ? (
             <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">{receipts.length === 0 ? "No receipts yet." : "Nothing to show."}</div>

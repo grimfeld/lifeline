@@ -21,9 +21,14 @@ export function amountUnit(m: Measure): string {
   return m.unit === "100g" ? "g" : m.unit;
 }
 
+/** What a unit price is per — "kg", "100 g", "wash". */
+export function unitName(m: Measure): string {
+  return m.dimension === "count" ? m.countName || "pc" : PER_LABEL[m.unit];
+}
+
 /** The unit price's suffix — "/kg", "/100 g", "/wash". */
 export function perUnit(m: Measure): string {
-  return `/${m.dimension === "count" ? m.countName || "pc" : PER_LABEL[m.unit]}`;
+  return `/${unitName(m)}`;
 }
 
 /** A stored (base-unit) amount in the Product's reading unit: 0.42 kg → 420 on a gram Product. */
@@ -34,6 +39,23 @@ export function amountIn(base: number, m: Measure): number {
 /** An amount typed in the Product's reading unit, as stored: 420 on a gram Product → 0.42. */
 export function fromAmount(n: number, m: Measure): number {
   return clean(n * AMOUNT_SIZE[m.unit]);
+}
+
+/**
+ * The amount a Line takes when none is given: one, for a count only — a
+ * missing weight or volume is never guessed (ADR 0084). undefined = required.
+ */
+export function defaultAmount(m: Pick<Measure, "dimension"> | undefined): number | undefined {
+  return m?.dimension === "count" ? 1 : undefined;
+}
+
+/**
+ * A Line's amount once it is matched to this Product: an unmatched Line's
+ * amount is kept as typed, so matching reads it in the Product's reading unit
+ * (420 on a gram Product → 0.42 kg); a matched Line's is stored already.
+ */
+export function matchedAmount(line: { productId: string; amount: number }, m: Measure): number {
+  return line.productId ? line.amount : fromAmount(line.amount, m);
 }
 
 /** "420 g", "0.42 kg", "12 pc", "40 wash". */
@@ -58,7 +80,7 @@ export function formatUnitPrice(centsPerBase: number, m: Measure): string {
 
 /** "Mass · per 100 g", "Count · per wash". */
 export function measureLabel(m: Measure): string {
-  return `${DIMENSION_LABEL[m.dimension]} · per ${perUnit(m).slice(1)}`;
+  return `${DIMENSION_LABEL[m.dimension]} · per ${unitName(m)}`;
 }
 
 /** Every spelling of a unit a caller may type, to the unit and dimension it means. */

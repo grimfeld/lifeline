@@ -2,7 +2,7 @@ import { todayStr, type CommandDef } from "@lifeline/core";
 import { Package, Plus, ReceiptText, Store, Tag } from "lucide-react";
 import { DIMENSIONS, DIMENSION_LABEL, PRICES_HREF, PRODUCT, SECONDARY_DIMENSIONS, SHOP, UNIT_LABEL, isDimension, isSecondaryDimension, isUnitOf, type Product, type Unit } from "./domain/types";
 import { matchProduct, receiptTitle, unitPrice } from "./domain/derive";
-import { formatUnitPrice, measureLabel, measureOf, secondaryMeasure, toBase } from "./domain/measure";
+import { amountUnit, defaultAmount, formatUnitPrice, legacyMeasure, measureLabel, measureOf, secondaryMeasure, toBase } from "./domain/measure";
 import { formatCents } from "./domain/money";
 import { addPrice, addProduct, addShop, allLines, allProducts, allShops, saveReceipt, type LineInput } from "./data/repo";
 import { ReceiptDialog } from "./components/ReceiptDialog";
@@ -33,11 +33,14 @@ function toCents(v: unknown, what: string): number | undefined {
 
 /** What every amount hint says about units (ADR 0084). */
 const AMOUNT_UNITS =
-  "Without a unit it is in the unit the Product is read in (420 for 420 g of a gram Product, 0.42 for a kg one, 6 for six litres, 12 for a dozen pieces); stored in the dimension's base unit (kg, L, m, count) either way.";
+  "A number without a unit is read in the unit the Product is shown in: 420 for 420 g of a Product read in grams, 0.42 for one read in kg, 6 for six litres, 12 for a dozen pieces. Give a unit to say it another way.";
+const AMOUNT_DEFAULT = "Defaults to 1 for a Product counted in pieces (or its own count name); required for anything weighed, poured or measured, and for a row with no Product yet.";
 const UNIT_HINT = "The unit the amount is in, when it is not the Product's own: g, kg, 100g, ml, cl, L, cm, m, pc or the Product's count name. Must be of the Product's dimension — pieces never turn into kilograms.";
 
-/** A row's amount as stored: typed in `unit`, else the Product's reading unit; an unmatched row's amount stays as typed. */
-function storedAmount(amount: number, unit: string | undefined, product: Product | undefined, what: string): number {
+/** A row's amount as stored: typed in `unit`, else the Product's reading unit; an unmatched row's amount stays as typed. One by default, for a count only. */
+function storedAmount(typed: number | undefined, unit: string | undefined, product: Product | undefined, what: string): number {
+  const amount = typed ?? defaultAmount(product);
+  if (amount === undefined) throw new Error(`${what}: give the amount — ${product ? `${product.title} is by ${DIMENSION_LABEL[product.dimension].toLowerCase()}, in ${amountUnit(product)}` : "a row with no product has no amount to default to"}`);
   if (!(amount > 0)) throw new Error(`${what}: amount must be above zero`);
   if (!product) return amount;
   try {
@@ -48,7 +51,7 @@ function storedAmount(amount: number, unit: string | undefined, product: Product
 }
 
 const SECOND_AMOUNT_HINT =
-  "For a Product with a secondary Measure only (croissants counted and weighed): the second amount, e.g. 240 for a 240 g pack of a gram-read secondary. Without a unit it is in the secondary Measure's reading unit. Omit to reuse the Product's last pack at this Shop; 0 records none.";
+  "For a Product with a secondary Measure only (croissants counted and weighed): the second amount. A number without a unit is read in the unit that Measure is shown in — 240 for a 240 g pack when it is shown in grams. Omit to reuse the Product's last pack at this Shop; 0 records none.";
 const SECOND_UNIT_HINT = "The unit the second amount is in, when it is not the secondary Measure's own: g, kg, ml, cl or L, of the secondary Measure's dimension.";
 
 /** A second amount as stored, in the secondary Measure's base unit; undefined when absent (prefilled by the repo). */
@@ -92,7 +95,7 @@ export const pricesCommands: CommandDef[] = [
         of: [
           { key: "label", label: "Label", kind: "text", required: true, hint: "As printed." },
           { key: "price", label: "Price paid", kind: "number", required: true, hint: "After any discount, in the currency's units." },
-          { key: "amount", label: "Amount", kind: "number", hint: `How much the price bought. ${AMOUNT_UNITS} Defaults to 1.` },
+          { key: "amount", label: "Amount", kind: "number", hint: `How much the price bought. ${AMOUNT_UNITS} ${AMOUNT_DEFAULT}` },
           { key: "unit", label: "Unit", kind: "text", hint: UNIT_HINT },
           { key: "second_amount", label: "Second amount", kind: "number", hint: SECOND_AMOUNT_HINT },
           { key: "second_unit", label: "Second unit", kind: "text", hint: SECOND_UNIT_HINT },
@@ -110,7 +113,7 @@ export const pricesCommands: CommandDef[] = [
         const label = r.label as string;
         const productId = (r.product as string | undefined) ?? matchProduct(products, shopId, label)?.id ?? "";
         const product = products.find((p) => p.id === productId);
-        const amount = storedAmount((r.amount as number | undefined) ?? 1, r.unit as string | undefined, product, `Lines, row ${i + 1}`);
+        const amount = storedAmount(r.amount as number | undefined, r.unit as string | undefined, product, `Lines, row ${i + 1}`);
         const secondAmount = storedSecond(r.second_amount, r.second_unit as string | undefined, product, `Lines, row ${i + 1}`);
         return { label, amount, secondAmount, price: toCents(r.price, `Lines, row ${i + 1}: the price`)!, promo: !!r.promo, productId };
       });
@@ -134,7 +137,7 @@ export const pricesCommands: CommandDef[] = [
       { key: "product", label: "Product", kind: "link", linkType: PRODUCT, required: true, hint: "An existing Product; a missing one is made with prices_product_add first." },
       { key: "shop", label: "Shop", kind: "link", linkType: SHOP, required: true },
       { key: "price", label: "Price paid", kind: "number", required: true, hint: "In the currency's units, e.g. 2.49." },
-      { key: "amount", label: "Amount", kind: "number", hint: `How much the price buys. ${AMOUNT_UNITS} Defaults to 1.` },
+      { key: "amount", label: "Amount", kind: "number", hint: `How much the price buys. ${AMOUNT_UNITS} ${AMOUNT_DEFAULT}` },
       { key: "unit", label: "Unit", kind: "text", hint: UNIT_HINT },
       { key: "second_amount", label: "Second amount", kind: "number", hint: SECOND_AMOUNT_HINT },
       { key: "second_unit", label: "Second unit", kind: "text", hint: SECOND_UNIT_HINT },
@@ -147,7 +150,7 @@ export const pricesCommands: CommandDef[] = [
       const products = await allProducts();
       const product = products.find((p) => p.id === a.product);
       if (!product) throw new Error("Pick a product");
-      const amount = storedAmount((a.amount as number | undefined) ?? 1, a.unit as string | undefined, product, "Amount");
+      const amount = storedAmount(a.amount as number | undefined, a.unit as string | undefined, product, "Amount");
       const secondAmount = storedSecond(a.second_amount, a.second_unit as string | undefined, product, "Second amount");
       const id = await addPrice({ productId: product.id, shopId: a.shop as string, amount, secondAmount, price: cents, promo: !!a.promo, bought: !!a.bought, date: (a.date as string | undefined) ?? todayStr() }, await allShops(), products);
       // Read back in the Product's compared-by unit, from the Line as saved (its second amount may be prefilled).
@@ -169,9 +172,19 @@ export const pricesCommands: CommandDef[] = [
         key: "dimension",
         label: "Dimension",
         kind: "select",
-        required: true,
         options: DIMENSIONS.map((d) => ({ value: d, label: DIMENSION_LABEL[d] })),
-        hint: "What every price of it is per. Sold by weight → mass, by volume → volume, by the unit, pack or use → count, by the metre (cling film, foil) → length. A pack size is not a new Product.",
+        hint: "What every price of it is per. Sold by weight → mass, by volume → volume, by the unit, pack or use → count, by the metre (cling film, foil) → length. A pack size is not a new Product. Required, unless the older `measure` is given.",
+      },
+      {
+        key: "measure",
+        label: "Measure (older form)",
+        kind: "select",
+        options: [
+          { value: "kg", label: "Per kg" },
+          { value: "l", label: "Per litre" },
+          { value: "piece", label: "Per piece" },
+        ],
+        hint: "The older way to say the dimension, still understood: kg = mass read in kg, l = volume read in L, piece = count. Prefer dimension and unit.",
       },
       {
         key: "unit",
@@ -192,14 +205,18 @@ export const pricesCommands: CommandDef[] = [
       { key: "compare_by", label: "Compare by", kind: "select", options: [{ value: "primary", label: "Primary" }, { value: "secondary", label: "Secondary" }], hint: "Which unit price decides the cheapest shop and the price change: primary (€/pc, eggs) or secondary (€/kg, croissants). Defaults to primary." },
     ],
     async invoke(a) {
-      if (!isDimension(a.dimension)) throw new Error("Pick a dimension");
-      const unit = a.unit as string | undefined;
-      if (unit !== undefined && !isUnitOf(a.dimension, unit)) throw new Error(`“${unit}” is not a unit of ${a.dimension}`);
+      // The older `measure` arg (ADR 0082) stands in for a dimension and unit, so agents written before ADR 0084 still work.
+      const legacy = a.dimension === undefined ? legacyMeasure(a.measure) : undefined;
+      if (a.dimension === undefined && a.measure !== undefined && !legacy) throw new Error(`Unknown measure “${String(a.measure)}”; give a dimension: mass, volume, count or length`);
+      const dimension = legacy?.dimension ?? a.dimension;
+      if (!isDimension(dimension)) throw new Error("Pick a dimension: mass, volume, count or length");
+      const unit = (a.unit as string | undefined) ?? legacy?.unit;
+      if (unit !== undefined && !isUnitOf(dimension, unit)) throw new Error(`“${unit}” is not a unit of ${dimension}`);
       const secondaryDimension = a.secondary_dimension as string | undefined;
       if (secondaryDimension !== undefined && !isSecondaryDimension(secondaryDimension)) throw new Error("A secondary measure is mass or volume");
       const id = await addProduct({
         title: a.name as string,
-        dimension: a.dimension,
+        dimension,
         unit,
         countName: a.count_name as string | undefined,
         secondaryDimension,

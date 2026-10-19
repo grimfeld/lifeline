@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 import type { Line, Product, Receipt, Shop } from "../domain/types";
 import { amountUnit } from "../domain/measure";
 import { needingAmount } from "../domain/derive";
-import { formatCents } from "../domain/money";
+import { formatCents, parseNumber } from "../domain/money";
 import { setLineAmount } from "../data/repo";
 
 /**
@@ -47,15 +47,18 @@ export function NeedsAmountDialog({ open, onOpenChange, lines, products, receipt
 
 function AmountRow({ line, product, where }: { line: Line; product: Product; where: string }) {
   const [value, setValue] = useState("");
-  const typed = Number(value.replace(",", "."));
+  const [error, setError] = useState("");
+  const typed = parseNumber(value);
   const unit = amountUnit(product);
+  const errorId = `na-${line.id}-error`;
 
   async function save() {
+    if (typed === null || !(typed > 0)) return setError(`Type an amount above zero, in ${unit}`);
     try {
       await setLineAmount(line, typed, product);
       toast.success(`${product.title}: amount saved`);
     } catch (e) {
-      toast.error((e as Error).message);
+      setError(`Not saved: ${(e as Error).message}`);
     }
   }
 
@@ -71,12 +74,30 @@ function AmountRow({ line, product, where }: { line: Line; product: Product; whe
         </span>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
-        <Input value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === "Enter" && typed > 0 && void save()} inputMode="decimal" placeholder="Amount" aria-label={`${product.title}: amount in ${unit}`} className="w-24" />
+        <Input
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setError("");
+          }}
+          onKeyDown={(e) => e.key === "Enter" && void save()}
+          inputMode="decimal"
+          placeholder="Amount"
+          aria-label={`${product.title}: amount in ${unit}`}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
+          className="w-24"
+        />
         <span className="text-muted-foreground w-10 truncate text-xs">{unit}</span>
-        <Button type="button" size="icon-sm" variant="outline" disabled={!(typed > 0)} onClick={() => void save()} aria-label={`Save the amount of ${product.title}`}>
+        <Button type="button" size="icon-sm" variant="outline" disabled={!value.trim()} onClick={() => void save()} aria-label={`Save the amount of ${product.title}`}>
           <Check />
         </Button>
       </div>
+      {error && (
+        <p id={errorId} className="text-destructive w-full text-xs">
+          {error}
+        </p>
+      )}
     </li>
   );
 }

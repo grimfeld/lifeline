@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Measure } from "./types";
-import { amountIn, amountUnit, formatAmount, formatUnitPrice, fromAmount, legacyMeasure, measureLabel, perUnit, readMeasure, toBase, unitPriceIn } from "./measure";
+import { amountIn, amountUnit, defaultAmount, formatAmount, formatUnitPrice, fromAmount, legacyMeasure, matchedAmount, measureLabel, perUnit, readMeasure, toBase, unitName, unitPriceIn } from "./measure";
 
 const grams: Measure = { dimension: "mass", unit: "g", countName: "" };
 const kilos: Measure = { dimension: "mass", unit: "kg", countName: "" };
@@ -98,5 +98,26 @@ describe("old measures", () => {
   it("describes itself", () => {
     expect(measureLabel(per100g)).toBe("Mass · per 100 g");
     expect(measureLabel(washes)).toBe("Count · per wash");
+  });
+});
+
+describe("a unit's name", () => {
+  it("is what a price is per, without the slash", () => {
+    expect(unitName(per100g)).toBe("100 g");
+    expect(unitName(washes)).toBe("wash");
+    expect(unitName(pieces)).toBe("pc");
+  });
+});
+
+describe("matching an unmatched Line, and a missing amount", () => {
+  it("an unmatched Line's amount is read in the Product's reading unit; a matched one is kept", () => {
+    expect(matchedAmount({ productId: "", amount: 420 }, grams)).toBe(0.42);
+    expect(matchedAmount({ productId: "p1", amount: 0.42 }, grams)).toBe(0.42);
+  });
+  it("defaults to one for a count only", () => {
+    expect(defaultAmount(pieces)).toBe(1);
+    expect(defaultAmount(washes)).toBe(1);
+    expect(defaultAmount(grams)).toBeUndefined();
+    expect(defaultAmount(undefined)).toBeUndefined();
   });
 });

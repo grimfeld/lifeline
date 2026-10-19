@@ -1,30 +1,15 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { PhoneDock, ToggleGroup, ToggleGroupItem } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import { productHref, type Line, type Product, type Receipt, type Shop } from "../domain/types";
-import { overviewOf, spanOf } from "../domain/derive";
+import { overviewOf, spanOf } from "../domain/stats";
 import { formatCents } from "../domain/money";
 import { formatUnitPrice, measureOf } from "../domain/measure";
-import { shopColor } from "./PriceChart";
-import { Figure, Section } from "./ProductStats";
-
-/** The Overview's own span (ADR 0084), as the Product page's: default 12 months, "All" included. */
-const SPANS: { months: number; label: string }[] = [
-  { months: 3, label: "3 months" },
-  { months: 6, label: "6 months" },
-  { months: 12, label: "12 months" },
-  { months: 0, label: "All" },
-];
+import { Dot, Figure, Section, pct } from "./ProductStats";
+import { SpanPicker } from "./SpanPicker";
 
 /** How many Products the Spend and Overpaid lists show. */
 const TOP = 8;
-
-const pct = (f: number) => `${Math.round(f * 100)}%`;
-
-function Dot({ shopId, shops }: { shopId: string; shops: readonly Shop[] }) {
-  return <span className="size-2 shrink-0 rounded-full" style={{ background: shopColor(shopId, shops) }} />;
-}
 
 /**
  * The Prices screen's fourth reading (spec #161, ADR 0084): Spend, Shops,
@@ -48,15 +33,8 @@ export function PricesOverview({ products, shops, receipts, lines }: { products:
 
   return (
     <div className="grid gap-3">
-      <PhoneDock order={1}>
-        <ToggleGroup value={String(months)} onValueChange={(v) => setMonths(Number(v))} aria-label="Span" className="justify-self-start">
-          {SPANS.map((s) => (
-            <ToggleGroupItem key={s.months} value={String(s.months)} aria-label={s.label}>
-              {s.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </PhoneDock>
+      {/* Its own span, as the Product page's: default 12 months, "All" included. */}
+      <SpanPicker months={months} onChange={setMonths} />
 
       <div className="grid gap-3 md:grid-cols-2">
         <Section title="Spend">

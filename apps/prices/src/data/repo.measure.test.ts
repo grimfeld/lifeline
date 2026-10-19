@@ -6,7 +6,7 @@ import { documentsOf, documentsTable, initApps, putDocument } from "@lifeline/co
 import { pricesApp } from "../index";
 import { pricesCommands } from "../commands";
 import { LINE, PRODUCT, type Line } from "../domain/types";
-import { addPrice, addProduct, addShop, allLines, allProducts, allReceipts, allShops, mergeProduct, saveReceipt, setLineAmount, updateProduct } from "./repo";
+import { addPrice, addProduct, addShop, allLines, allProducts, allReceipts, allShops, matchLine, mergeProduct, saveReceipt, setLineAmount, updateProduct } from "./repo";
 import { linesToRetype } from "../domain/derive";
 
 initApps([pricesApp]);
@@ -197,5 +197,55 @@ describe("amounts over MCP (prices_add, prices_receipt)", () => {
     const { id } = (await run("prices.product-add", { name: "Detergent", dimension: "count", count_name: "wash" })) as { id: string };
     expect(await product(id)).toMatchObject({ dimension: "count", unit: "pc", countName: "wash" });
     await expect(run("prices.product-add", { name: "Milk", dimension: "volume", unit: "g" })).rejects.toThrow(/not a unit/);
+  });
+});
+
+describe("an unmatched Line's amount", () => {
+  const run = (id: string, args: Record<string, unknown>) => pricesCommands.find((c) => c.id === id)!.invoke!(args);
+
+  it("is read in the Product's reading unit when the Line is matched, and stored in the base unit", async () => {
+    const shop = await addShop({ title: "Lidl" });
+    const cumin = await addProduct({ title: "Cumin", dimension: "mass", unit: "g" });
+    await run("prices.receipt", { shop, lines: [{ label: "EPICE", price: 1.89, amount: 420 }] });
+    const [line] = await allLines();
+    const [receipt] = await allReceipts();
+
+    await matchLine(line, await product(cumin), receipt);
+
+    const [l] = await allLines();
+    expect([l.productId, l.amount]).toEqual([cumin, 0.42]);
+  });
+});
+
+describe("a default amount (Add price…, Add receipt…)", () => {
+  const run = (id: string, args: Record<string, unknown>) => pricesCommands.find((c) => c.id === id)!.invoke!(args);
+
+  it("is 1 for a count Product", async () => {
+    const shop = await addShop({ title: "Lidl" });
+    const eggs = await addProduct({ title: "Eggs", dimension: "count" });
+    await run("prices.add", { product: eggs, shop, price: 3 });
+    await run("prices.receipt", { shop, lines: [{ label: "EGGS", price: 3, product: eggs }] });
+    expect((await allLines()).map((l) => l.amount)).toEqual([1, 1]);
+  });
+
+  it("is refused for any other Product, and for an unmatched row", async () => {
+    const shop = await addShop({ title: "Lidl" });
+    const flour = await addProduct({ title: "Flour", dimension: "mass", unit: "kg" });
+    await expect(run("prices.add", { product: flour, shop, price: 1 })).rejects.toThrow(/amount.*mass/i);
+    await expect(run("prices.receipt", { shop, lines: [{ label: "FARINE", price: 1, product: flour }] })).rejects.toThrow(/row 1.*amount/i);
+    await expect(run("prices.receipt", { shop, lines: [{ label: "???", price: 1 }] })).rejects.toThrow(/row 1.*amount/i);
+    expect(await allLines()).toEqual([]);
+  });
+});
+
+describe("New product… over MCP", () => {
+  const run = (id: string, args: Record<string, unknown>) => pricesCommands.find((c) => c.id === id)!.invoke!(args);
+
+  it("still takes the old measure (kg, l, piece) as a dimension and unit", async () => {
+    const made = async (name: string, measure: string) => product(((await run("prices.product-add", { name, measure })) as { id: string }).id);
+    expect(await made("Flour", "kg")).toMatchObject({ dimension: "mass", unit: "kg" });
+    expect(await made("Milk", "l")).toMatchObject({ dimension: "volume", unit: "L" });
+    expect(await made("Eggs", "piece")).toMatchObject({ dimension: "count", unit: "pc" });
+    await expect(run("prices.product-add", { name: "Odd", measure: "bushel" })).rejects.toThrow(/dimension/i);
   });
 });
