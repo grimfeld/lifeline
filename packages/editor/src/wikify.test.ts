@@ -14,6 +14,8 @@ describe("wikify", () => {
     const text = '[["'.repeat(100_000);
     const started = performance.now();
     expect(wikify(text)).toBe(text);
+    expect(wikify("[[a|".repeat(50_000))).toBe("[[a|".repeat(50_000));
+    expect(wikify("[[a#".repeat(50_000))).toBe("[[a#".repeat(50_000));
     expect(performance.now() - started).toBeLessThan(1000);
   });
 });

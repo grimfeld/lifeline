@@ -61,4 +61,11 @@ describe("what the share sheet hands over", () => {
   it("does not repeat the url as the text", () => {
     expect(handoffFromShare({ title: "T", text: "https://example.com/", url: "https://example.com/" })).toEqual({ title: "T", text: "", url: "https://example.com/" });
   });
+
+  it("lifts a URL from long runs of punctuation and spaces in linear time", () => {
+    const started = performance.now();
+    const url = `https://a.example/${"!".repeat(50_000)}b`;
+    expect(handoffFromShare({ title: "T", text: `${" ".repeat(50_000)}x ${url}` })).toEqual({ title: "T", text: "x", url });
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
 });

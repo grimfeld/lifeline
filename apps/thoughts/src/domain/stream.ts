@@ -12,8 +12,9 @@ export function titleFromText(text: string): string {
       .find((l) => l.trim())
       ?.replace(/^#+\s*/, "")
       // A wikilink reads as the name it shows: `[[Ursula Le Guin]]` → Ursula Le Guin, `[[Alex|my brother]]` → my brother.
-      .replace(/!?\[\[([^\]|]+)\|([^\]]+)\]\]/g, "$2")
-      .replace(/!?\[\[([^\]]+)\]\]/g, "$1")
+      // A name and an alias hold no `[`, so a long run of `[[` is read once, not once per bracket.
+      .replace(/!?\[\[([^[\]|]+)\|([^[\]]+)\]\]/g, "$2")
+      .replace(/!?\[\[([^[\]]+)\]\]/g, "$1")
       .replace(/\s+/g, " ")
       .trim() ?? "";
   if (line.length <= 80) return line;

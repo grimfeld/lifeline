@@ -50,7 +50,18 @@ export interface IntakeEntry {
 
 /** The address of `path` ("/handoff") on a Lifeline at `base` ("https://lifeline.example", with or without a trailing slash). */
 export function addressOn(base: string, path: string): string {
-  return base.replace(/\/+$/, "") + path;
+  return trimEndWhile(base, (c) => c === "/") + path;
+}
+
+/**
+ * `s` less the run of characters at its end that `drop` picks. By hand: a
+ * regex `[…]+$` rescans every run that is not at the end, quadratic on a
+ * long one.
+ */
+function trimEndWhile(s: string, drop: (c: string) => boolean): string {
+  let to = s.length;
+  while (to > 0 && drop(s[to - 1])) to--;
+  return s.slice(0, to);
 }
 
 /** The published Intakes list's address on a Lifeline at `base` ("https://lifeline.example"). */
@@ -171,14 +182,14 @@ function firstLine(text: string): string {
 
 // A URL in shared text: up to whitespace or a bracket, less the punctuation a sentence puts after it.
 const URL_IN_TEXT = /https?:\/\/[^\s<>"]+/i;
-const TRAILING = /[.,;:!?'")\]}»]+$/;
+const TRAILING = new Set(".,;:!?'\")]}»");
 
 /** The first URL in the text, and the text without it — the gap closed, its line breaks kept. */
 function liftUrl(text: string): { url: string; text: string } | undefined {
   const m = URL_IN_TEXT.exec(text);
   if (!m) return undefined;
-  const url = m[0].replace(TRAILING, "");
-  const before = text.slice(0, m.index).replace(/[ \t]+$/, "");
+  const url = trimEndWhile(m[0], (c) => TRAILING.has(c));
+  const before = trimEndWhile(text.slice(0, m.index), (c) => c === " " || c === "\t");
   const after = text.slice(m.index + url.length).replace(/^[ \t]+/, "");
   const gap = before && after && !before.endsWith("\n") && !after.startsWith("\n") ? " " : "";
   return { url, text: (before + gap + after).replace(/\n{3,}/g, "\n\n").trim() };

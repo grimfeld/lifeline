@@ -22,6 +22,13 @@ describe("titleFromText", () => {
     expect(titleFromText("Ask [[Ursula Le Guin]] about [[Alex|my brother]]")).toBe("Ask Ursula Le Guin about my brother");
   });
 
+  it("reads a long run of brackets in linear time", () => {
+    const started = performance.now();
+    expect(titleFromText("[[\\".repeat(50_000)).startsWith("[[\\[[")).toBe(true);
+    expect(titleFromText("[[a|".repeat(50_000)).startsWith("[[a|[[a|")).toBe(true);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
   it("is empty for empty text", () => {
     expect(titleFromText("   \n ")).toBe("");
   });
