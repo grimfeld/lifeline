@@ -1,7 +1,8 @@
 import { todayStr, type CommandDef } from "@lifeline/core";
 import { Package, Plus, ReceiptText, Store, Tag } from "lucide-react";
-import { MEASURES, MEASURE_LABEL, PRICES_HREF, PRODUCT, SHOP, isMeasure } from "./domain/types";
-import { formatUnitPrice, matchProduct, receiptTitle, unitPrice } from "./domain/derive";
+import { DIMENSIONS, DIMENSION_LABEL, PRICES_HREF, PRODUCT, SHOP, UNIT_LABEL, isDimension, isUnitOf, type Product, type Unit } from "./domain/types";
+import { matchProduct, receiptTitle, unitPrice } from "./domain/derive";
+import { formatUnitPrice, measureLabel, toBase } from "./domain/measure";
 import { formatCents } from "./domain/money";
 import { addPrice, addProduct, addShop, allProducts, allShops, saveReceipt, type LineInput } from "./data/repo";
 import { ReceiptDialog } from "./components/ReceiptDialog";
@@ -28,6 +29,22 @@ function toCents(v: unknown, what: string): number | undefined {
   const cents = Math.round((v as number) * 100);
   if (!(cents >= 0)) throw new Error(`${what} cannot be below zero`);
   return cents;
+}
+
+/** What every amount hint says about units (ADR 0084). */
+const AMOUNT_UNITS =
+  "Without a unit it is in the unit the Product is read in (420 for 420 g of a gram Product, 0.42 for a kg one, 6 for six litres, 12 for a dozen pieces); stored in the dimension's base unit (kg, L, m, count) either way.";
+const UNIT_HINT = "The unit the amount is in, when it is not the Product's own: g, kg, 100g, ml, cl, L, cm, m, pc or the Product's count name. Must be of the Product's dimension — pieces never turn into kilograms.";
+
+/** A row's amount as stored: typed in `unit`, else the Product's reading unit; an unmatched row's amount stays as typed. */
+function storedAmount(amount: number, unit: string | undefined, product: Product | undefined, what: string): number {
+  if (!(amount > 0)) throw new Error(`${what}: amount must be above zero`);
+  if (!product) return amount;
+  try {
+    return toBase(amount, unit, product);
+  } catch (e) {
+    throw new Error(`${what}: ${(e as Error).message}`);
+  }
 }
 
 /**
@@ -57,7 +74,8 @@ export const pricesCommands: CommandDef[] = [
         of: [
           { key: "label", label: "Label", kind: "text", required: true, hint: "As printed." },
           { key: "price", label: "Price paid", kind: "number", required: true, hint: "After any discount, in the currency's units." },
-          { key: "amount", label: "Amount", kind: "number", hint: "In the Product's measure: 0.42 for 420 g of a kg Product, 6 for six litres, 12 for a dozen pieces. Defaults to 1." },
+          { key: "amount", label: "Amount", kind: "number", hint: `How much the price bought. ${AMOUNT_UNITS} Defaults to 1.` },
+          { key: "unit", label: "Unit", kind: "text", hint: UNIT_HINT },
           { key: "promo", label: "Promotion", kind: "boolean" },
           { key: "product", label: "Product", kind: "link", linkType: PRODUCT, hint: "Omit to let the Shop's remembered labels match it; still unmatched, it waits in the App's inbox." },
         ],
@@ -70,9 +88,8 @@ export const pricesCommands: CommandDef[] = [
       const date = (a.date as string | undefined) ?? todayStr();
       const lines: LineInput[] = (a.lines as Record<string, unknown>[]).map((r, i) => {
         const label = r.label as string;
-        const amount = (r.amount as number | undefined) ?? 1;
-        if (!(amount > 0)) throw new Error(`Lines, row ${i + 1}: amount must be above zero`);
         const productId = (r.product as string | undefined) ?? matchProduct(products, shopId, label)?.id ?? "";
+        const amount = storedAmount((r.amount as number | undefined) ?? 1, r.unit as string | undefined, products.find((p) => p.id === productId), `Lines, row ${i + 1}`);
         return { label, amount, price: toCents(r.price, `Lines, row ${i + 1}: the price`)!, promo: !!r.promo, productId };
       });
       const total = toCents(a.total, "The printed total") ?? 0;
@@ -95,19 +112,20 @@ export const pricesCommands: CommandDef[] = [
       { key: "product", label: "Product", kind: "link", linkType: PRODUCT, required: true, hint: "An existing Product; a missing one is made with prices_product_add first." },
       { key: "shop", label: "Shop", kind: "link", linkType: SHOP, required: true },
       { key: "price", label: "Price paid", kind: "number", required: true, hint: "In the currency's units, e.g. 2.49." },
-      { key: "amount", label: "Amount", kind: "number", hint: "How much of the Product's measure the price buys (kg, l, pieces…). Defaults to 1." },
+      { key: "amount", label: "Amount", kind: "number", hint: `How much the price buys. ${AMOUNT_UNITS} Defaults to 1.` },
+      { key: "unit", label: "Unit", kind: "text", hint: UNIT_HINT },
       { key: "promo", label: "Promotion", kind: "boolean" },
       { key: "bought", label: "Bought it", kind: "boolean", hint: "True only when the user bought it. Defaults to false: a price noticed on a shelf or a flyer, kept as a Sighting that never counts as spending." },
       { key: "date", label: "Day", kind: "date", hint: "Defaults to today." },
     ],
     async invoke(a) {
       const cents = toCents(a.price, "The price")!;
-      const amount = (a.amount as number | undefined) ?? 1;
-      if (!(amount > 0)) throw new Error("Amount must be above zero");
       const products = await allProducts();
-      const id = await addPrice({ productId: a.product as string, shopId: a.shop as string, amount, price: cents, promo: !!a.promo, bought: !!a.bought, date: (a.date as string | undefined) ?? todayStr() }, await allShops(), products);
-      const product = products.find((p) => p.id === a.product)!;
-      return { id, message: `${product.title}: ${formatUnitPrice(unitPrice({ price: cents, amount }), product.measure)}${a.bought ? "" : " (noticed, not bought)"}` };
+      const product = products.find((p) => p.id === a.product);
+      if (!product) throw new Error("Pick a product");
+      const amount = storedAmount((a.amount as number | undefined) ?? 1, a.unit as string | undefined, product, "Amount");
+      const id = await addPrice({ productId: product.id, shopId: a.shop as string, amount, price: cents, promo: !!a.promo, bought: !!a.bought, date: (a.date as string | undefined) ?? todayStr() }, await allShops(), products);
+      return { id, message: `${product.title}: ${formatUnitPrice(unitPrice({ price: cents, amount }), product)}${a.bought ? "" : " (noticed, not bought)"}` };
     },
   },
   {
@@ -119,18 +137,29 @@ export const pricesCommands: CommandDef[] = [
     args: [
       { key: "name", label: "Name", kind: "text", required: true, hint: "What the user calls it, not the printed label: \"Semi-skimmed milk\"." },
       {
-        key: "measure",
-        label: "Measure",
+        key: "dimension",
+        label: "Dimension",
         kind: "select",
         required: true,
-        options: MEASURES.map((m) => ({ value: m, label: MEASURE_LABEL[m] })),
-        hint: "Fixed for good: every price of it is per this. Sold by weight → kg, by volume → l, by the unit or pack → piece. A pack size is not a new Product.",
+        options: DIMENSIONS.map((d) => ({ value: d, label: DIMENSION_LABEL[d] })),
+        hint: "What every price of it is per. Sold by weight → mass, by volume → volume, by the unit, pack or use → count, by the metre (cling film, foil) → length. A pack size is not a new Product.",
       },
+      {
+        key: "unit",
+        label: "Read in",
+        kind: "select",
+        options: (Object.keys(UNIT_LABEL) as Unit[]).map((u) => ({ value: u, label: UNIT_LABEL[u] })),
+        hint: "The unit it is shown and typed in, of its dimension: mass g, kg or 100g (spices read per 100 g); volume ml or L; length m; count pc. Defaults to kg, L, m or pc. Can be changed later without touching any price.",
+      },
+      { key: "count_name", label: "Count name", kind: "text", hint: "For a count only: what one is called — roll, wash, sheet, capsule. Omit for pieces." },
     ],
     async invoke(a) {
-      if (!isMeasure(a.measure)) throw new Error("Pick a measure");
-      const id = await addProduct({ title: a.name as string, measure: a.measure });
-      return { id, message: `Product ${a.name as string}, per ${MEASURE_LABEL[a.measure].toLowerCase()}` };
+      if (!isDimension(a.dimension)) throw new Error("Pick a dimension");
+      const unit = a.unit as string | undefined;
+      if (unit !== undefined && !isUnitOf(a.dimension, unit)) throw new Error(`“${unit}” is not a unit of ${a.dimension}`);
+      const id = await addProduct({ title: a.name as string, dimension: a.dimension, unit, countName: a.count_name as string | undefined });
+      const product = (await allProducts()).find((p) => p.id === id)!;
+      return { id, message: `Product ${product.title}, ${measureLabel(product).toLowerCase()}` };
     },
   },
   {

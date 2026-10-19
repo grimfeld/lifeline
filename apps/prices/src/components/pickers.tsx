@@ -1,5 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { MEASURE_UNIT, type Product, type Shop } from "../domain/types";
+import { perUnit } from "../domain/measure";
+import { type Product, type Shop } from "../domain/types";
 
 /** Radix Select refuses "" as an item value; these stand in for "none" and "make a new one". */
 export const NONE = "__none__";
@@ -49,7 +50,7 @@ export function ProductSelect({ value, onChange, products, onNew, allowNone, cla
         )}
         {products.map((p) => (
           <SelectItem key={p.id} value={p.id}>
-            {p.title} <span className="text-muted-foreground">· {MEASURE_UNIT[p.measure]}</span>
+            {p.title} <span className="text-muted-foreground">· {perUnit(p).slice(1)}</span>
           </SelectItem>
         ))}
         {onNew && <SelectItem value={NEW}>＋ New product…</SelectItem>}

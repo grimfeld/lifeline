@@ -1,12 +1,19 @@
 import { useMemo } from "react";
 import { addAttachment, documentsOf, documentsWhere, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, type DateStr } from "@lifeline/core";
-import { LINE, PRODUCT, RECEIPT, SHOP, isMeasure, type LabelMemory, type Line, type Measure, type Product, type Receipt, type Shop } from "../domain/types";
+import { LINE, PRODUCT, RECEIPT, SHOP, isDimension, isUnitOf, type Dimension, type LabelMemory, type Line, type Product, type Receipt, type Shop, type Unit } from "../domain/types";
+import { readMeasure } from "../domain/measure";
 import { receiptTitle, relabel, withLabel, withoutLabel, type LineMatch } from "../domain/derive";
 
-/** PocketBase returns absent fields as "" / undefined; re-establish shapes on read. */
+/**
+ * PocketBase returns absent fields as "" / undefined; re-establish shapes on
+ * read. A Product written before ADR 0084 carries `measure: "kg" | "l" |
+ * "piece"` — read as mass/kg, volume/L, count/pc until a sync brings the
+ * migrated row.
+ */
 function normalizeProduct(p: Product): Product {
   const labels = Array.isArray(p.labels) ? p.labels.filter((l): l is LabelMemory => !!l && typeof l === "object" && typeof l.shopId === "string" && typeof l.label === "string") : [];
-  return { ...p, measure: isMeasure(p.measure) ? p.measure : "piece", labels, tags: p.tags ?? [] };
+  const { measure: _old, ...rest } = p as Product & { measure?: unknown };
+  return { ...rest, ...readMeasure(p as Product & { measure?: unknown }), labels, tags: p.tags ?? [] };
 }
 function normalizeShop(s: Shop): Shop {
   return { ...s, note: s.note ?? "", tags: s.tags ?? [] };
@@ -88,25 +95,43 @@ export async function deleteShop(id: string): Promise<void> {
 
 export interface ProductInput {
   title: string;
-  measure: Measure;
+  dimension: Dimension;
+  /** Defaults to the dimension's base unit. */
+  unit?: Unit;
+  /** A count's own name — "roll", "wash"; ignored off a count. */
+  countName?: string;
   tags?: string[];
+}
+
+/** The Measure fields as written: the unit checked against the dimension, a count name only on a count. */
+function measureFields(dimension: Dimension, unit: Unit | undefined, countName: string | undefined) {
+  if (!isDimension(dimension)) throw new Error("Pick a dimension: mass, volume, count or length");
+  const u = unit ?? readMeasure({ dimension }).unit;
+  if (!isUnitOf(dimension, u)) throw new Error(`“${u}” is not a unit of ${dimension}`);
+  return { dimension, unit: u, countName: dimension === "count" ? (countName ?? "").trim() : "" };
 }
 
 export async function addProduct(input: ProductInput): Promise<string> {
   const title = input.title.trim();
   if (!title) throw new Error("Give the product a name");
-  if (!isMeasure(input.measure)) throw new Error("Pick a measure");
+  const measure = measureFields(input.dimension, input.unit, input.countName);
   if ((await allProducts()).some((p) => sameName(p.title, title))) throw new Error(`There is already a product called “${title}”`);
-  const row = await putDocument<Product>({ type: PRODUCT, title, measure: input.measure, labels: [], folder: "", tags: normalizeTags(input.tags ?? []) } as unknown as Product);
+  const row = await putDocument<Product>({ type: PRODUCT, title, ...measure, labels: [], folder: "", tags: normalizeTags(input.tags ?? []) } as unknown as Product);
   return row.id;
 }
 
-/** The measure is fixed after creation (CONTEXT.md "Product"): only the name and tags move. */
-export async function updateProduct(product: Product, input: Pick<ProductInput, "title" | "tags">): Promise<void> {
+/**
+ * Rename, retag, or read in another unit of the same dimension (ADR 0084).
+ * Amounts are kept in the dimension's base unit, so a new reading unit or
+ * count name rewrites no Line. The dimension itself stays put here.
+ */
+export async function updateProduct(product: Product, input: Partial<Omit<ProductInput, "title">> & { title: string }): Promise<void> {
   const title = input.title.trim();
   if (!title) throw new Error("Give the product a name");
+  if (input.dimension && input.dimension !== product.dimension) throw new Error("A product's dimension cannot change yet");
+  const measure = measureFields(product.dimension, input.unit ?? product.unit, input.countName ?? product.countName);
   if ((await allProducts()).some((p) => p.id !== product.id && sameName(p.title, title))) throw new Error(`There is already a product called “${title}”`);
-  await putDocument<Product>({ ...product, title, tags: normalizeTags(input.tags ?? product.tags) });
+  await putDocument<Product>({ ...product, title, ...measure, tags: normalizeTags(input.tags ?? product.tags) });
 }
 
 /** Blocked while Lines reference it — merge instead (ADR 0082). */
@@ -115,10 +140,14 @@ export async function deleteProduct(id: string): Promise<void> {
   await removeDocument(id);
 }
 
-/** Merge: Lines repoint, remembered labels carry over, the source goes. Same measure only — the unit prices would be nonsense otherwise. */
+/**
+ * Merge: Lines repoint, remembered labels carry over, the source goes. One
+ * dimension only — amounts are in its base unit, so the reading units may
+ * differ; across dimensions the unit prices would be nonsense.
+ */
 export async function mergeProduct(from: Product, into: Product): Promise<void> {
   if (from.id === into.id) throw new Error("Pick a different product to merge into");
-  if (from.measure !== into.measure) throw new Error("Only products of the same measure merge");
+  if (from.dimension !== into.dimension) throw new Error("Only products of the same dimension merge");
   for (const l of await documentsWhere<Line>(LINE, "productId", from.id)) await patchDocument(l.id, { productId: into.id });
   const labels = [...into.labels];
   for (const l of from.labels) if (!labels.some((x) => x.shopId === l.shopId && x.label === l.label)) labels.push(l);

@@ -1,5 +1,5 @@
 import { addDays, formatHuman, type DateStr } from "@lifeline/core";
-import { MEASURE_PER, MEASURE_UNIT, type LabelMemory, type Line, type Measure, type Observation, type Product, type Receipt } from "./types";
+import type { LabelMemory, Line, Observation, Product, Receipt } from "./types";
 
 /**
  * Every reading of Prices (ADR 0082) lives here, pure: unit price, history
@@ -17,23 +17,10 @@ export function normalizeLabel(s: string): string {
     .trim();
 }
 
-/** Cents per unit of measure — price paid over amount. A missing amount counts as one. */
+/** Cents per base unit of the dimension (per kg, L, m, count) — price paid over amount. A missing amount counts as one. Read it in the Product's unit with formatUnitPrice (measure.ts). */
 export function unitPrice(line: Pick<Line, "price" | "amount">): number {
   const amount = line.amount > 0 ? line.amount : 1;
   return line.price / amount;
-}
-
-const money = new Intl.NumberFormat(undefined, { style: "currency", currency: "EUR" });
-
-/** "€1.23/kg". */
-export function formatUnitPrice(cents: number, measure: Measure): string {
-  return `${money.format(cents / 100)}${MEASURE_PER[measure]}`;
-}
-
-/** "0.42 kg", "6 L", "12 pc". */
-export function formatAmount(amount: number, measure: Measure): string {
-  const n = Number.isInteger(amount) ? String(amount) : String(Number(amount.toFixed(3)));
-  return `${n} ${MEASURE_UNIT[measure]}`;
 }
 
 /**

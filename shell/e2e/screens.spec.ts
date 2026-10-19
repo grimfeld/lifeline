@@ -29,6 +29,13 @@ async function workLocally(page: Page) {
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
 }
 
+/** A Prices Product page → Edit: the Product dialog, its Measure controls included. */
+async function openProductEdit(page: Page) {
+  await workLocally(page);
+  await page.getByRole("button", { name: "Edit" }).first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+}
+
 /** Journal → Types → the Type editor over the seeded People type. */
 async function openPeopleTypeEditor(page: Page) {
   await workLocally(page);
@@ -317,6 +324,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Pocket", path: "/app/pocket" },
   { name: "Prices", path: "/app/prices" },
   { name: "Price product", path: "/app/prices/p/:id", type: "price_product" },
+  { name: "Price product · edit", path: "/app/prices/p/:id", type: "price_product", afterOpen: openProductEdit },
   { name: "Mood", path: "/app/mood" },
   { name: "Swear Jar", path: "/app/swearjar" },
   { name: "Knowledge", path: "/app/languages" },

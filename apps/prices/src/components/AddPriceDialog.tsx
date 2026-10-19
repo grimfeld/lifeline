@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
-import { MEASURE_UNIT } from "../domain/types";
-import { formatUnitPrice, unitPrice } from "../domain/derive";
+import { unitPrice } from "../domain/derive";
+import { amountUnit, formatUnitPrice, fromAmount } from "../domain/measure";
 import { parseAmount } from "../domain/money";
 import { addPrice, useProducts, useShops } from "../data/repo";
 import { ProductSelect, ShopSelect } from "./pickers";
@@ -42,8 +42,10 @@ export function AddPriceDialog({ open, onOpenChange, productId: presetProduct }:
 
   const product = products.find((p) => p.id === productId);
   const cents = parseAmount(price);
-  const amt = Number(amount.replace(",", "."));
-  const preview = product && cents !== null && cents >= 0 && amt > 0 ? formatUnitPrice(unitPrice({ price: cents, amount: amt }), product.measure) : null;
+  const typed = Number(amount.replace(",", "."));
+  // Typed in the Product's reading unit (420 on a gram Product), kept in its base unit (0.42 kg).
+  const amt = product ? fromAmount(typed, product) : typed;
+  const preview = product && cents !== null && cents >= 0 && amt > 0 ? formatUnitPrice(unitPrice({ price: cents, amount: amt }), product) : null;
 
   async function save(another: boolean) {
     if (cents === null || cents < 0) return void toast.error("Type the price paid");
@@ -79,7 +81,7 @@ export function AddPriceDialog({ open, onOpenChange, productId: presetProduct }:
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="ap-amount">Amount{product ? ` (${MEASURE_UNIT[product.measure]})` : ""}</Label>
+              <Label htmlFor="ap-amount">Amount{product ? ` (${amountUnit(product)})` : ""}</Label>
               <Input id="ap-amount" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="1" />
             </div>
             <div className="grid gap-2">

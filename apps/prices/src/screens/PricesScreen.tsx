@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from "react-router";
 import { Badge, Button, Input, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { Inbox, Pencil, Plus, ReceiptText, Tag, TriangleAlert } from "lucide-react";
-import { MEASURE_UNIT, productHref, type Receipt, type Shop } from "../domain/types";
-import { changesIn, cheapest, formatUnitPrice, historiesByProduct, isUnmatched, linesByReceipt, observe, overallOf, spanStart, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
+import { productHref, type Receipt, type Shop } from "../domain/types";
+import { formatUnitPrice, perUnit } from "../domain/measure";
+import { changesIn, cheapest, historiesByProduct, isUnmatched, linesByReceipt, observe, overallOf, spanStart, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
 import { formatCents } from "../domain/money";
 import { useLines, useProducts, useReceipts, useShops } from "../data/repo";
 import { ProductDialog } from "../components/ProductDialog";
@@ -152,7 +153,7 @@ export function PricesScreen() {
                 <li key={p.id}>
                   <button type="button" className="hover:bg-accent/50 flex w-full items-center gap-3 px-3 py-2 text-left text-sm" onClick={() => navigate(productHref(p.id))}>
                     <span className="min-w-0 flex-1 truncate">
-                      {p.title} <span className="text-muted-foreground text-xs">· {MEASURE_UNIT[p.measure]}</span>
+                      {p.title} <span className="text-muted-foreground text-xs">· {perUnit(p).slice(1)}</span>
                     </span>
                     <span className="text-muted-foreground hidden text-xs sm:inline">
                       {n} price{n === 1 ? "" : "s"} · {nShops} shop{nShops === 1 ? "" : "s"}
@@ -161,7 +162,7 @@ export function PricesScreen() {
                       <span className="flex items-center gap-1.5 tabular-nums">
                         <span className="size-2 rounded-full" style={{ background: shopColor(best.shopId, shops) }} />
                         <span className="text-muted-foreground max-w-24 truncate">{shopName(best.shopId)}</span>
-                        <span className="font-medium">{formatUnitPrice(best.point.unit, p.measure)}</span>
+                        <span className="font-medium">{formatUnitPrice(best.point.unit, p)}</span>
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -267,7 +268,7 @@ export function PricesScreen() {
                       <span className="size-2 shrink-0 rounded-full" style={{ background: shopColor(c.shopId, shops) }} />
                       <span className="w-28 truncate">{shopName(c.shopId)}</span>
                       <span className="tabular-nums">
-                        {formatUnitPrice(c.first.unit, p.measure)} → {formatUnitPrice(c.last.unit, p.measure)}
+                        {formatUnitPrice(c.first.unit, p)} → {formatUnitPrice(c.last.unit, p)}
                       </span>
                       <Pct v={c.pct} />
                     </div>
