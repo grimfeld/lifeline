@@ -112,8 +112,7 @@ nearest existing pattern and don't hand-roll a new one.
 
 ### Forms and feedback
 
-- A field is `Field` (_coming_: Label, control, hint, error); until then
-  `<div className="grid gap-2"><Label/>…</div>`.
+- A field is `Field` (Label, control, hint, error): `<Field label="Title" error={…}><Input/></Field>`.
 - A field's error shows under it, with `aria-invalid` on the control — not in a toast.
   Disabling submit until the form is valid is fine.
 - Toasts report what an action did: `toast.success` / `toast.error`, with a sentence a

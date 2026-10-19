@@ -122,6 +122,23 @@ const SCREENS: ScreenCase[] = [
   { name: "Projects · Timeline", path: "/app/projects/timeline" },
   { name: "Project", path: "/app/projects/p/:id", type: "project" },
   { name: "Events", path: "/app/events" },
+  {
+    // The Event dialog saved without a title: the Field's error under the title, not a toast.
+    name: "Events · Event dialog error",
+    path: "/app/events",
+    afterOpen: async (page) => {
+      const local = page.getByRole("button", { name: "Work locally" });
+      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      await page.getByRole("button", { name: "New event" }).click();
+      const dialog = page.getByRole("dialog");
+      await dialog.getByRole("button", { name: "Add event" }).click();
+      const title = dialog.getByRole("textbox", { name: "Title" });
+      await expect(title).toHaveAttribute("aria-invalid", "true");
+      await expect(title).toHaveAccessibleDescription("Title required");
+      await expect(title).toBeFocused();
+      await expect(page.getByText("Title required"), "under the field only, no toast").toHaveCount(1);
+    },
+  },
   { name: "Stats", path: "/app/stats" },
   { name: "Stat", path: "/app/stats/:id", type: "stat" },
   { name: "Life Level", path: "/app/lifelevel" },
