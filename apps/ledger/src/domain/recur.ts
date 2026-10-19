@@ -1,10 +1,10 @@
 import { addDays, diffDays, type DateStr } from "@lifeline/core";
 import type { Due, Series } from "./types";
-import { nextOccurrence } from "./series";
+import { coveredDate, nextOccurrence } from "./series";
 
 /**
- * Dues derive (ADR 0034): a Recurring series is projected forward from its
- * newest occurrence, so a day already paid can never be due — coverage is
+ * Dues derive (ADR 0034): a Recurring series is projected forward from the
+ * anchor day its newest occurrence covered, so a day already paid can never be due — coverage is
  * the ledger itself, not bookkeeping on the Transaction. A dormant series
  * (nothing for two whole periods) is over and surfaces nothing; a muted one
  * has been waved off by hand. Nothing here is stored.
@@ -22,7 +22,7 @@ export function openDues(series: Series[], today: DateStr): Due[] {
   const out: Due[] = [];
   for (const s of series) {
     if (s.muted || s.dormant) continue;
-    let date = nextOccurrence(s, s.lastDate);
+    let date = nextOccurrence(s, coveredDate(s));
     while (date <= horizon) {
       if (!s.skipped.includes(date)) out.push({ series: s, date });
       const next = nextOccurrence(s, date);

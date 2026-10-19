@@ -113,10 +113,11 @@ export function useSeriesOverrides(): SeriesOverride[] {
 
 /**
  * Every Recurring series the ledger shows (ADR 0034) — derived from the
- * Transactions on every read, with the hand-made overrides laid over.
+ * Transactions on every read, with the hand-made overrides laid over. The
+ * caller hands in its useTransactions() so the ledger is normalized and
+ * sorted once per screen, not once per hook.
  */
-export function useSeries(): Series[] {
-  const transactions = useTransactions();
+export function useSeries(transactions: Transaction[]): Series[] {
   const overrides = useSeriesOverrides();
   const today = todayStr();
   return useMemo(() => detectSeries(transactions, overrides, today), [transactions, overrides, today]);
@@ -430,9 +431,10 @@ export async function dismissDue(due: Due): Promise<void> {
  * Post the ticked preview rows (ADR 0033): sign decides expense/income.
  * A row may carry the category confirmed in the preview (history-derived
  * suggestion or a hand pick); without one it lands uncategorized — the
- * inbox is loud, never hidden.
+ * inbox is loud, never hidden. A failure midway throws with the rows before
+ * it posted; `onPosted` lets the caller say how many.
  */
-export async function importRows(rows: (ImportRow & { categoryId?: string; paypalId?: string; bankPayee?: string })[], accountId: string): Promise<number> {
+export async function importRows(rows: (ImportRow & { categoryId?: string; paypalId?: string; bankPayee?: string })[], accountId: string, onPosted?: (n: number) => void): Promise<number> {
   let n = 0;
   for (const r of rows) {
     if (r.invalid || r.date === null || r.amount === null) continue;
@@ -449,6 +451,7 @@ export async function importRows(rows: (ImportRow & { categoryId?: string; paypa
       bankPayee: r.bankPayee ?? "",
     });
     n++;
+    onPosted?.(n);
   }
   return n;
 }

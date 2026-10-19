@@ -59,4 +59,36 @@ describe("openDues", () => {
     // April's bank row arrives as one more fact; the ledger alone moves the series on.
     expect(openDues(detectSeries([...posted, tx("2026-04-01")], [], "2026-04-02"), "2026-04-02").map((d) => d.date)).toEqual(["2026-05-01"]);
   });
+
+  describe("an early payment covers the anchor day it was for (CR-33)", () => {
+    it("rent on the 1st paid on Aug 31 leaves Sep 1 closed", () => {
+      expect(openDues([series({ lastDate: "2026-08-31" })], "2026-09-02").map((d) => d.date)).toEqual(["2026-10-01"]);
+    });
+
+    it("on-time and late payments still project from the month after", () => {
+      expect(openDues([series({ lastDate: "2026-09-01" })], "2026-09-02").map((d) => d.date)).toEqual(["2026-10-01"]);
+      expect(openDues([series({ lastDate: "2026-09-04" })], "2026-09-05").map((d) => d.date)).toEqual(["2026-10-01"]);
+    });
+
+    it("a payment far from any anchor day falls back to the month after", () => {
+      expect(openDues([series({ lastDate: "2026-08-15" })], "2026-08-20").map((d) => d.date)).toEqual(["2026-09-01"]);
+    });
+
+    it("an early payment over a year end covers January's day", () => {
+      expect(openDues([series({ lastDate: "2026-12-29" })], "2027-01-02").map((d) => d.date)).toEqual(["2027-02-01"]);
+    });
+
+    it("a yearly bill paid days before its anniversary is covered for that year", () => {
+      const yearly = series({ cadence: "yearly", period: 365, anchorDay: 1, anchorMonth: 1, lastDate: "2025-12-30" });
+      expect(openDues([yearly], "2026-12-20").map((d) => d.date)).toEqual(["2027-01-01"]);
+    });
+
+    it("read from the ledger: a yearly bill paid early keeps its anniversary month", () => {
+      function tx(date: string): Transaction {
+        return { id: date, type: "ledger_transaction", title: "", tags: [], folder: "", createdAt: date, updatedAt: "", deleted: false, kind: "expense", date, amount: 12_000, accountId: "checking", fromAccountId: "", toAccountId: "", categoryId: "insurance", payee: "Insurer", note: "", importId: "" } as unknown as Transaction;
+      }
+      const posted = [tx("2024-01-01"), tx("2025-01-01"), tx("2025-12-30")];
+      expect(openDues(detectSeries(posted, [], "2026-12-20"), "2026-12-20").map((d) => d.date)).toEqual(["2027-01-01"]);
+    });
+  });
 });
