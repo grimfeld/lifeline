@@ -87,6 +87,20 @@ const SCREENS: ScreenCase[] = [
       await expect(page.getByText("adds a board layout to its Base")).toBeVisible();
     },
   },
+  {
+    // The AlertDialog (ADR 0079) before the seeded empty type with a long label is deleted: Cancel has the focus.
+    name: "Journal · Types · Delete type confirmation",
+    path: "/app/journal/t",
+    afterOpen: async (page) => {
+      const local = page.getByRole("button", { name: "Work locally" });
+      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      await page.getByRole("button", { name: /^Edit the type Places/ }).first().click();
+      await page.getByRole("dialog").getByRole("button", { name: "Delete type" }).click();
+      const confirm = page.getByRole("alertdialog");
+      await expect(confirm.getByRole("button", { name: "Delete type" })).toBeVisible();
+      await expect(confirm.getByRole("button", { name: "Cancel" })).toBeFocused();
+    },
+  },
   { name: "Journal · One type", path: "/app/journal/t/:type", params: { type: "e2eperson" } },
   { name: "Journal · One type (old link)", path: "/app/journal/c/:type", params: { type: "e2eperson" } },
   { name: "Journal · Templates", path: "/app/journal/templates" },
