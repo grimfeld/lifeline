@@ -13,7 +13,8 @@ import "./editor.css";
  * the link index (Document → its route, unresolved → dimmed) and `daylog`
  * fences rendered live. A leading frontmatter block is not shown.
  */
-export function MarkdownView({ body, index, docDate, className, compact }: { body: string; index: LinkIndex; docDate?: string | null; className?: string; compact?: boolean }) {
+/** `origin` names the Document the body belongs to, so a selection in it can be handed off with that Document as its origin (ADR 0073). */
+export function MarkdownView({ body, index, docDate, className, compact, origin }: { body: string; index: LinkIndex; docDate?: string | null; className?: string; compact?: boolean; origin?: string }) {
   const openDoc = useOpenDocument();
   const { content } = useMemo(() => splitFrontmatter(body), [body]);
   // Turn [[Name|alias]] into markdown links with a wikilink: scheme so ReactMarkdown keeps them as <a>.
@@ -31,7 +32,7 @@ export function MarkdownView({ body, index, docDate, className, compact }: { bod
   }, [content]);
 
   return (
-    <div className={cn("prose-note", compact && "prose-note-compact", className)}>
+    <div className={cn("prose-note", compact && "prose-note-compact", className)} data-origin={origin}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         // The default transform blanks every scheme it does not know — our own two included.

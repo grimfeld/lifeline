@@ -1,22 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { expandIcal } from "./ical";
 
+// Floating (zone-less) times: they read as local wall-clock time, so the
+// expected days hold in any time zone. With UTC times the 10:00Z standup lands
+// on the next local day at UTC+14, and 09:00Z on the previous one west of UTC-9.
 const ICS = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//test//EN
 BEGIN:VEVENT
 UID:one
 SUMMARY:Standup
-DTSTART:20260817T090000Z
-DTEND:20260817T091500Z
+DTSTART:20260817T090000
+DTEND:20260817T091500
 RRULE:FREQ=DAILY;COUNT=5
 END:VEVENT
 BEGIN:VEVENT
 UID:one
-RECURRENCE-ID:20260819T090000Z
+RECURRENCE-ID:20260819T090000
 SUMMARY:Standup (moved)
-DTSTART:20260819T100000Z
-DTEND:20260819T101500Z
+DTSTART:20260819T100000
+DTEND:20260819T101500
 END:VEVENT
 BEGIN:VEVENT
 UID:two

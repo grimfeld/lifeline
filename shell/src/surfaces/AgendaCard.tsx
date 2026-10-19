@@ -156,7 +156,7 @@ export function AgendaCard({ settings }: CardProps) {
           editing={editing}
           defaultDay={today}
           inView={(d) => d === today}
-          onGo={(d) => navigate(`/schedule?d=${d}`)}
+          onGo={(d) => navigate(`/calendar?view=day&d=${d}`)}
           onClose={() => setEditing(null)}
         />
       )}

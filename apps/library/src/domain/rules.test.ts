@@ -29,6 +29,12 @@ function item(p: Partial<Work>): Work {
     slottedOn: "",
     startedOn: "",
     finishedOn: "",
+    liked: false,
+    rating: 0,
+    partsTracked: false,
+    caughtUpGroup: 0,
+    caughtUpPart: 0,
+    partCount: 0,
     ...p,
   };
 }
@@ -97,8 +103,8 @@ describe("wantedList", () => {
 });
 
 describe("shelves and slots (ADR 0006 amendment)", () => {
-  it("only books and comics have slots", () => {
-    expect(SLOTTED_TYPES).toEqual(["book", "comic"]);
+  it("every reading medium has slots — books, comics and manga", () => {
+    expect(SLOTTED_TYPES).toEqual(["book", "comic", "manga"]);
     expect(hasSlots("book")).toBe(true);
   });
   it("shelf labels follow the medium's verb", () => {

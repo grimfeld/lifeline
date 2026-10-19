@@ -1,7 +1,7 @@
 import { addDays, todayStr, type DateStr } from "@lifeline/core";
 import { promptKey, promptsOf, type Prompt } from "./prompts";
 import { replay, type Held } from "./schedule";
-import type { Item, Recall } from "./types";
+import type { Material, Recall } from "./types";
 
 /** Local day of an ISO instant. */
 export function dayOf(iso: string): DateStr {
@@ -24,14 +24,14 @@ export interface HeldPrompt extends Prompt {
   held: Held;
 }
 
-/** Every Prompt of the given items with how it is held, read from the Recalls. */
-export function heldPrompts(items: Item[], recalls: Recall[]): HeldPrompt[] {
+/** Every Prompt of the given Material with how it is held, read from the Recalls. */
+export function heldPrompts(items: Material[], recalls: Recall[]): HeldPrompt[] {
   const by = recallsByPrompt(recalls);
   return items.flatMap(promptsOf).map((p) => ({ ...p, held: replay(by.get(p.key) ?? []) }));
 }
 
 /**
- * How many Prompts met their first Recall today, across the whole Language —
+ * How many Prompts met their first Recall today, across the whole Topic —
  * what the daily new cap counts against, whichever Deck the Practice is
  * narrowed to (CONTEXT.md "Practice").
  */
@@ -43,6 +43,19 @@ export function introducedOn(recalls: Recall[], day: DateStr): number {
   }
   return n;
 }
+
+/** Today's introductions per Topic — each Topic's daily new cap counts against its own (CONTEXT.md "Topic"). */
+export function introducedByTopic(recalls: Recall[], day: DateStr): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const list of recallsByPrompt(recalls).values()) {
+    const first = list.reduce((a, b) => (b.at < a.at ? b : a));
+    if (dayOf(first.at) === day) out.set(first.languageId, (out.get(first.languageId) ?? 0) + 1);
+  }
+  return out;
+}
+
+/** A daily new cap: one number for a Practice of one Topic, or each Topic's own for a Practice across several. */
+export type NewCap = number | ((topicId: string) => number);
 
 /**
  * Reorder so two Prompts of the same item never come back to back, where
@@ -76,27 +89,34 @@ export interface PracticeQueue {
 }
 
 /**
- * One Practice's queue (CONTEXT.md "Practice"): the Language's due Prompts
- * first, oldest due first, then new ones up to what the daily new cap still
- * allows today, oldest added first — siblings spaced apart. `items` are the
- * unpaused Words and Sentences it draws from (all of the Language, or one
- * Deck's); `recalls` are the whole Language's.
+ * One Practice's queue (CONTEXT.md "Practice"): due Prompts first, oldest
+ * due first, then new ones up to what each Topic's daily new cap still allows
+ * today, oldest added first — siblings spaced apart. `items` are the live
+ * Material it draws from (a Topic, a Deck, a Source's, or everything);
+ * `recalls` must hold every Recall of each Topic it touches, since the cap
+ * counts across the whole Topic however the Practice is narrowed.
  */
-export function practiceQueue(items: Item[], recalls: Recall[], opts: { now: Date; newCap: number }): PracticeQueue {
-  return queueOfHeld(heldPrompts(items, recalls), introducedOn(recalls, todayStr(opts.now)), opts);
+export function practiceQueue(items: Material[], recalls: Recall[], opts: { now: Date; newCap: NewCap }): PracticeQueue {
+  return queueOfHeld(heldPrompts(items, recalls), introducedByTopic(recalls, todayStr(opts.now)), opts);
 }
 
 /**
- * `practiceQueue` over Prompts already held, given how many the Language
- * introduced today — so a screen replays the Recalls once and narrows the
- * held Prompts per Deck, rather than replaying them per Deck.
+ * `practiceQueue` over Prompts already held, given today's introductions per
+ * Topic — so a screen replays the Recalls once and narrows the held Prompts
+ * per Deck or Source, rather than replaying them for each.
  */
-export function queueOfHeld(all: HeldPrompt[], introducedToday: number, opts: { now: Date; newCap: number }): PracticeQueue {
+export function queueOfHeld(all: HeldPrompt[], introduced: Map<string, number>, opts: { now: Date; newCap: NewCap }): PracticeQueue {
   const now = opts.now.getTime();
   const dueNow = all.filter((p) => p.held.due && p.held.due.getTime() <= now).sort((a, b) => a.held.due!.getTime() - b.held.due!.getTime());
   const fresh = all.filter((p) => p.held.state === "new").sort((a, b) => a.addedAt.localeCompare(b.addedAt) || a.itemId.localeCompare(b.itemId) || a.order - b.order);
-  const allowed = Math.max(0, opts.newCap - introducedToday);
-  const newOnes = fresh.slice(0, allowed);
+  const cap = opts.newCap;
+  const capOf = typeof cap === "number" ? () => cap : cap;
+  const left = new Map<string, number>();
+  const newOnes = fresh.filter((p) => {
+    const room = left.get(p.topicId) ?? Math.max(0, capOf(p.topicId) - (introduced.get(p.topicId) ?? 0));
+    left.set(p.topicId, Math.max(0, room - 1));
+    return room > 0;
+  });
   let queue = [...dueNow, ...newOnes];
   if (!queue.length) {
     queue = all.filter((p) => p.held.due && p.held.due.getTime() <= now + LEARN_AHEAD_MS).sort((a, b) => a.held.due!.getTime() - b.held.due!.getTime());
@@ -132,7 +152,7 @@ export function retention(recalls: Recall[], now: Date, days = 30): { passed: nu
 }
 
 /** Due counts for the week ahead: today (overdue included) and the six days after. New Prompts are not counted. */
-export function dueAhead(items: Item[], recalls: Recall[], now: Date, days = 7): { day: DateStr; count: number }[] {
+export function dueAhead(items: Material[], recalls: Recall[], now: Date, days = 7): { day: DateStr; count: number }[] {
   return dueAheadOfHeld(heldPrompts(items, recalls), now, days);
 }
 

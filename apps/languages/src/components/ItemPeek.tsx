@@ -2,12 +2,14 @@ import { useMemo, useState } from "react";
 import { Button, cn, toast } from "@lifeline/ui";
 import type { Document } from "@lifeline/core";
 import { Pause, Pencil, Play } from "lucide-react";
-import { plainSentence } from "../domain/cloze";
 import { heldPrompts } from "../domain/practice";
-import { SENTENCE, type Item, type Sentence, type Word } from "../domain/types";
-import { setMembership, setPaused, useDecks, useItems, useLanguageRecalls, useLanguages } from "../data/repo";
+import { itemLines, itemMaterial } from "../domain/prompts";
+import { FACT, SENTENCE, WORD, type Fact, type Item, type Sentence, type Word } from "../domain/types";
+import { setMembership, setPaused, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
 import { WordDialog } from "./WordDialog";
 import { SentenceDialog } from "./SentenceDialog";
+import { FactDialog } from "./FactDialog";
+import { OriginLine } from "./OriginLine";
 
 function slotLabel(slot: string): string {
   if (slot === "forward") return "Forward";
@@ -22,32 +24,38 @@ function dueLabel(d: Date | null, now: Date): string {
 }
 
 /**
- * The Languages Peek (ADR 0057): a Word or Sentence seen from wherever it was
- * opened — its meaning or translation, where it was met, how each Prompt is
+ * The Knowledge Peek (ADR 0057): a Word, Sentence or Fact seen from wherever
+ * it was opened — its meaning, translation or answer, where it was met, how each Prompt is
  * held, its Decks one tap in or out, and pause.
  */
 export function ItemPeek({ doc }: { doc: Document }) {
   const items = useItems((doc as Item).languageId);
   const item = items.find((i) => i.id === doc.id) ?? (doc as Item);
-  const recalls = useLanguageRecalls(item.languageId);
-  const language = useLanguages().find((l) => l.id === item.languageId);
+  const recalls = useTopicRecalls(item.languageId);
+  const topic = useTopics().find((l) => l.id === item.languageId);
   const decks = useDecks().filter((d) => d.languageId === item.languageId);
   const [editing, setEditing] = useState(false);
   const now = useMemo(() => new Date(), [recalls]);
-  const prompts = useMemo(() => heldPrompts([item], recalls), [item, recalls]);
-  const sentence = item.type === SENTENCE;
+  const prompts = useMemo(() => heldPrompts([itemMaterial(item)], recalls), [item, recalls]);
+  const { main, sub } = itemLines(item);
+  const notes = item.type === SENTENCE ? "" : (item as Word | Fact).notes;
 
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-1">
-        <span className="text-lg font-semibold">{sentence ? plainSentence((item as Sentence).text) : (item as Word).term}</span>
-        <span className="text-muted-foreground">{sentence ? (item as Sentence).translation : (item as Word).meaning}</span>
-        <span className="text-muted-foreground text-xs">
-          {language?.name ?? "Language"}
-          {item.origin ? ` · met: ${item.origin}` : ""}
+        <span className="text-lg font-semibold">{main}</span>
+        <span className="text-muted-foreground whitespace-pre-wrap">{sub}</span>
+        <span className="text-muted-foreground flex flex-wrap gap-x-1 text-xs">
+          <span>{topic?.name ?? "Topic"}</span>
+          {(item.originId || item.origin) && (
+            <>
+              <span>·</span>
+              <OriginLine originId={item.originId} origin={item.origin} />
+            </>
+          )}
         </span>
       </div>
-      {!sentence && (item as Word).notes && <p className="text-sm whitespace-pre-wrap">{(item as Word).notes}</p>}
+      {notes && <p className="text-sm whitespace-pre-wrap">{notes}</p>}
       <div className="flex flex-col gap-1">
         <span className="text-muted-foreground text-xs font-medium">Prompts</span>
         <ul className="flex flex-col text-sm">
@@ -85,7 +93,9 @@ export function ItemPeek({ doc }: { doc: Document }) {
           {item.paused ? <Play /> : <Pause />} {item.paused ? "Resume" : "Pause"}
         </Button>
       </div>
-      {sentence ? <SentenceDialog open={editing} onOpenChange={setEditing} sentence={item as Sentence} /> : <WordDialog open={editing} onOpenChange={setEditing} word={item as Word} />}
+      {item.type === SENTENCE && <SentenceDialog open={editing} onOpenChange={setEditing} sentence={item as Sentence} />}
+      {item.type === WORD && <WordDialog open={editing} onOpenChange={setEditing} word={item as Word} />}
+      {item.type === FACT && <FactDialog open={editing} onOpenChange={setEditing} fact={item as Fact} />}
     </div>
   );
 }
