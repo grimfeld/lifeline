@@ -17,7 +17,25 @@ const CALL_TIMEOUT_MS = 60_000;
 /** Lifetime of the per-Account PocketBase token a worker acts with. */
 const TOKEN_SECONDS = 60 * 60;
 
+/** Under Fly's kill_timeout (30 s): a shutdown flush must give up while there is still time to log what it leaves behind. */
+const DRAIN_MS = 20_000;
+
 export class ExpectedError extends Error {}
+
+/**
+ * What a write the server has not taken yet is reported as. The queue lives
+ * only in the worker's memory — the machine has no volume, and the one store
+ * that outlives it is the PocketBase that just refused the push — so it is
+ * retried while this machine runs, and lost if it stops first. The agent is
+ * told exactly that, not that it "will be retried": it should check before
+ * relying on the change, and not simply repeat it (the retry may still land).
+ */
+export function unsyncedWrite(syncError: string): { unconfirmed: true; warning: string } {
+  return {
+    unconfirmed: true,
+    warning: `Not yet saved to Lifeline's server (${syncError || "sync pending"}). It is held on the MCP server and retried every ${RETRY_MS / 1000} s, but is lost if that server restarts first. Check with get_document or agenda later before relying on it; do not repeat it blindly.`,
+  };
+}
 
 type Outgoing = DeviceRequest extends infer R ? (R extends unknown ? Omit<R, "id"> : never) : never;
 
@@ -65,6 +83,7 @@ export class DevicePool {
     worker.on("error", (err) => console.error(`[device ${userId}]`, err));
     worker.on("exit", (code) => {
       if (this.devices.get(userId) === device) this.devices.delete(userId);
+      if (device.pending > 0) console.error(`[device ${userId}] stopped (exit ${code}) with ${device.pending} write(s) the server never took; they are lost`);
       for (const w of device.waiting.values()) {
         clearTimeout(w.timer);
         w.resolve({ id: 0, ok: false, error: `The Account's device stopped (exit ${code}); try again`, expected: false, pending: 0 });
@@ -110,11 +129,14 @@ export class DevicePool {
     throw res.expected ? new ExpectedError(res.error) : new Error(res.error);
   }
 
-  /** On shutdown: push what is still queued, then stop every worker. */
+  /** On shutdown: push what is still queued (within DRAIN_MS), then stop every worker; whatever is left is logged as lost. */
   async drain(): Promise<void> {
     await Promise.all(
       [...this.devices.entries()].map(async ([userId, device]) => {
-        if (device.pending > 0) await this.send(userId, device, { kind: "flush", auth: await this.authFor(userId) }).catch(() => undefined);
+        if (device.pending > 0) {
+          const flush = (async () => this.send(userId, device, { kind: "flush", auth: await this.authFor(userId) }))().catch(() => undefined);
+          await Promise.race([flush, new Promise((r) => setTimeout(r, DRAIN_MS).unref())]);
+        }
         clearTimeout(device.idleTimer);
         await device.worker.terminate();
       }),
