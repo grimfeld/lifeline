@@ -101,6 +101,29 @@ async function pickerWithWorkspaces(page: Page) {
   await page.getByRole("combobox", { name: "Workspace" }).waitFor();
 }
 
+/**
+ * A Peek (ADR 0085) of the first Document of `type`, opened over the page —
+ * with, when `userField` is given, a long-labelled Field of the user's added
+ * to that (built-in) type first, so it is drawn beneath the App's part.
+ */
+function peekOf(type: string, userField?: boolean) {
+  return async (page: Page) => {
+    await workLocally(page);
+    await page.evaluate(
+      async ({ coreUrl, type, userField, label }) => {
+        const core = await import(/* @vite-ignore */ coreUrl);
+        if (userField) await core.saveDocumentType({ typeId: type, label: "Books", icon: "book", folder: "", order: 0, fields: [{ key: "lentTo", label, kind: "text" }] });
+        for (let i = 0; i < 50 && userField && !core.documentType(type)?.fields.some((f: { key: string }) => f.key === "lentTo"); i++) await new Promise((r) => setTimeout(r, 100));
+        const [doc] = await core.documentsOf(type);
+        if (userField) await core.patchDocument(doc.id, { lentTo: label });
+        core.openPeek(doc.id);
+      },
+      { coreUrl: CORE_URL, type, userField: !!userField, label: longText("Lent to") },
+    );
+    await page.getByRole("dialog").waitFor();
+  };
+}
+
 /** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
 const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
 
@@ -152,6 +175,9 @@ const SCREENS: ScreenCase[] = [
 
   // The Vault (Note-taking's layout).
   { name: "Vault", path: "/vault", afterOpen: workLocally },
+  // A Peek edits (ADR 0085): a user-defined type's whole Peek, and a built-in's with the user's own Field beneath the App's part.
+  { name: "Vault · Peek of a user-defined type", path: "/vault", afterOpen: peekOf("e2eperson") },
+  { name: "Vault · Peek with the user's own Field", path: "/vault", afterOpen: peekOf("book", true) },
   {
     // The file tree's "New thought" focused: a tooltip names it on the desk; a touch phone shows none (ADR 0079).
     name: "Vault · Tooltip",
