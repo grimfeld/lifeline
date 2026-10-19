@@ -6,13 +6,15 @@ import { MapCard, useLocatableAppOptions } from "./surfaces/MapCard";
 import { TagsCard } from "./surfaces/TagsCard";
 import { CountTile, DocumentCard, useDocumentOptions, useViewOptions, ViewCard } from "./surfaces/DocumentCards";
 import { GraphCard } from "./surfaces/GraphCard";
+import { REPORT_KIND_OPTIONS, REPORT_WINDOW_OPTIONS, ReportCard, useReportDocumentOptions, useReportTitle, useReportTypeOptions } from "./surfaces/ReportCard";
 import { VaultSidebar } from "./vault/VaultSidebar";
 import { VaultDocPage } from "./vault/VaultDocPage";
+import { VaultHome } from "./vault/VaultHome";
 
 /**
  * The shell's own manifest: Core's Surfaces packaged like any App's cards
  * (so they appear in the card picker), the generic Document Cards (ADR 0018),
- * and the Vault — the Note-taking Module's layout (ADR 0057).
+ * and the Vault — Core's raw editor for bodies (ADR 0068), as the Bases are for fields.
  */
 export const hubApp: AppManifest = {
   id: "hub",
@@ -25,9 +27,10 @@ export const hubApp: AppManifest = {
     icon: Vault,
     path: "/vault",
     sidebar: VaultSidebar,
-    home: "journal",
   },
   screens: [
+    // The raw editor's landing (ADR 0068): the Vault is no Module's layout, so it opens on nothing in particular.
+    { id: "hub.vault", title: "Vault", path: "", frame: VAULT_FRAME, hidden: true, component: VaultHome },
     {
       id: "hub.doc",
       title: "Document",
@@ -156,6 +159,22 @@ export const hubApp: AppManifest = {
       },
       instanceTitle: (s) => useViewOptions().find((o) => o.value === s.view)?.label ?? "",
     },
+    {
+      id: "hub.report",
+      title: "Report",
+      description: "A Report on a type or one Document: who comes up on the most Days, when it was last mentioned, a year as a heatmap",
+      component: ReportCard,
+      defaultSize: { w: 3, h: 3 },
+      minSize: { w: 2, h: 2 },
+      settings: {
+        kind: { kind: "select", label: "Report", default: "top", options: REPORT_KIND_OPTIONS },
+        type: { kind: "entity", label: "Type (for a ranking)", useOptions: useReportTypeOptions },
+        window: { kind: "select", label: "Over", default: "month", options: REPORT_WINDOW_OPTIONS },
+        n: { kind: "number", label: "How many", default: 5, min: 1, max: 50 },
+        doc: { kind: "entity", label: "Document (for one Document's Report)", useOptions: useReportDocumentOptions },
+      },
+      instanceTitle: useReportTitle,
+    },
   ],
   commands: [
     {
@@ -168,7 +187,7 @@ export const hubApp: AppManifest = {
     {
       id: "hub.go-vault",
       title: "Go to Vault",
-      keywords: ["notes", "note-taking", "journal", "editor"],
+      keywords: ["raw", "markdown", "files", "folders", "editor", "bulk"],
       icon: Vault,
       run: ({ navigate }) => navigate("/vault"),
     },

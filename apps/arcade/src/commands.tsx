@@ -25,6 +25,8 @@ function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 export const arcadeCommands: CommandDef[] = [
   {
     id: "arcade.quick-add",
+    fold: "culture.add",
+    foldLabel: "Game",
     title: "Add game…",
     keywords: ["game", "play", "arcade", "quick"],
     icon: Plus,
