@@ -1,7 +1,7 @@
-import { useId, useState } from "react";
-import { useDocument, type PeekProps } from "@lifeline/core";
-import { AliasesField, ChoiceField, DraftText, PeekField, TagsField, savePatch } from "@lifeline/editor";
-import { Button, toast } from "@lifeline/ui";
+import { useState } from "react";
+import { patchDocument, useDocument, type PeekProps } from "@lifeline/core";
+import { AliasesField, TagsField } from "@lifeline/editor";
+import { Button, ChoiceField, CommitField, Field, toast } from "@lifeline/ui";
 import { Link2Off, NotebookPen } from "lucide-react";
 import { useSources } from "../data/works";
 import { thoughtFromNote } from "../data/notes";
@@ -9,6 +9,9 @@ import { SOURCE_KINDS, type Note, type OwnSource, type Quote } from "../domain/t
 import { CaptureForm, resolveChoice, useCaptureSources } from "./CaptureForm";
 import { NEW_SOURCE, SourcePicker, emptyChoice, type SourceChoice } from "./SourcePicker";
 import { KeepMenu } from "./KeepMenu";
+
+/** Typed Fields are written a moment after the typing stops, as the Vault's editor writes. */
+const WRITE_DELAY = 500;
 
 /**
  * The Notes App's part of a Source's Peek (ADR 0085): what it is — kind, URL,
@@ -21,16 +24,16 @@ export function SourcePeek({ doc }: PeekProps) {
   const [taking, setTaking] = useState(false);
   // Neither itself nor what sits inside it can hold it.
   const parents = sources.filter((x) => x.id !== s.id && x.parent !== s.id).map((x) => ({ value: x.id, label: x.title }));
-  const set = (patch: Record<string, unknown>) => void savePatch(s.id, patch);
+  const set = (patch: Record<string, unknown>) => patchDocument(s.id, patch);
   return (
     <div className="grid gap-3">
       <div className="grid gap-3 md:grid-cols-2">
-        <ChoiceField label="Kind" value={s.kind ?? ""} options={SOURCE_KINDS} optional onChange={(kind) => set({ kind })} />
-        <DraftText label="Author" value={s.author ?? ""} onCommit={(author) => set({ author })} />
-        <DraftText label="URL" type="url" value={s.url ?? ""} onCommit={(url) => set({ url })} />
-        <DraftText label="Published" type="date" value={s.publishedOn ?? ""} onCommit={(publishedOn) => set({ publishedOn })} />
+        <ChoiceField label="Kind" value={s.kind ?? ""} options={SOURCE_KINDS} optional onCommit={(kind) => set({ kind })} />
+        <CommitField label="Author" delay={WRITE_DELAY} value={s.author ?? ""} onCommit={(author) => set({ author })} />
+        <CommitField label="URL" type="url" delay={WRITE_DELAY} value={s.url ?? ""} onCommit={(url) => set({ url })} />
+        <CommitField label="Published" type="date" value={s.publishedOn ?? ""} onCommit={(publishedOn) => set({ publishedOn })} />
       </div>
-      <ChoiceField label="Part of" value={s.parent ?? ""} options={parents} optional onChange={(parent) => set({ parent })} />
+      <ChoiceField label="Part of" value={s.parent ?? ""} options={parents} optional onCommit={(parent) => set({ parent })} />
       <AliasesField doc={doc} />
       <TagsField doc={doc} />
       {taking ? (
@@ -55,33 +58,40 @@ export function SourcePeek({ doc }: PeekProps) {
  */
 export function NotePeek({ doc }: PeekProps) {
   const note = doc as Note;
-  const id = useId();
   const { all, current } = useCaptureSources();
   const [choice, setChoice] = useState<SourceChoice | null>(null);
+  const [error, setError] = useState("");
   const shown = choice ?? { ...emptyChoice, id: note.source ?? "" };
+  // A refused move shows under the Source, as any field's refusal does.
+  const settle = (p: Promise<unknown>) =>
+    p.then(
+      () => setError(""),
+      (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
+    );
   const pick = (next: SourceChoice) => {
     if (next.id === NEW_SOURCE) return setChoice(next);
     setChoice(null);
-    if (next.id && next.id !== note.source) void savePatch(note.id, { source: next.id });
+    if (next.id && next.id !== note.source) void settle(patchDocument(note.id, { source: next.id }));
   };
   const makeNew = () =>
-    void resolveChoice(shown)
-      .then((source) => savePatch(note.id, { source }))
-      .then(() => setChoice(null))
-      .catch((e: Error) => toast.error(e.message));
+    void settle(
+      resolveChoice(shown)
+        .then((source) => patchDocument(note.id, { source }))
+        .then(() => setChoice(null)),
+    );
   return (
     <div className="grid gap-3">
-      <PeekField label="Source" htmlFor={id}>
-        <SourcePicker id={id} current={current} all={all} value={shown} onChange={pick} />
-        {shown.id === NEW_SOURCE && (
-          <div className="flex justify-end">
-            <Button size="sm" disabled={!shown.newTitle.trim()} onClick={makeNew}>
-              Put it on this new Source
-            </Button>
-          </div>
-        )}
-      </PeekField>
-      <DraftText label="Where" value={note.locator ?? ""} placeholder="Page, chapter, 34:12" onCommit={(locator) => void savePatch(note.id, { locator })} />
+      <Field label="Source" error={error}>
+        <SourcePicker current={current} all={all} value={shown} onChange={pick} />
+      </Field>
+      {shown.id === NEW_SOURCE && (
+        <div className="flex justify-end">
+          <Button size="sm" disabled={!shown.newTitle.trim()} onClick={makeNew}>
+            Put it on this new Source
+          </Button>
+        </div>
+      )}
+      <CommitField label="Where" delay={WRITE_DELAY} value={note.locator ?? ""} placeholder="Page, chapter, 34:12" onCommit={(locator) => patchDocument(note.id, { locator })} />
       <AliasesField doc={doc} />
       <TagsField doc={doc} />
       <div>
@@ -92,7 +102,7 @@ export function NotePeek({ doc }: PeekProps) {
           onClick={() =>
             void thoughtFromNote(note.id)
               .then(() => toast.success("A Thought again — no Source"))
-              .catch((e: Error) => toast.error(e.message))
+              .catch((e: Error) => toast.error("Couldn’t take its Source away", { description: e.message }))
           }
         >
           <Link2Off /> Take its Source away
@@ -121,8 +131,8 @@ export function QuotePeek({ doc }: PeekProps) {
         <KeepMenu quote={q} className="size-7 shrink-0" />
       </div>
       <div className="grid gap-3 md:grid-cols-[10rem_1fr]">
-        <DraftText label="Where" value={q.locator ?? ""} placeholder="Page, chapter, 34:12" onCommit={(locator) => void savePatch(q.id, { locator })} />
-        <DraftText label="Comment" value={q.comment ?? ""} placeholder="Your comment" onCommit={(comment) => void savePatch(q.id, { comment })} />
+        <CommitField label="Where" delay={WRITE_DELAY} value={q.locator ?? ""} placeholder="Page, chapter, 34:12" onCommit={(locator) => patchDocument(q.id, { locator })} />
+        <CommitField label="Comment" delay={WRITE_DELAY} value={q.comment ?? ""} placeholder="Your comment" onCommit={(comment) => patchDocument(q.id, { comment })} />
       </div>
       <TagsField doc={doc} />
     </div>

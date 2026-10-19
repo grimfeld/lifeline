@@ -1,6 +1,6 @@
 import type { PeekProps } from "@lifeline/core";
-import { ChoiceField, TagsField } from "@lifeline/editor";
-import { toast } from "@lifeline/ui";
+import { TagsField } from "@lifeline/editor";
+import { ChoiceField } from "@lifeline/ui";
 import { setStatus } from "./data";
 import { STATUSES, wordCount, type Essay } from "./types";
 
@@ -18,7 +18,7 @@ export function EssayPeek({ doc }: PeekProps) {
         label="Status"
         value={essay.status ?? ""}
         options={STATUSES}
-        onChange={(status) => void setStatus(doc.id, status as Essay["status"]).catch((e: Error) => toast.error(e.message))}
+        onCommit={(status) => setStatus(doc.id, status as Essay["status"])}
       />
       <p className="text-muted-foreground text-xs tabular-nums">
         {wordCount(typeof essay.body === "string" ? essay.body : "")} words

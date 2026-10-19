@@ -168,7 +168,8 @@ test("Undo of a quick make leaves the Document when its link can no longer be ta
   await page.keyboard.type("Today. ");
   await expect.poll(() => bodyOf(page, dayId)).toBe("Today. Met [[Ada]] at the lab.");
 
-  await page.getByRole("button", { name: "Undo" }).click();
+  // The toast's Undo, not the phone editor's own.
+  await page.locator("[data-sonner-toast]").getByRole("button", { name: "Undo" }).click();
   await expect(page.getByText(/Couldn’t undo/)).toBeVisible();
   expect((await docsOf(page, "e2esmperson")).map((d) => d.title).sort()).toEqual(["Ada", "Marie Curie"]);
   expect(await bodyOf(page, dayId)).toBe("Today. Met [[Ada]] at the lab.");

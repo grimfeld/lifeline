@@ -4,7 +4,8 @@ import { clearMood, setMood } from "../data/repo";
 import { readLevel } from "../domain/grid";
 import { MoodPicker } from "./MoodPicker";
 
-const fail = (e: unknown) => toast.error(`Couldn’t save — ${(e as Error).message}`);
+/** A refused pick is said in a sentence, the store's reason beneath it. */
+const failed = (what: string) => (e: unknown) => void toast.error(what, { description: e instanceof Error ? e.message : String(e) });
 
 /**
  * A Mood's editable Peek (ADR 0085): the day's mood changed in place with the
@@ -16,10 +17,10 @@ export function MoodPeek({ doc }: { doc: Document }) {
   const current = readLevel(doc.level);
   return (
     <div className="flex flex-col gap-3">
-      <MoodPicker current={current} onPick={(level) => void (level === current ? Promise.resolve() : setMood(day, level)).catch(fail)} />
+      <MoodPicker current={current} onPick={(level) => void (level === current ? Promise.resolve() : setMood(day, level)).catch(failed("Couldn’t set the mood"))} />
       {current !== null && (
         <div>
-          <Button size="sm" variant="ghost" onClick={() => void clearMood(day).then(closePeek, fail)}>
+          <Button size="sm" variant="ghost" onClick={() => void clearMood(day).then(closePeek, failed("Couldn’t clear this day"))}>
             Clear this day
           </Button>
         </div>

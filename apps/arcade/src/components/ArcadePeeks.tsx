@@ -1,6 +1,6 @@
-import { Button } from "@lifeline/ui";
+import { Button, CommitField } from "@lifeline/ui";
 import type { PeekProps } from "@lifeline/core";
-import { PeekInput, WorkPeekFields } from "@lifeline/parts";
+import { PEEK_WRITE_DELAY, WorkPeekFields } from "@lifeline/parts";
 import { ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
@@ -33,9 +33,9 @@ export function WorkPeek({ doc }: PeekProps) {
       </div>
       <WorkPeekFields
         work={item}
-        onPatch={(patch) => void patchWork(item, patch)}
+        onPatch={(patch) => patchWork(item, patch)}
         sizeUnit={def.sizeUnit}
-        creator={<PeekInput id="peek-work-creator" label={def.creatorLabel} value={item.creator} onCommit={(creator) => void patchWork(item, { creator })} />}
+        creator={<CommitField label={def.creatorLabel} delay={PEEK_WRITE_DELAY} value={item.creator} onCommit={(creator) => patchWork(item, { creator })} />}
       />
     </div>
   );

@@ -39,7 +39,8 @@ const field = (page: Page, id: string, key: string) => inCore(page, async (core,
 test("Stats: a Stat's unit is edited in its Peek; its kind stays fixed", async ({ page }) => {
   const { id, dialog } = await peekNew(page, async (core, stamp) => (await core.putDocument({ type: "stat", title: `Push-ups ${stamp}`, kind: "additive", unit: "reps", color: "blue", defaultIncrement: 10 })).id);
   await dialog.getByLabel("Unit").fill("sets");
-  await page.keyboard.press("Escape");
+  // Written on leaving the field (Escape in it would put the stored value back).
+  await dialog.getByLabel("Unit").blur();
   await expect.poll(() => field(page, id, "unit")).toBe("sets");
   expect(await field(page, id, "kind")).toBe("additive");
 });
@@ -64,7 +65,8 @@ test("Workout: a Session's notes are edited in its Peek", async ({ page }) => {
     ).id;
   });
   await dialog.getByLabel("Notes").fill("Felt strong");
-  await page.keyboard.press("Escape");
+  // Written on leaving the field (Escape in it would put the stored value back).
+  await dialog.getByLabel("Notes").blur();
   await expect.poll(() => field(page, id, "notes")).toBe("Felt strong");
 });
 
@@ -93,7 +95,8 @@ test("Swear Jar: a Fine's note is edited in its Peek; its amount stays the Offen
   });
   await expect(dialog.getByLabel("Amount (cents)")).toHaveCount(0);
   await dialog.getByLabel("Note").fill("Twice, really");
-  await page.keyboard.press("Escape");
+  // Written on leaving the field (Escape in it would put the stored value back).
+  await dialog.getByLabel("Note").blur();
   await expect.poll(() => field(page, id, "note")).toBe("Twice, really");
   expect(await field(page, id, "amount")).toBe(200);
 });

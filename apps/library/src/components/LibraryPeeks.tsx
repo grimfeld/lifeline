@@ -1,6 +1,6 @@
-import { Button, TagInput } from "@lifeline/ui";
+import { Button, CommitField, Field, TagInput } from "@lifeline/ui";
 import type { PeekProps } from "@lifeline/core";
-import { PeekField, PeekInput, WorkPeekFields } from "@lifeline/parts";
+import { PEEK_WRITE_DELAY, WorkPeekFields } from "@lifeline/parts";
 import { ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Author, Work } from "../domain/types";
@@ -37,13 +37,13 @@ export function WorkPeek({ doc }: PeekProps) {
       </div>
       <WorkPeekFields
         work={item}
-        onPatch={(patch) => void patchWork(item, patch)}
+        onPatch={(patch) => patchWork(item, patch)}
         sizeUnit={def.sizeUnit}
         marks
         creator={
-          <PeekField id="peek-work-authors" label={def.creatorLabel}>
-            <AuthorPicker id="peek-work-authors" value={item.authors} onChange={(authors) => void patchWork(item, { authors })} online={false} placeholder="Add an author…" />
-          </PeekField>
+          <Field label={def.creatorLabel}>
+            <AuthorPicker value={item.authors} onChange={(authors) => void patchWork(item, { authors })} online={false} placeholder="Add an author…" />
+          </Field>
         }
       />
     </div>
@@ -55,14 +55,14 @@ export function AuthorPeek({ doc }: PeekProps) {
   const author = normalizeAuthor(doc as Author);
   return (
     <div className="grid gap-3">
-      <PeekField id="peek-author-aliases" label="Aliases">
-        <TagInput id="peek-author-aliases" value={author.aliases} onChange={(aliases) => void patchAuthor(author.id, { aliases })} placeholder="Other names…" />
-      </PeekField>
+      <Field label="Aliases">
+        <TagInput value={author.aliases} onChange={(aliases) => void patchAuthor(author.id, { aliases })} placeholder="Other names…" />
+      </Field>
       <div className="grid grid-cols-2 gap-2">
-        <PeekInput id="peek-author-born" label="Born" value={author.born} onCommit={(born) => void patchAuthor(author.id, { born })} />
-        <PeekInput id="peek-author-died" label="Died" value={author.died} onCommit={(died) => void patchAuthor(author.id, { died })} />
+        <CommitField label="Born" delay={PEEK_WRITE_DELAY} value={author.born} onCommit={(born) => patchAuthor(author.id, { born })} />
+        <CommitField label="Died" delay={PEEK_WRITE_DELAY} value={author.died} onCommit={(died) => patchAuthor(author.id, { died })} />
       </div>
-      <PeekInput id="peek-author-photo" label="Photo URL" type="url" value={author.photoUrl} placeholder="https://…" onCommit={(photoUrl) => void patchAuthor(author.id, { photoUrl })} />
+      <CommitField label="Photo URL" type="url" delay={PEEK_WRITE_DELAY} value={author.photoUrl} placeholder="https://…" onCommit={(photoUrl) => patchAuthor(author.id, { photoUrl })} />
     </div>
   );
 }

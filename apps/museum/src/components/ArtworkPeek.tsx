@@ -1,6 +1,7 @@
-import { Checkbox, GeoField, Label } from "@lifeline/ui";
+import { useId } from "react";
+import { Checkbox, CommitField, Field, GeoField, Label } from "@lifeline/ui";
 import { geocode, readGeo, suggestAddresses, writeGeo, type PeekProps } from "@lifeline/core";
-import { PeekField, PeekInput } from "@lifeline/parts";
+import { PEEK_WRITE_DELAY } from "@lifeline/parts";
 import { artForm } from "../domain/artForms";
 import type { Artwork } from "../domain/types";
 import { ensureArtist, normalizeArtwork, patchArtwork, useArtists } from "../data/repo";
@@ -16,8 +17,8 @@ export function ArtworkPeek({ doc }: PeekProps) {
   const form = artForm(artwork.type);
   const artists = useArtists();
   const artist = artists.find((a) => a.id === artwork.artistId);
-  const patch = (p: Record<string, unknown>) => void patchArtwork(artwork.id, p);
-  const id = (key: string) => `peek-artwork-${key}`;
+  const patch = (p: Record<string, unknown>) => patchArtwork(artwork.id, p);
+  const seenId = useId();
 
   // Naming the Artist links it, creating the record when it is new: written on leaving the box, not per keystroke.
   async function setArtist(name: string) {
@@ -28,32 +29,32 @@ export function ArtworkPeek({ doc }: PeekProps) {
 
   return (
     <div className="grid gap-3">
-      <PeekInput id={id("artist")} label={form.artistLabel} value={artist?.title ?? ""} delay={null} onCommit={(n) => void setArtist(n)} placeholder="Leonardo da Vinci" />
+      <CommitField label={form.artistLabel} value={artist?.title ?? ""} onCommit={setArtist} placeholder="Leonardo da Vinci" />
       <div className="grid grid-cols-2 gap-2">
-        <PeekInput id={id("year")} label="Year" value={artwork.year} placeholder="c. 1503" onCommit={(year) => patch({ year })} />
-        <PeekInput id={id("location")} label="Location" value={artwork.location} placeholder="Louvre, Paris" onCommit={(location) => patch({ location })} />
+        <CommitField label="Year" delay={PEEK_WRITE_DELAY} value={artwork.year} placeholder="c. 1503" onCommit={(year) => patch({ year })} />
+        <CommitField label="Location" delay={PEEK_WRITE_DELAY} value={artwork.location} placeholder="Louvre, Paris" onCommit={(location) => patch({ location })} />
       </div>
       {form.hasMaterials && (
         <div className="grid grid-cols-2 gap-2">
-          <PeekInput id={id("materials")} label="Materials" value={artwork.materials} placeholder="oil on canvas" onCommit={(materials) => patch({ materials })} />
-          <PeekInput id={id("dimensions")} label="Dimensions" value={artwork.dimensions} placeholder="77 × 53 cm" onCommit={(dimensions) => patch({ dimensions })} />
+          <CommitField label="Materials" delay={PEEK_WRITE_DELAY} value={artwork.materials} placeholder="oil on canvas" onCommit={(materials) => patch({ materials })} />
+          <CommitField label="Dimensions" delay={PEEK_WRITE_DELAY} value={artwork.dimensions} placeholder="77 × 53 cm" onCommit={(dimensions) => patch({ dimensions })} />
         </div>
       )}
       {form.locatable && (
-        <PeekField label="Coordinates">
+        <Field label="Coordinates">
           <GeoField
             value={readGeo(artwork.geo)}
-            onChange={(c) => patch({ geo: writeGeo(c) })}
+            onChange={(c) => void patch({ geo: writeGeo(c) })}
             query={[artwork.title, artwork.location].filter(Boolean).join(", ")}
             geocode={(q) => geocode(q)}
             suggest={(q) => suggestAddresses(q)}
           />
-        </PeekField>
+        </Field>
       )}
-      <PeekInput id={id("image")} label="Image URL" type="url" value={artwork.imageUrl} placeholder="https://…" onCommit={(imageUrl) => patch({ imageUrl })} />
+      <CommitField label="Image URL" type="url" delay={PEEK_WRITE_DELAY} value={artwork.imageUrl} placeholder="https://…" onCommit={(imageUrl) => patch({ imageUrl })} />
       <div className="flex items-center gap-2">
-        <Checkbox id={id("seen")} checked={artwork.seen} onCheckedChange={(v) => patch({ seen: v === true })} />
-        <Label htmlFor={id("seen")} className="text-sm font-normal">
+        <Checkbox id={seenId} checked={artwork.seen} onCheckedChange={(v) => void patch({ seen: v === true })} />
+        <Label htmlFor={seenId} className="text-sm font-normal">
           Seen in person
         </Label>
       </div>

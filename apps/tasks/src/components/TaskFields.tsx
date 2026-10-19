@@ -27,17 +27,23 @@ function useProjectChoices(current: string | null, project: string | null) {
 }
 
 /** A one-time Task's day, or the Unassigned pool (""). */
-export function DayPicker({ id, value, onChange }: { id: string; value: string; onChange: (date: string) => void }) {
+/** `error`: what the owner refused, shown under it. */
+export function DayPicker({ id, value, onChange, error }: { id: string; value: string; onChange: (date: string) => void; error?: string }) {
   return (
     <div className="grid gap-2">
       <Label htmlFor={id}>Day</Label>
       <div className="flex gap-2">
-        <Input id={id} type="date" className="min-w-0" value={value} onChange={(e) => onChange(e.target.value)} />
+        <Input id={id} type="date" className="min-w-0" value={value} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} onChange={(e) => onChange(e.target.value)} />
         <Button type="button" className="shrink-0" variant={value ? "outline" : "secondary"} onClick={() => onChange("")}>
           Unassigned
         </Button>
       </div>
       {!value && <p className="text-muted-foreground text-xs">Stays in the Unassigned pool until you drop it on a day.</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-destructive text-xs">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

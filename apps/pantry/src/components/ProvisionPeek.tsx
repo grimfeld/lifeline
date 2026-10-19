@@ -1,5 +1,4 @@
-import { useEffect, useState, type KeyboardEvent } from "react";
-import { cn, Input, Label } from "@lifeline/ui";
+import { cn, CommitField, Field } from "@lifeline/ui";
 import { todayStr, type PeekProps } from "@lifeline/core";
 import { Minus, Plus } from "lucide-react";
 import type { Provision } from "../domain/types";
@@ -8,13 +7,6 @@ import { adjustQuantity, normalizeProvision, patchProvision } from "../data/repo
 import { HandOffMenu } from "./HandOffMenu";
 import { Step } from "./ProvisionRow";
 import { StorageSelect } from "./StorageSelect";
-
-/** A typed value held while it is typed, following the Document whenever it changes underneath. */
-function useTyped(saved: string) {
-  const [value, setValue] = useState(saved);
-  useEffect(() => setValue(saved), [saved]);
-  return [value, setValue] as const;
-}
 
 /**
  * Pantry's editable Peek (ADR 0085): a Provision peeked from anywhere — a
@@ -29,15 +21,11 @@ export function ProvisionPeek({ doc }: PeekProps) {
   const low = isRunningLow(p);
   const expired = isExpired(p, today);
   const soon = !expired && expiresSoon(p, today, DEFAULT_EXPIRY_WINDOW_DAYS);
-  const [unit, setUnit] = useTyped(p.unit);
-  const [minimum, setMinimum] = useTyped(p.minimum > 0 ? String(p.minimum) : "");
-
-  const saveUnit = () => unit.trim() !== p.unit && void patchProvision(p.id, { unit: unit.trim() });
-  const saveMinimum = () => {
-    const n = clampQty(Number(minimum) || 0);
-    if (n !== p.minimum) void patchProvision(p.id, { minimum: n });
+  const saveUnit = (unit: string) => unit.trim() !== p.unit && patchProvision(p.id, { unit: unit.trim() });
+  const saveMinimum = (typed: string) => {
+    const n = clampQty(Number(typed) || 0);
+    if (n !== p.minimum) return patchProvision(p.id, { minimum: n });
   };
-  const onEnter = (save: () => unknown) => (e: KeyboardEvent) => e.key === "Enter" && save();
 
   return (
     <div className="flex flex-col gap-4">
@@ -49,29 +37,16 @@ export function ProvisionPeek({ doc }: PeekProps) {
         {low ? <HandOffMenu handoff={() => ({ title: p.title, text: p.unit })} /> : null}
       </div>
       {expired ? <p className="text-destructive text-xs">Expired {p.expires}</p> : soon ? <p className="text-warning text-xs">Check by {p.expires}</p> : null}
-      <div className="grid gap-1.5">
-        <Label htmlFor="peek-pantry-storage">Storage</Label>
-        <StorageSelect id="peek-pantry-storage" value={p.storageId} onChange={(storageId) => void patchProvision(p.id, { storageId })} />
+      <Field label="Storage">
+        <StorageSelect value={p.storageId} onChange={(storageId) => void patchProvision(p.id, { storageId })} />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <CommitField label="Unit" className="min-w-0" value={p.unit} placeholder="500g pack" onCommit={saveUnit} />
+        <CommitField label="Minimum" className="min-w-0" type="number" min={0} step={1} value={p.minimum > 0 ? String(p.minimum) : ""} placeholder="none" onCommit={saveMinimum} />
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor="peek-pantry-unit">Unit</Label>
-          <Input id="peek-pantry-unit" value={unit} onChange={(e) => setUnit(e.target.value)} onBlur={saveUnit} onKeyDown={onEnter(saveUnit)} placeholder="500g pack" />
-        </div>
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor="peek-pantry-min">Minimum</Label>
-          <Input id="peek-pantry-min" type="number" min={0} step={1} value={minimum} onChange={(e) => setMinimum(e.target.value)} onBlur={saveMinimum} onKeyDown={onEnter(saveMinimum)} placeholder="none" />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor="peek-pantry-expires">Expires (check by)</Label>
-          <Input id="peek-pantry-expires" type="date" value={p.expires} onChange={(e) => void patchProvision(p.id, { expires: e.target.value })} />
-        </div>
-        <div className="grid min-w-0 gap-1.5">
-          <Label htmlFor="peek-pantry-frozen">Frozen on</Label>
-          <Input id="peek-pantry-frozen" type="date" value={p.frozenOn} onChange={(e) => void patchProvision(p.id, { frozenOn: e.target.value })} />
-        </div>
+        <CommitField label="Expires (check by)" className="min-w-0" type="date" value={p.expires} onCommit={(expires) => patchProvision(p.id, { expires })} />
+        <CommitField label="Frozen on" className="min-w-0" type="date" value={p.frozenOn} onCommit={(frozenOn) => patchProvision(p.id, { frozenOn })} />
       </div>
     </div>
   );

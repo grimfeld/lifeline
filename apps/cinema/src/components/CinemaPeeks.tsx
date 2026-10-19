@@ -1,6 +1,7 @@
-import { Button, Checkbox, Label } from "@lifeline/ui";
+import { useId } from "react";
+import { Button, Checkbox, Label, CommitField } from "@lifeline/ui";
 import { useOpenPeek, type PeekProps } from "@lifeline/core";
-import { PeekInput, WorkPeekFields } from "@lifeline/parts";
+import { PEEK_WRITE_DELAY, WorkPeekFields } from "@lifeline/parts";
 import { ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Playlist, Work } from "../domain/types";
@@ -33,10 +34,10 @@ export function WorkPeek({ doc }: PeekProps) {
       </div>
       <WorkPeekFields
         work={item}
-        onPatch={(patch) => void patchWork(item, patch)}
+        onPatch={(patch) => patchWork(item, patch)}
         sizeUnit={def.sizeUnit}
         marks
-        creator={<PeekInput id="peek-work-creator" label={def.creatorLabel} value={item.creator} onCommit={(creator) => void patchWork(item, { creator })} />}
+        creator={<CommitField label={def.creatorLabel} delay={PEEK_WRITE_DELAY} value={item.creator} onCommit={(creator) => patchWork(item, { creator })} />}
       />
     </div>
   );
@@ -49,11 +50,12 @@ export function PlaylistPeek({ doc }: PeekProps) {
   // Inside the Peek a work opens in its place, with the way back (ADR 0085).
   const peek = useOpenPeek();
   const works = worksOf(playlist, new Map(items.map((w) => [w.id, w])));
+  const rankedId = useId();
   return (
     <div className="grid gap-3">
       <div className="flex items-center gap-2">
-        <Checkbox id="peek-playlist-ranked" checked={playlist.ranked} onCheckedChange={(v) => void patchPlaylist(playlist, { ranked: v === true })} />
-        <Label htmlFor="peek-playlist-ranked" className="text-sm font-normal">
+        <Checkbox id={rankedId} checked={playlist.ranked} onCheckedChange={(v) => void patchPlaylist(playlist, { ranked: v === true })} />
+        <Label htmlFor={rankedId} className="text-sm font-normal">
           Ranked
         </Label>
       </div>

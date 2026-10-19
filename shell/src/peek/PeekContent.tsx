@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, Label, TagInput, toast } from "@lifeline/ui";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { Button, Field, TagInput, toast } from "@lifeline/ui";
 import { DocumentEditor, FieldsForm, MarkdownView } from "@lifeline/editor";
 import {
   effectiveTags,
@@ -17,9 +17,6 @@ import {
   type DocumentTypeDef,
   type FieldDef,
 } from "@lifeline/core";
-
-/** Ids of the Peek's own controls: a Peek may sit over the Vault's editor, whose form uses the plain `field-` ids. */
-const ID_PREFIX = "peek-field-";
 
 /**
  * What a Peek shows between its header and its ways through (ADR 0085).
@@ -96,7 +93,7 @@ function useStagedEdits(doc: Document) {
       () => setDraft((d) => Object.fromEntries(Object.entries(d).filter(([k, v]) => patch[k] !== v))),
       (err: unknown) => {
         pending.current = { ...patch, ...pending.current };
-        toast.error(`Couldn’t save — ${err instanceof Error ? err.message : String(err)}. It will be retried on your next change.`);
+        toast.error("Couldn’t save your change — it will be retried on your next one", { description: err instanceof Error ? err.message : String(err) });
       },
     );
   }, [id]);
@@ -131,23 +128,20 @@ function UserTypePeek({ doc, def }: { doc: Document; def: DocumentTypeDef }) {
   const proseTags = extractProseTags(body);
   const explicitTags = (Array.isArray(values.tags) ? (values.tags as string[]) : []).filter((t) => !proseTags.includes(t));
   const suggestions = useTagVocabulary().map((v) => v.tag);
+  // Its own ids: a Peek may sit over the Vault's editor, whose form uses the plain `field-` ids.
+  const idPrefix = useId();
   return (
     <div className="flex flex-col gap-3">
-      <FieldsForm def={{ fields: own }} value={values} columns={1} idPrefix={ID_PREFIX} onChange={(next) => stage(changed(own, values, next))} />
-      <div className="grid gap-1">
-        <Label htmlFor={`${ID_PREFIX}tags`} className="text-muted-foreground text-xs">
-          Tags
-        </Label>
+      <FieldsForm def={{ fields: own }} value={values} columns={1} idPrefix={idPrefix} onChange={(next) => stage(changed(own, values, next))} />
+      <Field label="Tags" hint={proseTags.length > 0 ? `in text: ${proseTags.map((t) => `#${t}`).join(" ")}` : undefined}>
         <TagInput
-          id={`${ID_PREFIX}tags`}
           value={explicitTags}
           onChange={(next) => stage({ tags: effectiveTags(next, body) }, true)}
           suggestions={suggestions}
           normalize={normalizeTag}
           placeholder="Add tag…"
         />
-        {proseTags.length > 0 && <span className="text-muted-foreground text-xs">in text: {proseTags.map((t) => `#${t}`).join(" ")}</span>}
-      </div>
+      </Field>
       <FieldList doc={doc} fields={roleFields} />
     </div>
   );
@@ -156,10 +150,11 @@ function UserTypePeek({ doc, def }: { doc: Document; def: DocumentTypeDef }) {
 /** The user's own Fields on a built-in type, beneath the App's part. */
 function UserFields({ doc, fields }: { doc: Document; fields: FieldDef[] }) {
   const { values, stage } = useStagedEdits(doc);
+  const idPrefix = useId();
   if (!fields.some((f) => !f.hidden)) return null;
   return (
     <section aria-label="Your fields" className="grid gap-2 border-t pt-3">
-      <FieldsForm def={{ fields }} value={values} columns={1} idPrefix={ID_PREFIX} onChange={(next) => stage(changed(fields, values, next))} />
+      <FieldsForm def={{ fields }} value={values} columns={1} idPrefix={idPrefix} onChange={(next) => stage(changed(fields, values, next))} />
     </section>
   );
 }

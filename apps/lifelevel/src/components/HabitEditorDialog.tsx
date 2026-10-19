@@ -55,7 +55,7 @@ export function HabitEditorDialog({ open, onOpenChange, habit }: { open: boolean
             <Label htmlFor="habit-name">Name</Label>
             <Input id="habit-name" value={name} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
           </div>
-          <DifficultyField id="habit-difficulty" value={difficulty} onChange={setDifficulty} />
+          <DifficultyField value={difficulty} onChange={setDifficulty} />
           <div className="grid gap-2">
             <Label>Tags</Label>
             <TagInput value={tags} onChange={setTags} suggestions={suggestions} />

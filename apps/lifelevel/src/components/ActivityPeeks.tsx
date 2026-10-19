@@ -7,7 +7,16 @@ import { celebrateCompletion, mournNegative } from "../feedback/feedback";
 import type { Habit, Negative } from "../domain/types";
 import { DifficultyField, GravityField, RivalHabitField } from "./ActivityFields";
 
-const fail = (e: unknown) => toast.error(`Couldn’t save — ${(e as Error).message}`);
+/** A write whose refusal shows under its field: the error it set, and the write that sets it. */
+function useRefusal(): [string, (write: Promise<unknown>) => void] {
+  const [error, setError] = useState("");
+  const settle = (write: Promise<unknown>) =>
+    void write.then(
+      () => setError(""),
+      (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
+    );
+  return [error, settle];
+}
 
 /**
  * A Habit's editable Peek (ADR 0085): its Difficulty changed in place (the
@@ -16,6 +25,7 @@ const fail = (e: unknown) => toast.error(`Couldn’t save — ${(e as Error).mes
 export function HabitPeek({ doc }: { doc: Document }) {
   const habit = doc as Habit;
   const [pending, setPending] = useState(false);
+  const [difficultyError, settleDifficulty] = useRefusal();
 
   async function complete() {
     setPending(true);
@@ -37,7 +47,7 @@ export function HabitPeek({ doc }: { doc: Document }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <DifficultyField id="habit-peek-difficulty" value={habit.difficulty} onChange={(difficulty) => void editHabit(habit.id, { difficulty }).catch(fail)} />
+      <DifficultyField value={habit.difficulty} error={difficultyError} onChange={(difficulty) => settleDifficulty(editHabit(habit.id, { difficulty }))} />
       <div>
         <Button size="sm" variant="outline" disabled={pending} onClick={() => void complete()}>
           <Check />
@@ -56,6 +66,8 @@ export function NegativePeek({ doc }: { doc: Document }) {
   const negative = doc as Negative;
   const habits = useHabits();
   const [pending, setPending] = useState(false);
+  const [gravityError, settleGravity] = useRefusal();
+  const [rivalError, settleRival] = useRefusal();
 
   async function log() {
     setPending(true);
@@ -77,8 +89,8 @@ export function NegativePeek({ doc }: { doc: Document }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <GravityField id="negative-peek-gravity" value={negative.gravity} onChange={(gravity) => void editNegative(negative.id, { gravity }).catch(fail)} />
-      <RivalHabitField id="negative-peek-rival" value={negative.affectsHabitId ?? ""} habits={habits} onChange={(affectsHabitId) => void editNegative(negative.id, { affectsHabitId }).catch(fail)} />
+      <GravityField value={negative.gravity} error={gravityError} onChange={(gravity) => settleGravity(editNegative(negative.id, { gravity }))} />
+      <RivalHabitField value={negative.affectsHabitId ?? ""} habits={habits} error={rivalError} onChange={(affectsHabitId) => settleRival(editNegative(negative.id, { affectsHabitId }))} />
       <div>
         <Button size="sm" variant="outline" disabled={pending} onClick={() => void log()}>
           <Skull />

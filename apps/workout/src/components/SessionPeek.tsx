@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { formatHuman, usePeekDraft, type Document } from "@lifeline/core";
-import { Button, Label, Textarea, toast } from "@lifeline/ui";
+import { useRef, useState } from "react";
+import { formatHuman, type Document } from "@lifeline/core";
+import { Button, CommitField, toast } from "@lifeline/ui";
 import { Pencil } from "lucide-react";
 import { normalizeSession, updateSessionNotes, useExercises, useWorkout } from "../data/repo";
 import { resultsSummary } from "../domain/intervals";
@@ -18,8 +18,8 @@ export function SessionPeek({ doc }: { doc: Document }) {
   const workout = useWorkout(s.workoutId);
   const exercises = useExercises();
   const [editing, setEditing] = useState(false);
-  const fail = (e: unknown) => toast.error(`Couldn’t save — ${(e as Error).message}`);
-  const notes = usePeekDraft(s.notes, (next) => updateSessionNotes(s.id, next.trim()).catch(fail));
+  // The notes' last write: leaving the field for "Edit results…" writes them, and the form opens on them once written.
+  const writing = useRef<Promise<unknown>>(Promise.resolve());
   const summary = resultsSummary(s, workout);
 
   async function saveResults(results: BlockResult[], next: string) {
@@ -27,7 +27,7 @@ export function SessionPeek({ doc }: { doc: Document }) {
       await updateSessionNotes(s.id, next.trim(), results);
       setEditing(false);
     } catch (e) {
-      fail(e);
+      toast.error("Couldn’t save the results", { description: e instanceof Error ? e.message : String(e) });
     }
   }
 
@@ -47,19 +47,16 @@ export function SessionPeek({ doc }: { doc: Document }) {
           </>
         )}
       </dl>
-      <div className="grid gap-2">
-        <Label htmlFor="session-peek-notes">Notes</Label>
-        <Textarea id="session-peek-notes" rows={3} value={notes.value} placeholder="How it felt, what to change" onChange={(e) => notes.onChange(e.target.value)} onBlur={notes.flush} />
-      </div>
+      <CommitField label="Notes" multiline rows={3} value={s.notes} placeholder="How it felt, what to change" onCommit={(next) => (writing.current = updateSessionNotes(s.id, next.trim()))} />
       {workout && s.results.length > 0 && (
         <div>
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {
-              notes.flush();
-              setEditing(true);
-            }}
+            onClick={() => void writing.current.then(
+              () => setEditing(true),
+              () => setEditing(true),
+            )}
           >
             <Pencil />
             Edit results…
@@ -67,7 +64,7 @@ export function SessionPeek({ doc }: { doc: Document }) {
         </div>
       )}
       {workout && editing && (
-        <SessionResultsDialog open workout={workout} exercises={exercises} initial={s.results} initialNotes={notes.value} onSave={(r, n) => void saveResults(r, n)} onDiscard={() => setEditing(false)} />
+        <SessionResultsDialog open workout={workout} exercises={exercises} initial={s.results} initialNotes={s.notes} onSave={(r, n) => void saveResults(r, n)} onDiscard={() => setEditing(false)} />
       )}
     </div>
   );

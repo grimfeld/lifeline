@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { useId, useRef, useState, type AriaAttributes, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -29,6 +29,9 @@ export interface TagInputProps {
   className?: string;
   autoFocus?: boolean;
   disabled?: boolean;
+  /** Set by `Field`: its hint and error, read with the input. */
+  "aria-describedby"?: string;
+  "aria-invalid"?: AriaAttributes["aria-invalid"];
 }
 
 /**
@@ -36,7 +39,7 @@ export interface TagInputProps {
  * typed word; Backspace on an empty input removes the last chip; typing
  * filters `suggestions`, Arrow keys + Enter pick one.
  */
-export function TagInput({ id, value, onChange, suggestions = [], placeholder = "Add tag…", normalize = defaultNormalizeTag, className, autoFocus, disabled }: TagInputProps) {
+export function TagInput({ id, value, onChange, suggestions = [], placeholder = "Add tag…", normalize = defaultNormalizeTag, className, autoFocus, disabled, "aria-describedby": describedBy, "aria-invalid": invalid }: TagInputProps) {
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -113,6 +116,8 @@ export function TagInput({ id, value, onChange, suggestions = [], placeholder = 
           disabled={disabled}
           autoFocus={autoFocus}
           role="combobox"
+          aria-describedby={describedBy}
+          aria-invalid={invalid}
           aria-expanded={open && matches.length > 0}
           aria-controls={listId}
           aria-autocomplete="list"

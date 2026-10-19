@@ -89,8 +89,8 @@ export function NegativeEditorDialog({ open, onOpenChange, negative }: { open: b
             <Label htmlFor="negative-name">Name</Label>
             <Input id="negative-name" value={name} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
           </div>
-          <GravityField id="negative-gravity" value={gravity} onChange={setGravity} />
-          <RivalHabitField id="negative-rival" value={target} habits={habits} onChange={setTarget} />
+          <GravityField value={gravity} onChange={setGravity} />
+          <RivalHabitField value={target} habits={habits} onChange={setTarget} />
           <div className="grid gap-2">
             <Label>Tags</Label>
             <TagInput value={tags} onChange={setTags} suggestions={suggestions} />

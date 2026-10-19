@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Button, EstimatePicker, Field, TagInput, Textarea, toast, usePushFlow, useSoonWritten } from "@lifeline/ui";
+import { useId, useState } from "react";
+import { Button, CommitField, EstimatePicker, Field, TagInput, toast, useCommitDraft, usePushFlow } from "@lifeline/ui";
 import { formatHuman, normalizeTag, pushSurfaceItem, todayStr, useTagVocabulary, type Document, type PeekProps } from "@lifeline/core";
 import { Archive, ArchiveRestore, Check, Pencil, Repeat, Undo2 } from "lucide-react";
 import type { Task } from "../domain/types";
@@ -9,8 +9,8 @@ import { APP_ID } from "../schedulable";
 import { DayPicker, ProjectPicker } from "./TaskFields";
 import { TaskDialog } from "./TaskDialog";
 
-/** Ids of the Peek's controls: it may sit over a page with the Task dialog's own. */
-const ID = "peek-task-";
+/** Typed values are written a moment after the typing stops, as the Vault's editor writes. */
+const WRITE_DELAY = 500;
 
 /**
  * The Tasks App's part of a Task's Peek (ADR 0085): the Task's own Fields
@@ -30,8 +30,9 @@ function TaskPeekPart({ doc }: { doc: Document }) {
   const [editing, setEditing] = useState(false);
   const pushFlow = usePushFlow();
   const suggestions = useTagVocabulary().map((v) => v.tag);
-  const [day, setDay] = useSoonWritten(task.date ?? "", (d) => moveItem(task.id, d || null));
-  const [notes, setNotes] = useSoonWritten(task.notes, (n) => editTask(task.id, { notes: n }));
+  // Its own ids: the Peek may sit over a page with the Task dialog's.
+  const dayId = useId();
+  const day = useCommitDraft(task.date ?? "", (d) => moveItem(task.id, d || null), { delay: WRITE_DELAY });
   const oneTime = !task.recurrence;
   const done = oneTime && !!task.completedOn;
   const archived = task.status === "archived";
@@ -73,7 +74,7 @@ function TaskPeekPart({ doc }: { doc: Document }) {
       {done && task.completedOn && <p className="text-muted-foreground text-sm">Done {formatHuman(task.completedOn)}</p>}
 
       {oneTime ? (
-        <DayPicker id={`${ID}date`} value={day} onChange={setDay} />
+        <DayPicker id={dayId} value={day.draft} error={day.error} onChange={day.change} />
       ) : (
         <p className="flex min-w-0 items-center gap-2 text-sm">
           <Repeat className="text-muted-foreground size-4 shrink-0" />
@@ -89,14 +90,11 @@ function TaskPeekPart({ doc }: { doc: Document }) {
       />
 
       <Field label="Estimate">
-        <EstimatePicker id={`${ID}estimate`} value={task.estimate} onChange={(min) => void setEstimate(task.id, min)} />
+        <EstimatePicker value={task.estimate} onChange={(min) => void setEstimate(task.id, min)} />
       </Field>
-      <Field label="Notes">
-        <Textarea id={`${ID}notes`} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={3} />
-      </Field>
+      <CommitField label="Notes" multiline rows={3} delay={WRITE_DELAY} value={task.notes} placeholder="Optional" onCommit={(notes) => editTask(task.id, { notes })} />
       <Field label="Tags">
         <TagInput
-          id={`${ID}tags`}
           value={task.tags ?? []}
           onChange={(tags) => void editTask(task.id, { tags })}
           suggestions={suggestions}

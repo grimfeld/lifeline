@@ -1,6 +1,6 @@
-import { useDocument, type PeekProps } from "@lifeline/core";
-import { ChoiceField, TagsField, savePatch } from "@lifeline/editor";
-import { Button, toast } from "@lifeline/ui";
+import { patchDocument, useDocument, type PeekProps } from "@lifeline/core";
+import { TagsField } from "@lifeline/editor";
+import { Button, ChoiceField, toast } from "@lifeline/ui";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { moveChapterBy, useChapters } from "../data/repo";
 import { FORMS, STATUSES, type Chapter, type Manuscript } from "../domain/types";
@@ -12,8 +12,8 @@ export function ManuscriptPeek({ doc }: PeekProps) {
   return (
     <div className="grid gap-3">
       <div className="grid gap-3 md:grid-cols-2">
-        <ChoiceField label="Form" value={m.form ?? ""} options={FORMS} onChange={(form) => void savePatch(m.id, { form })} />
-        <ChoiceField label="Status" value={m.status ?? ""} options={STATUSES} onChange={(status) => void savePatch(m.id, { status })} />
+        <ChoiceField label="Form" value={m.form ?? ""} options={FORMS} onCommit={(form) => patchDocument(m.id, { form })} />
+        <ChoiceField label="Status" value={m.status ?? ""} options={STATUSES} onCommit={(status) => patchDocument(m.id, { status })} />
       </div>
       <p className="text-muted-foreground text-xs tabular-nums">{chapters.length === 1 ? "1 Chapter" : `${chapters.length} Chapters`}</p>
       <TagsField doc={doc} />
@@ -31,7 +31,7 @@ export function ChapterPeek({ doc }: PeekProps) {
   const manuscript = useDocument<Manuscript>(c.manuscriptId);
   const chapters = useChapters(c.manuscriptId);
   const i = chapters.findIndex((x) => x.id === c.id);
-  const move = (by: -1 | 1) => void moveChapterBy(c.manuscriptId, c.id, by).catch((e: Error) => toast.error(e.message));
+  const move = (by: -1 | 1) => void moveChapterBy(c.manuscriptId, c.id, by).catch((e: Error) => toast.error("Couldn’t move the Chapter", { description: e.message }));
   return (
     <div className="grid gap-3">
       <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
@@ -48,7 +48,7 @@ export function ChapterPeek({ doc }: PeekProps) {
           </Button>
         </div>
       </div>
-      <ChoiceField label="Status" value={c.status ?? ""} options={STATUSES} onChange={(status) => void savePatch(c.id, { status })} />
+      <ChoiceField label="Status" value={c.status ?? ""} options={STATUSES} onCommit={(status) => patchDocument(c.id, { status })} />
       <TagsField doc={doc} />
     </div>
   );

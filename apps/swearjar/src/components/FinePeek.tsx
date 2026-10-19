@@ -1,11 +1,9 @@
-import { closePeek, usePeekDraft, type Document } from "@lifeline/core";
-import { Button, Input, Label, Textarea, toast } from "@lifeline/ui";
+import { closePeek, type Document } from "@lifeline/core";
+import { Button, CommitField, toast } from "@lifeline/ui";
 import { deleteFine, editFine, useOffences } from "../data/repo";
 import { faceColor, faceOf, type Fine } from "../domain/types";
 import { formatCents } from "../domain/money";
 import { localInputOf, nowLocalInput } from "./FineDialog";
-
-const fail = (e: unknown) => toast.error(`Couldn’t save — ${(e as Error).message}`);
 
 /**
  * A Fine's editable Peek (ADR 0085): when it happened and its note, edited in
@@ -16,15 +14,20 @@ const fail = (e: unknown) => toast.error(`Couldn’t save — ${(e as Error).mes
 export function FinePeek({ doc }: { doc: Document }) {
   const fine = doc as Fine;
   const offence = useOffences().find((o) => o.id === fine.offenceId);
-  const when = usePeekDraft(fine.occurredAt ? localInputOf(fine.occurredAt) : "", (next) => {
+
+  function setWhen(next: string) {
     const moment = new Date(next);
-    if (!next || Number.isNaN(moment.getTime())) return toast.error("Pick when it happened");
-    return editFine(fine.id, { occurredAt: moment.toISOString() }).catch(fail);
-  });
-  const note = usePeekDraft(fine.note ?? "", (next) => editFine(fine.id, { note: next }).catch(fail));
+    if (!next || Number.isNaN(moment.getTime())) throw new Error("Pick when it happened");
+    return editFine(fine.id, { occurredAt: moment.toISOString() });
+  }
 
   async function remove() {
-    await deleteFine(fine.id);
+    try {
+      await deleteFine(fine.id);
+    } catch (e) {
+      toast.error("Couldn’t delete the Fine", { description: e instanceof Error ? e.message : String(e) });
+      return;
+    }
     closePeek();
     toast.success("Fine deleted");
   }
@@ -38,16 +41,10 @@ export function FinePeek({ doc }: { doc: Document }) {
         <span className="min-w-0 flex-1 break-words text-sm">{offence?.name ?? "A deleted offence"}</span>
         <span className="shrink-0 text-lg font-semibold tabular-nums">{formatCents(Number(fine.amount) || 0)}</span>
       </div>
-      <div className="grid gap-2">
-        <Label htmlFor="fine-peek-when">When it happened</Label>
-        <Input id="fine-peek-when" type="datetime-local" max={nowLocalInput()} value={when.value} onChange={(e) => when.onChange(e.target.value)} onBlur={when.flush} />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="fine-peek-note">Note</Label>
-        <Textarea id="fine-peek-note" rows={2} value={note.value} onChange={(e) => note.onChange(e.target.value)} onBlur={note.flush} />
-      </div>
+      <CommitField label="When it happened" type="datetime-local" max={nowLocalInput()} value={fine.occurredAt ? localInputOf(fine.occurredAt) : ""} onCommit={setWhen} />
+      <CommitField label="Note" multiline rows={2} value={fine.note ?? ""} onCommit={(note) => editFine(fine.id, { note })} />
       <div>
-        <Button size="sm" variant="ghost" onClick={() => void remove().catch(fail)}>
+        <Button size="sm" variant="ghost" onClick={() => void remove()}>
           Delete
         </Button>
       </div>

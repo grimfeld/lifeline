@@ -10,4 +10,4 @@ export * from "./lookup";
 export * from "./components/QuickPick";
 export * from "./quickAdd";
 export * from "./components/QuickAdd";
-export * from "./components/PeekControls";
+export * from "./components/WorkPeekFields";

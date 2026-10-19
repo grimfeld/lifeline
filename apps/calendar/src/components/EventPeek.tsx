@@ -1,13 +1,16 @@
-import { useState } from "react";
-import { Field, TagInput, Textarea, useSoonWritten } from "@lifeline/ui";
+import { useId, useState } from "react";
+import { CommitField, Field, TagInput, useCommitDraft } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary, type Document, type PeekProps } from "@lifeline/core";
 import type { Event } from "../domain/types";
 import { eventFormErrors, whenOf } from "../domain/eventForm";
 import { editEvent, setEventWhen } from "../data/repo";
 import { EventWhenFields, type WhenForm } from "./EventWhenFields";
 
-/** Ids of the Peek's controls: it may sit over a page with the Event dialog's own. */
-const ID = "peek-ev-";
+/** Typed values are written a moment after the typing stops, as the Vault's editor writes. */
+const WRITE_DELAY = 500;
+
+/** Two forms of when are the same when every part is. */
+const sameWhen = (a: WhenForm, b: WhenForm) => a.date === b.date && a.endDate === b.endDate && a.allDay === b.allDay && a.start === b.start && a.end === b.end;
 
 /** An Event's day and times as its form holds them; a timed one's usual hour offered when it stops being all day. */
 function formOf(e: Event): WhenForm {
@@ -34,31 +37,30 @@ export function EventPeek({ doc }: PeekProps) {
 function EventPeekPart({ doc }: { doc: Document }) {
   const event = doc as Event;
   // Written once they make an Event; until then the half-made shape stays here, with what is wrong under it.
-  const [written, writeWhen] = useSoonWritten(formOf(event), (w) => setEventWhen(event.id, whenOf(w)));
+  const written = useCommitDraft(formOf(event), (w) => setEventWhen(event.id, whenOf(w)), { delay: WRITE_DELAY, equals: sameWhen });
   const [unfinished, setUnfinished] = useState<WhenForm | null>(null);
-  const when = unfinished ?? written;
+  const when = unfinished ?? written.draft;
   const errorsOf = (w: WhenForm) => eventFormErrors({ title: event.title || "untitled", ...w });
-  const [notes, setNotes] = useSoonWritten(event.notes ?? "", (n) => editEvent(event.id, { notes: n }));
+  // Its own ids: the Peek may sit over a page with the Event dialog's.
+  const idPrefix = useId();
   const suggestions = useTagVocabulary().map((v) => v.tag);
 
   return (
     <div className="flex flex-col gap-4">
       <EventWhenFields
-        idPrefix={ID}
+        idPrefix={idPrefix}
         value={when}
-        errors={errorsOf(when)}
+        // What the store refused shows under the day, with what is wrong with the form.
+        errors={{ ...(written.error ? { date: written.error } : {}), ...errorsOf(when) }}
         onChange={(next) => {
           const ok = Object.keys(errorsOf(next)).length === 0;
           setUnfinished(ok ? null : next);
-          if (ok) writeWhen(next);
+          if (ok) written.change(next);
         }}
       />
-      <Field label="Notes">
-        <Textarea id={`${ID}notes`} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" rows={3} />
-      </Field>
+      <CommitField label="Notes" multiline rows={3} delay={WRITE_DELAY} value={event.notes ?? ""} placeholder="Optional" onCommit={(notes) => editEvent(event.id, { notes })} />
       <Field label="Tags">
         <TagInput
-          id={`${ID}tags`}
           value={event.tags ?? []}
           onChange={(tags) => void editEvent(event.id, { tags })}
           suggestions={suggestions}

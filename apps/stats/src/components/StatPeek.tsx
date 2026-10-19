@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { usePeekDraft, type Document } from "@lifeline/core";
-import { Badge, Button, Input, Label, Textarea, toast } from "@lifeline/ui";
+import type { Document } from "@lifeline/core";
+import { Badge, Button, CommitField, Label, toast } from "@lifeline/ui";
 import { Plus } from "lucide-react";
 import { editStat, useStat, useStatEntries } from "../data/repo";
 import { cleanItemList } from "../domain/aggregate";
-import type { Stat } from "../domain/types";
 import { AddEntryDialog } from "./AddEntryDialog";
 import { ColorSwatches, KIND_COPY, kindHas } from "./StatFields";
 
@@ -20,7 +19,8 @@ export function StatPeek({ doc }: { doc: Document }) {
   const [logging, setLogging] = useState(false);
   if (!stat) return null;
   const has = kindHas(stat.kind);
-  const save = (patch: Parameters<typeof editStat>[1]) => editStat(stat.id, patch).catch((e: unknown) => toast.error(`Couldn’t save — ${(e as Error).message}`));
+  const save = (patch: Parameters<typeof editStat>[1]) => editStat(stat.id, patch);
+  const count = (n: number) => (n ? String(n) : "");
 
   return (
     <div className="flex flex-col gap-4">
@@ -28,17 +28,30 @@ export function StatPeek({ doc }: { doc: Document }) {
         <Badge variant="secondary">{KIND_COPY[stat.kind].title}</Badge>
         <span className="text-muted-foreground min-w-0 flex-1 text-xs">{KIND_COPY[stat.kind].hint}</span>
       </div>
-      {has.unit && <DraftInput id="stat-peek-unit" label="Unit" value={stat.unit} onCommit={(unit) => save({ unit })} />}
+      {has.unit && <CommitField label="Unit" value={stat.unit} onCommit={(unit) => save({ unit })} />}
       {has.increment && (
-        <DraftInput id="stat-peek-inc" label="Quick-log amount" type="number" value={stat.defaultIncrement ? String(stat.defaultIncrement) : ""} onCommit={(v) => save({ defaultIncrement: Number(v) || 0 })} />
+        <CommitField label="Quick-log amount" type="number" value={count(stat.defaultIncrement)} onCommit={(v) => save({ defaultIncrement: Number(v) || 0 })} />
       )}
-      {has.items && <ItemsField stat={stat} onCommit={(items) => save({ items })} />}
+      {has.items && (
+        <CommitField
+          label="Items"
+          multiline
+          rows={4}
+          className="[&_textarea]:max-h-48"
+          hint="One per line; the list's length is the total."
+          value={stat.items.join("\n")}
+          onCommit={(text) => save({ items: cleanItemList(text.split("\n")) })}
+        />
+      )}
       {has.items && stat.items.length === 0 && (
-        <DraftInput id="stat-peek-universe" label="Out of" type="number" value={stat.universeSize ? String(stat.universeSize) : ""} onCommit={(v) => save({ universeSize: Number(v) || 0 })} />
+        <CommitField label="Out of" type="number" value={count(stat.universeSize)} onCommit={(v) => save({ universeSize: Number(v) || 0 })} />
       )}
       <div className="grid gap-2">
         <Label>Colour</Label>
-        <ColorSwatches value={stat.color} onChange={(color) => void save({ color })} />
+        <ColorSwatches
+          value={stat.color}
+          onChange={(color) => void save({ color }).catch((e: unknown) => toast.error("Couldn’t change the colour", { description: e instanceof Error ? e.message : String(e) }))}
+        />
       </div>
       <div>
         <Button size="sm" variant="outline" onClick={() => setLogging(true)}>
@@ -47,27 +60,6 @@ export function StatPeek({ doc }: { doc: Document }) {
         </Button>
       </div>
       <AddEntryDialog open={logging} onOpenChange={setLogging} stat={stat} entries={entries} />
-    </div>
-  );
-}
-
-function DraftInput({ id, label, value, type, onCommit }: { id: string; label: string; value: string; type?: string; onCommit: (v: string) => unknown }) {
-  const draft = usePeekDraft(value, onCommit);
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Input id={id} type={type} value={draft.value} onChange={(e) => draft.onChange(e.target.value)} onBlur={draft.flush} onKeyDown={(e) => e.key === "Enter" && draft.flush()} />
-    </div>
-  );
-}
-
-function ItemsField({ stat, onCommit }: { stat: Stat; onCommit: (items: string[]) => unknown }) {
-  const draft = usePeekDraft(stat.items.join("\n"), (text) => onCommit(cleanItemList(text.split("\n"))));
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor="stat-peek-items">Items</Label>
-      <Textarea id="stat-peek-items" rows={4} className="max-h-48" value={draft.value} onChange={(e) => draft.onChange(e.target.value)} onBlur={draft.flush} />
-      <p className="text-muted-foreground text-xs">One per line; the list's length is the total.</p>
     </div>
   );
 }
