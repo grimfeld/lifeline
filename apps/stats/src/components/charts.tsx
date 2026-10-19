@@ -17,6 +17,7 @@ import {
   collectionSeries,
   dailySeries,
   dayKey,
+  dotGridWeeks,
   formatValue,
   periodStart,
   readingSeries,
@@ -145,21 +146,7 @@ export function DotGrid({ days, period, color, now = new Date() }: { days: Set<s
   if (start) first = dayKey(start);
   else if (days.size) first = [...days].sort()[0];
   else return <Empty>No days marked yet.</Empty>;
-  const today = dayKey(now);
-  // back up to Monday
-  const fd = new Date(first);
-  const pad = (fd.getDay() + 6) % 7;
-  let cursor = shiftDay(first, -pad);
-  const weeks: { day: string; state: "marked" | "empty" | "pad" }[][] = [];
-  while (cursor <= today) {
-    const col: { day: string; state: "marked" | "empty" | "pad" }[] = [];
-    for (let i = 0; i < 7; i++) {
-      const state = cursor < first || cursor > today ? "pad" : days.has(cursor) ? "marked" : "empty";
-      col.push({ day: cursor, state });
-      cursor = shiftDay(cursor, 1);
-    }
-    weeks.push(col);
-  }
+  const weeks = dotGridWeeks(days, first, dayKey(now));
   return (
     <div className="overflow-x-auto py-2">
       <div className="flex gap-1">

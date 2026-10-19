@@ -168,3 +168,37 @@ describe("computeProgression", () => {
     expect(p?.completionsToday).toBe(0);
   });
 });
+
+// The Habit tile computes only its own Habit (CR-50): a Habit's state reads
+// nothing of the others, so its own slice of the ledger gives the same answer.
+describe("computeProgression for one Habit", () => {
+  it("matches the whole-App computation for that Habit", () => {
+    const a = habit({ id: "a", difficulty: "easy" });
+    const b = habit({ id: "b", difficulty: "hard" });
+    const neg = negative({ id: "n", affectsHabitId: "a", gravity: "severe" });
+    const at = (d: number, h: number) => new Date(Date.UTC(2026, 3, d, h)).toISOString();
+    // Out of order on purpose: the derivation sorts.
+    const cs = [
+      habitCompletion({ id: "a3", habitId: "a", occurredAt: at(9, 8) }),
+      habitCompletion({ id: "b1", habitId: "b", occurredAt: at(2, 8) }),
+      habitCompletion({ id: "a1", habitId: "a", occurredAt: at(1, 8) }),
+      habitCompletion({ id: "a2", habitId: "a", occurredAt: at(3, 20) }),
+    ];
+    const hits = [
+      negativeCompletion({ id: "h1", negativeId: "n", affectedHabitId: "a", occurredAt: at(4, 9) }),
+      negativeCompletion({ id: "h2", negativeId: "n", affectedHabitId: "b", occurredAt: at(5, 9) }),
+    ];
+    const now = new Date(Date.UTC(2026, 3, 12, 12));
+    const whole = computeProgression([a, b], [neg], cs, hits, now).habits.find((s) => s.habitId === "a");
+    const alone = computeProgression(
+      [a],
+      [neg],
+      cs.filter((c) => c.habitId === "a"),
+      hits.filter((c) => c.affectedHabitId === "a"),
+      now,
+    ).habits[0];
+    expect(alone).toEqual(whole);
+    expect(alone.completionCount).toBe(3);
+    expect(alone.lastCompletedAt).toBe(at(9, 8));
+  });
+});
