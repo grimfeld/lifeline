@@ -2,7 +2,7 @@
  * Money is integer cents everywhere — floats never touch amounts. One
  * app-wide currency, the Ledger's (ADR 0033); a deliberate copy of its
  * helpers rather than an import — Apps interoperate only through Core
- * Contracts, and Prices knows nothing of the Ledger (ADR 0045).
+ * Contracts, and Prices knows nothing of the Ledger (ADR 0082).
  */
 export const CURRENCY = "EUR";
 

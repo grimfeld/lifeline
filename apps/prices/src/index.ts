@@ -11,7 +11,7 @@ import { APP_ID, LINE, MEASURES, MEASURE_LABEL, MEASURE_PER, PRICES_COLOR, PRICE
 import { ProductPeek } from "./components/ProductPeek";
 
 /**
- * The `price_product` type (ADR 0045): a thing bought again — a name and a
+ * The `price_product` type (ADR 0082): a thing bought again — a name and a
  * measure fixed at creation. `labels` is the App's memory of what each Shop
  * prints for it (guarded, hidden).
  */
@@ -92,7 +92,7 @@ const lineType: DocumentTypeDef = {
   builtIn: true,
 };
 
-/** Prices App (ADR 0045): what regular purchases cost, where, and over time — apart from the Ledger's bank facts and Pantry's stock. */
+/** Prices App (ADR 0082): what regular purchases cost, where, and over time — apart from the Ledger's bank facts and Pantry's stock. */
 export const pricesApp: AppManifest = {
   id: APP_ID,
   module: "money",

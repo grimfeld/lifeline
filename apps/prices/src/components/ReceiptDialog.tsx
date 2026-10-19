@@ -25,7 +25,7 @@ let nextKey = 1;
 const fresh = (over: Partial<EditLine> = {}): EditLine => ({ key: nextKey++, label: "", productId: "", amount: "1", price: "", promo: false, ...over });
 
 /**
- * The one Receipt form (ADR 0045): "Add receipt…" typed in by hand and the
+ * The one Receipt form (ADR 0082): "Add receipt…" typed in by hand and the
  * register's edit of an existing Receipt. Lifeline reads no photo (ADR 0075);
  * one may be kept beside the Lines, stored only on Save. Lines match to
  * Products here; unmatched ones may be saved and cleared later. The printed

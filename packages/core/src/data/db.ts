@@ -115,7 +115,7 @@ export interface ViewFilter {
  *   14 — media split: per-medium types; media's `[type+medium]` index dropped, `[type+slot]`/`[type+externalKey]` shared by the six types
  *   15 — Museum App (ADR 0022): `[type+artistId]` and `[type+exhibitionId]` added
  *   16 — Attachments (ADR 0037): synced `attachments` metadata, local `_blobs` bytes
- *   18 — Prices App (ADR 0045): `[type+receiptId]`, `[type+productId]`, `[type+shopId]` added
+ *   18 — Prices App (ADR 0082): `[type+receiptId]`, `[type+productId]`, `[type+shopId]` added
  *   19 — Workspaces (ADR 0047/0048): synced `workspaces`; `workspace` indexed on
  *        `documents` and `screens` so a scoped read is an index hit, not a scan
  *   20 — Mail App (ADR 0051): local `_mail_cache` table

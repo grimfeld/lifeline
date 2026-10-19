@@ -9,7 +9,7 @@ import { addSpend, deleteSpend, updateSpend, useAllowances, useSpends } from "..
 const BUCKET_TITLE = { current: "Current", upcoming: "Upcoming", past: "Past" } as const;
 
 /**
- * The capture form (ADR 0037): pick an Allowance (current ones first),
+ * The capture form (ADR 0081): pick an Allowance (current ones first),
  * type an amount, done. Day defaults to today and is free; the label is
  * optional. "Save & add another" keeps the Allowance and day.
  */
