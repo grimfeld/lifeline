@@ -1,25 +1,31 @@
 import { CalendarDays, ClipboardList, Home, ShoppingBasket, ShoppingCart } from "lucide-react";
-import { CalendarPage } from "../../surfaces/CalendarPage";
-import { ModuleCard } from "../ModuleCard";
-import { handModule, ModuleHomeHeader } from "../handModule";
+import { CalendarSurface } from "../../surfaces/CalendarSurface";
+import { overviewPage } from "../Overview";
+import { handModule } from "../handModule";
 
 /**
- * House's home: what the house asks of you today. The chores due, the list
+ * House's Overview: what the house asks of you today. The chores due, the list
  * for the next shop, what is running low and what is about to go off — three
- * Apps' Cards on one page, because they are one errand.
+ * Apps' Cards on one page, because they are one errand. The default; each
+ * Workspace may rearrange it (ADR 0066).
  */
-function HouseHome() {
-  return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-4 md:p-6">
-      <ModuleHomeHeader title="House" />
-      <div className="grid gap-4 md:grid-cols-2">
-        <ModuleCard cardId="chores.due-today" />
-        <ModuleCard cardId="shopping.list" />
-        <ModuleCard cardId="pantry.running-low" />
-        <ModuleCard cardId="pantry.expiring" />
-      </div>
-    </div>
-  );
+const HouseHome = overviewPage({
+  moduleId: "house",
+  title: "House",
+  defaults: [
+    { cardId: "chores.due-today" },
+    { cardId: "shopping.list" },
+    { cardId: "pantry.running-low" },
+    { cardId: "pantry.expiring" },
+  ],
+});
+
+/**
+ * House's Calendar: the lens on Chores. Chores have no hours, so it offers
+ * the day-granular views only (ADR 0063).
+ */
+function HouseCalendar() {
+  return <CalendarSurface views={["month", "upcoming"]} />;
 }
 
 /**
@@ -40,6 +46,6 @@ export const houseShell = handModule({
   ],
   pages: [
     { path: "", component: HouseHome },
-    { path: "calendar", component: CalendarPage },
+    { path: "calendar", component: HouseCalendar },
   ],
 });

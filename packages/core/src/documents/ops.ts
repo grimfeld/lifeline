@@ -18,7 +18,7 @@ import type { Document } from "./types";
  * the local list of user-created empty folders.
  */
 
-export async function createDocument(input: { type: string; title: string; folder?: string; body?: string; fields?: Record<string, unknown> }): Promise<Document> {
+export async function createDocument(input: { type: string; title: string; folder?: string; body?: string; fields?: Record<string, unknown>; templateId?: string }): Promise<Document> {
   const def = documentTypeSync(input.type);
   const title = input.title.trim();
   const folder = input.folder === undefined ? defaultFolder(input.type, title, def?.folder ?? "") : normalizeFolder(input.folder);
@@ -27,19 +27,37 @@ export async function createDocument(input: { type: string; title: string; folde
   if (def?.titleRule !== "derived" && titleTaken(docs.filter((d) => d.type === input.type), folder, title)) {
     throw new Error(`“${title}” already exists in ${folder || "the root"}`);
   }
-  const body = def?.body === "none" ? undefined : (input.body ?? (await templateFor(input.type, title, docs)));
+  const body = def?.body === "none" ? undefined : (input.body ?? (await templateFor(input.type, title, docs, input.templateId)));
   return putDocument({ ...(input.fields ?? {}), type: input.type, title, folder, body });
 }
 
 /** The "template" Document type: a Document whose title is a type id and whose body seeds new Documents of that type. */
 export const TEMPLATE_TYPE = "template";
 
-/** Rendered template for a type: the user's template Document (title = type id) if any, else the type's code default. */
-export async function templateFor(type: string, title: string, docs?: Document[]): Promise<string> {
+/**
+ * A type's Templates (CONTEXT.md "Template"): every Template Document made for
+ * it — `forType` names the type — and, from before that field, the one titled
+ * by the type id. Each Document type has its own.
+ */
+export function templatesFor(type: string, docs: readonly Document[]): Document[] {
+  const t = type.toLowerCase();
+  return docs.filter((d) => d.type === TEMPLATE_TYPE && !d.deleted && (typeof d.forType === "string" && d.forType ? d.forType.toLowerCase() === t : d.title.toLowerCase() === t));
+}
+
+/** The Template a new Document of a type starts from when none is picked: the one titled by the type id, else the only one. */
+export function defaultTemplateFor(type: string, docs: readonly Document[]): Document | undefined {
+  const mine = templatesFor(type, docs);
+  return mine.find((d) => d.title.toLowerCase() === type.toLowerCase()) ?? (mine.length === 1 ? mine[0] : undefined);
+}
+
+/** Rendered starting body for a type: the picked Template, else its default one, else a built-in's code default. */
+export async function templateFor(type: string, title: string, docs?: Document[], templateId?: string): Promise<string> {
   const def = documentTypeSync(type);
   const all = docs ?? (await allDocuments());
-  const custom = all.find((d) => d.type === TEMPLATE_TYPE && d.title.toLowerCase() === type.toLowerCase());
-  const raw = custom && typeof custom.body === "string" ? custom.body : (def?.template ?? "");
+  const picked = templateId ? templatesFor(type, all).find((d) => d.id === templateId) : undefined;
+  const custom = picked ?? defaultTemplateFor(type, all);
+  // Only a built-in carries a default of its own; a user-defined type starts from its Templates alone (CONTEXT.md "Template").
+  const raw = custom && typeof custom.body === "string" ? custom.body : def?.builtIn ? (def.template ?? "") : "";
   return renderTemplate(raw, { title, date: def?.titleRule === "date" ? title : todayStr() });
 }
 

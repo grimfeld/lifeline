@@ -56,6 +56,15 @@ export async function pendingWriteCount(): Promise<number> {
  * unpushed local writes would be lost, which callers check first.
  */
 export async function switchAccount(): Promise<void> {
+  await eraseDevice();
+}
+
+/**
+ * Delete this device's whole local store — Documents, Core bookkeeping, the
+ * outbox, every `_meta` marker — and reload. Behind switchAccount() and the
+ * Demo's Reset, which seeds the made-up life again on the reload.
+ */
+export async function eraseDevice(): Promise<void> {
   await db().delete();
   location.reload();
 }

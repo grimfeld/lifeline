@@ -8,6 +8,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  PhoneDock,
   TagChips,
   toast,
 } from "@lifeline/ui";
@@ -74,7 +75,7 @@ function SourceRow({ source, onEdit }: { source: Source; onEdit: (s: Source) => 
   );
 }
 
-/** The Sources App's management screen: every Source by kind, add/edit/delete. */
+/** The Windows App's management screen (once the Sources App): every Window by kind, add/edit/delete. */
 export function SourcesScreen() {
   const sources = useSources();
   const [dialog, setDialog] = useState<{ kind: SourceKind; source?: Source } | null>(null);
@@ -82,25 +83,27 @@ export function SourcesScreen() {
   return (
     <div className="flex h-full flex-col gap-3 p-4">
       <div className="flex items-center gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">Sources</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Windows</h1>
         <span className="text-muted-foreground text-sm">{sources.length} source{sources.length === 1 ? "" : "s"}</span>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="ml-auto h-8">
-              <Plus /> New
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {KIND_ORDER.map((k) => {
-              const Icon = KIND_ICON[k];
-              return (
-                <DropdownMenuItem key={k} onClick={() => setDialog({ kind: k })}>
-                  <Icon /> New {KIND_LABEL[k]}
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <PhoneDock>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="ml-auto h-8">
+                <Plus /> New
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {KIND_ORDER.map((k) => {
+                const Icon = KIND_ICON[k];
+                return (
+                  <DropdownMenuItem key={k} onClick={() => setDialog({ kind: k })}>
+                    <Icon /> New {KIND_LABEL[k]}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </PhoneDock>
       </div>
       <div className="grid gap-4 overflow-y-auto">
         {sources.length === 0 && (

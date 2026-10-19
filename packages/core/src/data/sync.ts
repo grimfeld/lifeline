@@ -1,5 +1,6 @@
 import { ATTACHMENTS, BLOBS, db, DOCUMENTS, syncedCollectionNames, type SyncedRecord } from "./db";
 import { pb } from "./pb";
+import { isDemo } from "../demo";
 import { bindAccount, boundAccount, currentAccount } from "./account";
 import { shouldApply } from "./reconcile";
 import { documentTypeSync } from "../documents/registry";
@@ -396,7 +397,8 @@ export function requestSync(): void {
 const PULL_INTERVAL_MS = 30_000;
 
 export function startSync(): void {
-  if (started) return;
+  // The Demo has no backend (ADR 0077): local writes fill the outbox, which nothing drains.
+  if (started || isDemo()) return;
   started = true;
   void syncNow();
   setInterval(() => void syncNow(), PULL_INTERVAL_MS);

@@ -8,6 +8,8 @@ import { Cover } from "../components/Cover";
 import { EditWorkDialog } from "../components/WorkRow";
 import type { Work } from "../domain/types";
 import { mediumOf } from "./shared";
+import { NextPartButton } from "@lifeline/parts";
+import { cinemaParts } from "../parts";
 
 function startedLabel(startedOn: string, today: string): string {
   const d = diffDays(startedOn, today);
@@ -20,6 +22,7 @@ export function InProgressCard({ settings }: CardProps) {
   const items = useWorks().filter((m) => matchesTagFilter(m.tags, filter));
   const medium = mediumOf(settings);
   const [editing, setEditing] = useState<Work | null>(null);
+  const { parts, groups } = cinemaParts.useAllParts();
   const rows = inProgress(items, medium);
   const today = todayStr();
   if (rows.length === 0) {
@@ -33,6 +36,7 @@ export function InProgressCard({ settings }: CardProps) {
             <Cover item={m} className={workType(m.type).cover === "square" ? "size-24 text-xs" : "h-32 w-24 text-xs"} />
             <div className="line-clamp-2 w-full text-xs font-medium leading-tight">{m.title}</div>
             {m.startedOn && <div className="text-muted-foreground text-[11px]">{startedLabel(m.startedOn, today)}</div>}
+            {m.partsTracked && <NextPartButton kit={cinemaParts} work={m} parts={parts} groups={groups} />}
             {!medium && (
               <Badge variant="outline" className="text-[10px]">
                 {workType(m.type).label}

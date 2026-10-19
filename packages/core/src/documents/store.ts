@@ -9,6 +9,7 @@ import { normalizeTags } from "../tags";
 import { extractLinks, extractProseTags, isImageEmbed, normalizeName } from "../markdown";
 import { normalizeFolder } from "../folders";
 import { documentTypeSync } from "./registry";
+import { recallableDefs, registeredApps } from "../registry";
 import { inPrivateFolder, privateGate, visibleUnder } from "../private";
 import { onWorkspaceChange, useCurrentWorkspaceId, workspaceScope } from "../workspaces";
 import type { Document } from "./types";
@@ -42,20 +43,20 @@ export function inScope(doc: Pick<Document, "workspace">, scope: string): boolea
  * but this one. This is the one choke point — no surface checks either gate
  * itself, and nothing reads around them.
  */
-async function gated<T extends Document>(rows: T[]): Promise<T[]> {
+export async function gateRows<T extends Document>(rows: T[]): Promise<T[]> {
   const scope = await workspaceScope();
   return visibleUnder(rows, await privateGate()).filter((r) => inScope(r, scope));
 }
 
 /** Live rows of one type (tombstones excluded). */
 export async function documentsOf<T extends Document = Document>(type: string): Promise<T[]> {
-  return gated((await documentsTable().where("[type+deleted]").equals([type, 0]).toArray()) as T[]);
+  return gateRows((await documentsTable().where("[type+deleted]").equals([type, 0]).toArray()) as T[]);
 }
 
 /** Rows of one type where an indexed field equals a value (`indexes` on the type def). */
 export async function documentsWhere<T extends Document = Document>(type: string, field: string, value: unknown): Promise<T[]> {
   const rows = (await documentsTable().where(`[type+${field}]`).equals([type, value as string]).toArray()) as T[];
-  return gated(rows.filter((r) => !r.deleted));
+  return gateRows(rows.filter((r) => !r.deleted));
 }
 
 export async function getDocument<T extends Document = Document>(id: string): Promise<T | undefined> {
@@ -68,7 +69,7 @@ export async function getDocument<T extends Document = Document>(id: string): Pr
 
 /** Every live Document of every type — for cross-type tooling only (Bases, links, tags). */
 export async function allDocuments(): Promise<Document[]> {
-  return gated(await documentsTable().where("deleted").equals(0).toArray());
+  return gateRows(await documentsTable().where("deleted").equals(0).toArray());
 }
 
 // The Workspace is a dependency of every read below although no table holds
@@ -150,7 +151,11 @@ export async function removeDocument(id: string): Promise<void> {
   // `removeDocumentsWhere` below tombstones directly, so a cascade that uses
   // it cannot re-enter this.
   const doc = await documentsTable().get(id);
-  if (doc && !doc.deleted) await documentTypeSync(doc.type)?.onDelete?.(doc);
+  if (doc && !doc.deleted) {
+    await documentTypeSync(doc.type)?.onDelete?.(doc);
+    // A Recallable Document's practice goes with it, whatever App owns it and whichever keeps the practice (ADR 0073).
+    if (recallableDefs().some((d) => d.typeId === doc.type)) for (const a of registeredApps()) await a.forgetRecallable?.(doc);
+  }
   await remove(DOCUMENTS, id);
 }
 

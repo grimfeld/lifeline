@@ -23,6 +23,7 @@ export * from "./components/map/MiniMap";
 export * from "./components/map/GeoField";
 export * from "./components/ui/context-menu";
 export * from "./components/ui/tag-input";
+export * from "./components/ui/phone-dock";
 export * from "./typeIcons";
 export * from "./colorSlots";
 export * from "./components/push/push-flow";

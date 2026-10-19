@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex } from "./links";
-import { findMentions, linkMentions, unlinkedIn, unlinkedMentionsOf, type MentionName } from "./mentions";
+import { findMentions, linkMentions, planLinkAll, unlinkedIn, unlinkedMentionsOf, type MentionName } from "./mentions";
 import type { Document, DocumentTypeDef } from "./types";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
@@ -99,5 +99,39 @@ describe("over the link index", () => {
   it("unlinkedMentionsOf: an internal type's Documents are never a source (a Version repeats its Writing's prose)", () => {
     expect(unlinkedMentionsOf(idx, "p1").map((r) => r.sourceId)).not.toContain("ver1");
     expect(unlinkedMentionsOf(idx, "p2").map((r) => r.sourceId)).not.toContain("ver1");
+  });
+});
+
+describe("planLinkAll", () => {
+  const types = [T("note"), T("person"), T("place"), T("daily", { linkable: { mentions: false } })];
+  const docs = [
+    doc("anna", "person", "Anna Kowalska", "", "", { aliases: ["Anna"] }),
+    doc("annas", "person", "Anna Smith", ""),
+    doc("piotr", "person", "Piotr", "", "", { aliases: ["Piotrek"] }),
+    doc("krk", "place", "Kraków", ""),
+    doc("krk2", "note", "Kraków", ""),
+    doc("d1", "daily", "2026-10-01", "Coffee with Anna and piotrek. Then Piotr again."),
+    doc("d2", "daily", "2026-10-02", "Anna Smith called. Kraków in the rain."),
+    doc("d3", "daily", "2026-10-03", "Dinner with Piotr."),
+  ];
+  const idx = buildLinkIndex(docs, types);
+
+  it("groups every safe hit by source, so one write per body", () => {
+    const plan = planLinkAll(idx, "piotr");
+    expect(plan.sources.map((s) => [s.sourceId, s.hits.map((h) => h.text)])).toEqual([
+      ["d1", ["piotrek", "Piotr"]],
+      ["d3", ["Piotr"]],
+    ]);
+    expect(plan.skipped).toEqual([]);
+  });
+  it("leaves a hit covered by another Document's longer name", () => {
+    const plan = planLinkAll(idx, "anna");
+    expect(plan.sources.map((s) => s.sourceId)).toEqual(["d1"]);
+    expect(plan.skipped.map((m) => [m.sourceId, m.hit.text])).toEqual([["d2", "Anna"]]);
+  });
+  it("leaves a name two Documents share", () => {
+    const plan = planLinkAll(idx, "krk");
+    expect(plan.sources).toEqual([]);
+    expect(plan.skipped.map((m) => m.sourceId)).toEqual(["d2"]);
   });
 });

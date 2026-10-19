@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
+import { documentsOf, documentsWithRole, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
 import { AUTHOR, SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Author, type Work, type LookupSettings } from "../domain/types";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
@@ -24,6 +24,12 @@ export function normalize(m: Work): Work {
     slottedOn: m.slottedOn ?? "",
     startedOn: m.startedOn ?? "",
     finishedOn: m.finishedOn ?? "",
+    liked: !!m.liked,
+    rating: m.rating || 0,
+    partsTracked: !!m.partsTracked,
+    caughtUpGroup: m.caughtUpGroup || 0,
+    caughtUpPart: m.caughtUpPart || 0,
+    partCount: m.partCount || 0,
     tags: m.tags ?? [],
   };
 }
@@ -79,6 +85,12 @@ export async function addWork(input: {
     slottedOn: "",
     startedOn: "",
     finishedOn: "",
+    liked: false,
+    rating: 0,
+    partsTracked: false,
+    caughtUpGroup: 0,
+    caughtUpPart: 0,
+    partCount: 0,
     tags: normalizeTags(input.tags),
   });
   return row.id;
@@ -143,7 +155,8 @@ export function normalizeAuthor(a: Author): Author {
 }
 
 export async function allAuthors(): Promise<Author[]> {
-  return (await documentsOf<Author>(AUTHOR)).map(normalizeAuthor);
+  // Every Document playing the Author Role (ADR 0069): Authors, and whoever else wears it.
+  return (await documentsWithRole<Author>(AUTHOR)).map(normalizeAuthor);
 }
 
 // One shared query: every byline on the Gallery reads the same array per change, not one live query per tile.

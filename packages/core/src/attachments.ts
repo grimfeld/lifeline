@@ -2,6 +2,7 @@ import type { Table } from "dexie";
 import { ATTACHMENTS, BLOBS, db, type SyncedRecord } from "./data/db";
 import { sharedLiveQuery } from "./data/live";
 import { pb } from "./data/pb";
+import { isDemo } from "./demo";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
 import { extractLinks, isImageEmbed, normalizeName, renameLinks } from "./markdown";
@@ -224,6 +225,8 @@ export function attachmentUrl(att: Attachment): Promise<string> {
     let blob = (await blobs().get(att.id))?.blob;
     if (!blob) {
       if (!att.file) throw new Error("Not uploaded yet");
+      // The Demo has no server to hold the bytes (ADR 0077): only local blobs exist.
+      if (isDemo()) throw new Error("Not on this device");
       const base = pb.baseURL.replace(/\/$/, "");
       const res = await fetch(`${base}/api/files/${ATTACHMENTS}/${att.id}/${encodeURIComponent(att.file)}?token=${encodeURIComponent(await token())}`);
       if (!res.ok) throw new Error(`Could not load image (${res.status})`);
