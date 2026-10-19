@@ -269,6 +269,16 @@ const SCREENS: ScreenCase[] = [
   { name: "Vault · Peek of a game", path: "/vault", afterOpen: peekOf("game") },
   { name: "Vault · Peek of a painting", path: "/vault", afterOpen: peekOf("painting") },
   { name: "Vault · Peek of a building", path: "/vault", afterOpen: peekOf("architecture") },
+  // The writing Apps' own editable parts (ADR 0085).
+  { name: "Vault · Peek of a Day", path: "/vault", afterOpen: peekOf("daily") },
+  { name: "Vault · Peek of a Week", path: "/vault", afterOpen: peekOf("week") },
+  { name: "Vault · Peek of a Source", path: "/vault", afterOpen: peekOf("source") },
+  { name: "Vault · Peek of a Note", path: "/vault", afterOpen: peekOf("note") },
+  { name: "Vault · Peek of a Quote", path: "/vault", afterOpen: peekOf("quote") },
+  { name: "Vault · Peek of an Essay", path: "/vault", afterOpen: peekOf("essay") },
+  { name: "Vault · Peek of a Manuscript", path: "/vault", afterOpen: peekOf("manuscript") },
+  { name: "Vault · Peek of a Chapter", path: "/vault", afterOpen: peekOf("chapter") },
+  { name: "Vault · Peek of a Thought", path: "/vault", afterOpen: peekOf("thought") },
   {
     // The file tree's "New thought" focused: a tooltip names it on the desk; a touch phone shows none (ADR 0079).
     name: "Vault · Tooltip",

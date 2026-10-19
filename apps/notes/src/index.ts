@@ -11,7 +11,8 @@ import { RecentNotesCard, useRecentTypeOptions } from "./cards/RecentNotesCard";
 import { noteCommands, useNotesCommands } from "./commands";
 import { registerNotesBridge } from "./data/bridge";
 import { noteTypes } from "./types";
-import { DAILY, MONTH, QUARTER, TEMPLATE, WEEK, YEAR } from "./domain/types";
+import { JournalPeek } from "./components/JournalPeek";
+import { DAILY, MONTH, PERIOD_TYPES, QUARTER, TEMPLATE, WEEK, YEAR } from "./domain/types";
 
 registerNotesBridge();
 import { PeopleCard, peopleTitle, usePeopleTypeOptions } from "./cards/PeopleCard";
@@ -32,7 +33,9 @@ const APP_ID = "notes";
 
 /** Type defs with their icons attached (icons live here so src/types.ts stays UI-free for tests). */
 const ICONS = { [DAILY]: CalendarDays, [WEEK]: CalendarRange, [MONTH]: CalendarRange, [QUARTER]: CalendarRange, [YEAR]: CalendarRange, [TEMPLATE]: LayoutTemplate, [PRIVATE_SETTINGS_TYPE]: Lock } as const;
-const typesWithIcons = noteTypes.map((t) => ({ ...t, icon: ICONS[t.id as keyof typeof ICONS] }));
+/** A Day and its periods are peeked through the Journal's own part (ADR 0085). */
+const JOURNAL_PAGES = new Set<string>([DAILY, ...PERIOD_TYPES]);
+const typesWithIcons = noteTypes.map((t) => ({ ...t, icon: ICONS[t.id as keyof typeof ICONS], ...(JOURNAL_PAGES.has(t.id) ? { peekEdit: JournalPeek } : {}) }));
 
 const offsetKnob = { kind: "number" as const, label: "Day offset", default: 0, min: -365, max: 0 };
 const offsetTitle = (base: string) => (s: CardSettings) => {

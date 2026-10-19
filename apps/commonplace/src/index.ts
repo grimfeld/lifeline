@@ -6,6 +6,7 @@ import { SourceScreen } from "./screens/SourceScreen";
 import { NoteScreen } from "./screens/NoteScreen";
 import { QuoteIntakeDialog } from "./components/QuoteIntakeDialog";
 import { SourcePanel } from "./components/SourcePanel";
+import { NotePeek, QuotePeek, SourcePeek } from "./components/NotesPeeks";
 import { RandomQuoteCard } from "./cards/RandomQuoteCard";
 import { QuoteOfDayCard } from "./cards/QuoteOfDayCard";
 import { QuotesOfCard } from "./cards/QuotesOfCard";
@@ -30,7 +31,11 @@ export const commonplaceApp: AppManifest = {
   title: "Notes",
   icon: NotebookPen,
   color: "var(--chart-orange)",
-  types: [sourceTypeDef, noteTypeDef, quoteTypeDef],
+  types: [
+    { ...sourceTypeDef, peekEdit: SourcePeek },
+    { ...noteTypeDef, peekEdit: NotePeek },
+    { ...quoteTypeDef, peekEdit: QuotePeek },
+  ],
   roles: [sourceRole],
   screens: [
     { id: "commonplace.shelf", title: "Sources", path: "notes", icon: NotebookPen, component: ShelfScreen },
