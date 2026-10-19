@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 // ADR numbers, kept unique while several branches and agents write ADRs at once.
 //
-//   node scripts/adr.mjs new "The title"   takes the next free number, writes docs/adr/NNNN-the-title.md
+//   node scripts/adr.mjs new "The title"            takes the next free number, writes docs/adr/NNNN-the-title.md
 //   node scripts/adr.mjs mv docs/adr/NNNN-slug.md   moves that ADR to the next free number, same slug
-//   node scripts/adr.mjs check             no number twice in docs/adr; warns when a number this
-//                                          change adds is taken on another branch
+//   node scripts/adr.mjs check                      no number twice in docs/adr; warns when a number
+//                                                   this change adds is taken on another branch
 //
 // "Free" means above every number in docs/adr on any local or origin branch and in
 // every worktree's folder, committed or not — so two agents on this machine never
 // take the same one. ADR_BASE overrides the base ref of `check` (default origin/master).
+//
+// `mv` only renames the file. A moved ADR gains `formerly: NNNN` in its frontmatter, and
+// its "ADR NNNN" references are updated by meaning, not search-and-replace — the old
+// number still names the ADR that kept it.
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
@@ -78,7 +82,7 @@ function move(file) {
     console.error(`usage: pnpm adr:mv ${DIR}/NNNN-slug.md   (an existing ADR)`);
     process.exit(1);
   }
-  const to = `${DIR}/${next()}${name.slice(4)}`;
+  const to = `${DIR}/${name.replace(number(name), next())}`;
   // `git mv` so a tracked ADR keeps its history; one not yet added is just renamed.
   if (git("ls-files", "--", file).trim()) git("mv", file, to);
   else renameSync(file, to);
@@ -94,7 +98,7 @@ function check() {
   }
 
   // Numbers this change adds, against branches that haven't merged into it. Not an error:
-  // whichever merges first keeps the number, and the other renumbers (`pnpm adr:new` gives one).
+  // whichever merges first keeps the number, and the other renumbers (`pnpm adr:mv` moves it).
   const baseRef = process.env.ADR_BASE ?? "origin/master";
   let base = git("merge-base", baseRef, "HEAD").trim();
   if (base === git("rev-parse", "HEAD").trim()) base = git("rev-parse", "HEAD~1").trim();
