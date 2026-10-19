@@ -40,7 +40,10 @@ export function FineDialog({ open, onOpenChange, fine, offenceId }: { open: bool
   const picked = offences.find((o) => o.id === pick);
 
   async function save() {
-    const occurredAt = new Date(when).toISOString();
+    // A cleared datetime-local is "": an Invalid Date, which toISOString throws on.
+    const moment = new Date(when);
+    if (!when || Number.isNaN(moment.getTime())) return void toast.error("Pick when it happened");
+    const occurredAt = moment.toISOString();
     try {
       if (fine) {
         await updateFine(fine, picked, { occurredAt, note });
