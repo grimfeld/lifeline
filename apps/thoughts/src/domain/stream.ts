@@ -11,7 +11,7 @@ export function titleFromText(text: string): string {
       .split("\n")
       .find((l) => l.trim())
       ?.replace(/^#+\s*/, "")
-      // A wikilink reads as the name it shows: `[[Ursula Le Guin]]` → Ursula Le Guin, `[[Paul|my brother]]` → my brother.
+      // A wikilink reads as the name it shows: `[[Ursula Le Guin]]` → Ursula Le Guin, `[[Alex|my brother]]` → my brother.
       .replace(/!?\[\[([^\]|]+)\|([^\]]+)\]\]/g, "$2")
       .replace(/!?\[\[([^\]]+)\]\]/g, "$1")
       .replace(/\s+/g, " ")
