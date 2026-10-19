@@ -61,6 +61,25 @@ const SCREENS: ScreenCase[] = [
 
   // The Vault (Note-taking's layout).
   { name: "Vault", path: "/vault" },
+  {
+    // The file tree's "New thought" focused: a tooltip names it on the desk; a touch phone shows none (ADR 0079).
+    name: "Vault · Tooltip",
+    path: "/vault",
+    afterOpen: async (page) => {
+      const local = page.getByRole("button", { name: "Work locally" });
+      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      const button = page.getByRole("button", { name: "New thought", exact: true });
+      const touch = await page.evaluate(() => !matchMedia("(hover: hover) and (pointer: fine)").matches);
+      if (!touch) {
+        await button.focus();
+        await expect(page.getByRole("tooltip")).toHaveText("New thought");
+        return;
+      }
+      if (await button.isVisible()) await button.focus();
+      await page.waitForTimeout(600);
+      await expect(page.locator("[data-slot=tooltip-content]")).toHaveCount(0);
+    },
+  },
   { name: "Journal · Today", path: "/app/journal" },
   { name: "Journal · Week", path: "/app/journal/p/:key", params: { key: "2026-W42" } },
   { name: "Journal · Year", path: "/app/journal/p/2026" },

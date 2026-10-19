@@ -15,6 +15,7 @@ export * from "./components/ui/sheet";
 export * from "./components/ui/sonner";
 export * from "./components/ui/tabs";
 export * from "./components/ui/textarea";
+export * from "./components/ui/tooltip";
 export { toast } from "sonner";
 export * from "./components/ui/card-unavailable";
 export * from "./components/map/MapView";
