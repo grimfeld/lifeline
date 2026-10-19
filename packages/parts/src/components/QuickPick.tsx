@@ -5,7 +5,7 @@ import { lookupRows, type LookupHit, type LookupRow } from "../lookup";
 type Row<H extends LookupHit> = LookupRow<H> & ComboboxOption;
 
 /**
- * The media QuickAdd's input (ADR 0006 amendment, ADR 0079): type a title,
+ * The family Apps' QuickAdd input (ADR 0006 amendment, ADR 0079): type a title,
  * Enter adds the typed text; when the medium has a lookup its hits (cover,
  * title, byline · year) follow, reached with the arrows. The text survives
  * a change of medium, and the lookup follows it (`medium`).

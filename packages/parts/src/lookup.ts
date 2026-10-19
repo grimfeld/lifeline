@@ -1,4 +1,4 @@
-/** What a media App's lookup (TMDB, MusicBrainz, RAWG, Open Library…) hands back, as the QuickAdd lists it. */
+/** What a family App's lookup (TMDB, MusicBrainz, RAWG, Open Library…) hands back, as the QuickAdd lists it. */
 export interface LookupHit {
   externalKey: string;
   title: string;
