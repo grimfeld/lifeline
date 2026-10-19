@@ -262,7 +262,7 @@ const pulledKey = (name: string) => `pulled:${name}`;
  * Signed out it is vacuously true: no sync is coming, so nothing should wait.
  */
 export async function hasPulledOnce(collection: string): Promise<boolean> {
-  if (isDemo() || !pb.authStore.isValid) return true;
+  if (!pb.authStore.isValid) return true;
   return !!(await db()._meta.get(pulledKey(collection)));
 }
 
@@ -271,7 +271,6 @@ let queued = false;
 let started = false;
 
 export async function syncNow(): Promise<void> {
-  if (isDemo()) return;
   const me = currentAccount();
   if (!me) {
     setState("unauthenticated");
