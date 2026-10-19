@@ -38,7 +38,8 @@ function normalizeWorkout(w: Workout): Workout {
   };
 }
 
-function normalizeSession(s: Session): Session {
+/** A Session as the App reads it: PocketBase's empty values back to the domain's. */
+export function normalizeSession(s: Session): Session {
   return { ...s, results: Array.isArray(s.results) ? s.results : [], notes: s.notes ?? "", durationMin: Number(s.durationMin) || 0, tags: s.tags ?? [] };
 }
 

@@ -241,3 +241,31 @@ export async function logNegative(negativeId: string, opts?: { occurredAt?: stri
 export async function deleteCompletion(id: string): Promise<void> {
   await removeDocument(id);
 }
+
+let editing: Promise<unknown> = Promise.resolve();
+/** One edit after another, each over the Document as stored when it runs: two changes made in quick succession never write back each other's old value. */
+function inTurn(run: () => Promise<void>): Promise<void> {
+  const next = editing.then(run);
+  editing = next.catch(() => {});
+  return next;
+}
+
+/** Change a Habit's Difficulty from its Peek (ADR 0085) — through `updateHabit`, so the ledger re-values as it does from the editor. */
+export function editHabit(id: string, patch: Pick<HabitInput, "difficulty">): Promise<void> {
+  return inTurn(async () => {
+    const h = await getDocument<Habit>(id);
+    if (!h || h.type !== HABIT) return;
+    const habit = normalizeHabit(h);
+    await updateHabit(habit, { title: habit.title, tags: habit.tags ?? [], difficulty: patch.difficulty });
+  });
+}
+
+/** Change a Negative's Gravity or Rival habit from its Peek (ADR 0085) — through `updateNegative`. */
+export function editNegative(id: string, patch: Partial<Pick<NegativeInput, "gravity" | "affectsHabitId">>): Promise<void> {
+  return inTurn(async () => {
+    const n = await getDocument<Negative>(id);
+    if (!n || n.type !== NEGATIVE) return;
+    const negative = normalizeNegative(n);
+    await updateNegative(negative, { title: negative.title, gravity: negative.gravity, affectsHabitId: negative.affectsHabitId, tags: negative.tags ?? [], ...patch });
+  });
+}
