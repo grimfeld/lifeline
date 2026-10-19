@@ -16,3 +16,4 @@ This works because Lifeline is already local-first: the UI only ever reads and w
 - Anything that needs the server cannot be shown live: Mail (Google OAuth), sync, the agent (MCP). Those are hidden in the Demo, and the agent is shown on video instead.
 - The seeded life is hand-written content, kept apart from the e2e seed, which is deliberately absurd.
 - A visitor's edits never leave their browser. Clearing site data is the same as a Reset.
+- The switch is a build-time literal (`VITE_DEMO`, turned into `__LIFELINE_DEMO__` by the shell's Vite config), so the real build drops every Demo branch: its bundle carries no banner, no Reset and no made-up life.

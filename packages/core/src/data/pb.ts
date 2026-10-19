@@ -9,6 +9,10 @@ const url = isDemo()
 
 export const pb = new PocketBase(url);
 pb.autoCancellation(false);
+// Nor has it an Account (CONTEXT.md "Demo"): a session this browser remembers
+// is dropped, so everything that asks who is signed in hears "no one" and
+// sync, the account rows and the pull markers stay out of the way.
+if (isDemo()) pb.authStore.clear();
 
 export async function login(email: string, password: string): Promise<void> {
   if (isDemo()) throw new Error("The Demo cannot sign in");
@@ -26,9 +30,9 @@ function subscribeAuth(cb: () => void): () => void {
 export function useAuth(): { loggedIn: boolean; email: string | null } {
   const loggedIn = useSyncExternalStore(
     subscribeAuth,
-    () => !isDemo() && pb.authStore.isValid,
+    () => pb.authStore.isValid,
     () => false,
   );
-  const record = isDemo() ? null : (pb.authStore.record as { email?: string } | null);
+  const record = pb.authStore.record as { email?: string } | null;
   return { loggedIn, email: record?.email ?? null };
 }
