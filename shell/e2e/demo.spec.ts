@@ -19,6 +19,15 @@ const WIDTHS = [
 /** A browser that has never opened the Demo: the app seeds the life on first open. */
 const EMPTY = { cookies: [], origins: [] };
 
+/**
+ * Writing the life behind the first screen takes about ten seconds here, but two
+ * to three times that on a 2-core CI runner. WRITTEN is the wait for it to end;
+ * SEEDING, the time a case that seeds the life itself may take (the project's
+ * 30 seconds is for cases that start from the seeded life).
+ */
+const WRITTEN = process.env.CI ? 70_000 : 40_000;
+const SEEDING = process.env.CI ? 90_000 : 60_000;
+
 /** The line the shell shows while the rest of the Demo life is written behind the first screen. */
 function filling(page: Page) {
   return page.getByRole("status").filter({ hasText: /^Filling in the rest of the Demo/ });
@@ -32,7 +41,7 @@ function filling(page: Page) {
 async function settle(page: Page): Promise<void> {
   await expect(page.getByRole("status").filter({ hasText: /^Loading…$/ })).toHaveCount(0, { timeout: 20_000 });
   await expect(page.locator("main").first()).toBeVisible();
-  await expect(filling(page)).toHaveCount(0, { timeout: 40_000 });
+  await expect(filling(page)).toHaveCount(0, { timeout: WRITTEN });
 }
 
 /** Open a page and let it settle. */
@@ -127,7 +136,7 @@ for (const w of WIDTHS) {
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
       // Writing the life takes seconds of its own, behind the first screen.
-      test.describe.configure({ timeout: 60_000 });
+      test.describe.configure({ timeout: SEEDING });
 
       test("first open puts tasks, chores and events on today", async ({ page }) => {
         await expectBusyToday(page);
@@ -193,12 +202,18 @@ async function expectLiveStreak(page: Page): Promise<void> {
   await open(page, "/app/stats");
   const streaks = page.getByTitle("Current streak");
   await expect(streaks.first()).toBeVisible();
-  const longest = Math.max(...(await streaks.allInnerTexts()).map((t) => Number(t.trim())));
-  expect(longest, "a streak on the Stats list").toBeGreaterThanOrEqual(7);
+  // Polled, not read once: a streak shows 0 until the Stat's entries are read.
+  await expect
+    .poll(async () => Math.max(...(await streaks.allInnerTexts()).map((t) => Number(t.trim()))), {
+      message: "a streak on the Stats list",
+    })
+    .toBeGreaterThanOrEqual(7);
 
   await openStat(page, "Stretching");
-  const run = await page.getByText(/day streak/).innerText();
-  expect(Number(run.match(/(\d+)\s*day streak/)?.[1]), "streak on the visit day").toBeGreaterThanOrEqual(7);
+  const run = page.getByText(/day streak/);
+  await expect
+    .poll(async () => Number((await run.innerText()).match(/(\d+)\s*day streak/)?.[1]), { message: "streak on the visit day" })
+    .toBeGreaterThanOrEqual(7);
   // The 30-day heatmap: yesterday marked, and most of the month too.
   await expect(page.locator(`[title="${await pageDay(page, -1)}"][style*="background"]`)).toHaveCount(1);
   expect(await page.locator('[title^="20"][style*="background"]').count(), "days marked over 30 days").toBeGreaterThanOrEqual(18);
@@ -245,12 +260,14 @@ for (const w of WIDTHS) {
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
       // Writing the life takes seconds of its own, behind the first screen.
-      test.describe.configure({ timeout: 60_000 });
+      test.describe.configure({ timeout: SEEDING });
       test("with the clock pinned to another day, streaks and moods run up to it", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await expectLiveStreak(page);
         await open(page, "/app/mood");
-        expect(await page.getByRole("button", { name: MOOD_CELL }).count(), "moods in March").toBeGreaterThanOrEqual(6);
+        await expect
+          .poll(() => page.getByRole("button", { name: MOOD_CELL }).count(), { message: "moods in March" })
+          .toBeGreaterThanOrEqual(6);
       });
     });
   });
@@ -319,7 +336,7 @@ for (const w of WIDTHS) {
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
       // Writing the life takes seconds of its own, behind the first screen.
-      test.describe.configure({ timeout: 60_000 });
+      test.describe.configure({ timeout: SEEDING });
       test("with the clock pinned, the money moves with the visit day", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await open(page, "/app/pocket");
@@ -402,7 +419,7 @@ for (const w of WIDTHS) {
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
       // Writing the life takes seconds of its own, behind the first screen.
-      test.describe.configure({ timeout: 60_000 });
+      test.describe.configure({ timeout: SEEDING });
       test("with the clock pinned, the deadline moves with the visit day", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await open(page, "/calendar?view=upcoming");
@@ -450,7 +467,7 @@ for (const w of WIDTHS) {
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
       // Writing the life takes seconds of its own, behind the first screen.
-      test.describe.configure({ timeout: 60_000 });
+      test.describe.configure({ timeout: SEEDING });
       test("the banner shows on first open, at the top, and staying dismissed survives a reload", async ({ page }) => {
         await open(page, "/calendar");
         const bar = banner(page);
@@ -478,7 +495,7 @@ for (const w of WIDTHS) {
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
       // Writing the life takes seconds of its own, behind the first screen.
-      test.describe.configure({ timeout: 60_000 });
+      test.describe.configure({ timeout: SEEDING });
       test("Reset asks first, then removes an edit and brings back the seeded life dated around today", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await addTask(page, "Return the library card");
@@ -530,6 +547,9 @@ for (const w of WIDTHS) {
         await use(u.origin);
       },
     });
+    // Another origin: the life demo.setup.ts saved is not there, so each case seeds its own.
+    test.use({ storageState: EMPTY });
+    test.describe.configure({ timeout: SEEDING });
 
     test("the shipped Demo carries no test hook", async ({ page }) => {
       // This build is made as the Demo is deployed; only the suite's own build hands it the registry.
@@ -606,7 +626,7 @@ for (const w of WIDTHS) {
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
       // Writing the life takes seconds of its own, behind the first screen.
-      test.describe.configure({ timeout: 60_000 });
+      test.describe.configure({ timeout: SEEDING });
       test("with the clock pinned to another day, the media dates follow it", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         // Hung twelve days before the visit.
@@ -688,7 +708,7 @@ for (const w of WIDTHS) {
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
       // Writing the life takes seconds of its own, behind the first screen.
-      test.describe.configure({ timeout: 60_000 });
+      test.describe.configure({ timeout: SEEDING });
       test("the Journal is dated around the visit day", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await open(page, "/app/journal");
@@ -723,7 +743,7 @@ for (const w of WIDTHS) {
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
       // Writing the life takes seconds of its own, behind the first screen.
-      test.describe.configure({ timeout: 60_000 });
+      test.describe.configure({ timeout: SEEDING });
       test("first open lands on Home: Cards filled from the seeded life, today's agenda on the hours", async ({ page }) => {
         await open(page, "/");
         await expect(page).toHaveURL(/\/screen\//);
@@ -887,7 +907,7 @@ for (const w of WIDTHS) {
 /** How long a stranger waits on first open, on the production build: logged, not asserted. */
 test.describe("Demo first open, timed", () => {
   test.use({ storageState: EMPTY, viewport: { width: 1280, height: 800 } });
-  test.describe.configure({ timeout: 60_000 });
+  test.describe.configure({ timeout: SEEDING });
 
   test("logs the time from navigation to today's seeded agenda on Home", async ({ page }, info) => {
     await page.goto("/");
@@ -897,7 +917,7 @@ test.describe("Demo first open, timed", () => {
     info.annotations.push({ type: "first-open-ms", description: String(ms) });
     console.log(`Demo first open: ${ms} ms from navigation to today's agenda on Home`);
     // And the rest of the life, written behind it.
-    await expect(filling(page)).toHaveCount(0, { timeout: 40_000 });
+    await expect(filling(page)).toHaveCount(0, { timeout: WRITTEN });
     const all = Math.round(await page.evaluate(() => performance.now()));
     info.annotations.push({ type: "whole-life-ms", description: String(all) });
     console.log(`Demo first open: ${all} ms until the whole life is written`);
