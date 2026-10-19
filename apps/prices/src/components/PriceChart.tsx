@@ -45,7 +45,7 @@ function ChartTooltip({ active, payload, shops, measure }: { active?: boolean; p
 
 /**
  * A Product's unit price over time, one series per Shop; promo points are
- * hollow so a one-off deal never reads as the usual price (ADR 0045).
+ * hollow so a one-off deal never reads as the usual price (ADR 0082).
  */
 export function PriceChart({ history, shops, measure, height = 240, compact }: { history: ReadonlyMap<string, PricePoint[]>; shops: readonly Shop[]; measure: Measure; height?: number; compact?: boolean }) {
   const { data, series } = useMemo(() => {

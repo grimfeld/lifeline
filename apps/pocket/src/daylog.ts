@@ -3,7 +3,7 @@ import { APP_ID, POCKET_HREF } from "./domain/types";
 import { formatCents } from "./domain/money";
 import { useAllowances, useSpends } from "./data/repo";
 
-/** The Daylog Contract for Pocket (ADR 0037): every Spend is a belief of its day — "Spent · Eating out · €12 · lunch". */
+/** The Daylog Contract for Pocket (ADR 0081): every Spend is a belief of its day — "Spent · Eating out · €12 · lunch". */
 export const pocketDaylog: DaylogProvider = {
   appId: APP_ID,
   useItems(date) {
