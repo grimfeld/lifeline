@@ -9,8 +9,8 @@ import { SourcePicker, NEW_SOURCE, emptyChoice, type SourceChoice } from "./Sour
 import { useCaptureSources } from "./CaptureForm";
 
 /**
- * Intake (ADR 0050, ADR 0070): a text handed over from another App — a kept
- * mail — becomes a Quote, reviewed first. Its Source is made from what came
+ * Intake (ADR 0050, ADR 0070): a text handed over from another App — a
+ * selected passage — becomes a Quote, reviewed first. Its Source is made from what came
  * with it (title, link, author, date) unless I pick one I already have.
  * Nothing is written until Keep.
  */
