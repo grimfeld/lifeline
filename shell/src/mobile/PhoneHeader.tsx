@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { Button, Sheet, SheetContent, SheetTitle } from "@lifeline/ui";
-import { isDemo, moduleOfPath } from "@lifeline/core";
+import { moduleOfPath } from "@lifeline/core";
 import { ChevronLeft, Menu } from "lucide-react";
 import { WorkspacePicker } from "../components/WorkspacePicker";
 import { Rail } from "../components/Rail";
@@ -75,11 +75,10 @@ export function PhoneHeader() {
           ) : (
             <>
               <Rail expanded />
-              {!isDemo() && (
-                <div className="border-t p-2">
-                  <SyncBadge />
-                </div>
-              )}
+              {/* Gone with the badge where it renders nothing (the Demo, ADR 0077). */}
+              <div className="border-t p-2 empty:hidden">
+                <SyncBadge />
+              </div>
             </>
           )}
         </SheetContent>
