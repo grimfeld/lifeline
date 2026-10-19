@@ -22,6 +22,91 @@ export function openSignIn(): void {
   setReason("asked");
 }
 
+/** Set when the sign-in is a different Account than the one this device holds (ADR 0039); the confirm is AccountDialogs's. */
+let conflict: { bound: AccountRef; current: AccountRef } | null = null;
+const conflictListeners = new Set<() => void>();
+function setConflict(c: typeof conflict) {
+  conflict = c;
+  conflictListeners.forEach((l) => l());
+}
+
+/**
+ * Signing in by email and password, wherever the form stands: the shell's
+ * dialog, or the Handoff page's own step. The email starts as the Account
+ * this device last knew. `onSignedIn` runs only when the sign-in holds; a
+ * different Account than the device's goes to the switch confirm.
+ */
+export function useSignIn(onSignedIn?: () => void) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (pb.authStore.isValid) return;
+    // An expired session still remembers who it was; else the Account this device's data belongs to.
+    const last = (pb.authStore.record as { email?: string } | null)?.email;
+    if (last) setEmail((e) => e || last);
+    else void boundAccount().then((b) => b?.email && setEmail((e) => e || b.email));
+  }, []);
+
+  async function submit() {
+    setBusy(true);
+    try {
+      await login(email, password);
+      setPassword("");
+      const c = await accountConflict();
+      if (c) {
+        const pending = await pendingWriteCount();
+        if (pending > 0) {
+          logout();
+          toast.error(`This device still has ${pending} unsynced change${pending === 1 ? "" : "s"} of ${c.bound.email || "another account"} — sign in as them and sync first`);
+          return;
+        }
+        setReason(null);
+        setConflict(c);
+        return;
+      }
+      toast.success("Signed in");
+      onSignedIn?.();
+      void syncNow();
+    } catch {
+      toast.error("Sign-in failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return { email, setEmail, password, setPassword, busy, submit };
+}
+
+/** The email and password fields of a sign-in; Enter in the password submits. */
+export function SignInFields({ form, idPrefix = "login" }: { form: ReturnType<typeof useSignIn>; idPrefix?: string }) {
+  return (
+    <div className="grid gap-3">
+      <div className="grid gap-1.5">
+        <Label htmlFor={`${idPrefix}-email`}>Email</Label>
+        <Input id={`${idPrefix}-email`} type="email" value={form.email} onChange={(e) => form.setEmail(e.target.value)} autoFocus={!form.email} />
+      </div>
+      <div className="grid gap-1.5">
+        <Label htmlFor={`${idPrefix}-pw`}>Password</Label>
+        <Input
+          id={`${idPrefix}-pw`}
+          type="password"
+          value={form.password}
+          onChange={(e) => form.setPassword(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && void form.submit()}
+          autoFocus={!!form.email}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Pages that ask for sign-in themselves, so the shell's on-load notice stays away: the Handoff page (ADR 0080). */
+function asksForSignInItself(pathname: string): boolean {
+  return pathname === "/handoff";
+}
+
 /**
  * Sign-in and the account-switch confirm (ADR 0039), mounted once by the
  * shell. On page load a signed-out device (never signed in, signed out, or
@@ -33,52 +118,22 @@ export function AccountDialogs() {
     (cb) => (listeners.add(cb), () => listeners.delete(cb)),
     () => reason,
   );
-  const [em, setEm] = useState("");
-  const [pw, setPw] = useState("");
+  const confirm = useSyncExternalStore(
+    (cb) => (conflictListeners.add(cb), () => conflictListeners.delete(cb)),
+    () => conflict,
+  );
+  const form = useSignIn(() => setReason(null));
   const [busy, setBusy] = useState(false);
-  /** Set when the sign-in is a different Account than the one this device holds (ADR 0039). */
-  const [conflict, setConflict] = useState<{ bound: AccountRef; current: AccountRef } | null>(null);
 
   useEffect(() => {
-    if (pb.authStore.isValid) return;
-    // An expired session still remembers who it was; else the Account this device's data belongs to.
-    const last = (pb.authStore.record as { email?: string } | null)?.email;
-    void boundAccount().then((b) => {
-      const known = last || b?.email;
-      if (known) setEm((e) => e || known);
+    if (pb.authStore.isValid || asksForSignInItself(window.location.pathname)) return;
+    void boundAccount().then(() => {
       if (!pb.authStore.isValid) setReason("signed-out");
     });
   }, []);
 
   function close() {
     setReason(null);
-  }
-
-  async function submit() {
-    setBusy(true);
-    try {
-      await login(em, pw);
-      setPw("");
-      const c = await accountConflict();
-      if (c) {
-        const pending = await pendingWriteCount();
-        if (pending > 0) {
-          logout();
-          toast.error(`This device still has ${pending} unsynced change${pending === 1 ? "" : "s"} of ${c.bound.email || "another account"} — sign in as them and sync first`);
-          return;
-        }
-        close();
-        setConflict(c);
-        return;
-      }
-      toast.success("Signed in");
-      close();
-      void syncNow();
-    } catch {
-      toast.error("Sign-in failed");
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function eraseAndSwitch() {
@@ -109,42 +164,26 @@ export function AccountDialogs() {
               What you see is this device's local copy. Changes stay here and nothing syncs until you sign in.
             </p>
           )}
-          <div className="grid gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="login-email">Email</Label>
-              <Input id="login-email" type="email" value={em} onChange={(e) => setEm(e.target.value)} autoFocus={!em} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="login-pw">Password</Label>
-              <Input
-                id="login-pw"
-                type="password"
-                value={pw}
-                onChange={(e) => setPw(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && void submit()}
-                autoFocus={!!em}
-              />
-            </div>
-          </div>
+          <SignInFields form={form} />
           <DialogFooter>
             <Button variant="outline" onClick={close}>
               {open === "signed-out" ? "Work locally" : "Cancel"}
             </Button>
-            <Button disabled={busy} onClick={() => void submit()}>
-              {busy && <Loader2 className="animate-spin" />} Sign in
+            <Button disabled={form.busy} onClick={() => void form.submit()}>
+              {form.busy && <Loader2 className="animate-spin" />} Sign in
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!conflict} onOpenChange={(o) => !o && cancelSwitch()}>
+      <Dialog open={!!confirm} onOpenChange={(o) => !o && cancelSwitch()}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Switch account?</DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground text-sm">
-            This device holds the data of <b>{conflict?.bound.email || "another account"}</b>. Switching to{" "}
-            <b>{conflict?.current.email}</b> erases everything stored here (it stays on the server) and downloads their data instead.
+            This device holds the data of <b>{confirm?.bound.email || "another account"}</b>. Switching to{" "}
+            <b>{confirm?.current.email}</b> erases everything stored here (it stays on the server) and downloads their data instead.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={cancelSwitch}>
