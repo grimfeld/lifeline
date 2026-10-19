@@ -30,7 +30,7 @@ import { entryIcon, foldMembers } from "../capture/captureParts";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
 import { WorkspaceDialog, WorkspaceForm } from "../components/WorkspaceDialog";
 import { SyncBadge } from "../components/SyncBadge";
-import { ResetDemoButton, SourceLink } from "../demo/DemoBanner";
+import { ResetDemoButton, SourceLink } from "../demo/DemoActions";
 
 /**
  * `/settings` (ADR 0053): where the user configures Lifeline itself rather
@@ -78,7 +78,7 @@ function DemoSection() {
     <section aria-label="Demo settings" className="flex flex-col gap-2">
       <h2 className="text-base font-medium">Demo</h2>
       <p className="text-muted-foreground text-sm">
-        This is a demo of Lifeline, filled with a made-up person's life. Everything you add, change or delete stays in this
+        This is the Lifeline Demo, filled with a made-up person's life. Everything you add, change or delete stays in this
         browser: there is no account, nothing syncs, and no one else ever sees it.
       </p>
       {/* Here as well as in the banner, so both stay reachable once it is dismissed. */}

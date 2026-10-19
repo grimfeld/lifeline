@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
-import { demoSourceUrl, eraseDevice, isDemo } from "@lifeline/core";
-import { ExternalLink, Loader2, RotateCcw, X } from "lucide-react";
+import { Button } from "@lifeline/ui";
+import { Loader2, X } from "lucide-react";
+import { ResetDemoButton, SourceLink } from "./DemoActions";
+import { useDemoFilling } from "./filling";
 
 /**
- * The Demo's banner, Reset and Source link (CONTEXT.md "Demo", ADR 0077).
- *
- * Kept out of `./seed` on purpose: this file is in the main bundle (App.tsx
- * places the banner), the made-up life is a chunk only the Demo loads.
+ * The Demo's banner (CONTEXT.md "Demo", ADR 0077). App.tsx places it only in
+ * the Demo, behind `isDemo()`, so the real build drops it; the made-up life is
+ * a chunk of its own (`./seed`).
  */
 
 /** Remembered per browser; a storage failure just shows the banner again. */
@@ -29,13 +29,10 @@ function rememberDismissed(): void {
   }
 }
 
-/**
- * A thin bar at the top of the shell, on a phone too (ADR 0064 keeps banners
- * at the top, not in the Phone dock). Renders nothing outside the Demo.
- */
+/** A thin bar at the top of the shell, on a phone too (ADR 0064 keeps banners at the top, not in the Phone dock). */
 export function DemoBanner() {
   const [dismissed, setDismissed] = useState(wasDismissed);
-  if (!isDemo() || dismissed) return null;
+  if (dismissed) return null;
   return (
     <section
       aria-label="Demo"
@@ -50,7 +47,6 @@ export function DemoBanner() {
         variant="ghost"
         size="icon-xs"
         className="shrink-0"
-        title="Dismiss"
         aria-label="Dismiss"
         onClick={() => {
           rememberDismissed();
@@ -63,66 +59,18 @@ export function DemoBanner() {
   );
 }
 
-/** Small and quiet in the banner, outlined in Settings. */
-interface Look {
-  size?: "xs" | "sm";
-  variant?: "ghost" | "outline";
-  className?: string;
-}
-
-/** Reset: erase this browser's store and seed the made-up life again, dated around today. Asks first. */
-export function ResetDemoButton({ size = "sm", variant = "outline", className }: Look) {
-  const [asking, setAsking] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  async function reset() {
-    setBusy(true);
-    try {
-      // The reload finds no "seeded" marker and seeds again with today as the visit day.
-      await eraseDevice();
-    } catch (err) {
-      setBusy(false);
-      toast.error(`Could not reset the demo: ${(err as Error).message}`);
-    }
-  }
-
+/**
+ * A line under the banner while the rest of the made-up life is written after
+ * the first screen. Shown whether or not the banner was dismissed: it is about
+ * what the visitor is looking at, and goes by itself within seconds.
+ */
+export function DemoFilling() {
+  const filling = useDemoFilling();
+  if (!filling) return null;
   return (
-    <>
-      <Button variant={variant} size={size} className={className} onClick={() => setAsking(true)}>
-        <RotateCcw /> Reset
-      </Button>
-      <Dialog open={asking} onOpenChange={(o) => !busy && setAsking(o)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Reset the demo?</DialogTitle>
-          </DialogHeader>
-          <p className="text-muted-foreground text-sm">
-            Everything you added, changed or deleted in this browser is erased, and the made-up life comes back, dated around
-            today.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" disabled={busy} onClick={() => setAsking(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" disabled={busy} onClick={() => void reset()}>
-              {busy && <Loader2 className="animate-spin" />} Reset
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
-/** The link to the source; not shown when the build sets no URL. */
-export function SourceLink({ size = "sm", variant = "outline", className }: Look) {
-  const url = demoSourceUrl();
-  if (!url) return null;
-  return (
-    <Button variant={variant} size={size} className={className} asChild>
-      <a href={url} target="_blank" rel="noopener noreferrer">
-        <ExternalLink /> Source
-      </a>
-    </Button>
+    <p role="status" className="bg-muted text-muted-foreground flex shrink-0 items-center gap-2 border-b px-3 py-1 text-xs">
+      <Loader2 className="size-3 shrink-0 animate-spin" />
+      <span className="min-w-0 flex-1">Filling in the rest of the Demo…</span>
+    </p>
   );
 }
