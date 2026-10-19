@@ -6,7 +6,7 @@ import { parseCloze } from "../domain/cloze";
 import type { Sentence } from "../domain/types";
 import { addSentence, deleteItem, updateSentence, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
-import { originOf } from "./WordDialog";
+import { originOf, type ItemDialogProps } from "./WordDialog";
 import { OriginLine } from "./OriginLine";
 
 export interface SentencePrefill {
@@ -33,7 +33,7 @@ function blankSelection(el: HTMLTextAreaElement, value: string): { next: string;
  * marked — select a word and press Blank, or type `{{ }}` — and an optional
  * translation shown with every Prompt so each blank has one answer.
  */
-export function SentenceDialog({ open, onOpenChange, sentence, prefill, onSaved }: { open: boolean; onOpenChange: (open: boolean) => void; sentence?: Sentence; prefill?: SentencePrefill; onSaved?: (id: string) => void }) {
+export function SentenceDialog({ open, onOpenChange, sentence, prefill, onSaved }: ItemDialogProps & { sentence?: Sentence; prefill?: SentencePrefill }) {
   const topics = useTopics();
   const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);

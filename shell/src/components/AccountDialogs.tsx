@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
 import { accountConflict, boundAccount, login, logout, pb, pendingWriteCount, switchAccount, syncNow, type AccountRef } from "@lifeline/core";
+import { HANDOFF_PATH } from "@lifeline/handoff";
 import { Loader2 } from "lucide-react";
 
 /**
@@ -107,7 +108,7 @@ export function SignInFields({ form, idPrefix = "login" }: { form: ReturnType<ty
 
 /** Pages that ask for sign-in themselves, so the shell's on-load notice stays away: the Handoff page (ADR 0080). */
 function asksForSignInItself(pathname: string): boolean {
-  return pathname === "/handoff";
+  return pathname === HANDOFF_PATH;
 }
 
 /**

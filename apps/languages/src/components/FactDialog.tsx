@@ -5,7 +5,7 @@ import type { Fact } from "../domain/types";
 import { addFact, deleteItem, updateFact, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
 import { OriginLine } from "./OriginLine";
-import { originOf } from "./WordDialog";
+import { originOf, type ItemDialogProps } from "./WordDialog";
 
 export interface FactPrefill {
   /** The passage it is being kept from — shown beside the form, never put in as the answer. */
@@ -20,7 +20,7 @@ export interface FactPrefill {
  * ever filled in for them. Made from a selection, the passage stays in view
  * while they write, and "add another" keeps it for the next Fact.
  */
-export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: { open: boolean; onOpenChange: (open: boolean) => void; fact?: Fact; prefill?: FactPrefill; onSaved?: (id: string) => void }) {
+export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: ItemDialogProps & { fact?: Fact; prefill?: FactPrefill }) {
   const topics = useTopics();
   const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);

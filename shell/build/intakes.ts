@@ -7,8 +7,8 @@
  * for the server (every package compiled in, stylesheets dropped), and the
  * bundle is imported to read `intakesOf(APPS)`. Nothing is rendered, so the
  * Apps' views only have to load: the view-only libraries, some of which touch
- * `window` the moment they load, are swapped for an inert stand-in, as the
- * MCP server's build does (mcp/scripts/build.mjs).
+ * `window` the moment they load, are swapped for an inert stand-in — the
+ * list is the MCP server build's too (mcp/scripts/browser-only.mjs).
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -16,15 +16,13 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build, type Plugin } from "vite";
 import { INTAKES_PATH, type IntakeEntry } from "@lifeline/handoff";
+import { BROWSER_ONLY } from "../../mcp/scripts/browser-only.mjs";
 
 const shell = resolve(import.meta.dirname, "..");
 const ENTRY = "lifeline-intake-list";
 const INERT = "lifeline-inert";
 
-/** View-only libraries the Apps' screens import (mcp/scripts/build.mjs keeps the same list). */
-const BROWSER_ONLY =
-  /^(leaflet|react-leaflet|@react-leaflet\/.*|recharts|@codemirror\/.*|@lezer\/.*|react-grid-layout|d3-force|d3-quadtree|lucide-react|radix-ui|@radix-ui\/.*|cmdk|sonner|next-themes|@dnd-kit\/.*|@fontsource-variable\/.*)(\/.*)?$/;
-
+// The stand-in for the view-only libraries: an ES module, where the MCP build's (inert.cjs) is CommonJS for esbuild.
 // Any property, call or `new` on it returns it again; every named import is one of its properties.
 const INERT_MODULE = `const inert = new Proxy(function () {}, {
   get: (_t, k) => (k === "__esModule" ? true : k === Symbol.toPrimitive ? () => "" : k === "then" ? undefined : inert),
