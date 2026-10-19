@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex } from "./links";
-import { buildGraph, localGraph } from "./graph";
+import { buildGraph, buildLocalGraph, localGraph, type GraphModel } from "./graph";
 import type { Document, DocumentTypeDef } from "./types";
 
 const types: DocumentTypeDef[] = [
@@ -98,5 +98,27 @@ describe("localGraph", () => {
     const full = graph({ orphans: true });
     const local = localGraph(full, "p", 1);
     expect(local.nodes.some((n) => n.id === "d:p")).toBe(true);
+  });
+});
+
+describe("buildLocalGraph", () => {
+  const canonical = (m: GraphModel) => ({
+    nodes: m.nodes.map((n) => `${n.id}:${n.degree}:${n.label}`).sort(),
+    edges: m.edges.map((e) => `${[e.source, e.target].sort().join("-")}:${e.weight}`).sort(),
+  });
+
+  it("matches the neighbourhood cut from the whole Graph, for every centre and depth", () => {
+    const docs = [
+      ...fixture(),
+      doc({ id: "q", type: "person", title: "Quinn", employer: "a", body: "Knows [[Paula]] and [[Missing]]" } as never),
+      doc({ id: "n", type: "note", title: "Nu", body: "[[Gamma]] [[Gamma]] [[Elsewhere]]" }),
+    ];
+    const index = buildLinkIndex(docs, types);
+    const full = buildGraph(index, types, { orphans: true });
+    for (const d of docs) {
+      for (const depth of [1, 2] as const) {
+        expect(canonical(buildLocalGraph(index, types, d.id, depth)), `${d.id} @${depth}`).toEqual(canonical(localGraph(full, d.id, depth)));
+      }
+    }
   });
 });

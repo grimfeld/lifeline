@@ -3,7 +3,7 @@ import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 import type { Shop } from "../domain/types";
 import { addShop, deleteShop, updateShop } from "../data/repo";
 
-/** A Shop is a chain (ADR 0045): a name and a note. A referenced one cannot be deleted. */
+/** A Shop is a chain (ADR 0082): a name and a note. A referenced one cannot be deleted. */
 export function ShopDialog({ open, onOpenChange, shop, defaultTitle, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; shop?: Shop | null; defaultTitle?: string; onCreated?: (id: string) => void }) {
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");

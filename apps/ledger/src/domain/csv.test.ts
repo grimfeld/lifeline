@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ImportMapping, Transaction } from "./types";
-import { applyMapping, flagDuplicates, parseCsv, parseDate } from "./csv";
+import { applyMapping, flagDuplicates, flagFuture, parseCsv, parseDate } from "./csv";
 
 const mapping: ImportMapping = {
   dateCol: 0,
@@ -52,6 +52,18 @@ describe("applyMapping", () => {
     expect(out[1].invalid).toBe(true);
     const inverted = applyMapping(rows, { ...mapping, invert: true });
     expect(inverted[0].amount).toBe(1250);
+  });
+});
+
+describe("flagFuture", () => {
+  it("marks rows dated after today invalid, leaving today and the past alone", () => {
+    const rows = applyMapping([["date", "amount", "payee", "id"], ["03/10/2026", "-5,00", "Cafe", ""], ["04/10/2026", "-6,00", "Cafe", ""], ["bad", "-1,00", "X", ""]], mapping);
+    const flagged = flagFuture(rows, "2026-10-03");
+    expect(flagged.map((r) => [r.invalid, !!r.future])).toEqual([
+      [false, false],
+      [true, true],
+      [true, false],
+    ]);
   });
 });
 

@@ -23,6 +23,8 @@ const REFRESH_SECONDS = 90 * 24 * 60 * 60;
 const PENDING_MS = 10 * 60_000;
 const CODE_MS = 5 * 60_000;
 const VERIFY_CACHE_MS = 30_000;
+/** How often the hot paths clear expired entries. */
+const SWEEP_EVERY_MS = 60_000;
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 const token = (prefix: string) => `${prefix}_${randomBytes(32).toString("base64url")}`;
@@ -65,10 +67,43 @@ export function grantedScopes(allowWrite: boolean): string[] {
   return [SCOPE_READ, ...(allowWrite ? [SCOPE_WRITE] : [])];
 }
 
+/**
+ * The sign-in form's rate limit: at most `max` attempts per address per
+ * window. Expired windows are pruned as it goes, so addresses that tried
+ * once and left do not accumulate.
+ */
+export class LoginAttempts {
+  private attempts = new Map<string, { n: number; until: number }>();
+  private lastPrune = 0;
+
+  constructor(
+    private max = 10,
+    private windowMs = 15 * 60_000,
+  ) {}
+
+  /** Count one attempt from `key`; false when it is over the limit. */
+  hit(key: string, now = Date.now()): boolean {
+    if (now - this.lastPrune > SWEEP_EVERY_MS) {
+      this.lastPrune = now;
+      for (const [k, v] of this.attempts) if (v.until <= now) this.attempts.delete(k);
+    }
+    const a = this.attempts.get(key);
+    if (a && a.until > now && a.n >= this.max) return false;
+    this.attempts.set(key, a && a.until > now ? { n: a.n + 1, until: a.until } : { n: 1, until: now + this.windowMs });
+    return true;
+  }
+
+  get size(): number {
+    return this.attempts.size;
+  }
+}
+
 export class LifelineOAuth implements OAuthServerProvider {
   private pending = new Map<string, PendingAuthorization>();
   private codes = new Map<string, AuthorizationCode>();
   private verified = new Map<string, { info: AuthInfo; until: number }>();
+  /** Refresh rotations in progress, by the spent token's hash. */
+  private rotating = new Map<string, Promise<OAuthTokens>>();
 
   constructor(
     /** Superuser client: the OAuth collections have no rules, so only it reads them. */
@@ -91,8 +126,11 @@ export class LifelineOAuth implements OAuthServerProvider {
     },
   };
 
+  private lastSweep = 0;
+
   private sweep(): void {
     const now = Date.now();
+    this.lastSweep = now;
     for (const [k, v] of this.pending) if (v.expires < now) this.pending.delete(k);
     for (const [k, v] of this.codes) if (v.expires < now) this.codes.delete(k);
     for (const [k, v] of this.verified) if (v.until < now) this.verified.delete(k);
@@ -178,8 +216,30 @@ export class LifelineOAuth implements OAuthServerProvider {
     return { access_token: access, token_type: "bearer", expires_in: ACCESS_SECONDS, refresh_token: refresh, scope: c.scopes.join(" ") };
   }
 
-  /** Refresh: both tokens rotate, so a stolen refresh token stops working once the real client uses its own. */
+  /**
+   * Refresh: both tokens rotate, so a stolen refresh token stops working once
+   * the real client uses its own. A token is spent exactly once: PocketBase
+   * has no conditional update, so rotations of the same token are serialised
+   * here — this server runs as one machine (fly.toml) — and every concurrent
+   * use after the first is refused instead of each minting its own pair.
+   */
   async exchangeRefreshToken(client: OAuthClientInformationFull, refreshToken: string, scopes?: string[]): Promise<OAuthTokens> {
+    const hash = sha256(refreshToken);
+    const inFlight = this.rotating.get(hash);
+    if (inFlight) {
+      await inFlight.catch(() => undefined);
+      throw new InvalidGrantError("Invalid or expired refresh token");
+    }
+    const rotation = this.rotate(client, refreshToken, scopes);
+    this.rotating.set(hash, rotation);
+    try {
+      return await rotation;
+    } finally {
+      this.rotating.delete(hash);
+    }
+  }
+
+  private async rotate(client: OAuthClientInformationFull, refreshToken: string, scopes?: string[]): Promise<OAuthTokens> {
     const row = await this.grantBy("refresh_hash", refreshToken);
     if (!row || row.client_id !== client.client_id || isPast(row.refresh_expires)) throw new InvalidGrantError("Invalid or expired refresh token");
     const had = row.scopes.split(" ");
@@ -198,6 +258,8 @@ export class LifelineOAuth implements OAuthServerProvider {
   }
 
   async verifyAccessToken(accessToken: string): Promise<AuthInfo> {
+    // Every bearer call lands here, so this is where the cache is kept bounded.
+    if (Date.now() - this.lastSweep > SWEEP_EVERY_MS) this.sweep();
     const hash = sha256(accessToken);
     const hit = this.verified.get(hash);
     if (hit && hit.until > Date.now()) return hit.info;

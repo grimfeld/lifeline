@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL, longText } from "./support/seed";
+import { encodeHandoff } from "@lifeline/handoff";
+import { CORE_URL, LONG_WORD, longText } from "./support/seed";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
 
 /**
@@ -22,7 +23,7 @@ interface ScreenCase {
   afterOpen?: (page: Page) => Promise<void>;
 }
 
-/** A fresh store greets with "You're signed out" over the page: work locally, so the page itself is what gets checked. */
+/** Dismisses the "You're signed out" notice a fresh store greets with, so the page under it is checked. */
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
@@ -75,6 +76,44 @@ async function openShelf(page: Page) {
   await expect(first).toHaveAttribute("aria-checked", "true");
 }
 
+/** The longest Handoff the Lifeline extension could send (ADR 0080), to the Quote Intake — the dialog that shows it all. */
+const LONG_HANDOFF = encodeHandoff(
+  {
+    title: longText("A page"),
+    text: `${longText("A passage")}\n\n${"A selected paragraph that runs on and on. ".repeat(60)}\n\n- ${LONG_WORD}\n- ${longText("A list item")}`,
+    url: `https://example.com/${LONG_WORD}/${LONG_WORD}?q=${LONG_WORD}`,
+    author: longText("An author"),
+    date: "2026-10-18",
+  },
+  "commonplace/quote",
+);
+
+/** The Handoff page's picker with a second Workspace, long-named, so the Workspace question is asked too. */
+async function pickerWithWorkspaces(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, name }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      if ((await core.allWorkspaces()).length < 2) await core.createWorkspace(name, []);
+    },
+    { coreUrl: CORE_URL, name: longText("A Workspace") },
+  );
+  await page.getByRole("combobox", { name: "Workspace" }).waitFor();
+}
+
+/** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
+const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
+
+/** The share sheet's Handoff, saved as a Task: the done state that offers to open it or go back. */
+async function sharedAndSaved(page: Page) {
+  await workLocally(page);
+  await page.getByRole("combobox", { name: "Intake" }).click();
+  await page.getByRole("option", { name: "Task", exact: true }).click();
+  await page.getByRole("button", { name: "Open the Task" }).click();
+  await page.getByRole("dialog", { name: "New task" }).getByRole("button", { name: "Add task" }).click();
+  await page.getByRole("button", { name: "Go back" }).waitFor();
+}
+
 const SCREENS: ScreenCase[] = [
   // Core destinations.
   { name: "Calendar · Upcoming", path: "/calendar?view=upcoming" },
@@ -89,6 +128,13 @@ const SCREENS: ScreenCase[] = [
   { name: "Screens", path: "/screens" },
   { name: "Screen with every Card", path: "/screen/e2elongcontent1", afterOpen: workLocally },
   { name: "Settings", path: "/settings", afterOpen: workLocally },
+  { name: "Handoff · sign in", path: `/handoff#${LONG_HANDOFF}` },
+  { name: "Handoff · Quote", path: `/handoff#${LONG_HANDOFF}`, afterOpen: workLocally },
+  { name: "Handoff · picker", path: `/handoff#${encodeHandoff({ title: longText("A page"), text: "", url: `https://example.com/${LONG_WORD}` })}`, afterOpen: pickerWithWorkspaces },
+  { name: "Handoff · unreadable", path: "/handoff#v1.not-a-handoff", afterOpen: workLocally },
+  { name: "Handoff · Saved", path: "/handoff/done", afterOpen: workLocally },
+  { name: "Handoff · shared", path: LONG_SHARE, afterOpen: workLocally },
+  { name: "Handoff · shared, Saved", path: LONG_SHARE, afterOpen: sharedAndSaved },
 
   // Modules.
   { name: "House", path: "/module/house", afterOpen: workLocally },
@@ -98,7 +144,6 @@ const SCREENS: ScreenCase[] = [
   { name: "Money", path: "/module/money", afterOpen: workLocally },
   { name: "Progress", path: "/module/progress", afterOpen: workLocally },
   { name: "Knowledge module", path: "/module/languages" },
-  { name: "Mail module", path: "/module/mail" },
   { name: "Journal module", path: "/module/journal" },
   { name: "Notes module", path: "/module/notes" },
   { name: "Thoughts module", path: "/module/thoughts" },
@@ -273,7 +318,6 @@ const SCREENS: ScreenCase[] = [
   { name: "Prices", path: "/app/prices" },
   { name: "Price product", path: "/app/prices/p/:id", type: "price_product" },
   { name: "Mood", path: "/app/mood" },
-  { name: "Mail", path: "/app/mail" },
   { name: "Swear Jar", path: "/app/swearjar" },
   { name: "Knowledge", path: "/app/languages" },
 ];

@@ -4,6 +4,7 @@ import { useOpenLinkRef } from "./openDocument";
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, cn, toast } from "@lifeline/ui";
 import {
   isLinkable,
+  isModShortcut,
   documentPanels,
   basePath,
   displayTitle,
@@ -40,6 +41,7 @@ import { FieldsForm } from "./FieldsForm";
 import { LinksPanel } from "./LinksPanel";
 import { DocumentReports } from "./Reports";
 import { LocalGraphPanel } from "./LocalGraphPanel";
+import { draftedValues, settleDraft, type FieldDraft } from "./fieldDraft";
 
 export interface DocumentEditorProps {
   doc: Document;
@@ -124,10 +126,16 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
       timer.current = null;
     }
     if (Object.keys(pending.current).length === 0) return;
-    const next = { ...docRef.current, ...pending.current } as Document;
+    const patch = pending.current;
+    const next = { ...docRef.current, ...patch } as Document;
     pending.current = {};
     if (typeof next.body === "string") noteWritten(echoes.current, typeof docRef.current.body === "string" ? docRef.current.body : "", next.body);
-    void write(next);
+    write(next).catch((err: unknown) => {
+      // The edit goes back in the queue (under anything typed since), so the
+      // next change or leaving the Document tries it again instead of dropping it.
+      pending.current = { ...patch, ...pending.current };
+      toast.error(`Couldn’t save — ${err instanceof Error ? err.message : String(err)}. It will be retried on your next change.`);
+    });
   }, [write]);
   const stage = useCallback(
     (patch: Partial<Document>, immediate = false) => {
@@ -142,7 +150,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
   useEffect(() => () => flush(), [flush]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "e") {
+      if (isModShortcut(e, "e")) {
         e.preventDefault();
         setMode((m) => (m === "read" ? "edit" : "read"));
       }
@@ -192,11 +200,20 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
    */
   const hasFields = fields.some((f) => !f.hidden);
   const hasPanel = linksPanel && (isLinkable(def) || !!def?.locatable);
-  const fieldValues = useMemo(() => {
-    const out: Record<string, unknown> = {};
-    for (const f of fields) out[f.key] = doc[f.key];
-    return out;
-  }, [doc, fields]);
+  /**
+   * What the form has typed and the stored Document has not caught up with:
+   * shown over the stored values, or a controlled input snaps back to the old
+   * value until the debounced save comes back and eats the keys typed meanwhile.
+   */
+  const [fieldDraft, setFieldDraft] = useState<FieldDraft>({});
+  useEffect(() => setFieldDraft((d) => settleDraft(d, doc as unknown as Record<string, unknown>)), [doc]);
+  const fieldValues = useMemo(() => draftedValues(fields, doc as unknown as Record<string, unknown>, fieldDraft), [doc, fields, fieldDraft]);
+  const changeFields = (next: Record<string, unknown>) => {
+    const changed: FieldDraft = {};
+    for (const [k, v] of Object.entries(next)) if (v !== fieldValues[k]) changed[k] = v;
+    setFieldDraft((d) => ({ ...d, ...changed }));
+    stage(changed as Partial<Document>);
+  };
 
   async function commitTitle() {
     if (def?.titleRule === "date" || def?.titleRule === "derived") return;
@@ -206,8 +223,13 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
 
   async function remove() {
     flush();
-    if (removeFn) await removeFn();
-    else await removeDocument(doc.id);
+    try {
+      if (removeFn) await removeFn();
+      else await removeDocument(doc.id);
+    } catch (err) {
+      toast.error(`Couldn’t delete “${displayTitle(doc, def)}” — ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
     toast.success(`“${displayTitle(doc, def)}” deleted`);
     if (onDeleted) onDeleted();
     else navigate(basePath(doc.type));
@@ -243,6 +265,8 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
   function commitText() {
     const { patch, rejected } = textToDocument(text, doc, textDef, codec);
     if (rejected.length > 0) toast.message(`Guarded fields kept as they were: ${rejected.join(", ")}`);
+    // Raw text speaks for every Field; a draft left over from the form would hide what it wrote.
+    setFieldDraft({});
     stage(patch as Partial<Document>, true);
   }
 
@@ -384,7 +408,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
           <>
             <div className={cn("grid gap-2 border-b px-3 py-2 md:px-4", !detailsOpen && "max-md:hidden", minimal && "hidden")}>
               {fields.some((f) => !f.hidden) && (
-                <FieldsForm def={{ fields }} value={fieldValues} allowGuarded={allowGuarded} onChange={(next) => stage(next as Partial<Document>)} />
+                <FieldsForm def={{ fields }} value={fieldValues} allowGuarded={allowGuarded} onChange={changeFields} />
               )}
               <div className="grid gap-1">
                 <Label htmlFor="doc-tags" className="text-muted-foreground text-xs">

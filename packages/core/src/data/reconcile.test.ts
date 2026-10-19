@@ -42,4 +42,15 @@ describe("shouldApply", () => {
   it("takes a differing copy stamped the same millisecond (LWW stays as it was)", () => {
     expect(shouldApply(rec({ body: "ab" }), rec({ body: "abc" }))).toBe(true);
   });
+
+  it("skips the echo of a no-body Document, which comes back with body \"\" (CR-07)", () => {
+    const local = rec({ type: "task", title: "x" });
+    expect(shouldApply(local, { ...local, body: "" } as SyncedRecord)).toBe(false);
+    expect(shouldApply({ ...local, body: "" } as SyncedRecord, local)).toBe(false);
+  });
+
+  it("still takes a body that really changed", () => {
+    const local = rec({ type: "note" });
+    expect(shouldApply(local, { ...local, body: "hello" } as SyncedRecord)).toBe(true);
+  });
 });

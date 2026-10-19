@@ -7,7 +7,7 @@ export interface WorkHit {
   size: number;
   coverUrl: string;
   /** Lazy "on pick" enrichment: one more request, merged into the hit before it is applied. */
-  resolve?: () => Promise<Partial<WorkHit>>;
+  resolve?: (signal?: AbortSignal) => Promise<Partial<WorkHit>>;
 }
 
 /**
@@ -57,7 +57,7 @@ export function rawgSearch(key: string) {
     const data = await getJson<{ results: RawgGame[] }>("games", key, { search: q, page_size: "8" }, signal);
     return (data.results ?? []).map((g) => {
       const hit = mapRawgGame(g);
-      hit.resolve = async () => mapRawgGameDetail(await getJson<RawgGameDetail>(`games/${g.id}`, key, {}));
+      hit.resolve = async (signal) => mapRawgGameDetail(await getJson<RawgGameDetail>(`games/${g.id}`, key, {}, signal));
       return hit;
     });
   };

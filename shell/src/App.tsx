@@ -1,12 +1,14 @@
-import { useEffect, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { Navigate, Route, Routes, useParams, useSearchParams } from "react-router";
 import { Toaster } from "@lifeline/ui";
+import { HANDOFF_DONE_PATH, HANDOFF_PATH } from "@lifeline/handoff";
 import {
   MODULES,
   appById,
   backgroundApps,
   ensureDefaultWorkspace,
   frames,
+  isDemo,
   screenRoute,
   screensOf,
   useCurrentWorkspaceId,
@@ -19,8 +21,6 @@ import { CommandPalette } from "./components/CommandPalette";
 import { AccountDialogs } from "./components/AccountDialogs";
 import { PrivateDialogs } from "./vault/PrivateDialogs";
 import { CalendarPage } from "./surfaces/CalendarSurface";
-import { MapPage } from "./surfaces/MapPage";
-import { GraphPage } from "./surfaces/GraphPage";
 import { PushProvider } from "./surfaces/push";
 import { UserScreenPage } from "./screens/UserScreenPage";
 import { ScreensIndex } from "./screens/ScreensIndex";
@@ -31,9 +31,15 @@ import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
 import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
-import { lastPlace, useResume } from "./nav/resume";
+import { FALLBACK_PLACE, lastPlace, useResume } from "./nav/resume";
 import { PeekHost } from "./peek/PeekHost";
 import { SelectionIntake } from "./intake/SelectionIntake";
+import { HandoffPage, HandoffSaved } from "./handoff/HandoffPage";
+import { DemoBanner, DemoFilling } from "./demo/DemoBanner";
+
+// The heavier Surfaces load when first visited, not with the shell (CR-23).
+const MapPage = lazy(() => import("./surfaces/MapPage").then((m) => ({ default: m.MapPage })));
+const GraphPage = lazy(() => import("./surfaces/GraphPage").then((m) => ({ default: m.GraphPage })));
 
 /** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
 function ResumeRedirect() {
@@ -71,7 +77,11 @@ function LegacyTimeRedirect({ view }: { view: "week" | "schedule" }) {
 
 /** A Core destination — a general Surface, the Bases, Screens, Settings: no chrome but the Rail's. */
 function CorePage({ children }: { children: ReactNode }) {
-  return <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>;
+  return (
+    <main className="min-w-0 flex-1 overflow-y-auto">
+      <Suspense fallback={null}>{children}</Suspense>
+    </main>
+  );
 }
 
 /** The routes of a hand-written Module layout (the Vault), below its path. */
@@ -138,6 +148,8 @@ function Places() {
       <Route path="/screens" element={<CorePage><ScreensIndex /></CorePage>} />
       <Route path="/screen/:id" element={<CorePage><UserScreenPage /></CorePage>} />
       <Route path="/settings" element={<CorePage><SettingsPage /></CorePage>} />
+      <Route path={HANDOFF_PATH} element={<CorePage><HandoffPage /></CorePage>} />
+      <Route path={HANDOFF_DONE_PATH} element={<CorePage><HandoffSaved /></CorePage>} />
       {/* Legacy Notes URLs (before the frame split, and before the Vault rename). */}
       <Route path="/app/notes" element={<Navigate to="/vault" replace />} />
       <Route path="/app/notes/:id" element={<LegacyNoteRedirect />} />
@@ -148,7 +160,8 @@ function Places() {
         .map((s) => (
           <Route key={`redirect-${s.id}`} path={`/app/${s.path}`} element={<Navigate to={screenRoute(s)} replace />} />
         ))}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Not `/`: the unknown path was just remembered as the last place, and resuming it would loop. */}
+      <Route path="*" element={<Navigate to={FALLBACK_PLACE} replace />} />
     </Routes>
   );
 }
@@ -176,6 +189,9 @@ export default function App() {
         {backgroundApps().map((a) => (
           <AppBackground key={a.id} app={a} />
         ))}
+        {/* Above everything, the Phone header included: ADR 0064 keeps banners at the top. */}
+        {isDemo() && <DemoBanner />}
+        {isDemo() && <DemoFilling />}
         <PhoneHeader />
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <Rail className="max-md:hidden" />
@@ -186,7 +202,8 @@ export default function App() {
         <PeekHost />
         <SelectionIntake />
         <PrivateDialogs />
-        <AccountDialogs />
+        {/* The Demo never signs in (ADR 0077): no sign-in, no signed-out notice, no account switch. */}
+        {!isDemo() && <AccountDialogs />}
         <Toaster position="bottom-right" />
       </div>
     </PushProvider>

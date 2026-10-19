@@ -177,7 +177,13 @@ export function foldBibliography(rows: BibliographyRow[], showAll = false): Bibl
   return [...kept].sort((a, b) => Number(!!b.year) - Number(!!a.year) || b.year - a.year || a.title.localeCompare(b.title));
 }
 
-/** The Work already on my shelf for a Bibliography row, if any. */
-export function ownedRow(row: Pick<BibliographyRow, "externalKey">, works: Work[]): Work | undefined {
-  return works.find((w) => w.externalKey === row.externalKey);
+/**
+ * My Works by external key — what "already yours" looks a Bibliography row up
+ * in, built once per shelf rather than scanning every Work for every row. The
+ * first Work with a key wins; keyless Works are left out.
+ */
+export function ownedByKey(works: Work[]): Map<string, Work> {
+  const out = new Map<string, Work>();
+  for (const w of works) if (w.externalKey && !out.has(w.externalKey)) out.set(w.externalKey, w);
+  return out;
 }

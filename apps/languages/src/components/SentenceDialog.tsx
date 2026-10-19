@@ -6,7 +6,7 @@ import { parseCloze } from "../domain/cloze";
 import type { Sentence } from "../domain/types";
 import { addSentence, deleteItem, updateSentence, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
-import { originOf } from "./WordDialog";
+import { originOf, type ItemDialogProps } from "./WordDialog";
 import { OriginLine } from "./OriginLine";
 
 export interface SentencePrefill {
@@ -33,7 +33,7 @@ function blankSelection(el: HTMLTextAreaElement, value: string): { next: string;
  * marked — select a word and press Blank, or type `{{ }}` — and an optional
  * translation shown with every Prompt so each blank has one answer.
  */
-export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open: boolean; onOpenChange: (open: boolean) => void; sentence?: Sentence; prefill?: SentencePrefill }) {
+export function SentenceDialog({ open, onOpenChange, sentence, prefill, onSaved }: ItemDialogProps & { sentence?: Sentence; prefill?: SentencePrefill }) {
   const topics = useTopics();
   const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
@@ -78,17 +78,19 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open
 
   async function save() {
     const input = { languageId, text, translation, origin, originId, tags };
+    let made = "";
     try {
       if (sentence) {
         await updateSentence(sentence, input);
         toast.success("Sentence updated");
       } else {
-        await addSentence(input);
+        made = await addSentence(input);
         toast.success(`Sentence added · ${blanks.length} prompt${blanks.length === 1 ? "" : "s"}`);
       }
     } catch (err) {
       return void toast.error((err as Error).message);
     }
+    if (made) onSaved?.(made);
     onOpenChange(false);
   }
 
@@ -174,7 +176,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill }: { open
 }
 
 /** The Sentence Intake (ADR 0050): the handed text becomes the sentence, blanks marked in the dialog. */
-export function SentenceIntakeDialog({ open, onOpenChange, handoff }: IntakeDialogProps) {
+export function SentenceIntakeDialog({ open, onOpenChange, handoff, onSaved }: IntakeDialogProps) {
   const prefill = useMemo(() => ({ text: (handoff.text.trim() || handoff.title).replace(/\s+/g, " "), origin: originOf(handoff), originId: handoff.originId }), [handoff]);
-  return <SentenceDialog open={open} onOpenChange={onOpenChange} prefill={prefill} />;
+  return <SentenceDialog open={open} onOpenChange={onOpenChange} prefill={prefill} onSaved={onSaved} />;
 }

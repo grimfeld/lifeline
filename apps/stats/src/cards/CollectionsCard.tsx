@@ -9,10 +9,14 @@ import { sortCollections, type CollectionSort } from "../domain/rank";
 export function CollectionsCard({ settings }: CardProps) {
   const sort = settings.sort as CollectionSort;
   const filter = useTagFilter();
-  const stats = useStats().filter((s) => matchesTagFilter(s.tags, filter));
+  const stats = useStats();
   const entries = useEntries();
   const navigate = useNavigate();
-  const rows = useMemo(() => sortCollections(stats, entriesByStat(entries), sort), [stats, entries, sort]);
+  // Filter inside the memo: a filtered array is new every render and would never hit.
+  const rows = useMemo(
+    () => sortCollections(stats.filter((s) => matchesTagFilter(s.tags, filter)), entriesByStat(entries), sort),
+    [stats, filter, entries, sort],
+  );
   if (rows.length === 0) {
     return <div className="text-muted-foreground flex h-full items-center justify-center text-sm">No collections yet.</div>;
   }

@@ -3,7 +3,7 @@ import type { Allowance, Bucket, Spend } from "./types";
 import { bucketOf, nextFrom, spanOf } from "./period";
 
 /**
- * Derivations (ADR 0037): what is left, the buckets, what renewal would
+ * Derivations (ADR 0081): what is left, the buckets, what renewal would
  * make. Nothing here is stored — every number is read off the Allowances
  * and their Spends on every render.
  */
@@ -18,9 +18,11 @@ export interface AllowanceRow {
   bucket: Bucket;
 }
 
+const newestFirst = (a: Spend, b: Spend) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt);
+
 /** The Spends of one Allowance, newest day first. */
 export function spendsOf(allowanceId: string, spends: Spend[]): Spend[] {
-  return spends.filter((s) => s.allowanceId === allowanceId).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  return spends.filter((s) => s.allowanceId === allowanceId).sort(newestFirst);
 }
 
 export function leftOf(a: Allowance, spends: Spend[]): number {
@@ -29,8 +31,15 @@ export function leftOf(a: Allowance, spends: Spend[]): number {
 
 /** One row per Allowance, with its derived numbers and bucket. */
 export function allowanceRows(allowances: Allowance[], spends: Spend[], today: DateStr): AllowanceRow[] {
+  // Grouped once, sorted once: not a filter-and-sort over every Spend per Allowance.
+  const byAllowance = new Map<string, Spend[]>();
+  for (const s of [...spends].sort(newestFirst)) {
+    const list = byAllowance.get(s.allowanceId);
+    if (list) list.push(s);
+    else byAllowance.set(s.allowanceId, [s]);
+  }
   return allowances.map((a) => {
-    const own = spendsOf(a.id, spends);
+    const own = byAllowance.get(a.id) ?? [];
     const spent = own.reduce((s, x) => s + x.amount, 0);
     return { allowance: a, spends: own, spent, left: a.amount - spent, bucket: bucketOf(a, today) };
   });

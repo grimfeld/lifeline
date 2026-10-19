@@ -8,7 +8,7 @@ export const SPEND = "pocket_spend";
 export const POCKET_HREF = "/app/pocket";
 
 /**
- * The period an Allowance is granted for (ADR 0037): a Monday-first calendar
+ * The period an Allowance is granted for (ADR 0081): a Monday-first calendar
  * week, a calendar month, a calendar year, or a custom span of days. Only a
  * custom span stores its end; the others derive it from `from`.
  */
@@ -17,7 +17,7 @@ export const PERIOD_KINDS: PeriodKind[] = ["week", "month", "year", "custom"];
 export const PERIOD_LABEL: Record<PeriodKind, string> = { week: "Week", month: "Month", year: "Year", custom: "Custom span" };
 
 /**
- * An Allowance (ADR 0037): a named sum the user grants themself for one
+ * An Allowance (ADR 0081): a named sum the user grants themself for one
  * period. Bound to that period — renewing clones it into the next one; what
  * is left derives from its Spends and is never stored. Nothing rolls over.
  */
@@ -68,7 +68,7 @@ export function firstGrapheme(s: string): string {
 export const EMOJI_PRESETS = ["🍕", "☕", "🎬", "🛒", "✈️", "🎁", "👕", "🚗", "🍺", "💊", "🎮", "🏠"];
 
 /**
- * A Spend (ADR 0037, internal): one hand-typed amount taken from an
+ * A Spend (ADR 0081, internal): one hand-typed amount taken from an
  * Allowance on a day. A belief, not a fact — the Ledger's Transaction is the
  * fact. Its day is unconstrained by the Allowance's period.
  */

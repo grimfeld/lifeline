@@ -65,9 +65,8 @@ export const cinemaCommands: CommandDef[] = [
     async invoke(a) {
       const medium = ((a.type as WorkTypeId | undefined) ?? WORK_TYPES[0].id) as WorkTypeId;
       const title = (a.title as string).trim();
-      const same = (await allWorks()).find((w) => w.type === medium && w.title.trim().toLowerCase() === title.toLowerCase());
-      if (same) throw new Error(`“${same.title}” is already on the shelf; tell the user — nothing was changed`);
-      const id = await quickAddWork({ medium, title, creator: a.creator as string | undefined });
+      const { id, twin } = await quickAddWork({ medium, title, creator: a.creator as string | undefined });
+      if (twin) throw new Error(`“${twin.title}” is already on the shelf; tell the user — nothing was changed`);
       return { id, message: `${title} added (${workType(medium).wantLabel})` };
     },
   },

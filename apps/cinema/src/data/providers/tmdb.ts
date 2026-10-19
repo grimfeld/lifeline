@@ -7,7 +7,7 @@ export interface WorkHit {
   size: number;
   coverUrl: string;
   /** Lazy "on pick" enrichment: one more request, merged into the hit before it is applied. */
-  resolve?: () => Promise<Partial<WorkHit>>;
+  resolve?: (signal?: AbortSignal) => Promise<Partial<WorkHit>>;
 }
 
 /**
@@ -77,11 +77,11 @@ export function tmdbSearch(kind: "movie" | "tv", key: string) {
       const hit = kind === "movie" ? mapTmdbMovie(r) : mapTmdbTv(r);
       hit.resolve =
         kind === "movie"
-          ? async () => {
-              const [detail, credits] = await Promise.all([getJson<TmdbMovieDetail>(`movie/${r.id}`, key, {}), getJson<TmdbCredits>(`movie/${r.id}/credits`, key, {})]);
+          ? async (signal) => {
+              const [detail, credits] = await Promise.all([getJson<TmdbMovieDetail>(`movie/${r.id}`, key, {}, signal), getJson<TmdbCredits>(`movie/${r.id}/credits`, key, {}, signal)]);
               return mapTmdbMovieDetail(detail, credits);
             }
-          : async () => mapTmdbTvDetail(await getJson<TmdbTvDetail>(`tv/${r.id}`, key, {}));
+          : async (signal) => mapTmdbTvDetail(await getJson<TmdbTvDetail>(`tv/${r.id}`, key, {}, signal));
       return hit;
     });
   };

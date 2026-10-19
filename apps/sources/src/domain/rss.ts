@@ -93,3 +93,12 @@ export function sortFeedItems(items: FeedItem[]): FeedItem[] {
 export function isNewItem(item: FeedItem, seenUpTo: string | null | undefined): boolean {
   return !!item.published && (!seenUpTo || item.published > seenUpTo);
 }
+
+/**
+ * "Seen up to" after the list has been shown: now, or the newest item when a
+ * feed dates one in the future — otherwise that item stays new forever and
+ * every look marks the feed seen again.
+ */
+export function seenUpToFor(items: FeedItem[], now: string = new Date().toISOString()): string {
+  return items.reduce((max, it) => (it.published && it.published > max ? it.published : max), now);
+}

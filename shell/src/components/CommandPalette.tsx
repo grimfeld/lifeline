@@ -13,6 +13,7 @@ import {
 import {
   appById,
   CALENDAR_VIEWS,
+  isModShortcut,
   moduleById,
   moduleHome,
   registeredApps,
@@ -61,7 +62,7 @@ export function CommandPalette() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      if (isModShortcut(e, "k")) {
         e.preventDefault();
         setOpen((o) => {
           if (o) {

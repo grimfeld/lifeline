@@ -7,7 +7,7 @@ import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middlew
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { loadConfig, SCOPE_READ, SCOPE_WRITE, SCOPES } from "./config";
 import { DevicePool, ExpectedError } from "./devices";
-import { LifelineOAuth } from "./oauth";
+import { LifelineOAuth, LoginAttempts } from "./oauth";
 import { TOOLS } from "./tools";
 
 /**
@@ -81,16 +81,12 @@ app.use(
 );
 
 // The sign-in page's form. Rate-limited per address: it is a password check.
-const attempts = new Map<string, { n: number; until: number }>();
+const attempts = new LoginAttempts();
 function limitLogins(req: Request, res: Response, next: NextFunction) {
-  const key = req.ip ?? "?";
-  const now = Date.now();
-  const a = attempts.get(key);
-  if (a && a.until > now && a.n >= 10) {
+  if (!attempts.hit(req.ip ?? "?")) {
     res.status(429).type("text").send("Too many attempts. Try again in a few minutes.");
     return;
   }
-  attempts.set(key, a && a.until > now ? { n: a.n + 1, until: a.until } : { n: 1, until: now + 15 * 60_000 });
   next();
 }
 app.post("/oauth/login", limitLogins, express.urlencoded({ extended: false, limit: "8kb" }), (req, res) => {

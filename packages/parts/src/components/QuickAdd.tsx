@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { openPeek } from "@lifeline/core";
 import { cn, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast, ToggleGroup, ToggleGroupItem } from "@lifeline/ui";
 import type { LookupHit } from "../lookup";
 import { quickAddPlaceholder, startingMedium, type QuickAddMedium } from "../quickAdd";
@@ -33,8 +34,11 @@ export interface QuickAddConfig<M extends string, H extends LookupHit> {
   useSearch: (medium: M) => ((query: string, signal: AbortSignal) => Promise<readonly H[]>) | null;
   byline: (hit: H) => string | undefined;
   cover: (hit: H, medium: M) => ReactNode;
-  /** Adds the typed text ("Title — Creator") or a picked hit; the new work's id and title, or null when there is no title. */
-  add: (medium: M, input: { text: string } | { hit: H }) => Promise<{ id: string; title: string } | null>;
+  /**
+   * Adds the typed text ("Title — Creator") or a picked hit; the new work's id and title, or null when there is no title.
+   * A work already on the list is handed back instead, nothing added: `already` says where it stands ("To read, unread").
+   */
+  add: (medium: M, input: { text: string } | { hit: H }) => Promise<{ id: string; title: string; already?: string } | null>;
   /** The toast's Undo. */
   remove: (id: string) => Promise<void>;
 }
@@ -76,15 +80,33 @@ export function QuickAdd<M extends string, H extends LookupHit>({
     writeLastMedium(m);
   }
 
+  // An add awaits the lookup and the store; Enter or a click meanwhile must not add a twin.
+  const busy = useRef(false);
+
   async function add(input: { text: string } | { hit: H }) {
-    const added = await config.add(medium, input);
-    if (!added) return;
-    writeLastMedium(medium);
-    toast.success(`Added to ${def.wantLabel}`, {
-      description: added.title,
-      action: { label: "Undo", onClick: () => void config.remove(added.id) },
-    });
-    onAdded?.(added.id);
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      const added = await config.add(medium, input);
+      if (!added) return;
+      if (added.already !== undefined) {
+        toast.warning(`Already on your list — ${added.already}`, {
+          description: added.title,
+          action: { label: "Open", onClick: () => openPeek(added.id) },
+        });
+        return;
+      }
+      writeLastMedium(medium);
+      toast.success(`Added to ${def.wantLabel}`, {
+        description: added.title,
+        action: { label: "Undo", onClick: () => void config.remove(added.id) },
+      });
+      onAdded?.(added.id);
+    } catch (e) {
+      toast.error((e as Error).message || "Could not add it");
+    } finally {
+      busy.current = false;
+    }
   }
 
   const picker =

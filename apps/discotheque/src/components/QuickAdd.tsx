@@ -1,8 +1,13 @@
 import { QuickAdd as FamilyQuickAdd, type QuickAddConfig, type QuickAddProps } from "@lifeline/parts";
-import { WORK_TYPES, type WorkTypeId } from "../domain/workTypes";
+import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import { deleteWork, parseQuickTitle, quickAddWork } from "../data/repo";
 import { lookupFor, resolveHit, type WorkHit } from "../data/lookup";
 import { Cover } from "./Cover";
+
+/** What QuickAdd shows for an add: the Work you already have is handed back, with where it stands. */
+function shown({ id, twin }: Awaited<ReturnType<typeof quickAddWork>>, title: string) {
+  return twin ? { id: twin.id, title: twin.title, already: workType(twin.type).engagement[twin.engagement] } : { id, title };
+}
 
 /** The Discotheque's QuickAdd: albums, looked up on MusicBrainz (keyless). */
 const DISCOTHEQUE: QuickAddConfig<WorkTypeId, WorkHit> = {
@@ -14,13 +19,13 @@ const DISCOTHEQUE: QuickAddConfig<WorkTypeId, WorkHit> = {
     if ("text" in input) {
       const { title, creator } = parseQuickTitle(input.text);
       if (!title) return null;
-      return { id: await quickAddWork({ medium, title, creator: creator || undefined }), title };
+      return shown(await quickAddWork({ medium, title, creator: creator || undefined }), title);
     }
     const title = input.hit.title.trim();
     if (!title) return null;
     // Lazy enrichment happens only on pick.
     const hit = await resolveHit(input.hit);
-    return { id: await quickAddWork({ medium, title, creator: input.hit.creator || hit.creator, hit }), title };
+    return shown(await quickAddWork({ medium, title, creator: input.hit.creator || hit.creator, hit }), title);
   },
   remove: deleteWork,
 };

@@ -7,7 +7,7 @@ export interface WorkHit {
   size: number;
   coverUrl: string;
   /** Lazy "on pick" enrichment: one more request, merged into the hit before it is applied. */
-  resolve?: () => Promise<Partial<WorkHit>>;
+  resolve?: (signal?: AbortSignal) => Promise<Partial<WorkHit>>;
 }
 
 /**
