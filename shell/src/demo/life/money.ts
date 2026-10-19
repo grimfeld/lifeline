@@ -122,20 +122,20 @@ const RECEIPTS: Receipt[] = [
   ] },
 ];
 
-const PRODUCTS: [string, "kg" | "l" | "piece"][] = [
-  ["Semi-skimmed milk", "l"],
-  ["Oat milk", "l"],
-  ["Porridge oats", "kg"],
-  ["Bananas", "kg"],
-  ["Cheddar", "kg"],
-  ["Coffee beans", "kg"],
-  ["Free-range eggs", "piece"],
-  ["Sourdough loaf", "piece"],
-  ["Chicken thighs", "kg"],
-  ["Chopped tomatoes", "piece"],
-  ["Greek yoghurt", "piece"],
-  ["Spinach", "piece"],
-  ["Basmati rice", "kg"],
+const PRODUCTS: [string, "mass" | "volume" | "count"][] = [
+  ["Semi-skimmed milk", "volume"],
+  ["Oat milk", "volume"],
+  ["Porridge oats", "mass"],
+  ["Bananas", "mass"],
+  ["Cheddar", "mass"],
+  ["Coffee beans", "mass"],
+  ["Free-range eggs", "count"],
+  ["Sourdough loaf", "count"],
+  ["Chicken thighs", "mass"],
+  ["Chopped tomatoes", "count"],
+  ["Greek yoghurt", "count"],
+  ["Spinach", "count"],
+  ["Basmati rice", "mass"],
 ];
 
 /** Shops, Products, the itemised Receipts and a few shelf prices noted in passing. Returns each Receipt's total in cents. */
@@ -143,7 +143,7 @@ async function seedPrices(c: LifeClock): Promise<{ shop: string; date: DateStr; 
   const shops: Record<string, string> = {};
   for (const name of ["Tesco", "Lidl", "SuperValu", "English Market"]) shops[name] = (await run("prices.shop-add", { name }))!;
   const products: Record<string, string> = {};
-  for (const [name, measure] of PRODUCTS) products[name] = (await run("prices.product-add", { name, measure }))!;
+  for (const [name, dimension] of PRODUCTS) products[name] = (await run("prices.product-add", { name, dimension }))!;
 
   const totals: { shop: string; date: DateStr; cents: number }[] = [];
   for (const r of RECEIPTS) {

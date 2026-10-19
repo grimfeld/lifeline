@@ -7,13 +7,16 @@ import { pricesCommands } from "./commands";
 import { pricesDaylog } from "./daylog";
 import { formatCents } from "./domain/money";
 import { receiptTitle } from "./domain/derive";
-import { APP_ID, LINE, MEASURES, MEASURE_LABEL, MEASURE_PER, PRICES_COLOR, PRICES_HREF, PRODUCT, RECEIPT, SHOP, productHref, type Line, type Product, type Receipt, type Shop } from "./domain/types";
+import { APP_ID, DIMENSIONS, DIMENSION_LABEL, LINE, PRICES_COLOR, PRICES_HREF, PRODUCT, RECEIPT, SHOP, productHref, UNIT_LABEL, type Line, type Product, type Receipt, type Shop, type Unit } from "./domain/types";
+import { perUnit, readMeasure } from "./domain/measure";
 import { ProductPeek } from "./components/ProductPeek";
 
 /**
- * The `price_product` type (ADR 0082): a thing bought again — a name and a
- * measure fixed at creation. `labels` is the App's memory of what each Shop
- * prints for it (guarded, hidden).
+ * The `price_product` type (ADR 0082, 0084): a thing bought again — a name
+ * and a Measure: a dimension, the unit it is read in, and a count's own
+ * name. Dimension and unit are guarded (a unit must belong to its
+ * dimension); the count name is free. `labels` is the App's memory of what
+ * each Shop prints for it (guarded, hidden).
  */
 const productType: DocumentTypeDef = {
   id: PRODUCT,
@@ -22,10 +25,12 @@ const productType: DocumentTypeDef = {
   titleRule: "name",
   body: "none",
   fields: [
-    { key: "measure", label: "Measure", kind: "select", options: MEASURES.map((m) => ({ value: m, label: MEASURE_LABEL[m] })), guarded: true, required: true, column: true },
+    { key: "dimension", label: "Dimension", kind: "select", options: DIMENSIONS.map((d) => ({ value: d, label: DIMENSION_LABEL[d] })), guarded: true, required: true, column: true },
+    { key: "unit", label: "Read in", kind: "select", options: (Object.keys(UNIT_LABEL) as Unit[]).map((u) => ({ value: u, label: UNIT_LABEL[u] })), guarded: true, required: true, column: true },
+    { key: "countName", label: "Count name", kind: "text" },
     { key: "labels", label: "Remembered labels", kind: "json", guarded: true, hidden: true },
   ],
-  linkable: { subtitle: (d) => `Product · €${MEASURE_PER[(d as Product).measure] ?? ""}` },
+  linkable: { subtitle: (d) => `Product · €${perUnit(readMeasure(d as Product))}` },
   href: (d) => productHref(d.id),
   peek: ProductPeek,
   order: 87,
@@ -82,7 +87,7 @@ const lineType: DocumentTypeDef = {
     { key: "receiptId", label: "Receipt", kind: "link", linkType: RECEIPT, guarded: true, required: true, column: true },
     { key: "productId", label: "Product", kind: "link", linkType: PRODUCT, guarded: true, column: true },
     { key: "label", label: "Label", kind: "text", column: true },
-    { key: "amount", label: "Amount", kind: "number", column: true },
+    { key: "amount", label: "Amount (kg, L, m or count)", kind: "number", column: true },
     { key: "price", label: "Paid (cents)", kind: "number", column: true },
     { key: "promo", label: "Promo", kind: "boolean", column: true },
   ],

@@ -3,7 +3,8 @@ import { useNavigate } from "react-router";
 import { CardUnavailable } from "@lifeline/ui";
 import type { CardOption, CardProps, CardSettings } from "@lifeline/core";
 import { productHref } from "../domain/types";
-import { cheapest, formatUnitPrice, historyOf, latestUsual, observe } from "../domain/derive";
+import { cheapest, historyOf, latestUsual, observe } from "../domain/derive";
+import { formatUnitPrice } from "../domain/measure";
 import { useLines, useProducts, useReceipts, useShops } from "../data/repo";
 import { PriceChart, shopColor } from "../components/PriceChart";
 
@@ -34,7 +35,7 @@ export function ProductPriceCard({ settings, configure }: CardProps) {
     <div className="hover:bg-accent/40 flex h-full cursor-pointer flex-col gap-1 rounded-md transition-colors" role="link" onClick={() => navigate(productHref(product.id))}>
       {best ? (
         <div className="flex flex-wrap items-baseline gap-x-1.5">
-          <span className="text-2xl font-semibold tabular-nums">{formatUnitPrice(best.point.unit, product.measure)}</span>
+          <span className="text-2xl font-semibold tabular-nums">{formatUnitPrice(best.point.unit, product)}</span>
           <span className="flex items-center gap-1 text-xs">
             <span className="size-2 rounded-full" style={{ background: shopColor(best.shopId, shops) }} />
             {shops.find((s) => s.id === best.shopId)?.title ?? "?"}
@@ -48,13 +49,13 @@ export function ProductPriceCard({ settings, configure }: CardProps) {
           {others.map((o) => (
             <span key={o.sid} className="flex items-center gap-1">
               <span className="size-1.5 rounded-full" style={{ background: shopColor(o.sid, shops) }} />
-              {formatUnitPrice(o.usual!.unit, product.measure)}
+              {formatUnitPrice(o.usual!.unit, product)}
             </span>
           ))}
         </div>
       )}
       <div className="mt-auto min-h-0 flex-1">
-        <PriceChart history={history} shops={shops} measure={product.measure} height={72} compact />
+        <PriceChart history={history} shops={shops} measure={product} height={72} compact />
       </div>
     </div>
   );

@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { Badge } from "@lifeline/ui";
 import type { Document } from "@lifeline/core";
 import type { Product } from "../domain/types";
-import { cheapest, formatUnitPrice, historyOf, latestUsual, observe } from "../domain/derive";
+import { cheapest, historyOf, latestUsual, observe } from "../domain/derive";
+import { formatUnitPrice } from "../domain/measure";
 import { useLines, useReceipts, useShops } from "../data/repo";
 
 /**
@@ -28,7 +29,7 @@ export function ProductPeek({ doc }: { doc: Document }) {
     <div className="flex flex-col gap-4">
       {best && (
         <div className="flex flex-col">
-          <span className="text-2xl font-semibold tabular-nums">{formatUnitPrice(best.point.unit, p.measure)}</span>
+          <span className="text-2xl font-semibold tabular-nums">{formatUnitPrice(best.point.unit, p)}</span>
           <span className="text-muted-foreground text-sm">
             cheapest at {shopName(best.shopId)} · {best.point.date}
           </span>
@@ -41,7 +42,7 @@ export function ProductPeek({ doc }: { doc: Document }) {
             <li key={r.shopId} className="flex items-center justify-between gap-3 border-b py-1 last:border-0">
               <span className="min-w-0 flex-1 truncate">{shopName(r.shopId)}</span>
               {r.last?.promo && <Badge variant="outline">promo last</Badge>}
-              <span className="tabular-nums">{r.usual ? formatUnitPrice(r.usual.unit, p.measure) : "promo only"}</span>
+              <span className="tabular-nums">{r.usual ? formatUnitPrice(r.usual.unit, p) : "promo only"}</span>
             </li>
           ))}
         </ul>

@@ -561,6 +561,12 @@ importers:
       '@types/react':
         specifier: ^19.1.0
         version: 19.2.18
+      fake-indexeddb:
+        specifier: ^6.2.5
+        version: 6.2.5
+      jsdom:
+        specifier: ^26
+        version: 26.1.0
       typescript:
         specifier: ~5.8.3
         version: 5.8.3
