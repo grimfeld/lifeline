@@ -23,6 +23,22 @@ export function freeSlots(items: Work[], type: WorkTypeId): number[] {
 }
 export const isFull = (items: Work[], type: WorkTypeId) => freeSlots(items, type).length === 0;
 
+const freeCache = new WeakMap<Work[], Map<WorkTypeId, number[]>>();
+
+/**
+ * `freeSlots`, computed once per shelf array: every tile and row on a screen
+ * asks it of the same (immutable, memoized) array, which would otherwise
+ * rescan the whole shelf per tile. A changed shelf is a new array, so a new
+ * answer. Read-only: the result is shared.
+ */
+export function freeSlotsOf(items: Work[], type: WorkTypeId): readonly number[] {
+  let byType = freeCache.get(items);
+  if (!byType) freeCache.set(items, (byType = new Map()));
+  let free = byType.get(type);
+  if (!free) byType.set(type, (free = freeSlots(items, type)));
+  return free;
+}
+
 export function daysSince(d: DateStr, today = todayStr()): number | null {
   if (!d) return null;
   return Math.max(0, diffDays(d, today));

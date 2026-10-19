@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { docHref } from "@lifeline/core";
 import { Button, Checkbox, cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, toast } from "@lifeline/ui";
 import { ArrowLeft, ExternalLink, FileText, GitMerge, MoreHorizontal, Pencil, RefreshCw, Search, Trash2 } from "lucide-react";
-import { foldBibliography, ownedRow, type BibliographyRow } from "../domain/authors";
+import { foldBibliography, ownedByKey, type BibliographyRow } from "../domain/authors";
 import type { Author, Work } from "../domain/types";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import { deleteAuthor, patchAuthor, useAuthor, useWorks } from "../data/repo";
@@ -94,12 +94,15 @@ function Bibliography({ author, works }: { author: Author; works: Work[] }) {
     return () => ctl.abort();
   }, [author.id, author.externalKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const shown = useMemo(() => (rows ? foldBibliography(rows, showAll) : []), [rows, showAll]);
-  const hidden = rows ? rows.length - foldBibliography(rows, false).length : 0;
-  const tickable = shown.filter((r) => !ownedRow(r, works));
+  // Hundreds of rows against the whole shelf: one key index and one fold per change, not per row or render.
+  const owned = useMemo(() => ownedByKey(works), [works]);
+  const folded = useMemo(() => (rows ? foldBibliography(rows, false) : []), [rows]);
+  const shown = useMemo(() => (rows ? (showAll ? foldBibliography(rows, true) : folded) : []), [rows, showAll, folded]);
+  const hidden = rows ? rows.length - folded.length : 0;
+  const tickable = useMemo(() => shown.filter((r) => !owned.has(r.externalKey)), [shown, owned]);
 
   async function add() {
-    const picked = shown.filter((r) => ticked.has(r.externalKey) && !ownedRow(r, works));
+    const picked = shown.filter((r) => ticked.has(r.externalKey) && !owned.has(r.externalKey));
     if (!picked.length) return;
     setAdding(true);
     try {
@@ -147,14 +150,14 @@ function Bibliography({ author, works }: { author: Author; works: Work[] }) {
       {shown.length > 0 && (
         <ul className="grid gap-1">
           {shown.map((r) => {
-            const owned = ownedRow(r, works);
+            const have = owned.get(r.externalKey);
             const on = ticked.has(r.externalKey);
             return (
               <li key={r.externalKey}>
-                <label className={cn("hover:bg-accent/50 flex cursor-pointer items-center gap-3 rounded-md border p-2", owned && "opacity-70")}>
+                <label className={cn("hover:bg-accent/50 flex cursor-pointer items-center gap-3 rounded-md border p-2", have && "opacity-70")}>
                   <Checkbox
-                    checked={owned ? true : on}
-                    disabled={!!owned}
+                    checked={have ? true : on}
+                    disabled={!!have}
                     onCheckedChange={(c) =>
                       setTicked((s) => {
                         const n = new Set(s);
@@ -169,7 +172,7 @@ function Bibliography({ author, works }: { author: Author; works: Work[] }) {
                     <span className="block truncate text-sm font-medium">{r.title}</span>
                     <span className="text-muted-foreground block truncate text-xs">
                       {r.year || "—"}
-                      {owned ? ` · on your shelf — ${ACQ_LABEL[owned.acquisition]}, ${workType(owned.type).engagement[owned.engagement]}` : ""}
+                      {have ? ` · on your shelf — ${ACQ_LABEL[have.acquisition]}, ${workType(have.type).engagement[have.engagement]}` : ""}
                     </span>
                   </span>
                 </label>
