@@ -193,6 +193,18 @@ const SCREENS: ScreenCase[] = [
   { name: "Habit", path: "/app/lifelevel/:id", type: "habit" },
   { name: "Library", path: "/app/library", afterOpen: openShelf },
   { name: "Author", path: "/app/library/authors/:id", type: "author" },
+  {
+    // The Add dialog's Author Combobox, its list open over the seeded long-named Author (two letters: no Open Library lookup).
+    name: "Library · Add · Author picker",
+    path: "/app/library",
+    afterOpen: async (page) => {
+      const local = page.getByRole("button", { name: "Work locally" });
+      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      await page.getByRole("button", { name: /^Add with details/ }).click();
+      await page.getByRole("combobox", { name: /Author|Creator/ }).fill("wi");
+      await expect(page.getByRole("listbox", { name: "Authors" }).getByRole("option").first()).toBeVisible();
+    },
+  },
   { name: "Cinema", path: "/app/cinema", afterOpen: openShelf },
   { name: "Discotheque", path: "/app/discotheque", afterOpen: openShelf },
   { name: "Arcade", path: "/app/arcade", afterOpen: openShelf },

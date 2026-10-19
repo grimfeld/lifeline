@@ -34,7 +34,7 @@ nearest existing pattern and don't hand-roll a new one.
   (`ToggleGroupItem` per choice, named with `aria-label`): it looks like `TabsList` and
   becomes a `Select` on a phone by itself. A media App's Shelf is `ShelfControl` from
   `@lifeline/parts`.
-- Search-as-you-type pickers use `Combobox` (_coming_, `Command` + `Popover`), never a
+- Search-as-you-type pickers use `Combobox` (`Command` + `Popover`), never a
   hand-rolled `role="listbox"`.
 - **(check)** Tooltips use `Tooltip` (`<Tip label>` for an icon Button); `title=` is not a
   tooltip. It shows on the desk only, never on touch; the Button keeps its `aria-label`.
