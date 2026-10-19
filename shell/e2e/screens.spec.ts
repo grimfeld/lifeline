@@ -60,6 +60,19 @@ async function pickerWithWorkspaces(page: Page) {
   await page.getByRole("combobox", { name: "Workspace" }).waitFor();
 }
 
+/** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
+const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
+
+/** The share sheet's Handoff, saved as a Task: the done state that offers to open it or go back. */
+async function sharedAndSaved(page: Page) {
+  await workLocally(page);
+  await page.getByRole("combobox", { name: "Intake" }).click();
+  await page.getByRole("option", { name: "Task", exact: true }).click();
+  await page.getByRole("button", { name: "Open the Task" }).click();
+  await page.getByRole("dialog", { name: "New task" }).getByRole("button", { name: "Add task" }).click();
+  await page.getByRole("button", { name: "Go back" }).waitFor();
+}
+
 const SCREENS: ScreenCase[] = [
   // Core destinations.
   { name: "Calendar · Upcoming", path: "/calendar?view=upcoming" },
@@ -79,6 +92,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Handoff · picker", path: `/handoff#${encodeHandoff({ title: longText("A page"), text: "", url: `https://example.com/${LONG_WORD}` })}`, afterOpen: pickerWithWorkspaces },
   { name: "Handoff · unreadable", path: "/handoff#v1.not-a-handoff", afterOpen: workLocally },
   { name: "Handoff · Saved", path: "/handoff/done", afterOpen: workLocally },
+  { name: "Handoff · shared", path: LONG_SHARE, afterOpen: workLocally },
+  { name: "Handoff · shared, Saved", path: LONG_SHARE, afterOpen: sharedAndSaved },
 
   // Modules.
   { name: "House", path: "/module/house" },
