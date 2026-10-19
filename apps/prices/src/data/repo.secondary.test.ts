@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { documentsTable, initApps } from "@lifeline/core";
 import { pricesApp } from "../index";
 import { pricesCommands } from "../commands";
-import { addPrice, addProduct, addShop, allLines, allProducts, allReceipts, allShops, saveReceipt, updateProduct } from "./repo";
+import { addPrice, addProduct, addShop, allLines, allProducts, allReceipts, allShops, mergeProduct, saveReceipt, updateProduct } from "./repo";
 
 initApps([pricesApp]);
 
@@ -90,6 +90,16 @@ describe("a secondary Measure (ADR 0084)", () => {
       await updateProduct(await product(id), { title: "Croissants", dimension: "mass", unit: "kg" });
       expect(await product(id)).toMatchObject({ dimension: "mass", secondaryDimension: "", compareBy: "primary" });
       expect((await allLines()).map((l) => [l.secondAmount, l.needsAmount])).toEqual([[0, true]]);
+    });
+
+    it("when merged into a Product without the same secondary Measure, kept into one with it", async () => {
+      const id = await seeded();
+      const buns = await addProduct({ title: "Buns", dimension: "count", secondaryDimension: "mass", secondaryUnit: "kg" });
+      const rolls = await addProduct({ title: "Rolls", dimension: "count" });
+      await mergeProduct(await product(id), await product(buns));
+      expect(await seconds()).toEqual([0.24]);
+      await mergeProduct(await product(buns), await product(rolls));
+      expect((await allLines()).map((l) => [l.productId, l.secondAmount, l.needsAmount])).toEqual([[rolls, 0, false]]);
     });
 
     it("but not when only its reading unit or compare-by changes", async () => {
