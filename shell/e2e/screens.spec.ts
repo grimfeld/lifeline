@@ -22,15 +22,20 @@ interface ScreenCase {
   afterOpen?: (page: Page) => Promise<void>;
 }
 
-/** Journal → Types → the Type editor over the seeded People type. A fresh store greets with "You're signed out" over the page. */
-async function openPeopleTypeEditor(page: Page) {
+/** A fresh store greets with "You're signed out" over the page: work locally, so the page itself is what gets checked. */
+async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+}
+
+/** Journal → Types → the Type editor over the seeded People type. */
+async function openPeopleTypeEditor(page: Page) {
+  await workLocally(page);
   await page.getByRole("button", { name: /^Edit the type People/ }).first().click();
 }
 
 /**
- * A media App's QuickAdd with its list open over a very long typed title: the
+ * A family App's QuickAdd with its list open over a very long typed title: the
  * "Add …" row, and where the lookup is keyless (Open Library, MusicBrainz)
  * one hit with a long title and byline, answered here so nothing leaves the machine.
  */
@@ -45,19 +50,17 @@ async function openQuickAdd(page: Page) {
       return route.fulfill({ json: { "release-groups": [{ id: "e2e", title, "first-release-date": "1999", "artist-credit": [{ name: creator }] }] } });
     return route.abort();
   });
-  const local = page.getByRole("button", { name: "Work locally" });
-  await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+  await workLocally(page);
   await page.getByRole("combobox", { name: /^Quick add/ }).fill(longText("Typed title"));
   await expect(page.getByRole("listbox", { name: "Lookup results" }).getByRole("option").first()).toContainText("Add “Typed title");
 }
 
 /**
- * A media App's Shelf switch (ToggleGroup): on the desk the arrow keys move
+ * A family App's Shelf switch (ToggleGroup): on the desk the arrow keys move
  * between choices and Enter picks one; on a phone it is a select, left open.
  */
 async function openShelf(page: Page) {
-  const local = page.getByRole("button", { name: "Work locally" });
-  await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+  await workLocally(page);
   if ((page.viewportSize()?.width ?? 0) < 768) {
     await page.getByRole("combobox", { name: "Shelf" }).click();
     await expect(page.getByRole("listbox")).toBeVisible();
@@ -81,19 +84,19 @@ const SCREENS: ScreenCase[] = [
   { name: "Calendar · Month", path: "/calendar?view=month" },
   { name: "Map", path: "/map" },
   { name: "Graph", path: "/graph" },
-  { name: "Bases", path: "/base" },
+  { name: "Bases", path: "/base", afterOpen: workLocally },
   { name: "Base", path: "/base/task" },
   { name: "Screens", path: "/screens" },
-  { name: "Screen with every Card", path: "/screen/e2elongcontent1" },
-  { name: "Settings", path: "/settings" },
+  { name: "Screen with every Card", path: "/screen/e2elongcontent1", afterOpen: workLocally },
+  { name: "Settings", path: "/settings", afterOpen: workLocally },
 
   // Modules.
-  { name: "House", path: "/module/house" },
+  { name: "House", path: "/module/house", afterOpen: workLocally },
   { name: "House · Calendar", path: "/module/house/calendar" },
   { name: "Projects", path: "/module/tasks" },
-  { name: "Culture", path: "/module/culture" },
-  { name: "Money", path: "/module/money" },
-  { name: "Progress", path: "/module/progress" },
+  { name: "Culture", path: "/module/culture", afterOpen: workLocally },
+  { name: "Money", path: "/module/money", afterOpen: workLocally },
+  { name: "Progress", path: "/module/progress", afterOpen: workLocally },
   { name: "Knowledge module", path: "/module/languages" },
   { name: "Mail module", path: "/module/mail" },
   { name: "Journal module", path: "/module/journal" },
@@ -103,14 +106,13 @@ const SCREENS: ScreenCase[] = [
   { name: "Manuscript module", path: "/module/manuscript" },
 
   // The Vault (Note-taking's layout).
-  { name: "Vault", path: "/vault" },
+  { name: "Vault", path: "/vault", afterOpen: workLocally },
   {
     // The file tree's "New thought" focused: a tooltip names it on the desk; a touch phone shows none (ADR 0079).
     name: "Vault · Tooltip",
     path: "/vault",
     afterOpen: async (page) => {
-      const local = page.getByRole("button", { name: "Work locally" });
-      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      await workLocally(page);
       const button = page.getByRole("button", { name: "New thought", exact: true });
       const touch = await page.evaluate(() => !matchMedia("(hover: hover) and (pointer: fine)").matches);
       if (!touch) {
@@ -154,8 +156,7 @@ const SCREENS: ScreenCase[] = [
     name: "Journal · Types · Delete type confirmation",
     path: "/app/journal/t",
     afterOpen: async (page) => {
-      const local = page.getByRole("button", { name: "Work locally" });
-      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      await workLocally(page);
       await page.getByRole("button", { name: /^Edit the type Places/ }).first().click();
       await page.getByRole("dialog").getByRole("button", { name: "Delete type" }).click();
       const confirm = page.getByRole("alertdialog");
@@ -173,14 +174,13 @@ const SCREENS: ScreenCase[] = [
   { name: "Chores", path: "/app/chores" },
   { name: "Pantry", path: "/app/pantry" },
   { name: "Shopping list", path: "/app/shopping" },
-  { name: "Tasks", path: "/app/tasks" },
+  { name: "Tasks", path: "/app/tasks", afterOpen: workLocally },
   {
     // The Archived tab: an EmptyState (nothing is archived in the seed). A select on a phone.
     name: "Tasks · Archived",
     path: "/app/tasks",
     afterOpen: async (page) => {
-      const local = page.getByRole("button", { name: "Work locally" });
-      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      await workLocally(page);
       if ((page.viewportSize()?.width ?? 0) >= 768) await page.getByRole("tab", { name: /^Archived/ }).click();
       else {
         await page.getByRole("combobox", { name: "View" }).click();
@@ -191,14 +191,13 @@ const SCREENS: ScreenCase[] = [
   },
   { name: "Projects · Timeline", path: "/app/projects/timeline" },
   { name: "Project", path: "/app/projects/p/:id", type: "project" },
-  { name: "Events", path: "/app/events" },
+  { name: "Events", path: "/app/events", afterOpen: workLocally },
   {
     // The Event dialog saved without a title: the Field's error under the title, not a toast.
     name: "Events · Event dialog error",
     path: "/app/events",
     afterOpen: async (page) => {
-      const local = page.getByRole("button", { name: "Work locally" });
-      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      await workLocally(page);
       await page.getByRole("button", { name: "New event" }).click();
       const dialog = page.getByRole("dialog");
       await dialog.getByRole("button", { name: "Add event" }).click();
@@ -220,8 +219,7 @@ const SCREENS: ScreenCase[] = [
     name: "Library · Add · Author picker",
     path: "/app/library",
     afterOpen: async (page) => {
-      const local = page.getByRole("button", { name: "Work locally" });
-      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      await workLocally(page);
       await page.getByRole("button", { name: /^Add with details/ }).click();
       await page.getByRole("combobox", { name: /Author|Creator/ }).fill("wi");
       await expect(page.getByRole("listbox", { name: "Authors" }).getByRole("option").first()).toBeVisible();
