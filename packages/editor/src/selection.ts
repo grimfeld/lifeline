@@ -1,4 +1,5 @@
 import { EditorView } from "@codemirror/view";
+import type { LinkPlacement } from "@lifeline/core";
 
 /** The attribute a body's container carries to name the Document it belongs to (ADR 0073). */
 export const ORIGIN_ATTR = "data-origin";
@@ -11,10 +12,55 @@ export interface BodySelection {
   text: string;
   originId: string;
   rect: { top: number; left: number; bottom: number };
+  /**
+   * Where in the body the text sits (ADR 0086), for writing a link around it:
+   * exact offsets in an editor; in a rendered body, which of the page's
+   * plain-prose occurrences it is. Null when that cannot be told.
+   */
+  placement: LinkPlacement | null;
+  /** Set when the selection is in an editor: its live text, and a replacement made as one undoable edit. */
+  editor?: { body: () => string; replace: (from: number, to: number, insert: string) => void };
 }
 
 function elementOf(node: Node | null): Element | null {
   return !node ? null : node instanceof Element ? node : node.parentElement;
+}
+
+/** What a rendered body shows that its source does not hold as plain prose: links (wikilinks, URLs) and code. */
+const NOT_PROSE = "a, code, pre";
+
+/**
+ * Which plain-prose occurrence of `text` the range starts at, counting the way
+ * the source's prose is counted (`writeLink`): text inside links and code is
+ * left out on both sides. Null when the selection starts in one of those.
+ */
+function occurrenceIn(holder: Element, range: Range, text: string, lead: number): { occurrence: number; count: number } | null {
+  const walker = document.createTreeWalker(holder, NodeFilter.SHOW_TEXT);
+  let all = "";
+  let start = -1;
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    const skipped = n.parentElement?.closest(NOT_PROSE);
+    const inside = skipped && holder.contains(skipped);
+    if (start < 0) {
+      if (n === range.startContainer) {
+        if (inside) return null;
+        start = all.length + range.startOffset;
+      } else if (range.comparePoint(n, 0) >= 0) {
+        if (inside) return null;
+        start = all.length;
+      }
+    }
+    if (!inside) all += n.textContent ?? "";
+  }
+  if (start < 0) return null;
+  start += lead;
+  let count = 0;
+  let occurrence = -1;
+  for (let i = all.indexOf(text); i >= 0; i = all.indexOf(text, i + text.length)) {
+    if (i === start) occurrence = count;
+    count++;
+  }
+  return occurrence < 0 ? null : { occurrence, count };
 }
 
 /**
@@ -33,18 +79,34 @@ export function readBodySelection(): BodySelection | null {
     const origin = cm.closest(`[${ORIGIN_ATTR}]`)?.getAttribute(ORIGIN_ATTR);
     if (!view || !origin) return null;
     const { from, to, head } = view.state.selection.main;
-    const text = view.state.sliceDoc(from, to).trim();
+    const raw = view.state.sliceDoc(from, to);
+    const text = raw.trim();
     const at = view.coordsAtPos(head);
     if (!text || !at) return null;
-    return { text, originId: origin, rect: { top: at.top, left: at.left, bottom: at.bottom } };
+    const start = from + raw.length - raw.trimStart().length;
+    return {
+      text,
+      originId: origin,
+      rect: { top: at.top, left: at.left, bottom: at.bottom },
+      placement: { from: start, to: start + text.length },
+      editor: {
+        body: () => view.state.doc.toString(),
+        replace: (f, t, insert) => {
+          view.dispatch({ changes: { from: f, to: t, insert }, selection: { anchor: f + insert.length }, userEvent: "input" });
+          view.focus();
+        },
+      },
+    };
   }
   if (!sel || sel.isCollapsed || sel.rangeCount === 0) return null;
   const range = sel.getRangeAt(0);
   const holder = elementOf(range.commonAncestorContainer)?.closest(`[${ORIGIN_ATTR}]`);
   const origin = holder?.getAttribute(ORIGIN_ATTR);
-  if (!origin || elementOf(range.commonAncestorContainer)?.closest("input, textarea, [contenteditable=true]:not(.cm-content)")) return null;
-  const text = sel.toString().trim();
+  if (!holder || !origin || elementOf(range.commonAncestorContainer)?.closest("input, textarea, [contenteditable=true]:not(.cm-content)")) return null;
+  const raw = sel.toString();
+  const text = raw.trim();
   if (!text) return null;
   const r = range.getBoundingClientRect();
-  return { text, originId: origin, rect: { top: r.top, left: r.left, bottom: r.bottom } };
+  const found = occurrenceIn(holder, range, text, raw.length - raw.trimStart().length);
+  return { text, originId: origin, rect: { top: r.top, left: r.left, bottom: r.bottom }, placement: found && { text, ...found } };
 }

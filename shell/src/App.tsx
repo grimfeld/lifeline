@@ -33,7 +33,7 @@ import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
 import { FALLBACK_PLACE, lastPlace, useResume } from "./nav/resume";
 import { PeekHost } from "./peek/PeekHost";
-import { SelectionIntake } from "./intake/SelectionIntake";
+import { SelectionMenu } from "./intake/SelectionMenu";
 import { HandoffPage, HandoffSaved } from "./handoff/HandoffPage";
 import { DemoBanner, DemoFilling } from "./demo/DemoBanner";
 
@@ -200,7 +200,7 @@ export default function App() {
         <MobileNav />
         <CommandPalette />
         <PeekHost />
-        <SelectionIntake />
+        <SelectionMenu />
         <PrivateDialogs />
         {/* The Demo never signs in (ADR 0077): no sign-in, no signed-out notice, no account switch. */}
         {!isDemo() && <AccountDialogs />}
