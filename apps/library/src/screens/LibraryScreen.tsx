@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Button, Card, CardContent, cn, Input, PhoneDock, PhoneFilters, usePhone, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
+import { ShelfControl } from "@lifeline/parts";
 import { Plus, Settings2, SlidersHorizontal } from "lucide-react";
 import { SLOTTED_TYPES, WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import type { Work } from "../domain/types";
@@ -29,27 +30,6 @@ function TypeChips({ value, onChange, counts }: { value: Medium; onChange: (v: M
         >
           {t.label}
           {counts.get(t.id) ? <span className="ml-1 opacity-70">{counts.get(t.id)}</span> : null}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/** Segmented shelf control, labelled in the medium's verbs, with counts. */
-function ShelfControl({ value, onChange, medium, counts }: { value: Shelf; onChange: (s: Shelf) => void; medium: Medium; counts: Map<Shelf, number> }) {
-  return (
-    <div role="radiogroup" aria-label="Shelf" className="bg-muted text-muted-foreground inline-flex w-fit max-w-full flex-wrap items-center gap-0.5 rounded-lg p-0.5">
-      {SHELVES.map((s) => (
-        <button
-          key={s}
-          type="button"
-          role="radio"
-          aria-checked={value === s}
-          className={cn("rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors", value === s ? "bg-background text-foreground shadow-sm" : "hover:text-foreground")}
-          onClick={() => onChange(s)}
-        >
-          {shelfLabel(s, medium)}
-          <span className="ml-1 tabular-nums opacity-60">{counts.get(s) ?? 0}</span>
         </button>
       ))}
     </div>
@@ -161,13 +141,16 @@ export function LibraryScreen() {
         </PhoneDock>
 
         <TabsContent value="gallery" className="grid gap-3 pt-2">
+          {/* The Shelf: above the search on the desk, a select in the Phone dock on a phone. */}
+          <PhoneDock order={1}>
+            <ShelfControl shelves={SHELVES} value={shelf} onChange={setShelf} labelOf={(s) => shelfLabel(s, type)} counts={shelfCounts} />
+          </PhoneDock>
           <PhoneDock>
-            {/* Desk: shelf and chips stay above the search (md:-order-1); phone: they and the sort go in the Filters sheet. */}
+            {/* Desk: the chips stay above the search (md:-order-1); phone: they and the sort go in the Filters sheet. */}
             <div className="flex flex-1 flex-wrap gap-2 max-md:contents">
               <Input className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search title, author, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
-              <PhoneFilters active={+(shelf !== "ALL") + +(type !== "all") + +(sort !== "ADDED")}>
-                <div className="grid w-full gap-2 md:-order-1">
-                  <ShelfControl value={shelf} onChange={setShelf} medium={type} counts={shelfCounts} />
+              <PhoneFilters active={+(type !== "all") + +(sort !== "ADDED")}>
+                <div className="w-full md:-order-1">
                   <TypeChips value={type} onChange={setType} counts={typeCounts} />
                 </div>
                 <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
