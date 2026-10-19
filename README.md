@@ -114,7 +114,7 @@ arguments against the signature, the App runs its own operation. A Schedulable p
 
 1. New package under `apps/<name>` exporting an `AppManifest` — collections, screens, cards, commands, contract implementations (`schedulable` for work that lands on days, `timed` for fixed-time things).
 2. Add the collections to a new `pocketbase/pb_migrations` file (server routes go in `pocketbase/pb_hooks`, loaded with `--hooksDir`) (same base fields: `id` 15-char, `updatedAt` text, `deleted` number, autodates).
-3. Register the manifest in `shell/src/main.tsx` (`initApps([...])`) and in `mcp/src/apps.ts`, add the package to `shell/package.json` and `mcp/package.json`, add its `src` to the `@source` list in `shell/src/index.css`, and bump `DB_VERSION` in `packages/core/src/data/db.ts` (Dexie needs it to migrate existing local databases).
+3. Register the manifest in `shell/src/apps.ts` (`APPS`) and in `mcp/src/apps.ts`, add the package to `shell/package.json` and `mcp/package.json`, add its `src` to the `@source` list in `shell/src/index.css`, and bump `DB_VERSION` in `packages/core/src/data/db.ts` (Dexie needs it to migrate existing local databases).
 
 Everything else — offline storage, sync, palette entries, card picker, calendar presence — comes from Core.
 

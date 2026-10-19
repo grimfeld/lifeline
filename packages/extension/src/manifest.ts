@@ -40,7 +40,7 @@ export function manifest(browser: Browser): Manifest {
     action: { default_title: "Send to Lifeline", default_icon: { 32: "icon-32.png", 48: "icon-48.png" } },
     // Nothing is read from a page until the person sends it: activeTab + scripting, no content scripts.
     permissions: ["contextMenus", "activeTab", "scripting", "storage"],
-    // The Lifeline URL, so the extension sees its window reach the done address and closes it.
+    // The Lifeline URL: the extension fetches its Intakes list, and sees its window reach the done address and closes it.
     host_permissions: [lifelineHostPattern(DEFAULT_LIFELINE_URL)],
     // A self-hosted Lifeline set in the options is asked for then, that one origin only.
     optional_host_permissions: ["https://*/*", "http://*/*"],
