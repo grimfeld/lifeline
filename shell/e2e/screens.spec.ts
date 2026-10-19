@@ -178,6 +178,10 @@ const SCREENS: ScreenCase[] = [
   // A Peek edits (ADR 0085): a user-defined type's whole Peek, and a built-in's with the user's own Field beneath the App's part.
   { name: "Vault · Peek of a user-defined type", path: "/vault", afterOpen: peekOf("e2eperson") },
   { name: "Vault · Peek with the user's own Field", path: "/vault", afterOpen: peekOf("book", true) },
+  // House's editable Peeks (ADR 0085): each App's own controls over a long-titled Document.
+  { name: "Vault · Peek of chore", path: "/vault/d/:id", type: "chore", afterOpen: peekOf("chore") },
+  { name: "Vault · Peek of provision", path: "/vault/d/:id", type: "provision", afterOpen: peekOf("provision") },
+  { name: "Vault · Peek of need", path: "/vault/d/:id", type: "need", afterOpen: peekOf("need") },
   {
     // The file tree's "New thought" focused: a tooltip names it on the desk; a touch phone shows none (ADR 0079).
     name: "Vault · Tooltip",
