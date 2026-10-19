@@ -122,13 +122,16 @@ export interface ViewFilter {
  *   21 — Tallying (ADR 0059): local `_tally_fires` marks
  *   22 — Languages App (ADR 0058): `[type+languageId]`, `[type+itemId]` added
  *   23 — Roles (ADR 0069): multi-entry `*roles` on `documents`, so "every wearer of a Role" is an index hit
+ *   24 — Mail retired (ADR 0080): local `_mail_cache` dropped
  */
-const DB_VERSION = 23;
+const DB_VERSION = 24;
 
-/** Stores that existed before ADR 0018; deleted on upgrade so a client re-pulls into `documents`. */
+/** Stores that no longer exist — before ADR 0018 (so a client re-pulls into `documents`) or a retired App's — deleted on upgrade. */
 const LEGACY_STORES = [
   "chores", "chore_completions", "tasks", "task_occurrences", "events", "stats", "stat_entries", "media", "media_quotes",
   "media_settings", "notes", "note_types", "sources",
+  // Retired Apps' local-only tables: Mail's cache (ADR 0080).
+  "_mail_cache",
 ];
 
 export const DOCUMENTS = "documents";
