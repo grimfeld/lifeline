@@ -21,9 +21,6 @@ import {
   usePushFlow,
 } from "@lifeline/ui";
 import {
-  documentsOf,
-  useLiveQuery,
-  type Document,
   normalizeTag,
   pushSurfaceItem,
   todayStr,
@@ -36,7 +33,8 @@ import {
   type Handoff,
   type Weekday,
 } from "@lifeline/core";
-import { PROJECT, PROJECT_MILESTONE, type Recurrence, type Task } from "../domain/types";
+import type { Recurrence, Task } from "../domain/types";
+import { DayPicker, ProjectPicker } from "./TaskFields";
 import { addTask, updateTask } from "../data/repo";
 import { APP_ID } from "../schedulable";
 
@@ -88,25 +86,6 @@ function MentionedIn({ taskId }: { taskId: string }) {
   );
 }
 
-const NONE = "__none";
-
-/**
- * The Projects a Task may be put in, read from the Projects App's Documents
- * (ADR 0060): the open ones, plus whichever the Task already stands in. With
- * the chosen one's Milestones, in their order.
- */
-function useProjectChoices(current: string | null, project: string | null) {
-  const projects = useLiveQuery(() => documentsOf<Document>(PROJECT), [], [] as Document[]);
-  const milestones = useLiveQuery(() => documentsOf<Document>(PROJECT_MILESTONE), [], [] as Document[]);
-  const open = projects
-    .filter((p) => p.id === current || (p.stage !== "done" && p.stage !== "dropped"))
-    .sort((a, b) => a.title.localeCompare(b.title));
-  const ofProject = milestones
-    .filter((m) => project && m.project === project)
-    .sort((a, b) => Number(a.rank ?? 0) - Number(b.rank ?? 0));
-  return { projects: open, milestones: ofProject };
-}
-
 export function TaskDialog({
   open,
   onOpenChange,
@@ -142,7 +121,6 @@ export function TaskDialog({
   const [estimate, setEstimate] = useState<number | null>(null);
   const [project, setProject] = useState<string | null>(null);
   const [milestone, setMilestone] = useState<string | null>(null);
-  const choices = useProjectChoices(task?.project ?? null, project);
   const pushFlow = usePushFlow();
   const suggestions = useTagVocabulary().map((v) => v.tag);
 
@@ -271,29 +249,7 @@ export function TaskDialog({
             </div>
 
             {kind === "one-time" ? (
-              <div className="grid gap-2">
-                <Label htmlFor="task-date">Day</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="task-date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    variant={date ? "outline" : "secondary"}
-                    onClick={() => setDate("")}
-                  >
-                    Unassigned
-                  </Button>
-                </div>
-                {!date && (
-                  <p className="text-muted-foreground text-xs">
-                    Stays in the Unassigned pool until you drop it on a day.
-                  </p>
-                )}
-              </div>
+              <DayPicker id="task-date" value={date} onChange={setDate} />
             ) : kind === "weekly" ? (
               <div className="grid gap-2">
                 <Label>Repeats on</Label>
@@ -386,49 +342,15 @@ export function TaskDialog({
               </div>
             )}
 
-            {(choices.projects.length > 0 || project) && (
-              <div className="grid gap-2">
-                <Label>Project</Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={project ?? NONE}
-                    onValueChange={(v) => {
-                      const next = v === NONE ? null : v;
-                      if (next !== project) setMilestone(null);
-                      setProject(next);
-                    }}
-                  >
-                    <SelectTrigger className="min-w-0 flex-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>No project</SelectItem>
-                      {choices.projects.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.emoji ? `${String(p.emoji)} ` : ""}
-                          {p.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {project && choices.milestones.length > 0 && (
-                    <Select value={milestone ?? NONE} onValueChange={(v) => setMilestone(v === NONE ? null : v)}>
-                      <SelectTrigger className="min-w-0 flex-1" aria-label="Milestone">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={NONE}>No milestone</SelectItem>
-                        {choices.milestones.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>
-                            {m.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              </div>
-            )}
+            <ProjectPicker
+              current={task?.project ?? null}
+              project={project}
+              milestone={milestone}
+              onChange={(p, m) => {
+                setProject(p);
+                setMilestone(m);
+              }}
+            />
 
             <div className="grid gap-2">
               <Label htmlFor="task-estimate">Estimate</Label>

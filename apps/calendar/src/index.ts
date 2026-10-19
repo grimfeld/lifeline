@@ -2,6 +2,7 @@ import { formatHuman, type AppManifest, type DocumentTypeDef } from "@lifeline/c
 import { Ban, CalendarClock, LayoutTemplate } from "lucide-react";
 import { EventsScreen } from "./screens/EventsScreen";
 import { EventDialog } from "./components/EventDialog";
+import { EventPeek } from "./components/EventPeek";
 import { UpcomingEventsCard } from "./cards/UpcomingEventsCard";
 import { NextEventsCard, nextEventsSettings, nextEventsTitle } from "./cards/NextEventsCard";
 import { CountdownCard, countdownSettings, useCountdownTitle } from "./cards/CountdownCard";
@@ -43,6 +44,8 @@ const eventType: DocumentTypeDef = {
   linkable: { subtitle: (d) => formatHuman((d as Event).date) },
   href: () => EVENTS_HREF,
   order: 30,
+  // Edited where it is peeked (ADR 0085): its day and times through the App's own controls.
+  peekEdit: EventPeek,
   builtIn: true,
 };
 

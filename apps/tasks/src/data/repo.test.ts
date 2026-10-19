@@ -4,7 +4,7 @@ import { addDays, documentsOf, initApps, startOfWeek, todayStr, type Weekday } f
 import { taskTypes } from "../types";
 import { TASK, TASK_OCCURRENCE, type OccurrenceOverride, type Task } from "../domain/types";
 import { deriveItems, occurrenceItemId } from "../domain/occurrences";
-import { addTask, deleteTask, moveItem, setCompleted } from "./repo";
+import { addTask, deleteTask, editTask, moveItem, setCompleted } from "./repo";
 
 // Open the local database once with the Tasks App's types (no sync started).
 initApps([{ id: "tasks", title: "Tasks", types: taskTypes, screens: [], cards: [], commands: [] }]);
@@ -88,5 +88,14 @@ describe("recurring intents", () => {
     const s = await state();
     expect(s.tasks).toEqual([]);
     expect(s.overrides).toEqual([]);
+  });
+});
+
+describe("editing a Task's own words", () => {
+  it("changes its notes and Tags, and only those, whatever else is passed", async () => {
+    const id = await addTask({ title: "a", date: day(2), notes: "old" });
+    await editTask(id, { notes: "new", tags: ["Home", "home", " errands "], date: day(5) } as never);
+    const [t] = (await state()).tasks;
+    expect({ notes: t.notes, tags: t.tags, date: t.date }).toEqual({ notes: "new", tags: ["home", "errands"], date: day(2) });
   });
 });

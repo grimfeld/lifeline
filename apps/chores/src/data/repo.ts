@@ -2,6 +2,7 @@ import {
   documentsOf,
   documentsWhere,
   normalizeTags,
+  patchDocument,
   putDocument,
   removeDocument,
   removePlacementsOf,
@@ -86,7 +87,13 @@ export async function setStatus(
     status === "active" && chore.status === "paused" && chore.schedule.kind === "interval"
       ? todayStr()
       : chore.anchorDate;
-  await putDocument<Chore>({ ...chore, status, anchorDate });
+  // Only what the operation changes, so a Field edited meanwhile elsewhere is not written back.
+  await patchDocument(chore.id, { status, anchorDate });
+}
+
+/** A new Schedule for a Chore; its cycle's anchor stays, as when edited in the dialog. */
+export async function rescheduleChore(choreId: string, schedule: Schedule): Promise<void> {
+  await patchDocument(choreId, { schedule });
 }
 
 /** Tombstone — allowed only for chores with zero completions. */

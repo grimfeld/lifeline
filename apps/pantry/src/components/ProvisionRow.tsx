@@ -6,7 +6,8 @@ import { DEFAULT_EXPIRY_WINDOW_DAYS, expiresSoon, isExpired, isRunningLow } from
 import { adjustQuantity } from "../data/repo";
 import { HandOffMenu } from "./HandOffMenu";
 
-function Step({ label, icon: Icon, disabled, onClick }: { label: string; icon: typeof Plus; disabled?: boolean; onClick: () => void }) {
+/** One tap on a Provision's counter — the row's and the Peek's. */
+export function Step({ label, icon: Icon, disabled, onClick }: { label: string; icon: typeof Plus; disabled?: boolean; onClick: () => void }) {
   return (
     <button
       type="button"

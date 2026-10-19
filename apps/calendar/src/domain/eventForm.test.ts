@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventFormErrors, type EventForm } from "./eventForm";
+import { eventFormErrors, whenOf, type EventForm } from "./eventForm";
 
 const ok: EventForm = { title: "Dentist", date: "2026-08-10", endDate: "", allDay: true, start: "09:00", end: "10:00" };
 
@@ -34,5 +34,18 @@ describe("eventFormErrors", () => {
       date: "Day required",
       start: "Start time required",
     });
+  });
+});
+
+describe("whenOf", () => {
+  it("an all-day event has no times, and a last day only when it runs past the first", () => {
+    expect(whenOf({ ...ok, start: "09:00", end: "10:00" })).toEqual({ date: "2026-08-10", endDate: null, start: null, end: null });
+    expect(whenOf({ ...ok, endDate: "2026-08-12" })).toEqual({ date: "2026-08-10", endDate: "2026-08-12", start: null, end: null });
+    expect(whenOf({ ...ok, endDate: "2026-08-10" })).toEqual({ date: "2026-08-10", endDate: null, start: null, end: null });
+  });
+
+  it("a timed event is on one day; an empty end means none", () => {
+    expect(whenOf({ ...ok, allDay: false, endDate: "2026-08-12", start: "09:00", end: "10:30" })).toEqual({ date: "2026-08-10", endDate: null, start: "09:00", end: "10:30" });
+    expect(whenOf({ ...ok, allDay: false, start: "09:00", end: "" })).toEqual({ date: "2026-08-10", endDate: null, start: "09:00", end: null });
   });
 });

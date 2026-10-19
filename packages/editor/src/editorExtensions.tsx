@@ -1,5 +1,5 @@
 import { createRoot, type Root } from "react-dom/client";
-import { Decoration, EditorView, MatchDecorator, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
+import { Decoration, EditorView, MatchDecorator, ViewPlugin, WidgetType, type Command, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { RangeSetBuilder, StateEffect, StateField, type EditorState, type Transaction } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { autocompletion, type CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
@@ -21,6 +21,8 @@ export const indexField = StateField.define<LinkIndex | null>({
 export interface EditorContext {
   docDate: string | null;
   openRef: (ref: LinkRef, name: string) => void;
+  /** How to peek a link (`Ctrl+Enter`): in the Peek, whatever the link's Home Module (ADR 0085). */
+  peekRef: (ref: LinkRef, name: string) => void;
 }
 export const setContext = StateEffect.define<EditorContext>();
 export const contextField = StateField.define<EditorContext | null>({
@@ -131,6 +133,46 @@ export const wikilinkClick = EditorView.domEventHandlers({
     return true;
   },
 });
+
+/**
+ * `Ctrl+Enter` with the cursor inside a wikilink peeks its target (ADR 0085).
+ * Anywhere else — and on an image embed — it declines, so the key falls
+ * through to the editor's own binding (`insertBlankLine`).
+ */
+export const peekLinkAtCursor: Command = (view) => {
+  const { state } = view;
+  const pos = state.selection.main.head;
+  const link = extractLinks(state.doc.toString()).find((l) => l.from < pos && pos < l.to);
+  const ctx = state.field(contextField, false);
+  const index = state.field(indexField, false);
+  if (!link || !ctx || !index || isImageEmbed(link)) return false;
+  ctx.peekRef(index.resolve(link.name), link.name);
+  return true;
+};
+
+/**
+ * `Ctrl+Enter` (`Cmd+Enter` too) runs `peekLinkAtCursor` ahead of the default
+ * keymap, whose `Mod-Enter` inserts a blank line when it declines. A capturing
+ * listener on the editor's outer box rather than a keymap: CodeMirror holds
+ * Enter back on Chrome for Android before any keymap or handler sees it (and
+ * replays it without its modifiers), so a keymap never fires there.
+ */
+export const peekLinkKey = ViewPlugin.fromClass(
+  class {
+    constructor(readonly view: EditorView) {
+      view.dom.addEventListener("keydown", this.onKey, true);
+    }
+    onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.isComposing) return;
+      if (!peekLinkAtCursor(this.view)) return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    destroy() {
+      this.view.dom.removeEventListener("keydown", this.onKey, true);
+    }
+  },
+);
 
 /** `[[` autocomplete over every note title, alias and App target. */
 export function wikilinkCompletion() {

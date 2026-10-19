@@ -2,6 +2,7 @@ import type { AppManifest, Document, DocumentTypeDef } from "@lifeline/core";
 import { BarChart3, ListPlus } from "lucide-react";
 import { StatsScreen } from "./screens/StatsScreen";
 import { StatDetailScreen } from "./screens/StatDetailScreen";
+import { StatPeek } from "./components/StatPeek";
 import { StatsOverviewCard } from "./cards/StatsOverviewCard";
 import { HabitsCard } from "./cards/HabitsCard";
 import { PERIOD_OPTIONS, SingleStatCard, useSingleStatTitle, useSingleStatOptions } from "./cards/SingleStatCard";
@@ -31,6 +32,7 @@ const statType: DocumentTypeDef = {
   ],
   linkable: { subtitle: (d) => String(d.kind ?? "") },
   href: (d) => statHref(d.id),
+  peekEdit: StatPeek,
   order: 40,
   builtIn: true,
 };
