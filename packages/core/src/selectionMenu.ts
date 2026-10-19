@@ -23,7 +23,7 @@ export interface MenuIntake {
 
 export type SelectionEntry<I extends MenuIntake = MenuIntake> =
   /** Wrap the selection in a wikilink to the Document it already names. */
-  | { kind: "link"; key: string; title: string; targetId: string; canonical: string }
+  | { kind: "link"; key: string; title: string; targetId: string; canonical: string; /** The target's title, as shown. */ target: string }
   /** Open an App's Intake dialog with the selection as its Handoff. */
   | { kind: "intake"; key: string; title: string; intake: I };
 
@@ -101,7 +101,7 @@ function linkEntry<I extends MenuIntake>({ text, originId, body, placement, inde
   if (!name || !placement || !writeLink(body, placement, name.canonical)) return null;
   const title = index.byId.get(ref.id)?.title || name.canonical;
   const label = typeLabel(ref.type);
-  return { kind: "link", key: `link:${ref.id}`, title: `Link to ${title}${label ? ` (${label})` : ""}`, targetId: ref.id, canonical: name.canonical };
+  return { kind: "link", key: `link:${ref.id}`, title: `Link to ${title}${label ? ` (${label})` : ""}`, targetId: ref.id, canonical: name.canonical, target: title };
 }
 
 /**
