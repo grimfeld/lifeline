@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { CORE_URL, longText } from "./support/seed";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
 
 /**
@@ -27,6 +27,28 @@ async function openPeopleTypeEditor(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
   await page.getByRole("button", { name: /^Edit the type People/ }).first().click();
+}
+
+/**
+ * A media App's QuickAdd with its list open over a very long typed title: the
+ * "Add …" row, and where the lookup is keyless (Open Library, MusicBrainz)
+ * one hit with a long title and byline, answered here so nothing leaves the machine.
+ */
+async function openQuickAdd(page: Page) {
+  await page.route(/^https:\/\/(?!localhost)/, (route) => {
+    const url = route.request().url();
+    const title = longText("Looked-up title");
+    const creator = longText("Looked-up creator");
+    if (url.startsWith("https://openlibrary.org/search.json"))
+      return route.fulfill({ json: { docs: [{ key: "/works/OL1W", title, author_name: [creator], first_publish_year: 1999 }] } });
+    if (url.startsWith("https://musicbrainz.org/ws/2/release-group"))
+      return route.fulfill({ json: { "release-groups": [{ id: "e2e", title, "first-release-date": "1999", "artist-credit": [{ name: creator }] }] } });
+    return route.abort();
+  });
+  const local = page.getByRole("button", { name: "Work locally" });
+  await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+  await page.getByRole("combobox", { name: /^Quick add/ }).fill(longText("Typed title"));
+  await expect(page.getByRole("listbox", { name: "Lookup results" }).getByRole("option").first()).toContainText("Add “Typed title");
 }
 
 const SCREENS: ScreenCase[] = [
@@ -151,9 +173,31 @@ const SCREENS: ScreenCase[] = [
       await expect(page.getByRole("listbox", { name: "Authors" }).getByRole("option").first()).toBeVisible();
     },
   },
+  {
+    // The QuickAdd's Combobox open over a long typed title and a stubbed Open Library hit.
+    name: "Library · Quick add",
+    path: "/app/library",
+    afterOpen: async (page) => {
+      await openQuickAdd(page);
+      await expect(page.getByRole("option", { name: /^Looked-up title/ })).toBeVisible();
+    },
+  },
   { name: "Cinema", path: "/app/cinema" },
+  // No TMDB key in the seed: the list holds the "Add …" row alone.
+  { name: "Cinema · Quick add", path: "/app/cinema", afterOpen: openQuickAdd },
   { name: "Discotheque", path: "/app/discotheque" },
+  {
+    // A stubbed MusicBrainz hit under the "Add …" row.
+    name: "Discotheque · Quick add",
+    path: "/app/discotheque",
+    afterOpen: async (page) => {
+      await openQuickAdd(page);
+      await expect(page.getByRole("option", { name: /^Looked-up title/ })).toBeVisible();
+    },
+  },
   { name: "Arcade", path: "/app/arcade" },
+  // No RAWG key in the seed: the list holds the "Add …" row alone.
+  { name: "Arcade · Quick add", path: "/app/arcade", afterOpen: openQuickAdd },
   { name: "Quotes", path: "/app/quotes" },
   { name: "Museum", path: "/app/museum" },
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
