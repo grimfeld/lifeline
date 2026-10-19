@@ -94,7 +94,6 @@ export function PlaylistsTab({ items, onOpenWork }: { items: Work[]; onOpenWork:
 /** One playlist: blurb, then its works in order, with up/down/remove and a rank number when ranked. */
 function PlaylistPage({ playlist, byId, onBack, onOpenWork, onEdit, onDeleted, dialog }: { playlist: Playlist; byId: Map<string, Work>; onBack: () => void; onOpenWork: (w: Work) => void; onEdit: () => void; onDeleted: () => void; dialog: React.ReactNode }) {
   const works = worksOf(playlist, byId);
-  const move = (w: Work, delta: -1 | 1) => void patchPlaylist(playlist, { workIds: moveInPlaylist(playlist.workIds, w.id, delta) });
   return (
     <div className="grid gap-3">
       <div className="flex items-start gap-2">
@@ -133,6 +132,17 @@ function PlaylistPage({ playlist, byId, onBack, onOpenWork, onEdit, onDeleted, d
         </DropdownMenu>
       </div>
 
+      <PlaylistWorks playlist={playlist} works={works} onOpenWork={onOpenWork} />
+      {dialog}
+    </div>
+  );
+}
+
+/** A playlist's works in order, with up/down/remove (its guarded list moves only through these) and a rank number when ranked. Shared by its page and its Peek. */
+export function PlaylistWorks({ playlist, works, onOpenWork }: { playlist: Playlist; works: Work[]; onOpenWork: (w: Work) => void }) {
+  const move = (w: Work, delta: -1 | 1) => void patchPlaylist(playlist, { workIds: moveInPlaylist(playlist.workIds, w.id, delta) });
+  return (
+    <>
       {works.length === 0 ? (
         <Card>
           <CardContent className="text-muted-foreground p-8 text-center text-sm">Nothing here yet — open a work and choose “Add to playlist…”.</CardContent>
@@ -171,7 +181,6 @@ function PlaylistPage({ playlist, byId, onBack, onOpenWork, onEdit, onDeleted, d
           ))}
         </ol>
       )}
-      {dialog}
-    </div>
+    </>
   );
 }

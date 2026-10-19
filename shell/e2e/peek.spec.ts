@@ -92,6 +92,6 @@ test("the user's own Field on Book is edited beneath the Library's part of a Boo
   const dialog = await peek(page, id, "book");
   await dialog.getByLabel("Lent to").fill("Pierre");
   await expect.poll(() => inCore(page, async (core, docId: string) => (await core.getDocument(docId)).lentTo, id)).toBe("Pierre");
-  // The Library's own Fields stay the Library's: Core draws no control for them.
-  await expect(dialog.getByLabel("Year")).toHaveCount(0);
+  // The Library's own Fields stay the Library's: Core draws no second control for them.
+  await expect(dialog.getByLabel("Year")).toHaveCount(1);
 });

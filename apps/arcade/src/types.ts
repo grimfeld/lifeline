@@ -3,6 +3,7 @@ import { Gamepad2 } from "lucide-react";
 import { ACQUISITION, ENGAGEMENT, SETTINGS_TYPE, type Work } from "./domain/types";
 import { WORK_TYPES } from "./domain/workTypes";
 import { APP_HREF } from "./constants";
+import { WorkPeek } from "./components/ArcadePeeks";
 import { cascadeWorkDelete } from "./data/repo";
 
 const ACQ_LABELS: Record<string, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
@@ -42,6 +43,8 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t) => ({
   order: 45,
   builtIn: true,
   fields: WORK_FIELDS,
+  // Edited where it is peeked, through the Arcade's own controls (ADR 0085).
+  peekEdit: WorkPeek,
   // Its Quotes go with it, from wherever it is deleted (ADR 0045).
   onDelete: (doc) => cascadeWorkDelete(doc.id),
 }));

@@ -3,6 +3,7 @@ import { ListMusic, Music } from "lucide-react";
 import { ENGAGEMENT, PLAYLIST, type Work } from "./domain/types";
 import { WORK_TYPES } from "./domain/workTypes";
 import { APP_HREF } from "./constants";
+import { PlaylistPeek, WorkPeek } from "./components/DiscothequePeeks";
 import { cascadeWorkDelete } from "./data/repo";
 import { discothequeParts } from "./parts";
 
@@ -46,6 +47,8 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t) => ({
   order: 44,
   builtIn: true,
   fields: WORK_FIELDS,
+  // Edited where it is peeked, through the App's own controls (ADR 0085).
+  peekEdit: WorkPeek,
   // Its Parts and Groups die with it and follow it to another Workspace (ADR 0074).
   ...discothequeParts.workTypeHooks,
   // Its Quotes and Playlist places go with it too, from wherever it is deleted (ADR 0045).
@@ -66,6 +69,7 @@ export const playlistTypeDef: DocumentTypeDef = {
   href: () => APP_HREF,
   order: 47,
   builtIn: true,
+  peekEdit: PlaylistPeek,
   fields: [
     { key: "workIds", label: "Albums", kind: "json", guarded: true },
     { key: "ranked", label: "Ranked", kind: "boolean", column: true },
