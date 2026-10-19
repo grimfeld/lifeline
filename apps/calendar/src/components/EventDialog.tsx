@@ -18,7 +18,7 @@ import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
 import { eventFormErrors, type EventFormErrors } from "../domain/eventForm";
 
-/** The control each error belongs to, in the order the dialog shows them. */
+/** Each checked control's id — its input's and the one an error focuses — in the order the dialog shows them. */
 const FIELD_IDS: Record<keyof EventFormErrors, string> = {
   title: "ev-title",
   date: "ev-date",
@@ -106,7 +106,7 @@ export function EventDialog({
         <div className="grid gap-4">
           <Field label="Title" error={errors.title}>
             <Input
-              id="ev-title"
+              id={FIELD_IDS.title}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Dentist"
@@ -116,12 +116,12 @@ export function EventDialog({
           </Field>
           <div className="grid grid-cols-2 items-start gap-3">
             <Field label={allDay ? "First day" : "Day"} error={errors.date}>
-              <Input id="ev-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input id={FIELD_IDS.date} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </Field>
             {allDay ? (
               <Field label="Last day (optional)" error={errors.endDate}>
                 <Input
-                  id="ev-end-date"
+                  id={FIELD_IDS.endDate}
                   type="date"
                   value={endDate}
                   min={date}
@@ -131,10 +131,10 @@ export function EventDialog({
             ) : (
               <div className="grid grid-cols-2 items-start gap-2">
                 <Field label="Start" error={errors.start}>
-                  <Input id="ev-start" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+                  <Input id={FIELD_IDS.start} type="time" value={start} onChange={(e) => setStart(e.target.value)} />
                 </Field>
                 <Field label="End" error={errors.end}>
-                  <Input id="ev-end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+                  <Input id={FIELD_IDS.end} type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
                 </Field>
               </div>
             )}

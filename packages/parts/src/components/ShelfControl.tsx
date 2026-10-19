@@ -1,7 +1,7 @@
 import { ToggleGroup, ToggleGroupItem } from "@lifeline/ui";
 
 /**
- * The Shelf switch of a media App (Library, Cinema, Discotheque, Arcade):
+ * The Shelf switch of a family App (Library, Cinema, Discotheque, Arcade):
  * one choice per Shelf, each in the medium's verbs with its count. Segments
  * on the desk, a select on a phone — put it in a `PhoneDock` with `order={1}`
  * like any view switch (ADR 0064).

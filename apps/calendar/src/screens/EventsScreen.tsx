@@ -144,7 +144,7 @@ export function EventsScreen() {
           {events.length === 0 && (
             <Card>
               <CardContent className="text-muted-foreground p-8 text-center text-sm">
-                No events yet. Events show up on the Calendar and Week surfaces.
+                No events yet. Events show up on the Calendar, in every view.
               </CardContent>
             </Card>
           )}

@@ -131,7 +131,7 @@ export function TasksScreen() {
 
         <TabsContent value="open" className="grid min-w-0 grid-cols-1 gap-6 pt-4">
           {openCount === 0 && (
-            <EmptyState>Nothing open. Add a task above, or plan the week on the Week surface.</EmptyState>
+            <EmptyState>Nothing open. Add a task above, or plan the week in the Calendar's Week view.</EmptyState>
           )}
           <Section title="Overdue" items={groups.overdue} onEdit={edit} onMove={setMoving} />
           <Section title="Today" items={groups.today} onEdit={edit} onMove={setMoving} />
