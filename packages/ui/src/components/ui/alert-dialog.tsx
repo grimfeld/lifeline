@@ -5,12 +5,14 @@ import { AlertDialog as AlertDialogPrimitive } from "radix-ui"
 
 import { cn } from "../../lib/utils"
 import { Button } from "./button"
+import { usePhone } from "./phone-dock"
 
 /**
  * The one confirmation (ADR 0079): only for what Undo can't bring back — an empty
  * Document type, a Workspace. Radix focuses Cancel first and closes on Escape; the
  * action is `variant="destructive"` and names what it does ("Delete type").
- * On a phone it sits full width at the bottom with thumb-sized buttons.
+ * On a phone it sits full width at the bottom, its buttons stacked full width at
+ * the kit's largest size.
  */
 function AlertDialog({
   ...props
@@ -60,7 +62,7 @@ function AlertDialogContent({
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:max-h-dvh max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:overflow-y-auto max-md:rounded-b-none max-md:pb-[max(1rem,env(safe-area-inset-bottom))]",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none md:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:max-h-dvh max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:overflow-y-auto max-md:rounded-b-none max-md:pb-[max(1rem,env(safe-area-inset-bottom))]",
           className
         )}
         {...props}
@@ -90,7 +92,7 @@ function AlertDialogFooter({
     <div
       data-slot="alert-dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 max-md:rounded-none max-md:pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end",
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-lg border-t bg-muted/50 p-4 max-md:rounded-none max-md:pb-[max(1rem,env(safe-area-inset-bottom))] md:flex-row md:justify-end",
         className
       )}
       {...props}
@@ -124,21 +126,26 @@ function AlertDialogDescription({
   )
 }
 
-/** Thumb-sized on a phone (44px), the kit's default height on the desk. */
-const footerButton = "max-md:h-11 max-md:w-full"
+type ButtonSize = React.ComponentProps<typeof Button>["size"]
+
+/** The kit's largest button on a phone, where a thumb presses it; its default on the desk. The phone footer's column stretches it full width. */
+function useFooterSize(size: ButtonSize): ButtonSize {
+  const phone = usePhone()
+  return size ?? (phone ? "lg" : "default")
+}
 
 function AlertDialogAction({
   className,
   variant = "destructive",
-  size = "default",
+  size,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Action> &
   Pick<React.ComponentProps<typeof Button>, "variant" | "size">) {
   return (
-    <Button variant={variant} size={size} asChild>
+    <Button variant={variant} size={useFooterSize(size)} asChild>
       <AlertDialogPrimitive.Action
         data-slot="alert-dialog-action"
-        className={cn(footerButton, className)}
+        className={className}
         {...props}
       />
     </Button>
@@ -148,15 +155,15 @@ function AlertDialogAction({
 function AlertDialogCancel({
   className,
   variant = "outline",
-  size = "default",
+  size,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Cancel> &
   Pick<React.ComponentProps<typeof Button>, "variant" | "size">) {
   return (
-    <Button variant={variant} size={size} asChild>
+    <Button variant={variant} size={useFooterSize(size)} asChild>
       <AlertDialogPrimitive.Cancel
         data-slot="alert-dialog-cancel"
-        className={cn(footerButton, className)}
+        className={className}
         {...props}
       />
     </Button>
