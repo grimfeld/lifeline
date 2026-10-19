@@ -116,7 +116,8 @@ migrate(
   (app) => {
     // Back to a creator string: the Authors' names joined with " / ", in
     // order; then the Author Documents go. Their bodies go with them — a
-    // rollback, not a release.
+    // rollback, not a release. They are tombstoned, not deleted, so devices
+    // that already pulled them drop them too instead of keeping ghosts.
     const now = new Date().toISOString();
     const names = {};
     const authors = app.findRecordsByFilter("documents", 'type = "author"', "", 0, 0);
@@ -132,6 +133,11 @@ migrate(
         app.save(work);
       }
     }
-    for (const a of authors) app.delete(a);
+    for (const a of authors) {
+      if (a.getInt("deleted")) continue;
+      a.set("deleted", 1);
+      a.set("updatedAt", now);
+      app.save(a);
+    }
   },
 );
