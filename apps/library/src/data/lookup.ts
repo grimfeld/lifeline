@@ -45,7 +45,7 @@ function chain(...providers: Provider[]): SearchFn {
 /**
  * The lookup for a medium (ADR 0024, Library's slice of the old chain):
  *   book  → Open Library, then Google Books
- *   comic → Open Library, then ComicVine (key), then Google Books
+ *   comic, manga → Open Library, then ComicVine (key), then Google Books
  */
 export function lookupFor(type: WorkTypeId, settings: LookupKeys = {}): SearchFn | null {
   const ol: Provider = { id: "openlibrary", search: searchOpenLibrary };
@@ -54,6 +54,7 @@ export function lookupFor(type: WorkTypeId, settings: LookupKeys = {}): SearchFn
     case "book":
       return chain(ol, gb);
     case "comic":
+    case "manga":
       return chain(ol, ...(settings.comicvineKey ? [{ id: "comicvine", search: comicVineSearch(settings.comicvineKey) }] : []), gb);
     default:
       return null;
@@ -62,7 +63,7 @@ export function lookupFor(type: WorkTypeId, settings: LookupKeys = {}): SearchFn
 
 /** Human description of the providers behind `lookupFor` for the same inputs. */
 export function describeLookup(type: WorkTypeId, settings: LookupKeys = {}): string {
-  if (type === "comic") return settings.comicvineKey ? "Open Library, then ComicVine, then Google Books" : "Open Library, then Google Books (ComicVine: key needed)";
+  if (type === "comic" || type === "manga") return settings.comicvineKey ? "Open Library, then ComicVine, then Google Books" : "Open Library, then Google Books (ComicVine: key needed)";
   return "Open Library, then Google Books";
 }
 

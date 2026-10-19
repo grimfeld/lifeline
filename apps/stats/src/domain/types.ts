@@ -10,7 +10,9 @@ export { COLOR_SLOTS, colorVar, type ColorSlot } from "@lifeline/ui";
  * A named series (notch's Stat), a Document of type "stat" whose `title` is
  * the name. Defines what is tracked and how values are read; holds no totals — those are always derived from Entries. Kind is
  * fixed after creation (entries would mean something else). Goals/targets
- * are out of scope; `universeSize` is a fact shown as a denominator.
+ * are out of scope; `universeSize` is a fact shown as a denominator. A
+ * Collection may preset its `items`: then they are the denominator and logging
+ * is ticking them off a checklist.
  */
 export interface Stat extends Document {
   type: typeof STAT;
@@ -20,8 +22,10 @@ export interface Stat extends Document {
   color: ColorSlot;
   /** additive only: the one-tap quick-log amount. 0 = open the dialog. */
   defaultIncrement: number;
-  /** collection only. 0 = unknown. */
+  /** collection only. 0 = unknown. Ignored while `items` is non-empty. */
   universeSize: number;
+  /** collection only: the preset items to collect, in the user's order. Empty = free-text logging. */
+  items: string[];
 }
 
 /**

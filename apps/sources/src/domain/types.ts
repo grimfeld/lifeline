@@ -50,8 +50,12 @@ export interface LiveValue extends SourceBase {
 
 export type Source = Embed | Feed | CalendarSub | LiveValue;
 
-/** Document type id of a Source. */
-export const SOURCE_TYPE = "source";
+/**
+ * Document type id of a Window (CONTEXT.md "Window"): was `source` until the
+ * word went to the hub of Notes and Quotes (ADR 0070). The code keeps its
+ * Source names; the App, its ids and its Cards are the same.
+ */
+export const SOURCE_TYPE = "window";
 /** @deprecated use SOURCE_TYPE */
 export const SOURCES = SOURCE_TYPE;
 /** Local-only (never synced) cache of each Source's last fetched body. */

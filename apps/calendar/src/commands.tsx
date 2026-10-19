@@ -33,6 +33,7 @@ export const calendarCommands: CommandDef[] = [
     keywords: ["new", "create", "event", "appointment", "meeting"],
     icon: CalendarPlus,
     dialog: AddEventCommandDialog,
+    capture: true,
     args: [
       { key: "title", label: "Title", kind: "text", required: true },
       { key: "date", label: "Day", kind: "date", required: true, hint: "The (first) day." },
@@ -105,7 +106,7 @@ export const calendarCommands: CommandDef[] = [
   },
 ];
 
-/** One quick-add command per Event template (ADR 0027): straight onto today. */
+/** One quick-add command per Event template (ADR 0027): straight onto today, no dialog. */
 export function useTemplateCommands(): CommandDef[] {
   const templates = useEventTemplates();
   return useMemo(
@@ -120,6 +121,10 @@ export function useTemplateCommands(): CommandDef[] {
           if (added) toast.success(added.start ? `${added.title} today at ${formatTime(added.start)}` : `${added.title} today`);
         },
         capture: true,
+        // Every template folds under one "Add today…" on the capture sheet;
+        // each stays a Command of its own, pinnable and one tap when pinned.
+        fold: "calendar.today",
+        foldLabel: t.title,
       })),
     [templates],
   );

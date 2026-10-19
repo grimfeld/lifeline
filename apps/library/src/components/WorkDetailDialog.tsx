@@ -9,11 +9,13 @@ import { QuickActionsRow } from "./QuickActions";
 import { WorkActionsMenu, useAct } from "./WorkActions";
 import { useState } from "react";
 import { toast } from "@lifeline/ui";
-import { useLookupSettings } from "../data/repo";
+import { patchWork, useLookupSettings } from "../data/repo";
 import { lookupFor } from "../data/lookup";
 import { refreshFromSource } from "../data/enrichActions";
 import { FindMetadataDialog } from "./FindMetadataDialog";
 import { AuthorNames } from "./AuthorNames";
+import { PartsSection, ReviewEditor } from "@lifeline/parts";
+import { libraryParts } from "../parts";
 
 /** "Find metadata" / "Refresh from source" — the lookup row under the header (ADR 0006 amendment). */
 function LookupActions({ item }: { item: Work }) {
@@ -78,7 +80,7 @@ export function WorkDetailDialog({ item, all, onClose, onEdit }: { item: Work | 
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="sr-only">{item.title}</DialogTitle>
         </DialogHeader>
@@ -130,6 +132,10 @@ export function WorkDetailDialog({ item, all, onClose, onEdit }: { item: Work | 
             </div>
           </div>
         </div>
+
+        <PartsSection kit={libraryParts} work={item} />
+
+        <ReviewEditor body={item.body ?? ""} onSave={(body) => patchWork(item, { body })} />
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
           {slotted ? (

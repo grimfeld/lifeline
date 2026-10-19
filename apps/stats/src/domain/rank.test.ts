@@ -4,7 +4,7 @@ import type { Entry, Stat } from "./types";
 
 const now = new Date(2026, 7, 16, 15, 0);
 function stat(id: string, title: string, kind: Stat["kind"], universeSize = 0): Stat {
-  return { id, type: "stat", title, tags: [], folder: "", kind, unit: "", color: "blue", defaultIncrement: 0, universeSize, createdAt: "2026-01-01", updatedAt: "", deleted: 0 };
+  return { id, type: "stat", title, tags: [], folder: "", kind, unit: "", color: "blue", defaultIncrement: 0, universeSize, items: [], createdAt: "2026-01-01", updatedAt: "", deleted: 0 };
 }
 function e(statId: string, day: string, item = ""): Entry {
   return { id: `${statId}-${day}-${item}`, type: "stat_entry", title: "", tags: [], folder: "", createdAt: day, updatedAt: "", deleted: 0, statId, value: 1, item, ts: new Date(`${day}T10:00`).toISOString() };

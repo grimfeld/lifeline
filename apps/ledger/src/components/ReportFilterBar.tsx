@@ -111,7 +111,7 @@ export function ReportFilterBar({
 
   return (
     <div className="grid gap-2">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 max-md:flex-col max-md:items-stretch max-md:*:w-full">
         <Select value={range} onValueChange={(v) => onRangeChange(v as ReportRange, { from: filter.from, to: filter.to })}>
           <SelectTrigger className="w-40">
             <SelectValue />
@@ -160,7 +160,7 @@ export function ReportFilterBar({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 max-md:flex-col max-md:items-stretch max-md:*:w-full">
         <MultiSelect
           allLabel="All accounts"
           options={accounts.filter((a) => !a.archived).map((a) => ({ value: a.id, label: a.title, hint: a.flavor }))}

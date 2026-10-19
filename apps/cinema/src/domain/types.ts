@@ -31,6 +31,10 @@ export interface Work extends Document {
   rating: number;
   /** The Review (ADR 0035) is the Document body — my own words about it. */
   body?: string;
+  /** Parts (ADR 0074): tracked at all, and the catch-up position. */
+  partsTracked: boolean;
+  caughtUpGroup: number;
+  caughtUpPart: number;
 }
 
 export const RATING_MAX = 5;
