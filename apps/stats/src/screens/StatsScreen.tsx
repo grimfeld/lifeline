@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Button, Card, CardContent } from "@lifeline/ui";
+import { Button, Card, CardContent, PhoneDock } from "@lifeline/ui";
 import { Plus } from "lucide-react";
 import { entriesByStat, useEntries, useStats } from "../data/repo";
 import { StatCard } from "../components/StatCard";
@@ -17,9 +17,11 @@ export function StatsScreen() {
     <div className="mx-auto grid w-full max-w-5xl gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Stats</h1>
-        <Button onClick={() => setEditorOpen(true)}>
-          <Plus /> New stat
-        </Button>
+        <PhoneDock>
+          <Button onClick={() => setEditorOpen(true)}>
+            <Plus /> New stat
+          </Button>
+        </PhoneDock>
       </div>
       {stats.length === 0 ? (
         <Card>

@@ -5,6 +5,7 @@
 /* Tailwind must see classes used inside workspace source packages. */
 @source "../../packages/ui/src";
 @source "../../packages/editor/src";
+@source "../../packages/parts/src";
 @source "../../apps/chores/src";
 @source "../../apps/tasks/src";
 @source "../../apps/projects/src";
@@ -17,11 +18,11 @@
 @source "../../apps/commonplace/src";
 @source "../../apps/museum/src";
 @source "../../apps/notes/src";
+@source "../../apps/thoughts/src";
 @source "../../apps/sources/src";
-@source "../../apps/clipper/src";
 @source "../../apps/writer/src";
+@source "../../apps/manuscript/src";
 @source "../../apps/workout/src";
-@source "../../apps/bible/src";
 @source "../../apps/lifelevel/src";
 @source "../../apps/ledger/src";
 @source "../../apps/pocket/src";
@@ -107,14 +108,36 @@ aside nav:hover {
    layer so a button's own position utility (absolute, fixed) still wins -
    unlayered, it forced every absolute button on a phone back into the flow. */
 @layer base {
+  /*
+   * A word longer than its box (a URL, a code, a German compound) breaks
+   * rather than widening the box: \`anywhere\`, unlike \`break-word\`, also
+   * lets grid and flex tracks shrink below the word. Labels that should stay
+   * on one line say so with \`truncate\`. Checked by shell/e2e/screens.spec.ts.
+   */
+  body {
+    overflow-wrap: anywhere;
+  }
+  /*
+   * A grid item may shrink below its content, as if every one said
+   * \`min-w-0\`: otherwise one \`truncate\` label, whose minimum is its whole
+   * line, widens the track and pushes the page past the screen. Zero
+   * specificity, so an explicit \`min-w-*\` still wins.
+   */
+  :where(.grid, .inline-grid) > * {
+    min-width: 0;
+  }
   @media (pointer: coarse) {
     main button {
       position: relative;
     }
+    /*
+     * Taller, not wider: a slop past a button's sides pokes out of the
+     * scroller it sits at the edge of, and the list then wobbles sideways.
+     */
     main button::after {
       content: "";
       position: absolute;
-      inset: -8px;
+      inset: -8px 0;
     }
   }
 }

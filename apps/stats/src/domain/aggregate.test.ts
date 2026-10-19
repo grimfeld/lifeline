@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   average,
   booleanHeadline,
+  checklist,
+  cleanItemList,
   collectedItems,
+  collectionUniverse,
   currentStreak,
   dailySeries,
   dayKey,
@@ -77,5 +80,27 @@ describe("collection", () => {
   it("dedupes by trimmed, case-folded name; first spelling wins", () => {
     const items = collectedItems([e("2026-08-02", 1, "france"), e("2026-08-01", 1, " France "), e("2026-08-03", 1, "Spain")]);
     expect(items.map((i) => i.name)).toEqual(["France", "Spain"]);
+  });
+});
+
+describe("collection item list", () => {
+  it("cleans a list: trims, drops blanks, dedupes by normalised name keeping the first spelling", () => {
+    expect(cleanItemList([" France", "", "japan", "France ", "Japan", "  "])).toEqual(["France", "japan"]);
+  });
+
+  it("the list's length is the universe when there is one", () => {
+    expect(collectionUniverse({ items: ["a", "b"], universeSize: 195 })).toBe(2);
+    expect(collectionUniverse({ items: [], universeSize: 195 })).toBe(195);
+    expect(collectionUniverse({ universeSize: 0 })).toBe(0);
+  });
+
+  it("checklist: list order, ticked by first collection, then collected items off the list", () => {
+    const rows = checklist(["Peru", "France", "Japan"], [e("2026-08-10", 1, "france"), e("2026-08-01", 1, "France"), e("2026-08-05", 1, "Chile")]);
+    expect(rows).toEqual([
+      { name: "Peru", listed: true, collectedAt: null },
+      { name: "France", listed: true, collectedAt: new Date("2026-08-01T10:00").toISOString() },
+      { name: "Japan", listed: true, collectedAt: null },
+      { name: "Chile", listed: false, collectedAt: new Date("2026-08-05T10:00").toISOString() },
+    ]);
   });
 });

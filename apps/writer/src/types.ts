@@ -1,36 +1,38 @@
-import { removeDocumentsWhere, vaultDocPath, type Document, type DocumentTypeDef } from "@lifeline/core";
+import { removeDocumentsWhere, type Document, type DocumentTypeDef } from "@lifeline/core";
 
+/** The Research App (ADR 0068) — born the Writer's pad; its id stays `writer`, Card ids live in synced layouts. */
 export const APP_ID = "writer";
-export const WRITING = "writing";
+/** The Essay (CONTEXT.md): prose argued from my material. Was `writing` until the split. */
+export const ESSAY = "essay";
+/** A Version (CONTEXT.md): a deliberate snapshot of an Essay's or a Chapter's body. The id predates the split and stays. */
 export const VERSION = "writing_version";
-export const WRITINGS_HREF = "/app/writings";
-/** A Writing is written in the Vault like every other body (ADR 0045). */
-export const writingHref = (id: string) => vaultDocPath(id);
+/** The types a Version may be taken of: an Essay here, a Chapter in the Manuscript App. */
+export const VERSIONED = [ESSAY, "chapter"] as const;
+export const ESSAYS_FOLDER = "Essays";
+export const RESEARCH_HREF = "/app/research";
+export const essayHref = (id: string) => `/app/research/e/${id}`;
 
 export const STATUSES = [
   { value: "draft", label: "Draft" },
   { value: "revised", label: "Revised" },
   { value: "done", label: "Done" },
 ] as const;
-export type WritingStatus = (typeof STATUSES)[number]["value"];
+export type EssayStatus = (typeof STATUSES)[number]["value"];
 
-/** A Writing (CONTEXT.md): prose that is purely my own and *is* the thing. */
-export interface Writing extends Document {
-  type: typeof WRITING;
+/** An Essay: argued from material — what it links to, and what I pin to it. */
+export interface Essay extends Document {
+  type: typeof ESSAY;
   body: string;
-  status: WritingStatus;
+  status: EssayStatus;
+  /** Material pinned by hand, beyond what the body links (ADR 0068). */
+  material: string[];
 }
 
-/** Where the desk groups a Writing: its Folder below `Writings` ("Talks", "Novel"), or "" at the top. */
-export function groupOf(w: Pick<Writing, "folder">): string {
-  const f = w.folder ?? "";
-  return f === "Writings" ? "" : f.startsWith("Writings/") ? f.slice("Writings/".length) : f;
-}
-
-/** A Version (CONTEXT.md): a deliberate snapshot of a Writing's body. Internal type. */
+/** A Version (CONTEXT.md): a deliberate snapshot of a body. Internal type. */
 export interface Version extends Document {
   type: typeof VERSION;
   body: string;
+  /** The Essay or Chapter it is a snapshot of. The key predates the split. */
   writingId: string;
   label: string;
   /** ISO instant. */
@@ -38,25 +40,24 @@ export interface Version extends Document {
   words: number;
 }
 
-export const writingType: DocumentTypeDef = {
-  id: WRITING,
-  label: "Writings",
+export const essayType: DocumentTypeDef = {
+  id: ESSAY,
+  label: "Essays",
   iconName: "feather",
   titleRule: "name",
   body: "required",
-  folder: "Writings",
-  // Grouped by Folder (`Writings/Talks`), never a field: "project" is the Projects App's word (ADR 0060).
-  linkable: { subtitle: (d) => groupOf(d) || undefined },
-  // A Writing is the one type that gets read *aloud* — a Talk (CONTEXT.md) is a
-  // Writing given to a room, and the clock is what you want while giving it.
+  folder: ESSAYS_FOLDER,
+  linkable: true,
+  // An Essay is what gets read *aloud* — a Talk (CONTEXT.md) is an Essay given to a room, and the clock is what you want while giving it.
   readTimer: true,
-  // No `href`: the default is the Vault's document page, which is where a
-  // Writing is now written (ADR 0045). It was the one type that overrode this.
+  href: (d) => essayHref(d.id),
   fields: [
     { key: "status", label: "Status", kind: "select", options: [...STATUSES], column: true },
+    // Pinned in the Research desk's material pane; hidden from the generic form so it is not offered twice.
+    { key: "material", label: "Material", kind: "links", hidden: true },
   ],
   indexes: ["status"],
-  /** A Version exists only in service of its Writing, so it goes down with it. */
+  /** A Version exists only in service of its Essay, so it goes down with it. */
   onDelete: async (d) => removeDocumentsWhere(VERSION, (v) => v.writingId === d.id),
   order: 25,
   builtIn: true,
@@ -72,9 +73,8 @@ export const versionType: DocumentTypeDef = {
   body: "required",
   folder: "",
   linkable: false,
-  href: (d) => writingHref(String(d.writingId)),
   fields: [
-    { key: "writingId", label: "Writing", kind: "link", linkType: WRITING, guarded: true, column: true },
+    { key: "writingId", label: "Of", kind: "link", linkType: [...VERSIONED], guarded: true, column: true },
     { key: "label", label: "Label", kind: "text", column: true },
     { key: "takenAt", label: "Taken", kind: "datetime", guarded: true, column: true },
     { key: "words", label: "Words", kind: "number", guarded: true, column: true },

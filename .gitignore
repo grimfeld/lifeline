@@ -9,3 +9,6 @@ shell/src-tauri/gen/
 pocketbase/pocketbase
 pocketbase/pocketbase.exe
 package-lock.json
+shell/test-results/
+shell/playwright-report/
+shell/e2e/.auth/

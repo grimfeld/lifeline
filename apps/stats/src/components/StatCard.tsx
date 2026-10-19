@@ -6,6 +6,7 @@ import { colorVar } from "../domain/types";
 import {
   booleanHeadline,
   collectedItems,
+  collectionUniverse,
   collectionSeries,
   currentStreak,
   dailySeries,
@@ -39,7 +40,8 @@ export function useSummary(stat: Stat, entries: Entry[]) {
       }
       case "collection": {
         const items = collectedItems(entries);
-        return { big: stat.universeSize ? `${items.length} / ${stat.universeSize}` : String(items.length), unit: "", caption: "collected", streak: 0, color, spark: collectionSeries(items).map((p) => p.value), days: null };
+        const universe = collectionUniverse(stat);
+        return { big: universe ? `${items.length} / ${universe}` : String(items.length), unit: "", caption: "collected", streak: 0, color, spark: collectionSeries(items).map((p) => p.value), days: null };
       }
     }
   }, [stat, entries]);

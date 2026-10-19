@@ -229,13 +229,16 @@ export function timedHref(item: Pick<TimedItem, "appId" | "itemId">): string | u
   return providerOf(item.appId)?.href?.(item.itemId);
 }
 
+/**
+ * Made once: `toLocaleTimeString` with options builds a new formatter on every
+ * call, and an hour grid formats dozens of times per render.
+ */
+let timeFormat: Intl.DateTimeFormat | undefined;
+
 /** "09:00" → "9:00 AM" style per locale; all-day → "". */
 export function formatTime(t: TimeStr | null): string {
   if (!t) return "";
   const [h, m] = t.split(":").map(Number);
-  return new Date(Date.UTC(2000, 0, 1, h, m)).toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "UTC",
-  });
+  timeFormat ??= new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
+  return timeFormat.format(new Date(Date.UTC(2000, 0, 1, h, m)));
 }

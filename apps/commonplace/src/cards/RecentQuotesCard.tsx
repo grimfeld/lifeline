@@ -10,7 +10,7 @@ export function RecentQuotesCard({ settings }: CardProps) {
   return (
     <div className="grid h-full content-start gap-2 overflow-y-auto">
       {recent.map((q) => (
-        <QuoteBlock key={q.id} quote={q} item={byId.get(q.mediaId)} showItem />
+        <QuoteBlock key={q.id} quote={q} item={byId.get(q.source)} showItem />
       ))}
     </div>
   );

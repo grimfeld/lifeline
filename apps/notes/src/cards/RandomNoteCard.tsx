@@ -39,7 +39,7 @@ export function RandomNoteCard({ settings }: CardProps) {
         </Button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto text-sm">
-        <MarkdownView body={pick.body} index={index} docDate={pick.type === DAILY ? pick.title : null} compact />
+        <MarkdownView body={pick.body} index={index} docDate={pick.type === DAILY ? pick.title : null} compact origin={pick.id} />
       </div>
     </div>
   );
