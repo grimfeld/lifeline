@@ -38,9 +38,9 @@ export function PushButton({ item, className }: { item: Pushable; className?: st
   const push = usePush(item);
   if (!push) return null;
   return (
-    <Tip label="Push — find it time">
-      <Button size="icon-xs" variant="ghost" className={cn("text-muted-foreground shrink-0", className)} aria-label={`Push ${item.title}`} onClick={push}>
-        <CalendarClock className="size-3.5" />
+    <Tip label={`Push ${item.title} — find it time`}>
+      <Button size="icon-xs" variant="ghost" className={cn("text-muted-foreground shrink-0", className)} onClick={push}>
+        <CalendarClock />
       </Button>
     </Tip>
   );

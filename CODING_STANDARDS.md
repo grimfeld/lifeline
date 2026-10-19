@@ -37,7 +37,9 @@ nearest existing pattern and don't hand-roll a new one.
 - Search-as-you-type pickers use `Combobox` (`Command` + `Popover`), never a
   hand-rolled `role="listbox"`.
 - **(check)** Tooltips use `Tooltip` (`<Tip label>` for an icon Button); `title=` is not a
-  tooltip. It shows on the desk only, never on touch; the Button keeps its `aria-label`.
+  tooltip. It shows on the desk only, never on touch. `Tip` sets its `label` as the Button's
+  `aria-label`, so the name is written once and the tooltip shows exactly what a screen
+  reader hears.
 - A component copied between apps belongs in `packages/parts`.
 
 ### Colour
@@ -79,7 +81,8 @@ nearest existing pattern and don't hand-roll a new one.
 ### Icons
 
 - lucide-react only, imported without the `Icon` suffix.
-- **(check)** Every icon-only `Button` has an `aria-label` (a raw icon `<button>` too).
+- **(check)** Every icon-only `Button` has an `aria-label` (a raw icon `<button>` too), or
+  a `<Tip label>` around it.
   `title` alone is not a label.
 
 ### Layout

@@ -13,7 +13,7 @@ function subscribeFine(cb: () => void) {
 }
 
 /** Whether the device has a hovering pointer — the desk, not a touch screen. */
-export function useFinePointer(): boolean {
+function useFinePointer(): boolean {
   return React.useSyncExternalStore(subscribeFine, () => window.matchMedia(FINE).matches, () => false)
 }
 
@@ -27,7 +27,8 @@ function TooltipProvider({ delayDuration = 300, ...props }: React.ComponentProps
 /**
  * The name of an icon Button, shown on hover and keyboard focus on the desk
  * and never on a touch screen. The Button keeps its `aria-label`; the tooltip
- * shows that name, it doesn't replace it. `title=` is not a tooltip.
+ * shows that name, it doesn't replace it. `title=` is not a tooltip. Most
+ * callers want `Tip`, which writes the name once for both.
  *
  *   <Tooltip>
  *     <TooltipTrigger asChild><Button size="icon" aria-label="New folder">…</Button></TooltipTrigger>
@@ -71,14 +72,16 @@ function TooltipContent({ className, sideOffset = 4, children, ...props }: React
 }
 
 /**
- * The common case in one: an icon Button named `label`, which it also carries
- * as its `aria-label` — `<Tip label="New folder"><Button size="icon" aria-label="New folder">…</Button></Tip>`.
+ * The common case in one: an icon Button whose name is `label`. Tip sets it as
+ * the Button's `aria-label` and shows it as the tooltip, so what a screen
+ * reader hears is what the pointer sees; the Button carries no `aria-label` of
+ * its own: `<Tip label="New folder"><Button size="icon">…</Button></Tip>`.
  * Wraps a trigger too (`<DropdownMenuTrigger asChild>`), outermost.
  */
-function Tip({ label, side, children }: { label: React.ReactNode; side?: React.ComponentProps<typeof TooltipPrimitive.Content>["side"]; children: React.ReactElement }) {
+function Tip({ label, side, children }: { label: string; side?: React.ComponentProps<typeof TooltipPrimitive.Content>["side"]; children: React.ReactElement }) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipTrigger asChild aria-label={label}>{children}</TooltipTrigger>
       <TooltipContent side={side}>{label}</TooltipContent>
     </Tooltip>
   )

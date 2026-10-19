@@ -159,13 +159,13 @@ export function FileTree() {
               </button>
               <span className="hidden items-center group-hover:flex">
                 <Tip label="New thought here">
-                  <Button size="icon-xs" variant="ghost" aria-label="New thought here" onClick={() => setAction({ kind: "new-note", folder: node.path, type: "thought" })}>
-                    <FilePlus className="size-3" />
+                  <Button size="icon-xs" variant="ghost" onClick={() => setAction({ kind: "new-note", folder: node.path, type: "thought" })}>
+                    <FilePlus />
                   </Button>
                 </Tip>
                 <Tip label="New folder">
-                  <Button size="icon-xs" variant="ghost" aria-label="New folder" onClick={() => setAction({ kind: "new-folder", parent: node.path })}>
-                    <FolderPlus className="size-3" />
+                  <Button size="icon-xs" variant="ghost" onClick={() => setAction({ kind: "new-folder", parent: node.path })}>
+                    <FolderPlus />
                   </Button>
                 </Tip>
               </span>
@@ -272,20 +272,19 @@ export function FileTree() {
             <Button
               size="icon-xs"
               variant="ghost"
-              aria-label={privateLabel}
               onClick={() => (!gate.configured ? openPrivateDialog("setup") : gate.locked ? openPrivateDialog("unlock") : void lockPrivate())}
             >
-              {gate.configured && !gate.locked ? <LockOpen className="size-3" /> : <Lock className="size-3" />}
+              {gate.configured && !gate.locked ? <LockOpen /> : <Lock />}
             </Button>
           </Tip>
           <Tip label="New thought">
-            <Button size="icon-xs" variant="ghost" aria-label="New thought" onClick={() => setAction({ kind: "new-note", folder: "", type: "thought" })}>
-              <FilePlus className="size-3" />
+            <Button size="icon-xs" variant="ghost" onClick={() => setAction({ kind: "new-note", folder: "", type: "thought" })}>
+              <FilePlus />
             </Button>
           </Tip>
           <Tip label="New folder">
-            <Button size="icon-xs" variant="ghost" aria-label="New folder" onClick={() => setAction({ kind: "new-folder", parent: "" })}>
-              <FolderPlus className="size-3" />
+            <Button size="icon-xs" variant="ghost" onClick={() => setAction({ kind: "new-folder", parent: "" })}>
+              <FolderPlus />
             </Button>
           </Tip>
         </span>

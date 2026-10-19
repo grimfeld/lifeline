@@ -86,7 +86,7 @@ export function overviewPage(opts: {
                 <DropdownMenu>
                   <Tip label="Overview actions">
                     <DropdownMenuTrigger asChild>
-                      <Button size="icon" variant="ghost" aria-label="Overview actions">
+                      <Button size="icon" variant="ghost">
                         <MoreHorizontal />
                       </Button>
                     </DropdownMenuTrigger>
