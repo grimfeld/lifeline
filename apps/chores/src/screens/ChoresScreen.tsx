@@ -8,6 +8,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  PhoneDock,
   TagChips,
   toast,
 } from "@lifeline/ui";
@@ -192,14 +193,16 @@ export function ChoresScreen() {
     <div className="mx-auto grid w-full max-w-3xl gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Chores</h1>
-        <Button
-          onClick={() => {
-            setEditing(undefined);
-            setDialogOpen(true);
-          }}
-        >
-          <Plus /> New chore
-        </Button>
+        <PhoneDock>
+          <Button
+            onClick={() => {
+              setEditing(undefined);
+              setDialogOpen(true);
+            }}
+          >
+            <Plus /> New chore
+          </Button>
+        </PhoneDock>
       </div>
       {chores.length === 0 && (
         <Card>

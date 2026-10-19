@@ -123,6 +123,8 @@ describe("dayLabel", () => {
   it("names today and yesterday", () => {
     expect(dayLabel("2026-08-16", "2026-08-16")).toBe("Today");
     expect(dayLabel("2026-08-15", "2026-08-16")).toBe("Yesterday");
-    expect(dayLabel("2026-08-10", "2026-08-16")).toMatch(/Mon/);
+    // Older days get a dated label in the person's own locale ("Mon, Aug 10", "lun. 10 août").
+    const monday = new Date(Date.UTC(2026, 7, 10)).toLocaleDateString(undefined, { weekday: "short", timeZone: "UTC" });
+    expect(dayLabel("2026-08-10", "2026-08-16")).toContain(monday);
   });
 });

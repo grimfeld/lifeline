@@ -1,30 +1,32 @@
 import type { AppManifest, Document, DocumentTypeDef } from "@lifeline/core";
-import { History, Languages, Layers, TextCursorInput, WholeWord } from "lucide-react";
-import { LanguagesScreen } from "./screens/LanguagesScreen";
+import { Brain, History, Layers, MessageCircleQuestion, Shapes, TextCursorInput, WholeWord } from "lucide-react";
+import { KnowledgeScreen } from "./screens/KnowledgeScreen";
 import { DueCard } from "./cards/DueCard";
 import { ItemPeek } from "./components/ItemPeek";
 import { WordIntakeDialog } from "./components/WordDialog";
 import { SentenceIntakeDialog } from "./components/SentenceDialog";
-import { languagesCommands } from "./commands";
-import { languagesDaylog } from "./daylog";
+import { FactIntakeDialog } from "./components/FactDialog";
+import { knowledgeCommands } from "./commands";
+import { knowledgeRecallable } from "./recallable";
+import { knowledgeDaylog } from "./daylog";
 import { plainSentence } from "./domain/cloze";
-import { refuseDeletingUsedLanguage, removeItemRecalls } from "./data/repo";
-import { APP_ID, DECK, LANGUAGE, LANGUAGES_HREF, RECALL, SENTENCE, WORD, type Deck, type Language, type Recall, type Sentence, type Word } from "./domain/types";
+import { refuseDeletingUsedTopic, removeItemRecalls } from "./data/repo";
+import { APP_ID, DECK, FACT, TOPIC, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Fact, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
 
-const WORDS_HREF = `${LANGUAGES_HREF}?tab=words`;
+const WORDS_HREF = `${KNOWLEDGE_HREF}?tab=words`;
 
 /**
- * The `language` type (CONTEXT.md "Language"): the partition inside the
+ * The `language` type, a Topic (CONTEXT.md "Topic", ADR 0073): the partition inside the
  * Module. Archived, never deleted while it holds anything — the `onDelete`
  * guard holds the Vault and a Base to that too. Its Tallies are Core's
  * (ADR 0059), edited in its own dialog.
  */
-const languageType: DocumentTypeDef = {
-  id: LANGUAGE,
-  label: "Languages",
-  icon: Languages,
+const topicType: DocumentTypeDef = {
+  id: TOPIC,
+  label: "Topics",
+  icon: Shapes,
   titleRule: "derived",
-  titleOf: (d) => (d as Language).name,
+  titleOf: (d) => (d as Topic).name,
   body: "none",
   fields: [
     { key: "name", label: "Name", kind: "text", required: true, column: true },
@@ -32,8 +34,8 @@ const languageType: DocumentTypeDef = {
     { key: "archived", label: "Archived", kind: "boolean", guarded: true, column: true },
     { key: "tallies", label: "Tallies", kind: "json", guarded: true },
   ],
-  href: () => LANGUAGES_HREF,
-  onDelete: refuseDeletingUsedLanguage,
+  href: () => KNOWLEDGE_HREF,
+  onDelete: refuseDeletingUsedTopic,
   order: 93,
   builtIn: true,
 };
@@ -47,18 +49,18 @@ const wordType: DocumentTypeDef = {
   titleOf: (d) => (d as Word).term,
   body: "none",
   fields: [
-    { key: "languageId", label: "Language", kind: "link", linkType: LANGUAGE, guarded: true, required: true, column: true },
+    { key: "languageId", label: "Topic", kind: "link", linkType: TOPIC, guarded: true, required: true, column: true },
     { key: "term", label: "Word", kind: "text", required: true, column: true },
     { key: "meaning", label: "Meaning", kind: "text", required: true, column: true },
     { key: "notes", label: "Notes", kind: "longtext" },
     { key: "origin", label: "Where met", kind: "text" },
+    { key: "originId", label: "Met in", kind: "link" },
     { key: "paused", label: "Paused", kind: "boolean", column: true },
     { key: "addedAt", label: "Added", kind: "datetime", guarded: true, hidden: true },
   ],
   indexes: ["languageId"],
   href: () => WORDS_HREF,
   peek: ItemPeek,
-  onDelete: removeItemRecalls,
   order: 94,
   builtIn: true,
 };
@@ -72,18 +74,43 @@ const sentenceType: DocumentTypeDef = {
   titleOf: (d) => plainSentence((d as Sentence).text ?? ""),
   body: "none",
   fields: [
-    { key: "languageId", label: "Language", kind: "link", linkType: LANGUAGE, guarded: true, required: true, column: true },
+    { key: "languageId", label: "Topic", kind: "link", linkType: TOPIC, guarded: true, required: true, column: true },
     { key: "text", label: "Sentence", kind: "text", required: true, column: true },
     { key: "translation", label: "Translation", kind: "text", column: true },
     { key: "origin", label: "Where met", kind: "text" },
+    { key: "originId", label: "Met in", kind: "link" },
     { key: "paused", label: "Paused", kind: "boolean", column: true },
     { key: "addedAt", label: "Added", kind: "datetime", guarded: true, hidden: true },
   ],
   indexes: ["languageId"],
   href: () => WORDS_HREF,
   peek: ItemPeek,
-  onDelete: removeItemRecalls,
   order: 95,
+  builtIn: true,
+};
+
+/** A Fact (CONTEXT.md "Fact"): a question and its answer in the user's own words — one Prompt, forward only. Not Linkable. */
+const factType: DocumentTypeDef = {
+  id: FACT,
+  label: "Facts",
+  icon: MessageCircleQuestion,
+  titleRule: "derived",
+  titleOf: (d) => (d as Fact).question,
+  body: "none",
+  fields: [
+    { key: "languageId", label: "Topic", kind: "link", linkType: TOPIC, guarded: true, required: true, column: true },
+    { key: "question", label: "Question", kind: "text", required: true, column: true },
+    { key: "answer", label: "Answer", kind: "longtext", required: true, column: true },
+    { key: "notes", label: "Notes", kind: "longtext" },
+    { key: "origin", label: "Where met", kind: "text" },
+    { key: "originId", label: "Met in", kind: "link" },
+    { key: "paused", label: "Paused", kind: "boolean", column: true },
+    { key: "addedAt", label: "Added", kind: "datetime", guarded: true, hidden: true },
+  ],
+  indexes: ["languageId"],
+  href: () => WORDS_HREF,
+  peek: ItemPeek,
+  order: 96,
   builtIn: true,
 };
 
@@ -96,13 +123,13 @@ const deckType: DocumentTypeDef = {
   titleOf: (d) => (d as Deck).name,
   body: "none",
   fields: [
-    { key: "languageId", label: "Language", kind: "link", linkType: LANGUAGE, guarded: true, required: true, column: true },
+    { key: "languageId", label: "Topic", kind: "link", linkType: TOPIC, guarded: true, required: true, column: true },
     { key: "name", label: "Name", kind: "text", required: true, column: true },
-    { key: "members", label: "Words and sentences", kind: "links", linkType: [WORD, SENTENCE], guarded: true },
+    { key: "members", label: "Holds", kind: "links", linkType: [WORD, SENTENCE, FACT], guarded: true },
   ],
   indexes: ["languageId"],
-  href: () => `${LANGUAGES_HREF}?tab=decks`,
-  order: 96,
+  href: () => `${KNOWLEDGE_HREF}?tab=decks`,
+  order: 97,
   builtIn: true,
 };
 
@@ -119,45 +146,53 @@ const recallType: DocumentTypeDef = {
   },
   body: "none",
   fields: [
-    { key: "languageId", label: "Language", kind: "link", linkType: LANGUAGE, guarded: true, required: true, column: true },
-    { key: "itemId", label: "Word or sentence", kind: "link", linkType: [WORD, SENTENCE], guarded: true, required: true, column: true },
+    { key: "languageId", label: "Topic", kind: "link", linkType: TOPIC, guarded: true, required: true, column: true },
+    { key: "itemId", label: "Kept", kind: "link", linkType: [WORD, SENTENCE, FACT], guarded: true, required: true, column: true },
     { key: "slot", label: "Prompt", kind: "text", guarded: true, column: true },
     { key: "grade", label: "Grade", kind: "select", options: [{ value: "pass", label: "Pass" }, { value: "fail", label: "Fail" }], guarded: true, column: true },
     { key: "at", label: "When", kind: "datetime", guarded: true, column: true },
   ],
   indexes: ["languageId", "itemId"],
-  href: () => LANGUAGES_HREF,
-  order: 97,
+  href: () => KNOWLEDGE_HREF,
+  order: 98,
   builtIn: true,
 };
 
-/** Languages App (ADR 0058): Words and Sentences the user met, kept by spaced repetition. */
-export const languagesApp: AppManifest = {
+/**
+ * Knowledge App (ADR 0073, once Languages — ADR 0058): what the user chose to
+ * keep, from any Recallable type, practised by spaced repetition in Topics.
+ * It owns every Recall and Practice; Word and Sentence are its own types.
+ */
+export const knowledgeApp: AppManifest = {
   id: APP_ID,
   module: "languages",
-  title: "Languages",
-  icon: Languages,
+  title: "Knowledge",
+  icon: Brain,
   color: "var(--chart-teal)",
-  types: [languageType, wordType, sentenceType, deckType, recallType],
-  screens: [{ id: "languages.home", title: "Languages", path: "languages", icon: Languages, component: LanguagesScreen }],
+  types: [topicType, wordType, sentenceType, factType, deckType, recallType],
+  screens: [{ id: "languages.home", title: "Knowledge", path: "languages", icon: Brain, component: KnowledgeScreen }],
   cards: [
     {
       id: "languages.due",
       title: "Due today",
-      description: "What the active language has due, one tap into practice",
+      description: "Everything due, by topic, one tap into practice",
       component: DueCard,
       defaultSize: { w: 3, h: 4 },
       minSize: { w: 2, h: 3 },
     },
   ],
-  commands: languagesCommands,
-  daylog: languagesDaylog,
-  tallying: [{ typeId: LANGUAGE, occurrence: "day practised" }],
+  commands: knowledgeCommands,
+  daylog: knowledgeDaylog,
+  tallying: [{ typeId: TOPIC, occurrence: "day practised" }],
+  recallable: knowledgeRecallable,
+  // Every Recallable Document's Recalls go when it is deleted — Knowledge's own types and any other App's (ADR 0073).
+  forgetRecallable: removeItemRecalls,
   intakes: [
     { id: "word", title: "Word", icon: WholeWord, dialog: WordIntakeDialog },
     { id: "sentence", title: "Sentence", icon: TextCursorInput, dialog: SentenceIntakeDialog },
+    { id: "fact", title: "Fact", icon: MessageCircleQuestion, dialog: FactIntakeDialog },
   ],
 };
 
-export { LANGUAGE, WORD, SENTENCE, DECK, RECALL };
-export type { Language, Word, Sentence, Deck, Recall };
+export { TOPIC, WORD, SENTENCE, FACT, DECK, RECALL };
+export type { Topic, Word, Sentence, Fact, Deck, Recall };

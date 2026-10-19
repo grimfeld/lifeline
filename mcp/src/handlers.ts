@@ -27,6 +27,9 @@ import {
   titleTaken,
   todayStr,
   typeFieldsOf,
+  fieldsOfDocument,
+  rolesOf,
+  withRoleFields,
   type CommandArg,
   type Document,
   type DocumentTypeDef,
@@ -85,7 +88,7 @@ function isCreatable(def: DocumentTypeDef): boolean {
 function fieldArg(f: FieldDef): CommandArg {
   const kind: CommandArg["kind"] =
     f.kind === "links" ? "list" : f.kind === "datetime" || f.kind === "url" ? "text" : f.kind === "geo" ? "json" : f.kind;
-  return { key: f.key, label: f.label, kind, options: f.options, linkType: f.linkType };
+  return { key: f.key, label: f.label, kind, options: f.options, linkType: f.linkType, linkRole: f.linkRole };
 }
 
 /** Check type fields the way a Base would accept them; null clears a field. Throws on guarded or unknown keys. */
@@ -118,7 +121,8 @@ function summary(doc: Document, query?: string) {
 
 function full(doc: Document) {
   const def = documentTypeSync(doc.type);
-  const hidden = new Set(def?.fields.filter((f) => f.hidden).map((f) => f.key));
+  const hidden = new Set(fieldsOfDocument(doc, def).filter((f) => f.hidden).map((f) => f.key));
+  const roles = rolesOf(doc).map((r) => r.label);
   const fields = Object.fromEntries(Object.entries(typeFieldsOf(doc)).filter(([k, v]) => !hidden.has(k) && k !== "owner" && v !== undefined && v !== ""));
   return {
     id: doc.id,
@@ -128,6 +132,7 @@ function full(doc: Document) {
     tags: doc.tags,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
+    roles: roles.length ? roles : undefined,
     fields,
     body: def?.body === "none" || !doc.body ? undefined : doc.body,
   };
@@ -333,7 +338,8 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
       const title = String(a.title ?? "").trim();
       if (rename && title && titleTaken(sameType, folder, title, doc.id)) throw new ToolError(`“${title}” already exists in ${folder || "the root"}`);
     }
-    const patch: Args = await readFields(def, (a.fields as Args | undefined) ?? {});
+    // A worn Role's Fields (ADR 0069) are written like the type's own.
+    const patch: Args = await readFields(withRoleFields(doc, def) ?? def, (a.fields as Args | undefined) ?? {});
     if (a.body !== undefined) {
       if (def.body === "none") throw new ToolError(`${def.label} have no body`);
       patch.body = a.body;

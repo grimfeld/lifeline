@@ -11,8 +11,9 @@ import type { Document } from "./types";
  * App) and for a type whose App names no Module (the Calendar App's Events).
  */
 export function homeModuleOf(doc: Pick<Document, "type">): string | undefined {
-  const appId = documentTypeSync(doc.type)?.appId;
-  const m = appId ? appById(appId)?.module : undefined;
+  const def = documentTypeSync(doc.type);
+  const appId = def?.appId;
+  const m = appId ? appById(appId)?.module : def?.homeModule;
   return m && MODULES.some((x) => x.id === m) ? m : undefined;
 }
 

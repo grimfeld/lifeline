@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { Link } from "react-router";
 import { matchesTagFilter, useTagFilter, type CardProps } from "@lifeline/core";
-import { useWritings } from "../data";
-import { STATUSES, wordCount, writingHref } from "../types";
+import { useEssays } from "../data";
+import { STATUSES, essayHref, wordCount } from "../types";
 
-/** Writings in progress (not done), most recently edited first — pick up where you left off. */
+/** Essays in progress (not done), most recently edited first — pick up where you left off. */
 export function DraftsCard({ settings }: CardProps) {
-  const writings = useWritings();
+  const writings = useEssays();
   const filter = useTagFilter();
   const n = Number(settings.count ?? 6);
   const rows = useMemo(
@@ -22,7 +22,7 @@ export function DraftsCard({ settings }: CardProps) {
     <ul className="h-full space-y-1 overflow-y-auto text-sm">
       {rows.map((w) => (
         <li key={w.id} className="flex items-baseline gap-2">
-          <Link to={writingHref(w.id)} className="min-w-0 flex-1 truncate font-medium hover:underline">
+          <Link to={essayHref(w.id)} className="min-w-0 flex-1 truncate font-medium hover:underline">
             {w.title}
           </Link>
           <span className="text-muted-foreground shrink-0 text-xs">

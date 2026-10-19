@@ -22,6 +22,9 @@ export function normalize(m: Work): Work {
     finishedOn: m.finishedOn ?? "",
     liked: m.liked === true,
     rating: m.rating || 0,
+    partsTracked: !!m.partsTracked,
+    caughtUpGroup: m.caughtUpGroup || 0,
+    caughtUpPart: m.caughtUpPart || 0,
     tags: m.tags ?? [],
   };
 }
@@ -73,6 +76,9 @@ export async function addWork(input: {
     finishedOn: "",
     liked: false,
     rating: 0,
+    partsTracked: false,
+    caughtUpGroup: 0,
+    caughtUpPart: 0,
     tags: normalizeTags(input.tags),
   });
   return row.id;
