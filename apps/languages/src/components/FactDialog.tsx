@@ -20,7 +20,7 @@ export interface FactPrefill {
  * ever filled in for them. Made from a selection, the passage stays in view
  * while they write, and "add another" keeps it for the next Fact.
  */
-export function FactDialog({ open, onOpenChange, fact, prefill }: { open: boolean; onOpenChange: (open: boolean) => void; fact?: Fact; prefill?: FactPrefill }) {
+export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: { open: boolean; onOpenChange: (open: boolean) => void; fact?: Fact; prefill?: FactPrefill; onSaved?: (id: string) => void }) {
   const topics = useTopics();
   const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
@@ -53,12 +53,13 @@ export function FactDialog({ open, onOpenChange, fact, prefill }: { open: boolea
 
   async function save(another = false) {
     const input = { languageId, question, answer, notes, origin, originId, tags };
+    let made = "";
     try {
       if (fact) {
         await updateFact(fact, input);
         toast.success("Fact updated");
       } else {
-        await addFact(input);
+        made = await addFact(input);
         toast.success("Fact kept");
       }
     } catch (err) {
@@ -70,6 +71,7 @@ export function FactDialog({ open, onOpenChange, fact, prefill }: { open: boolea
       setNotes("");
       return;
     }
+    if (made) onSaved?.(made);
     onOpenChange(false);
   }
 
@@ -155,7 +157,7 @@ export function FactDialog({ open, onOpenChange, fact, prefill }: { open: boolea
  * passage it is kept from and its Document kept as the origin — the question
  * and answer are left for the user to write.
  */
-export function FactIntakeDialog({ open, onOpenChange, handoff }: IntakeDialogProps) {
+export function FactIntakeDialog({ open, onOpenChange, handoff, onSaved }: IntakeDialogProps) {
   const prefill = useMemo(() => ({ context: handoff.text.trim() || handoff.title, origin: originOf(handoff), originId: handoff.originId }), [handoff]);
-  return <FactDialog open={open} onOpenChange={onOpenChange} prefill={prefill} />;
+  return <FactDialog open={open} onOpenChange={onOpenChange} prefill={prefill} onSaved={onSaved} />;
 }
