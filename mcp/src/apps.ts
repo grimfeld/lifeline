@@ -24,13 +24,12 @@ import { shoppingApp } from "@lifeline/app-shopping";
 import { moodApp } from "@lifeline/app-mood";
 import { thoughtsApp } from "@lifeline/app-thoughts";
 import { manuscriptApp } from "@lifeline/app-manuscript";
-import { mailApp } from "@lifeline/app-mail";
 import { pricesApp } from "@lifeline/app-prices";
 
 /**
  * Every App, in the shell's registry order (ADR 0003): the server registers
  * the same types, indexes and hooks a device does. Keep in step with
- * shell/src/main.tsx.
+ * shell/src/apps.ts.
  */
 export const manifests: AppManifest[] = [
   choresApp,
@@ -57,7 +56,6 @@ export const manifests: AppManifest[] = [
   pocketApp,
   pricesApp,
   moodApp,
-  mailApp,
   swearjarApp,
   knowledgeApp,
 ];

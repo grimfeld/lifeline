@@ -3,16 +3,12 @@
 // stylesheets drop out, so the server runs the very same App operations.
 import { readFileSync } from "node:fs";
 import { build } from "esbuild";
+import { BROWSER_ONLY } from "./browser-only.mjs";
 
 const entries = process.argv.slice(2);
 
-/**
- * View-only libraries the Apps' screens import. The server never renders a
- * view: some of these touch `window` the moment they load, and the rest
- * (icons, UI kits) would only cost memory — lucide-react alone, as CommonJS,
- * is every icon copied into every importer. Each is swapped for scripts/inert.cjs.
- */
-const BROWSER_ONLY = /^(leaflet|react-leaflet|@react-leaflet\/.*|recharts|@codemirror\/.*|@lezer\/.*|react-grid-layout|d3-force|d3-quadtree|lucide-react|radix-ui|@radix-ui\/.*|cmdk|sonner|next-themes|@dnd-kit\/.*|@fontsource-variable\/.*)(\/.*)?$/;
+// The view-only libraries (browser-only.mjs) are swapped for scripts/inert.cjs —
+// lucide-react alone, as CommonJS, would be every icon copied into every importer.
 const INERT = readFileSync(new URL("./inert.cjs", import.meta.url), "utf8");
 
 const inert = {

@@ -115,20 +115,23 @@ export interface ViewFilter {
  *   14 — media split: per-medium types; media's `[type+medium]` index dropped, `[type+slot]`/`[type+externalKey]` shared by the six types
  *   15 — Museum App (ADR 0022): `[type+artistId]` and `[type+exhibitionId]` added
  *   16 — Attachments (ADR 0037): synced `attachments` metadata, local `_blobs` bytes
- *   18 — Prices App (ADR 0045): `[type+receiptId]`, `[type+productId]`, `[type+shopId]` added
+ *   18 — Prices App (ADR 0082): `[type+receiptId]`, `[type+productId]`, `[type+shopId]` added
  *   19 — Workspaces (ADR 0047/0048): synced `workspaces`; `workspace` indexed on
  *        `documents` and `screens` so a scoped read is an index hit, not a scan
  *   20 — Mail App (ADR 0051): local `_mail_cache` table
  *   21 — Tallying (ADR 0059): local `_tally_fires` marks
  *   22 — Languages App (ADR 0058): `[type+languageId]`, `[type+itemId]` added
  *   23 — Roles (ADR 0069): multi-entry `*roles` on `documents`, so "every wearer of a Role" is an index hit
+ *   24 — Mail retired (ADR 0080): local `_mail_cache` dropped
  */
-const DB_VERSION = 23;
+const DB_VERSION = 24;
 
-/** Stores that existed before ADR 0018; deleted on upgrade so a client re-pulls into `documents`. */
+/** Stores that no longer exist — before ADR 0018 (so a client re-pulls into `documents`) or a retired App's — deleted on upgrade. */
 const LEGACY_STORES = [
   "chores", "chore_completions", "tasks", "task_occurrences", "events", "stats", "stat_entries", "media", "media_quotes",
   "media_settings", "notes", "note_types", "sources",
+  // Retired Apps' local-only tables: Mail's cache (ADR 0080).
+  "_mail_cache",
 ];
 
 export const DOCUMENTS = "documents";

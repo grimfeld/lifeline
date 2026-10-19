@@ -8,7 +8,7 @@ export const FINE = "swearjar_fine";
 export const SWEARJAR_HREF = "/app/swearjar";
 
 /**
- * An Offence (ADR 0054): a named, priced thing the user fines themself for —
+ * An Offence (ADR 0083): a named, priced thing the user fines themself for —
  * "Snoozed the alarm · €2". Never deleted while Fines reference it; archived
  * instead, out of the logging picker with its past months kept whole.
  */
@@ -26,7 +26,7 @@ export interface Offence extends Document {
 }
 
 /**
- * A Fine (ADR 0054, internal): one incident of an Offence. `amount` is the
+ * A Fine (ADR 0083, internal): one incident of an Offence. `amount` is the
  * Offence's price when it was logged — a fact, never re-valued by a later
  * repricing. `occurredAt` is when it really happened (backdating allowed).
  */

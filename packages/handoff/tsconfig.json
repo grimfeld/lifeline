@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Dependency-free, no Node and no React: the shell and the Lifeline extension both import it.
+  // Tests run on Node and get its types from tsconfig.test.json.
+  "compilerOptions": { "types": [] },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
+}

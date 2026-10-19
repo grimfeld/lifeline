@@ -19,7 +19,7 @@ const BUCKETS: { key: Bucket; title: string; empty: string }[] = [
 ];
 
 /**
- * Pocket (ADR 0037): every Allowance in three buckets — running today,
+ * Pocket (ADR 0081): every Allowance in three buckets — running today,
  * starting later, ended — each with what is left. Renewal is a tap, never
  * automatic. What runs today stands as a shelf of jars (CONTEXT: Allowance's
  * face), draining as Spends land: tapping a jar is always a Spend, one tap.

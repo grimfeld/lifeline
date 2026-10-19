@@ -17,7 +17,7 @@ export async function fineNow(o: Offence): Promise<void> {
 }
 
 /**
- * One Offence as a one-tap button (ADR 0054): a tap drops its price in the
+ * One Offence as a one-tap button (ADR 0083): a tap drops its price in the
  * jar now; holding it (or a right-click) opens the form for backdating and a
  * note — logging has to be quick at the moment it happens or it won't be.
  */
