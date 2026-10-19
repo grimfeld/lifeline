@@ -8,3 +8,5 @@ export * from "./components/ShelfControl";
 export { announceRead, attempt } from "./components/announce";
 export * from "./lookup";
 export * from "./components/QuickPick";
+export * from "./quickAdd";
+export * from "./components/QuickAdd";

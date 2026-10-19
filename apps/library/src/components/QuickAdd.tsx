@@ -1,121 +1,35 @@
-import { useEffect, useState } from "react";
-import { QuickPick } from "@lifeline/parts";
-import { cn, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
-import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
+import { QuickAdd as FamilyQuickAdd, type QuickAddConfig, type QuickAddProps } from "@lifeline/parts";
+import { WORK_TYPES, type WorkTypeId } from "../domain/workTypes";
 import { deleteWork, parseQuickTitle, quickAddWork, useLookupSettings } from "../data/repo";
 import { lookupFor, resolveHit } from "../data/lookup";
 import { hitByline, type WorkHit } from "../data/openlibrary";
 import { Cover } from "./Cover";
 
-const LAST_TYPE_KEY = "media:quick-type";
-const isType = (v: unknown): v is WorkTypeId => WORK_TYPES.some((t) => t.id === v);
-
-function readLastType(): WorkTypeId | null {
-  try {
-    const v = localStorage.getItem(LAST_TYPE_KEY);
-    return isType(v) ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeLastType(t: WorkTypeId) {
-  try {
-    localStorage.setItem(LAST_TYPE_KEY, t);
-  } catch {
-    /* private mode etc. — remembering the medium is a nicety */
-  }
-}
-
-/**
- * One-line add (ADR 0006 amendment): "Title — Creator", pick a medium, Enter.
- * The item lands on the To… shelf; the toast offers Undo. When the medium has
- * a lookup its hits follow the "Add …" row in the shared QuickPick (a kit
- * Combobox); the lookup never blocks — Enter adds the raw text unless a hit
- * is highlighted.
- */
-export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { defaultType?: WorkTypeId; onAdded?: (id: string) => void; autoFocus?: boolean; compact?: boolean }) {
-  const [type, setTypeState] = useState<WorkTypeId>(() => defaultType ?? readLastType() ?? "book");
-  const settings = useLookupSettings();
-  const def = workType(type);
-
-  useEffect(() => {
-    if (defaultType) setTypeState(defaultType);
-  }, [defaultType]);
-
-  function setType(t: WorkTypeId) {
-    setTypeState(t);
-    writeLastType(t);
-  }
-
-  async function add(input: { title: string; author?: string; hit?: WorkHit }) {
-    const title = input.title.trim();
-    if (!title) return;
+/** The Library's QuickAdd: books, comics and manga, looked up by free text. */
+const LIBRARY: QuickAddConfig<WorkTypeId, WorkHit> = {
+  media: WORK_TYPES,
+  creatorHint: "author",
+  useSearch(medium) {
+    const lookup = lookupFor(medium, useLookupSettings());
+    return lookup && ((q, signal) => lookup({ text: q }, signal));
+  },
+  byline: hitByline,
+  cover: (h, medium) => <Cover item={{ title: h.title, coverUrl: h.coverUrl, type: medium }} className="h-8 w-6 shrink-0" />,
+  async add(medium, input) {
+    if ("text" in input) {
+      const { title, author } = parseQuickTitle(input.text);
+      if (!title) return null;
+      return { id: await quickAddWork({ medium, title, author }), title };
+    }
+    const title = input.hit.title.trim();
+    if (!title) return null;
     // Lazy enrichment happens only on pick; a hit's Authors are found or created (ADR 0052).
-    const hit = input.hit ? await resolveHit(input.hit) : undefined;
-    const id = await quickAddWork({ medium: type, title, author: input.author, hit });
-    writeLastType(type);
-    toast.success(`Added to ${def.wantLabel}`, {
-      description: title,
-      action: {
-        label: "Undo",
-        onClick: () => void deleteWork(id),
-      },
-    });
-    onAdded?.(id);
-  }
+    const hit = await resolveHit(input.hit);
+    return { id: await quickAddWork({ medium, title, hit }), title };
+  },
+  remove: deleteWork,
+};
 
-  const lookup = lookupFor(type, settings);
-  const placeholder = `Add ${/^[aeiou]/i.test(def.label) ? "an" : "a"} ${def.label.toLowerCase()} — author…`;
-
-  const mediumPicker = compact ? (
-    <Select value={type} onValueChange={(v) => setType(v as WorkTypeId)}>
-      <SelectTrigger size="sm" className="w-28 shrink-0 text-xs" aria-label="Medium">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {WORK_TYPES.map((t) => (
-          <SelectItem key={t.id} value={t.id}>
-            {t.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  ) : (
-    <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="Medium">
-      {WORK_TYPES.map((t) => (
-        <button
-          key={t.id}
-          type="button"
-          role="radio"
-          aria-checked={type === t.id}
-          className={cn("rounded-full border px-2 py-0.5 text-2xs transition-colors", type === t.id ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent")}
-          onClick={() => setType(t.id)}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
-
-  return (
-    <div className={cn("grid gap-1.5", compact ? "" : "gap-2")}>
-      <div className={cn("flex items-center gap-2", compact ? "" : "flex-col items-stretch md:flex-row")}>
-        <QuickPick<WorkHit>
-          medium={type}
-          search={lookup && ((q, signal) => lookup({ text: q }, signal))}
-          byline={hitByline}
-          cover={(h) => <Cover item={{ title: h.title, coverUrl: h.coverUrl, type }} className="h-8 w-6 shrink-0" />}
-          onAdd={(t) => void add(parseQuickTitle(t))}
-          onPick={(h) => void add({ title: h.title, hit: h })}
-          placeholder={placeholder}
-          aria-label={`Quick add ${def.label.toLowerCase()}`}
-          autoFocus={autoFocus}
-          className="min-w-0 flex-1"
-        />
-        {compact && mediumPicker}
-      </div>
-      {!compact && mediumPicker}
-    </div>
-  );
+export function QuickAdd(props: QuickAddProps<WorkTypeId>) {
+  return <FamilyQuickAdd config={LIBRARY} {...props} />;
 }
