@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Combobox, type ComboboxOption } from "@lifeline/ui";
+import { Button, Combobox, type ComboboxOption } from "@lifeline/ui";
 import { Search, X } from "lucide-react";
 import type { Author } from "../domain/types";
 import { ensureAuthor, useAuthors } from "../data/repo";
@@ -73,11 +73,10 @@ export function AuthorPicker({
         const mine = authors.find((a) => a.externalKey === h.externalKey);
         return mine ? (value.includes(mine.id) ? null : mineOption(mine)) : olOption(h);
       })
-      .filter((s): s is Suggestion => s !== null)
-      .slice(0, 6);
+      .filter((s): s is Suggestion => s !== null);
   }
 
-  async function link(found: string) {
+  function link(found: string) {
     if (found && !value.includes(found)) onChange([...value, found]);
   }
 
@@ -91,11 +90,17 @@ export function AuthorPicker({
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {value.map((vid) => (
-            <span key={vid} className="bg-muted inline-flex max-w-full min-w-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs">
+            <span key={vid} className="bg-muted inline-flex max-w-full min-w-0 items-center gap-0.5 rounded-md pl-1.5 text-xs">
               <span className="min-w-0 truncate">{byId.get(vid)?.title ?? "…"}</span>
-              <button type="button" className="text-muted-foreground hover:text-foreground shrink-0" aria-label={`Remove ${byId.get(vid)?.title ?? "author"}`} onClick={() => onChange(value.filter((x) => x !== vid))}>
-                <X className="size-3" />
-              </button>
+              <Button
+                size="icon-xs"
+                variant="ghost"
+                className="text-muted-foreground"
+                aria-label={`Remove ${byId.get(vid)?.title ?? "author"}`}
+                onClick={() => onChange(value.filter((x) => x !== vid))}
+              >
+                <X />
+              </Button>
             </span>
           ))}
         </div>
