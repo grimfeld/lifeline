@@ -78,7 +78,7 @@ export async function updateShop(shop: Shop, input: ShopInput): Promise<void> {
   if (title !== shop.title) for (const r of await documentsWhere<Receipt>(RECEIPT, "shopId", shop.id)) await patchDocument(r.id, { title: receiptTitle(title, r.date) });
 }
 
-/** Blocked while Receipts reference it (ADR 0045). */
+/** Blocked while Receipts reference it (ADR 0082). */
 export async function deleteShop(id: string): Promise<void> {
   if ((await documentsWhere<Receipt>(RECEIPT, "shopId", id)).length > 0) throw new Error("Shop has receipts — it stays");
   await removeDocument(id);
@@ -109,7 +109,7 @@ export async function updateProduct(product: Product, input: Pick<ProductInput, 
   await putDocument<Product>({ ...product, title, tags: normalizeTags(input.tags ?? product.tags) });
 }
 
-/** Blocked while Lines reference it — merge instead (ADR 0045). */
+/** Blocked while Lines reference it — merge instead (ADR 0082). */
 export async function deleteProduct(id: string): Promise<void> {
   if ((await documentsWhere<Line>(LINE, "productId", id)).length > 0) throw new Error("Product has prices — merge it into another instead");
   await removeDocument(id);
@@ -156,7 +156,7 @@ export interface ReceiptInput {
   branch?: string;
   /** Cents; 0 = no printed total. */
   total: number;
-  /** A photo to keep: stored as an Attachment and embedded in the body (ADR 0045). */
+  /** A photo to keep: stored as an Attachment and embedded in the body (ADR 0082). */
   photo?: Blob & { name?: string };
   lines: LineInput[];
   tags?: string[];
