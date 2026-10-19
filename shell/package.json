@@ -23,7 +23,6 @@
     "@lifeline/app-ledger": "workspace:*",
     "@lifeline/app-library": "workspace:*",
     "@lifeline/app-lifelevel": "workspace:*",
-    "@lifeline/app-mail": "workspace:*",
     "@lifeline/app-manuscript": "workspace:*",
     "@lifeline/app-mood": "workspace:*",
     "@lifeline/app-museum": "workspace:*",
