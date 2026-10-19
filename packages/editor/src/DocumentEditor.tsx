@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { useOpenLinkRef } from "./openDocument";
+import { useOpenLinkRef, usePeekLinkRef } from "./openDocument";
 import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, cn, toast } from "@lifeline/ui";
 import {
   isLinkable,
@@ -160,7 +160,8 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
   }, []);
 
   const openRef = useOpenLinkRef(index, onCreateUnresolved);
-  const context = useMemo(() => ({ docDate, openRef }), [docDate, openRef]);
+  const peekRef = usePeekLinkRef(index);
+  const context = useMemo(() => ({ docDate, openRef, peekRef }), [docDate, openRef, peekRef]);
 
   const stored = typeof doc.body === "string" ? doc.body : "";
   /** The text the editor works on: our own writes coming back are not news (`bodyEcho`). */

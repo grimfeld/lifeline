@@ -1,17 +1,35 @@
 import { useCallback, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { docHref, openDocument, openPrivateDialog, putDocument, type Document, type LinkIndex, type LinkRef } from "@lifeline/core";
+import { docHref, openDocument, openPrivateDialog, putDocument, useInPeek, useOpenPeek, type Document, type LinkIndex, type LinkRef } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
 
 /**
  * Opens a Document the way a link should (ADR 0057): inside its Home Module
  * it goes there, from anywhere else it **peeks** — the owner's small view over
- * where the user is.
+ * where the user is — and inside a Peek it replaces what the Peek shows (ADR 0085).
  */
 export function useOpenDocument(): (doc: Document) => void {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  return useCallback((doc: Document) => openDocument(doc, { pathname, navigate }), [pathname, navigate]);
+  const inPeek = useInPeek();
+  return useCallback((doc: Document) => openDocument(doc, { pathname, navigate, inPeek }), [pathname, navigate, inPeek]);
+}
+
+/**
+ * Peeks a link (`Ctrl+Enter` in the editor, ADR 0085): a Document opens in the
+ * Peek whatever its Home Module, a link behind the Private lock asks to
+ * unlock, and an unresolved name is left alone — peeking makes nothing.
+ */
+export function usePeekLinkRef(index: LinkIndex): (ref: LinkRef, name: string) => void {
+  const peek = useOpenPeek();
+  return useCallback(
+    (ref: LinkRef) => {
+      if (ref.kind === "doc") {
+        if (index.byId.has(ref.id)) peek(ref.id);
+      } else if (ref.kind === "locked") openPrivateDialog("unlock");
+    },
+    [index, peek],
+  );
 }
 
 /**
