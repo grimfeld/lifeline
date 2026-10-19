@@ -1,21 +1,22 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { useQuotedWorks } from "../data/works";
+import { Card, CardContent, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { useSources } from "../data/works";
 import { useQuotes } from "../data/quotes";
 import { searchQuotes } from "../domain/quotes";
 import type { Quote } from "../domain/types";
-import { WORK_LABELS, WORK_TYPE_IDS, type QuotedWork } from "../domain/works";
+import { KNOWN_FAMILIES, familyLabel, type SourceItem } from "../domain/works";
 import { Cover } from "../components/Cover";
 import { newestFirst, QuoteBlock } from "../components/QuoteBlock";
 
 import { cn } from "@lifeline/ui";
 
-export type Medium = (typeof WORK_TYPE_IDS)[number] | "all";
+/** A family the shelf knows ("book", "podcast"…), or "all". */
+export type Medium = string;
 
 function TypeChips({ value, onChange, counts }: { value: Medium; onChange: (v: Medium) => void; counts: Map<string, number> }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {[{ id: "all" as const, label: "All" }, ...WORK_TYPE_IDS.map((t) => ({ id: t, label: WORK_LABELS[t].plural }))].map((t) => (
+      {[{ id: "all", label: "All" }, ...familiesIn(counts).map((f) => ({ id: f, label: familyLabel(f, true) }))].map((t) => (
         <button
           key={t.id}
           type="button"
@@ -31,6 +32,13 @@ function TypeChips({ value, onChange, counts }: { value: Medium; onChange: (v: M
   );
 }
 
+/** The families that have quotes, in the shelf's order (works, then the App's own kinds, then the rest). */
+function familiesIn(counts: Map<string, number>): string[] {
+  const order = KNOWN_FAMILIES.map((f) => f.value);
+  const present = [...counts.keys()].filter((k) => k !== "all" && (counts.get(k) ?? 0) > 0);
+  return present.sort((a, b) => (order.indexOf(a) + 1 || 999) - (order.indexOf(b) + 1 || 999) || a.localeCompare(b));
+}
+
 type Sort = "newest" | "oldest" | "random";
 
 function shuffled<T>(xs: T[]): T[] {
@@ -42,9 +50,9 @@ function shuffled<T>(xs: T[]): T[] {
   return a;
 }
 
-/** The Quotes screen (ADR 0024): every quote, searchable and filterable, grouped by the work it came from. */
+/** The Quotes screen (ADR 0024, ADR 0070): every quote, searchable and filterable, grouped by the Source it came from. */
 export function CommonplaceScreen() {
-  const items = useQuotedWorks();
+  const items = useSources();
   const quotes = useQuotes();
   const [q, setQ] = useState("");
   const [type, setType] = useState<Medium>("all");
@@ -56,21 +64,21 @@ export function CommonplaceScreen() {
   const counts = useMemo(() => {
     const m = new Map<string, number>();
     for (const x of quotes) {
-      const t = byId.get(x.mediaId)?.type;
+      const t = byId.get(x.source)?.family;
       if (t) m.set(t, (m.get(t) ?? 0) + 1);
     }
     m.set("all", quotes.length);
     return m;
   }, [quotes, byId]);
   const itemOptions = useMemo(() => {
-    const withQuotes = new Set(quotes.map((x) => x.mediaId));
-    return items.filter((m) => withQuotes.has(m.id) && (type === "all" || m.type === type)).sort((a, b) => a.title.localeCompare(b.title));
+    const withQuotes = new Set(quotes.map((x) => x.source));
+    return items.filter((m) => withQuotes.has(m.id) && (type === "all" || m.family === type)).sort((a, b) => a.title.localeCompare(b.title));
   }, [items, quotes, type]);
 
   const filtered = useMemo(() => {
     let xs = searchQuotes(quotes, byId, q);
-    if (type !== "all") xs = xs.filter((x) => byId.get(x.mediaId)?.type === type);
-    if (itemId !== "all") xs = xs.filter((x) => x.mediaId === itemId);
+    if (type !== "all") xs = xs.filter((x) => byId.get(x.source)?.family === type);
+    if (itemId !== "all") xs = xs.filter((x) => x.source === itemId);
     if (sort === "random") {
       for (const x of shuffled(xs)) if (!randomRank.has(x.id)) randomRank.set(x.id, randomRank.size);
       return [...xs].sort((a, b) => (randomRank.get(a.id) ?? 0) - (randomRank.get(b.id) ?? 0));
@@ -81,14 +89,14 @@ export function CommonplaceScreen() {
 
   // Group by item in order of first appearance.
   const groups = useMemo(() => {
-    const out: { item: QuotedWork | undefined; id: string; quotes: Quote[] }[] = [];
+    const out: { item: SourceItem | undefined; id: string; quotes: Quote[] }[] = [];
     const idx = new Map<string, number>();
     for (const x of filtered) {
-      let i = idx.get(x.mediaId);
+      let i = idx.get(x.source);
       if (i === undefined) {
         i = out.length;
-        idx.set(x.mediaId, i);
-        out.push({ item: byId.get(x.mediaId), id: x.mediaId, quotes: [] });
+        idx.set(x.source, i);
+        out.push({ item: byId.get(x.source), id: x.source, quotes: [] });
       }
       out[i].quotes.push(x);
     }
@@ -103,54 +111,61 @@ export function CommonplaceScreen() {
             Quotes · <span className="tabular-nums">{quotes.length}</span>
           </h1>
         </div>
-        <TypeChips
-          value={type}
-          onChange={(t) => {
-            setType(t);
-            setItemId("all");
-          }}
-          counts={counts}
-        />
-        <div className="flex flex-wrap gap-2">
-          <Input className="min-w-40 flex-1" placeholder="Search quotes, comments, titles, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Select value={itemId} onValueChange={setItemId}>
-            <SelectTrigger className="w-48" aria-label="Item">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All items</SelectItem>
-              {itemOptions.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
-            <SelectTrigger className="w-32" aria-label="Sort">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="oldest">Oldest</SelectItem>
-              <SelectItem value="random">Random</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <PhoneDock>
+          {/* Desk: the chips stay above the search (md:-order-1); phone: they and the selects go in the Filters sheet. */}
+          <div className="flex flex-1 flex-wrap gap-2 max-md:contents">
+            <Input className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search quotes, comments, titles, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <PhoneFilters active={+(type !== "all") + +(itemId !== "all") + +(sort !== "newest")}>
+              <div className="w-full md:-order-1 md:mb-1">
+                <TypeChips
+                  value={type}
+                  onChange={(t) => {
+                    setType(t);
+                    setItemId("all");
+                  }}
+                  counts={counts}
+                />
+              </div>
+              <Select value={itemId} onValueChange={setItemId}>
+                <SelectTrigger className="w-48" aria-label="Source">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Every Source</SelectItem>
+                  {itemOptions.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
+                <SelectTrigger className="w-32" aria-label="Sort">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="oldest">Oldest</SelectItem>
+                  <SelectItem value="random">Random</SelectItem>
+                </SelectContent>
+              </Select>
+            </PhoneFilters>
+          </div>
+        </PhoneDock>
       </div>
 
       {groups.length === 0 ? (
         <Card>
-          <CardContent className="text-muted-foreground p-8 text-center text-sm">{quotes.length === 0 ? "No quotes yet — add one from any book, film, album or game." : "Nothing matches."}</CardContent>
+          <CardContent className="text-muted-foreground p-8 text-center text-sm">{quotes.length === 0 ? "No quotes yet — keep one from any book, film, article or podcast." : "Nothing matches."}</CardContent>
         </Card>
       ) : (
         <div className="grid gap-5">
           {groups.map((g) => (
-            <section key={g.id} className="grid gap-2" aria-label={g.item?.title ?? "Unknown item"}>
+            <section key={g.id} className="grid gap-2" aria-label={g.item?.title ?? "Unknown source"}>
               <header className="flex items-center gap-2">
                 {g.item && <Cover item={g.item} className="h-10 w-7 text-[7px]" />}
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{g.item?.title ?? "Unknown item"}</div>
+                  <div className="truncate text-sm font-medium">{g.item?.title ?? "Unknown source"}</div>
                   {g.item?.creator && <div className="text-muted-foreground truncate text-xs">{g.item.creator}</div>}
                 </div>
                 <span className="text-muted-foreground ml-auto text-xs tabular-nums">{g.quotes.length}</span>

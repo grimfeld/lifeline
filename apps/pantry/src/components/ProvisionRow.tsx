@@ -34,9 +34,9 @@ export function ProvisionRow({ p, onOpen, storageName }: { p: Provision; onOpen?
       <button type="button" className={cn("min-w-0 flex-1 truncate text-left text-sm", onOpen && "hover:underline")} onClick={onOpen}>
         {p.title}
       </button>
-      {p.unit ? <span className="text-muted-foreground shrink-0 text-xs">{p.unit}</span> : null}
+      {p.unit ? <span className="text-muted-foreground max-w-24 min-w-0 truncate text-xs">{p.unit}</span> : null}
       {expired ? <span className="text-destructive shrink-0 text-xs">expired {p.expires}</span> : soon ? <span className="shrink-0 text-xs text-amber-600 dark:text-amber-500">by {p.expires}</span> : null}
-      {storageName ? <span className="text-muted-foreground ml-auto shrink-0 text-xs">{storageName}</span> : null}
+      {storageName ? <span className="text-muted-foreground ml-auto max-w-32 min-w-0 truncate text-xs">{storageName}</span> : null}
       {low ? <HandOffMenu handoff={() => ({ title: p.title, text: p.unit })} /> : null}
     </li>
   );

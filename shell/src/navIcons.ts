@@ -1,13 +1,15 @@
 import {
   BookOpen,
   CalendarDays,
-  Clock,
-  Columns3,
   Home,
   Landmark,
-  Languages,
+  Brain,
   LayoutDashboard,
   FolderKanban,
+  Lightbulb,
+  LibraryBig,
+  Feather,
+  BookOpenText,
   Mail,
   MapPin,
   NotebookText,
@@ -25,16 +27,18 @@ export const MODULE_ICONS: Record<string, React.ComponentType<{ className?: stri
   tasks: FolderKanban,
   culture: BookOpen,
   money: Landmark,
-  notes: NotebookText,
+  journal: NotebookText,
+  notes: LibraryBig,
+  research: Feather,
+  manuscript: BookOpenText,
+  thoughts: Lightbulb,
   progress: TrendingUp,
-  languages: Languages,
+  languages: Brain,
   mail: Mail,
 };
 
 export const SURFACE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   calendar: CalendarDays,
-  week: Columns3,
-  schedule: Clock,
   map: MapPin,
   graph: Waypoints,
 };
@@ -42,6 +46,7 @@ export const SURFACE_ICONS: Record<string, React.ComponentType<{ className?: str
 /** What a Phone bar slot draws. A Screen has no icon of its own, and needs none. */
 export function slotIcon(kind: string, id: string): React.ComponentType<{ className?: string }> {
   if (kind === "module") return MODULE_ICONS[id] ?? LayoutDashboard;
-  if (kind === "surface") return SURFACE_ICONS[id] ?? LayoutDashboard;
+  // A slot still pointed at the old Week or Schedule opens the Calendar's view (ADR 0063).
+  if (kind === "surface") return SURFACE_ICONS[id] ?? (id === "week" || id === "schedule" ? CalendarDays : LayoutDashboard);
   return LayoutDashboard;
 }

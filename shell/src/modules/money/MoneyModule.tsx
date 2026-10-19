@@ -1,26 +1,24 @@
 import { ChartLine, HandCoins, Landmark, LayoutGrid, PiggyBank, Tag } from "lucide-react";
-import { ModuleCard } from "../ModuleCard";
-import { handModule, ModuleHomeHeader } from "../handModule";
+import { overviewPage } from "../Overview";
+import { handModule } from "../handModule";
 
 /**
- * Money's home: the month in one page. What Pocket says is left, what the
+ * Money's Overview: the month in one page. What Pocket says is left, what the
  * Budget says is spent, where the money sits, and what the bank will take
- * next — three Apps' Cards side by side, which no one App could show.
+ * next — three Apps' Cards side by side, which no one App could show. The
+ * default; each Workspace may rearrange it (ADR 0066).
  */
-function MoneyOverview() {
-  const month = new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" });
-  return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-4 md:p-6">
-      <ModuleHomeHeader title="Money" subtitle={month} />
-      <div className="grid gap-4 md:grid-cols-2">
-        <ModuleCard cardId="pocket.allowances" title="What's left" />
-        <ModuleCard cardId="ledger.budget-month" />
-        <ModuleCard cardId="ledger.balances" />
-        <ModuleCard cardId="ledger.dues" />
-      </div>
-    </div>
-  );
-}
+const MoneyOverview = overviewPage({
+  moduleId: "money",
+  title: "Money",
+  subtitle: () => new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+  defaults: [
+    { cardId: "pocket.allowances", title: "What's left" },
+    { cardId: "ledger.budget-month" },
+    { cardId: "ledger.balances" },
+    { cardId: "ledger.dues" },
+  ],
+});
 
 /**
  * Money (ADR 0057), in the order the user works it: what is left this month
