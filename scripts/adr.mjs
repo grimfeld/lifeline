@@ -15,8 +15,6 @@ import { basename, dirname, join, resolve } from "node:path";
 
 const DIR = "docs/adr";
 const NAME = /^(\d{4})-.+\.md$/;
-// Taken twice before this script existed. Each may stay at two files; a third fails.
-const GRANDFATHERED = new Set([]);
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] });
 const gitIn = (input, ...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1 << 28, input, stdio: ["pipe", "pipe", "ignore"] });
@@ -92,7 +90,7 @@ function check() {
   const here = adrs(readdirSync(DIR));
   const byNumber = Map.groupBy(here, number);
   for (const [n, files] of byNumber) {
-    if (files.length > (GRANDFATHERED.has(n) ? 2 : 1)) problems.push(`${n} is taken by ${files.length} ADRs: ${files.join(", ")}`);
+    if (files.length > 1) problems.push(`${n} is taken by ${files.length} ADRs: ${files.join(", ")}`);
   }
 
   // Numbers this change adds, against branches that haven't merged into it. Not an error:
