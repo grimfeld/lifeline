@@ -1,5 +1,5 @@
 import { MODULES } from "./manifest";
-import { moduleOrder } from "./intakeGroups";
+import { orderGroups } from "./intakeGroups";
 import { normalizeName } from "./markdown";
 import type { LinkIndex } from "./documents/links";
 import { maskProse, wikilinkFor } from "./documents/mentions";
@@ -11,10 +11,10 @@ import { aliasesOf, type Document, type DocumentTypeDef } from "./documents/type
  * ordered groups come out; the shell only draws them.
  *
  * Top to bottom: **Link** (to the Document the text already names, and
- * "Link to…" a search over every Linkable Document), then a
- * group for each App in no Module (the Calendar, as on the capture sheet),
- * then each Module in Core's order with the one the user is in first, and
- * last **Other**, for user-defined types homed in no Module. A Module's group
+ * "Link to…" a search over every Linkable Document), then the Module the
+ * user is in, then a group for each App in no Module (the Calendar, as on the
+ * capture sheet), then the other Modules in Core's order, and last **Other**,
+ * for user-defined types homed in no Module. A Module's group
  * holds its user-defined types, then its Apps' Intakes. The order is fixed by
  * where things live, never by use.
  */
@@ -88,12 +88,10 @@ export function buildSelectionMenu<I extends MenuIntake>(input: SelectionMenuInp
   const byGroup = new Map<string, SelectionEntry<I>[]>();
   const add = (group: string, e: SelectionEntry<I>) => byGroup.set(group, [...(byGroup.get(group) ?? []), e]);
 
-  const other: SelectionEntry<I>[] = [];
   if (makesFrom(input.text)) {
     for (const t of input.userTypes ?? []) {
       const e: SelectionEntry<I> = { kind: "make", key: `make:${t.id}`, title: t.title, typeId: t.id, linkable: t.linkable };
-      if (t.homeModule && known.has(t.homeModule)) add(t.homeModule, e);
-      else other.push(e);
+      add(t.homeModule && known.has(t.homeModule) ? t.homeModule : "other", e);
     }
   }
 
@@ -103,15 +101,7 @@ export function buildSelectionMenu<I extends MenuIntake>(input: SelectionMenuInp
   }
 
   const groups: SelectionGroup<I>[] = link.length ? [{ id: "link", title: "Link", entries: link }] : [];
-  for (const [id, entries] of byGroup) {
-    if (id.startsWith("app:")) groups.push({ id, title: appTitle(id.slice(4)) ?? id.slice(4), entries });
-  }
-  const modules = moduleOrder(currentModule);
-  for (const m of modules) {
-    const entries = byGroup.get(m.id);
-    if (entries) groups.push({ id: m.id, title: m.title, entries });
-  }
-  if (other.length) groups.push({ id: "other", title: "Other", entries: other });
+  for (const { id, title, items } of orderGroups(byGroup, { appTitle, currentModule })) groups.push({ id, title, entries: items });
   return filterMenu(groups, input.query ?? "");
 }
 

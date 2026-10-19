@@ -57,8 +57,12 @@ describe("the Selection menu's groups", () => {
     ]);
   });
 
-  it("lists the Module the user is in first among the Modules, the others keeping their places", () => {
-    expect(shape(menu({ currentModule: "languages" })).map(([t]) => t)).toEqual(["Link", "Calendar", "Knowledge", "House", "Projects", "Notes"]);
+  it("lists the Module the user is in first, right after Link, then an App in no Module, the others keeping their places", () => {
+    expect(shape(menu({ currentModule: "languages" })).map(([t]) => t)).toEqual(["Link", "Knowledge", "Calendar", "House", "Projects", "Notes"]);
+  });
+
+  it("keeps an App in no Module first when the Module the user is in offers nothing", () => {
+    expect(shape(menu({ currentModule: "journal" })).map(([t]) => t)).toEqual(["Link", "Calendar", "House", "Projects", "Notes", "Knowledge"]);
   });
 });
 

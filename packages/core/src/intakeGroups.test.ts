@@ -52,8 +52,8 @@ describe("the Handoff page's Intakes, grouped by Module", () => {
     ]);
   });
 
-  it("lists the Module the user is in first among the Modules", () => {
-    expect(shape(group([...APP_INTAKES, ...typeIntakes], "notes")).map(([t]) => t)).toEqual(["Calendar", "Notes", "House", "Projects", "Journal", "Other"]);
+  it("lists the Module the user is in first of all, then an App in no Module, then the other Modules in order", () => {
+    expect(shape(group([...APP_INTAKES, ...typeIntakes], "notes")).map(([t]) => t)).toEqual(["Notes", "Calendar", "House", "Projects", "Journal", "Other"]);
   });
 
   it("puts a type homed in a Module this Lifeline does not know under Other", () => {
