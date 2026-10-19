@@ -22,6 +22,10 @@ jobs:
       - run: node scripts/check-ui.mjs
         env:
           CHECK_UI_BASE: origin/${{ github.base_ref || 'master' }}
+      # No ADR number twice; warns when another branch holds a number this change adds.
+      - run: node scripts/adr.mjs check
+        env:
+          ADR_BASE: origin/${{ github.base_ref || 'master' }}
       - run: pnpm -r typecheck
       - run: pnpm -r test
       # Again on a French desk west of UTC: no test may lean on the runner's
