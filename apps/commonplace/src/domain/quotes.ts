@@ -1,6 +1,6 @@
 import type { DateStr } from "@lifeline/core";
 import type { Quote } from "./types";
-import type { QuotedWork } from "./works";
+import type { SourceItem } from "./works";
 
 /** Opening words of a quote, for link targets and titles: ≤ n chars, word-safe, with an ellipsis when cut. */
 export function quoteName(text: string, n = 48): string {
@@ -12,8 +12,8 @@ export function quoteName(text: string, n = 48): string {
 }
 
 /** The blockquote inserted into a note: text lines, then an attribution line linking the item. */
-export function quoteMarkdown(q: Quote, item: QuotedWork | undefined): string {
-  const lines = q.text.trim().split(/\r?\n/).map((l) => `> ${l}`.trimEnd());
+export function quoteMarkdown(q: Quote, item: SourceItem | undefined): string {
+  const lines = q.body.trim().split(/\r?\n/).map((l) => `> ${l}`.trimEnd());
   const who = item ? `[[${item.title}]]${item.creator ? `, ${item.creator}` : ""}` : "";
   const loc = q.locator.trim();
   const tail = [who, loc].filter(Boolean).join(", ");
@@ -33,11 +33,11 @@ export function quotesOn(quotes: Quote[], day: DateStr): Quote[] {
   return quotes.filter((q) => q.capturedOn === day);
 }
 
-export function searchQuotes(quotes: Quote[], items: Map<string, QuotedWork>, q: string): Quote[] {
+export function searchQuotes(quotes: Quote[], items: Map<string, SourceItem>, q: string): Quote[] {
   const needle = q.trim().toLowerCase();
   if (!needle) return quotes;
   return quotes.filter((x) => {
-    const item = items.get(x.mediaId);
-    return [x.text, x.comment, x.locator, item?.title ?? "", item?.creator ?? ""].some((s) => s.toLowerCase().includes(needle)) || (x.tags ?? []).some((t) => t.includes(needle.replace(/^#/, "")));
+    const item = items.get(x.source);
+    return [x.body, x.comment, x.locator, item?.title ?? "", item?.creator ?? ""].some((s) => s.toLowerCase().includes(needle)) || (x.tags ?? []).some((t) => t.includes(needle.replace(/^#/, "")));
   });
 }

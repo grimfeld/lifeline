@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import {
+  commandDefaultFilter,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -9,15 +10,50 @@ import {
   CommandList,
   CommandSeparator,
 } from "@lifeline/ui";
-import { appById, moduleById, moduleHome, registeredApps, screenRoute, useAllCommands, useWorkspaceModules, useWorkspaceScreens, type CommandDef } from "@lifeline/core";
+import {
+  appById,
+  CALENDAR_VIEWS,
+  moduleById,
+  moduleHome,
+  registeredApps,
+  screenRoute,
+  useAllCommands,
+  useCaptureSheet,
+  useWorkspaceModules,
+  useWorkspaceScreens,
+  type CaptureEntry,
+  type CommandDef,
+} from "@lifeline/core";
 import { MODULE_ICONS } from "../navIcons";
-import { CalendarDays, Clock, Columns3, LayoutDashboard, MapPin, Terminal } from "lucide-react";
+import { CalendarDays, LayoutDashboard, MapPin, Terminal } from "lucide-react";
+import { entryIcon, foldMembers } from "../capture/captureParts";
 
 type DialogCommand = CommandDef & { appId: string };
+
+/**
+ * The palette carries capture at the desk (CONTEXT.md "Capture sheet"):
+ * opened empty it shows the Workspace's pins, in the sheet's order; typed into,
+ * capture Commands rank above everything else, folded ones included — typing
+ * "movie" finds "Add movie…" directly. Ungated by Module, as the palette is.
+ *
+ * The ranking rides on cmdk's own scorer: a capture item carries a marker
+ * keyword, and any match on it scores one above the best a plain match can.
+ * cmdk orders groups by their best item, so the Capture group leads.
+ */
+const CAPTURE_MARK = "\u0000capture";
+
+function rankCaptureFirst(value: string, search: string, keywords?: string[]): number {
+  const capture = keywords?.includes(CAPTURE_MARK) ?? false;
+  const score = commandDefaultFilter(value, search, capture ? keywords!.filter((k) => k !== CAPTURE_MARK) : keywords);
+  return capture && score > 0 ? score + 1 : score;
+}
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [activeDialog, setActiveDialog] = useState<DialogCommand | null>(null);
+  const [search, setSearch] = useState("");
+  // A pinned fold opens its members here, in place of the full list.
+  const [openFold, setOpenFold] = useState<Extract<CaptureEntry, { kind: "fold" }> | null>(null);
   const navigate = useNavigate();
 
   const screens = useWorkspaceScreens();
@@ -27,27 +63,111 @@ export function CommandPalette() {
     function onKey(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((o) => !o);
+        setOpen((o) => {
+          if (o) {
+            setSearch("");
+            setOpenFold(null);
+          }
+          return !o;
+        });
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  function setPaletteOpen(o: boolean) {
+    setOpen(o);
+    if (!o) {
+      setSearch("");
+      setOpenFold(null);
+    }
+  }
+
   function pick(fn: () => void) {
-    setOpen(false);
+    setPaletteOpen(false);
     fn();
   }
 
+  function runCommand(c: DialogCommand) {
+    pick(() => {
+      if (c.dialog) setActiveDialog(c);
+      else void c.run?.({ navigate });
+    });
+  }
+
+  function pickEntry(e: CaptureEntry) {
+    if (e.kind === "fold") {
+      setOpenFold(e);
+      setSearch("");
+    } else runCommand(e.command);
+  }
+
   const commands = useAllCommands();
+  const { pinned } = useCaptureSheet();
+  const runnable = commands.filter((c) => c.dialog || c.run);
   const ActiveDialogComponent = activeDialog?.dialog;
 
   return (
     <>
-      <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Type a command or search…" />
+      <CommandDialog open={open} onOpenChange={setPaletteOpen} filter={rankCaptureFirst}>
+        <CommandInput
+          placeholder={openFold ? `${openFold.title.replace(/…$/, "")}: which?` : "Type a command or search…"}
+          value={search}
+          onValueChange={setSearch}
+          onKeyDown={(e) => {
+            if (openFold && e.key === "Backspace" && search === "") setOpenFold(null);
+          }}
+        />
         <CommandList>
           <CommandEmpty>No results.</CommandEmpty>
+          {openFold ? (
+            <CommandGroup heading={openFold.title}>
+              {foldMembers(openFold).map(({ entry, label }) => {
+                const Icon = entryIcon(entry);
+                return (
+                  <CommandItem key={entry.key} value={`${label} ${entry.key}`} onSelect={() => pickEntry(entry)}>
+                    <Icon /> {label}
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          ) : (
+          <>
+          {search === "" && pinned.length > 0 && (
+            <>
+              <CommandGroup heading="Pinned">
+                {pinned.map((e) => {
+                  const Icon = entryIcon(e);
+                  return (
+                    <CommandItem key={`pin-${e.key}`} value={`pinned ${e.title} ${e.key}`} onSelect={() => pickEntry(e)}>
+                      <Icon /> {e.title}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+              <CommandSeparator />
+            </>
+          )}
+          <CommandGroup heading="Capture">
+            {runnable
+              .filter((c) => c.capture)
+              .map((c) => {
+                const Icon = c.icon ?? Terminal;
+                return (
+                  <CommandItem
+                    key={`capture-${c.appId}/${c.id}`}
+                    value={`${c.title} ${c.appId}/${c.id}`}
+                    keywords={[...(c.keywords ?? []), appById(c.appId)?.title ?? "", CAPTURE_MARK]}
+                    onSelect={() => runCommand(c)}
+                  >
+                    <Icon /> {c.title}
+                    <span className="text-muted-foreground ml-auto text-xs">{appById(c.appId)?.title}</span>
+                  </CommandItem>
+                );
+              })}
+          </CommandGroup>
+          <CommandSeparator />
           <CommandGroup heading="Go to">
             {modules.map((id) => {
               const m = moduleById(id);
@@ -67,12 +187,12 @@ export function CommandPalette() {
             <CommandItem onSelect={() => pick(() => navigate("/calendar"))}>
               <CalendarDays /> Calendar
             </CommandItem>
-            <CommandItem onSelect={() => pick(() => navigate("/week"))}>
-              <Columns3 /> Week
-            </CommandItem>
-            <CommandItem onSelect={() => pick(() => navigate("/schedule"))}>
-              <Clock /> Schedule
-            </CommandItem>
+            {/* Each view by name, so "week" or "upcoming" finds it (ADR 0063). */}
+            {CALENDAR_VIEWS.map((v) => (
+              <CommandItem key={v.id} value={`Calendar ${v.title}`} onSelect={() => pick(() => navigate(`/calendar?view=${v.id}`))}>
+                <CalendarDays /> Calendar · {v.title}
+              </CommandItem>
+            ))}
             <CommandItem onSelect={() => pick(() => navigate("/map"))}>
               <MapPin /> Map
             </CommandItem>
@@ -93,20 +213,15 @@ export function CommandPalette() {
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Commands">
-            {commands
-              .filter((c) => c.dialog || c.run)
+            {runnable
+              .filter((c) => !c.capture)
               .map((c) => {
                 const Icon = c.icon ?? Terminal;
                 return (
                   <CommandItem
                     key={c.id}
                     keywords={c.keywords}
-                    onSelect={() =>
-                      pick(() => {
-                        if (c.dialog) setActiveDialog(c);
-                        else void c.run?.({ navigate });
-                      })
-                    }
+                    onSelect={() => runCommand(c)}
                   >
                     <Icon /> {c.title}
                     <span className="text-muted-foreground ml-auto text-xs">
@@ -116,6 +231,8 @@ export function CommandPalette() {
                 );
               })}
           </CommandGroup>
+          </>
+          )}
         </CommandList>
       </CommandDialog>
 

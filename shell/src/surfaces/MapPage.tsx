@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useLocatablePins, useLocatableTypes } from "@lifeline/core";
-import { cn, MapView } from "@lifeline/ui";
+import { cn, MapView, PhoneDock } from "@lifeline/ui";
 import { MapPin } from "lucide-react";
 
 /**
@@ -38,28 +38,30 @@ export function MapPage() {
         <span className="text-muted-foreground text-xs">
           {pins.length} {pins.length === 1 ? "pin" : "pins"}
         </span>
-        <div className="ml-auto flex flex-wrap gap-1">
-          {providers.map((p) => {
-            const on = !hidden.has(p.value);
-            const color = all.find((x) => x.type === p.value)?.color;
-            return (
-              <button
-                key={p.value}
-                type="button"
-                onClick={() => toggle(p.value)}
-                aria-pressed={on}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors",
-                  on ? "bg-accent" : "text-muted-foreground opacity-60",
-                )}
-              >
-                <span className="size-2 rounded-full" style={{ background: color ?? "var(--chart-green)" }} />
-                {p.label}
-                <span className="text-muted-foreground tabular-nums">{counts.get(p.value) ?? 0}</span>
-              </button>
-            );
-          })}
-        </div>
+        <PhoneDock order={1}>
+          <div className="ml-auto flex flex-wrap gap-1 max-md:contents">
+            {providers.map((p) => {
+              const on = !hidden.has(p.value);
+              const color = all.find((x) => x.type === p.value)?.color;
+              return (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => toggle(p.value)}
+                  aria-pressed={on}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors max-md:h-8 max-md:justify-center max-md:px-3",
+                    on ? "bg-accent" : "text-muted-foreground opacity-60",
+                  )}
+                >
+                  <span className="size-2 rounded-full" style={{ background: color ?? "var(--chart-green)" }} />
+                  {p.label}
+                  <span className="text-muted-foreground tabular-nums">{counts.get(p.value) ?? 0}</span>
+                </button>
+              );
+            })}
+          </div>
+        </PhoneDock>
       </div>
       <div className="min-h-0 flex-1 p-2">
         {providers.length === 0 ? (

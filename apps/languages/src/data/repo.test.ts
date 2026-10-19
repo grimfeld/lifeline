@@ -1,12 +1,12 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
-import { DECK, LANGUAGE, RECALL, SENTENCE, WORD, type Deck, type Item } from "../domain/types";
+import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item } from "../domain/types";
 import { addDeck, setMembership } from "./repo";
 
-// The Languages types, bare: the App manifest pulls in screens that need a DOM.
+// The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], builtIn: true }) as unknown as DocumentTypeDef;
-initApps([{ id: "languages", title: "Languages", types: [LANGUAGE, WORD, SENTENCE, RECALL, DECK].map(bare), screens: [], cards: [], commands: [] }]);
+initApps([{ id: "languages", title: "Knowledge", types: [TOPIC, WORD, SENTENCE, RECALL, DECK].map(bare), screens: [], cards: [], commands: [] }]);
 
 const word = (id: string) => ({ id, type: WORD, languageId: "es" }) as Item;
 
