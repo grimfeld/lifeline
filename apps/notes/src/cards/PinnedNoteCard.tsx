@@ -25,7 +25,7 @@ export function PinnedNoteCard({ settings, configure }: CardProps) {
       {mode === "excerpt" ? (
         text ? <div className="whitespace-pre-line">{text}</div> : <span className="text-muted-foreground italic">Empty note.</span>
       ) : (
-        <MarkdownView body={note.body} index={index} docDate={note.type === DAILY ? note.title : null} compact />
+        <MarkdownView body={note.body} index={index} docDate={note.type === DAILY ? note.title : null} compact origin={note.id} />
       )}
     </div>
   );
