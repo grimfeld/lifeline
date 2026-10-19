@@ -2,8 +2,9 @@ import { useMemo } from "react";
 import { Badge } from "@lifeline/ui";
 import type { Document } from "@lifeline/core";
 import type { Product } from "../domain/types";
-import { cheapest, formatUnitPrice, historyOf, latestUsual, observe } from "../domain/derive";
-import { useLines, useReceipts, useShops } from "../data/repo";
+import { cheapest, comparedBy, historyOf, latestUsual, observe } from "../domain/derive";
+import { formatUnitPrice, measureOf } from "../domain/measure";
+import { useLines, useProduct, useReceipts, useShops } from "../data/repo";
 
 /**
  * Prices' Peek (ADR 0057): a Product seen from wherever a link to it was
@@ -11,11 +12,13 @@ import { useLines, useReceipts, useShops } from "../data/repo";
  * without leaving: what it usually costs, and where it is cheapest.
  */
 export function ProductPeek({ doc }: { doc: Document }) {
-  const p = doc as Product;
+  // Normalised, so a Product stored before compare-by still reads its Measure.
+  const p = useProduct(doc.id) ?? (doc as Product);
   const lines = useLines();
   const receipts = useReceipts();
   const shops = useShops();
-  const history = useMemo(() => historyOf(p.id, observe(lines, receipts)), [p.id, lines, receipts]);
+  const history = useMemo(() => historyOf(p.id, comparedBy(observe(lines, receipts), [p])), [p, lines, receipts]);
+  const measure = measureOf(p);
   const best = cheapest(history);
   const shopName = (id: string) => shops.find((s) => s.id === id)?.title ?? "?";
   const rows = [...history.entries()]
@@ -28,7 +31,7 @@ export function ProductPeek({ doc }: { doc: Document }) {
     <div className="flex flex-col gap-4">
       {best && (
         <div className="flex flex-col">
-          <span className="text-2xl font-semibold tabular-nums">{formatUnitPrice(best.point.unit, p.measure)}</span>
+          <span className="text-2xl font-semibold tabular-nums">{formatUnitPrice(best.point.unit, measure)}</span>
           <span className="text-muted-foreground text-sm">
             cheapest at {shopName(best.shopId)} · {best.point.date}
           </span>
@@ -41,7 +44,7 @@ export function ProductPeek({ doc }: { doc: Document }) {
             <li key={r.shopId} className="flex items-center justify-between gap-3 border-b py-1 last:border-0">
               <span className="min-w-0 flex-1 truncate">{shopName(r.shopId)}</span>
               {r.last?.promo && <Badge variant="outline">promo last</Badge>}
-              <span className="tabular-nums">{r.usual ? formatUnitPrice(r.usual.unit, p.measure) : "promo only"}</span>
+              <span className="tabular-nums">{r.usual ? formatUnitPrice(r.usual.unit, measure) : "promo only"}</span>
             </li>
           ))}
         </ul>

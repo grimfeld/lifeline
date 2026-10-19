@@ -13,20 +13,60 @@ export const productHref = (id: string) => `${PRICES_HREF}/p/${id}`;
 export const PRICES_COLOR = "var(--chart-green)";
 
 /**
- * The one thing a Product fixes (CONTEXT.md "Product", ADR 0082): the
- * measure every Line of it is expressed in. Pack size is *not* here — a
- * litre and a six-pack are one Product with different amounts on the Line.
+ * A Product's Measure (CONTEXT.md "Measure (Prices)", ADR 0084): a
+ * dimension and the unit it is read in. Amounts are always kept in the
+ * dimension's base unit (kg, L, count, m); the reading unit changes only how
+ * they are shown and typed, so changing it — or a count's name — rewrites no
+ * Line. Pack size is *not* here: a litre and a six-pack are one Product with
+ * different amounts on the Line.
  */
-export type Measure = "kg" | "l" | "piece";
-export const MEASURES: Measure[] = ["kg", "l", "piece"];
-export const MEASURE_LABEL: Record<Measure, string> = { kg: "Kilogram", l: "Litre", piece: "Piece" };
-/** Short unit for amounts — "0.42 kg", "6 L", "12 pc". */
-export const MEASURE_UNIT: Record<Measure, string> = { kg: "kg", l: "L", piece: "pc" };
-/** The unit price's suffix — "€/kg". */
-export const MEASURE_PER: Record<Measure, string> = { kg: "/kg", l: "/L", piece: "/pc" };
+export type Dimension = "mass" | "volume" | "count" | "length";
+export const DIMENSIONS: Dimension[] = ["mass", "volume", "count", "length"];
+export const DIMENSION_LABEL: Record<Dimension, string> = { mass: "Mass", volume: "Volume", count: "Count", length: "Length" };
 
-export function isMeasure(v: unknown): v is Measure {
-  return typeof v === "string" && (MEASURES as string[]).includes(v);
+/** A reading unit; "100g" reads amounts in grams and prices per 100 g. */
+export type Unit = "g" | "kg" | "100g" | "ml" | "L" | "m" | "pc";
+export const UNITS_OF: Record<Dimension, readonly Unit[]> = { mass: ["g", "kg", "100g"], volume: ["ml", "L"], count: ["pc"], length: ["m"] };
+/** The unit each dimension's amounts are stored in. */
+export const BASE_UNIT: Record<Dimension, Unit> = { mass: "kg", volume: "L", count: "pc", length: "m" };
+export const UNIT_LABEL: Record<Unit, string> = { g: "Grams (g)", kg: "Kilograms (kg)", "100g": "Per 100 g", ml: "Millilitres (ml)", L: "Litres (L)", m: "Metres (m)", pc: "Pieces" };
+
+export interface Measure {
+  dimension: Dimension;
+  unit: Unit;
+  /** A count's own name — "roll", "wash"; "" = pieces. Always "" off a count. */
+  countName: string;
+}
+
+export function isDimension(v: unknown): v is Dimension {
+  return typeof v === "string" && (DIMENSIONS as string[]).includes(v);
+}
+
+export function isUnitOf(dimension: Dimension, v: unknown): v is Unit {
+  return typeof v === "string" && (UNITS_OF[dimension] as readonly string[]).includes(v);
+}
+
+/**
+ * A counted Product's second Measure (ADR 0084): croissants are counted *and*
+ * weighed. Only on a count; mass or volume, read in a unit of its own.
+ * `compareBy` says which of the two unit prices decides cheapest Shop, Price
+ * change, Overpaid and the chart — the other is read beside it.
+ */
+export type SecondaryDimension = "mass" | "volume";
+export const SECONDARY_DIMENSIONS: SecondaryDimension[] = ["mass", "volume"];
+export type Basis = "primary" | "secondary";
+
+export interface SecondaryMeasure {
+  /** "" = none. */
+  secondaryDimension: SecondaryDimension | "";
+  /** A unit of the secondary dimension; its base unit when there is none. */
+  secondaryUnit: Unit;
+  /** "secondary" only when there is a secondary Measure. */
+  compareBy: Basis;
+}
+
+export function isSecondaryDimension(v: unknown): v is SecondaryDimension {
+  return v === "mass" || v === "volume";
 }
 
 /** A printed label a Shop uses for a Product, remembered so the next import resolves on its own. */
@@ -37,13 +77,14 @@ export interface LabelMemory {
 }
 
 /**
- * A Product (ADR 0082): a thing bought again. Title is its name; `measure`
- * is fixed after creation; `labels` is the App's memory of what each Shop
- * prints for it (guarded — written only by matching and unmatching Lines).
+ * A Product (ADR 0082, 0084): a thing bought again. Title is its name; its
+ * Measure is `dimension`, `unit` and `countName`, with an optional
+ * secondary Measure and compare-by (SecondaryMeasure); `labels`
+ * is the App's memory of what each Shop prints for it (guarded — written
+ * only by matching and unmatching Lines).
  */
-export interface Product extends Document {
+export interface Product extends Document, Measure, SecondaryMeasure {
   type: typeof PRODUCT;
-  measure: Measure;
   labels: LabelMemory[];
 }
 
@@ -55,8 +96,10 @@ export interface Shop extends Document {
 
 /**
  * A Receipt (ADR 0082): one buying occasion at one Shop on one day. The
- * printed total is kept as read (0 = none printed — a price noted on a
- * shelf); the sum of its Lines is derived beside it. The photo it was read
+ * printed total is kept as read (0 = none printed); the sum of its Lines
+ * is derived beside it. `noticed` marks a Sighting (CONTEXT.md, ADR 0084):
+ * a price read on a shelf, not bought — it counts for what things cost,
+ * never for what was spent. The photo it was read
  * from, when kept, is an Attachment embedded in the optional body.
  */
 export interface Receipt extends Document {
@@ -67,13 +110,21 @@ export interface Receipt extends Document {
   branch: string;
   /** Integer cents as printed; 0 = no printed total. */
   total: number;
+  /** A Sighting: noticed, not bought. */
+  noticed: boolean;
+  /**
+   * The amount the reading compares by is missing — a Line of a Product
+   * compared by its secondary Measure, with no second amount (see
+   * comparedBy). Still spent; never per unit.
+   */
+  noAmount?: boolean;
 }
 
 /**
  * A Line (ADR 0082, internal): one priced entry on a Receipt — the only
  * fact price history is made of. `productId` "" = unmatched (the inbox).
- * `amount` is in the matched Product's measure (6 for six litres, 0.42 for
- * 420 g, 12 for a dozen); `price` is what was paid, in cents, after any
+ * `amount` is in the base unit of the matched Product's dimension (6 for six
+ * litres, 0.42 for 420 g whatever unit the Product reads in, 12 for a dozen); `price` is what was paid, in cents, after any
  * discount; `promo` marks a point every "usual price" reading skips.
  */
 export interface Line extends Document {
@@ -85,11 +136,31 @@ export interface Line extends Document {
   amount: number;
   price: number;
   promo: boolean;
+  /**
+   * Needs an amount (ADR 0084): the Product changed dimension since this
+   * Line was typed, so its amount means nothing until retyped. Still spent;
+   * never per unit (see countsPerUnit).
+   */
+  needsAmount?: boolean;
+  /**
+   * The second amount (ADR 0084) — "4 pc · 240 g" — for a Product with a
+   * secondary Measure, in that dimension's base unit (0.24). 0 or absent =
+   * not recorded: the Line is left out of the secondary readings.
+   */
+  secondAmount?: number;
 }
 
-/** A Line joined with its Receipt's Shop and day — what every reading works on. */
+/** A Line joined with its Receipt's Shop, day and noticed mark — what every reading works on. */
 export interface Observation {
   line: Line;
   shopId: string;
   date: DateStr;
+  /** From a Sighting: say what it cost, never that it was spent (see countsAsSpent). */
+  noticed: boolean;
+  /**
+   * The amount the reading compares by is missing — a Line of a Product
+   * compared by its secondary Measure, with no second amount (see
+   * comparedBy). Still spent; never per unit.
+   */
+  noAmount?: boolean;
 }

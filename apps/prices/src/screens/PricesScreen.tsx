@@ -1,17 +1,29 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Badge, Button, Input, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
+import { Badge, Button, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
-import { Inbox, Pencil, Plus, ReceiptText, Tag, TriangleAlert } from "lucide-react";
-import { MEASURE_UNIT, productHref, type Receipt, type Shop } from "../domain/types";
-import { changesIn, cheapest, formatUnitPrice, historiesByProduct, isUnmatched, linesByReceipt, observe, overallOf, spanStart, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
+import { Inbox, Pencil, Plus, ReceiptText, Ruler, Tag, TriangleAlert } from "lucide-react";
+import { productHref, type Receipt, type Shop } from "../domain/types";
+import { formatUnitPrice, measureOf, unitName } from "../domain/measure";
+import { changesIn, cheapest, comparedBy, historiesByProduct, isUnmatched, linesByReceipt, needingAmount, observe, overallOf, sumOfLines, totalMismatch, type PricePoint } from "../domain/derive";
 import { formatCents } from "../domain/money";
+import { spanOf } from "../domain/stats";
 import { useLines, useProducts, useReceipts, useShops } from "../data/repo";
 import { ProductDialog } from "../components/ProductDialog";
 import { ShopDialog } from "../components/ShopDialog";
 import { ReceiptDialog } from "../components/ReceiptDialog";
 import { AddPriceDialog } from "../components/AddPriceDialog";
+import { NeedsAmountDialog } from "../components/NeedsAmountDialog";
+import { PricesOverview } from "../components/PricesOverview";
 import { shopColor } from "../components/PriceChart";
+
+/** The register's filter on the noticed mark (ADR 0084). */
+type Kind = "all" | "bought" | "noticed";
+const KINDS: { value: Kind; label: string }[] = [
+  { value: "all", label: "All receipts" },
+  { value: "bought", label: "Bought" },
+  { value: "noticed", label: "Noticed only" },
+];
 
 const SPANS = [
   { months: 3, label: "Last 3 months" },
@@ -27,7 +39,8 @@ function Pct({ v }: { v: number }) {
 /**
  * Prices (ADR 0082): Products with their cheapest Shop, the Receipt
  * register with the unmatched inbox one tap away, the price change reading
- * per Shop, and the Shops themselves.
+ * per Shop, the Overview of spending over a span (ADR 0084), and the Shops
+ * themselves.
  */
 const NO_HISTORY: ReadonlyMap<string, PricePoint[]> = new Map();
 
@@ -42,6 +55,7 @@ export function PricesScreen() {
 
   const [search, setSearch] = useState("");
   const [onlyUnmatched, setOnlyUnmatched] = useState(false);
+  const [kind, setKind] = useState<Kind>("all");
   const [months, setMonths] = useState(6);
   const [priceOpen, setPriceOpen] = useState(false);
   const [newReceipt, setNewReceipt] = useState(false);
@@ -49,11 +63,13 @@ export function PricesScreen() {
   const [newProduct, setNewProduct] = useState(false);
   const [editShop, setEditShop] = useState<Shop | null>(null);
   const [newShop, setNewShop] = useState(false);
+  const [retyping, setRetyping] = useState(false);
 
   const today = todayStr();
   const obs = useMemo(() => observe(lines, receipts), [lines, receipts]);
   // Grouped once per data change, not rescanned per Product on every keystroke.
-  const histories = useMemo(() => historiesByProduct(obs), [obs]);
+  // Each Product read by its compared-by unit (ADR 0084): cheapest and Price change follow it.
+  const histories = useMemo(() => historiesByProduct(comparedBy(obs, products)), [obs, products]);
   const byReceipt = useMemo(() => linesByReceipt(lines), [lines]);
   const shopName = (id: string) => shops.find((s) => s.id === id)?.title ?? "?";
   const unmatchedByReceipt = useMemo(() => {
@@ -61,6 +77,7 @@ export function PricesScreen() {
     for (const l of lines) if (isUnmatched(l)) m.set(l.receiptId, (m.get(l.receiptId) ?? 0) + 1);
     return m;
   }, [lines]);
+  const needsAmountTotal = useMemo(() => needingAmount(lines).length, [lines]);
   const unmatchedTotal = useMemo(() => [...unmatchedByReceipt.values()].reduce((a, b) => a + b, 0), [unmatchedByReceipt]);
 
   const productRows = useMemo(() => {
@@ -78,16 +95,17 @@ export function PricesScreen() {
     () =>
       [...receipts]
         .filter((r) => !onlyUnmatched || (unmatchedByReceipt.get(r.id) ?? 0) > 0)
+        .filter((r) => kind === "all" || r.noticed === (kind === "noticed"))
         .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
         .map((r) => {
           const ls = byReceipt.get(r.id) ?? [];
           return { r, ls, sum: sumOfLines(ls), mismatch: totalMismatch(r, ls), unmatched: unmatchedByReceipt.get(r.id) ?? 0 };
         }),
-    [receipts, byReceipt, onlyUnmatched, unmatchedByReceipt],
+    [receipts, byReceipt, onlyUnmatched, kind, unmatchedByReceipt],
   );
 
-  const from = spanStart(months, today);
-  const changeRows = useMemo(() => products.map((p) => ({ p, changes: changesIn(histories.get(p.id) ?? NO_HISTORY, from, today) })).filter((r) => r.changes.length > 0), [products, histories, from, today]);
+  const span = spanOf(months, today);
+  const changeRows = useMemo(() => products.map((p) => ({ p, changes: changesIn(histories.get(p.id) ?? NO_HISTORY, span.from, span.to) })).filter((r) => r.changes.length > 0), [products, histories, span.from, span.to]);
   const overall = useMemo(() => overallOf(changeRows.map((r) => r.changes)), [changeRows]);
 
   return (
@@ -105,6 +123,22 @@ export function PricesScreen() {
         </PhoneDock>
       </div>
 
+      {/* The needs-amount inbox is loud on every tab, never hidden behind one (ADR 0084). */}
+      {needsAmountTotal > 0 && (
+        <button type="button" className="border-warning bg-warning/10 hover:bg-warning/15 focus-visible:ring-ring flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:outline-none" onClick={() => setRetyping(true)}>
+          <Ruler className="text-warning size-4 shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="font-medium tabular-nums">
+              {needsAmountTotal} line{needsAmountTotal === 1 ? "" : "s"} need{needsAmountTotal === 1 ? "s" : ""} an amount
+            </span>{" "}
+            — a product changed measure. Counted as spent, left out of unit prices until retyped.
+          </span>
+          <Badge variant="outline" className="border-warning text-warning shrink-0">
+            Retype
+          </Badge>
+        </button>
+      )}
+
       <Tabs value={tab} onValueChange={(v) => setSearchParams(v === "products" ? {} : { tab: v }, { replace: true })}>
         <PhoneDock order={1}>
           <TabsList>
@@ -118,6 +152,7 @@ export function PricesScreen() {
               )}
             </TabsTrigger>
             <TabsTrigger value="change">Change</TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="shops">Shops</TabsTrigger>
           </TabsList>
         </PhoneDock>
@@ -142,7 +177,7 @@ export function PricesScreen() {
                 <li key={p.id}>
                   <button type="button" className="hover:bg-accent/50 flex w-full items-center gap-3 px-3 py-2 text-left text-sm" onClick={() => navigate(productHref(p.id))}>
                     <span className="min-w-0 flex-1 truncate">
-                      {p.title} <span className="text-muted-foreground text-xs">· {MEASURE_UNIT[p.measure]}</span>
+                      {p.title} <span className="text-muted-foreground text-xs">· {unitName(measureOf(p))}</span>
                     </span>
                     <span className="text-muted-foreground hidden text-xs sm:inline">
                       {n} price{n === 1 ? "" : "s"} · {nShops} shop{nShops === 1 ? "" : "s"}
@@ -151,7 +186,7 @@ export function PricesScreen() {
                       <span className="flex items-center gap-1.5 tabular-nums">
                         <span className="size-2 rounded-full" style={{ background: shopColor(best.shopId, shops) }} />
                         <span className="text-muted-foreground max-w-24 truncate">{shopName(best.shopId)}</span>
-                        <span className="font-medium">{formatUnitPrice(best.point.unit, p.measure)}</span>
+                        <span className="font-medium">{formatUnitPrice(best.point.unit, measureOf(p))}</span>
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -169,10 +204,27 @@ export function PricesScreen() {
               <Inbox className="size-4" /> {unmatchedTotal} unmatched line{unmatchedTotal === 1 ? "" : "s"} — the inbox. Open a receipt to match them to products.
             </button>
           )}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant={onlyUnmatched ? "default" : "outline"} onClick={() => setOnlyUnmatched((v) => !v)} aria-pressed={onlyUnmatched}>
-              <Inbox /> Unmatched
-            </Button>
+          <div className="flex flex-wrap items-center gap-2 empty:hidden">
+            {/* The register's filters (ADR 0064): in place on the desk, a Filters sheet from the Phone dock on a phone. */}
+            <PhoneDock>
+              <PhoneFilters active={+onlyUnmatched + +(kind !== "all")}>
+                <Button variant={onlyUnmatched ? "default" : "outline"} onClick={() => setOnlyUnmatched((v) => !v)} aria-pressed={onlyUnmatched}>
+                  <Inbox /> Unmatched
+                </Button>
+                <Select value={kind} onValueChange={(v) => setKind(v as Kind)}>
+                  <SelectTrigger className="w-40 max-md:w-full" aria-label="Bought or noticed">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {KINDS.map((k) => (
+                      <SelectItem key={k.value} value={k.value}>
+                        {k.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </PhoneFilters>
+            </PhoneDock>
           </div>
           {receiptRows.length === 0 ? (
             <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">{receipts.length === 0 ? "No receipts yet." : "Nothing to show."}</div>
@@ -193,7 +245,16 @@ export function PricesScreen() {
                       </Badge>
                     )}
                     {mismatch && <TriangleAlert className="size-3.5 text-amber-600" aria-label="Printed total differs from the lines" />}
-                    <span className="text-muted-foreground text-xs">{ls.length} line{ls.length === 1 ? "" : "s"}</span>
+                    {/* A Sighting is one shelf price: its marker stands where the line count would. */}
+                    {r.noticed ? (
+                      <Badge variant="outline" className="text-muted-foreground shrink-0" title="Noticed, not bought — a Sighting">
+                        noticed
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground shrink-0 text-xs">
+                        {ls.length} line{ls.length === 1 ? "" : "s"}
+                      </span>
+                    )}
                     <span className="w-20 shrink-0 text-right font-medium tabular-nums">{formatCents(r.total > 0 ? r.total : sum)}</span>
                   </button>
                 </li>
@@ -236,7 +297,7 @@ export function PricesScreen() {
                       <span className="size-2 shrink-0 rounded-full" style={{ background: shopColor(c.shopId, shops) }} />
                       <span className="w-28 truncate">{shopName(c.shopId)}</span>
                       <span className="tabular-nums">
-                        {formatUnitPrice(c.first.unit, p.measure)} → {formatUnitPrice(c.last.unit, p.measure)}
+                        {formatUnitPrice(c.first.unit, measureOf(p))} → {formatUnitPrice(c.last.unit, measureOf(p))}
                       </span>
                       <Pct v={c.pct} />
                     </div>
@@ -245,6 +306,10 @@ export function PricesScreen() {
               ))}
             </ul>
           )}
+        </TabsContent>
+
+        <TabsContent value="overview">
+          <PricesOverview products={products} shops={shops} receipts={receipts} lines={lines} />
         </TabsContent>
 
         <TabsContent value="shops" className="grid gap-3">
@@ -284,6 +349,7 @@ export function PricesScreen() {
       <ReceiptDialog open={newReceipt} onOpenChange={setNewReceipt} />
       <ReceiptDialog open={!!openReceipt} onOpenChange={(o) => !o && setOpenReceipt(null)} receipt={openReceipt} />
       <ProductDialog open={newProduct} onOpenChange={setNewProduct} />
+      <NeedsAmountDialog open={retyping} onOpenChange={setRetyping} lines={lines} products={products} receipts={receipts} shops={shops} />
       <ShopDialog open={newShop} onOpenChange={setNewShop} />
       <ShopDialog open={!!editShop} onOpenChange={(o) => !o && setEditShop(null)} shop={editShop} />
     </div>
