@@ -59,6 +59,12 @@ const LINE_RULES = [
     test: /\buseIsMobile\b/,
     message: "useIsMobile is deprecated — use usePhone() from @lifeline/ui",
   },
+  {
+    id: "hand-listbox",
+    heading: "Components",
+    test: /\brole=["'{`]*listbox\b/,
+    message: "hand-rolled role=\"listbox\" — use Combobox from @lifeline/ui",
+  },
 ];
 
 /** Element rules: run on a whole JSX opening tag that starts on a checked line. */

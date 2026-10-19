@@ -32,7 +32,7 @@ nearest existing pattern and don't hand-roll a new one.
   `type="button"` and a `focus-visible:` style).
 - Single-choice switches (segments, status chips, shelf pickers) use `ToggleGroup`
   (_coming_): it looks like `TabsList` and becomes a `Select` on a phone by itself.
-- Search-as-you-type pickers use `Combobox` (_coming_, `Command` + `Popover`), never a
+- Search-as-you-type pickers use `Combobox` (`Command` + `Popover`), never a
   hand-rolled `role="listbox"`.
 - Tooltips use `Tooltip` (_coming_) on the desk; `title=` is not a tooltip.
 - A component copied between apps belongs in `packages/parts`.
