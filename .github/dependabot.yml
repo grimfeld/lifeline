@@ -1,0 +1,21 @@
+# Weekly and grouped, so updates come as a few PRs, each through Check like any other.
+version: 2
+updates:
+  # The pnpm workspace: Dependabot reads pnpm-lock.yaml at the root.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Minor and patch together; each major gets its own PR, to read its changelog.
+      minor-and-patch:
+        update-types: [minor, patch]
+  # The SHA-pinned actions in .github/workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

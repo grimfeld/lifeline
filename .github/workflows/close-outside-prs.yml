@@ -1,0 +1,32 @@
+name: Close outside PRs
+# Lifeline doesn't accept pull requests (README § Source-available); say so kindly and close.
+#
+# pull_request_target runs with a write token even for PRs from forks. That is safe here
+# because this workflow never checks out or runs the PR's code: it reads only the event's
+# metadata and calls the API. Don't add a checkout of the PR head to this file.
+on:
+  pull_request_target:
+    types: [opened, reopened]
+permissions:
+  pull-requests: write
+jobs:
+  close:
+    if: >-
+      !contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
+      && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const number = context.payload.pull_request.number;
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: number,
+              body:
+                "Thanks for taking the time! Lifeline is a personal, source-available project, " +
+                "so pull requests aren't accepted — see the README. Issues are welcome.",
+            });
+            await github.rest.pulls.update({ owner, repo, pull_number: number, state: "closed" });
