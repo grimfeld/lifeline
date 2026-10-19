@@ -56,18 +56,17 @@ export function TodayCard() {
           {b.completedOn ? (
             <Check className="text-muted-foreground size-4 shrink-0" />
           ) : (
-            <Tip label="Done">
+            <Tip label={`Done: ${b.title}`}>
               <Button
                 size="icon-xs"
                 variant="outline"
                 className="shrink-0 rounded-full"
-                aria-label={`Done: ${b.title}`}
                 onClick={() => {
                   void completeSurfaceItem(b);
                   toast.success(`${b.title} done`);
                 }}
               >
-                <Check className="size-3" />
+                <Check />
               </Button>
             </Tip>
           )}
@@ -81,18 +80,17 @@ export function TodayCard() {
           {item.completedOn ? (
             <Check className="text-muted-foreground size-4 shrink-0" />
           ) : (
-            <Tip label="Done">
+            <Tip label={`Done: ${item.title}`}>
               <Button
                 size="icon-xs"
                 variant="outline"
                 className="shrink-0 rounded-full"
-                aria-label={`Done: ${item.title}`}
                 onClick={() => {
                   void completeSurfaceItem(item);
                   toast.success(`${item.title} done`);
                 }}
               >
-                <Check className="size-3" />
+                <Check />
               </Button>
             </Tip>
           )}

@@ -92,14 +92,9 @@ export function BasesIndex() {
           <Pencil className="size-3.5" />
         </Button>
         {rec && (
-          <Tip label={t.builtIn ? "Reset to default" : "Delete type"}>
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              onClick={() => void askRemove(rec, !!t.builtIn)}
-              aria-label={t.builtIn ? `Reset ${t.label} to default` : `Delete the type ${t.label}`}
-            >
-              {t.builtIn ? <RotateCcw className="size-3.5" /> : <Trash2 className="size-3.5" />}
+          <Tip label={t.builtIn ? `Reset ${t.label} to default` : `Delete the type ${t.label}`}>
+            <Button size="icon-sm" variant="ghost" onClick={() => void askRemove(rec, !!t.builtIn)}>
+              {t.builtIn ? <RotateCcw /> : <Trash2 />}
             </Button>
           </Tip>
         )}
