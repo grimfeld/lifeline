@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, documentsWithRole, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
+import { documentsOf, documentsWithRole, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
 import { AUTHOR, SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Author, type Work, type LookupSettings } from "../domain/types";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
@@ -98,10 +98,23 @@ export async function addWork(input: {
 
 /** Apply a transition patch (or an edit) to an item. */
 export async function patchWork(item: Work, patch: Patch): Promise<void> {
-  const next = { ...item, ...patch };
-  await putDocument<Work>({ ...next, tags: normalizeTags(next.tags) });
+  // Only the patched fields, onto the stored row: writing the whole of a copy
+  // read earlier reverts whatever changed since ("Enrich all" undoing a rating).
+  await patchDocument(item.id, Array.isArray(patch.tags) ? { ...patch, tags: normalizeTags(patch.tags) } : patch);
 }
 
+/** The Notes App's Quote type (ADR 0070): a passage that cannot outlive its Source — here, the Work. */
+const QUOTE = "quote";
+
+/**
+ * The Work types' cascade (ADR 0045), run by every delete — this App's,
+ * the Vault's, a Base's: the Work's Quotes go with it.
+ */
+export async function cascadeWorkDelete(id: string): Promise<void> {
+  await removeDocumentsWhere(QUOTE, (q) => (q as { source?: string }).source === id);
+}
+
+/** Delete a Work; its type's cascade takes its Quotes. */
 export async function deleteWork(id: string): Promise<void> {
   await removeDocument(id);
 }
@@ -112,14 +125,29 @@ export function findByExternalKey(items: Work[], key: string): Work | undefined 
 }
 
 /**
+ * The Work a quick add would twin: the same outside identity, else the same
+ * title in the same medium — unless both carry keys and they differ (two
+ * films called "Dune" are two films).
+ */
+export function findTwin(items: Work[], input: { medium: WorkTypeId; title: string; externalKey?: string }): Work | undefined {
+  const key = input.externalKey ?? "";
+  const title = input.title.trim().toLowerCase();
+  return findByExternalKey(items, key) ?? items.find((w) => w.type === input.medium && w.title.trim().toLowerCase() === title && (!key || !w.externalKey));
+}
+
+/**
  * Quick add (ADR 0006 amendment): title, optional author, medium — straight
  * onto the To… shelf, nothing else asked. Optional lookup hit attaches
  * cover/year/external key and its Authors; a typed author is found or
- * created by name (ADR 0052). Returns the id (for Undo).
+ * created by name (ADR 0052). Returns the new id (for Undo), or the twin it
+ * found instead — then nothing was added.
  */
-export async function quickAddWork(input: { medium: WorkTypeId; title: string; author?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; authors: AuthorRef[] } }): Promise<string> {
+export async function quickAddWork(input: { medium: WorkTypeId; title: string; author?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; authors: AuthorRef[] } }): Promise<{ id: string; twin?: Work }> {
+  // Already yours: nothing is created (no Work, no Author) — the caller says so.
+  const twin = findTwin(await allWorks(), { medium: input.medium, title: input.title, externalKey: input.hit?.externalKey });
+  if (twin) return { id: twin.id, twin };
   const authors = input.hit?.authors.length ? await ensureAuthorRefs(input.hit.authors) : await ensureAuthorNames(splitAuthorNames(input.author ?? ""));
-  return addWork({
+  const id = await addWork({
     medium: input.medium,
     title: input.title,
     authors,
@@ -130,6 +158,7 @@ export async function quickAddWork(input: { medium: WorkTypeId; title: string; a
     acquisition: "WANTED",
     reason: "",
   });
+  return { id };
 }
 
 /** Parse "Title — Author" / "Title - Author" / "Title by Author" typed in a quick-add box. */
@@ -180,8 +209,9 @@ export function useAuthorIndex(): Map<string, Author> {
 /**
  * The Author for a name (and optional Open Library identity): found by
  * external key, then by name or alias, else created — so a picked hit never
- * leaves a manual chore (ADR 0052). A found Author with no key takes the
- * hit's. Returns the id, "" for a blank name.
+ * leaves a manual chore (ADR 0052). A keyed hit matches by name only an
+ * Author with no key, which then takes the hit's. Returns the id, "" for a
+ * blank name.
  */
 export async function ensureAuthor(input: { name: string; externalKey?: string; aliases?: string[] }): Promise<string> {
   const name = input.name.replace(/\s+/g, " ").trim();
@@ -190,7 +220,9 @@ export async function ensureAuthor(input: { name: string; externalKey?: string; 
   const key = input.externalKey ?? "";
   const byKey = key ? all.find((a) => a.externalKey === key) : undefined;
   if (byKey) return byKey.id;
-  const byName = all.find((a) => answersTo(a, name));
+  // A name is no identity: a namesake with another key is someone else (two
+  // John Williamses), so with a key in hand only a keyless namesake answers.
+  const byName = all.find((a) => answersTo(a, name) && (!key || !a.externalKey));
   if (byName) {
     if (key && !byName.externalKey) await patchDocument(byName.id, { externalKey: key });
     return byName.id;

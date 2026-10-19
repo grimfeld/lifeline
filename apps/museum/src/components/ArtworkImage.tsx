@@ -1,8 +1,13 @@
 import { cn } from "@lifeline/ui";
 import type { Artwork } from "../domain/types";
+import { sizedImage } from "../data/wikidata";
+
+/** Grid tiles are small: 400px stays sharp on a 2x screen at a third of the wall size. */
+const TILE_WIDTH = 400;
 
 /**
- * The exhibit itself. `size="tile"` is the square Holdings-grid crop;
+ * The exhibit itself. `size="tile"` is the square Holdings-grid crop,
+ * fetched small;
  * `size="wall"` keeps the work's own aspect ratio — a painting is never
  * cropped on a wall.
  */
@@ -11,7 +16,7 @@ export function ArtworkImage({ artwork, className, size = "tile" }: { artwork: P
     return size === "wall" ? (
       <img src={artwork.imageUrl} alt={artwork.title} className={cn("max-h-full max-w-full rounded object-contain", className)} loading="lazy" />
     ) : (
-      <img src={artwork.imageUrl} alt="" className={cn("aspect-square w-full rounded object-cover", className)} loading="lazy" />
+      <img src={sizedImage(artwork.imageUrl, TILE_WIDTH)} alt="" className={cn("aspect-square w-full rounded object-cover", className)} loading="lazy" />
     );
   }
   return (

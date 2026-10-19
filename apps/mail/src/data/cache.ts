@@ -105,17 +105,19 @@ async function upsertThreadRows(mailboxId: string, summaries: { threadId: string
 /**
  * Read one page of a Label's Threads from Gmail into the cache. On the first
  * page the cache is reconciled: a cached Thread newer than the oldest one
- * fetched that Gmail no longer lists under the Label lost it elsewhere
- * (archived in Gmail, read on the phone) and drops it here too.
+ * fetched (or any, when that page was the last) that Gmail no longer lists
+ * under the Label lost it elsewhere (archived in Gmail, read on the phone)
+ * and drops it here too.
  */
 export async function refreshThreads(mailbox: Mailbox, labelId: string, pageToken?: string): Promise<{ nextPageToken?: string; count: number }> {
   const page = await listThreads(mailbox.address, { labelIds: [labelId], pageToken, maxResults: PAGE_SIZE });
-  const ids = page.threads.map((t) => t.id);
+  const ids = (page.threads ?? []).map((t) => t.id);
   const full = await mapLimit(ids, 6, (id) => getThreadMetadata(mailbox.address, id));
   const summaries = full.map((t) => ({ threadId: t.id, summary: summarizeThread(t, mailbox.id) }));
   await upsertThreadRows(mailbox.id, summaries);
   if (!pageToken) {
-    const oldest = summaries.reduce((min, s) => (s.summary.date < min ? s.summary.date : min), now());
+    // With no further page Gmail listed the whole Label, so everything else left it — an emptied Inbox included.
+    const oldest = page.nextPageToken ? summaries.reduce((min, s) => (s.summary.date < min ? s.summary.date : min), now()) : "";
     const listed = new Set(ids);
     const cached = (await threadRows([mailbox.id])).filter((r) => r.labelIds.includes(labelId) && r.date >= oldest && !listed.has(r.threadId));
     if (cached.length) {
@@ -128,7 +130,7 @@ export async function refreshThreads(mailbox: Mailbox, labelId: string, pageToke
 /** Gmail search (CONTEXT.md): the query as typed, in Gmail's syntax. Results are cached like any Thread and returned in Gmail's order. */
 export async function searchThreads(mailbox: Mailbox, q: string, pageToken?: string): Promise<{ threads: Thread[]; nextPageToken?: string }> {
   const page = await listThreads(mailbox.address, { q, pageToken, maxResults: PAGE_SIZE });
-  const ids = page.threads.map((t) => t.id);
+  const ids = (page.threads ?? []).map((t) => t.id);
   const full = await mapLimit(ids, 6, (id) => getThreadMetadata(mailbox.address, id));
   const summaries = full.map((t) => ({ threadId: t.id, summary: summarizeThread(t, mailbox.id) }));
   await upsertThreadRows(mailbox.id, summaries);

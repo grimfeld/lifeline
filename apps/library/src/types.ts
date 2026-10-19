@@ -3,6 +3,7 @@ import { Book, BookOpen, UserPen } from "lucide-react";
 import { ACQUISITION, AUTHOR, ENGAGEMENT, SETTINGS_TYPE } from "./domain/types";
 import { WORK_TYPES, type WorkTypeId } from "./domain/workTypes";
 import { APP_HREF } from "./constants";
+import { cascadeWorkDelete } from "./data/repo";
 import { libraryParts } from "./parts";
 
 const ACQ_LABELS: Record<string, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
@@ -62,6 +63,11 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t, i) => ({
   fields: WORK_FIELDS,
   // Its Parts and Groups die with it and follow it to another Workspace (ADR 0074).
   ...libraryParts.workTypeHooks,
+  // Its Quotes go with it too, from wherever it is deleted (ADR 0045).
+  onDelete: async (doc) => {
+    await libraryParts.workTypeHooks.onDelete(doc);
+    await cascadeWorkDelete(doc.id);
+  },
 }));
 
 /**
