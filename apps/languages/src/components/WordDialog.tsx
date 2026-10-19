@@ -6,6 +6,12 @@ import { addWord, deleteItem, updateWord, useActiveTopic, useTopics } from "../d
 import { TopicSelect } from "./TopicSelect";
 import { OriginLine } from "./OriginLine";
 
+/**
+ * A Word, Sentence or Fact dialog: an Intake's dialog without the Handoff, so
+ * it opens empty, prefilled or on an item to edit, and reports what it made.
+ */
+export type ItemDialogProps = Omit<IntakeDialogProps, "handoff">;
+
 export interface WordPrefill {
   term?: string;
   origin?: string;
@@ -17,7 +23,7 @@ export interface WordPrefill {
  * own words, notes and where it was met. Quick enough for the capture sheet:
  * term, meaning, Enter.
  */
-export function WordDialog({ open, onOpenChange, word, prefill, onSaved }: { open: boolean; onOpenChange: (open: boolean) => void; word?: Word; prefill?: WordPrefill; onSaved?: (id: string) => void }) {
+export function WordDialog({ open, onOpenChange, word, prefill, onSaved }: ItemDialogProps & { word?: Word; prefill?: WordPrefill }) {
   const topics = useTopics();
   const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
