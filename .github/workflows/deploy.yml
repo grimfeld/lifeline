@@ -2,13 +2,17 @@ name: Deploy to Fly
 on:
   push:
     branches: [master]
+# Checkout only; the deploys authenticate with their Fly tokens.
+permissions:
+  contents: read
 jobs:
   deploy:
     runs-on: ubuntu-latest
     concurrency: deploy-group
     steps:
       - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # Pinned to a commit: a moved tag or branch must not get the Fly token.
+      - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # 1.5
       - run: flyctl deploy --remote-only --strategy immediate
         working-directory: pocketbase
         env:
@@ -21,8 +25,8 @@ jobs:
     concurrency: deploy-mcp-group
     steps:
       - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy . --config mcp/fly.toml --remote-only --ha=false
+      - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # 1.5
+      - run: flyctl deploy .--config mcp/fly.toml --remote-only --ha=false
         env:
           # Deploy token scoped to lifeline-mcp alone: fly tokens create deploy -a lifeline-mcp
           FLY_API_TOKEN: ${{ secrets.FLY_MCP_API_TOKEN }}
