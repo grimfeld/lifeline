@@ -104,9 +104,24 @@ export function observe(lines: readonly Line[], receipts: readonly Receipt[]): O
   for (const line of lines) {
     if (!line.productId) continue;
     const r = byId.get(line.receiptId);
-    if (r) out.push({ line, shopId: r.shopId, date: r.date });
+    if (r) out.push({ line, shopId: r.shopId, date: r.date, noticed: !!r.noticed });
   }
   return out;
+}
+
+/**
+ * The one place that decides what a reading may count (ADR 0084), so no
+ * reading re-decides it. Spending readings (spend, share, rhythm, visits,
+ * basket, being judged Overpaid) take only what was bought — never a
+ * Sighting.
+ */
+export function countsAsSpent(o: Observation): boolean {
+  return !o.noticed;
+}
+
+/** Per-unit readings (unit price, history, cheapest, Price change, the Overpaid baseline) take every price seen, Sightings included. */
+export function countsPerUnit(_o: Observation): boolean {
+  return true;
 }
 
 export function isUnmatched(line: Pick<Line, "productId">): boolean {
@@ -132,7 +147,7 @@ function pointOf(o: Observation): PricePoint {
 export function historyOf(productId: string, obs: readonly Observation[]): Map<string, PricePoint[]> {
   const out = new Map<string, PricePoint[]>();
   for (const o of obs) {
-    if (o.line.productId !== productId) continue;
+    if (o.line.productId !== productId || !countsPerUnit(o)) continue;
     const list = out.get(o.shopId) ?? [];
     list.push(pointOf(o));
     out.set(o.shopId, list);
@@ -145,6 +160,7 @@ export function historyOf(productId: string, obs: readonly Observation[]): Map<s
 export function historiesByProduct(obs: readonly Observation[]): Map<string, Map<string, PricePoint[]>> {
   const out = new Map<string, Map<string, PricePoint[]>>();
   for (const o of obs) {
+    if (!countsPerUnit(o)) continue;
     let h = out.get(o.line.productId);
     if (!h) out.set(o.line.productId, (h = new Map()));
     const list = h.get(o.shopId);

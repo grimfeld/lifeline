@@ -97,6 +97,7 @@ export const pricesCommands: CommandDef[] = [
       { key: "price", label: "Price paid", kind: "number", required: true, hint: "In the currency's units, e.g. 2.49." },
       { key: "amount", label: "Amount", kind: "number", hint: "How much of the Product's measure the price buys (kg, l, pieces…). Defaults to 1." },
       { key: "promo", label: "Promotion", kind: "boolean" },
+      { key: "bought", label: "Bought it", kind: "boolean", hint: "True only when the user bought it. Defaults to false: a price noticed on a shelf or a flyer, kept as a Sighting that never counts as spending." },
       { key: "date", label: "Day", kind: "date", hint: "Defaults to today." },
     ],
     async invoke(a) {
@@ -104,9 +105,9 @@ export const pricesCommands: CommandDef[] = [
       const amount = (a.amount as number | undefined) ?? 1;
       if (!(amount > 0)) throw new Error("Amount must be above zero");
       const products = await allProducts();
-      const id = await addPrice({ productId: a.product as string, shopId: a.shop as string, amount, price: cents, promo: !!a.promo, date: (a.date as string | undefined) ?? todayStr() }, await allShops(), products);
+      const id = await addPrice({ productId: a.product as string, shopId: a.shop as string, amount, price: cents, promo: !!a.promo, bought: !!a.bought, date: (a.date as string | undefined) ?? todayStr() }, await allShops(), products);
       const product = products.find((p) => p.id === a.product)!;
-      return { id, message: `${product.title}: ${formatUnitPrice(unitPrice({ price: cents, amount }), product.measure)}` };
+      return { id, message: `${product.title}: ${formatUnitPrice(unitPrice({ price: cents, amount }), product.measure)}${a.bought ? "" : " (noticed, not bought)"}` };
     },
   },
   {

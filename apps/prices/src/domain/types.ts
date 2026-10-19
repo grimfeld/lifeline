@@ -55,8 +55,10 @@ export interface Shop extends Document {
 
 /**
  * A Receipt (ADR 0082): one buying occasion at one Shop on one day. The
- * printed total is kept as read (0 = none printed — a price noted on a
- * shelf); the sum of its Lines is derived beside it. The photo it was read
+ * printed total is kept as read (0 = none printed); the sum of its Lines
+ * is derived beside it. `noticed` marks a Sighting (CONTEXT.md, ADR 0084):
+ * a price read on a shelf, not bought — it counts for what things cost,
+ * never for what was spent. The photo it was read
  * from, when kept, is an Attachment embedded in the optional body.
  */
 export interface Receipt extends Document {
@@ -67,6 +69,8 @@ export interface Receipt extends Document {
   branch: string;
   /** Integer cents as printed; 0 = no printed total. */
   total: number;
+  /** A Sighting: noticed, not bought. */
+  noticed: boolean;
 }
 
 /**
@@ -87,9 +91,11 @@ export interface Line extends Document {
   promo: boolean;
 }
 
-/** A Line joined with its Receipt's Shop and day — what every reading works on. */
+/** A Line joined with its Receipt's Shop, day and noticed mark — what every reading works on. */
 export interface Observation {
   line: Line;
   shopId: string;
   date: DateStr;
+  /** From a Sighting: say what it cost, never that it was spent (see countsAsSpent). */
+  noticed: boolean;
 }

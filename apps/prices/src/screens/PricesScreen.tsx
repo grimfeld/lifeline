@@ -13,6 +13,14 @@ import { ReceiptDialog } from "../components/ReceiptDialog";
 import { AddPriceDialog } from "../components/AddPriceDialog";
 import { shopColor } from "../components/PriceChart";
 
+/** The register's filter on the noticed mark (ADR 0084). */
+type Kind = "all" | "bought" | "noticed";
+const KINDS: { value: Kind; label: string }[] = [
+  { value: "all", label: "All receipts" },
+  { value: "bought", label: "Bought" },
+  { value: "noticed", label: "Noticed only" },
+];
+
 const SPANS = [
   { months: 3, label: "Last 3 months" },
   { months: 6, label: "Last 6 months" },
@@ -42,6 +50,7 @@ export function PricesScreen() {
 
   const [search, setSearch] = useState("");
   const [onlyUnmatched, setOnlyUnmatched] = useState(false);
+  const [kind, setKind] = useState<Kind>("all");
   const [months, setMonths] = useState(6);
   const [priceOpen, setPriceOpen] = useState(false);
   const [newReceipt, setNewReceipt] = useState(false);
@@ -78,12 +87,13 @@ export function PricesScreen() {
     () =>
       [...receipts]
         .filter((r) => !onlyUnmatched || (unmatchedByReceipt.get(r.id) ?? 0) > 0)
+        .filter((r) => kind === "all" || r.noticed === (kind === "noticed"))
         .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
         .map((r) => {
           const ls = byReceipt.get(r.id) ?? [];
           return { r, ls, sum: sumOfLines(ls), mismatch: totalMismatch(r, ls), unmatched: unmatchedByReceipt.get(r.id) ?? 0 };
         }),
-    [receipts, byReceipt, onlyUnmatched, unmatchedByReceipt],
+    [receipts, byReceipt, onlyUnmatched, kind, unmatchedByReceipt],
   );
 
   const from = spanStart(months, today);
@@ -173,6 +183,18 @@ export function PricesScreen() {
             <Button variant={onlyUnmatched ? "default" : "outline"} onClick={() => setOnlyUnmatched((v) => !v)} aria-pressed={onlyUnmatched}>
               <Inbox /> Unmatched
             </Button>
+            <Select value={kind} onValueChange={(v) => setKind(v as Kind)}>
+              <SelectTrigger className="w-40" aria-label="Bought or noticed">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {KINDS.map((k) => (
+                  <SelectItem key={k.value} value={k.value}>
+                    {k.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {receiptRows.length === 0 ? (
             <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">{receipts.length === 0 ? "No receipts yet." : "Nothing to show."}</div>
@@ -193,7 +215,16 @@ export function PricesScreen() {
                       </Badge>
                     )}
                     {mismatch && <TriangleAlert className="size-3.5 text-amber-600" aria-label="Printed total differs from the lines" />}
-                    <span className="text-muted-foreground text-xs">{ls.length} line{ls.length === 1 ? "" : "s"}</span>
+                    {/* A Sighting is one shelf price: its marker stands where the line count would. */}
+                    {r.noticed ? (
+                      <Badge variant="outline" className="text-muted-foreground shrink-0" title="Noticed, not bought — a Sighting">
+                        noticed
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground shrink-0 text-xs">
+                        {ls.length} line{ls.length === 1 ? "" : "s"}
+                      </span>
+                    )}
                     <span className="w-20 shrink-0 text-right font-medium tabular-nums">{formatCents(r.total > 0 ? r.total : sum)}</span>
                   </button>
                 </li>
