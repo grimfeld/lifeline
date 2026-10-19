@@ -29,7 +29,7 @@ apps/workout     @lifeline/app-workout — Workout App (ADR 0030): Workouts as B
 apps/mood        @lifeline/app-mood — Mood App (ADR 0044): one Mood per day on a fixed five-point scale, drawn as a grid
                  (a month or a whole year) that is also how you set a day; a today's-mood card, and the day's mood
                  reported into the daily note through the Daylog
-apps/prices      @lifeline/app-prices — Prices App (ADR 0045): what regular purchases cost, where, and over time —
+apps/prices      @lifeline/app-prices — Prices App (ADR 0082): what regular purchases cost, where, and over time —
                  Products (a measure, never a pack size) × Shops (chains); Receipts own Lines (amount, price paid,
                  promo), typed in by hand or read from a photo by an agent over MCP (ADR 0075) — Lifeline
                  itself reads no photo; unit price, cheapest shop and per-shop change are derived, never stored

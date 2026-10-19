@@ -2,7 +2,7 @@ import { addDays, formatHuman, type DateStr } from "@lifeline/core";
 import { MEASURE_PER, MEASURE_UNIT, type LabelMemory, type Line, type Measure, type Observation, type Product, type Receipt } from "./types";
 
 /**
- * Every reading of Prices (ADR 0045) lives here, pure: unit price, history
+ * Every reading of Prices (ADR 0082) lives here, pure: unit price, history
  * per Shop, cheapest Shop, the price change, the receipt's sum. Nothing
  * below is ever stored.
  */
@@ -234,7 +234,7 @@ export function sumOfLines(lines: readonly Pick<Line, "price">[]): number {
   return lines.reduce((s, l) => s + (Number(l.price) || 0), 0);
 }
 
-/** The printed total disagrees with the Lines — a warning, never a block (ADR 0045). */
+/** The printed total disagrees with the Lines — a warning, never a block (ADR 0082). */
 export function totalMismatch(receipt: Pick<Receipt, "total">, lines: readonly Pick<Line, "price">[]): boolean {
   return receipt.total > 0 && sumOfLines(lines) !== receipt.total;
 }
