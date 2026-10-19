@@ -179,6 +179,60 @@ export function unlinkedMentionsOf(index: LinkIndex, docId: string): UnlinkedMen
   return out;
 }
 
+/** "Link all" from the target's side: the rewrites to make, one entry per source body, and the hits left alone. */
+export interface LinkAllPlan {
+  sources: { sourceId: string; hits: MentionHit[] }[];
+  /** Hits a bulk link would have to guess at — linked one by one, never in bulk. */
+  skipped: UnlinkedMention[];
+}
+
+/**
+ * Plan linking every Unlinked mention of one Document in one go (ADR 0068,
+ * amended). A bulk link that guesses wrong spreads the error through every
+ * Day that says the name, so a hit is left alone when the name it matched is
+ * also another Document's title or alias, when a longer name of another
+ * Document covers it in the same prose ("Anna" inside "Anna Smith"), or when
+ * the link it would write does not resolve back to this Document.
+ */
+export function planLinkAll(index: LinkIndex, docId: string, mentions: UnlinkedMention[] = unlinkedMentionsOf(index, docId)): LinkAllPlan {
+  const owners = new Map<string, Set<string>>();
+  for (const n of index.mentionNames()) {
+    if (n.ref.kind !== "doc") continue;
+    const k = normalizeName(n.name);
+    const set = owners.get(k) ?? new Set<string>();
+    set.add(n.ref.id);
+    owners.set(k, set);
+  }
+  const global = matcherFor(index);
+  const globalHits = new Map<string, MentionHit[]>();
+  const hitsIn = (sourceId: string) => {
+    let hits = globalHits.get(sourceId);
+    if (!hits) {
+      const b = index.byId.get(sourceId)?.body;
+      hits = typeof b === "string" ? scan(b, global) : [];
+      globalHits.set(sourceId, hits);
+    }
+    return hits;
+  };
+  const bySource = new Map<string, MentionHit[]>();
+  const skipped: UnlinkedMention[] = [];
+  for (const m of mentions) {
+    const { hit } = m;
+    const shared = (owners.get(normalizeName(hit.name))?.size ?? 0) > 1;
+    const covered = !hitsIn(m.sourceId).some((g) => g.from === hit.from && g.to === hit.to && g.targetId === docId);
+    const r = index.resolve(hit.canonical);
+    const elsewhere = r.kind !== "doc" || r.id !== docId;
+    if (shared || covered || elsewhere) {
+      skipped.push(m);
+      continue;
+    }
+    const list = bySource.get(m.sourceId) ?? [];
+    list.push(hit);
+    bySource.set(m.sourceId, list);
+  }
+  return { sources: [...bySource].map(([sourceId, hits]) => ({ sourceId, hits })), skipped };
+}
+
 /** React hooks over the live index — memoised per (index, docId) so an index rebuild is the only trigger. */
 export function useUnlinkedIn(index: LinkIndex, docId: string): MentionHit[] {
   return useMemo(() => unlinkedIn(index, docId), [index, docId]);

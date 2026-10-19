@@ -47,6 +47,23 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+    /* Status colours: good and needs-attention (ADR 0079). */
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    /* Colour slots as classes — bg-slot-blue, text-slot-red (ADR 0079). */
+    --color-slot-blue: var(--chart-blue);
+    --color-slot-orange: var(--chart-orange);
+    --color-slot-aqua: var(--chart-aqua);
+    --color-slot-yellow: var(--chart-yellow);
+    --color-slot-magenta: var(--chart-magenta);
+    --color-slot-green: var(--chart-green);
+    --color-slot-violet: var(--chart-violet);
+    --color-slot-red: var(--chart-red);
+    /* The smallest label size — badges, counts, axis ticks. */
+    --text-2xs: 0.625rem;
+    --text-2xs--line-height: 0.875rem;
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -72,6 +89,10 @@
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
+    --success: oklch(0.627 0.194 149.214);
+    --success-foreground: oklch(0.985 0 0);
+    --warning: oklch(0.666 0.179 58.318);
+    --warning-foreground: oklch(0.985 0 0);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
     --ring: oklch(0.708 0 0);
@@ -119,6 +140,10 @@
     --accent: oklch(0.269 0 0);
     --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
+    --success: oklch(0.723 0.219 149.579);
+    --success-foreground: oklch(0.205 0 0);
+    --warning: oklch(0.769 0.188 70.08);
+    --warning-foreground: oklch(0.205 0 0);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.556 0 0);
@@ -167,4 +192,21 @@
     overflow: hidden;
     overscroll-behavior: none;
   }
+}
+/*
+ * The phone dock's page line (phone-dock.tsx, ADR 0064): its items are the
+ * children of each PhoneDock's `display: contents` wrapper, and of any group a
+ * page unwraps with `max-md:contents` inside it. Each takes the PhoneDock's
+ * order, may shrink, and grows to share its line — icon buttons excepted.
+ */
+[data-phone-dock-line] > * > *,
+[data-phone-dock-line] > * > .max-md\:contents > *,
+[data-phone-dock-line] > * > .max-md\:contents > .max-md\:contents > * {
+  order: var(--dock-order);
+  min-width: 0;
+}
+[data-phone-dock-line] > * > :not([data-size^="icon"]),
+[data-phone-dock-line] > * > .max-md\:contents > :not([data-size^="icon"]),
+[data-phone-dock-line] > * > .max-md\:contents > .max-md\:contents > :not([data-size^="icon"]) {
+  flex-grow: 1;
 }

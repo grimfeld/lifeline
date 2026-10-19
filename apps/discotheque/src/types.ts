@@ -3,6 +3,7 @@ import { ListMusic, Music } from "lucide-react";
 import { ENGAGEMENT, PLAYLIST, type Work } from "./domain/types";
 import { WORK_TYPES } from "./domain/workTypes";
 import { APP_HREF } from "./constants";
+import { discothequeParts } from "./parts";
 
 const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
 
@@ -24,6 +25,10 @@ const WORK_FIELDS: FieldDef[] = [
   { key: "addedOn", label: "Added on", kind: "date", guarded: true },
   { key: "startedOn", label: "Started on", kind: "date", guarded: true },
   { key: "finishedOn", label: "Finished on", kind: "date", guarded: true },
+  // Parts (ADR 0074): moved through the Parts, never typed.
+  { key: "partsTracked", label: "Parts tracked", kind: "boolean", guarded: true },
+  { key: "caughtUpGroup", label: "Caught up to (group)", kind: "number", guarded: true, hidden: true },
+  { key: "caughtUpPart", label: "Caught up to", kind: "number", guarded: true },
 ];
 
 export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t) => ({
@@ -40,6 +45,8 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t) => ({
   order: 44,
   builtIn: true,
   fields: WORK_FIELDS,
+  // Its Parts and Groups die with it and follow it to another Workspace (ADR 0074).
+  ...discothequeParts.workTypeHooks,
 }));
 
 /** A Playlist (ADR 0035): its albums are an ordered, guarded list of ids; the body is its blurb. */

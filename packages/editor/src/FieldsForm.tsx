@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Checkbox, GeoField, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Textarea } from "@lifeline/ui";
-import { displayTitle, documentType, geocode, readGeo, singularOf, suggestAddresses, useAllDocuments, useDocumentTypes, writeGeo, type DocumentTypeDef, type FieldDef } from "@lifeline/core";
+import { displayTitle, documentType, geocode, isLinkTarget, roleDef, readGeo, singularOf, suggestAddresses, useAllDocuments, useDocumentTypes, writeGeo, type DocumentTypeDef, type FieldDef } from "@lifeline/core";
 
 const NONE = "__none__";
 
@@ -131,9 +131,9 @@ export function FieldControl({
         />
       );
     case "link":
-      return <LinkField id={id} linkType={def.linkType} value={value} disabled={disabled} onChange={onChange} />;
+      return <LinkField id={id} linkType={def.linkType} linkRole={def.linkRole} value={value} disabled={disabled} onChange={onChange} />;
     case "links":
-      return <LinksField id={id} linkType={def.linkType} value={value} disabled={disabled} onChange={onChange} />;
+      return <LinksField id={id} linkType={def.linkType} linkRole={def.linkRole} value={value} disabled={disabled} onChange={onChange} />;
     case "json":
       return <Input id={id} className="h-8 font-mono text-xs" disabled readOnly value={value === undefined || value === null ? "" : JSON.stringify(value)} />;
   }
@@ -182,26 +182,31 @@ function ListInput({ id, value, disabled, onChange }: { id: string; value: unkno
   );
 }
 
+/** "a" or "an" before a type or Role name — "an Author", "a Book". */
+const article = (word: string) => (/^[aeiou]/i.test(word) ? "an" : "a");
+
 /** The linkable Documents a Link field may point at, sorted by title. */
-function useLinkOptions(linkType: string | string[] | undefined) {
+function useLinkOptions(linkType: string | string[] | undefined, linkRole?: string) {
   const docs = useAllDocuments();
   const types = useDocumentTypes();
   const allowed = useMemo(() => (linkType === undefined ? null : new Set(Array.isArray(linkType) ? linkType : [linkType])), [linkType]);
   const options = useMemo(() => {
     const defs = new Map(types.map((t) => [t.id, t]));
     return docs
-      .filter((d) => (allowed ? allowed.has(d.type) : !!defs.get(d.type)?.linkable && !defs.get(d.type)?.internal))
+      .filter((d) => isLinkTarget({ linkType, linkRole }, d, defs.get(d.type)))
       .map((d) => { const def = defs.get(d.type); return { value: d.id, label: displayTitle(d, def), type: def ? singularOf(def) : d.type }; })
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [docs, types, allowed]);
+  }, [docs, types, linkType, linkRole]);
+  // A Role (ADR 0069) names its wearers itself — "Pick an Author" — though they come in several types.
+  const role = linkRole ? roleDef(linkRole) : undefined;
   const single = allowed && allowed.size === 1 ? [...allowed][0] : undefined;
-  const singularLabel = single ? (() => { const d = documentType(single); return d ? singularOf(d) : single; })() : undefined;
-  return { options, many: allowed === null || allowed.size > 1, singularLabel };
+  const singularLabel = role ? role.label : single ? (() => { const d = documentType(single); return d ? singularOf(d) : single; })() : undefined;
+  return { options, many: role ? new Set(options.map((o) => o.type)).size > 1 : allowed === null || allowed.size > 1, singularLabel };
 }
 
 /** A `links` field (ADR 0052): the chosen Documents as removable chips, and a picker to add one more. */
-function LinksField({ id, linkType, value, disabled, onChange }: { id: string; linkType?: string | string[]; value: unknown; disabled?: boolean; onChange: (v: unknown) => void }) {
-  const { options, many, singularLabel } = useLinkOptions(linkType);
+function LinksField({ id, linkType, linkRole, value, disabled, onChange }: { id: string; linkType?: string | string[]; linkRole?: string; value: unknown; disabled?: boolean; onChange: (v: unknown) => void }) {
+  const { options, many, singularLabel } = useLinkOptions(linkType, linkRole);
   const ids = Array.isArray(value) ? value.map(String).filter(Boolean) : typeof value === "string" && value ? [value] : [];
   const byId = new Map(options.map((o) => [o.value, o]));
   const rest = options.filter((o) => !ids.includes(o.value));
@@ -223,7 +228,7 @@ function LinksField({ id, linkType, value, disabled, onChange }: { id: string; l
       )}
       <Select value={NONE} onValueChange={(v) => v !== NONE && onChange([...ids, v])} disabled={disabled || rest.length === 0}>
         <SelectTrigger id={id} className="h-8 w-full">
-          <SelectValue placeholder={singularLabel ? `Add a ${singularLabel}` : "Add a Document"} />
+          <SelectValue placeholder={singularLabel ? `Add ${article(singularLabel)} ${singularLabel}` : "Add a Document"} />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={NONE}>—</SelectItem>
@@ -238,24 +243,13 @@ function LinksField({ id, linkType, value, disabled, onChange }: { id: string; l
   );
 }
 
-function LinkField({ id, linkType, value, disabled, onChange }: { id: string; linkType?: string | string[]; value: unknown; disabled?: boolean; onChange: (v: unknown) => void }) {
-  const docs = useAllDocuments();
-  const types = useDocumentTypes();
-  const allowed = useMemo(() => (linkType === undefined ? null : new Set(Array.isArray(linkType) ? linkType : [linkType])), [linkType]);
-  const many = allowed === null || allowed.size > 1;
-  const options = useMemo(() => {
-    const defs = new Map(types.map((t) => [t.id, t]));
-    return docs
-      .filter((d) => (allowed ? allowed.has(d.type) : !!defs.get(d.type)?.linkable && !defs.get(d.type)?.internal))
-      .map((d) => { const def = defs.get(d.type); return { value: d.id, label: displayTitle(d, def), type: def ? singularOf(def) : d.type }; })
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [docs, types, allowed]);
-  const single = allowed && allowed.size === 1 ? [...allowed][0] : undefined;
+function LinkField({ id, linkType, linkRole, value, disabled, onChange }: { id: string; linkType?: string | string[]; linkRole?: string; value: unknown; disabled?: boolean; onChange: (v: unknown) => void }) {
+  const { options, many, singularLabel } = useLinkOptions(linkType, linkRole);
   const current = typeof value === "string" ? value : Array.isArray(value) ? String(value[0] ?? "") : "";
   return (
     <Select value={current || NONE} onValueChange={(v) => onChange(v === NONE ? "" : v)} disabled={disabled}>
       <SelectTrigger id={id} className="h-8 w-full">
-        <SelectValue placeholder={single ? `Pick a ${(() => { const d = documentType(single); return d ? singularOf(d) : single; })()}` : "Pick a Document"} />
+        <SelectValue placeholder={singularLabel ? `Pick ${article(singularLabel)} ${singularLabel}` : "Pick a Document"} />
       </SelectTrigger>
       <SelectContent>
         <SelectItem value={NONE}>—</SelectItem>
