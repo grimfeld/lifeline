@@ -5,6 +5,7 @@ import {
   saveOverview,
   type OverviewSlot,
   newId,
+  parts,
   put,
   saveWorkspace,
   seedBar,
@@ -15,6 +16,7 @@ import {
 import { rememberPlace } from "../../nav/resume";
 import type { LifeClock } from "../persona";
 import { idOf } from "./act";
+import { FINISHED } from "./media";
 
 /**
  * Where the Demo opens: a Screen of Cards over the whole seeded life (CONTEXT.md
@@ -35,13 +37,15 @@ export async function seedHome(_c: LifeClock): Promise<void> {
     h,
     ...more,
   });
-  // A 12-column grid; the phone reads it top to bottom, left to right.
+  // A 12-column grid; the phone stacks it top to bottom, left to right
+  // (stackOrder), so the day's Tasks and mood come before the tall agenda and
+  // the phone's first screen shows more than one Card.
   const layout: ScreenLayoutItem[] = [
-    card("hub.agenda", 0, 0, 4, 12),
-    card("tasks.today", 4, 0, 4, 6),
-    card("mood.today", 8, 0, 4, 3),
-    card("stats.habits", 8, 3, 4, 9),
-    card("chores.due-today", 4, 6, 4, 6),
+    card("tasks.today", 0, 0, 4, 6),
+    card("mood.today", 4, 0, 4, 3),
+    card("hub.agenda", 8, 0, 4, 12),
+    card("stats.habits", 4, 3, 4, 9),
+    card("chores.due-today", 0, 6, 4, 6),
     card("pocket.allowances", 0, 12, 4, 5, { title: "What's left" }),
     card("library.in-progress", 4, 12, 4, 5, { title: "Reading" }),
     card("calendar.countdown", 8, 12, 4, 5, { settings: { event: kinsale } }),
@@ -66,7 +70,7 @@ export async function seedHome(_c: LifeClock): Promise<void> {
  * a price over time, a chore heatmap, the year's finished books and films, a
  * mood grid and a measured Stat. Saved per Workspace, as a user's edit is.
  */
-export async function seedOverviews(_c: LifeClock): Promise<void> {
+export async function seedOverviews(c: LifeClock): Promise<void> {
   const milk = await idOf("price_product", "Semi-skimmed milk");
   const heart = await idOf("stat", "Resting heart rate");
   const arranged: Record<string, OverviewSlot[]> = {
@@ -90,8 +94,10 @@ export async function seedOverviews(_c: LifeClock): Promise<void> {
       { cardId: "cinema.in-progress", title: "Watching" },
       { cardId: "discotheque.in-progress", title: "Listening" },
       { cardId: "arcade.in-progress", title: "Playing" },
-      { cardId: "library.finished" },
-      { cardId: "cinema.finished" },
+      // The year of the last finish, not the calendar's: in early January,
+      // "Read in" last year still shows the life rather than nothing.
+      { cardId: "library.finished", settings: { year: parts(c.day(FINISHED.book)).y } },
+      { cardId: "cinema.finished", settings: { year: parts(c.day(FINISHED.film)).y } },
       { cardId: "museum.on-display", wide: true },
     ],
     progress: [
@@ -104,5 +110,21 @@ export async function seedOverviews(_c: LifeClock): Promise<void> {
       { cardId: "workout.recent" },
     ],
   };
-  for (const [moduleId, slots] of Object.entries(arranged)) await saveOverview(moduleId, defaultOverview(slots));
+  for (const [moduleId, slots] of Object.entries(arranged)) {
+    const layout = defaultOverview(slots);
+    // A work in progress shows its cover, two lines of "started … ago", the
+    // next Part and its kind: a row taller than the Cards' default, or the
+    // kind is cut off at the bottom.
+    await saveOverview(moduleId, moduleId === "culture" ? taller(layout, (l) => l.cardId.endsWith(".in-progress"), 1) : layout);
+  }
+}
+
+/** Grow every grid row holding a Card that `wants` by `rows`, moving the rows below down. */
+function taller(layout: ScreenLayoutItem[], wants: (l: ScreenLayoutItem) => boolean, rows: number): ScreenLayoutItem[] {
+  const grown = [...new Set(layout.filter(wants).map((l) => l.y))];
+  return layout.map((l) => ({
+    ...l,
+    y: l.y + rows * grown.filter((y) => y < l.y).length,
+    h: grown.includes(l.y) ? l.h + rows : l.h,
+  }));
 }

@@ -182,7 +182,8 @@ async function seedLedger(c: LifeClock, groceries: { shop: string; date: DateStr
   await category("Side work", "Income", 0, "income");
   await category("Rent", "Home", 1350);
   await category("Utilities", "Home", 120);
-  await category("Phone & internet", "Home", 70);
+  // A little over the two bills, as people budget a fixed bill.
+  await category("Phone & internet", "Home", 75);
   await category("Groceries", "Food", 380);
   await category("Eating out", "Food", 150);
   await category("Transport", "Getting around", 60);
@@ -199,7 +200,8 @@ async function seedLedger(c: LifeClock, groceries: { shop: string; date: DateStr
     await run("ledger.add", { kind: "income", account: current, category: cat.Salary, payee: PLACES.clinic.name, amount: 3_085.4, date: d });
   for (const [offset, amount, note] of [[-31, 90, "Two sports massages"], [-16, 180, "Rugby club pre-season screening"], [-2, 60, "Sports massage"]] as const)
     await run("ledger.add", { kind: "income", account: current, category: cat["Side work"], payee: "Private clients", amount, date: c.day(offset), note });
-  for (const d of lastMonthly(c.today, 1, 3)) await spend(current, "Rent", "Ballintemple Lettings", 1_350, d);
+  // The rent goes out the day after payday, with the standing order.
+  for (const d of lastMonthly(c.today, 26, 3)) await spend(current, "Rent", "Ballintemple Lettings", 1_350, d);
   const power = [84.12, 79.6, 91.35];
   for (const [i, d] of lastMonthly(c.today, 14, 3).entries()) await spend(current, "Utilities", "Lee Valley Energy", power[i], d);
   for (const d of lastMonthly(c.today, 8, 3)) await spend(current, "Phone & internet", "Wavelink Mobile", 25, d);
