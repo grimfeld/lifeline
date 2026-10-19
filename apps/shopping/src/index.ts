@@ -27,7 +27,7 @@ export const shoppingApp: AppManifest = {
     },
   ],
   commands: shoppingCommands,
-  // Intake (ADR 0050): anything handed over — a running-low Provision, a mail — becomes a Need.
+  // Intake (ADR 0050): anything handed over — a running-low Provision, a selected line — becomes a Need.
   intakes: [{ id: "need", title: "Need", icon: ShoppingCart, dialog: AddNeedDialog }],
 };
 

@@ -98,7 +98,6 @@ export const MODULES: ModuleDef[] = [
   // Knowledge (ADR 0073): retention over every Recallable type, in Topics. It
   // keeps the Languages id because Workspaces and Phone bars store it.
   { id: "languages", title: "Knowledge" },
-  { id: "mail", title: "Mail" },
 ];
 
 /**
