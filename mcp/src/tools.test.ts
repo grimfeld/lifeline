@@ -33,6 +33,10 @@ describe("tool catalogue", () => {
     const lines = receipt.input.lines.safeParse([{ label: "LAIT 1/2 ECR", price: 1.09, amount: 6, promo: false }]);
     expect(lines.success).toBe(true);
     expect(receipt.input.lines.safeParse([{ label: "LAIT" }]).success).toBe(false);
+    // A pack counted and weighed (ADR 0084): the second amount rides on the row, and on prices_add.
+    expect(receipt.input.lines.safeParse([{ label: "CROISSANTS X4", price: 2.4, amount: 4, second_amount: 240, second_unit: "g" }]).success).toBe(true);
+    expect(Object.keys(TOOLS.find((t) => t.name === "prices_add")!.input)).toEqual(expect.arrayContaining(["second_amount", "second_unit", "bought"]));
+    expect(Object.keys(TOOLS.find((t) => t.name === "prices_product_add")!.input)).toEqual(expect.arrayContaining(["secondary_dimension", "secondary_unit", "compare_by"]));
     expect(TOOLS.map((t) => t.name)).toEqual(expect.arrayContaining(["prices_product_add", "prices_shop_add"]));
   });
 
