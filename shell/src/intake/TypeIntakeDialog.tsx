@@ -73,7 +73,7 @@ export function TypeIntakeDialog({ open, onOpenChange, handoff, onSaved, type }:
           <TemplateSelect type={type} value={templateId} onChange={setTemplateId} />
           {workspaces.length > 1 && (
             <Select value={wsValue} onValueChange={setWorkspaceId}>
-              <SelectTrigger aria-label="Workspace" className="h-8 w-full min-w-0">
+              <SelectTrigger size="sm" aria-label="Workspace" className="w-full min-w-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
