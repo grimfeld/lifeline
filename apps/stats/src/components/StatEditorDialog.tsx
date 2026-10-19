@@ -1,16 +1,10 @@
 import { useEffect, useState } from "react";
 import { normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { Button, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
-import { COLOR_SLOTS, STAT_KINDS, colorVar, type ColorSlot, type Stat, type StatKind } from "../domain/types";
+import { STAT_KINDS, type ColorSlot, type Stat, type StatKind } from "../domain/types";
+import { ColorSwatches, KIND_COPY, kindHas } from "./StatFields";
 import { addStat, updateStat } from "../data/repo";
 import { cleanItemList } from "../domain/aggregate";
-
-const KIND_COPY: Record<StatKind, { title: string; hint: string }> = {
-  additive: { title: "Additive", hint: "Increments that add up — push-ups, books" },
-  measurement: { title: "Measurement", hint: "Point-in-time readings — weight" },
-  boolean: { title: "Boolean", hint: "Did it happen today — workouts, meditation" },
-  collection: { title: "Collection", hint: "Distinct things collected — countries" },
-};
 
 export function StatEditorDialog({ open, onOpenChange, stat }: { open: boolean; onOpenChange: (o: boolean) => void; stat?: Stat }) {
   const [name, setName] = useState("");
@@ -89,13 +83,13 @@ export function StatEditorDialog({ open, onOpenChange, stat }: { open: boolean; 
             </div>
             {stat && <p className="text-muted-foreground text-xs">Kind is fixed after creation — entries would mean something else.</p>}
           </div>
-          {(kind === "additive" || kind === "measurement") && (
+          {kindHas(kind).unit && (
             <div className="grid gap-2">
               <Label htmlFor="stat-unit">Unit</Label>
               <Input id="stat-unit" value={unit} placeholder={kind === "additive" ? "reps" : "kg"} onChange={(e) => setUnit(e.target.value)} />
             </div>
           )}
-          {kind === "additive" && (
+          {kindHas(kind).increment && (
             <div className="grid gap-2">
               <Label htmlFor="stat-inc">Quick-add amount</Label>
               <Input id="stat-inc" type="number" step="any" value={inc} onChange={(e) => setInc(e.target.value)} />
@@ -122,19 +116,7 @@ export function StatEditorDialog({ open, onOpenChange, stat }: { open: boolean; 
           </div>
           <div className="grid gap-2">
             <Label>Color</Label>
-            <div className="flex flex-wrap gap-2">
-              {COLOR_SLOTS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  aria-label={c}
-                  aria-pressed={color === c}
-                  onClick={() => setColor(c)}
-                  className={cn("size-7 rounded-full border-2 transition-transform", color === c ? "border-foreground scale-110" : "border-transparent")}
-                  style={{ background: colorVar(c) }}
-                />
-              ))}
-            </div>
+            <ColorSwatches value={color} onChange={setColor} />
           </div>
         </div>
         <DialogFooter>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
 import type { Provision } from "../domain/types";
 import { clampQty } from "../domain/rules";
 import { addProvision, deleteProvision, patchProvision, useStorages } from "../data/repo";
+import { StorageSelect } from "./StorageSelect";
 
 /** Add or edit one Provision. Tags stay with the generic tools; this is the counter's form. */
 export function ProvisionDialog({
@@ -75,19 +76,8 @@ export function ProvisionDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
-              <Label>Storage</Label>
-              <Select value={storageId} onValueChange={setStorageId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pick a storage" />
-                </SelectTrigger>
-                <SelectContent>
-                  {storages.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="pantry-storage">Storage</Label>
+              <StorageSelect id="pantry-storage" value={storageId} onChange={setStorageId} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="pantry-unit">Unit</Label>
