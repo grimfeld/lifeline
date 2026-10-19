@@ -4,6 +4,7 @@ import { ART_FORMS, type ArtFormId } from "./domain/artForms";
 import { ARTIST, EXHIBITION, EXHIBITION_STATES, ROOM, type Artwork } from "./domain/types";
 import { STATE_LABELS } from "./domain/rules";
 import { exhibitionHref, MUSEUM_HREF } from "./constants";
+import { ArtworkPeek } from "./components/ArtworkPeek";
 
 const ICONS: Record<ArtFormId, { icon: typeof Palette; name: string }> = {
   painting: { icon: Palette, name: "palette" },
@@ -33,6 +34,8 @@ export const artworkTypeDefs: DocumentTypeDef[] = ART_FORMS.map((f, i) => ({
   indexes: ["artistId", "externalKey"],
   order: 50 + i,
   builtIn: true,
+  // Edited where it is peeked, through the Museum's own controls (ADR 0085).
+  peekEdit: ArtworkPeek,
   fields: [
     { key: "artistId", label: f.artistLabel, kind: "link", linkType: ARTIST, column: true },
     { key: "year", label: "Year", kind: "text", column: true },

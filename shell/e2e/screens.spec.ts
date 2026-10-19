@@ -178,6 +178,16 @@ const SCREENS: ScreenCase[] = [
   // A Peek edits (ADR 0085): a user-defined type's whole Peek, and a built-in's with the user's own Field beneath the App's part.
   { name: "Vault · Peek of a user-defined type", path: "/vault", afterOpen: peekOf("e2eperson") },
   { name: "Vault · Peek with the user's own Field", path: "/vault", afterOpen: peekOf("book", true) },
+  // The Culture Apps' editable Peeks (ADR 0085), each drawn by its own App.
+  { name: "Vault · Peek of a book", path: "/vault", afterOpen: peekOf("book") },
+  { name: "Vault · Peek of an Author", path: "/vault", afterOpen: peekOf("author") },
+  { name: "Vault · Peek of a film", path: "/vault", afterOpen: peekOf("movie") },
+  { name: "Vault · Peek of a Cinema playlist", path: "/vault", afterOpen: peekOf("cinema_playlist") },
+  { name: "Vault · Peek of an album", path: "/vault", afterOpen: peekOf("music") },
+  { name: "Vault · Peek of a Discotheque playlist", path: "/vault", afterOpen: peekOf("discotheque_playlist") },
+  { name: "Vault · Peek of a game", path: "/vault", afterOpen: peekOf("game") },
+  { name: "Vault · Peek of a painting", path: "/vault", afterOpen: peekOf("painting") },
+  { name: "Vault · Peek of a building", path: "/vault", afterOpen: peekOf("architecture") },
   {
     // The file tree's "New thought" focused: a tooltip names it on the desk; a touch phone shows none (ADR 0079).
     name: "Vault · Tooltip",
