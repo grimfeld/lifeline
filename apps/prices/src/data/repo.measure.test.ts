@@ -136,6 +136,42 @@ describe("a Product's Measure", () => {
     const [l] = await documentsOf<Line>(LINE);
     expect([l.productId, l.amount]).toEqual([b, 0.05]);
   });
+
+  it("merges within one dimension with every Line's amount and mark intact, labels carried over", async () => {
+    const lidl = await addShop({ title: "Lidl" });
+    const aldi = await addShop({ title: "Aldi" });
+    const a = await addProduct({ title: "Rice", dimension: "mass", unit: "g" });
+    const b = await addProduct({ title: "Basmati rice", dimension: "mass", unit: "kg" });
+    await saveReceipt({ shopId: lidl, date: "2026-10-01", total: 0, lines: [{ productId: a, label: "RIZ 500G", amount: 0.5, price: 139, promo: false }] }, await allShops(), await allProducts());
+    await saveReceipt({ shopId: aldi, date: "2026-10-02", total: 0, lines: [{ productId: b, label: "BASMATI", amount: 1, price: 249, promo: false }] }, await allShops(), await allProducts());
+
+    await mergeProduct(await product(a), await product(b));
+
+    expect((await allLines()).map((l) => [l.label, l.productId, l.amount, l.needsAmount]).sort()).toEqual([
+      ["BASMATI", b, 1, false],
+      ["RIZ 500G", b, 0.5, false],
+    ]);
+    expect((await product(b)).labels).toEqual(expect.arrayContaining([{ shopId: lidl, label: "RIZ 500G" }, { shopId: aldi, label: "BASMATI" }]));
+    expect((await allProducts()).map((p) => p.id)).toEqual([b]);
+  });
+
+  it("merges across dimensions, the source's Lines then needing an amount in the target's Measure", async () => {
+    const shop = await addShop({ title: "Lidl" });
+    const pieces = await addProduct({ title: "Croissants (pc)", dimension: "count", unit: "pc" });
+    const weighed = await addProduct({ title: "Croissants", dimension: "mass", unit: "kg" });
+    await saveReceipt({ shopId: shop, date: "2026-10-01", total: 0, lines: [{ productId: pieces, label: "CROISSANT X4", amount: 4, price: 199, promo: false }, { productId: pieces, label: "CROISSANT X6", amount: 6, price: 279, promo: true }] }, await allShops(), await allProducts());
+    await addPrice({ productId: weighed, shopId: shop, amount: 0.24, price: 219, promo: false }, await allShops(), await allProducts());
+
+    await mergeProduct(await product(pieces), await product(weighed));
+
+    expect((await allLines()).map((l) => [l.label, l.productId, l.amount, l.needsAmount]).sort()).toEqual([
+      ["CROISSANT X4", weighed, 4, true],
+      ["CROISSANT X6", weighed, 6, true],
+      ["Croissants", weighed, 0.24, false],
+    ]);
+    expect((await product(weighed)).labels).toEqual(expect.arrayContaining([{ shopId: shop, label: "CROISSANT X4" }, { shopId: shop, label: "CROISSANT X6" }]));
+    expect((await product(weighed)).dimension).toBe("mass");
+  });
 });
 
 describe("amounts over MCP (prices_add, prices_receipt)", () => {
