@@ -1,4 +1,5 @@
 export * from "./lib/utils";
+export * from "./components/ui/alert-dialog";
 export * from "./components/ui/badge";
 export * from "./components/ui/button";
 export * from "./components/ui/card";
@@ -16,7 +17,9 @@ export * from "./components/ui/separator";
 export * from "./components/ui/sheet";
 export * from "./components/ui/sonner";
 export * from "./components/ui/tabs";
+export * from "./components/ui/toggle-group";
 export * from "./components/ui/textarea";
+export * from "./components/ui/tooltip";
 export { toast } from "sonner";
 export * from "./components/ui/card-unavailable";
 export * from "./components/map/MapView";

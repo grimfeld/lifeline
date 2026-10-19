@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Button, Checkbox, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TYPE_ICONS, cn, toast, typeIcon } from "@lifeline/ui";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Button,
+  Checkbox,
+  Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TYPE_ICONS, cn, toast, typeIcon } from "@lifeline/ui";
 import {
   DEFAULT_REPORTS,
   mentionable,
@@ -107,6 +118,7 @@ export function TypeEditor({
     if (known?.makesLinkable) setLinkable(true);
     if (!known && hasFieldSettings(r.kind)) toggle(r.uid, true);
   }
+  const [confirming, setConfirming] = useState(false);
   const [module, setModule] = useState(record?.module ?? defaultModule);
   const [reports, setReports] = useState<ReportSetting[]>(record?.reports ?? base?.reports ?? DEFAULT_REPORTS);
   // Reports count the Days that name a Document (ADR 0076): only a type that can be named has any.
@@ -174,17 +186,23 @@ export function TypeEditor({
     }
   }
 
+  /** Delete and reset can't be undone, so they ask first (ADR 0079); a type with Documents is refused before asking. */
+  async function askRemove() {
+    if (!record) return;
+    if (!base) {
+      const why = typeDeleteRefusal(record.label, await countTypeDocuments(record.typeId));
+      if (why) return setRefusal(why);
+    }
+    setConfirming(true);
+  }
+
   async function remove() {
     if (!record) return;
     if (base) {
-      if (!window.confirm(`Reset “${record.label}” to its built-in default? Fields you added keep their values on its Documents.`)) return;
       await deleteDocumentType(record.id);
       toast.success(`“${record.label}” reset to its built-in default`);
       return onDone();
     }
-    const why = typeDeleteRefusal(record.label, await countTypeDocuments(record.typeId));
-    if (why) return setRefusal(why);
-    if (!window.confirm(`Delete the type “${record.label}”? It has no Documents.`)) return;
     try {
       await deleteUserDocumentType(record);
       toast.success(`Type “${record.label}” deleted`);
@@ -346,7 +364,7 @@ export function TypeEditor({
         )}
         <div className="flex flex-wrap items-center justify-end gap-2">
           {record && (
-            <Button variant="ghost" className="text-destructive mr-auto" onClick={() => void remove()}>
+            <Button variant="ghost" className="text-destructive mr-auto" onClick={() => void askRemove()}>
               <Trash2 /> {base ? "Reset to default" : "Delete type"}
             </Button>
           )}
@@ -358,7 +376,45 @@ export function TypeEditor({
           </Button>
         </div>
       </div>
+      {record && <TypeRemovalConfirm label={record.label} builtIn={!!base} open={confirming} onOpenChange={setConfirming} onConfirm={() => void remove()} />}
     </HeldDocuments.Provider>
+  );
+}
+
+/**
+ * The confirmation before a Document type is deleted or a built-in type is reset to its
+ * default — neither has an Undo (ADR 0079). Used by the Type editor and the Bases list.
+ */
+export function TypeRemovalConfirm({
+  label,
+  builtIn,
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  label: string;
+  builtIn: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{builtIn ? `Reset “${label}” to its default?` : `Delete the type “${label}”?`}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {builtIn
+              ? "Your changes to it go — its name, icon, folder and the fields you added. What its Documents hold in those fields stays on them."
+              : "It has no Documents. Its fields and its Base go with it."}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>{builtIn ? "Reset to default" : "Delete type"}</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

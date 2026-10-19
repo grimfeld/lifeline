@@ -87,6 +87,12 @@ const ELEMENT_RULES = [
     test: (tag) => /^<Button\b/.test(tag) && /\bsize=["']icon/.test(tag) && !/\baria-label(?:ledby)?=/.test(tag),
     message: "icon-only Button without aria-label",
   },
+  {
+    id: "icon-title",
+    heading: "Components",
+    test: (tag) => /^<Button\b/.test(tag) && /\bsize=["']icon/.test(tag) && /(?<![\w-])title=/.test(tag),
+    message: "title= on an icon Button — name it with aria-label and wrap it in <Tip label> (Tooltip)",
+  },
 ];
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] });
@@ -131,6 +137,7 @@ function openingTags(lines) {
       let j = i;
       let end = -1;
       for (;;) {
+        depth = 0; // each pass rescans the whole tag so far
         for (let k = 0; k < text.length; k++) {
           const c = text[k];
           if (c === "{") depth++;

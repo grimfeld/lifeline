@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Button, ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger, cn, toast } from "@lifeline/ui";
+import { Button, ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger, Tip, cn, toast } from "@lifeline/ui";
 import {
   singularOf,
   allFolders,
@@ -158,12 +158,16 @@ export function FileTree() {
                 <span className="truncate font-medium">{node.name}</span>
               </button>
               <span className="hidden items-center group-hover:flex">
-                <Button size="icon" variant="ghost" className="size-5" title="New thought here" onClick={() => setAction({ kind: "new-note", folder: node.path, type: "thought" })}>
-                  <FilePlus className="size-3" />
-                </Button>
-                <Button size="icon" variant="ghost" className="size-5" title="New folder" onClick={() => setAction({ kind: "new-folder", parent: node.path })}>
-                  <FolderPlus className="size-3" />
-                </Button>
+                <Tip label="New thought here">
+                  <Button size="icon-xs" variant="ghost" aria-label="New thought here" onClick={() => setAction({ kind: "new-note", folder: node.path, type: "thought" })}>
+                    <FilePlus className="size-3" />
+                  </Button>
+                </Tip>
+                <Tip label="New folder">
+                  <Button size="icon-xs" variant="ghost" aria-label="New folder" onClick={() => setAction({ kind: "new-folder", parent: node.path })}>
+                    <FolderPlus className="size-3" />
+                  </Button>
+                </Tip>
               </span>
             </div>
           </ContextMenuTrigger>
@@ -257,27 +261,33 @@ export function FileTree() {
     );
   }
 
+  const privateLabel = !gate.configured ? "Set up private notes…" : gate.locked ? "Unlock private notes…" : "Lock private notes";
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="text-muted-foreground flex items-center justify-between px-2 py-1 text-xs font-medium">
         Files
         <span className="flex items-center">
           {/* The Private folder's one always-reachable control (ADR 0038) — the palette needs a keyboard, a phone has none. */}
-          <Button
-            size="icon"
-            variant="ghost"
-            className="size-5"
-            title={!gate.configured ? "Set up private notes…" : gate.locked ? "Unlock private notes…" : "Lock private notes"}
-            onClick={() => (!gate.configured ? openPrivateDialog("setup") : gate.locked ? openPrivateDialog("unlock") : void lockPrivate())}
-          >
-            {gate.configured && !gate.locked ? <LockOpen className="size-3" /> : <Lock className="size-3" />}
-          </Button>
-          <Button size="icon" variant="ghost" className="size-5" title="New thought" onClick={() => setAction({ kind: "new-note", folder: "", type: "thought" })}>
-            <FilePlus className="size-3" />
-          </Button>
-          <Button size="icon" variant="ghost" className="size-5" title="New folder" onClick={() => setAction({ kind: "new-folder", parent: "" })}>
-            <FolderPlus className="size-3" />
-          </Button>
+          <Tip label={privateLabel}>
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              aria-label={privateLabel}
+              onClick={() => (!gate.configured ? openPrivateDialog("setup") : gate.locked ? openPrivateDialog("unlock") : void lockPrivate())}
+            >
+              {gate.configured && !gate.locked ? <LockOpen className="size-3" /> : <Lock className="size-3" />}
+            </Button>
+          </Tip>
+          <Tip label="New thought">
+            <Button size="icon-xs" variant="ghost" aria-label="New thought" onClick={() => setAction({ kind: "new-note", folder: "", type: "thought" })}>
+              <FilePlus className="size-3" />
+            </Button>
+          </Tip>
+          <Tip label="New folder">
+            <Button size="icon-xs" variant="ghost" aria-label="New folder" onClick={() => setAction({ kind: "new-folder", parent: "" })}>
+              <FolderPlus className="size-3" />
+            </Button>
+          </Tip>
         </span>
       </div>
       <ul className={cn("min-h-0 flex-1 overflow-y-auto px-1 pb-4", dragOver === "" && "bg-accent/40")} {...dropProps("")}>
