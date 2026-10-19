@@ -96,6 +96,9 @@ describe("tags / headings / blocks", () => {
     const spaces = " ".repeat(50_000);
     const started = performance.now();
     expect(extractHeadings(`# a${spaces}\rx`)).toHaveLength(1);
+    expect(extractHeadings(`#${spaces}`)).toEqual([{ level: 1, text: " ", line: 0 }]);
+    expect(extractHeadings(`# a${"#".repeat(50_000)}x`)).toHaveLength(1);
+    expect(extractHeadings(`# a${" #".repeat(50_000)}x`)).toHaveLength(1);
     expect(parseBlockOptions(`apps:${spaces}x\r`)).toEqual({ apps: "x" });
     expect(splitFrontmatter(`---\nkind:${spaces}x\r\n---\n`).properties).toEqual({ kind: "x" });
     expect(performance.now() - started).toBeLessThan(1000);

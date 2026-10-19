@@ -230,11 +230,26 @@ export function extractHeadings(text: string): Heading[] {
   text.split("\n").forEach((line, i) => {
     if (/^\s{0,3}(```|~~~)/.test(line)) inFence = !inFence;
     if (inFence) return;
-    // The closing `#`s are cut by hand: `\s+(.+?)\s*#*\s*$` backtracked cubically on a long line.
-    const m = /^\s{0,3}(#{1,6})\s+(.+)$/s.exec(line);
-    if (m) out.push({ level: m[1].length, text: m[2].trimEnd().replace(/#+$/, "").trimEnd() || m[2][0], line: i });
+    const h = readHeading(line);
+    if (h) out.push({ ...h, line: i });
   });
   return out;
+}
+
+/**
+ * An ATX heading line → its level and text, closing `#`s cut. A scan, not one
+ * regex: `\s+(.+?)\s*#*\s*$` backtracked cubically on a long line.
+ */
+function readHeading(line: string): { level: number; text: string } | null {
+  const m = /^\s{0,3}(#{1,6})/.exec(line);
+  if (!m) return null;
+  const rest = line.slice(m[0].length);
+  // At least one space after the marks, then at least one character.
+  if (rest.length < 2 || rest[0].trim() !== "") return null;
+  const body = rest.trimStart() || rest[rest.length - 1];
+  let end = body.trimEnd().length;
+  while (end > 0 && body[end - 1] === "#") end--;
+  return { level: m[1].length, text: body.slice(0, end).trimEnd() || body[0] };
 }
 
 export interface FencedBlock {
