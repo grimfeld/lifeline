@@ -1,16 +1,19 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router";
-import { initApps, isDemo, setTypeIconResolver, startSync } from "@lifeline/core";
+import { initApps, isDemo, setTypeIconResolver, setTypeIntakeDialog, startSync } from "@lifeline/core";
 import { TooltipProvider, typeIcon } from "@lifeline/ui";
 import { APPS } from "./apps";
 import App from "./App";
+import { TypeIntakeDialog } from "./intake/TypeIntakeDialog";
 import { startDemo } from "./demo/start";
 import "./index.css";
 
 // The App registry lives in ./apps (ADR 0003). The Demo (ADR 0077) shows every App:
 // none of them needs a server since Mail was retired (ADR 0080).
 setTypeIconResolver(typeIcon);
+// Core's generic Intake for user-defined types (ADR 0086) is drawn by the shell, as the type icons are.
+setTypeIntakeDialog(TypeIntakeDialog);
 initApps(APPS);
 startSync();
 

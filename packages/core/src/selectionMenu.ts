@@ -1,4 +1,5 @@
 import { MODULES } from "./manifest";
+import { moduleOrder } from "./intakeGroups";
 import { normalizeName } from "./markdown";
 import type { LinkIndex } from "./documents/links";
 import { maskProse, wikilinkFor } from "./documents/mentions";
@@ -72,7 +73,7 @@ export function buildSelectionMenu<I extends MenuIntake>(input: SelectionMenuInp
   for (const [id, entries] of byGroup) {
     if (id.startsWith("app:")) groups.push({ id, title: appTitle(id.slice(4)) ?? id.slice(4), entries });
   }
-  const modules = [...MODULES].sort((a, b) => Number(b.id === currentModule) - Number(a.id === currentModule));
+  const modules = moduleOrder(currentModule);
   for (const m of modules) {
     const entries = byGroup.get(m.id);
     if (entries) groups.push({ id: m.id, title: m.title, entries });

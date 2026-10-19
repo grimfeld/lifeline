@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { decodeHandoff, encodeHandoff, HANDOFF_DONE_PATH, handoffFromShare, type HandoffDecodeError } from "@lifeline/handoff";
-import { allIntakes, allWorkspaces, currentWorkspaceId, docHref, getDocument, intakeByKey, isDemo, lastIntakeKey, pb, rememberIntake, setCurrentWorkspace, useWorkspaces, type WorkspaceRecord } from "@lifeline/core";
-import { Button, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { allIntakes, allWorkspaces, appById, currentWorkspaceId, docHref, getDocument, groupIntakes, isDemo, lastIntakeKey, pb, rememberIntake, setCurrentWorkspace, typeIntakesOf, useDocumentTypes, useWorkspaces, type HandoffIntake, type WorkspaceRecord } from "@lifeline/core";
+import { Button, PhoneDock, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { CircleCheck, Lock } from "lucide-react";
 import { arrivingHandoff, dropPendingHandoff, keepPendingHandoff } from "./pending";
 import { HandoffSignIn } from "./HandoffSignIn";
@@ -64,9 +64,16 @@ export function HandoffPage() {
   // Signed out, sign-in (or working locally) comes before the Intake step. The Demo never
   // signs in (ADR 0077): it hands off straight into its local store.
   const [signInDone, setSignInDone] = useState(() => isDemo() || pb.authStore.isValid);
-  const named = decoded.ok && decoded.intake ? intakeByKey(decoded.intake) : undefined;
-  const [intakeKey, setIntakeKey] = useState(() => named?.key ?? (intakeByKey(lastIntakeKey(SENDER)) ? lastIntakeKey(SENDER) : (allIntakes()[0]?.key ?? "")));
-  const intake = intakeByKey(intakeKey);
+  // The Apps' Intakes, and Core's for each user-defined type — those arrive with the types, so read live.
+  const types = useDocumentTypes();
+  const groups = useMemo(() => groupIntakes<HandoffIntake>([...allIntakes(), ...typeIntakesOf(types)], { moduleOf: (id) => appById(id)?.module, appTitle: (id) => appById(id)?.title }), [types]);
+  const intakes = groups.flatMap((g) => g.intakes);
+  const byKey = (key: string | undefined) => (key ? intakes.find((i) => i.key === key) : undefined);
+  const named = decoded.ok ? byKey(decoded.intake) : undefined;
+  // Until one is picked: the named Intake, else the one last chosen from outside, else the first listed.
+  const [picked, setIntakeKey] = useState<string>();
+  const intake = byKey(picked) ?? named ?? byKey(lastIntakeKey(SENDER)) ?? intakes[0];
+  const intakeKey = intake?.key ?? "";
   // Undefined until the first read: whether to ask for a Workspace waits on it.
   const liveWorkspaces = useWorkspaces();
   const [readWorkspaces, setReadWorkspaces] = useState<WorkspaceRecord[]>();
@@ -90,7 +97,7 @@ export function HandoffPage() {
 
   // After sign-in, a named Intake opens at once — unless there is a Workspace to choose. Decided once, when the Workspaces are known.
   useEffect(() => {
-    if (stage === "pending" && signInDone && workspaces) setStage(named && workspaces.length < 2 ? "open" : "choose");
+    if (stage === "pending" && signInDone && workspaces) setStage(named && (workspaces.length < 2 || named.typeId) ? "open" : "choose");
   }, [stage, signInDone, workspaces, named]);
 
   function open() {
@@ -141,17 +148,23 @@ export function HandoffPage() {
                       <SelectValue placeholder="Make it a…" />
                     </SelectTrigger>
                     <SelectContent>
-                      {allIntakes().map((i) => (
-                        <SelectItem key={i.key} value={i.key}>
-                          {i.icon && <i.icon />}
-                          {i.title}
-                        </SelectItem>
+                      {groups.map((g) => (
+                        <SelectGroup key={g.id}>
+                          <SelectLabel>{g.title}</SelectLabel>
+                          {g.intakes.map((i) => (
+                            <SelectItem key={i.key} value={i.key}>
+                              {i.icon && <i.icon />}
+                              <span className="truncate">{i.title}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
                 </PhoneDock>
               )}
-              {workspaces && workspaces.length > 1 && (
+              {/* Core's form asks for the Workspace itself. */}
+              {workspaces && workspaces.length > 1 && !intake?.typeId && (
                 <PhoneDock>
                   <Select value={wsValue} onValueChange={setWorkspaceId}>
                     <SelectTrigger aria-label="Workspace" className="min-w-0 max-w-full">
