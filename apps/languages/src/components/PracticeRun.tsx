@@ -38,6 +38,9 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
   const [count, setCount] = useState({ passed: 0, failed: 0 });
   // Set before the Recall is written and cleared by the next reveal: a double tap grades once.
   const graded = useRef(false);
+  useEffect(() => {
+    if (revealed) graded.current = false;
+  }, [revealed]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30_000);
@@ -56,11 +59,6 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
   const item = current ? live.find((i) => i.id === current.itemId) : undefined;
   // Each Prompt is drawn by the App that owns its Document (ADR 0073).
   const Face = item ? recallableDef(item.type)?.face : undefined;
-
-  function reveal() {
-    graded.current = false;
-    setRevealed(true);
-  }
 
   async function grade(g: Grade) {
     if (!current || !item || !revealed || graded.current) return;
@@ -98,7 +96,7 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === " " || e.key === "Enter") {
         e.preventDefault();
-        if (!revealed) reveal();
+        if (!revealed) setRevealed(true);
       } else if (revealed && (e.key === "1" || e.key.toLowerCase() === "f")) void grade("fail");
       else if (revealed && (e.key === "2" || e.key.toLowerCase() === "j")) void grade("pass");
     }
@@ -136,7 +134,7 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
               </Button>
             </div>
           ) : (
-            <Button size="lg" variant="secondary" className="h-14 text-base" onClick={reveal}>
+            <Button size="lg" variant="secondary" className="h-14 text-base" onClick={() => setRevealed(true)}>
               <Eye /> Show answer
             </Button>
           )}
