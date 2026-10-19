@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Button, Sheet, SheetClose, SheetContent, SheetTitle } from "@lifeline/ui";
+import { Button, Sheet, SheetClose, SheetContent, SheetTitle, Tip } from "@lifeline/ui";
 import {
+  backPeek,
   closePeek,
+  InPeekContext,
   displayTitle,
   docHref,
   homeModuleOf,
@@ -12,11 +14,12 @@ import {
   useDocumentType,
   useIsMobile,
   usePeekedId,
+  usePeekStack,
   vaultDocPath,
   type Document,
   type DocumentTypeDef,
 } from "@lifeline/core";
-import { ArrowUpRight, NotebookPen, X } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, NotebookPen, X } from "lucide-react";
 import { PeekContent } from "./PeekContent";
 
 /**
@@ -26,6 +29,9 @@ import { PeekContent } from "./PeekContent";
  * `PeekContent`'s (the owner's part and the user's own Fields, ADR 0085); the frame is
  * Core's, with the ways through: to the Document's Home Module, and to the
  * Vault where its body is written.
+ *
+ * Following a link inside it replaces what it shows, with a back control in
+ * its header (ADR 0085): a Peek never opens over another Peek.
  *
  * A side panel on the desk, a bottom sheet on the phone. Mounted once.
  */
@@ -48,14 +54,18 @@ export function PeekHost() {
         side={isMobile ? "bottom" : "right"}
         className={isMobile ? "max-h-[80dvh] gap-0 p-0" : "w-full gap-0 p-0 sm:max-w-md"}
       >
-        {doc ? (
-          <PeekBody doc={doc} def={def} />
-        ) : (
-          <>
-            <SheetTitle className="sr-only">Peek</SheetTitle>
-            <p className="text-muted-foreground p-6 text-sm">This document is gone.</p>
-          </>
-        )}
+        {/* Links followed in here replace what the Peek shows (ADR 0085). */}
+        <InPeekContext.Provider value={true}>
+          {doc ? (
+            <PeekBody key={doc.id} doc={doc} def={def} />
+          ) : (
+            <>
+              <PeekBack />
+              <SheetTitle className="sr-only">Peek</SheetTitle>
+              <p className="text-muted-foreground p-6 text-sm">This document is gone.</p>
+            </>
+          )}
+        </InPeekContext.Provider>
       </SheetContent>
     </Sheet>
   );
@@ -71,7 +81,8 @@ function PeekBody({ doc, def }: { doc: Document; def: DocumentTypeDef | undefine
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="relative flex flex-col gap-1 border-b px-4 pt-4 pb-3 pr-10">
+      <div className="relative flex flex-col gap-1 border-b px-4 pt-4 pb-3 pr-18">
+        <PeekBack />
         <SheetClose asChild>
           <Button variant="ghost" size="icon" className="absolute top-2 right-2 size-8" title="Close">
             <X />
@@ -96,5 +107,18 @@ function PeekBody({ doc, def }: { doc: Document; def: DocumentTypeDef | undefine
         )}
       </div>
     </div>
+  );
+}
+
+/** Back to what the Peek showed before a link was followed in it; only there when there is a before. */
+function PeekBack() {
+  const stack = usePeekStack();
+  if (stack.length < 2) return null;
+  return (
+    <Tip label="Back">
+      <Button variant="ghost" size="icon" className="absolute top-2 right-10" onClick={backPeek}>
+        <ArrowLeft />
+      </Button>
+    </Tip>
   );
 }

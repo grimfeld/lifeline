@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
+import { selectText } from "./support/selection";
 
 /**
  * Every screen of the app, at phone and desktop width (the `mobile` and
@@ -137,6 +138,37 @@ async function sharedAndSaved(page: Page) {
   await page.getByRole("button", { name: "Go back" }).waitFor();
 }
 
+/**
+ * Today's Day naming a seeded Person with a very long title (of the seeded
+ * type with a very long label), that name selected and the Selection menu
+ * open: Link first, then every Intake under its Module.
+ */
+async function openSelectionMenu(page: Page) {
+  await workLocally(page);
+  const name = await page.evaluate(
+    async ({ coreUrl, name }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const now = new Date();
+      const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      let day: { id: string } | undefined;
+      for (let i = 0; i < 40 && !day; i++) {
+        day = ((await core.documentsOf("daily")) as { id: string; title: string }[]).find((d) => d.title === today);
+        if (!day) await new Promise((r) => setTimeout(r, 100));
+      }
+      await core.createDocument({ type: "e2eperson", title: name });
+      await core.patchDocument(day!.id, { body: `Met ${name} today.` });
+      return name;
+    },
+    { coreUrl: CORE_URL, name: longText("Selected person") },
+  );
+  const body = page.locator(".cm-content");
+  await expect(body).toContainText(name);
+  await selectText(body, name);
+  await page.getByRole("button", { name: "Selection menu" }).click();
+  await expect(page.getByRole("dialog", { name: "Selection menu" }).getByRole("option").first()).toContainText("Link to Selected person");
+}
+
 const SCREENS: ScreenCase[] = [
   // Core destinations.
   { name: "Calendar · Upcoming", path: "/calendar?view=upcoming" },
@@ -156,6 +188,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Handoff · picker", path: `/handoff#${encodeHandoff({ title: longText("A page"), text: "", url: `https://example.com/${LONG_WORD}` })}`, afterOpen: pickerWithWorkspaces },
   { name: "Handoff · unreadable", path: "/handoff#v1.not-a-handoff", afterOpen: workLocally },
   { name: "Handoff · Saved", path: "/handoff/done", afterOpen: workLocally },
+  { name: "Selection menu", path: "/app/journal", afterOpen: openSelectionMenu },
   { name: "Handoff · shared", path: LONG_SHARE, afterOpen: workLocally },
   { name: "Handoff · shared, Saved", path: LONG_SHARE, afterOpen: sharedAndSaved },
 
@@ -178,6 +211,9 @@ const SCREENS: ScreenCase[] = [
   // A Peek edits (ADR 0085): a user-defined type's whole Peek, and a built-in's with the user's own Field beneath the App's part.
   { name: "Vault · Peek of a user-defined type", path: "/vault", afterOpen: peekOf("e2eperson") },
   { name: "Vault · Peek with the user's own Field", path: "/vault", afterOpen: peekOf("book", true) },
+  // The Apps' own editable parts (ADR 0085): a Task's and an Event's Fields edited through their App's controls.
+  { name: "Vault · Peek of a Task", path: "/vault", afterOpen: peekOf("task") },
+  { name: "Vault · Peek of an Event", path: "/vault", afterOpen: peekOf("event") },
   // The writing Apps' own editable parts (ADR 0085).
   { name: "Vault · Peek of a Day", path: "/vault", afterOpen: peekOf("daily") },
   { name: "Vault · Peek of a Week", path: "/vault", afterOpen: peekOf("week") },

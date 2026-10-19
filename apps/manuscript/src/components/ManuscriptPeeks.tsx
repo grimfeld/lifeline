@@ -11,7 +11,7 @@ export function ManuscriptPeek({ doc }: PeekProps) {
   const chapters = useChapters(m.id);
   return (
     <div className="grid gap-3">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <ChoiceField label="Form" value={m.form ?? ""} options={FORMS} onChange={(form) => void savePatch(m.id, { form })} />
         <ChoiceField label="Status" value={m.status ?? ""} options={STATUSES} onChange={(status) => void savePatch(m.id, { status })} />
       </div>
@@ -40,10 +40,10 @@ export function ChapterPeek({ doc }: PeekProps) {
           {manuscript && ` in ${manuscript.title}`}
         </span>
         <div className="flex shrink-0 gap-1">
-          <Button size="sm" variant="outline" className="h-7" disabled={i <= 0} onClick={() => move(-1)}>
+          <Button size="sm" variant="outline" disabled={i <= 0} onClick={() => move(-1)}>
             <ArrowUp /> Earlier
           </Button>
-          <Button size="sm" variant="outline" className="h-7" disabled={i < 0 || i >= chapters.length - 1} onClick={() => move(1)}>
+          <Button size="sm" variant="outline" disabled={i < 0 || i >= chapters.length - 1} onClick={() => move(1)}>
             <ArrowDown /> Later
           </Button>
         </div>

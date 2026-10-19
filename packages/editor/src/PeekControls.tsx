@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Textarea, toast } from "@lifeline/ui";
+import { useId, type ReactNode } from "react";
+import { Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Textarea, toast, useSoonWritten } from "@lifeline/ui";
 import { effectiveTags, extractProseTags, normalizeTag, patchDocument, useTagVocabulary, type Document } from "@lifeline/core";
 
 /**
@@ -30,49 +30,21 @@ export function savePatch(id: string, patch: Record<string, unknown>): Promise<v
 }
 
 /**
- * A text kept locally while typed and handed to `onCommit` a moment after the
- * typing stops, on Enter, on leaving it, and when the Peek closes — so a
- * keystroke never waits on the store, and the live value shows again once it
- * changes elsewhere.
+ * A text written a moment after the typing stops (`useSoonWritten`, as the
+ * Vault's editor writes), so a keystroke never waits on the store; whatever is
+ * still waiting goes out when the Peek closes.
  */
 export function DraftText({ label, value, onCommit, type = "text", multiline, placeholder }: { label: string; value: string; onCommit: (v: string) => void; type?: "text" | "url" | "date"; multiline?: boolean; placeholder?: string }) {
   const id = useId();
-  const [draft, setDraft] = useState<string | null>(null);
-  const timer = useRef<number | null>(null);
-  const latest = useRef({ draft, value, onCommit });
-  latest.current = { draft, value, onCommit };
-  const commit = () => {
-    if (timer.current) window.clearTimeout(timer.current);
-    timer.current = null;
-    const { draft: d, value: v, onCommit: write } = latest.current;
-    if (d !== null && d !== v) write(d);
-    setDraft(null);
-  };
-  useEffect(() => () => commit(), []); // eslint-disable-line react-hooks/exhaustive-deps
-  const change = (v: string) => {
-    setDraft(v);
-    if (timer.current) window.clearTimeout(timer.current);
-    // A date is whole once picked; text waits for the typing to stop.
-    timer.current = window.setTimeout(commit, type === "date" ? 0 : 800);
-  };
-  const shown = draft ?? value;
+  const [shown, set] = useSoonWritten(value, (v) => {
+    if (v !== value) onCommit(v);
+  });
   return (
     <PeekField label={label} htmlFor={id}>
       {multiline ? (
-        <Textarea id={id} rows={2} value={shown} placeholder={placeholder} onChange={(e) => change(e.target.value)} onBlur={commit} />
+        <Textarea id={id} rows={2} value={shown} placeholder={placeholder} onChange={(e) => set(e.target.value)} />
       ) : (
-        <Input
-          id={id}
-          className="h-8 min-w-0"
-          type={type}
-          value={shown}
-          placeholder={placeholder}
-          onChange={(e) => change(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commit();
-          }}
-        />
+        <Input id={id} className="min-w-0" type={type} value={shown} placeholder={placeholder} onChange={(e) => set(e.target.value)} />
       )}
     </PeekField>
   );
@@ -86,7 +58,7 @@ export function ChoiceField({ label, value, options, onChange, optional }: { lab
   return (
     <PeekField label={label} htmlFor={id}>
       <Select value={value || NONE} onValueChange={(v) => onChange(v === NONE ? "" : v)}>
-        <SelectTrigger id={id} aria-label={label} className="h-8 w-full min-w-0">
+        <SelectTrigger id={id} aria-label={label} className="w-full min-w-0">
           <SelectValue placeholder="—" />
         </SelectTrigger>
         <SelectContent>

@@ -37,6 +37,8 @@ export function PeekContent({ doc, def }: { doc: Document; def: DocumentTypeDef 
     <div className="flex flex-col gap-3">
       {part ? <part.Part doc={doc} /> : <ReadOnlyPeek doc={doc} def={def} />}
       {def && <UserFields key={doc.id} doc={doc} fields={userFieldsOf(def)} />}
+      {/* An editable App part draws no body: the frame reads it beneath (ADR 0085), so a body-first type keeps its text and links in view. */}
+      {part?.edits && <Body doc={doc} />}
     </div>
   );
 }

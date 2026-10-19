@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { addDays, diffDays, documentsOf, getDocument, normalizeTags, putDocument, removeDocument, useDocuments, type DateStr } from "@lifeline/core";
+import { addDays, diffDays, documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr } from "@lifeline/core";
 import { EVENT_TYPE, type Event } from "../domain/types";
+import type { EventWhen } from "../domain/eventForm";
 
 /** PocketBase returns absent text fields as ""; re-establish null on read. */
 function normalize(e: Event): Event {
@@ -48,6 +49,21 @@ export async function addEvent(input: {
 
 export async function updateEvent(ev: Event): Promise<void> {
   await putDocument<Event>({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) });
+}
+
+/** Edit an Event's own words — its notes and Tags — from wherever it is shown (its Peek, ADR 0085). */
+export async function editEvent(id: string, edit: { notes?: string; tags?: string[] }): Promise<void> {
+  const patch: Record<string, unknown> = {};
+  if (edit.notes !== undefined) patch.notes = edit.notes;
+  if (edit.tags !== undefined) patch.tags = normalizeTags(edit.tags);
+  if (Object.keys(patch).length > 0) await patchDocument(id, patch);
+}
+
+/** Set when an Event happens (its guarded Fields), as the Event dialog does — `whenOf` its form. */
+export async function setEventWhen(id: string, when: EventWhen): Promise<void> {
+  const ev = await getDocument<Event>(id);
+  if (!ev || ev.type !== EVENT_TYPE) return;
+  await patchDocument(id, { date: when.date, endDate: when.endDate, start: when.start, end: when.end });
 }
 
 export async function deleteEvent(id: string): Promise<void> {

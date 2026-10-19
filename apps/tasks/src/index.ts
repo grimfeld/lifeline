@@ -9,7 +9,8 @@ import { QuickAddCard } from "./cards/QuickAddCard";
 import { taskCommands } from "./commands";
 import { tasksSchedulable, APP_ID } from "./schedulable";
 import { tasksDaylog } from "./daylog";
-import { taskTypes } from "./types";
+import { occurrenceType, taskType } from "./types";
+import { TaskPeek } from "./components/TaskPeek";
 
 export const tasksApp: AppManifest = {
   id: APP_ID,
@@ -17,7 +18,8 @@ export const tasksApp: AppManifest = {
   title: "Tasks",
   icon: ListTodo,
   color: "var(--chart-blue)",
-  types: taskTypes,
+  // A Task is edited where it is peeked (ADR 0085). Attached here, not in ./types, which stays free of views.
+  types: [{ ...taskType, peekEdit: TaskPeek }, occurrenceType],
   screens: [
     {
       id: "tasks.main",

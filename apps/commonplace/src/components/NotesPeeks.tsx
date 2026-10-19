@@ -24,7 +24,7 @@ export function SourcePeek({ doc }: PeekProps) {
   const set = (patch: Record<string, unknown>) => void savePatch(s.id, patch);
   return (
     <div className="grid gap-3">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         <ChoiceField label="Kind" value={s.kind ?? ""} options={SOURCE_KINDS} optional onChange={(kind) => set({ kind })} />
         <DraftText label="Author" value={s.author ?? ""} onCommit={(author) => set({ author })} />
         <DraftText label="URL" type="url" value={s.url ?? ""} onCommit={(url) => set({ url })} />
@@ -88,7 +88,7 @@ export function NotePeek({ doc }: PeekProps) {
         <Button
           size="sm"
           variant="ghost"
-          className="text-muted-foreground h-7 px-1"
+          className="text-muted-foreground px-1"
           onClick={() =>
             void thoughtFromNote(note.id)
               .then(() => toast.success("A Thought again — no Source"))
@@ -120,7 +120,7 @@ export function QuotePeek({ doc }: PeekProps) {
         </span>
         <KeepMenu quote={q} className="size-7 shrink-0" />
       </div>
-      <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
+      <div className="grid gap-3 md:grid-cols-[10rem_1fr]">
         <DraftText label="Where" value={q.locator ?? ""} placeholder="Page, chapter, 34:12" onCommit={(locator) => void savePatch(q.id, { locator })} />
         <DraftText label="Comment" value={q.comment ?? ""} placeholder="Your comment" onCommit={(comment) => void savePatch(q.id, { comment })} />
       </div>
