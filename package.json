@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
+    "check": "node scripts/check-ui.mjs && node scripts/adr.mjs check && pnpm -r typecheck && pnpm -r test",
+    "check:ui": "node scripts/check-ui.mjs",
+    "adr:new": "node scripts/adr.mjs new",
+    "adr:check": "node scripts/adr.mjs check",
     "dev": "pnpm --filter @lifeline/shell dev",
     "dev:all": "node scripts/dev-launcher.mjs",
     "mcp": "pnpm --filter @lifeline/mcp dev",
@@ -14,7 +18,8 @@
     "build": "pnpm --filter @lifeline/shell build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "tauri": "pnpm --filter @lifeline/shell tauri"
+    "tauri": "pnpm --filter @lifeline/shell tauri",
+    "test:e2e": "pnpm --filter @lifeline/shell test:e2e"
   },
   "packageManager": "pnpm@9.11.0"
 }

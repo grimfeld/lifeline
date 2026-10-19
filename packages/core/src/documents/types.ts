@@ -39,10 +39,17 @@ export function isCommonKey(k: string): k is DocumentCommonKey {
   return (DOCUMENT_COMMON_KEYS as readonly string[]).includes(k);
 }
 
-/** A Document's type fields only (no common keys). */
+/**
+ * The row key holding the Roles a Document wears (ADR 0069). Synced inside
+ * `fields` like a type field, but never one: frontmatter, forms and type-field
+ * reads skip it, and only the Role operations write it.
+ */
+export const ROLES_KEY = "roles";
+
+/** A Document's type fields only (no common keys, no Roles). */
 export function typeFieldsOf(doc: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(doc)) if (!isCommonKey(k)) out[k] = v;
+  for (const [k, v] of Object.entries(doc)) if (!isCommonKey(k) && k !== ROLES_KEY) out[k] = v;
   return out;
 }
 
@@ -81,6 +88,8 @@ export interface FieldDef {
   options?: FieldOption[];
   /** link: restrict to one Document type or a family of them (undefined = any linkable type). */
   linkType?: string | string[];
+  /** link: restrict to Documents playing a Role (ADR 0069) — its home type's and every wearer. Wins over `linkType`. */
+  linkRole?: string;
   /** Only the owning App's operations may write it (ADR 0019): Bases and text mode show it read-only. */
   guarded?: boolean;
   required?: boolean;
@@ -93,6 +102,9 @@ export interface FieldDef {
 /** Whether a field kind holds Document ids — one (`link`) or several (`links`). */
 export const isLinkKind = (k: FieldKind): boolean => k === "link" || k === "links";
 
+/** Whether a field kind is a Choice — one option (`select`) or several (`multiselect`). */
+export const isChoiceKind = (k: FieldKind): boolean => k === "select" || k === "multiselect";
+
 /** Value shapes per field kind, as stored on the row. */
 export type FieldValue = string | number | boolean | string[] | [number, number] | null | undefined;
 
@@ -104,6 +116,17 @@ export type TitleRule = "name" | "date" | "derived";
  * owning App and registered through its manifest; user-defined types are
  * rows of Core's `document_types` collection. Both land in one registry.
  */
+/** The Report kinds a type may choose (ADR 0076): ranking kinds rank a type's Documents, the others describe one Document. */
+export type ReportKind = "top" | "quiet" | "last" | "count" | "heatmap";
+/** One chosen Report on a type, in the type's order, with its parameters. */
+export interface ReportSetting {
+  kind: ReportKind;
+  /** How many Documents a ranking Report lists. */
+  n?: number;
+  /** "Not mentioned in N days": the N. */
+  days?: number;
+}
+
 export interface DocumentTypeDef {
   /** Slug, immutable. */
   id: string;
@@ -116,6 +139,12 @@ export interface DocumentTypeDef {
   iconName?: string;
   /** Owning App id for built-in types; undefined for user-defined. */
   appId?: string;
+  /**
+   * A user-defined type's **Home Module** (ADR 0068): the one Module the user
+   * homes it in — Person and Place in the Journal — which lists it without
+   * knowing what it is. Built-ins take their App's Module and ignore this.
+   */
+  homeModule?: string;
   /** Exists only in service of another Document (a Writing's Versions): hidden from the tree, link completion and sidebar; still has a Base. */
   internal?: boolean;
   /** Shown in the Vault tree even without a body (body-first types). Defaults to body === "required". */
@@ -182,6 +211,8 @@ export interface DocumentTypeDef {
   followers?: (doc: Document) => Promise<string[]>;
   /** Sort order in pickers / the Bases list. */
   order?: number;
+  /** The Reports the user chose for this type (ADR 0076); absent = the defaults (`reportsOf`). */
+  reports?: ReportSetting[];
   /** Built-in (code) vs user-defined (data). */
   builtIn: boolean;
   /** A built-in whose label/icon/fields were customised by a user record. */

@@ -27,6 +27,7 @@ const statType: DocumentTypeDef = {
     { key: "color", label: "Colour", kind: "select", options: COLOR_SLOTS.map((c) => ({ value: c, label: c })) },
     { key: "defaultIncrement", label: "Quick-log amount", kind: "number" },
     { key: "universeSize", label: "Universe size", kind: "number" },
+    { key: "items", label: "Items", kind: "list" },
   ],
   linkable: { subtitle: (d) => String(d.kind ?? "") },
   href: (d) => statHref(d.id),

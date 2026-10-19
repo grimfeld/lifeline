@@ -1,10 +1,11 @@
 import { useSyncExternalStore } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { WORKSPACES, type SyncedRecord, type UserScreen } from "./data/db";
+import { WORKSPACES, type ScreenLayoutItem, type SyncedRecord, type UserScreen } from "./data/db";
 import { all, put } from "./data/repo";
 import { hasPulledOnce } from "./data/sync";
 import { newId } from "./ids";
-import { MODULES, type BarSlot } from "./manifest";
+import { type BarSlot } from "./manifest";
+import { inhabitedModules } from "./registry";
 import { seedBar } from "./bar";
 
 /**
@@ -30,6 +31,19 @@ export interface WorkspaceRecord extends SyncedRecord {
    * before the bar existed, which then seeds from `modules` on read.
    */
   bar?: (BarSlot | null)[];
+  /**
+   * The capture sheet's pins (CONTEXT.md "Capture sheet"), in the user's
+   * order: `appId/commandId` or `fold:<id>`. Absent or empty on a new
+   * Workspace — pins are never seeded.
+   */
+  capturePins?: string[];
+  /**
+   * The user's own arrangement of each Module's Overview (ADR 0066), by Module
+   * id. Absent for a Module whose Overview was never edited: it follows the
+   * Module's default. Kept while the Module is away from the Workspace, and
+   * gone with the Workspace.
+   */
+  overviews?: Record<string, ScreenLayoutItem[]>;
   /**
    * Set on every Workspace but the default (ADR 0057): it reads and writes
    * only what it holds. The default — the one created first — reads the
@@ -166,10 +180,13 @@ export function useCurrentWorkspace(): WorkspaceRecord | undefined {
   return useLiveQuery(currentWorkspace, [id], undefined);
 }
 
-/** The current Workspace's Modules, in the user's order, dropping any Core no longer defines. */
+/**
+ * The current Workspace's Modules, in the user's order, dropping any Core no
+ * longer defines or no registered App inhabits (Mail in the Demo, ADR 0077).
+ */
 export function useWorkspaceModules(): string[] {
   const ws = useCurrentWorkspace();
-  const known = new Set(MODULES.map((m) => m.id));
+  const known = new Set(inhabitedModules().map((m) => m.id));
   return (ws?.modules ?? []).filter((m) => known.has(m));
 }
 
@@ -240,7 +257,7 @@ async function ensureOnce(): Promise<void> {
   if (!(await hasPulledOnce(WORKSPACES))) return;
   await createWorkspace(
     "Personal",
-    MODULES.map((m) => m.id),
+    inhabitedModules().map((m) => m.id),
   );
 }
 
