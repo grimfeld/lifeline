@@ -4,7 +4,7 @@ import { createDocument, docHref, documentType, excerpt, folderName, formatHuman
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, toast } from "@lifeline/ui";
 import { Plus } from "lucide-react";
 import { useNotes } from "../data/repo";
-import { DAILY, NOTE, TEMPLATE } from "../domain/types";
+import { DAILY, TEMPLATE, THOUGHT } from "../domain/types";
 
 /** Card: the notes of one folder, newest first (knobs: folder, recursive, count), with a "+" for a new plain note there. */
 export function FolderCard({ settings }: CardProps) {
@@ -19,7 +19,7 @@ export function FolderCard({ settings }: CardProps) {
     const t = title.trim();
     if (!t) return;
     try {
-      const n = await createDocument({ type: NOTE, title: t, folder });
+      const n = await createDocument({ type: THOUGHT, title: t, folder });
       setCreating(false);
       setTitle("");
       navigate(docHref(n));

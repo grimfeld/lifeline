@@ -22,6 +22,9 @@ export function normalize(m: Work): Work {
     finishedOn: m.finishedOn ?? "",
     liked: m.liked === true,
     rating: m.rating || 0,
+    partsTracked: !!m.partsTracked,
+    caughtUpGroup: m.caughtUpGroup || 0,
+    caughtUpPart: m.caughtUpPart || 0,
     tags: m.tags ?? [],
   };
 }
@@ -73,6 +76,9 @@ export async function addWork(input: {
     finishedOn: "",
     liked: false,
     rating: 0,
+    partsTracked: false,
+    caughtUpGroup: 0,
+    caughtUpPart: 0,
     tags: normalizeTags(input.tags),
   });
   return row.id;
@@ -85,7 +91,7 @@ export async function patchWork(item: Work, patch: Patch): Promise<void> {
   await patchDocument(item.id, Array.isArray(patch.tags) ? { ...patch, tags: normalizeTags(patch.tags) } : patch);
 }
 
-/** The Commonplace book's Quote type (ADR 0024): a passage that cannot outlive its Work. */
+/** The Notes App's Quote type (ADR 0070): a passage that cannot outlive its Source — here, the Work. */
 const QUOTE = "quote";
 
 /**
@@ -94,7 +100,7 @@ const QUOTE = "quote";
  * Playlist it sat in (membership is the Playlist's — ADR 0035).
  */
 export async function cascadeWorkDelete(id: string): Promise<void> {
-  await removeDocumentsWhere(QUOTE, (q) => (q as { mediaId?: string }).mediaId === id);
+  await removeDocumentsWhere(QUOTE, (q) => (q as { source?: string }).source === id);
   for (const p of await documentsOf<Playlist>(PLAYLIST)) {
     const ids = Array.isArray(p.workIds) ? p.workIds : [];
     if (ids.includes(id)) await patchDocument(p.id, { workIds: removeFromPlaylist(ids, id) });

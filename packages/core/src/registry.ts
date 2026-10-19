@@ -3,8 +3,10 @@ import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
 import type { LoggableProvider } from "./contracts/loggable";
+import type { RecallableDef } from "./contracts/recallable";
 import { openDb, type LifelineDB, type ScreenLayoutItem } from "./data/db";
 import { registerBuiltinTypes } from "./documents/registry";
+import { registerBuiltinRoles } from "./documents/roles";
 import type { DocumentTypeDef } from "./documents/types";
 import { resolveSettings, settingsTags, TAGS_FIELD, TAGS_SETTING, type CardSettings, type CardSettingsSchema } from "./cards";
 
@@ -19,6 +21,7 @@ export function initApps(manifests: AppManifest[]): LifelineDB {
   apps = manifests;
   const types = manifests.flatMap((a) => a.types.map((t) => ({ ...t, appId: a.id, builtIn: true })));
   registerBuiltinTypes(types);
+  registerBuiltinRoles(manifests.flatMap((a) => (a.roles ?? []).map((r) => ({ ...r, appId: a.id }))));
   return openDb(
     types.flatMap((t) => t.indexes ?? []),
     manifests.flatMap((a) => a.localTables ?? []),
@@ -66,6 +69,11 @@ export function timedProviders(): TimedProvider[] {
 
 export function daylogProviders(): DaylogProvider[] {
   return apps.flatMap((a) => (a.daylog ? [a.daylog] : []));
+}
+
+/** Every Recallable declaration (ADR 0073), in registry order, with the App that owns its type. */
+export function recallableDefs(): (RecallableDef & { appId: string })[] {
+  return apps.flatMap((a) => (a.recallable ?? []).map((d) => ({ ...d, appId: a.id })));
 }
 
 export function loggableProviders(): LoggableProvider[] {

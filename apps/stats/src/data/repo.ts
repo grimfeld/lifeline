@@ -1,9 +1,10 @@
 import { documentsOf, documentsWhere, getDocument, normalizeTags, putDocument, removeDocument, useLiveQuery } from "@lifeline/core";
+import { cleanItemList, normalizeItem } from "../domain/aggregate";
 import { STAT, STAT_ENTRY, type ColorSlot, type Entry, type Stat, type StatKind } from "../domain/types";
 
 /** PocketBase stores an absent text/number as "" / 0; re-establish the domain's defaults on read. */
 function normalizeStat(s: Stat): Stat {
-  return { ...s, unit: s.unit ?? "", defaultIncrement: s.defaultIncrement || 0, universeSize: s.universeSize || 0, tags: s.tags ?? [] };
+  return { ...s, unit: s.unit ?? "", defaultIncrement: s.defaultIncrement || 0, universeSize: s.universeSize || 0, items: Array.isArray(s.items) ? s.items : [], tags: s.tags ?? [] };
 }
 function normalizeEntry(e: Entry): Entry {
   return { ...e, item: e.item ?? "", tags: e.tags ?? [] };
@@ -72,6 +73,7 @@ export interface StatInput {
   color: ColorSlot;
   defaultIncrement: number;
   universeSize: number;
+  items: string[];
   tags: string[];
 }
 
@@ -83,6 +85,7 @@ function scrub(input: StatInput): StatInput {
     unit: k === "additive" || k === "measurement" ? input.unit.trim() : "",
     defaultIncrement: k === "additive" ? input.defaultIncrement || 0 : 0,
     universeSize: k === "collection" ? input.universeSize || 0 : 0,
+    items: k === "collection" ? cleanItemList(input.items) : [],
     tags: normalizeTags(input.tags),
   };
 }
@@ -116,4 +119,11 @@ export async function addEntry(input: { statId: string; value: number; ts: strin
 
 export async function deleteEntry(id: string): Promise<void> {
   await removeDocument(id);
+}
+
+/** Untick a Collection item: every entry of it goes (duplicates included), the preset list is untouched. */
+export async function uncollectItem(statId: string, item: string): Promise<void> {
+  const key = normalizeItem(item);
+  const entries = await documentsWhere<Entry>(STAT_ENTRY, "statId", statId);
+  for (const e of entries) if (e.item && normalizeItem(e.item) === key) await removeDocument(e.id);
 }

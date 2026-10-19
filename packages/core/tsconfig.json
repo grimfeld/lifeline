@@ -1,4 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src"]
+  // Core runs in the browser (and the Tauri webview): no Node globals here.
+  // Tests run on Node and get its types from tsconfig.test.json.
+  "compilerOptions": { "types": [] },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

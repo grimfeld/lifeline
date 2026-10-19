@@ -84,7 +84,7 @@ export async function patchWork(item: Work, patch: Patch): Promise<void> {
   await patchDocument(item.id, Array.isArray(patch.tags) ? { ...patch, tags: normalizeTags(patch.tags) } : patch);
 }
 
-/** The Commonplace book's Quote type (ADR 0024): a passage that cannot outlive its Work. */
+/** The Notes App's Quote type (ADR 0070): a passage that cannot outlive its Source — here, the Work. */
 const QUOTE = "quote";
 
 /**
@@ -92,7 +92,7 @@ const QUOTE = "quote";
  * the Vault's, a Base's: the Work's Quotes go with it.
  */
 export async function cascadeWorkDelete(id: string): Promise<void> {
-  await removeDocumentsWhere(QUOTE, (q) => (q as { mediaId?: string }).mediaId === id);
+  await removeDocumentsWhere(QUOTE, (q) => (q as { source?: string }).source === id);
 }
 
 /** Delete a game; its type's cascade takes its Quotes. */

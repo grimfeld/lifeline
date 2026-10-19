@@ -23,7 +23,9 @@ import { colorVar } from "../domain/types";
 import {
   average,
   booleanHeadline,
+  checklist,
   collectedItems,
+  collectionUniverse,
   currentStreak,
   formatValue,
   headline,
@@ -66,6 +68,7 @@ export function StatDetailScreen() {
   const sorted = useMemo(() => [...entries].sort((a, b) => b.ts.localeCompare(a.ts)), [entries]);
   const days = useMemo(() => markedDays(entries), [entries]);
   const items = useMemo(() => collectedItems(entries), [entries]);
+  const missing = useMemo(() => (stat?.kind === "collection" ? checklist(stat.items, entries).filter((r) => r.collectedAt === null) : []), [stat, entries]);
 
   if (!stat) {
     return <div className="text-muted-foreground flex h-full items-center justify-center text-sm">Stat not found.</div>;
@@ -87,7 +90,8 @@ export function StatDetailScreen() {
     big = h.denominator ? `${h.count} / ${h.denominator}` : String(h.count);
     caption = "days marked";
   } else {
-    big = stat.universeSize ? `${items.length} / ${stat.universeSize}` : String(items.length);
+    const universe = collectionUniverse(stat);
+    big = universe ? `${items.length} / ${universe}` : String(items.length);
     caption = "items collected";
   }
 
@@ -152,6 +156,21 @@ export function StatDetailScreen() {
               <li key={it.name} className="flex items-center gap-2 text-sm">
                 <Badge variant="secondary">{it.name}</Badge>
                 <span className="text-muted-foreground text-xs">{new Date(it.firstTs).toLocaleDateString()}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {missing.length > 0 && (
+        <section className="grid gap-2">
+          <h2 className="text-muted-foreground text-sm font-medium">Still to collect</h2>
+          <ul className="flex flex-wrap gap-1">
+            {missing.map((r) => (
+              <li key={r.name} className="min-w-0">
+                <Badge variant="outline" className="h-auto max-w-full whitespace-normal">
+                  {r.name}
+                </Badge>
               </li>
             ))}
           </ul>

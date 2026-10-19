@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { parts, todayStr, type DateStr } from "@lifeline/core";
-import { Button, Tabs, TabsList, TabsTrigger } from "@lifeline/ui";
+import { Button, PhoneDock, Tabs, TabsList, TabsTrigger } from "@lifeline/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { MonthGrid, MoodLegend, YearGrid } from "../components/MoodGrid";
 import { clearMood, setMood, useMoodsByDate } from "../data/repo";
@@ -65,24 +65,26 @@ export function MoodScreen() {
     <div className="grid gap-4 p-1">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-lg font-semibold">Mood</h1>
-        <Tabs value={layout} onValueChange={(v) => chooseLayout(v as Layout)}>
-          <TabsList>
-            <TabsTrigger value="month">Month</TabsTrigger>
-            <TabsTrigger value="year">Year</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" aria-label="Previous" onClick={() => step(-1)}>
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span className="min-w-32 text-center text-sm font-medium">{layout === "month" ? monthTitle(cursor.y, cursor.m) : cursor.y}</span>
-          <Button variant="ghost" size="icon" aria-label="Next" onClick={() => step(1)}>
-            <ChevronRight className="size-4" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={jumpToToday}>
-            Today
-          </Button>
-        </div>
+        <PhoneDock order={1}>
+          <Tabs value={layout} onValueChange={(v) => chooseLayout(v as Layout)} className="max-md:contents">
+            <TabsList>
+              <TabsTrigger value="month">Month</TabsTrigger>
+              <TabsTrigger value="year">Year</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex items-center gap-1 max-md:contents">
+            <Button variant="ghost" size="icon" aria-label="Previous" onClick={() => step(-1)}>
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="min-w-32 text-center text-sm font-medium max-md:min-w-0 max-md:truncate">{layout === "month" ? monthTitle(cursor.y, cursor.m) : cursor.y}</span>
+            <Button variant="ghost" size="icon" aria-label="Next" onClick={() => step(1)}>
+              <ChevronRight className="size-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={jumpToToday}>
+              Today
+            </Button>
+          </div>
+        </PhoneDock>
         <div className="text-muted-foreground ml-auto flex items-center gap-3 text-xs tabular-nums">
           <span>
             {recorded}/{shown.length} days

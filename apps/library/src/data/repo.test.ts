@@ -34,10 +34,10 @@ describe("deleting a Work", () => {
   it("takes its Quotes with it, from wherever it is deleted (CR-57)", async () => {
     const dune = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "" });
     const emma = await addWork({ medium: "book", title: "Emma", acquisition: "WANTED", reason: "" });
-    await putDocument({ type: "quote", mediaId: dune, text: "Fear is the mind-killer." });
-    await putDocument({ type: "quote", mediaId: emma, text: "Badly done, Emma!" });
+    await putDocument({ type: "quote", source: dune, body: "Fear is the mind-killer." });
+    await putDocument({ type: "quote", source: emma, body: "Badly done, Emma!" });
     await removeDocument(dune); // the Vault's or a Base's delete, not the Library's own
-    expect((await documentsOf<Document & { mediaId: string }>("quote")).map((q) => q.mediaId)).toEqual([emma]);
+    expect((await documentsOf<Document & { source: string }>("quote")).map((q) => q.source)).toEqual([emma]);
   });
 });
 
