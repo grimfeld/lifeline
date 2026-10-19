@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { addAttachment, documentsOf, documentsWhere, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, type DateStr } from "@lifeline/core";
-import { LINE, PRODUCT, RECEIPT, SHOP, isDimension, isUnitOf, type Dimension, type LabelMemory, type Line, type Product, type Receipt, type Shop, type Unit } from "../domain/types";
-import { fromAmount, readMeasure } from "../domain/measure";
-import { linesToRetype, receiptTitle, relabel, withLabel, withoutLabel, type LineMatch } from "../domain/derive";
+import { LINE, PRODUCT, RECEIPT, SHOP, isDimension, isSecondaryDimension, isUnitOf, type Basis, type Dimension, type LabelMemory, type Line, type Product, type Receipt, type SecondaryDimension, type Shop, type Unit } from "../domain/types";
+import { fromAmount, readMeasure, readSecondary, secondaryMeasure } from "../domain/measure";
+import { clearsSecondAmounts, lastSecondAmount, linesToRetype, observe, receiptTitle, relabel, withLabel, withoutLabel, type LineMatch } from "../domain/derive";
 
 /**
  * PocketBase returns absent fields as "" / undefined; re-establish shapes on
@@ -13,7 +13,8 @@ import { linesToRetype, receiptTitle, relabel, withLabel, withoutLabel, type Lin
 function normalizeProduct(p: Product): Product {
   const labels = Array.isArray(p.labels) ? p.labels.filter((l): l is LabelMemory => !!l && typeof l === "object" && typeof l.shopId === "string" && typeof l.label === "string") : [];
   const { measure: _old, ...rest } = p as Product & { measure?: unknown };
-  return { ...rest, ...readMeasure(p as Product & { measure?: unknown }), labels, tags: p.tags ?? [] };
+  const measure = readMeasure(p as Product & { measure?: unknown });
+  return { ...rest, ...measure, ...readSecondary(p, measure.dimension), labels, tags: p.tags ?? [] };
 }
 function normalizeShop(s: Shop): Shop {
   return { ...s, note: s.note ?? "", tags: s.tags ?? [] };
@@ -22,7 +23,7 @@ function normalizeReceipt(r: Receipt): Receipt {
   return { ...r, shopId: r.shopId ?? "", date: r.date || r.createdAt, branch: r.branch ?? "", total: Math.max(0, Math.round(Number(r.total) || 0)), noticed: !!r.noticed, tags: r.tags ?? [] };
 }
 function normalizeLine(l: Line): Line {
-  return { ...l, receiptId: l.receiptId ?? "", productId: l.productId ?? "", label: l.label ?? "", amount: Number(l.amount) > 0 ? Number(l.amount) : 1, price: Math.round(Number(l.price) || 0), promo: !!l.promo, needsAmount: !!l.needsAmount, tags: l.tags ?? [] };
+  return { ...l, receiptId: l.receiptId ?? "", productId: l.productId ?? "", label: l.label ?? "", amount: Number(l.amount) > 0 ? Number(l.amount) : 1, price: Math.round(Number(l.price) || 0), promo: !!l.promo, needsAmount: !!l.needsAmount, secondAmount: Number(l.secondAmount) > 0 ? Number(l.secondAmount) : 0, tags: l.tags ?? [] };
 }
 
 // ---- Reads ----
@@ -108,7 +109,21 @@ export interface ProductInput {
   unit?: Unit;
   /** A count's own name — "roll", "wash"; ignored off a count. */
   countName?: string;
+  /** A counted Product's second Measure (ADR 0084); "" = none. */
+  secondaryDimension?: SecondaryDimension | "";
+  /** Defaults to the secondary dimension's base unit. */
+  secondaryUnit?: Unit;
+  /** Defaults to primary; secondary only with a secondary Measure. */
+  compareBy?: Basis;
   tags?: string[];
+}
+
+/** The secondary Measure fields as written: only on a count, a unit of its own dimension. */
+function secondaryFields(dimension: Dimension, secondaryDimension: SecondaryDimension | "" | undefined, secondaryUnit: Unit | undefined, compareBy: Basis | undefined) {
+  if (secondaryDimension && !isSecondaryDimension(secondaryDimension)) throw new Error("A secondary measure is mass or volume");
+  if (secondaryDimension && dimension !== "count") throw new Error("Only a count product has a secondary measure");
+  if (secondaryDimension && secondaryUnit !== undefined && !isUnitOf(secondaryDimension, secondaryUnit)) throw new Error(`“${secondaryUnit}” is not a unit of ${secondaryDimension}`);
+  return readSecondary({ secondaryDimension, secondaryUnit, compareBy }, dimension);
 }
 
 /** The Measure fields as written: the unit checked against the dimension, a count name only on a count. */
@@ -123,8 +138,9 @@ export async function addProduct(input: ProductInput): Promise<string> {
   const title = input.title.trim();
   if (!title) throw new Error("Give the product a name");
   const measure = measureFields(input.dimension, input.unit, input.countName);
+  const secondary = secondaryFields(measure.dimension, input.secondaryDimension, input.secondaryUnit, input.compareBy);
   if ((await allProducts()).some((p) => sameName(p.title, title))) throw new Error(`There is already a product called “${title}”`);
-  const row = await putDocument<Product>({ type: PRODUCT, title, ...measure, labels: [], folder: "", tags: normalizeTags(input.tags ?? []) } as unknown as Product);
+  const row = await putDocument<Product>({ type: PRODUCT, title, ...measure, ...secondary, labels: [], folder: "", tags: normalizeTags(input.tags ?? []) } as unknown as Product);
   return row.id;
 }
 
@@ -133,6 +149,9 @@ export async function addProduct(input: ProductInput): Promise<string> {
  * dimension's base unit, so a new reading unit or count name rewrites no
  * Line. A new dimension applies at once and sends every Line of the Product
  * to the needs-amount inbox (see linesToRetype) — nothing is converted.
+ * Second amounts go when the secondary Measure is removed or changes
+ * dimension, or the primary leaves count (taking the secondary with it); a
+ * new secondary reading unit or compare-by rewrites no Line.
  */
 export async function updateProduct(product: Product, input: Partial<Omit<ProductInput, "title">> & { title: string }): Promise<void> {
   const title = input.title.trim();
@@ -140,11 +159,21 @@ export async function updateProduct(product: Product, input: Partial<Omit<Produc
   const dimension = input.dimension ?? product.dimension;
   const moved = dimension !== product.dimension;
   const measure = measureFields(dimension, input.unit ?? (moved ? undefined : product.unit), input.countName ?? (moved ? "" : product.countName));
+  const secondDimension = measure.dimension === "count" ? (input.secondaryDimension ?? product.secondaryDimension) : "";
+  const secondMoved = secondDimension !== product.secondaryDimension;
+  const secondary = secondaryFields(measure.dimension, secondDimension, input.secondaryUnit ?? (secondMoved ? undefined : product.secondaryUnit), input.compareBy ?? product.compareBy);
   if ((await allProducts()).some((p) => p.id !== product.id && sameName(p.title, title))) throw new Error(`There is already a product called “${title}”`);
   // Lines first: cut short, the inbox holds a few Lines too many — never an
-  // old-dimension amount read as a price in the new one.
-  if (moved) await Promise.all(linesToRetype(await documentsWhere<Line>(LINE, "productId", product.id), product, dimension).map((l) => patchDocument(l.id, { needsAmount: true })));
-  await putDocument<Product>({ ...product, title, ...measure, tags: normalizeTags(input.tags ?? product.tags) });
+  // old-dimension amount read as a price in the new one, nor a second amount
+  // read in a secondary Measure it was never typed in.
+  const clearSeconds = clearsSecondAmounts(product, { dimension: measure.dimension, secondaryDimension: secondary.secondaryDimension });
+  if (moved || clearSeconds) {
+    const lines = await documentsWhere<Line>(LINE, "productId", product.id);
+    const retype = new Set(linesToRetype(lines, product, dimension).map((l) => l.id));
+    const changed = lines.filter((l) => retype.has(l.id) || (clearSeconds && Number(l.secondAmount) > 0));
+    await Promise.all(changed.map((l) => patchDocument(l.id, { ...(retype.has(l.id) && { needsAmount: true }), ...(clearSeconds && { secondAmount: 0 }) })));
+  }
+  await putDocument<Product>({ ...product, title, ...measure, ...secondary, tags: normalizeTags(input.tags ?? product.tags) });
 }
 
 /** Blocked while Lines reference it — merge instead (ADR 0082). */
@@ -158,12 +187,15 @@ export async function deleteProduct(id: string): Promise<void> {
  * labels carry over, the source goes. Within one dimension amounts are in its
  * base unit and carry over meaning the same; across dimensions the source's
  * Lines arrive needing an amount in the target's Measure (see linesToRetype).
+ * Second amounts carry over only into the same secondary Measure; otherwise
+ * they are cleared, as a Measure change would (see clearsSecondAmounts).
  */
 export async function mergeProduct(from: Product, into: Product): Promise<void> {
   if (from.id === into.id) throw new Error("Pick a different product to merge into");
   const lines = await documentsWhere<Line>(LINE, "productId", from.id);
   const retype = new Set(linesToRetype(lines, from, into.dimension).map((l) => l.id));
-  for (const l of lines) await patchDocument(l.id, retype.has(l.id) ? { productId: into.id, needsAmount: true } : { productId: into.id });
+  const clearSeconds = clearsSecondAmounts(from, into);
+  for (const l of lines) await patchDocument(l.id, { productId: into.id, ...(retype.has(l.id) && { needsAmount: true }), ...(clearSeconds && { secondAmount: 0 }) });
   const labels = [...into.labels];
   for (const l of from.labels) if (!labels.some((x) => x.shopId === l.shopId && x.label === l.label)) labels.push(l);
   await patchDocument(into.id, { labels });
@@ -192,6 +224,13 @@ export interface LineInput {
   amount: number;
   price: number;
   promo: boolean;
+  /**
+   * The second amount (ADR 0084), in the secondary dimension's base unit; 0
+   * = none recorded. Absent keeps an existing Line's, and on a new Line is
+   * prefilled from the Product's last Line at the same Shop. Dropped for a
+   * Product with no secondary Measure.
+   */
+  secondAmount?: number;
   /** The amount was typed afresh: clears a needs-amount mark. Absent keeps an existing Line's mark. */
   retyped?: boolean;
 }
@@ -216,6 +255,7 @@ function checkReceipt(input: ReceiptInput): void {
   for (const l of input.lines) {
     if (!(l.amount > 0)) throw new Error(`"${l.label || "A line"}" needs an amount above zero`);
     if (!(l.price >= 0)) throw new Error(`"${l.label || "A line"}" needs a price`);
+    if (l.secondAmount !== undefined && !(l.secondAmount >= 0)) throw new Error(`"${l.label || "A line"}" needs a second amount of zero or more`);
   }
 }
 
@@ -254,9 +294,12 @@ export async function saveReceipt(input: ReceiptInput, shops: readonly Shop[], p
   for (const old of existing?.lines ?? []) if (!keep.has(old.id)) await removeDocument(old.id);
   const oldById = new Map((existing?.lines ?? []).map((l) => [l.id, l]));
   const matches: LineMatch[] = [];
+  const prefill = prefiller(input.shopId);
   for (const l of input.lines) {
     const old = l.id ? oldById.get(l.id) : undefined;
-    const row = { receiptId: receipt.id, productId: l.productId, label: l.label.trim(), amount: l.amount, price: Math.round(l.price), promo: !!l.promo, needsAmount: !l.retyped && !!old?.needsAmount, title: "" };
+    const product = products.find((p) => p.id === l.productId);
+    const secondAmount = !product || !secondaryMeasure(product) ? 0 : (l.secondAmount ?? (old ? Number(old.secondAmount) || 0 : await prefill(product.id)));
+    const row = { receiptId: receipt.id, productId: l.productId, label: l.label.trim(), amount: l.amount, secondAmount, price: Math.round(l.price), promo: !!l.promo, needsAmount: !l.retyped && !!old?.needsAmount, title: "" };
     if (l.id) await patchDocument(l.id, row);
     else await putDocument<Line>({ type: LINE, ...row, folder: "", tags: [] } as unknown as Line);
     matches.push({ productId: row.productId, label: row.label, before: old && { productId: old.productId, label: old.label } });
@@ -265,6 +308,20 @@ export async function saveReceipt(input: ReceiptInput, shops: readonly Shop[], p
   // from the same snapshot let the second overwrite the first.
   for (const [id, labels] of relabel(products, existing?.receipt.shopId ?? input.shopId, input.shopId, matches)) await patchDocument(id, { labels });
   return receipt.id;
+}
+
+/** The second amount a new Line takes when none is given: the Product's last at this Shop (lastSecondAmount), read once per Product. */
+function prefiller(shopId: string): (productId: string) => Promise<number> {
+  let receipts: Receipt[] | undefined;
+  const memo = new Map<string, number>();
+  return async (productId) => {
+    if (!memo.has(productId)) {
+      receipts ??= (await documentsWhere<Receipt>(RECEIPT, "shopId", shopId)).map(normalizeReceipt);
+      const lines = (await documentsWhere<Line>(LINE, "productId", productId)).map(normalizeLine);
+      memo.set(productId, lastSecondAmount(observe(lines, receipts), productId, shopId));
+    }
+    return memo.get(productId)!;
+  };
 }
 
 /** A Receipt takes its Lines with it; the photo stays an Attachment until a clean-up (ADR 0037). */
@@ -298,6 +355,8 @@ export interface PriceInput {
   productId: string;
   shopId: string;
   amount: number;
+  /** As on LineInput: absent is prefilled, 0 is none. */
+  secondAmount?: number;
   price: number;
   promo: boolean;
   date?: DateStr;
@@ -309,7 +368,7 @@ export interface PriceInput {
 export async function addPrice(input: PriceInput, shops: readonly Shop[], products: readonly Product[]): Promise<string> {
   const product = products.find((p) => p.id === input.productId);
   if (!product) throw new Error("Pick a product");
-  return saveReceipt({ shopId: input.shopId, date: input.date || todayStr(), total: 0, noticed: !input.bought, lines: [{ productId: product.id, label: product.title, amount: input.amount, price: input.price, promo: input.promo }] }, shops, products);
+  return saveReceipt({ shopId: input.shopId, date: input.date || todayStr(), total: 0, noticed: !input.bought, lines: [{ productId: product.id, label: product.title, amount: input.amount, secondAmount: input.secondAmount, price: input.price, promo: input.promo }] }, shops, products);
 }
 
 export { todayStr };

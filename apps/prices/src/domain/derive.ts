@@ -1,5 +1,6 @@
 import { addDays, diffDays, formatHuman, type DateStr } from "@lifeline/core";
-import type { LabelMemory, Line, Observation, Product, Receipt } from "./types";
+import type { Basis, LabelMemory, Line, Observation, Product, Receipt, SecondaryMeasure } from "./types";
+import { basisOf } from "./measure";
 
 /**
  * Every reading of Prices (ADR 0082) lives here, pure: unit price, history
@@ -113,10 +114,30 @@ export function countsAsSpent(o: Observation): boolean {
 /**
  * Per-unit readings (unit price, history, cheapest, Price change, spread,
  * amount per month, the Overpaid baseline) take every price seen, Sightings
- * included — but never a Line that needs an amount.
+ * included — but never a Line that needs an amount, nor one missing the
+ * amount its Product is compared by (see comparedBy).
  */
 export function countsPerUnit(o: Observation): boolean {
-  return !o.line.needsAmount;
+  return !o.line.needsAmount && !o.noAmount;
+}
+
+/**
+ * Observations read by each Product's compared-by unit (ADR 0084), so every
+ * per-unit reading downstream — history, cheapest, Price change, spread,
+ * promos, Overpaid — compares the one the Product chose. A Product compared
+ * by its secondary Measure has its Lines' second amount stand as the amount;
+ * a Line without one is marked noAmount: still spent, never per unit.
+ * `basis` reads every Product that has two Measures by that one instead —
+ * the Product page's other figure. Lines of other Products pass unchanged.
+ */
+export function comparedBy(obs: readonly Observation[], products: readonly (Pick<Product, "id" | "dimension"> & SecondaryMeasure)[], basis?: Basis): Observation[] {
+  const secondary = new Set(products.filter((p) => basisOf(p, basis) === "secondary").map((p) => p.id));
+  if (secondary.size === 0) return [...obs];
+  return obs.map((o) => {
+    if (!secondary.has(o.line.productId)) return o;
+    const second = Number(o.line.secondAmount) || 0;
+    return second > 0 ? { ...o, line: { ...o.line, amount: second } } : { ...o, noAmount: true };
+  });
 }
 
 /**
@@ -126,6 +147,30 @@ export function countsPerUnit(o: Observation): boolean {
  */
 export function linesToRetype<L extends Pick<Line, "productId">>(lines: readonly L[], product: Pick<Product, "id" | "dimension">, dimension: Product["dimension"]): L[] {
   return dimension === product.dimension ? [] : lines.filter((l) => l.productId === product.id);
+}
+
+/**
+ * The second amount a new Line of this Product at this Shop starts from
+ * (ADR 0084): the latest one recorded there — a pack's weight rarely
+ * changes, so it is typed only when it did. 0 when there is none.
+ */
+export function lastSecondAmount(obs: readonly Observation[], productId: string, shopId: string): number {
+  let best: Observation | undefined;
+  for (const o of obs) {
+    if (o.line.productId !== productId || o.shopId !== shopId || !((o.line.secondAmount ?? 0) > 0)) continue;
+    if (!best || o.date > best.date || (o.date === best.date && o.line.createdAt > best.line.createdAt)) best = o;
+  }
+  return best?.line.secondAmount ?? 0;
+}
+
+/**
+ * Whether Lines of a Product lose their second amounts when it takes this
+ * Measure (ADR 0084): its secondary Measure goes or changes dimension — a
+ * primary leaving count takes the secondary with it. Never when it had none.
+ */
+export function clearsSecondAmounts(product: Pick<Product, "secondaryDimension">, next: Pick<Product, "dimension" | "secondaryDimension">): boolean {
+  const after = next.dimension === "count" ? next.secondaryDimension : "";
+  return !!product.secondaryDimension && after !== product.secondaryDimension;
 }
 
 /** The needs-amount inbox: matched Lines waiting for their amount in the Product's new dimension. */
@@ -476,17 +521,6 @@ export interface Overpaid {
 }
 
 /**
- * A Line's amount in the dimension its Product is compared by, or null when
- * the Line has none (an unweighed pack of a Product compared by weight).
- * Until compare-by exists (#166) every Product is compared by its primary
- * Measure; a secondary one slots in as another ComparedAmount.
- */
-export type ComparedAmount = (line: Line) => number | null;
-
-/** The primary Measure's amount — a missing amount counts as one, as in unitPrice. */
-export const primaryAmount: ComparedAmount = (line) => (line.amount > 0 ? line.amount : 1);
-
-/**
  * What I paid for a Product over the span beyond the cheapest usual unit
  * price any *other* Shop asked on or before each Line's day (CONTEXT.md
  * "Overpaid"). Each other Shop offers its latest usual price by that day,
@@ -494,16 +528,16 @@ export const primaryAmount: ComparedAmount = (line) => (line.amount > 0 ? line.a
  * — the same "latest usual" the cheapest-Shop reading uses. Bought Lines are
  * judged, promos included (what was paid was paid); Sightings are baseline
  * only; promos never are; needs-amount Lines and Lines without the
- * compared-by amount are skipped both ways. Baselines may lie before the
- * span; only the Lines judged must lie in it.
+ * compared-by amount are skipped both ways — pass observations read by
+ * comparedBy, so it compares the unit the Product chose. Baselines may lie
+ * before the span; only the Lines judged must lie in it.
  */
-export function overpaidOf(productId: string, obs: readonly Observation[], span: Span, amountOf: ComparedAmount = primaryAmount): Overpaid {
+export function overpaidOf(productId: string, obs: readonly Observation[], span: Span): Overpaid {
   const priced: { o: Observation; amount: number }[] = [];
   const usual = new Map<string, PricePoint[]>();
   for (const o of obs) {
     if (o.line.productId !== productId || !countsPerUnit(o)) continue;
-    const amount = amountOf(o.line);
-    if (amount === null || amount <= 0) continue;
+    const amount = o.line.amount > 0 ? o.line.amount : 1;
     priced.push({ o, amount });
     if (o.line.promo) continue;
     const list = usual.get(o.shopId) ?? [];
@@ -535,10 +569,6 @@ export function overpaidOf(productId: string, obs: readonly Observation[], span:
   }
   return { total, cheapest };
 }
-
-/** The compared-by amount of each Product (see ComparedAmount); until compare-by (#166) every Product reads its primary Measure. */
-export type AmountFor = (product: Product) => ComparedAmount;
-const primaryFor: AmountFor = () => primaryAmount;
 
 /** One Shop over the span (CONTEXT.md "Sighting": visits and basket never count one). */
 export interface ShopFigures {
@@ -580,23 +610,9 @@ export interface Overview {
   promoSaved: number;
 }
 
-/**
- * A Product's usual prices per Shop inside the span, read by its compared-by
- * amount — what its cheapest Shop over the span is decided on. A Line without
- * that amount says nothing.
- */
-function comparedHistory(productId: string, obs: readonly Observation[], span: Span, amountOf: ComparedAmount): Map<string, PricePoint[]> {
-  const out = new Map<string, PricePoint[]>();
-  for (const o of obs) {
-    if (o.line.productId !== productId || !countsPerUnit(o) || !inSpan(o, span)) continue;
-    const amount = amountOf(o.line);
-    if (amount === null || amount <= 0) continue;
-    const list = out.get(o.shopId) ?? [];
-    list.push({ ...pointOf(o), unit: o.line.price / amount });
-    out.set(o.shopId, list);
-  }
-  for (const list of out.values()) list.sort(byDate);
-  return out;
+/** A Product's prices per Shop inside the span — what its cheapest Shop over the span is decided on. */
+function historyInSpan(productId: string, obs: readonly Observation[], span: Span): Map<string, PricePoint[]> {
+  return historyOf(productId, obs.filter((o) => inSpan(o, span)));
 }
 
 /**
@@ -606,11 +622,12 @@ function comparedHistory(productId: string, obs: readonly Observation[], span: S
  * it is cheapest for; what I overpaid (overpaidOf) and what promos saved
  * (promoOf), summed over Products. Spending figures never take a Sighting;
  * the cheapest Shop takes every price seen, as everywhere. Cheapest and
- * Overpaid read each Product by `amountFor` — its compared-by amount.
+ * every per-unit figure reads each Product by its compared-by unit
+ * (comparedBy), a Line without that amount saying nothing per unit.
  */
-export function overviewOf(products: readonly Product[], receipts: readonly Receipt[], lines: readonly Line[], span: Span, amountFor: AmountFor = primaryFor): Overview {
+export function overviewOf(products: readonly Product[], receipts: readonly Receipt[], lines: readonly Line[], span: Span): Overview {
   const all = observeAll(lines, receipts);
-  const obs = all.filter((o) => !isUnmatched(o.line));
+  const obs = comparedBy(all.filter((o) => !isUnmatched(o.line)), products);
   let total = 0;
   const spentOn = new Map<string, number>();
   for (const o of all) {
@@ -637,10 +654,9 @@ export function overviewOf(products: readonly Product[], receipts: readonly Rece
   const overpaid: Overview["overpaid"] = { total: 0, top: [] };
   let promoSaved = 0;
   for (const p of products) {
-    const amountOf = amountFor(p);
-    const best = cheapest(comparedHistory(p.id, obs, span, amountOf));
+    const best = cheapest(historyInSpan(p.id, obs, span));
     if (best) shop(best.shopId).cheapestFor++;
-    const o = overpaidOf(p.id, obs, span, amountOf);
+    const o = overpaidOf(p.id, obs, span);
     if (o.total > 0 && o.cheapest) {
       overpaid.total += o.total;
       overpaid.top.push({ productId: p.id, total: o.total, cheapest: o.cheapest });

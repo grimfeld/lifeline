@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Line, Product, Receipt } from "./types";
-import { changesIn, overviewOf, primaryAmount, overpaidOf, OVERPAID_WINDOW_DAYS, promoOf, spreadOf, observeAll, rhythmOf, spendOf, countsAsSpent, needingAmount, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
+import { comparedBy, changesIn, overviewOf, overpaidOf, OVERPAID_WINDOW_DAYS, promoOf, spreadOf, observeAll, rhythmOf, spendOf, countsAsSpent, needingAmount, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
 
 const product = (id: string, title: string, labels: Product["labels"] = []): Product => ({ id, type: "price_product", title, measure: "l", labels, tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0 }) as unknown as Product;
 const receipt = (id: string, shopId: string, date: string, total = 0, noticed = false): Receipt => ({ id, type: "price_receipt", title: "", shopId, date, branch: "", total, noticed, tags: [], folder: "", createdAt: date, updatedAt: "", deleted: 0 }) as unknown as Receipt;
@@ -285,6 +285,42 @@ describe("Promo saving (CONTEXT.md)", () => {
   });
 });
 
+describe("compare-by (secondary Measure)", () => {
+  // Croissants: counted, also weighed; compared by €/kg. Eggs: counted, weighed sometimes, compared by €/pc.
+  const counted = (id: string, compareBy: "primary" | "secondary"): Product => ({ ...product(id, id), dimension: "count", unit: "pc", countName: "", secondaryDimension: "mass", secondaryUnit: "kg", compareBy }) as Product;
+  const croissants = counted("croissants", "secondary");
+  const eggs = counted("eggs", "primary");
+  const weighed = (id: string, receiptId: string, productId: string, price: number, amount: number, secondAmount?: number) => ({ ...line(id, receiptId, productId, price, amount), secondAmount }) as Line;
+  const receipts = [receipt("r1", "lidl", "2026-01-10"), receipt("r2", "aldi", "2026-01-11"), receipt("r3", "lidl", "2026-02-10")];
+  // Lidl: 4 croissants, 240 g, €2.40 → €0.60/pc, €10/kg. Aldi: 6 croissants, 300 g, €3.30 → €0.55/pc, €11/kg.
+  const lines = [weighed("c1", "r1", "croissants", 240, 4, 0.24), weighed("c2", "r2", "croissants", 330, 6, 0.3), weighed("c3", "r3", "croissants", 200, 4), weighed("e1", "r1", "eggs", 360, 12, 0.72)];
+  const obs = observe(lines, receipts);
+
+  it("reads a Product compared by its secondary Measure per that unit, and its other Products per their own", () => {
+    const read = comparedBy(obs, [croissants, eggs]);
+    expect(cheapest(historyOf("croissants", read))).toMatchObject({ shopId: "lidl", point: { unit: 1000 } });
+    expect(historyOf("eggs", read).get("lidl")!.map((p) => p.unit)).toEqual([30]);
+  });
+
+  it("leaves a Line without the second amount out of the secondary readings, still spent", () => {
+    const read = comparedBy(obs, [croissants, eggs]);
+    expect(historyOf("croissants", read).get("lidl")!.map((p) => p.lineId)).toEqual(["c1"]);
+    expect(spreadOf("croissants", read, { from: "", to: "2026-12-31" }).overall?.n).toBe(2);
+    expect(spendOf("croissants", comparedBy(observeAll(lines, receipts), [croissants]), { from: "", to: "2026-12-31" }).spent).toBe(770);
+  });
+
+  it("reads either basis on demand — the Product page's other figure", () => {
+    expect(cheapest(historyOf("croissants", comparedBy(obs, [croissants], "primary")))).toMatchObject({ shopId: "lidl", point: { unit: 50, lineId: "c3" } });
+    expect(historyOf("eggs", comparedBy(obs, [eggs], "secondary")).get("lidl")!.map((p) => p.unit)).toEqual([500]);
+  });
+
+  it("a Product with no secondary Measure always reads by its own", () => {
+    const plain = { ...product("milk", "Milk"), dimension: "volume", unit: "L", countName: "", secondaryDimension: "", secondaryUnit: "kg", compareBy: "secondary" } as Product;
+    const milk = observe([line("m1", "r1", "milk", 109, 1)], receipts);
+    expect(comparedBy(milk, [plain], "secondary")).toEqual(milk);
+  });
+});
+
 describe("Overpaid (CONTEXT.md)", () => {
   const span = { from: "2026-01-01", to: "2026-12-31" };
 
@@ -333,11 +369,11 @@ describe("Overpaid (CONTEXT.md)", () => {
 
   it("reads the compared-by amount, and skips a Line without one, judged or as a baseline", () => {
     // Croissants compared by weight: the second amount (kg) by Line; a1 and c1 never had one weighed.
+    const croissants = { ...product("p1", "Croissants"), dimension: "count", unit: "pc", countName: "", secondaryDimension: "mass", secondaryUnit: "kg", compareBy: "secondary" } as Product;
     const weight: Record<string, number> = { b1: 0.5, d1: 0.25 };
-    const byWeight = (l: Line) => weight[l.id] ?? null;
     const receipts = [receipt("a", "aldi", "2026-03-01"), receipt("b", "aldi", "2026-03-02"), receipt("c", "lidl", "2026-03-10"), receipt("d", "lidl", "2026-03-11")];
-    const lines = [line("a1", "a", "p1", 10, 4), line("b1", "b", "p1", 400, 4), line("c1", "c", "p1", 900, 4), line("d1", "d", "p1", 300, 4)];
-    const o = overpaidOf("p1", observe(lines, receipts), span, byWeight);
+    const lines = [line("a1", "a", "p1", 10, 4), line("b1", "b", "p1", 400, 4), line("c1", "c", "p1", 900, 4), line("d1", "d", "p1", 300, 4)].map((l) => ({ ...l, secondAmount: weight[l.id] }));
+    const o = overpaidOf("p1", comparedBy(observe(lines, receipts), [croissants]), span);
     expect(o.total).toBe(100); // d1: €12/kg × 0.25 kg against Aldi's €8/kg
     expect(o.cheapest).toEqual({ shopId: "aldi", unit: 800, date: "2026-03-02" });
   });
@@ -425,9 +461,9 @@ describe("Overview (spec #161, ADR 0084)", () => {
       expect(overviewOf(products, receipts, lines, span).promoSaved).toBe(160);
     });
     it("reads each Product by its compared-by amount, so a Line without one is skipped", () => {
-      // Eggs compared by an amount no Line has: no Overpaid, no cheapest Shop for them.
-      const amountFor = (p: Product) => (p.id === "eggs" ? () => null : primaryAmount);
-      const o = overviewOf(products, receipts, lines, span, amountFor);
+      // Eggs compared by weight, and no Line of them weighed: no Overpaid, no cheapest Shop for them.
+      const weighed = products.map((p) => (p.id === "eggs" ? ({ ...p, dimension: "count", unit: "pc", countName: "", secondaryDimension: "mass", secondaryUnit: "kg", compareBy: "secondary" } as Product) : p));
+      const o = overviewOf(weighed, receipts, lines, span);
       expect(o.overpaid.top.map((t) => t.productId)).toEqual(["milk"]);
       expect(o.shops.find((s) => s.shopId === "aldi")!.cheapestFor).toBe(1);
     });

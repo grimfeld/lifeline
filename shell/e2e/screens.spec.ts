@@ -63,6 +63,29 @@ async function openProductMerge(page: Page) {
 }
 
 /**
+ * A Prices Product page with two Measures (ADR 0084): the page's Product made
+ * a count also weighed, compared by weight, and every Line given a second
+ * amount — so both unit prices show, the compared-by one leading.
+ */
+async function withTwoMeasures(page: Page) {
+  await workLocally(page);
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    const id = location.pathname.split("/").pop();
+    await core.patchDocument(id, { dimension: "count", unit: "pc", countName: "", secondaryDimension: "mass", secondaryUnit: "g", compareBy: "secondary" });
+    for (const l of await core.documentsOf("price_line")) await core.patchDocument(l.id, { productId: id, needsAmount: false, secondAmount: 0.24 });
+  }, CORE_URL);
+  await expect(page.getByText("also mass")).toBeVisible();
+}
+
+/** withTwoMeasures, then Edit: the secondary Measure and compare-by controls. */
+async function openTwoMeasuresEdit(page: Page) {
+  await withTwoMeasures(page);
+  await page.getByRole("button", { name: "Edit" }).first().click();
+  await expect(page.getByRole("dialog").getByRole("combobox", { name: "Compare by" })).toBeVisible();
+}
+
+/**
  * Prices with the needs-amount inbox (ADR 0084): every seeded Line marked as
  * needing an amount — its Product changed dimension — so the loud banner
  * shows, then the inbox opened over it.
@@ -369,6 +392,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Prices · overview", path: "/app/prices?tab=overview" },
   { name: "Price product · edit", path: "/app/prices/p/:id", type: "price_product", afterOpen: openProductEdit },
   { name: "Price product · merge", path: "/app/prices/p/:id", type: "price_product", afterOpen: openProductMerge },
+  { name: "Price product · two measures", path: "/app/prices/p/:id", type: "price_product", afterOpen: withTwoMeasures },
+  { name: "Price product · two measures edit", path: "/app/prices/p/:id", type: "price_product", afterOpen: openTwoMeasuresEdit },
   { name: "Mood", path: "/app/mood" },
   { name: "Swear Jar", path: "/app/swearjar" },
   { name: "Knowledge", path: "/app/languages" },

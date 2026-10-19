@@ -1,4 +1,4 @@
-import { BASE_UNIT, DIMENSION_LABEL, UNITS_OF, isDimension, isUnitOf, type Dimension, type Measure, type Unit } from "./types";
+import { BASE_UNIT, DIMENSION_LABEL, UNITS_OF, isDimension, isSecondaryDimension, isUnitOf, type Basis, type Dimension, type Measure, type SecondaryMeasure, type Unit } from "./types";
 
 /**
  * A Product's Measure, read and written (ADR 0084). Amounts and unit prices
@@ -125,4 +125,39 @@ export function readMeasure(raw: { dimension?: unknown; unit?: unknown; countNam
   const unit = isUnitOf(dimension, raw.unit) ? raw.unit : BASE_UNIT[dimension];
   const countName = dimension === "count" && typeof raw.countName === "string" ? raw.countName.trim() : "";
   return { dimension, unit, countName };
+}
+
+/**
+ * A stored Product's secondary Measure and compare-by (ADR 0084): only on a
+ * count; a unit outside the secondary dimension reads as its base; compared
+ * by the secondary only when there is one.
+ */
+export function readSecondary(raw: { dimension?: unknown; secondaryDimension?: unknown; secondaryUnit?: unknown; compareBy?: unknown }, dimension: Dimension): SecondaryMeasure {
+  const secondaryDimension = dimension === "count" && isSecondaryDimension(raw.secondaryDimension) ? raw.secondaryDimension : "";
+  const secondaryUnit = secondaryDimension && isUnitOf(secondaryDimension, raw.secondaryUnit) ? raw.secondaryUnit : BASE_UNIT[secondaryDimension || "mass"];
+  return { secondaryDimension, secondaryUnit, compareBy: secondaryDimension && raw.compareBy === "secondary" ? "secondary" : "primary" };
+}
+
+/** The secondary Measure, when the Product has one. */
+export function secondaryMeasure(p: Pick<Measure, "dimension"> & SecondaryMeasure): Measure | undefined {
+  if (p.dimension !== "count" || !p.secondaryDimension) return undefined;
+  return { dimension: p.secondaryDimension, unit: p.secondaryUnit, countName: "" };
+}
+
+/** Which Measure a reading uses: `asked` when the Product has two, else its compare-by; always primary with one. */
+export function basisOf(p: Pick<Measure, "dimension"> & SecondaryMeasure, asked?: Basis): Basis {
+  if (!secondaryMeasure(p)) return "primary";
+  return asked ?? p.compareBy;
+}
+
+/** The Measure a basis is read in — the compared-by one when none is asked. */
+export function measureOf(p: Measure & SecondaryMeasure, asked?: Basis): Measure {
+  const m: Measure = { dimension: p.dimension, unit: p.unit, countName: p.countName };
+  return basisOf(p, asked) === "secondary" ? secondaryMeasure(p)! : m;
+}
+
+/** The basis a Product is *not* compared by, when it has two Measures — the figure read beside. */
+export function otherBasis(p: Pick<Measure, "dimension"> & SecondaryMeasure): Basis | undefined {
+  if (!secondaryMeasure(p)) return undefined;
+  return p.compareBy === "secondary" ? "primary" : "secondary";
 }

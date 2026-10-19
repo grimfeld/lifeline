@@ -5,7 +5,7 @@ import { todayStr } from "@lifeline/core";
 import { productHref, type Line, type Product, type Receipt, type Shop } from "../domain/types";
 import { overviewOf, spanOf } from "../domain/derive";
 import { formatCents } from "../domain/money";
-import { formatUnitPrice } from "../domain/measure";
+import { formatUnitPrice, measureOf } from "../domain/measure";
 import { shopColor } from "./PriceChart";
 import { Figure, Section } from "./ProductStats";
 
@@ -118,7 +118,7 @@ export function PricesOverview({ products, shops, receipts, lines }: { products:
                       <Dot shopId={t.cheapest.shopId} shops={shops} />
                       <span className="min-w-0 truncate">{shopName(t.cheapest.shopId)}</span>
                       {/* The baseline is per unit of the compared-by dimension; with compare-by (#166) read it in that Measure. */}
-                      {p && <span className="shrink-0 tabular-nums">· {formatUnitPrice(t.cheapest.unit, p)}</span>}
+                      {p && <span className="shrink-0 tabular-nums">· {formatUnitPrice(t.cheapest.unit, measureOf(p))}</span>}
                     </span>
                   </li>
                 );
