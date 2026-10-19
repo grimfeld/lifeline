@@ -4,9 +4,9 @@ import PocketBase from "pocketbase";
 import type { AuthorizationParams, OAuthServerProvider } from "@modelcontextprotocol/sdk/server/auth/provider.js";
 import type { OAuthRegisteredClientsStore } from "@modelcontextprotocol/sdk/server/auth/clients.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { InvalidGrantError, InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
+import { InvalidGrantError, InvalidTokenError, OAuthError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import type { OAuthClientInformationFull, OAuthTokenRevocationRequest, OAuthTokens } from "@modelcontextprotocol/sdk/shared/auth.js";
-import { SCOPE_READ, SCOPE_WRITE } from "./config";
+import { DEFAULT_REDIRECT_ALLOW, SCOPE_READ, SCOPE_WRITE } from "./config";
 import { loginPage } from "./login";
 
 /**
@@ -98,6 +98,35 @@ export class LoginAttempts {
   }
 }
 
+/** RFC 7591 §3.2.2: a redirect URI the server will not register. */
+export class InvalidRedirectUriError extends OAuthError {
+  static errorCode = "invalid_redirect_uri";
+}
+
+/**
+ * Whether `uri` may be a client's redirect URI. Each allow-list entry is an
+ * exact URL, or `scheme://host:*` for that host on any port and path (the
+ * loopback callbacks of Claude Code and other local clients). Registration
+ * is open, so without this anyone could register "Claude" with their own
+ * callback and phish a grant on this server's real sign-in page.
+ */
+export function redirectAllowed(uri: string, allow: readonly string[]): boolean {
+  let u: URL;
+  try {
+    u = new URL(uri);
+  } catch {
+    return false;
+  }
+  if (u.username || u.password) return false;
+  return allow.some((entry) => {
+    if (entry.endsWith(":*")) {
+      const base = URL.canParse(entry.slice(0, -2)) ? new URL(entry.slice(0, -2)) : null;
+      return !!base && u.protocol === base.protocol && u.hostname === base.hostname;
+    }
+    return URL.canParse(entry) && u.href === new URL(entry).href;
+  });
+}
+
 export class LifelineOAuth implements OAuthServerProvider {
   private pending = new Map<string, PendingAuthorization>();
   private codes = new Map<string, AuthorizationCode>();
@@ -109,6 +138,8 @@ export class LifelineOAuth implements OAuthServerProvider {
     /** Superuser client: the OAuth collections have no rules, so only it reads them. */
     private admin: PocketBase,
     private pbUrl: string,
+    /** Redirect URIs a client may register (`redirectAllowed`). */
+    private redirectAllow: readonly string[] = DEFAULT_REDIRECT_ALLOW,
   ) {}
 
   readonly clientsStore: OAuthRegisteredClientsStore = {
@@ -121,6 +152,8 @@ export class LifelineOAuth implements OAuthServerProvider {
     },
     registerClient: async (client) => {
       const full = client as OAuthClientInformationFull;
+      const refused = full.redirect_uris.find((uri) => !redirectAllowed(String(uri), this.redirectAllow));
+      if (refused !== undefined) throw new InvalidRedirectUriError(`Redirect URI not allowed: ${String(refused)}`);
       await this.admin.collection("mcp_clients").create({ client_id: full.client_id, info: full });
       return full;
     },
@@ -139,6 +172,11 @@ export class LifelineOAuth implements OAuthServerProvider {
   /** Step 1: show the sign-in page. The request is remembered under an unguessable id the form posts back. */
   async authorize(client: OAuthClientInformationFull, params: AuthorizationParams, res: Response): Promise<void> {
     this.sweep();
+    // A client registered before the allow-list may still hold another callback.
+    if (!redirectAllowed(params.redirectUri, this.redirectAllow)) {
+      res.status(400).type("text").send("This app's sign-in address is not allowed. Connect again from your app.");
+      return;
+    }
     const request = randomBytes(24).toString("base64url");
     this.pending.set(request, { client, params, expires: Date.now() + PENDING_MS });
     res.status(200).type("html").send(loginPage({ request, clientName: client.client_name, redirectUri: params.redirectUri, write: true }));

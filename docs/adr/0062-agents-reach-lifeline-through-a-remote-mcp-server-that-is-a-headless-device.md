@@ -21,5 +21,6 @@ The person signs in with **OAuth 2.1** on a page the server serves itself: claud
 - One machine: pending sign-ins and warm devices live in its memory. A cold device pays one full pull of its Account; an idle one stops after 15 minutes, never while writes are still queued for the server. That queue is memory only (no volume, and PocketBase is what refused it), so a write the server has not taken is reported to the agent as `unconfirmed` — retried while the machine runs, lost if it stops first — and a shutdown logs what it leaves behind.
 - "Today" is the server's time zone (`TZ`), one for every Account.
 - The Private folder is out of an agent's reach whether or not a password is set: never listed, read or written. Agents cannot delete.
-- A read-only grant ("Allow changes" unticked) lists no write tools. Deleting a row of `mcp_grants` disconnects that client.
+- A read-only grant ("Allow changes" unticked, the default) lists no write tools. Deleting a row of `mcp_grants` disconnects that client.
+- Client registration is open but allow-listed by redirect URI: claude.ai's and claude.com's `/api/mcp/auth_callback`, and loopback (`http://localhost:*`, `http://127.0.0.1:*`) for local clients. `MCP_REDIRECT_ALLOW` (comma-separated) replaces the list. Without it anyone could register "Claude" with their own callback and phish a grant on the real sign-in page.
 - A Schedulable provider without `itemsIn` is invisible to agents; a Command without `args`/`invoke` is too.

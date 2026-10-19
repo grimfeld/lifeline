@@ -2,7 +2,11 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import type PocketBase from "pocketbase";
 import type { OAuthClientInformationFull } from "@modelcontextprotocol/sdk/shared/auth.js";
-import { InvalidGrantError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
+import { InvalidGrantError, OAuthError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
+import type { Response } from "express";
+import type { AuthorizationParams } from "@modelcontextprotocol/sdk/server/auth/provider.js";
+import { DEFAULT_REDIRECT_ALLOW, parseRedirectAllow } from "./config";
+import { loginPage } from "./login";
 import { LifelineOAuth, LoginAttempts } from "./oauth";
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -77,5 +81,95 @@ describe("in-memory OAuth state stays bounded", () => {
     expect(limit.size).toBe(2);
     expect(limit.hit("c", 120_000)).toBe(true);
     expect(limit.size).toBe(1);
+  });
+});
+
+/** A stand-in for the superuser client that records the mcp_clients rows it is asked to create. */
+function clientsAdmin() {
+  const create = vi.fn(async (row: unknown) => row);
+  const admin = { collection: () => ({ create }) } as unknown as PocketBase;
+  return { admin, create };
+}
+
+const register = async (oauth: LifelineOAuth, redirect_uris: string[]) =>
+  oauth.clientsStore.registerClient!({ client_id: "new", client_name: "Claude", redirect_uris } as unknown as OAuthClientInformationFull);
+
+describe("dynamic client registration", () => {
+  it("registers claude.ai's and claude.com's connector callbacks", async () => {
+    const { admin, create } = clientsAdmin();
+    const oauth = new LifelineOAuth(admin, "http://pb");
+    await register(oauth, ["https://claude.ai/api/mcp/auth_callback"]);
+    await register(oauth, ["https://claude.com/api/mcp/auth_callback"]);
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it("registers loopback callbacks on any port, as Claude Code uses", async () => {
+    const { admin, create } = clientsAdmin();
+    const oauth = new LifelineOAuth(admin, "http://pb");
+    await register(oauth, ["http://localhost:53123/callback", "http://127.0.0.1:9/oauth/cb", "http://localhost/cb"]);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["another site", "https://evil.example/cb"],
+    ["another path on claude.ai", "https://claude.ai/somewhere/else"],
+    ["a look-alike host", "https://claude.ai.evil.example/api/mcp/auth_callback"],
+    ["a host that starts like loopback", "http://localhost.evil.example:80/cb"],
+    ["credentials hiding the real host", "http://localhost:80@evil.example/cb"],
+    ["plain http to claude.ai", "http://claude.ai/api/mcp/auth_callback"],
+    ["something that is not a URL", "not a url"],
+  ])("refuses %s with invalid_redirect_uri", async (_why, uri) => {
+    const { admin, create } = clientsAdmin();
+    const oauth = new LifelineOAuth(admin, "http://pb");
+    const err = await register(oauth, ["https://claude.ai/api/mcp/auth_callback", uri]).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(OAuthError);
+    expect((err as OAuthError).toResponseObject().error).toBe("invalid_redirect_uri");
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("will not start a sign-in for a client registered earlier with a callback now refused", async () => {
+    const { admin } = clientsAdmin();
+    const oauth = new LifelineOAuth(admin, "http://pb");
+    const sent: { status?: number; body?: string } = {};
+    const res = {
+      status(s: number) {
+        sent.status = s;
+        return this;
+      },
+      type() {
+        return this;
+      },
+      send(b: string) {
+        sent.body = b;
+        return this;
+      },
+    } as unknown as Response;
+    const old = { client_id: "old", client_name: "Claude", redirect_uris: ["https://evil.example/cb"] } as unknown as OAuthClientInformationFull;
+    await oauth.authorize(old, { redirectUri: "https://evil.example/cb", codeChallenge: "x", state: "s" } as AuthorizationParams, res);
+    expect(sent.status).toBe(400);
+    expect(sent.body).not.toContain("password");
+  });
+
+  it("reads MCP_REDIRECT_ALLOW as a comma-separated list, defaulting when empty", () => {
+    expect(parseRedirectAllow(" https://a.example/cb , http://localhost:* ")).toEqual(["https://a.example/cb", "http://localhost:*"]);
+    expect(parseRedirectAllow(undefined)).toEqual(DEFAULT_REDIRECT_ALLOW);
+    expect(parseRedirectAllow(" , ")).toEqual(DEFAULT_REDIRECT_ALLOW);
+  });
+
+  it("takes its allow-list from the configuration when one is given", async () => {
+    const { admin, create } = clientsAdmin();
+    const oauth = new LifelineOAuth(admin, "http://pb", ["https://my.client/cb"]);
+    await register(oauth, ["https://my.client/cb"]);
+    await expect(register(oauth, ["https://claude.ai/api/mcp/auth_callback"])).rejects.toBeInstanceOf(OAuthError);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the consent page", () => {
+  it("leaves Allow changes unticked, so write access is a deliberate choice", () => {
+    const html = loginPage({ request: "r", clientName: "Claude", redirectUri: "https://claude.ai/api/mcp/auth_callback", write: true });
+    const box = html.match(/<input type="checkbox" name="allow_write"[^>]*>/)?.[0];
+    expect(box).toBeDefined();
+    expect(box).not.toMatch(/\bchecked\b/);
   });
 });
