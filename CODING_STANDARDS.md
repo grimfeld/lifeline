@@ -95,7 +95,9 @@ nearest existing pattern and don't hand-roll a new one.
 - Delete at once and offer **Undo** in the toast (`toast.success("Deleted", { action:
   { label: "Undo", onClick } })`) — Documents are soft-deleted, so Undo always works.
 - Confirm only what Undo can't bring back — an empty type, a Workspace, something outside
-  Lifeline — with one `AlertDialog` (_coming_). No two-tap "Really delete" buttons.
+  Lifeline — with one `AlertDialog`: it says what will go, Cancel takes the focus, and the
+  `AlertDialogAction` names the action ("Delete type", not "OK"). No two-tap "Really
+  delete" buttons.
 - A destructive action is `variant="destructive"` (a `DropdownMenuItem` too), not
   `className="text-destructive"` on another variant.
 

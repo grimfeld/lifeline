@@ -1,5 +1,13 @@
 import { useState } from "react";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
   Button,
   Checkbox,
   Dialog,
@@ -96,17 +104,21 @@ export function WorkspaceForm({
     }
   }
 
-  async function remove() {
+  /** Documents the Workspace holds, while its delete confirmation is open (ADR 0079: no Undo, so it asks). */
+  const [confirming, setConfirming] = useState<{ held: number } | null>(null);
+
+  async function askRemove() {
     if (!workspace) return;
     const held = workspace.separated ? await documentsHeldBy(workspace.id) : [];
-    const msg = held.length
-      ? `Delete “${workspace.name}”? Its ${held.length} document${held.length === 1 ? "" : "s"} become shared and its screens move to the default workspace. Nothing is deleted.`
-      : `Delete “${workspace.name}”? Its screens move to the default workspace.`;
-    if (!confirm(msg)) return;
+    setConfirming({ held: held.length });
+  }
+
+  async function remove(held: number) {
+    if (!workspace) return;
     setBusy(true);
     try {
       await deleteWorkspace(workspace.id, releaseWorkspaceDocuments);
-      toast.success(held.length ? `“${workspace.name}” deleted — ${held.length} document${held.length === 1 ? "" : "s"} released` : `“${workspace.name}” deleted`);
+      toast.success(held ? `“${workspace.name}” deleted — ${held} document${held === 1 ? "" : "s"} released` : `“${workspace.name}” deleted`);
       onDone();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not delete");
@@ -170,7 +182,7 @@ export function WorkspaceForm({
 
       <DialogFooter className="sm:justify-between">
         {canDelete ? (
-          <Button variant="ghost" className="text-destructive" disabled={busy} onClick={() => void remove()}>
+          <Button variant="ghost" className="text-destructive" disabled={busy} onClick={() => void askRemove()}>
             <Trash2 /> Delete
           </Button>
         ) : (
@@ -185,6 +197,25 @@ export function WorkspaceForm({
           </Button>
         </div>
       </DialogFooter>
+
+      {workspace && (
+        <AlertDialog open={confirming !== null} onOpenChange={(o) => !o && setConfirming(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete the workspace “{workspace.name}”?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {confirming?.held
+                  ? `Its ${confirming.held} document${confirming.held === 1 ? "" : "s"} become shared and its screens move to the default workspace. No document is deleted.`
+                  : "Its screens move to the default workspace. No document is deleted."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => void remove(confirming?.held ?? 0)}>Delete workspace</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </>
   );
 }
