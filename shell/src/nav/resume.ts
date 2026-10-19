@@ -35,7 +35,8 @@ export function useResume() {
   // move: switching Workspace must not file the page being left under the
   // Workspace being entered, which is what a Workspace dependency would do.
   useEffect(() => {
-    if (location.pathname === "/") return;
+    // The Handoff page is a stop on the way in from outside (ADR 0080), never a place to resume.
+    if (location.pathname === "/" || location.pathname.startsWith("/handoff")) return;
     try {
       localStorage.setItem(KEY(currentWorkspaceId()), location.pathname + location.search);
     } catch {
