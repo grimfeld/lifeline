@@ -275,6 +275,32 @@ test("signed out, the page signs in and then opens the named Intake prefilled", 
   await expect(dialog.getByLabel("Notes")).toHaveValue("https://example.com/a");
 });
 
+test("signing in as another Account, once the switch is confirmed, carries on with the same Handoff", async ({ page }) => {
+  await fakeServer(page, "e2e@example.com");
+  await page.goto("/");
+  await workLocally(page);
+  // This device holds another Account's data, all of it synced.
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    await core.db()._outbox.clear();
+    await core.db()._meta.bulkPut([
+      { key: "account", value: "someone-else" },
+      { key: "accountEmail", value: "else@example.com" },
+    ]);
+  }, CORE_URL);
+
+  const title = `After the switch ${Date.now()}`;
+  await page.goto(`/handoff#${encodeHandoff({ title, text: "" }, "tasks/task")}`);
+  await page.getByLabel("Email").fill("e2e@example.com");
+  await page.getByLabel("Password").fill("secret");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+
+  const confirm = page.getByRole("dialog", { name: "Switch account?" });
+  await confirm.getByRole("button", { name: "Erase and switch" }).click();
+  const dialog = page.getByRole("dialog", { name: "New task" });
+  await expect(dialog.getByLabel("Title")).toHaveValue(title);
+});
+
 test("a pending Handoff outlives a reload of the tab, and is gone once used", async ({ page }) => {
   await fakeServer(page, "e2e@example.com");
   const title = `Kept across a reload ${Date.now()}`;

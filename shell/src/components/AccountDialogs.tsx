@@ -33,10 +33,13 @@ function setConflict(c: typeof conflict) {
 /**
  * Signing in by email and password, wherever the form stands: the shell's
  * dialog, or the Handoff page's own step. The email starts as the Account
- * this device last knew. `onSignedIn` runs only when the sign-in holds; a
- * different Account than the device's goes to the switch confirm.
+ * this device last knew. `onSignedIn` runs when the sign-in holds. A
+ * different Account than the device's goes to the switch confirm instead,
+ * `onSwitchAsked` first (the shell's dialog closes there); a confirmed switch
+ * erases this device and reloads, and the page starts again signed in — so a
+ * form's caller reads "signed in" from `pb.authStore` on load as well.
  */
-export function useSignIn(onSignedIn?: () => void) {
+export function useSignIn({ onSignedIn, onSwitchAsked }: { onSignedIn?: () => void; onSwitchAsked?: () => void } = {}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -62,7 +65,7 @@ export function useSignIn(onSignedIn?: () => void) {
           toast.error(`This device still has ${pending} unsynced change${pending === 1 ? "" : "s"} of ${c.bound.email || "another account"} — sign in as them and sync first`);
           return;
         }
-        setReason(null);
+        onSwitchAsked?.();
         setConflict(c);
         return;
       }
@@ -83,11 +86,11 @@ export function useSignIn(onSignedIn?: () => void) {
 export function SignInFields({ form, idPrefix = "login" }: { form: ReturnType<typeof useSignIn>; idPrefix?: string }) {
   return (
     <div className="grid gap-3">
-      <div className="grid gap-1.5">
+      <div className="grid gap-2">
         <Label htmlFor={`${idPrefix}-email`}>Email</Label>
         <Input id={`${idPrefix}-email`} type="email" value={form.email} onChange={(e) => form.setEmail(e.target.value)} autoFocus={!form.email} />
       </div>
-      <div className="grid gap-1.5">
+      <div className="grid gap-2">
         <Label htmlFor={`${idPrefix}-pw`}>Password</Label>
         <Input
           id={`${idPrefix}-pw`}
@@ -122,7 +125,7 @@ export function AccountDialogs() {
     (cb) => (conflictListeners.add(cb), () => conflictListeners.delete(cb)),
     () => conflict,
   );
-  const form = useSignIn(() => setReason(null));
+  const form = useSignIn({ onSignedIn: close, onSwitchAsked: close });
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
