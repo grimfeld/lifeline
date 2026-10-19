@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Line, Product, Receipt } from "./types";
-import { changesIn, countsAsSpent, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
+import { changesIn, promoOf, spreadOf, observeAll, rhythmOf, spendOf, countsAsSpent, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
 
 const product = (id: string, title: string, labels: Product["labels"] = []): Product => ({ id, type: "price_product", title, measure: "l", labels, tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0 }) as unknown as Product;
 const receipt = (id: string, shopId: string, date: string, total = 0, noticed = false): Receipt => ({ id, type: "price_receipt", title: "", shopId, date, branch: "", total, noticed, tags: [], folder: "", createdAt: date, updatedAt: "", deleted: 0 }) as unknown as Receipt;
@@ -149,5 +149,110 @@ describe("Sightings (CONTEXT.md \"Sighting\")", () => {
   it("a noticed price still feeds history and the cheapest Shop", () => {
     expect(historyOf("p1", obs).get("aldi")?.map((p) => p.unit)).toEqual([90]);
     expect(cheapest(historyOf("p1", obs))?.shopId).toBe("aldi");
+  });
+});
+
+describe("Product statistics (spec #161, ADR 0084)", () => {
+  // Span: Jan–Jun 2026. Lidl and Aldi bought, a Sighting at Carrefour, one Line before the span.
+  const span = { from: "2026-01-01", to: "2026-06-30" };
+  const receipts = [
+    receipt("old", "lidl", "2025-11-01"),
+    receipt("r1", "lidl", "2026-01-10"),
+    receipt("r2", "lidl", "2026-02-09"),
+    receipt("r3", "aldi", "2026-03-11"),
+    receipt("shelf", "carrefour", "2026-03-20", 0, true),
+  ];
+  const needs = (l: Line): Line => ({ ...l, needsAmount: true });
+  const lines = [
+    line("l0", "old", "p1", 300, 2),
+    line("l1", "r1", "p1", 200, 2), // €1.00/unit
+    line("l2", "r2", "p1", 160, 2, true), // promo €0.80, usual at Lidl €1.00
+    line("l3", "r3", "p1", 270, 3), // €0.90
+    needs(line("l4", "r3", "p1", 100, 1)), // needs an amount: spent, never per unit
+    line("l5", "shelf", "p1", 50, 1), // a Sighting: €0.50, never spent
+    line("u1", "r1", "", 230), // unmatched: in the share's whole, in no Product
+    line("o1", "r2", "p2", 500), // another Product
+    line("s2", "shelf", "p2", 9999), // a Sighting of another Product: no part of the whole
+  ];
+  const all = observeAll(lines, receipts);
+  const obs = observe(lines, receipts);
+
+  it("spend is what was paid for the Product in the span, needs-amount Lines included, Sightings never", () => {
+    expect(spendOf("p1", all, span).spent).toBe(200 + 160 + 270 + 100);
+  });
+  it("share is over every bought Line in the span, unmatched included", () => {
+    const s = spendOf("p1", all, span);
+    expect(s.total).toBe(730 + 230 + 500);
+    expect(s.share).toBeCloseTo(730 / 1460);
+    expect(spendOf("p1", [], span).share).toBeNull();
+  });
+
+  it("rhythm: times bought counts buying occasions, not Lines, and never a Sighting", () => {
+    const r = rhythmOf("p1", obs, span);
+    expect(r.times).toBe(3); // r1, r2, r3 (two Lines on r3 are one occasion); the shelf is not
+    expect(r.last).toBe("2026-03-11");
+    expect(r.avgGapDays).toBe(30);
+  });
+  it("rhythm: amount per month is what was bought over the span's months, needs-amount Lines left out", () => {
+    expect(rhythmOf("p1", obs, span).perMonth).toBeCloseTo(7 / 6, 1); // 2 + 2 + 3 over Jan–Jun
+    // "All" runs from the first purchase: 9 over Nov–Jun.
+    expect(rhythmOf("p1", obs, { from: "", to: "2026-06-30" }).perMonth).toBeCloseTo(9 / 8, 1);
+  });
+  it("rhythm: one purchase has no gap; none has nothing", () => {
+    const one = rhythmOf("p2", obs, span);
+    expect(one).toMatchObject({ times: 1, avgGapDays: null, last: "2026-02-09" });
+    expect(rhythmOf("nope", obs, span)).toEqual({ times: 0, avgGapDays: null, last: null, perMonth: null });
+  });
+
+  it("spread: min / max / average / median unit price per Shop and across Shops — Sightings and promos in, needs-amount out", () => {
+    const sp = spreadOf("p1", obs, span);
+    expect(sp.overall).toEqual({ n: 4, min: 50, max: 100, avg: 80, median: 85 });
+    expect(Object.fromEntries(sp.perShop.map((s) => [s.shopId, s.stats]))).toEqual({
+      lidl: { n: 2, min: 80, max: 100, avg: 90, median: 90 },
+      aldi: { n: 1, min: 90, max: 90, avg: 90, median: 90 },
+      carrefour: { n: 1, min: 50, max: 50, avg: 50, median: 50 },
+    });
+    expect(sp.perShop.map((s) => s.shopId)).toEqual(["carrefour", "lidl", "aldi"]); // cheapest median first, then lowest min
+    expect(spreadOf("nope", obs, span)).toEqual({ overall: null, perShop: [] });
+  });
+
+  it("promo: frequency over the prices seen, discount and saving against the same Shop's usual price before it", () => {
+    const p = promoOf("p1", obs, span);
+    expect(p).toEqual({ n: 4, promos: 1, frequency: 0.25, avgDiscount: 0.2, saving: 40 }); // l2: €1.00 usual × 2 − €1.60
+  });
+});
+
+describe("Promo saving (CONTEXT.md)", () => {
+  const span = { from: "2026-01-01", to: "2026-12-31" };
+  const receipts = [
+    receipt("a", "lidl", "2026-01-10"),
+    receipt("b", "lidl", "2026-01-20"),
+    receipt("c", "lidl", "2026-02-01"),
+    receipt("d", "lidl", "2026-02-05", 0, true),
+    receipt("e", "aldi", "2026-01-15"),
+    receipt("f", "aldi", "2026-01-20"),
+    receipt("g", "lidl", "2026-02-06"),
+  ];
+  const lines = [
+    line("a1", "a", "p1", 100), // usual €1.00
+    line("b1", "b", "p1", 140, 2, true), // promo €0.70: saved €2.00 − €1.40, 30% off
+    line("c1", "c", "p1", 120), // usual €1.20 — after b1, so not its baseline
+    line("d1", "d", "p1", 90, 1, true), // a promo Sighting: 25% off €1.20, saved nothing — not bought
+    line("e1", "e", "p1", 50, 1, true), // promo at Aldi with no usual price there before it
+    line("f1", "f", "p1", 60), // Aldi's usual comes later: not e1's baseline
+    { ...line("g1", "g", "p1", 10, 1, true), needsAmount: true }, // needs an amount: not per unit, no saving
+  ];
+  const obs = observe(lines, receipts);
+
+  it("measures each promo against the latest usual price at its own Shop on or before its day", () => {
+    const p = promoOf("p1", obs, span);
+    expect(p.n).toBe(6);
+    expect(p.promos).toBe(3);
+    expect(p.frequency).toBeCloseTo(0.5);
+    expect(p.avgDiscount).toBeCloseTo(0.275); // (30% + 25%) / 2; e1 has no baseline
+    expect(p.saving).toBe(60);
+  });
+  it("no promos, no discount", () => {
+    expect(promoOf("nope", obs, span)).toEqual({ n: 0, promos: 0, frequency: null, avgDiscount: null, saving: 0 });
   });
 });
