@@ -37,13 +37,20 @@ export function sharedLiveQuery<T>(
       sub = null; // db not open yet; retry on the next subscribe
     }
   };
-  opts?.restartOn?.(() => {
-    if (!sub) return; // nobody is reading; the next subscribe starts fresh
-    sub.unsubscribe();
-    sub = null;
-    start();
-  });
+  // Listen for restarts on first read, not at creation: these queries are
+  // module-level constants, and the signal's own module may still be
+  // initialising in an import cycle (workspaces.ts → registry → store.ts).
+  let listening = false;
   const subscribe = (l: () => void) => {
+    if (!listening && opts?.restartOn) {
+      listening = true;
+      opts.restartOn(() => {
+        if (!sub) return; // nobody is reading; the next subscribe starts fresh
+        sub.unsubscribe();
+        sub = null;
+        start();
+      });
+    }
     listeners.add(l);
     start();
     return () => {
