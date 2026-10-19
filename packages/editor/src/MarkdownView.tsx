@@ -1,8 +1,8 @@
-import { useMemo } from "react";
-import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
+import { useMemo, useRef } from "react";
+import ReactMarkdown, { defaultUrlTransform, type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@lifeline/ui";
-import { extractBlocks, isImageName, openPrivateDialog, splitFrontmatter, type LinkIndex } from "@lifeline/core";
+import { extractBlocks, isImageName, openPrivateDialog, splitFrontmatter, todayStr, type LinkIndex } from "@lifeline/core";
 import { DaylogBlock } from "./DaylogBlock";
 import { useOpenDocument } from "./openDocument";
 import { AttachmentImage } from "./AttachmentImage";
@@ -31,66 +31,81 @@ export function MarkdownView({ body, index, docDate, className, compact, origin 
     return out;
   }, [content]);
 
+  // The renderers read the live props through a ref, so the map itself never
+  // changes: a fresh map each render gave ReactMarkdown new component types,
+  // and every image and daylog in the note remounted (and refetched) on any
+  // re-render. Whatever the ref holds is read when they render.
+  const live = useRef({ index, openDoc, docDate });
+  live.current = { index, openDoc, docDate };
+  const components = useMemo<Components>(
+    () => ({
+      img: ({ src, alt }) => {
+        const s = typeof src === "string" ? src : "";
+        if (s.startsWith("attachment:")) return <AttachmentImage name={decodeURIComponent(s.slice("attachment:".length))} />;
+        return <img src={s} alt={alt} />;
+      },
+      a: ({ href, children }) => {
+        if (href?.startsWith("wikilink:")) {
+          const name = decodeURIComponent(href.slice("wikilink:".length));
+          const { index, openDoc } = live.current;
+          const ref = index.resolve(name);
+          const cls = ref.kind === "unresolved" ? "wikilink wikilink-unresolved" : ref.kind === "locked" ? "wikilink wikilink-locked" : "wikilink";
+          return (
+            <a
+              href="#"
+              className={cls}
+              title={ref.kind === "locked" ? "In Private — unlock to open" : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                if (ref.kind === "doc") {
+                  const d = index.byId.get(ref.id);
+                  if (d) openDoc(d);
+                } else if (ref.kind === "locked") openPrivateDialog("unlock");
+              }}
+            >
+              {children}
+            </a>
+          );
+        }
+        return (
+          <a href={href} target="_blank" rel="noreferrer">
+            {children}
+          </a>
+        );
+      },
+      code: ({ className: cls, children, ...rest }) => {
+        const lang = /language-(\w+)/.exec(cls ?? "")?.[1];
+        if (lang === "daylog") {
+          const opts = parseOpts(String(children));
+          return <DaylogBlock date={opts.date || live.current.docDate || todayStr()} apps={opts.apps ? opts.apps.split(/[\s,]+/).filter(Boolean) : undefined} compact />;
+        }
+        return (
+          <code className={cls} {...rest}>
+            {children}
+          </code>
+        );
+      },
+      pre: ({ children }) => <>{children}</>,
+    }),
+    [],
+  );
+
   return (
     <div className={cn("prose-note", compact && "prose-note-compact", className)} data-origin={origin}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        // The default transform blanks every scheme it does not know — our own two included.
-        urlTransform={(url) => (url.startsWith("wikilink:") || url.startsWith("attachment:") ? url : defaultUrlTransform(url))}
-        components={{
-          img: ({ src, alt }) => {
-            const s = typeof src === "string" ? src : "";
-            if (s.startsWith("attachment:")) return <AttachmentImage name={decodeURIComponent(s.slice("attachment:".length))} />;
-            return <img src={s} alt={alt} />;
-          },
-          a: ({ href, children }) => {
-            if (href?.startsWith("wikilink:")) {
-              const name = decodeURIComponent(href.slice("wikilink:".length));
-              const ref = index.resolve(name);
-              const cls = ref.kind === "unresolved" ? "wikilink wikilink-unresolved" : ref.kind === "locked" ? "wikilink wikilink-locked" : "wikilink";
-              return (
-                <a
-                  href="#"
-                  className={cls}
-                  title={ref.kind === "locked" ? "In Private — unlock to open" : undefined}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (ref.kind === "doc") {
-                      const d = index.byId.get(ref.id);
-                      if (d) openDoc(d);
-                    } else if (ref.kind === "locked") openPrivateDialog("unlock");
-                  }}
-                >
-                  {children}
-                </a>
-              );
-            }
-            return (
-              <a href={href} target="_blank" rel="noreferrer">
-                {children}
-              </a>
-            );
-          },
-          code: ({ className: cls, children, ...rest }) => {
-            const lang = /language-(\w+)/.exec(cls ?? "")?.[1];
-            if (lang === "daylog") {
-              const opts = parseOpts(String(children));
-              return <DaylogBlock date={opts.date || docDate || new Date().toISOString().slice(0, 10)} apps={opts.apps ? opts.apps.split(/[\s,]+/).filter(Boolean) : undefined} compact />;
-            }
-            return (
-              <code className={cls} {...rest}>
-                {children}
-              </code>
-            );
-          },
-          pre: ({ children }) => <>{children}</>,
-        }}
+        remarkPlugins={REMARK_PLUGINS}
+        urlTransform={urlTransform}
+        components={components}
       >
         {prepared}
       </ReactMarkdown>
     </div>
   );
 }
+
+const REMARK_PLUGINS = [remarkGfm];
+/** The default transform blanks every scheme it does not know — our own two included. */
+const urlTransform = (url: string) => (url.startsWith("wikilink:") || url.startsWith("attachment:") ? url : defaultUrlTransform(url));
 
 /** `[[Name|alias]]` → a `wikilink:` link; `![[image.png]]` → an `attachment:` image (ADR 0037). */
 function wikify(text: string): string {

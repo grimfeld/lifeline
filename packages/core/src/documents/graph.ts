@@ -1,6 +1,7 @@
 import { useDeferredValue, useMemo } from "react";
 import { appById } from "../registry";
-import { displayTitle, type DocumentTypeDef } from "./types";
+import { normalizeName } from "../markdown";
+import { displayTitle, isLinkKind, type DocumentTypeDef } from "./types";
 import { useDocumentTypes } from "./registry";
 import { useLinkIndex, type LinkIndex } from "./links";
 
@@ -199,6 +200,86 @@ export function localGraph(model: GraphModel, docId: string, depth: 1 | 2): Grap
     degree.set(e.target, (degree.get(e.target) ?? 0) + 1);
   }
   return { nodes: nodes.map((n) => ({ ...n, degree: degree.get(n.id) ?? 0 })), edges };
+}
+
+/**
+ * The Local graph built straight from the index — the same model as
+ * `localGraph(buildGraph(index, types, { orphans: true }), docId, depth)`,
+ * but walking only the centre's neighbourhood through backlinks, outgoing
+ * links and Ghosts instead of building the whole vault's Graph first (the
+ * links panel rebuilt it on every save).
+ */
+export function buildLocalGraph(index: LinkIndex, types: DocumentTypeDef[], docId: string, depth: 1 | 2): GraphModel {
+  const defs = new Map(types.map((t) => [t.id, t]));
+  const nodes = new Map<string, GraphNode>(); // node id → node, for the kept ones
+  const isDoc = (id: string) => isLinkable(defs.get(index.byId.get(id)?.type ?? ""));
+  const docNode = (id: string): GraphNode => {
+    const d = index.byId.get(id)!;
+    const def = defs.get(d.type);
+    return { id: `d:${d.id}`, kind: "doc", label: displayTitle(d, def), type: d.type, docId: d.id, color: def?.appId ? appById(def.appId)?.color : undefined, degree: 0 };
+  };
+  if (!isDoc(docId)) return { nodes: [], edges: [] };
+
+  /** The node ids one edge away — the relations `buildGraph` draws, read from either end. */
+  const neighbours = (nodeId: string): string[] => {
+    if (nodeId.startsWith("g:")) return (index.unresolved.get(nodeId.slice(2)) ?? []).filter(isDoc).map((s) => `d:${s}`);
+    const id = nodeId.slice(2);
+    const out = index.backlinksTo(id).filter((b) => isDoc(b.sourceId)).map((b) => `d:${b.sourceId}`);
+    // Outgoing: body links and Link fields. A target counts only when its
+    // backlinks name this Document — what the index stored, as buildGraph reads it.
+    const d = index.byId.get(id)!;
+    const targets = new Set<string>();
+    for (const { ref } of index.linksFrom(id)) {
+      if (ref.kind === "doc") targets.add(ref.id);
+      else if (ref.kind === "unresolved") {
+        const k = normalizeName(ref.name);
+        if (index.unresolved.get(k)?.includes(id)) out.push(`g:${k}`);
+      }
+    }
+    for (const f of defs.get(d.type)?.fields ?? []) {
+      if (!isLinkKind(f.kind)) continue;
+      const v = d[f.key];
+      for (const t of Array.isArray(v) ? v : [v]) if (typeof t === "string" && t) targets.add(t);
+    }
+    for (const t of targets) if (t !== id && isDoc(t) && index.backlinksTo(t).some((b) => b.sourceId === id)) out.push(`d:${t}`);
+    return out;
+  };
+
+  const center = `d:${docId}`;
+  const keep = new Set<string>([center]);
+  let frontier = [center];
+  for (let step = 0; step < depth; step++) {
+    const next: string[] = [];
+    for (const id of frontier) {
+      for (const n of neighbours(id)) {
+        if (keep.has(n)) continue;
+        keep.add(n);
+        next.push(n);
+      }
+    }
+    frontier = next;
+  }
+  for (const id of keep) nodes.set(id, id.startsWith("g:") ? { id, kind: "ghost", label: id.slice(2), degree: 0 } : docNode(id.slice(2)));
+
+  // Every edge among the kept nodes, merged and weighted as buildGraph does.
+  const edges = new Map<string, GraphEdge>();
+  const addEdge = (a: string, b: string) => {
+    if (a === b || !keep.has(a) || !keep.has(b)) return;
+    const key = a < b ? `${a} ${b}` : `${b} ${a}`;
+    const cur = edges.get(key);
+    if (cur) cur.weight += 1;
+    else edges.set(key, { source: a, target: b, weight: 1 });
+  };
+  for (const id of keep) {
+    if (id.startsWith("g:")) for (const s of index.unresolved.get(id.slice(2)) ?? []) addEdge(`d:${s}`, id);
+    else for (const b of index.backlinksTo(id.slice(2))) addEdge(`d:${b.sourceId}`, id);
+  }
+  const edgeList = [...edges.values()];
+  for (const e of edgeList) {
+    nodes.get(e.source)!.degree += 1;
+    nodes.get(e.target)!.degree += 1;
+  }
+  return { nodes: [...nodes.values()], edges: edgeList };
 }
 
 /**
