@@ -22,6 +22,13 @@ import { run } from "./act";
 const first = (name: string) => name.split(" ")[0];
 
 /**
+ * When the last book and film were finished, in days from the visit day. The
+ * Culture overview's year Cards show the year of these (./screens.ts), so they
+ * are not empty in early January.
+ */
+export const FINISHED = { book: -19, film: -4 } as const;
+
+/**
  * The culture slice of the Demo life (#112): what Iris reads, watches, listens
  * to and plays, and the art she has stood before — real, well-known works, in
  * every state, with a series mid-season and a book half-read.
@@ -73,7 +80,7 @@ async function seedLibrary(c: LifeClock): Promise<void> {
   const keegan = await book("Small Things Like These", "Claire Keegan", -26);
   await step(keegan, { year: 2021, ...acquireBook("BORROWED", c.day(-26)) });
   await step(keegan, startBook(c.day(-24)));
-  await step(keegan, { ...finishBook(c.day(-19)), rating: 5, liked: true, body: "Read it in two evenings. Bill Furlong at the convent gate will stay with me a long time." });
+  await step(keegan, { ...finishBook(c.day(FINISHED.book)), rating: 5, liked: true, body: "Read it in two evenings. Bill Furlong at the convent gate will stay with me a long time." });
 
   // Owned and waiting: the shelf of shame.
   const bornToRun = await book("Born to Run", "Christopher McDougall", -20);
@@ -111,8 +118,8 @@ async function seedCinema(c: LifeClock): Promise<void> {
 
   // Watched last weekend.
   const banshees = await add("The Banshees of Inisherin", "Martin McDonagh", "movie", -10);
-  await step(banshees, { year: 2022, size: 114, ...startScreen(c.day(-4)) });
-  await step(banshees, { ...finishScreen(c.day(-4)), rating: 4, liked: true, body: `Watched with ${first(PEOPLE.aoife.name)}. Funny for an hour, then not at all.` });
+  await step(banshees, { year: 2022, size: 114, ...startScreen(c.day(FINISHED.film)) });
+  await step(banshees, { ...finishScreen(c.day(FINISHED.film)), rating: 4, liked: true, body: `Watched with ${first(PEOPLE.aoife.name)}. Funny for an hour, then not at all.` });
 
   const pastLives = await add("Past Lives", "Celine Song", "movie", -9);
   await step(pastLives, { year: 2023, size: 106 });
