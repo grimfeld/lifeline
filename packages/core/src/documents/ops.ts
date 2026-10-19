@@ -9,7 +9,7 @@ import { documentTypeSync } from "./registry";
 import { allDocuments, putDocument } from "./store";
 import { assertMayEnterPrivate, assertNotReservedFolder, inPrivateFolder, privateGate } from "../private";
 import { documentsForLinkRewrite } from "./rewrite";
-import type { Document } from "./types";
+import type { Document, DocumentTypeDef } from "./types";
 
 /**
  * Generic Document operations the Vault needs (ADR 0013 semantics, now over
@@ -82,6 +82,26 @@ export async function templateFor(type: string, title: string, docs?: Document[]
   // Only a built-in carries a default of its own; a user-defined type starts from its Templates alone (CONTEXT.md "Template").
   const raw = custom && typeof custom.body === "string" ? custom.body : def?.builtIn ? (def.template ?? "") : "";
   return renderTemplate(raw, { title, date: def?.titleRule === "date" ? title : todayStr() });
+}
+
+/** A starting body a Peek offers for a Document whose body is empty: one Template, already filled for that Document. */
+export interface TemplateStart {
+  /** The Template Document's id; "" for a built-in's own default. */
+  id: string;
+  title: string;
+  body: string;
+}
+
+/**
+ * What an empty body may start from (ADR 0085, CONTEXT.md "Template"): each
+ * of the type's Templates, filled for this Document; a built-in with none
+ * offers its own default instead, and a user-defined type with none offers nothing.
+ */
+export function templateStartsFor(doc: Document, def: DocumentTypeDef | undefined, docs: readonly Document[], now: Date = new Date()): TemplateStart[] {
+  const vars = { title: doc.title, date: def?.titleRule === "date" ? doc.title : todayStr(now), now };
+  const mine = templatesFor(doc.type, docs).map((t) => ({ id: t.id, title: t.title, body: renderTemplate(typeof t.body === "string" ? t.body : "", vars) }));
+  if (mine.length > 0) return mine;
+  return def?.builtIn && def.template ? [{ id: "", title: "Default", body: renderTemplate(def.template, vars) }] : [];
 }
 
 /** Rename a Document and rewrite [[Old]] / [[Folder/Old]] → new in every body (Obsidian behaviour). */

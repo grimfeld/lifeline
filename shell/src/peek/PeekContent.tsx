@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Label, TagInput, toast } from "@lifeline/ui";
-import { FieldsForm, MarkdownView } from "@lifeline/editor";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button, Label, TagInput, toast } from "@lifeline/ui";
+import { DocumentEditor, FieldsForm, MarkdownView } from "@lifeline/editor";
 import {
   effectiveTags,
   extractProseTags,
@@ -8,6 +8,8 @@ import {
   normalizeTag,
   patchDocument,
   peekPartOf,
+  templateStartsFor,
+  useAllDocuments,
   useLinkIndex,
   useTagVocabulary,
   userFieldsOf,
@@ -28,15 +30,24 @@ const ID_PREFIX = "peek-field-";
  *   else its read-only one, else Core's read-only list of the App's Fields),
  *   then the **user's own Fields** (`userFieldsOf`) beneath it, edited by Core.
  *   Core never draws a control for a Field the App defined.
+ *
+ * Then, for every Peek, the **body**: read, or — once the frame says
+ * `writing` — written with the Vault's own editor.
  */
-export function PeekContent({ doc, def }: { doc: Document; def: DocumentTypeDef | undefined }) {
-  // Keyed by the Document: following a link replaces the Peek's Document, and its staged edits must not carry over.
-  if (def && !def.builtIn) return <UserTypePeek key={doc.id} doc={doc} def={def} />;
+export function PeekContent({ doc, def, writing = false }: { doc: Document; def: DocumentTypeDef | undefined; writing?: boolean }) {
   const part = peekPartOf(def);
   return (
-    <div className="flex flex-col gap-3">
-      {part ? <part.Part doc={doc} /> : <ReadOnlyPeek doc={doc} def={def} />}
-      {def && <UserFields key={doc.id} doc={doc} fields={userFieldsOf(def)} />}
+    <div className={writing ? "flex flex-1 flex-col gap-3" : "flex flex-col gap-3"}>
+      {/* Keyed by the Document: following a link replaces the Peek's Document, and its staged edits must not carry over. */}
+      {def && !def.builtIn ? (
+        <UserTypePeek key={doc.id} doc={doc} def={def} />
+      ) : (
+        <>
+          {part ? <part.Part doc={doc} /> : <ReadOnlyPeek doc={doc} def={def} />}
+          {def && <UserFields key={doc.id} doc={doc} fields={userFieldsOf(def)} />}
+        </>
+      )}
+      {def?.body !== "none" && (writing ? <BodyWriter key={doc.id} doc={doc} def={def} /> : <Body doc={doc} />)}
     </div>
   );
 }
@@ -115,7 +126,6 @@ function UserTypePeek({ doc, def }: { doc: Document; def: DocumentTypeDef }) {
         {proseTags.length > 0 && <span className="text-muted-foreground text-xs">in text: {proseTags.map((t) => `#${t}`).join(" ")}</span>}
       </div>
       <FieldList doc={doc} fields={roleFields} />
-      <Body doc={doc} />
     </div>
   );
 }
@@ -140,7 +150,6 @@ function ReadOnlyPeek({ doc, def }: { doc: Document; def: DocumentTypeDef | unde
     <div className="flex flex-col gap-3">
       <FieldList doc={doc} fields={fields} />
       {doc.tags && doc.tags.length > 0 && <div className="text-muted-foreground text-xs">{doc.tags.map((t) => `#${t}`).join(" ")}</div>}
-      <Body doc={doc} />
       {!hasValues(doc, fields) && !body && mine.size === 0 && <p className="text-muted-foreground text-sm">Nothing more to show here.</p>}
     </div>
   );
@@ -165,12 +174,56 @@ function FieldList({ doc, fields }: { doc: Document; fields: FieldDef[] }) {
   );
 }
 
-/** The body, read (writing it in the Peek is the frame's, ADR 0085). */
+const dayOf = (doc: Document) => (doc.type === "daily" ? doc.title : null);
+
+/** The body, read: nothing in it changes until the user asks to write (ADR 0085). */
 function Body({ doc }: { doc: Document }) {
   const index = useLinkIndex();
   const body = typeof doc.body === "string" ? doc.body : "";
   if (!body) return null;
-  return <MarkdownView body={body} index={index} compact docDate={doc.type === "daily" ? doc.title : null} origin={doc.id} />;
+  return <MarkdownView body={body} index={index} compact docDate={dayOf(doc)} origin={doc.id} />;
+}
+
+/**
+ * The body, written with the Vault's own editor (ADR 0085): wikilinks,
+ * completion, Daylog blocks, saved as the Vault saves and undone with its
+ * history. Only the body and its Tags are written, so a Field edited above a
+ * moment ago is never sent back as it was.
+ */
+function BodyWriter({ doc, def }: { doc: Document; def: DocumentTypeDef | undefined }) {
+  const index = useLinkIndex();
+  const id = doc.id;
+  const save = useCallback((next: Document) => patchDocument(id, { body: next.body, tags: next.tags }), [id]);
+  const empty = !(typeof doc.body === "string" && doc.body.trim());
+  return (
+    <section aria-label="Body" className="flex min-h-64 flex-1 flex-col border-t">
+      {empty && <TemplateStarts doc={doc} def={def} />}
+      <DocumentEditor doc={doc} def={def} index={index} docDate={dayOf(doc)} bodyOnly autoFocus save={save} />
+    </section>
+  );
+}
+
+/**
+ * An empty body offers the type's Templates (CONTEXT.md "Template"): picking
+ * one fills the body once — the editor takes it as a change of its own, so
+ * Undo empties it again — and the offer is gone with the emptiness.
+ */
+function TemplateStarts({ doc, def }: { doc: Document; def: DocumentTypeDef | undefined }) {
+  const docs = useAllDocuments();
+  const starts = useMemo(() => templateStartsFor(doc, def, docs), [doc, def, docs]);
+  if (starts.length === 0) return null;
+  const pick = (body: string) =>
+    patchDocument(doc.id, { body, tags: effectiveTags(doc.tags, body) }).catch((err: unknown) => toast.error(`Couldn’t start from that Template — ${err instanceof Error ? err.message : String(err)}`));
+  return (
+    <div role="group" aria-label="Start from a Template" className="flex flex-wrap items-center gap-2 pt-3">
+      <span className="text-muted-foreground text-xs">Start from</span>
+      {starts.map((t) => (
+        <Button key={t.id || "default"} size="sm" variant="outline" className="max-w-full min-w-0" onClick={() => void pick(t.body)}>
+          <span className="truncate">{t.title}</span>
+        </Button>
+      ))}
+    </div>
+  );
 }
 
 function formatValue(v: unknown): string {

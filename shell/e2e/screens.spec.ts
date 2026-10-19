@@ -106,8 +106,9 @@ async function pickerWithWorkspaces(page: Page) {
  * A Peek (ADR 0085) of the first Document of `type`, opened over the page —
  * with, when `userField` is given, a long-labelled Field of the user's added
  * to that (built-in) type first, so it is drawn beneath the App's part.
+ * `write` turns its body's writing on, as ✎ does.
  */
-function peekOf(type: string, userField?: boolean) {
+function peekOf(type: string, userField?: boolean, write?: boolean) {
   return async (page: Page) => {
     await workLocally(page);
     await page.evaluate(
@@ -122,6 +123,10 @@ function peekOf(type: string, userField?: boolean) {
       { coreUrl: CORE_URL, type, userField: !!userField, label: longText("Lent to") },
     );
     await page.getByRole("dialog").waitFor();
+    if (write) {
+      await page.getByRole("dialog").getByRole("button", { name: "Write", exact: true }).click();
+      await page.getByRole("dialog").locator(".cm-content").waitFor();
+    }
   };
 }
 
@@ -232,6 +237,9 @@ const SCREENS: ScreenCase[] = [
   // A Peek edits (ADR 0085): a user-defined type's whole Peek, and a built-in's with the user's own Field beneath the App's part.
   { name: "Vault · Peek of a user-defined type", path: "/vault", afterOpen: peekOf("e2eperson") },
   { name: "Vault · Peek with the user's own Field", path: "/vault", afterOpen: peekOf("book", true) },
+  // …and writes its body with the Vault's editor, the panel widened (ADR 0085).
+  { name: "Vault · Peek writing its body", path: "/vault", afterOpen: peekOf("note", false, true) },
+  { name: "Vault · Peek of a user-defined type, writing", path: "/vault", afterOpen: peekOf("e2eperson", false, true) },
   // The Apps' own editable Peeks (#182): Ledger, Pocket, Prices, Knowledge, Projects.
   ...["ledger_transaction", "ledger_account", "ledger_category", "pocket_allowance", "price_product", "price_receipt", "price_shop", "language_word", "language_sentence", "knowledge_fact", "project"].map(
     (type): ScreenCase => ({ name: `Vault · Peek of ${type}`, path: "/vault", afterOpen: peekOf(type) }),
@@ -239,6 +247,7 @@ const SCREENS: ScreenCase[] = [
   // The Apps' own editable parts (ADR 0085): a Task's and an Event's Fields edited through their App's controls.
   { name: "Vault · Peek of a Task", path: "/vault", afterOpen: peekOf("task") },
   { name: "Vault · Peek of an Event", path: "/vault", afterOpen: peekOf("event") },
+  { name: "Vault · Peek of a Project, writing beneath its App's part", path: "/vault", afterOpen: peekOf("project", false, true) },
   // House's editable Peeks (ADR 0085): each App's own controls over a long-titled Document.
   { name: "Vault · Peek of chore", path: "/vault/d/:id", type: "chore", afterOpen: peekOf("chore") },
   { name: "Vault · Peek of provision", path: "/vault/d/:id", type: "provision", afterOpen: peekOf("provision") },
