@@ -5,3 +5,5 @@ export * from "./components/PartDialog";
 export * from "./components/PartsSection";
 export * from "./components/NextPart";
 export { announceRead, attempt } from "./components/announce";
+export * from "./lookup";
+export * from "./components/QuickPick";
