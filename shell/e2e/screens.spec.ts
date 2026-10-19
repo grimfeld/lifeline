@@ -47,6 +47,19 @@ const LONG_HANDOFF = encodeHandoff(
   "commonplace/quote",
 );
 
+/** The Handoff page's picker with a second Workspace, long-named, so the Workspace question is asked too. */
+async function pickerWithWorkspaces(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, name }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      if ((await core.allWorkspaces()).length < 2) await core.createWorkspace(name, []);
+    },
+    { coreUrl: CORE_URL, name: longText("A Workspace") },
+  );
+  await page.getByRole("combobox", { name: "Workspace" }).waitFor();
+}
+
 const SCREENS: ScreenCase[] = [
   // Core destinations.
   { name: "Calendar · Upcoming", path: "/calendar?view=upcoming" },
@@ -62,6 +75,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Screen with every Card", path: "/screen/e2elongcontent1" },
   { name: "Settings", path: "/settings" },
   { name: "Handoff · Quote", path: `/handoff#${LONG_HANDOFF}`, afterOpen: workLocally },
+  { name: "Handoff · picker", path: `/handoff#${encodeHandoff({ title: longText("A page"), text: "", url: `https://example.com/${LONG_WORD}` })}`, afterOpen: pickerWithWorkspaces },
   { name: "Handoff · unreadable", path: "/handoff#v1.not-a-handoff", afterOpen: workLocally },
   { name: "Handoff · Saved", path: "/handoff/done", afterOpen: workLocally },
 
