@@ -1,5 +1,6 @@
 import { addDays, diffDays, formatHuman, type DateStr } from "@lifeline/core";
-import type { LabelMemory, Line, Observation, Product, Receipt } from "./types";
+import type { Basis, LabelMemory, Line, Observation, Product, Receipt, SecondaryMeasure } from "./types";
+import { basisOf } from "./measure";
 
 /**
  * Every reading of Prices (ADR 0082) lives here, pure: unit price, history
@@ -113,10 +114,30 @@ export function countsAsSpent(o: Observation): boolean {
 /**
  * Per-unit readings (unit price, history, cheapest, Price change, spread,
  * amount per month, the Overpaid baseline) take every price seen, Sightings
- * included — but never a Line that needs an amount.
+ * included — but never a Line that needs an amount, nor one missing the
+ * amount its Product is compared by (see comparedBy).
  */
 export function countsPerUnit(o: Observation): boolean {
-  return !o.line.needsAmount;
+  return !o.line.needsAmount && !o.noAmount;
+}
+
+/**
+ * Observations read by each Product's compared-by unit (ADR 0084), so every
+ * per-unit reading downstream — history, cheapest, Price change, spread,
+ * promos, Overpaid — compares the one the Product chose. A Product compared
+ * by its secondary Measure has its Lines' second amount stand as the amount;
+ * a Line without one is marked noAmount: still spent, never per unit.
+ * `basis` reads every Product that has two Measures by that one instead —
+ * the Product page's other figure. Lines of other Products pass unchanged.
+ */
+export function comparedBy(obs: readonly Observation[], products: readonly (Pick<Product, "id" | "dimension"> & SecondaryMeasure)[], basis?: Basis): Observation[] {
+  const secondary = new Set(products.filter((p) => basisOf(p, basis) === "secondary").map((p) => p.id));
+  if (secondary.size === 0) return [...obs];
+  return obs.map((o) => {
+    if (!secondary.has(o.line.productId)) return o;
+    const second = Number(o.line.secondAmount) || 0;
+    return second > 0 ? { ...o, line: { ...o.line, amount: second } } : { ...o, noAmount: true };
+  });
 }
 
 /**
@@ -126,6 +147,20 @@ export function countsPerUnit(o: Observation): boolean {
  */
 export function linesToRetype<L extends Pick<Line, "productId">>(lines: readonly L[], product: Pick<Product, "id" | "dimension">, dimension: Product["dimension"]): L[] {
   return dimension === product.dimension ? [] : lines.filter((l) => l.productId === product.id);
+}
+
+/**
+ * The second amount a new Line of this Product at this Shop starts from
+ * (ADR 0084): the latest one recorded there — a pack's weight rarely
+ * changes, so it is typed only when it did. 0 when there is none.
+ */
+export function lastSecondAmount(obs: readonly Observation[], productId: string, shopId: string): number {
+  let best: Observation | undefined;
+  for (const o of obs) {
+    if (o.line.productId !== productId || o.shopId !== shopId || !((o.line.secondAmount ?? 0) > 0)) continue;
+    if (!best || o.date > best.date || (o.date === best.date && o.line.createdAt > best.line.createdAt)) best = o;
+  }
+  return best?.line.secondAmount ?? 0;
 }
 
 /** The needs-amount inbox: matched Lines waiting for their amount in the Product's new dimension. */

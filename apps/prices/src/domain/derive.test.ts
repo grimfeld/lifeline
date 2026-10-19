@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Line, Product, Receipt } from "./types";
-import { changesIn, promoOf, spreadOf, observeAll, rhythmOf, spendOf, countsAsSpent, needingAmount, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
+import { comparedBy, changesIn, promoOf, spreadOf, observeAll, rhythmOf, spendOf, countsAsSpent, needingAmount, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
 
 const product = (id: string, title: string, labels: Product["labels"] = []): Product => ({ id, type: "price_product", title, measure: "l", labels, tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0 }) as unknown as Product;
 const receipt = (id: string, shopId: string, date: string, total = 0, noticed = false): Receipt => ({ id, type: "price_receipt", title: "", shopId, date, branch: "", total, noticed, tags: [], folder: "", createdAt: date, updatedAt: "", deleted: 0 }) as unknown as Receipt;
@@ -282,5 +282,41 @@ describe("Promo saving (CONTEXT.md)", () => {
   });
   it("no promos, no discount", () => {
     expect(promoOf("nope", obs, span)).toEqual({ n: 0, promos: 0, frequency: null, avgDiscount: null, saving: 0 });
+  });
+});
+
+describe("compare-by (secondary Measure)", () => {
+  // Croissants: counted, also weighed; compared by €/kg. Eggs: counted, weighed sometimes, compared by €/pc.
+  const counted = (id: string, compareBy: "primary" | "secondary"): Product => ({ ...product(id, id), dimension: "count", unit: "pc", countName: "", secondaryDimension: "mass", secondaryUnit: "kg", compareBy }) as Product;
+  const croissants = counted("croissants", "secondary");
+  const eggs = counted("eggs", "primary");
+  const weighed = (id: string, receiptId: string, productId: string, price: number, amount: number, secondAmount?: number) => ({ ...line(id, receiptId, productId, price, amount), secondAmount }) as Line;
+  const receipts = [receipt("r1", "lidl", "2026-01-10"), receipt("r2", "aldi", "2026-01-11"), receipt("r3", "lidl", "2026-02-10")];
+  // Lidl: 4 croissants, 240 g, €2.40 → €0.60/pc, €10/kg. Aldi: 6 croissants, 300 g, €3.30 → €0.55/pc, €11/kg.
+  const lines = [weighed("c1", "r1", "croissants", 240, 4, 0.24), weighed("c2", "r2", "croissants", 330, 6, 0.3), weighed("c3", "r3", "croissants", 200, 4), weighed("e1", "r1", "eggs", 360, 12, 0.72)];
+  const obs = observe(lines, receipts);
+
+  it("reads a Product compared by its secondary Measure per that unit, and its other Products per their own", () => {
+    const read = comparedBy(obs, [croissants, eggs]);
+    expect(cheapest(historyOf("croissants", read))).toMatchObject({ shopId: "lidl", point: { unit: 1000 } });
+    expect(historyOf("eggs", read).get("lidl")!.map((p) => p.unit)).toEqual([30]);
+  });
+
+  it("leaves a Line without the second amount out of the secondary readings, still spent", () => {
+    const read = comparedBy(obs, [croissants, eggs]);
+    expect(historyOf("croissants", read).get("lidl")!.map((p) => p.lineId)).toEqual(["c1"]);
+    expect(spreadOf("croissants", read, { from: "", to: "2026-12-31" }).overall?.n).toBe(2);
+    expect(spendOf("croissants", comparedBy(observeAll(lines, receipts), [croissants]), { from: "", to: "2026-12-31" }).spent).toBe(770);
+  });
+
+  it("reads either basis on demand — the Product page's other figure", () => {
+    expect(cheapest(historyOf("croissants", comparedBy(obs, [croissants], "primary")))).toMatchObject({ shopId: "lidl", point: { unit: 50, lineId: "c3" } });
+    expect(historyOf("eggs", comparedBy(obs, [eggs], "secondary")).get("lidl")!.map((p) => p.unit)).toEqual([500]);
+  });
+
+  it("a Product with no secondary Measure always reads by its own", () => {
+    const plain = { ...product("milk", "Milk"), dimension: "volume", unit: "L", countName: "", secondaryDimension: "", secondaryUnit: "kg", compareBy: "secondary" } as Product;
+    const milk = observe([line("m1", "r1", "milk", 109, 1)], receipts);
+    expect(comparedBy(milk, [plain], "secondary")).toEqual(milk);
   });
 });
