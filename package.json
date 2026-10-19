@@ -6,6 +6,7 @@
     "check": "node scripts/check-ui.mjs && node scripts/adr.mjs check && pnpm -r typecheck && pnpm -r test",
     "check:ui": "node scripts/check-ui.mjs",
     "adr:new": "node scripts/adr.mjs new",
+    "adr:mv": "node scripts/adr.mjs mv",
     "adr:check": "node scripts/adr.mjs check",
     "dev": "pnpm --filter @lifeline/shell dev",
     "dev:all": "node scripts/dev-launcher.mjs",
