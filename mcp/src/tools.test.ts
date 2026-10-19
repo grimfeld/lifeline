@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { commandToolName, TOOLS } from "./tools";
 import { grantedScopes } from "./oauth";
+import { unsyncedWrite } from "./devices";
+
+describe("unsyncedWrite", () => {
+  it("marks the write unconfirmed and never promises it will land", () => {
+    const r = unsyncedWrite("PocketBase unreachable");
+    expect(r.unconfirmed).toBe(true);
+    expect(r.warning).toContain("PocketBase unreachable");
+    expect(r.warning).toMatch(/lost if/);
+    expect(r.warning).not.toMatch(/will be retried/);
+  });
+});
 
 describe("tool catalogue", () => {
   it("names every tool within MCP's alphabet, without collisions", () => {

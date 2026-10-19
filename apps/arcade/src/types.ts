@@ -3,6 +3,7 @@ import { Gamepad2 } from "lucide-react";
 import { ACQUISITION, ENGAGEMENT, SETTINGS_TYPE, type Work } from "./domain/types";
 import { WORK_TYPES } from "./domain/workTypes";
 import { APP_HREF } from "./constants";
+import { cascadeWorkDelete } from "./data/repo";
 
 const ACQ_LABELS: Record<string, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
@@ -41,6 +42,8 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t) => ({
   order: 45,
   builtIn: true,
   fields: WORK_FIELDS,
+  // Its Quotes go with it, from wherever it is deleted (ADR 0045).
+  onDelete: (doc) => cascadeWorkDelete(doc.id),
 }));
 
 export const settingsTypeDef: DocumentTypeDef = {
