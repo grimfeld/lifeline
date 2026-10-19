@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type Document } from "@lifeline/core";
+import { documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type Document } from "@lifeline/core";
 import { isColorSlot } from "@lifeline/ui";
 import { FINE, OFFENCE, firstGrapheme, type Fine, type Offence } from "../domain/types";
 import { dayKeyOf } from "../domain/derive";
@@ -105,4 +105,24 @@ export async function updateFine(f: Fine, o: Pick<Offence, "name"> | undefined, 
 /** A mis-tap is not an incident — a Fine is simply deleted. */
 export async function deleteFine(id: string): Promise<void> {
   await removeDocument(id);
+}
+
+let editing: Promise<unknown> = Promise.resolve();
+
+/**
+ * Move a Fine's moment or change its note from its Peek (ADR 0085), through
+ * `updateFine` — the amount and the Offence stay the facts they are. Each edit
+ * runs over the Fine as stored at that moment, one after another, so a Peek
+ * closed with both typed in keeps both.
+ */
+export function editFine(id: string, patch: Partial<{ occurredAt: string; note: string }>): Promise<void> {
+  const run = editing.then(async () => {
+    const row = await getDocument<Fine>(id);
+    if (!row || row.type !== FINE) return;
+    const f = normalizeFine(row);
+    const o = (await allOffences()).find((x) => x.id === f.offenceId);
+    await updateFine(f, o, { occurredAt: f.occurredAt, note: f.note, ...patch });
+  });
+  editing = run.catch(() => {});
+  return run;
 }

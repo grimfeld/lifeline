@@ -5,6 +5,7 @@ import { HabitDetailScreen } from "./screens/HabitDetailScreen";
 import { HabitTileCard, useHabitTileOptions, useHabitTileTitle } from "./cards/HabitTileCard";
 import { LogNegativeCard } from "./cards/LogNegativeCard";
 import { lifelevelCommands } from "./commands";
+import { HabitPeek, NegativePeek } from "./components/ActivityPeeks";
 import { lifelevelDaylog } from "./daylog";
 import { lifelevelLoggable } from "./loggable";
 import { habitHref, LIFELEVEL_HREF } from "./domain/daylog";
@@ -32,6 +33,7 @@ const habitType: DocumentTypeDef = {
   ],
   linkable: { subtitle: (d) => String(d.difficulty ?? "") },
   href: (d) => habitHref(d.id),
+  peekEdit: HabitPeek,
   order: 45,
   builtIn: true,
 };
@@ -50,6 +52,7 @@ const negativeType: DocumentTypeDef = {
   ],
   linkable: { subtitle: (d) => String(d.gravity ?? "") },
   href: () => LIFELEVEL_HREF,
+  peekEdit: NegativePeek,
   order: 46,
   builtIn: true,
 };

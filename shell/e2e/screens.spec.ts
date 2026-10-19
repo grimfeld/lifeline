@@ -178,6 +178,13 @@ const SCREENS: ScreenCase[] = [
   // A Peek edits (ADR 0085): a user-defined type's whole Peek, and a built-in's with the user's own Field beneath the App's part.
   { name: "Vault · Peek of a user-defined type", path: "/vault", afterOpen: peekOf("e2eperson") },
   { name: "Vault · Peek with the user's own Field", path: "/vault", afterOpen: peekOf("book", true) },
+  // The Progress Apps' editable Peeks (ADR 0085), each drawn by its App.
+  { name: "Vault · Peek of a Stat", path: "/vault", afterOpen: peekOf("stat") },
+  { name: "Vault · Peek of a Workout session", path: "/vault", afterOpen: peekOf("workout_session") },
+  { name: "Vault · Peek of a Habit", path: "/vault", afterOpen: peekOf("habit") },
+  { name: "Vault · Peek of a Negative activity", path: "/vault", afterOpen: peekOf("negative") },
+  { name: "Vault · Peek of a Mood", path: "/vault", afterOpen: peekOf("mood") },
+  { name: "Vault · Peek of a Fine", path: "/vault", afterOpen: peekOf("swearjar_fine") },
   {
     // The file tree's "New thought" focused: a tooltip names it on the desk; a touch phone shows none (ADR 0079).
     name: "Vault · Tooltip",

@@ -1,4 +1,4 @@
-import { MODE_LABEL, type Block, type Movement, type Workout } from "./types";
+import { MODE_LABEL, type Block, type Movement, type Session, type Workout } from "./types";
 
 /**
  * The timer's whole vocabulary (ADR 0030): a Workout expands into a flat
@@ -180,4 +180,16 @@ export function skipBack(c: RunClock, intervals: Interval[], now: number): RunCl
   const startOfCurrent = offsetOf(intervals, pos.index);
   const target = pos.into > 1.5 || pos.index === 0 ? startOfCurrent : offsetOf(intervals, pos.index - 1);
   return { ...c, skipped: c.skipped - (el - target) };
+}
+
+/** A Session's results in one line, each Block in its mode's terms: "Fran 3+12 · Finisher 4:05". */
+export function resultsSummary(s: Pick<Session, "results">, w: Pick<Workout, "blocks"> | undefined): string {
+  return s.results
+    .map((r) => {
+      const label = w?.blocks.find((b) => b.id === r.blockId)?.label || MODE_LABEL[r.mode];
+      if (r.mode === "amrap") return `${label} ${r.rounds ?? 0}${r.extraReps ? `+${r.extraReps}` : ""}`;
+      if (r.mode === "fortime") return `${label} ${r.seconds === null ? "cap" : `${Math.floor(r.seconds / 60)}:${String(r.seconds % 60).padStart(2, "0")}`}`;
+      return `${label} ${r.rounds ?? "?"} rds`;
+    })
+    .join(" · ");
 }
