@@ -95,7 +95,10 @@ test("a Handoff naming no Intake asks which one, then opens its dialog — and t
 
   const expected = await page.evaluate(async (coreUrl) => {
     const core = await import(/* @vite-ignore */ coreUrl);
-    return { intakes: (core.allIntakes() as { title: string }[]).map((i) => i.title), workspaces: (await core.allWorkspaces()).length };
+    // Every App's Intake and Core's for each user-defined type, grouped by Module as the Selection menu is.
+    const intakes = [...core.allIntakes(), ...core.typeIntakesOf(core.allDocumentTypes())];
+    const groups = core.groupIntakes(intakes, { moduleOf: (id: string) => core.appById(id)?.module, appTitle: (id: string) => core.appById(id)?.title }) as { intakes: { title: string }[] }[];
+    return { intakes: groups.flatMap((g) => g.intakes.map((i) => i.title)), workspaces: (await core.allWorkspaces()).length };
   }, CORE_URL);
   await page.getByRole("combobox", { name: "Intake" }).click();
   await expect(page.getByRole("option")).toHaveText(expected.intakes);
@@ -337,4 +340,71 @@ test("a Handoff left for another page is not picked up again", async ({ page }) 
   await page.goto("/handoff");
   await workLocally(page);
   await expect(page.getByText("This Handoff can't be read")).toBeVisible();
+});
+
+/** Makes a user-defined type in this store (homed in `module`, or none) and waits until Core knows it. */
+async function makeType(page: Page, type: { typeId: string; label: string; module?: string; fields?: { key: string; label: string; kind: string }[] }) {
+  await page.goto("/");
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, type }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      await core.saveDocumentType({ fields: [], module: "", ...type, icon: "map-pin", folder: "", body: "optional", linkable: true, order: 0 });
+      for (let i = 0; i < 40 && !core.documentTypeSync(type.typeId); i++) await new Promise((r) => setTimeout(r, 50));
+    },
+    { coreUrl: CORE_URL, type },
+  );
+}
+
+async function documentsOf(page: Page, type: string): Promise<Record<string, unknown>[]> {
+  return page.evaluate(async ({ coreUrl, type }) => (await import(/* @vite-ignore */ coreUrl)).documentsOf(type), { coreUrl: CORE_URL, type });
+}
+
+test("a URL Handoff becomes a Place, its URL kept in the Place's url Field", async ({ page }) => {
+  const typeId = `place${Date.now()}`;
+  await makeType(page, { typeId, label: "Places", module: "journal", fields: [{ key: "website", label: "Website", kind: "url" }] });
+  const title = `Chez Panisse ${Date.now()}`;
+  const url = "https://www.chezpanisse.example.com/";
+  await page.goto(`/handoff#${encodeHandoff({ title, text: "", url })}`);
+  await workLocally(page);
+
+  // Core's generic Intake sits under the type's Home Module, as in the Selection menu.
+  await page.getByRole("combobox", { name: "Intake" }).click();
+  await expect(page.getByRole("group", { name: "Journal" }).getByRole("option", { name: "Place", exact: true })).toBeVisible();
+  await page.getByRole("option", { name: "Place", exact: true }).click();
+  await page.getByRole("button", { name: "Open the Place" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "New place" });
+  await expect(dialog.getByLabel("Title")).toHaveValue(title);
+  expect(await documentsOf(page, typeId), "nothing is written before the dialog saves").toEqual([]);
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+
+  const made = await documentsOf(page, typeId);
+  expect(made.map((d) => ({ title: d.title, website: d.website }))).toEqual([{ title, website: url }]);
+});
+
+test("a type with no url Field keeps the Handoff's URL in the body; a cancelled form writes nothing", async ({ page }) => {
+  const typeId = `recipe${Date.now()}`;
+  await makeType(page, { typeId, label: "Recipes" });
+  const title = `Tarte Tatin ${Date.now()}`;
+  const url = "https://recipes.example.org/tarte-tatin";
+  await page.goto(`/handoff#${encodeHandoff({ title, text: "", url })}`);
+  await workLocally(page);
+
+  // Homed in no Module: under Other.
+  await page.getByRole("combobox", { name: "Intake" }).click();
+  await page.getByRole("group", { name: "Other" }).getByRole("option", { name: "Recipe", exact: true }).click();
+  await page.getByRole("button", { name: "Open the Recipe" }).click();
+  const dialog = page.getByRole("dialog", { name: "New recipe" });
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByText("Nothing was saved")).toBeVisible();
+  expect(await documentsOf(page, typeId)).toEqual([]);
+
+  await page.getByRole("button", { name: "Open the Recipe" }).click();
+  await expect(dialog.getByLabel("Title")).toHaveValue(title);
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  const made = await documentsOf(page, typeId);
+  expect(made.map((d) => ({ title: d.title, body: d.body }))).toEqual([{ title, body: url }]);
 });
