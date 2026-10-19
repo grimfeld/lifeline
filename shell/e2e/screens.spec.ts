@@ -61,6 +61,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Screens", path: "/screens" },
   { name: "Screen with every Card", path: "/screen/e2elongcontent1" },
   { name: "Settings", path: "/settings" },
+  { name: "Handoff · sign in", path: `/handoff#${LONG_HANDOFF}` },
   { name: "Handoff · Quote", path: `/handoff#${LONG_HANDOFF}`, afterOpen: workLocally },
   { name: "Handoff · unreadable", path: "/handoff#v1.not-a-handoff", afterOpen: workLocally },
   { name: "Handoff · Saved", path: "/handoff/done", afterOpen: workLocally },
