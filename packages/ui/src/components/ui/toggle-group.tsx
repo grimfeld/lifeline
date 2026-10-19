@@ -46,6 +46,7 @@ function ToggleGroup({
       </Select>
     )
   }
+  // p-[3px]: TabsList's own track inset, so the two read as one control.
   return (
     <ToggleGroupPrimitive.Root
       data-slot="toggle-group"

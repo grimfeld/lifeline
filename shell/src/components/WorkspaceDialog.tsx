@@ -36,6 +36,9 @@ import {
 } from "@lifeline/core";
 import { AlertTriangle, Trash2 } from "lucide-react";
 
+/** "1 Document", "3 Documents". */
+const documents = (n: number) => `${n} Document${n === 1 ? "" : "s"}`;
+
 /**
  * Creating a Workspace (ADR 0047). There is no separation toggle (ADR 0057):
  * the first Workspace is the default and reads the shared content, every later
@@ -118,7 +121,7 @@ export function WorkspaceForm({
     setBusy(true);
     try {
       await deleteWorkspace(workspace.id, releaseWorkspaceDocuments);
-      toast.success(held ? `“${workspace.name}” deleted — ${held} document${held === 1 ? "" : "s"} released` : `“${workspace.name}” deleted`);
+      toast.success(held ? `Workspace “${workspace.name}” deleted — ${documents(held)} released` : `Workspace “${workspace.name}” deleted`);
       onDone();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not delete");
@@ -182,7 +185,7 @@ export function WorkspaceForm({
 
       <DialogFooter className="sm:justify-between">
         {canDelete ? (
-          <Button variant="ghost" className="text-destructive" disabled={busy} onClick={() => void askRemove()}>
+          <Button variant="destructive" disabled={busy} onClick={() => void askRemove()}>
             <Trash2 /> Delete
           </Button>
         ) : (
@@ -202,16 +205,16 @@ export function WorkspaceForm({
         <AlertDialog open={confirming !== null} onOpenChange={(o) => !o && setConfirming(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete the workspace “{workspace.name}”?</AlertDialogTitle>
+              <AlertDialogTitle>Delete the Workspace “{workspace.name}”?</AlertDialogTitle>
               <AlertDialogDescription>
                 {confirming?.held
-                  ? `Its ${confirming.held} document${confirming.held === 1 ? "" : "s"} become shared and its screens move to the default workspace. No document is deleted.`
-                  : "Its screens move to the default workspace. No document is deleted."}
+                  ? `Its ${documents(confirming.held)} become shared and its Screens move to the default Workspace. No Document is deleted.`
+                  : "Its Screens move to the default Workspace. No Document is deleted."}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => void remove(confirming?.held ?? 0)}>Delete workspace</AlertDialogAction>
+              <AlertDialogAction onClick={() => void remove(confirming?.held ?? 0)}>Delete Workspace</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

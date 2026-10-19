@@ -1,26 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  Button,
-  Checkbox,
-  Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TYPE_ICONS, cn, toast, typeIcon } from "@lifeline/ui";
+import { Button, Checkbox, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TYPE_ICONS, cn, toast, typeIcon } from "@lifeline/ui";
 import {
   DEFAULT_REPORTS,
   mentionable,
   type ReportSetting,
   MODULES,
   basePath,
-  countTypeDocuments,
-  deleteDocumentType,
-  deleteUserDocumentType,
   documentsOfTypeEverywhere,
   fieldChangeProblems,
   fieldFromDraft,
@@ -44,7 +30,6 @@ import {
   slugify,
   templatesFor,
   templatesPath,
-  typeDeleteRefusal,
   TEMPLATE_TYPE,
   useAllDocuments,
   type BodyPolicy,
@@ -58,6 +43,7 @@ import {
   type SummaryNames,
 } from "@lifeline/core";
 import { Trash2 } from "lucide-react";
+import { useTypeRemoval } from "./TypeRemoval";
 import { AddFieldMenu, FieldRow, HeldDocuments } from "./Fields";
 import { ReportsEditor } from "./Reports";
 import { ReorderItem, Reorderable } from "./Reorder";
@@ -118,7 +104,6 @@ export function TypeEditor({
     if (known?.makesLinkable) setLinkable(true);
     if (!known && hasFieldSettings(r.kind)) toggle(r.uid, true);
   }
-  const [confirming, setConfirming] = useState(false);
   const [module, setModule] = useState(record?.module ?? defaultModule);
   const [reports, setReports] = useState<ReportSetting[]>(record?.reports ?? base?.reports ?? DEFAULT_REPORTS);
   // Reports count the Days that name a Document (ADR 0076): only a type that can be named has any.
@@ -127,6 +112,7 @@ export function TypeEditor({
   const fixedFolder = base?.id === "daily" || base?.id === "template";
   const [busy, setBusy] = useState(false);
   const [refusal, setRefusal] = useState("");
+  const removal = useTypeRemoval({ onRefused: setRefusal, onRemoved: onDone });
   const typeId = record?.typeId ?? base?.id ?? slugify(singularOf({ label }));
   const idTaken = !record && !base && allTypes.some((t) => t.id === typeId);
   const geoRows = rows.filter((r) => r.kind === "geo" && r.key.trim());
@@ -183,32 +169,6 @@ export function TypeEditor({
       toast.error((e as Error).message);
     } finally {
       setBusy(false);
-    }
-  }
-
-  /** Delete and reset can't be undone, so they ask first (ADR 0079); a type with Documents is refused before asking. */
-  async function askRemove() {
-    if (!record) return;
-    if (!base) {
-      const why = typeDeleteRefusal(record.label, await countTypeDocuments(record.typeId));
-      if (why) return setRefusal(why);
-    }
-    setConfirming(true);
-  }
-
-  async function remove() {
-    if (!record) return;
-    if (base) {
-      await deleteDocumentType(record.id);
-      toast.success(`“${record.label}” reset to its built-in default`);
-      return onDone();
-    }
-    try {
-      await deleteUserDocumentType(record);
-      toast.success(`Type “${record.label}” deleted`);
-      onDone();
-    } catch (e) {
-      setRefusal((e as Error).message);
     }
   }
 
@@ -364,7 +324,7 @@ export function TypeEditor({
         )}
         <div className="flex flex-wrap items-center justify-end gap-2">
           {record && (
-            <Button variant="ghost" className="text-destructive mr-auto" onClick={() => void askRemove()}>
+            <Button variant="destructive" className="mr-auto" onClick={() => void removal.ask(record, !!base)}>
               <Trash2 /> {base ? "Reset to default" : "Delete type"}
             </Button>
           )}
@@ -376,45 +336,7 @@ export function TypeEditor({
           </Button>
         </div>
       </div>
-      {record && <TypeRemovalConfirm label={record.label} builtIn={!!base} open={confirming} onOpenChange={setConfirming} onConfirm={() => void remove()} />}
+      {removal.dialog}
     </HeldDocuments.Provider>
   );
 }
-
-/**
- * The confirmation before a Document type is deleted or a built-in type is reset to its
- * default — neither has an Undo (ADR 0079). Used by the Type editor and the Bases list.
- */
-export function TypeRemovalConfirm({
-  label,
-  builtIn,
-  open,
-  onOpenChange,
-  onConfirm,
-}: {
-  label: string;
-  builtIn: boolean;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{builtIn ? `Reset “${label}” to its default?` : `Delete the type “${label}”?`}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {builtIn
-              ? "Your changes to it go — its name, icon, folder and the fields you added. What its Documents hold in those fields stays on them."
-              : "It has no Documents. Its fields and its Base go with it."}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>{builtIn ? "Reset to default" : "Delete type"}</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
