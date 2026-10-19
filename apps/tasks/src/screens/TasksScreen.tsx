@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Badge, Button, Card, CardContent, Input, PhoneDock, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
+import { Badge, Button, EmptyState, Input, Page, PageHeader, PhoneDock, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
 import { addDays, todayStr } from "@lifeline/core";
 import { Plus } from "lucide-react";
 import type { Task } from "../domain/types";
@@ -98,9 +98,8 @@ export function TasksScreen() {
     groups.overdue.length + groups.today.length + groups.unassigned.length + groups.upcoming.length;
 
   return (
-    <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-6 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
+    <Page>
+      <PageHeader title="Tasks">
         <PhoneDock>
           <Button
             onClick={() => {
@@ -111,7 +110,7 @@ export function TasksScreen() {
             <Plus /> New task
           </Button>
         </PhoneDock>
-      </div>
+      </PageHeader>
 
       <Input
         placeholder="Quick add — type a task and press Enter (goes to Unassigned)"
@@ -132,11 +131,7 @@ export function TasksScreen() {
 
         <TabsContent value="open" className="grid min-w-0 grid-cols-1 gap-6 pt-4">
           {openCount === 0 && (
-            <Card>
-              <CardContent className="text-muted-foreground p-8 text-center text-sm">
-                Nothing open. Add a task above, or plan the week on the Week surface.
-              </CardContent>
-            </Card>
+            <EmptyState>Nothing open. Add a task above, or plan the week in the Calendar's Week view.</EmptyState>
           )}
           <Section title="Overdue" items={groups.overdue} onEdit={edit} onMove={setMoving} />
           <Section title="Today" items={groups.today} onEdit={edit} onMove={setMoving} />
@@ -146,11 +141,7 @@ export function TasksScreen() {
 
         <TabsContent value="recurring" className="grid min-w-0 grid-cols-1 gap-6 pt-4">
           {groups.recurring.length === 0 && (
-            <Card>
-              <CardContent className="text-muted-foreground p-8 text-center text-sm">
-                No recurring tasks. Each Occurrence completes and moves on its own; the rule lives here.
-              </CardContent>
-            </Card>
+            <EmptyState>No recurring tasks. Each Occurrence completes and moves on its own; the rule lives here.</EmptyState>
           )}
           <Section
             title="Recurring tasks"
@@ -163,22 +154,14 @@ export function TasksScreen() {
 
         <TabsContent value="done" className="grid min-w-0 grid-cols-1 gap-6 pt-4">
           {groups.done.length === 0 && (
-            <Card>
-              <CardContent className="text-muted-foreground p-8 text-center text-sm">
-                Nothing completed in the last 30 days.
-              </CardContent>
-            </Card>
+            <EmptyState>Nothing completed in the last 30 days.</EmptyState>
           )}
           <Section title="Done" items={groups.done} onEdit={edit} onMove={setMoving} />
         </TabsContent>
 
         <TabsContent value="archived" className="grid min-w-0 grid-cols-1 gap-6 pt-4">
           {groups.archived.length === 0 && (
-            <Card>
-              <CardContent className="text-muted-foreground p-8 text-center text-sm">
-                Archive is empty. Archived tasks are hidden everywhere but kept and restorable.
-              </CardContent>
-            </Card>
+            <EmptyState>Archive is empty. Archived tasks are hidden everywhere but kept and restorable.</EmptyState>
           )}
           <Section title="Archived" items={groups.archived} onEdit={edit} onMove={setMoving} />
         </TabsContent>
@@ -189,6 +172,6 @@ export function TasksScreen() {
         item={moving ? { itemId: moving.itemId, title: moving.task.title, date: moving.date } : null}
         onClose={() => setMoving(null)}
       />
-    </div>
+    </Page>
   );
 }

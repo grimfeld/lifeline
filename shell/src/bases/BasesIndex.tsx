@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, PhoneDock, toast } from "@lifeline/ui";
+import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, PhoneDock, Tip, toast } from "@lifeline/ui";
 import {
   appById,
   basePath,
-  deleteDocumentType,
-  deleteUserDocumentType,
   TEMPLATE_TYPE,
   templatesFor,
   templatesPath,
@@ -16,7 +14,7 @@ import {
   type DocumentTypeRecord,
 } from "@lifeline/core";
 import { LayoutTemplate, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { TypeEditor } from "@lifeline/editor";
+import { TypeEditor, useTypeRemoval } from "@lifeline/editor";
 
 /** `/base`: every Document type with its count — the Bases list and the type manager (ADR 0019). */
 export function BasesIndex() {
@@ -31,20 +29,7 @@ export function BasesIndex() {
   }, [docs]);
   const templateDocs = useMemo(() => docs.filter((d) => d.type === TEMPLATE_TYPE), [docs]);
 
-  async function removeType(r: DocumentTypeRecord, builtIn: boolean) {
-    if (builtIn) {
-      if (!window.confirm(`Reset “${r.label}” to its built-in default?`)) return;
-      await deleteDocumentType(r.id);
-      return void toast.success(`“${r.label}” reset to its built-in default`);
-    }
-    // ADR 0072: refused while any Document of the type is left, in any Workspace.
-    try {
-      await deleteUserDocumentType(r);
-    } catch (e) {
-      return void toast.error((e as Error).message);
-    }
-    toast.success(`Type “${r.label}” deleted`);
-  }
+  const removal = useTypeRemoval({ onRefused: (why) => void toast.error(why) });
 
   const visible = types.filter((t) => !t.internal);
   const internal = types.filter((t) => t.internal);
@@ -80,9 +65,11 @@ export function BasesIndex() {
           <Pencil className="size-3.5" />
         </Button>
         {rec && (
-          <Button size="icon" variant="ghost" className="size-7" onClick={() => void removeType(rec, !!t.builtIn)} title={t.builtIn ? "Reset to default" : "Delete type"}>
-            {t.builtIn ? <RotateCcw className="size-3.5" /> : <Trash2 className="size-3.5" />}
-          </Button>
+          <Tip label={t.builtIn ? `Reset ${t.label} to default` : `Delete the type ${t.label}`}>
+            <Button size="icon-sm" variant="ghost" onClick={() => void removal.ask(rec, !!t.builtIn)}>
+              {t.builtIn ? <RotateCcw /> : <Trash2 />}
+            </Button>
+          </Tip>
         )}
       </li>
     );
@@ -126,6 +113,7 @@ export function BasesIndex() {
           {editing && <TypeEditor record={editing.record} base={editing.base} allTypes={types} onDone={() => setEditing(null)} />}
         </DialogContent>
       </Dialog>
+      {removal.dialog}
     </div>
   );
 }

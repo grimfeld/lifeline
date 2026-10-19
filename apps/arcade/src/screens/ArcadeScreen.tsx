@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Button, Card, CardContent, cn, Input, PhoneDock, PhoneFilters, usePhone, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { Button, Card, CardContent, Input, PhoneDock, PhoneFilters, usePhone, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { ShelfControl } from "@lifeline/parts";
 import { Plus, Settings2, SlidersHorizontal } from "lucide-react";
 import type { Work } from "../domain/types";
 import { useWorks } from "../data/repo";
@@ -10,27 +11,6 @@ import { WorkDetailDialog } from "../components/WorkDetailDialog";
 import { EditWorkDialog } from "../components/WorkRow";
 import { QuickAdd } from "../components/QuickAdd";
 import { LookupSettingsDialog } from "../components/LookupSettingsDialog";
-
-/** Segmented shelf control in the Arcade's verbs, with counts. */
-function ShelfControl({ value, onChange, counts }: { value: Shelf; onChange: (s: Shelf) => void; counts: Map<Shelf, number> }) {
-  return (
-    <div role="radiogroup" aria-label="Shelf" className="bg-muted text-muted-foreground inline-flex w-fit max-w-full flex-wrap items-center gap-0.5 rounded-lg p-0.5">
-      {SHELVES.map((s) => (
-        <button
-          key={s}
-          type="button"
-          role="radio"
-          aria-checked={value === s}
-          className={cn("rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors", value === s ? "bg-background text-foreground shadow-sm" : "hover:text-foreground")}
-          onClick={() => onChange(s)}
-        >
-          {shelfLabel(s, "game")}
-          <span className="ml-1 tabular-nums opacity-60">{counts.get(s) ?? 0}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function emptyMessage(shelf: Shelf): string {
   switch (shelf) {
@@ -84,14 +64,15 @@ export function ArcadeScreen() {
         <QuickAdd />
       </div>
 
+      {/* The Shelf: above the search on the desk, a select in the Phone dock on a phone. */}
+      <PhoneDock order={1}>
+        <ShelfControl shelves={SHELVES} value={shelf} onChange={setShelf} labelOf={(s) => shelfLabel(s, "game")} counts={shelfCounts} />
+      </PhoneDock>
       <PhoneDock>
-        {/* Desk: the shelf stays above the search (md:-order-1); phone: it and the sort go in the Filters sheet. */}
+        {/* Phone: the sort goes in the Filters sheet. */}
         <div className="flex flex-1 flex-wrap gap-2 max-md:contents">
           <Input className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search title, developer, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <PhoneFilters active={+(shelf !== "ALL") + +(sort !== "ADDED")}>
-            <div className="w-full md:-order-1">
-              <ShelfControl value={shelf} onChange={setShelf} counts={shelfCounts} />
-            </div>
+          <PhoneFilters active={+(sort !== "ADDED")}>
             <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
               <SelectTrigger className="w-44" aria-label="Sort">
                 <SelectValue />
