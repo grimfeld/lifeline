@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
 import { useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import type { Word } from "../domain/types";
@@ -29,6 +29,8 @@ export function WordDialog({ open, onOpenChange, word, prefill, onSaved }: { ope
   const [originId, setOriginId] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // What this opening kept: a close after "Save & add another" still tells the caller it saved.
+  const kept = useRef("");
 
   useEffect(() => {
     if (!open) return;
@@ -40,6 +42,7 @@ export function WordDialog({ open, onOpenChange, word, prefill, onSaved }: { ope
     setOriginId(word?.originId ?? prefill?.originId ?? "");
     setTags(word?.tags ?? []);
     setConfirmDelete(false);
+    kept.current = "";
     // `active` settles after the first render; a Word's own Topic never moves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, word, prefill]);
@@ -50,13 +53,12 @@ export function WordDialog({ open, onOpenChange, word, prefill, onSaved }: { ope
 
   async function save(another = false) {
     const input = { languageId, term, meaning, notes, origin, originId, tags };
-    let made = "";
     try {
       if (word) {
         await updateWord(word, input);
         toast.success("Word updated");
       } else {
-        made = await addWord(input);
+        kept.current = await addWord(input);
         toast.success(`${term.trim()} added`);
       }
     } catch (err) {
@@ -68,8 +70,12 @@ export function WordDialog({ open, onOpenChange, word, prefill, onSaved }: { ope
       setNotes("");
       return;
     }
-    if (made) onSaved?.(made);
-    onOpenChange(false);
+    close(false);
+  }
+
+  function close(o: boolean) {
+    if (!o && kept.current) onSaved?.(kept.current);
+    onOpenChange(o);
   }
 
   async function remove() {
@@ -83,7 +89,7 @@ export function WordDialog({ open, onOpenChange, word, prefill, onSaved }: { ope
   const noTopic = topics.filter((l) => !l.archived).length === 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={close}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{word ? "Edit word" : "New word"}</DialogTitle>
