@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   PhoneDock,
+  Tip,
 } from "@lifeline/ui";
 import {
   appsOfModule,
@@ -83,11 +84,13 @@ export function overviewPage(opts: {
               </Button>
               {customised && (
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button size="icon" variant="ghost" className="size-8" aria-label="Overview actions" title="Overview actions">
-                      <MoreHorizontal />
-                    </Button>
-                  </DropdownMenuTrigger>
+                  <Tip label="Overview actions">
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="ghost" aria-label="Overview actions">
+                        <MoreHorizontal />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </Tip>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => void resetOverview(opts.moduleId)}>
                       <RotateCcw /> Reset to default

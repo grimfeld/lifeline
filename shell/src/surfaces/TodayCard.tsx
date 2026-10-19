@@ -1,4 +1,4 @@
-import { Button, cn, toast } from "@lifeline/ui";
+import { Button, Tip, cn, toast } from "@lifeline/ui";
 import {
   appById,
   completeSurfaceItem,
@@ -56,17 +56,20 @@ export function TodayCard() {
           {b.completedOn ? (
             <Check className="text-muted-foreground size-4 shrink-0" />
           ) : (
-            <Button
-              size="icon"
-              variant="outline"
-              className="size-6 shrink-0 rounded-full"
-              onClick={() => {
-                void completeSurfaceItem(b);
-                toast.success(`${b.title} done`);
-              }}
-            >
-              <Check className="size-3" />
-            </Button>
+            <Tip label="Done">
+              <Button
+                size="icon-xs"
+                variant="outline"
+                className="shrink-0 rounded-full"
+                aria-label={`Done: ${b.title}`}
+                onClick={() => {
+                  void completeSurfaceItem(b);
+                  toast.success(`${b.title} done`);
+                }}
+              >
+                <Check className="size-3" />
+              </Button>
+            </Tip>
           )}
           <span className={cn("truncate text-sm", b.completedOn && "text-muted-foreground line-through")}>{b.title}</span>
           <span className="ml-auto size-2 shrink-0 rounded-full" style={{ background: b.color ?? "var(--muted-foreground)" }} title={appById(b.appId)?.title} />
@@ -78,17 +81,20 @@ export function TodayCard() {
           {item.completedOn ? (
             <Check className="text-muted-foreground size-4 shrink-0" />
           ) : (
-            <Button
-              size="icon"
-              variant="outline"
-              className="size-6 shrink-0 rounded-full"
-              onClick={() => {
-                void completeSurfaceItem(item);
-                toast.success(`${item.title} done`);
-              }}
-            >
-              <Check className="size-3" />
-            </Button>
+            <Tip label="Done">
+              <Button
+                size="icon-xs"
+                variant="outline"
+                className="shrink-0 rounded-full"
+                aria-label={`Done: ${item.title}`}
+                onClick={() => {
+                  void completeSurfaceItem(item);
+                  toast.success(`${item.title} done`);
+                }}
+              >
+                <Check className="size-3" />
+              </Button>
+            </Tip>
           )}
           <span
             className={cn(

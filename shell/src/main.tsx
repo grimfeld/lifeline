@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { initApps, setTypeIconResolver, startSync } from "@lifeline/core";
-import { typeIcon } from "@lifeline/ui";
+import { TooltipProvider, typeIcon } from "@lifeline/ui";
 import { choresApp } from "@lifeline/app-chores";
 import { tasksApp } from "@lifeline/app-tasks";
 import { projectsApp } from "@lifeline/app-projects";
@@ -42,7 +42,10 @@ startSync();
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      {/* The one TooltipProvider (desk only — Tooltip renders nothing on touch). */}
+      <TooltipProvider>
+        <App />
+      </TooltipProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );

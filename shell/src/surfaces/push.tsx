@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { Button, cn, usePushFlow } from "@lifeline/ui";
+import { Button, Tip, cn, usePushFlow } from "@lifeline/ui";
 import { CalendarClock } from "lucide-react";
 import { canPush, pushSurfaceItem, type SchedulableItem } from "@lifeline/core";
 
@@ -38,8 +38,10 @@ export function PushButton({ item, className }: { item: Pushable; className?: st
   const push = usePush(item);
   if (!push) return null;
   return (
-    <Button size="icon" variant="ghost" className={cn("text-muted-foreground size-6 shrink-0", className)} title="Push — find it time" aria-label={`Push ${item.title}`} onClick={push}>
-      <CalendarClock className="size-3.5" />
-    </Button>
+    <Tip label="Push — find it time">
+      <Button size="icon-xs" variant="ghost" className={cn("text-muted-foreground shrink-0", className)} aria-label={`Push ${item.title}`} onClick={push}>
+        <CalendarClock className="size-3.5" />
+      </Button>
+    </Tip>
   );
 }

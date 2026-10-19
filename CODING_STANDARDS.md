@@ -34,7 +34,8 @@ nearest existing pattern and don't hand-roll a new one.
   (_coming_): it looks like `TabsList` and becomes a `Select` on a phone by itself.
 - Search-as-you-type pickers use `Combobox` (_coming_, `Command` + `Popover`), never a
   hand-rolled `role="listbox"`.
-- Tooltips use `Tooltip` (_coming_) on the desk; `title=` is not a tooltip.
+- **(check)** Tooltips use `Tooltip` (`<Tip label>` for an icon Button); `title=` is not a
+  tooltip. It shows on the desk only, never on touch; the Button keeps its `aria-label`.
 - A component copied between apps belongs in `packages/parts`.
 
 ### Colour
