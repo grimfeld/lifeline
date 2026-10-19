@@ -30,7 +30,7 @@ export function ReportsScreen() {
   const categories = useCategories();
   const allocations = useAllocations();
   /** Series detect over the whole ledger — the window only decides which months are read (CONTEXT: Recurring series). */
-  const series = useSeries();
+  const series = useSeries(transactions);
   const today = todayStr();
 
   const [searchParams, setSearchParams] = useSearchParams();

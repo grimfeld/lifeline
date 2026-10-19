@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
-import { deleteAttachment, openPrivateDialog, orphanedAmong, pruneAttachmentBlobs, useAllDocuments, useAttachments, usePrivateGate, type Attachment } from "@lifeline/core";
+import { deleteAttachment, openPrivateDialog, pruneAttachmentBlobs, useOrphanedAttachments, usePrivateGate, type Attachment } from "@lifeline/core";
 import { Lock, Trash2 } from "lucide-react";
 
 function kb(size: number): string {
@@ -13,10 +13,11 @@ function kb(size: number): string {
  * once. Nothing else ever deletes an Attachment.
  */
 export function AttachmentsCleanupDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const attachments = useAttachments();
-  const docs = useAllDocuments();
+  // Orphans are judged against every Workspace's bodies, not this one's alone:
+  // an image another Workspace's note embeds is in use.
+  const found = useOrphanedAttachments();
   const gate = usePrivateGate();
-  const orphans = useMemo(() => orphanedAmong(attachments, docs).sort((a, b) => a.name.localeCompare(b.name)), [attachments, docs]);
+  const orphans = useMemo(() => [...found].sort((a, b) => a.name.localeCompare(b.name)), [found]);
   const [busy, setBusy] = useState(false);
   // Bytes of Attachments deleted elsewhere are dropped while we are here anyway.
   useEffect(() => {

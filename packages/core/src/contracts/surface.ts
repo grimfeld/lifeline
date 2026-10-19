@@ -1,14 +1,15 @@
-import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Placement } from "../data/db";
+import { sharedLiveQuery } from "../data/live";
 import { newId } from "../ids";
 import { put, remove } from "../data/repo";
 import { appById, schedulableProviders, timedProviders } from "../registry";
 import { addDays, nowClock, todayStr, type DateStr } from "../dates";
-import { freeStretch, planPush, PUSH_HORIZON_DAYS, type TakenSpan } from "./push";
+import { freeStretch, planPush, PUSH_HORIZON_DAYS, spanEnd, type TakenSpan } from "./push";
 import type { SchedulableItem, SchedulableProvider } from "./schedulable";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
 import { inSurfaceScope, useSurfaceScope } from "./scope";
+import { useStructuralMemo } from "../stable";
 
 /**
  * A Schedulable item resolved for display. One item yields one row on its
@@ -46,19 +47,29 @@ function useProviderItems(range: { start: DateStr; end: DateStr }) {
   }));
 }
 
+// Every live Placement, not a date range: an item's own row depends on its day
+// pin and its blocks still ahead wherever they lie, so a range read would draw
+// a pinned item on its natural day. One shared query instead of one per mount.
+const placementsLive = sharedLiveQuery(async () => db().collection<Placement>("placements").where("deleted").equals(0).toArray(), [] as Placement[]);
+
 function usePlacements(): Placement[] {
-  return useLiveQuery(() => db().collection<Placement>("placements").where("deleted").equals(0).toArray(), [], [] as Placement[]);
+  return placementsLive.use();
 }
 
 function isBlock(pl: Placement): boolean {
   return !!pl.start;
 }
 
-/** A block still lies ahead while it has not ended yet. */
+/**
+ * A block still lies ahead while it has not ended yet — its end read as Push
+ * reads it: an end at or before the start is midnight, an end-less block lasts
+ * the default length.
+ */
 function blockAhead(pl: Placement, today: DateStr, now: string): boolean {
   if (pl.date > today) return true;
   if (pl.date < today) return false;
-  return (pl.end ?? pl.start ?? "00:00") > now;
+  if (!pl.start) return false;
+  return spanEnd({ start: pl.start, end: pl.end ?? null }) > now;
 }
 
 export interface ResolveOptions {
@@ -141,7 +152,8 @@ export function useSurfaceItems(range: { start: DateStr; end: DateStr }, opts?: 
       for (const row of resolveItemRows(item, byItem.get(item.key) ?? [], resolve)) out.push({ ...row, color });
     }
   }
-  return out.filter((i) => i.displayDate >= range.start && i.displayDate <= range.end);
+  // Stable while nothing changed, so the surfaces' memos can hit.
+  return useStructuralMemo(out.filter((i) => i.displayDate >= range.start && i.displayDate <= range.end));
 }
 
 /**
@@ -197,7 +209,7 @@ export function usePoolItems(opts?: { tags?: TagFilter }): PoolItem[] {
       out.push({ ...item, color, blocksAhead });
     }
   }
-  return out;
+  return useStructuralMemo(out);
 }
 
 /** Pin an item to a day without a time (the Core fallback for Apps that own no moves): one such pin per item. */
@@ -367,9 +379,10 @@ async function takenHours(range: { start: DateStr; end: DateStr }, exceptId: str
     if (!provider.itemsIn) continue;
     for (const item of await provider.itemsIn(range)) if (item.start) out.push({ date: item.date, start: item.start, end: item.end });
   }
-  const placements = await db().collection<Placement>("placements").where("deleted").equals(0).toArray();
+  // The `date` index bounds the read to the range; only Time blocks hold hours.
+  const placements = await db().collection<Placement>("placements").where("date").between(range.start, range.end, true, true).toArray();
   for (const pl of placements) {
-    if (!pl.start || pl.id === exceptId || pl.date < range.start || pl.date > range.end) continue;
+    if (pl.deleted || !pl.start || pl.id === exceptId) continue;
     out.push({ date: pl.date, start: pl.start, end: pl.end ?? null });
   }
   return out;

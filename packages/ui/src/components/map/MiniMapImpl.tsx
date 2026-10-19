@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import type L from "leaflet";
 import { Maximize2 } from "lucide-react";
-import { OSM_ATTRIBUTION, OSM_TILES, pinIcon } from "./MapView";
+import { pinIcon } from "./MapViewImpl";
+import { OSM_ATTRIBUTION, OSM_TILES } from "./tiles";
 import { cn } from "../../lib/utils";
 
 function Recenter({ lat, lon }: { lat: number; lon: number }) {

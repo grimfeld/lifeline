@@ -1,5 +1,6 @@
 import { pb } from "./data/pb";
 import { isExternalUrl } from "./external";
+import { isDemo } from "./demo";
 
 /**
  * Fetch an external URL for a Source (ADR 0017): natively under Tauri (no
@@ -39,6 +40,8 @@ export async function fetchExternal(url: string, opts: ExternalFetchOptions = {}
       });
       return { ok: res.ok, status: res.status, contentType: res.headers.get("content-type") ?? "", body: await res.text() };
     }
+    // The browser's way out goes through the backend, which the Demo has none of (ADR 0077).
+    if (isDemo()) return { ok: false, status: 0, contentType: "", body: "Fetching from the web is not available in the Demo" };
     const q = new URLSearchParams({ url });
     if (opts.headers && Object.keys(opts.headers).length) q.set("headers", JSON.stringify(opts.headers));
     const res = await fetch(`${pb.baseURL.replace(/\/$/, "")}/api/lifeline/fetch?${q}`, {

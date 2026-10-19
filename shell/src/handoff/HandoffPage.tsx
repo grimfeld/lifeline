@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { decodeHandoff, encodeHandoff, HANDOFF_DONE_PATH, handoffFromShare, type HandoffDecodeError } from "@lifeline/handoff";
-import { allIntakes, allWorkspaces, currentWorkspaceId, docHref, getDocument, intakeByKey, lastIntakeKey, pb, rememberIntake, setCurrentWorkspace, useWorkspaces, type WorkspaceRecord } from "@lifeline/core";
+import { allIntakes, allWorkspaces, currentWorkspaceId, docHref, getDocument, intakeByKey, isDemo, lastIntakeKey, pb, rememberIntake, setCurrentWorkspace, useWorkspaces, type WorkspaceRecord } from "@lifeline/core";
 import { Button, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { CircleCheck, Lock } from "lucide-react";
 import { arrivingHandoff, dropPendingHandoff, keepPendingHandoff } from "./pending";
@@ -61,8 +61,9 @@ export function HandoffPage() {
   const [{ fragment, shared }] = useState(() => arrivingFragment(location.search, location.hash));
   const [decoded] = useState(() => decodeHandoff(fragment));
   const [made, setMade] = useState<string>();
-  // Signed out, sign-in (or working locally) comes before the Intake step.
-  const [signInDone, setSignInDone] = useState(() => pb.authStore.isValid);
+  // Signed out, sign-in (or working locally) comes before the Intake step. The Demo never
+  // signs in (ADR 0077): it hands off straight into its local store.
+  const [signInDone, setSignInDone] = useState(() => isDemo() || pb.authStore.isValid);
   const named = decoded.ok && decoded.intake ? intakeByKey(decoded.intake) : undefined;
   const [intakeKey, setIntakeKey] = useState(() => named?.key ?? (intakeByKey(lastIntakeKey(SENDER)) ? lastIntakeKey(SENDER) : (allIntakes()[0]?.key ?? "")));
   const intake = intakeByKey(intakeKey);

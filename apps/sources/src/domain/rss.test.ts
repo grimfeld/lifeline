@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { isNewItem, parseFeed, sortFeedItems } from "./rss";
+import { isNewItem, parseFeed, seenUpToFor, sortFeedItems, type FeedItem } from "./rss";
 
 const RSS = `<?xml version="1.0"?><rss version="2.0"><channel><title>Blog</title>
 <item><title>Second</title><link>https://b/2</link><guid>2</guid><pubDate>Tue, 18 Aug 2026 10:00:00 GMT</pubDate><description>&lt;p&gt;Hi &lt;b&gt;there&lt;/b&gt;&lt;/p&gt;</description></item>
@@ -35,5 +35,14 @@ describe("parseFeed", () => {
     expect(isNewItem(sorted[0], "2026-08-17T12:00:00.000Z")).toBe(true);
     expect(isNewItem(sorted[1], "2026-08-17T12:00:00.000Z")).toBe(false);
     expect(isNewItem(sorted[1], null)).toBe(true);
+  });
+  it("seen up to now covers a future-dated item, so marking seen settles", () => {
+    const item = (published: string | null) => ({ id: published ?? "x", title: "t", link: null, summary: "", published }) as FeedItem;
+    const now = "2026-10-03T12:00:00.000Z";
+    const future = item("2026-12-25T00:00:00.000Z");
+    const upTo = seenUpToFor([item("2026-10-01T00:00:00.000Z"), future, item(null)], now);
+    expect(upTo).toBe(future.published);
+    expect(isNewItem(future, upTo)).toBe(false);
+    expect(seenUpToFor([item("2026-10-01T00:00:00.000Z")], now)).toBe(now);
   });
 });

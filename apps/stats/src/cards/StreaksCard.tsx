@@ -14,9 +14,13 @@ export function streaksInstanceTitle(settings: CardSettings): string {
 export function StreaksCard({ settings }: CardProps) {
   const activeOnly = settings.show === "active";
   const filter = useTagFilter();
-  const stats = useStats().filter((s) => matchesTagFilter(s.tags, filter));
+  const stats = useStats();
   const entries = useEntries();
-  const rows = useMemo(() => rankByStreak(stats, entriesByStat(entries), activeOnly), [stats, entries, activeOnly]);
+  // Filter inside the memo: a filtered array is new every render and would never hit.
+  const rows = useMemo(
+    () => rankByStreak(stats.filter((s) => matchesTagFilter(s.tags, filter)), entriesByStat(entries), activeOnly),
+    [stats, filter, entries, activeOnly],
+  );
   if (rows.length === 0) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center text-sm">

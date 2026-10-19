@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { parentPort, workerData } from "node:worker_threads";
 import { db, initApps, lastSyncError, pb, syncNow } from "@lifeline/core";
 import { manifests } from "./apps";
+import { unsyncedWrite } from "./devices";
 import { runTool, ToolError } from "./handlers";
 
 /**
@@ -23,8 +24,14 @@ export type DeviceResponse =
   | { id: number; ok: true; result: unknown; pending: number }
   | { id: number; ok: false; error: string; expected: boolean; pending: number };
 
-/** A read within this long of the last pull reuses it. */
-const FRESH_MS = 2_000;
+/**
+ * How old the last pull may be before a call pulls again. A read tolerates a
+ * few seconds' staleness — an agent's burst of searches and gets shares one
+ * pull instead of each paying a round of every collection. A write acts on
+ * what it reads (last write wins), so it keeps the short window.
+ */
+const READ_FRESH_MS = 15_000;
+const WRITE_FRESH_MS = 2_000;
 
 const { pbUrl } = workerData as { pbUrl: string };
 initApps(manifests);
@@ -56,14 +63,14 @@ async function handle(req: DeviceRequest): Promise<DeviceResponse> {
       await sync();
       return { id: req.id, ok: true, result: null, pending: await pending() };
     }
-    if (Date.now() - lastPull > FRESH_MS) await sync();
+    if (Date.now() - lastPull > (req.write ? WRITE_FRESH_MS : READ_FRESH_MS)) await sync();
     const result = await runTool(req.tool, req.args);
-    let warning: string | undefined;
+    let unsynced: object | undefined;
     if (req.write) {
       await sync();
-      if ((await pending()) > 0) warning = `Saved, but not yet on the server (${lastSyncError || "sync pending"}); it will be retried.`;
+      if ((await pending()) > 0) unsynced = unsyncedWrite(lastSyncError);
     }
-    return { id: req.id, ok: true, result: warning ? { ...(result as object), warning } : result, pending: await pending() };
+    return { id: req.id, ok: true, result: unsynced ? { ...(result as object), ...unsynced } : result, pending: await pending() };
   } catch (err) {
     return { id: req.id, ok: false, error: (err as Error).message ?? String(err), expected: err instanceof ToolError, pending: await pending().catch(() => -1) };
   }

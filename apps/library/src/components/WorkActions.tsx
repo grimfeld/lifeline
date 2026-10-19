@@ -2,7 +2,7 @@ import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMe
 import { ArrowDownToLine, BookOpenCheck, Check, MoreHorizontal, Pencil, Play, ShoppingCart, Square, Trash2, X } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
-import { abandon, acquire, evict, finish, freeSlots, isBuySignal, promote, release, start, type Patch } from "../domain/rules";
+import { abandon, acquire, evict, finish, freeSlotsOf, isBuySignal, promote, release, start, type Patch } from "../domain/rules";
 import { deleteWork, patchWork } from "../data/repo";
 
 /** Applies a transition patch to an item and toasts. */
@@ -20,7 +20,7 @@ export function useAct(item: Work) {
 export function WorkActionsMenu({ item, all, onEdit, onDeleted, onOpenChange, trigger }: { item: Work; all: Work[]; onEdit: (m: Work) => void; onDeleted?: () => void; onOpenChange?: (open: boolean) => void; trigger?: React.ReactNode }) {
   const def = workType(item.type);
   const slotted = item.slot > 0;
-  const free = freeSlots(all, item.type);
+  const free = freeSlotsOf(all, item.type);
   const buy = isBuySignal(item);
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";

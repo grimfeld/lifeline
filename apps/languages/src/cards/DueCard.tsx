@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Button, CardUnavailable } from "@lifeline/ui";
 import type { CardProps } from "@lifeline/core";
@@ -16,10 +16,15 @@ export function DueCard(_: CardProps) {
   const topics = useTopics();
   const material = useAllMaterial();
   const recalls = useRecalls();
+  // Prompts fall due as time passes, not only when something is written: re-read the clock every minute.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
   const view = useMemo(() => {
     const live = topics.filter((t) => !t.archived);
     if (!live.length) return null;
-    const now = new Date();
     const rows = live
       .map((t) => {
         const q = practiceQueue(material.filter((m) => m.topicId === t.id && m.live), recalls, { now, newCap: t.newCap });
@@ -28,7 +33,7 @@ export function DueCard(_: CardProps) {
       .filter((r) => r.ready > 0)
       .sort((a, b) => b.ready - a.ready || a.name.localeCompare(b.name));
     return { rows, due: rows.reduce((n, r) => n + r.due, 0), fresh: rows.reduce((n, r) => n + r.fresh, 0) };
-  }, [topics, material, recalls]);
+  }, [topics, material, recalls, now]);
 
   if (!view) return <CardUnavailable message="No topic yet" />;
   return (
