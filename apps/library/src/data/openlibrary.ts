@@ -20,7 +20,7 @@ export interface WorkHit {
    * (TMDB director/runtime, RAWG developers): one more request, merged into
    * the hit before it is applied. Never called while listing candidates.
    */
-  resolve?: () => Promise<Partial<WorkHit>>;
+  resolve?: (signal?: AbortSignal) => Promise<Partial<WorkHit>>;
 }
 
 /** The byline of a hit: its authors' names, joined. */

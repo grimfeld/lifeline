@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { openPeek } from "@lifeline/core";
 import { cn, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import { deleteWork, parseQuickTitle, quickAddWork, useLookupSettings } from "../data/repo";
@@ -40,6 +41,9 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
   const [highlight, setHighlight] = useState(-1);
   const [hidden, setHidden] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // An add awaits the lookup and the store; Enter or a click meanwhile must not add a twin.
+  const busyRef = useRef(false);
+  const [busy, setBusy] = useState(false);
   const settings = useLookupSettings();
   const def = workType(type);
 
@@ -81,23 +85,39 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
 
   async function add(input: { title: string; creator?: string; hit?: WorkHit }) {
     const title = input.title.trim();
-    if (!title) return;
-    // Lazy enrichment (TMDB director/runtime, RAWG developers) happens only on pick.
-    const hit = input.hit ? await resolveHit(input.hit) : undefined;
-    const id = await quickAddWork({ medium: type, title, creator: input.creator || hit?.creator, hit });
-    writeLastType(type);
-    toast.success(`Added to ${def.wantLabel}`, {
-      description: title,
-      action: {
-        label: "Undo",
-        onClick: () => void deleteWork(id),
-      },
-    });
-    setText("");
-    setHits([]);
-    setHighlight(-1);
-    onAdded?.(id);
-    inputRef.current?.focus();
+    if (!title || busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    try {
+      // Lazy enrichment (TMDB director/runtime, RAWG developers) happens only on pick.
+      const hit = input.hit ? await resolveHit(input.hit) : undefined;
+      const { id, twin } = await quickAddWork({ medium: type, title, creator: input.creator || hit?.creator, hit });
+      if (twin) {
+        toast.warning(`Already on your list — ${workType(twin.type).engagement[twin.engagement]}`, {
+          description: twin.title,
+          action: { label: "Open", onClick: () => openPeek(twin.id) },
+        });
+        return;
+      }
+      writeLastType(type);
+      toast.success(`Added to ${def.wantLabel}`, {
+        description: title,
+        action: {
+          label: "Undo",
+          onClick: () => void deleteWork(id),
+        },
+      });
+      setText("");
+      setHits([]);
+      setHighlight(-1);
+      onAdded?.(id);
+      inputRef.current?.focus();
+    } catch (e) {
+      toast.error((e as Error).message || "Could not add it");
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
   }
 
   const showHits = hits.length > 0 && !hidden && text.trim().length >= 3;
@@ -173,6 +193,8 @@ export function QuickAdd({ defaultType, onAdded, autoFocus, compact }: { default
             ref={inputRef}
             value={text}
             autoFocus={autoFocus}
+            readOnly={busy}
+            aria-busy={busy}
             placeholder={placeholder}
             aria-label={`Quick add ${def.label.toLowerCase()}`}
             aria-expanded={showHits}
