@@ -46,10 +46,16 @@ repository is public. Both builds take about half a minute before any case runs.
   its life and saves the store (IndexedDB included) to `.auth/demo.json`. Every
   `demo` case starts from that life, dated on the run's day.
 - A case about a stranger's first open, a pinned clock, a reload or Reset needs
-  the store empty: put it in a `describe` with `test.use({ storageState: EMPTY })`.
-  It then seeds the life itself (a few seconds). Only those: seeding is the slow part.
-- The Demo build hands the suite its App registry on `window.lifelineDemo`
-  (`src/demo/inspect.ts`): the bundle cannot be imported from a test.
+  the store empty: put it in a `describe` with `test.use({ storageState: EMPTY })`
+  and `test.describe.configure({ timeout: 60_000 })`. It then seeds the life
+  itself: Home shows in under a second, the rest is written behind it for about
+  ten seconds ("Filling in the rest of the Demo…"), which `open()`/`settle()`
+  wait out. Only those: seeding is the slow part.
+- The suite's Demo build (on `E2E_PORT + 1`, built with `VITE_DEMO_E2E=1`) hands
+  it the App registry on `window.lifelineDemo` (`src/demo/inspect.ts`): the
+  bundle cannot be imported from a test. The deployed Demo, like the Source-link
+  build, has no such hook.
+- Pages are read in `en-IE`, whatever the machine's locale.
 - The project runs 2 workers, 30 seconds per case; the whole of it takes about
   4 minutes. One case logs the first-open time.
 

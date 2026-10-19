@@ -17,7 +17,8 @@ const DEMO_PORT = PORT + 1;
 /**
  * The Demo built with a Source link (VITE_DEMO_SOURCE_URL); the one on
  * DEMO_PORT has none, like the Demo today. demo.spec.ts finds it as the port
- * after DEMO_PORT.
+ * after DEMO_PORT. Built exactly as the Demo is deployed: without the test
+ * hook the DEMO_PORT build carries (VITE_DEMO_E2E, src/demo/inspect.ts).
  */
 const DEMO_SOURCE_PORT = PORT + 2;
 /** The Demo life, seeded once by demo.setup.ts (which writes this path). */
@@ -60,7 +61,7 @@ export default defineConfig({
       // each write it again.
       name: "demo-setup",
       testMatch: /demo\.setup\.ts/,
-      use: { ...devices["Desktop Chrome"], baseURL: `http://localhost:${DEMO_PORT}` },
+      use: { ...devices["Desktop Chrome"], baseURL: `http://localhost:${DEMO_PORT}`, locale: "en-IE" },
     },
     {
       // The Demo (never the layout seed); phone and desktop widths are set per
@@ -71,7 +72,8 @@ export default defineConfig({
       dependencies: ["demo-setup"],
       timeout: 30_000,
       workers: 2,
-      use: { ...devices["Desktop Chrome"], baseURL: `http://localhost:${DEMO_PORT}`, storageState: DEMO_STATE },
+      // Dates and amounts as the Demo's made-up person reads them, whatever this machine's locale.
+      use: { ...devices["Desktop Chrome"], baseURL: `http://localhost:${DEMO_PORT}`, storageState: DEMO_STATE, locale: "en-IE" },
     },
   ],
   webServer: [
@@ -84,7 +86,7 @@ export default defineConfig({
     {
       command: demoServer(DEMO_PORT, "dist/demo"),
       url: `http://localhost:${DEMO_PORT}`,
-      env: { VITE_DEMO: "1" },
+      env: { VITE_DEMO: "1", VITE_DEMO_E2E: "1" },
       reuseExistingServer: false,
       timeout: 240_000,
     },
