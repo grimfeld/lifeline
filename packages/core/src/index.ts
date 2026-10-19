@@ -77,4 +77,6 @@ export * from "./attachments";
 export * from "./private";
 export * from "./workspaces";
 export * from "./bar";
+export * from "./keys";
+export * from "./stable";
 export * from "./capture";
