@@ -100,6 +100,52 @@ describe("Link", () => {
   });
 });
 
+describe("user-defined types: made from a short selection", () => {
+  const USER_TYPES = [
+    { id: "person", title: "Person", homeModule: "journal", linkable: true },
+    { id: "recipe", title: "Recipe", linkable: false },
+    { id: "place", title: "Place", homeModule: "journal", linkable: true },
+    { id: "gadget", title: "Gadget", homeModule: "nowhere", linkable: true },
+  ];
+  const withTypes = (over: Partial<SelectionMenuInput<(typeof INTAKES)[number]>> = {}) => menu({ userTypes: USER_TYPES, ...over });
+
+  it("lists each under its Home Module, before the Module's Intakes, and those homed nowhere last under Other", () => {
+    const shared = INTAKES.concat(intake("journal", "dream", "Dream"));
+    expect(shape(withTypes({ intakes: shared, moduleOf: (a) => (a === "journal" ? "journal" : MODULE_OF[a]) }))).toEqual([
+      ["Calendar", ["Event"]],
+      ["House", ["Need"]],
+      ["Projects", ["Task"]],
+      ["Journal", ["Person", "Place", "Dream"]],
+      ["Notes", ["Quote"]],
+      ["Knowledge", ["Word", "Sentence"]],
+      ["Other", ["Recipe", "Gadget"]],
+    ]);
+  });
+
+  it("says which type it makes and whether the selection becomes a link to it", () => {
+    const journal = withTypes().find((g) => g.id === "journal");
+    expect(journal?.entries).toMatchObject([
+      { kind: "make", key: "make:person", title: "Person", typeId: "person", linkable: true },
+      { kind: "make", key: "make:place", title: "Place", typeId: "place", linkable: true },
+    ]);
+    expect(withTypes().find((g) => g.id === "other")?.entries[0]).toMatchObject({ kind: "make", typeId: "recipe", linkable: false });
+  });
+
+  it("offers them for a selection of up to 80 characters on one line, and never for longer or several lines", () => {
+    const makes = (text: string) => withTypes({ text }).flatMap((g) => g.entries).filter((e) => e.kind === "make").length;
+    expect(makes("x".repeat(80))).toBe(4);
+    expect(makes("x".repeat(81))).toBe(0);
+    expect(makes("Marie\nCurie")).toBe(0);
+    // The Intakes stay whatever the length.
+    expect(withTypes({ text: "x".repeat(200) }).some((g) => g.id === "tasks")).toBe(true);
+  });
+
+  it("filters them by name like any entry", () => {
+    expect(shape(withTypes({ query: "per" }))).toEqual([["Journal", ["Person"]]]);
+    expect(shape(withTypes({ query: "other" }))).toEqual([["Other", ["Recipe", "Gadget"]]]);
+  });
+});
+
 describe("typing filters the menu", () => {
   it("keeps the entries whose name holds what is typed, case aside, and drops empty groups", () => {
     expect(shape(menu({ query: "SEN" }))).toEqual([["Knowledge", ["Sentence"]]]);

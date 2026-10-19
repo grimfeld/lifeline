@@ -10,9 +10,25 @@ import { maskProse, wikilinkFor } from "./documents/mentions";
  *
  * Top to bottom: **Link** (to the Document the text already names), then a
  * group for each App in no Module (the Calendar, as on the capture sheet),
- * then each Module in Core's order with the one the user is in first. The
- * order is fixed by where things live, never by use.
+ * then each Module in Core's order with the one the user is in first, and
+ * last **Other**, for user-defined types homed in no Module. A Module's group
+ * holds its user-defined types, then its Apps' Intakes. The order is fixed by
+ * where things live, never by use.
  */
+
+/** The longest selection a user-defined type is made from: a name, never a paragraph. */
+export const QUICK_MAKE_MAX = 80;
+
+/** A user-defined type as the menu needs it. */
+export interface MenuUserType {
+  id: string;
+  /** Its singular label ("Person"). */
+  title: string;
+  /** Its Home Module, if any (ADR 0068). */
+  homeModule?: string;
+  /** Whether its Documents are wikilink targets, so the selection becomes a link to the one made. */
+  linkable: boolean;
+}
 
 /** An Intake as the menu needs it: the registry's, stamped with its App. */
 export interface MenuIntake {
@@ -25,10 +41,12 @@ export type SelectionEntry<I extends MenuIntake = MenuIntake> =
   /** Wrap the selection in a wikilink to the Document it already names. */
   | { kind: "link"; key: string; title: string; targetId: string; canonical: string; /** The target's title, as shown. */ target: string }
   /** Open an App's Intake dialog with the selection as its Handoff. */
-  | { kind: "intake"; key: string; title: string; intake: I };
+  | { kind: "intake"; key: string; title: string; intake: I }
+  /** Make a user-defined type's Document at once, titled by the selection — Core's quick make, no Intake (ADR 0086). */
+  | { kind: "make"; key: string; title: string; typeId: string; linkable: boolean };
 
 export interface SelectionGroup<I extends MenuIntake = MenuIntake> {
-  /** `link`, a Module's id, or `app:<id>` for an App in no Module. */
+  /** `link`, a Module's id, `app:<id>` for an App in no Module, or `other`. */
   id: string;
   title: string;
   entries: SelectionEntry<I>[];
@@ -47,6 +65,8 @@ export interface SelectionMenuInput<I extends MenuIntake = MenuIntake> {
   typeLabel: (typeId: string) => string | undefined;
   /** Every App's Intakes, in registry order. */
   intakes: I[];
+  /** The user-defined types, offered when the selection is short and on one line. */
+  userTypes?: MenuUserType[];
   /** The Module an App belongs to, `undefined` for an App in none. */
   moduleOf: (appId: string) => string | undefined;
   appTitle: (appId: string) => string | undefined;
@@ -63,6 +83,15 @@ export function buildSelectionMenu<I extends MenuIntake>(input: SelectionMenuInp
   const byGroup = new Map<string, SelectionEntry<I>[]>();
   const add = (group: string, e: SelectionEntry<I>) => byGroup.set(group, [...(byGroup.get(group) ?? []), e]);
 
+  const other: SelectionEntry<I>[] = [];
+  if (makesFrom(input.text)) {
+    for (const t of input.userTypes ?? []) {
+      const e: SelectionEntry<I> = { kind: "make", key: `make:${t.id}`, title: t.title, typeId: t.id, linkable: t.linkable };
+      if (t.homeModule && known.has(t.homeModule)) add(t.homeModule, e);
+      else other.push(e);
+    }
+  }
+
   for (const i of intakes) {
     const m = moduleOf(i.appId);
     add(m && known.has(m) ? m : `app:${i.appId}`, { kind: "intake", key: `intake:${i.key}`, title: i.title, intake: i });
@@ -77,7 +106,13 @@ export function buildSelectionMenu<I extends MenuIntake>(input: SelectionMenuInp
     const entries = byGroup.get(m.id);
     if (entries) groups.push({ id: m.id, title: m.title, entries });
   }
+  if (other.length) groups.push({ id: "other", title: "Other", entries: other });
   return filterMenu(groups, input.query ?? "");
+}
+
+/** Whether a user-defined type may be made from this selection: short, and one line. */
+function makesFrom(text: string): boolean {
+  return text.length > 0 && text.length <= QUICK_MAKE_MAX && !/[\r\n]/.test(text);
 }
 
 function filterMenu<I extends MenuIntake>(groups: SelectionGroup<I>[], query: string): SelectionGroup<I>[] {

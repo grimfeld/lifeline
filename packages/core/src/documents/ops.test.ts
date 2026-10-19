@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultTemplateFor, planFolderRename, templatesFor } from "./ops";
+import { defaultTemplateFor, onlyTemplateFor, planFolderRename, templatesFor } from "./ops";
 import type { Document } from "./types";
 
 const tpl = (id: string, title: string, forType?: string): Document =>
@@ -18,6 +18,15 @@ describe("templatesFor", () => {
     expect(defaultTemplateFor("daily", docs)?.id).toBe("a");
     expect(defaultTemplateFor("note", docs)?.id).toBe("c");
     expect(defaultTemplateFor("daily", [tpl("b", "Gratitude day", "daily"), tpl("e", "Short day", "daily")])).toBeUndefined();
+  });
+});
+
+describe("onlyTemplateFor (quick make)", () => {
+  it("is the type's Template when it has exactly one, and none when it has several or none", () => {
+    expect(onlyTemplateFor("person", [tpl("p", "Someone", "person"), tpl("c", "Meeting", "note")])?.id).toBe("p");
+    // Even one titled by the type id is not picked over another: quick make asks nothing, so it takes no side.
+    expect(onlyTemplateFor("daily", [tpl("a", "daily"), tpl("b", "Gratitude day", "daily")])).toBeUndefined();
+    expect(onlyTemplateFor("place", [tpl("c", "Meeting", "note")])).toBeUndefined();
   });
 });
 
