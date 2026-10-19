@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Line, Product, Receipt } from "./types";
-import { changesIn, overpaidOf, OVERPAID_WINDOW_DAYS, promoOf, spreadOf, observeAll, rhythmOf, spendOf, countsAsSpent, needingAmount, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
+import { changesIn, overviewOf, primaryAmount, overpaidOf, OVERPAID_WINDOW_DAYS, promoOf, spreadOf, observeAll, rhythmOf, spendOf, countsAsSpent, needingAmount, countsPerUnit, cheapest, historiesByProduct, historyOf, latestUsual, linesByReceipt, linesOf, matchProduct, median, normalizeLabel, observe, overallChange, overallOf, receiptTitle, relabel, shopChanges, spanStart, sumOfLines, totalMismatch, unitPrice } from "./derive";
 
 const product = (id: string, title: string, labels: Product["labels"] = []): Product => ({ id, type: "price_product", title, measure: "l", labels, tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0 }) as unknown as Product;
 const receipt = (id: string, shopId: string, date: string, total = 0, noticed = false): Receipt => ({ id, type: "price_receipt", title: "", shopId, date, branch: "", total, noticed, tags: [], folder: "", createdAt: date, updatedAt: "", deleted: 0 }) as unknown as Receipt;
@@ -348,5 +348,88 @@ describe("Overpaid (CONTEXT.md)", () => {
     expect(overpaidOf("p1", observe(lines, receipts), span)).toEqual({ total: 25, cheapest: { shopId: "aldi", unit: 100, date: "2025-12-20" } });
     expect(overpaidOf("p1", observe(lines, receipts), { from: "", to: "2026-12-31" }).total).toBe(825);
     expect(overpaidOf("nope", observe(lines, receipts), span)).toEqual({ total: 0, cheapest: undefined });
+  });
+});
+
+describe("Overview (spec #161, ADR 0084)", () => {
+  const span = { from: "2026-01-01", to: "2026-06-30" };
+  const products = [product("milk", "Milk"), product("eggs", "Eggs")];
+
+  describe("per Shop", () => {
+    const receipts = [
+      receipt("r1", "lidl", "2026-01-10", 1000), // printed total beats the Lines' sum
+      receipt("r2", "lidl", "2026-02-10"), // no printed total: the sum of its Lines, unmatched included
+      receipt("r3", "aldi", "2026-03-01"),
+      receipt("shelf", "aldi", "2026-03-05", 0, true), // a Sighting: no visit, no spend
+      receipt("old", "aldi", "2025-12-01", 700), // before the span
+    ];
+    const lines = [
+      line("a", "r1", "milk", 120),
+      line("b", "r2", "milk", 110),
+      line("c", "r2", "", 90),
+      line("d", "r3", "milk", 100),
+      line("e", "r3", "eggs", 300, 6),
+      line("f", "shelf", "eggs", 240, 6),
+      line("g", "old", "milk", 700),
+    ];
+    const shops = overviewOf(products, receipts, lines, span).shops;
+    const of = (id: string) => shops.find((s) => s.shopId === id)!;
+
+    it("spend is each bought Receipt's printed total, else the sum of its Lines", () => {
+      expect(of("lidl").spent).toBe(1000 + 200);
+      expect(of("aldi").spent).toBe(400);
+    });
+    it("visits count bought Receipts in the span, never a Sighting; the basket is spend over visits", () => {
+      expect(of("lidl")).toMatchObject({ visits: 2, basket: 600 });
+      expect(of("aldi")).toMatchObject({ visits: 1, basket: 400 });
+    });
+    it("counts the Products each Shop is cheapest for, a Sighting's price included", () => {
+      expect(of("aldi").cheapestFor).toBe(2); // milk €1.00 against Lidl's latest €1.10; eggs €0.40 seen on the shelf
+      expect(of("lidl").cheapestFor).toBe(0);
+    });
+    it("lists the Shops by spend, most first", () => {
+      expect(shops.map((s) => s.shopId)).toEqual(["lidl", "aldi"]);
+    });
+  });
+
+  it("Spend: every bought Line in the span, and the Products by spend with their share of it", () => {
+    const receipts = [receipt("r1", "lidl", "2026-01-10", 9999), receipt("r2", "aldi", "2026-02-10"), receipt("shelf", "aldi", "2026-02-11", 0, true), receipt("old", "lidl", "2025-01-01")];
+    const lines = [line("a", "r1", "milk", 100), line("b", "r1", "", 100), line("c", "r2", "eggs", 300), line("d", "r2", "milk", 100), line("e", "shelf", "eggs", 5000), line("f", "old", "milk", 5000)];
+    const { spend } = overviewOf(products, receipts, lines, span);
+    expect(spend.total).toBe(600); // the Lines, not the printed total; the unmatched one counted, the Sighting not
+    expect(spend.top).toEqual([
+      { productId: "eggs", spent: 300, share: 0.5 },
+      { productId: "milk", spent: 200, share: 200 / 600 },
+    ]);
+  });
+
+  describe("Overpaid and Promo saved", () => {
+    const receipts = [receipt("a", "aldi", "2026-03-01"), receipt("b", "lidl", "2026-03-10"), receipt("c", "lidl", "2026-03-20")];
+    const lines = [
+      line("m1", "a", "milk", 100), // Aldi's usual milk €1.00
+      line("m2", "b", "milk", 130), // Lidl: overpaid €0.30
+      line("e1", "a", "eggs", 200, 4), // Aldi's usual eggs €0.50
+      line("e2", "b", "eggs", 400, 4), // Lidl's usual eggs €1.00: overpaid €2.00
+      line("e3", "c", "eggs", 240, 4, true), // promo at Lidl: €4.00 − €2.40 saved, and overpaid €0.40 against Aldi
+    ];
+
+    it("Overpaid: the total, and the Products overpaid most first, each with where it was cheapest", () => {
+      const { overpaid } = overviewOf(products, receipts, lines, span);
+      expect(overpaid.total).toBe(30 + 200 + 40);
+      expect(overpaid.top).toEqual([
+        { productId: "eggs", total: 240, cheapest: { shopId: "aldi", unit: 50, date: "2026-03-01" } },
+        { productId: "milk", total: 30, cheapest: { shopId: "aldi", unit: 100, date: "2026-03-01" } },
+      ]);
+    });
+    it("Promo saved: every Product's Promo saving over the span", () => {
+      expect(overviewOf(products, receipts, lines, span).promoSaved).toBe(160);
+    });
+    it("reads each Product by its compared-by amount, so a Line without one is skipped", () => {
+      // Eggs compared by an amount no Line has: no Overpaid, no cheapest Shop for them.
+      const amountFor = (p: Product) => (p.id === "eggs" ? () => null : primaryAmount);
+      const o = overviewOf(products, receipts, lines, span, amountFor);
+      expect(o.overpaid.top.map((t) => t.productId)).toEqual(["milk"]);
+      expect(o.shops.find((s) => s.shopId === "aldi")!.cheapestFor).toBe(1);
+    });
   });
 });
