@@ -34,6 +34,7 @@ import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
 import { lastPlace, useResume } from "./nav/resume";
 import { PeekHost } from "./peek/PeekHost";
 import { SelectionIntake } from "./intake/SelectionIntake";
+import { HandoffPage, HandoffSaved } from "./handoff/HandoffPage";
 
 /** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
 function ResumeRedirect() {
@@ -138,6 +139,8 @@ function Places() {
       <Route path="/screens" element={<CorePage><ScreensIndex /></CorePage>} />
       <Route path="/screen/:id" element={<CorePage><UserScreenPage /></CorePage>} />
       <Route path="/settings" element={<CorePage><SettingsPage /></CorePage>} />
+      <Route path="/handoff" element={<CorePage><HandoffPage /></CorePage>} />
+      <Route path="/handoff/done" element={<CorePage><HandoffSaved /></CorePage>} />
       {/* Legacy Notes URLs (before the frame split, and before the Vault rename). */}
       <Route path="/app/notes" element={<Navigate to="/vault" replace />} />
       <Route path="/app/notes/:id" element={<LegacyNoteRedirect />} />

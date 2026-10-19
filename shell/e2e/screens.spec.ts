@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { encodeHandoff } from "@lifeline/handoff";
+import { CORE_URL, LONG_WORD, longText } from "./support/seed";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
 
 /**
@@ -22,12 +23,29 @@ interface ScreenCase {
   afterOpen?: (page: Page) => Promise<void>;
 }
 
-/** Journal → Types → the Type editor over the seeded People type. A fresh store greets with "You're signed out" over the page. */
-async function openPeopleTypeEditor(page: Page) {
+/** Dismisses the "You're signed out" notice a fresh store greets with, so the page under it is checked. */
+async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+}
+
+/** Journal → Types → the Type editor over the seeded People type. */
+async function openPeopleTypeEditor(page: Page) {
+  await workLocally(page);
   await page.getByRole("button", { name: /^Edit the type People/ }).first().click();
 }
+
+/** The longest Handoff the Lifeline extension could send (ADR 0080), to the Quote Intake — the dialog that shows it all. */
+const LONG_HANDOFF = encodeHandoff(
+  {
+    title: longText("A page"),
+    text: `${longText("A passage")}\n\n${"A selected paragraph that runs on and on. ".repeat(60)}\n\n- ${LONG_WORD}\n- ${longText("A list item")}`,
+    url: `https://example.com/${LONG_WORD}/${LONG_WORD}?q=${LONG_WORD}`,
+    author: longText("An author"),
+    date: "2026-10-18",
+  },
+  "commonplace/quote",
+);
 
 const SCREENS: ScreenCase[] = [
   // Core destinations.
@@ -43,6 +61,9 @@ const SCREENS: ScreenCase[] = [
   { name: "Screens", path: "/screens" },
   { name: "Screen with every Card", path: "/screen/e2elongcontent1" },
   { name: "Settings", path: "/settings" },
+  { name: "Handoff · Quote", path: `/handoff#${LONG_HANDOFF}`, afterOpen: workLocally },
+  { name: "Handoff · unreadable", path: "/handoff#v1.not-a-handoff", afterOpen: workLocally },
+  { name: "Handoff · Saved", path: "/handoff/done", afterOpen: workLocally },
 
   // Modules.
   { name: "House", path: "/module/house" },

@@ -17,7 +17,7 @@ export interface WordPrefill {
  * own words, notes and where it was met. Quick enough for the capture sheet:
  * term, meaning, Enter.
  */
-export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolean; onOpenChange: (open: boolean) => void; word?: Word; prefill?: WordPrefill }) {
+export function WordDialog({ open, onOpenChange, word, prefill, onSaved }: { open: boolean; onOpenChange: (open: boolean) => void; word?: Word; prefill?: WordPrefill; onSaved?: (id: string) => void }) {
   const topics = useTopics();
   const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
@@ -50,12 +50,13 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
 
   async function save(another = false) {
     const input = { languageId, term, meaning, notes, origin, originId, tags };
+    let made = "";
     try {
       if (word) {
         await updateWord(word, input);
         toast.success("Word updated");
       } else {
-        await addWord(input);
+        made = await addWord(input);
         toast.success(`${term.trim()} added`);
       }
     } catch (err) {
@@ -67,6 +68,7 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
       setNotes("");
       return;
     }
+    if (made) onSaved?.(made);
     onOpenChange(false);
   }
 
@@ -147,10 +149,10 @@ export function originOf(h: IntakeDialogProps["handoff"]): string {
 }
 
 /** The Word Intake (ADR 0050): the handed text becomes the term, its source the origin. */
-export function WordIntakeDialog({ open, onOpenChange, handoff }: IntakeDialogProps) {
+export function WordIntakeDialog({ open, onOpenChange, handoff, onSaved }: IntakeDialogProps) {
   const prefill = useMemo(() => {
     const text = handoff.text.trim();
     return { term: text && text.length <= 80 ? text : handoff.title, origin: originOf(handoff), originId: handoff.originId };
   }, [handoff]);
-  return <WordDialog open={open} onOpenChange={onOpenChange} prefill={prefill} />;
+  return <WordDialog open={open} onOpenChange={onOpenChange} prefill={prefill} onSaved={onSaved} />;
 }

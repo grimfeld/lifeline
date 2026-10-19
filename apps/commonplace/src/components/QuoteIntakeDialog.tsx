@@ -14,7 +14,7 @@ import { useCaptureSources } from "./CaptureForm";
  * with it (title, link, author, date) unless I pick one I already have.
  * Nothing is written until Keep.
  */
-export function QuoteIntakeDialog({ open, onOpenChange, handoff }: IntakeDialogProps) {
+export function QuoteIntakeDialog({ open, onOpenChange, handoff, onSaved }: IntakeDialogProps) {
   const navigate = useNavigate();
   const { all, current } = useCaptureSources();
   const [choice, setChoice] = useState<SourceChoice>({ ...emptyChoice, id: NEW_SOURCE });
@@ -41,8 +41,9 @@ export function QuoteIntakeDialog({ open, onOpenChange, handoff }: IntakeDialogP
         ? (await addSource({ title: choice.newTitle || title || "Kept text", kind: choice.newKind, url, author, publishedOn: handoff.date?.slice(0, 10) })).id
         : choice.id;
       if (!sourceId) throw new Error("Pick a Source, or name a new one");
-      await addQuote({ source: sourceId, text, title });
+      const quote = await addQuote({ source: sourceId, text, title });
       toast.success("Kept as a Quote");
+      onSaved?.(quote.id);
       onOpenChange(false);
       if (openAfter) navigate(sourceHref(sourceId));
     } catch (e) {
