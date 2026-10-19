@@ -24,7 +24,7 @@ const admin = new PocketBase(config.pbUrl);
 admin.autoCancellation(false);
 await admin.collection("_superusers").authWithPassword(config.pbSuperuserEmail, config.pbSuperuserPassword, { autoRefreshThreshold: 30 * 60 });
 
-const oauth = new LifelineOAuth(admin, config.pbUrl);
+const oauth = new LifelineOAuth(admin, config.pbUrl, config.redirectAllow);
 const devices = new DevicePool(admin, config.pbUrl);
 
 const INSTRUCTIONS = `Lifeline is the user's personal dashboard: tasks, chores, events, notes and more, all stored as Documents of a type.

@@ -13,7 +13,7 @@ export function loginPage(o: { request?: string; clientName?: string; redirectUr
         <input type="hidden" name="request" value="${esc(o.request ?? "")}">
         <label>Email <input name="email" type="email" autocomplete="username" required value="${esc(o.email ?? "")}" autofocus></label>
         <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
-        ${o.write ? `<label class="check"><input type="checkbox" name="allow_write" checked> Allow changes — create tasks and events, complete items, edit documents</label>` : ""}
+        ${o.write ? `<label class="check"><input type="checkbox" name="allow_write"> Allow changes — create tasks and events, complete items, edit documents</label>` : ""}
         <p class="note">It will read your Documents and agenda. It never sees your Private folder, and cannot delete anything.</p>
         <button type="submit">Allow</button>
         <button type="submit" name="deny" value="1" formnovalidate class="secondary">Deny</button>
