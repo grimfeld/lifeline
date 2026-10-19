@@ -1,4 +1,5 @@
 import { lazy, Suspense, type ComponentProps } from "react";
+import { cn } from "@lifeline/ui";
 
 /*
  * CodeMirror and its markdown grammar load with the first editor shown: they
@@ -16,7 +17,7 @@ export type MarkdownEditorProps = ComponentProps<typeof import("./MarkdownEditor
  */
 export function MarkdownEditor(props: MarkdownEditorProps) {
   return (
-    <Suspense fallback={<div className={`ll-editor min-h-0 flex-1 ${props.className ?? ""}`} />}>
+    <Suspense fallback={<div className={cn("ll-editor min-h-0 flex-1", props.className)} />}>
       <Impl {...props} />
     </Suspense>
   );

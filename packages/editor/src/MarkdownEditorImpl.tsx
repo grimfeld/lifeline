@@ -6,7 +6,8 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import { completionKeymap } from "@codemirror/autocomplete";
-import { useAttachments, useIsMobile, useKeyboardInset, type LinkIndex } from "@lifeline/core";
+import { useAttachments, useKeyboardInset, type LinkIndex } from "@lifeline/core";
+import { cn, usePhone } from "@lifeline/ui";
 import {
   attachmentsField,
   contextField,
@@ -97,7 +98,7 @@ export function MarkdownEditor({
   const lastValue = useRef(value);
   /** The editor has changes the owner has not handed back yet — it is ahead of `value`. */
   const dirty = useRef(false);
-  const isMobile = useIsMobile();
+  const isMobile = usePhone();
   const inset = useKeyboardInset(isMobile);
   // The accessory bar is React, so the view and the editor's focus are mirrored
   // into state: a StateField changing is not, by itself, a render.
@@ -283,7 +284,7 @@ export function MarkdownEditor({
 
   return (
     <>
-      <div ref={host} className={`ll-editor min-h-0 flex-1 ${className ?? ""}`} />
+      <div ref={host} className={cn("ll-editor min-h-0 flex-1", className)} />
       {isMobile && focused && view && <EditorAccessoryBar view={view} inset={inset} />}
     </>
   );
