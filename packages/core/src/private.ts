@@ -1,13 +1,14 @@
 import { useSyncExternalStore } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, DOCUMENTS } from "./data/db";
+import { sharedLiveQuery } from "./data/live";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
 import { docPath, isWithin } from "./folders";
 import { normalizeName } from "./markdown";
 import type { Document, DocumentTypeDef } from "./documents/types";
 import { isVaultType } from "./documents/registry";
-import { workspaceScope } from "./workspaces";
+import { onWorkspaceChange, workspaceScope } from "./workspaces";
 
 /**
  * The Private folder (ADR 0038, CONTEXT.md "Private folder", "Locked /
@@ -267,9 +268,15 @@ export async function privateLockedRefs(): Promise<PrivateLockedRefs> {
   return { names, ids };
 }
 
-/** React hook: the locked membership sets, live. */
+// One shared query: the link index caches on the identity of these sets, and a
+// query per consumer handed each one its own, so every consumer rebuilt the
+// whole index on every change while Private was locked.
+// Scoped to the Workspace, so a switch re-runs it.
+const lockedRefsLive = sharedLiveQuery(async () => privateLockedRefs(), NO_REFS, { restartOn: onWorkspaceChange });
+
+/** React hook: the locked membership sets, live. One shared query: every consumer sees the same sets per change. */
 export function usePrivateLockedRefs(): PrivateLockedRefs {
-  return useLiveQuery(privateLockedRefs, [], NO_REFS);
+  return lockedRefsLive.use();
 }
 
 // --- write guards (Core ops call these) -----------------------------------------
