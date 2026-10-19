@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
+import { PhoneDock, PhoneFilters, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import { ChartLine } from "lucide-react";
 import type { MonthStr } from "../domain/types";
-import { emptyFilter, filterTransactions, ledgerMonths, monthRange, resolveRange, type ReportFilter, type ReportRange } from "../domain/report";
+import { activeFilterCount, emptyFilter, filterTransactions, ledgerMonths, monthRange, resolveRange, type ReportFilter, type ReportRange } from "../domain/report";
 import { useAccounts, useAllocations, useCategories, useSeries, useTransactions } from "../data/repo";
 import { ReportFilterBar } from "../components/ReportFilterBar";
 import { ReportOverview } from "../components/ReportOverview";
@@ -80,28 +80,38 @@ export function ReportsScreen() {
         <h1 className="text-lg font-semibold">Money reports</h1>
       </div>
 
-      <ReportFilterBar
-        filter={filter}
-        onChange={onFilterChange}
-        range={range}
-        onRangeChange={(next, current) => {
-          setRange(next);
-          // Switching to custom keeps the window you were looking at, so nothing jumps.
-          if (next === "custom") setCustomWindow(current ?? customWindow ?? null);
-        }}
-        accounts={accounts}
-        categories={categories}
-        ledgerMonths={availableMonths}
-        matched={filtered.length}
-      />
+      <PhoneDock>
+        <PhoneFilters active={activeFilterCount(filter) + (range === DEFAULT_RANGE ? 0 : 1)}>
+          <ReportFilterBar
+            filter={filter}
+            onChange={onFilterChange}
+            range={range}
+            onRangeChange={(next, current) => {
+              setRange(next);
+              // Switching to custom keeps the window you were looking at, so nothing jumps.
+              if (next === "custom") setCustomWindow(current ?? customWindow ?? null);
+            }}
+            accounts={accounts}
+            categories={categories}
+            ledgerMonths={availableMonths}
+            matched={filtered.length}
+          />
+        </PhoneFilters>
+        {/* The bar's own count sits in the sheet on a phone; this keeps it in view. */}
+        <span className="text-muted-foreground truncate text-xs md:hidden">
+          {filtered.length} transaction{filtered.length === 1 ? "" : "s"}
+        </span>
+      </PhoneDock>
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams(v === "overview" ? {} : { tab: v }, { replace: true })}>
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="budget">Budget</TabsTrigger>
-          <TabsTrigger value="recurring">Recurring</TabsTrigger>
-        </TabsList>
+        <PhoneDock order={1}>
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
+            <TabsTrigger value="budget">Budget</TabsTrigger>
+            <TabsTrigger value="recurring">Recurring</TabsTrigger>
+          </TabsList>
+        </PhoneDock>
 
         <TabsContent value="overview">
           <ReportOverview data={data} />

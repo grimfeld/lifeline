@@ -5,11 +5,11 @@ import { addQuote, updateQuote } from "../data/quotes";
 import type { Quote } from "../domain/types";
 
 /**
- * Inline quote form, shared by "add" (give `mediaId`) and "edit" (give `quote`).
+ * Inline quote form, shared by "add" (give `source`, the Source's id) and "edit" (give `quote`).
  * Saves straight to the repo; ⌘/Ctrl+Enter saves, Escape cancels.
  */
-export function QuoteEditor({ mediaId, quote, onDone, onCancel, autoFocus = true }: { mediaId: string; quote?: Quote; onDone?: (q: Quote) => void; onCancel?: () => void; autoFocus?: boolean }) {
-  const [text, setText] = useState(quote?.text ?? "");
+export function QuoteEditor({ source, quote, onDone, onCancel, autoFocus = true }: { source: string; quote?: Quote; onDone?: (q: Quote) => void; onCancel?: () => void; autoFocus?: boolean }) {
+  const [text, setText] = useState(quote?.body ?? "");
   const [locator, setLocator] = useState(quote?.locator ?? "");
   const [comment, setComment] = useState(quote?.comment ?? "");
   const [tags, setTags] = useState<string[]>(quote?.tags ?? []);
@@ -23,7 +23,7 @@ export function QuoteEditor({ mediaId, quote, onDone, onCancel, autoFocus = true
       toast.success("Quote updated");
       onDone?.(next);
     } else {
-      const q = await addQuote({ mediaId, text, locator, comment, tags });
+      const q = await addQuote({ source, text, locator, comment, tags });
       toast.success("Quote saved");
       setText("");
       setLocator("");

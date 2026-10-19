@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useParams } from "react-router";
-import { moduleById, moduleHome, moduleScreens, screenRoute } from "@lifeline/core";
+import { inhabitedModules, moduleById, moduleHome, moduleScreens, screenRoute } from "@lifeline/core";
 import { ModuleLayout } from "./ModuleLayout";
+import { FALLBACK_PLACE } from "../nav/resume";
 import { MODULE_SHELLS } from "./shells";
 
 /**
@@ -21,7 +22,9 @@ import { MODULE_SHELLS } from "./shells";
 export function ModulePage() {
   const { id = "" } = useParams<{ id: string }>();
   const m = moduleById(id);
-  if (!m) return <Navigate to="/" replace />;
+  // A Module no registered App inhabits does not open: Mail in the Demo (ADR 0077).
+  // Not `/`, which would resume the path just remembered — this one.
+  if (!m || !inhabitedModules().some((x) => x.id === m.id)) return <Navigate to={FALLBACK_PLACE} replace />;
 
   const shell = MODULE_SHELLS[id];
   if (shell) {

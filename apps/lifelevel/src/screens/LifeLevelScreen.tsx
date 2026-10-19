@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Button, Card, CardContent } from "@lifeline/ui";
+import { Button, Card, CardContent, PhoneDock } from "@lifeline/ui";
 import { Plus, Skull, Volume2, VolumeX } from "lucide-react";
 import { computeProgression } from "../domain/progression";
 import { habitHref } from "../domain/daylog";
@@ -35,23 +35,25 @@ export function LifeLevelScreen() {
     <div className="mx-auto grid w-full max-w-5xl gap-4 p-4 sm:gap-6 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Life Level</h1>
-        <div className="flex items-center gap-2">
-          <Button size="icon" variant="ghost" className="size-8" title={muted ? "Unmute sounds" : "Mute sounds"} onClick={toggle}>
-            {muted ? <VolumeX /> : <Volume2 />}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setEditNegative(undefined);
-              setNegativeEditorOpen(true);
-            }}
-          >
-            <Skull /> New negative
-          </Button>
-          <Button onClick={() => setHabitEditorOpen(true)}>
-            <Plus /> New habit
-          </Button>
-        </div>
+        <PhoneDock>
+          <div className="flex items-center gap-2 max-md:contents">
+            <Button size="icon" variant="ghost" className="size-8" title={muted ? "Unmute sounds" : "Mute sounds"} onClick={toggle}>
+              {muted ? <VolumeX /> : <Volume2 />}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditNegative(undefined);
+                setNegativeEditorOpen(true);
+              }}
+            >
+              <Skull /> New negative
+            </Button>
+            <Button onClick={() => setHabitEditorOpen(true)}>
+              <Plus /> New habit
+            </Button>
+          </div>
+        </PhoneDock>
       </div>
 
       {habits.length === 0 ? (

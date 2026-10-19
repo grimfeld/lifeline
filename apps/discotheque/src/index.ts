@@ -1,4 +1,5 @@
 import type { AppManifest } from "@lifeline/core";
+import { discothequeParts } from "./parts";
 import { Disc3 } from "lucide-react";
 import { DiscothequeScreen } from "./screens/DiscothequeScreen";
 import { InProgressCard } from "./cards/InProgressCard";
@@ -21,7 +22,7 @@ export const discothequeApp: AppManifest = {
   title: "Discotheque",
   icon: Disc3,
   color: "var(--chart-violet)",
-  types: [...workTypeDefs, playlistTypeDef],
+  types: [...workTypeDefs, ...discothequeParts.typeDefs, playlistTypeDef],
   screens: [{ id: "discotheque.main", title: "Discotheque", path: "discotheque", icon: Disc3, component: DiscothequeScreen }],
   cards: [
     {
