@@ -10,7 +10,7 @@ import { SpendDialog } from "../components/SpendDialog";
 import { Jar } from "../components/Jar";
 
 /**
- * Allowances (ADR 0037): what is running today and what is left of each —
+ * Allowances (ADR 0081): what is running today and what is left of each —
  * the phone-home glance, one small jar per row. Tapping a row opens the
  * Spend form on it; nothing running links through to Pocket.
  */

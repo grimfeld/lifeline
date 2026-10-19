@@ -11,7 +11,7 @@ import { refuseDeletingUsedOffence } from "./data/repo";
 import { APP_ID, FINE, OFFENCE, SWEARJAR_HREF, type Fine, type Offence } from "./domain/types";
 
 /**
- * The `swearjar_offence` Document type (ADR 0054): a named, priced thing the
+ * The `swearjar_offence` Document type (ADR 0083): a named, priced thing the
  * user fines themself for. Linkable, bodiless. `archived` is the App's
  * (guarded); the `onDelete` guard refuses deleting one that has Fines, from
  * wherever the delete comes.
@@ -37,7 +37,7 @@ const offenceType: DocumentTypeDef = {
   builtIn: true,
 };
 
-/** The `swearjar_fine` internal type (ADR 0054): one incident, at the price it had when logged. */
+/** The `swearjar_fine` internal type (ADR 0083): one incident, at the price it had when logged. */
 const fineType: DocumentTypeDef = {
   id: FINE,
   label: "Fines",
@@ -61,7 +61,7 @@ const fineType: DocumentTypeDef = {
   builtIn: true,
 };
 
-/** Swear Jar App (ADR 0054): money owed to oneself for things done — trust-based, one calendar month's jar at a time. */
+/** Swear Jar App (ADR 0083): money owed to oneself for things done — trust-based, one calendar month's jar at a time. */
 export const swearjarApp: AppManifest = {
   id: APP_ID,
   module: "progress",

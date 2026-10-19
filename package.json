@@ -6,6 +6,7 @@
     "check": "node scripts/check-ui.mjs && node scripts/adr.mjs check && node scripts/migrations.mjs check && pnpm -r typecheck && pnpm -r test",
     "check:ui": "node scripts/check-ui.mjs",
     "adr:new": "node scripts/adr.mjs new",
+    "adr:mv": "node scripts/adr.mjs mv",
     "adr:check": "node scripts/adr.mjs check",
     "migrations:next": "node scripts/migrations.mjs next",
     "migrations:check": "node scripts/migrations.mjs check",

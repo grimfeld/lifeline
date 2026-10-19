@@ -13,7 +13,7 @@ export const productHref = (id: string) => `${PRICES_HREF}/p/${id}`;
 export const PRICES_COLOR = "var(--chart-green)";
 
 /**
- * The one thing a Product fixes (CONTEXT.md "Product", ADR 0045): the
+ * The one thing a Product fixes (CONTEXT.md "Product", ADR 0082): the
  * measure every Line of it is expressed in. Pack size is *not* here — a
  * litre and a six-pack are one Product with different amounts on the Line.
  */
@@ -37,7 +37,7 @@ export interface LabelMemory {
 }
 
 /**
- * A Product (ADR 0045): a thing bought again. Title is its name; `measure`
+ * A Product (ADR 0082): a thing bought again. Title is its name; `measure`
  * is fixed after creation; `labels` is the App's memory of what each Shop
  * prints for it (guarded — written only by matching and unmatching Lines).
  */
@@ -47,14 +47,14 @@ export interface Product extends Document {
   labels: LabelMemory[];
 }
 
-/** A Shop (ADR 0045): a chain, never a branch. Title is its name. */
+/** A Shop (ADR 0082): a chain, never a branch. Title is its name. */
 export interface Shop extends Document {
   type: typeof SHOP;
   note: string;
 }
 
 /**
- * A Receipt (ADR 0045): one buying occasion at one Shop on one day. The
+ * A Receipt (ADR 0082): one buying occasion at one Shop on one day. The
  * printed total is kept as read (0 = none printed — a price noted on a
  * shelf); the sum of its Lines is derived beside it. The photo it was read
  * from, when kept, is an Attachment embedded in the optional body.
@@ -70,7 +70,7 @@ export interface Receipt extends Document {
 }
 
 /**
- * A Line (ADR 0045, internal): one priced entry on a Receipt — the only
+ * A Line (ADR 0082, internal): one priced entry on a Receipt — the only
  * fact price history is made of. `productId` "" = unmatched (the inbox).
  * `amount` is in the matched Product's measure (6 for six litres, 0.42 for
  * 420 g, 12 for a dozen); `price` is what was paid, in cents, after any
