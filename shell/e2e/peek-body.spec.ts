@@ -14,19 +14,19 @@ async function workLocally(page: Page) {
 }
 
 /** Makes Notes (and Templates) through the app's own Core, over the Journal's Day, and peeks the first. */
-async function peekNoteOverDay(page: Page, notes: { title: string; body: string }[], templates: { title: string; body: string }[] = []) {
+async function peekNoteOverDay(page: Page, notes: { title: string; body: string }[], templates: { title: string; body: string }[] = [], type = "note") {
   await page.goto("/app/journal");
   await workLocally(page);
   await expect(page.locator(".cm-content").first()).toBeVisible();
   await page.evaluate(
-    async ({ coreUrl, notes, templates }) => {
+    async ({ coreUrl, notes, templates, type }) => {
       const core = await import(/* @vite-ignore */ coreUrl);
       for (const t of templates) await core.putDocument({ type: "template", title: t.title, forType: "note", body: t.body, folder: "Templates" });
       const made = [];
-      for (const n of notes) made.push(await core.putDocument({ type: "note", title: n.title, body: n.body }));
+      for (const n of notes) made.push(await core.putDocument({ type, title: n.title, body: n.body }));
       core.openPeek(made[0].id);
     },
-    { coreUrl: CORE_URL, notes, templates },
+    { coreUrl: CORE_URL, notes, templates, type },
   );
   const peek = page.getByRole("dialog", { name: notes[0].title });
   await expect(peek).toBeVisible();
@@ -94,4 +94,28 @@ test("an empty body offers the type's Templates, and picking one fills it once",
   await page.keyboard.press("Control+y");
   await expect(peek.locator(".cm-content")).toContainText(`Agenda for ${title}`);
   await expect(peek.getByRole("button", { name: template }), "offered only while the body is empty").toHaveCount(0);
+});
+
+test("the body is read and written beneath an App's own part too (a Project's)", async ({ page }) => {
+  const title = `Peek project ${Date.now()}`;
+  const peek = await peekNoteOverDay(page, [{ title, body: "The plan so far." }], [], "project");
+  await expect(peek.getByText("The plan so far.")).toBeVisible();
+  await peek.getByRole("button", { name: "Write", exact: true }).click();
+  const editor = peek.locator(".cm-content");
+  await editor.click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type(" And more.");
+  await page.keyboard.press("Control+e");
+  await expect(peek.getByText("The plan so far. And more.")).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        async ({ coreUrl, title }) => {
+          const core = await import(/* @vite-ignore */ coreUrl);
+          return ((await core.documentsOf("project")) as { title: string; body?: string }[]).find((d) => d.title === title)?.body;
+        },
+        { coreUrl: CORE_URL, title },
+      ),
+    )
+    .toBe("The plan so far. And more.");
 });

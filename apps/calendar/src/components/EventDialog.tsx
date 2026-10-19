@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   Button,
-  Checkbox,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -16,16 +15,11 @@ import {
 import { displayTitle, docHref, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff } from "@lifeline/core";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
-import { eventFormErrors, type EventFormErrors } from "../domain/eventForm";
+import { eventFormErrors, whenOf, type EventFormErrors } from "../domain/eventForm";
+import { EventWhenFields, whenIds } from "./EventWhenFields";
 
 /** Each checked control's id — its input's and the one an error focuses — in the order the dialog shows them. */
-const FIELD_IDS: Record<keyof EventFormErrors, string> = {
-  title: "ev-title",
-  date: "ev-date",
-  endDate: "ev-end-date",
-  start: "ev-start",
-  end: "ev-end",
-};
+const FIELD_IDS: Record<keyof EventFormErrors, string> = { title: "ev-title", ...whenIds("ev-") };
 
 export function EventDialog({
   open,
@@ -84,10 +78,7 @@ export function EventDialog({
     const fields = {
       title: title.trim(),
       notes: notes.trim(),
-      date,
-      endDate: allDay && endDate && endDate > date ? endDate : null,
-      start: allDay ? null : start,
-      end: allDay ? null : end || null,
+      ...whenOf({ date, endDate, allDay, start, end }),
       tags,
     };
     if (event) {
@@ -118,34 +109,17 @@ export function EventDialog({
               onKeyDown={(e) => e.key === "Enter" && void submit()}
             />
           </Field>
-          <div className="grid grid-cols-2 items-start gap-3">
-            <Field label={allDay ? "First day" : "Day"} error={errors.date}>
-              <Input id={FIELD_IDS.date} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            </Field>
-            {allDay ? (
-              <Field label="Last day (optional)" error={errors.endDate}>
-                <Input
-                  id={FIELD_IDS.endDate}
-                  type="date"
-                  value={endDate}
-                  min={date}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </Field>
-            ) : (
-              <div className="grid grid-cols-2 items-start gap-2">
-                <Field label="Start" error={errors.start}>
-                  <Input id={FIELD_IDS.start} type="time" value={start} onChange={(e) => setStart(e.target.value)} />
-                </Field>
-                <Field label="End" error={errors.end}>
-                  <Input id={FIELD_IDS.end} type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
-                </Field>
-              </div>
-            )}
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={allDay} onCheckedChange={(v) => setAllDay(!!v)} /> All day
-          </label>
+          <EventWhenFields
+            value={{ date, endDate, allDay, start, end }}
+            errors={errors}
+            onChange={(w) => {
+              setDate(w.date);
+              setEndDate(w.endDate);
+              setAllDay(w.allDay);
+              setStart(w.start);
+              setEnd(w.end);
+            }}
+          />
           <Field label="Notes">
             <Textarea id="ev-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional" />
           </Field>

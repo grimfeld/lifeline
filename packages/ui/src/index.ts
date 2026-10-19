@@ -1,4 +1,5 @@
 export * from "./lib/utils";
+export { useSoonWritten } from "./lib/useSoonWritten";
 export * from "./components/ui/alert-dialog";
 export * from "./components/ui/badge";
 export * from "./components/ui/button";

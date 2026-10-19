@@ -219,6 +219,10 @@ const SCREENS: ScreenCase[] = [
   // …and writes its body with the Vault's editor, the panel widened (ADR 0085).
   { name: "Vault · Peek writing its body", path: "/vault", afterOpen: peekOf("note", false, true) },
   { name: "Vault · Peek of a user-defined type, writing", path: "/vault", afterOpen: peekOf("e2eperson", false, true) },
+  // The Apps' own editable parts (ADR 0085): a Task's and an Event's Fields edited through their App's controls.
+  { name: "Vault · Peek of a Task", path: "/vault", afterOpen: peekOf("task") },
+  { name: "Vault · Peek of an Event", path: "/vault", afterOpen: peekOf("event") },
+  { name: "Vault · Peek of a Project, writing beneath its App's part", path: "/vault", afterOpen: peekOf("project", false, true) },
   {
     // The file tree's "New thought" focused: a tooltip names it on the desk; a touch phone shows none (ADR 0079).
     name: "Vault · Tooltip",
