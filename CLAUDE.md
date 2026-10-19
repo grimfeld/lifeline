@@ -4,7 +4,9 @@ Read `CONTEXT.md` (the language) and `docs/adr/` (the decisions) before changing
 
 A new ADR takes its number from `pnpm adr:new "The decision, as a sentence"`, never by
 hand: it looks past every branch and worktree, so parallel work doesn't collide.
-`pnpm adr:check` (in CI) fails when a number is taken twice.
+`pnpm adr:check` (in CI) fails when a number is taken twice; fix it with
+`pnpm adr:mv docs/adr/NNNN-slug.md`, which moves the newer ADR to a free number (its
+"ADR NNNN" references are yours to update).
 
 ## Phone layout (ADR 0064) — follow on every page you touch
 

@@ -2,6 +2,7 @@
 // ADR numbers, kept unique while several branches and agents write ADRs at once.
 //
 //   node scripts/adr.mjs new "The title"   takes the next free number, writes docs/adr/NNNN-the-title.md
+//   node scripts/adr.mjs mv docs/adr/NNNN-slug.md   moves that ADR to the next free number, same slug
 //   node scripts/adr.mjs check             no number twice in docs/adr; warns when a number this
 //                                          change adds is taken on another branch
 //
@@ -9,8 +10,8 @@
 // every worktree's folder, committed or not — so two agents on this machine never
 // take the same one. ADR_BASE overrides the base ref of `check` (default origin/master).
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 
 const DIR = "docs/adr";
 const NAME = /^(\d{4})-.+\.md$/;
@@ -72,6 +73,20 @@ function create(title) {
   console.log(file);
 }
 
+/** Moves an ADR to the next free number, keeping its slug. Contents and references are the caller's. */
+function move(file) {
+  const name = file && basename(file);
+  if (!file || !existsSync(file) || resolve(dirname(file)) !== resolve(DIR) || !NAME.test(name)) {
+    console.error(`usage: pnpm adr:mv ${DIR}/NNNN-slug.md   (an existing ADR)`);
+    process.exit(1);
+  }
+  const to = `${DIR}/${next()}${name.slice(4)}`;
+  // `git mv` so a tracked ADR keeps its history; one not yet added is just renamed.
+  if (git("ls-files", "--", file).trim()) git("mv", file, to);
+  else renameSync(file, to);
+  console.log(to);
+}
+
 function check() {
   const problems = [];
   const here = adrs(readdirSync(DIR));
@@ -96,7 +111,7 @@ function check() {
 
   for (const p of problems) console.log(`${DIR}: ${p}`);
   if (problems.length) {
-    console.log(`\nRenumber the newer ADR: \`pnpm adr:new "<title>"\` gives a free number. Update its "ADR NNNN" references too.`);
+    console.log(`\nRenumber the newer ADR: \`pnpm adr:mv <file>\` moves it to a free number. Update its "ADR NNNN" references too.`);
     process.exit(1);
   }
   console.log("adr: numbers unique");
@@ -104,8 +119,9 @@ function check() {
 
 const [command, ...rest] = process.argv.slice(2);
 if (command === "new") create(rest.join(" "));
+else if (command === "mv") move(rest[0]);
 else if (command === "check") check();
 else {
-  console.error("usage: node scripts/adr.mjs new <title> | check");
+  console.error("usage: node scripts/adr.mjs new <title> | mv <file> | check");
   process.exit(1);
 }
