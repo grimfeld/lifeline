@@ -13,6 +13,11 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
+## Pull requests
+
+- **Edit a PR's title or body**: `gh pr edit` fails on this repo (`GraphQL: Projects (classic) is being deprecated… (projectCards)`). Use the REST API: `jq -Rs '{body: .}' body.md | gh api -X PATCH repos/grimfeld/lifeline/pulls/<number> --input -`.
+- **Mark ready / merge**: `gh pr ready <number>`; merge with `gh api -X PUT repos/grimfeld/lifeline/pulls/<number>/merge -f merge_method=merge` (the repo merges with merge commits).
+
 ## Pull requests as a triage surface
 
 **PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_

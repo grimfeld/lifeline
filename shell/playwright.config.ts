@@ -4,7 +4,9 @@ import { defineConfig, devices } from "@playwright/test";
  * End-to-end layout tests (see e2e/README.md): every screen, at phone and
  * desktop widths, filled with the longest content a person could type.
  */
-const PORT = 1421;
+// Its own vite, never one found on the port: in another worktree that server
+// would be serving other code. Agents running side by side set E2E_PORT.
+const PORT = Number(process.env.E2E_PORT ?? 1421);
 
 export default defineConfig({
   testDir: "e2e",
@@ -36,7 +38,7 @@ export default defineConfig({
   webServer: {
     command: `pnpm exec vite --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });
