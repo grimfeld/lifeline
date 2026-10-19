@@ -51,6 +51,27 @@ async function openQuickAdd(page: Page) {
   await expect(page.getByRole("listbox", { name: "Lookup results" }).getByRole("option").first()).toContainText("Add “Typed title");
 }
 
+/**
+ * A media App's Shelf switch (ToggleGroup): on the desk the arrow keys move
+ * between choices and Enter picks one; on a phone it is a select, left open.
+ */
+async function openShelf(page: Page) {
+  const local = page.getByRole("button", { name: "Work locally" });
+  await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+  if ((page.viewportSize()?.width ?? 0) < 768) {
+    await page.getByRole("combobox", { name: "Shelf" }).click();
+    await expect(page.getByRole("listbox")).toBeVisible();
+    return;
+  }
+  const shelf = page.getByRole("radiogroup", { name: "Shelf" });
+  await shelf.getByRole("radio", { checked: true }).focus();
+  await page.keyboard.press("ArrowRight");
+  const first = shelf.getByRole("radio").first();
+  await expect(first).toBeFocused(); // "All" is last: the arrow wraps round to the first Shelf
+  await page.keyboard.press("Enter");
+  await expect(first).toHaveAttribute("aria-checked", "true");
+}
+
 const SCREENS: ScreenCase[] = [
   // Core destinations.
   { name: "Calendar · Upcoming", path: "/calendar?view=upcoming" },
@@ -83,6 +104,25 @@ const SCREENS: ScreenCase[] = [
 
   // The Vault (Note-taking's layout).
   { name: "Vault", path: "/vault" },
+  {
+    // The file tree's "New thought" focused: a tooltip names it on the desk; a touch phone shows none (ADR 0079).
+    name: "Vault · Tooltip",
+    path: "/vault",
+    afterOpen: async (page) => {
+      const local = page.getByRole("button", { name: "Work locally" });
+      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      const button = page.getByRole("button", { name: "New thought", exact: true });
+      const touch = await page.evaluate(() => !matchMedia("(hover: hover) and (pointer: fine)").matches);
+      if (!touch) {
+        await button.focus();
+        await expect(page.getByRole("tooltip")).toHaveText("New thought");
+        return;
+      }
+      if (await button.isVisible()) await button.focus();
+      await page.waitForTimeout(600);
+      await expect(page.locator("[data-slot=tooltip-content]")).toHaveCount(0);
+    },
+  },
   { name: "Journal · Today", path: "/app/journal" },
   { name: "Journal · Week", path: "/app/journal/p/:key", params: { key: "2026-W42" } },
   { name: "Journal · Year", path: "/app/journal/p/2026" },
@@ -107,6 +147,20 @@ const SCREENS: ScreenCase[] = [
       await openPeopleTypeEditor(page);
       await page.getByRole("dialog").getByRole("button", { name: "Field", exact: true }).click();
       await expect(page.getByText("adds a board layout to its Base")).toBeVisible();
+    },
+  },
+  {
+    // The AlertDialog (ADR 0079) before the seeded empty type with a long label is deleted: Cancel has the focus.
+    name: "Journal · Types · Delete type confirmation",
+    path: "/app/journal/t",
+    afterOpen: async (page) => {
+      const local = page.getByRole("button", { name: "Work locally" });
+      await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+      await page.getByRole("button", { name: /^Edit the type Places/ }).first().click();
+      await page.getByRole("dialog").getByRole("button", { name: "Delete type" }).click();
+      const confirm = page.getByRole("alertdialog");
+      await expect(confirm.getByRole("button", { name: "Delete type" })).toBeVisible();
+      await expect(confirm.getByRole("button", { name: "Cancel" })).toBeFocused();
     },
   },
   { name: "Journal · One type", path: "/app/journal/t/:type", params: { type: "e2eperson" } },
@@ -159,7 +213,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Stat", path: "/app/stats/:id", type: "stat" },
   { name: "Life Level", path: "/app/lifelevel" },
   { name: "Habit", path: "/app/lifelevel/:id", type: "habit" },
-  { name: "Library", path: "/app/library" },
+  { name: "Library", path: "/app/library", afterOpen: openShelf },
   { name: "Author", path: "/app/library/authors/:id", type: "author" },
   {
     // The Add dialog's Author Combobox, its list open over the seeded long-named Author (two letters: no Open Library lookup).
@@ -182,10 +236,10 @@ const SCREENS: ScreenCase[] = [
       await expect(page.getByRole("option", { name: /^Looked-up title/ })).toBeVisible();
     },
   },
-  { name: "Cinema", path: "/app/cinema" },
+  { name: "Cinema", path: "/app/cinema", afterOpen: openShelf },
   // No TMDB key in the seed: the list holds the "Add …" row alone.
   { name: "Cinema · Quick add", path: "/app/cinema", afterOpen: openQuickAdd },
-  { name: "Discotheque", path: "/app/discotheque" },
+  { name: "Discotheque", path: "/app/discotheque", afterOpen: openShelf },
   {
     // A stubbed MusicBrainz hit under the "Add …" row.
     name: "Discotheque · Quick add",
@@ -195,7 +249,7 @@ const SCREENS: ScreenCase[] = [
       await expect(page.getByRole("option", { name: /^Looked-up title/ })).toBeVisible();
     },
   },
-  { name: "Arcade", path: "/app/arcade" },
+  { name: "Arcade", path: "/app/arcade", afterOpen: openShelf },
   // No RAWG key in the seed: the list holds the "Add …" row alone.
   { name: "Arcade · Quick add", path: "/app/arcade", afterOpen: openQuickAdd },
   { name: "Quotes", path: "/app/quotes" },

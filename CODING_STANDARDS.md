@@ -31,10 +31,13 @@ nearest existing pattern and don't hand-roll a new one.
   A raw `<button>` is fine for a whole row or tile that acts as one (it gets
   `type="button"` and a `focus-visible:` style).
 - Single-choice switches (segments, status chips, shelf pickers) use `ToggleGroup`
-  (_coming_): it looks like `TabsList` and becomes a `Select` on a phone by itself.
+  (`ToggleGroupItem` per choice, named with `aria-label`): it looks like `TabsList` and
+  becomes a `Select` on a phone by itself. A media App's Shelf is `ShelfControl` from
+  `@lifeline/parts`.
 - Search-as-you-type pickers use `Combobox` (`Command` + `Popover`), never a
   hand-rolled `role="listbox"`.
-- Tooltips use `Tooltip` (_coming_) on the desk; `title=` is not a tooltip.
+- **(check)** Tooltips use `Tooltip` (`<Tip label>` for an icon Button); `title=` is not a
+  tooltip. It shows on the desk only, never on touch; the Button keeps its `aria-label`.
 - A component copied between apps belongs in `packages/parts`.
 
 ### Colour
@@ -96,7 +99,9 @@ nearest existing pattern and don't hand-roll a new one.
 - Delete at once and offer **Undo** in the toast (`toast.success("Deleted", { action:
   { label: "Undo", onClick } })`) — Documents are soft-deleted, so Undo always works.
 - Confirm only what Undo can't bring back — an empty type, a Workspace, something outside
-  Lifeline — with one `AlertDialog` (_coming_). No two-tap "Really delete" buttons.
+  Lifeline — with one `AlertDialog`: it says what will go, Cancel takes the focus, and the
+  `AlertDialogAction` names the action ("Delete type", not "OK"). No two-tap "Really
+  delete" buttons.
 - A destructive action is `variant="destructive"` (a `DropdownMenuItem` too), not
   `className="text-destructive"` on another variant.
 
