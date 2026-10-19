@@ -1,21 +1,35 @@
 name: Check
+# Deploys live here too, so nothing reaches Fly before the checks pass.
 on:
   pull_request:
   push:
     branches: [master]
+  # Redeploy without a change (a lost machine, a rotated secret). Runs the checks first.
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: What to deploy
+        type: choice
+        options: [both, pb, mcp]
+        default: both
 permissions:
   contents: read
+# A new push to a PR supersedes its running check; master runs are never cancelled
+# (a cancelled check would skip its deploy).
+concurrency:
+  group: check-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # check-ui compares against the merge base with master.
           fetch-depth: 0
       # Takes its version from package.json's packageManager.
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: pnpm
@@ -41,3 +55,128 @@ jobs:
           LANG: fr_FR.UTF-8
           LC_ALL: fr_FR.UTF-8
           TZ: America/Los_Angeles
+
+  # What this push changed, so each app deploys only when its code moved.
+  changes:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    outputs:
+      pb: ${{ steps.diff.outputs.pb }}
+      mcp: ${{ steps.diff.outputs.mcp }}
+      migrations: ${{ steps.diff.outputs.migrations }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # The diff reaches back to the push's previous master.
+          fetch-depth: 0
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          FORCE: ${{ inputs.deploy }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            case "$FORCE" in
+              pb) pb=true; mcp=false ;;
+              mcp) pb=false; mcp=true ;;
+              *) pb=true; mcp=true ;;
+            esac
+            # Nothing to compare against: snapshot anyway, it is cheap.
+            migrations=$pb
+          elif [ -z "${BEFORE//0/}" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            # A new branch or a force-push: the previous master is unknown, so deploy everything.
+            echo "No usable previous commit ('$BEFORE'); deploying everything."
+            pb=true; mcp=true; migrations=true
+          else
+            files=$(git diff --name-only "$BEFORE" "$SHA")
+            echo "$files"
+            pb=false; mcp=false; migrations=false
+            if grep -q '^pocketbase/' <<<"$files"; then pb=true; fi
+            if grep -q '^pocketbase/pb_migrations/' <<<"$files"; then migrations=true; fi
+            # The MCP server bundles the packages and apps, and reads the schema the migrations make.
+            if grep -qE '^(mcp/|packages/|apps/|pnpm-lock\.yaml$|pocketbase/pb_migrations/)' <<<"$files"; then mcp=true; fi
+          fi
+          echo "pb=$pb mcp=$mcp migrations=$migrations"
+          {
+            echo "pb=$pb"
+            echo "mcp=$mcp"
+            echo "migrations=$migrations"
+          } >> "$GITHUB_OUTPUT"
+
+  deploy-pb:
+    needs: [check, changes]
+    if: needs.changes.outputs.pb == 'true'
+    runs-on: ubuntu-latest
+    # Holds FLY_API_TOKEN (deploy token scoped to lifeline-pb); usable from master only.
+    environment: fly
+    concurrency: deploy-group
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # Pinned to a commit: a moved tag or branch must not get the Fly token.
+      - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # 1.5
+      # PocketBase migrates on boot and prod has no staging: snapshot the volume first
+      # when this push brings a migration, so a bad one can be rolled back. No snapshot,
+      # no deploy.
+      - name: Snapshot pb_data before a migration
+        run: |
+          if [ "$MIGRATIONS" != true ]; then
+            echo "No migration in this push; no snapshot."
+            exit 0
+          fi
+          vol=$(flyctl volumes list -a lifeline-pb --json | jq -r '.[] | select(.name == "pb_data") | .id')
+          test -n "$vol"
+          flyctl volumes snapshots create "$vol" -a lifeline-pb
+        env:
+          MIGRATIONS: ${{ needs.changes.outputs.migrations }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      - run: flyctl deploy --remote-only --strategy immediate
+        working-directory: pocketbase
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      # A deploy that boots but fails its migrations is down; say so here, not when the app breaks.
+      - name: Health check
+        run: |
+          end=$((SECONDS + 60))
+          while [ "$SECONDS" -lt "$end" ]; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 https://lifeline-pb.fly.dev/api/health || true)
+            if [ "$code" = 200 ]; then echo "PocketBase is healthy."; exit 0; fi
+            echo "Not yet: HTTP $code"
+            sleep 5
+          done
+          echo "::error::PocketBase is not healthy after the deploy. Find the last good image with 'flyctl releases -a lifeline-pb --image' and redeploy it with 'flyctl deploy -a lifeline-pb --image <ref>'; if this push migrated, restore the pb_data snapshot taken above."
+          exit 1
+
+  # The MCP server (ADR 0062), after PocketBase so a new migration is live
+  # before the tools that need it. Built from the repository root.
+  deploy-mcp:
+    needs: [check, changes, deploy-pb]
+    # Runs when PocketBase deployed or had nothing to deploy, never after it failed.
+    if: >-
+      !cancelled()
+      && needs.check.result == 'success'
+      && needs.changes.outputs.mcp == 'true'
+      && (needs.deploy-pb.result == 'success' || needs.deploy-pb.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: fly
+    concurrency: deploy-mcp-group
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: superfly/flyctl-actions/setup-flyctl@fc53c09e1bc3be6f54706524e3b82c4f462f77be # 1.5
+      - run: flyctl deploy . --config mcp/fly.toml --remote-only --ha=false
+        env:
+          # Deploy token scoped to lifeline-mcp alone: fly tokens create deploy -a lifeline-mcp
+          FLY_API_TOKEN: ${{ secrets.FLY_MCP_API_TOKEN }}
+      # /mcp answers 401 without a token only when the server is up and its auth is wired.
+      - name: Health check
+        run: |
+          end=$((SECONDS + 60))
+          while [ "$SECONDS" -lt "$end" ]; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -X POST \
+              -H 'Content-Type: application/json' -d '{}' https://lifeline-mcp.fly.dev/mcp || true)
+            if [ "$code" = 401 ]; then echo "MCP server is up."; exit 0; fi
+            echo "Not yet: HTTP $code"
+            sleep 5
+          done
+          echo "::error::The MCP server did not answer 401 after the deploy. Find the last good image with 'flyctl releases -a lifeline-mcp --image' and redeploy it with 'flyctl deploy . --config mcp/fly.toml --image <ref>'."
+          exit 1
