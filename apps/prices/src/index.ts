@@ -46,7 +46,7 @@ const shopType: DocumentTypeDef = {
   builtIn: true,
 };
 
-/** The `price_receipt` type: one buying occasion; the photo lives in the optional body as an Attachment embed. */
+/** The `price_receipt` type: one buying occasion — or, marked noticed, a Sighting (ADR 0084); the photo lives in the optional body as an Attachment embed. */
 const receiptType: DocumentTypeDef = {
   id: RECEIPT,
   label: "Receipts",
@@ -59,6 +59,7 @@ const receiptType: DocumentTypeDef = {
     { key: "date", label: "Day", kind: "date", required: true, column: true },
     { key: "branch", label: "Branch", kind: "text", column: true },
     { key: "total", label: "Printed total (cents)", kind: "number", column: true },
+    { key: "noticed", label: "Noticed, not bought", kind: "boolean", column: true },
   ],
   indexes: ["shopId", "date"],
   href: () => `${PRICES_HREF}?tab=receipts`,

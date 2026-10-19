@@ -12,7 +12,7 @@ function normalizeShop(s: Shop): Shop {
   return { ...s, note: s.note ?? "", tags: s.tags ?? [] };
 }
 function normalizeReceipt(r: Receipt): Receipt {
-  return { ...r, shopId: r.shopId ?? "", date: r.date || r.createdAt, branch: r.branch ?? "", total: Math.max(0, Math.round(Number(r.total) || 0)), tags: r.tags ?? [] };
+  return { ...r, shopId: r.shopId ?? "", date: r.date || r.createdAt, branch: r.branch ?? "", total: Math.max(0, Math.round(Number(r.total) || 0)), noticed: !!r.noticed, tags: r.tags ?? [] };
 }
 function normalizeLine(l: Line): Line {
   return { ...l, receiptId: l.receiptId ?? "", productId: l.productId ?? "", label: l.label ?? "", amount: Number(l.amount) > 0 ? Number(l.amount) : 1, price: Math.round(Number(l.price) || 0), promo: !!l.promo, tags: l.tags ?? [] };
@@ -156,6 +156,8 @@ export interface ReceiptInput {
   branch?: string;
   /** Cents; 0 = no printed total. */
   total: number;
+  /** A Sighting: noticed, not bought. Absent keeps an existing Receipt's mark (a new one is bought). */
+  noticed?: boolean;
   /** A photo to keep: stored as an Attachment and embedded in the body (ADR 0082). */
   photo?: Blob & { name?: string };
   lines: LineInput[];
@@ -174,12 +176,12 @@ function checkReceipt(input: ReceiptInput): void {
 /**
  * The one Receipt that collides (CONTEXT.md "Receipt"): the same Shop, day
  * and printed total is the same receipt added twice. One with no printed
- * total — a price noticed on a shelf — never is.
+ * total never is, and a Sighting never is nor is ever the twin (ADR 0084).
  */
-async function sameReceipt(input: ReceiptInput, except?: string): Promise<Receipt | undefined> {
+async function sameReceipt(input: ReceiptInput, noticed: boolean, except?: string): Promise<Receipt | undefined> {
   const total = Math.max(0, Math.round(input.total));
-  if (total === 0) return undefined;
-  return (await documentsWhere<Receipt>(RECEIPT, "shopId", input.shopId)).map(normalizeReceipt).find((r) => r.id !== except && r.date === input.date && r.total === total);
+  if (total === 0 || noticed) return undefined;
+  return (await documentsWhere<Receipt>(RECEIPT, "shopId", input.shopId)).map(normalizeReceipt).find((r) => r.id !== except && !r.noticed && r.date === input.date && r.total === total);
 }
 
 /**
@@ -190,7 +192,8 @@ async function sameReceipt(input: ReceiptInput, except?: string): Promise<Receip
  */
 export async function saveReceipt(input: ReceiptInput, shops: readonly Shop[], products: readonly Product[], existing?: { receipt: Receipt; lines: Line[] }): Promise<string> {
   checkReceipt(input);
-  const twin = await sameReceipt(input, existing?.receipt.id);
+  const noticed = input.noticed ?? !!existing?.receipt.noticed;
+  const twin = await sameReceipt(input, noticed, existing?.receipt.id);
   if (twin) throw new Error(`Already added: ${twin.title} has the same printed total (${twin.id})`);
   const shopName = shops.find((s) => s.id === input.shopId)?.title ?? "";
   let body = existing?.receipt.body ?? "";
@@ -198,7 +201,7 @@ export async function saveReceipt(input: ReceiptInput, shops: readonly Shop[], p
     const att = await addAttachment(input.photo);
     body = `${body.trim()}\n\n![[${att.name}]]`.trim();
   }
-  const base = { shopId: input.shopId, date: input.date, branch: input.branch?.trim() ?? "", total: Math.max(0, Math.round(input.total)), title: receiptTitle(shopName, input.date), tags: normalizeTags(input.tags ?? existing?.receipt.tags ?? []) };
+  const base = { shopId: input.shopId, date: input.date, branch: input.branch?.trim() ?? "", total: Math.max(0, Math.round(input.total)), noticed, title: receiptTitle(shopName, input.date), tags: normalizeTags(input.tags ?? existing?.receipt.tags ?? []) };
   const receipt = existing ? await putDocument<Receipt>({ ...existing.receipt, ...base, body }) : await putDocument<Receipt>({ type: RECEIPT, ...base, body, folder: "" } as unknown as Receipt);
 
   const keep = new Set(input.lines.map((l) => l.id).filter(Boolean));
@@ -243,13 +246,15 @@ export interface PriceInput {
   price: number;
   promo: boolean;
   date?: DateStr;
+  /** Ticked "Bought it"; absent or false makes a Sighting. */
+  bought?: boolean;
 }
 
-/** "Add price…": a price seen on a shelf is a one-Line Receipt with no printed total. */
+/** "Add price…": a one-Line Receipt with no printed total — a Sighting unless it was bought (ADR 0084). */
 export async function addPrice(input: PriceInput, shops: readonly Shop[], products: readonly Product[]): Promise<string> {
   const product = products.find((p) => p.id === input.productId);
   if (!product) throw new Error("Pick a product");
-  return saveReceipt({ shopId: input.shopId, date: input.date || todayStr(), total: 0, lines: [{ productId: product.id, label: product.title, amount: input.amount, price: input.price, promo: input.promo }] }, shops, products);
+  return saveReceipt({ shopId: input.shopId, date: input.date || todayStr(), total: 0, noticed: !input.bought, lines: [{ productId: product.id, label: product.title, amount: input.amount, price: input.price, promo: input.promo }] }, shops, products);
 }
 
 export { todayStr };
