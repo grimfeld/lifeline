@@ -2,7 +2,7 @@ import { useMemo, type ReactNode } from "react";
 import { Card, CardContent } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import type { Observation, Product, Shop } from "../domain/types";
-import { promoOf, rhythmOf, spendOf, spreadOf, type PriceStats, type Span } from "../domain/derive";
+import { overpaidOf, promoOf, rhythmOf, spendOf, spreadOf, type PriceStats, type Span } from "../domain/derive";
 import { formatCents } from "../domain/money";
 import { formatAmount, formatUnitPrice } from "../domain/measure";
 import { shopColor } from "./PriceChart";
@@ -33,7 +33,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 /**
  * A Product's statistics over the page's one span (spec #161, ADR 0084):
- * spend and share, buying rhythm, price spread, promos. Every figure comes
+ * spend and share, buying rhythm, price spread, promos, Overpaid. Every figure comes
  * from derive.ts; this only lays them out.
  */
 export function ProductStats({ product, shops, all, obs, span }: { product: Product; shops: readonly Shop[]; all: readonly Observation[]; obs: readonly Observation[]; span: Span }) {
@@ -41,6 +41,7 @@ export function ProductStats({ product, shops, all, obs, span }: { product: Prod
   const rhythm = useMemo(() => rhythmOf(product.id, obs, span), [product.id, obs, span]);
   const spread = useMemo(() => spreadOf(product.id, obs, span), [product.id, obs, span]);
   const promo = useMemo(() => promoOf(product.id, obs, span), [product.id, obs, span]);
+  const overpaid = useMemo(() => overpaidOf(product.id, obs, span), [product.id, obs, span]);
   const unit = (cents: number) => formatUnitPrice(cents, product);
   const shopName = (id: string) => shops.find((s) => s.id === id)?.title ?? "?";
   const range = (s: PriceStats) => (s.n === 1 ? `${s.n} price` : `low ${unit(s.min)} · avg ${unit(s.avg)} · high ${unit(s.max)} · ${s.n} prices`);
@@ -94,6 +95,26 @@ export function ProductStats({ product, shops, all, obs, span }: { product: Prod
           <Figure label="On promo" value={promo.frequency === null ? "—" : pct(promo.frequency)} hint={`${promo.promos} of ${promo.n} prices`} />
           <Figure label="Average discount" value={promo.avgDiscount === null ? "—" : pct(promo.avgDiscount)} hint="off the usual price" />
           <Figure label="Promo saving" value={formatCents(promo.saving)} hint="on what I bought" />
+        </div>
+      </Section>
+
+      <Section title="Overpaid">
+        <div className="grid grid-cols-2 gap-3">
+          <Figure label="Overpaid" value={formatCents(overpaid.total)} hint="against other shops' usual price" />
+          {overpaid.cheapest ? (
+            <Figure
+              label="Cheapest at"
+              value={
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="size-2 shrink-0 rounded-full" style={{ background: shopColor(overpaid.cheapest.shopId, shops) }} />
+                  <span className="min-w-0 truncate">{shopName(overpaid.cheapest.shopId)}</span>
+                </span>
+              }
+              hint={`${unit(overpaid.cheapest.unit)} · ${formatHuman(overpaid.cheapest.date)}`}
+            />
+          ) : (
+            <Figure label="Cheapest at" value="—" hint="never overpaid in this span" />
+          )}
         </div>
       </Section>
     </div>
