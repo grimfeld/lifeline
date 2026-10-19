@@ -1173,6 +1173,9 @@ importers:
       typescript:
         specifier: ~5.8.3
         version: 5.8.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@26.2.0)(jsdom@26.1.0)(vite@7.3.6(@types/node@26.2.0)(jiti@2.7.0)(lightningcss@1.32.0))
 
   shell:
     dependencies:
