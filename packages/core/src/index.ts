@@ -43,6 +43,7 @@ export * from "./documents/reports";
 export * from "./documents/graph";
 export * from "./documents/href";
 export * from "./documents/peek";
+export * from "./documents/peekParts";
 export * from "./documents/text";
 export * from "./documents/views";
 export {
