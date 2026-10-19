@@ -33,6 +33,39 @@ export const HANDOFF_PATH = "/handoff";
 /** Where the Handoff page goes once the Intake's dialog has saved — the extension closes its window there. */
 export const HANDOFF_DONE_PATH = "/handoff/done";
 
+/**
+ * Where a Lifeline publishes its Intakes (key `appId/intakeId`, title), as
+ * `{ intakes: IntakeEntry[] }` — written at build time from the App registry,
+ * so the extension's menu names every Intake without an extension release.
+ */
+export const INTAKES_PATH = "/intakes.json";
+
+/** One Intake as the published list names it. */
+export interface IntakeEntry {
+  /** `appId/intakeId`, as a Handoff names its Intake. */
+  key: string;
+  /** What it makes: "Task", "Quote". */
+  title: string;
+}
+
+/** The published Intakes list's address on a Lifeline at `base` ("https://lifeline.example"). */
+export function intakeListUrl(base: string): string {
+  return base.replace(/\/+$/, "") + INTAKES_PATH;
+}
+
+/**
+ * The Intakes in a published list (the parsed JSON), skipping any entry that is
+ * not a key and a title; null when it is not a list at all. Never throws.
+ */
+export function readIntakeList(data: unknown): IntakeEntry[] | null {
+  const list = data && typeof data === "object" ? (data as { intakes?: unknown }).intakes : undefined;
+  if (!Array.isArray(list)) return null;
+  return list.flatMap((e: unknown) => {
+    const { key, title } = (e && typeof e === "object" ? e : {}) as Record<string, unknown>;
+    return typeof key === "string" && /^[^/\s]+\/[^/\s]+$/.test(key) && typeof title === "string" && title ? [{ key, title }] : [];
+  });
+}
+
 /** Why a fragment could not be read as a Handoff. */
 export type HandoffDecodeError =
   /** Nothing after the `#`. */
