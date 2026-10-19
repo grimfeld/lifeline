@@ -36,7 +36,7 @@ export function monthLabel(month: MonthKey): string {
 }
 
 /**
- * The jar for one month (ADR 0054): the month's Fines, newest first. Nothing
+ * The jar for one month (ADR 0083): the month's Fines, newest first. Nothing
  * is emptied or reset — the month turning is all that makes a jar read zero.
  */
 export function finesIn(fines: Fine[], month: MonthKey): Fine[] {

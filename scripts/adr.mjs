@@ -16,7 +16,7 @@ import { basename, dirname, join, resolve } from "node:path";
 const DIR = "docs/adr";
 const NAME = /^(\d{4})-.+\.md$/;
 // Taken twice before this script existed. Each may stay at two files; a third fails.
-const GRANDFATHERED = new Set(["0037", "0045", "0054"]);
+const GRANDFATHERED = new Set(["0037", "0045"]);
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] });
 const gitIn = (input, ...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1 << 28, input, stdio: ["pipe", "pipe", "ignore"] });
