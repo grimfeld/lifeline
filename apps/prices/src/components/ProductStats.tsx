@@ -10,7 +10,7 @@ import { shopColor } from "./PriceChart";
 const pct = (f: number) => `${Math.round(f * 100)}%`;
 
 /** One figure: a label above, the number, a quiet line under. */
-function Figure({ label, value, hint }: { label: string; value: ReactNode; hint?: ReactNode }) {
+export function Figure({ label, value, hint }: { label: string; value: ReactNode; hint?: ReactNode }) {
   return (
     <div className="grid min-w-0 content-start gap-0.5">
       <span className="text-muted-foreground text-xs">{label}</span>
@@ -20,7 +20,7 @@ function Figure({ label, value, hint }: { label: string; value: ReactNode; hint?
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <Card>
       <CardContent className="grid gap-3 p-3">
