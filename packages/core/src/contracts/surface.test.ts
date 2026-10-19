@@ -33,6 +33,15 @@ describe("resolveItemRows (ADR 0028)", () => {
     );
     expect(rows[0].blocksAhead).toBe(2);
   });
+  it("reads a block ending at midnight as still ahead until the day is over (CR-10)", () => {
+    const late = { ...opts, now: "23:00" };
+    const rows = resolveItemRows(item(), [pl({ id: "night", date: "2026-08-25", start: "22:00", end: "00:00" })], late);
+    expect(rows[0].blocksAhead).toBe(1);
+  });
+  it("gives an end-less block the default length, as Push does", () => {
+    const rows = resolveItemRows(item(), [pl({ id: "open", date: "2026-08-25", start: "10:45", end: null })], opts);
+    expect(rows[0].blocksAhead).toBe(1);
+  });
   it("a block never moves the item's own day, even for Apps that own no moves", () => {
     const rows = resolveItemRows(item({ appId: "chores" }), [pl({ id: "a", date: "2026-08-24", start: "09:00", end: "10:00" })], { ...opts, ownsMoves: false });
     expect(rows[0].displayDate).toBe("2026-08-27");

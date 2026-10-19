@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { attachmentUrl, extractLinks, isImageEmbed, resolveAttachment, useAttachments } from "@lifeline/core";
 
-/** The first image embedded in a Receipt's body — the photo it was read from (ADR 0045). */
+/** The first image embedded in a Receipt's body — the photo it was read from (ADR 0082). */
 export function ReceiptPhoto({ body, className }: { body: string | undefined; className?: string }) {
   const attachments = useAttachments();
   const name = useMemo(() => (body ? extractLinks(body).find(isImageEmbed)?.name : undefined), [body]);

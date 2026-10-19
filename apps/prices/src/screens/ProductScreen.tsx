@@ -19,7 +19,7 @@ const SPANS: { months: number; label: string }[] = [
   { months: 0, label: "All" },
 ];
 
-/** One Product (ADR 0045): its unit price per Shop over time, the usual price at each, and every Line behind them. */
+/** One Product (ADR 0082): its unit price per Shop over time, the usual price at each, and every Line behind them. */
 export function ProductScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();

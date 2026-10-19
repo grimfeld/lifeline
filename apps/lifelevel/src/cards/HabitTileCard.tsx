@@ -31,9 +31,21 @@ export function HabitTileCard({ settings, configure }: CardProps) {
   const [pending, setPending] = useState(false);
 
   const habit = habits.find((h) => h.id === settings.habit);
+  // Only this tile's Habit: its own Completions and the Negative hits it took.
+  // A Habit's state reads nothing of the others (ADR 0026), so a dashboard of
+  // tiles no longer recomputes every Habit once per tile.
   const state = useMemo(
-    () => (habit ? computeProgression(habits, negatives, habitCompletions, negativeCompletions, now).habits.find((s) => s.habitId === habit.id) : undefined),
-    [habit, habits, negatives, habitCompletions, negativeCompletions, now],
+    () =>
+      habit
+        ? computeProgression(
+            [habit],
+            negatives,
+            habitCompletions.filter((c) => c.habitId === habit.id),
+            negativeCompletions.filter((c) => c.affectedHabitId === habit.id),
+            now,
+          ).habits[0]
+        : undefined,
+    [habit, negatives, habitCompletions, negativeCompletions, now],
   );
 
   if (!habit || !state) {

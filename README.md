@@ -1,7 +1,7 @@
 # Lifeline
 
 Lifeline is a local-first personal life dashboard. Tasks, chores, events, notes, habits, money, media and
-more all live in **one Document store**, and **27 Apps** each own a few Document types. Over that store sit
+more all live in **one Document store**, and **26 Apps** each own a few Document types. Over that store sit
 **Cards** and **Screens** (drag-and-resize dashboards), a **Calendar** with an hour-scaled Schedule, and
 **Bases**, which are saved, queryable views over any type. It works offline first, syncs between devices,
 runs in the browser and as a desktop app, and has an **MCP server** so an AI agent can read your agenda and
@@ -17,11 +17,11 @@ A pnpm monorepo in TypeScript:
 ```
 shell/           @lifeline/shell: Vite + React SPA. Dashboard, Vault, Screens, Bases, Calendar surfaces,
                  command palette, phone layout. Tauri 2 desktop config in shell/src-tauri.
-apps/<name>      27 Apps, one package each, each exporting an AppManifest: its Document types, screens,
+apps/<name>      26 Apps, one package each, each exporting an AppManifest: its Document types, screens,
                  Cards, Commands and Contract implementations (Tasks, Calendar, Chores, Journal, Notes,
                  Research, Manuscript, Projects, Stats, Habits, Mood, Workout, Ledger, Pocket, Prices,
                  Pantry, Shopping, Library, Cinema, Discotheque, Arcade, Museum, Languages, Thoughts,
-                 Swear jar, Sources, Mail)
+                 Swear jar, Sources)
 packages/core    @lifeline/core: the Document store (one `documents` table), type registry (built-in and
                  user-defined types), link index, Views/Bases queries, Contracts, the App registry, and the
                  Dexie offline store with its PocketBase sync engine
@@ -66,10 +66,6 @@ With `pnpm dev:all`, create a superuser in the PocketBase admin UI (<http://127.
 regular `users` record and sign in from the shell's sidebar. The shell reads `VITE_PB_URL` (default
 `http://127.0.0.1:8090`). To build the Demo instead, use `VITE_DEMO=1 pnpm build` (ADR 0077).
 
-Mail (ADR 0051) reads `VITE_GOOGLE_CLIENT_ID`, which is an OAuth client of type *Web application* in your own
-Google Cloud project with the Gmail API enabled and the `gmail.modify` scope. Without it the Mail screen says so
-and nothing else changes. Mail works in browser builds only.
-
 ### MCP server (ADR 0062)
 
 ```sh
@@ -86,7 +82,7 @@ cannot delete.
 ### Adding an App (ADR 0003)
 
 1. Add a package under `apps/<name>` that exports an `AppManifest`.
-2. Register it in `shell/src/main.tsx` (`initApps([...])`) and `mcp/src/apps.ts`, add the package to
+2. Register it in `shell/src/apps.ts` (`APPS`) and `mcp/src/apps.ts`, add the package to
    `shell/package.json` and `mcp/package.json`, and add its `src` to the `@source` list in `shell/src/index.css`.
 3. Bump `DB_VERSION` in `packages/core/src/data/db.ts` so Dexie migrates existing local databases.
 

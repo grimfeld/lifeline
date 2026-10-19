@@ -62,6 +62,11 @@ export function TimerScreen() {
   const current = intervals[pos.index];
   const next = intervals[pos.index + 1];
 
+  // One save per Session: a second tap while the first is in flight would
+  // write the Session (and its Tallies) twice.
+  const saving = useRef(false);
+  const [busy, setBusy] = useState(false);
+
   // Cues: one per interval change, one per 3-2-1 second, none twice.
   const lastIndex = useRef(-1);
   const lastTick = useRef(-1);
@@ -120,7 +125,9 @@ export function TimerScreen() {
   const initial = useMemo(() => (workout && finished ? initialResults(workout, intervals, finished.elapsed, live) : []), [workout, intervals, finished, live]);
 
   async function save(results: BlockResult[], notes: string) {
-    if (!workout || !finished) return;
+    if (!workout || !finished || saving.current) return;
+    saving.current = true;
+    setBusy(true);
     try {
       const earlier = await allSessions();
       const session = await saveSession({ workout, startedAt: new Date(finished.startedAt).toISOString(), endedAt: new Date(finished.endedAt).toISOString(), results, notes });
@@ -240,7 +247,7 @@ export function TimerScreen() {
         </div>
       )}
 
-      {finished && <SessionResultsDialog open workout={workout} exercises={exercises} initial={initial} onSave={(r, n) => void save(r, n)} onDiscard={() => navigate(WORKOUT_HREF)} />}
+      {finished && <SessionResultsDialog open workout={workout} exercises={exercises} initial={initial} saving={busy} onSave={(r, n) => void save(r, n)} onDiscard={() => navigate(WORKOUT_HREF)} />}
     </div>
   );
 }

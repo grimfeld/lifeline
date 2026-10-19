@@ -8,7 +8,7 @@ import { editAmount, formatCents, parseAmount } from "../domain/money";
 import { addAllowance, deleteAllowance, updateAllowance } from "../data/repo";
 
 /**
- * New / edit Allowance (ADR 0037): a name, a period kind, a day inside the
+ * New / edit Allowance (ADR 0081): a name, a period kind, a day inside the
  * wanted period (snapped to its first day), the granted amount. The derived
  * title is previewed live so the period reads back before saving. Plus the
  * face: an emoji (typed, or one of a dozen chips) and a colour slot.

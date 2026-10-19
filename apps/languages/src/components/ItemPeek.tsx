@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, cn } from "@lifeline/ui";
+import { Button, cn, toast } from "@lifeline/ui";
 import type { Document } from "@lifeline/core";
 import { Pause, Pencil, Play } from "lucide-react";
 import { heldPrompts } from "../domain/practice";
@@ -77,7 +77,7 @@ export function ItemPeek({ doc }: { doc: Document }) {
             {decks.map((d) => {
               const inDeck = d.members.includes(item.id);
               return (
-                <button key={d.id} onClick={() => void setMembership(d, item, !inDeck)} className={cn("rounded-full border px-3 py-1 text-xs", inDeck ? "bg-accent text-accent-foreground border-transparent font-medium" : "text-muted-foreground")}>
+                <button key={d.id} onClick={() => setMembership(d, item, !inDeck).catch((e: Error) => toast.error(e.message))} className={cn("rounded-full border px-3 py-1 text-xs", inDeck ? "bg-accent text-accent-foreground border-transparent font-medium" : "text-muted-foreground")}>
                   {d.name}
                 </button>
               );

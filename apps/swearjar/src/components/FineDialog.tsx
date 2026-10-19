@@ -17,7 +17,7 @@ function localInputOf(iso: string): string {
 }
 
 /**
- * Log a Fine with the details (ADR 0054): which Offence, when it really
+ * Log a Fine with the details (ADR 0083): which Offence, when it really
  * happened (backdating allowed, into a past month too), an optional note.
  * The amount is never typed — it is the Offence's price. In edit mode only
  * the moment and the note move; Delete is there for the mis-tap.

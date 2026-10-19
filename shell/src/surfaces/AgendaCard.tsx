@@ -20,11 +20,13 @@ function useNow(): Date {
 export function AgendaCard({ settings }: CardProps) {
   const today = todayStr();
   const allTimed = useTimedItems({ start: today, end: today });
-  const timedItems = allTimed.filter((t) => !t.background);
+  const timedItems = useMemo(() => allTimed.filter((t) => !t.background), [allTimed]);
   // Time blockers (ADR 0027): the hours already spoken for, painted behind the day.
-  const bands = allTimed.filter((t) => t.background && t.start);
+  const bands = useMemo(() => allTimed.filter((t) => t.background && t.start), [allTimed]);
   // Time blocks (ADR 0015): planned work shows beside Events.
-  const blocks = useSurfaceItems({ start: today, end: today }).filter((i) => i.start);
+  const surfaceItems = useSurfaceItems({ start: today, end: today });
+  // Memoized off the hooks' stable arrays, so `items` and the column layout below are not rebuilt every render.
+  const blocks = useMemo(() => surfaceItems.filter((i) => i.start), [surfaceItems]);
   const items = useMemo(
     (): { key: string; appId: string; itemId: string; title: string; date: string; start: string | null; end: string | null; color?: string; block?: SurfaceItem; timed?: SurfaceTimedItem }[] => [
       ...timedItems.map((t) => ({ ...t, timed: t })),

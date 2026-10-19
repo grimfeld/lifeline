@@ -39,6 +39,20 @@ describe("expandIcal", () => {
     expect(hol.map((o) => o.date)).toEqual(["2026-08-20", "2026-08-21"]);
     expect(hol[0]).toMatchObject({ start: null, end: null, title: "Holiday" });
   });
+  it("still shows a long-running recurrence (more than 5000 occurrences before the range)", () => {
+    const daily = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//test//EN
+BEGIN:VEVENT
+UID:old
+SUMMARY:Pills
+DTSTART:20000101T080000Z
+DTEND:20000101T081500Z
+RRULE:FREQ=DAILY
+END:VEVENT
+END:VCALENDAR`;
+    expect(expandIcal(daily, "2026-08-18", "2026-08-20").map((o) => o.date)).toEqual(["2026-08-18", "2026-08-19", "2026-08-20"]);
+  });
   it("respects range", () => {
     expect(expandIcal(ICS, "2026-09-01", "2026-09-30")).toEqual([]);
   });

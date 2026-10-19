@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Author, Work } from "./types";
-import { answersTo, applyIdentity, confidentAuthorMatch, foldBibliography, mergeAliases, mergePlan, normalizeAuthorName, ownedRow, relinkAuthors, splitAuthorNames, type AuthorHit } from "./authors";
+import { answersTo, applyIdentity, confidentAuthorMatch, foldBibliography, mergeAliases, mergePlan, normalizeAuthorName, ownedByKey, relinkAuthors, splitAuthorNames, type AuthorHit } from "./authors";
 
 const author = (p: Partial<Author>): Author => ({ id: "a", type: "author", title: "Frank Herbert", tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0, aliases: [], externalKey: "", photoUrl: "", born: "", died: "", ...p });
 
@@ -69,9 +69,13 @@ describe("Bibliography", () => {
     expect(foldBibliography(rows, true)).toHaveLength(5);
     expect(foldBibliography(rows, true)[0].title).toBe("Dune Messiah");
   });
-  it("ownedRow finds the Work by external key", () => {
+  it("ownedByKey finds the Work for a row by external key, in one pass over the shelf (CR-58)", () => {
     const w = { externalKey: "openlibrary:/works/b" } as Work;
-    expect(ownedRow(row("Dune", 1965, "", "b"), [w])).toBe(w);
-    expect(ownedRow(row("Dune", 1965, "", "z"), [w])).toBeUndefined();
+    const later = { externalKey: "openlibrary:/works/b" } as Work;
+    const keyless = { externalKey: "" } as Work;
+    const owned = ownedByKey([w, later, keyless]);
+    expect(owned.get(row("Dune", 1965, "", "b").externalKey)).toBe(w);
+    expect(owned.get(row("Dune", 1965, "", "z").externalKey)).toBeUndefined();
+    expect(owned.has("")).toBe(false);
   });
 });

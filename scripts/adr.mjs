@@ -1,21 +1,24 @@
 #!/usr/bin/env node
 // ADR numbers, kept unique while several branches and agents write ADRs at once.
 //
-//   node scripts/adr.mjs new "The title"   takes the next free number, writes docs/adr/NNNN-the-title.md
-//   node scripts/adr.mjs check             no number twice in docs/adr; warns when a number this
-//                                          change adds is taken on another branch
+//   node scripts/adr.mjs new "The title"            takes the next free number, writes docs/adr/NNNN-the-title.md
+//   node scripts/adr.mjs mv docs/adr/NNNN-slug.md   moves that ADR to the next free number, same slug
+//   node scripts/adr.mjs check                      no number twice in docs/adr; warns when a number
+//                                                   this change adds is taken on another branch
 //
 // "Free" means above every number in docs/adr on any local or origin branch and in
 // every worktree's folder, committed or not — so two agents on this machine never
 // take the same one. ADR_BASE overrides the base ref of `check` (default origin/master).
+//
+// `mv` only renames the file. A moved ADR gains `formerly: NNNN` in its frontmatter, and
+// its "ADR NNNN" references are updated by meaning, not search-and-replace — the old
+// number still names the ADR that kept it.
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 
 const DIR = "docs/adr";
 const NAME = /^(\d{4})-.+\.md$/;
-// Taken twice before this script existed. Each may stay at two files; a third fails.
-const GRANDFATHERED = new Set(["0037", "0045", "0054"]);
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] });
 const gitIn = (input, ...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1 << 28, input, stdio: ["pipe", "pipe", "ignore"] });
@@ -72,16 +75,30 @@ function create(title) {
   console.log(file);
 }
 
+/** Moves an ADR to the next free number, keeping its slug. Contents and references are the caller's. */
+function move(file) {
+  const name = file && basename(file);
+  if (!file || !existsSync(file) || resolve(dirname(file)) !== resolve(DIR) || !NAME.test(name)) {
+    console.error(`usage: pnpm adr:mv ${DIR}/NNNN-slug.md   (an existing ADR)`);
+    process.exit(1);
+  }
+  const to = `${DIR}/${name.replace(number(name), next())}`;
+  // `git mv` so a tracked ADR keeps its history; one not yet added is just renamed.
+  if (git("ls-files", "--", file).trim()) git("mv", file, to);
+  else renameSync(file, to);
+  console.log(to);
+}
+
 function check() {
   const problems = [];
   const here = adrs(readdirSync(DIR));
   const byNumber = Map.groupBy(here, number);
   for (const [n, files] of byNumber) {
-    if (files.length > (GRANDFATHERED.has(n) ? 2 : 1)) problems.push(`${n} is taken by ${files.length} ADRs: ${files.join(", ")}`);
+    if (files.length > 1) problems.push(`${n} is taken by ${files.length} ADRs: ${files.join(", ")}`);
   }
 
   // Numbers this change adds, against branches that haven't merged into it. Not an error:
-  // whichever merges first keeps the number, and the other renumbers (`pnpm adr:new` gives one).
+  // whichever merges first keeps the number, and the other renumbers (`pnpm adr:mv` moves it).
   const baseRef = process.env.ADR_BASE ?? "origin/master";
   let base = git("merge-base", baseRef, "HEAD").trim();
   if (base === git("rev-parse", "HEAD").trim()) base = git("rev-parse", "HEAD~1").trim();
@@ -96,7 +113,7 @@ function check() {
 
   for (const p of problems) console.log(`${DIR}: ${p}`);
   if (problems.length) {
-    console.log(`\nRenumber the newer ADR: \`pnpm adr:new "<title>"\` gives a free number. Update its "ADR NNNN" references too.`);
+    console.log(`\nRenumber the newer ADR: \`pnpm adr:mv <file>\` moves it to a free number. Update its "ADR NNNN" references too.`);
     process.exit(1);
   }
   console.log("adr: numbers unique");
@@ -104,8 +121,9 @@ function check() {
 
 const [command, ...rest] = process.argv.slice(2);
 if (command === "new") create(rest.join(" "));
+else if (command === "mv") move(rest[0]);
 else if (command === "check") check();
 else {
-  console.error("usage: node scripts/adr.mjs new <title> | check");
+  console.error("usage: node scripts/adr.mjs new <title> | mv <file> | check");
   process.exit(1);
 }

@@ -6,9 +6,11 @@ import { isDemo } from "./demo";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
 import { extractLinks, isImageEmbed, normalizeName, renameLinks } from "./markdown";
-import { workspaceScope } from "./workspaces";
-import { allDocuments, putDocument } from "./documents/store";
+import { useLiveQuery } from "dexie-react-hooks";
+import { onWorkspaceChange, useCurrentWorkspaceId, workspaceScope } from "./workspaces";
+import { allDocumentsEveryWorkspace, putDocument } from "./documents/store";
 import { privateGate } from "./private";
+import { documentsForLinkRewrite } from "./documents/rewrite";
 import type { Document } from "./documents/types";
 
 /**
@@ -125,7 +127,8 @@ export async function allAttachmentsUnscoped(): Promise<Attachment[]> {
   return db().collection<Attachment>(ATTACHMENTS).where("deleted").equals(0).toArray();
 }
 
-const allLive = sharedLiveQuery(() => allAttachments(), [] as Attachment[]);
+// Re-run on a Workspace switch: the scope lives in memory, where Dexie cannot see it change.
+const allLive = sharedLiveQuery(async () => allAttachments(), [] as Attachment[], { restartOn: onWorkspaceChange });
 
 /** React hook: every live Attachment. One shared query. */
 export function useAttachments(): Attachment[] {
@@ -263,18 +266,32 @@ export async function renameAttachment(att: Attachment, newName: string): Promis
   const all = await allAttachmentsUnscoped();
   if (all.some((a) => a.id !== att.id && normalizeName(a.name) === normalizeName(name))) throw new Error(`“${name}” is already taken`);
   await put<Attachment>(ATTACHMENTS, { ...att, name });
-  for (const d of await allDocuments()) {
+  // Around the Private gate, as every link rewrite is (documents/rewrite.ts): a
+  // locked note's embed must follow the rename too; nothing read is shown.
+  for (const d of await documentsForLinkRewrite()) {
     if (typeof d.body !== "string" || !d.body) continue;
     const body = renameLinks(d.body, att.name, name);
     if (body !== d.body) await putDocument({ ...d, body } as Document);
   }
 }
 
-/** Every orphaned Attachment (no body embeds it). */
+/**
+ * Every orphaned Attachment of this Workspace: no body embeds it, in any
+ * Workspace. Bodies are read across Workspaces because the Attachment and the
+ * Document embedding it can sit on two sides of a boundary (one moved before
+ * Attachments followed their Documents), and deleting it there would take a
+ * live image.
+ */
 export async function orphanedAttachments(): Promise<Attachment[]> {
   // ADR 0038: a locked gate hides bodies; their embeds would look orphaned. Refuse rather than peek.
   if ((await privateGate()).locked) throw new Error("Unlock Private first");
-  return orphanedAmong(await allAttachments(), await allDocuments());
+  return orphanedAmong(await allAttachments(), await allDocumentsEveryWorkspace());
+}
+
+/** React hook: the orphaned Attachments, live — empty while Private is locked (see orphanedAttachments). */
+export function useOrphanedAttachments(): Attachment[] {
+  const wsId = useCurrentWorkspaceId();
+  return useLiveQuery(async () => ((await privateGate()).locked ? [] : await orphanedAttachments()), [wsId], [] as Attachment[]);
 }
 
 /** Tombstone an Attachment and drop its local bytes; the push clears the server file too. */

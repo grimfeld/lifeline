@@ -52,6 +52,11 @@ function endMin(span: Pick<TakenSpan, "start" | "end">): number {
   return e > s ? e : DAY_MIN;
 }
 
+/** When a span ends, as "HH:MM" — "24:00" when it runs to midnight, so it compares after any wall clock. */
+export function spanEnd(span: Pick<TakenSpan, "start" | "end">): TimeStr {
+  return fromMin(endMin(span));
+}
+
 /** Length of a span in minutes (a block's own length when it is pushed). */
 export function spanMinutes(span: Pick<TakenSpan, "start" | "end">): number {
   return endMin(span) - toMin(span.start);
