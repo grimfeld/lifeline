@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import { NavLink } from "react-router";
-import { cn } from "@lifeline/ui";
+import { cn, PhoneDock } from "@lifeline/ui";
 import { screenRoute, screensOf } from "@lifeline/core";
 import { navRowClass, RawDataLinks } from "./RawDataLinks";
 import type { ModuleShell } from "./shells";
@@ -16,12 +16,14 @@ export interface ModulePlace {
   page?: string;
   /** Or: the id of the App screen that is this place. */
   screen?: string;
+  /** Or: a route of its own — an App screen with its parameter filled in ("this week"). */
+  href?: string;
 }
 
 /**
  * The common shape of a hand-written Module (ADR 0057): a sidebar of its own
- * places then its raw data on the desk, the same places as tabs across the top
- * on the phone, and its own pages. What makes each Module its own is the list
+ * places then its raw data on the desk, the same places as tabs in the phone
+ * dock above the Phone bar, and its own pages. What makes each Module its own is the list
  * of places, their names, and the pages — above all its home.
  */
 export function handModule(opts: {
@@ -33,7 +35,7 @@ export function handModule(opts: {
   const resolved = () =>
     opts.places.flatMap((p) => {
       const href =
-        p.page !== undefined ? (p.page ? `/module/${opts.id}/${p.page}` : `/module/${opts.id}`) : routeOfScreen(p.screen);
+        p.href ?? (p.page !== undefined ? (p.page ? `/module/${opts.id}/${p.page}` : `/module/${opts.id}`) : routeOfScreen(p.screen));
       return href ? [{ ...p, href }] : [];
     });
 
@@ -55,23 +57,25 @@ export function handModule(opts: {
 
   function Tabs() {
     return (
-      <div className="flex shrink-0 gap-1 overflow-x-auto border-b px-2 py-1.5 md:hidden">
-        {resolved().map((p) => (
-          <NavLink
-            key={p.key}
-            to={p.href}
-            end
-            className={({ isActive }) =>
-              cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs whitespace-nowrap",
-                isActive ? "bg-accent text-accent-foreground border-transparent font-medium" : "text-muted-foreground",
-              )
-            }
-          >
-            <p.icon className="size-3.5" /> {p.title}
-          </NavLink>
-        ))}
-      </div>
+      <PhoneDock slot="module">
+        <div className="flex gap-1 overflow-x-auto px-2 py-1.5 md:hidden">
+          {resolved().map((p) => (
+            <NavLink
+              key={p.key}
+              to={p.href}
+              end
+              className={({ isActive }) =>
+                cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs whitespace-nowrap",
+                  isActive ? "bg-accent text-accent-foreground border-transparent font-medium" : "text-muted-foreground",
+                )
+              }
+            >
+              <p.icon className="size-3.5" /> {p.title}
+            </NavLink>
+          ))}
+        </div>
+      </PhoneDock>
     );
   }
 

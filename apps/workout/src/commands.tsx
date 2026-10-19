@@ -50,7 +50,7 @@ function NewExerciseDialog(props: { open: boolean; onOpenChange: (open: boolean)
 }
 
 export const workoutCommands: CommandDef[] = [
-  { id: "workout.start", title: "Start workout", keywords: ["workout", "timer", "emom", "amrap", "tabata", "train", "gym"], icon: Play, dialog: StartWorkoutDialog, capture: true },
+  { id: "workout.start", title: "Start workout", keywords: ["workout", "timer", "emom", "amrap", "tabata", "train", "gym"], icon: Play, dialog: StartWorkoutDialog },
   { id: "workout.new", title: "New workout", keywords: ["workout", "create", "emom", "amrap", "tabata"], icon: Plus, dialog: NewWorkoutDialog },
   { id: "workout.new-exercise", title: "New exercise", keywords: ["exercise", "movement", "library", "lift"], icon: Plus, dialog: NewExerciseDialog },
   { id: "workout.open", title: "Go to Workout", keywords: ["workout", "training", "gym", "prs"], icon: Dumbbell, run: ({ navigate }) => navigate(WORKOUT_HREF) },

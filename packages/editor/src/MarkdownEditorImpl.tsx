@@ -29,6 +29,7 @@ import { caretRoom } from "./caretRoom";
 import { isUserScrollUp } from "./userScroll";
 import { ACCESSORY_BAR_HEIGHT, EditorAccessoryBar } from "./EditorAccessoryBar";
 import { textChange } from "./textDiff";
+import { SELECTION_EVENT } from "./selection";
 import "./editor.css";
 
 /** The caret's scroll margins and the document's tail — both sized from the editor's box. */
@@ -143,6 +144,8 @@ export function MarkdownEditor({
           // record of focus, so the bar and the daylog widgets agree on one answer.
           const now = u.state.field(focusedField, false) ?? false;
           if (now !== (u.startState.field(focusedField, false) ?? false)) setFocused(now);
+          // Selecting text offers every Intake (ADR 0073); say so, since CodeMirror's selection is its own.
+          if (u.selectionSet) u.view.dom.dispatchEvent(new CustomEvent(SELECTION_EVENT, { bubbles: true }));
           if (!u.docChanged) return;
           // Writing is the signal that the chrome is not wanted: whatever the
           // last scroll asked for, a keystroke puts the header away again.

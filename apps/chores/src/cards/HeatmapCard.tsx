@@ -86,10 +86,6 @@ export function HeatmapCard({ settings, configure }: CardProps) {
   const perDay = completionsPerDay(completions, days, choreId || undefined);
   const nameOf = (id: string) => chores.find((c) => c.id === id)?.title ?? "Unknown chore";
 
-  if (choreId && !chores.some((c) => c.id === choreId)) {
-    return <CardUnavailable message="That chore no longer exists." onConfigure={configure} />;
-  }
-
   const cols = days.length / 7;
   // Month label at the column where a new month starts (first row cell).
   const monthLabels: (string | null)[] = [];
@@ -102,6 +98,11 @@ export function HeatmapCard({ settings, configure }: CardProps) {
   const total = days.reduce((n, d) => n + (perDay.get(d)?.length ?? 0), 0);
   const { ref, cell } = useCellSize(cols, total === 0 ? 20 : 0);
 
+  // After every hook: on the first render the chores have not loaded yet.
+  if (choreId && !chores.some((c) => c.id === choreId)) {
+    return <CardUnavailable message="That chore no longer exists." onConfigure={configure} />;
+  }
+
   return (
     <div ref={ref} className="flex h-full flex-col gap-1 overflow-hidden text-xs">
       <div
@@ -113,7 +114,8 @@ export function HeatmapCard({ settings, configure }: CardProps) {
       >
         <div />
         {monthLabels.map((label, i) => (
-          <div key={i} className="text-muted-foreground overflow-visible leading-none whitespace-nowrap">
+          // A month name overhangs its one-cell column into the empty ones after it, on purpose.
+          <div key={i} data-layout-ignore className="text-muted-foreground overflow-visible leading-none whitespace-nowrap">
             {label ?? ""}
           </div>
         ))}

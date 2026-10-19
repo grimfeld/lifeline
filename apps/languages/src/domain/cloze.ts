@@ -8,7 +8,7 @@ export type ClozePart = { kind: "text"; text: string } | { kind: "blank"; text: 
 
 const BLANK = /\{\{(.*?)\}\}/g;
 
-/** Case, accents kept (they are the language); spaces collapsed, ends trimmed. */
+/** Case, accents kept (they are part of the word); spaces collapsed, ends trimmed. */
 export function normalizeBlank(text: string): string {
   return text.trim().replace(/\s+/g, " ").toLocaleLowerCase();
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
+import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, PhoneDock, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import { Dumbbell, MoreHorizontal, Pencil, Play, Plus, Trash2, Trophy } from "lucide-react";
 import { describeBlock, describeWorkout } from "../domain/intervals";
@@ -205,34 +205,40 @@ export function WorkoutScreen() {
           <Dumbbell className="size-6" /> Workout
         </h1>
         {tab === "workouts" && (
-          <Button
-            onClick={() => {
-              setEditingWorkout(undefined);
-              setWorkoutOpen(true);
-            }}
-          >
-            <Plus /> New workout
-          </Button>
+          <PhoneDock>
+            <Button
+              onClick={() => {
+                setEditingWorkout(undefined);
+                setWorkoutOpen(true);
+              }}
+            >
+              <Plus /> New workout
+            </Button>
+          </PhoneDock>
         )}
         {tab === "exercises" && (
-          <Button
-            onClick={() => {
-              setEditingExercise(undefined);
-              setExerciseOpen(true);
-            }}
-          >
-            <Plus /> New exercise
-          </Button>
+          <PhoneDock>
+            <Button
+              onClick={() => {
+                setEditingExercise(undefined);
+                setExerciseOpen(true);
+              }}
+            >
+              <Plus /> New exercise
+            </Button>
+          </PhoneDock>
         )}
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setParams(v === "workouts" ? {} : { tab: v })}>
-        <TabsList className="max-w-full overflow-x-auto overflow-y-hidden">
-          <TabsTrigger value="workouts">Workouts ({workouts.length})</TabsTrigger>
-          <TabsTrigger value="exercises">Exercises ({exercises.length})</TabsTrigger>
-          <TabsTrigger value="sessions">Sessions ({sessions.length})</TabsTrigger>
-          <TabsTrigger value="prs">PRs</TabsTrigger>
-        </TabsList>
+        <PhoneDock order={1}>
+          <TabsList className="md:max-w-full md:overflow-x-auto md:overflow-y-hidden">
+            <TabsTrigger value="workouts">Workouts ({workouts.length})</TabsTrigger>
+            <TabsTrigger value="exercises">Exercises ({exercises.length})</TabsTrigger>
+            <TabsTrigger value="sessions">Sessions ({sessions.length})</TabsTrigger>
+            <TabsTrigger value="prs">PRs</TabsTrigger>
+          </TabsList>
+        </PhoneDock>
 
         <TabsContent value="workouts" className="grid gap-2 pt-4">
           {workouts.length === 0 && (

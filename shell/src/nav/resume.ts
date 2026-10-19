@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 import { MODULES, currentWorkspaceId, moduleHome, useWorkspaceModules } from "@lifeline/core";
 
 /** Where `/` falls back to with nothing remembered: time is what the app is opened for (ADR 0057). */
-export const FALLBACK_PLACE = "/schedule";
+export const FALLBACK_PLACE = "/calendar";
 
 // A device that never picked a Workspace has no id yet (it is in the first
 // one by default), so it keeps one memory under "default" until it does.
@@ -19,6 +19,15 @@ export function lastPlace(workspaceId: string): string {
     return localStorage.getItem(KEY(workspaceId)) || FALLBACK_PLACE;
   } catch {
     return FALLBACK_PLACE;
+  }
+}
+
+/** Make `path` the place `/` resumes to in a Workspace, as if the user had last stood there. */
+export function rememberPlace(workspaceId: string, path: string): void {
+  try {
+    localStorage.setItem(KEY(workspaceId), path);
+  } catch {
+    /* private mode: `/` falls back */
   }
 }
 

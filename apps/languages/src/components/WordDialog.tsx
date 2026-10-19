@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
 import { useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import type { Word } from "../domain/types";
-import { addWord, deleteItem, updateWord, useActiveLanguage, useLanguages } from "../data/repo";
-import { LanguageSelect } from "./LanguageSelect";
+import { addWord, deleteItem, updateWord, useActiveTopic, useTopics } from "../data/repo";
+import { TopicSelect } from "./TopicSelect";
+import { OriginLine } from "./OriginLine";
 
 export interface WordPrefill {
   term?: string;
   origin?: string;
+  originId?: string;
 }
 
 /**
@@ -16,14 +18,15 @@ export interface WordPrefill {
  * term, meaning, Enter.
  */
 export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolean; onOpenChange: (open: boolean) => void; word?: Word; prefill?: WordPrefill }) {
-  const languages = useLanguages();
-  const active = useActiveLanguage();
+  const topics = useTopics();
+  const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
   const [languageId, setLanguageId] = useState("");
   const [term, setTerm] = useState("");
   const [meaning, setMeaning] = useState("");
   const [notes, setNotes] = useState("");
   const [origin, setOrigin] = useState("");
+  const [originId, setOriginId] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -34,9 +37,10 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
     setMeaning(word?.meaning ?? "");
     setNotes(word?.notes ?? "");
     setOrigin(word?.origin ?? prefill?.origin ?? "");
+    setOriginId(word?.originId ?? prefill?.originId ?? "");
     setTags(word?.tags ?? []);
     setConfirmDelete(false);
-    // `active` settles after the first render; a Word's own Language never moves.
+    // `active` settles after the first render; a Word's own Topic never moves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, word, prefill]);
 
@@ -45,7 +49,7 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
   }, [open, word, languageId, active]);
 
   async function save(another = false) {
-    const input = { languageId, term, meaning, notes, origin, tags };
+    const input = { languageId, term, meaning, notes, origin, originId, tags };
     try {
       if (word) {
         await updateWord(word, input);
@@ -74,7 +78,7 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
     onOpenChange(false);
   }
 
-  const noLanguage = languages.filter((l) => !l.archived).length === 0;
+  const noTopic = topics.filter((l) => !l.archived).length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -82,11 +86,11 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
         <DialogHeader>
           <DialogTitle>{word ? "Edit word" : "New word"}</DialogTitle>
         </DialogHeader>
-        {noLanguage ? (
-          <p className="text-muted-foreground text-sm">Add a language first, in Languages.</p>
+        {noTopic ? (
+          <p className="text-muted-foreground text-sm">Add a topic first, in Knowledge.</p>
         ) : (
           <div className="grid gap-4">
-            {!word && <LanguageSelect languages={languages} value={languageId} onChange={setLanguageId} />}
+            {!word && <TopicSelect topics={topics} value={languageId} onChange={setLanguageId} />}
             <div className="grid gap-2">
               <Label htmlFor="wd-term">Word</Label>
               <Input id="wd-term" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="tener ganas de" autoFocus lang="" />
@@ -95,10 +99,19 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
               <Label htmlFor="wd-meaning">Meaning</Label>
               <Input id="wd-meaning" value={meaning} onChange={(e) => setMeaning(e.target.value)} placeholder="to feel like (doing something)" onKeyDown={(e) => e.key === "Enter" && void save()} />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="wd-origin">Where you met it</Label>
-              <Input id="wd-origin" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Optional — a link, a book, Pedro at dinner" />
-            </div>
+            {originId ? (
+              <div className="flex min-w-0 items-center gap-2">
+                <OriginLine originId={originId} origin={origin} className="flex-1" />
+                <Button size="sm" variant="ghost" onClick={() => setOriginId("")} title="Keep it without this link">
+                  Unlink
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                <Label htmlFor="wd-origin">Where you met it</Label>
+                <Input id="wd-origin" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Optional — a link, a book, Pedro at dinner" />
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="wd-notes">Notes</Label>
               <Textarea id="wd-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
@@ -115,11 +128,11 @@ export function WordDialog({ open, onOpenChange, word, prefill }: { open: boolea
               {confirmDelete ? "Really delete" : "Delete"}
             </Button>
           ) : (
-            <Button variant="ghost" onClick={() => void save(true)} disabled={noLanguage}>
+            <Button variant="ghost" onClick={() => void save(true)} disabled={noTopic}>
               Save & add another
             </Button>
           )}
-          <Button onClick={() => void save()} disabled={noLanguage}>
+          <Button onClick={() => void save()} disabled={noTopic}>
             {word ? "Save" : "Add"}
           </Button>
         </DialogFooter>
@@ -137,7 +150,7 @@ export function originOf(h: IntakeDialogProps["handoff"]): string {
 export function WordIntakeDialog({ open, onOpenChange, handoff }: IntakeDialogProps) {
   const prefill = useMemo(() => {
     const text = handoff.text.trim();
-    return { term: text && text.length <= 80 ? text : handoff.title, origin: originOf(handoff) };
+    return { term: text && text.length <= 80 ? text : handoff.title, origin: originOf(handoff), originId: handoff.originId };
   }, [handoff]);
   return <WordDialog open={open} onOpenChange={onOpenChange} prefill={prefill} />;
 }

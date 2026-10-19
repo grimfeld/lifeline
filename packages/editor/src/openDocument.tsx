@@ -1,6 +1,7 @@
 import { useCallback, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { docHref, openDocument, type Document } from "@lifeline/core";
+import { docHref, openDocument, openPrivateDialog, putDocument, type Document, type LinkIndex, type LinkRef } from "@lifeline/core";
+import { toast } from "@lifeline/ui";
 
 /**
  * Opens a Document the way a link should (ADR 0057): inside its Home Module
@@ -11,6 +12,35 @@ export function useOpenDocument(): (doc: Document) => void {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   return useCallback((doc: Document) => openDocument(doc, { pathname, navigate }), [pathname, navigate]);
+}
+
+/**
+ * Follows a link the way the editor does: a Document opens (or peeks), a link
+ * behind the Private lock asks to unlock, and an unresolved name is created —
+ * as a Thought unless the caller says otherwise — and opened.
+ */
+export function useOpenLinkRef(index: LinkIndex, onCreateUnresolved?: (name: string) => void): (ref: LinkRef, name: string) => void {
+  const navigate = useNavigate();
+  const openDoc = useOpenDocument();
+  return useCallback(
+    (ref: LinkRef, name: string) => {
+      if (ref.kind === "doc") {
+        const d = index.byId.get(ref.id);
+        if (d) openDoc(d);
+        return;
+      }
+      if (ref.kind === "locked") return openPrivateDialog("unlock");
+      if (onCreateUnresolved) return onCreateUnresolved(name);
+      putDocument({ type: "thought", title: name, body: "" }).then(
+        (n) => {
+          toast.success(`Created “${name}”`);
+          navigate(docHref(n));
+        },
+        (err: unknown) => toast.error(`Couldn’t create “${name}” — ${err instanceof Error ? err.message : String(err)}`),
+      );
+    },
+    [index, navigate, openDoc, onCreateUnresolved],
+  );
 }
 
 /**
