@@ -81,20 +81,20 @@ describe("buildLinkIndex", () => {
 describe("folders in resolution (ADR 0013)", () => {
   const idx = buildLinkIndex(
     [
-      doc("a", "person", "Paul", "", "People"),
-      doc("b", "note", "Paul", "", "Books/Characters"),
-      doc("c", "daily", "2026-08-17", "[[Paul]] [[Books/Characters/Paul]] [[people/paul]]", "Journal/2026/08"),
+      doc("a", "person", "Alex", "", "People"),
+      doc("b", "note", "Alex", "", "Books/Characters"),
+      doc("c", "daily", "2026-08-17", "[[Alex]] [[Books/Characters/Alex]] [[people/alex]]", "Journal/2026/08"),
     ],
     types,
   );
   it("exact path wins, else the shallowest title", () => {
-    expect(idx.resolve("Books/Characters/Paul")).toMatchObject({ id: "b" });
-    expect(idx.resolve("people/paul")).toMatchObject({ id: "a" });
-    expect(idx.resolve("Paul")).toMatchObject({ id: "a" });
+    expect(idx.resolve("Books/Characters/Alex")).toMatchObject({ id: "b" });
+    expect(idx.resolve("people/alex")).toMatchObject({ id: "a" });
+    expect(idx.resolve("Alex")).toMatchObject({ id: "a" });
   });
   it("offers path forms for ambiguous titles", () => {
     const names = idx.names().map((n) => n.name);
-    expect(names).toEqual(expect.arrayContaining(["People/Paul", "Books/Characters/Paul", "2026-08-17"]));
-    expect(names).not.toContain("Paul");
+    expect(names).toEqual(expect.arrayContaining(["People/Alex", "Books/Characters/Alex", "2026-08-17"]));
+    expect(names).not.toContain("Alex");
   });
 });

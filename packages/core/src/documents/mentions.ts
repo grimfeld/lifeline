@@ -44,7 +44,7 @@ const WORD = "[\\p{L}\\p{N}]";
 const LINK_SPAN_RE = /!?\[\[[^\]\n]*\]\]/g;
 const URL_RE = /(?:https?:\/\/|www\.)\S+/g;
 
-/** Names in a single regex, longest first so "Paul Person" beats "Paul" at the same spot. Titles win over aliases on the same word. */
+/** Names in a single regex, longest first so "Alex Doe" beats "Alex" at the same spot. Titles win over aliases on the same word. */
 function compile(names: MentionName[]): Matcher {
   const byFolded = new Map<string, MentionName>();
   for (const n of names) {

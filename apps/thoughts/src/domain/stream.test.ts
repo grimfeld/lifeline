@@ -19,7 +19,7 @@ describe("titleFromText", () => {
   });
 
   it("reads a wikilink as the name it shows", () => {
-    expect(titleFromText("Ask [[Ursula Le Guin]] about [[Paul|my brother]]")).toBe("Ask Ursula Le Guin about my brother");
+    expect(titleFromText("Ask [[Ursula Le Guin]] about [[Alex|my brother]]")).toBe("Ask Ursula Le Guin about my brother");
   });
 
   it("is empty for empty text", () => {
