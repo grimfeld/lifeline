@@ -2,6 +2,8 @@
 status: accepted
 ---
 
+> A Module's landing page of Cards is no longer fixed: ADR 0066 makes it an Overview, a hand-written default the user can rearrange. The rest stands.
+
 # Modules are the product; the Rail is Core's only chrome
 
 Every App lived next to every other in one chrome — the Dashboard's sidebar —

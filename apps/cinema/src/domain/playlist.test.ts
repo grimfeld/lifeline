@@ -6,7 +6,7 @@ function playlist(p: Partial<Playlist>): Playlist {
   return { id: p.id ?? "p", updatedAt: "", deleted: 0, type: "cinema_playlist", title: "t", tags: [], folder: "", createdAt: "2026-01-01", workIds: [], ranked: false, ...p } as Playlist;
 }
 function work(id: string): Work {
-  return { id, updatedAt: "", deleted: 0, type: "movie", title: id, tags: [], folder: "", createdAt: "2026-01-01", creator: "", externalKey: "", coverUrl: "", size: 0, year: 0, engagement: "UNSTARTED", reason: "", addedOn: "2026-01-01", startedOn: "", finishedOn: "", liked: false, rating: 0 } as Work;
+  return { id, updatedAt: "", deleted: 0, type: "movie", title: id, tags: [], folder: "", createdAt: "2026-01-01", creator: "", externalKey: "", coverUrl: "", size: 0, year: 0, engagement: "UNSTARTED", reason: "", addedOn: "2026-01-01", startedOn: "", finishedOn: "", liked: false, rating: 0, partsTracked: false, caughtUpGroup: 0, caughtUpPart: 0 } as Work;
 }
 
 describe("playlist membership", () => {

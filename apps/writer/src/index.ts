@@ -1,26 +1,31 @@
 import type { AppManifest } from "@lifeline/core";
 import { Feather } from "lucide-react";
-import { WritingsScreen } from "./screens/WritingsScreen";
+import { ResearchScreen } from "./screens/ResearchScreen";
+import { EssayScreen } from "./screens/EssayScreen";
 import { DraftsCard } from "./cards/DraftsCard";
 import { VersionsPanel } from "./VersionsPanel";
-import { APP_ID, versionType, WRITINGS_HREF, writingType } from "./types";
-import { useFoldProjects } from "./data";
+import { APP_ID, RESEARCH_HREF, essayType, versionType } from "./types";
 
-/** The Writer's pad (ADR 0019): owns `writing` (my own prose) and its internal `writing_version` snapshots. */
+/**
+ * The Research App (ADR 0068), born the Writer's pad — its id stays `writer`:
+ * Essays argued from material, and the Versions an Essay or a Chapter keeps.
+ */
 export const writerApp: AppManifest = {
   id: APP_ID,
-  module: "notes",
-  title: "Writer's pad",
+  module: "research",
+  title: "Research",
   icon: Feather,
   color: "var(--chart-violet)",
-  types: [writingType, versionType],
-  // One screen: the desk lists and starts Writings, the Vault writes them (ADR 0045).
-  screens: [{ id: "writer.desk", title: "Writings", path: "writings", icon: Feather, component: WritingsScreen }],
+  types: [{ ...essayType, icon: Feather }, versionType],
+  screens: [
+    { id: "writer.desk", title: "Essays", path: "research", icon: Feather, component: ResearchScreen },
+    { id: "writer.essay", title: "Essay", path: "research/e/:id", component: EssayScreen, hidden: true },
+  ],
   cards: [
     {
       id: "writer.drafts",
       title: "Drafts",
-      description: "Writings in progress, most recently edited first",
+      description: "Essays in progress, most recently edited first",
       component: DraftsCard,
       defaultSize: { w: 3, h: 5 },
       minSize: { w: 2, h: 3 },
@@ -28,9 +33,11 @@ export const writerApp: AppManifest = {
       settings: { count: { kind: "number", label: "How many", default: 6, min: 1, max: 30 } },
     },
   ],
-  /** Versions ride along with a Writing wherever it is open (ADR 0045). */
+  /** Versions ride along with an Essay or a Chapter wherever it is open (ADR 0045). */
   documentPanels: [{ id: "writer.versions", component: VersionsPanel }],
-  // ADR 0060: the old `project` field becomes a Folder, once, on every device.
-  useBackground: useFoldProjects,
-  commands: [{ id: "writer.go", title: "Go to Writings", keywords: ["writer", "draft", "pad"], icon: Feather, run: ({ navigate }) => navigate(WRITINGS_HREF) }],
+  commands: [{ id: "writer.go", title: "Go to Research", keywords: ["research", "essay", "essays", "draft", "thesis", "writer"], icon: Feather, run: ({ navigate }) => navigate(RESEARCH_HREF) }],
 };
+
+export { ESSAY, VERSION, VERSIONED, essayHref, wordCount, type Essay, type Version } from "./types";
+export { snapshot, useVersions } from "./data";
+export { VersionsPanel } from "./VersionsPanel";

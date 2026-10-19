@@ -31,8 +31,8 @@ apps/mood        @lifeline/app-mood — Mood App (ADR 0044): one Mood per day on
                  reported into the daily note through the Daylog
 apps/prices      @lifeline/app-prices — Prices App (ADR 0045): what regular purchases cost, where, and over time —
                  Products (a measure, never a pack size) × Shops (chains); Receipts own Lines (amount, price paid,
-                 promo), read from a photo by Tesseract on the device behind one reader seam, always reviewed
-                 before saving; unit price, cheapest shop and per-shop change are derived, never stored
+                 promo), typed in by hand or read from a photo by an agent over MCP (ADR 0075) — Lifeline
+                 itself reads no photo; unit price, cheapest shop and per-shop change are derived, never stored
 apps/mail        @lifeline/app-mail — Mail App (ADR 0051): a window onto Gmail — Mailboxes (one per address, the only
                  Document type), Threads read live into a local-only cache and triaged at Google (archive, read, star,
                  label, trash), never sent; a Message is kept as a Clipping, Task or Event through the Intake

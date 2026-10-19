@@ -23,3 +23,7 @@ The receipt photo is read by **Tesseract on the device** first, chosen over a vi
 - Surfaces: one App screen with three readings — Product history (unit price per Shop over time, promo points marked, latest non-promo per Shop), Receipt register with the unmatched filter, and the price change reading over a chosen span; one configurable Card, **Product price**; two capture Commands, **Scan receipt…** and **Add price…**. Recent receipts and the inbox count are a View card and a Count tile, no App code.
 - Nav: Prices joins the **Money** group beside Ledger and Pocket.
 - `tesseract.js` is a new shell dependency loaded lazily on first scan; its language data is fetched from the network, so the first scan on a device is online-only. If the reader is replaced by a cloud model, the seam, the review dialog and this ADR's second paragraph are what change.
+
+## Amendment (2026-10-18): Lifeline reads no photo
+
+Superseded by ADR 0075 in the part about the reader: the third paragraph (Tesseract on the device, the reader seam, OCR before the downscale) and the `tesseract.js` consequence. Tesseract read too poorly, and the reading moved to the person's own agent, which runs **Add receipt…** headless over MCP; "Scan receipt…" is gone. The rule that a reading is reviewed before it is saved stands — by the person with the agent, in the conversation.

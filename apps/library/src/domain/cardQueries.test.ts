@@ -26,6 +26,12 @@ function item(p: Partial<Work>): Work {
     slottedOn: "",
     startedOn: "",
     finishedOn: "",
+    liked: false,
+    rating: 0,
+    partsTracked: false,
+    caughtUpGroup: 0,
+    caughtUpPart: 0,
+    partCount: 0,
     ...p,
   };
 }

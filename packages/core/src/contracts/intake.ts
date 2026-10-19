@@ -16,6 +16,12 @@ export interface Handoff {
   author?: string;
   /** ISO instant or YYYY-MM-DD: when the material was written / sent. */
   date?: string;
+  /**
+   * The Document it was taken from, when there is one (ADR 0073) — a Note, a
+   * Quote, a Thought a passage was selected in. A receiver may keep it as a
+   * link; what it says is read through the link, never copied.
+   */
+  originId?: string;
 }
 
 export interface IntakeDialogProps {

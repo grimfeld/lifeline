@@ -49,6 +49,11 @@ export function useLines(): Line[] {
   return useMemo(() => rows.map(normalizeLine), [rows]);
 }
 
+/** One thing per name (CONTEXT.md "Command"): adding or renaming onto a name already taken is refused, case and outer spaces aside. */
+function sameName(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
 // ---- Shops ----
 
 export interface ShopInput {
@@ -59,6 +64,7 @@ export interface ShopInput {
 export async function addShop(input: ShopInput): Promise<string> {
   const title = input.title.trim();
   if (!title) throw new Error("Give the shop a name");
+  if ((await allShops()).some((s) => sameName(s.title, title))) throw new Error(`There is already a shop called “${title}”`);
   const row = await putDocument<Shop>({ type: SHOP, title, note: input.note?.trim() ?? "", folder: "", tags: [] } as unknown as Shop);
   return row.id;
 }
@@ -67,6 +73,7 @@ export async function addShop(input: ShopInput): Promise<string> {
 export async function updateShop(shop: Shop, input: ShopInput): Promise<void> {
   const title = input.title.trim();
   if (!title) throw new Error("Give the shop a name");
+  if ((await allShops()).some((s) => s.id !== shop.id && sameName(s.title, title))) throw new Error(`There is already a shop called “${title}”`);
   await putDocument<Shop>({ ...shop, title, note: input.note?.trim() ?? "" });
   if (title !== shop.title) for (const r of await documentsWhere<Receipt>(RECEIPT, "shopId", shop.id)) await patchDocument(r.id, { title: receiptTitle(title, r.date) });
 }
@@ -89,6 +96,7 @@ export async function addProduct(input: ProductInput): Promise<string> {
   const title = input.title.trim();
   if (!title) throw new Error("Give the product a name");
   if (!isMeasure(input.measure)) throw new Error("Pick a measure");
+  if ((await allProducts()).some((p) => sameName(p.title, title))) throw new Error(`There is already a product called “${title}”`);
   const row = await putDocument<Product>({ type: PRODUCT, title, measure: input.measure, labels: [], folder: "", tags: normalizeTags(input.tags ?? []) } as unknown as Product);
   return row.id;
 }
@@ -97,6 +105,7 @@ export async function addProduct(input: ProductInput): Promise<string> {
 export async function updateProduct(product: Product, input: Pick<ProductInput, "title" | "tags">): Promise<void> {
   const title = input.title.trim();
   if (!title) throw new Error("Give the product a name");
+  if ((await allProducts()).some((p) => p.id !== product.id && sameName(p.title, title))) throw new Error(`There is already a product called “${title}”`);
   await putDocument<Product>({ ...product, title, tags: normalizeTags(input.tags ?? product.tags) });
 }
 
@@ -166,12 +175,26 @@ function checkReceipt(input: ReceiptInput): void {
 }
 
 /**
- * Save a Receipt and its Lines in one go — the review dialog's confirm and
- * the register's edit. Lines not in `input.lines` are deleted; matched
- * Lines teach the Product their label at this Shop.
+ * The one Receipt that collides (CONTEXT.md "Receipt"): the same Shop, day
+ * and printed total is the same receipt added twice. One with no printed
+ * total — a price noticed on a shelf — never is.
+ */
+async function sameReceipt(input: ReceiptInput, except?: string): Promise<Receipt | undefined> {
+  const total = Math.max(0, Math.round(input.total));
+  if (total === 0) return undefined;
+  return (await documentsWhere<Receipt>(RECEIPT, "shopId", input.shopId)).map(normalizeReceipt).find((r) => r.id !== except && r.date === input.date && r.total === total);
+}
+
+/**
+ * Save a Receipt and its Lines in one go — the Receipt dialog's save, by
+ * hand or over an existing Receipt, and "Add receipt…" run headless. Lines
+ * not in `input.lines` are deleted; matched Lines teach the Product their
+ * label at this Shop.
  */
 export async function saveReceipt(input: ReceiptInput, shops: readonly Shop[], products: readonly Product[], existing?: { receipt: Receipt; lines: Line[] }): Promise<string> {
   checkReceipt(input);
+  const twin = await sameReceipt(input, existing?.receipt.id);
+  if (twin) throw new Error(`Already added: ${twin.title} has the same printed total (${twin.id})`);
   const shopName = shops.find((s) => s.id === input.shopId)?.title ?? "";
   let body = existing?.receipt.body ?? "";
   if (input.photo) {
