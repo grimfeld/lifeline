@@ -115,16 +115,18 @@ function PeekBody({ doc, def, writing, onToggleWriting }: { doc: Document; def: 
           <PeekBack />
           {onToggleWriting && (
             <Tip label={writing ? "Read (⌘E)" : "Write (⌘E)"}>
-              <Button variant="ghost" size="icon" className="size-8" aria-label={writing ? "Read" : "Write"} aria-pressed={writing} onClick={onToggleWriting}>
+              <Button variant="ghost" size="icon-sm" aria-label={writing ? "Read" : "Write"} aria-pressed={writing} onClick={onToggleWriting}>
                 {writing ? <BookOpen /> : <Pencil />}
               </Button>
             </Tip>
           )}
-          <SheetClose asChild>
-            <Button variant="ghost" size="icon" className="size-8" title="Close">
-              <X />
-            </Button>
-          </SheetClose>
+          <Tip label="Close">
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon-sm">
+                <X />
+              </Button>
+            </SheetClose>
+          </Tip>
         </div>
         <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
           {Icon && <Icon className="size-3.5" />}
@@ -156,7 +158,7 @@ function PeekBack() {
   if (stack.length < 2) return null;
   return (
     <Tip label="Back">
-      <Button variant="ghost" size="icon" className="size-8" aria-label="Back" onClick={backPeek}>
+      <Button variant="ghost" size="icon-sm" onClick={backPeek}>
         <ArrowLeft />
       </Button>
     </Tip>
