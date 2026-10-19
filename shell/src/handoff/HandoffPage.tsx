@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { decodeHandoff, HANDOFF_DONE_PATH, type HandoffDecodeError } from "@lifeline/handoff";
-import { allIntakes, allWorkspaces, currentWorkspaceId, intakeByKey, lastIntakeKey, pb, rememberIntake, setCurrentWorkspace, useWorkspaces, type WorkspaceRecord } from "@lifeline/core";
+import { decodeHandoff, encodeHandoff, HANDOFF_DONE_PATH, handoffFromShare, type HandoffDecodeError } from "@lifeline/handoff";
+import { allIntakes, allWorkspaces, currentWorkspaceId, docHref, getDocument, intakeByKey, lastIntakeKey, pb, rememberIntake, setCurrentWorkspace, useWorkspaces, type WorkspaceRecord } from "@lifeline/core";
 import { Button, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { CircleCheck, Lock } from "lucide-react";
 import { arrivingHandoff, dropPendingHandoff, keepPendingHandoff } from "./pending";
@@ -20,6 +20,17 @@ const UNREADABLE: Record<HandoffDecodeError, string> = {
   version: "It was sent by a newer Lifeline extension than this Lifeline can read. Reload Lifeline, then send it again.",
 };
 
+/**
+ * What arrived, as a codec fragment, and how: the share sheet sends query
+ * parameters (the manifest's GET share target); everything else a fragment, or
+ * the one this tab already holds.
+ */
+function arrival(search: string, hash: string): { fragment: string; shared: boolean } {
+  const q = new URLSearchParams(search);
+  if (hash.replace(/^#/, "") || !["title", "text", "url"].some((k) => q.has(k))) return { fragment: arrivingHandoff(hash), shared: false };
+  return { fragment: encodeHandoff(handoffFromShare({ title: q.get("title"), text: q.get("text"), url: q.get("url") })), shared: true };
+}
+
 function Frame({ children }: { children: ReactNode }) {
   return <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 md:p-6">{children}</div>;
 }
@@ -37,13 +48,19 @@ function Frame({ children }: { children: ReactNode }) {
  * receives it. With more than one Workspace it also asks where the Document
  * lands: the choice becomes the current Workspace before the dialog opens,
  * because a dialog stamps the current Workspace on what it makes.
+ *
+ * From the phone's share sheet the Handoff comes as query parameters instead
+ * (`?title=&text=&url=`, the manifest's GET share target), and there is no
+ * extension window to close: once saved, the page stays and offers to open
+ * what was made, or to go back.
  */
 export function HandoffPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  // Read once: the fragment is the Handoff (or the one this tab already holds), and moving on drops it.
-  const [fragment] = useState(() => arrivingHandoff(location.hash));
+  // Read once: the address is the Handoff (or the one this tab already holds), and moving on drops it.
+  const [{ fragment, shared }] = useState(() => arrival(location.search, location.hash));
   const [decoded] = useState(() => decodeHandoff(fragment));
+  const [made, setMade] = useState<string>();
   // Signed out, sign-in (or working locally) comes before the Intake step.
   const [signInDone, setSignInDone] = useState(() => pb.authStore.isValid);
   const named = decoded.ok && decoded.intake ? intakeByKey(decoded.intake) : undefined;
@@ -83,7 +100,7 @@ export function HandoffPage() {
   }
 
   useEffect(() => {
-    if (stage !== "saved") return;
+    if (stage !== "saved" || shared) return;
     const t = setTimeout(() => navigate(HANDOFF_DONE_PATH, { replace: true }), SAVED_MS);
     return () => clearTimeout(t);
   }, [stage, navigate]);
@@ -97,7 +114,7 @@ export function HandoffPage() {
     );
   }
   const { handoff } = decoded;
-  if (stage === "saved") return <HandoffSaved />;
+  if (stage === "saved") return <HandoffSaved made={shared ? made : undefined} what={intake?.title} />;
 
   return (
     <Frame>
@@ -164,8 +181,9 @@ export function HandoffPage() {
           key={intake.key}
           open={stage === "open"}
           onOpenChange={(o) => !o && !saved.current && setStage("cancelled")}
-          onSaved={() => {
+          onSaved={(id) => {
             saved.current = true;
+            setMade(id);
             dropPendingHandoff();
             setStage("saved");
           }}
@@ -176,15 +194,39 @@ export function HandoffPage() {
   );
 }
 
-/** "Saved" — on the Handoff page for a moment, then at its done address, `/handoff/done`. */
-export function HandoffSaved() {
+/**
+ * "Saved" — on the Handoff page for a moment, then at its done address,
+ * `/handoff/done`. From the share sheet it stays, with the Document `made`
+ * (a `what`: "Quote") to open, or a way back.
+ */
+export function HandoffSaved({ made, what }: { made?: string; what?: string }) {
+  const navigate = useNavigate();
+  async function openMade() {
+    const doc = made ? await getDocument(made) : undefined;
+    navigate(doc ? docHref(doc) : "/", { replace: true });
+  }
+  // Opened by the share sheet there may be nothing to go back to: then home.
+  const back = () => (window.history.length > 1 ? navigate(-1) : navigate("/", { replace: true }));
   return (
     <Frame>
       <div className="flex items-center gap-2">
         <CircleCheck className="text-success size-5 shrink-0" />
         <h1 className="text-xl font-semibold tracking-tight">Saved</h1>
       </div>
-      <p className="text-muted-foreground text-sm">You can close this window.</p>
+      {made ? (
+        <div className="flex flex-wrap items-center gap-2 max-md:contents">
+          <PhoneDock>
+            <Button onClick={() => void openMade()}>Open the {what ?? "Document"}</Button>
+          </PhoneDock>
+          <PhoneDock>
+            <Button variant="outline" onClick={back}>
+              Go back
+            </Button>
+          </PhoneDock>
+        </div>
+      ) : (
+        <p className="text-muted-foreground text-sm">You can close this window.</p>
+      )}
     </Frame>
   );
 }
