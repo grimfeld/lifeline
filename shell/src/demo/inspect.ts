@@ -3,7 +3,9 @@ import { displayTitle, documentsOf, registeredApps, screenRoute, typesOfApp } fr
 /**
  * What the Demo's e2e suite reads from the running build (shell/e2e/demo.spec.ts):
  * the built bundle cannot be imported from a test, so the Demo hands it the
- * App registry here. Demo builds only; it holds nothing the page doesn't show.
+ * App registry here. Only in the suite's own Demo build (`VITE_DEMO_E2E=1`,
+ * playwright.config.ts): the deployed Demo leaves this chunk out. It holds
+ * nothing the page doesn't show.
  */
 
 /** An App's main page, and the titles of its Documents — what to look for on screen. */

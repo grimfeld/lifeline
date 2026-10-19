@@ -1,5 +1,6 @@
-import { db, ensureDefaultWorkspace, todayStr, type DateStr } from "@lifeline/core";
-import { lifeClock } from "./persona";
+import { db, ensureDefaultWorkspace, eraseDevice, todayStr, type DateStr } from "@lifeline/core";
+import { lifeClock, type LifeClock } from "./persona";
+import { setDemoFilling } from "./filling";
 import { seedAgenda } from "./life/agenda";
 import { seedTracking } from "./life/tracking";
 import { seedMoney } from "./life/money";
@@ -19,37 +20,58 @@ import { seedHome, seedOverviews } from "./life/screens";
 const SEEDED = "demo:seeded";
 const SEEDING = "seeding";
 
-/** Write the whole Demo life, dated around `visitDay`. Through Commands and Core APIs only. */
-export async function seedDemo(visitDay: DateStr): Promise<void> {
+/** What the first screen needs: today's agenda, and Home showing it. */
+async function seedFirstScreen(clock: LifeClock): Promise<void> {
   await ensureDefaultWorkspace();
-  const clock = lifeClock(visitDay);
   await seedAgenda(clock);
-  await seedWork(clock);
-  await seedMedia(clock);
-  await seedTracking(clock);
-  await seedWriting(clock);
-  await seedMoney(clock);
-  await seedWindows(clock);
   await seedHome(clock);
+}
+
+/** The rest of the life, written while the visitor already looks at Home. */
+async function seedRest(clock: LifeClock): Promise<void> {
+  // Side by side: the slices write disjoint types and name nothing of each
+  // other's. Each write makes the screen already up read the store again; the
+  // more writes land between two of those reads, the fewer reads in all.
+  await Promise.all([seedWork(clock), seedMedia(clock), seedTracking(clock), seedWriting(clock), seedMoney(clock), seedWindows(clock)]);
+  // Last: the Overviews name Documents the slices made.
   await seedOverviews(clock);
 }
 
+/** Write the whole Demo life, dated around `visitDay`. */
+export async function seedDemo(visitDay: DateStr): Promise<void> {
+  const clock = lifeClock(visitDay);
+  await seedFirstScreen(clock);
+  await seedRest(clock);
+}
+
 /**
- * On start in the Demo: seed once per device. A reload with the marker does
- * nothing; a reload in the middle of seeding (marker still "seeding") erases
- * the half-written life and starts over, rather than seeding on top of it.
+ * On start in the Demo: seed once per device, calling `show` as soon as the
+ * first screen can be shown. A reload with the marker only shows.
+ *
+ * The whole life takes a few seconds, so the first open writes today's agenda
+ * and Home, shows them, and writes the rest behind them (#104) while the shell
+ * says so. The marker stays "seeding" until the very end: a reload at any
+ * point before erases the half-written life and starts over, rather than
+ * seeding on top of it.
  */
-export async function seedDemoIfNeeded(): Promise<void> {
+export async function seedDemoIfNeeded(show: () => void): Promise<void> {
   const meta = db()._meta;
   const marker = (await meta.get(SEEDED))?.value;
-  if (marker && marker !== SEEDING) return;
+  if (marker && marker !== SEEDING) return show();
   if (marker === SEEDING) {
-    await db().delete();
-    location.reload();
-    return new Promise(() => {});
+    await eraseDevice();
+    return new Promise(() => {}); // the reload takes over
   }
   await meta.put({ key: SEEDED, value: SEEDING });
   const visitDay = todayStr();
-  await seedDemo(visitDay);
-  await meta.put({ key: SEEDED, value: visitDay });
+  const clock = lifeClock(visitDay);
+  await seedFirstScreen(clock);
+  setDemoFilling(true);
+  show();
+  try {
+    await seedRest(clock);
+    await meta.put({ key: SEEDED, value: visitDay });
+  } finally {
+    setDemoFilling(false);
+  }
 }

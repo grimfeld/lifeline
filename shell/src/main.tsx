@@ -32,6 +32,7 @@ import { mailApp } from "@lifeline/app-mail";
 import { pricesApp } from "@lifeline/app-prices";
 import { hubApp } from "./hub";
 import App from "./App";
+import { startDemo } from "./demo/start";
 import "./index.css";
 
 // Compile-time App registry (ADR 0003): every App joins here. The Demo
@@ -55,18 +56,10 @@ const app = (
 );
 
 if (isDemo()) {
-  // The Demo life is written before the first screen, so it opens lived-in (ADR 0077).
-  root.render(
-    <div className="text-muted-foreground flex h-dvh items-center justify-center text-sm" role="status">
-      Loading…
-    </div>,
-  );
-  // A chunk of its own: the real build never loads the Demo life.
-  void import("./demo/seed")
-    .then((m) => m.seedDemoIfNeeded())
-    .catch((e) => console.error("Demo life could not be seeded", e))
-    .then(() => root.render(app));
-  void import("./demo/inspect").then((m) => m.exposeForTests());
+  // The Demo opens lived-in (ADR 0077): today is written before the first screen, the rest just after.
+  startDemo(root, app);
+  // The e2e suite's own Demo build only (playwright.config.ts): the deployed Demo has no test hook.
+  if (import.meta.env.VITE_DEMO_E2E === "1") void import("./demo/inspect").then((m) => m.exposeForTests());
 } else {
   root.render(app);
 }
