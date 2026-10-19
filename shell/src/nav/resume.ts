@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { HANDOFF_PATH } from "@lifeline/handoff";
 import { MODULES, currentWorkspaceId, moduleHome, useWorkspaceModules } from "@lifeline/core";
 
 /** Where `/` falls back to with nothing remembered: time is what the app is opened for (ADR 0057). */
@@ -44,7 +45,8 @@ export function useResume() {
   // move: switching Workspace must not file the page being left under the
   // Workspace being entered, which is what a Workspace dependency would do.
   useEffect(() => {
-    if (location.pathname === "/") return;
+    // The Handoff page is a stop on the way in from outside (ADR 0080), never a place to resume.
+    if (location.pathname === "/" || location.pathname.startsWith(HANDOFF_PATH)) return;
     try {
       localStorage.setItem(KEY(currentWorkspaceId()), location.pathname + location.search);
     } catch {

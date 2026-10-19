@@ -39,7 +39,7 @@ export const commonplaceApp: AppManifest = {
     { id: "commonplace.note", title: "Note", path: "notes/n/:id", component: NoteScreen, hidden: true },
   ],
   documentPanels: [{ id: "commonplace.source", component: SourcePanel }],
-  // Intake (ADR 0050, ADR 0070): a text handed over from another App — a kept mail — becomes a Quote with its Source, reviewed first.
+  // Intake (ADR 0050, ADR 0070): a text handed over from another App — a selected passage — becomes a Quote with its Source, reviewed first.
   intakes: [{ id: "quote", title: "Quote", icon: QuoteIcon, dialog: QuoteIntakeDialog }],
   // A kept Quote is practised by the Knowledge App (ADR 0073), which this App never names.
   recallable: [{ ...quoteReading, face: QuoteFace }],
