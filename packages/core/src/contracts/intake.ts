@@ -1,6 +1,7 @@
 import type React from "react";
 import { useSyncExternalStore } from "react";
 import type { Handoff } from "@lifeline/handoff";
+import type { AppManifest } from "../manifest";
 import { registeredApps } from "../registry";
 
 // The Handoff itself lives in the dependency-free codec package, which the
@@ -34,7 +35,12 @@ export interface IntakeDef {
 
 /** Read side: every App's Intakes, in registry order, each stamped with its App. */
 export function allIntakes(): (IntakeDef & { appId: string; key: string })[] {
-  return registeredApps().flatMap((a) => (a.intakes ?? []).map((i) => ({ ...i, appId: a.id, key: `${a.id}/${i.id}` })));
+  return intakesOf(registeredApps());
+}
+
+/** The Intakes of these Apps, in their order, each stamped with its App — the build reads the registry through it too. */
+export function intakesOf(apps: readonly AppManifest[]): (IntakeDef & { appId: string; key: string })[] {
+  return apps.flatMap((a) => (a.intakes ?? []).map((i) => ({ ...i, appId: a.id, key: `${a.id}/${i.id}` })));
 }
 
 /** One Intake by its `${appId}/${id}` key. */

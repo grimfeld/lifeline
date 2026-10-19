@@ -29,7 +29,7 @@ import { pricesApp } from "@lifeline/app-prices";
 /**
  * Every App, in the shell's registry order (ADR 0003): the server registers
  * the same types, indexes and hooks a device does. Keep in step with
- * shell/src/main.tsx.
+ * shell/src/apps.ts.
  */
 export const manifests: AppManifest[] = [
   choresApp,
