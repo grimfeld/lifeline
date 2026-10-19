@@ -117,6 +117,7 @@ export const taskCommands: CommandDef[] = [
     title: "Plan the week",
     keywords: ["week", "planner", "tasks"],
     icon: ListTodo,
-    run: ({ navigate }) => navigate("/week"),
+    // The Week planner retired into the Calendar's Week (ADR 0063).
+    run: ({ navigate }) => navigate("/calendar?view=week"),
   },
 ];

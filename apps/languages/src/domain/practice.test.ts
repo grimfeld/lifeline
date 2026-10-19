@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { dueAhead, introducedOn, practiceQueue, retention, spaceSiblings } from "./practice";
-import { RECALL, SENTENCE, WORD, type Grade, type Recall, type Sentence, type Word } from "./types";
+import { itemMaterial } from "./prompts";
+import { RECALL, SENTENCE, WORD, type Grade, type Material, type Recall, type Sentence, type Word } from "./types";
 
 /** Local wall-clock instants, so day boundaries are the test machine's own. */
 const at = (day: number, h = 9, m = 0) => new Date(2026, 8, day, h, m).toISOString();
 
-const word = (id: string, addedDay = 1): Word =>
-  ({ id, type: WORD, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", term: id, meaning: "", notes: "", origin: "", paused: false, addedAt: at(addedDay) }) as Word;
+const word = (id: string, addedDay = 1): Material =>
+  itemMaterial({ id, type: WORD, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", term: id, meaning: "", notes: "", origin: "", originId: "", paused: false, addedAt: at(addedDay) } as Word);
 
-const sentence = (id: string, text: string): Sentence =>
-  ({ id, type: SENTENCE, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", text, translation: "", origin: "", paused: false, addedAt: at(1) }) as Sentence;
+const sentence = (id: string, text: string): Material =>
+  itemMaterial({ id, type: SENTENCE, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", text, translation: "", origin: "", originId: "", paused: false, addedAt: at(1) } as Sentence);
 
 let n = 0;
 const recall = (itemId: string, slot: string, grade: Grade, when: string): Recall =>
@@ -24,7 +25,7 @@ describe("practiceQueue", () => {
     expect(q.queue.map((p) => p.key)).toEqual(["a|forward", "b|forward", "a|reverse", "c|forward", "b|reverse"].slice(0, 3));
   });
 
-  it("counts today's introductions against the cap, across the whole Language", () => {
+  it("counts today's introductions against the cap, across the whole Topic", () => {
     const items = [word("a"), word("b")];
     const recalls = [recall("a", "forward", "pass", at(10, 8)), recall("a", "reverse", "pass", at(10, 8, 1))];
     const q = practiceQueue(items, recalls, { now: new Date(at(10, 12)), newCap: 3 });
@@ -51,6 +52,29 @@ describe("practiceQueue", () => {
   it("derives a Sentence's Prompts from its blanks", () => {
     const q = practiceQueue([sentence("s", "Tengo {{ganas}} de {{comer}}")], [], { now: new Date(at(10)), newCap: 10 });
     expect(q.queue.map((p) => p.slot).sort()).toEqual(["blank:comer", "blank:ganas"]);
+  });
+});
+
+describe("practiceQueue across Topics", () => {
+  const inTopic = (m: Material, topicId: string): Material => ({ ...m, topicId });
+  const recallIn = (r: Recall, topicId: string): Recall => ({ ...r, languageId: topicId });
+
+  it("holds each Topic to its own daily new cap", () => {
+    const items = [inTopic(word("a1", 1), "A"), inTopic(word("a2", 2), "A"), inTopic(word("b1", 3), "B"), inTopic(word("b2", 4), "B")];
+    const caps: Record<string, number> = { A: 1, B: 3 };
+    const q = practiceQueue(items, [], { now: new Date(at(10)), newCap: (t) => caps[t] });
+    const byTopic = (t: string) => q.queue.filter((p) => p.topicId === t).length;
+    expect(byTopic("A")).toBe(1);
+    expect(byTopic("B")).toBe(3);
+    expect(q.newToday).toBe(4);
+  });
+
+  it("counts today's introductions against their own Topic only", () => {
+    const items = [inTopic(word("a1", 1), "A"), inTopic(word("a2", 2), "A"), inTopic(word("b1", 3), "B")];
+    const recalls = [recallIn(recall("a1", "forward", "pass", at(10, 8)), "A")];
+    const q = practiceQueue(items, recalls, { now: new Date(at(10, 12)), newCap: () => 1 });
+    expect(q.queue.filter((p) => p.topicId === "A" && p.held.state === "new")).toHaveLength(0);
+    expect(q.queue.filter((p) => p.topicId === "B")).toHaveLength(1);
   });
 });
 

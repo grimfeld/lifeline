@@ -29,7 +29,7 @@ describe("deleting a work", () => {
     const heat = await addWork({ medium: "movie", title: "Heat", reason: "" });
     const ronin = await addWork({ medium: "movie", title: "Ronin", reason: "" });
     const list = await addPlaylist({ title: "Heists", body: "", ranked: true, workIds: [heat, ronin] });
-    await putDocument({ type: "quote", mediaId: heat, text: "Don't let yourself get attached to anything." });
+    await putDocument({ type: "quote", source: heat, body: "Don't let yourself get attached to anything." });
     await removeDocument(heat); // the Vault's or a Base's delete, not the Cinema's own
     expect(await documentsOf("quote")).toEqual([]);
     expect((await getDocument<Playlist>(list))!.workIds).toEqual([ronin]);

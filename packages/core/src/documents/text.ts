@@ -1,5 +1,5 @@
 import { serializeFrontmatter, splitFrontmatter, type Properties, type PropertyValue } from "../markdown";
-import { isCommonKey, type Document, type DocumentTypeDef, type FieldDef } from "./types";
+import { isCommonKey, ROLES_KEY, type Document, type DocumentTypeDef, type FieldDef } from "./types";
 
 /**
  * The text projection of a Document (ADR 0018): `frontmatter + body`. Not
@@ -95,7 +95,7 @@ export function documentToText(doc: Document, def: DocumentTypeDef | undefined, 
   }
   if (doc.tags && doc.tags.length > 0) props.tags = [...doc.tags];
   for (const [k, v] of Object.entries(doc)) {
-    if (isCommonKey(k) || known.has(k) || v === undefined || v === null || v === "") continue;
+    if (isCommonKey(k) || k === ROLES_KEY || known.has(k) || v === undefined || v === null || v === "") continue;
     if (typeof v === "string" || typeof v === "number") props[k] = v;
     else if (Array.isArray(v) && v.every((x) => typeof x === "string" || typeof x === "number")) props[k] = v.map(String);
   }
@@ -134,7 +134,7 @@ export function textToDocument(text: string, current: Document, def: DocumentTyp
   const tagsRaw = properties.tags;
   patch.tags = Array.isArray(tagsRaw) ? tagsRaw.map(String) : typeof tagsRaw === "string" ? tagsRaw.split(/[,\s]+/).filter(Boolean) : [];
   for (const [k, v] of Object.entries(properties)) {
-    if (k === "tags" || known.has(k) || isCommonKey(k)) continue;
+    if (k === "tags" || k === ROLES_KEY || known.has(k) || isCommonKey(k)) continue;
     patch[k] = v;
   }
   if (def?.body !== "none") patch.body = content;

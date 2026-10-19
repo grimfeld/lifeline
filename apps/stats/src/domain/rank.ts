@@ -1,5 +1,5 @@
 import type { Entry, Stat } from "./types";
-import { collectedItems, currentStreak, longestStreak, markedDays } from "./aggregate";
+import { collectedItems, collectionUniverse, currentStreak, longestStreak, markedDays } from "./aggregate";
 
 export interface StreakRow {
   stat: Stat;
@@ -47,7 +47,7 @@ export function sortCollections(stats: Stat[], byStat: Map<string, Entry[]>, sor
     .map((stat) => {
       const entries = byStat.get(stat.id) ?? [];
       const count = collectedItems(entries).length;
-      const universe = stat.universeSize || 0;
+      const universe = collectionUniverse(stat);
       const percent = universe > 0 ? Math.min(100, (count / universe) * 100) : null;
       return { stat, entries, count, universe, percent };
     });

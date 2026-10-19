@@ -10,7 +10,7 @@ export const ENGAGEMENT = ["UNSTARTED", "IN_PROGRESS", "DONE", "ABANDONED"] as c
 export type Engagement = (typeof ENGAGEMENT)[number];
 
 /**
- * A work of the reading family (ADR 0024): a book or comic (not an edition),
+ * A work of the reading family (ADR 0024, 0074): a book, comic or manga (not an edition),
  * owned by the Library App. Keeps both axes — the Shelf and Acquisition
  * (books are owned, unlike streamed media) — plus the Nightstand slot.
  * Days are "YYYY-MM-DD" text; "" means "not yet"; `slot` 0 = not slotted.
@@ -36,6 +36,17 @@ export interface Work extends Document {
   slottedOn: DateStr;
   startedOn: DateStr;
   finishedOn: DateStr;
+  /** Marks (ADR 0035, 0074): the heart, on or off. */
+  liked: boolean;
+  /** Marks: whole stars 1–5; 0 = unrated (its own state). */
+  rating: number;
+  /** The Review is the Document body — my own words about it. */
+  body?: string;
+  /** Parts (ADR 0074): tracked at all, the catch-up position, and a book's run in chapters (its size is pages). */
+  partsTracked: boolean;
+  caughtUpGroup: number;
+  caughtUpPart: number;
+  partCount: number;
 }
 
 export { WORK_TYPE_IDS } from "./workTypes";

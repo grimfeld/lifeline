@@ -5,7 +5,7 @@ import { BarChart3, PenLine, Plus } from "lucide-react";
 import { StatEditorDialog } from "./components/StatEditorDialog";
 import { AddEntryDialog } from "./components/AddEntryDialog";
 import { addEntry, allStats, useEntries, useStats } from "./data/repo";
-import { noonOf } from "./domain/aggregate";
+import { noonOf, normalizeItem } from "./domain/aggregate";
 import { colorVar, STAT, type Stat } from "./domain/types";
 
 function NewStatCommandDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
@@ -65,7 +65,7 @@ export const statCommands: CommandDef[] = [
     args: [
       { key: "stat", label: "Stat", kind: "link", linkType: STAT, required: true },
       { key: "value", label: "Value", kind: "number", hint: "A reading or an amount; an additive Stat with a default increment may omit it. Not for yes/no or collection Stats." },
-      { key: "item", label: "Item", kind: "text", hint: "Collection Stats only: what was collected." },
+      { key: "item", label: "Item", kind: "text", hint: "Collection Stats only: what was collected. A Collection with preset items expects one of them." },
       { key: "date", label: "Day", kind: "date", hint: "Defaults to now." },
       { key: "time", label: "Time", kind: "time", hint: "With a day; defaults to noon. Ignored for yes/no Stats." },
     ],
@@ -80,8 +80,10 @@ export const statCommands: CommandDef[] = [
       }
       const ts = momentOf(a.date as string | undefined, a.time as string | undefined) ?? new Date().toISOString();
       if (stat.kind === "collection") {
-        const item = (a.item as string | undefined)?.trim();
-        if (!item) throw new Error("Name the item collected");
+        const typed = (a.item as string | undefined)?.trim();
+        if (!typed) throw new Error("Name the item collected");
+        // A preset item is logged under the list's spelling, so it ticks on the checklist.
+        const item = stat.items.find((i) => normalizeItem(i) === normalizeItem(typed)) ?? typed;
         await addEntry({ statId: stat.id, value: 1, item, ts });
         return { message: `${item} added to ${stat.title}` };
       }

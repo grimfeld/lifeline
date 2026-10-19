@@ -4,7 +4,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, DOCUMENT_TYPES, type SyncedRecord } from "../data/db";
 import { put, remove } from "../data/repo";
 import { newId } from "../ids";
-import type { BodyPolicy, DocumentTypeDef, FieldDef } from "./types";
+import { ownKeyRefusal } from "./typeRules";
+import type { BodyPolicy, DocumentTypeDef, FieldDef, ReportSetting } from "./types";
 
 /**
  * A user-defined Document type (ADR 0019): a row of Core's `document_types`
@@ -29,6 +30,10 @@ export interface DocumentTypeRecord extends SyncedRecord {
   locatableField?: string;
   template?: string;
   order: number;
+  /** The Module the user homes the type in (ADR 0068); "" or absent = none. Ignored on a built-in's override. */
+  module?: string;
+  /** The type's chosen Reports (ADR 0076), built-in or not; absent = the defaults. */
+  reports?: ReportSetting[];
 }
 
 // --- built-ins: set once at startup from the App manifests ---------------------
@@ -67,7 +72,9 @@ function toDef(r: DocumentTypeRecord): DocumentTypeDef {
     template: r.template ?? "",
     linkable: r.linkable !== false,
     locatable: r.locatableField || undefined,
+    homeModule: r.module || undefined,
     order: 100 + (r.order || 0),
+    reports: Array.isArray(r.reports) ? r.reports : undefined,
     builtIn: false,
   };
 }
@@ -78,7 +85,10 @@ function merge(user: DocumentTypeRecord[]): DocumentTypeDef[] {
     const r = byId.get(b.id);
     if (!r) return b;
     const d = toDef(r);
-    return { ...b, label: d.label, singular: undefined, icon: d.icon ?? b.icon, iconName: d.iconName, folder: d.folder, fields: d.fields, builtIn: true, overridden: true };
+    // The built-in's own Fields stay its App's (CONTEXT.md "Field"); the user's sit beside them, a key the App already declares kept as the App's.
+    const own = new Set(b.fields.map((f) => f.key));
+    const fields = [...b.fields, ...d.fields.filter((f) => !own.has(f.key))];
+    return { ...b, label: d.label, singular: undefined, icon: d.icon ?? b.icon, iconName: d.iconName, folder: d.folder, fields, reports: d.reports ?? b.reports, builtIn: true, overridden: true };
   });
   const ids = new Set(builtins.map((t) => t.id));
   const extra = user.filter((r) => !ids.has(r.typeId)).map(toDef);
@@ -149,8 +159,16 @@ export function useUserDocumentTypes(): DocumentTypeRecord[] {
   return useLiveQuery(() => db().collection<DocumentTypeRecord>(DOCUMENT_TYPES).where("deleted").equals(0).sortBy("order"), [], [] as DocumentTypeRecord[]);
 }
 
+/**
+ * Save a type record. Throws when it adds a Field keyed with one of a
+ * Document's own keys (spec #95) — whoever calls, the editor or an agent; a
+ * Field the record already had is kept.
+ */
 export async function saveDocumentType(input: Omit<DocumentTypeRecord, "id" | "updatedAt" | "deleted"> & { id?: string }): Promise<DocumentTypeRecord> {
   const { id, ...rest } = input;
+  const before = id ? await db().collection<DocumentTypeRecord>(DOCUMENT_TYPES).get(id) : undefined;
+  const refusal = ownKeyRefusal(Array.isArray(before?.fields) ? before.fields : [], Array.isArray(rest.fields) ? rest.fields : []);
+  if (refusal) throw new Error(refusal);
   const rec: DocumentTypeRecord = { ...rest, id: id ?? newId(), updatedAt: "", deleted: 0 };
   await put<DocumentTypeRecord>(DOCUMENT_TYPES, rec);
   return rec;
