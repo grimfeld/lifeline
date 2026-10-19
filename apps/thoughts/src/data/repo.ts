@@ -12,7 +12,7 @@ export function useThoughts(): Thought[] {
  * folder, since capture must never fail for a repeated first line.
  */
 export async function captureThought(input: { text: string; title?: string; kind?: ThoughtKind; tags?: string[] }): Promise<Thought> {
-  const text = input.text.replace(/\s+$/, "");
+  const text = input.text.trimEnd();
   if (!text.trim()) throw new Error("A Thought needs some text");
   const wanted = input.title?.trim() || titleFromText(text) || "Thought";
   const taken = (await documentsOf<Thought>(THOUGHT)).filter((t) => t.folder === THOUGHTS_FOLDER).map((t) => t.title);

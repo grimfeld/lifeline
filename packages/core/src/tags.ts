@@ -6,18 +6,28 @@
  */
 
 /** A whole tag: letters/digits/_/-//, not a bare number. Mirrors Notes' TAG_RE. */
-export const TAG_WORD_RE = /^[\p{L}\p{N}_/-]*[\p{L}_/-][\p{L}\p{N}_/-]*$/u;
+export const TAG_WORD_RE = /^\p{N}*[\p{L}_/-][\p{L}\p{N}_/-]*$/u;
 
 /**
  * Normalise user input into a tag: trim, drop a leading `#`, lower-case,
  * spaces → `-`, collapse repeated separators, strip leading/trailing `/`.
  * Returns null when nothing valid remains.
  */
+/** `t` less its leading and trailing `/` and `-`, by hand: `[/-]+$` is quadratic on a long run of them. */
+export function trimSeparators(t: string): string {
+  const sep = (c: string) => c === "/" || c === "-";
+  let from = 0;
+  let to = t.length;
+  while (from < to && sep(t[from])) from++;
+  while (to > from && sep(t[to - 1])) to--;
+  return t.slice(from, to);
+}
+
 export function normalizeTag(raw: string): string | null {
   let t = raw.trim();
   if (t.startsWith("#")) t = t.slice(1);
   t = t.toLowerCase().replace(/\s+/g, "-").replace(/-{2,}/g, "-").replace(/\/{2,}/g, "/");
-  t = t.replace(/^[/-]+|[/-]+$/g, "");
+  t = trimSeparators(t);
   if (!t || !TAG_WORD_RE.test(t)) return null;
   return t;
 }

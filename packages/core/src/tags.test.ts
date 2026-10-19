@@ -17,6 +17,13 @@ describe("normalizeTag", () => {
     expect(normalizeTag("/work/")).toBe("work");
     expect(normalizeTag("--x--")).toBe("x");
   });
+  it("reads a long run of separators in linear time", () => {
+    const started = performance.now();
+    expect(normalizeTag(`a${"-/".repeat(50_000)}x`)).toBe(`a${"-/".repeat(50_000)}x`);
+    expect(normalizeTag(`${"-/".repeat(50_000)}x!`)).toBeNull();
+    expect(normalizeTag(`${"a".repeat(50_000)}!`)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
 });
 
 describe("normalizeTags / parseTagList", () => {

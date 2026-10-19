@@ -27,7 +27,7 @@ export function parseYamlSubset(src: string): Properties {
   const lines = src.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const m = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(line);
+    const m = /^([A-Za-z0-9_-]+):(.*)$/s.exec(line); // the value is trimmed below; `\s*` before it made a long line slow
     if (!m) continue;
     const key = m[1];
     const rest = m[2].trim();
@@ -230,10 +230,26 @@ export function extractHeadings(text: string): Heading[] {
   text.split("\n").forEach((line, i) => {
     if (/^\s{0,3}(```|~~~)/.test(line)) inFence = !inFence;
     if (inFence) return;
-    const m = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
-    if (m) out.push({ level: m[1].length, text: m[2], line: i });
+    const h = readHeading(line);
+    if (h) out.push({ ...h, line: i });
   });
   return out;
+}
+
+/**
+ * An ATX heading line → its level and text, closing `#`s cut. A scan, not one
+ * regex: `\s+(.+?)\s*#*\s*$` backtracked cubically on a long line.
+ */
+function readHeading(line: string): { level: number; text: string } | null {
+  const m = /^\s{0,3}(#{1,6})/.exec(line);
+  if (!m) return null;
+  const rest = line.slice(m[0].length);
+  // At least one space after the marks, then at least one character.
+  if (rest.length < 2 || rest[0].trim() !== "") return null;
+  const body = rest.trimStart() || rest[rest.length - 1];
+  let end = body.trimEnd().length;
+  while (end > 0 && body[end - 1] === "#") end--;
+  return { level: m[1].length, text: body.slice(0, end).trimEnd() || body[0] };
 }
 
 export interface FencedBlock {
@@ -316,7 +332,7 @@ export function foldName(text: string): string {
 export function parseBlockOptions(body: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of body.split("\n")) {
-    const m = /^\s*([A-Za-z_-]+)\s*:\s*(.*)$/.exec(line);
+    const m = /^\s*([A-Za-z_-]+)\s*:(.*)$/s.exec(line);
     if (m) out[m[1]] = m[2].trim();
   }
   return out;

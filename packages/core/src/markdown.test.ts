@@ -89,6 +89,20 @@ describe("tags / headings / blocks", () => {
     expect(text.slice(blocks[1].from, blocks[1].to)).toBe("```daylog\n```");
     expect(parseBlockOptions(blocks[0].body)).toEqual({ apps: "tasks" });
   });
+  it("reads a CRLF heading without its carriage return", () => {
+    expect(extractHeadings("## Title ##\r\ntext")).toEqual([{ level: 2, text: "Title", line: 0 }]);
+  });
+  it("reads long, hostile lines in linear time", () => {
+    const spaces = " ".repeat(50_000);
+    const started = performance.now();
+    expect(extractHeadings(`# a${spaces}\rx`)).toHaveLength(1);
+    expect(extractHeadings(`#${spaces}`)).toEqual([{ level: 1, text: " ", line: 0 }]);
+    expect(extractHeadings(`# a${"#".repeat(50_000)}x`)).toHaveLength(1);
+    expect(extractHeadings(`# a${" #".repeat(50_000)}x`)).toHaveLength(1);
+    expect(parseBlockOptions(`apps:${spaces}x\r`)).toEqual({ apps: "x" });
+    expect(splitFrontmatter(`---\nkind:${spaces}x\r\n---\n`).properties).toEqual({ kind: "x" });
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
   it("excerpt strips syntax", () => {
     expect(excerpt("---\nmood: 3\n---\n### Head\nHello [[World|there]] **bold**")).toBe("Head Hello there bold");
   });

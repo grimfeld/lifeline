@@ -2,10 +2,11 @@ import { useMemo, useRef } from "react";
 import ReactMarkdown, { defaultUrlTransform, type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@lifeline/ui";
-import { extractBlocks, isImageName, openPrivateDialog, splitFrontmatter, todayStr, type LinkIndex } from "@lifeline/core";
+import { extractBlocks, openPrivateDialog, parseBlockOptions, splitFrontmatter, todayStr, type LinkIndex } from "@lifeline/core";
 import { DaylogBlock } from "./DaylogBlock";
 import { useOpenDocument } from "./openDocument";
 import { AttachmentImage } from "./AttachmentImage";
+import { wikify } from "./wikify";
 import "./editor.css";
 
 /**
@@ -76,7 +77,7 @@ export function MarkdownView({ body, index, docDate, className, compact, origin 
       code: ({ className: cls, children, ...rest }) => {
         const lang = /language-(\w+)/.exec(cls ?? "")?.[1];
         if (lang === "daylog") {
-          const opts = parseOpts(String(children));
+          const opts = parseBlockOptions(String(children));
           return <DaylogBlock date={opts.date || live.current.docDate || todayStr()} apps={opts.apps ? opts.apps.split(/[\s,]+/).filter(Boolean) : undefined} compact />;
         }
         return (
@@ -106,21 +107,3 @@ export function MarkdownView({ body, index, docDate, className, compact, origin 
 const REMARK_PLUGINS = [remarkGfm];
 /** The default transform blanks every scheme it does not know — our own two included. */
 const urlTransform = (url: string) => (url.startsWith("wikilink:") || url.startsWith("attachment:") ? url : defaultUrlTransform(url));
-
-/** `[[Name|alias]]` → a `wikilink:` link; `![[image.png]]` → an `attachment:` image (ADR 0037). */
-function wikify(text: string): string {
-  return text.replace(/(!?)\[\[([^\]\n|#]+)(?:#([^\]\n|]+))?(?:\|([^\]\n]+))?\]\]/g, (_m, embed: string, name: string, _heading: string | undefined, alias: string | undefined) => {
-    const label = (alias ?? name).trim().replace(/\]/g, "\\]");
-    if (embed && isImageName(name)) return `![${label}](attachment:${encodeURIComponent(name.trim())})`;
-    return `[${label}](wikilink:${encodeURIComponent(name.trim())})`;
-  });
-}
-
-function parseOpts(body: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const line of body.split("\n")) {
-    const m = /^\s*([A-Za-z_-]+)\s*:\s*(.*)$/.exec(line);
-    if (m) out[m[1]] = m[2].trim();
-  }
-  return out;
-}

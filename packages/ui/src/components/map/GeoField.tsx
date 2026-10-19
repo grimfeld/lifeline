@@ -15,7 +15,8 @@ export interface GeoCandidate extends GeoCoords {
 
 /** Parse "lat, lon" (or "lat lon") typed by hand. */
 export function parseCoords(text: string): GeoCoords | null {
-  const m = /^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/.exec(text);
+  // A comma with optional spaces, or spaces alone: `\s*[, ]\s*` let a long run of spaces backtrack quadratically.
+  const m = /^\s*(-?\d+(?:\.\d+)?)(?:\s*,\s*|\s+)(-?\d+(?:\.\d+)?)\s*$/.exec(text);
   if (!m) return null;
   const lat = Number(m[1]);
   const lon = Number(m[2]);

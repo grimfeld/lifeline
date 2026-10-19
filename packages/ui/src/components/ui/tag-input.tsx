@@ -4,8 +4,18 @@ import { cn } from "../../lib/utils";
 
 /** Default normaliser: trim, drop `#`, lower-case, spaces → `-`. Callers may pass a stricter one. */
 export function defaultNormalizeTag(raw: string): string | null {
-  const t = raw.trim().replace(/^#/, "").toLowerCase().replace(/\s+/g, "-").replace(/^[/-]+|[/-]+$/g, "");
+  const t = trimSeparators(raw.trim().replace(/^#/, "").toLowerCase().replace(/\s+/g, "-"));
   return t ? t : null;
+}
+
+/** Leading and trailing `/` and `-` cut by hand: `[/-]+$` is quadratic on a long run of them. */
+function trimSeparators(t: string): string {
+  const sep = (c: string) => c === "/" || c === "-";
+  let from = 0;
+  let to = t.length;
+  while (from < to && sep(t[from])) from++;
+  while (to > from && sep(t[to - 1])) to--;
+  return t.slice(from, to);
 }
 
 export interface TagInputProps {
