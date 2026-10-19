@@ -13,6 +13,7 @@ import { ShopDialog } from "../components/ShopDialog";
 import { ReceiptDialog } from "../components/ReceiptDialog";
 import { AddPriceDialog } from "../components/AddPriceDialog";
 import { NeedsAmountDialog } from "../components/NeedsAmountDialog";
+import { PricesOverview } from "../components/PricesOverview";
 import { shopColor } from "../components/PriceChart";
 
 /** The register's filter on the noticed mark (ADR 0084). */
@@ -37,7 +38,8 @@ function Pct({ v }: { v: number }) {
 /**
  * Prices (ADR 0082): Products with their cheapest Shop, the Receipt
  * register with the unmatched inbox one tap away, the price change reading
- * per Shop, and the Shops themselves.
+ * per Shop, the Overview of spending over a span (ADR 0084), and the Shops
+ * themselves.
  */
 const NO_HISTORY: ReadonlyMap<string, PricePoint[]> = new Map();
 
@@ -149,6 +151,7 @@ export function PricesScreen() {
               )}
             </TabsTrigger>
             <TabsTrigger value="change">Change</TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="shops">Shops</TabsTrigger>
           </TabsList>
         </PhoneDock>
@@ -297,6 +300,10 @@ export function PricesScreen() {
               ))}
             </ul>
           )}
+        </TabsContent>
+
+        <TabsContent value="overview">
+          <PricesOverview products={products} shops={shops} receipts={receipts} lines={lines} />
         </TabsContent>
 
         <TabsContent value="shops" className="grid gap-3">

@@ -569,3 +569,102 @@ export function overpaidOf(productId: string, obs: readonly Observation[], span:
   }
   return { total, cheapest };
 }
+
+/** One Shop over the span (CONTEXT.md "Sighting": visits and basket never count one). */
+export interface ShopFigures {
+  shopId: string;
+  /** Cents: each bought Receipt's printed total, else the sum of its Lines (unmatched included). */
+  spent: number;
+  /** Bought Receipts. */
+  visits: number;
+  /** spent / visits; null with no visit. */
+  basket: number | null;
+  /** Products whose cheapest Shop over the span this is. */
+  cheapestFor: number;
+}
+
+/** A Product's part of what was bought (see Spend). */
+export interface ProductSpend {
+  productId: string;
+  spent: number;
+  /** spent / the span's total. */
+  share: number;
+}
+
+export interface Overview {
+  spend: {
+    /** Cents paid for every bought Line in the span, unmatched included — what a share is of. */
+    total: number;
+    /** Every Product bought in the span, most spent first. */
+    top: ProductSpend[];
+  };
+  /** Most spent first. */
+  shops: ShopFigures[];
+  overpaid: {
+    /** Cents, every Product's Overpaid summed. */
+    total: number;
+    /** Each Product overpaid for, most first, with where it was cheapest. */
+    top: { productId: string; total: number; cheapest: Baseline }[];
+  };
+  /** Cents, every Product's Promo saving summed. */
+  promoSaved: number;
+}
+
+/** A Product's prices per Shop inside the span — what its cheapest Shop over the span is decided on. */
+function historyInSpan(productId: string, obs: readonly Observation[], span: Span): Map<string, PricePoint[]> {
+  return historyOf(productId, obs.filter((o) => inSpan(o, span)));
+}
+
+/**
+ * The Prices screen's Overview reading (ADR 0084) over one span: what was
+ * spent and on which Products (as spendOf, every Product at once); per Shop,
+ * what was spent, how often I went, the average basket and how many Products
+ * it is cheapest for; what I overpaid (overpaidOf) and what promos saved
+ * (promoOf), summed over Products. Spending figures never take a Sighting;
+ * the cheapest Shop takes every price seen, as everywhere. Cheapest and
+ * every per-unit figure reads each Product by its compared-by unit
+ * (comparedBy), a Line without that amount saying nothing per unit.
+ */
+export function overviewOf(products: readonly Product[], receipts: readonly Receipt[], lines: readonly Line[], span: Span): Overview {
+  const all = observeAll(lines, receipts);
+  const obs = comparedBy(all.filter((o) => !isUnmatched(o.line)), products);
+  let total = 0;
+  const spentOn = new Map<string, number>();
+  for (const o of all) {
+    if (!countsAsSpent(o) || !inSpan(o, span)) continue;
+    total += o.line.price;
+    if (o.line.productId) spentOn.set(o.line.productId, (spentOn.get(o.line.productId) ?? 0) + o.line.price);
+  }
+  const top = [...spentOn]
+    .map(([productId, spent]) => ({ productId, spent, share: total > 0 ? spent / total : 0 }))
+    .sort((a, b) => b.spent - a.spent || a.productId.localeCompare(b.productId));
+  const byReceipt = linesByReceipt(lines);
+  const shops = new Map<string, ShopFigures>();
+  const shop = (shopId: string) => {
+    let s = shops.get(shopId);
+    if (!s) shops.set(shopId, (s = { shopId, spent: 0, visits: 0, basket: null, cheapestFor: 0 }));
+    return s;
+  };
+  for (const r of receipts) {
+    if (r.noticed || !inSpan(r, span)) continue;
+    const s = shop(r.shopId);
+    s.spent += r.total > 0 ? r.total : sumOfLines(byReceipt.get(r.id) ?? []);
+    s.visits++;
+  }
+  const overpaid: Overview["overpaid"] = { total: 0, top: [] };
+  let promoSaved = 0;
+  for (const p of products) {
+    const best = cheapest(historyInSpan(p.id, obs, span));
+    if (best) shop(best.shopId).cheapestFor++;
+    const o = overpaidOf(p.id, obs, span);
+    if (o.total > 0 && o.cheapest) {
+      overpaid.total += o.total;
+      overpaid.top.push({ productId: p.id, total: o.total, cheapest: o.cheapest });
+    }
+    promoSaved += promoOf(p.id, obs, span).saving;
+  }
+  overpaid.top.sort((a, b) => b.total - a.total || a.productId.localeCompare(b.productId));
+  for (const s of shops.values()) s.basket = s.visits > 0 ? s.spent / s.visits : null;
+  const list = [...shops.values()].sort((a, b) => b.spent - a.spent || b.visits - a.visits || a.shopId.localeCompare(b.shopId));
+  return { spend: { total, top }, shops: list, overpaid, promoSaved };
+}

@@ -366,6 +366,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Prices", path: "/app/prices" },
   { name: "Price product", path: "/app/prices/p/:id", type: "price_product" },
   { name: "Prices · needs amount", path: "/app/prices", afterOpen: openNeedsAmount },
+  { name: "Prices · overview", path: "/app/prices?tab=overview" },
   { name: "Price product · edit", path: "/app/prices/p/:id", type: "price_product", afterOpen: openProductEdit },
   { name: "Price product · merge", path: "/app/prices/p/:id", type: "price_product", afterOpen: openProductMerge },
   { name: "Mood", path: "/app/mood" },
