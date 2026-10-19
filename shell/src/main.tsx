@@ -66,6 +66,7 @@ if (isDemo()) {
     .then((m) => m.seedDemoIfNeeded())
     .catch((e) => console.error("Demo life could not be seeded", e))
     .then(() => root.render(app));
+  void import("./demo/inspect").then((m) => m.exposeForTests());
 } else {
   root.render(app);
 }

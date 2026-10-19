@@ -1,24 +1,32 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { layoutProblems } from "./support/layout";
+import type {} from "../src/demo/inspect"; // window.lifelineDemo
 
 /**
  * The Demo (CONTEXT.md "Demo", ADR 0077): the build with `VITE_DEMO=1`, as a
- * stranger opening the link meets it — a fresh browser, no backend, at phone
- * and desktop width. Run by the `demo` project, against its own dev server.
+ * stranger opening the link meets it — no backend, at phone and desktop width.
+ * Run by the `demo` project, against a production build of the Demo.
+ *
+ * Cases start from the life demo.setup.ts seeded once, saved with the store.
+ * Those about a first open, a pinned clock, a reload or Reset start from an
+ * empty store (`test.use({ storageState: EMPTY })`) and seed it themselves.
  */
 const WIDTHS = [
   { name: "phone", viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true },
   { name: "desktop", viewport: { width: 1280, height: 800 }, isMobile: false, hasTouch: false },
 ] as const;
 
-/** Open a page and let it settle: the signed-out sign-in used to open a beat after load. */
+/** A browser that has never opened the Demo: the app seeds the life on first open. */
+const EMPTY = { cookies: [], origins: [] };
+
+/** Open a page and let it settle. */
 async function open(page: Page, path: string): Promise<void> {
   await page.goto(path);
   await page.waitForLoadState("networkidle");
   await expect(page.locator("#root")).not.toBeEmpty();
   // First open writes the Demo life behind "Loading…"; leaving before it ends would start it over.
-  await expect(page.getByRole("status").filter({ hasText: /^Loading…$/ })).toHaveCount(0, { timeout: 30_000 });
-  await page.waitForTimeout(1_000);
+  await expect(page.getByRole("status").filter({ hasText: /^Loading…$/ })).toHaveCount(0, { timeout: 20_000 });
+  await page.waitForTimeout(250);
 }
 
 /**
@@ -60,6 +68,8 @@ for (const w of WIDTHS) {
 
     test("opens with no sign-in dialog", async ({ page }) => {
       await open(page, "/");
+      // The signed-out sign-in used to open a beat after load.
+      await page.waitForTimeout(1_000);
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await expect(page.getByText("You're signed out")).toHaveCount(0);
     });
@@ -116,43 +126,47 @@ for (const w of WIDTHS) {
       }
     });
 
-    test("first open puts tasks, chores and events on today", async ({ page }) => {
-      await expectBusyToday(page);
+    test.describe("from an empty store", () => {
+      test.use({ storageState: EMPTY });
 
-      await open(page, "/app/tasks");
-      await expect(page.getByRole("heading", { name: /^Today/ })).toBeVisible();
-      await open(page, "/app/chores");
-      await expect(page.getByRole("heading", { name: "Due today", exact: true })).toBeVisible();
+      test("first open puts tasks, chores and events on today", async ({ page }) => {
+        await expectBusyToday(page);
 
-      await open(page, "/calendar?view=day");
-      const day = await page.evaluate(() => {
-        const n = new Date();
-        return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+        await open(page, "/app/tasks");
+        await expect(page.getByRole("heading", { name: /^Today/ })).toBeVisible();
+        await open(page, "/app/chores");
+        await expect(page.getByRole("heading", { name: "Due today", exact: true })).toBeVisible();
+
+        await open(page, "/calendar?view=day");
+        const day = await page.evaluate(() => {
+          const n = new Date();
+          return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+        });
+        await expect(page.locator(`[data-col="${day}"]`)).not.toHaveText("");
       });
-      await expect(page.locator(`[data-col="${day}"]`)).not.toHaveText("");
-    });
 
-    test("an edit survives a reload, and the reload does not re-seed", async ({ page }) => {
-      await open(page, "/app/tasks");
-      // One tick per open Task on the Open list: a re-seed would add a second set.
-      const ticks = page.getByTitle("Mark done");
-      await expect(ticks).not.toHaveCount(0);
-      const seeded = await ticks.count();
-      await page.getByPlaceholder(/^Quick add/).fill("Return the library card");
-      await page.keyboard.press("Enter");
-      await expect(page.getByText("Return the library card", { exact: true })).toBeVisible();
-      await expect(ticks).toHaveCount(seeded + 1);
+      test("an edit survives a reload, and the reload does not re-seed", async ({ page }) => {
+        await open(page, "/app/tasks");
+        // One tick per open Task on the Open list: a re-seed would add a second set.
+        const ticks = page.getByTitle("Mark done");
+        await expect(ticks).not.toHaveCount(0);
+        const seeded = await ticks.count();
+        await page.getByPlaceholder(/^Quick add/).fill("Return the library card");
+        await page.keyboard.press("Enter");
+        await expect(page.getByText("Return the library card", { exact: true })).toBeVisible();
+        await expect(ticks).toHaveCount(seeded + 1);
 
-      await page.reload();
-      await page.waitForLoadState("networkidle");
-      await expect(page.getByText("Return the library card", { exact: true })).toBeVisible();
-      await page.waitForTimeout(1_000);
-      await expect(ticks).toHaveCount(seeded + 1);
-    });
+        await page.reload();
+        await page.waitForLoadState("networkidle");
+        await expect(page.getByText("Return the library card", { exact: true })).toBeVisible();
+        await page.waitForTimeout(1_000);
+        await expect(ticks).toHaveCount(seeded + 1);
+      });
 
-    test("with the clock pinned to another day, that day's agenda is full", async ({ page }) => {
-      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
-      await expectBusyToday(page);
+      test("with the clock pinned to another day, that day's agenda is full", async ({ page }) => {
+        await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+        await expectBusyToday(page);
+      });
     });
   });
 }
@@ -229,11 +243,14 @@ for (const w of WIDTHS) {
       await expect(page.getByText("Doomscrolling past midnight").first()).toBeVisible();
     });
 
-    test("with the clock pinned to another day, streaks and moods run up to it", async ({ page }) => {
-      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
-      await expectLiveStreak(page);
-      await open(page, "/app/mood");
-      expect(await page.getByRole("button", { name: MOOD_CELL }).count(), "moods in March").toBeGreaterThanOrEqual(6);
+    test.describe("from an empty store", () => {
+      test.use({ storageState: EMPTY });
+      test("with the clock pinned to another day, streaks and moods run up to it", async ({ page }) => {
+        await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+        await expectLiveStreak(page);
+        await open(page, "/app/mood");
+        expect(await page.getByRole("button", { name: MOOD_CELL }).count(), "moods in March").toBeGreaterThanOrEqual(6);
+      });
     });
   });
 }
@@ -298,11 +315,14 @@ for (const w of WIDTHS) {
       await expect(page.locator("main").getByText("Lidl").first()).toBeVisible();
     });
 
-    test("with the clock pinned, the money moves with the visit day", async ({ page }) => {
-      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
-      await open(page, "/app/pocket");
-      // A monthly Allowance runs over the visit day's month.
-      await expect(page.locator("main").getByText(/March 2027|Mar 2027/).first()).toBeVisible();
+    test.describe("from an empty store", () => {
+      test.use({ storageState: EMPTY });
+      test("with the clock pinned, the money moves with the visit day", async ({ page }) => {
+        await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+        await open(page, "/app/pocket");
+        // A monthly Allowance runs over the visit day's month.
+        await expect(page.locator("main").getByText(/March 2027|Mar 2027/).first()).toBeVisible();
+      });
     });
   });
 }
@@ -367,12 +387,15 @@ for (const w of WIDTHS) {
       await expect(section("Upcoming").getByText("Wash the car")).toBeVisible();
     });
 
-    test("with the clock pinned, the deadline moves with the visit day", async ({ page }) => {
-      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
-      await open(page, "/calendar?view=upcoming");
-      const day = await dayOnUpcoming(page, TALK_DAY);
-      await day.scrollIntoViewIfNeeded();
-      await expect(day.getByText(`⚑ ${TALK}`)).toBeVisible();
+    test.describe("from an empty store", () => {
+      test.use({ storageState: EMPTY });
+      test("with the clock pinned, the deadline moves with the visit day", async ({ page }) => {
+        await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+        await open(page, "/calendar?view=upcoming");
+        const day = await dayOnUpcoming(page, TALK_DAY);
+        await day.scrollIntoViewIfNeeded();
+        await expect(day.getByText(`⚑ ${TALK}`)).toBeVisible();
+      });
     });
   });
 }
@@ -411,21 +434,24 @@ for (const w of WIDTHS) {
   test.describe(`Demo banner and Reset at ${w.name} width`, () => {
     test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
 
-    test("the banner shows on first open, at the top, and staying dismissed survives a reload", async ({ page }) => {
-      await open(page, "/calendar");
-      const bar = banner(page);
-      await expect(bar).toBeVisible();
-      await expect(bar).toContainText(/your changes stay in this browser/i);
-      // At the top on a phone too (ADR 0064): above the Phone header, not in the Phone dock.
-      expect((await bar.boundingBox())!.y).toBeLessThan(2);
+    test.describe("from an empty store", () => {
+      test.use({ storageState: EMPTY });
+      test("the banner shows on first open, at the top, and staying dismissed survives a reload", async ({ page }) => {
+        await open(page, "/calendar");
+        const bar = banner(page);
+        await expect(bar).toBeVisible();
+        await expect(bar).toContainText(/your changes stay in this browser/i);
+        // At the top on a phone too (ADR 0064): above the Phone header, not in the Phone dock.
+        expect((await bar.boundingBox())!.y).toBeLessThan(2);
 
-      await bar.getByRole("button", { name: "Dismiss" }).click();
-      await expect(bar).toHaveCount(0);
-      await page.reload();
-      await page.waitForLoadState("networkidle");
-      await expect(page.locator("#root")).not.toBeEmpty();
-      await page.waitForTimeout(500);
-      await expect(banner(page)).toHaveCount(0);
+        await bar.getByRole("button", { name: "Dismiss" }).click();
+        await expect(bar).toHaveCount(0);
+        await page.reload();
+        await page.waitForLoadState("networkidle");
+        await expect(page.locator("#root")).not.toBeEmpty();
+        await page.waitForTimeout(500);
+        await expect(banner(page)).toHaveCount(0);
+      });
     });
 
     test("the banner passes the layout checks", async ({ page }) => {
@@ -436,40 +462,43 @@ for (const w of WIDTHS) {
       expect(problems, `the banner has broken layout:\n  ${problems.join("\n  ")}`).toEqual([]);
     });
 
-    test("Reset asks first, then removes an edit and brings back the seeded life dated around today", async ({ page }) => {
-      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
-      await addTask(page, "Return the library card");
+    test.describe("from an empty store", () => {
+      test.use({ storageState: EMPTY });
+      test("Reset asks first, then removes an edit and brings back the seeded life dated around today", async ({ page }) => {
+        await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+        await addTask(page, "Return the library card");
 
-      // Cancelling keeps everything.
-      await banner(page).getByRole("button", { name: "Reset", exact: true }).click();
-      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
-      await expect(page.getByRole("dialog")).toHaveCount(0);
-      await expect(page.getByText("Return the library card", { exact: true })).toBeVisible();
+        // Cancelling keeps everything.
+        await banner(page).getByRole("button", { name: "Reset", exact: true }).click();
+        await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+        await expect(page.getByText("Return the library card", { exact: true })).toBeVisible();
 
-      // A week later, Reset re-seeds around the new today.
-      await page.clock.setFixedTime(new Date("2027-03-17T09:30:00"));
-      await reset(page, banner(page));
-      await open(page, "/app/tasks");
-      await expect(page.getByTitle("Mark done")).not.toHaveCount(0);
-      await expect(page.getByText("Return the library card", { exact: true })).toHaveCount(0);
-      await expectBusyToday(page);
-    });
+        // A week later, Reset re-seeds around the new today.
+        await page.clock.setFixedTime(new Date("2027-03-17T09:30:00"));
+        await reset(page, banner(page));
+        await open(page, "/app/tasks");
+        await expect(page.getByTitle("Mark done")).not.toHaveCount(0);
+        await expect(page.getByText("Return the library card", { exact: true })).toHaveCount(0);
+        await expectBusyToday(page);
+      });
 
-    test("Reset stays in Settings after the banner is dismissed; Source is hidden when its URL is not set", async ({ page }) => {
-      await open(page, "/settings");
-      await expect(banner(page)).toBeVisible();
-      await expect(page.getByRole("link", { name: /Source/ })).toHaveCount(0);
-      await banner(page).getByRole("button", { name: "Dismiss" }).click();
-      await expect(banner(page)).toHaveCount(0);
-      await expect(demoSettings(page).getByRole("button", { name: "Reset", exact: true })).toBeVisible();
-      await expect(page.getByRole("link", { name: /Source/ })).toHaveCount(0);
+      test("Reset stays in Settings after the banner is dismissed; Source is hidden when its URL is not set", async ({ page }) => {
+        await open(page, "/settings");
+        await expect(banner(page)).toBeVisible();
+        await expect(page.getByRole("link", { name: /Source/ })).toHaveCount(0);
+        await banner(page).getByRole("button", { name: "Dismiss" }).click();
+        await expect(banner(page)).toHaveCount(0);
+        await expect(demoSettings(page).getByRole("button", { name: "Reset", exact: true })).toBeVisible();
+        await expect(page.getByRole("link", { name: /Source/ })).toHaveCount(0);
 
-      await addTask(page, "Return the library card");
-      await open(page, "/settings");
-      await reset(page, demoSettings(page));
-      await open(page, "/app/tasks");
-      await expect(page.getByTitle("Mark done")).not.toHaveCount(0);
-      await expect(page.getByText("Return the library card", { exact: true })).toHaveCount(0);
+        await addTask(page, "Return the library card");
+        await open(page, "/settings");
+        await reset(page, demoSettings(page));
+        await open(page, "/app/tasks");
+        await expect(page.getByTitle("Mark done")).not.toHaveCount(0);
+        await expect(page.getByText("Return the library card", { exact: true })).toHaveCount(0);
+      });
     });
   });
 
@@ -550,15 +579,18 @@ for (const w of WIDTHS) {
       expect(asked, "requests to metadata services").toEqual([]);
     });
 
-    test("with the clock pinned to another day, the media dates follow it", async ({ page }) => {
-      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
-      // Hung twelve days before the visit.
-      await open(page, "/app/museum");
-      await expect(page.getByText(/since 2027-02-26/)).toBeVisible();
-      // Started twelve days before the visit, too.
-      await open(page, "/app/cinema");
-      await page.getByRole("button", { name: "Open Derry Girls" }).first().click();
-      await expect(page.getByRole("dialog").getByText("2027-02-26", { exact: true })).toBeVisible();
+    test.describe("from an empty store", () => {
+      test.use({ storageState: EMPTY });
+      test("with the clock pinned to another day, the media dates follow it", async ({ page }) => {
+        await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+        // Hung twelve days before the visit.
+        await open(page, "/app/museum");
+        await expect(page.getByText(/since 2027-02-26/)).toBeVisible();
+        // Started twelve days before the visit, too.
+        await open(page, "/app/cinema");
+        await page.getByRole("button", { name: "Open Derry Girls" }).first().click();
+        await expect(page.getByRole("dialog").getByText("2027-02-26", { exact: true })).toBeVisible();
+      });
     });
   });
 }
@@ -627,14 +659,17 @@ for (const w of WIDTHS) {
       }
     });
 
-    test("the Journal is dated around the visit day", async ({ page }) => {
-      await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
-      await open(page, "/app/journal");
-      await expect(page.getByLabel("Jump to date")).toHaveValue("2027-03-10");
-      await expect(page.getByText(/Huddle with/).first()).toBeVisible();
-      await page.getByRole("button", { name: "Previous day" }).click();
-      await expect(page.getByLabel("Jump to date")).toHaveValue("2027-03-09");
-      await expectLinksResolve(page);
+    test.describe("from an empty store", () => {
+      test.use({ storageState: EMPTY });
+      test("the Journal is dated around the visit day", async ({ page }) => {
+        await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
+        await open(page, "/app/journal");
+        await expect(page.getByLabel("Jump to date")).toHaveValue("2027-03-10");
+        await expect(page.getByText(/Huddle with/).first()).toBeVisible();
+        await page.getByRole("button", { name: "Previous day" }).click();
+        await expect(page.getByLabel("Jump to date")).toHaveValue("2027-03-09");
+        await expectLinksResolve(page);
+      });
     });
   });
 }
@@ -643,67 +678,41 @@ for (const w of WIDTHS) {
  * Demo Home and Overviews; every App non-empty (#114).
  * ------------------------------------------------------------------------- */
 
-/** Core in the page, from the Demo's dev server — the same module the app runs. */
-const CORE_URL_DEMO = "/@fs/" + new URL("../../packages/core/src/index.ts", import.meta.url).pathname.replace(/^\/+/, "");
-
-interface AppPage {
-  app: string;
-  route: string;
-  titles: string[];
-}
-
 /**
  * Every registered App's page and what it should show: read from the App
- * registry, never a hand list, so a new App the Demo life misses fails here.
- * The titles are only there to know what to look for on screen.
+ * registry the Demo build hands the suite (src/demo/inspect.ts), never a hand
+ * list, so a new App the Demo life misses fails here.
  */
-async function appPages(page: Page): Promise<AppPage[]> {
-  return page.evaluate(async (coreUrl) => {
-    const core = await import(/* @vite-ignore */ coreUrl);
-    const out: AppPage[] = [];
-    for (const a of core.registeredApps()) {
-      const screen = a.screens.find((s: { hidden?: boolean; path: string }) => !s.hidden && !s.path.includes(":"));
-      if (!screen) continue; // Hub: the Vault and the Bases, no App page of its own.
-      const titles: string[] = [];
-      for (const t of core.typesOfApp(a.id)) {
-        if (t.internal) continue;
-        for (const d of await core.documentsOf(t.id)) {
-          const title: string = core.displayTitle(d, t);
-          // How a page may show it: whole, by its name before " · " (Pocket's
-          // "Coffee · W43 2026"), or a dated one by its human date (a Mood Day).
-          titles.push(title, title.split(" · ")[0]);
-          if (/^\d{4}-\d{2}-\d{2}$/.test(title))
-            titles.push(new Date(`${title}T12:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" }));
-        }
-      }
-      out.push({ app: a.id, route: core.screenRoute({ ...screen, appId: a.id }), titles });
-    }
-    return out;
-  }, CORE_URL_DEMO);
+async function appPages(page: Page) {
+  await page.waitForFunction(() => !!window.lifelineDemo);
+  return page.evaluate(() => window.lifelineDemo!.appPages());
 }
 
 for (const w of WIDTHS) {
   test.describe(`Demo Home, Overviews and every App at ${w.name} width`, () => {
     test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
 
-    test("first open lands on Home: Cards filled from the seeded life, today's agenda on the hours", async ({ page }) => {
-      await open(page, "/");
-      await expect(page).toHaveURL(/\/screen\//);
-      await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
-      const main = page.locator("main");
-      // The hour-scaled agenda comes first, holding today's timed Events.
-      await expect(main.getByText("Today's agenda", { exact: true })).toBeVisible();
-      await expect(main.getByText(/^Team huddle with Sam/).first()).toBeVisible();
-      await expect(main.getByText(/^Climbing with Marcus/).first()).toBeAttached();
-      // Every other Card is set up and shows the life, not an empty state.
-      for (const title of ["Tasks today", "Chores due today", "Daily marks", "What's left", "Reading"]) {
-        await expect(main.getByText(title, { exact: true }).first(), title).toBeAttached();
-      }
-      await expect(main.getByText("Take out the recycling").first()).toBeAttached();
-      await expect(main.getByText("Normal People").first()).toBeAttached();
-      await expect(main.getByText("Not configured yet.")).toHaveCount(0);
-      // On the Phone bar, beside Calendar.
-      if (w.isMobile) await expect(page.locator("nav").getByRole("button", { name: "Home", exact: true })).toBeVisible();
+    test.describe("from an empty store", () => {
+      test.use({ storageState: EMPTY });
+      test("first open lands on Home: Cards filled from the seeded life, today's agenda on the hours", async ({ page }) => {
+        await open(page, "/");
+        await expect(page).toHaveURL(/\/screen\//);
+        await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
+        const main = page.locator("main");
+        // The hour-scaled agenda comes first, holding today's timed Events.
+        await expect(main.getByText("Today's agenda", { exact: true })).toBeVisible();
+        await expect(main.getByText(/^Team huddle with Sam/).first()).toBeVisible();
+        await expect(main.getByText(/^Climbing with Marcus/).first()).toBeAttached();
+        // Every other Card is set up and shows the life, not an empty state.
+        for (const title of ["Tasks today", "Chores due today", "Daily marks", "What's left", "Reading"]) {
+          await expect(main.getByText(title, { exact: true }).first(), title).toBeAttached();
+        }
+        await expect(main.getByText("Take out the recycling").first()).toBeAttached();
+        await expect(main.getByText("Normal People").first()).toBeAttached();
+        await expect(main.getByText("Not configured yet.")).toHaveCount(0);
+        // On the Phone bar, beside Calendar.
+        if (w.isMobile) await expect(page.locator("nav").getByRole("button", { name: "Home", exact: true })).toBeVisible();
+      });
     });
 
     test("the key Overviews are arranged with more Cards, each showing the seeded life", async ({ page }) => {
@@ -724,7 +733,8 @@ for (const w of WIDTHS) {
     });
 
     test("every registered App's page opens with something of its own in it", async ({ page }) => {
-      test.setTimeout(300_000);
+      // One page over the seeded life, visiting every App; it fails once, naming them all.
+      test.setTimeout(120_000);
       await open(page, "/settings");
       const pages = await appPages(page);
       expect(pages.length, "Apps found in the registry").toBeGreaterThan(20);
@@ -736,17 +746,40 @@ for (const w of WIDTHS) {
         }
         await open(page, p.route);
         const main = page.locator("main").first();
-        // What it reads, and what its icons and grid cells say on hover.
-        const text = [
-          await main.innerText(),
-          ...(await main
-            .locator("[title], [aria-label]")
-            .evaluateAll((els) => els.map((e) => `${e.getAttribute("title") ?? ""} ${e.getAttribute("aria-label") ?? ""}`))),
-        ].join("\n");
-        if (!p.titles.some((t) => t.length >= 3 && text.includes(t)))
+        let text = "";
+        const shows = async () => {
+          // What it reads, and what its icons and grid cells say on hover.
+          text = [
+            await main.innerText(),
+            ...(await main
+              .locator("[title], [aria-label]")
+              .evaluateAll((els) => els.map((e) => `${e.getAttribute("title") ?? ""} ${e.getAttribute("aria-label") ?? ""}`))),
+          ].join("\n");
+          return p.titles.some((t) => t.length >= 3 && text.includes(t));
+        };
+        // A page fills in as its queries answer: give it a moment, not a fixed wait.
+        const shown = await expect
+          .poll(shows, { timeout: 5_000 })
+          .toBe(true)
+          .then(() => true, () => false);
+        if (!shown)
           empty.push(`${p.app}: ${p.route} shows none of its Documents (${p.titles.slice(0, 3).join(" | ")}); it reads "${text.slice(0, 160).replace(/\s+/g, " ")}"`);
       }
       expect(empty, `Apps that open empty in the Demo:\n  ${empty.join("\n  ")}`).toEqual([]);
     });
   });
 }
+
+/** How long a stranger waits on first open, on the production build: logged, not asserted. */
+test.describe("Demo first open, timed", () => {
+  test.use({ storageState: EMPTY, viewport: { width: 1280, height: 800 } });
+
+  test("logs the time from navigation to today's seeded agenda on Home", async ({ page }, info) => {
+    await page.goto("/");
+    await expect(page.locator("main").getByText(/^Team huddle with Sam/).first()).toBeVisible();
+    // Milliseconds since this navigation started, as the page measures it.
+    const ms = Math.round(await page.evaluate(() => performance.now()));
+    info.annotations.push({ type: "first-open-ms", description: String(ms) });
+    console.log(`Demo first open: ${ms} ms from navigation to today's agenda on Home`);
+  });
+});
