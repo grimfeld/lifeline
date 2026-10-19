@@ -32,7 +32,6 @@
 @source "../../apps/shopping/src";
 @source "../../apps/mood/src";
 @source "../../apps/prices/src";
-@source "../../apps/mail/src";
 @source "./";
 
 .react-grid-item.react-grid-placeholder {

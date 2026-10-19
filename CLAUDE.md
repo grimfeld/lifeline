@@ -11,6 +11,10 @@ decision scoped to one App (the narrower) moves and the cross-cutting one keeps 
 its "ADR NNNN" references by meaning, not search-and-replace (the old number still names
 the other ADR).
 
+A new PocketBase migration likewise takes its number from `pnpm migrations:next`;
+`pnpm migrations:check` (in CI) fails on a number taken twice or one below master's newest —
+renumber after merging master in.
+
 ## Phone layout (ADR 0064) — follow on every page you touch
 
 Below `md` (768px) is the phone. On the desk nothing below applies.
@@ -54,15 +58,18 @@ without an ellipsis, or makes a box scroll sideways that was not meant to.
 - Text that overhangs its box on purpose (a heatmap's month label running over
   empty cells) carries `data-layout-ignore` and a comment saying why. Rare.
 
-It is not in CI (too slow): run it before pushing a change that touches a screen.
+Too slow for every PR: it runs on master each night (`.github/workflows/e2e.yml`), and you
+run it before pushing a change that touches a screen. A red nightly run means master was
+already broken before your change.
 `pnpm test:e2e` (or `pnpm --filter @lifeline/shell test:e2e --project=mobile -g Tasks` —
 no `--` before the flags). It starts its own server on port 1421; set `E2E_PORT` to
 another port when that one is taken.
 
 ## Several agents share this machine
 
-Work in a `git worktree` off `origin/master` (code, ADRs and CONTEXT.md alike); the
-main checkout belongs to whoever opened it.
+Work in a `git worktree` off `origin/master` (code, ADRs and CONTEXT.md alike) under
+`.claude/worktrees/<name>`; the main checkout belongs to whoever opened it.
+`pnpm worktrees:prune` clears the ones whose work is on master.
 
 ## Agent skills
 

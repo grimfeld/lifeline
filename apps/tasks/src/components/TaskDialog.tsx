@@ -115,6 +115,7 @@ export function TaskDialog({
   defaultProject,
   defaultMilestone,
   handoff,
+  onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -127,6 +128,8 @@ export function TaskDialog({
   defaultMilestone?: string | null;
   /** Create mode, Intake (ADR 0050): the title, and the origin in the notes. */
   handoff?: Handoff;
+  /** Create mode: called with the new Task once it is saved (the Intake contract). */
+  onSaved?: (id: string) => void;
 }) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -212,8 +215,9 @@ export function TaskDialog({
       });
       toast.success("Task updated");
     } else {
-      await addTask({ title: title.trim(), notes: notes.trim(), recurrence, date: date || null, estimate, tags, project: place.project, milestone: place.milestone });
+      const id = await addTask({ title: title.trim(), notes: notes.trim(), recurrence, date: date || null, estimate, tags, project: place.project, milestone: place.milestone });
       toast.success("Task added");
+      onSaved?.(id);
     }
     return true;
   }

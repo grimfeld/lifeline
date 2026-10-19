@@ -1,4 +1,4 @@
-// Stand-in for a browser-only library (BROWSER_ONLY in build.mjs): any property,
+// Stand-in for a browser-only library (BROWSER_ONLY in browser-only.mjs): any property,
 // call or `new` on it returns the stand-in again, so importing an App's views
 // in Node costs nothing and touches no `window`.
 const target = function () {};
