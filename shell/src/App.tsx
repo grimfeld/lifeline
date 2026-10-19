@@ -7,6 +7,7 @@ import {
   backgroundApps,
   ensureDefaultWorkspace,
   frames,
+  isDemo,
   screenRoute,
   screensOf,
   useCurrentWorkspaceId,
@@ -31,9 +32,10 @@ import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
 import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
-import { lastPlace, useResume } from "./nav/resume";
+import { FALLBACK_PLACE, lastPlace, useResume } from "./nav/resume";
 import { PeekHost } from "./peek/PeekHost";
 import { SelectionIntake } from "./intake/SelectionIntake";
+import { DemoBanner, DemoFilling } from "./demo/DemoBanner";
 
 /** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
 function ResumeRedirect() {
@@ -148,7 +150,8 @@ function Places() {
         .map((s) => (
           <Route key={`redirect-${s.id}`} path={`/app/${s.path}`} element={<Navigate to={screenRoute(s)} replace />} />
         ))}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Not `/`: the unknown path was just remembered as the last place, and resuming it would loop. */}
+      <Route path="*" element={<Navigate to={FALLBACK_PLACE} replace />} />
     </Routes>
   );
 }
@@ -176,6 +179,9 @@ export default function App() {
         {backgroundApps().map((a) => (
           <AppBackground key={a.id} app={a} />
         ))}
+        {/* Above everything, the Phone header included: ADR 0064 keeps banners at the top. */}
+        {isDemo() && <DemoBanner />}
+        {isDemo() && <DemoFilling />}
         <PhoneHeader />
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <Rail className="max-md:hidden" />
@@ -186,7 +192,8 @@ export default function App() {
         <PeekHost />
         <SelectionIntake />
         <PrivateDialogs />
-        <AccountDialogs />
+        {/* The Demo never signs in (ADR 0077): no sign-in, no signed-out notice, no account switch. */}
+        {!isDemo() && <AccountDialogs />}
         <Toaster position="bottom-right" />
       </div>
     </PushProvider>
