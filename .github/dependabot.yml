@@ -8,9 +8,14 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
-      # Minor and patch together; each major gets its own PR, to read its changelog.
+      # Minor and patch together.
       minor-and-patch:
         update-types: [minor, patch]
+    # No version PRs for npm majors: each is a migration, taken on purpose when it pays
+    # (its own PR, after reading the changelog). Security updates still come for them.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   # The SHA-pinned actions in .github/workflows.
   - package-ecosystem: github-actions
     directory: /

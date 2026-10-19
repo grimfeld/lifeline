@@ -4,7 +4,7 @@ import { linesOf, sumOfLines } from "./domain/derive";
 import { formatCents } from "./domain/money";
 import { useLines, useReceipts, useShops } from "./data/repo";
 
-/** The Daylog Contract for Prices (ADR 0082): a shopping trip is a fact of its day — "Bought · Lidl · €54.20". */
+/** The Daylog Contract for Prices (ADR 0082): a shopping trip is a fact of its day — "Bought · Lidl · €54.20". A Sighting bought nothing, so it never reports (ADR 0084). */
 export const pricesDaylog: DaylogProvider = {
   appId: APP_ID,
   useItems(date) {
@@ -13,7 +13,7 @@ export const pricesDaylog: DaylogProvider = {
     const shops = useShops();
     const nameOf = new Map(shops.map((s) => [s.id, s.title]));
     return receipts
-      .filter((r) => r.date === date)
+      .filter((r) => r.date === date && !r.noticed)
       .map((r) => {
         const ls = linesOf(lines, r.id);
         const amount = r.total > 0 ? r.total : sumOfLines(ls);

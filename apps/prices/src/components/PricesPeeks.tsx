@@ -2,10 +2,11 @@ import { useMemo, useState } from "react";
 import { Badge, Button, CommitField } from "@lifeline/ui";
 import type { Document } from "@lifeline/core";
 import { Pencil, Plus } from "lucide-react";
-import { MEASURE_LABEL, type Product, type Receipt, type Shop } from "../domain/types";
-import { cheapest, formatUnitPrice, historyOf, latestUsual, linesOf, observe, sumOfLines } from "../domain/derive";
+import type { Product, Receipt, Shop } from "../domain/types";
+import { cheapest, comparedBy, historyOf, latestUsual, linesOf, observe, sumOfLines } from "../domain/derive";
+import { formatUnitPrice, measureLabel, measureOf } from "../domain/measure";
 import { editAmount, formatCents, parseAmount } from "../domain/money";
-import { editReceipt, updateShop, useLines, useReceipts, useShops } from "../data/repo";
+import { editReceipt, updateShop, useLines, useProduct, useReceipts, useShops } from "../data/repo";
 import { AddPriceDialog } from "./AddPriceDialog";
 import { ProductDialog } from "./ProductDialog";
 import { ReceiptDialog } from "./ReceiptDialog";
@@ -18,19 +19,21 @@ import { ReceiptDialog } from "./ReceiptDialog";
  */
 
 /**
- * A Product: what it usually costs and where it is cheapest. Its measure is
- * fixed at creation (guarded, CONTEXT.md "Product"), so it is shown, not
- * edited; a price is added here, and merging or deleting is the Product's
+ * A Product: what it usually costs and where it is cheapest. Its Measure is
+ * guarded (CONTEXT.md "Product") and changed only in the Product dialog, so
+ * it is shown, not edited; a price is added here, and merging or deleting is the Product's
  * dialog.
  */
 export function ProductPeek({ doc }: { doc: Document }) {
-  const p = doc as Product;
+  // Normalised, so a Product stored before compare-by still reads its Measure.
+  const p = useProduct(doc.id) ?? (doc as Product);
   const lines = useLines();
   const receipts = useReceipts();
   const shops = useShops();
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState(false);
-  const history = useMemo(() => historyOf(p.id, observe(lines, receipts)), [p.id, lines, receipts]);
+  const history = useMemo(() => historyOf(p.id, comparedBy(observe(lines, receipts), [p])), [p, lines, receipts]);
+  const measure = measureOf(p);
   const best = cheapest(history);
   const shopName = (id: string) => shops.find((s) => s.id === id)?.title ?? "?";
   const rows = [...history.entries()]
@@ -40,7 +43,7 @@ export function ProductPeek({ doc }: { doc: Document }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="text-muted-foreground flex items-center gap-2 text-xs">
-        <Badge variant="secondary">{MEASURE_LABEL[p.measure] ?? p.measure}</Badge>
+        <Badge variant="secondary">{measureLabel(measure)}</Badge>
         <span>every price compared per this unit</span>
       </div>
       {rows.length === 0 ? (
@@ -49,7 +52,7 @@ export function ProductPeek({ doc }: { doc: Document }) {
         <>
           {best && (
             <div className="flex flex-col">
-              <span className="text-2xl font-semibold tabular-nums">{formatUnitPrice(best.point.unit, p.measure)}</span>
+              <span className="text-2xl font-semibold tabular-nums">{formatUnitPrice(best.point.unit, measure)}</span>
               <span className="text-muted-foreground text-sm">
                 cheapest at {shopName(best.shopId)} · {best.point.date}
               </span>
@@ -66,7 +69,7 @@ export function ProductPeek({ doc }: { doc: Document }) {
                       promo last
                     </Badge>
                   )}
-                  <span className="shrink-0 tabular-nums">{r.usual ? formatUnitPrice(r.usual.unit, p.measure) : "promo only"}</span>
+                  <span className="shrink-0 tabular-nums">{r.usual ? formatUnitPrice(r.usual.unit, measure) : "promo only"}</span>
                 </li>
               ))}
             </ul>

@@ -1,5 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { MEASURE_UNIT, type Product, type Shop } from "../domain/types";
+import type { AriaAttributes } from "react";
+import { unitName } from "../domain/measure";
+import { type Product, type Shop } from "../domain/types";
 
 /** Radix Select refuses "" as an item value; these stand in for "none" and "make a new one". */
 export const NONE = "__none__";
@@ -49,10 +51,48 @@ export function ProductSelect({ value, onChange, products, onNew, allowNone, cla
         )}
         {products.map((p) => (
           <SelectItem key={p.id} value={p.id}>
-            {p.title} <span className="text-muted-foreground">· {MEASURE_UNIT[p.measure]}</span>
+            {p.title} <span className="text-muted-foreground">· {unitName(p)}</span>
           </SelectItem>
         ))}
         {onNew && <SelectItem value={NEW}>＋ New product…</SelectItem>}
+      </SelectContent>
+    </Select>
+  );
+}
+
+/**
+ * One choice among a few named options — a dimension, a reading unit,
+ * compare-by. Takes the id, description and invalid mark a `Field` hands its
+ * control and puts them on the trigger, so the Field's label names it.
+ */
+export function UnitSelect<T extends string>({
+  value,
+  onChange,
+  options,
+  disabled,
+  id,
+  "aria-describedby": describedBy,
+  "aria-invalid": invalid,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: readonly { value: T; label: string }[];
+  disabled?: boolean;
+  id?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: AriaAttributes["aria-invalid"];
+}) {
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as T)} disabled={disabled}>
+      <SelectTrigger id={id} aria-describedby={describedBy} aria-invalid={invalid} className="w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((o) => (
+          <SelectItem key={o.value} value={o.value}>
+            {o.label}
+          </SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );

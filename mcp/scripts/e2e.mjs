@@ -79,7 +79,7 @@ const seeded = {
   groceries: await seed("ledger_category", "Groceries", { kind: "expense", group: "Food", target: 0, accumulating: false }),
   allowance: await seed("pocket_allowance", "Eating out", { name: "Eating out", period: "month", from: monthStart, to: "", amount: 10000, emoji: "", color: "" }),
   offence: await seed("swearjar_offence", "Swearing", { name: "Swearing", price: 100, emoji: "", color: "", archived: false }),
-  milk: await seed("price_product", "Milk", { measure: "l", labels: [] }),
+  milk: await seed("price_product", "Milk", { dimension: "volume", unit: "L", countName: "", labels: [] }),
   shop: await seed("price_shop", "Corner shop", { note: "" }),
   weight: await seed("stat", "Weight", { kind: "measurement", unit: "kg", defaultIncrement: 0, universeSize: 0, color: "" }),
   pushups: await seed("stat", "Push-ups", { kind: "additive", unit: "", defaultIncrement: 20, universeSize: 0, color: "" }),
@@ -178,7 +178,9 @@ const fine = await call("swearjar_fine", { offence: "swearing" });
 ok(!fine.error && /Swearing/.test(fine.data.message), "swearjar_fine fines an Offence named by name");
 const futureFine = await call("swearjar_fine", { offence: "Swearing", date: "2999-01-01" });
 ok(futureFine.error, "a fine in the future is refused");
-const price = await call("prices_add", { product: "milk", shop: "Corner shop", price: 1.19 });
+const noAmount = await call("prices_add", { product: "milk", shop: "Corner shop", price: 1.19 });
+ok(noAmount.error && /give the amount/.test(noAmount.data), "prices_add asks for the amount of anything not counted");
+const price = await call("prices_add", { product: "milk", shop: "Corner shop", price: 1.19, amount: 1 });
 ok(!price.error && /Milk/.test(price.data.message), "prices_add records a shelf price");
 const noProduct = await call("prices_add", { product: "Caviar", shop: "Corner shop", price: 99 });
 ok(noProduct.error && /no product called/.test(noProduct.data), "prices_add never invents a Product");

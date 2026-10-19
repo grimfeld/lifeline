@@ -1,10 +1,12 @@
-import { addDays, formatHuman, type DateStr } from "@lifeline/core";
-import { MEASURE_PER, MEASURE_UNIT, type LabelMemory, type Line, type Measure, type Observation, type Product, type Receipt } from "./types";
+import { formatHuman, type DateStr } from "@lifeline/core";
+import type { Basis, LabelMemory, Line, Observation, Product, Receipt, SecondaryMeasure } from "./types";
+import { amountIn, basisOf, secondaryMeasure } from "./measure";
 
 /**
  * Every reading of Prices (ADR 0082) lives here, pure: unit price, history
- * per Shop, cheapest Shop, the price change, the receipt's sum. Nothing
- * below is ever stored.
+ * per Shop, cheapest Shop, the price change, the receipt's sum. The
+ * statistics over a span — spend, rhythm, spread, promos, Overpaid, the
+ * Overview — are stats.ts. Nothing below is ever stored.
  */
 
 /** Label as compared: accents stripped, upper-cased, whitespace collapsed. */
@@ -17,23 +19,10 @@ export function normalizeLabel(s: string): string {
     .trim();
 }
 
-/** Cents per unit of measure — price paid over amount. A missing amount counts as one. */
+/** Cents per base unit of the dimension (per kg, L, m, count) — price paid over amount. A missing amount counts as one. Read it in the Product's unit with formatUnitPrice (measure.ts). */
 export function unitPrice(line: Pick<Line, "price" | "amount">): number {
   const amount = line.amount > 0 ? line.amount : 1;
   return line.price / amount;
-}
-
-const money = new Intl.NumberFormat(undefined, { style: "currency", currency: "EUR" });
-
-/** "€1.23/kg". */
-export function formatUnitPrice(cents: number, measure: Measure): string {
-  return `${money.format(cents / 100)}${MEASURE_PER[measure]}`;
-}
-
-/** "0.42 kg", "6 L", "12 pc". */
-export function formatAmount(amount: number, measure: Measure): string {
-  const n = Number.isInteger(amount) ? String(amount) : String(Number(amount.toFixed(3)));
-  return `${n} ${MEASURE_UNIT[measure]}`;
 }
 
 /**
@@ -99,14 +88,129 @@ export function relabel(products: readonly Product[], oldShopId: string, newShop
 
 /** Matched Lines joined with their Receipt's Shop and day; a Line whose Receipt is gone is dropped. */
 export function observe(lines: readonly Line[], receipts: readonly Receipt[]): Observation[] {
+  return observeAll(lines, receipts).filter((o) => !isUnmatched(o.line));
+}
+
+/** observe, unmatched Lines kept — the whole that a share is taken of. */
+export function observeAll(lines: readonly Line[], receipts: readonly Receipt[]): Observation[] {
   const byId = new Map(receipts.map((r) => [r.id, r]));
   const out: Observation[] = [];
   for (const line of lines) {
-    if (!line.productId) continue;
     const r = byId.get(line.receiptId);
-    if (r) out.push({ line, shopId: r.shopId, date: r.date });
+    if (r) out.push({ line, shopId: r.shopId, date: r.date, noticed: !!r.noticed });
   }
   return out;
+}
+
+/**
+ * The one place that decides what a reading may count (ADR 0084), so no
+ * reading re-decides it. Spending readings (spend, share, rhythm, visits,
+ * basket, being judged Overpaid) take only what was bought — never a
+ * Sighting.
+ */
+export function countsAsSpent(o: Observation): boolean {
+  return !o.noticed;
+}
+
+/**
+ * Per-unit readings (unit price, history, cheapest, Price change, spread,
+ * amount per month, the Overpaid baseline) take every price seen, Sightings
+ * included — but never a Line that needs an amount, nor one missing the
+ * amount its Product is compared by (see comparedBy).
+ */
+export function countsPerUnit(o: Observation): boolean {
+  return !o.line.needsAmount && !o.noAmount;
+}
+
+/**
+ * Observations read by each Product's compared-by unit (ADR 0084), so every
+ * per-unit reading downstream — history, cheapest, Price change, spread,
+ * promos, Overpaid — compares the one the Product chose. A Product compared
+ * by its secondary Measure has its Lines' second amount stand as the amount;
+ * a Line without one is marked noAmount: still spent, never per unit.
+ * `basis` reads every Product that has two Measures by that one instead —
+ * the Product page's other figure. Lines of other Products pass unchanged.
+ */
+export function comparedBy(obs: readonly Observation[], products: readonly (Pick<Product, "id" | "dimension"> & SecondaryMeasure)[], basis?: Basis): Observation[] {
+  const secondary = new Set(products.filter((p) => basisOf(p, basis) === "secondary").map((p) => p.id));
+  if (secondary.size === 0) return [...obs];
+  return obs.map((o) => {
+    if (!secondary.has(o.line.productId)) return o;
+    const second = Number(o.line.secondAmount) || 0;
+    return second > 0 ? { ...o, line: { ...o.line, amount: second } } : { ...o, noAmount: true };
+  });
+}
+
+/**
+ * One Line's unit price on a basis, in cents per base unit — the compared-by
+ * one when none is asked; null when the Line says nothing per unit on it
+ * (it needs an amount, or lacks the second amount). Read as comparedBy and
+ * countsPerUnit decide, so the Product page's list agrees with its readings.
+ */
+export function unitPriceOn(o: Observation, product: Pick<Product, "id" | "dimension"> & SecondaryMeasure, basis?: Basis): number | null {
+  const [read] = comparedBy([o], [product], basisOf(product, basis));
+  return countsPerUnit(read) ? unitPrice(read.line) : null;
+}
+
+/**
+ * The Lines a change of the Product's dimension sends to the needs-amount
+ * inbox — every Line of it, since no factor turns pieces into kilograms;
+ * none when the dimension stays (ADR 0084).
+ */
+export function linesToRetype<L extends Pick<Line, "productId">>(lines: readonly L[], product: Pick<Product, "id" | "dimension">, dimension: Product["dimension"]): L[] {
+  return dimension === product.dimension ? [] : lines.filter((l) => l.productId === product.id);
+}
+
+/**
+ * The second amount a new Line of this Product at this Shop starts from
+ * (ADR 0084): the latest one recorded there — a pack's weight rarely
+ * changes, so it is typed only when it did. 0 when there is none.
+ */
+export function lastSecondAmount(obs: readonly Observation[], productId: string, shopId: string): number {
+  let best: Observation | undefined;
+  for (const o of obs) {
+    if (o.line.productId !== productId || o.shopId !== shopId || !((o.line.secondAmount ?? 0) > 0)) continue;
+    if (!best || o.date > best.date || (o.date === best.date && o.line.createdAt > best.line.createdAt)) best = o;
+  }
+  return best?.line.secondAmount ?? 0;
+}
+
+/**
+ * Whether Lines of a Product lose their second amounts when it takes this
+ * Measure (ADR 0084): its secondary Measure goes or changes dimension — a
+ * primary leaving count takes the secondary with it. Never when it had none.
+ */
+export function clearsSecondAmounts(product: Pick<Product, "secondaryDimension">, next: Pick<Product, "dimension" | "secondaryDimension">): boolean {
+  const after = next.dimension === "count" ? next.secondaryDimension : "";
+  return !!product.secondaryDimension && after !== product.secondaryDimension;
+}
+
+/**
+ * What giving a Product this Measure — or merging it into a Product that has
+ * it — does to its Lines, counted to be said beforehand (ADR 0084): how many
+ * will need an amount (linesToRetype) and how many second amounts go
+ * (clearsSecondAmounts).
+ */
+export function measureChange(product: Pick<Product, "id" | "dimension" | "secondaryDimension">, next: Pick<Product, "dimension" | "secondaryDimension">, lines: readonly Pick<Line, "productId" | "secondAmount">[]): { retype: number; cleared: number } {
+  const retype = linesToRetype(lines, product, next.dimension).length;
+  const cleared = clearsSecondAmounts(product, next) ? lines.filter((l) => l.productId === product.id && (l.secondAmount ?? 0) > 0).length : 0;
+  return { retype, cleared };
+}
+
+/**
+ * The second amount a new Line of this Product at this Shop is shown with,
+ * in the secondary Measure's reading unit (lastSecondAmount); undefined when
+ * the Product has no secondary Measure or none was recorded there.
+ */
+export function secondPrefill(obs: readonly Observation[], product: Product | undefined, shopId: string): number | undefined {
+  const m = product && secondaryMeasure(product);
+  const last = m ? lastSecondAmount(obs, product.id, shopId) : 0;
+  return m && last > 0 ? amountIn(last, m) : undefined;
+}
+
+/** The needs-amount inbox: matched Lines waiting for their amount in the Product's new dimension. */
+export function needingAmount<L extends Pick<Line, "productId" | "needsAmount">>(lines: readonly L[]): L[] {
+  return lines.filter((l) => !!l.productId && l.needsAmount);
 }
 
 export function isUnmatched(line: Pick<Line, "productId">): boolean {
@@ -122,9 +226,11 @@ export interface PricePoint {
   receiptId: string;
 }
 
-const byDate = (a: PricePoint, b: PricePoint) => a.date.localeCompare(b.date) || a.lineId.localeCompare(b.lineId);
+/** Oldest first; one day's points in Line order. */
+export const byDate = (a: PricePoint, b: PricePoint) => a.date.localeCompare(b.date) || a.lineId.localeCompare(b.lineId);
 
-function pointOf(o: Observation): PricePoint {
+/** An Observation as a point of its Product's history. */
+export function pointOf(o: Observation): PricePoint {
   return { date: o.date, unit: unitPrice(o.line), promo: o.line.promo, lineId: o.line.id, receiptId: o.line.receiptId };
 }
 
@@ -132,7 +238,7 @@ function pointOf(o: Observation): PricePoint {
 export function historyOf(productId: string, obs: readonly Observation[]): Map<string, PricePoint[]> {
   const out = new Map<string, PricePoint[]>();
   for (const o of obs) {
-    if (o.line.productId !== productId) continue;
+    if (o.line.productId !== productId || !countsPerUnit(o)) continue;
     const list = out.get(o.shopId) ?? [];
     list.push(pointOf(o));
     out.set(o.shopId, list);
@@ -145,6 +251,7 @@ export function historyOf(productId: string, obs: readonly Observation[]): Map<s
 export function historiesByProduct(obs: readonly Observation[]): Map<string, Map<string, PricePoint[]>> {
   const out = new Map<string, Map<string, PricePoint[]>>();
   for (const o of obs) {
+    if (!countsPerUnit(o)) continue;
     let h = out.get(o.line.productId);
     if (!h) out.set(o.line.productId, (h = new Map()));
     const list = h.get(o.shopId);
@@ -221,15 +328,6 @@ export function overallOf(changes: readonly (readonly ShopChange[])[]): { median
   return { median: median(pcts), n: pcts.length };
 }
 
-/** First day of a span ending today: N months back, same day of month (clamped by the calendar). */
-export function spanStart(months: number, today: DateStr): DateStr {
-  const [y, m, d] = today.split("-").map(Number);
-  const date = new Date(Date.UTC(y, m - 1 - months, 1));
-  const last = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
-  date.setUTCDate(Math.min(d, last));
-  return date.toISOString().slice(0, 10);
-}
-
 export function sumOfLines(lines: readonly Pick<Line, "price">[]): number {
   return lines.reduce((s, l) => s + (Number(l.price) || 0), 0);
 }
@@ -262,5 +360,3 @@ export function linesByReceipt(lines: readonly Line[]): Map<string, Line[]> {
   for (const list of out.values()) list.sort(byCreated);
   return out;
 }
-
-export { addDays };
