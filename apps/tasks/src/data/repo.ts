@@ -4,6 +4,7 @@ import {
   getDocument,
   newId,
   normalizeTags,
+  patchDocument,
   putDocument,
   removeDocument,
   removePlacementsOf,
@@ -24,7 +25,7 @@ import { parseItemId, type ItemId } from "../domain/occurrences";
  * PocketBase stores an absent text field as "" and hands it back that way,
  * so every read re-establishes the domain's `null` for "no value".
  */
-function normalizeTask(t: Task): Task {
+export function normalizeTask(t: Task): Task {
   return {
     ...t,
     notes: t.notes ?? "",
@@ -94,6 +95,18 @@ export async function addTask(input: {
 
 export async function updateTask(task: Task): Promise<void> {
   await putDocument<Task>({ ...task, tags: normalizeTags(task.tags) });
+}
+
+/**
+ * Edit a Task's own words — its notes and Tags — from wherever it is shown (its
+ * Peek, ADR 0085). Its day, completion and place in a Project are guarded and
+ * move only through their intents below; nothing else passed here is written.
+ */
+export async function editTask(taskId: string, edit: { notes?: string; tags?: string[] }): Promise<void> {
+  const patch: Record<string, unknown> = {};
+  if (edit.notes !== undefined) patch.notes = edit.notes;
+  if (edit.tags !== undefined) patch.tags = normalizeTags(edit.tags);
+  if (Object.keys(patch).length > 0) await patchDocument(taskId, patch);
 }
 
 export async function setArchived(task: Task, archived: boolean): Promise<void> {

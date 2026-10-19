@@ -61,7 +61,7 @@ function compile(names: MentionName[]): Matcher {
 }
 
 /** The body with everything that is not plain prose blanked to spaces (offsets kept): frontmatter, code, wikilinks, URLs. */
-function maskProse(body: string): string {
+export function maskProse(body: string): string {
   const chars = new Array<string>(body.length).fill(" ");
   const { raw } = splitFrontmatter(body);
   for (const seg of proseSegments(body)) {
@@ -121,6 +121,11 @@ export function findMentions(body: string, names: MentionName[]): MentionHit[] {
   return scan(body, compile(names));
 }
 
+/** The wikilink that reaches `canonical` and reads as `text`: `[[Canonical]]` when they are the same, else `[[Canonical|text]]`. */
+export function wikilinkFor(text: string, canonical: string): string {
+  return text === canonical ? `[[${canonical}]]` : `[[${canonical}|${text}]]`;
+}
+
 /** Rewrite hits into wikilinks: `[[Canonical]]` when the prose is the title verbatim, else `[[Canonical|prose]]`. */
 export function linkMentions(body: string, hits: MentionHit[]): string {
   const sorted = [...hits].sort((a, b) => a.from - b.from);
@@ -129,7 +134,7 @@ export function linkMentions(body: string, hits: MentionHit[]): string {
   for (const h of sorted) {
     if (h.from < pos) continue; // overlapping hit — already rewritten
     out += body.slice(pos, h.from);
-    out += h.text === h.canonical ? `[[${h.canonical}]]` : `[[${h.canonical}|${h.text}]]`;
+    out += wikilinkFor(h.text, h.canonical);
     pos = h.to;
   }
   return out + body.slice(pos);
