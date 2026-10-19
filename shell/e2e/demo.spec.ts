@@ -758,6 +758,10 @@ for (const w of WIDTHS) {
 
         // Reloading halfway erases the half-written life and writes it again, once.
         await page.reload();
+        // The reloaded app erases the half-written life and reloads itself
+        // (`eraseDevice`); a goto sent before that lands is interrupted by it.
+        // "Filling in…" again means the second start is seeding.
+        await expect(filling(page)).toBeVisible({ timeout: 20_000 });
         await open(page, "/app/tasks");
         await expect(page.getByText("Renew the bike insurance", { exact: true })).toHaveCount(1);
         await open(page, "/app/stats");
