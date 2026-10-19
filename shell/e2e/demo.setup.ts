@@ -8,10 +8,11 @@ import { test as setup, expect } from "@playwright/test";
 setup("open the Demo once and keep the life it seeds", async ({ page }) => {
   setup.setTimeout(90_000);
   await page.goto("/");
-  // The app renders only once the life is written (main.tsx), so a page with
-  // its <main> and no "Loading…" holds the whole life.
+  // The app shows once today's agenda is written (main.tsx), then writes the
+  // rest behind "Filling in the rest of the Demo…"; with that gone the store
+  // holds the whole life.
   await expect(page.locator("main").first()).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByRole("status").filter({ hasText: /^Loading…$/ })).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: /^Filling in the rest of the Demo/ })).toHaveCount(0, { timeout: 60_000 });
   await page.waitForFunction(() => !!window.lifelineDemo);
   const apps = await page.evaluate(() => window.lifelineDemo!.appPages());
   expect(apps.length, "Apps with Documents seeded").toBeGreaterThan(20);

@@ -19,14 +19,26 @@ const WIDTHS = [
 /** A browser that has never opened the Demo: the app seeds the life on first open. */
 const EMPTY = { cookies: [], origins: [] };
 
+/** The line the shell shows while the rest of the Demo life is written behind the first screen. */
+function filling(page: Page) {
+  return page.getByRole("status").filter({ hasText: /^Filling in the rest of the Demo/ });
+}
+
+/**
+ * Wait until the app is up and the whole Demo life is written. A first open
+ * writes today's agenda behind "Loading…", shows the first screen, then writes
+ * the rest; leaving before it ends would start it over.
+ */
+async function settle(page: Page): Promise<void> {
+  await expect(page.getByRole("status").filter({ hasText: /^Loading…$/ })).toHaveCount(0, { timeout: 20_000 });
+  await expect(page.locator("main").first()).toBeVisible();
+  await expect(filling(page)).toHaveCount(0, { timeout: 40_000 });
+}
+
 /** Open a page and let it settle. */
 async function open(page: Page, path: string): Promise<void> {
   await page.goto(path);
-  await page.waitForLoadState("networkidle");
-  await expect(page.locator("#root")).not.toBeEmpty();
-  // First open writes the Demo life behind "Loading…"; leaving before it ends would start it over.
-  await expect(page.getByRole("status").filter({ hasText: /^Loading…$/ })).toHaveCount(0, { timeout: 20_000 });
-  await page.waitForTimeout(250);
+  await settle(page);
 }
 
 /**
@@ -68,8 +80,6 @@ for (const w of WIDTHS) {
 
     test("opens with no sign-in dialog", async ({ page }) => {
       await open(page, "/");
-      // The signed-out sign-in used to open a beat after load.
-      await page.waitForTimeout(1_000);
       await expect(page.getByRole("dialog")).toHaveCount(0);
       await expect(page.getByText("You're signed out")).toHaveCount(0);
     });
@@ -122,12 +132,14 @@ for (const w of WIDTHS) {
 
       for (const path of ["/app/mail", "/module/mail"]) {
         await open(page, path);
-        expect(new URL(page.url()).pathname, `${path} redirects away`).not.toMatch(/mail/);
+        await expect(page, `${path} redirects away`).not.toHaveURL(/mail/);
       }
     });
 
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
+      // Writing the life takes seconds of its own, behind the first screen.
+      test.describe.configure({ timeout: 60_000 });
 
       test("first open puts tasks, chores and events on today", async ({ page }) => {
         await expectBusyToday(page);
@@ -157,9 +169,8 @@ for (const w of WIDTHS) {
         await expect(ticks).toHaveCount(seeded + 1);
 
         await page.reload();
-        await page.waitForLoadState("networkidle");
+        await settle(page);
         await expect(page.getByText("Return the library card", { exact: true })).toBeVisible();
-        await page.waitForTimeout(1_000);
         await expect(ticks).toHaveCount(seeded + 1);
       });
 
@@ -245,6 +256,8 @@ for (const w of WIDTHS) {
 
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
+      // Writing the life takes seconds of its own, behind the first screen.
+      test.describe.configure({ timeout: 60_000 });
       test("with the clock pinned to another day, streaks and moods run up to it", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await expectLiveStreak(page);
@@ -317,11 +330,22 @@ for (const w of WIDTHS) {
 
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
+      // Writing the life takes seconds of its own, behind the first screen.
+      test.describe.configure({ timeout: 60_000 });
       test("with the clock pinned, the money moves with the visit day", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await open(page, "/app/pocket");
         // A monthly Allowance runs over the visit day's month.
         await expect(page.locator("main").getByText(/March 2027|Mar 2027/).first()).toBeVisible();
+
+        // The month's budget: the rent is not yet due on the 10th, the phone bills leave a little over.
+        await open(page, "/module/money");
+        const budget = page.locator('[data-slot="card"]').filter({ has: page.getByText("Budget this month", { exact: true }) });
+        for (const category of ["Rent", "Phone & internet"]) {
+          const row = budget.getByRole("button").filter({ has: page.getByText(category, { exact: true }) });
+          await expect(row, category).toBeVisible();
+          await expect(row, `${category} is not spent to the cent`).not.toContainText("€0.00");
+        }
       });
     });
   });
@@ -389,6 +413,8 @@ for (const w of WIDTHS) {
 
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
+      // Writing the life takes seconds of its own, behind the first screen.
+      test.describe.configure({ timeout: 60_000 });
       test("with the clock pinned, the deadline moves with the visit day", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await open(page, "/calendar?view=upcoming");
@@ -426,8 +452,7 @@ async function reset(page: Page, scope: Locator): Promise<void> {
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await Promise.all([page.waitForEvent("load"), dialog.getByRole("button", { name: "Reset", exact: true }).click()]);
-  await page.waitForLoadState("networkidle");
-  await expect(page.locator("#root")).not.toBeEmpty();
+  await settle(page);
 }
 
 for (const w of WIDTHS) {
@@ -436,6 +461,8 @@ for (const w of WIDTHS) {
 
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
+      // Writing the life takes seconds of its own, behind the first screen.
+      test.describe.configure({ timeout: 60_000 });
       test("the banner shows on first open, at the top, and staying dismissed survives a reload", async ({ page }) => {
         await open(page, "/calendar");
         const bar = banner(page);
@@ -447,9 +474,7 @@ for (const w of WIDTHS) {
         await bar.getByRole("button", { name: "Dismiss" }).click();
         await expect(bar).toHaveCount(0);
         await page.reload();
-        await page.waitForLoadState("networkidle");
-        await expect(page.locator("#root")).not.toBeEmpty();
-        await page.waitForTimeout(500);
+        await settle(page);
         await expect(banner(page)).toHaveCount(0);
       });
     });
@@ -464,6 +489,8 @@ for (const w of WIDTHS) {
 
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
+      // Writing the life takes seconds of its own, behind the first screen.
+      test.describe.configure({ timeout: 60_000 });
       test("Reset asks first, then removes an edit and brings back the seeded life dated around today", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await addTask(page, "Return the library card");
@@ -477,6 +504,9 @@ for (const w of WIDTHS) {
         // A week later, Reset re-seeds around the new today.
         await page.clock.setFixedTime(new Date("2027-03-17T09:30:00"));
         await reset(page, banner(page));
+        // Back where a stranger lands: Home, not the page Reset was pressed on.
+        await expect(page).toHaveURL(/\/screen\//);
+        await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
         await open(page, "/app/tasks");
         await expect(page.getByTitle("Mark done")).not.toHaveCount(0);
         await expect(page.getByText("Return the library card", { exact: true })).toHaveCount(0);
@@ -511,6 +541,12 @@ for (const w of WIDTHS) {
         u.port = String(Number(u.port) + 1);
         await use(u.origin);
       },
+    });
+
+    test("the shipped Demo carries no test hook", async ({ page }) => {
+      // This build is made as the Demo is deployed; only the suite's own build hands it the registry.
+      await open(page, "/calendar");
+      expect(await page.evaluate(() => "lifelineDemo" in window)).toBe(false);
     });
 
     test("the Source link opens the repo, from the banner and from Settings", async ({ page }) => {
@@ -581,6 +617,8 @@ for (const w of WIDTHS) {
 
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
+      // Writing the life takes seconds of its own, behind the first screen.
+      test.describe.configure({ timeout: 60_000 });
       test("with the clock pinned to another day, the media dates follow it", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         // Hung twelve days before the visit.
@@ -651,9 +689,9 @@ for (const w of WIDTHS) {
       await open(page, "/app/journal");
       await expectLinksResolve(page);
       // A week of Days back: each one written links only to pages that exist.
-      for (let i = 0; i < 7; i++) {
+      for (let i = 1; i <= 7; i++) {
         await page.getByRole("button", { name: "Previous day" }).click();
-        await page.waitForTimeout(300);
+        await expect(page.getByLabel("Jump to date")).toHaveValue(await pageDay(page, -i));
         if (await page.getByText(/^No entry for/).isVisible()) continue;
         await expectLinksResolve(page);
       }
@@ -661,6 +699,8 @@ for (const w of WIDTHS) {
 
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
+      // Writing the life takes seconds of its own, behind the first screen.
+      test.describe.configure({ timeout: 60_000 });
       test("the Journal is dated around the visit day", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await open(page, "/app/journal");
@@ -694,12 +734,14 @@ for (const w of WIDTHS) {
 
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
+      // Writing the life takes seconds of its own, behind the first screen.
+      test.describe.configure({ timeout: 60_000 });
       test("first open lands on Home: Cards filled from the seeded life, today's agenda on the hours", async ({ page }) => {
         await open(page, "/");
         await expect(page).toHaveURL(/\/screen\//);
         await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
         const main = page.locator("main");
-        // The hour-scaled agenda comes first, holding today's timed Events.
+        // The hour-scaled agenda, holding today's timed Events.
         await expect(main.getByText("Today's agenda", { exact: true })).toBeVisible();
         await expect(main.getByText(/^Team huddle with Sam/).first()).toBeVisible();
         await expect(main.getByText(/^Climbing with Marcus/).first()).toBeAttached();
@@ -710,9 +752,89 @@ for (const w of WIDTHS) {
         await expect(main.getByText("Take out the recycling").first()).toBeAttached();
         await expect(main.getByText("Normal People").first()).toBeAttached();
         await expect(main.getByText("Not configured yet.")).toHaveCount(0);
-        // On the Phone bar, beside Calendar.
-        if (w.isMobile) await expect(page.locator("nav").getByRole("button", { name: "Home", exact: true })).toBeVisible();
+        if (w.isMobile) {
+          // On the Phone bar, beside Calendar.
+          await expect(page.locator("nav").getByRole("button", { name: "Home", exact: true })).toBeVisible();
+          // The first screen shows the day's work and mood, not one tall agenda.
+          await page.evaluate(() => window.scrollTo(0, 0));
+          for (const title of ["Tasks today", "Today's mood"]) await expect(main.getByText(title, { exact: true }).first(), title).toBeInViewport();
+        }
       });
+
+      test("Home shows before the whole life is written; a reload meanwhile starts over without doubling it", async ({ page }) => {
+        await page.goto("/");
+        // Today first: Home and its agenda are up while the rest is still being written.
+        await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible({ timeout: 20_000 });
+        await expect(filling(page)).toBeVisible();
+        await expect(page.locator("main").getByText(/^Team huddle with Sam/).first()).toBeVisible();
+
+        // Reloading halfway erases the half-written life and writes it again, once.
+        await page.reload();
+        await open(page, "/app/tasks");
+        await expect(page.getByText("Renew the bike insurance", { exact: true })).toHaveCount(1);
+        await open(page, "/app/stats");
+        await expect(page.getByText("Stretching", { exact: true })).toHaveCount(1);
+        await open(page, "/screens");
+        await expect(page.locator("main").getByText("Home", { exact: true })).toHaveCount(1);
+      });
+
+      test("when the life cannot be written, says so instead of opening half-empty, and tries again", async ({ page }) => {
+        const seedChunk = /\/assets\/seed-[^/]*\.js$/;
+        await page.route(seedChunk, (r) => r.abort());
+        await page.goto("/");
+        await expect(page.getByRole("alert")).toContainText("The Demo could not be set up");
+        await expect(page.locator("main")).toHaveCount(0);
+
+        await page.unroute(seedChunk);
+        await page.getByRole("button", { name: "Try again" }).click();
+        await settle(page);
+        await expect(page.getByRole("heading", { name: "Home", exact: true })).toBeVisible();
+      });
+
+      test("on New Year's Day the Culture overview still shows a finished book and film", async ({ page }) => {
+        await page.clock.setFixedTime(new Date("2027-01-01T09:30:00"));
+        await open(page, "/module/culture");
+        const main = page.locator("main");
+        await expect(main.getByTitle(/^Small Things Like These/).first()).toBeAttached();
+        await expect(main.getByTitle(/^The Banshees of Inisherin/).first()).toBeAttached();
+      });
+    });
+
+    test("the Culture overview shows each work in progress whole, and its sidebar names each list once", async ({ page }) => {
+      await open(page, "/module/culture");
+      const main = page.locator("main");
+      // The chip under a cover is the last thing in its Card: not cut off by the Card's bottom.
+      for (const [card, chip] of [["Reading", "Book"], ["Watching", "Series"]] as const) {
+        const box = main.locator('[data-slot="card"]').filter({ has: page.getByText(card, { exact: true }) }).first();
+        const bottom = await box.evaluate((el) => el.getBoundingClientRect().bottom);
+        const chipBottom = await box.getByText(chip, { exact: true }).first().evaluate((el) => el.getBoundingClientRect().bottom);
+        expect(chipBottom, `${card}: the ${chip} chip is inside its Card`).toBeLessThanOrEqual(bottom);
+      }
+      if (!w.isMobile) {
+        const labels = (await page.locator('a[href^="/base/"]').allInnerTexts()).map((t) => t.trim());
+        expect(labels.length, "Raw data links").toBeGreaterThan(0);
+        expect(labels.filter((l, i) => labels.indexOf(l) !== i), "Raw data links named twice").toEqual([]);
+      }
+    });
+
+    test("a loaded Demo keeps working offline", async ({ page, context }) => {
+      await open(page, "/settings");
+      await context.setOffline(true);
+      // Moving around inside the app needs nothing from the network.
+      await page.evaluate(() => {
+        history.pushState(null, "", "/app/tasks");
+        dispatchEvent(new PopStateEvent("popstate"));
+      });
+      await expect(page.getByText("Renew the bike insurance", { exact: true }).first()).toBeVisible();
+      await page.getByPlaceholder(/^Quick add/).fill("Post the birthday card");
+      await page.keyboard.press("Enter");
+      await expect(page.getByText("Post the birthday card", { exact: true })).toBeVisible();
+      await page.evaluate(() => {
+        history.pushState(null, "", "/module/culture");
+        dispatchEvent(new PopStateEvent("popstate"));
+      });
+      await expect(page.locator("main").getByText("Reading", { exact: true }).first()).toBeVisible();
+      await context.setOffline(false);
     });
 
     test("the key Overviews are arranged with more Cards, each showing the seeded life", async ({ page }) => {
@@ -773,6 +895,7 @@ for (const w of WIDTHS) {
 /** How long a stranger waits on first open, on the production build: logged, not asserted. */
 test.describe("Demo first open, timed", () => {
   test.use({ storageState: EMPTY, viewport: { width: 1280, height: 800 } });
+  test.describe.configure({ timeout: 60_000 });
 
   test("logs the time from navigation to today's seeded agenda on Home", async ({ page }, info) => {
     await page.goto("/");
@@ -781,5 +904,10 @@ test.describe("Demo first open, timed", () => {
     const ms = Math.round(await page.evaluate(() => performance.now()));
     info.annotations.push({ type: "first-open-ms", description: String(ms) });
     console.log(`Demo first open: ${ms} ms from navigation to today's agenda on Home`);
+    // And the rest of the life, written behind it.
+    await expect(filling(page)).toHaveCount(0, { timeout: 40_000 });
+    const all = Math.round(await page.evaluate(() => performance.now()));
+    info.annotations.push({ type: "whole-life-ms", description: String(all) });
+    console.log(`Demo first open: ${all} ms until the whole life is written`);
   });
 });
