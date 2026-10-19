@@ -31,3 +31,7 @@ The receipt photo is read by **Tesseract on the device** first, chosen over a vi
 ## Amendment (2026-10-18): Lifeline reads no photo
 
 Superseded by ADR 0075 in the part about the reader: the third paragraph (Tesseract on the device, the reader seam, OCR before the downscale) and the `tesseract.js` consequence. Tesseract read too poorly, and the reading moved to the person's own agent, which runs **Add receipt…** headless over MCP; "Scan receipt…" is gone. The rule that a reading is reviewed before it is saved stands — by the person with the agent, in the conversation.
+
+## Amendment (2026-10-19): measures change
+
+Superseded by ADR 0084 in the part about the measure: a Product's measure is a dimension (mass, volume, count, length) with a reading unit, a count Product may carry a secondary measure, the measure can change after creation, and Products of different measures merge. ADR 0084 also adds the Sighting (a Receipt marked noticed, not bought) and the Overpaid comparison, which leaves the per-Shop-only price change untouched.

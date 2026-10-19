@@ -644,28 +644,44 @@ The price App: what regular purchases cost, where, and over time. Owns Products,
 _Avoid_: price tracker (fine in prose), receipts app (the capture unit, not the reading), grocery app
 
 ### Product
-A thing bought again, owned by Prices, Linkable: a name — one Product per name, case aside — and a fixed **measure** — kilogram, litre or piece — that every Line of it is expressed in. Pack size is *not* part of a Product: a litre and a six-pack of litres are one Product with different amounts on the Line. Remembers the printed **labels** a Shop uses for it, so the next import of that label resolves on its own. Never deleted while Lines reference it — **merged** into another Product of the same measure instead, Lines and labels carried over.
+A thing bought again, owned by Prices, Linkable: a name — one Product per name, case aside — and a **Measure** that every Line of it is expressed in. A counted Product may also carry a **secondary** Measure, mass or volume — croissants are counted *and* weighed — and says which of the two it is **compared by**: that one decides its cheapest Shop, its Price change and Overpaid, and the other is read beside it. Pack size is *not* part of a Product: a litre and a six-pack of litres are one Product with different amounts on the Line. Remembers the printed **labels** a Shop uses for it, so the next import of that label resolves on its own. Its Measure can change: within a dimension the amounts follow; across dimensions every Line of it **needs an amount** again. Never deleted while Lines reference it — **merged** into another Product instead, Lines and labels carried over, under the same rule when their Measures differ.
 _Avoid_: item (Media item is taken), article, SKU, Provision (Pantry's stock row), grocery
+
+### Measure (Prices)
+What a Product is counted in: a **dimension** — mass, volume, count or length — and the unit it is read in (g or kg, ml or L, m, or per 100 g for a spice). A count may wear its own name — roll, wash, sheet — and is still a count. Units of one dimension convert into each other; different dimensions never do, so no number turns pieces into kilograms.
+_Avoid_: unit (one reading of a dimension), pack size (the Line's amount), measure (an Exercise's — Workout's one number worth beating)
 
 ### Shop
 A chain where things are bought — "Lidl", "Biocoop" — user-defined, owned by Prices, Linkable, one Shop per name. A Shop is the chain, never the branch: prices are compared per chain, and a branch is at most a free-text note on the Receipt. Deleting a Shop that Receipts reference is blocked.
 _Avoid_: store (say shop), Storage (Pantry's place food lives), merchant, payee (the Ledger's word), branch (a note, not a Document)
 
 ### Receipt
-One buying occasion at one Shop on one day, owned by Prices: the Shop, the day, an optional branch note, the printed **total** as read (kept beside the derived sum of its Lines, a mismatch shown as a warning and never blocking), and its Lines. May hold a photo of the printed receipt, embedded in its optional body as an Attachment. Read from the photo by an agent or typed in by hand — Lifeline itself reads no photo; what an agent read is reviewed by the person with the agent, before it is added. A price noticed without buying is a one-Line Receipt with no printed total. The one record that collides: a second Receipt at the same Shop, on the same day, with the same printed total is refused as the same receipt added twice — one with no printed total never is. Reports to the Daylog ("€54.20 · Lidl"). Deleting a Receipt deletes its Lines.
+One buying occasion at one Shop on one day, owned by Prices: the Shop, the day, an optional branch note, the printed **total** as read (kept beside the derived sum of its Lines, a mismatch shown as a warning and never blocking), and its Lines. May hold a photo of the printed receipt, embedded in its optional body as an Attachment. Read from the photo by an agent or typed in by hand — Lifeline itself reads no photo; what an agent read is reviewed by the person with the agent, before it is added. A price noticed without buying is a **Sighting**. The one record that collides: a second Receipt at the same Shop, on the same day, with the same printed total is refused as the same receipt added twice — one with no printed total never is. Reports to the Daylog ("€54.20 · Lidl"), a Sighting excepted. Deleting a Receipt deletes its Lines.
 _Avoid_: purchase, shopping trip (fine in prose), bill, invoice, ticket, transaction (the Ledger's fact)
 
+### Sighting
+A Receipt marked **noticed, not bought** — a price read on a shelf or a flyer. It counts for what things cost (history, cheapest Shop, Price change, the price Overpaid is measured against) and never for what was spent: no spend, no share, no buying rhythm, no Shop visit, no basket, never itself Overpaid, nothing on the Daylog. Add price… makes one unless "Bought it" is ticked. A Receipt, not a type of its own, so price history stays made of Lines.
+_Avoid_: observation, quote, price check, noted price (fine in prose)
+
 ### Line
-One priced entry on a Receipt — internal to it: the printed label, an **amount** in the Product's measure (6 L, 0.42 kg, 12 pieces), the **price paid** in cents after any discount, and a **promo** flag. **Matched** to exactly one Product or **unmatched**, in which case it is shown loudly as an inbox to clear, never hidden and never dropped. The only fact price history is made of.
+One priced entry on a Receipt — internal to it: the printed label, an **amount** in the Product's Measure (6 L, 0.42 kg, 12 pieces), and for a Product with a secondary Measure an optional second amount (4 pc · 240 g), the **price paid** in cents after any discount, and a **promo** flag. **Matched** to exactly one Product or **unmatched**, in which case it is shown loudly as an inbox to clear, never hidden and never dropped. A matched Line whose Product changed dimension **needs an amount** — another inbox, the same way loud: its price paid still counts as spent, but it says nothing per unit until the amount is typed. The only fact price history is made of.
 _Avoid_: item, observation, entry (a Stat's), split, line item (say Line)
 
 ### Unit price
-The derived number every reading of Prices uses: a Line's price paid divided by its amount, so €/kg, €/L or €/piece. Never stored. "Usual price" readings and the change figure exclude promo Lines; history plots them, marked apart.
+The derived number every reading of Prices uses: a Line's price paid divided by its amount, in the unit the Product is read in — €/kg, €/100 g, €/L, €/roll. A Product with a secondary Measure has two, and its compared-by one leads. Never stored. "Usual price" readings and the change figure exclude promo Lines; history plots them, marked apart.
 _Avoid_: price (ambiguous — a Line's is the price paid), rate, normalised price
 
 ### Price change
 The derived reading of how a Product's unit price moved over a span, always **per Shop**: earliest to latest non-promo unit price at that Shop inside the span. The all-Products figure is the median of the per-Shop changes over Products with at least two points at that Shop in the span. No cross-Shop number exists — a switch of Shop is not inflation.
 _Avoid_: inflation (fine in prose), trend, index
+
+### Overpaid
+The derived reading of what a bought Line cost beyond the cheapest **usual** unit price any other Shop asked for that Product on or before its day, no older than 90 days — a promo Line is judged like any other, since what was paid was paid. A comparison across Shops at one moment, never a change over time: it answers "where should I have bought this", and leaves Price change per Shop.
+_Avoid_: loss, waste, savings (the other way round), inflation
+
+### Promo saving
+The derived reading of what a promo Line saved: the latest usual unit price at the *same* Shop, on or before its day, times its amount, less what was paid.
+_Avoid_: discount (the receipt's word for one Line), savings (Overpaid's other side), deal
 
 ### Shopping list
 The App for things to buy at the next chance: anything that crosses the mind, written down in seconds so it is remembered in the shop. Owns Needs and Aisles; shelved in the House Module beside Pantry, and its add is a capture Command, so it sits on the phone's capture sheet.
