@@ -60,11 +60,6 @@ export function onThisDay(dates: string[], today: DateStr, opts: OnThisDayOpts =
 
 // --- written days & streaks -----------------------------------------------
 
-/** Set of dates (YYYY-MM-DD) with a written Day — the one rule, `isWrittenDay` (./written). */
-export function writtenDays(notes: DayLike[]): Set<string> {
-  return writtenDates(notes);
-}
-
 /** Consecutive written days ending today or yesterday — an unwritten today doesn't break the run. */
 export function currentStreak(days: Set<string>, today: DateStr): number {
   let cursor = days.has(today) ? today : addDays(today, -1);
@@ -129,7 +124,7 @@ export interface MonthCount {
 
 /** Written daily notes per calendar month, for the last `months` months ending in today's month (oldest first). */
 export function entriesPerMonth(notes: DayLike[], months: number, today: DateStr): MonthCount[] {
-  const written = writtenDays(notes);
+  const written = writtenDates(notes);
   const { y, m } = parts(today);
   const out: MonthCount[] = [];
   for (let i = months - 1; i >= 0; i--) {
