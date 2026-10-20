@@ -68,12 +68,12 @@ export const calendarTimed: TimedProvider = {
     return timedItemsOf(await allEvents(), await allTimeBlockers(), range);
   },
   async move(itemId, to) {
-    if (await isBlocker(itemId)) await rescheduleTimeBlocker(itemId, to, null, null);
+    if (await isBlocker(itemId)) await rescheduleTimeBlocker(itemId, { date: to, start: null, end: null });
     else await moveEvent(itemId, to);
   },
-  async reschedule(itemId, date, start, end) {
-    if (await isBlocker(itemId)) await rescheduleTimeBlocker(itemId, date, start, end);
-    else await rescheduleEvent(itemId, date, start, end);
+  async reschedule(itemId, when) {
+    if (await isBlocker(itemId)) await rescheduleTimeBlocker(itemId, when);
+    else await rescheduleEvent(itemId, when);
   },
   async create({ title, date, start, endDate, end }) {
     await addEvent({ title, date, start, endDate, end });

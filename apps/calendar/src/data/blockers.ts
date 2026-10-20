@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr, type TimeStr, type Weekday } from "@lifeline/core";
+import { documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr, type TimedWhen, type TimeStr, type Weekday } from "@lifeline/core";
 import { compareBlockers } from "../domain/blockers";
 import { TIME_BLOCKER_TYPE, type TimeBlocker } from "../domain/types";
 
@@ -70,7 +70,7 @@ export async function deleteTimeBlocker(id: string): Promise<void> {
  * week. A null start (dropped on the untimed strip) keeps the hours and
  * only changes the day: a band without hours is no band.
  */
-export async function rescheduleTimeBlocker(id: string, date: DateStr, start: TimeStr | null, end: TimeStr | null): Promise<void> {
+export async function rescheduleTimeBlocker(id: string, { date, start, end }: TimedWhen): Promise<void> {
   const row = await getDocument<TimeBlocker>(id);
   if (!row || row.type !== TIME_BLOCKER_TYPE) throw new Error("That blocker is gone");
   const b = normalize(row);
