@@ -20,6 +20,26 @@ export interface TimedSpan {
   end: TimeStr;
 }
 
+/**
+ * When a timed item is rescheduled to (the Timed contract's `reschedule`):
+ * a start day and time to an end day and time. A null start makes it all
+ * day; then `endDate` is its last day, and leaving it out keeps how many
+ * days it covers. A timed one with no end day ends on its start day.
+ */
+export interface TimedWhen {
+  date: DateStr;
+  start: TimeStr | null;
+  endDate?: DateStr;
+  end: TimeStr | null;
+}
+
+/** Why a reschedule is refused, in words; null when it may be written. The span rule (ADR 0090) for a timed one. */
+export function whenProblem(when: TimedWhen): string | null {
+  if (!when.start) return when.end ? "An end time needs a start time" : when.endDate && when.endDate < when.date ? "The last day can't be before the first" : null;
+  if (when.end && !spanIsValid({ date: when.date, start: when.start, endDate: when.endDate ?? when.date, end: when.end })) return "End must be after start";
+  return null;
+}
+
 /** Minutes past midnight of "HH:MM" ("24:00" is the day's end); null for text that is no time. */
 function clockMinutes(t: string): number | null {
   const m = /^(\d{2}):(\d{2})$/.exec(t);
@@ -39,6 +59,43 @@ export function spanIsValid(span: TimedSpan): boolean {
   const days = diffDays(span.date, span.endDate);
   if (s === null || e === null || !Number.isFinite(days)) return false;
   return days * 24 * 60 + e > s;
+}
+
+/** A moment `min` minutes after (or before) a day's time, normalised onto its own day: Mon "24:00" is Tue "00:00". */
+function shiftMoment(date: DateStr, time: TimeStr, min: number): { date: DateStr; time: TimeStr } {
+  const total = (clockMinutes(time) ?? 0) + min;
+  const days = Math.floor(total / (24 * 60));
+  const m = total - days * 24 * 60;
+  return { date: addDays(date, days), time: `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}` };
+}
+
+/** A piece's whole span, or the piece's own hours where its provider reports none (an end-less item is a moment). */
+function wholeOf(piece: Pick<TimedItem, "date" | "start" | "end" | "span">): TimedSpan {
+  return piece.span ?? { date: piece.date, start: piece.start ?? "00:00", endDate: piece.date, end: piece.end ?? piece.start ?? "00:00" };
+}
+
+/**
+ * The span a timed item gets when one of its pieces is dropped at a day and
+ * time (ADR 0090): the whole span moves by the drop offset, keeping its
+ * length, whichever piece was dragged.
+ */
+export function spanMovedTo(piece: Pick<TimedItem, "date" | "start" | "end" | "span">, date: DateStr, start: TimeStr): TimedSpan {
+  const whole = wholeOf(piece);
+  const offset = diffDays(piece.date, date) * 24 * 60 + (clockMinutes(start) ?? 0) - (clockMinutes(piece.start ?? "00:00") ?? 0);
+  const s = shiftMoment(whole.date, whole.start, offset);
+  const e = shiftMoment(whole.endDate, whole.end, offset);
+  return { date: s.date, start: s.time, endDate: e.date, end: e.time };
+}
+
+/** The span a timed item gets when its last piece is resized to end at a time on that piece's day; midnight is 00:00 the next day. */
+export function spanEndingAt(piece: Pick<TimedItem, "date" | "start" | "end" | "span">, end: TimeStr): TimedSpan {
+  const e = shiftMoment(piece.date, end, 0);
+  return { ...wholeOf(piece), endDate: e.date, end: e.time };
+}
+
+/** The day a timed item starts on when one of its pieces is dropped on `to`, for views that move by the day (Month). */
+export function startDayMovedTo(piece: Pick<TimedItem, "date" | "span">, to: DateStr): DateStr {
+  return piece.span ? addDays(piece.span.date, diffDays(piece.date, to)) : to;
 }
 
 /**
@@ -129,8 +186,11 @@ export interface TimedProvider {
   itemsIn?(range: { start: DateStr; end: DateStr }): Promise<TimedItem[]>;
   /** Optional delegate of "the user dragged this to another day". */
   move?(itemId: string, to: DateStr): Promise<void>;
-  /** Optional delegate of "the user dragged/resized this on the Schedule" (ADR 0015): new day and time (null = all day). */
-  reschedule?(itemId: string, date: DateStr, start: TimeStr | null, end: TimeStr | null): Promise<void>;
+  /**
+   * Optional delegate of "the user dragged/resized this on the Schedule" (ADR 0015): when it now happens,
+   * whole (ADR 0090). Callers check the span with `spanIsValid` first (`rescheduleTimedItem` does).
+   */
+  reschedule?(itemId: string, when: TimedWhen): Promise<void>;
   /** Optional delegate of "the user clicked an empty slot": create a timed item there. */
   create?(input: { title: string; date: DateStr; start: TimeStr | null; end: TimeStr | null }): Promise<void>;
   /** React hook. Quick-add templates this App offers planning surfaces (ADR 0027). */
@@ -220,10 +280,13 @@ export function canRescheduleTimed(appId: string): boolean {
   return !!timedProviders().find((p) => p.appId === appId)?.reschedule;
 }
 
-export async function rescheduleTimedItem(item: Pick<TimedItem, "appId" | "itemId">, date: DateStr, start: TimeStr | null, end: TimeStr | null): Promise<void> {
+/** Reschedule a timed item through its App, refusing a span that isn't valid (ADR 0090). */
+export async function rescheduleTimedItem(item: Pick<TimedItem, "appId" | "itemId">, when: TimedWhen): Promise<void> {
   const provider = timedProviders().find((p) => p.appId === item.appId);
   if (!provider?.reschedule) throw new Error(`${appById(item.appId)?.title ?? item.appId} items can't be rescheduled`);
-  await provider.reschedule(item.itemId, date, start, end);
+  const problem = whenProblem(when);
+  if (problem) throw new Error(problem);
+  await provider.reschedule(item.itemId, when);
 }
 
 /** Providers that can create a timed item from the surface (the Calendar App). */

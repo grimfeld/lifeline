@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatTime } from "@lifeline/core";
-import { daysOf, describeTime, eventsOn, spanOf } from "./events";
+import { daysOf, describeTime, eventsOn, rescheduled, spanOf } from "./events";
 import type { Event } from "./types";
 
 function ev(p: Partial<Event>): Event {
@@ -76,5 +76,32 @@ describe("eventsOn", () => {
     expect(eventsOn(all, "2026-08-10").map((e) => e.id)).toEqual(["s", "a", "b", "t"]);
     expect(eventsOn(all, "2026-08-11").map((e) => e.id)).toEqual(["s", "t", "o"]);
     expect(eventsOn(all, "2026-08-12")).toEqual([]);
+  });
+});
+
+describe("rescheduled", () => {
+  const when = (p: Partial<Pick<Event, "date" | "start" | "end">> & { endDate?: string }) => ({ date: "2026-08-10", start: null, end: null, ...p });
+
+  it("keeps the end day a reschedule gives a timed Event", () => {
+    const night = rescheduled(ev({ start: "09:00", end: "10:00" }), when({ start: "22:00", endDate: "2026-08-11", end: "06:00" }));
+    expect([night.date, night.start, night.endDate, night.end]).toEqual(["2026-08-10", "22:00", "2026-08-11", "06:00"]);
+  });
+
+  it("stores no end day for a timed Event that ends on its start day", () => {
+    const back = rescheduled(ev({ start: "22:00", endDate: "2026-08-11", end: "06:00" }), when({ date: "2026-08-12", start: "09:00", endDate: "2026-08-12", end: "10:00" }));
+    expect([back.date, back.endDate, back.end]).toEqual(["2026-08-12", null, "10:00"]);
+  });
+
+  it("keeps how many days an Event covers when it becomes all day with no last day given", () => {
+    const allDay = rescheduled(ev({ start: null, endDate: "2026-08-12" }), when({ date: "2026-08-14" }));
+    expect([allDay.date, allDay.endDate, allDay.start]).toEqual(["2026-08-14", "2026-08-16", null]);
+    const fromNight = rescheduled(ev({ start: "22:00", endDate: "2026-08-11", end: "06:00" }), when({ date: "2026-08-14" }));
+    expect([fromNight.endDate, fromNight.end]).toEqual(["2026-08-15", null]);
+    const toMidnight = rescheduled(ev({ start: "22:00", endDate: "2026-08-11", end: "00:00" }), when({ date: "2026-08-14" }));
+    expect(toMidnight.endDate).toBeNull();
+  });
+
+  it("takes an all-day last day when one is given", () => {
+    expect(rescheduled(ev({}), when({ date: "2026-08-14", endDate: "2026-08-15" })).endDate).toBe("2026-08-15");
   });
 });

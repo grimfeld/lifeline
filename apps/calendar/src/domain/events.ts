@@ -1,4 +1,4 @@
-import { describeSpan, diffDays, formatTime, type DateStr, type TimedSpan } from "@lifeline/core";
+import { addDays, describeSpan, diffDays, formatTime, type DateStr, type TimedSpan, type TimedWhen } from "@lifeline/core";
 import { dayPieces, type DayPiece, type DayRange } from "./span";
 import type { Event } from "./types";
 
@@ -54,4 +54,26 @@ export function occursOn(ev: Event, date: DateStr): boolean {
 /** Events happening on one day, in display order (all-day first, then by start). */
 export function eventsOn(events: Event[], date: DateStr): Event[] {
   return events.filter((ev) => occursOn(ev, date)).sort(compareEvents);
+}
+
+/** The last day an Event covers: an all-day one's last day, a timed one's end day (the day before, when it ends at 00:00). */
+function lastDayOf(ev: Event): DateStr {
+  const span = spanOf(ev);
+  if (!span) return isDay(ev.endDate) && ev.endDate > ev.date ? ev.endDate : ev.date;
+  return span.end === "00:00" && span.endDate > span.date ? addDays(span.endDate, -1) : span.endDate;
+}
+
+/**
+ * An Event rescheduled through the Timed contract (ADR 0090): a timed one
+ * takes the end day it is given (none stored when it ends on its start day);
+ * an all-day one its last day, or keeps how many days it covered.
+ */
+export function rescheduled(ev: Event, when: TimedWhen): Event {
+  const { date, start } = when;
+  if (start) {
+    const endDate = when.endDate && when.endDate > date ? when.endDate : null;
+    return { ...ev, date, start, endDate, end: when.end };
+  }
+  const last = when.endDate ?? addDays(date, diffDays(ev.date, lastDayOf(ev)));
+  return { ...ev, date, start: null, end: null, endDate: last > date ? last : null };
 }

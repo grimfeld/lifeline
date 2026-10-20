@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cutEdges, describeSpan, formatTime, pieceLead, spanIsValid } from "./timed";
+import { cutEdges, describeSpan, formatTime, pieceLead, spanEndingAt, spanIsValid, spanMovedTo, startDayMovedTo } from "./timed";
 
 describe("formatTime", () => {
   it("reads a clock time in the locale's style", () => {
@@ -60,5 +60,41 @@ describe("pieces of a span", () => {
     expect(pieceLead({ date: "2026-08-11", span: conference })).toBe(`→ Wed ${t("17:00")}`);
     expect(pieceLead({ date: "2026-08-10", span: { ...night, endDate: "2026-08-10", end: "23:00" } })).toBeNull();
     expect(pieceLead({ date: "2026-08-10" })).toBeNull();
+  });
+});
+
+describe("moving a span by one of its pieces", () => {
+  const night = { date: "2026-08-10", start: "22:00", endDate: "2026-08-11", end: "06:00" };
+  const tuesday = { date: "2026-08-11", start: "00:00", end: "06:00", span: night };
+
+  it("moves the whole span by the drop offset of its next-day piece, keeping its length", () => {
+    expect(spanMovedTo(tuesday, "2026-08-11", "01:00")).toEqual({ date: "2026-08-10", start: "23:00", endDate: "2026-08-11", end: "07:00" });
+    expect(spanMovedTo(tuesday, "2026-08-12", "00:00")).toEqual({ date: "2026-08-11", start: "22:00", endDate: "2026-08-12", end: "06:00" });
+  });
+
+  it("carries a first piece past midnight, the end day with it", () => {
+    const monday = { date: "2026-08-10", start: "22:00", end: "24:00", span: night };
+    expect(spanMovedTo(monday, "2026-08-10", "23:30")).toEqual({ date: "2026-08-10", start: "23:30", endDate: "2026-08-11", end: "07:30" });
+    expect(spanMovedTo(monday, "2026-08-10", "08:00")).toEqual({ date: "2026-08-10", start: "08:00", endDate: "2026-08-10", end: "16:00" });
+  });
+
+  it("moves an item with no span by its own hours", () => {
+    expect(spanMovedTo({ date: "2026-08-10", start: "09:00", end: "10:30" }, "2026-08-12", "14:00")).toEqual({ date: "2026-08-12", start: "14:00", endDate: "2026-08-12", end: "15:30" });
+  });
+
+  it("ends the whole span where its last piece is resized to", () => {
+    expect(spanEndingAt(tuesday, "08:00")).toEqual({ ...night, end: "08:00" });
+    expect(spanEndingAt({ date: "2026-08-10", start: "09:00", end: "10:00" }, "11:15")).toEqual({ date: "2026-08-10", start: "09:00", endDate: "2026-08-10", end: "11:15" });
+  });
+
+  it("ends at 00:00 the next day, not 24:00, when resized to midnight", () => {
+    const conference = { date: "2026-08-10", start: "09:00", endDate: "2026-08-12", end: "17:00" };
+    expect(spanEndingAt({ date: "2026-08-12", start: "00:00", end: "17:00", span: conference }, "24:00")).toEqual({ ...conference, endDate: "2026-08-13", end: "00:00" });
+  });
+
+  it("moves the start day by a later piece's day offset, for views that move by the day", () => {
+    expect(startDayMovedTo(tuesday, "2026-08-14")).toBe("2026-08-13");
+    expect(startDayMovedTo({ date: "2026-08-10", span: night }, "2026-08-14")).toBe("2026-08-14");
+    expect(startDayMovedTo({ date: "2026-08-10" }, "2026-08-14")).toBe("2026-08-14");
   });
 });

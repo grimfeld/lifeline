@@ -24,6 +24,7 @@ import {
   setCurrentWorkspace,
   surfaceItemsIn,
   timedProviders,
+  whenProblem,
   titleTaken,
   todayStr,
   typeFieldsOf,
@@ -289,10 +290,15 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     if (!tp?.reschedule) throw new ToolError(`Items of “${a.appId}” cannot be rescheduled`);
     const start = (a.start as string | undefined) ?? null;
     const end = (a.end as string | undefined) ?? null;
-    if (!start && end) throw new ToolError("An end time needs a start time");
-    if (start && end && end <= start) throw new ToolError("End must be after start");
-    await tp.reschedule(String(a.itemId), String(a.date), start, end);
-    return { message: `Rescheduled ${a.appId}/${a.itemId} to ${a.date}${start ? ` ${start}${end ? `–${end}` : ""}` : " (all day)"}` };
+    const date = String(a.date);
+    const endDate = (a.endDate as string | undefined) ?? (start ? date : undefined);
+    const when = { date, start, ...(endDate ? { endDate } : {}), end };
+    // The one span rule (ADR 0090), the same the Event form and the add-event Command ask.
+    const problem = whenProblem(when);
+    if (problem) throw new ToolError(problem);
+    await tp.reschedule(String(a.itemId), when);
+    const endDay = endDate && endDate !== date ? `${endDate} ` : "";
+    return { message: `Rescheduled ${a.appId}/${a.itemId} to ${date}${start ? ` ${start}${end ? `–${endDay}${end}` : ""}` : " (all day)"}` };
   },
 
   async create_document(a) {
