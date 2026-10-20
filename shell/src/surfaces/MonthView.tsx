@@ -10,7 +10,9 @@ import {
   fromParts,
   daysInMonth,
   moveTimedItem,
+  startDayMovedTo,
   parts,
+  pieceLead,
   usePoolItems,
   useSurfaceItems,
   useTimedItems,
@@ -34,9 +36,15 @@ function useDragGuard() {
   return { mark: () => (last.current = Date.now()), recent: () => Date.now() - last.current < 350 };
 }
 
-/** An Event (or other Timed item) on its day: opens in the hours' editor, drags to another day where its App allows. */
+/**
+ * An Event (or other Timed item) on its day: opens in the hours' editor, drags to another day where its App allows.
+ * One that runs across days shows on each: its first day with its start, later days with "→ its end" (ADR 0090);
+ * any of them drags, moving the whole Event by the days between the chip's day and the drop.
+ */
 function TimedChip({ item, onOpen }: { item: SurfaceTimedItem; onOpen: (el: HTMLElement) => void }) {
+  const later = !!item.span && item.date > item.span.date;
   const movable = canMoveTimed(item.appId);
+  const lead = later ? pieceLead(item) : item.start && formatTime(item.start);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${item.key}`, data: { timed: item }, disabled: !movable });
   return (
     <div
@@ -51,7 +59,7 @@ function TimedChip({ item, onOpen }: { item: SurfaceTimedItem; onOpen: (el: HTML
       }}
     >
       <span className="size-1.5 shrink-0 rounded-sm" style={{ background: item.color ?? "var(--muted-foreground)" }} />
-      {item.start && <span className="text-muted-foreground shrink-0">{formatTime(item.start)}</span>}
+      {lead && <span className="text-muted-foreground shrink-0">{lead}</span>}
       <span className="truncate">{item.title}</span>
     </div>
   );
@@ -196,7 +204,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
     const d = e.active.data.current as { item?: DayWork; timed?: SurfaceTimedItem };
     if (d.timed) {
       if (to === null || to === d.timed.date) return;
-      moveTimedItem(d.timed, to)
+      moveTimedItem(d.timed, startDayMovedTo(d.timed, to))
         .then(() => toast.success(`Moved to ${formatHuman(to)}`))
         .catch((err: Error) => toast.error(err.message));
     } else if (d.item) {

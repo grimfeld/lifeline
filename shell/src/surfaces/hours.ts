@@ -24,10 +24,16 @@ export function addMinutes(start: string, min: number): string {
   return toClock(toHours(start) + min / 60);
 }
 
-/** "1h 30m" / "45m" / "2h". */
-export function formatLength(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  if (!h) return `${m}m`;
-  return m ? `${h}h ${m}m` : `${h}h`;
+/**
+ * A desk sweep over empty hours (#226): the quarter hour pressed, stretched to
+ * the quarter hour the pointer has reached (either way), kept inside the hours
+ * shown — `from`..`to`, in hours since midnight.
+ */
+export function sweptRange(pressedH: number, atH: number, from: number, to: number): { startH: number; endH: number } {
+  const q = SNAP_MIN / 60;
+  const floorQ = (h: number) => Math.floor(h / q) * q;
+  const anchor = Math.min(to - q, Math.max(from, floorQ(pressedH)));
+  const at = Math.min(to, Math.max(from, atH));
+  if (at >= anchor) return { startH: anchor, endH: Math.max(anchor + q, Math.ceil(at / q) * q) };
+  return { startH: floorQ(at), endH: anchor + q };
 }

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
 import { openCalendar, pickDate, pickInCalendar } from "./support/date-picker";
+import { setTime } from "./support/time-field";
 
 /**
  * Tasks and the Calendar App edit their Documents in a Peek (ADR 0085): each
@@ -62,6 +63,37 @@ test("a Task peeked from the Vault is moved to another day and given notes there
   await expect(dialog.getByRole("button", { name: "Not done" })).toBeVisible();
 });
 
+test("a Task's Estimate is picked, typed and cleared back to none in its Peek", async ({ page }) => {
+  const stamp = Date.now();
+  await page.goto("/vault");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, title: string) =>
+      (await core.putDocument({ type: "task", title, status: "active", date: null, completedOn: null, recurrence: null, notes: "", tags: [] })).id as string,
+    `Write the report ${stamp}`,
+  );
+
+  const dialog = await peek(page, id);
+  const estimate = dialog.getByRole("group", { name: "Estimate" });
+  await expect(estimate.getByRole("button", { name: "None" })).toHaveAttribute("aria-pressed", "true");
+
+  await estimate.getByRole("button", { name: "1h 30m" }).click();
+  await expect.poll(async () => (await field(page, id)).estimate).toBe(90);
+
+  // Any other length is typed, the way it reads.
+  const other = estimate.getByRole("textbox");
+  await other.fill("2d 8h");
+  await other.press("Enter");
+  await expect.poll(async () => (await field(page, id)).estimate).toBe(56 * 60);
+  await expect(other).toHaveValue("2d 8h");
+
+  // None leaves the Task with no Estimate at all.
+  await estimate.getByRole("button", { name: "None" }).click();
+  await expect.poll(async () => (await field(page, id)).estimate).toBeNull();
+  await expect(other).toHaveValue("");
+});
+
 test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out", async ({ page }) => {
   const stamp = Date.now();
   const title = `Renew the passport ${stamp}`;
@@ -98,7 +130,7 @@ test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out"
   await expect.poll(async () => (await field(page, id)).date).toBe("2026-03-09");
 });
 
-test("an Event peeked from the Vault gets a time there, and an end before its start is refused", async ({ page }) => {
+test("an Event peeked from the Vault gets a time there; an end before its start is the next day's, one equal to it refused", async ({ page }) => {
   const stamp = Date.now();
   await page.goto("/vault");
   await workLocally(page);
@@ -111,12 +143,23 @@ test("an Event peeked from the Vault gets a time there, and an end before its st
 
   const dialog = await peek(page, id);
   await dialog.getByRole("checkbox", { name: "All day" }).click();
-  await dialog.getByLabel("Start").fill("10:30");
-  await dialog.getByLabel("End").fill("11:00");
+  const start = dialog.getByRole("combobox", { name: "Start" });
+  const end = dialog.getByRole("combobox", { name: "End" });
+  // Moving the start keeps the length: 09:00–10:00 becomes 10:30–11:30.
+  await setTime(start, "10:30");
+  await expect.poll(async () => { const d = await field(page, id); return { date: d.date, start: d.start, end: d.end }; }).toEqual({ date: "2026-03-02", start: "10:30", end: "11:30" });
+  await expect(dialog.getByText(/^until .+ · 1h$/)).toBeVisible();
+  await setTime(end, "11:00");
   await expect.poll(async () => { const d = await field(page, id); return { date: d.date, start: d.start, end: d.end }; }).toEqual({ date: "2026-03-02", start: "10:30", end: "11:00" });
+  await expect(dialog.getByText(/^until .+ · 30m$/)).toBeVisible();
 
-  await dialog.getByLabel("End").fill("09:00");
+  // An End earlier than the Start rolls to the next day (ADR 0090), and the end day shows beside it.
+  await setTime(end, "09:00");
+  await expect(dialog.getByText(/^until Tue.* · 22h 30m$/)).toBeVisible();
+  await expect.poll(async () => { const d = await field(page, id); return { endDate: d.endDate, end: d.end }; }).toEqual({ endDate: "2026-03-03", end: "09:00" });
+
+  await setTime(end, "10:30");
   await expect(dialog.getByText("End must be after start")).toBeVisible();
   await page.waitForTimeout(800);
-  expect((await field(page, id)).end).toBe("11:00");
+  expect((await field(page, id)).end).toBe("09:00");
 });

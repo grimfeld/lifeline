@@ -79,7 +79,8 @@ export function AgendaCard({ settings }: CardProps) {
           {bands.map((b) => {
             const s = Math.max(from, toHours(b.start!));
             const e = Math.min(to, toHours(b.end ?? "24:00"));
-            if (e <= s) return null;
+            // Nothing for an empty band, or one whose start or end is no time (NaN): a bad stored value must not paint at `top: NaN`.
+            if (!(e > s)) return null;
             const color = b.color ?? "var(--muted-foreground)";
             return (
               <div

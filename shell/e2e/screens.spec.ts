@@ -234,6 +234,46 @@ async function calendarFits(page: Page) {
   expect(fit.scroll).toBeLessThanOrEqual(fit.width);
 }
 
+/**
+ * The Time blocker dialog with its Start Time field's list open: the quarter
+ * hours sit inside the viewport and nothing scrolls sideways, at phone width
+ * too; the layout check then covers the list itself.
+ */
+async function timeListOpen(page: Page) {
+  await workLocally(page);
+  await page.getByRole("button", { name: "New blocker" }).click();
+  await page.getByRole("dialog").getByRole("combobox", { name: "Start" }).click();
+  const list = page.getByRole("listbox", { name: "Times" });
+  await expect(list.getByRole("option", { selected: true })).toBeInViewport();
+  const fit = await list.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, right: r.right, bottom: r.bottom, width: innerWidth, height: innerHeight, scroll: document.documentElement.scrollWidth };
+  });
+  expect(fit.left).toBeGreaterThanOrEqual(0);
+  expect(fit.right).toBeLessThanOrEqual(fit.width);
+  expect(fit.bottom).toBeLessThanOrEqual(fit.height);
+  expect(fit.scroll).toBeLessThanOrEqual(fit.width);
+}
+
+/**
+ * The Schedule's quick add (#225) over an empty hour, a very long title typed:
+ * Start, End, the length and More… keep their places, in the bottom sheet on
+ * a phone and the popover on the desk.
+ */
+const QUICK_ADD_DAY = "2031-01-06";
+async function quickAddOpen(page: Page) {
+  await workLocally(page);
+  // A day far ahead, clear of the seeded Events, so the tap lands on an empty hour.
+  const column = page.locator(`[data-col="${QUICK_ADD_DAY}"]`);
+  await expect(column).toBeVisible();
+  const position = { x: 20, y: 2 * 56 + 10 };
+  if ((page.viewportSize()?.width ?? 1280) < 768) await column.tap({ position });
+  else await column.dblclick({ position });
+  const quick = page.getByRole("dialog", { name: /^Add on / });
+  await quick.getByRole("textbox", { name: "Title" }).fill(longText("A new event"));
+  await expect(quick.getByRole("button", { name: "More…" })).toBeVisible();
+}
+
 /** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
 const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
 
@@ -322,6 +362,7 @@ const SCREENS: ScreenCase[] = [
   // Core destinations.
   { name: "Calendar · Upcoming", path: "/calendar?view=upcoming" },
   { name: "Calendar · Day", path: "/calendar?view=day" },
+  { name: "Calendar · Day · quick add", path: `/calendar?view=day&d=${QUICK_ADD_DAY}`, afterOpen: quickAddOpen },
   { name: "Calendar · 3 Day", path: "/calendar?view=3day" },
   { name: "Calendar · Week", path: "/calendar?view=week" },
   { name: "Calendar · Month", path: "/calendar?view=month" },
@@ -508,6 +549,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Projects · Timeline", path: "/app/projects/timeline" },
   { name: "Project", path: "/app/projects/p/:id", type: "project" },
   { name: "Events", path: "/app/events", afterOpen: workLocally },
+  { name: "Events · Time blocker · time list open", path: "/app/events?tab=blockers", afterOpen: timeListOpen },
   {
     // The Event dialog saved without a title: the Field's error under the title, not a toast.
     name: "Events · Event dialog error",
@@ -522,6 +564,20 @@ const SCREENS: ScreenCase[] = [
       await expect(title).toHaveAccessibleDescription("Title required");
       await expect(title).toBeFocused();
       await expect(page.getByText("Title required"), "under the field only, no toast").toHaveCount(1);
+    },
+  },
+  {
+    // The Event template dialog: the kit Length picker, holding a custom length of days.
+    name: "Events · Event template dialog",
+    path: "/app/events?tab=templates",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await page.getByRole("button", { name: "New event template" }).click();
+      const length = page.getByRole("dialog").getByRole("group", { name: "Length" });
+      await length.getByRole("textbox").fill("12d 23h 45m");
+      await length.getByRole("textbox").press("Enter");
+      await expect(length.getByRole("textbox")).toHaveValue("12d 23h 45m");
+      await expect(length.getByRole("button", { name: "1h", exact: true })).toHaveAttribute("aria-pressed", "false");
     },
   },
   { name: "Stats", path: "/app/stats" },

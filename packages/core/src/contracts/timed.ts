@@ -1,4 +1,4 @@
-import type { DateStr } from "../dates";
+import { addDays, diffDays, formatHuman, weekdayOf, type DateStr } from "../dates";
 import { appById, timedProviders } from "../registry";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
@@ -7,6 +7,177 @@ import { useStructuralMemo } from "../stable";
 
 /** "HH:MM" local wall-clock time. */
 export type TimeStr = string;
+
+/**
+ * When a timed thing happens, whole: from a start (day + time) to an end
+ * (day + time), on any day (ADR 0090). `endDate` is the start's own day for
+ * one that ends the same day.
+ */
+export interface TimedSpan {
+  date: DateStr;
+  start: TimeStr;
+  endDate: DateStr;
+  end: TimeStr;
+}
+
+/**
+ * When a timed item is rescheduled to (the Timed contract's `reschedule`):
+ * a start day and time to an end day and time. A null start makes it all
+ * day; then `endDate` is its last day, and leaving it out keeps how many
+ * days it covers. A timed one with no end day ends on its start day.
+ */
+export interface TimedWhen {
+  date: DateStr;
+  start: TimeStr | null;
+  endDate?: DateStr;
+  end: TimeStr | null;
+}
+
+/** A moment: a day and a wall-clock time. */
+export interface Moment {
+  date: DateStr;
+  time: TimeStr;
+}
+
+/** Minutes in a day. */
+export const DAY_MIN = 24 * 60;
+
+/** A new timed item made on the hours (an Event added there, an all-day one lifted onto them) lasts an hour. */
+export const NEW_TIMED_MIN = 60;
+
+/** Minutes past midnight of "HH:MM" ("24:00" is the day's end); null for text that is no time. */
+export function clockMinutes(t: string): number | null {
+  const m = /^(\d{2}):(\d{2})$/.exec(t);
+  if (!m) return null;
+  const [h, min] = [Number(m[1]), Number(m[2])];
+  return min < 60 && (h < 24 || (h === 24 && min === 0)) ? h * 60 + min : null;
+}
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** "HH:MM" for minutes past midnight, wrapping round the day. */
+export function clockOf(minutes: number): TimeStr {
+  const m = ((minutes % DAY_MIN) + DAY_MIN) % DAY_MIN;
+  return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
+}
+
+/** Minutes from one moment to another (negative when the second is earlier); null when either time is no time. */
+function minutesFrom(from: Moment, to: Moment): number | null {
+  const [a, b] = [clockMinutes(from.time), clockMinutes(to.time)];
+  const days = diffDays(from.date, to.date);
+  if (a === null || b === null || !Number.isFinite(days)) return null;
+  return days * DAY_MIN + b - a;
+}
+
+/** A span's length: minutes from its start moment to its end moment (negative for an end before the start); null when a time or day is no such thing. */
+export function spanLength(span: TimedSpan): number | null {
+  return minutesFrom({ date: span.date, time: span.start }, { date: span.endDate, time: span.end });
+}
+
+/**
+ * A moment `minutes` after (or before) a day's time, normalised onto its own
+ * day: Mon "23:30" + 60 is Tue "00:30", and Mon "24:00" is Tue "00:00".
+ */
+export function momentAfter(date: DateStr, time: TimeStr, minutes: number): Moment {
+  const total = (clockMinutes(time) ?? 0) + minutes;
+  const days = Math.floor(total / DAY_MIN);
+  return { date: days ? addDays(date, days) : date, time: clockOf(total - days * DAY_MIN) };
+}
+
+/** The last day a timed span covers: its end day, or the day before when it ends at 00:00 — it only reaches midnight (ADR 0090). */
+export function lastDayCovered(span: Pick<TimedSpan, "date" | "endDate" | "end">): DateStr {
+  return span.end === "00:00" && span.endDate > span.date ? addDays(span.endDate, -1) : span.endDate;
+}
+
+/** The one span rule's refusal (ADR 0090), worded once for every form, Command and tool; null for a valid span. */
+export function spanProblem(span: TimedSpan): string | null {
+  return spanIsValid(span) ? null : "End must be after start";
+}
+
+/** Why a reschedule is refused, in words; null when it may be written. The span rule (ADR 0090) for a timed one. */
+export function whenProblem(when: TimedWhen): string | null {
+  if (!when.start) return when.end ? "An end time needs a start time" : when.endDate && when.endDate < when.date ? "Last day is before the first" : null;
+  return when.end ? spanProblem({ date: when.date, start: when.start, endDate: when.endDate ?? when.date, end: when.end }) : null;
+}
+
+/**
+ * The one rule for a span (ADR 0090): its end moment is strictly after its
+ * start moment. An end at an earlier time on a later day is fine; an end equal
+ * to the start is not. The Event form, its Peek, the add-event Command and the
+ * MCP tools all ask this.
+ */
+export function spanIsValid(span: TimedSpan): boolean {
+  const length = spanLength(span);
+  return length !== null && length > 0;
+}
+
+/** A piece's whole span, or the piece's own hours where its provider reports none (an end-less item is a moment). */
+function wholeOf(piece: Pick<TimedItem, "date" | "start" | "end" | "span">): TimedSpan {
+  return piece.span ?? { date: piece.date, start: piece.start ?? "00:00", endDate: piece.date, end: piece.end ?? piece.start ?? "00:00" };
+}
+
+/**
+ * Where a timed item lands when one of its pieces is dropped at a day and
+ * time (ADR 0090): the whole span moves by the drop offset, keeping its
+ * length, whichever piece was dragged. An item with no end (its piece's
+ * `end` is null) stays end-less.
+ */
+export function spanMovedTo(piece: Pick<TimedItem, "date" | "start" | "end" | "span">, date: DateStr, start: TimeStr): Omit<TimedSpan, "end"> & { end: TimeStr | null } {
+  const whole = wholeOf(piece);
+  const offset = minutesFrom({ date: piece.date, time: piece.start ?? "00:00" }, { date, time: start }) ?? 0;
+  const s = momentAfter(whole.date, whole.start, offset);
+  const e = momentAfter(whole.endDate, whole.end, offset);
+  return { date: s.date, start: s.time, endDate: e.date, end: piece.end === null ? null : e.time };
+}
+
+/** The span a timed item gets when its last piece is resized to end at a time on that piece's day; midnight is 00:00 the next day. */
+export function spanEndingAt(piece: Pick<TimedItem, "date" | "start" | "end" | "span">, end: TimeStr): TimedSpan {
+  const e = momentAfter(piece.date, end, 0);
+  return { ...wholeOf(piece), endDate: e.date, end: e.time };
+}
+
+/** The day an End falls on by rolling alone (ADR 0090): the Start's own day, or the next when the End is earlier than the Start. */
+function rolledEndDate(date: DateStr, start: TimeStr, end: TimeStr): DateStr {
+  const [s, e] = [clockMinutes(start), clockMinutes(end)];
+  return s !== null && e !== null && e < s ? addDays(date, 1) : date;
+}
+
+/**
+ * A span given a new End time (ADR 0090): an End earlier than the Start rolls
+ * to the next day, and back when it is after the Start again. An end day that
+ * rolling would not give (picked by hand, or a span running for days) is kept.
+ */
+export function spanWithEnd(span: TimedSpan, end: TimeStr): TimedSpan {
+  const rolled = span.endDate === rolledEndDate(span.date, span.start, span.end);
+  return { ...span, end, endDate: rolled ? rolledEndDate(span.date, span.start, end) : span.endDate };
+}
+
+/** The day a timed item starts on when one of its pieces is dropped on `to`, for views that move by the day (Month). */
+export function startDayMovedTo(piece: Pick<TimedItem, "date" | "span">, to: DateStr): DateStr {
+  return piece.span ? addDays(piece.span.date, diffDays(piece.date, to)) : to;
+}
+
+/**
+ * The span that starts at `start` on `date` and lasts `minutes`: into the
+ * next day (or later) when it runs past midnight, and ending at 00:00 there
+ * rather than "24:00" (ADR 0090). A start that is no time is kept as given.
+ */
+export function spanLasting(date: DateStr, start: TimeStr, minutes: number): TimedSpan {
+  if (clockMinutes(start) === null) return { date, start, endDate: date, end: start };
+  const e = momentAfter(date, start, Math.max(0, Math.round(minutes)));
+  return { date, start, endDate: e.date, end: e.time };
+}
+
+/**
+ * Minutes from a start time to an end time, an end earlier than the start
+ * being the next day's (ADR 0090): "22:00" to "06:00" is 8h. 0 for an end
+ * equal to the start (no span may have it); null when either is no time.
+ */
+export function minutesUntil(start: TimeStr, end: TimeStr): number | null {
+  const [s, e] = [clockMinutes(start), clockMinutes(end)];
+  if (s === null || e === null) return null;
+  return (((e - s) % DAY_MIN) + DAY_MIN) % DAY_MIN;
+}
 
 /**
  * An App entity that happens at a fixed time on a day: shown on time surfaces
@@ -20,11 +191,18 @@ export interface TimedItem {
   itemId: string;
   title: string;
   subtitle?: string;
-  /** Day it appears on. Multi-day items report one TimedItem per day. */
+  /** Day it appears on. Multi-day items report one TimedItem per day: a piece of the whole. */
   date: DateStr;
-  /** null = all day. */
+  /** null = all day. A piece's own hours: "00:00" where it carries on from the day before, "24:00" where it carries on into the next. */
   start: TimeStr | null;
   end: TimeStr | null;
+  /**
+   * A timed item's whole span (ADR 0090), on each of its pieces: where it
+   * really starts and ends, so a view can label a cut edge ("↓ Tue 06:00")
+   * and act on the whole item from any piece. Absent where the provider
+   * reports no span (an all-day item, or an App that keeps to one day).
+   */
+  span?: TimedSpan;
   /** The entity's Tags (ADR 0014). */
   tags?: string[];
   /** Overrides the App colour on surfaces (a Calendar subscription's own colour, ADR 0017). */
@@ -89,10 +267,23 @@ export interface TimedProvider {
   itemsIn?(range: { start: DateStr; end: DateStr }): Promise<TimedItem[]>;
   /** Optional delegate of "the user dragged this to another day". */
   move?(itemId: string, to: DateStr): Promise<void>;
-  /** Optional delegate of "the user dragged/resized this on the Schedule" (ADR 0015): new day and time (null = all day). */
-  reschedule?(itemId: string, date: DateStr, start: TimeStr | null, end: TimeStr | null): Promise<void>;
-  /** Optional delegate of "the user clicked an empty slot": create a timed item there. */
-  create?(input: { title: string; date: DateStr; start: TimeStr | null; end: TimeStr | null }): Promise<void>;
+  /**
+   * Optional delegate of "the user dragged/resized this on the Schedule" (ADR 0015): when it now happens,
+   * whole (ADR 0090). Callers check the span with `spanIsValid` first (`rescheduleTimedItem` does).
+   */
+  reschedule?(itemId: string, when: TimedWhen): Promise<void>;
+  /**
+   * Optional delegate of "the user clicked an empty slot": create a timed item
+   * there, from a start to an end on `endDate` — the start's own day, or a
+   * later one for an item that runs past midnight (ADR 0090). null start = all day.
+   */
+  create?(input: { title: string; date: DateStr; start: TimeStr | null; endDate: DateStr; end: TimeStr | null }): Promise<void>;
+  /**
+   * The Intake (ADR 0050, its `appId/id` key) whose dialog is the full form
+   * for what `create` makes: the Schedule's quick add opens it, prefilled
+   * with what is typed so far, from "More…".
+   */
+  createIntake?: string;
   /** React hook. Quick-add templates this App offers planning surfaces (ADR 0027). */
   useTemplates?(): TimedTemplate[];
   /** Optional delegate of "the user quick-added this template here" (null start = all day). */
@@ -180,10 +371,13 @@ export function canRescheduleTimed(appId: string): boolean {
   return !!timedProviders().find((p) => p.appId === appId)?.reschedule;
 }
 
-export async function rescheduleTimedItem(item: Pick<TimedItem, "appId" | "itemId">, date: DateStr, start: TimeStr | null, end: TimeStr | null): Promise<void> {
+/** Reschedule a timed item through its App, refusing a span that isn't valid (ADR 0090). */
+export async function rescheduleTimedItem(item: Pick<TimedItem, "appId" | "itemId">, when: TimedWhen): Promise<void> {
   const provider = timedProviders().find((p) => p.appId === item.appId);
   if (!provider?.reschedule) throw new Error(`${appById(item.appId)?.title ?? item.appId} items can't be rescheduled`);
-  await provider.reschedule(item.itemId, date, start, end);
+  const problem = whenProblem(when);
+  if (problem) throw new Error(problem);
+  await provider.reschedule(item.itemId, when);
 }
 
 /** Providers that can create a timed item from the surface (the Calendar App). */
@@ -247,4 +441,64 @@ export function formatTime(t: TimeStr | null): string {
   if (!hm) return "";
   timeFormat ??= new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
   return timeFormat.format(new Date(Date.UTC(2000, 0, 1, Number(hm[1]), Number(hm[2]))));
+}
+
+/** Short weekday names, indexed by Core weekday (0 = Sunday). */
+export const WEEKDAY_NAMES: readonly string[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** Where a span ends, as read on `date`: "06:00", or "Tue 06:00" when it ends on another day. */
+export function endReadOn(span: Pick<TimedSpan, "endDate" | "end">, date: DateStr): string {
+  const endDay = span.endDate !== date ? `${WEEKDAY_NAMES[weekdayOf(span.endDate)]} ` : "";
+  return `${endDay}${formatTime(span.end)}`;
+}
+
+/** "22:00 – 23:00", or "22:00 – Tue 06:00" when the span ends another day (ADR 0090). */
+export function describeSpan(span: TimedSpan): string {
+  return `${formatTime(span.start)} – ${endReadOn(span, span.date)}`;
+}
+
+/**
+ * The readout beside an End, ahead of its length: "until 18:00", or "until
+ * Tue, Aug 25 06:00" style when it ends on another day. The Event form, the
+ * Schedule's quick add and the Hours editor show it.
+ */
+export function describeEnd(span: Pick<TimedSpan, "date" | "endDate" | "end">): string {
+  return `until ${span.endDate !== span.date ? `${formatHuman(span.endDate)} ` : ""}${formatTime(span.end)}`;
+}
+
+/** Whether a span runs past its start day: an end at 00:00 the next day only reaches midnight. */
+function crossesDays(span: TimedSpan): boolean {
+  return lastDayCovered(span) > span.date;
+}
+
+/** A moment of a span as a cut edge names it: "Tue 06:00". */
+const momentOf = (date: DateStr, time: TimeStr) => `${WEEKDAY_NAMES[weekdayOf(date)]} ${formatTime(time)}`;
+
+/**
+ * The cut edges of a piece (ADR 0090), labelled with where its span carries
+ * on: `before` ("↑ from Mon 22:00") where it began on an earlier day, `after`
+ * ("↓ Tue 06:00") where it runs into the next. null for an edge that is the
+ * span's own.
+ */
+export function cutEdges(piece: Pick<TimedItem, "date" | "span">): { before: string | null; after: string | null } {
+  const span = piece.span;
+  if (!span) return { before: null, after: null };
+  const lastDay = lastDayCovered(span);
+  return {
+    before: piece.date > span.date ? `↑ from ${momentOf(span.date, span.start)}` : null,
+    after: piece.date < lastDay ? `↓ ${momentOf(span.endDate, span.end)}` : null,
+  };
+}
+
+/**
+ * How a day-granular view leads a piece of a span that runs across days:
+ * its first day reads the whole span ("22:00 – Tue 06:00"), a later day where
+ * it ends ("→ 06:00", or "→ Wed 17:00" before its last day). null for an
+ * item on one day — the view leads it its usual way.
+ */
+export function pieceLead(piece: Pick<TimedItem, "date" | "span">): string | null {
+  const span = piece.span;
+  if (!span || !crossesDays(span)) return null;
+  if (piece.date <= span.date) return describeSpan(span);
+  return `→ ${endReadOn(span, piece.date)}`;
 }

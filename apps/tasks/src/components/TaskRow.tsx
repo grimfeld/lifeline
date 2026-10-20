@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   focusCalendarDay,
-  formatMinutes,
+  formatLength,
   TagChips,
   toast,
   usePushFlow,
@@ -146,7 +146,7 @@ export function TaskRow({
             )}
             {task.estimate && (
               <span className="flex shrink-0 items-center gap-1" title="Estimate">
-                <Clock className="size-3" /> {formatMinutes(task.estimate)}
+                <Clock className="size-3" /> {formatLength(task.estimate)}
               </span>
             )}
             {item.moved && item.sourceDate && (

@@ -1,6 +1,6 @@
 import { getDocument, patchDocument, putDocument, removeDocument, vaultDocPath, type DateStr, type DocumentInput, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
-import { daysOf, describeTime } from "./domain/events";
-import { bandsIn, describeBlocker, isOneOff } from "./domain/blockers";
+import { daysOf, describeTime, piecesOf, spanOf } from "./domain/events";
+import { bandsIn, blockerSpan, describeBlocker, isOneOff } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
 import { addEvent, allEvents, moveEvent, rescheduleEvent, useEvents } from "./data/repo";
 import { allTimeBlockers, rescheduleTimeBlocker, useTimeBlockers } from "./data/blockers";
@@ -10,12 +10,19 @@ import { BLOCKER_TEMPLATE_TYPE, EVENT_TYPE, TIME_BLOCKER_TYPE, type Event, type 
 
 export const APP_ID = "calendar";
 
-/** Events and Time blocker bands in range, as Timed items — one per day each occupies. */
-function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { start: DateStr; end: DateStr }): TimedItem[] {
+/**
+ * Events and Time blocker bands in range, as Timed items — one per day each
+ * occupies. A timed Event's pieces have their own day's hours and carry its
+ * whole span (ADR 0090).
+ */
+export function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { start: DateStr; end: DateStr }): TimedItem[] {
   const items: TimedItem[] = [];
-  // Time blockers (ADR 0027) are painted per day: a weekly rule's bands are fixed, a one-off's (ADR 0029) may be dragged.
+  // Time blockers (ADR 0027) are painted per day: a weekly rule's bands are fixed, a one-off's (ADR 0029) may be
+  // dragged, and each of its bands carries its whole span (ADR 0090) so a drag or resize acts on the whole blocker.
   for (const band of bandsIn(blockers, range)) {
+    const span = blockerSpan(band.blocker);
     items.push({
+      ...(span && { span }),
       key: `${APP_ID}/blocker:${band.blocker.id}@${band.date}+${band.start}`,
       appId: APP_ID,
       itemId: band.blocker.id,
@@ -31,19 +38,25 @@ function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { start: 
     });
   }
   for (const ev of events) {
-    for (const date of daysOf(ev, range)) {
-      items.push({
-        key: `${APP_ID}/${ev.id}@${date}`,
-        appId: APP_ID,
-        itemId: ev.id,
-        title: ev.title,
-        subtitle: describeTime(ev),
-        date,
-        start: ev.start,
-        end: ev.end,
-        tags: ev.tags ?? [],
-      });
+    const item = (date: DateStr, start: string | null, end: string | null): TimedItem => ({
+      key: `${APP_ID}/${ev.id}@${date}`,
+      appId: APP_ID,
+      itemId: ev.id,
+      title: ev.title,
+      subtitle: describeTime(ev),
+      date,
+      start,
+      end,
+      tags: ev.tags ?? [],
+    });
+    const span = spanOf(ev);
+    if (!span) {
+      for (const date of daysOf(ev, range)) items.push(item(date, null, null));
+      continue;
     }
+    // On one day an Event keeps its own end (none is none); across days each piece has that day's hours.
+    const oneDay = span.endDate === span.date;
+    for (const p of piecesOf(ev, range)) items.push({ ...item(p.date, oneDay ? ev.start : p.start, oneDay ? ev.end : p.end), span });
   }
   return items;
 }
@@ -58,16 +71,17 @@ export const calendarTimed: TimedProvider = {
     return timedItemsOf(await allEvents(), await allTimeBlockers(), range);
   },
   async move(itemId, to) {
-    if (await isBlocker(itemId)) await rescheduleTimeBlocker(itemId, to, null, null);
+    if (await isBlocker(itemId)) await rescheduleTimeBlocker(itemId, { date: to, start: null, end: null });
     else await moveEvent(itemId, to);
   },
-  async reschedule(itemId, date, start, end) {
-    if (await isBlocker(itemId)) await rescheduleTimeBlocker(itemId, date, start, end);
-    else await rescheduleEvent(itemId, date, start, end);
+  async reschedule(itemId, when) {
+    if (await isBlocker(itemId)) await rescheduleTimeBlocker(itemId, when);
+    else await rescheduleEvent(itemId, when);
   },
-  async create({ title, date, start, end }) {
-    await addEvent({ title, date, start, end });
+  async create({ title, date, start, endDate, end }) {
+    await addEvent({ title, date, start, endDate, end });
   },
+  createIntake: `${APP_ID}/event`,
   useTemplates(): TimedTemplate[] {
     const events = useEventTemplates().map(
       (t): TimedTemplate => ({

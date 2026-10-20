@@ -36,6 +36,9 @@ nearest existing pattern and don't hand-roll a new one.
   `@lifeline/parts`.
 - Search-as-you-type pickers use `Combobox` (`Command` + `Popover`), never a
   hand-rolled `role="listbox"`.
+- **(check)** A time of day is `TimeField` (typed, or picked from quarter hours), never
+  the browser's `type="time"` input; in a Peek, `CommitField type="time"`. A length of
+  time is `LengthPicker`.
 - **(check)** Tooltips use `Tooltip` (`<Tip label>` for an icon Button); `title=` is not a
   tooltip. It shows on the desk only, never on touch. `Tip` sets its `label` as the Button's
   `aria-label`, so the name is written once and the tooltip shows exactly what a screen

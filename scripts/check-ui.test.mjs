@@ -59,8 +59,8 @@ test("a type that is an expression yielding date is flagged", () => {
   assert.deepEqual(rules(`<Input type={field.kind === "date" ? "date" : "text"} />`), ["1:native-date"]);
 });
 
-test("time inputs and other types stay allowed", () => {
-  assert.deepEqual(rules(`<Input type="time" />\n<input type="number" />\n<Input type={t} />`), []);
+test("a time input is native-time's (TimeField), not native-date's; other types stay allowed", () => {
+  assert.deepEqual(rules(`<Input type="time" />\n<input type="number" />\n<Input type={t} />`), ["1:native-time"]);
 });
 
 test("CommitField type=\"date\" renders the kit picker, so it is allowed", () => {

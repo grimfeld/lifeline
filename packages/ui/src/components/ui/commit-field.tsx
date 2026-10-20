@@ -6,16 +6,18 @@ import { DateTimeField } from "./date-time-field"
 import { Field } from "./field"
 import { Input } from "./input"
 import { Textarea } from "./textarea"
+import { TimeField } from "./time-field"
 
 /**
  * A field edited in place, written once the edit is done: on leaving it or
- * Enter (a date as soon as a day is picked from the kit's Date picker; a date
- * and time as soon as its day is picked, its time on leaving it), or — with
- * `delay` — a moment after the typing stops; Escape puts the stored value back.
- * `onCommit` is the owner's operation — when it refuses (throws), its message
- * shows under the field and the typed text stays, to be fixed. Until the field
- * is being edited it follows `value`, so a change made elsewhere shows. What is
- * still typed when it goes away (the Peek closed) is written.
+ * Enter (a date as soon as a day is picked from the kit's Date picker; a time
+ * as soon as it is picked or typed into the kit's Time field; a date and time
+ * as soon as either part is), or — with `delay` — a moment after
+ * the typing stops; Escape puts the stored value back. `onCommit` is the
+ * owner's operation — when it refuses (throws), its message shows under the
+ * field and the typed text stays, to be fixed. Until the field is being edited
+ * it follows `value`, so a change made elsewhere shows. What is still typed
+ * when it goes away (the Peek closed) is written.
  * Used where a Document is edited without a form to save (a Peek, ADR 0085);
  * the mechanism is `useCommitDraft`.
  */
@@ -44,7 +46,7 @@ function CommitField({
   multiline?: boolean
   /** A multiline field's height in lines. */
   rows?: number
-  type?: "text" | "date" | "datetime-local" | "number" | "url"
+  type?: "text" | "date" | "time" | "datetime-local" | "number" | "url"
   /** Write this many ms after the last keystroke, not only on leaving the field. */
   delay?: number
   hint?: React.ReactNode
@@ -59,8 +61,8 @@ function CommitField({
   const { draft, error, change, commit, revert } = useCommitDraft(value, onCommit, { delay })
   const onChange = (next: string) => {
     change(next)
-    // A date is done once picked.
-    if (type === "date") void commit()
+    // A date or a time is done once picked (a typed time once the Time field reads it).
+    if (type === "date" || type === "time") void commit()
   }
   // A date's (or a date and time's) bounds and years, as its picker takes them.
   const span = {
@@ -87,17 +89,17 @@ function CommitField({
     <Field label={label} hint={hint} error={error} className={className}>
       {type === "date" ? (
         <DatePicker value={draft} onChange={onChange} {...span} placeholder={placeholder} />
+      ) : type === "time" ? (
+        <TimeField value={draft} onChange={onChange} required={required} placeholder={placeholder} />
       ) : type === "datetime-local" ? (
         <DateTimeField
           value={draft}
-          onChange={(next, from) => {
+          onChange={(next) => {
             change(next)
-            if (from === "day") void commit()
+            void commit()
           }}
           {...span}
           placeholder={placeholder}
-          onTimeBlur={events.onBlur}
-          onTimeKeyDown={events.onKeyDown}
         />
       ) : multiline ? (
         <Textarea rows={rows} value={draft} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} {...events} />

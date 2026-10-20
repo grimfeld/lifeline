@@ -74,6 +74,12 @@ const LINE_RULES = [
     message: "useIsMobile is deprecated — use usePhone() from @lifeline/ui",
   },
   {
+    id: "native-time",
+    heading: "Components",
+    test: /\btype=\{?\s*["'`]time["'`]/,
+    message: "the browser's time input — use TimeField from @lifeline/ui (CommitField type=\"time\" in a Peek)",
+  },
+  {
     id: "hand-listbox",
     heading: "Components",
     test: /\brole=["'{`]*listbox\b/,

@@ -3,16 +3,16 @@ import * as React from "react"
 import { cn } from "../../lib/utils"
 import { DatePicker, type DateSpan } from "./date-picker"
 import { momentOf, splitMoment, withDay } from "./date-time-value"
-import { Input } from "./input"
+import { TimeField } from "./time-field"
 
 /**
  * A moment picked as two controls side by side: the day from the kit's Date
- * picker, the time typed in the native time input. Value in and out is the
+ * picker, the time typed or picked in the kit's Time field. Value in and out is the
  * string `datetime-local` gave — local `YYYY-MM-DDTHH:MM`, `""` for none — so
  * nothing stored changes. Picking a day with no time yet fills in the time now
  * (never past `max`); an existing time is kept. `onChange` says which control
- * moved it, so a field written in place can write a picked day at once and a
- * typed time when typing is done. A `Field` child: its id, description and
+ * moved it; both report a finished choice (a picked day, a time picked or
+ * read once typing is done), so a field written in place writes it at once. A `Field` child: its id, description and
  * invalid state go to the day.
  */
 function DateTimeField({
@@ -28,8 +28,6 @@ function DateTimeField({
   className,
   id,
   timeLabel = "Time",
-  onTimeBlur,
-  onTimeKeyDown,
   "aria-label": ariaLabel,
   "aria-describedby": ariaDescribedBy,
   "aria-invalid": ariaInvalid,
@@ -44,10 +42,8 @@ function DateTimeField({
   placeholder?: string
   className?: string
   id?: string
-  /** The time input's accessible name ("Time"). */
+  /** The Time field's accessible name ("Time"). */
   timeLabel?: string
-  onTimeBlur?: React.FocusEventHandler<HTMLInputElement>
-  onTimeKeyDown?: React.KeyboardEventHandler<HTMLInputElement>
   "aria-label"?: string
   "aria-describedby"?: string
   "aria-invalid"?: React.AriaAttributes["aria-invalid"]
@@ -81,22 +77,17 @@ function DateTimeField({
         aria-invalid={ariaInvalid}
         className="min-w-0 flex-1"
       />
-      <Input
-        type="time"
+      <TimeField
         aria-label={timeLabel}
         disabled={disabled}
+        required={required && !!day}
         value={shownTime}
-        max={day && day === maxDay ? max?.slice(11, 16) : undefined}
-        min={day && day === minDay ? min?.slice(11, 16) : undefined}
-        onChange={(e) => {
-          const next = e.target.value
+        onChange={(next) => {
           if (!day || !next) return setTyped(next)
           setTyped(null)
           onChange(`${day}T${next}`, "time")
         }}
-        onBlur={onTimeBlur}
-        onKeyDown={onTimeKeyDown}
-        className="w-auto shrink-0"
+        className="w-32 shrink-0"
       />
     </div>
   )
