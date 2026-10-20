@@ -21,7 +21,7 @@ Build from `@lifeline/ui` and its tokens; the rules are in `CODING_STANDARDS.md`
 (ADR 0079), and `pnpm check:ui` checks the lines you add.
 
 - **Phone layout** (ADR 0064): on every page you touch, follow `CODING_STANDARDS.md`
-  § Layout, and check it with a phone-width (390px) screenshot as well as a desktop one.
+  § Layout.
 - **Long content** (ADR 0065): every screen survives the longest content a person could
   type (`CODING_STANDARDS.md` § Long content); a new screen gets a row in `SCREENS` in
   `shell/e2e/screens.spec.ts`.
@@ -41,8 +41,14 @@ Start each piece of work with `pnpm worktree:new <name>`: a worktree under
 alike), installed and ready for e2e. The main checkout belongs to whoever opened it.
 `pnpm worktrees:prune` clears the worktrees whose work is on master.
 
-Agents working in parallel run only their own change's e2e specs; the full suite runs once,
-before the integration branch merges.
+Agents working in parallel run only their own change's e2e specs, with
+`pnpm test:e2e:quiet` (failures only); the full suite runs once, before the integration
+branch merges. A subagent reports in ten lines at most: branch, commit, what failed, and
+each decision it took.
+
+An orchestrator sets each subagent's `model`: `haiku` for lookups and merges, `sonnet` for
+implementing against a settled design (call-site swaps, mechanical tickets), `opus` for
+designing a new piece, review and diagnosis.
 
 A subagent has no user to ask. Where a skill says to confirm something with the user (test
 seams, a design choice), take the answer from the spec, ticket or prompt you were given,

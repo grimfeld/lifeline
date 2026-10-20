@@ -21,7 +21,8 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "tauri": "pnpm --filter @lifeline/shell tauri",
-    "test:e2e": "pnpm --filter @lifeline/shell test:e2e"
+    "test:e2e": "pnpm --filter @lifeline/shell test:e2e",
+    "test:e2e:quiet": "pnpm --filter @lifeline/shell test:e2e:quiet"
   },
   "packageManager": "pnpm@9.11.0",
   "pnpm": {

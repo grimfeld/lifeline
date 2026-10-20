@@ -115,7 +115,6 @@ On the phone (below `md`; on the desk none of this applies), every page you touc
   `usePhone()`.
 - `order={1}` for tabs and view switches (nearest the thumb); actions, search and Filters
   at the default 0.
-- Check with a phone-width (390px) screenshot as well as a desktop one.
 
 ### Long content
 
