@@ -281,7 +281,8 @@ function BandLayer({ band, from, to, touch, onResize, onOpen }: { band: Band; fr
     borderColor: `color-mix(in oklab, ${color} 35%, transparent)`,
   };
   const title = `${formatTime(band.start)}–${formatTime(band.end)} ${band.title}`;
-  if (e <= s) return null;
+  // Nothing for an empty band, or one whose start or end is no time (NaN): a bad stored value must not paint at `top: NaN`.
+  if (!(e > s)) return null;
   if (band.fixed) {
     return (
       <div className="pointer-events-none absolute inset-x-0 z-0 overflow-hidden border-y" style={style} title={title}>
