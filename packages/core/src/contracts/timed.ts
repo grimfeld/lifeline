@@ -93,6 +93,22 @@ export function spanEndingAt(piece: Pick<TimedItem, "date" | "start" | "end" | "
   return { ...wholeOf(piece), endDate: e.date, end: e.time };
 }
 
+/** The day an End falls on by rolling alone (ADR 0090): the Start's own day, or the next when the End is earlier than the Start. */
+function rolledEndDate(date: DateStr, start: TimeStr, end: TimeStr): DateStr {
+  const [s, e] = [clockMinutes(start), clockMinutes(end)];
+  return s !== null && e !== null && e < s ? addDays(date, 1) : date;
+}
+
+/**
+ * A span given a new End time (ADR 0090): an End earlier than the Start rolls
+ * to the next day, and back when it is after the Start again. An end day that
+ * rolling would not give (picked by hand, or a span running for days) is kept.
+ */
+export function spanWithEnd(span: TimedSpan, end: TimeStr): TimedSpan {
+  const rolled = span.endDate === rolledEndDate(span.date, span.start, span.end);
+  return { ...span, end, endDate: rolled ? rolledEndDate(span.date, span.start, end) : span.endDate };
+}
+
 /** The day a timed item starts on when one of its pieces is dropped on `to`, for views that move by the day (Month). */
 export function startDayMovedTo(piece: Pick<TimedItem, "date" | "span">, to: DateStr): DateStr {
   return piece.span ? addDays(piece.span.date, diffDays(piece.date, to)) : to;

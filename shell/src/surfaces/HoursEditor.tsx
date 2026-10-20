@@ -20,6 +20,7 @@ import {
   schedulableHref,
   spanLasting,
   spanMovedTo,
+  spanWithEnd,
   timedHref,
   todayStr,
   toHours,
@@ -78,13 +79,12 @@ function lengthOf(w: When): number | null {
 
 /**
  * A new End time (ADR 0090): an End earlier than the Start rolls to the next
- * day, so overnight takes no extra step; an item already running for days
- * keeps its end day.
+ * day, so overnight takes no extra step; an end day rolling would not give
+ * (an item running into a later day) is kept.
  */
 function endingAt(w: When, end: string): When {
   if (!w.start) return w;
-  if (diffDays(w.date, w.endDate) > 1) return { ...w, end };
-  return { ...w, end, endDate: end > w.start ? w.date : addDays(w.date, 1) };
+  return spanWithEnd({ ...w, start: w.start, end: w.end ?? w.start }, end);
 }
 
 /** The same item from another start, keeping its length (an end-less one stays end-less). */

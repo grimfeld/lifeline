@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
+import { cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
 
 describe("formatTime", () => {
   it("reads a clock time in the locale's style", () => {
@@ -123,5 +123,21 @@ describe("minutes from a start to an end time", () => {
   });
   it("is null for text that is no time", () => {
     expect(minutesUntil("09:00", "")).toBeNull();
+  });
+});
+
+describe("a span given a new End time (ADR 0090)", () => {
+  it("rolls an End earlier than the Start to the next day, and back", () => {
+    const span = { date: "2026-08-10", start: "22:00", endDate: "2026-08-10", end: "23:00" };
+    expect(spanWithEnd(span, "06:00")).toEqual({ ...span, endDate: "2026-08-11", end: "06:00" });
+    expect(spanWithEnd({ ...span, endDate: "2026-08-11", end: "06:00" }, "23:30")).toEqual({ ...span, end: "23:30" });
+  });
+  it("keeps an end day that rolling would not give: Mon 09:00 – Tue 17:00 nudged to 18:00 still ends Tue", () => {
+    const span = { date: "2026-08-10", start: "09:00", endDate: "2026-08-11", end: "17:00" };
+    expect(spanWithEnd(span, "18:00")).toEqual({ ...span, end: "18:00" });
+  });
+  it("keeps the end day of a span running for days", () => {
+    const span = { date: "2026-08-10", start: "09:00", endDate: "2026-08-12", end: "17:00" };
+    expect(spanWithEnd(span, "08:00")).toEqual({ ...span, end: "08:00" });
   });
 });
