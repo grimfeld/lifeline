@@ -6,12 +6,12 @@
  */
 
 import { addDays, clampedDate, parts, splitFrontmatter, type DateStr } from "@lifeline/core";
+import { isCalendarDay } from "./periods";
+import { writtenDates, type DayLike } from "./written";
 
-/** The slice of a Document these helpers read. */
-type DailyLike = { type: string; title: string; body?: string };
-const bodyOf = (n: DailyLike) => (typeof n.body === "string" ? n.body : "");
+const bodyOf = (n: DayLike) => (typeof n.body === "string" ? n.body : "");
 
-const isDaily = (n: DailyLike) => n.type === "daily" && /^\d{4}-\d{2}-\d{2}$/.test(n.title);
+const isDaily = (n: DayLike) => n.type === "daily" && isCalendarDay(n.title);
 
 // --- on this day ---------------------------------------------------------
 
@@ -59,31 +59,6 @@ export function onThisDay(dates: string[], today: DateStr, opts: OnThisDayOpts =
 }
 
 // --- written days & streaks -----------------------------------------------
-
-/**
- * Body text minus frontmatter, template headings ("###"), rules ("---"),
- * code-fence markers and blank lines — what the user actually typed.
- */
-export function writtenContent(body: string): string {
-  const { content } = splitFrontmatter(body);
-  return content
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith("###") && !l.startsWith("---") && !l.startsWith("```"))
-    .join("\n");
-}
-
-/** A daily note counts as "written" when ≥ 20 chars remain beyond the template. */
-export function isWritten(body: string): boolean {
-  return writtenContent(body).length >= 20;
-}
-
-/** Set of dates (YYYY-MM-DD) with a written daily note. */
-export function writtenDays(notes: DailyLike[]): Set<string> {
-  const out = new Set<string>();
-  for (const n of notes) if (isDaily(n) && isWritten(bodyOf(n))) out.add(n.title);
-  return out;
-}
 
 /** Consecutive written days ending today or yesterday — an unwritten today doesn't break the run. */
 export function currentStreak(days: Set<string>, today: DateStr): number {
@@ -135,7 +110,7 @@ export function wordCount(body: string): number {
 }
 
 /** Sum of words in daily notes dated within [from, to]. */
-export function wordsBetween(notes: DailyLike[], from: DateStr, to: DateStr): number {
+export function wordsBetween(notes: DayLike[], from: DateStr, to: DateStr): number {
   let total = 0;
   for (const n of notes) if (isDaily(n) && n.title >= from && n.title <= to) total += wordCount(bodyOf(n));
   return total;
@@ -148,8 +123,8 @@ export interface MonthCount {
 }
 
 /** Written daily notes per calendar month, for the last `months` months ending in today's month (oldest first). */
-export function entriesPerMonth(notes: DailyLike[], months: number, today: DateStr): MonthCount[] {
-  const written = writtenDays(notes);
+export function entriesPerMonth(notes: DayLike[], months: number, today: DateStr): MonthCount[] {
+  const written = writtenDates(notes);
   const { y, m } = parts(today);
   const out: MonthCount[] = [];
   for (let i = months - 1; i >= 0; i--) {
