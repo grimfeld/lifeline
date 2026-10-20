@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, Label, toast } from "@lifeline/ui";
+import { Button, Checkbox, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, Label, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import { observe, secondPrefill, unitPrice } from "../domain/derive";
 import { amountUnit, defaultAmount, formatUnitPrice, fromAmount, measureOf, secondaryMeasure } from "../domain/measure";
@@ -145,7 +145,7 @@ export function AddPriceDialog({ open, onOpenChange, productId: presetProduct }:
           <div className="grid grid-cols-2 items-end gap-3">
             <div className="grid gap-2">
               <Label htmlFor="ap-date">Day</Label>
-              <Input id="ap-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <DatePicker id="ap-date" required value={date} onChange={setDate} />
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-2 text-sm">
               <label className="flex items-center gap-2">
