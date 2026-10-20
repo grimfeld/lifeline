@@ -262,6 +262,12 @@ export interface CommandResult {
   id?: string;
 }
 
+/** What an inline Command offers for the query it read (ADR 0088): the row's label, saying what it understood, and what picking it does. */
+export interface InlineOffer {
+  label: string;
+  run: (ctx: CommandCtx) => void | Promise<void>;
+}
+
 export interface CommandDef {
   id: string;
   title: string;
@@ -296,6 +302,14 @@ export interface CommandDef {
    * whoever calls. Throws with a readable message on bad input.
    */
   invoke?: (args: Record<string, unknown>) => Promise<CommandResult>;
+  /**
+   * An inline Command (CONTEXT.md "Command", ADR 0088) reads the palette's
+   * query as its argument: asked on every change of the query, it offers a row
+   * pinned above every other, or nothing when the query doesn't parse. Pure
+   * and quick — it runs on each keystroke. A Command may be inline only (no
+   * `run` or `dialog`): it is then never listed by its title.
+   */
+  inline?: (query: string) => InlineOffer | undefined;
 }
 
 /**

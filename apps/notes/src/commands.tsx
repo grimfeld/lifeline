@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Textarea, toast } from "@lifeline/ui";
-import { createDocument, docHref, lockPrivate, openPrivateDialog, useDocumentTypes, usePrivateGate, type CommandDef, type DocumentTypeDef, singularOf } from "@lifeline/core";
+import { createDocument, docHref, lockPrivate, todayStr, openPrivateDialog, useDocumentTypes, usePrivateGate, type CommandDef, type DocumentTypeDef, singularOf } from "@lifeline/core";
 import { CalendarDays, FilePlus, ImageOff, KeyRound, Lock, LockOpen, Settings2, ShieldOff, Zap } from "lucide-react";
 import { TemplateSelect } from "@lifeline/editor";
 import { AttachmentsCleanupDialog } from "./components/AttachmentsCleanupDialog";
 import { appendToDaily } from "./data/repo";
-import { DAILY, TEMPLATE } from "./domain/types";
+import { DAILY, TEMPLATE, journalHref, periodHref } from "./domain/types";
+import { journalPageOf } from "./domain/periods";
 
 function QuickCaptureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const [text, setText] = useState("");
@@ -124,7 +125,25 @@ function NewNoteCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   );
 }
 
+/**
+ * Inline (ADR 0088): a typed date or period key opens that Day or review. The
+ * page opens and nothing is made — a page only makes its Document when it is
+ * today's Day or the current stretch, as it does however it is reached.
+ */
+const openJournalPage: CommandDef = {
+  id: "notes.open-date",
+  title: "Open a date in the Journal",
+  icon: CalendarDays,
+  inline: (query) => {
+    const page = journalPageOf(query);
+    if (!page) return undefined;
+    const href = page.kind === "day" ? journalHref(page.key, todayStr()) : periodHref(page.key);
+    return { label: page.label, run: ({ navigate }) => navigate(href) };
+  },
+};
+
 export const noteCommands: CommandDef[] = [
+  openJournalPage,
   { id: "notes.today", title: "Open today", keywords: ["daily", "diary", "journal", "day"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal") },
   { id: "notes.week", title: "Open this week's review", keywords: ["week", "weekly", "review", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal/p/week") },
   { id: "notes.month", title: "Open this month's review", keywords: ["month", "monthly", "review", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal/p/month") },
