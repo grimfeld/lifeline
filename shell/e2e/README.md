@@ -4,12 +4,20 @@ Every screen, at phone (`mobile`, 360px) and desktop (`desktop`, 1280px) width,
 over a store filled with the longest content a person could type (ADR 0065).
 
 ```sh
-pnpm test:e2e                                                      # from the repo root
-pnpm --filter @lifeline/shell test:e2e -- --project=mobile -g Tasks  # one screen, one width
+pnpm test:e2e                                                        # everything, from the repo root
+pnpm --filter @lifeline/shell test:e2e --project=mobile -g Tasks      # one screen, one width
+pnpm --filter @lifeline/shell test:e2e --only-changed=origin/master  # the specs your branch changes
 ```
 
-It is not in CI (about 13 minutes for both widths): run it locally before
-pushing a change that touches a screen.
+No `--` before the flags: pnpm would hand it to Playwright, which then reads them as
+file filters. The whole suite runs on master each night; a PR runs
+only the specs it changes, three times each (`.github/workflows/check.yml`, `e2e-changed`).
+Run the layout test locally before pushing a change that touches a screen.
+
+Each run starts its own servers on the first free three ports from 1421 on (1421, 1424,
+1427…), so runs in several worktrees at once don't collide; `E2E_PORT` picks the first of
+the three instead. The two Demo builds start only when the run includes the `demo` or
+`demo-setup` project (no `--project` at all, or one of those).
 
 - `seed.setup.ts` runs first: `support/seed.ts` runs every headless Command,
   gives every Document type a Document with every Field filled, and places
@@ -35,10 +43,10 @@ pushing a change that touches a screen.
 
 `demo.spec.ts` runs in its own `demo` project, against a production build of
 the Demo (`vite build` with `VITE_DEMO=1`, served by `vite preview` on
-`E2E_PORT + 1`, 1422 by default) — never the layout seed. Each case runs at
+the port after the app's, 1422 by default) — never the layout seed. Each case runs at
 phone (360px) and desktop (1280px) width. Run it before pushing a change that
 touches the Demo or the shell's sign-in and sync surfaces (ADR 0077). The
-Source link cases use a second build on `E2E_PORT + 2`, with
+Source link cases use a second build on the port after that, with
 `VITE_DEMO_SOURCE_URL` set (another origin, so its cases start from an empty
 store and seed the life themselves); the first has none, as the Demo does until the
 repository is public. Both builds take about half a minute before any case runs.
@@ -53,7 +61,7 @@ repository is public. Both builds take about half a minute before any case runs.
   itself: Home shows in under a second, the rest is written behind it for about
   ten seconds ("Filling in the rest of the Demo…"), which `open()`/`settle()`
   wait out. Only those: seeding is the slow part.
-- The suite's Demo build (on `E2E_PORT + 1`, built with `VITE_DEMO_E2E=1`) hands
+- The suite's Demo build (the first, built with `VITE_DEMO_E2E=1`) hands
   it the App registry on `window.lifelineDemo` (`src/demo/inspect.ts`): the
   bundle cannot be imported from a test. The deployed Demo, like the Source-link
   build, has no such hook.
@@ -62,14 +70,12 @@ repository is public. Both builds take about half a minute before any case runs.
   4 minutes. One case logs the first-open time.
 
 While iterating, run only your own cases, at one width; run the whole `demo`
-project once before reporting or merging. No `--` before the flags:
+project once before reporting or merging:
 
 ```sh
-E2E_PORT=1701 pnpm --filter @lifeline/shell test:e2e --project=demo -g "Demo media at phone"  # yours, one width
-E2E_PORT=1701 pnpm --filter @lifeline/shell test:e2e --project=demo                          # all, once
+pnpm --filter @lifeline/shell test:e2e --project=demo -g "Demo media at phone"  # yours, one width
+pnpm --filter @lifeline/shell test:e2e --project=demo                          # all, once
 ```
 
 Every server is started fresh, never reused: another checkout's server would
-serve other code. Agents side by side each pick their own `E2E_PORT` (it moves
-all three servers): check that it and the next two ports are free, and never
-take 1421–1423, the default checkout's.
+serve other code.

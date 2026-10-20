@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "license": "PolyForm-Noncommercial-1.0.0",
   "scripts": {
-    "check": "node scripts/check-ui.mjs && node scripts/adr.mjs check && node scripts/migrations.mjs check && pnpm -r typecheck && pnpm -r test",
+    "prepare": "node scripts/install-hooks.mjs",
+    "check": "node --test scripts/*.test.mjs && node scripts/check-ui.mjs && node scripts/adr.mjs check && node scripts/migrations.mjs check && pnpm -r typecheck && pnpm -r test",
     "check:ui": "node scripts/check-ui.mjs",
     "adr:new": "node scripts/adr.mjs new",
     "adr:mv": "node scripts/adr.mjs mv",
@@ -12,6 +13,7 @@
     "migrations:next": "node scripts/migrations.mjs next",
     "migrations:check": "node scripts/migrations.mjs check",
     "worktrees:prune": "node scripts/worktrees.mjs prune",
+    "worktree:new": "node scripts/worktrees.mjs new",
     "dev": "pnpm --filter @lifeline/shell dev",
     "dev:all": "node scripts/dev-launcher.mjs",
     "mcp": "pnpm --filter @lifeline/mcp dev",
