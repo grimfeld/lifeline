@@ -140,8 +140,8 @@ export function AddAtHour({ at, templates, pool, onClose }: { at: AddingAt; temp
       {events.length > 0 && (
         <Group icon={<LayoutTemplate className="size-3.5" />} label="Event templates">
           {events.map((t) => (
-            <Button key={t.key} size="sm" variant="outline" onClick={() => addTemplate(t)}>
-              {t.title}
+            <Button key={t.key} size="sm" variant="outline" className="max-w-full" onClick={() => addTemplate(t)}>
+              <span className="truncate">{t.title}</span>
             </Button>
           ))}
         </Group>
@@ -149,8 +149,8 @@ export function AddAtHour({ at, templates, pool, onClose }: { at: AddingAt; temp
       {blockers.length > 0 && (
         <Group icon={<Ban className="size-3.5" />} label="Blocker templates">
           {blockers.map((t) => (
-            <Button key={t.key} size="sm" variant="outline" className="border-dashed" onClick={() => addTemplate(t)}>
-              {t.title}
+            <Button key={t.key} size="sm" variant="outline" className="max-w-full border-dashed" onClick={() => addTemplate(t)}>
+              <span className="truncate">{t.title}</span>
             </Button>
           ))}
         </Group>
@@ -198,11 +198,11 @@ export function AddAtHour({ at, templates, pool, onClose }: { at: AddingAt; temp
 
 function Group({ icon, label, children }: { icon: ReactNode; label: string; children: ReactNode }) {
   return (
-    <div className="grid gap-1.5">
+    <div className="grid min-w-0 gap-1.5">
       <span className="text-muted-foreground flex items-center gap-1 text-xs">
         {icon} {label}
       </span>
-      <div className="flex flex-wrap gap-1.5">{children}</div>
+      <div className="flex min-w-0 flex-wrap gap-1.5">{children}</div>
     </div>
   );
 }

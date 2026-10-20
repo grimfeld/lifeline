@@ -259,9 +259,11 @@ async function timeListOpen(page: Page) {
  * Start, End, the length and More… keep their places, in the bottom sheet on
  * a phone and the popover on the desk.
  */
+const QUICK_ADD_DAY = "2031-01-06";
 async function quickAddOpen(page: Page) {
   await workLocally(page);
-  const column = page.locator("[data-col]").first();
+  // A day far ahead, clear of the seeded Events, so the tap lands on an empty hour.
+  const column = page.locator(`[data-col="${QUICK_ADD_DAY}"]`);
   await expect(column).toBeVisible();
   const position = { x: 20, y: 2 * 56 + 10 };
   if ((page.viewportSize()?.width ?? 1280) < 768) await column.tap({ position });
@@ -338,7 +340,7 @@ const SCREENS: ScreenCase[] = [
   // Core destinations.
   { name: "Calendar · Upcoming", path: "/calendar?view=upcoming" },
   { name: "Calendar · Day", path: "/calendar?view=day" },
-  { name: "Calendar · Day · quick add", path: "/calendar?view=day", afterOpen: quickAddOpen },
+  { name: "Calendar · Day · quick add", path: `/calendar?view=day&d=${QUICK_ADD_DAY}`, afterOpen: quickAddOpen },
   { name: "Calendar · 3 Day", path: "/calendar?view=3day" },
   { name: "Calendar · Week", path: "/calendar?view=week" },
   { name: "Calendar · Month", path: "/calendar?view=month" },
