@@ -3,6 +3,7 @@ import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
 import { selectText } from "./support/selection";
+import { openCalendar } from "./support/date-picker";
 
 /**
  * Every screen of the app, at phone and desktop width (the `mobile` and
@@ -201,6 +202,25 @@ function peekOf(type: string, userField?: boolean, write?: boolean) {
   };
 }
 
+/**
+ * A Provision's Peek with its "Expires" Date picker open (ADR 0087): the
+ * calendar sits inside the viewport and nothing scrolls sideways, at phone
+ * width too; the layout check then covers the popover itself.
+ */
+async function datePickerOpen(page: Page) {
+  await peekOf("provision")(page);
+  await page.getByRole("dialog").getByLabel("Expires (check by)").click();
+  const calendar = openCalendar(page);
+  await expect(calendar).toBeVisible();
+  const fit = await calendar.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, right: r.right, width: innerWidth, scroll: document.documentElement.scrollWidth };
+  });
+  expect(fit.left).toBeGreaterThanOrEqual(0);
+  expect(fit.right).toBeLessThanOrEqual(fit.width);
+  expect(fit.scroll).toBeLessThanOrEqual(fit.width);
+}
+
 /** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
 const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
 
@@ -322,6 +342,7 @@ const SCREENS: ScreenCase[] = [
   // House's editable Peeks (ADR 0085): each App's own controls over a long-titled Document.
   { name: "Vault · Peek of chore", path: "/vault/d/:id", type: "chore", afterOpen: peekOf("chore") },
   { name: "Vault · Peek of provision", path: "/vault/d/:id", type: "provision", afterOpen: peekOf("provision") },
+  { name: "Vault · Peek of provision · date picker open", path: "/vault/d/:id", type: "provision", afterOpen: datePickerOpen },
   { name: "Vault · Peek of need", path: "/vault/d/:id", type: "need", afterOpen: peekOf("need") },
   // The Progress Apps' editable Peeks (ADR 0085), each drawn by its App.
   { name: "Vault · Peek of a Stat", path: "/vault", afterOpen: peekOf("stat") },

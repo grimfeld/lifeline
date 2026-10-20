@@ -1,13 +1,14 @@
 import * as React from "react"
 
 import { useCommitDraft } from "../../lib/useCommitDraft"
+import { DatePicker } from "./date-picker"
 import { Field } from "./field"
 import { Input } from "./input"
 import { Textarea } from "./textarea"
 
 /**
  * A field edited in place, written once the edit is done: on leaving it or
- * Enter (a date as soon as one is picked), or — with `delay` — a moment after
+ * Enter (a date as soon as a day is picked from the kit's Date picker), or — with `delay` — a moment after
  * the typing stops; Escape puts the stored value back. `onCommit` is the
  * owner's operation — when it refuses (throws), its message shows under the
  * field and the typed text stays, to be fixed. Until the field is being edited
@@ -31,6 +32,9 @@ function CommitField({
   min,
   max,
   step,
+  required,
+  startYear,
+  endYear,
 }: {
   label: React.ReactNode
   value: string
@@ -48,6 +52,12 @@ function CommitField({
   min?: number | string
   max?: number | string
   step?: number | string
+  /** A date that can't be cleared (no "Clear" in its picker). */
+  required?: boolean
+  /** A date's first year to offer (1900); earlier for historical dates. */
+  startYear?: number
+  /** A date's last year to offer (ten years from now). */
+  endYear?: number
 }) {
   const { draft, error, change, commit, revert } = useCommitDraft(value, onCommit, { delay })
   const onChange = (next: string) => {
@@ -70,7 +80,18 @@ function CommitField({
   }
   return (
     <Field label={label} hint={hint} error={error} className={className}>
-      {multiline ? (
+      {type === "date" ? (
+        <DatePicker
+          value={draft}
+          onChange={onChange}
+          min={min === undefined ? undefined : String(min)}
+          max={max === undefined ? undefined : String(max)}
+          required={required}
+          startYear={startYear}
+          endYear={endYear}
+          placeholder={placeholder}
+        />
+      ) : multiline ? (
         <Textarea rows={rows} value={draft} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} {...events} />
       ) : (
         <Input
