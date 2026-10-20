@@ -61,6 +61,37 @@ test("a Task peeked from the Vault is moved to another day and given notes there
   await expect(dialog.getByRole("button", { name: "Not done" })).toBeVisible();
 });
 
+test("a Task's Estimate is picked, typed and cleared back to none in its Peek", async ({ page }) => {
+  const stamp = Date.now();
+  await page.goto("/vault");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, title: string) =>
+      (await core.putDocument({ type: "task", title, status: "active", date: null, completedOn: null, recurrence: null, notes: "", tags: [] })).id as string,
+    `Write the report ${stamp}`,
+  );
+
+  const dialog = await peek(page, id);
+  const estimate = dialog.getByRole("group", { name: "Estimate" });
+  await expect(estimate.getByRole("button", { name: "None" })).toHaveAttribute("aria-pressed", "true");
+
+  await estimate.getByRole("button", { name: "1h 30m" }).click();
+  await expect.poll(async () => (await field(page, id)).estimate).toBe(90);
+
+  // Any other length is typed, the way it reads.
+  const other = estimate.getByRole("textbox");
+  await other.fill("2d 8h");
+  await other.press("Enter");
+  await expect.poll(async () => (await field(page, id)).estimate).toBe(56 * 60);
+  await expect(other).toHaveValue("2d 8h");
+
+  // None leaves the Task with no Estimate at all.
+  await estimate.getByRole("button", { name: "None" }).click();
+  await expect.poll(async () => (await field(page, id)).estimate).toBeNull();
+  await expect(other).toHaveValue("");
+});
+
 test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out", async ({ page }) => {
   const stamp = Date.now();
   const title = `Renew the passport ${stamp}`;
