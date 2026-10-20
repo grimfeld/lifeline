@@ -11,7 +11,7 @@ import { datePickerLabelled, dayFromToday, openCalendar, showPhoneFilters } from
  * may spill out of its box, be cut off without an ellipsis, or make a box
  * scroll sideways that is not meant to.
  *
- * The rule (CLAUDE.md): a new screen gets a row here. The last test fails
+ * The rule (CODING_STANDARDS.md § Long content): a new screen gets a row here. The last test fails
  * when a registered screen, Module page, Surface or Calendar view has none.
  */
 interface ScreenCase {
