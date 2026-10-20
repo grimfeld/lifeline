@@ -318,6 +318,19 @@ test.describe("Journal navigation · the nearest written Days (#208)", () => {
     await expect(page.locator(".cm-content")).toContainText("Rain.");
   });
 
+  test("an untouched Template-only Day is not written: it keeps its editor and offers both", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "1998-02-20");
+    await expect(page.locator(".cm-content")).toBeVisible();
+    await expect(before(page)).toContainText("1998");
+    await after(page).click();
+    await expect(page).toHaveURL(/\?d=1998-03-13$/);
+    // A written Day offers neither.
+    await expect(page.locator(".cm-content")).toContainText("Rain.");
+    await expect(before(page)).toHaveCount(0);
+    await expect(after(page)).toHaveCount(0);
+  });
+
   test("Template-only Days are skipped", async ({ page }) => {
     await seedJournal(page, { days: DAYS });
     await openDay(page, "1998-02-10");
