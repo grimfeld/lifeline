@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { daysOf, isoWeek, kindOfKey, partsOf, periodKey, periodLabel, periodRange, shiftPeriod } from "./periods";
+import { daysOf, isoWeek, journalPageOf, kindOfKey, partsOf, periodKey, periodLabel, periodRange, shiftPeriod } from "./periods";
 
 describe("isoWeek", () => {
   it("follows the Thursday rule at year edges", () => {
@@ -59,3 +59,45 @@ describe("partsOf and shiftPeriod", () => {
     expect(periodLabel("2026-Q4")).toBe("Q4 2026");
   });
 });
+
+describe("journalPageOf", () => {
+  it("reads an ISO date as that Day, labelled in full", () => {
+    expect(journalPageOf("2023-03-14", "en-GB")).toEqual({ kind: "day", key: "2023-03-14", label: "Tuesday 14 March 2023" });
+  });
+
+  it("reads the Journal's period keys as their reviews", () => {
+    expect(journalPageOf("2023-W11", "en-GB")).toEqual({ kind: "week", key: "2023-W11", label: "Week 11, 2023" });
+    expect(journalPageOf("2023-03", "en-GB")).toEqual({ kind: "month", key: "2023-03", label: "March 2023" });
+    expect(journalPageOf("2023-Q1", "en-GB")).toEqual({ kind: "quarter", key: "2023-Q1", label: "Q1 2023" });
+    expect(journalPageOf("2023", "en-GB")).toEqual({ kind: "year", key: "2023", label: "2023" });
+  });
+
+  it("offers nothing for what the calendar doesn't have, or for words", () => {
+    for (const text of ["2023-13", "2023-00", "2023-02-30", "2023-W60", "2023-W00", "2023-Q5", "2023-Q0", "0000", "hello", "", "14/03/2023"]) {
+      expect(journalPageOf(text), text).toBeUndefined();
+    }
+  });
+
+  it("accepts week 53 only in a year that has one", () => {
+    expect(journalPageOf("2020-W53")?.key).toBe("2020-W53");
+    expect(journalPageOf("2026-W53")?.key).toBe("2026-W53");
+    expect(journalPageOf("2023-W53")).toBeUndefined();
+    expect(journalPageOf("2025-W53")).toBeUndefined();
+  });
+
+  it("takes a leap day only in a leap year", () => {
+    expect(journalPageOf("2024-02-29")?.key).toBe("2024-02-29");
+    expect(journalPageOf("2023-02-29")).toBeUndefined();
+  });
+
+  it("opens future dates as readily as past ones", () => {
+    expect(journalPageOf("2099-12-31")?.kind).toBe("day");
+    expect(journalPageOf("2099-Q4")?.kind).toBe("quarter");
+  });
+
+  it("forgives spaces around the text and a lower-case w or q", () => {
+    expect(journalPageOf(" 2023-w11 ")?.key).toBe("2023-W11");
+    expect(journalPageOf("2023-q1")?.key).toBe("2023-Q1");
+  });
+});
+

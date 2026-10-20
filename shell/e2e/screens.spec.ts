@@ -320,6 +320,27 @@ async function openSelectionMenu(page: Page) {
   await expect(page.getByRole("dialog", { name: "Selection menu" }).getByRole("option").first()).toContainText("Link to Selected person");
 }
 
+/** An unwritten date's page once written Days lie on both sides: "Start writing" and the links to them (#208). */
+async function seedWrittenNeighbours(page: Page) {
+  await workLocally(page);
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    await core.createDocument({ type: "daily", title: "2001-02-04", body: "Marie wrote back." });
+    await core.createDocument({ type: "daily", title: "2001-03-13", body: "Rain." });
+  }, CORE_URL);
+  await expect(page.getByRole("link", { name: /^Next written Day/ })).toBeVisible();
+}
+
+/** The Journal sidebar's calendar zoomed out `levels` times (1: a year's months, 2: the years list) — desk only, the sidebar is hidden below `lg`. */
+const zoomCalendar = (levels: number) => async (page: Page) => {
+  await workLocally(page);
+  if ((page.viewportSize()?.width ?? 0) < 1024) return;
+  const calendar = page.getByRole("complementary", { name: "Journal" }).getByRole("group", { name: "Calendar" });
+  await calendar.getByRole("button", { name: "February 2001" }).click();
+  if (levels > 1) await calendar.getByRole("button", { name: "2001", exact: true }).first().click();
+  await expect(calendar.getByRole("button", { name: levels > 1 ? /^Earlier years$/ : /^2001-02(, written)?$/ })).toBeVisible();
+};
+
 /** The Selection menu's "Link to…": every Linkable Document, the seeded very long ones among them. */
 async function openLinkSearch(page: Page) {
   await openSelectionMenu(page);
@@ -446,6 +467,12 @@ const SCREENS: ScreenCase[] = [
   { name: "Journal · Today", path: "/app/journal" },
   { name: "Journal · Week", path: "/app/journal/p/:key", params: { key: "2026-W42" } },
   { name: "Journal · Year", path: "/app/journal/p/2026" },
+  // A date with no Day and a period with no review keep the sidebar (#206).
+  { name: "Journal · Day not written", path: "/app/journal?d=2001-02-14" },
+  { name: "Journal · Day not written, between written Days", path: "/app/journal?d=2001-02-14", afterOpen: seedWrittenNeighbours },
+  { name: "Journal · Month without a review", path: "/app/journal/p/:key", params: { key: "2001-02" } },
+  { name: "Journal · Calendar months of a year", path: "/app/journal?d=2001-02-14", afterOpen: zoomCalendar(1) },
+  { name: "Journal · Calendar years", path: "/app/journal?d=2001-02-14", afterOpen: zoomCalendar(2) },
   { name: "Journal · Types", path: "/app/journal/t" },
   { name: "Journal · Types (old link)", path: "/app/journal/c" },
   {

@@ -126,7 +126,7 @@ test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out"
   await expect(dialog.getByRole("button", { name: "Move", exact: true })).toHaveCount(0);
   await pickInCalendar(dialog.locator('[data-slot="calendar"]'), "2026-03-09");
   await expect(dialog).toBeHidden();
-  await expect(page.getByText(/Moved to .*Mar 9/)).toBeVisible();
+  await expect(page.getByText(/Moved to .*(9 Mar|Mar 9)/)).toBeVisible();
   await expect.poll(async () => (await field(page, id)).date).toBe("2026-03-09");
 });
 

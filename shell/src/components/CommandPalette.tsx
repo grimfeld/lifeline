@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   commandDefaultFilter,
@@ -39,11 +39,18 @@ type DialogCommand = CommandDef & { appId: string };
  *
  * The ranking rides on cmdk's own scorer: a capture item carries a marker
  * keyword, and any match on it scores one above the best a plain match can.
- * cmdk orders groups by their best item, so the Capture group leads.
+ * cmdk orders groups by their best item, so the Capture group leads — after
+ * the rows inline Commands offer for the query, which lead everything.
  */
 const CAPTURE_MARK = "\u0000capture";
+/**
+ * An inline Command's row (ADR 0088) has judged the query itself: it scores
+ * above anything a match can, whatever cmdk would make of its label.
+ */
+const INLINE_MARK = "\u0000inline";
 
 function rankCaptureFirst(value: string, search: string, keywords?: string[]): number {
+  if (keywords?.includes(INLINE_MARK)) return 3;
   const capture = keywords?.includes(CAPTURE_MARK) ?? false;
   const score = commandDefaultFilter(value, search, capture ? keywords!.filter((k) => k !== CAPTURE_MARK) : keywords);
   return capture && score > 0 ? score + 1 : score;
@@ -56,6 +63,7 @@ export function CommandPalette() {
   // A pinned fold opens its members here, in place of the full list.
   const [openFold, setOpenFold] = useState<Extract<CaptureEntry, { kind: "fold" }> | null>(null);
   const navigate = useNavigate();
+  const input = useRef<HTMLInputElement>(null);
 
   const screens = useWorkspaceScreens();
   const modules = useWorkspaceModules();
@@ -91,10 +99,18 @@ export function CommandPalette() {
   }
 
   function runCommand(c: DialogCommand) {
-    pick(() => {
-      if (c.dialog) setActiveDialog(c);
-      else void c.run?.({ navigate });
+    if (c.dialog) return pick(() => setActiveDialog(c));
+    // A Command may ask to stay (CommandCtx.keepPalette): the query empties, ready for it.
+    let keep = false;
+    void c.run?.({
+      navigate,
+      keepPalette: () => {
+        keep = true;
+      },
     });
+    if (!keep) return setPaletteOpen(false);
+    setSearch("");
+    input.current?.focus();
   }
 
   function pickEntry(e: CaptureEntry) {
@@ -107,12 +123,21 @@ export function CommandPalette() {
   const commands = useAllCommands();
   const { pinned } = useCaptureSheet();
   const runnable = commands.filter((c) => c.dialog || c.run);
+  // Every inline Command reads the query anew on each change of it (ADR 0088).
+  const offers =
+    search.trim() === ""
+      ? []
+      : commands.flatMap((c) => {
+          const offer = c.inline?.(search);
+          return offer ? [{ command: c, offer }] : [];
+        });
   const ActiveDialogComponent = activeDialog?.dialog;
 
   return (
     <>
       <CommandDialog open={open} onOpenChange={setPaletteOpen} filter={rankCaptureFirst}>
         <CommandInput
+          ref={input}
           placeholder={openFold ? `${openFold.title.replace(/…$/, "")}: which?` : "Type a command or search…"}
           value={search}
           onValueChange={setSearch}
@@ -135,6 +160,24 @@ export function CommandPalette() {
             </CommandGroup>
           ) : (
           <>
+          {offers.length > 0 && (
+            <CommandGroup>
+              {offers.map(({ command: c, offer }) => {
+                const Icon = c.icon ?? Terminal;
+                return (
+                  <CommandItem
+                    key={`inline-${c.appId}/${c.id}`}
+                    value={`${offer.label} inline ${c.appId}/${c.id}`}
+                    keywords={[INLINE_MARK]}
+                    onSelect={() => pick(() => void offer.run({ navigate }))}
+                  >
+                    <Icon /> <span className="min-w-0 flex-1 truncate">{offer.label}</span>
+                    <span className="text-muted-foreground shrink-0 text-xs">{appById(c.appId)?.title}</span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          )}
           {search === "" && pinned.length > 0 && (
             <>
               <CommandGroup heading="Pinned">

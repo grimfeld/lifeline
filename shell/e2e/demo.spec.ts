@@ -716,7 +716,7 @@ for (const w of WIDTHS) {
       for (let i = 1; i <= 7; i++) {
         await page.getByRole("button", { name: "Previous day" }).click();
         await expectJournalDay(page, await pageDay(page, -i));
-        if (await page.getByText(/^No entry for/).isVisible()) continue;
+        if (await page.getByText(/^Nothing written on/).isVisible()) continue;
         await expectLinksResolve(page);
       }
     });
