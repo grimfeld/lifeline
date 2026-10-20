@@ -55,3 +55,16 @@ export function dayPieces(span: TimedSpan | AllDaySpan, range?: DayRange): (DayP
   }
   return out;
 }
+
+/**
+ * Midnight is stored one way (ADR 0090): an end at midnight is 00:00 on the
+ * next day. A span stored before as ending at "24:00" reads that way — the
+ * next day after its end day (its own day when it has none). Anything else is
+ * kept as it is. The PocketBase migration `1759100000_midnight_next_day.js`
+ * does the same to stored rows; this covers stores it never reaches.
+ */
+export function midnightNextDay<T extends { date: DateStr; endDate: DateStr | null; start: TimeStr | null; end: TimeStr | null }>(row: T): T {
+  if (row.start === null || row.end !== "24:00") return row;
+  const endDay = row.endDate && row.endDate > row.date ? row.endDate : row.date;
+  return { ...row, endDate: addDays(endDay, 1), end: "00:00" };
+}

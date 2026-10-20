@@ -20,6 +20,7 @@ import {
   rescheduleTimedItem,
   scheduleSurfaceItem,
   spanEndingAt,
+  spanLasting,
   spanMovedTo,
   startDayMovedTo,
   startOfWeek,
@@ -767,8 +768,8 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
       } else if (d.timed) {
         if (!canRescheduleTimed(d.timed.appId)) return void toast.error("This item can't be retimed here");
         if (!d.timed.start) {
-          // An all-day item lifted onto the hours lasts an hour.
-          rescheduleTimedItem(d.timed, { date, start, endDate: date, end: addHours(start, 1) }).catch(fail);
+          // An all-day item lifted onto the hours lasts an hour, past midnight when dropped late (ADR 0090).
+          rescheduleTimedItem(d.timed, spanLasting(date, start, 60)).catch(fail);
           return;
         }
         // Whichever piece was lifted, the whole item moves by the drop (ADR 0090); one with no end stays end-less.

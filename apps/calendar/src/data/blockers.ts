@@ -1,18 +1,21 @@
 import { useMemo } from "react";
 import { documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr, type TimedWhen, type TimeStr, type Weekday } from "@lifeline/core";
 import { blockerSpan, compareBlockers, rescheduledBlocker } from "../domain/blockers";
+import { midnightNextDay } from "../domain/span";
 import { TIME_BLOCKER_TYPE, type TimeBlocker } from "../domain/types";
 
 /** PocketBase returns absent text fields as ""; re-establish null/defaults on read. */
 function normalize(b: TimeBlocker): TimeBlocker {
   const date = b.date || null;
   const start = b.start || "09:00";
-  const end = b.end || "17:00";
+  // A one-off stored ending at "24:00" ends at 00:00 the next day (ADR 0090).
+  const until = date ? midnightNextDay({ date, endDate: b.endDate || null, start, end: b.end || "17:00" }) : { endDate: b.endDate || null, end: b.end || "17:00" };
+  const end = until.end;
   return {
     ...b,
     date,
     // A one-off always has its end day (ADR 0090); one stored without it ends the next morning when overnight.
-    endDate: blockerSpan({ date, endDate: b.endDate || null, start, end })?.endDate ?? null,
+    endDate: blockerSpan({ date, endDate: until.endDate, start, end })?.endDate ?? null,
     weekdays: Array.isArray(b.weekdays) ? (b.weekdays.map(Number).filter((d) => d >= 0 && d <= 6) as Weekday[]) : [],
     start,
     end,
@@ -20,6 +23,13 @@ function normalize(b: TimeBlocker): TimeBlocker {
     active: b.active !== false,
     tags: b.tags ?? [],
   };
+}
+
+/** A one-off's end at midnight is stored as 00:00 the next day, never "24:00" (ADR 0090); a weekly rule is kept as it is. */
+function oneOffMidnight<T extends Pick<TimeBlocker, "date" | "endDate" | "start" | "end">>(b: T): T {
+  if (!b.date) return b;
+  const { endDate, end } = midnightNextDay({ date: b.date, endDate: b.endDate ?? null, start: b.start, end: b.end });
+  return { ...b, endDate, end };
 }
 
 export function useTimeBlockers(): TimeBlocker[] {
@@ -44,14 +54,15 @@ export async function addTimeBlocker(input: {
   active?: boolean;
   tags?: string[];
 }): Promise<string> {
+  const when = input.date ? midnightNextDay({ date: input.date, endDate: input.endDate ?? null, start: input.start, end: input.end }) : { endDate: null, end: input.end };
   const row = await putDocument<TimeBlocker>({
     type: TIME_BLOCKER_TYPE,
     title: input.title,
     date: input.date ?? null,
-    endDate: input.date ? (blockerSpan({ date: input.date, endDate: input.endDate ?? null, start: input.start, end: input.end })?.endDate ?? null) : null,
+    endDate: input.date ? (blockerSpan({ date: input.date, endDate: when.endDate, start: input.start, end: when.end })?.endDate ?? null) : null,
     weekdays: input.date ? [] : [...input.weekdays].sort(),
     start: input.start,
-    end: input.end,
+    end: when.end,
     color: input.color ?? null,
     active: input.active !== false,
     tags: normalizeTags(input.tags ?? []),
@@ -60,7 +71,8 @@ export async function addTimeBlocker(input: {
 }
 
 export async function updateTimeBlocker(b: TimeBlocker): Promise<void> {
-  await putDocument<TimeBlocker>({ ...b, type: TIME_BLOCKER_TYPE, endDate: b.date ? (b.endDate ?? null) : null, weekdays: [...(b.weekdays ?? [])].sort(), tags: normalizeTags(b.tags ?? []) });
+  const kept = oneOffMidnight(b);
+  await putDocument<TimeBlocker>({ ...kept, type: TIME_BLOCKER_TYPE, endDate: kept.date ? (kept.endDate ?? null) : null, weekdays: [...(b.weekdays ?? [])].sort(), tags: normalizeTags(b.tags ?? []) });
 }
 
 /** Switch a blocker off (keeping it) or back on. */
@@ -84,5 +96,5 @@ export async function rescheduleTimeBlocker(id: string, when: TimedWhen): Promis
   if (!row || row.type !== TIME_BLOCKER_TYPE) throw new Error("That blocker is gone");
   const b = normalize(row);
   if (!b.date) throw new Error("A weekly blocker is a rule — edit it on the Events screen's Blockers tab");
-  await patchDocument(id, rescheduledBlocker(b, when));
+  await patchDocument(id, oneOffMidnight(rescheduledBlocker(b, when)));
 }

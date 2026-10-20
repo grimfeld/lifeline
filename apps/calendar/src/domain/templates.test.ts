@@ -29,12 +29,15 @@ describe("durationOf", () => {
 });
 
 describe("endOf", () => {
-  it("adds the duration to the start", () => {
-    expect(endOf(tpl({ durationMin: 90 }), "09:00")).toBe("10:30");
-    expect(endOf(tpl({ durationMin: 25 }), "09:50")).toBe("10:15");
+  it("adds the length to the start, on the same day", () => {
+    expect(endOf(tpl({ durationMin: 90 }), "2026-08-24", "09:00")).toEqual({ endDate: "2026-08-24", end: "10:30" });
+    expect(endOf(tpl({ durationMin: 25 }), "2026-08-24", "09:50")).toEqual({ endDate: "2026-08-24", end: "10:15" });
   });
-  it("stops at the end of the day", () => {
-    expect(endOf(tpl({ durationMin: 180 }), "23:00")).toBe("24:00");
+  it("runs past midnight into the next day", () => {
+    expect(endOf(tpl({ durationMin: 180 }), "2026-08-24", "23:00")).toEqual({ endDate: "2026-08-25", end: "02:00" });
+  });
+  it("ends at 00:00 the next day, never 24:00, when it reaches midnight", () => {
+    expect(endOf(tpl({ durationMin: 60 }), "2026-08-24", "23:00")).toEqual({ endDate: "2026-08-25", end: "00:00" });
   });
 });
 
