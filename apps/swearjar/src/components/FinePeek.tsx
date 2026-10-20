@@ -41,7 +41,7 @@ export function FinePeek({ doc }: { doc: Document }) {
         <span className="min-w-0 flex-1 break-words text-sm">{offence?.name ?? "A deleted offence"}</span>
         <span className="shrink-0 text-lg font-semibold tabular-nums">{formatCents(Number(fine.amount) || 0)}</span>
       </div>
-      <CommitField label="When it happened" type="datetime-local" max={nowLocalInput()} value={fine.occurredAt ? localInputOf(fine.occurredAt) : ""} onCommit={setWhen} />
+      <CommitField label="When it happened" type="datetime-local" required max={nowLocalInput()} value={fine.occurredAt ? localInputOf(fine.occurredAt) : ""} onCommit={setWhen} />
       <CommitField label="Note" multiline rows={2} value={fine.note ?? ""} onCommit={(note) => editFine(fine.id, { note })} />
       <div>
         <Button size="sm" variant="ghost" onClick={() => void remove()}>

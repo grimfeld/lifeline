@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Checkbox, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
+import { Button, Checkbox, DatePicker, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import type { Entry, Stat } from "../domain/types";
 import { checklist, noonOf } from "../domain/aggregate";
@@ -121,7 +121,7 @@ export function AddEntryDialog({
               )}
               <div className="grid gap-2">
                 <Label htmlFor="entry-when">{isChecklist ? "Ticked items are logged at" : "When"}</Label>
-                <Input id="entry-when" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+                <DateTimeField id="entry-when" required value={when} onChange={setWhen} />
               </div>
             </>
           )}

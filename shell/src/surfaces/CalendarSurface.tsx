@@ -3,12 +3,12 @@ import { useSearchParams } from "react-router";
 import {
   Button,
   cn,
+  DatePickerButton,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
-  Input,
   PhoneDock,
 } from "@lifeline/ui";
 import {
@@ -203,7 +203,7 @@ export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { v
               <ChevronRight />
             </Button>
           )}
-          <Input type="date" className="h-8 w-36 max-md:hidden" value={anchor} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
+          <DatePickerButton aria-label="Jump to date" className="size-8" value={anchor} onPick={(d) => go(d)} />
           {extra}
         </div>
       </div>

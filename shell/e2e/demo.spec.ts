@@ -699,7 +699,7 @@ for (const w of WIDTHS) {
       // A week of Days back: each one written links only to pages that exist.
       for (let i = 1; i <= 7; i++) {
         await page.getByRole("button", { name: "Previous day" }).click();
-        await expect(page.getByLabel("Jump to date")).toHaveValue(await pageDay(page, -i));
+        await expect(page).toHaveURL(new RegExp(`[?&]d=${await pageDay(page, -i)}`));
         if (await page.getByText(/^No entry for/).isVisible()) continue;
         await expectLinksResolve(page);
       }
@@ -712,10 +712,11 @@ for (const w of WIDTHS) {
       test("the Journal is dated around the visit day", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await open(page, "/app/journal");
-        await expect(page.getByLabel("Jump to date")).toHaveValue("2027-03-10");
+        // Today's Journal is the bare address; one day back carries ?d=, so the clock's day is the Journal's today.
+        await expect(page).toHaveURL(/\/app\/journal$/);
         await expect(page.getByText(/Huddle with/).first()).toBeVisible();
         await page.getByRole("button", { name: "Previous day" }).click();
-        await expect(page.getByLabel("Jump to date")).toHaveValue("2027-03-09");
+        await expect(page).toHaveURL(/[?&]d=2027-03-09/);
         await expectLinksResolve(page);
       });
     });

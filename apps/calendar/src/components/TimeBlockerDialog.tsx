@@ -3,6 +3,7 @@ import {
   Button,
   Checkbox,
   cn,
+  DatePicker,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -107,7 +108,7 @@ export function TimeBlockerDialog({
           {blocker?.date ? (
             <div className="grid gap-2">
               <Label htmlFor="blk-date">Day</Label>
-              <Input id="blk-date" type="date" className="w-40" value={date ?? ""} onChange={(e) => setDate(e.target.value || null)} />
+              <DatePicker id="blk-date" required className="w-40" value={date ?? ""} onChange={(v) => setDate(v || null)} />
               <p className="text-muted-foreground text-xs">A one-off band: this day only. Drag it on the Schedule to move it.</p>
             </div>
           ) : (

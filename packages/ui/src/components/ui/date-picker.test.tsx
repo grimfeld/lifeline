@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DatePicker, DatePickerPanel } from "./date-picker";
+import { DatePicker, DatePickerButton, DatePickerPanel } from "./date-picker";
 
 const noop = () => {};
 const today = new Date(2026, 9, 20);
@@ -70,5 +70,14 @@ describe("DatePicker's popover panel", () => {
     expect(html).toContain('<option value="2036"');
     expect(html).not.toContain('<option value="2037"');
     expect(panel({ startYear: 1500 })).toContain('<option value="1500"');
+  });
+});
+
+describe("DatePickerButton", () => {
+  it("is an icon button named by its label, so a Phone dock keeps it icon-sized", () => {
+    const html = renderToStaticMarkup(<DatePickerButton aria-label="Jump to date" value="2026-10-20" onPick={noop} />);
+    expect(html).toMatch(/<button[^>]*aria-label="Jump to date"/);
+    expect(html).toMatch(/<button[^>]*data-size="icon/);
+    expect(html).not.toContain("Oct");
   });
 });

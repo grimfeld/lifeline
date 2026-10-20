@@ -13,6 +13,7 @@ export * from "./components/ui/field";
 export * from "./components/ui/commit-field";
 export * from "./components/ui/calendar";
 export * from "./components/ui/date-picker";
+export * from "./components/ui/date-time-field";
 export * from "./components/ui/choice-field";
 export * from "./components/ui/input";
 export * from "./components/ui/label";

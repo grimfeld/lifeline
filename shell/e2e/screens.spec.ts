@@ -466,6 +466,17 @@ const SCREENS: ScreenCase[] = [
       await expect(page.getByText("Archive is empty.")).toBeVisible();
     },
   },
+  {
+    // The Move dialog: the calendar in place under a very long title.
+    name: "Tasks · Move dialog",
+    path: "/app/tasks",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await page.getByRole("button", { name: "More" }).first().click();
+      await page.getByRole("menuitem", { name: "Move to day…" }).click();
+      await expect(page.getByRole("dialog").locator('[data-slot="calendar"]')).toBeVisible();
+    },
+  },
   { name: "Projects · Timeline", path: "/app/projects/timeline" },
   { name: "Project", path: "/app/projects/p/:id", type: "project" },
   { name: "Events", path: "/app/events", afterOpen: workLocally },
