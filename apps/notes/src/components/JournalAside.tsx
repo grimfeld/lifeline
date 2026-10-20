@@ -83,7 +83,7 @@ function JournalSections({ date, open }: { date: DateStr; open?: DateStr }) {
           <p className="text-muted-foreground text-xs">Nothing from earlier years yet.</p>
         ) : (
           earlier.map((h) => (
-            <Link key={h.date} to={journalHref(h.date)} className="hover:bg-accent grid min-w-0 gap-0.5 rounded px-1.5 py-1">
+            <Link key={h.date} to={journalHref(h.date)} className="hover:bg-accent grid min-w-0 gap-1 rounded px-1.5 py-1">
               <span className="text-xs font-medium">{formatHuman(h.date)}</span>
               <span className="text-muted-foreground line-clamp-2 text-xs">{excerpt(byDate.get(h.date)?.body ?? "", 160)}</span>
             </Link>

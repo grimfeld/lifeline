@@ -96,7 +96,7 @@ export function JournalCalendar({ date, open, written, onPick }: { date: DateStr
 
   return (
     <div role="group" aria-label="Calendar" className="grid gap-1">
-      <div className="flex min-w-0 items-center gap-0.5">
+      <div className="flex min-w-0 items-center gap-1">
         {ARROWS[view.level].before.map(arrow)}
         {zoomOut ? (
           <Button size="xs" variant="ghost" className="min-w-0 flex-1" onClick={() => setView(zoomOut)}>
@@ -128,7 +128,7 @@ function MonthDays({ month, open, written, onPick }: { month: string; open?: Dat
           <span key={i}>{w}</span>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-0.5">
+      <div className="grid grid-cols-7 gap-1">
         {cells.map((d, i) =>
           d ? (
             <Tile
@@ -186,7 +186,7 @@ function YearMonths({ year, open, written, onPick }: { year: string; open?: Date
   const marked = writtenMonths(written);
   const now = todayStr().slice(0, 7);
   return (
-    <div className="grid grid-cols-3 gap-0.5">
+    <div className="grid grid-cols-3 gap-1">
       {Array.from({ length: 12 }, (_, i) => {
         const key = `${year}-${String(i + 1).padStart(2, "0")}`;
         const short = new Date(Date.UTC(Number(year), i, 1)).toLocaleDateString(undefined, { month: "short", timeZone: "UTC" });
@@ -213,7 +213,7 @@ function YearsList({ years, open, written, onPick }: { years: number[]; open?: D
   const marked = writtenYears(written);
   const now = todayStr().slice(0, 4);
   return (
-    <div className="grid grid-cols-3 gap-0.5">
+    <div className="grid grid-cols-3 gap-1">
       {years.map((n) => {
         const y = String(n);
         return <Tile key={y} name={y} label={y} className={TILE} open={open?.slice(0, 4) === y} now={y === now} later={false} written={marked.has(y)} onClick={() => onPick(y)} />;

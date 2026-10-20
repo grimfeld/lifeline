@@ -66,7 +66,11 @@ export function JournalScreen() {
                 onClick={() => go(d)}
                 title={formatHuman(d)}
                 aria-label={written.has(d) ? `${d}, written` : d}
-                className={`size-6 rounded text-[10px] tabular-nums ${d === date ? "bg-primary text-primary-foreground" : written.has(d) ? "bg-muted hover:bg-accent" : "text-muted-foreground hover:bg-accent"} ${d > today ? "opacity-40" : ""}`}
+                className={cn(
+                  "text-2xs size-6 rounded tabular-nums",
+                  d === date ? "bg-primary text-primary-foreground" : written.has(d) ? "bg-muted hover:bg-accent" : "text-muted-foreground hover:bg-accent",
+                  d > today && "opacity-40",
+                )}
               >
                 {Number(d.slice(-2))}
               </button>

@@ -31,7 +31,7 @@ export function ownWords(body: string): string {
 
 /** Whether a Day is written: it exists and has words of its own. `undefined` (no Day on that date) is not written. */
 export function isWrittenDay(day: { body?: string } | undefined): boolean {
-  return !!day && ownWords(typeof day.body === "string" ? day.body : "") !== "";
+  return !!day && ownWords(day.body ?? "") !== "";
 }
 
 /** The dates (YYYY-MM-DD) of the written Days among `notes`; other types are ignored. */
