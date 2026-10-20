@@ -247,6 +247,17 @@ async function openSelectionMenu(page: Page) {
   await expect(page.getByRole("dialog", { name: "Selection menu" }).getByRole("option").first()).toContainText("Link to Selected person");
 }
 
+/** An unwritten date's page once written Days lie on both sides: "Start writing" and the links to them (#208). */
+async function seedWrittenNeighbours(page: Page) {
+  await workLocally(page);
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    await core.createDocument({ type: "daily", title: "2001-02-04", body: "Marie wrote back." });
+    await core.createDocument({ type: "daily", title: "2001-03-13", body: "Rain." });
+  }, CORE_URL);
+  await expect(page.getByRole("link", { name: /^Next written Day/ })).toBeVisible();
+}
+
 /** The Selection menu's "Link to…": every Linkable Document, the seeded very long ones among them. */
 async function openLinkSearch(page: Page) {
   await openSelectionMenu(page);
@@ -373,6 +384,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Journal · Year", path: "/app/journal/p/2026" },
   // A date with no Day and a period with no review keep the sidebar (#206).
   { name: "Journal · Day not written", path: "/app/journal?d=2001-02-14" },
+  { name: "Journal · Day not written, between written Days", path: "/app/journal?d=2001-02-14", afterOpen: seedWrittenNeighbours },
   { name: "Journal · Month without a review", path: "/app/journal/p/:key", params: { key: "2001-02" } },
   { name: "Journal · Types", path: "/app/journal/t" },
   { name: "Journal · Types (old link)", path: "/app/journal/c" },

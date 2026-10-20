@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button, Input, PhoneDock } from "@lifeline/ui";
 import { addDays, documentType, formatHuman, todayStr, useDocuments, useLinkIndex, type DateStr } from "@lifeline/core";
 import { DocumentEditor } from "@lifeline/editor";
-import { ChevronLeft, ChevronRight, PenLine } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, PenLine } from "lucide-react";
 import { DAILY, JOURNAL_HREF, journalHref, type Note } from "../domain/types";
+import { nearestWrittenDay } from "../domain/nearest";
 import { JournalAside } from "../components/JournalAside";
 import { JournalLinksButton } from "../components/JournalLinks";
 import { ensureDailyNote } from "../data/repo";
@@ -27,6 +28,7 @@ export function JournalScreen() {
   const def = documentType(DAILY);
   const go = (d: DateStr) => navigate(journalHref(d, today));
   const daysWithNotes = new Set(dailies.map((n) => n.title));
+  const near = note ? undefined : nearestWrittenDay(dailies, date);
   const strip = Array.from({ length: 14 }, (_, i) => addDays(date, i - 10));
 
   const [creating, setCreating] = useState(false);
@@ -81,6 +83,24 @@ export function JournalScreen() {
             <Button onClick={() => void ensureDailyNote(date)}>
               <PenLine /> Start writing
             </Button>
+            {(near?.before || near?.after) && (
+              <nav aria-label="Nearest written Days" className="flex max-w-full flex-wrap items-center justify-center gap-2">
+                {near.before && (
+                  <Button asChild size="sm" variant="ghost" className="max-w-full min-w-0">
+                    <Link to={journalHref(near.before, today)} aria-label={`Previous written Day, ${formatHuman(near.before)}`}>
+                      <ArrowLeft /> <span className="truncate">{formatHuman(near.before)}</span>
+                    </Link>
+                  </Button>
+                )}
+                {near.after && (
+                  <Button asChild size="sm" variant="ghost" className="max-w-full min-w-0">
+                    <Link to={journalHref(near.after, today)} aria-label={`Next written Day, ${formatHuman(near.after)}`}>
+                      <span className="truncate">{formatHuman(near.after)}</span> <ArrowRight />
+                    </Link>
+                  </Button>
+                )}
+              </nav>
+            )}
           </div>
         )}
         {/* Kept on a date with no Day, so the calendar stays to carry on from (#206). */}

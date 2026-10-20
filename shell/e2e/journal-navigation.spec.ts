@@ -97,6 +97,58 @@ test.describe("Journal navigation · written Days (#205)", () => {
 });
 
 /**
+ * Skipping the gaps (#208): an unwritten date's page offers the nearest
+ * written Day before and after it, each with its date; Template-only Days are
+ * skipped, and a direction with no written Day offers nothing.
+ */
+test.describe("Journal navigation · the nearest written Days (#208)", () => {
+  // February–March 1998: a stretch nothing else in the store uses.
+  const DAYS = {
+    "1998-02-04": "Marie wrote back.",
+    "1998-02-20": TEMPLATE, // made, never written in: skipped
+    "1998-03-13": `${TEMPLATE}Rain.`,
+  };
+  const before = (page: Page) => page.getByRole("link", { name: /^Previous written Day/ });
+  const after = (page: Page) => page.getByRole("link", { name: /^Next written Day/ });
+
+  test("an unwritten date between two written Days offers both, and each opens its Day", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "1998-02-25");
+    await expect(page.getByRole("button", { name: "Start writing" })).toBeVisible();
+    await expect(before(page)).toContainText("1998");
+    await expect(after(page)).toContainText("1998");
+    await before(page).click();
+    await expect(page).toHaveURL(/\?d=1998-02-04$/);
+    await expect(page.locator(".cm-content")).toContainText("Marie wrote back.");
+
+    await openDay(page, "1998-02-25");
+    await after(page).click();
+    await expect(page).toHaveURL(/\?d=1998-03-13$/);
+    await expect(page.locator(".cm-content")).toContainText("Rain.");
+  });
+
+  test("Template-only Days are skipped", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "1998-02-10");
+    await after(page).click();
+    await expect(page).toHaveURL(/\?d=1998-03-13$/);
+  });
+
+  test("no before ahead of the first written Day, no after past the last", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "1998-01-01");
+    await expect(after(page)).toBeVisible();
+    await expect(before(page)).toHaveCount(0);
+
+    // After 13 March 1998 the next written Days are the layout seed's (dated today), so look from past them.
+    await openDay(page, "2999-01-01");
+    await expect(page.getByRole("button", { name: "Start writing" })).toBeVisible();
+    await expect(before(page)).toBeVisible();
+    await expect(after(page)).toHaveCount(0);
+  });
+});
+
+/**
  * The palette's date row (ADR 0088, #207): typing a date or a period key puts
  * one row first, in human form; Enter opens that page and makes nothing.
  */
