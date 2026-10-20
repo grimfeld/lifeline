@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, cn, toast } from "@lifeline/ui";
+import { Button, Checkbox, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, cn, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import { ImagePlus, Plus, TriangleAlert, X } from "lucide-react";
 import type { Line, Receipt } from "../domain/types";
@@ -200,7 +200,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="rc-date">Day</Label>
-                <Input id="rc-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <DatePicker id="rc-date" required value={date} onChange={setDate} />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="rc-branch">Branch</Label>
