@@ -1,4 +1,4 @@
-import { describeSpan, diffDays, formatTime, type DateStr, type TimedSpan } from "@lifeline/core";
+import { describeSpan, diffDays, formatTime, weekdayOf, type DateStr, type TimedSpan } from "@lifeline/core";
 import { dayPieces, type DayPiece, type DayRange } from "./span";
 import type { Event } from "./types";
 
@@ -35,6 +35,21 @@ export function isMultiDay(ev: Event): boolean {
 export function describeTime(ev: Event): string {
   if (ev.start === null) return isMultiDay(ev) ? `All day · ${diffDays(ev.date, ev.endDate!) + 1} days` : "All day";
   return ev.end ? describeSpan(spanOf(ev)!) : formatTime(ev.start);
+}
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/**
+ * When an Event ends, as read on one of its days: "until 06:00", or
+ * "until Tue 06:00" on a day it doesn't end on. "all day" for an all-day
+ * Event; undefined for one with no end.
+ */
+export function describeUntil(ev: Event, date: DateStr): string | undefined {
+  if (ev.start === null) return "all day";
+  const span = ev.end ? spanOf(ev) : null;
+  if (!span) return undefined;
+  const day = span.endDate !== date ? `${WEEKDAYS[weekdayOf(span.endDate)]} ` : "";
+  return `until ${day}${formatTime(span.end)}`;
 }
 
 /** Sort key: all-day first, then by start time, then title. */
