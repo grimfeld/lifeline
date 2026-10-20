@@ -155,6 +155,15 @@ test("the Hours editor gives an Event a Start and an End, rolling an earlier End
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-10", start: "19:00", end: "01:00" });
 });
 
+test('an Event stored before as ending at "24:00" still ends at midnight on its own day (#224)', async ({ page }) => {
+  const title = `Old late show ${Date.now()}`;
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  await seedEvent(page, { title, date: "2026-11-09", endDate: null, start: "22:00", end: "24:00" });
+  await expect(page.locator('[data-col="2026-11-09"]').getByTitle(title, { exact: false })).toBeVisible();
+  await expect(page.locator('[data-col="2026-11-10"]').getByTitle(title, { exact: false }), "midnight leaves no piece on the next day").toHaveCount(0);
+});
+
 test("the Hours editor keeps a Start and a Length for a Time block of work", async ({ page }) => {
   const title = `Write report ${Date.now()}`;
   await page.goto("/calendar?view=week&d=2026-11-09");
