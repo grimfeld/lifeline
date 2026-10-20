@@ -287,7 +287,7 @@ export function HoursEditor({
         <Chip onClick={() => write({ date: addDays(date, 1), start, len })}>+1 day</Chip>
       </Row>
       <Row label="Start">
-        <Button size="icon" variant="outline" className="size-9" disabled={!start} onClick={() => nudge(-SNAP_MIN)} aria-label="15 minutes earlier">
+        <Button size="icon" variant="outline" disabled={!start} onClick={() => nudge(-SNAP_MIN)} aria-label="15 minutes earlier">
           <Minus />
         </Button>
         <TimeField
@@ -297,7 +297,7 @@ export function HoursEditor({
           onChange={(v) => v && write({ date, start: v, len })}
           aria-label="Start"
         />
-        <Button size="icon" variant="outline" className="size-9" disabled={!start} onClick={() => nudge(SNAP_MIN)} aria-label="15 minutes later">
+        <Button size="icon" variant="outline" disabled={!start} onClick={() => nudge(SNAP_MIN)} aria-label="15 minutes later">
           <Plus />
         </Button>
         {canAllDay && (
