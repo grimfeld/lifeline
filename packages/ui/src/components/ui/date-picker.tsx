@@ -185,4 +185,71 @@ function DatePicker({
   )
 }
 
-export { DatePicker, DatePickerPanel }
+/**
+ * An icon-only calendar button that acts on the day picked: jump to a day, mark
+ * something done on another day. Picking a day (or Today) calls `onPick` at once
+ * and closes the popover; there is nothing to clear. `value` only says which day
+ * the calendar opens on and shows as selected. The label is required: the
+ * button has no text of its own.
+ */
+function DatePickerButton({
+  value = "",
+  onPick,
+  min,
+  max,
+  startYear,
+  endYear,
+  disabled,
+  variant = "outline",
+  size = "icon",
+  className,
+  side,
+  align = "end",
+  "aria-label": ariaLabel,
+}: Omit<Span, "required"> & {
+  value?: string
+  onPick: (value: string) => void
+  disabled?: boolean
+  variant?: React.ComponentProps<typeof Button>["variant"]
+  size?: "icon" | "icon-xs" | "icon-sm" | "icon-lg"
+  className?: string
+  /** Where the popover opens; Radix flips it when it doesn't fit. */
+  side?: "top" | "bottom"
+  align?: "start" | "center" | "end"
+  "aria-label": string
+}) {
+  const [open, setOpen] = React.useState(false)
+  const pick = (next: string) => {
+    setOpen(false)
+    if (next && next !== value) onPick(next)
+  }
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant={variant} size={size} className={className} disabled={disabled} aria-label={ariaLabel}>
+          <CalendarIcon aria-hidden />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-auto p-0"
+        side={side}
+        align={align}
+        aria-label="Choose a day"
+        // As in DatePicker: focus the selected day (or today) so the arrows move at once.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault()
+          const content = e.currentTarget as HTMLElement
+          content.querySelector<HTMLElement>('[role="gridcell"] button[tabindex="0"]')?.focus()
+        }}
+        onEscapeKeyDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") e.stopPropagation()
+        }}
+      >
+        <DatePickerPanel value={value} onPick={pick} min={min} max={max} startYear={startYear} endYear={endYear} required autoFocus />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+export { DatePicker, DatePickerButton, DatePickerPanel }

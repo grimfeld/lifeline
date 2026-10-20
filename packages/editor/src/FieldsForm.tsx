@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Checkbox, GeoField, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Textarea } from "@lifeline/ui";
+import { Checkbox, DateTimeField, GeoField, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Textarea } from "@lifeline/ui";
 import { displayTitle, documentType, geocode, isLinkTarget, roleDef, readGeo, singularOf, suggestAddresses, useAllDocuments, useDocumentTypes, writeGeo, type DocumentTypeDef, type FieldDef } from "@lifeline/core";
 
 const NONE = "__none__";
@@ -90,7 +90,7 @@ export function FieldControl({
     case "date":
       return <Input id={id} className="h-8" type="date" disabled={disabled} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} />;
     case "datetime":
-      return <Input id={id} className="h-8" type="datetime-local" disabled={disabled} value={toLocalInput(value)} onChange={(e) => onChange(e.target.value ? new Date(e.target.value).toISOString() : "")} />;
+      return <DateTimeField id={id} disabled={disabled} startYear={1500} value={toLocalInput(value)} onChange={(v) => onChange(v ? new Date(v).toISOString() : "")} />;
     case "geo": {
       const address = typeof all.address === "string" ? all.address : "";
       return (

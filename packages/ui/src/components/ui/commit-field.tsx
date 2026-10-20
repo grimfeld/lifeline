@@ -2,13 +2,15 @@ import * as React from "react"
 
 import { useCommitDraft } from "../../lib/useCommitDraft"
 import { DatePicker } from "./date-picker"
+import { DateTimeField } from "./date-time-field"
 import { Field } from "./field"
 import { Input } from "./input"
 import { Textarea } from "./textarea"
 
 /**
  * A field edited in place, written once the edit is done: on leaving it or
- * Enter (a date as soon as a day is picked from the kit's Date picker), or — with `delay` — a moment after
+ * Enter (a date as soon as a day is picked from the kit's Date picker; a date
+ * and time as soon as its day is picked, its time on leaving it), or — with `delay` — a moment after
  * the typing stops; Escape puts the stored value back. `onCommit` is the
  * owner's operation — when it refuses (throws), its message shows under the
  * field and the typed text stays, to be fixed. Until the field is being edited
@@ -52,7 +54,7 @@ function CommitField({
   min?: number | string
   max?: number | string
   step?: number | string
-  /** A date that can't be cleared (no "Clear" in its picker). */
+  /** A date (or date and time) that can't be cleared (no "Clear" in its picker). */
   required?: boolean
   /** A date's first year to offer (1900); earlier for historical dates. */
   startYear?: number
@@ -90,6 +92,22 @@ function CommitField({
           startYear={startYear}
           endYear={endYear}
           placeholder={placeholder}
+        />
+      ) : type === "datetime-local" ? (
+        <DateTimeField
+          value={draft}
+          onChange={(next, from) => {
+            change(next)
+            if (from === "day") void commit()
+          }}
+          min={min === undefined ? undefined : String(min)}
+          max={max === undefined ? undefined : String(max)}
+          required={required}
+          startYear={startYear}
+          endYear={endYear}
+          placeholder={placeholder}
+          onTimeBlur={events.onBlur}
+          onTimeKeyDown={events.onKeyDown}
         />
       ) : multiline ? (
         <Textarea rows={rows} value={draft} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} {...events} />
