@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex } from "./links";
-import { findMentions, linkMentions, planLinkAll, unlinkedIn, unlinkedMentionsOf, type MentionName } from "./mentions";
+import { findMentions, linkMentions, planLinkAll, unambiguousHits, unlinkedIn, unlinkedMentionsOf, type MentionName } from "./mentions";
 import type { Document, DocumentTypeDef } from "./types";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
@@ -43,6 +43,26 @@ describe("findMentions", () => {
     expect(hits.map((h) => h.text)).toEqual(["alex"]);
     expect(body.slice(hits[0].from, hits[0].to)).toBe("alex");
   });
+  it("offers every Document whose name is at a spot, not only the longest", () => {
+    const own: MentionName[] = [
+      { name: "Pour Alix", canonical: "Pour Alix", targetId: "essay" },
+      { name: "Alix Sintes", canonical: "Alix Sintes", targetId: "alix" },
+      { name: "Alix", canonical: "Alix Sintes", targetId: "alix" },
+    ];
+    const body = "Je m'inquiète pour Alix. Alix Sintes aussi.";
+    expect(findMentions(body, own).map((h) => [h.text, h.targetId])).toEqual([
+      ["pour Alix", "essay"],
+      ["Alix", "alix"],
+      ["Alix Sintes", "alix"],
+    ]);
+  });
+  it("offers each Document sharing a name", () => {
+    const shared: MentionName[] = [
+      { name: "Kraków", canonical: "Kraków", targetId: "place" },
+      { name: "Krakow", canonical: "Kraków (note)", targetId: "note" },
+    ];
+    expect(findMentions("Back in krakow.", shared).map((h) => h.targetId)).toEqual(["place", "note"]);
+  });
   it("never suggests one-character names", () => {
     expect(findMentions("A a A", names)).toEqual([]);
   });
@@ -53,6 +73,17 @@ describe("linkMentions", () => {
     const body = "Alex Doe, alex, Dune.";
     const out = linkMentions(body, findMentions(body, names));
     expect(out).toBe("[[Alex Doe]], [[Alex Doe|alex]], [[Books/Dune|Dune]].");
+  });
+});
+
+describe("unambiguousHits", () => {
+  it("keeps the hits no other hit overlaps", () => {
+    const own: MentionName[] = [
+      { name: "Pour Alix", canonical: "Pour Alix", targetId: "essay" },
+      { name: "Alix", canonical: "Alix Sintes", targetId: "alix" },
+      { name: "Léa", canonical: "Léa", targetId: "lea" },
+    ];
+    expect(unambiguousHits(findMentions("pour Alix et Léa", own)).map((h) => h.text)).toEqual(["Léa"]);
   });
 });
 
