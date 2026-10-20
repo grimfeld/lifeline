@@ -172,3 +172,28 @@ test("the Hours editor keeps a Start and a Length for a Time block of work", asy
   await expect(page.getByRole("group", { name: "Length" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "End" })).toHaveCount(0);
 });
+
+test("an overnight Event counts as running on its second day until it ends, on the Events screen", async ({ page }) => {
+  const title = `Red-eye ${Date.now()}`;
+  // Tue 10 Nov 2026, 03:00: the Mon 22:00 → Tue 06:00 flight is still on.
+  await page.clock.setFixedTime(new Date("2026-11-10T03:00:00"));
+  await page.goto("/app/events");
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      await core.putDocument({ type: "event", title, date: "2026-11-09", endDate: "2026-11-10", start: "22:00", end: "06:00", notes: "", tags: [] });
+    },
+    { coreUrl: CORE_URL, title },
+  );
+  const section = (name: string) => page.locator("section", { has: page.getByRole("heading", { name, exact: true }) });
+  await expect(section("Today").getByText(title)).toBeVisible();
+  await expect(section("Past 30 days").getByText(title)).toHaveCount(0);
+
+  // Tue 07:00: it has landed.
+  await page.clock.setFixedTime(new Date("2026-11-10T07:00:00"));
+  await page.reload();
+  await workLocally(page);
+  await expect(section("Past 30 days").getByText(title)).toBeVisible();
+  await expect(section("Today").getByText(title)).toHaveCount(0);
+});

@@ -98,6 +98,33 @@ export function startDayMovedTo(piece: Pick<TimedItem, "date" | "span">, to: Dat
   return piece.span ? addDays(piece.span.date, diffDays(piece.date, to)) : to;
 }
 
+const DAY_MIN = 24 * 60;
+const clockOf = (min: number): TimeStr => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
+/**
+ * The span that starts at `start` on `date` and lasts `minutes`: into the
+ * next day (or later) when it runs past midnight, and ending at 00:00 there
+ * rather than "24:00" (ADR 0090). A start that is no time is kept as given.
+ */
+export function spanLasting(date: DateStr, start: TimeStr, minutes: number): TimedSpan {
+  const s = clockMinutes(start);
+  if (s === null) return { date, start, endDate: date, end: start };
+  const at = s + Math.max(0, Math.round(minutes));
+  const days = Math.floor(at / DAY_MIN);
+  return { date, start, endDate: days ? addDays(date, days) : date, end: clockOf(at - days * DAY_MIN) };
+}
+
+/**
+ * Minutes from a start time to an end time, an end earlier than the start
+ * being the next day's (ADR 0090): "22:00" to "06:00" is 8h. 0 for an end
+ * equal to the start (no span may have it); null when either is no time.
+ */
+export function minutesUntil(start: TimeStr, end: TimeStr): number | null {
+  const [s, e] = [clockMinutes(start), clockMinutes(end)];
+  if (s === null || e === null) return null;
+  return (((e - s) % DAY_MIN) + DAY_MIN) % DAY_MIN;
+}
+
 /**
  * An App entity that happens at a fixed time on a day: shown on time surfaces
  * but not work — nothing to complete. The Calendar App's Events are the
@@ -191,8 +218,18 @@ export interface TimedProvider {
    * whole (ADR 0090). Callers check the span with `spanIsValid` first (`rescheduleTimedItem` does).
    */
   reschedule?(itemId: string, when: TimedWhen): Promise<void>;
-  /** Optional delegate of "the user clicked an empty slot": create a timed item there. */
-  create?(input: { title: string; date: DateStr; start: TimeStr | null; end: TimeStr | null }): Promise<void>;
+  /**
+   * Optional delegate of "the user clicked an empty slot": create a timed item
+   * there, from a start to an end on `endDate` — the start's own day, or a
+   * later one for an item that runs past midnight (ADR 0090). null start = all day.
+   */
+  create?(input: { title: string; date: DateStr; start: TimeStr | null; endDate: DateStr; end: TimeStr | null }): Promise<void>;
+  /**
+   * The Intake (ADR 0050, its `appId/id` key) whose dialog is the full form
+   * for what `create` makes: the Schedule's quick add opens it, prefilled
+   * with what is typed so far, from "More…".
+   */
+  createIntake?: string;
   /** React hook. Quick-add templates this App offers planning surfaces (ADR 0027). */
   useTemplates?(): TimedTemplate[];
   /** Optional delegate of "the user quick-added this template here" (null start = all day). */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cutEdges, describeSpan, formatTime, pieceLead, spanEndingAt, spanIsValid, spanMovedTo, startDayMovedTo } from "./timed";
+import { cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
 
 describe("formatTime", () => {
   it("reads a clock time in the locale's style", () => {
@@ -96,5 +96,32 @@ describe("moving a span by one of its pieces", () => {
     expect(startDayMovedTo(tuesday, "2026-08-14")).toBe("2026-08-13");
     expect(startDayMovedTo({ date: "2026-08-10", span: night }, "2026-08-14")).toBe("2026-08-14");
     expect(startDayMovedTo({ date: "2026-08-10" }, "2026-08-14")).toBe("2026-08-14");
+  });
+});
+
+describe("a span given a start and how long it lasts", () => {
+  it("ends the same day when it fits", () => {
+    expect(spanLasting("2026-08-10", "09:15", 60)).toEqual({ date: "2026-08-10", start: "09:15", endDate: "2026-08-10", end: "10:15" });
+  });
+  it("ends at 00:00 the next day, never 24:00", () => {
+    expect(spanLasting("2026-08-10", "23:00", 60)).toEqual({ date: "2026-08-10", start: "23:00", endDate: "2026-08-11", end: "00:00" });
+  });
+  it("runs past midnight into the next day", () => {
+    expect(spanLasting("2026-08-31", "22:00", 8 * 60)).toEqual({ date: "2026-08-31", start: "22:00", endDate: "2026-09-01", end: "06:00" });
+  });
+});
+
+describe("minutes from a start to an end time", () => {
+  it("counts forward on the same day", () => {
+    expect(minutesUntil("09:00", "10:30")).toBe(90);
+  });
+  it("rolls an end earlier than the start to the next day (ADR 0090)", () => {
+    expect(minutesUntil("22:00", "06:00")).toBe(8 * 60);
+  });
+  it("is 0 for an end equal to the start, which no span may have", () => {
+    expect(minutesUntil("09:00", "09:00")).toBe(0);
+  });
+  it("is null for text that is no time", () => {
+    expect(minutesUntil("09:00", "")).toBeNull();
   });
 });

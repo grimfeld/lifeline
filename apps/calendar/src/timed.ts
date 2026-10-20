@@ -75,9 +75,10 @@ export const calendarTimed: TimedProvider = {
     if (await isBlocker(itemId)) await rescheduleTimeBlocker(itemId, when);
     else await rescheduleEvent(itemId, when);
   },
-  async create({ title, date, start, end }) {
-    await addEvent({ title, date, start, end });
+  async create({ title, date, start, endDate, end }) {
+    await addEvent({ title, date, start, endDate, end });
   },
+  createIntake: `${APP_ID}/event`,
   useTemplates(): TimedTemplate[] {
     const events = useEventTemplates().map(
       (t): TimedTemplate => ({

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatTime } from "@lifeline/core";
-import { daysOf, describeTime, eventsOn, rescheduled, spanOf } from "./events";
+import { daysOf, describeTime, describeUntil, eventsOn, rescheduled, spanOf } from "./events";
 import type { Event } from "./types";
 
 function ev(p: Partial<Event>): Event {
@@ -52,6 +52,19 @@ describe("describeTime", () => {
   it("names the end day of a timed event that ends another day", () => {
     expect(describeTime(ev({ start: "22:00", endDate: "2026-08-11", end: "06:00" }))).toBe(`${formatTime("22:00")} – Tue ${formatTime("06:00")}`);
     expect(describeTime(ev({ start: "09:00", end: "10:00" }))).toBe(`${formatTime("09:00")} – ${formatTime("10:00")}`);
+  });
+});
+
+describe("describeUntil", () => {
+  it("names the end day on a day the Event doesn't end on", () => {
+    const flight = ev({ start: "22:00", endDate: "2026-08-11", end: "06:00" });
+    expect(describeUntil(flight, "2026-08-10")).toBe(`until Tue ${formatTime("06:00")}`);
+    expect(describeUntil(flight, "2026-08-11")).toBe(`until ${formatTime("06:00")}`);
+  });
+  it("reads a same-day end, an all-day Event and an Event with no end", () => {
+    expect(describeUntil(ev({ start: "09:00", end: "10:00" }), "2026-08-10")).toBe(`until ${formatTime("10:00")}`);
+    expect(describeUntil(ev({}), "2026-08-10")).toBe("all day");
+    expect(describeUntil(ev({ start: "09:00" }), "2026-08-10")).toBeUndefined();
   });
 });
 
