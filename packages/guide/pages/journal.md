@@ -15,8 +15,10 @@ and the Templates every kind of page starts from.
 
 - One page per day, titled by its date. Today's Day is made for you the first time you open it,
   from the Day's Template, so you can start typing at once.
-- Page through days with **‹ ›**, jump back with **Today**, or pick any date. On a phone these
-  sit in the Phone dock.
+- Page through days with **‹ ›**, jump back with **Today**, or pick any date from the calendar
+  button. On a phone these sit in the Phone dock.
+- Going back years: type a date or a period alone in the palette (Ctrl+K) — `2023-03-14`,
+  `2023-W11`, `2023-03`, `2023-Q1`, `2023` — and pick the row at the top to open it.
 - An older day with no page shows **Start writing**.
 - On a wide screen a column sits beside the page:
   - the page's **links** — names in your text you could link, and what links to this Day;
@@ -40,7 +42,9 @@ and the Templates every kind of page starts from.
 
 - **Open this week's review** — opens the current Week. Where: the sidebar, or the palette
   (Ctrl+K).
-- **Open this month's review** — opens the current Month. Quarter and Year are in the sidebar.
+- **Open this month's review** — opens the current Month.
+- **Open this quarter's review** and **Open this year's review** — the current Quarter and Year.
+  Where: the sidebar, or the palette.
 - A review is a page of its own, started from its Template ("How the week went", "What
   mattered", "What I learned", "Next week").
 - The current period's page is made when you open it; an older one shows **Start the review**.
@@ -72,6 +76,8 @@ and the Templates every kind of page starts from.
 ### Commands
 
 - **Open today** — today's Day. Where: the palette (Ctrl+K), or the sidebar's **Today**.
+- **Go to date…** — keeps the palette open for a date or a period to type (`2023-03-14`,
+  `2023-Q1`…); the row at the top opens it. Future dates open too, and nothing is made.
 - **New note…** — pick a kind of page (Person, Place, Essay…), give it a title and, if you like,
   a Template; it opens straight away. Where: the palette.
 - **New …** — one command per kind of page, such as **New person…**, for when you already know
