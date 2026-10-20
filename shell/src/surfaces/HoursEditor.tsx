@@ -357,10 +357,12 @@ export function HoursEditor({
       {when.start && (
         <Row label="End">
           <TimeField className="w-32" value={when.end ?? ""} onChange={(v) => v && writeWhen(endingAt(when, v))} aria-label="End" />
-          <span className="text-muted-foreground min-w-0 text-xs tabular-nums">
-            {when.end && when.endDate !== when.date && `${formatHuman(when.endDate)} · `}
-            {whenLen !== null && whenLen > 0 && formatLength(whenLen)}
-          </span>
+          {when.end && whenLen !== null && whenLen > 0 && (
+            <span aria-live="polite" className="text-muted-foreground min-w-0 text-xs tabular-nums">
+              until {when.endDate !== when.date ? `${formatHuman(when.endDate)} ` : ""}
+              {formatTime(when.end)} · {formatLength(whenLen)}
+            </span>
+          )}
         </Row>
       )}
     </div>
