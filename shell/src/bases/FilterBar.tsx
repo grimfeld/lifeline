@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { Button, DatePicker, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { COMMON_COLUMNS, type DocumentTypeDef, type FieldDef, type ViewFilter, type ViewFilterOp } from "@lifeline/core";
 import { Plus, X } from "lucide-react";
 
@@ -33,9 +33,10 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
   const fields = filterableFields(def);
   const field = fields.find((f) => f.key === draft.field);
   const op = OPS.find((o) => o.value === draft.op)!;
-  function commit() {
-    if (op.needsValue && (draft.value === "" || draft.value === undefined)) return;
-    let value = draft.value;
+  /** Add the filter being built; `picked` is a value chosen just now (a date), not yet in the draft. */
+  function commit(picked?: ViewFilter["value"]) {
+    let value = picked ?? draft.value;
+    if (op.needsValue && (value === "" || value === undefined)) return;
     if (draft.op === "anyOf" && typeof value === "string") value = value.split(",").map((s) => s.trim()).filter(Boolean);
     if (field?.kind === "number" && typeof value === "string") value = Number(value);
     if (field?.kind === "boolean") value = value === "true" || value === true;
@@ -56,7 +57,7 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
       {adding ? (
         <span className="flex items-center gap-1">
           <Select value={draft.field} onValueChange={(v) => setDraft({ ...draft, field: v, value: "" })}>
-            <SelectTrigger className="h-7 w-32 text-xs">
+            <SelectTrigger size="sm" className="w-32 text-xs" aria-label="Field">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -68,7 +69,7 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
             </SelectContent>
           </Select>
           <Select value={draft.op} onValueChange={(v) => setDraft({ ...draft, op: v as ViewFilterOp })}>
-            <SelectTrigger className="h-7 w-28 text-xs">
+            <SelectTrigger size="sm" className="w-28 text-xs" aria-label="Condition">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -103,10 +104,13 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
                   <SelectItem value="false">no</SelectItem>
                 </SelectContent>
               </Select>
+            ) : field?.kind === "date" ? (
+              // A date is done once picked: picking adds the filter, as Enter does in a typed value.
+              <DatePicker size="sm" className="w-36" value={typeof draft.value === "string" ? draft.value : ""} onChange={(v) => commit(v)} aria-label="Value" />
             ) : (
               <Input
                 className="h-7 w-36 text-xs"
-                type={field?.kind === "date" ? "date" : field?.kind === "number" ? "number" : "text"}
+                type={field?.kind === "number" ? "number" : "text"}
                 placeholder={draft.op === "anyOf" ? "a, b, c" : "value"}
                 value={String(draft.value ?? "")}
                 onChange={(e) => setDraft({ ...draft, value: e.target.value })}
@@ -114,7 +118,7 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
                 autoFocus
               />
             ))}
-          <Button size="sm" className="h-7" onClick={commit}>
+          <Button size="sm" onClick={() => commit()}>
             Add
           </Button>
           <Button size="sm" variant="ghost" className="h-7" onClick={() => setAdding(false)}>

@@ -161,6 +161,10 @@ or makes a box scroll sideways that was not meant to. How to run it: `shell/e2e/
 ### Forms and feedback
 
 - A field is `Field` (Label, control, hint, error): `<Field label="Title" error={…}><Input/></Field>`.
+- **(check)** Dates are picked from the kit's calendar, never the browser's (ADR 0087):
+  `DatePicker` for a day, `DateTimeField` for a day and time, `DatePickerButton` for an
+  icon jump, `CommitField type="date"` in a Peek. No native `type="date"` or
+  `datetime-local` input; a time alone stays a native `type="time"`.
 - A field's error shows under it, with `aria-invalid` on the control — not in a toast.
   Disabling submit until the form is valid is fine.
 - Toasts report what an action did: `toast.success` / `toast.error`, with a sentence a

@@ -657,6 +657,22 @@ async function expectLinksResolve(page: Page): Promise<void> {
   await expect(page.getByRole("button", { name: /unlinked/ })).toHaveCount(0);
 }
 
+/**
+ * The Journal shows `day`: its address carries it and the page on screen is that Day's.
+ * The address alone is not enough: it changes before React has drawn the new Day, so a
+ * check right after it can read the previous Day. The Jump to date button names the Day
+ * the page has drawn ("Jump to date, Thu 15 Oct 2026"), as its date input's value used to.
+ */
+async function expectJournalDay(page: Page, day: string): Promise<void> {
+  await expect(page).toHaveURL(new RegExp(`[?&]d=${day}`));
+  const name = await page.evaluate((d) => {
+    const [y, m, n] = d.split("-").map(Number);
+    const opts = { weekday: "short", day: "numeric", month: "short", year: "numeric" } as const;
+    return new Intl.DateTimeFormat(undefined, opts).format(new Date(y, m - 1, n)).replace(/,/g, "");
+  }, day);
+  await expect(page.getByRole("button", { name: `Jump to date, ${name}`, exact: true })).toBeVisible();
+}
+
 for (const w of WIDTHS) {
   test.describe(`Demo writing and Journal at ${w.name} width`, () => {
     test.use({ viewport: w.viewport, isMobile: w.isMobile, hasTouch: w.hasTouch });
@@ -699,7 +715,7 @@ for (const w of WIDTHS) {
       // A week of Days back: each one written links only to pages that exist.
       for (let i = 1; i <= 7; i++) {
         await page.getByRole("button", { name: "Previous day" }).click();
-        await expect(page.getByLabel("Jump to date")).toHaveValue(await pageDay(page, -i));
+        await expectJournalDay(page, await pageDay(page, -i));
         if (await page.getByText(/^No entry for/).isVisible()) continue;
         await expectLinksResolve(page);
       }
@@ -712,10 +728,11 @@ for (const w of WIDTHS) {
       test("the Journal is dated around the visit day", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await open(page, "/app/journal");
-        await expect(page.getByLabel("Jump to date")).toHaveValue("2027-03-10");
+        // Today's Journal is the bare address; one day back carries ?d=, so the clock's day is the Journal's today.
+        await expect(page).toHaveURL(/\/app\/journal$/);
         await expect(page.getByText(/Huddle with/).first()).toBeVisible();
         await page.getByRole("button", { name: "Previous day" }).click();
-        await expect(page.getByLabel("Jump to date")).toHaveValue("2027-03-09");
+        await expectJournalDay(page, "2027-03-09");
         await expectLinksResolve(page);
       });
     });

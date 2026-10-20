@@ -112,7 +112,7 @@ export function ReceiptPeek({ doc }: { doc: Document }) {
         </span>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <CommitField label="Day" type="date" value={r.date ?? ""} onCommit={(date) => editReceipt(r, { date }, shops)} />
+        <CommitField label="Day" type="date" required value={r.date ?? ""} onCommit={(date) => editReceipt(r, { date }, shops)} />
         <CommitField
           label="Printed total"
           inputMode="decimal"

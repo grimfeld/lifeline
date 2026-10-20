@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { Button, cn, Input, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, toast } from "@lifeline/ui";
+import { Button, cn, DatePicker, Input, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, toast } from "@lifeline/ui";
 import {
   addDays,
   addTimeBlock,
@@ -282,7 +282,7 @@ export function HoursEditor({
   ) : (
     <div className="grid gap-3">
       <Row label="Day">
-        <Input type="date" className="h-9 w-40" value={date} onChange={(e) => e.target.value && write({ date: e.target.value, start, len })} aria-label="Day" />
+        <DatePicker className="w-40" required value={date} onChange={(v) => v && write({ date: v, start, len })} aria-label="Day" />
         {date !== tomorrow && (
           <Chip onClick={() => write({ date: tomorrow, start, len })}>Tomorrow</Chip>
         )}

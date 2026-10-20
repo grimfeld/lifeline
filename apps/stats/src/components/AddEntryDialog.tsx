@@ -1,15 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
+import { Button, Checkbox, DatePicker, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, nowMoment, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import type { Entry, Stat } from "../domain/types";
 import { checklist, noonOf } from "../domain/aggregate";
 import { addEntry, uncollectItem } from "../data/repo";
-
-function nowLocalInput(): string {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-}
 
 /**
  * Log (or mark) an entry. Backdating is allowed: `ts` is when it happened.
@@ -30,7 +24,7 @@ export function AddEntryDialog({
 }) {
   const [value, setValue] = useState("");
   const [item, setItem] = useState("");
-  const [when, setWhen] = useState(nowLocalInput());
+  const [when, setWhen] = useState(nowMoment());
   const [day, setDay] = useState(todayStr());
   const [busy, setBusy] = useState<string | null>(null);
   const isChecklist = stat.kind === "collection" && stat.items.length > 0;
@@ -40,7 +34,7 @@ export function AddEntryDialog({
     if (!open) return;
     setValue(stat.kind === "additive" && stat.defaultIncrement ? String(stat.defaultIncrement) : "");
     setItem("");
-    setWhen(nowLocalInput());
+    setWhen(nowMoment());
     setDay(todayStr());
   }, [open, stat]);
 
@@ -84,7 +78,7 @@ export function AddEntryDialog({
           {stat.kind === "boolean" ? (
             <div className="grid gap-2">
               <Label htmlFor="entry-day">Day</Label>
-              <Input id="entry-day" type="date" value={day} max={todayStr()} onChange={(e) => setDay(e.target.value)} />
+              <DatePicker id="entry-day" required value={day} max={todayStr()} onChange={setDay} />
             </div>
           ) : (
             <>
@@ -121,7 +115,7 @@ export function AddEntryDialog({
               )}
               <div className="grid gap-2">
                 <Label htmlFor="entry-when">{isChecklist ? "Ticked items are logged at" : "When"}</Label>
-                <Input id="entry-when" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+                <DateTimeField id="entry-when" required value={when} onChange={setWhen} />
               </div>
             </>
           )}

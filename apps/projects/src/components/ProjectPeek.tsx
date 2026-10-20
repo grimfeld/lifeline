@@ -31,7 +31,7 @@ export function ProjectPeek({ doc }: { doc: Document }) {
       <CommitField label="Outcome" value={project.outcome ?? ""} placeholder="What finished looks like" onCommit={(outcome) => updateProject(project, { title: project.title, outcome })} />
       <div className="grid grid-cols-2 gap-3">
         <CommitField label="Start" type="date" value={project.start ?? ""} onCommit={(start) => updateProject(project, { title: project.title, start: start || null })} />
-        <CommitField label="Deadline" type="date" value={project.deadline ?? ""} onCommit={(deadline) => updateProject(project, { title: project.title, deadline: deadline || null })} />
+        <CommitField label="Deadline" type="date" min={project.start ?? undefined} value={project.deadline ?? ""} onCommit={(deadline) => updateProject(project, { title: project.title, deadline: deadline || null })} />
       </div>
       <Progress {...progressOf(tasks, project.id)} />
       {next && (

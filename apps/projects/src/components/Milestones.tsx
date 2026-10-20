@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Button,
   cn,
+  DatePicker,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -191,11 +192,11 @@ function MilestoneDialog({ milestone, onOpenChange }: { milestone?: Milestone; o
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="ms-start">Start</Label>
-              <Input id="ms-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+              <DatePicker id="ms-start" value={start} onChange={setStart} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="ms-deadline">Deadline</Label>
-              <Input id="ms-deadline" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+              <DatePicker id="ms-deadline" value={deadline} min={start || undefined} onChange={setDeadline} />
             </div>
           </div>
         </div>
