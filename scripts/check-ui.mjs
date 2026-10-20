@@ -9,6 +9,7 @@
 // `ui-allow: <rule>` and the reason, on that line or the one above.
 import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 const SCOPE = /^(apps\/[^/]+\/src|shell\/src|packages\/(?!ui\/)[^/]+\/src)\/.+\.tsx$/;
 const SKIP = /\.(test|spec)\.tsx$|\/e2e\//;
@@ -89,6 +90,13 @@ const ELEMENT_RULES = [
     message: "icon-only Button without aria-label (or a <Tip label> around it)",
   },
   {
+    id: "native-date",
+    heading: "Forms and feedback",
+    // ADR 0087. `type` as a literal or an expression that can yield one; time inputs stay native.
+    test: (tag) => /^<(?:Input|input)\b/.test(tag) && /\btype=(?:\{[^}]*)?["'`](?:date|datetime-local)["'`]/.test(tag),
+    message: "native date/datetime-local input — use DatePicker or DateTimeField (or CommitField type=\"date\") from @lifeline/ui",
+  },
+  {
     id: "icon-title",
     heading: "Components",
     test: (tag) => /^<Button\b/.test(tag) && /\bsize=["']icon/.test(tag) && /(?<![\w-])title=/.test(tag),
@@ -128,11 +136,11 @@ function changedLines() {
 
 const allowed = (lines, i, id) => [lines[i], lines[i - 1] ?? ""].some((l) => new RegExp(`ui-allow:\\s*${id}\\b`).test(l));
 
-/** JSX opening tags starting with a capital letter: [line index, tag text, the three lines before it]. */
+/** JSX opening tags starting with a capital letter, plus `<input>`: [line index, tag text, the three lines before it]. */
 function openingTags(lines) {
   const tags = [];
   for (let i = 0; i < lines.length; i++) {
-    for (const m of lines[i].matchAll(/<[A-Z][\w.]*/g)) {
+    for (const m of lines[i].matchAll(/<(?:[A-Z][\w.]*|input\b)/g)) {
       let text = lines[i].slice(m.index);
       let depth = 0;
       let j = i;
@@ -159,23 +167,33 @@ function openingTags(lines) {
   return tags;
 }
 
-const problems = [];
-for (const [file, only] of changedLines()) {
-  const lines = readFileSync(file, "utf8").split(/\r?\n/);
-  const checked = (i) => only === null || only.has(i + 1);
+/** The problems in one file's source; `checked(i)` says whether 0-based line i is checked. */
+export function problemsIn(source, checked = () => true) {
+  const lines = source.split(/\r?\n/);
+  const problems = [];
   lines.forEach((line, i) => {
     if (!checked(i)) return;
-    for (const r of LINE_RULES) if (r.test.test(line) && !allowed(lines, i, r.id)) problems.push({ file, line: i + 1, r });
+    for (const r of LINE_RULES) if (r.test.test(line) && !allowed(lines, i, r.id)) problems.push({ line: i + 1, id: r.id, r });
   });
   for (const [i, tag, before] of openingTags(lines)) {
     if (!checked(i)) continue;
-    for (const r of ELEMENT_RULES) if (r.test(tag, before) && !allowed(lines, i, r.id)) problems.push({ file, line: i + 1, r });
+    for (const r of ELEMENT_RULES) if (r.test(tag, before) && !allowed(lines, i, r.id)) problems.push({ line: i + 1, id: r.id, r });
   }
+  return problems;
 }
 
-for (const { file, line, r } of problems) console.log(`${file}:${line}  ${r.id}  ${r.message}  (CODING_STANDARDS.md § UI › ${r.heading})`);
-if (problems.length) {
-  console.log(`\n${problems.length} UI problem${problems.length === 1 ? "" : "s"}. A real exception carries \`ui-allow: <rule> — why\` on the line or the one above.`);
-  process.exit(1);
+function main() {
+  const problems = [];
+  for (const [file, only] of changedLines()) {
+    for (const p of problemsIn(readFileSync(file, "utf8"), (i) => only === null || only.has(i + 1))) problems.push({ file, ...p });
+  }
+  for (const { file, line, r } of problems) console.log(`${file}:${line}  ${r.id}  ${r.message}  (CODING_STANDARDS.md § UI › ${r.heading})`);
+  if (problems.length) {
+    console.log(`\n${problems.length} UI problem${problems.length === 1 ? "" : "s"}. A real exception carries \`ui-allow: <rule> — why\` on the line or the one above.`);
+    process.exit(1);
+  }
+  console.log(all ? "check-ui: every line clean" : "check-ui: added lines clean");
 }
-console.log(all ? "check-ui: every line clean" : "check-ui: added lines clean");
+
+// Run as a script, not when a test imports it.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
