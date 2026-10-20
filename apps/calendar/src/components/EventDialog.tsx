@@ -12,7 +12,7 @@ import {
   Textarea,
   toast,
 } from "@lifeline/ui";
-import { displayTitle, docHref, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff } from "@lifeline/core";
+import { displayTitle, docHref, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff, type IntakePrefill } from "@lifeline/core";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
 import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors } from "../domain/eventForm";
@@ -23,17 +23,10 @@ const FIELD_IDS: Record<keyof EventFormErrors, string> = { title: "ev-title", ..
 
 /**
  * What a new Event starts with, from whoever opens the dialog (the Schedule's
- * quick add's "More…"): its title, day, start, end day and end. Whatever is
- * left out takes the usual default.
+ * quick add's "More…", through the Intake contract): its title, day, start,
+ * end day and end. Whatever is left out takes the usual default.
  */
-export interface EventPrefill {
-  title?: string;
-  date?: DateStr;
-  start?: string;
-  /** Kept for an Event that ends another day; one on a single day leaves it out. */
-  endDate?: DateStr;
-  end?: string;
-}
+export type EventPrefill = IntakePrefill;
 
 export function EventDialog({
   open,
