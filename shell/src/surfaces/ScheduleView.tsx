@@ -37,7 +37,7 @@ import { CalendarClock, Check, ChevronDown, Inbox, LayoutTemplate, Plus, Trash2,
 import { usePush } from "./push";
 import { HoursEditor, type HoursEditing, type HoursTarget } from "./HoursEditor";
 import { AddAtHour, type AddingAt } from "./AddAtHour";
-import { SNAP_MIN, snap, toClock } from "./hours";
+import { SNAP_MIN, snap, sweptRange, toClock } from "./hours";
 import type { CalendarCtx } from "./CalendarSurface";
 
 const NO_ENTRIES: Entry[] = [];
@@ -348,6 +348,7 @@ function DayColumn({
   today,
   nowH,
   onSlotClick,
+  onSweep,
   onResize,
   onBandResize,
   onComplete,
@@ -368,6 +369,8 @@ function DayColumn({
   ghost: Ghost | null;
   onOpen: (target: HoursTarget, el: HTMLElement) => void;
   onSlotClick: (date: DateStr, hours: number, point: { x: number; y: number }) => void;
+  /** A desk sweep over empty hours was let go: add across that range. */
+  onSweep: (date: DateStr, startH: number, endH: number, point: { x: number; y: number }) => void;
   onResize: (entry: Entry, endHours: number) => void;
   onBandResize: (band: Band, endHours: number) => void;
   onComplete: (item: SurfaceItem) => void;
@@ -376,6 +379,40 @@ function DayColumn({
   const colDrop = useDroppable({ id: `col:${date}` });
   const height = (to - from) * HOUR_PX;
   const laid = useMemo(() => layoutColumns(entries.map((en) => ({ ...en, start: en.start, end: en.end }))), [entries]);
+  /** A desk sweep in progress (#226): where the press began, and the range drawn once the pointer has moved. */
+  const pressed = useRef<{ y: number; hours: number } | null>(null);
+  const [sweep, setSweep] = useState<Ghost | null>(null);
+  const hoursAt = (el: HTMLElement, clientY: number) => from + (clientY - el.getBoundingClientRect().top) / HOUR_PX;
+  // Only empty hours start one: Blocks and bands sit above the slots and take their own presses (a drag).
+  // Mouse and pen only — on a phone a press and hold drags an item, and a tap adds.
+  const sweepHandlers = touch
+    ? {}
+    : {
+        onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+          if (e.pointerType === "touch" || e.button !== 0) return;
+          const col = e.currentTarget.parentElement!;
+          pressed.current = { y: e.clientY, hours: hoursAt(col, e.clientY) };
+          e.currentTarget.setPointerCapture(e.pointerId);
+          e.preventDefault(); // no text selection while sweeping
+        },
+        onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+          const p = pressed.current;
+          if (!p || (!sweep && Math.abs(e.clientY - p.y) < 4)) return;
+          const r = sweptRange(p.hours, hoursAt(e.currentTarget.parentElement!, e.clientY), from, to);
+          setSweep((g) => (g?.startH === r.startH && g.lenH === r.endH - r.startH ? g : { date, startH: r.startH, lenH: r.endH - r.startH }));
+        },
+        onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => {
+          pressed.current = null;
+          if (!sweep) return;
+          setSweep(null);
+          onSweep(date, sweep.startH, sweep.startH + sweep.lenH, { x: e.clientX, y: e.clientY });
+        },
+        onPointerCancel: () => {
+          pressed.current = null;
+          setSweep(null);
+        },
+      };
+  const shown = ghost ?? sweep;
   return (
     <div className="flex min-w-0 flex-col">
       <div ref={colDrop.setNodeRef} className={cn("relative", colDrop.isOver && "bg-accent/20")} style={{ height }} data-col={date}>
@@ -395,6 +432,7 @@ function DayColumn({
                 onSlotClick(date, hours, { x: e.clientX, y: e.clientY });
               },
             }}
+            {...sweepHandlers}
           />
         ))}
         {laid.map(({ item: en, col, cols }) => (
@@ -411,14 +449,14 @@ function DayColumn({
             onOpen={(el) => onOpen(en.kind === "block" ? { kind: "work", item: en.item } : { kind: "timed", item: en.item }, el)}
           />
         ))}
-        {ghost && (
+        {shown && (
           <div
             className="border-primary bg-primary/10 pointer-events-none absolute inset-x-0.5 z-[3] rounded-md border-2 border-dashed px-1.5 py-0.5"
-            style={{ top: (ghost.startH - from) * HOUR_PX + 1, height: Math.max(18, ghost.lenH * HOUR_PX - 2) }}
+            style={{ top: (shown.startH - from) * HOUR_PX + 1, height: Math.max(18, shown.lenH * HOUR_PX - 2) }}
           >
             {/* Bottom right: the lifted chip rides the top left under the finger. */}
             <span className="bg-background text-primary absolute right-1 bottom-0.5 rounded px-1 text-[11px] font-semibold tabular-nums">
-              {formatTime(toClock(ghost.startH))}–{formatTime(toClock(ghost.startH + ghost.lenH))}
+              {formatTime(toClock(shown.startH))}–{formatTime(toClock(shown.startH + shown.lenH))}
             </span>
           </div>
         )}
@@ -571,7 +609,7 @@ function DayStrip({ anchor, today, onPick }: { anchor: DateStr; today: DateStr; 
  * 3 Day and Week. Chips (strip or pool) are sources: drag one onto a slot to make a Time block and the chip
  * stays, greyed while blocks lie ahead (ADR 0028); drag a block to move that
  * block alone; drag it to the strip or the pool to remove it. Resize the
- * bottom edge; double-click an empty slot to add an Event. Times live in
+ * bottom edge; double-click an empty slot, or sweep down empty hours on the desk, to add an Event. Times live in
  * Placements; Events and one-off blockers (ADR 0029) retime through their App.
  */
 export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
@@ -832,6 +870,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
                         if (Date.now() - lastDrag.current < 350) return;
                         setAdding({ date, hours, point });
                       }}
+                      onSweep={(date, hours, endHours, point) => setAdding({ date, hours, endHours, point })}
                       onResize={(en, endH) => {
                         const end = toClock(endH);
                         if (en.kind === "block") scheduleSurfaceItem(en.item, en.item.displayDate, { start: en.start, end }).catch(fail);
@@ -852,7 +891,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
         <p className="text-muted-foreground shrink-0 text-[11px]">
           {isMobile
             ? "Tap anything to edit it · tap an empty hour to add · press and hold to drag."
-            : "Click anything to edit it · double-click a slot to add · drag work or a template into a slot to plan it — a chip stays and can be planned again · drag a block to the strip or the pool to remove it · resize the bottom edge · shaded bands are your time blockers; one-off bands drag."}
+            : "Click anything to edit it · double-click a slot or drag down empty hours to add · drag work or a template into a slot to plan it — a chip stays and can be planned again · drag a block to the strip or the pool to remove it · resize the bottom edge · shaded bands are your time blockers; one-off bands drag."}
         </p>
       </div>
 
