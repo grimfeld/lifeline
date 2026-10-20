@@ -36,9 +36,10 @@ import { ResetDemoButton, SourceLink } from "../demo/DemoActions";
  * `/settings` (ADR 0053): where the user configures Lifeline itself rather
  * than any of its content.
  *
- * The **sixth** kind of page, and the only one that serves no Documents — a
- * Card, a Screen, a Surface, an App screen and a Base all present or process
- * Documents, and this one presents the app. It exists because the Phone bar is
+ * The **sixth** kind of page, and with the Guide one of the two that serve no
+ * Documents (ADR 0089) — a Card, a Screen, a Surface, an App screen and a Base
+ * all present or process Documents, this one configures the app, and the Guide
+ * explains it. It exists because the Phone bar is
  * a phone arrangement edited on the phone, and drag-reordering inside a dialog
  * at 390px is bad. Everything else in Lifeline keeps its configuration at the
  * object it configures; what lands here is what has no object of its own.

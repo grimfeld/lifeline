@@ -52,6 +52,18 @@ describe("tool catalogue", () => {
   });
 });
 
+describe("the guide tool", () => {
+  const guide = TOOLS.find((t) => t.name === "guide")!;
+
+  it("lists the pages, and reads one, with no Account (ADR 0089)", () => {
+    expect(guide.write).toBe(false);
+    const { pages } = guide.local!({}) as { pages: { page: string }[] };
+    expect(pages.map((p) => p.page)).toEqual(expect.arrayContaining(["index", "money", "calendar", "connector"]));
+    expect(guide.local!({ page: "money" })).toMatchObject({ page: "money", markdown: expect.stringMatching(/^# /m) });
+    expect(guide.local!({ page: "nowhere" })).toMatchObject({ error: expect.any(String) });
+  });
+});
+
 describe("grantedScopes", () => {
   it("always grants read, and write exactly when Allow changes is ticked", () => {
     expect(grantedScopes(true)).toEqual(["lifeline:read", "lifeline:write"]);

@@ -19,6 +19,7 @@ Single-context repo:
 ├── docs/adr/
 │   ├── 0001-….md
 │   └── 0002-….md
+├── packages/guide/     ← the Guide: the user's manual, in the glossary's words
 ├── packages/
 ├── apps/
 └── shell/
@@ -35,3 +36,8 @@ If the concept you need isn't in the glossary yet, that's a signal: either you'r
 If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
 
 > _Contradicts ADR-0007 (event-sourced orders), but worth reopening because…_
+
+## The Guide is the user's side of the same language
+
+`packages/guide/pages/` explains the app to its user, in the glossary's terms (ADR 0089). It is also a quick map of
+what a Module offers. When a change alters what the user sees, update its page (see `CLAUDE.md`, "The Guide").

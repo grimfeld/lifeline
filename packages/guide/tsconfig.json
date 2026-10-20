@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Dependency-free text: the shell renders it and the MCP server hands it to Claude.
+  "compilerOptions": { "types": [] },
+  "include": ["src"]
+}

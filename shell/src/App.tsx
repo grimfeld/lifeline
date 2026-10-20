@@ -29,6 +29,7 @@ import { BasesIndex } from "./bases/BasesIndex";
 import { MobileNav } from "./mobile/MobileNav";
 import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
+import { GuidePage } from "./guide/GuidePage";
 import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
 import { FALLBACK_PLACE, lastPlace, useResume } from "./nav/resume";
@@ -75,7 +76,7 @@ function LegacyTimeRedirect({ view }: { view: "week" | "schedule" }) {
   return <Navigate to={`/calendar?view=${to}${d ? `&d=${d}` : ""}`} replace />;
 }
 
-/** A Core destination — a general Surface, the Bases, Screens, Settings: no chrome but the Rail's. */
+/** A Core destination — a general Surface, the Bases, Screens, Settings, the Guide: no chrome but the Rail's. */
 function CorePage({ children }: { children: ReactNode }) {
   return (
     <main className="min-w-0 flex-1 overflow-y-auto">
@@ -148,6 +149,7 @@ function Places() {
       <Route path="/screens" element={<CorePage><ScreensIndex /></CorePage>} />
       <Route path="/screen/:id" element={<CorePage><UserScreenPage /></CorePage>} />
       <Route path="/settings" element={<CorePage><SettingsPage /></CorePage>} />
+      <Route path="/guide/:page?" element={<CorePage><GuidePage /></CorePage>} />
       <Route path={HANDOFF_PATH} element={<CorePage><HandoffPage /></CorePage>} />
       <Route path={HANDOFF_DONE_PATH} element={<CorePage><HandoffSaved /></CorePage>} />
       {/* Legacy Notes URLs (before the frame split, and before the Vault rename). */}

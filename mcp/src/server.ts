@@ -30,7 +30,8 @@ const devices = new DevicePool(admin, config.pbUrl);
 const INSTRUCTIONS = `Lifeline is the user's personal dashboard: tasks, chores, events, notes and more, all stored as Documents of a type.
 Start with \`agenda\` for what is on (today is in its answer) and \`search_documents\` to find things. Items from the agenda are acted on by appId + itemId.
 Create tasks, chores and events with their App's tools (tasks_add, chores_add, calendar_add_event); create_document is for notes and other body-first types.
-Dates are YYYY-MM-DD, times HH:MM, in the user's local time. Ask before changing many things at once.`;
+Dates are YYYY-MM-DD, times HH:MM, in the user's local time. Ask before changing many things at once.
+For how Lifeline itself works — what a Module does, where a feature lives — read the \`guide\`.`;
 
 function buildServer(auth: AuthInfo): McpServer {
   const server = new McpServer({ name: "lifeline", version: "0.1.0" }, { instructions: INSTRUCTIONS });
@@ -48,7 +49,7 @@ function buildServer(auth: AuthInfo): McpServer {
       },
       async (args: Record<string, unknown>) => {
         try {
-          const result = await devices.call(userId, spec.name, args, spec.write);
+          const result = spec.local ? spec.local(args) : await devices.call(userId, spec.name, args, spec.write);
           return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
         } catch (err) {
           if (!(err instanceof ExpectedError)) console.error(`[tool ${spec.name}]`, err);

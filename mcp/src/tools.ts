@@ -1,5 +1,6 @@
 import { z, type ZodTypeAny } from "zod";
 import { isInvocable, type CommandArg, type CommandDef } from "@lifeline/core";
+import { GUIDE_PAGES, guidePage } from "@lifeline/guide";
 import { manifests } from "./apps";
 
 /**
@@ -9,7 +10,7 @@ import { manifests } from "./apps";
  *
  * Two kinds:
  *  - generic tools over Core — Documents, the agenda, the Schedulable and
- *    Timed Contracts — that work for every App at once;
+ *    Timed Contracts — that work for every App at once, and the Guide;
  *  - one tool per headless Command (a Command with `args` and `invoke`),
  *    so creating a Task or a Chore runs the App's own operation.
  */
@@ -24,6 +25,8 @@ export interface ToolSpec {
   write: boolean;
   /** For command tools: the Command id it runs. */
   command?: string;
+  /** Answered by the server itself, with no Account's data: no device runs it. */
+  local?: (args: Record<string, unknown>) => unknown;
 }
 
 const date = () => z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD");
@@ -33,7 +36,24 @@ const workspace = z
   .optional()
   .describe("Workspace id or name. Omit for the default Workspace. A separated Workspace sees only its own Documents.");
 
+/** The Guide (ADR 0089): its list of pages, or one page's Markdown — the very text the app shows. */
+function readGuide({ page }: Record<string, unknown>): unknown {
+  const pages = GUIDE_PAGES.map((p) => ({ page: p.slug, title: p.title }));
+  if (page === undefined) return { pages };
+  const p = guidePage(String(page));
+  return p ? { page: p.slug, title: p.title, markdown: p.body } : { error: `No Guide page "${String(page)}".`, pages };
+}
+
 const GENERIC: ToolSpec[] = [
+  {
+    name: "guide",
+    title: "Read the Guide",
+    description:
+      "Lifeline's own manual: what each Module, Surface and part of the app is for and how to use it, including which tools act on it. Without `page`, the list of pages; with one, that page as Markdown (links to other pages are their slug + .md). Read it to answer how-to questions about Lifeline.",
+    input: { page: z.string().optional().describe("A page from the list: house, money, calendar, capture…") },
+    write: false,
+    local: readGuide,
+  },
   {
     name: "list_workspaces",
     title: "List Workspaces",
