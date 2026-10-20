@@ -1,7 +1,8 @@
 import { useMemo } from "react";
-import { addDays, diffDays, documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr } from "@lifeline/core";
+import { addDays, diffDays, documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr, type TimedWhen } from "@lifeline/core";
 import { EVENT_TYPE, type Event } from "../domain/types";
 import type { EventWhen } from "../domain/eventForm";
+import { rescheduled } from "../domain/events";
 
 /** PocketBase returns absent text fields as ""; re-establish null on read. */
 function normalize(e: Event): Event {
@@ -81,11 +82,9 @@ export async function moveEvent(id: string, to: DateStr): Promise<void> {
   await putDocument<Event>({ ...e, date: to, endDate: len > 0 ? addDays(to, len) : null });
 }
 
-/** Reschedule an event onto a day and time (null start = all day). An Event across days keeps its end day's offset. */
-export async function rescheduleEvent(id: string, date: DateStr, start: string | null, end: string | null): Promise<void> {
+/** Reschedule an event to when it now happens, whole (ADR 0090) — `rescheduled` says what is kept. */
+export async function rescheduleEvent(id: string, when: TimedWhen): Promise<void> {
   const ev = await getDocument<Event>(id);
   if (!ev || ev.type !== EVENT_TYPE) return;
-  const e = normalize(ev);
-  const len = e.endDate && e.endDate > e.date ? diffDays(e.date, e.endDate) : 0;
-  await putDocument<Event>({ ...e, date, endDate: len > 0 ? addDays(date, len) : null, start, end: start ? end : null });
+  await putDocument<Event>(rescheduled(normalize(ev), when));
 }

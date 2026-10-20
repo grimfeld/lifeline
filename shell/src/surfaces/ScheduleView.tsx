@@ -19,6 +19,9 @@ import {
   parts,
   rescheduleTimedItem,
   scheduleSurfaceItem,
+  spanEndingAt,
+  spanMovedTo,
+  startDayMovedTo,
   startOfWeek,
   timedCreators,
   toHours,
@@ -137,7 +140,8 @@ function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen,
 /**
  * A block on the timeline: draggable, resizable at the bottom edge. A piece
  * of a timed item that runs across days (ADR 0090) is drawn on its own day,
- * squared and labelled where it carries on; it neither drags nor resizes yet.
+ * squared and labelled where it carries on. Any piece drags the whole item;
+ * only the last one, where the item ends, resizes.
  */
 function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, onOpen }: { entry: Entry; from: number; cols: number; col: number; touch: boolean; onResize: (endHours: number) => void; onComplete?: () => void; onRemove?: () => void; onOpen: (el: HTMLElement) => void }) {
   const isBlock = entry.kind === "block";
@@ -146,8 +150,7 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
   const grab = useRef(0);
   const data = isBlock ? { item: entry.item, grab } : { timed: entry.item, grab };
   const cut = isBlock ? { before: null, after: null } : cutEdges(entry.item);
-  const piece = !!(cut.before || cut.after);
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data, disabled: piece });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data });
   const s = toHours(entry.start);
   const e = toHours(entry.end);
   const done = isBlock && !!entry.item.completedOn;
@@ -158,12 +161,9 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
     <div
       ref={setNodeRef}
       {...attributes}
-      // A piece taps open but does not drag yet: not announced as a disabled button.
-      aria-disabled={undefined}
       {...listeners}
       className={cn(
-        "group absolute z-[2] overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-xs shadow-sm select-none",
-        piece ? "cursor-pointer" : "cursor-grab",
+        "group absolute z-[2] cursor-grab overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-xs shadow-sm select-none",
         cut.before && "rounded-t-none",
         cut.after && "rounded-b-none",
         isDragging && "opacity-40",
@@ -220,8 +220,8 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
         </div>
       )}
       {cut.after && !short && <div className="text-muted-foreground absolute inset-x-1.5 bottom-0.5 truncate text-2xs">{cut.after}</div>}
-      {/* On a phone the edge was a 12px target that fought the scroll: length is set in the editor there. */}
-      {!touch && !piece && (
+      {/* On a phone the edge was a 12px target that fought the scroll: length is set in the editor there. A piece that carries on into the next day has no end of its own to drag. */}
+      {!touch && !cut.after && (
       <div
         className={cn("absolute inset-x-0 bottom-0 cursor-ns-resize touch-none", short ? "h-1.5" : "h-2")}
         aria-hidden
@@ -759,8 +759,14 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
         scheduleSurfaceItem(d.item as SurfaceItem, date, { start, end: addHours(start, dur) }).catch(fail);
       } else if (d.timed) {
         if (!canRescheduleTimed(d.timed.appId)) return void toast.error("This item can't be retimed here");
-        const dur = d.timed.start ? durationOf(d.timed.start, d.timed.end, 60) : 1;
-        rescheduleTimedItem(d.timed, date, start, addHours(start, dur)).catch(fail);
+        if (!d.timed.start) {
+          // An all-day item lifted onto the hours lasts an hour.
+          rescheduleTimedItem(d.timed, { date, start, endDate: date, end: addHours(start, 1) }).catch(fail);
+          return;
+        }
+        // Whichever piece was lifted, the whole item moves by the drop (ADR 0090); one with no end stays end-less.
+        const span = spanMovedTo(d.timed, date, start);
+        rescheduleTimedItem(d.timed, { ...span, end: d.timed.end === null ? null : span.end }).catch(fail);
       }
       return;
     }
@@ -768,7 +774,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
       const date = overId.slice(6);
       if (d.item) scheduleSurfaceItem(d.item as SurfaceItem, date, null).catch(fail);
       else if (d.timed) {
-        if (canRescheduleTimed(d.timed.appId)) rescheduleTimedItem(d.timed, date, null, null).catch(fail);
+        if (canRescheduleTimed(d.timed.appId)) rescheduleTimedItem(d.timed, { date: startDayMovedTo(d.timed, date), start: null, end: null }).catch(fail);
         else if (d.timed.date !== date) moveTimedItem(d.timed, date).catch(fail);
       }
       return;
@@ -874,10 +880,10 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
                       onResize={(en, endH) => {
                         const end = toClock(endH);
                         if (en.kind === "block") scheduleSurfaceItem(en.item, en.item.displayDate, { start: en.start, end }).catch(fail);
-                        else if (canRescheduleTimed(en.item.appId)) rescheduleTimedItem(en.item, en.item.date, en.start, end).catch(fail);
+                        else if (canRescheduleTimed(en.item.appId)) rescheduleTimedItem(en.item, spanEndingAt(en.item, end)).catch(fail);
                       }}
                       onBandResize={(b, endH) => {
-                        if (canRescheduleTimed(b.item.appId)) rescheduleTimedItem(b.item, b.item.date, b.start, toClock(endH)).catch(fail);
+                        if (canRescheduleTimed(b.item.appId)) rescheduleTimedItem(b.item, { date: b.item.date, start: b.start, end: toClock(endH) }).catch(fail);
                       }}
                       onComplete={(it) => completeSurfaceItem(it).then(() => toast.success(`${it.title} done`)).catch(fail)}
                       onRemove={(it) => (it.placementId ? unplaceItem(it.placementId).catch(fail) : undefined)}
