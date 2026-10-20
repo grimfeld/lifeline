@@ -304,6 +304,7 @@ function OneOffBand({ band, s, e, style, title, touch, onResize, onOpen }: { ban
   // A band clipped to the visible hours (a next-day part from 00:00) is held by its visible top; `hidden` says how far its real start is above it.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${band.item.key}`, data: { timed: band.item, grab, hidden: s - toHours(band.start) } });
   const resizing = useRef<{ startY: number; startEnd: number } | null>(null);
+  const label = `${[cut.before, title, cut.after].filter(Boolean).join(" ")} · one-off, drag to move`;
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -313,6 +314,7 @@ function OneOffBand({ band, s, e, style, title, touch, onResize, onOpen }: { ban
           {...listeners}
           className={cn("absolute inset-x-0 z-[1] cursor-grab overflow-hidden border-y select-none", isDragging && "opacity-40")}
           style={style}
+          aria-label={label}
           onPointerDownCapture={(ev) => {
             grab.current = ev.clientY - ev.currentTarget.getBoundingClientRect().top;
           }}
@@ -348,7 +350,7 @@ function OneOffBand({ band, s, e, style, title, touch, onResize, onOpen }: { ban
           )}
         </div>
       </TooltipTrigger>
-      <TooltipContent>{`${[cut.before, title, cut.after].filter(Boolean).join(" ")} · one-off, drag to move`}</TooltipContent>
+      <TooltipContent>{label}</TooltipContent>
     </Tooltip>
   );
 }
