@@ -31,7 +31,7 @@ export function SourcePeek({ doc }: PeekProps) {
         <ChoiceField label="Kind" value={s.kind ?? ""} options={SOURCE_KINDS} optional onCommit={(kind) => set({ kind })} />
         <CommitField label="Author" delay={WRITE_DELAY} value={s.author ?? ""} onCommit={(author) => set({ author })} />
         <CommitField label="URL" type="url" delay={WRITE_DELAY} value={s.url ?? ""} onCommit={(url) => set({ url })} />
-        <CommitField label="Published" type="date" value={s.publishedOn ?? ""} onCommit={(publishedOn) => set({ publishedOn })} />
+        <CommitField label="Published" type="date" startYear={1500} value={s.publishedOn ?? ""} onCommit={(publishedOn) => set({ publishedOn })} />
       </div>
       <ChoiceField label="Part of" value={s.parent ?? ""} options={parents} optional onCommit={(parent) => set({ parent })} />
       <AliasesField doc={doc} />

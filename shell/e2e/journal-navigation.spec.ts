@@ -566,7 +566,7 @@ test.describe("Journal navigation · keyboard paging (#213)", () => {
     await expect(page).toHaveURL(periodUrl("2999-02"));
   });
 
-  test("they do nothing in the editor or an input; Esc leaves the editor so they page", async ({ page }) => {
+  test("they do nothing in the editor or the date picker; Esc leaves the editor so they page", async ({ page }) => {
     await seedJournal(page, { days: DAYS });
     await openDay(page, "1997-05-20");
     await page.locator(".cm-content").click();
@@ -578,12 +578,15 @@ test.describe("Journal navigation · keyboard paging (#213)", () => {
     await page.keyboard.press("Alt+ArrowRight"); // one day on: the keys in the editor did nothing
     await expect(page).toHaveURL(dayUrl("1997-05-21"));
 
-    const jump = page.getByLabel("Jump to date");
-    await jump.focus();
+    // The Jump to date picker is a dialog: the keys stay the calendar's while it is open.
+    await page.getByRole("button", { name: /^Jump to date/ }).click();
+    const calendar = page.locator('[data-slot="popover-content"] [data-slot="calendar"]');
+    await expect(calendar).toBeVisible();
     await page.keyboard.press("Alt+Shift+ArrowLeft");
-    await jump.blur();
-    await expect(jump).not.toBeFocused();
-    await page.keyboard.press("Alt+ArrowLeft"); // one day back: the keys in the input did nothing
+    await page.keyboard.press("Escape");
+    await expect(calendar).toBeHidden();
+    await expect(page).toHaveURL(dayUrl("1997-05-21"));
+    await page.keyboard.press("Alt+ArrowLeft"); // one day back: the keys in the picker did nothing
     await expect(page).toHaveURL(dayUrl("1997-05-20"));
   });
 });

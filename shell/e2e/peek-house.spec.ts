@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
+import { openCalendar, pickDate } from "./support/date-picker";
 
 /**
  * The House Apps' editable Peeks (ADR 0085): a Chore, a Provision and a Need
@@ -29,7 +30,8 @@ async function peekNew(page: Page, doc: Record<string, unknown>) {
   await workLocally(page);
   const id = await inCore(page, async (core, d: Record<string, unknown>) => (await core.putDocument(d)).id as string, doc);
   await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
-  const dialog = page.getByRole("dialog");
+  // The first dialog is the Peek; an open Date picker's popover is a dialog too.
+  const dialog = page.getByRole("dialog").first();
   await expect(dialog).toBeVisible();
   return { id, dialog };
 }
@@ -78,8 +80,51 @@ test("a Provision is counted up and given a unit in its Peek", async ({ page }) 
   await dialog.getByLabel("Unit").fill("500g bag");
   await dialog.getByLabel("Unit").blur();
   await expect.poll(() => field(page, id, "unit")).toBe("500g bag");
-  await dialog.getByLabel("Expires (check by)").fill("2026-12-01");
+  const expires = dialog.getByLabel("Expires (check by)");
+  await expect(expires).toHaveText(/No date/);
+  await pickDate(page, expires, "2026-12-01");
   await expect.poll(() => field(page, id, "expires")).toBe("2026-12-01");
+});
+
+test("a Provision's date is picked from the keyboard in its Peek, and Escape backs out", async ({ page }) => {
+  const { id, dialog } = await peekNew(page, {
+    type: "provision",
+    title: `Beans ${Date.now()}`,
+    quantity: 1,
+    unit: "",
+    minimum: 0,
+    expires: "2026-12-01",
+    frozenOn: "",
+  });
+  const expires = dialog.getByLabel("Expires (check by)");
+  const calendar = openCalendar(page);
+
+  // Open from the keyboard; focus lands on the stored day, arrows move, Enter picks.
+  await expires.focus();
+  await page.keyboard.press("Enter");
+  await expect(calendar).toBeVisible();
+  await expect(calendar.locator('[data-day="2026-12-01"] button')).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(calendar).toBeHidden();
+  await expect.poll(() => field(page, id, "expires")).toBe("2026-12-09");
+  await expect(expires).toBeFocused();
+
+  // Escape closes the picker, not the Peek, and writes nothing.
+  await page.keyboard.press("Enter");
+  await expect(calendar).toBeVisible();
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("Escape");
+  await expect(calendar).toBeHidden();
+  await expect(dialog).toBeVisible();
+  await expect.poll(() => field(page, id, "expires")).toBe("2026-12-09");
+
+  // An optional date can be cleared.
+  await expires.click();
+  await page.locator('[data-slot="popover-content"]').getByRole("button", { name: "Clear" }).click();
+  await expect.poll(() => field(page, id, "expires")).toBe("");
+  await expect(expires).toHaveText(/No date/);
 });
 
 test("a Need gets a note and is ticked bought in its Peek", async ({ page }) => {
