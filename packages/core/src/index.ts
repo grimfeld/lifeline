@@ -54,6 +54,7 @@ export {
   DOCUMENT_TYPES,
   ATTACHMENTS,
   WORKSPACES,
+  MACROS,
   type SyncedRecord,
   type Placement,
   type UserScreen,
@@ -81,5 +82,6 @@ export * from "./bar";
 export * from "./keys";
 export * from "./stable";
 export * from "./capture";
+export * from "./macros";
 export * from "./selectionMenu";
 export * from "./intakeGroups";
