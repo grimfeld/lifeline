@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
+import { setTime } from "./support/time-field";
 
 /**
  * The Progress Apps' editable Peeks (ADR 0085): a Stat, a Workout session, a
@@ -99,4 +100,19 @@ test("Swear Jar: a Fine's note is edited in its Peek; its amount stays the Offen
   await dialog.getByLabel("Note").blur();
   await expect.poll(() => field(page, id, "note")).toBe("Twice, really");
   expect(await field(page, id, "amount")).toBe(200);
+});
+
+test("Swear Jar: a Fine's time is typed into its Peek's Time field and written at once", async ({ page }) => {
+  const { id, dialog } = await peekNew(page, async (core, stamp) => {
+    const o = await core.putDocument({ type: "swearjar_offence", title: `Snoozed ${stamp}`, name: `Snoozed ${stamp}`, price: 200, emoji: "", color: "", archived: false });
+    return (await core.putDocument({ type: "swearjar_fine", title: "€2.00", offenceId: o.id, amount: 200, occurredAt: "2026-10-01T08:00:00.000Z", note: "" })).id;
+  });
+  await expect(dialog.locator('input[type="time"]'), "no native time input").toHaveCount(0);
+  await setTime(dialog.getByRole("combobox", { name: "Time" }), "7:45pm");
+  await expect
+    .poll(async () => {
+      const d = new Date(String(await field(page, id, "occurredAt")));
+      return `${d.getHours()}:${d.getMinutes()}`;
+    })
+    .toBe("19:45");
 });
