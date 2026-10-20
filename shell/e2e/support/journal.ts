@@ -90,3 +90,11 @@ export async function titlesOf(page: Page, type: string): Promise<string[]> {
 
 /** True when the sidebar is laid out at this width (it is hidden below `lg`, 1024px). */
 export const hasSidebar = (page: Page): boolean => (page.viewportSize()?.width ?? 0) >= 1024;
+
+/** The sidebar's month calendar (desk only). */
+export const calendar = (page: Page): Locator => sidebar(page).getByRole("group", { name: "Calendar" });
+
+/** The calendar's title as it reads now ("February 2001"): waits until it shows `title`. */
+export async function expectCalendarAt(page: Page, title: string): Promise<void> {
+  await expect(calendar(page).getByText(title, { exact: true })).toBeVisible();
+}

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { TEMPLATE, hasSidebar, linkHeadings, openDay, openPeriod, seedJournal, sidebar, titlesOf, workLocally } from "./support/journal";
+import { TEMPLATE, calendar, expectCalendarAt, hasSidebar, linkHeadings, openDay, openPeriod, seedJournal, sidebar, titlesOf, workLocally } from "./support/journal";
 import { CORE_URL } from "./support/seed";
 
 /**
@@ -46,19 +46,83 @@ test.describe("Journal navigation · the sidebar stays (#206)", () => {
     expect(await titlesOf(page, "month")).not.toContain("2001-02");
   });
 
-  test("paging the calendar to a month whose landing day is unwritten keeps the sidebar", async ({ page }) => {
+  test("paging the calendar to a month with nothing written keeps the sidebar", async ({ page }) => {
     await seedJournal(page, { days: { "2001-02-14": "Valentine's." } });
     await openDay(page, "2001-02-14");
     expect(hasSidebar(page)).toBe(true);
 
-    await sidebar(page).getByRole("button", { name: "Previous month" }).click();
+    await calendar(page).getByRole("button", { name: "Previous month" }).click();
+    await expectCalendarAt(page, "January 2001");
+    // Each click waits for its month, so two quick clicks can't be read as one.
+    await calendar(page).getByRole("button", { name: "Next month" }).click();
+    await expectCalendarAt(page, "February 2001");
+    await calendar(page).getByRole("button", { name: "Next month" }).click();
+    await expectCalendarAt(page, "March 2001");
     await expect(sidebar(page)).toBeVisible();
-    await expect(sidebar(page).getByText(/January 2001/).first()).toBeVisible();
+  });
+});
 
-    await sidebar(page).getByRole("button", { name: "Next month" }).click();
-    await sidebar(page).getByRole("button", { name: "Next month" }).click();
-    await expect(sidebar(page)).toBeVisible();
-    await expect(sidebar(page).getByText(/March 2001/).first()).toBeVisible();
+/** The calendar pages by itself (#210): its arrows move the calendar, never the open Day. */
+test.describe("Journal navigation · the calendar pages by itself (#210)", () => {
+  test.skip(({ viewport }) => (viewport?.width ?? 0) < 1024, "the Journal sidebar is hidden below lg");
+
+  const DAY = "/app/journal?d=2001-02-14";
+  const atDay = (page: Page) => expect(page).toHaveURL((u) => u.pathname + u.search === DAY);
+
+  test("the month arrows page the calendar and leave the Day and the URL put", async ({ page }) => {
+    await seedJournal(page, { days: { "2001-02-14": "Valentine's.", "2001-04-02": "April showers." } });
+    await openDay(page, "2001-02-14");
+    await expectCalendarAt(page, "February 2001");
+
+    await calendar(page).getByRole("button", { name: "Next month" }).click();
+    await expectCalendarAt(page, "March 2001");
+    await calendar(page).getByRole("button", { name: "Next month" }).click();
+    await expectCalendarAt(page, "April 2001");
+    // April's days are shown, its written Day marked; the open Day is still February's.
+    await expect(calendar(page).getByRole("button", { name: "2001-04-02", exact: true })).toHaveAttribute("title", /written$/);
+    await atDay(page);
+    await expect(page.getByText("Valentine's.")).toBeVisible();
+
+    await calendar(page).getByRole("button", { name: "Previous month" }).click();
+    await expectCalendarAt(page, "March 2001");
+    await atDay(page);
+  });
+
+  test("the year arrows step a whole year, and the URL stays put", async ({ page }) => {
+    await seedJournal(page, { days: { "2001-02-14": "Valentine's." } });
+    await openDay(page, "2001-02-14");
+
+    await calendar(page).getByRole("button", { name: "Previous year" }).click();
+    await expectCalendarAt(page, "February 2000");
+    await calendar(page).getByRole("button", { name: "Previous year" }).click();
+    await expectCalendarAt(page, "February 1999");
+    await calendar(page).getByRole("button", { name: "Next year" }).click();
+    await expectCalendarAt(page, "February 2000");
+    await atDay(page);
+  });
+
+  test("clicking a day opens it, and the calendar comes back to the open Day's month", async ({ page }) => {
+    await seedJournal(page, { days: { "2001-02-14": "Valentine's.", "2000-06-21": "Midsummer." } });
+    await openDay(page, "2001-02-14");
+
+    // Page away, then open a Day by other means: the calendar returns to its month.
+    await calendar(page).getByRole("button", { name: "Previous year" }).click();
+    await expectCalendarAt(page, "February 2000");
+    await page.getByRole("button", { name: "Next day" }).click();
+    await expect(page).toHaveURL(/d=2001-02-15/);
+    await expectCalendarAt(page, "February 2001");
+    await expect(calendar(page).getByRole("button", { name: "2001-02-15", exact: true })).toHaveAttribute("aria-current", "date");
+
+    // Picking a day in a paged-to month opens that Day, and the calendar stays on its month.
+    for (let i = 0; i < 8; i++) {
+      await calendar(page).getByRole("button", { name: "Previous month" }).click();
+    }
+    await expectCalendarAt(page, "June 2000");
+    await calendar(page).getByRole("button", { name: "2000-06-21", exact: true }).click();
+    await expect(page).toHaveURL(/d=2000-06-21/);
+    await expect(page.getByText("Midsummer.")).toBeVisible();
+    await expectCalendarAt(page, "June 2000");
+    await expect(calendar(page).getByRole("button", { name: "2000-06-21", exact: true })).toHaveAttribute("aria-current", "date");
   });
 });
 
