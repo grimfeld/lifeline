@@ -34,15 +34,23 @@ function linkTypes(arg: CommandArg): string[] | undefined {
   return arg.linkType === undefined ? undefined : Array.isArray(arg.linkType) ? arg.linkType : [arg.linkType];
 }
 
+/** What a link argument is matched against: a Document's id, type, title and Roles. */
+export type LinkableDocument = Pick<Document, "id" | "type" | "title"> & { roles?: unknown };
+
+/** The Documents a link argument may name: those of its Role, else of its type(s), else all. */
+export function linkCandidates<T extends LinkableDocument>(arg: CommandArg, docs: readonly T[]): T[] {
+  const types = linkTypes(arg);
+  return arg.linkRole ? docs.filter((d) => hasRole(d, arg.linkRole!)) : types ? docs.filter((d) => types.includes(d.type)) : [...docs];
+}
+
 /**
  * A link argument names a Document by id or by its exact title,
  * case-insensitive, among `docs` (already read through the store's gates, so
  * the call's Workspace only). Never a guess: no match, or several, is an
  * error the caller can act on.
  */
-export function pickLinked(arg: CommandArg, value: string, docs: readonly (Pick<Document, "id" | "type" | "title"> & { roles?: unknown })[]): string {
-  const types = linkTypes(arg);
-  const ofType = arg.linkRole ? docs.filter((d) => hasRole(d, arg.linkRole!)) : types ? docs.filter((d) => types.includes(d.type)) : docs;
+export function pickLinked(arg: CommandArg, value: string, docs: readonly LinkableDocument[]): string {
+  const ofType = linkCandidates(arg, docs);
   const byId = ofType.find((d) => d.id === value);
   if (byId) return byId.id;
   const wanted = value.trim().toLowerCase();

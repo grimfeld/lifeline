@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import {
   commandDefaultFilter,
@@ -14,6 +14,7 @@ import {
   appById,
   MACRO_APP,
   CALENDAR_VIEWS,
+  isInvocable,
   isModShortcut,
   moduleById,
   moduleHome,
@@ -31,6 +32,7 @@ import { GUIDE_PAGES } from "@lifeline/guide";
 import { CalendarDays, CircleHelp, LayoutDashboard, MapPin, Terminal } from "lucide-react";
 import { guideHref } from "../guide/guidePlace";
 import { entryIcon, foldMembers } from "../capture/captureParts";
+import { InlineLine } from "./InlineLine";
 
 type DialogCommand = CommandDef & { appId: string };
 
@@ -65,6 +67,8 @@ export function CommandPalette() {
   const [search, setSearch] = useState("");
   // A pinned fold opens its members here, in place of the full list.
   const [openFold, setOpenFold] = useState<Extract<CaptureEntry, { kind: "fold" }> | null>(null);
+  // The caret, for the inline reader's suggestions (ADR 0091).
+  const [cursor, setCursor] = useState(0);
   const navigate = useNavigate();
   const input = useRef<HTMLInputElement>(null);
 
@@ -126,6 +130,8 @@ export function CommandPalette() {
   const commands = useAllCommands();
   const { pinned } = useCaptureSheet();
   const runnable = commands.filter((c) => c.dialog || c.run);
+  // What `!` can name: every Command but an inline-only one (ADR 0088), headless-only ones included.
+  const nameable = useMemo(() => commands.filter((c) => c.dialog || c.run || isInvocable(c)), [commands]);
   // Every inline Command reads the query anew on each change of it (ADR 0088).
   const offers =
     search.trim() === ""
@@ -136,6 +142,31 @@ export function CommandPalette() {
         });
   const ActiveDialogComponent = activeDialog?.dialog;
 
+  /** A `!` in the query hands the list to the inline reader, which keeps the search only while the line is no mark. */
+  function withInline(rows: ReactNode) {
+    if (!search.includes("!")) return rows;
+    return (
+      <InlineLine
+        line={search}
+        cursor={Math.min(cursor, search.length)}
+        commands={nameable}
+        mark={INLINE_MARK}
+        onLine={(line, at) => {
+          setSearch(line);
+          setCursor(at);
+          requestAnimationFrame(() => {
+            input.current?.focus();
+            input.current?.setSelectionRange(at, at);
+          });
+        }}
+        onOpen={(c) => runCommand(c)}
+        onDone={() => setPaletteOpen(false)}
+      >
+        {rows}
+      </InlineLine>
+    );
+  }
+
   return (
     <>
       <CommandDialog open={open} onOpenChange={setPaletteOpen} filter={rankCaptureFirst}>
@@ -143,7 +174,11 @@ export function CommandPalette() {
           ref={input}
           placeholder={openFold ? `${openFold.title.replace(/…$/, "")}: which?` : "Type a command or search…"}
           value={search}
-          onValueChange={setSearch}
+          onValueChange={(v) => {
+            setSearch(v);
+            setCursor(input.current?.selectionStart ?? v.length);
+          }}
+          onSelect={(e) => setCursor(e.currentTarget.selectionStart ?? search.length)}
           onKeyDown={(e) => {
             if (openFold && e.key === "Backspace" && search === "") setOpenFold(null);
           }}
@@ -162,7 +197,7 @@ export function CommandPalette() {
               })}
             </CommandGroup>
           ) : (
-          <>
+          withInline(<>
           {offers.length > 0 && (
             <CommandGroup>
               {offers.map(({ command: c, offer }) => {
@@ -284,7 +319,7 @@ export function CommandPalette() {
                 );
               })}
           </CommandGroup>
-          </>
+          </>)
           )}
         </CommandList>
       </CommandDialog>
