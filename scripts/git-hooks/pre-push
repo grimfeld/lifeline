@@ -1,0 +1,47 @@
+#!/bin/sh
+# Refuses a push carrying a commit (merges too) whose author or committer email is not
+# one GitHub accepts from this machine: its own git email is private, and GitHub declines
+# pushes carrying it. Active in every checkout through core.hooksPath, which
+# `pnpm install` sets (scripts/install-hooks.mjs).
+#
+# Git feeds one line per ref: <local ref> <local sha> <remote ref> <remote sha>.
+allowed="claude@grimfeld.tech 48754678+grimfeld@users.noreply.github.com"
+bad=""
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # A deleted ref pushes no commits.
+  case "$local_sha" in *[!0]*) ;; *) continue ;; esac
+  case "$remote_sha" in
+    *[!0]*) range="$remote_sha..$local_sha" ;;
+    # A new ref: the commits no remote has yet.
+    *) range="$local_sha --not --remotes" ;;
+  esac
+  # $range is two words for a new ref, on purpose.
+  for line in $(git log --format='%h|%ae|%ce' $range); do
+    sha=${line%%|*}
+    rest=${line#*|}
+    author=${rest%%|*}
+    committer=${rest#*|}
+    case " $allowed " in *" $author "*) author="" ;; esac
+    case " $allowed " in *" $committer "*) committer="" ;; esac
+    [ "$author" = "$committer" ] && committer=""
+    if [ -n "$author$committer" ]; then
+      bad="$bad
+  $sha  $author ${committer:+ $committer}  (to $remote_ref)"
+    fi
+  done
+done
+
+[ -z "$bad" ] && exit 0
+
+cat >&2 <<MSG
+pre-push: refusing to push commits made with an email other than claude@grimfeld.tech:
+$bad
+
+Fix the newest commit, then push again:
+  git -c user.email=claude@grimfeld.tech commit --amend --reset-author --no-edit
+Fix several (onto <base>, e.g. origin/master):
+  git -c user.email=claude@grimfeld.tech rebase <base> --exec 'git -c user.email=claude@grimfeld.tech commit --amend --reset-author --no-edit'
+A rebase drops merge commits: redo a merge with git -c user.email=claude@grimfeld.tech merge.
+MSG
+exit 1

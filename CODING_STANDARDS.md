@@ -17,8 +17,8 @@ decision in `docs/adr/` outranks anything here.
 ## UI
 
 The app is built from `@lifeline/ui` — shadcn/ui components on Tailwind CSS v4 — and the
-tokens in `packages/ui/src/styles/globals.css` (ADR 0079). Phone layout is ADR 0064, long
-content ADR 0065 (both summarised in `CLAUDE.md`).
+tokens in `packages/ui/src/styles/globals.css` (ADR 0079). Phone layout is ADR 0064
+(§ Layout), long content ADR 0065 (§ Long content).
 
 Kit pieces marked _coming_ are specified but not built yet; until they land, use the
 nearest existing pattern and don't hand-roll a new one.
@@ -76,7 +76,10 @@ nearest existing pattern and don't hand-roll a new one.
 - **(check)** Kit controls are sized by their props, never by a `size-*`/`h-*` class:
   Button `size` = `default` `sm` `xs` `lg` `icon` `icon-sm` `icon-xs` `icon-lg`, and
   `touch` (44px) for phone buttons stacked full width, as in the AlertDialog;
-  `SelectTrigger size="sm"`; `Input` is `h-8` already.
+  `SelectTrigger size="sm"`; `Input` is `h-8` already. The check covers every component a
+  file imports from `@lifeline/ui` except the boxes the page lays out, which a size class
+  may size: `Card*`, `Page`, `*Content` (Sheet, Dialog, Popover, Tabs…), headers and
+  footers, lists and groups, `Separator`, `MapView`, `GraphView`.
 - Icons are `size-3`, `size-3.5` or `size-4` (`size-5` in big tiles); an icon inside a
   `Button` needs no class.
 - Spacing stays on the scale (`gap-1` … `gap-6`); arbitrary lengths only for a real
@@ -91,14 +94,51 @@ nearest existing pattern and don't hand-roll a new one.
 
 ### Layout
 
-- **(check)** The layout switches at `md` — the phone line (ADR 0064). `sm:` is only for
-  dialog widths (`sm:max-w-md`).
+- **(check)** The layout switches at `md` (768px) — the phone line (ADR 0064). `sm:` is
+  only for dialog widths (`sm:max-w-md`).
 - **(check)** The phone hook is `usePhone()` from `@lifeline/ui`; `useIsMobile` is
   deprecated.
 - A page is `Page`: `mx-auto grid w-full gap-4 p-4 md:p-6`, `width="reading"`
   (max-w-3xl, default) or `"wide"` (max-w-6xl). Its title row is `PageHeader` (title +
   actions), an empty list `EmptyState` (message + optional `action`).
 - Boxes are `rounded-lg border`; a Card is `Card`. Hover is `hover:bg-accent`.
+
+On the phone (below `md`; on the desk none of this applies), every page you touch:
+
+- **Controls sit at the bottom**, in the Phone dock right above the Phone bar: tabs, view
+  switches, date paging, search, the main add. Wrap them in `PhoneDock` (renders in place
+  on the desk). Titles, quick-add fields, banners and a single item's own header
+  (back/edit/delete) stay at the top.
+- **One line, as much as possible.** All of a page's `PhoneDock`s share one wrapping line.
+  Filters beyond a search go in `PhoneFilters` (a Filters button + bottom sheet).
+- **Alone on a line → full width.** Dock items grow to fill their line (icon buttons
+  excepted), so pass controls, not wrapper divs; a grouping div gets `max-md:contents`.
+- **Selectors, not tabs.** `TabsList` and `ToggleGroup` become a select on a phone by
+  themselves (§ Components); any other single-choice switch renders a `Select` when
+  `usePhone()`.
+- `order={1}` for tabs and view switches (nearest the thumb); actions, search and Filters
+  at the default 0.
+
+### Long content
+
+A screen is not done until it survives the longest content a person could type (ADR
+0065). `shell/e2e/screens.spec.ts` opens every screen at phone (360px) and desktop
+(1280px) width over a store seeded with very long titles, fields, folders, tags and
+unbroken words, and fails when text spills out of its box, is cut off without an ellipsis,
+or makes a box scroll sideways that was not meant to. How to run it: `shell/e2e/README.md`.
+
+- **A new screen gets a row in `SCREENS`** (App screen, Module page, Core page, Calendar
+  view, detail page with `:id` + `type`). The test "every screen has a row in this file"
+  fails until it does. New Document types, Fields, headless Commands and Cards are seeded
+  from the registry by themselves, and checked.
+- Long words wrap by default (`overflow-wrap: anywhere` on `body`). A label that must stay
+  on one line uses `truncate` and its flex parent gets `min-w-0`; a flex row with a label
+  and fixed bits (counts, dates, buttons) gives the label `min-w-0 flex-1` and the fixed
+  bits `shrink-0`.
+- A box meant to scroll sideways (a week grid, a wide table, a tab strip) says so with
+  `overflow-x-auto` or `data-scroll-x`.
+- Text that overhangs its box on purpose (a heatmap's month label running over empty
+  cells) carries `data-layout-ignore` and a comment saying why. Rare.
 
 ### Deleting
 

@@ -14,7 +14,14 @@ import { pathToFileURL } from "node:url";
 const SCOPE = /^(apps\/[^/]+\/src|shell\/src|packages\/(?!ui\/)[^/]+\/src)\/.+\.tsx$/;
 const SKIP = /\.(test|spec)\.tsx$|\/e2e\//;
 const PALETTE = "slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose";
-const KIT_CONTROLS = /^<(Button|Input|SelectTrigger|Textarea)\b/;
+/** Kit controls by name, imported from @lifeline/ui or not. */
+const KIT_CONTROLS = new Set(["Button", "Input", "SelectTrigger", "Textarea"]);
+/**
+ * Kit components a size class legitimately sizes: boxes the page lays out (a Card,
+ * a Page, a Sheet's or Dialog's content, a map), not controls with a size of their own.
+ */
+const KIT_LAYOUT = /^(?:Card\w*|Page\w*|EmptyState|\w*Content|\w*(?:Header|Footer|Title|Description)|\w*(?:List|Group)|Command|Tabs|Separator|MapView|GraphView|GeoField|PhoneDock\w*|Field|Label|Toaster)$/;
+const SIZE_CLASS = /className=[^>]*?(?<=[\s"'`{])(?:size|h)-(?:\d|\[)/;
 
 /** Line rules: a regex over one source line. */
 const LINE_RULES = [
@@ -80,13 +87,34 @@ const LINE_RULES = [
   },
 ];
 
-/** Element rules: run on a whole JSX opening tag that starts on a checked line; `before` is the source just ahead of it (three lines). */
+/** The local names of the components a file imports from @lifeline/ui. */
+export function kitImports(source) {
+  const names = new Set();
+  for (const m of source.matchAll(/import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*["']@lifeline\/ui["']/g)) {
+    for (const part of m[1].split(",")) {
+      const local = part.trim().replace(/^type\s+/, "").split(/\s+as\s+/).pop();
+      if (/^[A-Z]/.test(local ?? "")) names.add(local);
+    }
+  }
+  return names;
+}
+
+/** Whether a tag (`<Name …>`) is a kit control: sized by its props, never by a class. */
+const isKitControl = (tag, kit) => {
+  const name = /^<([\w.]+)/.exec(tag)?.[1] ?? "";
+  return KIT_CONTROLS.has(name) || (kit.has(name) && !KIT_LAYOUT.test(name));
+};
+
+/**
+ * Element rules: run on a whole JSX opening tag that starts on a checked line; `before` is
+ * the source just ahead of it (three lines), `kit` the names the file imports from @lifeline/ui.
+ */
 const ELEMENT_RULES = [
   {
     id: "control-size",
     heading: "Sizes",
-    test: (tag) => KIT_CONTROLS.test(tag) && /className=[^>]*?(?<=[\s"'`{])(?:size|h)-(?:\d|\[)/.test(tag),
-    message: "size or height class on a kit control — use its size prop (icon, icon-sm, icon-xs, sm, xs, lg, touch;SelectTrigger size=\"sm\")",
+    test: (tag, _before, kit) => isKitControl(tag, kit) && SIZE_CLASS.test(tag),
+    message: "size or height class on a kit control — use its size prop (Button icon, icon-sm, icon-xs, sm, xs, lg, touch; SelectTrigger size=\"sm\")",
   },
   {
     id: "icon-label",
@@ -111,10 +139,9 @@ const ELEMENT_RULES = [
 ];
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] });
-const all = process.argv.includes("--all");
 
 /** Map of file → Set of line numbers to check (null = every line). */
-function changedLines() {
+function changedLines(all) {
   const files = new Map();
   if (all) {
     for (const f of git("ls-files").split("\n")) if (SCOPE.test(f) && !SKIP.test(f)) files.set(f, null);
@@ -173,25 +200,28 @@ function openingTags(lines) {
   return tags;
 }
 
-/** The problems in one file's source; `checked(i)` says whether 0-based line i is checked. */
-export function problemsIn(source, checked = () => true) {
+/** The problems in one file's source, on the lines `checked(index)` accepts: [{ line, r }]. */
+export function checkSource(source, checked = () => true) {
   const lines = source.split(/\r?\n/);
+  const kit = kitImports(source);
   const problems = [];
   lines.forEach((line, i) => {
     if (!checked(i)) return;
-    for (const r of LINE_RULES) if (r.test.test(line) && !allowed(lines, i, r.id)) problems.push({ line: i + 1, id: r.id, r });
+    for (const r of LINE_RULES) if (r.test.test(line) && !allowed(lines, i, r.id)) problems.push({ line: i + 1, r });
   });
   for (const [i, tag, before] of openingTags(lines)) {
     if (!checked(i)) continue;
-    for (const r of ELEMENT_RULES) if (r.test(tag, before) && !allowed(lines, i, r.id)) problems.push({ line: i + 1, id: r.id, r });
+    for (const r of ELEMENT_RULES) if (r.test(tag, before, kit) && !allowed(lines, i, r.id)) problems.push({ line: i + 1, r });
   }
   return problems;
 }
 
 function main() {
+  const all = process.argv.includes("--all");
   const problems = [];
-  for (const [file, only] of changedLines()) {
-    for (const p of problemsIn(readFileSync(file, "utf8"), (i) => only === null || only.has(i + 1))) problems.push({ file, ...p });
+  for (const [file, only] of changedLines(all)) {
+    const checked = (i) => only === null || only.has(i + 1);
+    for (const p of checkSource(readFileSync(file, "utf8"), checked)) problems.push({ file, ...p });
   }
   for (const { file, line, r } of problems) console.log(`${file}:${line}  ${r.id}  ${r.message}  (CODING_STANDARDS.md § UI › ${r.heading})`);
   if (problems.length) {
@@ -201,5 +231,5 @@ function main() {
   console.log(all ? "check-ui: every line clean" : "check-ui: added lines clean");
 }
 
-// Run as a script, not when a test imports it.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+// Run as a script; imported (check-ui.test.mjs), it only exports.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) main();
