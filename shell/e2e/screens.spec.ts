@@ -234,14 +234,14 @@ async function calendarFits(page: Page) {
 }
 
 /**
- * The Time blocker dialog with its From Time field's list open: the quarter
+ * The Time blocker dialog with its Start Time field's list open: the quarter
  * hours sit inside the viewport and nothing scrolls sideways, at phone width
  * too; the layout check then covers the list itself.
  */
 async function timeListOpen(page: Page) {
   await workLocally(page);
   await page.getByRole("button", { name: "New blocker" }).click();
-  await page.getByRole("dialog").getByRole("combobox", { name: "From" }).click();
+  await page.getByRole("dialog").getByRole("combobox", { name: "Start" }).click();
   const list = page.getByRole("listbox", { name: "Times" });
   await expect(list.getByRole("option", { selected: true })).toBeInViewport();
   const fit = await list.evaluate((el) => {

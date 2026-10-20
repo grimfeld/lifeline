@@ -78,8 +78,9 @@ const timeBlockerType: DocumentTypeDef = {
   fields: [
     { key: "date", label: "Day (one-off)", kind: "date", guarded: true, column: true },
     { key: "weekdays", label: "Weekdays", kind: "list", guarded: true },
-    { key: "start", label: "From", kind: "text", guarded: true, column: true },
-    { key: "end", label: "To", kind: "text", guarded: true, column: true },
+    { key: "endDate", label: "End day (one-off)", kind: "date", guarded: true },
+    { key: "start", label: "Start", kind: "text", guarded: true, column: true },
+    { key: "end", label: "End", kind: "text", guarded: true, column: true },
     { key: "active", label: "On", kind: "boolean", column: true },
     { key: "color", label: "Colour", kind: "text" },
   ],

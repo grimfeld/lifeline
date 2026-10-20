@@ -52,9 +52,16 @@ export interface TimeBlocker extends Document {
    * `weekdays` and may be moved on the Schedule; a weekly one never.
    */
   date: DateStr | null;
+  /**
+   * One-off shape only (ADR 0090): the day the band ends on, so it may run
+   * past midnight and across days ("travelling Mon–Wed"). null = read the old
+   * way: on `date`, or the next morning when `end` is at or before `start`.
+   * Always null on a weekly blocker.
+   */
+  endDate?: DateStr | null;
   /** Weekly shape only. Core weekdays (0 = Sunday). Empty = every day. */
   weekdays: Weekday[];
-  /** "HH:MM"; when `end` is at or before `start` the band runs past midnight into the next day. */
+  /** "HH:MM". Weekly: when `end` is at or before `start` the band runs past midnight into the next day. One-off: the end's time on `endDate`. */
   start: TimeStr;
   end: TimeStr;
   /** CSS colour for the band; null = the Calendar App's colour. */

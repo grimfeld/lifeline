@@ -4,7 +4,7 @@ import { setTime } from "./support/time-field";
 
 /**
  * Times typed or picked from the kit's Time field, never the browser's time
- * input: the Time blocker dialog's From and To, an Event template's usual start
+ * input: the Time blocker dialog's Start and End, an Event template's usual start
  * and the Hours editor's Start.
  */
 
@@ -48,7 +48,7 @@ async function editBlocker(page: Page, title: string) {
 test("a Time blocker's start is typed into its Time field", async ({ page }) => {
   const title = `Office ${Date.now()}`;
   const { id, dialog } = await editBlocker(page, title);
-  const start = dialog.getByRole("combobox", { name: "From" });
+  const start = dialog.getByRole("combobox", { name: "Start" });
   await expect(dialog.locator('input[type="time"]'), "no native time input left").toHaveCount(0);
 
   await setTime(start, "930");
@@ -59,7 +59,7 @@ test("a Time blocker's start is typed into its Time field", async ({ page }) => 
 test("text that isn't a time reverts; arrows step a quarter hour; the list picks", async ({ page }) => {
   const title = `Studio ${Date.now()}`;
   const { id, dialog } = await editBlocker(page, title);
-  const end = dialog.getByRole("combobox", { name: "To" });
+  const end = dialog.getByRole("combobox", { name: "End" });
   const shown = await end.inputValue();
 
   await end.fill("lunchtime");

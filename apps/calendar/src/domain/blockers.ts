@@ -1,4 +1,5 @@
-import { addDays, diffDays, formatHuman, formatTime, weekdayOf, type DateStr, type TimeStr, type Weekday } from "@lifeline/core";
+import { addDays, diffDays, formatHuman, formatTime, spanLasting, weekdayOf, type DateStr, type TimedWhen, type TimeStr, type Weekday } from "@lifeline/core";
+import { lengthOf } from "./eventForm";
 import type { TimeBlocker } from "./types";
 import { dayPieces, type TimedSpan } from "./span";
 
@@ -20,18 +21,17 @@ export interface BlockerBand {
   end: TimeStr;
 }
 
-/** A one-off blocker (ADR 0029) sits on one day; a weekly one covers its weekdays (none = every day). */
+/** A one-off blocker (ADR 0029) sits on its own days; a weekly one covers its weekdays (none = every day). */
 export function isOneOff(b: Pick<TimeBlocker, "date">): boolean {
   return !!b.date;
 }
 
-function covers(b: Pick<TimeBlocker, "weekdays" | "date">, date: DateStr): boolean {
-  if (b.date) return b.date === date;
+function covers(b: Pick<TimeBlocker, "weekdays">, date: DateStr): boolean {
   const days = b.weekdays ?? [];
   return days.length === 0 || days.includes(weekdayOf(date));
 }
 
-/** True when the blocker's band runs past midnight (23:00 → 07:00). */
+/** True when a weekly blocker's band runs past midnight (23:00 → 07:00). */
 export function isOvernight(b: Pick<TimeBlocker, "start" | "end">): boolean {
   return b.end <= b.start;
 }
@@ -42,16 +42,48 @@ function spanFrom(b: Pick<TimeBlocker, "start" | "end">, day: DateStr): TimedSpa
 }
 
 /**
- * The bands one blocker paints on one day: the day's own band when the
- * weekday is covered, plus the tail of the previous day's band when the
- * blocker runs past midnight. An overnight blocker whose end is "00:00"
- * simply reaches midnight and leaves no tail.
+ * A one-off blocker's whole span (ADR 0090): from its day and start to its
+ * end day and end. One stored before it had an end day reads the old way —
+ * the next morning when its end is at or before its start. null for a weekly
+ * blocker, a rule with no one span.
+ */
+export function blockerSpan(b: Pick<TimeBlocker, "date" | "endDate" | "start" | "end">): TimedSpan | null {
+  if (!b.date) return null;
+  return b.endDate ? { date: b.date, start: b.start, endDate: b.endDate, end: b.end } : spanFrom(b, b.date);
+}
+
+/**
+ * Where a one-off blocker lands when rescheduled from the Schedule or its
+ * Hours editor (ADR 0090): the whole new span, ending on its start day when
+ * given no end day. Given a start but no end it keeps its length; given no
+ * start (dropped on a day, not an hour) it moves by whole days, keeping its
+ * hours and how many days it covers.
+ */
+export function rescheduledBlocker(b: Pick<TimeBlocker, "date" | "endDate" | "start" | "end">, when: TimedWhen): Pick<TimeBlocker, "date" | "start" | "endDate" | "end"> {
+  const span = blockerSpan(b) ?? spanFrom(b, when.date);
+  if (!when.start) return { date: when.date, start: span.start, endDate: addDays(span.endDate, diffDays(span.date, when.date)), end: span.end };
+  if (!when.end) {
+    const kept = spanLasting(when.date, when.start, lengthOf(span) ?? 0);
+    return { date: kept.date, start: kept.start, endDate: kept.endDate, end: kept.end };
+  }
+  return { date: when.date, start: when.start, endDate: when.endDate ?? when.date, end: when.end };
+}
+
+/**
+ * The bands one blocker paints on one day. A one-off blocker paints its
+ * span's piece of the day (first day from its start, middle days whole, the
+ * last until its end). A weekly one paints the day's own band when the
+ * weekday is covered, plus the tail of the previous day's band when it runs
+ * past midnight; an end of "00:00" simply reaches midnight and leaves no tail.
  */
 export function bandsOn(b: TimeBlocker, date: DateStr): BlockerBand[] {
   if (b.active === false) return [];
+  const day = { start: date, end: date };
+  const span = blockerSpan(b);
+  if (span) return dayPieces(span, day);
   const out: BlockerBand[] = [];
-  for (const day of [addDays(date, -1), date]) {
-    if (covers(b, day)) out.push(...dayPieces(spanFrom(b, day), { start: date, end: date }));
+  for (const d of [addDays(date, -1), date]) {
+    if (covers(b, d)) out.push(...dayPieces(spanFrom(b, d), day));
   }
   return out.sort((x, y) => x.start.localeCompare(y.start));
 }
@@ -67,10 +99,12 @@ export function bandsIn(blockers: TimeBlocker[], range: { start: DateStr; end: D
   return out;
 }
 
-/** "Mon–Fri · 9:00 AM – 5:00 PM", "Every day · 11:00 PM – 7:00 AM (next day)", "Tue 25 Aug · 8:00 AM – 8:30 AM". */
+/** "Mon–Fri · 9:00 AM – 5:00 PM", "Every day · 11:00 PM – 7:00 AM (next day)", "Tue 25 Aug · 8:00 AM – 8:30 AM", "Mon 24 Aug · 6:00 PM – Wed 26 Aug 9:00 AM". */
 export function describeBlocker(b: TimeBlocker): string {
-  const when = b.date ? formatHuman(b.date) : describeWeekdays(b.weekdays ?? []);
-  return `${when} · ${formatTime(b.start)} – ${formatTime(b.end)}${isOvernight(b) ? " (next day)" : ""}`;
+  const span = blockerSpan(b);
+  if (!span) return `${describeWeekdays(b.weekdays ?? [])} · ${formatTime(b.start)} – ${formatTime(b.end)}${isOvernight(b) ? " (next day)" : ""}`;
+  const endDay = span.endDate === span.date ? "" : `${formatHuman(span.endDate)} `;
+  return `${formatHuman(span.date)} · ${formatTime(span.start)} – ${endDay}${formatTime(span.end)}`;
 }
 
 /** "Every day", "Weekdays", "Weekends", else the day names in Monday-first order. */
