@@ -10,6 +10,7 @@ import { DAILY, journalHref, periodHref, type Note } from "../domain/types";
 import { isWrittenDay, ownWords } from "../domain/written";
 import { PeriodAside } from "../components/JournalAside";
 import { JournalLinksButton } from "../components/JournalLinks";
+import { useJournalPaging } from "../components/useJournalPaging";
 import { PeriodReports } from "../components/TypeReports";
 
 /** The stretch one step coarser: a Week's Month (by its Thursday), a Month's Quarter, a Quarter's Year. */
@@ -72,6 +73,7 @@ export function PeriodScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, doc?.id]);
   const days = useMemo(() => new Map(notes.filter((n) => n.type === DAILY).map((n) => [n.title, n])), [notes]);
+  useJournalPaging(notes, key, (k) => navigate(periodHref(k)));
   const writtenParts = useMemo(() => new Set(notes.filter((n) => n.type !== DAILY).map((n) => `${n.type}|${n.title}`)), [notes]);
 
   if (current) return <Navigate to={periodHref(current)} replace />;
