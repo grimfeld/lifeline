@@ -27,6 +27,7 @@ palette.
   film, an album…), then opens that one's own form.
 - The others: **Mark done…** and **Next part of…** in Culture, and the Calendar's **Add today…**.
 - Everything inside a fold can still be pinned, and found in the palette.
+- A [Macro](settings.md) whose steps are all capture, none of them going anywhere, is capture too: it gets its own **Macros** group on the sheet and can be pinned. A Macro with any other step stays off the sheet. A pin of a deleted Macro, or one that stopped being capture, disappears.
 
 ## The command palette (Ctrl+K)
 
