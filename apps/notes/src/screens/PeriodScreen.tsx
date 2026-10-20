@@ -159,7 +159,7 @@ export function PeriodScreen() {
           )}
         </div>
       </div>
-      {doc && <PeriodAside docId={doc.id} periodKey={key} />}
+      <PeriodAside docId={doc?.id} periodKey={key} />
       </div>
     </div>
   );

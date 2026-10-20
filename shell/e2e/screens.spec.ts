@@ -371,6 +371,9 @@ const SCREENS: ScreenCase[] = [
   { name: "Journal · Today", path: "/app/journal" },
   { name: "Journal · Week", path: "/app/journal/p/:key", params: { key: "2026-W42" } },
   { name: "Journal · Year", path: "/app/journal/p/2026" },
+  // A date with no Day and a period with no review keep the sidebar (#206).
+  { name: "Journal · Day not written", path: "/app/journal?d=2001-02-14" },
+  { name: "Journal · Month without a review", path: "/app/journal/p/:key", params: { key: "2001-02" } },
   { name: "Journal · Types", path: "/app/journal/t" },
   { name: "Journal · Types (old link)", path: "/app/journal/c" },
   {
