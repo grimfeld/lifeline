@@ -14,6 +14,9 @@ const DAY = "2026-11-09"; // a Monday
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
+  // The sign-in dialog fades out over its overlay; a raw mouse press (a sweep)
+  // has no actionability wait and would land on that overlay.
+  await expect(page.locator('[data-slot="dialog-overlay"]')).toHaveCount(0);
 }
 
 const storedEvent = (page: Page, title: string) =>
