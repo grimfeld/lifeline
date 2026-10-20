@@ -34,7 +34,8 @@ export interface AgendaBlock<T> {
 /**
  * Assign overlapping timed items to side-by-side columns. Items are clustered
  * by transitive overlap; every block in a cluster shares the cluster's column
- * count. Zero-length items get a 30-minute minimum. All-day items are skipped.
+ * count. Zero-length items get a 30-minute minimum. All-day items are skipped,
+ * and so are items whose times are no times.
  */
 export function layoutColumns<T extends Pick<TimedItem, "start" | "end">>(items: T[]): AgendaBlock<T>[] {
   const timed = items
@@ -43,6 +44,8 @@ export function layoutColumns<T extends Pick<TimedItem, "start" | "end">>(items:
       const s = toHours(i.start!);
       return { item: i, s, e: Math.max(toHours(i.end ?? i.start!), s + 0.5) };
     })
+    // An item whose start or end is no time (a bad synced or typed value) is left off the hours, not laid at NaN.
+    .filter((b) => Number.isFinite(b.s) && Number.isFinite(b.e))
     .sort((a, b) => a.s - b.s || a.e - b.e);
   const out: AgendaBlock<T>[] = [];
   let cluster: typeof timed = [];
