@@ -4,7 +4,7 @@ import { excerpt, formatHuman, todayStr, useLinkIndex, type DateStr } from "@lif
 import { useNotes } from "../data/repo";
 import { onThisDay } from "../domain/journalStats";
 import { writtenDates } from "../domain/written";
-import { PERIOD_KINDS, PERIOD_LABELS, periodKey, periodLabel } from "../domain/periods";
+import { PERIOD_KINDS, PERIOD_LABELS, periodKey, periodLabel, periodRange } from "../domain/periods";
 import { DAILY, PERIOD_TYPES, journalHref, periodHref } from "../domain/types";
 import { JournalCalendar } from "./JournalCalendar";
 import { JournalLinks } from "./JournalLinks";
@@ -14,13 +14,45 @@ const ASIDE = "flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-l p-3 ma
 
 /**
  * The Journal's side column beside a Day (ADR 0068): the Day's links first —
- * the names it could link and what links to it — then the calendar (it pages by itself),
- * the stretches the day belongs to (each a review of its own) and the same day
- * in earlier years. On a date with no Day it stays, less the links: there is
- * no Document to link from.
+ * the names it could link and what links to it — then the Journal's own
+ * sections (`JournalSections`). On a date with no Day it stays, less the
+ * links: there is no Document to link from.
  */
 export function JournalAside({ date, docId }: { date: DateStr; docId?: string }) {
   const index = useLinkIndex();
+  return (
+    <aside className={ASIDE} aria-label="Journal">
+      {docId && <JournalLinks docId={docId} index={index} />}
+      <JournalSections date={date} open={date} />
+    </aside>
+  );
+}
+
+/**
+ * The side column beside a Week, Month, Quarter or Year: its links, as on a
+ * Day, then the Journal's sections at the period's first day, then the
+ * period's Reports. A period whose review isn't started keeps all but the
+ * links, so the column is never empty (#204).
+ */
+export function PeriodAside({ docId, periodKey: key }: { docId?: string; periodKey: string }) {
+  const index = useLinkIndex();
+  const from = periodRange(key)?.from;
+  return (
+    <aside className={ASIDE} aria-label="Journal">
+      {docId && <JournalLinks docId={docId} index={index} />}
+      {from && <JournalSections date={from} />}
+      <PeriodReports periodKey={key} index={index} />
+    </aside>
+  );
+}
+
+/**
+ * What the Journal's side column shows around a date, on a Day and on a period
+ * alike: the calendar at its month (it pages by itself), the stretches the
+ * date belongs to (each a review of its own) and the same day in earlier
+ * years. `open` is the Day open beside it, if one is.
+ */
+function JournalSections({ date, open }: { date: DateStr; open?: DateStr }) {
   const navigate = useNavigate();
   const notes = useNotes();
   const dailies = useMemo(() => notes.filter((n) => n.type === DAILY), [notes]);
@@ -30,9 +62,8 @@ export function JournalAside({ date, docId }: { date: DateStr; docId?: string })
   const earlier = useMemo(() => onThisDay([...written], date, { years: "all", alsoWeeks: false }), [written, date]);
 
   return (
-    <aside className={ASIDE} aria-label="Journal">
-      {docId && <JournalLinks docId={docId} index={index} />}
-      <JournalCalendar date={date} written={written} onPick={(d) => navigate(journalHref(d, todayStr()))} />
+    <>
+      <JournalCalendar date={date} open={open} written={written} onPick={(d) => navigate(journalHref(d, todayStr()))} />
       <section className="grid gap-1">
         <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Reviews</h2>
         {PERIOD_KINDS.map((k) => {
@@ -59,21 +90,6 @@ export function JournalAside({ date, docId }: { date: DateStr; docId?: string })
           ))
         )}
       </section>
-    </aside>
-  );
-}
-
-/**
- * The side column beside a Week, Month, Quarter or Year: its links, as on a
- * Day, then the period's Reports. A period whose review isn't started keeps
- * the Reports, without links.
- */
-export function PeriodAside({ docId, periodKey }: { docId?: string; periodKey: string }) {
-  const index = useLinkIndex();
-  return (
-    <aside className={ASIDE} aria-label="Journal">
-      {docId && <JournalLinks docId={docId} index={index} />}
-      <PeriodReports periodKey={periodKey} index={index} />
-    </aside>
+    </>
   );
 }

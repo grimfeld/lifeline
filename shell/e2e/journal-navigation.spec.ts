@@ -46,6 +46,23 @@ test.describe("Journal navigation · the sidebar stays (#206)", () => {
     expect(await titlesOf(page, "month")).not.toContain("2001-02");
   });
 
+  test("a period with no review and nothing in it still shows the calendar, Reviews and On this day", async ({ page }) => {
+    await seedJournal(page, { days: { "1999-07-01": "A year before." } });
+
+    await openPeriod(page, "2000-07");
+    await expect(page.getByText("No review of")).toBeVisible();
+    const side = sidebar(page);
+    // The calendar opens at the period's first month; no Day is open on a period page.
+    await expectCalendarAt(page, "July 2000");
+    await expect(calendar(page).locator("[aria-current]")).toHaveCount(0);
+    await expect(side.getByRole("heading", { name: "Reviews" })).toBeVisible();
+    await expect(side.getByRole("link", { name: /^Quarter Q3 2000/ })).toBeVisible();
+    // On this day, for the period's first day.
+    await expect(side.getByRole("heading", { name: "On this day" })).toBeVisible();
+    await expect(side.getByText("A year before.")).toBeVisible();
+    await expect(linkHeadings(page)).toHaveCount(0);
+  });
+
   test("paging the calendar to a month with nothing written keeps the sidebar", async ({ page }) => {
     await seedJournal(page, { days: { "2001-02-14": "Valentine's." } });
     await openDay(page, "2001-02-14");

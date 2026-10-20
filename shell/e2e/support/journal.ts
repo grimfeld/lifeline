@@ -68,7 +68,8 @@ export async function openDay(page: Page, date: string): Promise<void> {
 export async function openPeriod(page: Page, key: string): Promise<void> {
   await page.goto(`/app/journal/p/${key}`);
   await workLocally(page);
-  await expect(page.getByRole("button", { name: /^Previous (week|month|quarter|year)$/ })).toBeVisible();
+  // The page's own arrow comes first; the sidebar calendar has a "Previous month" and "Previous year" too.
+  await expect(page.getByRole("button", { name: /^Previous (week|month|quarter|year)$/ }).first()).toBeVisible();
 }
 
 /** The Journal's side column, on a Day or a period page (desk only: hidden below `lg`). */

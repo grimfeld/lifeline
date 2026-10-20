@@ -56,9 +56,10 @@ const ARROWS: Record<CalendarLevel, { before: Arrow[]; after: Arrow[] }> = {
  * what it shows, never the open Day or the URL, and it comes back to the open
  * Day's month whenever that Day changes. Its title zooms out — a month's to
  * its year's months, a year's to the list of years — and picking a month or a
- * year zooms back in; picking a day opens it.
+ * year zooms back in; picking a day opens it. It shows `date`'s month; `open`
+ * is the Day open beside it, marked — none on a period's page.
  */
-export function JournalCalendar({ date, written, onPick }: { date: DateStr; written: Set<string>; onPick: (d: DateStr) => void }) {
+export function JournalCalendar({ date, open, written, onPick }: { date: DateStr; open?: DateStr; written: Set<string>; onPick: (d: DateStr) => void }) {
   const [view, setView] = useState(() => viewAt(date));
   // Snap back to the open Day whenever it changes, by whatever means.
   const [shownFor, setShownFor] = useState(date);
@@ -106,15 +107,15 @@ export function JournalCalendar({ date, written, onPick }: { date: DateStr; writ
         )}
         {ARROWS[view.level].after.map(arrow)}
       </div>
-      {view.level === "days" && <MonthDays month={view.key} open={date} written={written} onPick={onPick} />}
-      {view.level === "months" && <YearMonths year={view.key} open={date} written={written} onPick={(key) => setView({ level: "days", key })} />}
-      {page && <YearsList years={page.years} open={date} written={written} onPick={(key) => setView({ level: "months", key })} />}
+      {view.level === "days" && <MonthDays month={view.key} open={open} written={written} onPick={onPick} />}
+      {view.level === "months" && <YearMonths year={view.key} open={open} written={written} onPick={(key) => setView({ level: "days", key })} />}
+      {page && <YearsList years={page.years} open={open} written={written} onPick={(key) => setView({ level: "months", key })} />}
     </div>
   );
 }
 
 /** A month's days as a grid: written days dotted, today ringed, the open Day filled. */
-function MonthDays({ month, open, written, onPick }: { month: string; open: DateStr; written: Set<string>; onPick: (d: DateStr) => void }) {
+function MonthDays({ month, open, written, onPick }: { month: string; open?: DateStr; written: Set<string>; onPick: (d: DateStr) => void }) {
   const first = `${month}-01`;
   const lead = (new Date(`${first}T00:00:00`).getDay() + 6) % 7;
   const cells: (DateStr | null)[] = Array.from({ length: lead }, () => null);
@@ -180,7 +181,7 @@ function Tile(props: { name: string; label: string; title: string; open: boolean
 }
 
 /** A year's twelve months; picking one shows its days. */
-function YearMonths({ year, open, written, onPick }: { year: string; open: DateStr; written: Set<string>; onPick: (month: string) => void }) {
+function YearMonths({ year, open, written, onPick }: { year: string; open?: DateStr; written: Set<string>; onPick: (month: string) => void }) {
   const marked = writtenMonths(written);
   const now = todayStr().slice(0, 7);
   return (
@@ -194,7 +195,7 @@ function YearMonths({ year, open, written, onPick }: { year: string; open: DateS
             name={key}
             label={short}
             title={periodLabel(key)}
-            open={open.slice(0, 7) === key}
+            open={open?.slice(0, 7) === key}
             now={key === now}
             later={key > now}
             written={marked.has(key)}
@@ -207,14 +208,14 @@ function YearMonths({ year, open, written, onPick }: { year: string; open: DateS
 }
 
 /** A page of the years list; picking a year shows its months. */
-function YearsList({ years, open, written, onPick }: { years: number[]; open: DateStr; written: Set<string>; onPick: (year: string) => void }) {
+function YearsList({ years, open, written, onPick }: { years: number[]; open?: DateStr; written: Set<string>; onPick: (year: string) => void }) {
   const marked = writtenYears(written);
   const now = todayStr().slice(0, 4);
   return (
     <div className="grid grid-cols-3 gap-0.5">
       {years.map((n) => {
         const y = String(n);
-        return <Tile key={y} name={y} label={y} title={y} open={open.slice(0, 4) === y} now={y === now} later={false} written={marked.has(y)} onClick={() => onPick(y)} />;
+        return <Tile key={y} name={y} label={y} title={y} open={open?.slice(0, 4) === y} now={y === now} later={false} written={marked.has(y)} onClick={() => onPick(y)} />;
       })}
     </div>
   );
