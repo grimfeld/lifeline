@@ -15,11 +15,25 @@ import {
 import { displayTitle, docHref, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff } from "@lifeline/core";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
-import { eventFormErrors, whenOf, type EventFormErrors } from "../domain/eventForm";
+import { eventFormErrors, newEventWhen, whenOf, withStart, type EventFormErrors } from "../domain/eventForm";
 import { EventWhenFields, whenIds } from "./EventWhenFields";
 
 /** Each checked control's id — its input's and the one an error focuses — in the order the dialog shows them. */
 const FIELD_IDS: Record<keyof EventFormErrors, string> = { title: "ev-title", ...whenIds("ev-") };
+
+/**
+ * What a new Event starts with, from whoever opens the dialog (the Schedule's
+ * quick add's "More…"): its title, day, start, end day and end. Whatever is
+ * left out takes the usual default.
+ */
+export interface EventPrefill {
+  title?: string;
+  date?: DateStr;
+  start?: string;
+  /** Kept for an Event that ends another day; one on a single day leaves it out. */
+  endDate?: DateStr;
+  end?: string;
+}
 
 export function EventDialog({
   open,
@@ -27,6 +41,7 @@ export function EventDialog({
   event,
   defaultDate,
   handoff,
+  prefill,
   onSaved,
 }: {
   open: boolean;
@@ -36,6 +51,8 @@ export function EventDialog({
   defaultDate?: DateStr;
   /** Create mode, Intake (ADR 0050): the title and the origin; the day and time are asked here. */
   handoff?: Handoff;
+  /** Create mode: what is already known of the new Event; it beats `defaultDate` and the Handoff's title. */
+  prefill?: EventPrefill;
   /** Create mode: called with the new Event once it is saved (the Intake contract). */
   onSaved?: (id: string) => void;
 }) {
@@ -43,7 +60,7 @@ export function EventDialog({
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState<string>(todayStr());
   const [endDate, setEndDate] = useState<string>("");
-  const [allDay, setAllDay] = useState(true);
+  const [allDay, setAllDay] = useState(false);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
   const [tags, setTags] = useState<string[]>([]);
@@ -54,18 +71,33 @@ export function EventDialog({
   const linkIndex = useLinkIndex();
   const backlinks = event ? linkIndex.backlinksTo(event.id) : [];
 
+  // The prefill's parts, not the object: a caller passing a fresh one each render must not reset what is typed.
+  const { title: preTitle, date: preDate, start: preStart, endDate: preEndDate, end: preEnd } = prefill ?? {};
   useEffect(() => {
     if (!open) return;
-    setTitle(event?.title ?? handoff?.title ?? "");
+    setTitle(event?.title ?? preTitle ?? handoff?.title ?? "");
     setNotes(event?.notes ?? (handoff ? [handoff.url, handoff.author ? `From ${handoff.author}` : ""].filter(Boolean).join("\n") : ""));
-    setDate(event?.date ?? defaultDate ?? todayStr());
-    setEndDate(event?.endDate ?? "");
-    setAllDay(event ? event.start === null : true);
-    setStart(event?.start ?? "09:00");
-    setEnd(event?.end ?? "10:00");
     setTags(event?.tags ?? []);
     setTried(false);
-  }, [open, event, defaultDate, handoff]);
+    if (event) {
+      setDate(event.date);
+      setEndDate(event.endDate ?? "");
+      setAllDay(event.start === null);
+      setStart(event.start ?? "09:00");
+      setEnd(event.end ?? "10:00");
+      return;
+    }
+    // A new Event is timed: at the next quarter hour today, 09:00 another day, lasting an hour.
+    const day = preDate ?? defaultDate ?? todayStr();
+    const usual = newEventWhen(day);
+    // A given start keeps its day, and an hour's length unless an end is given too.
+    const timed = preStart ? withStart(usual, preStart) : usual;
+    setDate(preStart ? day : usual.date);
+    setEndDate(preEndDate ?? "");
+    setAllDay(false);
+    setStart(timed.start);
+    setEnd(preEnd ?? timed.end);
+  }, [open, event, defaultDate, handoff, preTitle, preDate, preStart, preEndDate, preEnd]);
 
   async function submit() {
     const invalid = Object.keys(eventFormErrors({ title, date, endDate, allDay, start, end }));

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
 import { openCalendar, pickDate, pickInCalendar } from "./support/date-picker";
+import { setTime } from "./support/time-field";
 
 /**
  * Tasks and the Calendar App edit their Documents in a Peek (ADR 0085): each
@@ -141,11 +142,17 @@ test("an Event peeked from the Vault gets a time there, and an end before its st
 
   const dialog = await peek(page, id);
   await dialog.getByRole("checkbox", { name: "All day" }).click();
-  await dialog.getByLabel("Start").fill("10:30");
-  await dialog.getByLabel("End").fill("11:00");
+  const start = dialog.getByRole("combobox", { name: "Start" });
+  const end = dialog.getByRole("combobox", { name: "End" });
+  // Moving the start keeps the length: 09:00–10:00 becomes 10:30–11:30.
+  await setTime(start, "10:30");
+  await expect.poll(async () => { const d = await field(page, id); return { date: d.date, start: d.start, end: d.end }; }).toEqual({ date: "2026-03-02", start: "10:30", end: "11:30" });
+  await expect(dialog.getByText(/^until .+ · 1h$/)).toBeVisible();
+  await setTime(end, "11:00");
   await expect.poll(async () => { const d = await field(page, id); return { date: d.date, start: d.start, end: d.end }; }).toEqual({ date: "2026-03-02", start: "10:30", end: "11:00" });
+  await expect(dialog.getByText(/^until .+ · 30m$/)).toBeVisible();
 
-  await dialog.getByLabel("End").fill("09:00");
+  await setTime(end, "09:00");
   await expect(dialog.getByText("End must be after start")).toBeVisible();
   await page.waitForTimeout(800);
   expect((await field(page, id)).end).toBe("11:00");
