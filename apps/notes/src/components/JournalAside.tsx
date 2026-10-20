@@ -1,77 +1,20 @@
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
-import { addDays, excerpt, formatHuman, todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
-import { cn } from "@lifeline/ui";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { excerpt, formatHuman, todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
 import { useNotes } from "../data/repo";
 import { onThisDay } from "../domain/journalStats";
 import { writtenDates } from "../domain/written";
 import { PERIOD_KINDS, PERIOD_LABELS, periodKey, periodLabel } from "../domain/periods";
 import { DAILY, PERIOD_TYPES, journalHref, periodHref } from "../domain/types";
+import { JournalCalendar } from "./JournalCalendar";
 import { JournalLinks } from "./JournalLinks";
 import { PeriodReports } from "./TypeReports";
-
-const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
-
-/** The month around a day as a calendar: written days dotted, today ringed, the open day filled. */
-function MiniMonth({ date, written, onPick }: { date: DateStr; written: Set<string>; onPick: (d: DateStr) => void }) {
-  const first = `${date.slice(0, 7)}-01`;
-  const lead = (new Date(`${first}T00:00:00`).getDay() + 6) % 7;
-  const cells: (DateStr | null)[] = Array.from({ length: lead }, () => null);
-  for (let d = first; d.slice(0, 7) === first.slice(0, 7); d = addDays(d, 1)) cells.push(d);
-  const today = todayStr();
-  return (
-    <div className="grid gap-1">
-      <div className="flex items-center gap-1">
-        <button type="button" className="hover:bg-accent rounded p-0.5" aria-label="Previous month" onClick={() => onPick(addDays(first, -1))}>
-          <ChevronLeft className="size-3.5" />
-        </button>
-        <Link to={periodHref(periodKey("month", date))} className="flex-1 truncate text-center text-xs font-medium hover:underline">
-          {periodLabel(periodKey("month", date))}
-        </Link>
-        <button type="button" className="hover:bg-accent rounded p-0.5" aria-label="Next month" onClick={() => onPick(addDays(first, 40).slice(0, 7) + "-01")}>
-          <ChevronRight className="size-3.5" />
-        </button>
-      </div>
-      <div className="text-muted-foreground grid grid-cols-7 text-center text-[10px]">
-        {WEEKDAYS.map((w, i) => (
-          <span key={i}>{w}</span>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-0.5">
-        {cells.map((d, i) =>
-          d ? (
-            <button
-              key={d}
-              type="button"
-              onClick={() => onPick(d)}
-              title={written.has(d) ? `${formatHuman(d)} · written` : formatHuman(d)}
-              aria-label={d}
-              aria-current={d === date ? "date" : undefined}
-              className={cn(
-                "relative aspect-square rounded text-[11px] tabular-nums",
-                d === date ? "bg-primary text-primary-foreground" : "hover:bg-accent",
-                d === today && d !== date && "ring-primary ring-1",
-                d > today && "opacity-40",
-              )}
-            >
-              {Number(d.slice(-2))}
-              {written.has(d) && d !== date && <span className="bg-primary absolute bottom-0.5 left-1/2 size-1 -translate-x-1/2 rounded-full" />}
-            </button>
-          ) : (
-            <span key={`x${i}`} />
-          ),
-        )}
-      </div>
-    </div>
-  );
-}
 
 const ASIDE = "flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-l p-3 max-lg:hidden";
 
 /**
  * The Journal's side column beside a Day (ADR 0068): the Day's links first —
- * the names it could link and what links to it — then the month at a glance,
+ * the names it could link and what links to it — then the calendar (it pages by itself),
  * the stretches the day belongs to (each a review of its own) and the same day
  * in earlier years. On a date with no Day it stays, less the links: there is
  * no Document to link from.
@@ -89,7 +32,7 @@ export function JournalAside({ date, docId }: { date: DateStr; docId?: string })
   return (
     <aside className={ASIDE} aria-label="Journal">
       {docId && <JournalLinks docId={docId} index={index} />}
-      <MiniMonth date={date} written={written} onPick={(d) => navigate(journalHref(d, todayStr()))} />
+      <JournalCalendar date={date} written={written} onPick={(d) => navigate(journalHref(d, todayStr()))} />
       <section className="grid gap-1">
         <h2 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Reviews</h2>
         {PERIOD_KINDS.map((k) => {
