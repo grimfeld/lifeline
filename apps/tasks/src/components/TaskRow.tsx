@@ -1,8 +1,8 @@
-import { useState } from "react";
 import {
   Badge,
   Button,
   cn,
+  DatePickerPanel,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -13,8 +13,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  formatMinutes,
-  Input,
+  focusCalendarDay,
+  formatLength,
   TagChips,
   toast,
   usePushFlow,
@@ -39,7 +39,10 @@ import { deleteTask, moveItem, setArchived, setCompleted } from "../data/repo";
 import { APP_ID } from "../schedulable";
 import type { Task } from "../domain/types";
 
-/** Small "move to day" prompt shared by rows and cards. */
+/**
+ * Small "move to day" prompt shared by rows and cards: the calendar in place
+ * (ADR 0087), so tapping a day moves the item and closes it. Cancel backs out.
+ */
 export function MoveDialog({
   item,
   onClose,
@@ -47,39 +50,32 @@ export function MoveDialog({
   item: { itemId: string; title: string; date: DateStr | null } | null;
   onClose: () => void;
 }) {
-  const [date, setDate] = useState<string>("");
+  const pick = (to: string) => {
+    if (item && to && to !== item.date) {
+      void moveItem(item.itemId, to);
+      toast.success(`Moved to ${formatHuman(to)}`);
+    }
+    onClose();
+  };
   return (
-    <Dialog
-      open={item !== null}
-      onOpenChange={(o) => {
-        if (!o) onClose();
-        else setDate(item?.date ?? todayStr());
-      }}
-    >
-      <DialogContent className="sm:max-w-xs">
+    <Dialog open={item !== null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent
+        className="sm:max-w-xs"
+        // Focus the selected day (or today), so the arrows move between days at once.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          focusCalendarDay(e.currentTarget as HTMLElement);
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Move "{item?.title}"</DialogTitle>
         </DialogHeader>
-        <Input
-          type="date"
-          value={date || item?.date || todayStr()}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        <div className="flex justify-center">
+          <DatePickerPanel value={item?.date ?? todayStr()} onPick={pick} required />
+        </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
-          </Button>
-          <Button
-            onClick={() => {
-              const to = date || item?.date || todayStr();
-              if (item) {
-                void moveItem(item.itemId, to);
-                toast.success(`Moved to ${formatHuman(to)}`);
-              }
-              onClose();
-            }}
-          >
-            Move
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -150,7 +146,7 @@ export function TaskRow({
             )}
             {task.estimate && (
               <span className="flex shrink-0 items-center gap-1" title="Estimate">
-                <Clock className="size-3" /> {formatMinutes(task.estimate)}
+                <Clock className="size-3" /> {formatLength(task.estimate)}
               </span>
             )}
             {item.moved && item.sourceDate && (
@@ -172,7 +168,7 @@ export function TaskRow({
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="size-7 shrink-0">
+            <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label="More">
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>

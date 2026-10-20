@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ItemMark, missed } from "./marks";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from "@dnd-kit/core";
-import { Button, cn, toast } from "@lifeline/ui";
+import { Button, cn, toast, Tooltip, TooltipContent, TooltipTrigger } from "@lifeline/ui";
 import {
   BLOCK_DEFAULT_MIN,
   canPush,
   addDays,
   canRescheduleTimed,
+  cutEdges,
   completeSurfaceItem,
   createFromTimedTemplate,
   formatHuman,
@@ -18,6 +19,11 @@ import {
   parts,
   rescheduleTimedItem,
   scheduleSurfaceItem,
+  spanEndingAt,
+  spanLasting,
+  NEW_TIMED_MIN,
+  spanMovedTo,
+  startDayMovedTo,
   startOfWeek,
   timedCreators,
   toHours,
@@ -36,7 +42,7 @@ import { CalendarClock, Check, ChevronDown, Inbox, LayoutTemplate, Plus, Trash2,
 import { usePush } from "./push";
 import { HoursEditor, type HoursEditing, type HoursTarget } from "./HoursEditor";
 import { AddAtHour, type AddingAt } from "./AddAtHour";
-import { SNAP_MIN, snap, toClock } from "./hours";
+import { SNAP_MIN, snap, sweptRange, toClock } from "./hours";
 import type { CalendarCtx } from "./CalendarSurface";
 
 const NO_ENTRIES: Entry[] = [];
@@ -133,13 +139,19 @@ function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen,
   );
 }
 
-/** A block on the timeline: draggable, resizable at the bottom edge. */
+/**
+ * A block on the timeline: draggable, resizable at the bottom edge. A piece
+ * of a timed item that runs across days (ADR 0090) is drawn on its own day,
+ * squared and labelled where it carries on. Any piece drags the whole item;
+ * only the last one, where the item ends, resizes.
+ */
 function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, onOpen }: { entry: Entry; from: number; cols: number; col: number; touch: boolean; onResize: (endHours: number) => void; onComplete?: () => void; onRemove?: () => void; onOpen: (el: HTMLElement) => void }) {
   const isBlock = entry.kind === "block";
   // One item may have several blocks (ADR 0028): the Placement, not the item, is the draggable.
   const id = isBlock ? `block:${entry.item.placementId}` : `timed:${entry.item.key}`;
   const grab = useRef(0);
   const data = isBlock ? { item: entry.item, grab } : { timed: entry.item, grab };
+  const cut = isBlock ? { before: null, after: null } : cutEdges(entry.item);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data });
   const s = toHours(entry.start);
   const e = toHours(entry.end);
@@ -152,7 +164,13 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={cn("group absolute z-[2] cursor-grab overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-xs shadow-sm select-none", isDragging && "opacity-40", done && "opacity-60")}
+      className={cn(
+        "group absolute z-[2] cursor-grab overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-xs shadow-sm select-none",
+        cut.before && "rounded-t-none",
+        cut.after && "rounded-b-none",
+        isDragging && "opacity-40",
+        done && "opacity-60",
+      )}
       style={{
         top: (s - from) * HOUR_PX + 1,
         height: Math.max(18, (e - s) * HOUR_PX - 2),
@@ -199,12 +217,13 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
         )}
       </div>
       {!short && (
-        <div className="text-muted-foreground truncate text-[10px]">
-          {formatTime(entry.start)}–{formatTime(entry.end)}
+        <div className="text-muted-foreground truncate text-2xs">
+          {cut.before ?? (cut.after ? formatTime(entry.start) : `${formatTime(entry.start)}–${formatTime(entry.end)}`)}
         </div>
       )}
-      {/* On a phone the edge was a 12px target that fought the scroll: length is set in the editor there. */}
-      {!touch && (
+      {cut.after && !short && <div className="text-muted-foreground absolute inset-x-1.5 bottom-0.5 truncate text-2xs">{cut.after}</div>}
+      {/* On a phone the edge was a 12px target that fought the scroll: length is set in the editor there. A piece that carries on into the next day has no end of its own to drag. */}
+      {!touch && !cut.after && (
       <div
         className={cn("absolute inset-x-0 bottom-0 cursor-ns-resize touch-none", short ? "h-1.5" : "h-2")}
         aria-hidden
@@ -262,7 +281,8 @@ function BandLayer({ band, from, to, touch, onResize, onOpen }: { band: Band; fr
     borderColor: `color-mix(in oklab, ${color} 35%, transparent)`,
   };
   const title = `${formatTime(band.start)}–${formatTime(band.end)} ${band.title}`;
-  if (e <= s) return null;
+  // Nothing for an empty band, or one whose start or end is no time (NaN): a bad stored value must not paint at `top: NaN`.
+  if (!(e > s)) return null;
   if (band.fixed) {
     return (
       <div className="pointer-events-none absolute inset-x-0 z-0 overflow-hidden border-y" style={style} title={title}>
@@ -273,52 +293,65 @@ function BandLayer({ band, from, to, touch, onResize, onOpen }: { band: Band; fr
   return <OneOffBand band={band} s={s} e={e} style={style} title={title} touch={touch} onResize={onResize} onOpen={onOpen} />;
 }
 
-/** A one-off blocker's band: still behind everything, but a draggable with a resize edge. */
+/**
+ * A one-off blocker's band: still behind everything, but a draggable. One
+ * that runs across days (ADR 0090) paints a band per day; any of them drags
+ * the whole blocker, and only the last, where it ends, has a resize edge.
+ */
 function OneOffBand({ band, s, e, style, title, touch, onResize, onOpen }: { band: Band; s: number; e: number; style: React.CSSProperties; title: string; touch: boolean; onResize: (endHours: number) => void; onOpen: (el: HTMLElement) => void }) {
   const grab = useRef(0);
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${band.item.key}`, data: { timed: band.item, grab } });
+  const cut = cutEdges(band.item);
+  // A band clipped to the visible hours (a next-day part from 00:00) is held by its visible top; `hidden` says how far its real start is above it.
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${band.item.key}`, data: { timed: band.item, grab, hidden: s - toHours(band.start) } });
   const resizing = useRef<{ startY: number; startEnd: number } | null>(null);
+  const label = `${[cut.before, title, cut.after].filter(Boolean).join(" ")} · one-off, drag to move`;
   return (
-    <div
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      className={cn("absolute inset-x-0 z-[1] cursor-grab overflow-hidden border-y select-none", isDragging && "opacity-40")}
-      style={style}
-      title={`${title} · one-off, drag to move`}
-      onPointerDownCapture={(ev) => {
-        grab.current = ev.clientY - ev.currentTarget.getBoundingClientRect().top;
-      }}
-      onClick={(ev) => onOpen(ev.currentTarget)}
-    >
-      <span className="text-muted-foreground absolute top-0.5 left-1 truncate text-[10px]">{band.title}</span>
-      {!touch && (
-      <div
-        className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
-        aria-hidden
-        onPointerDown={(ev) => {
-          ev.stopPropagation();
-          ev.preventDefault();
-          (ev.target as HTMLElement).setPointerCapture(ev.pointerId);
-          resizing.current = { startY: ev.clientY, startEnd: e };
-        }}
-        onPointerMove={(ev) => {
-          if (!resizing.current) return;
-          const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
-          const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
-          (ev.currentTarget.parentElement as HTMLElement).style.height = `${(next - s) * HOUR_PX}px`;
-        }}
-        onPointerUp={(ev) => {
-          if (!resizing.current) return;
-          const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
-          const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
-          resizing.current = null;
-          if (next !== e) onResize(next);
-        }}
-        onClick={(ev) => ev.stopPropagation()}
-      />
-      )}
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          ref={setNodeRef}
+          {...attributes}
+          {...listeners}
+          className={cn("absolute inset-x-0 z-[1] cursor-grab overflow-hidden border-y select-none", isDragging && "opacity-40")}
+          style={style}
+          aria-label={label}
+          onPointerDownCapture={(ev) => {
+            grab.current = ev.clientY - ev.currentTarget.getBoundingClientRect().top;
+          }}
+          onClick={(ev) => onOpen(ev.currentTarget)}
+        >
+          <span className="text-muted-foreground absolute inset-x-1 top-0.5 truncate text-2xs">{band.title}</span>
+          {cut.after && (e - s) * HOUR_PX >= 34 && <span className="text-muted-foreground absolute inset-x-1 bottom-0.5 truncate text-2xs">{cut.after}</span>}
+          {!touch && !cut.after && (
+          <div
+            className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
+            aria-hidden
+            onPointerDown={(ev) => {
+              ev.stopPropagation();
+              ev.preventDefault();
+              (ev.target as HTMLElement).setPointerCapture(ev.pointerId);
+              resizing.current = { startY: ev.clientY, startEnd: e };
+            }}
+            onPointerMove={(ev) => {
+              if (!resizing.current) return;
+              const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
+              const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
+              (ev.currentTarget.parentElement as HTMLElement).style.height = `${(next - s) * HOUR_PX}px`;
+            }}
+            onPointerUp={(ev) => {
+              if (!resizing.current) return;
+              const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
+              const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
+              resizing.current = null;
+              if (next !== e) onResize(next);
+            }}
+            onClick={(ev) => ev.stopPropagation()}
+          />
+          )}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -331,6 +364,7 @@ function DayColumn({
   today,
   nowH,
   onSlotClick,
+  onSweep,
   onResize,
   onBandResize,
   onComplete,
@@ -351,6 +385,8 @@ function DayColumn({
   ghost: Ghost | null;
   onOpen: (target: HoursTarget, el: HTMLElement) => void;
   onSlotClick: (date: DateStr, hours: number, point: { x: number; y: number }) => void;
+  /** A desk sweep over empty hours was let go: add across that range. */
+  onSweep: (date: DateStr, startH: number, endH: number, point: { x: number; y: number }) => void;
   onResize: (entry: Entry, endHours: number) => void;
   onBandResize: (band: Band, endHours: number) => void;
   onComplete: (item: SurfaceItem) => void;
@@ -359,6 +395,40 @@ function DayColumn({
   const colDrop = useDroppable({ id: `col:${date}` });
   const height = (to - from) * HOUR_PX;
   const laid = useMemo(() => layoutColumns(entries.map((en) => ({ ...en, start: en.start, end: en.end }))), [entries]);
+  /** A desk sweep in progress (#226): where the press began, and the range drawn once the pointer has moved. */
+  const pressed = useRef<{ y: number; hours: number } | null>(null);
+  const [sweep, setSweep] = useState<Ghost | null>(null);
+  const hoursAt = (el: HTMLElement, clientY: number) => from + (clientY - el.getBoundingClientRect().top) / HOUR_PX;
+  // Only empty hours start one: Blocks and bands sit above the slots and take their own presses (a drag).
+  // Mouse and pen only — on a phone a press and hold drags an item, and a tap adds.
+  const sweepHandlers = touch
+    ? {}
+    : {
+        onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+          if (e.pointerType === "touch" || e.button !== 0) return;
+          const col = e.currentTarget.parentElement!;
+          pressed.current = { y: e.clientY, hours: hoursAt(col, e.clientY) };
+          e.currentTarget.setPointerCapture(e.pointerId);
+          e.preventDefault(); // no text selection while sweeping
+        },
+        onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+          const p = pressed.current;
+          if (!p || (!sweep && Math.abs(e.clientY - p.y) < 4)) return;
+          const r = sweptRange(p.hours, hoursAt(e.currentTarget.parentElement!, e.clientY), from, to);
+          setSweep((g) => (g?.startH === r.startH && g.lenH === r.endH - r.startH ? g : { date, startH: r.startH, lenH: r.endH - r.startH }));
+        },
+        onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => {
+          pressed.current = null;
+          if (!sweep) return;
+          setSweep(null);
+          onSweep(date, sweep.startH, sweep.startH + sweep.lenH, { x: e.clientX, y: e.clientY });
+        },
+        onPointerCancel: () => {
+          pressed.current = null;
+          setSweep(null);
+        },
+      };
+  const shown = ghost ?? sweep;
   return (
     <div className="flex min-w-0 flex-col">
       <div ref={colDrop.setNodeRef} className={cn("relative", colDrop.isOver && "bg-accent/20")} style={{ height }} data-col={date}>
@@ -378,6 +448,7 @@ function DayColumn({
                 onSlotClick(date, hours, { x: e.clientX, y: e.clientY });
               },
             }}
+            {...sweepHandlers}
           />
         ))}
         {laid.map(({ item: en, col, cols }) => (
@@ -394,14 +465,14 @@ function DayColumn({
             onOpen={(el) => onOpen(en.kind === "block" ? { kind: "work", item: en.item } : { kind: "timed", item: en.item }, el)}
           />
         ))}
-        {ghost && (
+        {shown && (
           <div
             className="border-primary bg-primary/10 pointer-events-none absolute inset-x-0.5 z-[3] rounded-md border-2 border-dashed px-1.5 py-0.5"
-            style={{ top: (ghost.startH - from) * HOUR_PX + 1, height: Math.max(18, ghost.lenH * HOUR_PX - 2) }}
+            style={{ top: (shown.startH - from) * HOUR_PX + 1, height: Math.max(18, shown.lenH * HOUR_PX - 2) }}
           >
             {/* Bottom right: the lifted chip rides the top left under the finger. */}
             <span className="bg-background text-primary absolute right-1 bottom-0.5 rounded px-1 text-[11px] font-semibold tabular-nums">
-              {formatTime(toClock(ghost.startH))}–{formatTime(toClock(ghost.startH + ghost.lenH))}
+              {formatTime(toClock(shown.startH))}–{formatTime(toClock(shown.startH + shown.lenH))}
             </span>
           </div>
         )}
@@ -554,7 +625,7 @@ function DayStrip({ anchor, today, onPick }: { anchor: DateStr; today: DateStr; 
  * 3 Day and Week. Chips (strip or pool) are sources: drag one onto a slot to make a Time block and the chip
  * stays, greyed while blocks lie ahead (ADR 0028); drag a block to move that
  * block alone; drag it to the strip or the pool to remove it. Resize the
- * bottom edge; double-click an empty slot to add an Event. Times live in
+ * bottom edge; double-click an empty slot, or sweep down empty hours on the desk, to add an Event. Times live in
  * Placements; Events and one-off blockers (ADR 0029) retime through their App.
  */
 export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
@@ -687,7 +758,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
     endDrag();
     if (!e.over) return;
     const overId = String(e.over.id);
-    const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate };
+    const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate; hidden?: number };
     const at = landing(e);
     if (at) {
       const { date, startH } = at;
@@ -704,8 +775,13 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
         scheduleSurfaceItem(d.item as SurfaceItem, date, { start, end: addHours(start, dur) }).catch(fail);
       } else if (d.timed) {
         if (!canRescheduleTimed(d.timed.appId)) return void toast.error("This item can't be retimed here");
-        const dur = d.timed.start ? durationOf(d.timed.start, d.timed.end, 60) : 1;
-        rescheduleTimedItem(d.timed, date, start, addHours(start, dur)).catch(fail);
+        if (!d.timed.start) {
+          // An all-day item lifted onto the hours lasts an hour, past midnight when dropped late (ADR 0090).
+          rescheduleTimedItem(d.timed, spanLasting(date, start, NEW_TIMED_MIN)).catch(fail);
+          return;
+        }
+        // Whichever piece was lifted, the whole item moves by the drop (ADR 0090); one with no end stays end-less.
+        rescheduleTimedItem(d.timed, spanMovedTo(d.timed, date, d.hidden ? toClock(startH - d.hidden) : start)).catch(fail);
       }
       return;
     }
@@ -713,7 +789,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
       const date = overId.slice(6);
       if (d.item) scheduleSurfaceItem(d.item as SurfaceItem, date, null).catch(fail);
       else if (d.timed) {
-        if (canRescheduleTimed(d.timed.appId)) rescheduleTimedItem(d.timed, date, null, null).catch(fail);
+        if (canRescheduleTimed(d.timed.appId)) rescheduleTimedItem(d.timed, { date: startDayMovedTo(d.timed, date), start: null, end: null }).catch(fail);
         else if (d.timed.date !== date) moveTimedItem(d.timed, date).catch(fail);
       }
       return;
@@ -815,13 +891,15 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
                         if (Date.now() - lastDrag.current < 350) return;
                         setAdding({ date, hours, point });
                       }}
+                      onSweep={(date, hours, endHours, point) => setAdding({ date, hours, endHours, point })}
                       onResize={(en, endH) => {
                         const end = toClock(endH);
                         if (en.kind === "block") scheduleSurfaceItem(en.item, en.item.displayDate, { start: en.start, end }).catch(fail);
-                        else if (canRescheduleTimed(en.item.appId)) rescheduleTimedItem(en.item, en.item.date, en.start, end).catch(fail);
+                        else if (canRescheduleTimed(en.item.appId)) rescheduleTimedItem(en.item, spanEndingAt(en.item, end)).catch(fail);
                       }}
                       onBandResize={(b, endH) => {
-                        if (canRescheduleTimed(b.item.appId)) rescheduleTimedItem(b.item, b.item.date, b.start, toClock(endH)).catch(fail);
+                        // Only the last band has an edge, and it moves the end alone (ADR 0090).
+                        if (canRescheduleTimed(b.item.appId)) rescheduleTimedItem(b.item, spanEndingAt(b.item, toClock(endH))).catch(fail);
                       }}
                       onComplete={(it) => completeSurfaceItem(it).then(() => toast.success(`${it.title} done`)).catch(fail)}
                       onRemove={(it) => (it.placementId ? unplaceItem(it.placementId).catch(fail) : undefined)}
@@ -835,7 +913,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
         <p className="text-muted-foreground shrink-0 text-[11px]">
           {isMobile
             ? "Tap anything to edit it · tap an empty hour to add · press and hold to drag."
-            : "Click anything to edit it · double-click a slot to add · drag work or a template into a slot to plan it — a chip stays and can be planned again · drag a block to the strip or the pool to remove it · resize the bottom edge · shaded bands are your time blockers; one-off bands drag."}
+            : "Click anything to edit it · double-click a slot or drag down empty hours to add · drag work or a template into a slot to plan it — a chip stays and can be planned again · drag a block to the strip or the pool to remove it · resize the bottom edge · shaded bands are your time blockers; one-off bands drag."}
         </p>
       </div>
 

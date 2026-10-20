@@ -54,6 +54,16 @@ describe("freeStretch", () => {
     expect(freeStretch(taken, { date: D, time: "21:30" }, 60)).toEqual({ date: D1, start: "07:00", end: "08:00" });
   });
 
+  it("takes every piece of a multi-day Event, as its App reports them", () => {
+    const D2 = "2026-09-25";
+    const conference: TakenSpan[] = [
+      { date: D, start: "09:00", end: "24:00" },
+      { date: D1, start: "00:00", end: "24:00" },
+      { date: D2, start: "00:00", end: "17:00" },
+    ];
+    expect(freeStretch(conference, { date: D, time: "08:00" }, 120)).toEqual({ date: D2, start: "17:00", end: "19:00" });
+  });
+
   it("never crosses midnight", () => {
     expect(freeStretch([], { date: D, time: "23:30" }, 60)).toEqual({ date: D1, start: "00:00", end: "01:00" });
   });

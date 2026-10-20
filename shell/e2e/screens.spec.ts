@@ -3,6 +3,7 @@ import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
 import { selectText } from "./support/selection";
+import { datePickerLabelled, dayFromToday, openCalendar, showPhoneFilters } from "./support/date-picker";
 
 /**
  * Every screen of the app, at phone and desktop width (the `mobile` and
@@ -201,6 +202,78 @@ function peekOf(type: string, userField?: boolean, write?: boolean) {
   };
 }
 
+/**
+ * A Provision's Peek with its "Expires" Date picker open (ADR 0087): the
+ * calendar sits inside the viewport and nothing scrolls sideways, at phone
+ * width too; the layout check then covers the popover itself.
+ */
+async function datePickerOpen(page: Page) {
+  await peekOf("provision")(page);
+  await page.getByRole("dialog").getByLabel("Expires (check by)").click();
+  await calendarFits(page);
+}
+
+/** A type's reports over two dates (From set), with To's calendar open over the page. */
+async function reportToOpen(page: Page) {
+  await workLocally(page);
+  await showPhoneFilters(page, "Dates", datePickerLabelled(page, "To"));
+  await datePickerLabelled(page, "To").click();
+  await calendarFits(page);
+}
+
+/** The open Date picker's calendar sits inside the viewport and scrolls nothing sideways. */
+async function calendarFits(page: Page) {
+  const calendar = openCalendar(page);
+  await expect(calendar).toBeVisible();
+  const fit = await calendar.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, right: r.right, width: innerWidth, scroll: document.documentElement.scrollWidth };
+  });
+  expect(fit.left).toBeGreaterThanOrEqual(0);
+  expect(fit.right).toBeLessThanOrEqual(fit.width);
+  expect(fit.scroll).toBeLessThanOrEqual(fit.width);
+}
+
+/**
+ * The Time blocker dialog with its Start Time field's list open: the quarter
+ * hours sit inside the viewport and nothing scrolls sideways, at phone width
+ * too; the layout check then covers the list itself.
+ */
+async function timeListOpen(page: Page) {
+  await workLocally(page);
+  await page.getByRole("button", { name: "New blocker" }).click();
+  await page.getByRole("dialog").getByRole("combobox", { name: "Start" }).click();
+  const list = page.getByRole("listbox", { name: "Times" });
+  await expect(list.getByRole("option", { selected: true })).toBeInViewport();
+  const fit = await list.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, right: r.right, bottom: r.bottom, width: innerWidth, height: innerHeight, scroll: document.documentElement.scrollWidth };
+  });
+  expect(fit.left).toBeGreaterThanOrEqual(0);
+  expect(fit.right).toBeLessThanOrEqual(fit.width);
+  expect(fit.bottom).toBeLessThanOrEqual(fit.height);
+  expect(fit.scroll).toBeLessThanOrEqual(fit.width);
+}
+
+/**
+ * The Schedule's quick add (#225) over an empty hour, a very long title typed:
+ * Start, End, the length and More… keep their places, in the bottom sheet on
+ * a phone and the popover on the desk.
+ */
+const QUICK_ADD_DAY = "2031-01-06";
+async function quickAddOpen(page: Page) {
+  await workLocally(page);
+  // A day far ahead, clear of the seeded Events, so the tap lands on an empty hour.
+  const column = page.locator(`[data-col="${QUICK_ADD_DAY}"]`);
+  await expect(column).toBeVisible();
+  const position = { x: 20, y: 2 * 56 + 10 };
+  if ((page.viewportSize()?.width ?? 1280) < 768) await column.tap({ position });
+  else await column.dblclick({ position });
+  const quick = page.getByRole("dialog", { name: /^Add on / });
+  await quick.getByRole("textbox", { name: "Title" }).fill(longText("A new event"));
+  await expect(quick.getByRole("button", { name: "More…" })).toBeVisible();
+}
+
 /** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
 const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
 
@@ -247,6 +320,27 @@ async function openSelectionMenu(page: Page) {
   await expect(page.getByRole("dialog", { name: "Selection menu" }).getByRole("option").first()).toContainText("Link to Selected person");
 }
 
+/** An unwritten date's page once written Days lie on both sides: "Start writing" and the links to them (#208). */
+async function seedWrittenNeighbours(page: Page) {
+  await workLocally(page);
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    await core.createDocument({ type: "daily", title: "2001-02-04", body: "Marie wrote back." });
+    await core.createDocument({ type: "daily", title: "2001-03-13", body: "Rain." });
+  }, CORE_URL);
+  await expect(page.getByRole("link", { name: /^Next written Day/ })).toBeVisible();
+}
+
+/** The Journal sidebar's calendar zoomed out `levels` times (1: a year's months, 2: the years list) — desk only, the sidebar is hidden below `lg`. */
+const zoomCalendar = (levels: number) => async (page: Page) => {
+  await workLocally(page);
+  if ((page.viewportSize()?.width ?? 0) < 1024) return;
+  const calendar = page.getByRole("complementary", { name: "Journal" }).getByRole("group", { name: "Calendar" });
+  await calendar.getByRole("button", { name: "February 2001" }).click();
+  if (levels > 1) await calendar.getByRole("button", { name: "2001", exact: true }).first().click();
+  await expect(calendar.getByRole("button", { name: levels > 1 ? /^Earlier years$/ : /^2001-02(, written)?$/ })).toBeVisible();
+};
+
 /** The Selection menu's "Link to…": every Linkable Document, the seeded very long ones among them. */
 async function openLinkSearch(page: Page) {
   await openSelectionMenu(page);
@@ -268,6 +362,7 @@ const SCREENS: ScreenCase[] = [
   // Core destinations.
   { name: "Calendar · Upcoming", path: "/calendar?view=upcoming" },
   { name: "Calendar · Day", path: "/calendar?view=day" },
+  { name: "Calendar · Day · quick add", path: `/calendar?view=day&d=${QUICK_ADD_DAY}`, afterOpen: quickAddOpen },
   { name: "Calendar · 3 Day", path: "/calendar?view=3day" },
   { name: "Calendar · Week", path: "/calendar?view=week" },
   { name: "Calendar · Month", path: "/calendar?view=month" },
@@ -324,6 +419,7 @@ const SCREENS: ScreenCase[] = [
   // House's editable Peeks (ADR 0085): each App's own controls over a long-titled Document.
   { name: "Vault · Peek of chore", path: "/vault/d/:id", type: "chore", afterOpen: peekOf("chore") },
   { name: "Vault · Peek of provision", path: "/vault/d/:id", type: "provision", afterOpen: peekOf("provision") },
+  { name: "Vault · Peek of provision · date picker open", path: "/vault/d/:id", type: "provision", afterOpen: datePickerOpen },
   { name: "Vault · Peek of need", path: "/vault/d/:id", type: "need", afterOpen: peekOf("need") },
   // The Progress Apps' editable Peeks (ADR 0085), each drawn by its App.
   { name: "Vault · Peek of a Stat", path: "/vault", afterOpen: peekOf("stat") },
@@ -373,6 +469,12 @@ const SCREENS: ScreenCase[] = [
   { name: "Journal · Today", path: "/app/journal" },
   { name: "Journal · Week", path: "/app/journal/p/:key", params: { key: "2026-W42" } },
   { name: "Journal · Year", path: "/app/journal/p/2026" },
+  // A date with no Day and a period with no review keep the sidebar (#206).
+  { name: "Journal · Day not written", path: "/app/journal?d=2001-02-14" },
+  { name: "Journal · Day not written, between written Days", path: "/app/journal?d=2001-02-14", afterOpen: seedWrittenNeighbours },
+  { name: "Journal · Month without a review", path: "/app/journal/p/:key", params: { key: "2001-02" } },
+  { name: "Journal · Calendar months of a year", path: "/app/journal?d=2001-02-14", afterOpen: zoomCalendar(1) },
+  { name: "Journal · Calendar years", path: "/app/journal?d=2001-02-14", afterOpen: zoomCalendar(2) },
   { name: "Journal · Types", path: "/app/journal/t" },
   { name: "Journal · Types (old link)", path: "/app/journal/c" },
   {
@@ -410,6 +512,7 @@ const SCREENS: ScreenCase[] = [
     },
   },
   { name: "Journal · One type", path: "/app/journal/t/:type", params: { type: "e2eperson" } },
+  { name: "Journal · One type · two dates, To open", path: `/app/journal/t/:type?w=custom&from=${dayFromToday(-10)}`, params: { type: "e2eperson" }, afterOpen: reportToOpen },
   { name: "Journal · One type (old link)", path: "/app/journal/c/:type", params: { type: "e2eperson" } },
   { name: "Journal · Templates", path: "/app/journal/templates" },
   { name: "Journal · Page", path: "/app/journal/d/:id", type: "template" },
@@ -434,9 +537,21 @@ const SCREENS: ScreenCase[] = [
       await expect(page.getByText("Archive is empty.")).toBeVisible();
     },
   },
+  {
+    // The Move dialog: the calendar in place under a very long title.
+    name: "Tasks · Move dialog",
+    path: "/app/tasks",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await page.getByRole("button", { name: "More" }).first().click();
+      await page.getByRole("menuitem", { name: "Move to day…" }).click();
+      await expect(page.getByRole("dialog").locator('[data-slot="calendar"]')).toBeVisible();
+    },
+  },
   { name: "Projects · Timeline", path: "/app/projects/timeline" },
   { name: "Project", path: "/app/projects/p/:id", type: "project" },
   { name: "Events", path: "/app/events", afterOpen: workLocally },
+  { name: "Events · Time blocker · time list open", path: "/app/events?tab=blockers", afterOpen: timeListOpen },
   {
     // The Event dialog saved without a title: the Field's error under the title, not a toast.
     name: "Events · Event dialog error",
@@ -451,6 +566,20 @@ const SCREENS: ScreenCase[] = [
       await expect(title).toHaveAccessibleDescription("Title required");
       await expect(title).toBeFocused();
       await expect(page.getByText("Title required"), "under the field only, no toast").toHaveCount(1);
+    },
+  },
+  {
+    // The Event template dialog: the kit Length picker, holding a custom length of days.
+    name: "Events · Event template dialog",
+    path: "/app/events?tab=templates",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await page.getByRole("button", { name: "New event template" }).click();
+      const length = page.getByRole("dialog").getByRole("group", { name: "Length" });
+      await length.getByRole("textbox").fill("12d 23h 45m");
+      await length.getByRole("textbox").press("Enter");
+      await expect(length.getByRole("textbox")).toHaveValue("12d 23h 45m");
+      await expect(length.getByRole("button", { name: "1h", exact: true })).toHaveAttribute("aria-pressed", "false");
     },
   },
   { name: "Stats", path: "/app/stats" },

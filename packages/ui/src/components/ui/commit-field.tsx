@@ -1,13 +1,18 @@
 import * as React from "react"
 
 import { useCommitDraft } from "../../lib/useCommitDraft"
+import { DatePicker, type DateSpan } from "./date-picker"
+import { DateTimeField } from "./date-time-field"
 import { Field } from "./field"
 import { Input } from "./input"
 import { Textarea } from "./textarea"
+import { TimeField } from "./time-field"
 
 /**
  * A field edited in place, written once the edit is done: on leaving it or
- * Enter (a date as soon as one is picked), or — with `delay` — a moment after
+ * Enter (a date as soon as a day is picked from the kit's Date picker; a time
+ * as soon as it is picked or typed into the kit's Time field; a date and time
+ * as soon as either part is), or — with `delay` — a moment after
  * the typing stops; Escape puts the stored value back. `onCommit` is the
  * owner's operation — when it refuses (throws), its message shows under the
  * field and the typed text stays, to be fixed. Until the field is being edited
@@ -31,20 +36,24 @@ function CommitField({
   min,
   max,
   step,
-}: {
+  required,
+  startYear,
+  endYear,
+}: Omit<DateSpan, "min" | "max"> & {
   label: React.ReactNode
   value: string
   onCommit: (next: string) => unknown
   multiline?: boolean
   /** A multiline field's height in lines. */
   rows?: number
-  type?: "text" | "date" | "datetime-local" | "number" | "url"
+  type?: "text" | "date" | "time" | "datetime-local" | "number" | "url"
   /** Write this many ms after the last keystroke, not only on leaving the field. */
   delay?: number
   hint?: React.ReactNode
   className?: string
   placeholder?: string
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"]
+  /** A number's bounds, or a date's (`YYYY-MM-DD`) or a date and time's (`YYYY-MM-DDTHH:MM`). */
   min?: number | string
   max?: number | string
   step?: number | string
@@ -52,8 +61,16 @@ function CommitField({
   const { draft, error, change, commit, revert } = useCommitDraft(value, onCommit, { delay })
   const onChange = (next: string) => {
     change(next)
-    // A date is done once picked.
-    if (type === "date") void commit()
+    // A date or a time is done once picked (a typed time once the Time field reads it).
+    if (type === "date" || type === "time") void commit()
+  }
+  // A date's (or a date and time's) bounds and years, as its picker takes them.
+  const span = {
+    min: min === undefined ? undefined : String(min),
+    max: max === undefined ? undefined : String(max),
+    required,
+    startYear,
+    endYear,
   }
   const events = {
     onBlur: () => void commit(),
@@ -70,7 +87,21 @@ function CommitField({
   }
   return (
     <Field label={label} hint={hint} error={error} className={className}>
-      {multiline ? (
+      {type === "date" ? (
+        <DatePicker value={draft} onChange={onChange} {...span} placeholder={placeholder} />
+      ) : type === "time" ? (
+        <TimeField value={draft} onChange={onChange} required={required} placeholder={placeholder} />
+      ) : type === "datetime-local" ? (
+        <DateTimeField
+          value={draft}
+          onChange={(next) => {
+            change(next)
+            void commit()
+          }}
+          {...span}
+          placeholder={placeholder}
+        />
+      ) : multiline ? (
         <Textarea rows={rows} value={draft} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} {...events} />
       ) : (
         <Input

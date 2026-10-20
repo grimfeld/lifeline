@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
-import { Button, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, toast } from "@lifeline/ui";
+import { Button, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, LengthPicker, TagInput, toast } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { DEFAULT_DURATION_MIN, durationOf } from "../domain/templates";
 import type { BlockerTemplate } from "../domain/types";
 import { addBlockerTemplate, updateBlockerTemplate } from "../data/blockerTemplates";
 import { BLOCKER_COLORS } from "./TimeBlockerDialog";
-
-/** Common lengths, offered as one click each. */
-const PRESET_MIN = [10, 15, 20, 30, 45, 60];
 
 /** A Blocker template (ADR 0029): the shape of a one-off band you drop on the Schedule — title, length, colour. */
 export function BlockerTemplateDialog({
@@ -61,15 +58,8 @@ export function BlockerTemplateDialog({
             <p className="text-muted-foreground text-xs">Drop it on an hour of the Schedule to paint a one-off band there — hours taken, not an event.</p>
           </div>
           <div className="grid gap-2">
-            <Label>Length</Label>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {PRESET_MIN.map((m) => (
-                <Button key={m} type="button" size="sm" variant={durationMin === m ? "default" : "outline"} onClick={() => setDurationMin(m)}>
-                  {m < 60 ? `${m} min` : m % 60 === 0 ? `${m / 60} h` : `${Math.floor(m / 60)} h ${m % 60}`}
-                </Button>
-              ))}
-              <Input type="number" min={5} step={5} className="h-8 w-24" value={durationMin} onChange={(e) => setDurationMin(Number(e.target.value) || DEFAULT_DURATION_MIN)} aria-label="Length in minutes" />
-            </div>
+            <Label htmlFor="btpl-length">Length</Label>
+            <LengthPicker id="btpl-length" value={durationMin} onChange={(m) => setDurationMin(m ?? DEFAULT_DURATION_MIN)} />
           </div>
           <div className="grid gap-2">
             <Label>Colour</Label>

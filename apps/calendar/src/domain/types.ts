@@ -2,14 +2,15 @@ import type { DateStr, Document, TimeStr, Weekday } from "@lifeline/core";
 
 /**
  * A thing that happens at a fixed time (CONTEXT.md): not work, not
- * completable. Timed on one day (start/end "HH:MM"), or all-day spanning
- * [date, endDate] when start is null. A Document of type `event` (ADR 0018).
+ * completable. Timed from `date` + `start` to `endDate` + `end` ("HH:MM"),
+ * on any day (ADR 0090), or all-day spanning [date, endDate] when start is
+ * null. A Document of type `event` (ADR 0018).
  */
 export interface Event extends Document {
   notes: string;
-  /** First (or only) day. */
+  /** First (or only) day; a timed Event's start day. */
   date: DateStr;
-  /** All-day events only: last day, inclusive. null = single day. */
+  /** Timed: the day `end` is on. All-day: the last day, inclusive. null = the same day as `date`. */
   endDate: DateStr | null;
   /** null = all day. */
   start: TimeStr | null;
@@ -51,9 +52,16 @@ export interface TimeBlocker extends Document {
    * `weekdays` and may be moved on the Schedule; a weekly one never.
    */
   date: DateStr | null;
+  /**
+   * One-off shape only (ADR 0090): the day the band ends on, so it may run
+   * past midnight and across days ("travelling Mon–Wed"). null = read the old
+   * way: on `date`, or the next morning when `end` is at or before `start`.
+   * Always null on a weekly blocker.
+   */
+  endDate?: DateStr | null;
   /** Weekly shape only. Core weekdays (0 = Sunday). Empty = every day. */
   weekdays: Weekday[];
-  /** "HH:MM"; when `end` is at or before `start` the band runs past midnight into the next day. */
+  /** "HH:MM". Weekly: when `end` is at or before `start` the band runs past midnight into the next day. One-off: the end's time on `endDate`. */
   start: TimeStr;
   end: TimeStr;
   /** CSS colour for the band; null = the Calendar App's colour. */

@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Button,
   Dialog,
+  DatePicker,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -10,7 +11,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  Input,
   toast,
 } from "@lifeline/ui";
 import {
@@ -115,7 +115,7 @@ export function useMoveDialog(today: DateStr) {
         <DialogHeader>
           <DialogTitle>Move "{moving?.title}"</DialogTitle>
         </DialogHeader>
-        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        <DatePicker required value={date} onChange={setDate} aria-label="Day" />
         <DialogFooter>
           <Button variant="outline" onClick={() => setMoving(null)}>
             Cancel

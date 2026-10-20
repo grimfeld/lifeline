@@ -1,22 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Textarea, toast } from "@lifeline/ui";
+import { Button, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Label, Textarea, nowMoment, toast } from "@lifeline/ui";
 import type { Habit, Negative } from "../domain/types";
 import { completeHabit, deleteCompletion, logNegative, useHabits, useNegatives } from "../data/repo";
 import { celebrateCompletion, mournNegative } from "../feedback/feedback";
 import { occurredAtOf } from "../domain/when";
-
-function nowLocalInput(): string {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-}
 
 function WhenAndNote({ when, setWhen, note, setNote }: { when: string; setWhen: (v: string) => void; note: string; setNote: (v: string) => void }) {
   return (
     <>
       <div className="grid gap-2">
         <Label htmlFor="ll-when">When it happened</Label>
-        <Input id="ll-when" type="datetime-local" value={when} max={nowLocalInput()} onChange={(e) => setWhen(e.target.value)} />
+        <DateTimeField id="ll-when" required value={when} max={nowMoment()} onChange={setWhen} />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="ll-note">Note (optional)</Label>
@@ -49,12 +43,12 @@ function usePending(): [boolean, (run: () => Promise<void>) => Promise<void>] {
 
 /** Complete a Habit with back-logging: `occurredAt` is when it really happened. */
 export function CompleteHabitDialog({ open, onOpenChange, habit }: { open: boolean; onOpenChange: (o: boolean) => void; habit: Habit }) {
-  const [when, setWhen] = useState(nowLocalInput());
+  const [when, setWhen] = useState(nowMoment());
   const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!open) return;
-    setWhen(nowLocalInput());
+    setWhen(nowMoment());
     setNote("");
   }, [open]);
 
@@ -145,12 +139,12 @@ export function CompleteHabitCommandDialog({ open, onOpenChange }: { open: boole
 /** Log a Negative with back-logging. The victim is rolled at submit and persisted. */
 export function LogNegativeDialog({ open, onOpenChange, negative }: { open: boolean; onOpenChange: (o: boolean) => void; negative: Negative }) {
   const habits = useHabits();
-  const [when, setWhen] = useState(nowLocalInput());
+  const [when, setWhen] = useState(nowMoment());
   const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!open) return;
-    setWhen(nowLocalInput());
+    setWhen(nowMoment());
     setNote("");
   }, [open]);
 

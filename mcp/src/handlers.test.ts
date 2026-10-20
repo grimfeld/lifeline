@@ -10,6 +10,7 @@ const core = vi.hoisted(() => ({
   moveDocument: vi.fn(),
   renameDocument: vi.fn(),
   patchDocument: vi.fn(),
+  reschedule: vi.fn(),
 }));
 
 vi.mock("@lifeline/core", async (importOriginal) => {
@@ -22,6 +23,7 @@ vi.mock("@lifeline/core", async (importOriginal) => {
     documentTypeSync: (id: string) => types.get(id),
     getDocument: async (id: string) => docs.get(id),
     allDocuments: async () => [...docs.values()],
+    timedProviders: () => [{ appId: "calendar", useItems: () => [], reschedule: core.reschedule }],
   };
 });
 
@@ -100,5 +102,24 @@ describe("update_document", () => {
     expect(core.renameDocument).toHaveBeenCalled();
     expect(core.patchDocument).toHaveBeenCalledWith("d1", { mood: 3 });
     expect(result.message).toBe("Updated folder, title, mood");
+  });
+});
+
+describe("reschedule_timed", () => {
+  it("passes an end day through, so an Event can be moved to run overnight", async () => {
+    await runTool("reschedule_timed", { appId: "calendar", itemId: "e1", date: "2026-08-10", start: "22:00", endDate: "2026-08-11", end: "06:00" });
+    expect(core.reschedule).toHaveBeenCalledWith("e1", { date: "2026-08-10", start: "22:00", endDate: "2026-08-11", end: "06:00" });
+  });
+
+  it("ends on the start day when no end day is given", async () => {
+    await runTool("reschedule_timed", { appId: "calendar", itemId: "e1", date: "2026-08-10", start: "09:00", end: "10:00" });
+    expect(core.reschedule).toHaveBeenCalledWith("e1", { date: "2026-08-10", start: "09:00", endDate: "2026-08-10", end: "10:00" });
+  });
+
+  it("refuses an end that isn't after the start, by the shared rule, without writing", async () => {
+    await expect(runTool("reschedule_timed", { appId: "calendar", itemId: "e1", date: "2026-08-10", start: "09:00", end: "09:00" })).rejects.toBeInstanceOf(ToolError);
+    await expect(runTool("reschedule_timed", { appId: "calendar", itemId: "e1", date: "2026-08-10", start: "22:00", end: "06:00" })).rejects.toThrow(/after/);
+    await expect(runTool("reschedule_timed", { appId: "calendar", itemId: "e1", date: "2026-08-11", start: "09:00", endDate: "2026-08-10", end: "17:00" })).rejects.toThrow(/after/);
+    expect(core.reschedule).not.toHaveBeenCalled();
   });
 });

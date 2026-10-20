@@ -120,8 +120,9 @@ const GENERIC: ToolSpec[] = [
   {
     name: "reschedule_timed",
     title: "Reschedule a timed item",
-    description: "Give a Timed item (an event, a one-off time block) a new day and time. Omit start and end to make it all day.",
-    input: { appId: z.string(), itemId: z.string(), date: date(), start: time().optional(), end: time().optional(), workspace },
+    description:
+      "Give a Timed item (an event, a one-off time block) a new day and time. `endDate` is the day it ends on, for one that runs overnight or across days (omit it to end on `date`); the end must be after the start. Omit start and end to make it all day.",
+    input: { appId: z.string(), itemId: z.string(), date: date(), start: time().optional(), endDate: date().optional(), end: time().optional(), workspace },
     write: true,
   },
   {

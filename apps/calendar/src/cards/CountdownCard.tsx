@@ -1,6 +1,7 @@
-import { formatHuman, formatTime, todayStr, type CardOption, type CardProps, type CardSettings, type CardSettingsSchema } from "@lifeline/core";
+import { formatHuman, nowClock, todayStr, type CardOption, type CardProps, type CardSettings, type CardSettingsSchema } from "@lifeline/core";
 import { CardUnavailable } from "@lifeline/ui";
-import { countdownWord, daysUntil, futureEvents } from "../domain/countdown";
+import { countdownWord, daysUntil, futureEvents, isOver } from "../domain/countdown";
+import { describeTime } from "../domain/events";
 import { useEvents } from "../data/repo";
 
 function shortDate(d: string): string {
@@ -14,7 +15,7 @@ function shortDate(d: string): string {
 
 function useFutureEventOptions(): CardOption[] {
   const events = useEvents();
-  const future = futureEvents(events, todayStr());
+  const future = futureEvents(events, { date: todayStr(), time: nowClock() });
   return future.map((e) => ({ value: e.id, label: `${e.title} · ${shortDate(e.date)}` }));
 }
 
@@ -38,10 +39,11 @@ export function CountdownCard({ settings, configure }: CardProps) {
     return <CardUnavailable message="That event no longer exists." onConfigure={configure} />;
   }
 
-  const days = daysUntil(ev, todayStr());
-  const passed = days < 0;
+  const today = todayStr();
+  const days = daysUntil(ev, today);
+  const passed = isOver(ev, { date: today, time: nowClock() });
   const word = countdownWord(days);
-  const when = `${formatHuman(ev.date)}${ev.start ? ` · ${formatTime(ev.start)}` : ""}`;
+  const when = `${formatHuman(ev.date)}${ev.start ? ` · ${describeTime(ev)}` : ""}`;
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
@@ -51,7 +53,7 @@ export function CountdownCard({ settings, configure }: CardProps) {
       >
         {word ?? Math.abs(days)}
       </div>
-      <div className="text-muted-foreground text-xs">{word ? " " : passed ? "days ago" : "days"}</div>
+      <div className="text-muted-foreground text-xs">{word ? (passed ? "ended" : " ") : passed ? "days ago" : "days"}</div>
       <div className="mt-1 w-full truncate px-2 text-sm font-medium">{ev.title}</div>
       <div className="text-muted-foreground w-full truncate px-2 text-xs">{when}</div>
     </div>

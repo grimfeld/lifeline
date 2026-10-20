@@ -2,8 +2,7 @@ import { useState, type ReactElement } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
-import { Input } from "../ui/input";
-import { cn } from "../../lib/utils";
+import { LengthPicker } from "../ui/length-picker";
 
 /**
  * The UI half of Push (ADR 0054): the "how long?" prompt and the toast with
@@ -11,18 +10,7 @@ import { cn } from "../../lib/utils";
  * that calls it, so the UI package stays free of Core.
  */
 
-/** Quick picks for an Estimate, in minutes. */
-export const ESTIMATE_PICKS = [15, 30, 45, 60, 90, 120];
-
-/** 45 → "45m", 60 → "1h", 90 → "1h 30m". */
-export function formatMinutes(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  if (!h) return `${m}m`;
-  return m ? `${h}h ${m}m` : `${h}h`;
-}
-
-/** Quick picks plus free entry for an Estimate; null = none. */
+/** An Estimate: a Length picker whose "none" leaves the item without one. */
 export function EstimatePicker({
   value,
   onChange,
@@ -32,36 +20,7 @@ export function EstimatePicker({
   onChange: (min: number | null) => void;
   id?: string;
 }) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {ESTIMATE_PICKS.map((m) => (
-        <Button
-          key={m}
-          type="button"
-          size="sm"
-          variant={value === m ? "default" : "outline"}
-          className="h-7 px-2 text-xs"
-          onClick={() => onChange(value === m ? null : m)}
-        >
-          {formatMinutes(m)}
-        </Button>
-      ))}
-      <Input
-        id={id}
-        type="number"
-        min={1}
-        step={1}
-        inputMode="numeric"
-        placeholder="min"
-        className={cn("h-7 w-20 text-xs")}
-        value={value ?? ""}
-        onChange={(e) => {
-          const n = Math.round(Number(e.target.value));
-          onChange(Number.isFinite(n) && n > 0 ? n : null);
-        }}
-      />
-    </div>
-  );
+  return <LengthPicker clearable aria-label="Estimate" id={id} value={value} onChange={onChange} />;
 }
 
 /** What Core's push hands back — structurally, so this package need not import it. */
@@ -139,7 +98,7 @@ export function usePushFlow(): { push: (req: PushRequest) => void; dialog: React
             confirm();
           }}
         >
-          <EstimatePicker value={minutes} onChange={setMinutes} />
+          <LengthPicker aria-label="Estimate" value={minutes} onChange={setMinutes} />
           <DialogFooter className="mt-4">
             <Button type="button" variant="outline" onClick={() => setAsking(null)}>
               Cancel

@@ -1,4 +1,4 @@
-import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, Label } from "@lifeline/ui";
+import { Button, DatePickerButton, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, Label } from "@lifeline/ui";
 import { Check, Trash2, Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { todayStr } from "@lifeline/core";
@@ -75,12 +75,13 @@ export function PartDialog<W extends PartsWork>({ kit, work, medium, pos, parts,
               </Button>
             )}
             {(!read || byCatchUp) && (
-              <Input
-                type="date"
+              <DatePickerButton
                 aria-label="Read on another day"
-                className="h-8 w-auto"
+                size="icon-sm"
+                value={part?.readOn ?? ""}
                 max={todayStr()}
-                onChange={(e) => e.target.value && void attempt(() => kit.markRead(work, pos, e.target.value))}
+                align="start"
+                onPick={(day) => void attempt(() => kit.markRead(work, pos, day))}
               />
             )}
           </div>

@@ -42,3 +42,31 @@ test("a tag spanning lines is read whole", () => {
   const src = `import { Checkbox } from "@lifeline/ui";\n<Checkbox\n  checked\n  className="size-5"\n/>`;
   assert.deepEqual(rules(src), ["2:control-size"]);
 });
+
+test("a native date input is flagged", () => {
+  assert.deepEqual(rules(`<input type="date" value={day} />`), ["1:native-date"]);
+});
+
+test("the kit's Input is a native input too, and datetime-local counts", () => {
+  assert.deepEqual(rules(`<Input type="datetime-local" value={when} />`), ["1:native-date"]);
+});
+
+test("a tag over several lines is flagged on the line it opens", () => {
+  assert.deepEqual(rules(`<div>\n  <Input\n    id="x"\n    type='date'\n  />\n</div>`), ["2:native-date"]);
+});
+
+test("a type that is an expression yielding date is flagged", () => {
+  assert.deepEqual(rules(`<Input type={field.kind === "date" ? "date" : "text"} />`), ["1:native-date"]);
+});
+
+test("a time input is native-time's (TimeField), not native-date's; other types stay allowed", () => {
+  assert.deepEqual(rules(`<Input type="time" />\n<input type="number" />\n<Input type={t} />`), ["1:native-time"]);
+});
+
+test("CommitField type=\"date\" renders the kit picker, so it is allowed", () => {
+  assert.deepEqual(rules(`<CommitField label="Day" type="date" value={d} onCommit={save} />`), []);
+});
+
+test("a ui-allow on the line above lets one through", () => {
+  assert.deepEqual(rules(`{/* ui-allow: native-date — why */}\n<input type="date" />`), []);
+});

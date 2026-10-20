@@ -3,7 +3,8 @@ import { formatHuman, todayStr, type CardProps } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 import { Flame } from "lucide-react";
 import { useNotes } from "../data/repo";
-import { currentStreak, lastDays, longestStreak, writtenDays } from "../domain/journalStats";
+import { currentStreak, lastDays, longestStreak } from "../domain/journalStats";
+import { writtenDates } from "../domain/written";
 import { journalHref } from "../domain/types";
 
 /** Card: journal streak — dot strip of the last N days, current and longest streak (knob: days). */
@@ -12,7 +13,7 @@ export function StreakCard({ settings }: CardProps) {
   const today = todayStr();
   const notes = useNotes();
   const navigate = useNavigate();
-  const written = writtenDays(notes);
+  const written = writtenDates(notes);
   const strip = lastDays(today, days);
   const inStrip = strip.filter((d) => written.has(d)).length;
   const current = currentStreak(written, today);

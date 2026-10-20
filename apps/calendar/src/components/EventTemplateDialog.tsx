@@ -9,17 +9,16 @@ import {
   DialogTitle,
   Input,
   Label,
+  LengthPicker,
   TagInput,
   Textarea,
+  TimeField,
   toast,
 } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { DEFAULT_DURATION_MIN, durationOf } from "../domain/templates";
 import type { EventTemplate } from "../domain/types";
 import { addEventTemplate, updateEventTemplate } from "../data/templates";
-
-/** Common lengths, offered as one click each. */
-const PRESET_MIN = [15, 30, 45, 60, 90, 120];
 
 export function EventTemplateDialog({
   open,
@@ -95,27 +94,12 @@ export function EventTemplateDialog({
           {!allDay && (
             <>
               <div className="grid gap-2">
-                <Label>Length</Label>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {PRESET_MIN.map((m) => (
-                    <Button key={m} type="button" size="sm" variant={durationMin === m ? "default" : "outline"} onClick={() => setDurationMin(m)}>
-                      {m < 60 ? `${m} min` : m % 60 === 0 ? `${m / 60} h` : `${Math.floor(m / 60)} h ${m % 60}`}
-                    </Button>
-                  ))}
-                  <Input
-                    type="number"
-                    min={5}
-                    step={5}
-                    className="h-8 w-24"
-                    value={durationMin}
-                    onChange={(e) => setDurationMin(Number(e.target.value))}
-                    aria-label="Length in minutes"
-                  />
-                </div>
+                <Label htmlFor="tpl-length">Length</Label>
+                <LengthPicker id="tpl-length" value={durationMin} onChange={(m) => setDurationMin(m ?? DEFAULT_DURATION_MIN)} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="tpl-start">Usual start (optional)</Label>
-                <Input id="tpl-start" type="time" className="w-36" value={defaultStart} onChange={(e) => setDefaultStart(e.target.value)} />
+                <TimeField id="tpl-start" className="w-36" value={defaultStart} onChange={setDefaultStart} />
                 <p className="text-muted-foreground text-xs">
                   Used when you add it without picking a slot — without one it lands as an all-day event. Dropping it on
                   the Schedule always wins.

@@ -1,5 +1,5 @@
 import type { DaylogItem, DaylogProvider } from "@lifeline/core";
-import { eventsOn } from "./domain/events";
+import { describeUntil, eventsOn } from "./domain/events";
 import { useEvents } from "./data/repo";
 import { EVENTS_HREF } from "./domain/types";
 import { APP_ID } from "./timed";
@@ -15,7 +15,7 @@ export const calendarDaylog: DaylogProvider = {
       itemId: ev.id,
       kind: "Event",
       title: ev.title,
-      subtitle: ev.end ? `until ${ev.end}` : ev.start === null ? "all day" : undefined,
+      subtitle: describeUntil(ev, date),
       time: ev.start,
       href: EVENTS_HREF,
       tags: ev.tags ?? [],

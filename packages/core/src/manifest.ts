@@ -230,6 +230,13 @@ export interface CardDef {
 
 export interface CommandCtx {
   navigate: (path: string) => void;
+  /**
+   * Called by a Command run from the palette to keep it open, its query
+   * cleared and focused, instead of closing — for a Command that leads into
+   * the palette's own input ("Go to date…" then reads the date inline). Call it
+   * before `run` first awaits. Absent where nothing stays open to type into.
+   */
+  keepPalette?: () => void;
 }
 
 /**
@@ -260,6 +267,12 @@ export interface CommandArg {
 export interface CommandResult {
   message: string;
   id?: string;
+}
+
+/** What an inline Command offers for the query it read (ADR 0088): the row's label, saying what it understood, and what picking it does. */
+export interface InlineOffer {
+  label: string;
+  run: (ctx: CommandCtx) => void | Promise<void>;
 }
 
 export interface CommandDef {
@@ -296,6 +309,16 @@ export interface CommandDef {
    * whoever calls. Throws with a readable message on bad input.
    */
   invoke?: (args: Record<string, unknown>) => Promise<CommandResult>;
+  /**
+   * An inline Command (CONTEXT.md "Command", ADR 0088) reads the palette's
+   * whole query as its argument: asked on every change of the query, it offers
+   * a row pinned above every other, or nothing when the query doesn't parse.
+   * Only the Journal's date is one — the single exception to ADR 0091's marked
+   * arguments; another needs its own decision. Pure
+   * and quick — it runs on each keystroke. A Command may be inline only (no
+   * `run` or `dialog`): it is then never listed by its title.
+   */
+  inline?: (query: string) => InlineOffer | undefined;
 }
 
 /**

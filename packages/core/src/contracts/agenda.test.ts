@@ -14,6 +14,10 @@ describe("hourWindow", () => {
 });
 
 describe("layoutColumns", () => {
+  it("leaves off an item whose times are no times, rather than laying it at NaN", () => {
+    const out = layoutColumns([{ start: "Start with a long name", end: "End" }, { start: "09:00", end: "10:00" }]);
+    expect(out.map((b) => b.start)).toEqual([9]);
+  });
   it("gives non-overlapping items a single column", () => {
     const out = layoutColumns([{ start: "09:00", end: "10:00" }, { start: "10:00", end: "11:00" }]);
     expect(out.map((b) => [b.col, b.cols])).toEqual([[0, 1], [0, 1]]);

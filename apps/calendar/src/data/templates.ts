@@ -69,7 +69,7 @@ export async function addEventFromTemplate(templateId: string, date: DateStr, st
     notes: t.notes,
     date,
     start: at,
-    end: at ? endOf(t, at) : null,
+    ...(at ? endOf(t, date, at) : { end: null }),
     tags: t.tags,
   });
   return { id, title: t.title, start: at };

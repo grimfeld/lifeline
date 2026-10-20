@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { Button, cn, Input, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, toast } from "@lifeline/ui";
+import { Button, cn, DatePicker, formatLength, Input, LengthPicker, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, TimeField, toast } from "@lifeline/ui";
 import {
   addDays,
   addTimeBlock,
@@ -9,14 +9,21 @@ import {
   canRenameTimed,
   canRescheduleTimed,
   completeSurfaceItem,
+  describeEnd,
+  diffDays,
   formatHuman,
   formatTime,
   moveTimeBlock,
+  NEW_TIMED_MIN,
   removeTimeBlock,
   removeTimedItem,
   renameTimedItem,
   rescheduleTimedItem,
   schedulableHref,
+  spanLasting,
+  spanLength,
+  spanMovedTo,
+  spanWithEnd,
   timedHref,
   todayStr,
   toHours,
@@ -25,10 +32,11 @@ import {
   type DateStr,
   type SchedulableItem,
   type SurfaceTimedItem,
+  type TimedWhen,
 } from "@lifeline/core";
 import { Check, ExternalLink, Minus, Plus, Trash2 } from "lucide-react";
 import { usePush } from "./push";
-import { addMinutes, formatLength, minutesBetween, SNAP_MIN, toClock } from "./hours";
+import { addMinutes, minutesBetween, SNAP_MIN, toClock } from "./hours";
 
 /** A work item as the hours show it: a Time block (placement + start) or an untimed chip. */
 export type WorkLike = Pick<SchedulableItem, "appId" | "itemId" | "title" | "date" | "completedOn" | "estimateMin"> & {
@@ -53,10 +61,44 @@ export interface HoursEditing {
   anchor: HTMLElement | null;
 }
 
-const LENGTHS = [15, 30, 45, 60, 90, 120];
 /** Push is a work item's; a Timed item asks for it with this and is refused. */
 const NO_PUSH = { appId: "", itemId: "", title: "", date: null, completedOn: "n/a" };
 export const TOAST_ID = "hours";
+
+/** A timed item's when, as the editor holds it: always an end day, the end null where the item has none. */
+type When = Required<TimedWhen>;
+
+/** The whole of what was tapped (ADR 0090): a piece of an item across days edits the item, from its start. */
+function whenOf(t: SurfaceTimedItem): When {
+  if (t.span) return { ...t.span, end: t.end === null ? null : t.span.end };
+  return { date: t.date, start: t.start, endDate: t.date, end: t.start ? t.end : null };
+}
+
+/** Minutes from a when's start moment to its end moment; null for an all-day or end-less one. */
+function lengthOf(w: When): number | null {
+  return w.start && w.end ? spanLength({ ...w, start: w.start, end: w.end }) : null;
+}
+
+/**
+ * A new End time (ADR 0090): an End earlier than the Start rolls to the next
+ * day, so overnight takes no extra step; an end day rolling would not give
+ * (an item running into a later day) is kept.
+ */
+function endingAt(w: When, end: string): When {
+  if (!w.start) return w;
+  return spanWithEnd({ ...w, start: w.start, end: w.end ?? w.start }, end);
+}
+
+/** The same item from another start, keeping its length (an end-less one stays end-less). */
+function startingAt(w: When, start: string): When {
+  if (!w.start) return spanLasting(w.date, start, NEW_TIMED_MIN);
+  return spanMovedTo({ date: w.date, start: w.start, end: w.end, span: { ...w, start: w.start, end: w.end ?? w.start } }, w.date, start);
+}
+
+/** The same item on another day, its end day moved with it. */
+const onDay = (w: When, d: DateStr): When => ({ ...w, date: d, endDate: addDays(w.endDate, diffDays(w.date, d)) });
+
+const contractWhen = (w: When): TimedWhen => (w.start ? w : { date: w.date, start: null, end: null });
 
 function isBlock(item: WorkLike): boolean {
   return !!item.placementId && !!item.start;
@@ -109,10 +151,10 @@ export function HoursEditor({
   }, [isMobile]);
   const virtual = useVirtualAnchor(editing.anchor);
 
-  const initial = useMemo(() => {
+  const initial = useMemo((): { date: DateStr; start: string | null; len: number; when?: When } => {
     if (target.kind === "timed") {
-      const t = target.item;
-      return { date: t.date, start: t.start, len: t.start ? minutesBetween(t.start, t.end, 60) : 60 };
+      const w = whenOf(target.item);
+      return { date: w.date, start: w.start, len: 60, when: w };
     }
     const w = target.item;
     if (isBlock(w)) return { date: w.displayDate ?? w.date ?? defaultDay, start: w.start!, len: minutesBetween(w.start!, w.end, BLOCK_DEFAULT_MIN) };
@@ -123,7 +165,7 @@ export function HoursEditor({
   const [date, setDate] = useState<DateStr>(initial.date);
   const [start, setStart] = useState<string | null>(initial.start);
   const [len, setLen] = useState(initial.len);
-  const [customLen, setCustomLen] = useState(!LENGTHS.includes(initial.len));
+  const [when, setWhen] = useState<When | null>(initial.when ?? null);
   const [title, setTitle] = useState(target.item.title);
 
   const blockId = useRef<string | null>(target.kind === "work" && isBlock(target.item) ? target.item.placementId! : null);
@@ -167,11 +209,18 @@ export function HoursEditor({
           setHasBlock(true);
         }
       });
-    } else if (timed) {
-      changed.current = true;
-      run(() => rescheduleTimedItem(timed, next.date, next.start, next.start ? addMinutes(next.start, next.len) : null));
     }
     // Moved off the screen: the item has left the view, so the editor goes with it.
+    if (next.date !== date && !inView(next.date)) finish(next.date);
+  }
+
+  /** An Event or a Time blocker is given a start and an end (ADR 0090), written whole. */
+  function writeWhen(next: When) {
+    if (!timed) return;
+    setWhen(next);
+    setDate(next.date);
+    changed.current = true;
+    run(() => rescheduleTimedItem(timed, contractWhen(next)));
     if (next.date !== date && !inView(next.date)) finish(next.date);
   }
 
@@ -190,7 +239,7 @@ export function HoursEditor({
           if (created.current && blockId.current) await unplaceItem(blockId.current);
           else if (blockId.current && initial.start) await moveTimeBlock(blockId.current, initial.date, { start: initial.start, end: addMinutes(initial.start, initial.len) });
         } else if (timed) {
-          if (changed.current) await rescheduleTimedItem(timed, initial.date, initial.start, initial.start ? addMinutes(initial.start, initial.len) : null);
+          if (changed.current && initial.when) await rescheduleTimedItem(timed, contractWhen(initial.when));
           if (renamed.current) await renameTimedItem(timed, timed.title);
         }
       } catch (e) {
@@ -273,34 +322,72 @@ export function HoursEditor({
     </div>
   );
 
+  const whenLen = when && lengthOf(when);
   const body: ReactNode = readOnly ? (
     <p className="text-muted-foreground text-sm">
       {formatHuman(date)}
-      {start ? ` · ${formatTime(start)}–${formatTime(addMinutes(start, len))}` : " · all day"}
+      {when
+        ? when.start
+          ? ` · ${formatTime(when.start)}${when.end ? `–${when.endDate !== when.date ? `${formatHuman(when.endDate)} ` : ""}${formatTime(when.end)}` : ""}`
+          : " · all day"
+        : start
+          ? ` · ${formatTime(start)}–${formatTime(addMinutes(start, len))}`
+          : " · all day"}
       {work?.completedOn ? " · done, kept as record" : ""}
     </p>
+  ) : when ? (
+    <div className="grid gap-3">
+      <Row label="Day">
+        <DatePicker className="w-40" required value={when.date} onChange={(v) => v && writeWhen(onDay(when, v))} aria-label="Day" />
+        {when.date !== tomorrow && <Chip onClick={() => writeWhen(onDay(when, tomorrow))}>Tomorrow</Chip>}
+        <Chip onClick={() => writeWhen(onDay(when, addDays(when.date, 1)))}>+1 day</Chip>
+      </Row>
+      <Row label="Start">
+        <Button size="icon" variant="outline" disabled={!when.start} onClick={() => when.start && writeWhen(startingAt(when, toClock(Math.max(0, toHours(when.start) - SNAP_MIN / 60))))} aria-label="15 minutes earlier">
+          <Minus />
+        </Button>
+        <TimeField className="w-32" required={!!when.start} value={when.start ?? ""} onChange={(v) => v && writeWhen(startingAt(when, v))} aria-label="Start" />
+        <Button size="icon" variant="outline" disabled={!when.start} onClick={() => when.start && writeWhen(startingAt(when, toClock(Math.min(24 - SNAP_MIN / 60, toHours(when.start) + SNAP_MIN / 60))))} aria-label="15 minutes later">
+          <Plus />
+        </Button>
+        {canAllDay && (
+          <Chip active={!when.start} onClick={() => when.start && writeWhen({ date: when.date, start: null, endDate: when.date, end: null })}>
+            All day
+          </Chip>
+        )}
+      </Row>
+      {when.start && (
+        <Row label="End">
+          <TimeField className="w-32" value={when.end ?? ""} onChange={(v) => v && writeWhen(endingAt(when, v))} aria-label="End" />
+          {when.end && whenLen !== null && whenLen > 0 && (
+            <span aria-live="polite" className="text-muted-foreground min-w-0 text-xs tabular-nums">
+              {describeEnd({ ...when, end: when.end })} · {formatLength(whenLen)}
+            </span>
+          )}
+        </Row>
+      )}
+    </div>
   ) : (
     <div className="grid gap-3">
       <Row label="Day">
-        <Input type="date" className="h-9 w-40" value={date} onChange={(e) => e.target.value && write({ date: e.target.value, start, len })} aria-label="Day" />
+        <DatePicker className="w-40" required value={date} onChange={(v) => v && write({ date: v, start, len })} aria-label="Day" />
         {date !== tomorrow && (
           <Chip onClick={() => write({ date: tomorrow, start, len })}>Tomorrow</Chip>
         )}
         <Chip onClick={() => write({ date: addDays(date, 1), start, len })}>+1 day</Chip>
       </Row>
       <Row label="Start">
-        <Button size="icon" variant="outline" className="size-9" disabled={!start} onClick={() => nudge(-SNAP_MIN)} aria-label="15 minutes earlier">
+        <Button size="icon" variant="outline" disabled={!start} onClick={() => nudge(-SNAP_MIN)} aria-label="15 minutes earlier">
           <Minus />
         </Button>
-        <Input
-          type="time"
-          step={SNAP_MIN * 60}
-          className="h-9 w-28"
+        <TimeField
+          className="w-32"
+          required={!!start}
           value={start ?? ""}
-          onChange={(e) => e.target.value && write({ date, start: e.target.value, len })}
+          onChange={(v) => v && write({ date, start: v, len })}
           aria-label="Start"
         />
-        <Button size="icon" variant="outline" className="size-9" disabled={!start} onClick={() => nudge(SNAP_MIN)} aria-label="15 minutes later">
+        <Button size="icon" variant="outline" disabled={!start} onClick={() => nudge(SNAP_MIN)} aria-label="15 minutes later">
           <Plus />
         </Button>
         {canAllDay && (
@@ -311,26 +398,7 @@ export function HoursEditor({
       </Row>
       {start && (
         <Row label="Length">
-          {LENGTHS.map((m) => (
-            <Chip key={m} active={!customLen && len === m} onClick={() => (setCustomLen(false), setLength(m))}>
-              {formatLength(m)}
-            </Chip>
-          ))}
-          {customLen ? (
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={SNAP_MIN}
-              step={5}
-              className="h-8 w-20"
-              defaultValue={len}
-              aria-label="Length in minutes"
-              onBlur={(e) => Number(e.target.value) > 0 && Number(e.target.value) !== len && setLength(Number(e.target.value))}
-              onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-            />
-          ) : (
-            <Chip onClick={() => setCustomLen(true)}>…</Chip>
-          )}
+          <LengthPicker value={len} onChange={(m) => m && m !== len && setLength(m)} />
           <span className="text-muted-foreground text-xs tabular-nums">ends {formatTime(addMinutes(start, len))}</span>
         </Row>
       )}
