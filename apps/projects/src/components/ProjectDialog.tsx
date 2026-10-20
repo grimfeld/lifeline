@@ -4,6 +4,7 @@ import {
   COLOR_SLOTS,
   cn,
   colorVar,
+  DatePicker,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -151,11 +152,11 @@ export function ProjectDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="project-start">Start</Label>
-              <Input id="project-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+              <DatePicker id="project-start" value={start} onChange={setStart} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="project-deadline">Deadline</Label>
-              <Input id="project-deadline" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+              <DatePicker id="project-deadline" value={deadline} min={start || undefined} onChange={setDeadline} />
             </div>
           </div>
           <div className="grid gap-2">
