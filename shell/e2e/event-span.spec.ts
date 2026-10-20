@@ -236,8 +236,8 @@ async function weekWithOvernightBlocker(page: Page, b: { title: string; endDate?
   await page.goto("/calendar?view=week&d=2026-11-09");
   await workLocally(page);
   await seedBlocker(page, { date: "2026-11-09", start: "21:00", end: "09:00", ...b });
-  const monday = page.locator('[data-col="2026-11-09"]').getByTitle(b.title, { exact: false });
-  const tuesday = page.locator('[data-col="2026-11-10"]').getByTitle(b.title, { exact: false });
+  const monday = page.locator('[data-col="2026-11-09"]').getByLabel(b.title, { exact: false });
+  const tuesday = page.locator('[data-col="2026-11-10"]').getByLabel(b.title, { exact: false });
   await expect(tuesday).toBeVisible();
   await expect(monday).toBeAttached();
   return { monday, tuesday };

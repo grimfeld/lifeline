@@ -14,10 +14,10 @@ import {
   TimeField,
   toast,
 } from "@lifeline/ui";
-import { normalizeTag, spanIsValid, useTagVocabulary, type Weekday } from "@lifeline/core";
+import { normalizeTag, useTagVocabulary, type Weekday } from "@lifeline/core";
 import { blockerSpan, isOvernight, WEEKDAYS } from "../domain/blockers";
-import type { EventFormErrors } from "../domain/eventForm";
-import { EventWhenFields, type WhenForm } from "./EventWhenFields";
+import { whenFormErrors, type WhenForm, type WhenFormErrors } from "../domain/eventForm";
+import { WhenFields } from "./WhenFields";
 import type { TimeBlocker } from "../domain/types";
 import { addTimeBlocker, updateTimeBlocker } from "../data/blockers";
 
@@ -52,7 +52,7 @@ export function TimeBlockerDialog({
   const [title, setTitle] = useState("");
   /** A one-off blocker (ADR 0029) keeps its span here, as the Event form holds one (ADR 0090); a weekly one has none. */
   const [when, setWhen] = useState<WhenForm | null>(null);
-  const [whenErrors, setWhenErrors] = useState<EventFormErrors>({});
+  const [whenErrors, setWhenErrors] = useState<WhenFormErrors>({});
   const [weekdays, setWeekdays] = useState<Weekday[]>([]);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("17:00");
@@ -80,11 +80,7 @@ export function TimeBlockerDialog({
     let fields;
     if (when) {
       // A one-off band is a span (ADR 0090): its End after its Start, the end day included.
-      const errors: EventFormErrors = {};
-      if (!when.date) errors.date = "Day required";
-      if (!when.start) errors.start = "Start time required";
-      if (!when.end) errors.end = "End time required";
-      else if (when.date && when.start && !spanIsValid({ date: when.date, start: when.start, endDate: when.endDate || when.date, end: when.end })) errors.end = "End must be after start";
+      const errors: WhenFormErrors = { ...whenFormErrors(when), ...(when.end ? {} : { end: "End time required" }) };
       setWhenErrors(errors);
       if (Object.keys(errors).length) return;
       fields = { title: title.trim(), date: when.date, endDate: when.endDate || when.date, weekdays: [], start: when.start, end: when.end, color, active, tags };
@@ -124,7 +120,7 @@ export function TimeBlockerDialog({
           </div>
           {when ? (
             <>
-              <EventWhenFields value={when} onChange={setWhen} errors={whenErrors} idPrefix="blk-" canAllDay={false} />
+              <WhenFields value={when} onChange={setWhen} errors={whenErrors} idPrefix="blk-" canAllDay={false} />
               <p className="text-muted-foreground text-xs">A one-off band, on these days only. Drag it on the Schedule to move it.</p>
             </>
           ) : (

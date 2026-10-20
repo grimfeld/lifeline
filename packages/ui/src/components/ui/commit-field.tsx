@@ -1,7 +1,7 @@
 import * as React from "react"
 
 import { useCommitDraft } from "../../lib/useCommitDraft"
-import { DatePicker } from "./date-picker"
+import { DatePicker, type DateSpan } from "./date-picker"
 import { DateTimeField } from "./date-time-field"
 import { Field } from "./field"
 import { Input } from "./input"
@@ -39,7 +39,7 @@ function CommitField({
   required,
   startYear,
   endYear,
-}: {
+}: Omit<DateSpan, "min" | "max"> & {
   label: React.ReactNode
   value: string
   onCommit: (next: string) => unknown
@@ -53,21 +53,24 @@ function CommitField({
   className?: string
   placeholder?: string
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"]
+  /** A number's bounds, or a date's (`YYYY-MM-DD`) or a date and time's (`YYYY-MM-DDTHH:MM`). */
   min?: number | string
   max?: number | string
   step?: number | string
-  /** A date, time, or date and time that can't be cleared (no "Clear" in its picker). */
-  required?: boolean
-  /** A date's first year to offer (1900); earlier for historical dates. */
-  startYear?: number
-  /** A date's last year to offer (ten years from now). */
-  endYear?: number
 }) {
   const { draft, error, change, commit, revert } = useCommitDraft(value, onCommit, { delay })
   const onChange = (next: string) => {
     change(next)
     // A date or a time is done once picked (a typed time once the Time field reads it).
     if (type === "date" || type === "time") void commit()
+  }
+  // A date's (or a date and time's) bounds and years, as its picker takes them.
+  const span = {
+    min: min === undefined ? undefined : String(min),
+    max: max === undefined ? undefined : String(max),
+    required,
+    startYear,
+    endYear,
   }
   const events = {
     onBlur: () => void commit(),
@@ -85,16 +88,7 @@ function CommitField({
   return (
     <Field label={label} hint={hint} error={error} className={className}>
       {type === "date" ? (
-        <DatePicker
-          value={draft}
-          onChange={onChange}
-          min={min === undefined ? undefined : String(min)}
-          max={max === undefined ? undefined : String(max)}
-          required={required}
-          startYear={startYear}
-          endYear={endYear}
-          placeholder={placeholder}
-        />
+        <DatePicker value={draft} onChange={onChange} {...span} placeholder={placeholder} />
       ) : type === "time" ? (
         <TimeField value={draft} onChange={onChange} required={required} placeholder={placeholder} />
       ) : type === "datetime-local" ? (
@@ -104,11 +98,7 @@ function CommitField({
             change(next)
             void commit()
           }}
-          min={min === undefined ? undefined : String(min)}
-          max={max === undefined ? undefined : String(max)}
-          required={required}
-          startYear={startYear}
-          endYear={endYear}
+          {...span}
           placeholder={placeholder}
         />
       ) : multiline ? (

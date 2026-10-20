@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, toast } from "@lifeline/ui";
+import { Button, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, nowMoment, toast } from "@lifeline/ui";
 import { faceOf, type Fine } from "../domain/types";
 import { activeOffences } from "../domain/derive";
 import { formatCents } from "../domain/money";
 import { deleteFine, logFine, updateFine, useOffences } from "../data/repo";
-
-/** Now as a `datetime-local` value. */
-export function nowLocalInput(): string {
-  return localInputOf(new Date().toISOString());
-}
 
 /** An ISO instant as a `datetime-local` value, in local time. */
 export function localInputOf(iso: string): string {
@@ -27,13 +22,13 @@ export function FineDialog({ open, onOpenChange, fine, offenceId }: { open: bool
   const offences = useOffences();
   const active = useMemo(() => activeOffences(offences), [offences]);
   const [pick, setPick] = useState("");
-  const [when, setWhen] = useState(nowLocalInput());
+  const [when, setWhen] = useState(nowMoment());
   const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!open) return;
     setPick(fine?.offenceId ?? offenceId ?? active[0]?.id ?? "");
-    setWhen(fine ? localInputOf(fine.occurredAt) : nowLocalInput());
+    setWhen(fine ? localInputOf(fine.occurredAt) : nowMoment());
     setNote(fine?.note ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, fine, offenceId]);
@@ -102,7 +97,7 @@ export function FineDialog({ open, onOpenChange, fine, offenceId }: { open: bool
             </div>
             <div className="grid gap-2">
               <Label htmlFor="fn-when">When it happened</Label>
-              <DateTimeField id="fn-when" required value={when} max={nowLocalInput()} onChange={setWhen} />
+              <DateTimeField id="fn-when" required value={when} max={nowMoment()} onChange={setWhen} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="fn-note">Note (optional)</Label>

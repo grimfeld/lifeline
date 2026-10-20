@@ -1,15 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Checkbox, DatePicker, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
+import { Button, Checkbox, DatePicker, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, nowMoment, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import type { Entry, Stat } from "../domain/types";
 import { checklist, noonOf } from "../domain/aggregate";
 import { addEntry, uncollectItem } from "../data/repo";
-
-function nowLocalInput(): string {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-}
 
 /**
  * Log (or mark) an entry. Backdating is allowed: `ts` is when it happened.
@@ -30,7 +24,7 @@ export function AddEntryDialog({
 }) {
   const [value, setValue] = useState("");
   const [item, setItem] = useState("");
-  const [when, setWhen] = useState(nowLocalInput());
+  const [when, setWhen] = useState(nowMoment());
   const [day, setDay] = useState(todayStr());
   const [busy, setBusy] = useState<string | null>(null);
   const isChecklist = stat.kind === "collection" && stat.items.length > 0;
@@ -40,7 +34,7 @@ export function AddEntryDialog({
     if (!open) return;
     setValue(stat.kind === "additive" && stat.defaultIncrement ? String(stat.defaultIncrement) : "");
     setItem("");
-    setWhen(nowLocalInput());
+    setWhen(nowMoment());
     setDay(todayStr());
   }, [open, stat]);
 

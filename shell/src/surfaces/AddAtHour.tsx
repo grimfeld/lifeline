@@ -4,11 +4,14 @@ import {
   addTimeBlock,
   BLOCK_DEFAULT_MIN,
   createFromTimedTemplate,
+  describeEnd,
   formatHuman,
   formatTime,
   intakeByKey,
   minutesUntil,
+  NEW_TIMED_MIN,
   spanLasting,
+  spanProblem,
   timedCreators,
   unplaceItem,
   useIsMobile,
@@ -31,9 +34,6 @@ export interface AddingAt {
   point: { x: number; y: number } | null;
 }
 
-/** A new Event from the quick add lasts an hour, unless a swept range says otherwise. */
-const NEW_EVENT_MIN = 60;
-
 /**
  * Tapping an empty hour of the Schedule (CONTEXT.md): add there — a new
  * Event from a Start to an End (an End earlier than the Start is the next
@@ -45,14 +45,15 @@ export function AddAtHour({ at, templates, pool, onClose }: { at: AddingAt; temp
   const isMobile = useIsMobile();
   const [title, setTitle] = useState("");
   const [start, setStart] = useState(() => toClock(at.hours));
-  /** How long the new Event lasts: moving the Start keeps it, and the End is read from it. */
-  const [length, setLength] = useState(() => (at.endHours === undefined ? NEW_EVENT_MIN : Math.round((at.endHours - at.hours) * 60)));
+  /** How long the new Event lasts (an hour, unless a swept range says otherwise): moving the Start keeps it, and the End is read from it. */
+  const [length, setLength] = useState(() => (at.endHours === undefined ? NEW_TIMED_MIN : Math.round((at.endHours - at.hours) * 60)));
   /** "More…" was chosen: the full dialog shows instead. */
   const [more, setMore] = useState<{ handoff: Handoff; prefill: IntakePrefill } | null>(null);
   const creator = timedCreators()[0];
   const intake = creator?.createIntake ? intakeByKey(creator.createIntake) : undefined;
   const span = spanLasting(at.date, start, length);
-  const valid = length > 0;
+  const problem = spanProblem(span);
+  const valid = !problem;
   const fail = (err: unknown) => toast.error(err instanceof Error ? err.message : String(err));
   useEffect(() => {
     if (isMobile) toast.dismiss(TOAST_ID);
@@ -115,14 +116,13 @@ export function AddAtHour({ at, templates, pool, onClose }: { at: AddingAt; temp
             <Field label="Start">
               <TimeField id="quick-add-start" required value={start} onChange={setStart} />
             </Field>
-            <Field label="End" error={valid ? undefined : "End must be after start"}>
+            <Field label="End" error={problem ?? undefined}>
               <TimeField id="quick-add-end" required value={span.end} aria-describedby={valid ? "quick-add-length" : undefined} onChange={(end) => setLength(minutesUntil(start, end) ?? length)} />
             </Field>
           </div>
           {valid && (
             <p id="quick-add-length" aria-live="polite" className="text-muted-foreground min-w-0 text-sm">
-              until {endsLater ? `${formatHuman(span.endDate)} ` : ""}
-              {formatTime(span.end)} · {formatLength(length)}
+              {describeEnd(span)} · {formatLength(length)}
             </p>
           )}
           <div className="flex justify-end gap-2">

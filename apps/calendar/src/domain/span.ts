@@ -1,7 +1,4 @@
-import { addDays, diffDays, type DateStr, type TimedSpan, type TimeStr } from "@lifeline/core";
-
-/** A timed span: from a start (day + time) to an end (day + time) — the Timed contract's (ADR 0090). */
-export type { TimedSpan };
+import { addDays, diffDays, lastDayCovered, type DateStr, type TimedSpan, type TimeStr } from "@lifeline/core";
 
 /** An all-day span: from a first day (`date`) to a last day (`endDate`), inclusive. */
 export interface AllDaySpan {
@@ -43,7 +40,7 @@ export function dayPieces(span: AllDaySpan, range?: DayRange): AllDayPiece[];
 export function dayPieces(span: TimedSpan | AllDaySpan, range?: DayRange): (DayPiece | AllDayPiece)[] {
   const last = diffDays(span.date, span.endDate);
   // Ending at 00:00 reaches midnight: the end day itself is not covered (unless that is all there is).
-  const lastCovered = span.start !== null && span.end === "00:00" && last > 0 ? last - 1 : last;
+  const lastCovered = span.start === null ? last : diffDays(span.date, lastDayCovered(span));
   const from = range && range.start > span.date ? diffDays(span.date, range.start) : 0;
   const to = range && range.end < span.endDate ? Math.min(lastCovered, diffDays(span.date, range.end)) : lastCovered;
   const out: (DayPiece | AllDayPiece)[] = [];

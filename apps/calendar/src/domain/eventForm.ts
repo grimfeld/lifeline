@@ -1,4 +1,4 @@
-import { addDays, diffDays, spanIsValid, todayStr, type DateStr, type TimeStr } from "@lifeline/core";
+import { addDays, clockMinutes, clockOf, DAY_MIN, diffDays, lastDayCovered, NEW_TIMED_MIN, spanLasting, spanLength, spanProblem, todayStr, whenProblem, type DateStr, type TimeStr } from "@lifeline/core";
 
 /** What the Event dialog holds while it is being filled in. */
 export interface EventForm {
@@ -11,33 +11,42 @@ export interface EventForm {
   end: string;
 }
 
-/** The message under each field that is missing or wrong; empty when the event can be saved. */
-export type EventFormErrors = Partial<Record<keyof Omit<EventForm, "allDay">, string>>;
+/** When something happens, as a form holds it: an Event's, or a one-off Time blocker's (which is never all day). */
+export type WhenForm = Omit<EventForm, "title">;
 
-export function eventFormErrors(f: EventForm): EventFormErrors {
-  const errors: EventFormErrors = {};
-  if (!f.title.trim()) errors.title = "Title required";
+/** The message under each of a when's fields that is missing or wrong. */
+export type WhenFormErrors = Partial<Record<keyof Omit<WhenForm, "allDay">, string>>;
+
+/** The message under each field that is missing or wrong; empty when the event can be saved. */
+export type EventFormErrors = WhenFormErrors & { title?: string };
+
+/** What is missing or wrong in a when — an Event's or a one-off Time blocker's; empty when it can be saved. */
+export function whenFormErrors(f: WhenForm): WhenFormErrors {
+  const errors: WhenFormErrors = {};
   if (!f.date) errors.date = "Day required";
   if (f.allDay) {
     if (f.date && f.endDate && f.endDate < f.date) errors.endDate = "End day must be after the first day";
   } else if (!f.start) errors.start = "Start time required";
   // The one rule (ADR 0090): the end moment strictly after the start moment.
-  else if (f.date && f.end && !spanIsValid({ date: f.date, start: f.start, endDate: f.endDate || f.date, end: f.end })) errors.end = "End must be after start";
+  else if (f.date && f.end) {
+    const problem = spanProblem({ date: f.date, start: f.start, endDate: f.endDate || f.date, end: f.end });
+    if (problem) errors.end = problem;
+  }
   return errors;
+}
+
+export function eventFormErrors(f: EventForm): EventFormErrors {
+  return { ...(f.title.trim() ? {} : { title: "Title required" }), ...whenFormErrors(f) };
 }
 
 /**
  * Why an Event can't be added with these (the add-event Command, and MCP's
- * `calendar_add_event` through it); null when it can. A timed Event's end is
- * checked by the one rule (ADR 0090), as the form checks it.
+ * `calendar_add_event` through it); null when it can. Core's `whenProblem`,
+ * as a reschedule is checked, and an end day needs an end time.
  */
 export function eventArgsError(a: { date: DateStr; start?: string | null; end?: string | null; endDate?: DateStr | null }): string | null {
-  if (!a.start) {
-    if (a.end) return "An end time needs a start time";
-    return a.endDate && a.endDate < a.date ? "Last day is before the first" : null;
-  }
-  if (!a.end) return a.endDate && a.endDate !== a.date ? "An end day needs an end time" : null;
-  return spanIsValid({ date: a.date, start: a.start, endDate: a.endDate || a.date, end: a.end }) ? null : "End must be after start";
+  if (a.start && !a.end && a.endDate && a.endDate !== a.date) return "An end day needs an end time";
+  return whenProblem({ date: a.date, start: a.start ?? null, endDate: a.endDate || undefined, end: a.end ?? null });
 }
 
 /** When an Event happens, its guarded Fields (ADR 0019). */
@@ -63,26 +72,10 @@ export function whenOf(f: Omit<EventForm, "title">): EventWhen {
   };
 }
 
-const DAY_MIN = 24 * 60;
-const pad = (n: number) => String(n).padStart(2, "0");
-const clock = (min: number): TimeStr => `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
-
-/** Minutes past midnight of an `HH:MM` time; null when empty or no time. */
-export function minutesOf(t: string): number | null {
-  const m = /^(\d{2}):(\d{2})$/.exec(t);
-  if (!m) return null;
-  const [h, min] = [Number(m[1]), Number(m[2])];
-  return h < 24 && min < 60 ? h * 60 + min : null;
-}
-
-/** A new timed Event lasts an hour. */
-const NEW_EVENT_MIN = 60;
-
-/** A form's day and minutes-past-midnight moved on by `minutes`, as the form holds an end: "" when still on `date`. */
-function endAt(date: string, startMin: number, minutes: number): { endDate: string; end: TimeStr } {
-  const at = startMin + minutes;
-  const days = Math.floor(at / DAY_MIN);
-  return { endDate: days > 0 && date ? addDays(date, days) : "", end: clock(at - days * DAY_MIN) };
+/** The end of a form's span from `start` lasting `minutes`, as the form holds an end: "" for the day when still on `date`. */
+function endAt(date: string, start: TimeStr, minutes: number): { endDate: string; end: TimeStr } {
+  const span = spanLasting(date || "2000-01-01", start, minutes);
+  return { endDate: date && span.endDate !== span.date ? span.endDate : "", end: span.end };
 }
 
 /**
@@ -97,23 +90,23 @@ export function newEventWhen(day: DateStr, now: Date = new Date()): { date: Date
     start = Math.ceil((now.getHours() * 60 + now.getMinutes() + (now.getSeconds() || now.getMilliseconds() ? 1 : 0)) / 15) * 15;
     if (start >= DAY_MIN) [date, start] = [addDays(day, 1), 0];
   }
-  return { date, start: clock(start), ...endAt(date, start, NEW_EVENT_MIN) };
+  return { date, start: clockOf(start), ...endAt(date, clockOf(start), NEW_TIMED_MIN) };
 }
 
 type Times = Pick<EventForm, "start" | "end"> & Partial<Pick<EventForm, "date" | "endDate">>;
 
 /** Minutes from a timed Event's start to its end, across the days between; null while either is missing or the end is before the start. */
 export function lengthOf(f: Times): number | null {
-  const [s, e] = [minutesOf(f.start), minutesOf(f.end)];
-  if (s === null || e === null) return null;
-  const days = f.date && f.endDate ? diffDays(f.date, f.endDate) : 0;
-  const length = (Number.isFinite(days) ? days : 0) * DAY_MIN + e - s;
-  return length < 0 ? null : length;
+  // A form with no day yet, or an unreadable end day, counts its times on one day.
+  const day = f.date || "2000-01-01";
+  const endDay = f.date && f.endDate && Number.isFinite(diffDays(f.date, f.endDate)) ? f.endDate : day;
+  const length = spanLength({ date: day, start: f.start, endDate: endDay, end: f.end });
+  return length === null || length < 0 ? null : length;
 }
 
 /** The day an End rolls to (ADR 0090): the Start's own day, or the next when the End is earlier than the Start. */
 function rolledEndDate(f: Times): string {
-  const [s, e] = [minutesOf(f.start), minutesOf(f.end)];
+  const [s, e] = [clockMinutes(f.start), clockMinutes(f.end)];
   return s !== null && e !== null && e < s && f.date ? addDays(f.date, 1) : "";
 }
 
@@ -126,9 +119,8 @@ const endDayOf = (f: Times) => (f.endDate && f.endDate !== f.date ? f.endDate : 
  */
 export function withStart<F extends Times>(f: F, start: string): F {
   const length = lengthOf(f);
-  const s = minutesOf(start);
-  if (length === null || s === null) return { ...f, start };
-  return { ...f, start, ...endAt(f.date ?? "", s, length) };
+  if (length === null || clockMinutes(start) === null) return { ...f, start };
+  return { ...f, start, ...endAt(f.date ?? "", start, length) };
 }
 
 /** Whether the End's day was picked by hand — not the one rolling gives — so the form shows its Date picker. */
@@ -162,6 +154,6 @@ export function withAllDay<F extends Times & Pick<EventForm, "allDay">>(f: F, al
   if (!allDay) return { ...f, allDay, endDate: "" };
   const endDate = endDayOf(f);
   // An end at 00:00 reaches midnight: the day before is the last one it touches.
-  const last = endDate && f.end === "00:00" ? addDays(endDate, -1) : endDate;
+  const last = endDate && f.date ? lastDayCovered({ date: f.date, endDate, end: f.end }) : endDate;
   return { ...f, allDay, endDate: last && last !== f.date ? last : "" };
 }

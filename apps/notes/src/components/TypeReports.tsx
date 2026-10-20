@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router";
 import { reportsIn, reportsOf, todayStr, useDocumentTypes, useTopMentioned, type DocumentTypeDef, type LinkIndex, type LinkRef, type ReportSetting, type ReportWindow } from "@lifeline/core";
 import { RankingReport, useOpenLinkRef } from "@lifeline/editor";
-import { DatePicker, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { DatePicker, Label, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { periodRange } from "../domain/periods";
 
 const WINDOWS = { month: "This month", year: "This year", all: "All time", custom: "Custom" } as const;
@@ -55,11 +55,22 @@ export function TypeReports({ type, index }: { type: DocumentTypeDef; index: Lin
             </Select>
           </PhoneDock>
           {name === "custom" && (
-            // One line for both ends, on a phone too (each takes half).
-            <div className="flex min-w-0 gap-2">
-              <DatePicker className="w-40 max-md:flex-1" value={from} max={to || undefined} onChange={(v) => set({ from: v })} placeholder="From" aria-label="From" />
-              <DatePicker className="w-40 max-md:flex-1" value={to} min={from || undefined} onChange={(v) => set({ to: v })} placeholder="To" aria-label="To" />
-            </div>
+            // Beside the window on the desk. On a phone the dock's one line can't hold two
+            // dates and the window, so the dates sit behind its Filters button (ADR 0064).
+            <PhoneDock>
+              <PhoneFilters title="Dates" active={+!!from + +!!to}>
+                <div className="flex min-w-0 gap-2 max-md:flex-col max-md:gap-3">
+                  <div className="grid gap-1.5 md:contents">
+                    <Label className="md:hidden">From</Label>
+                    <DatePicker className="w-40 max-md:w-full" value={from} max={to || undefined} onChange={(v) => set({ from: v })} placeholder="From" aria-label="From" />
+                  </div>
+                  <div className="grid gap-1.5 md:contents">
+                    <Label className="md:hidden">To</Label>
+                    <DatePicker className="w-40 max-md:w-full" value={to} min={from || undefined} onChange={(v) => set({ to: v })} placeholder="To" aria-label="To" />
+                  </div>
+                </div>
+              </PhoneFilters>
+            </PhoneDock>
           )}
         </div>
       )}

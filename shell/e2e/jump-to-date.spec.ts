@@ -50,9 +50,8 @@ test("the Calendar jumps to a picked day and shows it", async ({ page }) => {
 test("the Journal jumps to a picked day", async ({ page }) => {
   await page.goto("/app/journal");
   await workLocally(page);
-  // Today's Day is written on first open; its editor taking focus would close a popover opened before it.
-  // (Its Links button, shown below lg, is in the page once the Day exists.)
-  await expect(page.locator('button[title="Links"]')).toHaveCount(1);
+  // Today's Day is written on first open and its editor comes up after, lazily: opened at
+  // once, the picker must not be closed by that editor taking focus.
   await pickDate(page, page.getByRole("button", { name: "Jump to date" }), "2025-06-03");
   await expect(page).toHaveURL(/[?&]d=2025-06-03/);
 });

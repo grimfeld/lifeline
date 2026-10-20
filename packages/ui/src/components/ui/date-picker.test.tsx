@@ -29,10 +29,24 @@ describe("DatePicker's trigger", () => {
       />,
     );
     expect(html).toContain('id="exp"');
-    expect(html).toContain('aria-label="Expires"');
+    expect(html).toContain('aria-label="Expires, No date"');
     expect(html).toContain('aria-describedby="exp-hint"');
     expect(html).toContain('aria-invalid="true"');
     expect(html).toMatch(/<button[^>]* disabled=""/);
+  });
+
+  it("names the day it holds after its label, so a screen reader hears both", () => {
+    const named = (value: string, props: Partial<React.ComponentProps<typeof DatePicker>> = {}) =>
+      /aria-label="([^"]*)"/.exec(renderToStaticMarkup(<DatePicker value={value} onChange={noop} locale="en-GB" aria-label="From" {...props} />))?.[1];
+    expect(named("2026-10-20")).toBe("From, Tue 20 Oct 2026");
+    expect(named("")).toBe("From, No date");
+    expect(named("", { required: true })).toBe("From, Pick a day");
+    expect(named("", { placeholder: "From" })).toBe("From, No date");
+    expect(named("", { placeholder: "Unassigned" })).toBe("From, Unassigned");
+  });
+
+  it("matches its neighbours' height through size", () => {
+    expect(renderToStaticMarkup(<DatePicker value="" onChange={noop} size="sm" />)).toMatch(/<button[^>]*data-size="sm"/);
   });
 });
 
@@ -64,6 +78,28 @@ describe("DatePicker's popover panel", () => {
     expect(panel({ required: true })).not.toContain(">Clear<");
   });
 
+  const firstDay = (html: string) => /data-day="([\d-]+)"/.exec(html)?.[1];
+
+  it("opens an empty field on today's month when today may be picked", () => {
+    // October 2026's grid starts on Monday 28 September.
+    expect(firstDay(panel({ value: "", min: "2026-10-01", max: "2026-10-31" }))).toBe("2026-09-28");
+  });
+
+  it("opens an empty field on min's month when min is after today", () => {
+    // December 2026's grid starts on Monday 30 November.
+    expect(firstDay(panel({ value: "", min: "2026-12-05" }))).toBe("2026-11-30");
+  });
+
+  it("opens an empty field on max's month when max is before today, even with a min", () => {
+    // August 2026's grid starts on Monday 27 July.
+    expect(firstDay(panel({ value: "", max: "2026-08-15" }))).toBe("2026-07-27");
+    expect(firstDay(panel({ value: "", min: "2026-01-10", max: "2026-08-15" }))).toBe("2026-07-27");
+  });
+
+  it("opens a field holding a day on that day's month", () => {
+    expect(firstDay(panel({ value: "2026-12-24", min: "2026-01-01" }))).toBe("2026-11-30");
+  });
+
   it("has month and year dropdowns running 1900 to ten years ahead", () => {
     const html = panel();
     expect(html).toContain('<option value="1900"');
@@ -75,9 +111,10 @@ describe("DatePicker's popover panel", () => {
 
 describe("DatePickerButton", () => {
   it("is an icon button named by its label, so a Phone dock keeps it icon-sized", () => {
-    const html = renderToStaticMarkup(<DatePickerButton aria-label="Jump to date" value="2026-10-20" onPick={noop} />);
-    expect(html).toMatch(/<button[^>]*aria-label="Jump to date"/);
+    const html = renderToStaticMarkup(<DatePickerButton aria-label="Jump to date" value="2026-10-20" onPick={noop} locale="en-GB" />);
+    expect(html).toMatch(/<button[^>]*aria-label="Jump to date, Tue 20 Oct 2026"/);
     expect(html).toMatch(/<button[^>]*data-size="icon/);
-    expect(html).not.toContain("Oct");
+    // No text of its own: the day is in its name only.
+    expect(html).toMatch(/<\/svg><\/button>$/);
   });
 });

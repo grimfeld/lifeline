@@ -1,10 +1,11 @@
 /**
  * A Date and time field's value is the string the native `datetime-local`
  * input gave — local `YYYY-MM-DDTHH:MM`, `""` for none — so nothing stored
- * changes. These split and rebuild it.
+ * changes. These split and rebuild it; the day half is a Date picker's value
+ * (`date-value.ts`).
  */
 
-const pad = (n: number) => String(n).padStart(2, "0")
+import { dayValueOf, pad } from "./date-value"
 
 /** The day and the time a value holds; `""` for each part missing. */
 function splitMoment(value: string): { day: string; time: string } {
@@ -12,9 +13,14 @@ function splitMoment(value: string): { day: string; time: string } {
   return { day: m?.[1] ?? "", time: m?.[2] ?? "" }
 }
 
+/** A Date's time of day as `HH:MM`, in local time. */
+function timeValueOf(date: Date): string {
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 /** A Date as a `datetime-local` value, in local time. */
 function momentOf(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return `${dayValueOf(date)}T${timeValueOf(date)}`
 }
 
 /**
@@ -25,7 +31,7 @@ function momentOf(date: Date): string {
  */
 function withDay(day: string, time: string, { now, max }: { now: Date; max?: string }): string {
   if (!day) return ""
-  const moment = `${day}T${time || `${pad(now.getHours())}:${pad(now.getMinutes())}`}`
+  const moment = `${day}T${time || timeValueOf(now)}`
   return max && moment.slice(0, 10) === max.slice(0, 10) && moment > max.slice(0, 16) ? max.slice(0, 16) : moment
 }
 

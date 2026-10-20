@@ -2,9 +2,9 @@ import { useId, useState } from "react";
 import { CommitField, Field, TagInput, useCommitDraft } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary, type Document, type PeekProps } from "@lifeline/core";
 import type { Event } from "../domain/types";
-import { eventFormErrors, whenOf } from "../domain/eventForm";
+import { whenFormErrors, whenOf, type WhenForm } from "../domain/eventForm";
 import { editEvent, setEventWhen } from "../data/repo";
-import { EventWhenFields, type WhenForm } from "./EventWhenFields";
+import { WhenFields } from "./WhenFields";
 
 /** Typed values are written a moment after the typing stops, as the Vault's editor writes. */
 const WRITE_DELAY = 500;
@@ -26,7 +26,7 @@ function formOf(e: Event): WhenForm {
 /**
  * The Calendar App's part of an Event's Peek (ADR 0085): when it happens — its
  * guarded day and times, written through `setEventWhen` once they make an
- * Event (`eventFormErrors`), as the Event dialog does — and its notes and Tags.
+ * Event (`whenFormErrors`), as the Event dialog does — and its notes and Tags.
  * The title, the user's own Fields and the ways through are the Peek's frame's.
  */
 export function EventPeek({ doc }: PeekProps) {
@@ -40,14 +40,14 @@ function EventPeekPart({ doc }: { doc: Document }) {
   const written = useCommitDraft(formOf(event), (w) => setEventWhen(event.id, whenOf(w)), { delay: WRITE_DELAY, equals: sameWhen });
   const [unfinished, setUnfinished] = useState<WhenForm | null>(null);
   const when = unfinished ?? written.draft;
-  const errorsOf = (w: WhenForm) => eventFormErrors({ title: event.title || "untitled", ...w });
+  const errorsOf = (w: WhenForm) => whenFormErrors(w);
   // Its own ids: the Peek may sit over a page with the Event dialog's.
   const idPrefix = useId();
   const suggestions = useTagVocabulary().map((v) => v.tag);
 
   return (
     <div className="flex flex-col gap-4">
-      <EventWhenFields
+      <WhenFields
         idPrefix={idPrefix}
         value={when}
         // What the store refused shows under the day, with what is wrong with the form.

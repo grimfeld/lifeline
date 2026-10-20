@@ -18,6 +18,7 @@ The value in and out is still the `YYYY-MM-DD` string the native input gave (`""
 
 ## Consequences
 
-- **Times stay native for now.** `<input type="time">` (an Event's start and end, a Time blocker) and the time half of `datetime-local` are left alone; a date-and-time field is its own change.
+- **The kit has a control for every kind of date.** `DatePicker` for a day in a form; `DatePickerButton`, an icon button for acting on a picked day (jump to a date, read on another day); `DateTimeField` for a moment, the day from the `DatePicker` beside a native time input, its value still the `datetime-local` string; and `CommitField` with `type="date"` or `"datetime-local"` renders them in a Peek. A `DatePicker` or `DatePickerButton` given an `aria-label` is named by it and the day it shows ("From, Tue 20 Oct 2026"), so a screen reader hears the day too.
+- **Only a time on its own stays native.** `<input type="time">` (an Event's start and end, a Time blocker, a `DateTimeField`'s time) is left alone: the browser's time inputs are consistent enough, and a typed time is quicker than a picked one. `pnpm check:ui` flags any native `type="date"` or `datetime-local` input.
 - Radix `PopoverContent` is `role="dialog"`, so while a picker is open over a Peek or a Dialog, `getByRole("dialog")` in e2e is ambiguous. Tests pick dates with the shared helper `shell/e2e/support/date-picker.ts` (`pickDate`), which scopes to the calendar.
 - The kit depends on `react-day-picker` (and through it `date-fns`); apps don't.

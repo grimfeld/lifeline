@@ -1,18 +1,9 @@
-import { addDays, diffDays, formatHuman, formatTime, spanLasting, weekdayOf, type DateStr, type TimedWhen, type TimeStr, type Weekday } from "@lifeline/core";
-import { lengthOf } from "./eventForm";
+import { addDays, diffDays, formatHuman, formatTime, spanLasting, spanLength, weekdayOf, WEEKDAY_NAMES, type DateStr, type TimedSpan, type TimedWhen, type TimeStr, type Weekday } from "@lifeline/core";
 import type { TimeBlocker } from "./types";
-import { dayPieces, type TimedSpan } from "./span";
+import { dayPieces } from "./span";
 
 /** Monday-first display order; values are Core weekdays (0 = Sunday). */
-export const WEEKDAYS: { value: Weekday; label: string }[] = [
-  { value: 1, label: "Mon" },
-  { value: 2, label: "Tue" },
-  { value: 3, label: "Wed" },
-  { value: 4, label: "Thu" },
-  { value: 5, label: "Fri" },
-  { value: 6, label: "Sat" },
-  { value: 0, label: "Sun" },
-];
+export const WEEKDAYS: { value: Weekday; label: string }[] = ([1, 2, 3, 4, 5, 6, 0] as Weekday[]).map((value) => ({ value, label: WEEKDAY_NAMES[value] }));
 
 /** One painted band on one day: always inside [00:00, 24:00]. */
 export interface BlockerBand {
@@ -63,7 +54,7 @@ export function rescheduledBlocker(b: Pick<TimeBlocker, "date" | "endDate" | "st
   const span = blockerSpan(b) ?? spanFrom(b, when.date);
   if (!when.start) return { date: when.date, start: span.start, endDate: addDays(span.endDate, diffDays(span.date, when.date)), end: span.end };
   if (!when.end) {
-    const kept = spanLasting(when.date, when.start, lengthOf(span) ?? 0);
+    const kept = spanLasting(when.date, when.start, spanLength(span) ?? 0);
     return { date: kept.date, start: kept.start, endDate: kept.endDate, end: kept.end };
   }
   return { date: when.date, start: when.start, endDate: when.endDate ?? when.date, end: when.end };

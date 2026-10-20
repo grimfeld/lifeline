@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ItemMark, missed } from "./marks";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from "@dnd-kit/core";
-import { Button, cn, toast } from "@lifeline/ui";
+import { Button, cn, toast, Tooltip, TooltipContent, TooltipTrigger } from "@lifeline/ui";
 import {
   BLOCK_DEFAULT_MIN,
   canPush,
@@ -21,6 +21,7 @@ import {
   scheduleSurfaceItem,
   spanEndingAt,
   spanLasting,
+  NEW_TIMED_MIN,
   spanMovedTo,
   startDayMovedTo,
   startOfWeek,
@@ -280,7 +281,8 @@ function BandLayer({ band, from, to, touch, onResize, onOpen }: { band: Band; fr
     borderColor: `color-mix(in oklab, ${color} 35%, transparent)`,
   };
   const title = `${formatTime(band.start)}–${formatTime(band.end)} ${band.title}`;
-  if (e <= s) return null;
+  // Nothing for an empty band, or one whose start or end is no time (NaN): a bad stored value must not paint at `top: NaN`.
+  if (!(e > s)) return null;
   if (band.fixed) {
     return (
       <div className="pointer-events-none absolute inset-x-0 z-0 overflow-hidden border-y" style={style} title={title}>
@@ -302,48 +304,54 @@ function OneOffBand({ band, s, e, style, title, touch, onResize, onOpen }: { ban
   // A band clipped to the visible hours (a next-day part from 00:00) is held by its visible top; `hidden` says how far its real start is above it.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${band.item.key}`, data: { timed: band.item, grab, hidden: s - toHours(band.start) } });
   const resizing = useRef<{ startY: number; startEnd: number } | null>(null);
+  const label = `${[cut.before, title, cut.after].filter(Boolean).join(" ")} · one-off, drag to move`;
   return (
-    <div
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      className={cn("absolute inset-x-0 z-[1] cursor-grab overflow-hidden border-y select-none", isDragging && "opacity-40")}
-      style={style}
-      title={`${[cut.before, title, cut.after].filter(Boolean).join(" ")} · one-off, drag to move`}
-      onPointerDownCapture={(ev) => {
-        grab.current = ev.clientY - ev.currentTarget.getBoundingClientRect().top;
-      }}
-      onClick={(ev) => onOpen(ev.currentTarget)}
-    >
-      <span className="text-muted-foreground absolute inset-x-1 top-0.5 truncate text-2xs">{band.title}</span>
-      {cut.after && (e - s) * HOUR_PX >= 34 && <span className="text-muted-foreground absolute inset-x-1 bottom-0.5 truncate text-2xs">{cut.after}</span>}
-      {!touch && !cut.after && (
-      <div
-        className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
-        aria-hidden
-        onPointerDown={(ev) => {
-          ev.stopPropagation();
-          ev.preventDefault();
-          (ev.target as HTMLElement).setPointerCapture(ev.pointerId);
-          resizing.current = { startY: ev.clientY, startEnd: e };
-        }}
-        onPointerMove={(ev) => {
-          if (!resizing.current) return;
-          const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
-          const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
-          (ev.currentTarget.parentElement as HTMLElement).style.height = `${(next - s) * HOUR_PX}px`;
-        }}
-        onPointerUp={(ev) => {
-          if (!resizing.current) return;
-          const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
-          const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
-          resizing.current = null;
-          if (next !== e) onResize(next);
-        }}
-        onClick={(ev) => ev.stopPropagation()}
-      />
-      )}
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          ref={setNodeRef}
+          {...attributes}
+          {...listeners}
+          className={cn("absolute inset-x-0 z-[1] cursor-grab overflow-hidden border-y select-none", isDragging && "opacity-40")}
+          style={style}
+          aria-label={label}
+          onPointerDownCapture={(ev) => {
+            grab.current = ev.clientY - ev.currentTarget.getBoundingClientRect().top;
+          }}
+          onClick={(ev) => onOpen(ev.currentTarget)}
+        >
+          <span className="text-muted-foreground absolute inset-x-1 top-0.5 truncate text-2xs">{band.title}</span>
+          {cut.after && (e - s) * HOUR_PX >= 34 && <span className="text-muted-foreground absolute inset-x-1 bottom-0.5 truncate text-2xs">{cut.after}</span>}
+          {!touch && !cut.after && (
+          <div
+            className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
+            aria-hidden
+            onPointerDown={(ev) => {
+              ev.stopPropagation();
+              ev.preventDefault();
+              (ev.target as HTMLElement).setPointerCapture(ev.pointerId);
+              resizing.current = { startY: ev.clientY, startEnd: e };
+            }}
+            onPointerMove={(ev) => {
+              if (!resizing.current) return;
+              const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
+              const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
+              (ev.currentTarget.parentElement as HTMLElement).style.height = `${(next - s) * HOUR_PX}px`;
+            }}
+            onPointerUp={(ev) => {
+              if (!resizing.current) return;
+              const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
+              const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
+              resizing.current = null;
+              if (next !== e) onResize(next);
+            }}
+            onClick={(ev) => ev.stopPropagation()}
+          />
+          )}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -769,12 +777,11 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
         if (!canRescheduleTimed(d.timed.appId)) return void toast.error("This item can't be retimed here");
         if (!d.timed.start) {
           // An all-day item lifted onto the hours lasts an hour, past midnight when dropped late (ADR 0090).
-          rescheduleTimedItem(d.timed, spanLasting(date, start, 60)).catch(fail);
+          rescheduleTimedItem(d.timed, spanLasting(date, start, NEW_TIMED_MIN)).catch(fail);
           return;
         }
         // Whichever piece was lifted, the whole item moves by the drop (ADR 0090); one with no end stays end-less.
-        const span = spanMovedTo(d.timed, date, d.hidden ? toClock(startH - d.hidden) : start);
-        rescheduleTimedItem(d.timed, { ...span, end: d.timed.end === null ? null : span.end }).catch(fail);
+        rescheduleTimedItem(d.timed, spanMovedTo(d.timed, date, d.hidden ? toClock(startH - d.hidden) : start)).catch(fail);
       }
       return;
     }

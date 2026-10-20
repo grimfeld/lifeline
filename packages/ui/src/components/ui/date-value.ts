@@ -8,7 +8,7 @@
 const DAY = /^(\d{4})-(\d{2})-(\d{2})$/
 
 /** The stored day as a local-midnight Date; undefined when empty or not a real day. */
-function dateOf(value: string | undefined): Date | undefined {
+function dateOfDay(value: string | undefined): Date | undefined {
   const m = value ? DAY.exec(value) : null
   if (!m) return undefined
   const [y, mo, d] = [Number(m[1]), Number(m[2]) - 1, Number(m[3])]
@@ -17,15 +17,17 @@ function dateOf(value: string | undefined): Date | undefined {
   return date.getFullYear() === y && date.getMonth() === mo && date.getDate() === d ? date : undefined
 }
 
+/** A number as `width` digits, zeros in front: `pad(7)` is "07". */
+const pad = (n: number, width = 2) => String(n).padStart(width, "0")
+
 /** A picked Date as the stored string. */
-function valueOf(date: Date): string {
-  const pad = (n: number, w = 2) => String(n).padStart(w, "0")
+function dayValueOf(date: Date): string {
   return `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
 /** "Tue 20 Oct 2026" — the day in the browser's locale (or `locale`); "" for none. */
 function formatDateValue(value: string, locale?: string): string {
-  const date = dateOf(value)
+  const date = dateOfDay(value)
   if (!date) return ""
   return new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", month: "short", year: "numeric" })
     .format(date)
@@ -41,7 +43,7 @@ function yearSpan(
   today: Date,
   { startYear = 1900, endYear, min, max, value }: { startYear?: number; endYear?: number; min?: string; max?: string; value?: string } = {},
 ): { from: number; to: number } {
-  const years = [min, max, value].map((v) => dateOf(v)?.getFullYear()).filter((y): y is number => y !== undefined)
+  const years = [min, max, value].map((v) => dateOfDay(v)?.getFullYear()).filter((y): y is number => y !== undefined)
   return {
     from: Math.min(startYear, ...years),
     to: Math.max(endYear ?? today.getFullYear() + 10, ...years),
@@ -53,4 +55,4 @@ function withinSpan(value: string, min: string | undefined, max: string | undefi
   return (!min || value >= min) && (!max || value <= max)
 }
 
-export { dateOf, valueOf, formatDateValue, yearSpan, withinSpan }
+export { pad, dateOfDay, dayValueOf, formatDateValue, yearSpan, withinSpan }
