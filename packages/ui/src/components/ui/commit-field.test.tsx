@@ -17,14 +17,24 @@ describe("CommitField", () => {
     expect(html).toContain("Pick a day");
   });
 
-  it("edits a date and time as the kit's Date picker beside a native time input", () => {
+  it("edits a time with the kit's Time field, labelled by the field, never the browser's time input", () => {
+    const html = renderToStaticMarkup(<CommitField type="time" label="Starts" value="09:05" onCommit={() => {}} hint="Local time" />);
+    expect(html).toContain('data-slot="time-field"');
+    expect(html).not.toContain('type="time"');
+    const id = /<label[^>]*for="([^"]+)"/.exec(html)?.[1];
+    expect(html).toMatch(new RegExp(`<input[^>]*id="${id}"[^>]*aria-describedby="${id}-hint"`));
+    expect(html).toMatch(/role="combobox"/);
+  });
+
+  it("edits a date and time as the kit's Date picker beside the kit's Time field", () => {
     const html = renderToStaticMarkup(
       <CommitField type="datetime-local" label="When it happened" value="2026-10-18T09:05" onCommit={() => {}} required />,
     );
     expect(html).not.toContain('type="datetime-local"');
     const id = /<label[^>]*for="([^"]+)"/.exec(html)?.[1];
     expect(html).toMatch(new RegExp(`<button[^>]*id="${id}"[^>]*data-slot="date-picker"`));
-    expect(html).toMatch(/<input[^>]*type="time"[^>]*value="09:05"/);
-    expect(html).toMatch(/<input[^>]*aria-label="Time"/);
+    expect(html).not.toContain('type="time"');
+    expect(html).toMatch(/<input[^>]*role="combobox"[^>]*aria-label="Time"/);
+    expect(html).toContain('data-slot="time-field"');
   });
 });
