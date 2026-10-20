@@ -71,6 +71,10 @@ Work in a `git worktree` off `origin/master` (code, ADRs and CONTEXT.md alike) u
 `.claude/worktrees/<name>`; the main checkout belongs to whoever opened it.
 `pnpm worktrees:prune` clears the ones whose work is on master.
 
+Commit as `claude@grimfeld.tech` (`git -c user.email=claude@grimfeld.tech commit …`, and
+likewise for merges and rebases): the machine's git email is private, and GitHub declines
+pushes carrying it. Amend a commit made with another email with `--reset-author` before pushing.
+
 ## Agent skills
 
 ### Issue tracker
