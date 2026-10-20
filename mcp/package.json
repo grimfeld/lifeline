@@ -38,6 +38,7 @@
     "@lifeline/app-workout": "workspace:*",
     "@lifeline/app-writer": "workspace:*",
     "@lifeline/core": "workspace:*",
+    "@lifeline/guide": "workspace:*",
     "@lifeline/ui": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "express": "^5.3.0",

@@ -42,6 +42,7 @@
     "@lifeline/app-writer": "workspace:*",
     "@lifeline/core": "workspace:*",
     "@lifeline/editor": "workspace:*",
+    "@lifeline/guide": "workspace:*",
     "@lifeline/handoff": "workspace:^",
     "@lifeline/ui": "workspace:*",
     "@tauri-apps/api": "^2.12.4",

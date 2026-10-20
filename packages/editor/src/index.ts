@@ -1,5 +1,6 @@
 export * from "./MarkdownEditor";
 export * from "./MarkdownView";
+export * from "./PlainMarkdownView";
 export * from "./FieldsForm";
 export * from "./PeekControls";
 export * from "./LinksPanel";

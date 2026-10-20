@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router";
-import { Button, Sheet, SheetContent, SheetTitle } from "@lifeline/ui";
+import { Link, useLocation } from "react-router";
+import { Button, Sheet, SheetContent, SheetTitle, Tip } from "@lifeline/ui";
 import { moduleOfPath } from "@lifeline/core";
-import { ChevronLeft, Menu } from "lucide-react";
+import { ChevronLeft, CircleHelp, Menu } from "lucide-react";
 import { WorkspacePicker } from "../components/WorkspacePicker";
 import { Rail } from "../components/Rail";
 import { SyncBadge } from "../components/SyncBadge";
 import { isSingleScreen, layoutOf, ModuleNav } from "../modules/ModuleLayout";
 import { MODULE_SHELLS } from "../modules/shells";
+import { guideHref, guideSlugForPath } from "../guide/guidePlace";
 
 /**
- * The phone's header: **☰ · the Workspace picker**.
+ * The phone's header: **☰ · the Workspace picker · ?**, the last opening the
+ * Guide on the page for where the user stands (ADR 0089).
  *
  * `☰` opens the drawer. Inside a Module it opens on the Module's own
  * navigation — on the desk, the Module's sidebar — with a back button to the
@@ -51,6 +53,13 @@ export function PhoneHeader() {
         <div className="min-w-0 flex-1">
           <WorkspacePicker />
         </div>
+        <Tip label="Guide">
+          <Button variant="ghost" size="icon" className="shrink-0" asChild>
+            <Link to={guideHref(guideSlugForPath(location.pathname))}>
+              <CircleHelp />
+            </Link>
+          </Button>
+        </Tip>
       </header>
 
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>

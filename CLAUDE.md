@@ -65,6 +65,22 @@ already broken before your change.
 no `--` before the flags). It starts its own server on port 1421; set `E2E_PORT` to
 another port when that one is taken.
 
+## The Guide: user-facing changes update it (ADR 0089)
+
+The **Guide** is Lifeline's in-app manual (`/guide`, and Claude's MCP `guide` tool): Markdown pages in
+`packages/guide/pages/`, one per Module, Surface and Core concept, never per App. How to write one is in
+`packages/guide/AUTHORING.md`.
+
+- **A change a user can see updates its Guide page in the same PR.** That covers anything added, renamed,
+  removed or reworked: a Command, Card, screen, view, field, gesture, shortcut, or how something behaves.
+  Find the page from the App's entry in `packages/guide/src/index.ts` (the `apps` lists), or the Module or Surface it
+  sits in. Core changes go on the Core page that covers them (capture, bases, screens, peek, phone…).
+- `pnpm --filter @lifeline/shell test` fails when a Command or Card title is missing from its App's page,
+  or a Module or Surface has no page. A new App joins a page's `apps` list. A new Module, Surface or Core page
+  gets a page of its own, an entry in `packages/guide/src/index.ts` and a link on `index.md`. A deliberate omission
+  goes in `UNLISTED` in `shell/src/guide/guide.test.ts`, with a reason.
+- The test only sees titles, so a rework that keeps them is on you: reread the page and fix what is no longer true.
+
 ## Several agents share this machine
 
 Work in a `git worktree` off `origin/master` (code, ADRs and CONTEXT.md alike) under

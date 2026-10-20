@@ -278,6 +278,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Screens", path: "/screens" },
   { name: "Screen with every Card", path: "/screen/e2elongcontent1", afterOpen: workLocally },
   { name: "Settings", path: "/settings", afterOpen: workLocally },
+  { name: "Guide", path: "/guide" },
+  { name: "Guide · Claude connector", path: "/guide/connector" },
   { name: "Handoff · sign in", path: `/handoff#${LONG_HANDOFF}` },
   { name: "Handoff · Quote", path: `/handoff#${LONG_HANDOFF}`, afterOpen: workLocally },
   { name: "Handoff · picker", path: `/handoff#${encodeHandoff({ title: longText("A page"), text: "", url: `https://example.com/${LONG_WORD}` })}`, afterOpen: pickerWithWorkspaces },

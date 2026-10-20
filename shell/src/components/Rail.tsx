@@ -1,8 +1,9 @@
 import { NavLink, useLocation } from "react-router";
 import { cn } from "@lifeline/ui";
 import { SURFACES, moduleById, moduleHome, moduleOfPath, useWorkspaceModules } from "@lifeline/core";
-import { LayoutDashboard, Settings, Table2 } from "lucide-react";
+import { CircleHelp, LayoutDashboard, Settings, Table2 } from "lucide-react";
 import { MODULE_ICONS, SURFACE_ICONS } from "../navIcons";
+import { guideHref, guideSlugForPath } from "../guide/guidePlace";
 import { SyncBadge } from "./SyncBadge";
 import { WorkspacePicker } from "./WorkspacePicker";
 
@@ -19,7 +20,8 @@ interface RailItem {
 /**
  * The **Rail** (ADR 0057): Core's only chrome. The Workspace on top, then the
  * Workspace's Modules, then the general Surfaces, then the Bases and Screens,
- * with Settings and sync at the foot. It is how you go *between* places and
+ * with the Guide, Settings and sync at the foot. The Guide opens on the page
+ * for where the user stands (ADR 0089). It is how you go *between* places and
  * never shows what is *inside* one — that is the open Module's.
  *
  * `expanded` is the phone drawer's form of the same list, with labels.
@@ -69,6 +71,7 @@ export function Rail({ expanded = false, className }: { expanded?: boolean; clas
         {coreItems.map(row)}
       </div>
       <div className={cn("flex flex-col gap-1", !expanded && "items-center")}>
+        {row({ key: "guide", title: "Guide", to: guideHref(guideSlugForPath(pathname)), icon: CircleHelp, active: under("/guide") })}
         {row({ key: "settings", title: "Settings", to: "/settings", icon: Settings, active: under("/settings") })}
         {!expanded && <SyncBadge compact />}
       </div>

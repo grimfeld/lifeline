@@ -26,7 +26,9 @@ import {
   type CommandDef,
 } from "@lifeline/core";
 import { MODULE_ICONS } from "../navIcons";
-import { CalendarDays, LayoutDashboard, MapPin, Terminal } from "lucide-react";
+import { GUIDE_PAGES } from "@lifeline/guide";
+import { CalendarDays, CircleHelp, LayoutDashboard, MapPin, Terminal } from "lucide-react";
+import { guideHref } from "../guide/guidePlace";
 import { entryIcon, foldMembers } from "../capture/captureParts";
 
 type DialogCommand = CommandDef & { appId: string };
@@ -211,6 +213,12 @@ export function CommandPalette() {
                   </CommandItem>
                 );
               })}
+            {/* Every Guide page by name, so "guide money" finds it (ADR 0089). */}
+            {GUIDE_PAGES.map((p) => (
+              <CommandItem key={`guide-${p.slug}`} value={`Guide ${p.title}`} onSelect={() => pick(() => navigate(guideHref(p.slug)))}>
+                <CircleHelp /> Guide · {p.title}
+              </CommandItem>
+            ))}
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Commands">
