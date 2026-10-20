@@ -145,3 +145,51 @@ export function periodLabel(key: string, locale?: string): string {
 export function periodFolder(key: string): string {
   return `Journal/${key.slice(0, 4)}`;
 }
+
+/** A page of the Journal: a Day (by its date) or a review stretch (by its key). */
+export type JournalPage = { kind: "day" | PeriodKind; key: string; label: string };
+
+/** Whether `date` is "YYYY-MM-DD" naming a day the calendar has. */
+function isCalendarDay(date: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const { y, m, d } = parts(date);
+  const at = new Date(Date.UTC(y, m - 1, d));
+  return at.getUTCFullYear() === y && at.getUTCMonth() === m - 1 && at.getUTCDate() === d;
+}
+
+/** Whether a well-formed key names a stretch the calendar has: no year 0, month 13, week 0 or a 53rd week in a 52-week year. */
+function isCalendarPeriod(kind: PeriodKind, key: string): boolean {
+  const y = Number(key.slice(0, 4));
+  if (y < 1) return false;
+  if (kind === "month") return Number(key.slice(5)) >= 1 && Number(key.slice(5)) <= 12;
+  // Quarters 1–4 are all kindOfKey reads.
+  if (kind === "week") {
+    const w = Number(key.slice(-2));
+    // 28 December is always in its year's last ISO week.
+    return w >= 1 && w <= isoWeek(`${key.slice(0, 4)}-12-28`).week;
+  }
+  return true;
+}
+
+/** "Tuesday 14 March 2023": the weekday, then the date in the locale's order. */
+function dayLabel(date: DateStr, locale?: string): string {
+  const { y, m, d } = parts(date);
+  const at = new Date(Date.UTC(y, m - 1, d));
+  // Weekday and date apart: joined, en-GB puts a comma after the weekday.
+  const weekday = at.toLocaleDateString(locale, { weekday: "long", timeZone: "UTC" });
+  return `${weekday} ${at.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}`;
+}
+
+/**
+ * Typed text read as a Journal page (ADR 0088): an ISO date opens its Day, and
+ * the keys the Journal titles its stretches with — `2023-W11`, `2023-03`,
+ * `2023-Q1`, `2023` — open that review. Checked against the calendar; no
+ * natural language. Undefined when the text names no page.
+ */
+export function journalPageOf(text: string, locale?: string): JournalPage | undefined {
+  const t = text.trim().toUpperCase();
+  if (isCalendarDay(t)) return { kind: "day", key: t, label: dayLabel(t, locale) };
+  const kind = kindOfKey(t);
+  if (!kind || !isCalendarPeriod(kind, t)) return undefined;
+  return { kind, key: t, label: periodLabel(t, locale) };
+}
