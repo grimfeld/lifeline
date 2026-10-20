@@ -507,6 +507,7 @@ const SCREENS: ScreenCase[] = [
       await length.getByRole("textbox").fill("12d 23h 45m");
       await length.getByRole("textbox").press("Enter");
       await expect(length.getByRole("textbox")).toHaveValue("12d 23h 45m");
+      await expect(length.getByRole("button", { name: "1h", exact: true })).toHaveAttribute("aria-pressed", "false");
     },
   },
   { name: "Stats", path: "/app/stats" },

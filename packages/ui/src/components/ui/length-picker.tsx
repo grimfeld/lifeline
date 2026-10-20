@@ -78,7 +78,8 @@ export function LengthPicker({
         autoComplete="off"
         placeholder="Other…"
         aria-label={`${ariaLabel}, other`}
-        className={cn("w-24 tabular-nums", custom && draft === null && "border-primary")}
+        // Grows with what it holds ("12d 23h 45m"), never past its line.
+        className={cn("w-auto min-w-24 max-w-full tabular-nums field-sizing-content", custom && draft === null && "border-primary")}
         value={shown}
         onFocus={(e) => setDraft(e.currentTarget.value)}
         onChange={(e) => setDraft(e.target.value)}
