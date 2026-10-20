@@ -460,3 +460,90 @@ test.describe("Journal navigation · Go to date and the review Commands (#212)",
     });
   }
 });
+
+/**
+ * Keyboard paging (#213): Alt+←/→ steps a Day by a calendar day and a period
+ * by one of its kind; Alt+Shift+←/→ skips to the nearest written Day or the
+ * nearest period with a review, and does nothing past the last one. Never
+ * while typing: Esc leaves the editor first.
+ */
+test.describe("Journal navigation · keyboard paging (#213)", () => {
+  test.skip(({ isMobile }) => isMobile, "keyboard paging is the desk's: a phone pages with its dock");
+  // May–July 1997: a stretch nothing else in the store uses.
+  const DAYS = {
+    "1997-05-02": "Swifts are back.",
+    "1997-05-09": TEMPLATE, // made, never written in: skipped
+    "1997-05-20": "Hay in.",
+  };
+  const REVIEWS = { "1997-02": "A cold month.", "1997-07": "" };
+  const dayUrl = (date: string) => (u: URL) => u.searchParams.get("d") === date;
+  const periodUrl = (key: string) => (u: URL) => u.pathname === `/app/journal/p/${key}`;
+
+  test("on a Day, Alt+←/→ step a calendar day and Alt+Shift+←/→ skip to the nearest written Day", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "1997-05-12");
+    await page.keyboard.press("Alt+ArrowRight");
+    await expect(page).toHaveURL(dayUrl("1997-05-13"));
+    await page.keyboard.press("Alt+ArrowLeft");
+    await expect(page).toHaveURL(dayUrl("1997-05-12"));
+    await page.keyboard.press("Alt+Shift+ArrowLeft"); // past the Template-only 9 May
+    await expect(page).toHaveURL(dayUrl("1997-05-02"));
+    await page.keyboard.press("Alt+Shift+ArrowRight");
+    await expect(page).toHaveURL(dayUrl("1997-05-20"));
+  });
+
+  test("Alt+Shift past the last written Day does nothing", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    // After May 1997 the next written Days are the layout seed's (dated today), so look from past them.
+    await openDay(page, "2999-01-01");
+    await page.keyboard.press("Alt+Shift+ArrowRight");
+    await page.keyboard.press("Alt+ArrowRight"); // one day on from where it stayed
+    await expect(page).toHaveURL(dayUrl("2999-01-02"));
+  });
+
+  test("on a period page, Alt+←/→ step a period and Alt+Shift+←/→ skip to the nearest review", async ({ page }) => {
+    await seedJournal(page, { reviews: REVIEWS });
+    await openPeriod(page, "1997-05");
+    await page.keyboard.press("Alt+ArrowRight");
+    await expect(page).toHaveURL(periodUrl("1997-06"));
+    await page.keyboard.press("Alt+ArrowLeft");
+    await expect(page).toHaveURL(periodUrl("1997-05"));
+    await page.keyboard.press("Alt+Shift+ArrowLeft");
+    await expect(page).toHaveURL(periodUrl("1997-02"));
+    await page.keyboard.press("Alt+Shift+ArrowRight");
+    await expect(page).toHaveURL(periodUrl("1997-07"));
+
+    await openPeriod(page, "1997-Q2");
+    await page.keyboard.press("Alt+ArrowLeft");
+    await expect(page).toHaveURL(periodUrl("1997-Q1"));
+  });
+
+  test("Alt+Shift past the last review does nothing", async ({ page }) => {
+    await seedJournal(page, { reviews: REVIEWS });
+    await openPeriod(page, "2999-01");
+    await page.keyboard.press("Alt+Shift+ArrowRight");
+    await page.keyboard.press("Alt+ArrowRight");
+    await expect(page).toHaveURL(periodUrl("2999-02"));
+  });
+
+  test("they do nothing in the editor or an input; Esc leaves the editor so they page", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "1997-05-20");
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Alt+ArrowRight");
+    await page.keyboard.press("Alt+Shift+ArrowLeft");
+    await expect(page.locator(".cm-content")).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".cm-content")).not.toBeFocused();
+    await page.keyboard.press("Alt+ArrowRight"); // one day on: the keys in the editor did nothing
+    await expect(page).toHaveURL(dayUrl("1997-05-21"));
+
+    const jump = page.getByLabel("Jump to date");
+    await jump.focus();
+    await page.keyboard.press("Alt+Shift+ArrowLeft");
+    await jump.blur();
+    await expect(jump).not.toBeFocused();
+    await page.keyboard.press("Alt+ArrowLeft"); // one day back: the keys in the input did nothing
+    await expect(page).toHaveURL(dayUrl("1997-05-20"));
+  });
+});

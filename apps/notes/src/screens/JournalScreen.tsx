@@ -8,6 +8,7 @@ import { DAILY, JOURNAL_HREF, journalHref, type Note } from "../domain/types";
 import { nearestWrittenDay } from "../domain/nearest";
 import { JournalAside } from "../components/JournalAside";
 import { JournalLinksButton } from "../components/JournalLinks";
+import { useJournalPaging } from "../components/useJournalPaging";
 import { ensureDailyNote } from "../data/repo";
 
 /**
@@ -27,6 +28,7 @@ export function JournalScreen() {
   const note = dailies.find((n) => n.title === date);
   const def = documentType(DAILY);
   const go = (d: DateStr) => navigate(journalHref(d, today));
+  useJournalPaging(dailies, date, go);
   const daysWithNotes = new Set(dailies.map((n) => n.title));
   const near = note ? undefined : nearestWrittenDay(dailies, date);
   const strip = Array.from({ length: 14 }, (_, i) => addDays(date, i - 10));
