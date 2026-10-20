@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
+import { Button, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import { faceOf, type Spend } from "../domain/types";
 import { allowanceRows, sortRows } from "../domain/derive";
@@ -103,7 +103,7 @@ export function SpendDialog({ open, onOpenChange, spend, allowanceId }: { open: 
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="sp-date">Day</Label>
-                <Input id="sp-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <DatePicker id="sp-date" required value={date} onChange={setDate} />
               </div>
             </div>
             <div className="grid gap-2">

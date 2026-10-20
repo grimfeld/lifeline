@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Button, Input, PhoneDock } from "@lifeline/ui";
+import { Button, DatePickerButton, PhoneDock } from "@lifeline/ui";
 import { addDays, documentType, formatHuman, todayStr, useDocuments, useLinkIndex, type DateStr } from "@lifeline/core";
 import { DocumentEditor } from "@lifeline/editor";
 import { ChevronLeft, ChevronRight, PenLine } from "lucide-react";
@@ -50,7 +50,7 @@ export function JournalScreen() {
           <Button variant={date === today ? "secondary" : "outline"} className="h-7" onClick={() => go(today)}>
             Today
           </Button>
-          <Input type="date" className="h-7 w-36 max-md:w-auto" value={date} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
+          <DatePickerButton aria-label="Jump to date" variant="ghost" className="size-7" value={date} onPick={go} />
           {note && <JournalLinksButton docId={note.id} index={index} />}
           <div className="hidden items-center gap-1 xl:flex">
             {strip.map((d) => (
