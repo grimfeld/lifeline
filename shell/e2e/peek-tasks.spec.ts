@@ -129,7 +129,7 @@ test("a Task is moved by tapping a day in the Move dialog, and Cancel backs out"
   await expect.poll(async () => (await field(page, id)).date).toBe("2026-03-09");
 });
 
-test("an Event peeked from the Vault gets a time there, and an end before its start is refused", async ({ page }) => {
+test("an Event peeked from the Vault gets a time there; an end before its start is the next day's, one equal to it refused", async ({ page }) => {
   const stamp = Date.now();
   await page.goto("/vault");
   await workLocally(page);
@@ -152,8 +152,13 @@ test("an Event peeked from the Vault gets a time there, and an end before its st
   await expect.poll(async () => { const d = await field(page, id); return { date: d.date, start: d.start, end: d.end }; }).toEqual({ date: "2026-03-02", start: "10:30", end: "11:00" });
   await expect(dialog.getByText(/^until .+ · 30m$/)).toBeVisible();
 
+  // An End earlier than the Start rolls to the next day (ADR 0090), and the end day shows beside it.
   await setTime(end, "09:00");
+  await expect(dialog.getByText(/^until Tue.* · 22h 30m$/)).toBeVisible();
+  await expect.poll(async () => { const d = await field(page, id); return { endDate: d.endDate, end: d.end }; }).toEqual({ endDate: "2026-03-03", end: "09:00" });
+
+  await setTime(end, "10:30");
   await expect(dialog.getByText("End must be after start")).toBeVisible();
   await page.waitForTimeout(800);
-  expect((await field(page, id)).end).toBe("11:00");
+  expect((await field(page, id)).end).toBe("09:00");
 });

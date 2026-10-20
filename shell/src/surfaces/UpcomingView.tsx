@@ -5,6 +5,7 @@ import {
   formatHuman,
   formatTime,
   parts,
+  pieceLead,
   startOfWeek,
   upcomingRuns,
   useSurfaceItems,
@@ -233,7 +234,7 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
                     ))}
                     {r.atTimes.map((e) =>
                       e.kind === "timed" ? (
-                        <Row key={e.item.key} color={e.item.color} lead={`${formatTime(e.start)}${e.item.end ? `–${formatTime(e.item.end)}` : ""}`} late={missed(e.item)} onOpen={(el) => edit({ kind: "timed", item: e.item }, el)}>
+                        <Row key={e.item.key} color={e.item.color} lead={pieceLead(e.item) ?? `${formatTime(e.start)}${e.item.end ? `–${formatTime(e.item.end)}` : ""}`} late={missed(e.item)} onOpen={(el) => edit({ kind: "timed", item: e.item }, el)}>
                           <span className="truncate font-medium">{e.item.title}</span>
                         </Row>
                       ) : (

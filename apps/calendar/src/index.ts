@@ -35,7 +35,7 @@ const eventType: DocumentTypeDef = {
   body: "none",
   fields: [
     { key: "date", label: "Day", kind: "date", required: true, guarded: true, column: true },
-    { key: "endDate", label: "Last day", kind: "date", guarded: true },
+    { key: "endDate", label: "End day", kind: "date", guarded: true },
     { key: "start", label: "Start", kind: "text", guarded: true, column: true },
     { key: "end", label: "End", kind: "text", guarded: true, column: true },
     { key: "notes", label: "Notes", kind: "longtext" },

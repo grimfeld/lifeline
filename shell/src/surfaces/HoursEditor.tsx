@@ -9,6 +9,7 @@ import {
   canRenameTimed,
   canRescheduleTimed,
   completeSurfaceItem,
+  describeSpan,
   formatHuman,
   formatTime,
   moveTimeBlock,
@@ -145,7 +146,9 @@ export function HoursEditor({
   const work = target.kind === "work" ? target.item : null;
   const timed = target.kind === "timed" ? target.item : null;
   const push = usePush(work ?? NO_PUSH);
-  const readOnly = work ? !!work.completedOn : !canRescheduleTimed(timed!.appId);
+  // An item across days (ADR 0090) is shown whole here, from any of its pieces; its times are set where its App edits it, for now.
+  const span = timed?.span && timed.span.endDate !== timed.span.date ? timed.span : null;
+  const readOnly = work ? !!work.completedOn : !canRescheduleTimed(timed!.appId) || !!span;
   const href = work ? schedulableHref(work) : timedHref(timed!);
 
   function write(next: { date: DateStr; start: string | null; len: number }) {
@@ -271,7 +274,11 @@ export function HoursEditor({
     </div>
   );
 
-  const body: ReactNode = readOnly ? (
+  const body: ReactNode = span ? (
+    <p className="text-muted-foreground text-sm">
+      {formatHuman(span.date)} · {describeSpan(span)}
+    </p>
+  ) : readOnly ? (
     <p className="text-muted-foreground text-sm">
       {formatHuman(date)}
       {start ? ` · ${formatTime(start)}–${formatTime(addMinutes(start, len))}` : " · all day"}

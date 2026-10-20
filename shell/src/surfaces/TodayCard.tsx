@@ -3,6 +3,7 @@ import {
   appById,
   completeSurfaceItem,
   formatTime,
+  pieceLead,
   todayStr,
   useSurfaceItems,
   useTimedItems,
@@ -40,7 +41,8 @@ export function TodayCard() {
       {timed.map((t) => (
         <li key={t.key} className="flex items-center gap-2 rounded-md px-1 py-0.5">
           <span className="text-muted-foreground w-16 shrink-0 text-xs">
-            {t.start ? formatTime(t.start) : t.marker ? "Deadline" : "All day"}
+            {/* A piece of an Event that began on an earlier day reads where it ends (ADR 0090). */}
+            {t.span && t.date > t.span.date ? pieceLead(t) : t.start ? formatTime(t.start) : t.marker ? "Deadline" : "All day"}
           </span>
           <span className={cn("truncate text-sm", missed(t) && "text-destructive font-medium")}>{t.title}</span>
           <span

@@ -2,14 +2,15 @@ import type { DateStr, Document, TimeStr, Weekday } from "@lifeline/core";
 
 /**
  * A thing that happens at a fixed time (CONTEXT.md): not work, not
- * completable. Timed on one day (start/end "HH:MM"), or all-day spanning
- * [date, endDate] when start is null. A Document of type `event` (ADR 0018).
+ * completable. Timed from `date` + `start` to `endDate` + `end` ("HH:MM"),
+ * on any day (ADR 0090), or all-day spanning [date, endDate] when start is
+ * null. A Document of type `event` (ADR 0018).
  */
 export interface Event extends Document {
   notes: string;
-  /** First (or only) day. */
+  /** First (or only) day; a timed Event's start day. */
   date: DateStr;
-  /** All-day events only: last day, inclusive. null = single day. */
+  /** Timed: the day `end` is on. All-day: the last day, inclusive. null = the same day as `date`. */
   endDate: DateStr | null;
   /** null = all day. */
   start: TimeStr | null;
