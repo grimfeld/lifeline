@@ -83,7 +83,7 @@ export function JournalScreen() {
         ) : (
           <div className="text-muted-foreground flex min-w-0 flex-1 flex-col items-center justify-center gap-3 p-4 text-center text-sm">
             <div>
-              No entry for <span className="text-foreground font-medium">{formatHuman(date)}</span>.
+              Nothing written on <span className="text-foreground font-medium">{formatHuman(date)}</span>.
             </div>
             <Button onClick={() => void ensureDailyNote(date)}>
               <PenLine /> Start writing

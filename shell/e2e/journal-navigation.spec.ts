@@ -21,7 +21,7 @@ test.describe("Journal navigation · the sidebar stays (#206)", () => {
     await expect(sidebar(page).getByText("Backlinks · 0")).toBeVisible();
 
     await openDay(page, "2001-02-14");
-    await expect(page.getByText("No entry for")).toBeVisible();
+    await expect(page.getByText("Nothing written on")).toBeVisible();
     const side = sidebar(page);
     await expect(side).toBeVisible();
     await expect(side.getByRole("button", { name: "2001-02-14" })).toHaveAttribute("aria-current", "date");
