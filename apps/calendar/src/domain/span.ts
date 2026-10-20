@@ -1,12 +1,7 @@
-import { addDays, diffDays, type DateStr, type TimeStr } from "@lifeline/core";
+import { addDays, diffDays, type DateStr, type TimedSpan, type TimeStr } from "@lifeline/core";
 
-/** A timed span: from a start (day + time) to an end (day + time). */
-export interface TimedSpan {
-  date: DateStr;
-  start: TimeStr;
-  endDate: DateStr;
-  end: TimeStr;
-}
+/** A timed span: from a start (day + time) to an end (day + time) — the Timed contract's (ADR 0090). */
+export type { TimedSpan };
 
 /** An all-day span: from a first day (`date`) to a last day (`endDate`), inclusive. */
 export interface AllDaySpan {

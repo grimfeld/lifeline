@@ -39,7 +39,8 @@ export async function addEvent(input: {
     title: input.title,
     notes: input.notes ?? "",
     date: input.date,
-    endDate: start ? null : (input.endDate ?? null),
+    // A timed Event keeps the day its end is on (ADR 0090); an all-day one its last day.
+    endDate: input.endDate && input.endDate > input.date && (!start || input.end) ? input.endDate : null,
     start,
     end: start ? (input.end || null) : null,
     tags: normalizeTags(input.tags ?? []),
@@ -70,7 +71,7 @@ export async function deleteEvent(id: string): Promise<void> {
   await removeDocument(id);
 }
 
-/** Move an event's first day to `to`, keeping its length. */
+/** Move an event's first day to `to`, its end day with it, keeping its length. */
 export async function moveEvent(id: string, to: DateStr): Promise<void> {
   const ev = await getDocument<Event>(id);
   // Time blockers reach the Timed contract through this App too (ADR 0027); they have no day to move.
@@ -80,7 +81,7 @@ export async function moveEvent(id: string, to: DateStr): Promise<void> {
   await putDocument<Event>({ ...e, date: to, endDate: len > 0 ? addDays(to, len) : null });
 }
 
-/** Reschedule an event onto a day and time (null start = all day). Multi-day events keep their length. */
+/** Reschedule an event onto a day and time (null start = all day). An Event across days keeps its end day's offset. */
 export async function rescheduleEvent(id: string, date: DateStr, start: string | null, end: string | null): Promise<void> {
   const ev = await getDocument<Event>(id);
   if (!ev || ev.type !== EVENT_TYPE) return;

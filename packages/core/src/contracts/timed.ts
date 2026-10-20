@@ -1,4 +1,4 @@
-import type { DateStr } from "../dates";
+import { addDays, diffDays, weekdayOf, type DateStr } from "../dates";
 import { appById, timedProviders } from "../registry";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
@@ -7,6 +7,39 @@ import { useStructuralMemo } from "../stable";
 
 /** "HH:MM" local wall-clock time. */
 export type TimeStr = string;
+
+/**
+ * When a timed thing happens, whole: from a start (day + time) to an end
+ * (day + time), on any day (ADR 0090). `endDate` is the start's own day for
+ * one that ends the same day.
+ */
+export interface TimedSpan {
+  date: DateStr;
+  start: TimeStr;
+  endDate: DateStr;
+  end: TimeStr;
+}
+
+/** Minutes past midnight of "HH:MM" ("24:00" is the day's end); null for text that is no time. */
+function clockMinutes(t: string): number | null {
+  const m = /^(\d{2}):(\d{2})$/.exec(t);
+  if (!m) return null;
+  const [h, min] = [Number(m[1]), Number(m[2])];
+  return min < 60 && (h < 24 || (h === 24 && min === 0)) ? h * 60 + min : null;
+}
+
+/**
+ * The one rule for a span (ADR 0090): its end moment is strictly after its
+ * start moment. An end at an earlier time on a later day is fine; an end equal
+ * to the start is not. The Event form, its Peek, the add-event Command and the
+ * MCP tools all ask this.
+ */
+export function spanIsValid(span: TimedSpan): boolean {
+  const [s, e] = [clockMinutes(span.start), clockMinutes(span.end)];
+  const days = diffDays(span.date, span.endDate);
+  if (s === null || e === null || !Number.isFinite(days)) return false;
+  return days * 24 * 60 + e > s;
+}
 
 /**
  * An App entity that happens at a fixed time on a day: shown on time surfaces
@@ -20,11 +53,18 @@ export interface TimedItem {
   itemId: string;
   title: string;
   subtitle?: string;
-  /** Day it appears on. Multi-day items report one TimedItem per day. */
+  /** Day it appears on. Multi-day items report one TimedItem per day: a piece of the whole. */
   date: DateStr;
-  /** null = all day. */
+  /** null = all day. A piece's own hours: "00:00" where it carries on from the day before, "24:00" where it carries on into the next. */
   start: TimeStr | null;
   end: TimeStr | null;
+  /**
+   * A timed item's whole span (ADR 0090), on each of its pieces: where it
+   * really starts and ends, so a view can label a cut edge ("↓ Tue 06:00")
+   * and act on the whole item from any piece. Absent where the provider
+   * reports no span (an all-day item, or an App that keeps to one day).
+   */
+  span?: TimedSpan;
   /** The entity's Tags (ADR 0014). */
   tags?: string[];
   /** Overrides the App colour on surfaces (a Calendar subscription's own colour, ADR 0017). */
@@ -247,4 +287,50 @@ export function formatTime(t: TimeStr | null): string {
   if (!hm) return "";
   timeFormat ??= new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", timeZone: "UTC" });
   return timeFormat.format(new Date(Date.UTC(2000, 0, 1, Number(hm[1]), Number(hm[2]))));
+}
+
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** "22:00 – 23:00", or "22:00 – Tue 06:00" when the span ends another day (ADR 0090). */
+export function describeSpan(span: TimedSpan): string {
+  const endDay = span.endDate !== span.date ? `${WEEKDAY_NAMES[weekdayOf(span.endDate)]} ` : "";
+  return `${formatTime(span.start)} – ${endDay}${formatTime(span.end)}`;
+}
+
+/** Whether a span runs past its start day: an end at 00:00 the next day only reaches midnight. */
+function crossesDays(span: TimedSpan): boolean {
+  return span.endDate > span.date && !(span.end === "00:00" && span.endDate === addDays(span.date, 1));
+}
+
+/** A moment of a span as a cut edge names it: "Tue 06:00". */
+const momentOf = (date: DateStr, time: TimeStr) => `${WEEKDAY_NAMES[weekdayOf(date)]} ${formatTime(time)}`;
+
+/**
+ * The cut edges of a piece (ADR 0090), labelled with where its span carries
+ * on: `before` ("↑ from Mon 22:00") where it began on an earlier day, `after`
+ * ("↓ Tue 06:00") where it runs into the next. null for an edge that is the
+ * span's own.
+ */
+export function cutEdges(piece: Pick<TimedItem, "date" | "span">): { before: string | null; after: string | null } {
+  const span = piece.span;
+  if (!span) return { before: null, after: null };
+  const lastDay = span.end === "00:00" && span.endDate > span.date ? addDays(span.endDate, -1) : span.endDate;
+  return {
+    before: piece.date > span.date ? `↑ from ${momentOf(span.date, span.start)}` : null,
+    after: piece.date < lastDay ? `↓ ${momentOf(span.endDate, span.end)}` : null,
+  };
+}
+
+/**
+ * How a day-granular view leads a piece of a span that runs across days:
+ * its first day reads the whole span ("22:00 – Tue 06:00"), a later day where
+ * it ends ("→ 06:00", or "→ Wed 17:00" before its last day). null for an
+ * item on one day — the view leads it its usual way.
+ */
+export function pieceLead(piece: Pick<TimedItem, "date" | "span">): string | null {
+  const span = piece.span;
+  if (!span || !crossesDays(span)) return null;
+  if (piece.date <= span.date) return describeSpan(span);
+  const endDay = span.endDate !== piece.date ? `${WEEKDAY_NAMES[weekdayOf(span.endDate)]} ` : "";
+  return `→ ${endDay}${formatTime(span.end)}`;
 }

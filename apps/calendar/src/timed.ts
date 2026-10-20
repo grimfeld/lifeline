@@ -1,5 +1,5 @@
 import { getDocument, patchDocument, putDocument, removeDocument, vaultDocPath, type DateStr, type DocumentInput, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
-import { daysOf, describeTime } from "./domain/events";
+import { daysOf, describeTime, piecesOf, spanOf } from "./domain/events";
 import { bandsIn, describeBlocker, isOneOff } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
 import { addEvent, allEvents, moveEvent, rescheduleEvent, useEvents } from "./data/repo";
@@ -10,8 +10,12 @@ import { BLOCKER_TEMPLATE_TYPE, EVENT_TYPE, TIME_BLOCKER_TYPE, type Event, type 
 
 export const APP_ID = "calendar";
 
-/** Events and Time blocker bands in range, as Timed items — one per day each occupies. */
-function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { start: DateStr; end: DateStr }): TimedItem[] {
+/**
+ * Events and Time blocker bands in range, as Timed items — one per day each
+ * occupies. A timed Event's pieces have their own day's hours and carry its
+ * whole span (ADR 0090).
+ */
+export function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { start: DateStr; end: DateStr }): TimedItem[] {
   const items: TimedItem[] = [];
   // Time blockers (ADR 0027) are painted per day: a weekly rule's bands are fixed, a one-off's (ADR 0029) may be dragged.
   for (const band of bandsIn(blockers, range)) {
@@ -31,19 +35,25 @@ function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { start: 
     });
   }
   for (const ev of events) {
-    for (const date of daysOf(ev, range)) {
-      items.push({
-        key: `${APP_ID}/${ev.id}@${date}`,
-        appId: APP_ID,
-        itemId: ev.id,
-        title: ev.title,
-        subtitle: describeTime(ev),
-        date,
-        start: ev.start,
-        end: ev.end,
-        tags: ev.tags ?? [],
-      });
+    const item = (date: DateStr, start: string | null, end: string | null): TimedItem => ({
+      key: `${APP_ID}/${ev.id}@${date}`,
+      appId: APP_ID,
+      itemId: ev.id,
+      title: ev.title,
+      subtitle: describeTime(ev),
+      date,
+      start,
+      end,
+      tags: ev.tags ?? [],
+    });
+    const span = spanOf(ev);
+    if (!span) {
+      for (const date of daysOf(ev, range)) items.push(item(date, null, null));
+      continue;
     }
+    // On one day an Event keeps its own end (none is none); across days each piece has that day's hours.
+    const oneDay = span.endDate === span.date;
+    for (const p of piecesOf(ev, range)) items.push({ ...item(p.date, oneDay ? ev.start : p.start, oneDay ? ev.end : p.end), span });
   }
   return items;
 }

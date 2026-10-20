@@ -7,6 +7,7 @@ import {
   canPush,
   addDays,
   canRescheduleTimed,
+  cutEdges,
   completeSurfaceItem,
   createFromTimedTemplate,
   formatHuman,
@@ -133,14 +134,20 @@ function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen,
   );
 }
 
-/** A block on the timeline: draggable, resizable at the bottom edge. */
+/**
+ * A block on the timeline: draggable, resizable at the bottom edge. A piece
+ * of a timed item that runs across days (ADR 0090) is drawn on its own day,
+ * squared and labelled where it carries on; it neither drags nor resizes yet.
+ */
 function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, onOpen }: { entry: Entry; from: number; cols: number; col: number; touch: boolean; onResize: (endHours: number) => void; onComplete?: () => void; onRemove?: () => void; onOpen: (el: HTMLElement) => void }) {
   const isBlock = entry.kind === "block";
   // One item may have several blocks (ADR 0028): the Placement, not the item, is the draggable.
   const id = isBlock ? `block:${entry.item.placementId}` : `timed:${entry.item.key}`;
   const grab = useRef(0);
   const data = isBlock ? { item: entry.item, grab } : { timed: entry.item, grab };
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data });
+  const cut = isBlock ? { before: null, after: null } : cutEdges(entry.item);
+  const piece = !!(cut.before || cut.after);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, data, disabled: piece });
   const s = toHours(entry.start);
   const e = toHours(entry.end);
   const done = isBlock && !!entry.item.completedOn;
@@ -152,7 +159,14 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={cn("group absolute z-[2] cursor-grab overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-xs shadow-sm select-none", isDragging && "opacity-40", done && "opacity-60")}
+      className={cn(
+        "group absolute z-[2] overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-xs shadow-sm select-none",
+        piece ? "cursor-pointer" : "cursor-grab",
+        cut.before && "rounded-t-none border-t border-t-current/30 border-dashed",
+        cut.after && "rounded-b-none border-b border-b-current/30 border-dashed",
+        isDragging && "opacity-40",
+        done && "opacity-60",
+      )}
       style={{
         top: (s - from) * HOUR_PX + 1,
         height: Math.max(18, (e - s) * HOUR_PX - 2),
@@ -199,12 +213,13 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
         )}
       </div>
       {!short && (
-        <div className="text-muted-foreground truncate text-[10px]">
-          {formatTime(entry.start)}–{formatTime(entry.end)}
+        <div className="text-muted-foreground truncate text-2xs">
+          {cut.before ?? `${formatTime(entry.start)}–${formatTime(entry.end)}`}
         </div>
       )}
+      {cut.after && !short && <div className="text-muted-foreground absolute inset-x-1.5 bottom-0.5 truncate text-2xs">{cut.after}</div>}
       {/* On a phone the edge was a 12px target that fought the scroll: length is set in the editor there. */}
-      {!touch && (
+      {!touch && !piece && (
       <div
         className={cn("absolute inset-x-0 bottom-0 cursor-ns-resize touch-none", short ? "h-1.5" : "h-2")}
         aria-hidden

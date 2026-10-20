@@ -15,7 +15,7 @@ import {
 import { displayTitle, docHref, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff } from "@lifeline/core";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
-import { eventFormErrors, newEventWhen, whenOf, withStart, type EventFormErrors } from "../domain/eventForm";
+import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors } from "../domain/eventForm";
 import { EventWhenFields, whenIds } from "./EventWhenFields";
 
 /** Each checked control's id — its input's and the one an error focuses — in the order the dialog shows them. */
@@ -89,14 +89,15 @@ export function EventDialog({
     }
     // A new Event is timed: at the next quarter hour today, 09:00 another day, lasting an hour.
     const day = preDate ?? defaultDate ?? todayStr();
-    const usual = newEventWhen(day);
-    // A given start keeps its day, and an hour's length unless an end is given too.
-    const timed = preStart ? withStart(usual, preStart) : usual;
-    setDate(preStart ? day : usual.date);
-    setEndDate(preEndDate ?? "");
+    // A given start keeps its day, and an hour's length (into the next day when late) unless an end is given too.
+    const timed = preStart ? withStart({ date: day, start: "09:00", endDate: "", end: "10:00" }, preStart) : newEventWhen(day);
+    // A given end without its day rolls past midnight as one typed would (ADR 0090).
+    const ended = preEnd ? (preEndDate ? { ...timed, endDate: preEndDate, end: preEnd } : withEnd(timed, preEnd)) : timed;
+    setDate(ended.date);
+    setEndDate(ended.endDate === ended.date ? "" : ended.endDate);
     setAllDay(false);
-    setStart(timed.start);
-    setEnd(preEnd ?? timed.end);
+    setStart(ended.start);
+    setEnd(ended.end);
   }, [open, event, defaultDate, handoff, preTitle, preDate, preStart, preEndDate, preEnd]);
 
   async function submit() {

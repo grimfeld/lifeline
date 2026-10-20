@@ -11,6 +11,7 @@ import {
   daysInMonth,
   moveTimedItem,
   parts,
+  pieceLead,
   usePoolItems,
   useSurfaceItems,
   useTimedItems,
@@ -34,9 +35,15 @@ function useDragGuard() {
   return { mark: () => (last.current = Date.now()), recent: () => Date.now() - last.current < 350 };
 }
 
-/** An Event (or other Timed item) on its day: opens in the hours' editor, drags to another day where its App allows. */
+/**
+ * An Event (or other Timed item) on its day: opens in the hours' editor, drags to another day where its App allows.
+ * One that runs across days shows on each: its first day with its start, later days with "→ its end" (ADR 0090) —
+ * and only its first day drags, for now, so the whole Event moves by the drop.
+ */
 function TimedChip({ item, onOpen }: { item: SurfaceTimedItem; onOpen: (el: HTMLElement) => void }) {
-  const movable = canMoveTimed(item.appId);
+  const later = !!item.span && item.date > item.span.date;
+  const movable = canMoveTimed(item.appId) && !later;
+  const lead = later ? pieceLead(item) : item.start && formatTime(item.start);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${item.key}`, data: { timed: item }, disabled: !movable });
   return (
     <div
@@ -51,7 +58,7 @@ function TimedChip({ item, onOpen }: { item: SurfaceTimedItem; onOpen: (el: HTML
       }}
     >
       <span className="size-1.5 shrink-0 rounded-sm" style={{ background: item.color ?? "var(--muted-foreground)" }} />
-      {item.start && <span className="text-muted-foreground shrink-0">{formatTime(item.start)}</span>}
+      {lead && <span className="text-muted-foreground shrink-0">{lead}</span>}
       <span className="truncate">{item.title}</span>
     </div>
   );
