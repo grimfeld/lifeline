@@ -258,6 +258,16 @@ async function seedWrittenNeighbours(page: Page) {
   await expect(page.getByRole("link", { name: /^Next written Day/ })).toBeVisible();
 }
 
+/** The Journal sidebar's calendar zoomed out `levels` times (1: a year's months, 2: the years list) — desk only, the sidebar is hidden below `lg`. */
+const zoomCalendar = (levels: number) => async (page: Page) => {
+  await workLocally(page);
+  if ((page.viewportSize()?.width ?? 0) < 1024) return;
+  const calendar = page.getByRole("complementary", { name: "Journal" }).getByRole("group", { name: "Calendar" });
+  await calendar.getByRole("button", { name: "February 2001" }).click();
+  if (levels > 1) await calendar.getByRole("button", { name: "2001", exact: true }).first().click();
+  await expect(calendar.getByRole("button", { name: levels > 1 ? "Earlier years" : "2001-02", exact: true })).toBeVisible();
+};
+
 /** The Selection menu's "Link to…": every Linkable Document, the seeded very long ones among them. */
 async function openLinkSearch(page: Page) {
   await openSelectionMenu(page);
@@ -386,6 +396,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Journal · Day not written", path: "/app/journal?d=2001-02-14" },
   { name: "Journal · Day not written, between written Days", path: "/app/journal?d=2001-02-14", afterOpen: seedWrittenNeighbours },
   { name: "Journal · Month without a review", path: "/app/journal/p/:key", params: { key: "2001-02" } },
+  { name: "Journal · Calendar months of a year", path: "/app/journal?d=2001-02-14", afterOpen: zoomCalendar(1) },
+  { name: "Journal · Calendar years", path: "/app/journal?d=2001-02-14", afterOpen: zoomCalendar(2) },
   { name: "Journal · Types", path: "/app/journal/t" },
   { name: "Journal · Types (old link)", path: "/app/journal/c" },
   {
