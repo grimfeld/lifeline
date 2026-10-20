@@ -16,7 +16,7 @@ export type DayLike = { type: string; title: string; body?: string };
 const SCAFFOLD = [/^#{1,6}(\s|$)/, /^(-{3,}|\*{3,}|_{3,})$/, /^\d+[.)]\s*$/, /^[-*+]\s*(\[[ xX]?\]\s*)?$/, /^>\s*$/];
 
 /** Leading frontmatter — but only when every line in it is a property, so a rule opening the user's own writing is never taken for it. */
-const FRONTMATTER = /^---\r?\n(?:(?:[\w-]+:.*|\s+-.*|\s*)\r?\n)*?---(?:\r?\n|$)/;
+const FRONTMATTER = /^---\r?\n(?:(?:[\w-]+:.*|[ \t]+-.*|[ \t]*)\r?\n)*?---(?:\r?\n|$)/;
 
 /** A Day's own words: its body without frontmatter, headings, rules, the daylog block and the lines its Template left empty, one space between lines. */
 export function ownWords(body: string): string {
