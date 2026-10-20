@@ -1,5 +1,6 @@
 import { addDays, diffDays, formatHuman, formatTime, weekdayOf, type DateStr, type TimeStr, type Weekday } from "@lifeline/core";
 import type { TimeBlocker } from "./types";
+import { dayPieces, type TimedSpan } from "./span";
 
 /** Monday-first display order; values are Core weekdays (0 = Sunday). */
 export const WEEKDAYS: { value: Weekday; label: string }[] = [
@@ -35,6 +36,11 @@ export function isOvernight(b: Pick<TimeBlocker, "start" | "end">): boolean {
   return b.end <= b.start;
 }
 
+/** The span a blocker's band covers when it starts on `day`: past midnight into the next day when overnight. */
+function spanFrom(b: Pick<TimeBlocker, "start" | "end">, day: DateStr): TimedSpan {
+  return { date: day, start: b.start, endDate: isOvernight(b) ? addDays(day, 1) : day, end: b.end };
+}
+
 /**
  * The bands one blocker paints on one day: the day's own band when the
  * weekday is covered, plus the tail of the previous day's band when the
@@ -44,9 +50,9 @@ export function isOvernight(b: Pick<TimeBlocker, "start" | "end">): boolean {
 export function bandsOn(b: TimeBlocker, date: DateStr): BlockerBand[] {
   if (b.active === false) return [];
   const out: BlockerBand[] = [];
-  const overnight = isOvernight(b);
-  if (covers(b, date)) out.push({ date, start: b.start, end: overnight ? "24:00" : b.end });
-  if (overnight && b.end !== "00:00" && covers(b, addDays(date, -1))) out.push({ date, start: "00:00", end: b.end });
+  for (const day of [addDays(date, -1), date]) {
+    if (covers(b, day)) out.push(...dayPieces(spanFrom(b, day), { start: date, end: date }));
+  }
   return out.sort((x, y) => x.start.localeCompare(y.start));
 }
 
