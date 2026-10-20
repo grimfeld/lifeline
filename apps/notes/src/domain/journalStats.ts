@@ -6,6 +6,7 @@
  */
 
 import { addDays, clampedDate, parts, splitFrontmatter, type DateStr } from "@lifeline/core";
+import { writtenDates } from "./written";
 
 /** The slice of a Document these helpers read. */
 type DailyLike = { type: string; title: string; body?: string };
@@ -60,29 +61,9 @@ export function onThisDay(dates: string[], today: DateStr, opts: OnThisDayOpts =
 
 // --- written days & streaks -----------------------------------------------
 
-/**
- * Body text minus frontmatter, template headings ("###"), rules ("---"),
- * code-fence markers and blank lines — what the user actually typed.
- */
-export function writtenContent(body: string): string {
-  const { content } = splitFrontmatter(body);
-  return content
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith("###") && !l.startsWith("---") && !l.startsWith("```"))
-    .join("\n");
-}
-
-/** A daily note counts as "written" when ≥ 20 chars remain beyond the template. */
-export function isWritten(body: string): boolean {
-  return writtenContent(body).length >= 20;
-}
-
-/** Set of dates (YYYY-MM-DD) with a written daily note. */
+/** Set of dates (YYYY-MM-DD) with a written Day — the one rule, `isWrittenDay` (./written). */
 export function writtenDays(notes: DailyLike[]): Set<string> {
-  const out = new Set<string>();
-  for (const n of notes) if (isDaily(n) && isWritten(bodyOf(n))) out.add(n.title);
-  return out;
+  return writtenDates(notes);
 }
 
 /** Consecutive written days ending today or yesterday — an unwritten today doesn't break the run. */

@@ -2,14 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   currentStreak,
   entriesPerMonth,
-  isWritten,
   lastDays,
   longestStreak,
   onThisDay,
   sameDayInYear,
   wordCount,
   wordsBetween,
-  writtenContent,
   writtenDays,
 } from "./journalStats";
 
@@ -41,12 +39,6 @@ describe("onThisDay", () => {
 });
 
 describe("written days & streaks", () => {
-  it("template-only notes are not written", () => {
-    expect(writtenContent(TEMPLATE)).toBe("");
-    expect(isWritten(TEMPLATE)).toBe(false);
-    expect(isWritten(TEMPLATE + "Went for a long walk by the river.")).toBe(true);
-    expect(isWritten(TEMPLATE + "short")).toBe(false);
-  });
   it("writtenDays only counts written daily notes", () => {
     const days = writtenDays([
       daily("2026-08-18", TEMPLATE + "A full sentence about the day."),
