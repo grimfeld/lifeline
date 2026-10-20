@@ -43,6 +43,32 @@ Press **Ctrl+K** (⌘K on a Mac) anywhere. Type to filter.
 - The palette is never limited by the Workspace's Modules: everything is reachable from here.
 - It does not search inside Documents; for that use the Vault's **Search**, or a Base.
 
+## Commands typed in one line (`!`)
+
+Put **`!`** in the line and the palette reads it as one Command with its details, instead of
+searching:
+
+    !task call mum #family @Family estimate:30
+
+- **`!`** names the Command, anywhere in the line ("call mum !task" works too). A bare `!`
+  lists every Command, and typing narrows it (`!ta` → Add task); Enter on a suggestion puts it in
+  the line.
+- **Plain words** are the Command's content: a Task's title, a Need's thing.
+- **`#`** picks one of the Command's options (`!mood #great`), or adds a Tag. It suggests both.
+- **`@`** links a Document by its exact title (`@Dune`), and suggests only Documents of the kind
+  that Command links to.
+- **`key:`** gives any other detail by its name: `estimate:30`, `notes:"oat milk"`. With nothing
+  typed after a space, the palette suggests the details not given yet.
+- **Quotes** turn the marks off: `"Buy #1 fan gift"` stays as written. A mark counts only with a
+  letter straight after it, so "Super !" is just text, and links (`https://…`) are left alone.
+- The top row shows what was understood ("Add task · call mum · #family"). **Enter** records it
+  at once when everything needed is there. When something is missing, a title matches several
+  Documents, or the Command has no way to run without its form, Enter opens the Command's form
+  instead. When the App refuses (a Need already on the list), the palette says why and nothing
+  is written.
+- One line runs one Command: a second `!` is pointed out, and Enter does nothing.
+- Without `!`, the palette searches exactly as above.
+
 ## Tips
 
 - On the desk there is no sheet: the palette is how you capture. Pin your daily few so they show

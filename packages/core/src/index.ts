@@ -6,6 +6,7 @@ export * from "./manifest";
 export * from "./cards";
 export * from "./registry";
 export * from "./commands";
+export * from "./inline";
 export * from "./screens";
 export * from "./overviews";
 export * from "./contracts/schedulable";

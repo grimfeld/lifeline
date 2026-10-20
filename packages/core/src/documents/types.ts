@@ -74,6 +74,8 @@ export type FieldKind =
 export interface FieldOption {
   value: string;
   label: string;
+  /** Other words that name this option when typed inline as `#word` (ADR 0091): a mood's synonyms. */
+  keywords?: string[];
 }
 
 /**
