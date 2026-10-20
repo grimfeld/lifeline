@@ -158,12 +158,14 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
     <div
       ref={setNodeRef}
       {...attributes}
+      // A piece taps open but does not drag yet: not announced as a disabled button.
+      aria-disabled={undefined}
       {...listeners}
       className={cn(
         "group absolute z-[2] overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-xs shadow-sm select-none",
         piece ? "cursor-pointer" : "cursor-grab",
-        cut.before && "rounded-t-none border-t border-t-current/30 border-dashed",
-        cut.after && "rounded-b-none border-b border-b-current/30 border-dashed",
+        cut.before && "rounded-t-none",
+        cut.after && "rounded-b-none",
         isDragging && "opacity-40",
         done && "opacity-60",
       )}
@@ -214,7 +216,7 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
       </div>
       {!short && (
         <div className="text-muted-foreground truncate text-2xs">
-          {cut.before ?? `${formatTime(entry.start)}–${formatTime(entry.end)}`}
+          {cut.before ?? (cut.after ? formatTime(entry.start) : `${formatTime(entry.start)}–${formatTime(entry.end)}`)}
         </div>
       )}
       {cut.after && !short && <div className="text-muted-foreground absolute inset-x-1.5 bottom-0.5 truncate text-2xs">{cut.after}</div>}

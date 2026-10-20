@@ -193,6 +193,12 @@ export async function seedInPage(arg: { coreUrl: string; longWord: string }): Pr
 
   await runCommands(true);
 
+  // Timed Events across days (ADR 0090): one overnight into tomorrow, one from
+  // yesterday morning to tomorrow evening, so the day views and the Week show
+  // cut-edge pieces with long titles on every day they cover.
+  await core.putDocument({ type: "event", title: long("Overnight"), date: day, endDate: core.addDays(day, 1), start: "22:00", end: "06:00", notes: "", tags: [`${arg.longWord}-tag`] });
+  await core.putDocument({ type: "event", title: long("Conference"), date: core.addDays(day, -1), endDate: core.addDays(day, 1), start: "09:00", end: "17:00", notes: "", tags: [] });
+
   // One Screen holding every Card, entity Cards pointed at their App's first Document.
   const docs = (await core.allDocuments()) as { id: string; type: string }[];
   const layout = [];
