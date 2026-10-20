@@ -285,6 +285,16 @@ test.describe("Journal navigation · written Days (#205)", () => {
     await expect(cell("1999-03-04")).not.toHaveAttribute("title", /written/);
     await expect(cell("1999-03-06")).not.toHaveAttribute("title", /written/);
   });
+
+  test("the header's strip of days marks only written Days", async ({ page }) => {
+    test.skip((page.viewportSize()?.width ?? 0) < 1280, "the strip of days shows from xl");
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "1999-03-05");
+    const strip = page.getByRole("group", { name: "Days around" });
+    await expect(strip.getByRole("button", { name: "1999-03-07, written" })).toBeVisible();
+    await expect(strip.getByRole("button", { name: "1999-03-05, written" })).toBeVisible();
+    for (const date of ["1999-03-03", "1999-03-04", "1999-03-06"]) await expect(strip.getByRole("button", { name: date, exact: true })).toBeVisible();
+  });
 });
 
 /**

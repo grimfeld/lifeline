@@ -6,7 +6,7 @@ import { DocumentEditor } from "@lifeline/editor";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, PenLine } from "lucide-react";
 import { DAILY, JOURNAL_HREF, journalHref, type Note } from "../domain/types";
 import { nearestWrittenDay, type Nearest } from "../domain/nearest";
-import { isWrittenDay } from "../domain/written";
+import { isWrittenDay, writtenDates } from "../domain/written";
 import { JournalAside } from "../components/JournalAside";
 import { JournalLinksButton } from "../components/JournalLinks";
 import { useJournalPaging } from "../components/useJournalPaging";
@@ -30,7 +30,7 @@ export function JournalScreen() {
   const def = documentType(DAILY);
   const go = (d: DateStr) => navigate(journalHref(d, today));
   useJournalPaging(dailies, date, go);
-  const daysWithNotes = new Set(dailies.map((n) => n.title));
+  const written = writtenDates(dailies);
   // A Day holding only its Template is not written either: both offer the nearest written Days.
   const near = isWrittenDay(note) ? undefined : nearestWrittenDay(dailies, date);
   const strip = Array.from({ length: 14 }, (_, i) => addDays(date, i - 10));
@@ -58,14 +58,14 @@ export function JournalScreen() {
           </Button>
           <Input type="date" className="h-7 w-36 max-md:w-auto" value={date} onChange={(e) => e.target.value && go(e.target.value)} aria-label="Jump to date" />
           {note && <JournalLinksButton docId={note.id} index={index} />}
-          <div className="hidden items-center gap-1 xl:flex">
+          <div role="group" aria-label="Days around" className="hidden items-center gap-1 xl:flex">
             {strip.map((d) => (
               <button
                 key={d}
                 onClick={() => go(d)}
                 title={formatHuman(d)}
-                aria-label={d}
-                className={`size-6 rounded text-[10px] tabular-nums ${d === date ? "bg-primary text-primary-foreground" : daysWithNotes.has(d) ? "bg-muted hover:bg-accent" : "text-muted-foreground hover:bg-accent"} ${d > today ? "opacity-40" : ""}`}
+                aria-label={written.has(d) ? `${d}, written` : d}
+                className={`size-6 rounded text-[10px] tabular-nums ${d === date ? "bg-primary text-primary-foreground" : written.has(d) ? "bg-muted hover:bg-accent" : "text-muted-foreground hover:bg-accent"} ${d > today ? "opacity-40" : ""}`}
               >
                 {Number(d.slice(-2))}
               </button>
