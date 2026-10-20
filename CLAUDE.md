@@ -44,6 +44,10 @@ alike), installed and ready for e2e. The main checkout belongs to whoever opened
 Agents working in parallel run only their own change's e2e specs; the full suite runs once,
 before the integration branch merges.
 
+A subagent has no user to ask. Where a skill says to confirm something with the user (test
+seams, a design choice), take the answer from the spec, ticket or prompt you were given,
+decide, and list each such decision in your report.
+
 Commit, merge and rebase as `claude@grimfeld.tech` (`git -c user.email=claude@grimfeld.tech commit …`):
 the machine's git email is private. A pre-push hook refuses any other email and prints the fix.
 
