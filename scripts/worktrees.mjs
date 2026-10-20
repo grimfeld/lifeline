@@ -1,7 +1,13 @@
 #!/usr/bin/env node
-// Removes the worktrees agents leave behind once their work is on master.
+// Makes the worktree an agent works in, and removes the ones left behind once their
+// work is on master.
 //
+//   node scripts/worktrees.mjs new <name>
 //   node scripts/worktrees.mjs prune [--dry-run]
+//
+// `new` fetches origin, adds .claude/worktrees/<name> (under the main checkout) on a new
+// branch <name> off origin/master, installs its packages (which also activates the git
+// hooks) and makes sure Playwright's Chromium is there for the e2e tests.
 //
 // A worktree goes when all of these hold:
 //   - it is not the main checkout;
@@ -12,7 +18,7 @@
 // Its local branch goes too when the branch is merged into origin/master. A branch held
 // by a worktree cannot be deleted, which is what made `gh pr merge --delete-branch` fail.
 import { execFileSync } from "node:child_process";
-import { rmSync, statSync } from "node:fs";
+import { existsSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const IDLE_MS = 24 * 60 * 60 * 1000;
@@ -86,9 +92,30 @@ function prune(dryRun) {
   console.log(`worktrees: ${dryRun ? "dry run" : `${removed} removed`}`);
 }
 
+function create(name) {
+  if (!name || !/^[\w.-]+$/.test(name)) {
+    console.error("usage: pnpm worktree:new <name>  (letters, digits, . _ -)");
+    process.exit(1);
+  }
+  const [main] = worktrees();
+  const path = join(main.path, ".claude", "worktrees", name);
+  if (existsSync(path)) {
+    console.error(`worktrees: ${path} already exists`);
+    process.exit(1);
+  }
+  const run = (cwd, cmd, ...args) => execFileSync(cmd, args, { cwd, stdio: "inherit" });
+  run(main.path, "git", "fetch", "origin");
+  run(main.path, "git", "worktree", "add", "-b", name, path, BASE);
+  run(path, "pnpm", "install");
+  // A quick no-op when Chromium is already there.
+  run(path, "pnpm", "--filter", "@lifeline/shell", "exec", "playwright", "install", "chromium");
+  console.log(`\nworktrees: ready at ${path} on branch ${name}`);
+}
+
 const [command, ...flags] = process.argv.slice(2);
 if (command === "prune") prune(flags.includes("--dry-run"));
+else if (command === "new") create(flags[0]);
 else {
-  console.error("usage: node scripts/worktrees.mjs prune [--dry-run]");
+  console.error("usage: node scripts/worktrees.mjs new <name> | prune [--dry-run]");
   process.exit(1);
 }
