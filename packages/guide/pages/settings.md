@@ -41,6 +41,22 @@ opens empty.
 
 See [Capture](capture.md).
 
+## Macros
+
+A **Macro** runs several Commands in order, as one Command. **Macros** here opens their own page.
+
+- **New macro** — give it a name, then **Add a step** for each Command, in order: search for the
+  Command and fill in the values it is given. Only Commands that can run without their dialog can
+  be steps.
+- **Move up** / **Move down** reorder the steps; **Remove step** drops one.
+- Click a Macro to edit it. The bin deletes it at once; **Undo** in the message brings it back.
+- A Macro is in the palette (Ctrl+K) by its name, marked *Macro*, in every Workspace.
+- Each step is done by the App that owns it, exactly as its own Command would. When a step is
+  refused (the thing is already on the shopping list), the Macro stops there; the steps already
+  done stay done.
+- Every run ends with a report: each step **Done** (with what it said, and **Open** for what it
+  made), **Stopped** (with why), or **Not reached**.
+
 ## Workspaces
 
 - Every Workspace, with how many Modules it has; a lock marks a separated one.

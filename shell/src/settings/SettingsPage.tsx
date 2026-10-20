@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import {
   Button,
   Dialog,
@@ -20,12 +21,13 @@ import {
   useBarConfig,
   useCurrentWorkspace,
   useSlotOptions,
+  useMacros,
   useWorkspaces,
   type BarSlot,
   type CaptureEntry,
   type SlotOption,
 } from "@lifeline/core";
-import { ArrowDown, ArrowUp, Check, Lock, Pin, Plus, Smartphone, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronRight, ListOrdered, Lock, Pin, Plus, Smartphone, X } from "lucide-react";
 import { entryIcon, foldMembers } from "../capture/captureParts";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
 import { WorkspaceDialog, WorkspaceForm } from "../components/WorkspaceDialog";
@@ -68,6 +70,8 @@ export function SettingsPage() {
       <Separator />
       <CapturePinsSection />
       <Separator />
+      <MacrosSection />
+      <Separator />
       <WorkspacesSection />
     </div>
   );
@@ -87,6 +91,25 @@ function DemoSection() {
         <ResetDemoButton />
         <SourceLink />
       </div>
+    </section>
+  );
+}
+
+/** Macros (ADR 0092) have a page of their own, `/settings/macros`: a list and an editor of steps. */
+function MacrosSection() {
+  const count = useMacros().length;
+  return (
+    <section className="flex flex-col gap-3">
+      <div>
+        <h2 className="flex items-center gap-2 text-base font-medium">
+          <ListOrdered className="size-4" /> Macros
+        </h2>
+        <p className="text-muted-foreground text-sm">Several Commands run in order as one, from the palette, in every Workspace.</p>
+      </div>
+      <Link to="/settings/macros" className="hover:bg-accent flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+        <span className="min-w-0 flex-1 truncate">{count === 0 ? "Make a macro" : `${count} macro${count === 1 ? "" : "s"}`}</span>
+        <ChevronRight className="size-4 shrink-0" />
+      </Link>
     </section>
   );
 }

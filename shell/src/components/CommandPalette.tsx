@@ -12,6 +12,7 @@ import {
 } from "@lifeline/ui";
 import {
   appById,
+  MACRO_APP,
   CALENDAR_VIEWS,
   isModShortcut,
   moduleById,
@@ -277,7 +278,7 @@ export function CommandPalette() {
                   >
                     <Icon /> {c.title}
                     <span className="text-muted-foreground ml-auto text-xs">
-                      {appById(c.appId)?.title}
+                      {c.appId === MACRO_APP ? "Macro" : appById(c.appId)?.title}
                     </span>
                   </CommandItem>
                 );
