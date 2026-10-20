@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
-import { openCalendar, pickDate, pickInCalendar } from "./support/date-picker";
+import { datePickerLabelled, dayFromToday, openCalendar, pickDate, pickInCalendar, showPhoneFilters } from "./support/date-picker";
 
 /**
  * Dates picked from the kit's calendar, never the browser's (ADR 0087), where
@@ -23,13 +23,6 @@ async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, a
     { coreUrl: CORE_URL, src: fn.toString(), arg },
   );
 }
-
-/** `YYYY-MM-DD`, `offset` days from today, in local time. */
-const dayFromToday = (offset: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
 
 test("a yes/no Stat is marked for a past day, never a future one", async ({ page }) => {
   const title = `Flossed ${Date.now()}`;
@@ -72,17 +65,24 @@ test("a type's reports over two dates: To can't fall before From", async ({ page
   await page.goto("/app/journal/t/e2eperson?w=custom");
   await workLocally(page);
 
-  await pickDate(page, page.getByLabel("From", { exact: true }), "2026-03-10");
-  await expect(page).toHaveURL(/from=2026-03-10/);
+  // From well ahead of today, so an empty To opening on From's month is seen.
+  const from = dayFromToday(40);
+  const before = dayFromToday(39);
+  const to = dayFromToday(45);
+  await showPhoneFilters(page, "Dates", datePickerLabelled(page, "From"));
+  await pickDate(page, datePickerLabelled(page, "From"), from);
+  await expect(page).toHaveURL(new RegExp(`from=${from}`));
+  await expect(datePickerLabelled(page, "To")).toHaveAccessibleName("To, No date");
 
-  await page.getByLabel("To", { exact: true }).click();
+  await datePickerLabelled(page, "To").click();
   const calendar = openCalendar(page);
   await expect(calendar).toBeVisible();
-  await calendar.getByRole("combobox", { name: "Choose the Year" }).selectOption("2026");
-  await calendar.getByRole("combobox", { name: "Choose the Month" }).selectOption("2");
-  await expect(calendar.locator('[role="gridcell"][data-day="2026-03-09"]:not([data-outside]) button')).toBeDisabled();
-  await pickInCalendar(calendar, "2026-03-20");
-  await expect(page).toHaveURL(/to=2026-03-20/);
+  await expect(calendar.locator(`[role="gridcell"][data-day="${from}"]:not([data-outside])`)).toBeVisible();
+  await calendar.getByRole("combobox", { name: "Choose the Year" }).selectOption(before.slice(0, 4));
+  await calendar.getByRole("combobox", { name: "Choose the Month" }).selectOption(String(Number(before.slice(5, 7)) - 1));
+  await expect(calendar.locator(`[role="gridcell"][data-day="${before}"]:not([data-outside]) button`)).toBeDisabled();
+  await pickInCalendar(calendar, to);
+  await expect(page).toHaveURL(new RegExp(`to=${to}`));
 });
 
 const dateOf = (page: Page, id: string) => inCore(page, async (core, docId: string) => (await core.getDocument(docId)).date as string, id);
@@ -102,7 +102,7 @@ test("a Task moved to another day from Upcoming's Move to day…", async ({ page
   await page.getByRole("menuitem", { name: "Move to day…" }).click();
   const dialog = page.getByRole("dialog", { name: `Move "${title}"` });
   const later = dayFromToday(3);
-  await pickDate(page, dialog.getByLabel("Day"), later);
+  await pickDate(page, datePickerLabelled(dialog, "Day"), later);
   await dialog.getByRole("button", { name: "Move" }).click();
   await expect.poll(() => dateOf(page, id)).toBe(later);
 });
@@ -120,6 +120,23 @@ test("an Event's day changed in the Hours editor", async ({ page }) => {
   );
   await page.getByText(title).click();
   const later = dayFromToday(2);
-  await pickDate(page, page.getByLabel("Day", { exact: true }), later);
+  await pickDate(page, datePickerLabelled(page, "Day"), later);
   await expect.poll(() => dateOf(page, id)).toBe(later);
+});
+
+test("a Base filter on a date is added by picking the day", async ({ page }) => {
+  await page.goto("/base/task");
+  await workLocally(page);
+  // On a phone the Base's filters sit behind its Filters button.
+  const addFilter = page.getByRole("button", { name: "Filter", exact: true });
+  await showPhoneFilters(page, "Filters", addFilter);
+  await addFilter.click();
+  await page.getByRole("combobox", { name: "Field" }).click();
+  await page.getByRole("option", { name: "Day", exact: true }).click();
+  await page.getByRole("combobox", { name: "Condition" }).click();
+  await page.getByRole("option", { name: "is", exact: true }).click();
+  const day = dayFromToday(1);
+  await pickDate(page, datePickerLabelled(page, "Value"), day);
+  await expect(page.getByText(`Day is ${day}`)).toBeVisible();
+  await expect(datePickerLabelled(page, "Value")).toBeHidden();
 });

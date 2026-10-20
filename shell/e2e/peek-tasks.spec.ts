@@ -53,6 +53,7 @@ test("a Task peeked from the Vault is moved to another day and given notes there
   await page.getByRole("button", { name: "Clear" }).click();
   await expect(openCalendar(page)).toBeHidden();
   await expect.poll(async () => (await field(page, id)).date).toBeNull();
+  await expect(dialog.getByLabel("Day")).toHaveText(/Unassigned/);
   await pickDate(page, dialog.getByLabel("Day"), "2026-03-05");
   await expect.poll(async () => (await field(page, id)).date).toBe("2026-03-05");
 

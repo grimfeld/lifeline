@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  focusCalendarDay,
   formatMinutes,
   TagChips,
   toast,
@@ -60,11 +61,10 @@ export function MoveDialog({
     <Dialog open={item !== null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         className="sm:max-w-xs"
-        // Focus the selected day (or today), so the arrows move between days at once;
-        // the Calendar's own autoFocus is pulled back by the Dialog's focus trap.
+        // Focus the selected day (or today), so the arrows move between days at once.
         onOpenAutoFocus={(e) => {
           e.preventDefault();
-          (e.currentTarget as HTMLElement).querySelector<HTMLElement>('[role="gridcell"] button[tabindex="0"]')?.focus();
+          focusCalendarDay(e.currentTarget as HTMLElement);
         }}
       >
         <DialogHeader>

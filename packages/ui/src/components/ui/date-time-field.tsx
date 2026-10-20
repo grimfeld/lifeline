@@ -1,7 +1,7 @@
 import * as React from "react"
 
 import { cn } from "../../lib/utils"
-import { DatePicker } from "./date-picker"
+import { DatePicker, type DateSpan } from "./date-picker"
 import { momentOf, splitMoment, withDay } from "./date-time-value"
 import { Input } from "./input"
 
@@ -33,17 +33,13 @@ function DateTimeField({
   "aria-label": ariaLabel,
   "aria-describedby": ariaDescribedBy,
   "aria-invalid": ariaInvalid,
-}: {
+}: Omit<DateSpan, "min" | "max"> & {
   value: string
   onChange: (value: string, from: "day" | "time") => void
   /** The earliest moment (`YYYY-MM-DDTHH:MM`); days before its day are disabled. */
   min?: string
   /** The latest moment; days after its day are disabled, and a filled-in time stays at or before it. */
   max?: string
-  /** A required moment can't be cleared. */
-  required?: boolean
-  startYear?: number
-  endYear?: number
   disabled?: boolean
   placeholder?: string
   className?: string
