@@ -23,11 +23,3 @@ export function minutesBetween(start: string, end: string | null | undefined, fa
 export function addMinutes(start: string, min: number): string {
   return toClock(toHours(start) + min / 60);
 }
-
-/** "1h 30m" / "45m" / "2h". */
-export function formatLength(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  if (!h) return `${m}m`;
-  return m ? `${h}h ${m}m` : `${h}h`;
-}

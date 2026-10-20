@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { Button, cn, DatePicker, Input, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, toast } from "@lifeline/ui";
+import { Button, cn, DatePicker, Input, LengthPicker, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, toast } from "@lifeline/ui";
 import {
   addDays,
   addTimeBlock,
@@ -28,7 +28,7 @@ import {
 } from "@lifeline/core";
 import { Check, ExternalLink, Minus, Plus, Trash2 } from "lucide-react";
 import { usePush } from "./push";
-import { addMinutes, formatLength, minutesBetween, SNAP_MIN, toClock } from "./hours";
+import { addMinutes, minutesBetween, SNAP_MIN, toClock } from "./hours";
 
 /** A work item as the hours show it: a Time block (placement + start) or an untimed chip. */
 export type WorkLike = Pick<SchedulableItem, "appId" | "itemId" | "title" | "date" | "completedOn" | "estimateMin"> & {
@@ -53,7 +53,6 @@ export interface HoursEditing {
   anchor: HTMLElement | null;
 }
 
-const LENGTHS = [15, 30, 45, 60, 90, 120];
 /** Push is a work item's; a Timed item asks for it with this and is refused. */
 const NO_PUSH = { appId: "", itemId: "", title: "", date: null, completedOn: "n/a" };
 export const TOAST_ID = "hours";
@@ -123,7 +122,6 @@ export function HoursEditor({
   const [date, setDate] = useState<DateStr>(initial.date);
   const [start, setStart] = useState<string | null>(initial.start);
   const [len, setLen] = useState(initial.len);
-  const [customLen, setCustomLen] = useState(!LENGTHS.includes(initial.len));
   const [title, setTitle] = useState(target.item.title);
 
   const blockId = useRef<string | null>(target.kind === "work" && isBlock(target.item) ? target.item.placementId! : null);
@@ -311,26 +309,7 @@ export function HoursEditor({
       </Row>
       {start && (
         <Row label="Length">
-          {LENGTHS.map((m) => (
-            <Chip key={m} active={!customLen && len === m} onClick={() => (setCustomLen(false), setLength(m))}>
-              {formatLength(m)}
-            </Chip>
-          ))}
-          {customLen ? (
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={SNAP_MIN}
-              step={5}
-              className="h-8 w-20"
-              defaultValue={len}
-              aria-label="Length in minutes"
-              onBlur={(e) => Number(e.target.value) > 0 && Number(e.target.value) !== len && setLength(Number(e.target.value))}
-              onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
-            />
-          ) : (
-            <Chip onClick={() => setCustomLen(true)}>…</Chip>
-          )}
+          <LengthPicker value={len} onChange={(m) => m && m !== len && setLength(m)} />
           <span className="text-muted-foreground text-xs tabular-nums">ends {formatTime(addMinutes(start, len))}</span>
         </Row>
       )}

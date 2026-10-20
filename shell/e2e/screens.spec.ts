@@ -496,6 +496,19 @@ const SCREENS: ScreenCase[] = [
       await expect(page.getByText("Title required"), "under the field only, no toast").toHaveCount(1);
     },
   },
+  {
+    // The Event template dialog: the kit Length picker, holding a custom length of days.
+    name: "Events · Event template dialog",
+    path: "/app/events?tab=templates",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await page.getByRole("button", { name: "New event template" }).click();
+      const length = page.getByRole("dialog").getByRole("group", { name: "Length" });
+      await length.getByRole("textbox").fill("12d 23h 45m");
+      await length.getByRole("textbox").press("Enter");
+      await expect(length.getByRole("textbox")).toHaveValue("12d 23h 45m");
+    },
+  },
   { name: "Stats", path: "/app/stats" },
   { name: "Stat", path: "/app/stats/:id", type: "stat" },
   { name: "Life Level", path: "/app/lifelevel" },
