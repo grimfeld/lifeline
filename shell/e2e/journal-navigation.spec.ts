@@ -126,6 +126,116 @@ test.describe("Journal navigation · the calendar pages by itself (#210)", () =>
   });
 });
 
+/**
+ * The calendar zooms out (#211): the month's title shows the year's months,
+ * the year's title the years from the earliest written Day's to this year;
+ * picking zooms back in. Written months and years are marked; a Template-only
+ * Day marks nothing.
+ */
+test.describe("Journal navigation · the calendar zooms out (#211)", () => {
+  test.skip(({ viewport }) => (viewport?.width ?? 0) < 1024, "the Journal sidebar is hidden below lg");
+
+  const DAYS = {
+    "1997-06-02": "The earliest.",
+    "1999-05-01": TEMPLATE, // made, never written in: marks neither May nor 1999
+    "2001-02-14": "Valentine's.",
+  };
+  const DAY = "/app/journal?d=2001-02-14";
+  const atDay = (page: Page) => expect(page).toHaveURL((u) => u.pathname + u.search === DAY);
+  /** A month or year tile (named `2001-02`, `2001`) or a day cell, in the calendar. */
+  const tile = (page: Page, name: string) => calendar(page).getByRole("button", { name, exact: true });
+  /** The years list's page holding `year`: pages of twelve end on this year, the first starts at 1997. */
+  const pageOf = (year: number) => {
+    const now = new Date().getFullYear();
+    const end = now - Math.floor((now - year) / 12) * 12;
+    return `${Math.max(1997, end - 11)}–${end}`;
+  };
+
+  test("the month's title shows the year's months, written ones marked; picking one shows its days", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "2001-02-14");
+
+    await calendar(page).getByRole("button", { name: "February 2001" }).click();
+    await expectCalendarAt(page, "2001");
+    await expect(tile(page, "2001-02")).toHaveAttribute("title", /written$/);
+    await expect(tile(page, "2001-02")).toHaveAttribute("aria-current", "date");
+    await expect(tile(page, "2001-03")).not.toHaveAttribute("title", /written/);
+
+    // The arrows page by years now.
+    await calendar(page).getByRole("button", { name: "Previous year" }).click();
+    await expectCalendarAt(page, "2000");
+    await calendar(page).getByRole("button", { name: "Previous year" }).click();
+    await expectCalendarAt(page, "1999");
+    // A month holding only a Template-only Day isn't marked.
+    await expect(tile(page, "1999-05")).not.toHaveAttribute("title", /written/);
+    await calendar(page).getByRole("button", { name: "Next year" }).click();
+    await calendar(page).getByRole("button", { name: "Next year" }).click();
+    await expectCalendarAt(page, "2001");
+
+    await tile(page, "2001-02").click();
+    await expectCalendarAt(page, "February 2001");
+    await expect(tile(page, "2001-02-14")).toHaveAttribute("aria-current", "date");
+    await atDay(page);
+  });
+
+  test("the year's title lists the years from the earliest written one to this year; picking zooms back in", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "2001-02-14");
+
+    await calendar(page).getByRole("button", { name: "February 2001" }).click();
+    await calendar(page).getByRole("button", { name: "2001", exact: true }).click();
+    await expectCalendarAt(page, pageOf(2001));
+    await expect(tile(page, "1997")).toBeVisible();
+    await expect(tile(page, "1996")).toHaveCount(0);
+    await expect(tile(page, "1997")).toHaveAttribute("title", /written$/);
+    await expect(tile(page, "2001")).toHaveAttribute("title", /written$/);
+    await expect(tile(page, "2001")).toHaveAttribute("aria-current", "date");
+    await expect(tile(page, "1998")).not.toHaveAttribute("title", /written/);
+    await expect(tile(page, "1999")).not.toHaveAttribute("title", /written/); // its only Day is Template-only
+    await expect(calendar(page).getByRole("button", { name: "Earlier years" })).toBeDisabled();
+
+    // The arrows page by twelve years, up to this year.
+    const thisYear = new Date().getFullYear();
+    for (let shown = pageOf(2001); shown !== pageOf(thisYear); ) {
+      await calendar(page).getByRole("button", { name: "Later years" }).click();
+      shown = pageOf(Number(shown.slice(-4)) + 1);
+      await expectCalendarAt(page, shown);
+    }
+    await expect(tile(page, String(thisYear))).toBeVisible();
+    await expect(tile(page, String(thisYear + 1))).toHaveCount(0);
+    await expect(calendar(page).getByRole("button", { name: "Later years" })).toBeDisabled();
+
+    for (let shown = pageOf(thisYear); shown !== pageOf(1999); ) {
+      await calendar(page).getByRole("button", { name: "Earlier years" }).click();
+      shown = pageOf(Number(shown.slice(0, 4)) - 1);
+      await expectCalendarAt(page, shown);
+    }
+    await tile(page, "1999").click();
+    await expectCalendarAt(page, "1999");
+    await tile(page, "1999-05").click();
+    await expectCalendarAt(page, "May 1999");
+    await atDay(page);
+  });
+
+  test("the month title no longer opens the Month review", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "2001-02-14");
+    await expect(calendar(page).getByRole("link")).toHaveCount(0);
+    await calendar(page).getByRole("button", { name: "February 2001" }).click();
+    await atDay(page);
+  });
+
+  test("opening another Day brings the calendar back to its month's days", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "2001-02-14");
+    await calendar(page).getByRole("button", { name: "February 2001" }).click();
+    await calendar(page).getByRole("button", { name: "2001", exact: true }).click();
+    await page.getByRole("button", { name: "Next day" }).click();
+    await expectCalendarAt(page, "February 2001");
+    await expect(tile(page, "2001-02-15")).toHaveAttribute("aria-current", "date");
+  });
+});
+
 test.describe("Journal navigation · written Days (#205)", () => {
   // March 1999: a month nothing else in the store uses.
   const DAYS = {
