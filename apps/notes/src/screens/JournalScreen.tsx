@@ -68,23 +68,24 @@ export function JournalScreen() {
           <div className="text-muted-foreground ml-auto truncate text-xs max-md:hidden">{note?.folder ? `/ ${note.folder.split("/").join(" / ")} /` : ""}</div>
         </div>
       </PhoneDock>
-      {note ? (
-        <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1">
+        {note ? (
           <div className="flex min-w-0 flex-1 flex-col">
             <DocumentEditor key={note.id} doc={note} def={def} index={index} docDate={date} autoFocus={date === today} linksPanel={false} onDeleted={() => navigate(JOURNAL_HREF)} />
           </div>
-          <JournalAside date={date} docId={note.id} />
-        </div>
-      ) : (
-        <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 text-sm">
-          <div>
-            No entry for <span className="text-foreground font-medium">{formatHuman(date)}</span>.
+        ) : (
+          <div className="text-muted-foreground flex min-w-0 flex-1 flex-col items-center justify-center gap-3 p-4 text-center text-sm">
+            <div>
+              No entry for <span className="text-foreground font-medium">{formatHuman(date)}</span>.
+            </div>
+            <Button onClick={() => void ensureDailyNote(date)}>
+              <PenLine /> Start writing
+            </Button>
           </div>
-          <Button onClick={() => void ensureDailyNote(date)}>
-            <PenLine /> Start writing
-          </Button>
-        </div>
-      )}
+        )}
+        {/* Kept on a date with no Day, so the calendar stays to carry on from (#206). */}
+        <JournalAside date={date} docId={note?.id} />
+      </div>
     </div>
   );
 }

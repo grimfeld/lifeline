@@ -72,7 +72,8 @@ const ASIDE = "flex w-64 shrink-0 flex-col gap-5 overflow-y-auto border-l p-3 ma
  * The Journal's side column beside a Day (ADR 0068): the Day's links first —
  * the names it could link and what links to it — then the month at a glance,
  * the stretches the day belongs to (each a review of its own) and the same day
- * in earlier years.
+ * in earlier years. On a date with no Day it stays, less the links: there is
+ * no Document to link from.
  */
 export function JournalAside({ date, docId }: { date: DateStr; docId?: string }) {
   const index = useLinkIndex();
@@ -118,12 +119,16 @@ export function JournalAside({ date, docId }: { date: DateStr; docId?: string })
   );
 }
 
-/** The side column beside a Week, Month, Quarter or Year: its links, as on a Day, then the period's Reports. */
-export function PeriodAside({ docId, periodKey }: { docId: string; periodKey: string }) {
+/**
+ * The side column beside a Week, Month, Quarter or Year: its links, as on a
+ * Day, then the period's Reports. A period whose review isn't started keeps
+ * the Reports, without links.
+ */
+export function PeriodAside({ docId, periodKey }: { docId?: string; periodKey: string }) {
   const index = useLinkIndex();
   return (
-    <aside className={ASIDE} aria-label="Links">
-      <JournalLinks docId={docId} index={index} />
+    <aside className={ASIDE} aria-label="Journal">
+      {docId && <JournalLinks docId={docId} index={index} />}
       <PeriodReports periodKey={periodKey} index={index} />
     </aside>
   );
