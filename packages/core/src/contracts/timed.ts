@@ -1,4 +1,4 @@
-import { addDays, diffDays, weekdayOf, type DateStr } from "../dates";
+import { addDays, diffDays, formatHuman, weekdayOf, type DateStr } from "../dates";
 import { appById, timedProviders } from "../registry";
 import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
@@ -33,19 +33,71 @@ export interface TimedWhen {
   end: TimeStr | null;
 }
 
-/** Why a reschedule is refused, in words; null when it may be written. The span rule (ADR 0090) for a timed one. */
-export function whenProblem(when: TimedWhen): string | null {
-  if (!when.start) return when.end ? "An end time needs a start time" : when.endDate && when.endDate < when.date ? "The last day can't be before the first" : null;
-  if (when.end && !spanIsValid({ date: when.date, start: when.start, endDate: when.endDate ?? when.date, end: when.end })) return "End must be after start";
-  return null;
+/** A moment: a day and a wall-clock time. */
+export interface Moment {
+  date: DateStr;
+  time: TimeStr;
 }
 
+/** Minutes in a day. */
+export const DAY_MIN = 24 * 60;
+
+/** A new timed item made on the hours (an Event added there, an all-day one lifted onto them) lasts an hour. */
+export const NEW_TIMED_MIN = 60;
+
 /** Minutes past midnight of "HH:MM" ("24:00" is the day's end); null for text that is no time. */
-function clockMinutes(t: string): number | null {
+export function clockMinutes(t: string): number | null {
   const m = /^(\d{2}):(\d{2})$/.exec(t);
   if (!m) return null;
   const [h, min] = [Number(m[1]), Number(m[2])];
   return min < 60 && (h < 24 || (h === 24 && min === 0)) ? h * 60 + min : null;
+}
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/** "HH:MM" for minutes past midnight, wrapping round the day. */
+export function clockOf(minutes: number): TimeStr {
+  const m = ((minutes % DAY_MIN) + DAY_MIN) % DAY_MIN;
+  return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
+}
+
+/** Minutes from one moment to another (negative when the second is earlier); null when either time is no time. */
+function minutesFrom(from: Moment, to: Moment): number | null {
+  const [a, b] = [clockMinutes(from.time), clockMinutes(to.time)];
+  const days = diffDays(from.date, to.date);
+  if (a === null || b === null || !Number.isFinite(days)) return null;
+  return days * DAY_MIN + b - a;
+}
+
+/** A span's length: minutes from its start moment to its end moment (negative for an end before the start); null when a time or day is no such thing. */
+export function spanLength(span: TimedSpan): number | null {
+  return minutesFrom({ date: span.date, time: span.start }, { date: span.endDate, time: span.end });
+}
+
+/**
+ * A moment `minutes` after (or before) a day's time, normalised onto its own
+ * day: Mon "23:30" + 60 is Tue "00:30", and Mon "24:00" is Tue "00:00".
+ */
+export function momentAfter(date: DateStr, time: TimeStr, minutes: number): Moment {
+  const total = (clockMinutes(time) ?? 0) + minutes;
+  const days = Math.floor(total / DAY_MIN);
+  return { date: days ? addDays(date, days) : date, time: clockOf(total - days * DAY_MIN) };
+}
+
+/** The last day a timed span covers: its end day, or the day before when it ends at 00:00 — it only reaches midnight (ADR 0090). */
+export function lastDayCovered(span: Pick<TimedSpan, "date" | "endDate" | "end">): DateStr {
+  return span.end === "00:00" && span.endDate > span.date ? addDays(span.endDate, -1) : span.endDate;
+}
+
+/** The one span rule's refusal (ADR 0090), worded once for every form, Command and tool; null for a valid span. */
+export function spanProblem(span: TimedSpan): string | null {
+  return spanIsValid(span) ? null : "End must be after start";
+}
+
+/** Why a reschedule is refused, in words; null when it may be written. The span rule (ADR 0090) for a timed one. */
+export function whenProblem(when: TimedWhen): string | null {
+  if (!when.start) return when.end ? "An end time needs a start time" : when.endDate && when.endDate < when.date ? "Last day is before the first" : null;
+  return when.end ? spanProblem({ date: when.date, start: when.start, endDate: when.endDate ?? when.date, end: when.end }) : null;
 }
 
 /**
@@ -55,18 +107,8 @@ function clockMinutes(t: string): number | null {
  * MCP tools all ask this.
  */
 export function spanIsValid(span: TimedSpan): boolean {
-  const [s, e] = [clockMinutes(span.start), clockMinutes(span.end)];
-  const days = diffDays(span.date, span.endDate);
-  if (s === null || e === null || !Number.isFinite(days)) return false;
-  return days * 24 * 60 + e > s;
-}
-
-/** A moment `min` minutes after (or before) a day's time, normalised onto its own day: Mon "24:00" is Tue "00:00". */
-function shiftMoment(date: DateStr, time: TimeStr, min: number): { date: DateStr; time: TimeStr } {
-  const total = (clockMinutes(time) ?? 0) + min;
-  const days = Math.floor(total / (24 * 60));
-  const m = total - days * 24 * 60;
-  return { date: addDays(date, days), time: `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}` };
+  const length = spanLength(span);
+  return length !== null && length > 0;
 }
 
 /** A piece's whole span, or the piece's own hours where its provider reports none (an end-less item is a moment). */
@@ -75,21 +117,22 @@ function wholeOf(piece: Pick<TimedItem, "date" | "start" | "end" | "span">): Tim
 }
 
 /**
- * The span a timed item gets when one of its pieces is dropped at a day and
+ * Where a timed item lands when one of its pieces is dropped at a day and
  * time (ADR 0090): the whole span moves by the drop offset, keeping its
- * length, whichever piece was dragged.
+ * length, whichever piece was dragged. An item with no end (its piece's
+ * `end` is null) stays end-less.
  */
-export function spanMovedTo(piece: Pick<TimedItem, "date" | "start" | "end" | "span">, date: DateStr, start: TimeStr): TimedSpan {
+export function spanMovedTo(piece: Pick<TimedItem, "date" | "start" | "end" | "span">, date: DateStr, start: TimeStr): Omit<TimedSpan, "end"> & { end: TimeStr | null } {
   const whole = wholeOf(piece);
-  const offset = diffDays(piece.date, date) * 24 * 60 + (clockMinutes(start) ?? 0) - (clockMinutes(piece.start ?? "00:00") ?? 0);
-  const s = shiftMoment(whole.date, whole.start, offset);
-  const e = shiftMoment(whole.endDate, whole.end, offset);
-  return { date: s.date, start: s.time, endDate: e.date, end: e.time };
+  const offset = minutesFrom({ date: piece.date, time: piece.start ?? "00:00" }, { date, time: start }) ?? 0;
+  const s = momentAfter(whole.date, whole.start, offset);
+  const e = momentAfter(whole.endDate, whole.end, offset);
+  return { date: s.date, start: s.time, endDate: e.date, end: piece.end === null ? null : e.time };
 }
 
 /** The span a timed item gets when its last piece is resized to end at a time on that piece's day; midnight is 00:00 the next day. */
 export function spanEndingAt(piece: Pick<TimedItem, "date" | "start" | "end" | "span">, end: TimeStr): TimedSpan {
-  const e = shiftMoment(piece.date, end, 0);
+  const e = momentAfter(piece.date, end, 0);
   return { ...wholeOf(piece), endDate: e.date, end: e.time };
 }
 
@@ -114,20 +157,15 @@ export function startDayMovedTo(piece: Pick<TimedItem, "date" | "span">, to: Dat
   return piece.span ? addDays(piece.span.date, diffDays(piece.date, to)) : to;
 }
 
-const DAY_MIN = 24 * 60;
-const clockOf = (min: number): TimeStr => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
-
 /**
  * The span that starts at `start` on `date` and lasts `minutes`: into the
  * next day (or later) when it runs past midnight, and ending at 00:00 there
  * rather than "24:00" (ADR 0090). A start that is no time is kept as given.
  */
 export function spanLasting(date: DateStr, start: TimeStr, minutes: number): TimedSpan {
-  const s = clockMinutes(start);
-  if (s === null) return { date, start, endDate: date, end: start };
-  const at = s + Math.max(0, Math.round(minutes));
-  const days = Math.floor(at / DAY_MIN);
-  return { date, start, endDate: days ? addDays(date, days) : date, end: clockOf(at - days * DAY_MIN) };
+  if (clockMinutes(start) === null) return { date, start, endDate: date, end: start };
+  const e = momentAfter(date, start, Math.max(0, Math.round(minutes)));
+  return { date, start, endDate: e.date, end: e.time };
 }
 
 /**
@@ -405,17 +443,32 @@ export function formatTime(t: TimeStr | null): string {
   return timeFormat.format(new Date(Date.UTC(2000, 0, 1, Number(hm[1]), Number(hm[2]))));
 }
 
-const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+/** Short weekday names, indexed by Core weekday (0 = Sunday). */
+export const WEEKDAY_NAMES: readonly string[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** Where a span ends, as read on `date`: "06:00", or "Tue 06:00" when it ends on another day. */
+export function endReadOn(span: Pick<TimedSpan, "endDate" | "end">, date: DateStr): string {
+  const endDay = span.endDate !== date ? `${WEEKDAY_NAMES[weekdayOf(span.endDate)]} ` : "";
+  return `${endDay}${formatTime(span.end)}`;
+}
 
 /** "22:00 – 23:00", or "22:00 – Tue 06:00" when the span ends another day (ADR 0090). */
 export function describeSpan(span: TimedSpan): string {
-  const endDay = span.endDate !== span.date ? `${WEEKDAY_NAMES[weekdayOf(span.endDate)]} ` : "";
-  return `${formatTime(span.start)} – ${endDay}${formatTime(span.end)}`;
+  return `${formatTime(span.start)} – ${endReadOn(span, span.date)}`;
+}
+
+/**
+ * The readout beside an End, ahead of its length: "until 18:00", or "until
+ * Tue, Aug 25 06:00" style when it ends on another day. The Event form, the
+ * Schedule's quick add and the Hours editor show it.
+ */
+export function describeEnd(span: Pick<TimedSpan, "date" | "endDate" | "end">): string {
+  return `until ${span.endDate !== span.date ? `${formatHuman(span.endDate)} ` : ""}${formatTime(span.end)}`;
 }
 
 /** Whether a span runs past its start day: an end at 00:00 the next day only reaches midnight. */
 function crossesDays(span: TimedSpan): boolean {
-  return span.endDate > span.date && !(span.end === "00:00" && span.endDate === addDays(span.date, 1));
+  return lastDayCovered(span) > span.date;
 }
 
 /** A moment of a span as a cut edge names it: "Tue 06:00". */
@@ -430,7 +483,7 @@ const momentOf = (date: DateStr, time: TimeStr) => `${WEEKDAY_NAMES[weekdayOf(da
 export function cutEdges(piece: Pick<TimedItem, "date" | "span">): { before: string | null; after: string | null } {
   const span = piece.span;
   if (!span) return { before: null, after: null };
-  const lastDay = span.end === "00:00" && span.endDate > span.date ? addDays(span.endDate, -1) : span.endDate;
+  const lastDay = lastDayCovered(span);
   return {
     before: piece.date > span.date ? `↑ from ${momentOf(span.date, span.start)}` : null,
     after: piece.date < lastDay ? `↓ ${momentOf(span.endDate, span.end)}` : null,
@@ -447,6 +500,5 @@ export function pieceLead(piece: Pick<TimedItem, "date" | "span">): string | nul
   const span = piece.span;
   if (!span || !crossesDays(span)) return null;
   if (piece.date <= span.date) return describeSpan(span);
-  const endDay = span.endDate !== piece.date ? `${WEEKDAY_NAMES[weekdayOf(span.endDate)]} ` : "";
-  return `→ ${endDay}${formatTime(span.end)}`;
+  return `→ ${endReadOn(span, piece.date)}`;
 }

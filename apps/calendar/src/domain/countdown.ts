@@ -1,22 +1,6 @@
-import { addDays, diffDays, type DateStr, type TimeStr } from "@lifeline/core";
-import { compareEvents, isMultiDay, spanOf } from "./events";
+import { addDays, diffDays, type DateStr, type Moment } from "@lifeline/core";
+import { compareEvents, lastDayOf, spanOf } from "./events";
 import type { Event } from "./types";
-
-/** A moment: a day and a wall-clock time. */
-export interface Moment {
-  date: DateStr;
-  time: TimeStr;
-}
-
-/**
- * Last day an Event covers: an all-day Event's last day, or the day a timed
- * Event ends on — the day before when it ends at 00:00 (ADR 0090).
- */
-export function lastDayOf(ev: Event): DateStr {
-  const span = spanOf(ev);
-  if (!span) return isMultiDay(ev) ? ev.endDate! : ev.date;
-  return span.end === "00:00" && span.endDate > span.date ? addDays(span.endDate, -1) : span.endDate;
-}
 
 /** The moment an Event ends: a timed Event's end day and time (its start when it has no end), an all-day Event's last day out. */
 function endOf(ev: Event): Moment {

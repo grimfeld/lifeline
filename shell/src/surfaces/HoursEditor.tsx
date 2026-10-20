@@ -9,16 +9,19 @@ import {
   canRenameTimed,
   canRescheduleTimed,
   completeSurfaceItem,
+  describeEnd,
   diffDays,
   formatHuman,
   formatTime,
   moveTimeBlock,
+  NEW_TIMED_MIN,
   removeTimeBlock,
   removeTimedItem,
   renameTimedItem,
   rescheduleTimedItem,
   schedulableHref,
   spanLasting,
+  spanLength,
   spanMovedTo,
   spanWithEnd,
   timedHref,
@@ -63,7 +66,7 @@ const NO_PUSH = { appId: "", itemId: "", title: "", date: null, completedOn: "n/
 export const TOAST_ID = "hours";
 
 /** A timed item's when, as the editor holds it: always an end day, the end null where the item has none. */
-type When = { date: DateStr; start: string | null; endDate: DateStr; end: string | null };
+type When = Required<TimedWhen>;
 
 /** The whole of what was tapped (ADR 0090): a piece of an item across days edits the item, from its start. */
 function whenOf(t: SurfaceTimedItem): When {
@@ -73,8 +76,7 @@ function whenOf(t: SurfaceTimedItem): When {
 
 /** Minutes from a when's start moment to its end moment; null for an all-day or end-less one. */
 function lengthOf(w: When): number | null {
-  if (!w.start || !w.end) return null;
-  return diffDays(w.date, w.endDate) * 24 * 60 + Math.round((toHours(w.end) - toHours(w.start)) * 60);
+  return w.start && w.end ? spanLength({ ...w, start: w.start, end: w.end }) : null;
 }
 
 /**
@@ -89,9 +91,8 @@ function endingAt(w: When, end: string): When {
 
 /** The same item from another start, keeping its length (an end-less one stays end-less). */
 function startingAt(w: When, start: string): When {
-  if (!w.start) return spanLasting(w.date, start, 60);
-  const moved = spanMovedTo({ date: w.date, start: w.start, end: w.end, span: { ...w, start: w.start, end: w.end ?? w.start } }, w.date, start);
-  return { ...moved, end: w.end === null ? null : moved.end };
+  if (!w.start) return spanLasting(w.date, start, NEW_TIMED_MIN);
+  return spanMovedTo({ date: w.date, start: w.start, end: w.end, span: { ...w, start: w.start, end: w.end ?? w.start } }, w.date, start);
 }
 
 /** The same item on another day, its end day moved with it. */
@@ -360,8 +361,7 @@ export function HoursEditor({
           <TimeField className="w-32" value={when.end ?? ""} onChange={(v) => v && writeWhen(endingAt(when, v))} aria-label="End" />
           {when.end && whenLen !== null && whenLen > 0 && (
             <span aria-live="polite" className="text-muted-foreground min-w-0 text-xs tabular-nums">
-              until {when.endDate !== when.date ? `${formatHuman(when.endDate)} ` : ""}
-              {formatTime(when.end)} · {formatLength(whenLen)}
+              {describeEnd({ ...when, end: when.end })} · {formatLength(whenLen)}
             </span>
           )}
         </Row>

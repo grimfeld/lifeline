@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
+import { clockMinutes, clockOf, lastDayCovered, momentAfter, spanLength, cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
 
 describe("formatTime", () => {
   it("reads a clock time in the locale's style", () => {
@@ -139,5 +139,27 @@ describe("a span given a new End time (ADR 0090)", () => {
   it("keeps the end day of a span running for days", () => {
     const span = { date: "2026-08-10", start: "09:00", endDate: "2026-08-12", end: "17:00" };
     expect(spanWithEnd(span, "08:00")).toEqual({ ...span, end: "08:00" });
+  });
+});
+
+describe("clock and moment helpers", () => {
+  it("reads and writes HH:MM, wrapping round the day", () => {
+    expect(clockMinutes("09:30")).toBe(570);
+    expect(clockMinutes("24:00")).toBe(1440);
+    expect(clockMinutes("9:30")).toBeNull();
+    expect(clockOf(570)).toBe("09:30");
+    expect(clockOf(1440 + 30)).toBe("00:30");
+  });
+  it("moves a moment past midnight onto the next day", () => {
+    expect(momentAfter("2026-08-10", "23:30", 60)).toEqual({ date: "2026-08-11", time: "00:30" });
+    expect(momentAfter("2026-08-10", "24:00", 0)).toEqual({ date: "2026-08-11", time: "00:00" });
+  });
+  it("measures a span across its days", () => {
+    expect(spanLength({ date: "2026-08-10", start: "22:00", endDate: "2026-08-11", end: "06:00" })).toBe(480);
+    expect(spanLength({ date: "2026-08-10", start: "x", endDate: "2026-08-10", end: "06:00" })).toBeNull();
+  });
+  it("takes a span ending at 00:00 to cover the day before only", () => {
+    expect(lastDayCovered({ date: "2026-08-10", endDate: "2026-08-11", end: "00:00" })).toBe("2026-08-10");
+    expect(lastDayCovered({ date: "2026-08-10", endDate: "2026-08-11", end: "06:00" })).toBe("2026-08-11");
   });
 });

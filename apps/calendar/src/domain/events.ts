@@ -1,4 +1,4 @@
-import { addDays, describeSpan, diffDays, formatTime, weekdayOf, type DateStr, type TimedSpan, type TimedWhen } from "@lifeline/core";
+import { addDays, describeSpan, diffDays, endReadOn, formatTime, lastDayCovered, type DateStr, type TimedSpan, type TimedWhen } from "@lifeline/core";
 import { dayPieces, type DayPiece, type DayRange } from "./span";
 import type { Event } from "./types";
 
@@ -37,8 +37,6 @@ export function describeTime(ev: Event): string {
   return ev.end ? describeSpan(spanOf(ev)!) : formatTime(ev.start);
 }
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 /**
  * When an Event ends, as read on one of its days: "until 06:00", or
  * "until Tue 06:00" on a day it doesn't end on. "all day" for an all-day
@@ -48,8 +46,7 @@ export function describeUntil(ev: Event, date: DateStr): string | undefined {
   if (ev.start === null) return "all day";
   const span = ev.end ? spanOf(ev) : null;
   if (!span) return undefined;
-  const day = span.endDate !== date ? `${WEEKDAYS[weekdayOf(span.endDate)]} ` : "";
-  return `until ${day}${formatTime(span.end)}`;
+  return `until ${endReadOn(span, date)}`;
 }
 
 /** Sort key: all-day first, then by start time, then title. */
@@ -71,11 +68,11 @@ export function eventsOn(events: Event[], date: DateStr): Event[] {
   return events.filter((ev) => occursOn(ev, date)).sort(compareEvents);
 }
 
-/** The last day an Event covers: an all-day one's last day, a timed one's end day (the day before, when it ends at 00:00). */
-function lastDayOf(ev: Event): DateStr {
+/** The last day an Event covers: an all-day one's last day, a timed one's end day (the day before, when it ends at 00:00, ADR 0090). */
+export function lastDayOf(ev: Event): DateStr {
   const span = spanOf(ev);
   if (!span) return isDay(ev.endDate) && ev.endDate > ev.date ? ev.endDate : ev.date;
-  return span.end === "00:00" && span.endDate > span.date ? addDays(span.endDate, -1) : span.endDate;
+  return lastDayCovered(span);
 }
 
 /**

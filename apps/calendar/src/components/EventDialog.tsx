@@ -16,7 +16,7 @@ import { displayTitle, docHref, normalizeTag, todayStr, useLinkIndex, useTagVoca
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
 import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors } from "../domain/eventForm";
-import { EventWhenFields, whenIds } from "./EventWhenFields";
+import { WhenFields, whenIds } from "./WhenFields";
 
 /** Each checked control's id — its input's and the one an error focuses — in the order the dialog shows them. */
 const FIELD_IDS: Record<keyof EventFormErrors, string> = { title: "ev-title", ...whenIds("ev-") };
@@ -135,7 +135,7 @@ export function EventDialog({
               onKeyDown={(e) => e.key === "Enter" && void submit()}
             />
           </Field>
-          <EventWhenFields
+          <WhenFields
             value={{ date, endDate, allDay, start, end }}
             errors={errors}
             onChange={(w) => {

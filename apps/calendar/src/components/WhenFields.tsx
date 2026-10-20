@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { Button, Checkbox, DatePicker, Field, TimeField, formatLength } from "@lifeline/ui";
-import { formatHuman, formatTime } from "@lifeline/core";
-import { endDayPicked, lengthOf, withAllDay, withDate, withEnd, withStart, type EventForm, type EventFormErrors } from "../domain/eventForm";
-
-/** When an Event happens, as its form holds it. */
-export type WhenForm = Omit<EventForm, "title">;
+import { describeEnd } from "@lifeline/core";
+import { endDayPicked, lengthOf, withAllDay, withDate, withEnd, withStart, type WhenForm, type WhenFormErrors } from "../domain/eventForm";
 
 /** Each control's id under a prefix — the dialog's and a Peek's must not clash when one sits over the other. */
 export const whenIds = (prefix: string) => ({
@@ -24,10 +21,10 @@ export const whenIds = (prefix: string) => ({
  * is the next day's (ADR 0090), and the readout names the end day whenever it
  * is another; "Ends another day" shows the end day's own picker, for anything
  * longer. All day asks for a first and a last day instead. Errors are
- * `eventFormErrors`'s, shown under their control. A one-off Time blocker
+ * `whenFormErrors`'s, shown under their control. A one-off Time blocker
  * uses the same controls, without All day.
  */
-export function EventWhenFields({
+export function WhenFields({
   value,
   onChange,
   errors = {},
@@ -36,7 +33,7 @@ export function EventWhenFields({
 }: {
   value: WhenForm;
   onChange: (next: WhenForm) => void;
-  errors?: EventFormErrors;
+  errors?: WhenFormErrors;
   idPrefix?: string;
   /** Off for a one-off Time blocker: a band has hours (ADR 0090). */
   canAllDay?: boolean;
@@ -74,8 +71,7 @@ export function EventWhenFields({
           {length !== null ? (
             // Beside the End, level with its box (an End with an error has no length, so nothing hangs below it).
             <p id={readoutId} aria-live="polite" className="text-muted-foreground flex min-h-9 min-w-0 items-center self-end text-sm">
-              until {endsAnotherDay ? `${formatHuman(value.endDate)} ` : ""}
-              {formatTime(value.end)} · {formatLength(length)}
+              {describeEnd({ date: value.date, endDate: endsAnotherDay ? value.endDate : value.date, end: value.end })} · {formatLength(length)}
             </p>
           ) : (
             <span />
