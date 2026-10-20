@@ -35,29 +35,41 @@ export interface UnlinkedMention {
   context: string;
 }
 
-interface Matcher {
-  re: RegExp | null;
-  byFolded: Map<string, MentionName>;
+interface TrieNode {
+  next: Map<string, TrieNode>;
+  /** The names ending here, one per target (its title when the title and an alias fold alike). */
+  names?: MentionName[];
 }
 
-const WORD = "[\\p{L}\\p{N}]";
+interface Matcher {
+  root: TrieNode;
+  empty: boolean;
+}
+
+const WORD_RE = /[\p{L}\p{N}]/u;
 const LINK_SPAN_RE = /!?\[\[[^\]\n]*\]\]/g;
 const URL_RE = /(?:https?:\/\/|www\.)\S+/g;
 
-/** Names in a single regex, longest first so "Alex Doe" beats "Alex" at the same spot. Titles win over aliases on the same word. */
+/** Every name in one trie over its folded form, so a scan finds each name at a spot, not only the longest. */
 function compile(names: MentionName[]): Matcher {
-  const byFolded = new Map<string, MentionName>();
+  const root: TrieNode = { next: new Map() };
+  let empty = true;
   for (const n of names) {
     const k = normalizeName(n.name);
     if (k.length < 2) continue;
-    const cur = byFolded.get(k);
-    if (!cur || (cur.name !== cur.canonical && n.name === n.canonical)) byFolded.set(k, n);
+    let node = root;
+    for (const ch of k) {
+      let child = node.next.get(ch);
+      if (!child) node.next.set(ch, (child = { next: new Map() }));
+      node = child;
+    }
+    const list = (node.names ??= []);
+    const i = list.findIndex((m) => m.targetId === n.targetId);
+    if (i < 0) list.push(n);
+    else if (list[i].name !== list[i].canonical && n.name === n.canonical) list[i] = n;
+    empty = false;
   }
-  if (byFolded.size === 0) return { re: null, byFolded };
-  const alts = Array.from(byFolded.keys())
-    .sort((a, b) => b.length - a.length || a.localeCompare(b))
-    .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  return { re: new RegExp(`(?<!${WORD})(?:${alts.join("|")})(?!${WORD})`, "gu"), byFolded };
+  return { root, empty };
 }
 
 /** The body with everything that is not plain prose blanked to spaces (offsets kept): frontmatter, code, wikilinks, URLs. */
@@ -96,26 +108,53 @@ function foldWithMap(text: string): { folded: string; map: number[] } {
   return { folded, map };
 }
 
+/** The code point ending just before `i` and the one starting at `i`, as whole characters. */
+function charBefore(text: string, i: number): string {
+  if (i === 0) return "";
+  const lo = text.charCodeAt(i - 1);
+  return lo >= 0xdc00 && lo <= 0xdfff && i >= 2 ? text.slice(i - 2, i) : text[i - 1];
+}
+function charAt(text: string, i: number): string {
+  return i < text.length ? String.fromCodePoint(text.codePointAt(i)!) : "";
+}
+
 function scan(body: string, m: Matcher): MentionHit[] {
-  if (!m.re) return [];
+  if (m.empty) return [];
   const { folded, map } = foldWithMap(maskProse(body));
-  const out: MentionHit[] = [];
-  m.re.lastIndex = 0;
-  let hit: RegExpExecArray | null;
-  while ((hit = m.re.exec(folded))) {
-    const n = m.byFolded.get(hit[0]);
-    if (!n) continue;
-    const from = map[hit.index];
-    const to = map[hit.index + hit[0].length];
-    out.push({ from, to, text: body.slice(from, to), name: n.name, canonical: n.canonical, targetId: n.targetId });
+  const all: MentionHit[] = [];
+  for (let i = 0; i < folded.length; ) {
+    const here = charAt(folded, i);
+    if (!WORD_RE.test(charBefore(folded, i))) {
+      let node: TrieNode | undefined = m.root;
+      for (let j = i; node && j < folded.length; ) {
+        const ch = charAt(folded, j);
+        node = node.next.get(ch);
+        j += ch.length;
+        if (node?.names && !WORD_RE.test(charAt(folded, j))) {
+          const from = map[i];
+          const to = map[j];
+          for (const n of node.names) all.push({ from, to, text: body.slice(from, to), name: n.name, canonical: n.canonical, targetId: n.targetId });
+        }
+      }
+    }
+    i += here.length;
   }
-  return out;
+  // One Document's names that overlap ("Alex" inside "Alex Doe") are one mention: its longest. Different Documents' names all stay.
+  const kept = all.filter((h) => !all.some((o) => o !== h && o.targetId === h.targetId && o.from <= h.from && o.to >= h.to && o.to - o.from > h.to - h.from));
+  return kept.sort((a, b) => a.from - b.from || b.to - a.to);
+}
+
+/** Hits that share no prose with another hit — the ones a bulk link can write without choosing between Documents. */
+export function unambiguousHits(hits: MentionHit[]): MentionHit[] {
+  return hits.filter((h) => !hits.some((o) => o !== h && o.from < h.to && h.from < o.to));
 }
 
 /**
  * Every plain-prose occurrence of one of `names` in `body`: whole words,
- * case- and accent-insensitive, longest name first; never inside a wikilink,
- * code, a URL or frontmatter. One-character names are never offered.
+ * case- and accent-insensitive, in reading order; never inside a wikilink,
+ * code, a URL or frontmatter. One-character names are never offered. Names of
+ * different Documents may overlap ("Pour Alix" and "Alix") and are all
+ * offered; of one Document's own overlapping names only the longest is.
  */
 export function findMentions(body: string, names: MentionName[]): MentionHit[] {
   return scan(body, compile(names));
@@ -175,7 +214,7 @@ export function unlinkedIn(index: LinkIndex, docId: string): MentionHit[] {
  */
 export function unlinkedMentionsOf(index: LinkIndex, docId: string): UnlinkedMention[] {
   const own = compile(toMentionNames(index, docId));
-  if (!own.re) return [];
+  if (own.empty) return [];
   const out: UnlinkedMention[] = [];
   for (const d of index.linkSources) {
     if (d.id === docId || typeof d.body !== "string" || !d.body) continue;
@@ -224,7 +263,7 @@ export function planLinkAll(index: LinkIndex, docId: string, mentions: UnlinkedM
   for (const m of mentions) {
     const { hit } = m;
     const shared = (owners.get(normalizeName(hit.name))?.size ?? 0) > 1;
-    const covered = !hitsIn(m.sourceId).some((g) => g.from === hit.from && g.to === hit.to && g.targetId === docId);
+    const covered = hitsIn(m.sourceId).some((g) => g.targetId !== docId && g.from <= hit.from && g.to >= hit.to && g.to - g.from > hit.to - hit.from);
     const r = index.resolve(hit.canonical);
     const elsewhere = r.kind !== "doc" || r.id !== docId;
     if (shared || covered || elsewhere) {

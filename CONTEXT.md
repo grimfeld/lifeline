@@ -497,7 +497,7 @@ From the target's side: a Document that wikilinks to it. Every Linkable Document
 _Avoid_: incoming link, reference
 
 ### Unlinked mention
-A Linkable Document's title or alias appearing as plain prose in another Document's body, with no wikilink around it. Derived, never stored; offered from both ends in the links panel — the target sees who mentions it, the source sees which names it could link — and turned into a Wikilink only on request, never silently. A Document type may opt its Documents out as targets (Days). Not a Backlink (that needs a link). Seen from the source, a Document's **unlinked names**: the names in its own body it could link. Every Journal page shows its unlinked names and its backlinks; a Linkable page also shows its unlinked mentions.
+A Linkable Document's title or alias appearing as plain prose in another Document's body, with no wikilink around it. Derived, never stored; offered from both ends in the links panel — the target sees who mentions it, the source sees which names it could link — and turned into a Wikilink only on request, never silently. A Document type may opt its Documents out as targets (Days). Where names overlap ("Pour Alix", an Essay, around "Alix", a Person's alias), every Document named there is offered, never only the longest name; a bulk link leaves such spots alone. Not a Backlink (that needs a link). Seen from the source, a Document's **unlinked names**: the names in its own body it could link. Every Journal page shows its unlinked names and its backlinks; a Linkable page also shows its unlinked mentions.
 _Avoid_: unlinked reference, suggestion, candidate, "unlinked here" (old label for unlinked names)
 
 ### Linkable

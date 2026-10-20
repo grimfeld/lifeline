@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { displayTitle, documentType, excerpt, getDocument, linkMentions, patchDocument, planLinkAll, singularOf, useUnlinkedIn, useUnlinkedMentionsOf, type LinkIndex, type LinkRef, type MentionHit } from "@lifeline/core";
+import { displayTitle, documentType, excerpt, getDocument, linkMentions, patchDocument, planLinkAll, singularOf, unambiguousHits, useUnlinkedIn, useUnlinkedMentionsOf, type LinkIndex, type LinkRef, type MentionHit } from "@lifeline/core";
 import { Button, toast } from "@lifeline/ui";
 
 type OnOpen = (ref: LinkRef, name: string) => void;
@@ -143,9 +143,14 @@ export function UnlinkedMentionsSection({ docId, index, onOpen }: SectionProps) 
   );
 }
 
-/** Unlinked names (CONTEXT.md): names of other Documents in this Document's own body. */
+/**
+ * Unlinked names (CONTEXT.md): names of other Documents in this Document's own
+ * body, every one even where two overlap ("Pour Alix" and "Alix"). Link all
+ * leaves those overlaps to be linked one by one — it would have to choose.
+ */
 export function UnlinkedNamesSection({ docId, index }: Omit<SectionProps, "onOpen">) {
   const hits = useUnlinkedIn(index, docId);
+  const safe = useMemo(() => unambiguousHits(hits), [hits]);
   if (hits.length === 0) return null;
   async function linkHere(list: MentionHit[]) {
     await patchDocument(docId, { body: linkMentions(bodyIn(index, docId), list) });
@@ -171,9 +176,9 @@ export function UnlinkedNamesSection({ docId, index }: Omit<SectionProps, "onOpe
           );
         })}
       </ul>
-      {hits.length > 1 && (
-        <Button size="sm" variant="outline" className="mt-1.5 h-6 w-full text-xs" onClick={() => void linkHere(hits)}>
-          Link all
+      {safe.length > 1 && (
+        <Button size="xs" variant="outline" className="mt-1.5 w-full" onClick={() => void linkHere(safe)}>
+          {safe.length === hits.length ? "Link all" : `Link ${safe.length} unambiguous`}
         </Button>
       )}
     </section>
