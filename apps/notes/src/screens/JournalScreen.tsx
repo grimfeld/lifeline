@@ -50,7 +50,7 @@ export function JournalScreen() {
           <Button variant={date === today ? "secondary" : "outline"} className="h-7" onClick={() => go(today)}>
             Today
           </Button>
-          <DatePickerButton aria-label="Jump to date" variant="ghost" className="size-7" value={date} onPick={go} />
+          <DatePickerButton aria-label="Jump to date" variant="ghost" size="icon-sm" value={date} onPick={go} />
           {note && <JournalLinksButton docId={note.id} index={index} />}
           <div className="hidden items-center gap-1 xl:flex">
             {strip.map((d) => (

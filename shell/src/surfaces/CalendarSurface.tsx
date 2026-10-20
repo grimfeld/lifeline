@@ -203,7 +203,7 @@ export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { v
               <ChevronRight />
             </Button>
           )}
-          <DatePickerButton aria-label="Jump to date" className="size-8" value={anchor} onPick={(d) => go(d)} />
+          <DatePickerButton aria-label="Jump to date" size="icon" value={anchor} onPick={(d) => go(d)} />
           {extra}
         </div>
       </div>

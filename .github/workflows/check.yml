@@ -38,6 +38,7 @@ jobs:
       - run: node scripts/check-ui.mjs
         env:
           CHECK_UI_BASE: origin/${{ github.base_ref || 'master' }}
+      - run: node --test 'scripts/*.test.mjs'
       # No ADR number twice; warns when another branch holds a number this change adds.
       - run: node scripts/adr.mjs check
         env:

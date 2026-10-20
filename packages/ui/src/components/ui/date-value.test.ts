@@ -1,22 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { dateOf, valueOf, formatDateValue, yearSpan, withinSpan } from "./date-value";
+import { dateOfDay, dayValueOf, formatDateValue, yearSpan, withinSpan } from "./date-value";
 
 describe("the stored day (YYYY-MM-DD) and the calendar's Date", () => {
   it("reads a stored day as that day at local midnight, not UTC", () => {
-    const d = dateOf("2026-10-20")!;
+    const d = dateOfDay("2026-10-20")!;
     expect([d.getFullYear(), d.getMonth(), d.getDate(), d.getHours()]).toEqual([2026, 9, 20, 0]);
   });
 
   it("reads an empty or broken value as no day", () => {
-    expect(dateOf("")).toBeUndefined();
-    expect(dateOf("2026-13-01")).toBeUndefined();
-    expect(dateOf("2026-02-30")).toBeUndefined();
-    expect(dateOf("soon")).toBeUndefined();
+    expect(dateOfDay("")).toBeUndefined();
+    expect(dateOfDay("2026-13-01")).toBeUndefined();
+    expect(dateOfDay("2026-02-30")).toBeUndefined();
+    expect(dateOfDay("soon")).toBeUndefined();
   });
 
   it("writes a picked Date back as the same string the native input gave", () => {
-    expect(valueOf(new Date(2026, 0, 5, 23, 59))).toBe("2026-01-05");
-    expect(valueOf(new Date(867, 10, 7))).toBe("0867-11-07");
+    expect(dayValueOf(new Date(2026, 0, 5, 23, 59))).toBe("2026-01-05");
+    expect(dayValueOf(new Date(867, 10, 7))).toBe("0867-11-07");
   });
 });
 

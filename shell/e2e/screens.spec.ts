@@ -3,7 +3,7 @@ import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
 import { selectText } from "./support/selection";
-import { openCalendar } from "./support/date-picker";
+import { datePickerLabelled, dayFromToday, openCalendar, showPhoneFilters } from "./support/date-picker";
 
 /**
  * Every screen of the app, at phone and desktop width (the `mobile` and
@@ -216,7 +216,8 @@ async function datePickerOpen(page: Page) {
 /** A type's reports over two dates (From set), with To's calendar open over the page. */
 async function reportToOpen(page: Page) {
   await workLocally(page);
-  await page.getByLabel("To", { exact: true }).click();
+  await showPhoneFilters(page, "Dates", datePickerLabelled(page, "To"));
+  await datePickerLabelled(page, "To").click();
   await calendarFits(page);
 }
 
@@ -482,7 +483,7 @@ const SCREENS: ScreenCase[] = [
     },
   },
   { name: "Journal · One type", path: "/app/journal/t/:type", params: { type: "e2eperson" } },
-  { name: "Journal · One type · two dates, To open", path: "/app/journal/t/:type?w=custom&from=2026-03-10", params: { type: "e2eperson" }, afterOpen: reportToOpen },
+  { name: "Journal · One type · two dates, To open", path: `/app/journal/t/:type?w=custom&from=${dayFromToday(-10)}`, params: { type: "e2eperson" }, afterOpen: reportToOpen },
   { name: "Journal · One type (old link)", path: "/app/journal/c/:type", params: { type: "e2eperson" } },
   { name: "Journal · Templates", path: "/app/journal/templates" },
   { name: "Journal · Page", path: "/app/journal/d/:id", type: "template" },
