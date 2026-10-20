@@ -25,6 +25,7 @@ export * from "./components/ui/sonner";
 export * from "./components/ui/tabs";
 export * from "./components/ui/toggle-group";
 export * from "./components/ui/textarea";
+export * from "./components/ui/time-field";
 export * from "./components/ui/tooltip";
 export { toast } from "sonner";
 export * from "./components/ui/card-unavailable";

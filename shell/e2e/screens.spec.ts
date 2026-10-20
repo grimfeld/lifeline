@@ -233,6 +233,27 @@ async function calendarFits(page: Page) {
   expect(fit.scroll).toBeLessThanOrEqual(fit.width);
 }
 
+/**
+ * The Time blocker dialog with its From Time field's list open: the quarter
+ * hours sit inside the viewport and nothing scrolls sideways, at phone width
+ * too; the layout check then covers the list itself.
+ */
+async function timeListOpen(page: Page) {
+  await workLocally(page);
+  await page.getByRole("button", { name: "New blocker" }).click();
+  await page.getByRole("dialog").getByRole("combobox", { name: "From" }).click();
+  const list = page.getByRole("listbox", { name: "Times" });
+  await expect(list.getByRole("option", { selected: true })).toBeInViewport();
+  const fit = await list.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return { left: r.left, right: r.right, bottom: r.bottom, width: innerWidth, height: innerHeight, scroll: document.documentElement.scrollWidth };
+  });
+  expect(fit.left).toBeGreaterThanOrEqual(0);
+  expect(fit.right).toBeLessThanOrEqual(fit.width);
+  expect(fit.bottom).toBeLessThanOrEqual(fit.height);
+  expect(fit.scroll).toBeLessThanOrEqual(fit.width);
+}
+
 /** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
 const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
 
@@ -480,6 +501,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Projects · Timeline", path: "/app/projects/timeline" },
   { name: "Project", path: "/app/projects/p/:id", type: "project" },
   { name: "Events", path: "/app/events", afterOpen: workLocally },
+  { name: "Events · Time blocker · time list open", path: "/app/events?tab=blockers", afterOpen: timeListOpen },
   {
     // The Event dialog saved without a title: the Field's error under the title, not a toast.
     name: "Events · Event dialog error",
