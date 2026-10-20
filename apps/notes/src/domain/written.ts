@@ -9,8 +9,8 @@
 import { isCalendarDay } from "./periods";
 import { DAILY } from "./types";
 
-/** The slice of a Document these helpers read. */
-type DayLike = { type: string; title: string; body?: string };
+/** The slice of a Document the Journal's date helpers read (here, `nearest`, `paging`, `journalStats`). */
+export type DayLike = { type: string; title: string; body?: string };
 
 /** Lines a Template leaves for the user to fill: headings, rules, and list items, tasks and quotes with nothing in them. */
 const SCAFFOLD = [/^#{1,6}(\s|$)/, /^(-{3,}|\*{3,}|_{3,})$/, /^\d+[.)]\s*$/, /^[-*+]\s*(\[[ xX]?\]\s*)?$/, /^>\s*$/];

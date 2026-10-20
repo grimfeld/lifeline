@@ -8,6 +8,7 @@
 import { addDays, type DateStr } from "@lifeline/core";
 import { isCalendarDay, kindOfKey, shiftPeriod } from "./periods";
 import { nearestReview, nearestWrittenDay } from "./nearest";
+import type { DayLike } from "./written";
 
 /** One page back or forward; `skip` passes over the unwritten ones. */
 export type PagingStep = { by: -1 | 1; skip: boolean };
@@ -25,7 +26,7 @@ export function pagingStep(e: KeyLike): PagingStep | undefined {
  * Where a step leads from the page at `key` — a Day's date or a period key —
  * or undefined when nothing lies that way (no written Day or review past it).
  */
-export function pageTo(notes: readonly { type: string; title: string; body?: string }[], key: string, step: PagingStep): string | undefined {
+export function pageTo(notes: readonly DayLike[], key: string, step: PagingStep): string | undefined {
   const dir = step.by < 0 ? "before" : "after";
   if (isCalendarDay(key)) return step.skip ? nearestWrittenDay(notes, key as DateStr)[dir] : addDays(key, step.by);
   if (!kindOfKey(key)) return undefined;

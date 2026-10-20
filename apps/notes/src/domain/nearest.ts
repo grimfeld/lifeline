@@ -7,10 +7,7 @@
 
 import type { DateStr } from "@lifeline/core";
 import { kindOfKey } from "./periods";
-import { writtenDates } from "./written";
-
-/** The slice of a Document these lookups read. */
-type NoteLike = { type: string; title: string; body?: string };
+import { writtenDates, type DayLike } from "./written";
 
 /** The nearest key strictly before and strictly after `at`, or undefined in a direction with none. */
 export type Nearest<K extends string = string> = { before?: K; after?: K };
@@ -27,12 +24,12 @@ function around(keys: Iterable<string>, at: string): Nearest {
 }
 
 /** The nearest written Day strictly before and after `date`, by date. Template-only Days are skipped. */
-export function nearestWrittenDay(notes: readonly NoteLike[], date: DateStr): Nearest<DateStr> {
+export function nearestWrittenDay(notes: readonly DayLike[], date: DateStr): Nearest<DateStr> {
   return around(writtenDates(notes), date);
 }
 
 /** The nearest period of `key`'s kind, strictly before and after it, whose review exists. Nothing when `key` is no period. */
-export function nearestReview(notes: readonly NoteLike[], key: string): Nearest {
+export function nearestReview(notes: readonly DayLike[], key: string): Nearest {
   const kind = kindOfKey(key);
   if (!kind) return { before: undefined, after: undefined };
   return around(

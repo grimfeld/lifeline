@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { pageTo, pagingStep } from "../domain/paging";
+import type { DayLike } from "../domain/written";
 
 /** Whether keys pressed at `el` belong to typing: an input, a textarea, a select or anything editable (the editor). */
 function isTyping(el: EventTarget | null): boolean {
@@ -13,7 +14,7 @@ function isTyping(el: EventTarget | null): boolean {
  * moves by word there) or inside a dialog; `Esc` leaves the editor so they
  * become available.
  */
-export function useJournalPaging(notes: readonly { type: string; title: string; body?: string }[], pageKey: string, open: (key: string) => void): void {
+export function useJournalPaging(notes: readonly DayLike[], pageKey: string, open: (key: string) => void): void {
   const latest = useRef({ notes, pageKey, open });
   // The page last asked for, until the page shows it: a second key pressed before the screen
   // has rendered the first one's page steps on from there, not from the page still showing.

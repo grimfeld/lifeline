@@ -7,13 +7,11 @@
 
 import { addDays, clampedDate, parts, splitFrontmatter, type DateStr } from "@lifeline/core";
 import { isCalendarDay } from "./periods";
-import { writtenDates } from "./written";
+import { writtenDates, type DayLike } from "./written";
 
-/** The slice of a Document these helpers read. */
-type DailyLike = { type: string; title: string; body?: string };
-const bodyOf = (n: DailyLike) => (typeof n.body === "string" ? n.body : "");
+const bodyOf = (n: DayLike) => (typeof n.body === "string" ? n.body : "");
 
-const isDaily = (n: DailyLike) => n.type === "daily" && isCalendarDay(n.title);
+const isDaily = (n: DayLike) => n.type === "daily" && isCalendarDay(n.title);
 
 // --- on this day ---------------------------------------------------------
 
@@ -63,7 +61,7 @@ export function onThisDay(dates: string[], today: DateStr, opts: OnThisDayOpts =
 // --- written days & streaks -----------------------------------------------
 
 /** Set of dates (YYYY-MM-DD) with a written Day — the one rule, `isWrittenDay` (./written). */
-export function writtenDays(notes: DailyLike[]): Set<string> {
+export function writtenDays(notes: DayLike[]): Set<string> {
   return writtenDates(notes);
 }
 
@@ -117,7 +115,7 @@ export function wordCount(body: string): number {
 }
 
 /** Sum of words in daily notes dated within [from, to]. */
-export function wordsBetween(notes: DailyLike[], from: DateStr, to: DateStr): number {
+export function wordsBetween(notes: DayLike[], from: DateStr, to: DateStr): number {
   let total = 0;
   for (const n of notes) if (isDaily(n) && n.title >= from && n.title <= to) total += wordCount(bodyOf(n));
   return total;
@@ -130,7 +128,7 @@ export interface MonthCount {
 }
 
 /** Written daily notes per calendar month, for the last `months` months ending in today's month (oldest first). */
-export function entriesPerMonth(notes: DailyLike[], months: number, today: DateStr): MonthCount[] {
+export function entriesPerMonth(notes: DayLike[], months: number, today: DateStr): MonthCount[] {
   const written = writtenDays(notes);
   const { y, m } = parts(today);
   const out: MonthCount[] = [];
