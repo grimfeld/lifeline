@@ -29,10 +29,10 @@ Build from `@lifeline/ui` and its tokens; the rules are in `CODING_STANDARDS.md`
 ## E2E tests
 
 Run the e2e specs your change touches before pushing it, and the layout test
-(`screens.spec.ts`) for a change to a screen; the commands are in `shell/e2e/README.md`.
-A PR runs the specs it changes three times each; the whole suite runs on master each night
-(`.github/workflows/e2e.yml`), so a red nightly run means master was already broken
-before your change.
+(`screens.spec.ts`) for a change to a screen; the commands are in `shell/e2e/README.md`. A
+PR runs the specs it changes three times each (once past 150 cases); the whole suite runs
+on master each night (`.github/workflows/e2e.yml`), so a red nightly run means master was
+already broken before your change.
 
 ## Several agents share this machine
 
