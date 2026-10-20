@@ -15,6 +15,9 @@ export async function workLocally(page: Page): Promise<void> {
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
 }
 
+/** A Day's own Template, nothing typed into it (DAILY_TEMPLATE): a Day with this body is not written. */
+export const TEMPLATE = "```daylog\n```\n\n### Histoire du jour\n\n---\n### Citation du jour\n\n---\n### Quoi de neuf ?\n\n---\n### Et maintenant ?\n\n";
+
 /** What to write into the store before opening the Journal. */
 export interface JournalSeed {
   /** Days, by date (`YYYY-MM-DD`), each with its body. */

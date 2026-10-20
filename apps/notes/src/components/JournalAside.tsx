@@ -5,6 +5,7 @@ import { cn } from "@lifeline/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNotes } from "../data/repo";
 import { onThisDay } from "../domain/journalStats";
+import { writtenDates } from "../domain/written";
 import { PERIOD_KINDS, PERIOD_LABELS, periodKey, periodLabel } from "../domain/periods";
 import { DAILY, PERIOD_TYPES, journalHref, periodHref } from "../domain/types";
 import { JournalLinks } from "./JournalLinks";
@@ -44,7 +45,7 @@ function MiniMonth({ date, written, onPick }: { date: DateStr; written: Set<stri
               key={d}
               type="button"
               onClick={() => onPick(d)}
-              title={formatHuman(d)}
+              title={written.has(d) ? `${formatHuman(d)} · written` : formatHuman(d)}
               aria-label={d}
               aria-current={d === date ? "date" : undefined}
               className={cn(
@@ -80,7 +81,7 @@ export function JournalAside({ date, docId }: { date: DateStr; docId?: string })
   const navigate = useNavigate();
   const notes = useNotes();
   const dailies = useMemo(() => notes.filter((n) => n.type === DAILY), [notes]);
-  const written = useMemo(() => new Set(dailies.map((n) => n.title)), [dailies]);
+  const written = useMemo(() => writtenDates(dailies), [dailies]);
   const periods = useMemo(() => new Set(notes.filter((n) => (PERIOD_TYPES as readonly string[]).includes(n.type)).map((n) => n.title)), [notes]);
   const byDate = useMemo(() => new Map(dailies.map((n) => [n.title, n])), [dailies]);
   const earlier = useMemo(() => onThisDay([...written], date, { years: "all", alsoWeeks: false }), [written, date]);

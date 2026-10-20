@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { hasSidebar, linkHeadings, openDay, openPeriod, seedJournal, sidebar, titlesOf } from "./support/journal";
+import { TEMPLATE, hasSidebar, linkHeadings, openDay, openPeriod, seedJournal, sidebar, titlesOf } from "./support/journal";
 
 /**
  * Journal navigation (spec #204, ADR 0088): getting about the Journal over
@@ -58,5 +58,39 @@ test.describe("Journal navigation · the sidebar stays (#206)", () => {
     await sidebar(page).getByRole("button", { name: "Next month" }).click();
     await expect(sidebar(page)).toBeVisible();
     await expect(sidebar(page).getByText(/March 2001/).first()).toBeVisible();
+  });
+});
+
+test.describe("Journal navigation · written Days (#205)", () => {
+  // March 1999: a month nothing else in the store uses.
+  const DAYS = {
+    "1999-03-03": TEMPLATE, // made, never written in
+    "1999-03-04": "```daylog\n```\n", // its daylog block alone
+    "1999-03-05": `${TEMPLATE}A walk by the river.`,
+    "1999-03-07": `${TEMPLATE}Rain.`,
+  };
+
+  test("a period's Day list calls a Template-only Day not written", async ({ page }) => {
+    await seedJournal(page, { days: DAYS });
+    await openPeriod(page, "1999-03");
+    const row = (date: string) => page.locator(`a[href="/app/journal?d=${date}"]`).filter({ hasText: "1999" });
+    await expect(row("1999-03-05")).toBeVisible();
+    await expect(row("1999-03-03")).toContainText("not written");
+    await expect(row("1999-03-04")).toContainText("not written");
+    await expect(row("1999-03-05")).not.toContainText("not written");
+    await expect(row("1999-03-05")).toContainText("A walk by the river.");
+  });
+
+  test("the sidebar calendar marks only written Days", async ({ page }) => {
+    test.skip(!hasSidebar(page), "the Journal sidebar is hidden below lg");
+    await seedJournal(page, { days: DAYS });
+    await openDay(page, "1999-03-05");
+    // The day cells keep the date as their name; a written Day's title ends "· written".
+    const cell = (date: string) => sidebar(page).getByRole("button", { name: date, exact: true });
+    await expect(cell("1999-03-07")).toHaveAttribute("title", /written$/);
+    await expect(cell("1999-03-05")).toHaveAttribute("title", /written$/);
+    await expect(cell("1999-03-03")).not.toHaveAttribute("title", /written/);
+    await expect(cell("1999-03-04")).not.toHaveAttribute("title", /written/);
+    await expect(cell("1999-03-06")).not.toHaveAttribute("title", /written/);
   });
 });

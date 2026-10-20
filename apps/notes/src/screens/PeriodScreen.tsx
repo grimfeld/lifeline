@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, ChevronUp, PenLine } from "lucide-react";
 import { ensurePeriod, useNotes } from "../data/repo";
 import { PERIOD_KINDS, PERIOD_LABELS, daysOf, kindOfKey, partsOf, periodKey, periodLabel, periodRange, shiftPeriod, type PeriodKind } from "../domain/periods";
 import { DAILY, journalHref, periodHref, type Note } from "../domain/types";
+import { isWrittenDay, ownWords } from "../domain/written";
 import { PeriodAside } from "../components/JournalAside";
 import { JournalLinksButton } from "../components/JournalLinks";
 import { PeriodReports } from "../components/TypeReports";
@@ -23,29 +24,20 @@ function parentOf(key: string): string | undefined {
   return periodKey(up, anchor);
 }
 
-/** A Day's own words: its body without headings, rules, the daylog block and the lines its Template left empty. */
-export function ownWords(body: string): string {
-  return body
-    .replace(/```daylog[\s\S]*?```/g, "")
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l && !/^#{1,6}\s/.test(l) && !/^(-{3,}|\*{3,}|_{3,})$/.test(l) && !/^\d+\.\s*$/.test(l) && !/^[-*]\s*$/.test(l))
-    .join(" ");
-}
-
 /** One day of the stretch: its Day's opening words and what happened on it. */
 function DayRow({ date, day }: { date: DateStr; day: Note | undefined }) {
   const happened = useDaylog(date);
   if (!day && happened.length === 0) return null;
+  const words = day ? ownWords(day.body) : "";
   const kinds = new Map<string, number>();
   for (const it of happened) kinds.set(it.kind, (kinds.get(it.kind) ?? 0) + 1);
   return (
     <Link to={journalHref(date)} className="hover:bg-accent/40 grid min-w-0 gap-0.5 rounded-md border px-3 py-2">
       <div className="flex min-w-0 items-baseline gap-2">
         <span className="shrink-0 text-sm font-medium">{formatHuman(date)}</span>
-        {!day && <span className="text-muted-foreground text-xs">not written</span>}
+        {!isWrittenDay(day) && <span className="text-muted-foreground text-xs">not written</span>}
       </div>
-      {day && ownWords(day.body) && <span className="text-muted-foreground line-clamp-2 min-w-0 text-sm">{excerpt(ownWords(day.body), 200)}</span>}
+      {words && <span className="text-muted-foreground line-clamp-2 min-w-0 text-sm">{excerpt(words, 200)}</span>}
       {kinds.size > 0 && (
         <span className="text-muted-foreground min-w-0 truncate text-xs">
           {[...kinds].map(([k, n]) => (n > 1 ? `${k} ×${n}` : k)).join(" · ")}
