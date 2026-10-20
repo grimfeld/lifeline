@@ -1,5 +1,6 @@
-import { addDays, formatHuman, matchesTagFilter, todayStr, useTagFilter } from "@lifeline/core";
-import { compareEvents, describeTime, isMultiDay } from "../domain/events";
+import { addDays, formatHuman, matchesTagFilter, nowClock, todayStr, useTagFilter } from "@lifeline/core";
+import { compareEvents, describeTime } from "../domain/events";
+import { isOver } from "../domain/countdown";
 import { useEvents } from "../data/repo";
 
 /** Card: the next 14 days of events. */
@@ -8,9 +9,10 @@ export function UpcomingEventsCard() {
   const filter = useTagFilter();
   const today = todayStr();
   const horizon = addDays(today, 14);
+  const now = { date: today, time: nowClock() };
   const upcoming = events
     .filter((e) => matchesTagFilter(e.tags ?? [], filter))
-    .filter((e) => (isMultiDay(e) ? e.endDate! : e.date) >= today && e.date <= horizon)
+    .filter((e) => !isOver(e, now) && e.date <= horizon)
     .sort(compareEvents);
 
   if (upcoming.length === 0) {

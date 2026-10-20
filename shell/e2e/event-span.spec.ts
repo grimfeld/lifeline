@@ -84,3 +84,28 @@ test('"Ends another day" sets a conference from Monday 09:00 to Wednesday 17:00'
   await expect(dialog).toBeHidden();
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-11", start: "09:00", end: "17:00" });
 });
+
+test("an overnight Event counts as running on its second day until it ends, on the Events screen", async ({ page }) => {
+  const title = `Red-eye ${Date.now()}`;
+  // Tue 10 Nov 2026, 03:00: the Mon 22:00 → Tue 06:00 flight is still on.
+  await page.clock.setFixedTime(new Date("2026-11-10T03:00:00"));
+  await page.goto("/app/events");
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      await core.putDocument({ type: "event", title, date: "2026-11-09", endDate: "2026-11-10", start: "22:00", end: "06:00", notes: "", tags: [] });
+    },
+    { coreUrl: CORE_URL, title },
+  );
+  const section = (name: string) => page.locator("section", { has: page.getByRole("heading", { name, exact: true }) });
+  await expect(section("Today").getByText(title)).toBeVisible();
+  await expect(section("Past 30 days").getByText(title)).toHaveCount(0);
+
+  // Tue 07:00: it has landed.
+  await page.clock.setFixedTime(new Date("2026-11-10T07:00:00"));
+  await page.reload();
+  await workLocally(page);
+  await expect(section("Past 30 days").getByText(title)).toBeVisible();
+  await expect(section("Today").getByText(title)).toHaveCount(0);
+});

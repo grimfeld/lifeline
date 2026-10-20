@@ -17,10 +17,11 @@ import {
   TabsTrigger,
   toast,
 } from "@lifeline/ui";
-import { addDays, formatHuman, todayStr } from "@lifeline/core";
+import { formatHuman, nowClock, todayStr } from "@lifeline/core";
 import { Clock, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Event } from "../domain/types";
-import { compareEvents, describeTime, isMultiDay } from "../domain/events";
+import { describeTime, isMultiDay } from "../domain/events";
+import { groupEvents, isOver } from "../domain/countdown";
 import { deleteEvent, useEvents } from "../data/repo";
 import { EventDialog } from "../components/EventDialog";
 import { BlockersTab, TemplatesTab } from "./PlanningTabs";
@@ -30,8 +31,7 @@ type Tab = (typeof TABS)[number];
 
 function EventRow({ ev, onEdit }: { ev: Event; onEdit: (e: Event) => void }) {
   const today = todayStr();
-  const last = isMultiDay(ev) ? ev.endDate! : ev.date;
-  const past = last < today;
+  const past = isOver(ev, { date: today, time: nowClock() });
   return (
     <Card className="py-3">
       <CardContent className="flex items-center gap-3 px-4">
@@ -43,7 +43,7 @@ function EventRow({ ev, onEdit }: { ev: Event; onEdit: (e: Event) => void }) {
             <TagChips tags={ev.tags} size="xs" className="shrink-0" />
           </div>
         </div>
-        <Badge variant={past ? "outline" : ev.date === today ? "default" : "secondary"}>
+        <Badge variant={past ? "outline" : ev.date <= today ? "default" : "secondary"}>
           {ev.date === today ? "Today" : formatHuman(ev.date)}
           {isMultiDay(ev) ? ` → ${formatHuman(ev.endDate!)}` : ""}
         </Badge>
@@ -98,15 +98,8 @@ export function EventsScreen() {
   const [params, setParams] = useSearchParams();
   const tab: Tab = (TABS as readonly string[]).includes(params.get("tab") ?? "") ? (params.get("tab") as Tab) : "events";
 
-  const groups = useMemo(() => {
-    const sorted = [...events].sort(compareEvents);
-    const lastDay = (e: Event) => (isMultiDay(e) ? e.endDate! : e.date);
-    return {
-      today: sorted.filter((e) => e.date <= today && lastDay(e) >= today),
-      upcoming: sorted.filter((e) => e.date > today),
-      past: sorted.filter((e) => lastDay(e) < today && lastDay(e) >= addDays(today, -30)).reverse(),
-    };
-  }, [events, today]);
+  const now = nowClock();
+  const groups = useMemo(() => groupEvents(events, { date: today, time: now }), [events, today, now]);
 
   function edit(e: Event) {
     setEditing(e);
