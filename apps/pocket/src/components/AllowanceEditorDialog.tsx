@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, COLOR_SLOTS, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, cn, colorVar, toast, type ColorSlot } from "@lifeline/ui";
+import { Button, COLOR_SLOTS, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, cn, colorVar, toast, type ColorSlot } from "@lifeline/ui";
 import { addDays, todayStr, useTagVocabulary } from "@lifeline/core";
 import { EMOJI_PRESETS, PERIOD_KINDS, PERIOD_LABEL, faceColor, faceOf, firstGrapheme, type Allowance, type PeriodKind } from "../domain/types";
 import { Jar } from "./Jar";
@@ -103,12 +103,21 @@ export function AllowanceEditorDialog({ open, onOpenChange, allowance, spendCoun
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="al-from">{period === "custom" ? "From" : "A day in the period"}</Label>
-              <Input id="al-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+              <DatePicker
+                id="al-from"
+                required
+                value={from}
+                onChange={(v) => {
+                  setFrom(v);
+                  // "To" can't fall before "From": it follows a From moved past it.
+                  if (to < v) setTo(v);
+                }}
+              />
             </div>
             {period === "custom" ? (
               <div className="grid gap-2">
                 <Label htmlFor="al-to">To</Label>
-                <Input id="al-to" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
+                <DatePicker id="al-to" required value={to} min={from} onChange={setTo} />
               </div>
             ) : (
               <div className="grid gap-2">
