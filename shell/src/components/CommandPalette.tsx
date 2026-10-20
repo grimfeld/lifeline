@@ -64,6 +64,8 @@ function rankCaptureFirst(value: string, search: string, keywords?: string[]): n
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [activeDialog, setActiveDialog] = useState<DialogCommand | null>(null);
+  // What the inline line understood, handed to the dialog it opens (CommandDialogProps.initial).
+  const [dialogInitial, setDialogInitial] = useState<Record<string, unknown> | undefined>();
   const [search, setSearch] = useState("");
   // A pinned fold opens its members here, in place of the full list.
   const [openFold, setOpenFold] = useState<Extract<CaptureEntry, { kind: "fold" }> | null>(null);
@@ -105,8 +107,13 @@ export function CommandPalette() {
     fn();
   }
 
-  function runCommand(c: DialogCommand) {
-    if (c.dialog) return pick(() => setActiveDialog(c));
+  function runCommand(c: DialogCommand, initial?: Record<string, unknown>) {
+    if (c.dialog) {
+      return pick(() => {
+        setDialogInitial(initial);
+        setActiveDialog(c);
+      });
+    }
     // A Command may ask to stay (CommandCtx.keepPalette): the query empties, ready for it.
     let keep = false;
     void c.run?.({
@@ -159,7 +166,7 @@ export function CommandPalette() {
             input.current?.setSelectionRange(at, at);
           });
         }}
-        onOpen={(c) => runCommand(c)}
+        onOpen={(c, initial) => runCommand(c, initial)}
         onDone={() => setPaletteOpen(false)}
       >
         {rows}
@@ -328,6 +335,7 @@ export function CommandPalette() {
         <ActiveDialogComponent
           open={activeDialog !== null}
           onOpenChange={(o) => !o && setActiveDialog(null)}
+          initial={dialogInitial}
         />
       )}
     </>

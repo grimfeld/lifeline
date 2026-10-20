@@ -1,4 +1,4 @@
-import { todayStr, type CommandDef } from "@lifeline/core";
+import { todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { Plus, Wallet } from "lucide-react";
 import { POCKET_HREF } from "./domain/types";
 import { allowanceFor } from "./domain/spend";
@@ -8,7 +8,7 @@ import { addSpend, allAllowances, allSpends } from "./data/repo";
 import { SpendDialog } from "./components/SpendDialog";
 import { AllowanceEditorDialog } from "./components/AllowanceEditorDialog";
 
-function SpendCommandDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function SpendCommandDialog(props: CommandDialogProps) {
   return <SpendDialog {...props} />;
 }
 

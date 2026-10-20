@@ -12,7 +12,7 @@ import {
   Textarea,
   toast,
 } from "@lifeline/ui";
-import { displayTitle, docHref, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff, type IntakePrefill } from "@lifeline/core";
+import { displayTitle, docHref, initialList, initialText, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff, type IntakePrefill } from "@lifeline/core";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
 import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors } from "../domain/eventForm";
@@ -35,6 +35,7 @@ export function EventDialog({
   defaultDate,
   handoff,
   prefill,
+  initial,
   onSaved,
 }: {
   open: boolean;
@@ -46,6 +47,8 @@ export function EventDialog({
   handoff?: Handoff;
   /** Create mode: what is already known of the new Event; it beats `defaultDate` and the Handoff's title. */
   prefill?: EventPrefill;
+  /** Create mode, the palette's inline line (CommandDialogProps.initial): the notes and Tags it understood beside the `prefill`. */
+  initial?: Record<string, unknown>;
   /** Create mode: called with the new Event once it is saved (the Intake contract). */
   onSaved?: (id: string) => void;
 }) {
@@ -69,8 +72,8 @@ export function EventDialog({
   useEffect(() => {
     if (!open) return;
     setTitle(event?.title ?? preTitle ?? handoff?.title ?? "");
-    setNotes(event?.notes ?? (handoff ? [handoff.url, handoff.author ? `From ${handoff.author}` : ""].filter(Boolean).join("\n") : ""));
-    setTags(event?.tags ?? []);
+    setNotes(event?.notes ?? (handoff ? [handoff.url, handoff.author ? `From ${handoff.author}` : ""].filter(Boolean).join("\n") : initialText(initial, "notes")));
+    setTags(event?.tags ?? initialList(initial, "tags"));
     setTried(false);
     if (event) {
       setDate(event.date);
@@ -91,7 +94,7 @@ export function EventDialog({
     setAllDay(false);
     setStart(ended.start);
     setEnd(ended.end);
-  }, [open, event, defaultDate, handoff, preTitle, preDate, preStart, preEndDate, preEnd]);
+  }, [open, event, defaultDate, handoff, initial, preTitle, preDate, preStart, preEndDate, preEnd]);
 
   async function submit() {
     const invalid = Object.keys(eventFormErrors({ title, date, endDate, allDay, start, end }));

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Label, Textarea, nowMoment, toast } from "@lifeline/ui";
+import { initialMoment, initialText, type CommandDialogProps } from "@lifeline/core";
 import type { Habit, Negative } from "../domain/types";
 import { completeHabit, deleteCompletion, logNegative, useHabits, useNegatives } from "../data/repo";
 import { celebrateCompletion, mournNegative } from "../feedback/feedback";
@@ -42,15 +43,15 @@ function usePending(): [boolean, (run: () => Promise<void>) => Promise<void>] {
 }
 
 /** Complete a Habit with back-logging: `occurredAt` is when it really happened. */
-export function CompleteHabitDialog({ open, onOpenChange, habit }: { open: boolean; onOpenChange: (o: boolean) => void; habit: Habit }) {
+export function CompleteHabitDialog({ open, onOpenChange, habit, initial }: { open: boolean; onOpenChange: (o: boolean) => void; habit: Habit; /** The palette's inline line (CommandDialogProps.initial): the moment and note it understood. */ initial?: Record<string, unknown> }) {
   const [when, setWhen] = useState(nowMoment());
   const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!open) return;
-    setWhen(nowMoment());
-    setNote("");
-  }, [open]);
+    setWhen(initialMoment(initial) ?? nowMoment());
+    setNote(initialText(initial, "note"));
+  }, [open, initial]);
 
   const [pending, guard] = usePending();
   const occurredAt = occurredAtOf(when);
@@ -93,12 +94,15 @@ export function CompleteHabitDialog({ open, onOpenChange, habit }: { open: boole
 }
 
 /** The capture command's dialog: pick a Habit, done — or back-log with a time. */
-export function CompleteHabitCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+export function CompleteHabitCommandDialog({ open, onOpenChange, initial }: CommandDialogProps) {
   const habits = useHabits();
   const [picked, setPicked] = useState<Habit | null>(null);
+  // The line names a Habit by id: its form opens straight away, holding the rest of the line.
+  const named = initialText(initial, "habit");
   useEffect(() => {
     if (!open) setPicked(null);
-  }, [open]);
+    else if (named) setPicked((p) => p ?? habits.find((h) => h.id === named) ?? null);
+  }, [open, named, habits]);
   if (picked) {
     return (
       <CompleteHabitDialog
@@ -108,6 +112,7 @@ export function CompleteHabitCommandDialog({ open, onOpenChange }: { open: boole
           onOpenChange(o);
         }}
         habit={picked}
+        initial={initial}
       />
     );
   }
@@ -137,16 +142,16 @@ export function CompleteHabitCommandDialog({ open, onOpenChange }: { open: boole
 }
 
 /** Log a Negative with back-logging. The victim is rolled at submit and persisted. */
-export function LogNegativeDialog({ open, onOpenChange, negative }: { open: boolean; onOpenChange: (o: boolean) => void; negative: Negative }) {
+export function LogNegativeDialog({ open, onOpenChange, negative, initial }: { open: boolean; onOpenChange: (o: boolean) => void; negative: Negative; /** The palette's inline line (CommandDialogProps.initial): the moment and note it understood. */ initial?: Record<string, unknown> }) {
   const habits = useHabits();
   const [when, setWhen] = useState(nowMoment());
   const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!open) return;
-    setWhen(nowMoment());
-    setNote("");
-  }, [open]);
+    setWhen(initialMoment(initial) ?? nowMoment());
+    setNote(initialText(initial, "note"));
+  }, [open, initial]);
 
   const rivalMissing = !!negative.affectsHabitId && !habits.some((h) => h.id === negative.affectsHabitId);
   const blocked = habits.length === 0 || rivalMissing;
@@ -202,12 +207,14 @@ export function LogNegativeDialog({ open, onOpenChange, negative }: { open: bool
 }
 
 /** The capture command's dialog: pick a Negative, confess, take the hit. */
-export function LogNegativeCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+export function LogNegativeCommandDialog({ open, onOpenChange, initial }: CommandDialogProps) {
   const negatives = useNegatives();
   const [picked, setPicked] = useState<Negative | null>(null);
+  const named = initialText(initial, "negative");
   useEffect(() => {
     if (!open) setPicked(null);
-  }, [open]);
+    else if (named) setPicked((p) => p ?? negatives.find((n) => n.id === named) ?? null);
+  }, [open, named, negatives]);
   if (picked) {
     return (
       <LogNegativeDialog
@@ -217,6 +224,7 @@ export function LogNegativeCommandDialog({ open, onOpenChange }: { open: boolean
           onOpenChange(o);
         }}
         negative={picked}
+        initial={initial}
       />
     );
   }

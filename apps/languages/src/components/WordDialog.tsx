@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
-import { useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
+import { initialList, initialText, useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import type { Word } from "../domain/types";
 import { addWord, deleteItem, updateWord, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
@@ -10,7 +10,10 @@ import { OriginLine } from "./OriginLine";
  * A Word, Sentence or Fact dialog: an Intake's dialog without the Handoff, so
  * it opens empty, prefilled or on an item to edit, and reports what it made.
  */
-export type ItemDialogProps = Omit<IntakeDialogProps, "handoff">;
+export type ItemDialogProps = Omit<IntakeDialogProps, "handoff"> & {
+  /** The palette's inline line (CommandDialogProps.initial): the fields it understood. */
+  initial?: Record<string, unknown>;
+};
 
 export interface WordPrefill {
   term?: string;
@@ -23,7 +26,7 @@ export interface WordPrefill {
  * own words, notes and where it was met. Quick enough for the capture sheet:
  * term, meaning, Enter.
  */
-export function WordDialog({ open, onOpenChange, word, prefill, onSaved }: ItemDialogProps & { word?: Word; prefill?: WordPrefill }) {
+export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved }: ItemDialogProps & { word?: Word; prefill?: WordPrefill }) {
   const topics = useTopics();
   const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
@@ -40,18 +43,18 @@ export function WordDialog({ open, onOpenChange, word, prefill, onSaved }: ItemD
 
   useEffect(() => {
     if (!open) return;
-    setLanguageId(word?.languageId ?? active?.id ?? "");
-    setTerm(word?.term ?? prefill?.term ?? "");
-    setMeaning(word?.meaning ?? "");
-    setNotes(word?.notes ?? "");
-    setOrigin(word?.origin ?? prefill?.origin ?? "");
+    setLanguageId(word?.languageId ?? (initialText(initial, "topic") || (active?.id ?? "")));
+    setTerm(word?.term ?? prefill?.term ?? initialText(initial, "term"));
+    setMeaning(word?.meaning ?? initialText(initial, "meaning"));
+    setNotes(word?.notes ?? initialText(initial, "notes"));
+    setOrigin(word?.origin ?? prefill?.origin ?? initialText(initial, "origin"));
     setOriginId(word?.originId ?? prefill?.originId ?? "");
-    setTags(word?.tags ?? []);
+    setTags(word?.tags ?? initialList(initial, "tags"));
     setConfirmDelete(false);
     kept.current = "";
     // `active` settles after the first render; a Word's own Topic never moves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, word, prefill]);
+  }, [open, word, prefill, initial]);
 
   useEffect(() => {
     if (open && !word && !languageId && active) setLanguageId(active.id);

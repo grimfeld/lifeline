@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { quickAddPlaceholder, startingMedium } from "./quickAdd";
+import { quickAddFromLine, quickAddPlaceholder, startingMedium } from "./quickAdd";
 
 const CINEMA = [
   { id: "movie", label: "Movie", wantLabel: "To watch", creatorLabel: "Director" },
@@ -32,5 +32,20 @@ describe("quickAddPlaceholder", () => {
 
   it("names the creator as the App asks", () => {
     expect(quickAddPlaceholder({ label: "Book", creatorLabel: "Authors" }, "author")).toBe("Add a book — author…");
+  });
+});
+
+describe("quickAddFromLine", () => {
+  it("writes the title and the creator as the line QuickAdd reads, and names the medium", () => {
+    expect(quickAddFromLine({ title: "Dune", creator: "Villeneuve", type: "movie" }, CINEMA)).toEqual({ text: "Dune — Villeneuve", medium: "movie" });
+  });
+
+  it("takes the creator under the App's own key", () => {
+    expect(quickAddFromLine({ title: "Dune", author: "Herbert" }, CINEMA, "author")).toEqual({ text: "Dune — Herbert", medium: undefined });
+  });
+
+  it("leaves the medium to the App when the line names none, or one the App lacks", () => {
+    expect(quickAddFromLine({ title: "Dune", type: "podcast" }, CINEMA)).toEqual({ text: "Dune", medium: undefined });
+    expect(quickAddFromLine(undefined, CINEMA)).toEqual({ text: "", medium: undefined });
   });
 });

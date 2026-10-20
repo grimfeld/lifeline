@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Tabs, TabsList, TabsTrigger, Textarea, toast } from "@lifeline/ui";
-import { normalizeTag, todayStr, useTagVocabulary } from "@lifeline/core";
+import { initialList, initialNumber, initialText, normalizeTag, todayStr, useTagVocabulary } from "@lifeline/core";
 import { KIND_LABEL, type LedgerAccount, type Transaction, type TransactionKind } from "../domain/types";
 import { payeeIndex, transferCounterparts } from "../domain/derive";
 import { editAmount, formatCents, parseAmount } from "../domain/money";
@@ -19,12 +19,15 @@ export function TransactionEditorDialog({
   onOpenChange,
   transaction,
   initialKind,
+  initial,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Present = edit mode. */
   transaction?: Transaction;
   initialKind?: TransactionKind;
+  /** Create mode, the palette's inline line (CommandDialogProps.initial). */
+  initial?: Record<string, unknown>;
 }) {
   const accounts = useAccounts().filter((a) => !a.archived || a.id === transaction?.accountId);
   const categories = useCategories();
@@ -46,19 +49,25 @@ export function TransactionEditorDialog({
 
   useEffect(() => {
     if (!open) return;
-    setKind(transaction?.kind ?? initialKind ?? "expense");
-    setDate(transaction?.date ?? todayStr());
-    setAmount(transaction ? editAmount(transaction.amount) : "");
-    setAccountId(transaction?.accountId ?? accounts[0]?.id ?? "");
+    const lineKind = initialText(initial, "kind");
+    const kindNow: TransactionKind = transaction?.kind ?? (lineKind === "income" || lineKind === "expense" ? lineKind : (initialKind ?? "expense"));
+    // The line names a Category by id or exact name, among the Categories of the kind.
+    const lineCategory = initialText(initial, "category").trim().toLowerCase();
+    const category = lineCategory ? categories.find((c) => c.kind === kindNow && (c.id === initialText(initial, "category") || c.title.trim().toLowerCase() === lineCategory)) : undefined;
+    const typed = initialNumber(initial, "amount");
+    setKind(kindNow);
+    setDate(transaction?.date ?? (initialText(initial, "date") || todayStr()));
+    setAmount(transaction ? editAmount(transaction.amount) : typed === undefined ? "" : String(typed));
+    setAccountId(transaction?.accountId ?? (initialText(initial, "account") || (accounts[0]?.id ?? "")));
     setFromAccountId(transaction?.fromAccountId || transaction?.accountId || accounts[0]?.id || "");
     setToAccountId(transaction?.toAccountId ?? "");
-    setCategoryId(transaction?.categoryId ?? "");
-    setPayee(transaction?.payee ?? "");
-    setNote(transaction?.note ?? "");
-    setTags(transaction?.tags ?? []);
+    setCategoryId(transaction?.categoryId ?? category?.id ?? "");
+    setPayee(transaction?.payee ?? initialText(initial, "payee"));
+    setNote(transaction?.note ?? initialText(initial, "note"));
+    setTags(transaction?.tags ?? initialList(initial, "tags"));
     setMergeCounterpartId("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, transaction, initialKind]);
+  }, [open, transaction, initialKind, initial, categories.length === 0]);
 
   /** Picking a known payee prefills the rest of the form from its last Transaction. */
   function pickPayee(text: string) {

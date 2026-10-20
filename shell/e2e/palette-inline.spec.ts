@@ -74,4 +74,26 @@ test.describe("Palette · inline arguments (#232)", () => {
     await page.keyboard.press("Enter");
     await expect(page.getByRole("dialog", { name: "New task" })).toBeVisible();
   });
+
+  test("a line missing a required argument opens the dialog pre-filled (#236)", async ({ page }) => {
+    await openPalette(page);
+    // An event needs a day: the line cannot run, so its dialog opens holding the title and Tag it understood.
+    await palette(page).fill("!event call mum #family");
+    await expect(options(page).first()).toContainText("Missing day");
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog", { name: "New event" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel("Title")).toHaveValue("call mum");
+    await expect(dialog).toContainText("family");
+  });
+
+  test("a task line with a Tag but no title opens the task dialog holding the Tag (#236)", async ({ page }) => {
+    await openPalette(page);
+    await palette(page).fill("!task #family");
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog", { name: "New task" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel("Title")).toHaveValue("");
+    await expect(dialog).toContainText("family");
+  });
 });

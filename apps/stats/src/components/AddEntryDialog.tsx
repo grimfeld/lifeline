@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Checkbox, DatePicker, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, nowMoment, toast } from "@lifeline/ui";
-import { todayStr } from "@lifeline/core";
+import { initialMoment, initialNumber, initialText, todayStr } from "@lifeline/core";
 import type { Entry, Stat } from "../domain/types";
 import { checklist, noonOf } from "../domain/aggregate";
 import { addEntry, uncollectItem } from "../data/repo";
@@ -15,12 +15,15 @@ export function AddEntryDialog({
   onOpenChange,
   stat,
   entries,
+  initial,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   stat: Stat;
   /** This stat's entries — for what a checklist shows as ticked. */
   entries: Entry[];
+  /** The palette's inline line (CommandDialogProps.initial): the value, item and moment it understood. */
+  initial?: Record<string, unknown>;
 }) {
   const [value, setValue] = useState("");
   const [item, setItem] = useState("");
@@ -32,11 +35,12 @@ export function AddEntryDialog({
 
   useEffect(() => {
     if (!open) return;
-    setValue(stat.kind === "additive" && stat.defaultIncrement ? String(stat.defaultIncrement) : "");
-    setItem("");
-    setWhen(nowMoment());
-    setDay(todayStr());
-  }, [open, stat]);
+    const typed = initialNumber(initial, "value");
+    setValue(typed !== undefined ? String(typed) : stat.kind === "additive" && stat.defaultIncrement ? String(stat.defaultIncrement) : "");
+    setItem(initialText(initial, "item"));
+    setWhen(initialMoment(initial) ?? nowMoment());
+    setDay(initialText(initial, "date") || todayStr());
+  }, [open, stat, initial]);
 
   async function toggle(name: string, collected: boolean) {
     if (busy) return;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Checkbox, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, Label, toast } from "@lifeline/ui";
-import { todayStr } from "@lifeline/core";
+import { initialNumber, initialText, todayStr } from "@lifeline/core";
 import { observe, secondPrefill, unitPrice } from "../domain/derive";
 import { amountUnit, defaultAmount, formatUnitPrice, fromAmount, measureOf, secondaryMeasure } from "../domain/measure";
 import { parseAmount, parseNumber } from "../domain/money";
@@ -19,7 +19,7 @@ import { ShopDialog } from "./ShopDialog";
  * preview reads the compared-by unit. The amount defaults to one for a count
  * only; anything weighed, poured or measured needs it typed.
  */
-export function AddPriceDialog({ open, onOpenChange, productId: presetProduct }: { open: boolean; onOpenChange: (o: boolean) => void; productId?: string }) {
+export function AddPriceDialog({ open, onOpenChange, productId: presetProduct, initial }: { open: boolean; onOpenChange: (o: boolean) => void; productId?: string; /** The palette's inline line (CommandDialogProps.initial). */ initial?: Record<string, unknown> }) {
   const products = useProducts();
   const shops = useShops();
   const [productId, setProductId] = useState("");
@@ -38,17 +38,20 @@ export function AddPriceDialog({ open, onOpenChange, productId: presetProduct }:
 
   useEffect(() => {
     if (!open) return;
-    setProductId(presetProduct ?? "");
-    setShopId((s) => s || shops[0]?.id || "");
-    setAmount("");
+    const flag = (k: string) => initial?.[k] === true || ["true", "yes", "1"].includes(String(initial?.[k]).toLowerCase());
+    const typed = (k: string) => initialNumber(initial, k);
+    setProductId(initialText(initial, "product") || (presetProduct ?? ""));
+    setShopId((s) => initialText(initial, "shop") || s || shops[0]?.id || "");
+    // Typed in the Product's reading unit, so an amount given with a unit of its own is left to be typed here.
+    setAmount(initialText(initial, "unit") || typed("amount") === undefined ? "" : String(typed("amount")));
     setSecondTyped(false);
     setErrors({});
-    setPrice("");
-    setPromo(false);
-    setBought(false);
-    setDate(todayStr());
+    setPrice(typed("price") === undefined ? "" : String(typed("price")));
+    setPromo(flag("promo"));
+    setBought(flag("bought"));
+    setDate(initialText(initial, "date") || todayStr());
     // shops arrive async; defaulting once they do is wanted
-  }, [open, presetProduct, shops]);
+  }, [open, presetProduct, shops, initial]);
 
   const product = products.find((p) => p.id === productId);
   const secondM = product ? secondaryMeasure(product) : undefined;

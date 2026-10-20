@@ -65,7 +65,8 @@ searching:
 - The top row shows what was understood ("Add task · call mum · #family"). **Enter** records it
   at once when everything needed is there. When something is missing, a title matches several
   Documents, or the Command has no way to run without its form, Enter opens the Command's form
-  instead. When the App refuses (a Need already on the list), the palette says why and nothing
+  instead, already holding what the line understood: the title, the Tag, the day, the Source. A
+  form shows only the details it has a field for. When the App refuses (a Need already on the list), the palette says why and nothing
   is written.
 - One line runs one Command: a second `!` is pointed out, and Enter does nothing.
 - Without `!`, the palette searches exactly as above.

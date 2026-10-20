@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { initialText, type CommandDialogProps } from "@lifeline/core";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from "@lifeline/ui";
 import { Check, Eye } from "lucide-react";
 import { workType } from "../domain/workTypes";
@@ -15,9 +16,9 @@ const LIMIT = 12;
  * tap the album — it is Listened — then the stars and the heart right there,
  * before the sheet goes. Everything not yet Done is offered.
  */
-export function MarkListenedDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+export function MarkListenedDialog({ open, onOpenChange, initial }: CommandDialogProps) {
   const items = useWorks();
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialText(initial, "work"));
   const [pickedId, setPickedId] = useState<string | null>(null);
   const picked = pickedId ? (items.find((m) => m.id === pickedId) ?? null) : null;
   const candidates = useMemo(
