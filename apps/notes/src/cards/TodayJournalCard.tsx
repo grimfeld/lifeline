@@ -23,7 +23,7 @@ export function TodayJournalCard({ settings }: CardProps) {
   if (!note) {
     return (
       <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-2 text-sm">
-        <span>No entry for {offset === 0 ? "today" : formatHuman(date)}.</span>
+        <span>Nothing written {offset === 0 ? "today" : `on ${formatHuman(date)}`}.</span>
         <Button size="sm" variant="outline" onClick={open}>
           <PenLine /> {offset === 0 ? "Write" : "Open"}
         </Button>

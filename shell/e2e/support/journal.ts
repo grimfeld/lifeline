@@ -68,7 +68,8 @@ export async function openDay(page: Page, date: string): Promise<void> {
 export async function openPeriod(page: Page, key: string): Promise<void> {
   await page.goto(`/app/journal/p/${key}`);
   await workLocally(page);
-  await expect(page.getByRole("button", { name: /^Previous (week|month|quarter|year)$/ })).toBeVisible();
+  // The page's own arrow comes first; the sidebar calendar has a "Previous month" and "Previous year" too.
+  await expect(page.getByRole("button", { name: /^Previous (week|month|quarter|year)$/ }).first()).toBeVisible();
 }
 
 /** The Journal's side column, on a Day or a period page (desk only: hidden below `lg`). */
@@ -98,3 +99,6 @@ export const calendar = (page: Page): Locator => sidebar(page).getByRole("group"
 export async function expectCalendarAt(page: Page, title: string): Promise<void> {
   await expect(calendar(page).getByText(title, { exact: true })).toBeVisible();
 }
+
+/** A day, month or year tile in the calendar (or the sidebar), by its key (`2001-02-14`, `2001-02`, `2001`): named by the key, ", written" after it when written. */
+export const calendarTile = (scope: Locator, key: string): Locator => scope.getByRole("button", { name: new RegExp(`^${key}(, written)?$`) });

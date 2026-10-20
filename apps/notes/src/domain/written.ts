@@ -6,10 +6,11 @@
  * Every label and mark that says a Day is written asks `isWrittenDay`.
  */
 
+import { isCalendarDay } from "./periods";
 import { DAILY } from "./types";
 
-/** The slice of a Document these helpers read. */
-type DayLike = { type: string; title: string; body?: string };
+/** The slice of a Document the Journal's date helpers read (here, `nearest`, `paging`, `journalStats`). */
+export type DayLike = { type: string; title: string; body?: string };
 
 /** Lines a Template leaves for the user to fill: headings, rules, and list items, tasks and quotes with nothing in them. */
 const SCAFFOLD = [/^#{1,6}(\s|$)/, /^(-{3,}|\*{3,}|_{3,})$/, /^\d+[.)]\s*$/, /^[-*+]\s*(\[[ xX]?\]\s*)?$/, /^>\s*$/];
@@ -30,12 +31,12 @@ export function ownWords(body: string): string {
 
 /** Whether a Day is written: it exists and has words of its own. `undefined` (no Day on that date) is not written. */
 export function isWrittenDay(day: { body?: string } | undefined): boolean {
-  return !!day && ownWords(typeof day.body === "string" ? day.body : "") !== "";
+  return !!day && ownWords(day.body ?? "") !== "";
 }
 
 /** The dates (YYYY-MM-DD) of the written Days among `notes`; other types are ignored. */
 export function writtenDates(notes: readonly DayLike[]): Set<string> {
   const out = new Set<string>();
-  for (const n of notes) if (n.type === DAILY && /^\d{4}-\d{2}-\d{2}$/.test(n.title) && isWrittenDay(n)) out.add(n.title);
+  for (const n of notes) if (n.type === DAILY && isCalendarDay(n.title) && isWrittenDay(n)) out.add(n.title);
   return out;
 }

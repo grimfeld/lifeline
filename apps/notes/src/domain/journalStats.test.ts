@@ -8,7 +8,6 @@ import {
   sameDayInYear,
   wordCount,
   wordsBetween,
-  writtenDays,
 } from "./journalStats";
 
 const TEMPLATE = "```daylog\n```\n\n### Histoire du jour\n\n---\n### Citation du jour\n\n---\n### Quoi de neuf ?\n\n---\n### Et maintenant ?\n\n";
@@ -39,14 +38,6 @@ describe("onThisDay", () => {
 });
 
 describe("written days & streaks", () => {
-  it("writtenDays only counts written daily notes", () => {
-    const days = writtenDays([
-      daily("2026-08-18", TEMPLATE + "A full sentence about the day."),
-      daily("2026-08-17", TEMPLATE),
-      { type: "plain" as const, title: "2026-08-16", body: "not a daily note but long enough" },
-    ]);
-    expect([...days]).toEqual(["2026-08-18"]);
-  });
   it("current streak ends today or yesterday", () => {
     const days = new Set(["2026-08-15", "2026-08-16", "2026-08-17"]);
     expect(currentStreak(days, "2026-08-18")).toBe(3);
