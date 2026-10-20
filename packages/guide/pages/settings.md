@@ -57,6 +57,13 @@ A **Macro** runs several Commands in order, as one Command. **Macros** here open
 - Every run ends with a report: each step **Done** (with what it said, and **Open** for what it
   made), **Stopped** (with why), or **Not reached**.
 
+## Dates in the palette
+
+The palette's `/` reads dates in English and in French (see [Capture](capture.md)). A few words
+mean different things in each: `/mar` is March in English and Tuesday (mardi) in French. Pick
+**English** (the default) or **Français** to say which one wins. Words only one language knows
+are read in that language whatever you pick. The choice is kept on this device.
+
 ## Workspaces
 
 - Every Workspace, with how many Modules it has; a lock marks a separated one.

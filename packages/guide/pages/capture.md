@@ -48,12 +48,18 @@ Press **Ctrl+K** (⌘K on a Mac) anywhere. Type to filter.
 Put **`!`** in the line and the palette reads it as one Command with its details, instead of
 searching:
 
-    !task call mum #family @Family estimate:30
+    !task call mum /fri #family @Family estimate:30
 
 - **`!`** names the Command, anywhere in the line ("call mum !task" works too). A bare `!`
   lists every Command, and typing narrows it (`!ta` → Add task); Enter on a suggestion puts it in
   the line.
 - **Plain words** are the Command's content: a Task's title, a Need's thing.
+- **`/`** gives a date or a time, in English or French: `/tomorrow`, `/fri 5pm`, `/in 3 days`,
+  `/next week`, `/24 oct`, `/2026-11-02`, `/demain`, `/ven 9h`, `/lundi prochain`,
+  `/dans 2 semaines`. A weekday is the coming one, never today. As you type it suggests the days
+  it could be (`/ve` → vendredi, with its date), and the top row shows the day it took. Where the
+  two languages disagree (`/mar`: March or mardi), your preferred language in
+  [Settings](settings.md) decides; both are always understood.
 - **`#`** picks one of the Command's options (`!mood #great`), or adds a Tag. It suggests both.
 - **`@`** links a Document by its exact title (`@Dune`), and suggests only Documents of the kind
   that Command links to.
