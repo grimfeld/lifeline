@@ -12,6 +12,7 @@ import {
   Input,
   Label,
   TagInput,
+  TimeField,
   toast,
 } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary, type DateStr, type Weekday } from "@lifeline/core";
@@ -143,11 +144,11 @@ export function TimeBlockerDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="blk-start">From</Label>
-              <Input id="blk-start" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+              <TimeField id="blk-start" required value={start} onChange={setStart} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="blk-end">To</Label>
-              <Input id="blk-end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
+              <TimeField id="blk-end" required value={end} onChange={setEnd} />
             </div>
           </div>
           {overnight && <p className="text-muted-foreground text-xs">Runs past midnight: the band ends the next morning.</p>}

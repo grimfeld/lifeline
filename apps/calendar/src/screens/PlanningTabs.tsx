@@ -133,7 +133,7 @@ function BlockerRow({ b, onEdit }: { b: TimeBlocker; onEdit: (b: TimeBlocker) =>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="size-8">
+            <Button size="icon" variant="ghost" aria-label="More actions">
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
