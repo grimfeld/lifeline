@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
 import { setTime } from "./support/time-field";
 
@@ -89,4 +89,76 @@ test('"More…" opens the Event dialog with the title, day, start and end alread
   await dialog.getByRole("button", { name: "Add event" }).click();
   await expect(dialog).toBeHidden();
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: null, start: "12:15", end: "13:45" });
+});
+
+/**
+ * The desk sweep (#226): press on an empty hour and drag down, and the quick
+ * add opens with that range. An empty day shows from 7:00 (hourWindow's
+ * floor), so an hour's y is (hour - 7) × 56px from the column's top.
+ */
+const SWEEP_DAY = "2026-11-16"; // a Monday with nothing on it
+const HOUR_PX = 56;
+const FIRST_HOUR = 7;
+
+async function openEmptyDay(page: Page) {
+  await page.goto(`/calendar?view=day&d=${SWEEP_DAY}`);
+  await workLocally(page);
+  const column = page.locator(`[data-col="${SWEEP_DAY}"]`);
+  await expect(column).toBeVisible();
+  // The hours open scrolled to now: bring the morning into view.
+  await column.evaluate((el, top) => {
+    el.closest(".overflow-y-auto")!.scrollTop = top;
+  }, (9 - FIRST_HOUR) * HOUR_PX);
+  return column;
+}
+
+/** Where an hour of the column sits on screen now (the hours scroll). */
+async function hourAt(column: Locator, hours: number) {
+  const box = (await column.boundingBox())!;
+  return { x: box.x + 40, y: box.y + (hours - FIRST_HOUR) * HOUR_PX };
+}
+
+test("a desk sweep from 10:00 to 11:45 opens the quick add with that range", async ({ page, isMobile }) => {
+  test.skip(isMobile, "the phone has no sweep: a tap is the way in");
+  const title = `Workshop ${Date.now()}`;
+  const column = await openEmptyDay(page);
+  const press = await hourAt(column, 10 + 5 / 60);
+  const release = await hourAt(column, 11.6);
+  await page.mouse.move(press.x, press.y);
+  await page.mouse.down();
+  await page.mouse.move(release.x, release.y, { steps: 8 });
+  // The ghost range, snapped to the quarter hours.
+  await expect(column.getByText(/^10:00\s?AM–11:45\s?AM$|^10:00–11:45$/)).toBeVisible();
+  await page.mouse.up();
+
+  const quick = page.getByRole("dialog", { name: /^Add on / });
+  await expect(quick).toBeVisible();
+  await expect(quick.getByRole("combobox", { name: "Start" })).toHaveValue(/^10:00/);
+  await expect(quick.getByRole("combobox", { name: "End" })).toHaveValue(/^11:45/);
+  await expect(quick.getByText(/· 1h 45m$/)).toBeVisible();
+  await expect(column.getByText(/–11:45/), "the ghost goes once the quick add is open").toBeHidden();
+  await quick.getByRole("textbox", { name: "Title" }).fill(title);
+  await quick.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(quick).toBeHidden();
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: SWEEP_DAY, endDate: null, start: "10:00", end: "11:45" });
+});
+
+test("on the desk, dragging an Event still moves it rather than sweeping", async ({ page, isMobile }) => {
+  test.skip(isMobile, "a phone drags on press and hold");
+  const title = `Movable ${Date.now()}`;
+  const column = await openEmptyDay(page);
+  await column.dblclick({ position: { x: 40, y: (9 - FIRST_HOUR) * HOUR_PX + 4 } });
+  const quick = page.getByRole("dialog", { name: /^Add on / });
+  await quick.getByRole("textbox", { name: "Title" }).fill(title);
+  await quick.getByRole("textbox", { name: "Title" }).press("Enter");
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: SWEEP_DAY, endDate: null, start: "09:00", end: "10:00" });
+
+  const block = column.getByText(title);
+  const from = (await block.boundingBox())!;
+  await page.mouse.move(from.x + 4, from.y + 4);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 4, from.y + 4 + 2 * HOUR_PX, { steps: 10 });
+  await page.mouse.up();
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: SWEEP_DAY, endDate: null, start: "11:00", end: "12:00" });
+  await expect(page.getByRole("dialog", { name: /^Add on / }), "no quick add from a drag").toBeHidden();
 });
