@@ -164,7 +164,11 @@ export function MarkdownEditor({
     const view = new EditorView({ state, parent: host.current });
     viewRef.current = view;
     setView(view);
-    if (autoFocus) {
+    // The editor loads lazily, so it can come up after the person has opened a popover or
+    // dialog (the Journal's Jump to date on a Day just created): taking focus then would
+    // close it under them. Focus is taken only when it is not in a layer outside the editor.
+    const layer = document.activeElement?.closest('[role="dialog"]');
+    if (autoFocus && !(layer && !layer.contains(host.current))) {
       view.dispatch({ selection: { anchor: view.state.doc.length } });
       view.focus();
     }
