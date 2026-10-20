@@ -197,3 +197,83 @@ test("an overnight Event counts as running on its second day until it ends, on t
   await expect(section("Past 30 days").getByText(title)).toBeVisible();
   await expect(section("Today").getByText(title)).toHaveCount(0);
 });
+
+/** A one-off Time blocker put straight into the store (ADR 0029); `endDate` left out is how one stored before ADR 0090 reads. */
+const seedBlocker = (page: Page, b: { title: string; date: string; endDate?: string; start: string; end: string }) =>
+  page.evaluate(
+    async ({ coreUrl, b }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      await core.putDocument({ type: "time_blocker", weekdays: [], color: null, active: true, tags: [], ...b });
+    },
+    { coreUrl: CORE_URL, b },
+  );
+
+const storedBlocker = (page: Page, title: string) =>
+  page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const b = (await core.documentsOf("time_blocker")).find((d: { title: string }) => d.title === title);
+      return b ? { date: b.date, endDate: b.endDate, start: b.start, end: b.end } : null;
+    },
+    { coreUrl: CORE_URL, title },
+  );
+
+/**
+ * The Week of Mon 9 Nov 2026 with a one-off blocker from Monday 21:00 to
+ * Tuesday 09:00: its Monday and Tuesday bands. The hours start at 07:00, so
+ * Tuesday's band shows 07:00–09:00 of its 00:00–09:00.
+ */
+async function weekWithOvernightBlocker(page: Page, b: { title: string; endDate?: string }) {
+  await page.goto("/calendar?view=week&d=2026-11-09");
+  await workLocally(page);
+  await seedBlocker(page, { date: "2026-11-09", start: "21:00", end: "09:00", ...b });
+  const monday = page.locator('[data-col="2026-11-09"]').getByTitle(b.title, { exact: false });
+  const tuesday = page.locator('[data-col="2026-11-10"]').getByTitle(b.title, { exact: false });
+  await expect(tuesday).toBeVisible();
+  await expect(monday).toBeAttached();
+  return { monday, tuesday };
+}
+
+test("dragging the next-day part of a one-off overnight blocker moves the whole blocker, keeping its evening part", async ({ page, isMobile }) => {
+  test.skip(isMobile, "a mouse drag; a phone drags after a long press, through the same drop");
+  const title = `Night train ${Date.now()}`;
+  // Stored the old way, with no end day: an end before the start is the next morning.
+  const { monday, tuesday } = await weekWithOvernightBlocker(page, { title });
+  await tuesday.scrollIntoViewIfNeeded();
+  // Tuesday's part runs 00:00–09:00: drop it an hour later.
+  await dragDown(page, (await tuesday.boundingBox())!, 10, HOUR_PX);
+  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-10", start: "22:00", end: "10:00" });
+  await expect(monday, "the evening part is still there").toBeAttached();
+  await expect(tuesday).toBeVisible();
+});
+
+test("only the last part of a one-off overnight blocker resizes, and it moves only the end", async ({ page, isMobile }) => {
+  test.skip(isMobile, "a phone sets an end in the Hours editor, not by an edge");
+  const title = `Ferry ${Date.now()}`;
+  const { monday, tuesday } = await weekWithOvernightBlocker(page, { title, endDate: "2026-11-10" });
+  await expect(monday.locator(".cursor-ns-resize"), "the evening part carries on: no end of its own to drag").toHaveCount(0);
+  await expect(tuesday.locator(".cursor-ns-resize")).toHaveCount(1);
+  await tuesday.scrollIntoViewIfNeeded();
+  const box = (await tuesday.boundingBox())!;
+  await dragDown(page, box, box.height - 3, HOUR_PX);
+  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-10", start: "21:00", end: "10:00" });
+});
+
+test("the Time blocker dialog gives a one-off blocker a Start and an End, with the end day when it differs", async ({ page }) => {
+  const title = `Travelling ${Date.now()}`;
+  await page.goto("/app/events?tab=blockers");
+  await workLocally(page);
+  // Mon 9 → Wed 11 Nov 2026.
+  await seedBlocker(page, { title, date: "2026-11-09", endDate: "2026-11-11", start: "18:00", end: "09:00" });
+  const row = page.locator('[data-slot="card"]').filter({ hasText: title });
+  await row.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name: "Edit" }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit one-off blocker" });
+  await expect(dialog.getByRole("combobox", { name: "Start" })).toHaveValue(/6:00|18:00/);
+  await expect(dialog.getByLabel("End day")).toBeVisible();
+  await expect(dialog.getByText(/^until Wed.* · 1d 15h$/)).toBeVisible();
+  await expect(dialog.getByLabel("All day"), "a band has hours").toHaveCount(0);
+  await setTime(dialog.getByRole("combobox", { name: "End" }), "11:00");
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-11", start: "18:00", end: "11:00" });
+});

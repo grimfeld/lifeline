@@ -24,18 +24,22 @@ export const whenIds = (prefix: string) => ({
  * is the next day's (ADR 0090), and the readout names the end day whenever it
  * is another; "Ends another day" shows the end day's own picker, for anything
  * longer. All day asks for a first and a last day instead. Errors are
- * `eventFormErrors`'s, shown under their control.
+ * `eventFormErrors`'s, shown under their control. A one-off Time blocker
+ * uses the same controls, without All day.
  */
 export function EventWhenFields({
   value,
   onChange,
   errors = {},
   idPrefix = "ev-",
+  canAllDay = true,
 }: {
   value: WhenForm;
   onChange: (next: WhenForm) => void;
   errors?: EventFormErrors;
   idPrefix?: string;
+  /** Off for a one-off Time blocker: a band has hours (ADR 0090). */
+  canAllDay?: boolean;
 }) {
   const ids = whenIds(idPrefix);
   const set = (patch: Partial<WhenForm>) => onChange({ ...value, ...patch });
@@ -87,9 +91,11 @@ export function EventWhenFields({
           )}
         </div>
       )}
-      <label className="flex items-center gap-2 text-sm">
-        <Checkbox id={ids.allDay} checked={value.allDay} onCheckedChange={(v) => onChange(withAllDay(value, !!v))} /> All day
-      </label>
+      {canAllDay && (
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox id={ids.allDay} checked={value.allDay} onCheckedChange={(v) => onChange(withAllDay(value, !!v))} /> All day
+        </label>
+      )}
     </>
   );
 }

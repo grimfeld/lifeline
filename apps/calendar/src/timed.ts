@@ -1,6 +1,6 @@
 import { getDocument, patchDocument, putDocument, removeDocument, vaultDocPath, type DateStr, type DocumentInput, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
 import { daysOf, describeTime, piecesOf, spanOf } from "./domain/events";
-import { bandsIn, describeBlocker, isOneOff } from "./domain/blockers";
+import { bandsIn, blockerSpan, describeBlocker, isOneOff } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
 import { addEvent, allEvents, moveEvent, rescheduleEvent, useEvents } from "./data/repo";
 import { allTimeBlockers, rescheduleTimeBlocker, useTimeBlockers } from "./data/blockers";
@@ -17,9 +17,12 @@ export const APP_ID = "calendar";
  */
 export function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { start: DateStr; end: DateStr }): TimedItem[] {
   const items: TimedItem[] = [];
-  // Time blockers (ADR 0027) are painted per day: a weekly rule's bands are fixed, a one-off's (ADR 0029) may be dragged.
+  // Time blockers (ADR 0027) are painted per day: a weekly rule's bands are fixed, a one-off's (ADR 0029) may be
+  // dragged, and each of its bands carries its whole span (ADR 0090) so a drag or resize acts on the whole blocker.
   for (const band of bandsIn(blockers, range)) {
+    const span = blockerSpan(band.blocker);
     items.push({
+      ...(span && { span }),
       key: `${APP_ID}/blocker:${band.blocker.id}@${band.date}+${band.start}`,
       appId: APP_ID,
       itemId: band.blocker.id,

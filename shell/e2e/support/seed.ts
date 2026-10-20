@@ -198,6 +198,8 @@ export async function seedInPage(arg: { coreUrl: string; longWord: string }): Pr
   // cut-edge pieces with long titles on every day they cover.
   await core.putDocument({ type: "event", title: long("Overnight"), date: day, endDate: core.addDays(day, 1), start: "22:00", end: "06:00", notes: "", tags: [`${arg.longWord}-tag`] });
   await core.putDocument({ type: "event", title: long("Conference"), date: core.addDays(day, -1), endDate: core.addDays(day, 1), start: "09:00", end: "17:00", notes: "", tags: [] });
+  // A one-off Time blocker across days, likewise: a band per day, cut where it carries on.
+  await core.putDocument({ type: "time_blocker", title: long("Travelling"), date: core.addDays(day, -1), endDate: core.addDays(day, 1), weekdays: [], start: "18:00", end: "09:00", color: null, active: true, tags: [] });
 
   // One Screen holding every Card, entity Cards pointed at their App's first Document.
   const docs = (await core.allDocuments()) as { id: string; type: string }[];

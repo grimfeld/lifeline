@@ -3,7 +3,6 @@ import {
   Button,
   Checkbox,
   cn,
-  DatePicker,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -15,8 +14,10 @@ import {
   TimeField,
   toast,
 } from "@lifeline/ui";
-import { normalizeTag, useTagVocabulary, type DateStr, type Weekday } from "@lifeline/core";
-import { isOvernight, WEEKDAYS } from "../domain/blockers";
+import { normalizeTag, spanIsValid, useTagVocabulary, type Weekday } from "@lifeline/core";
+import { blockerSpan, isOvernight, WEEKDAYS } from "../domain/blockers";
+import type { EventFormErrors } from "../domain/eventForm";
+import { EventWhenFields, type WhenForm } from "./EventWhenFields";
 import type { TimeBlocker } from "../domain/types";
 import { addTimeBlocker, updateTimeBlocker } from "../data/blockers";
 
@@ -49,8 +50,9 @@ export function TimeBlockerDialog({
   blocker?: TimeBlocker;
 }) {
   const [title, setTitle] = useState("");
-  /** A one-off blocker (ADR 0029) keeps its day here; a weekly one has none. */
-  const [date, setDate] = useState<DateStr | null>(null);
+  /** A one-off blocker (ADR 0029) keeps its span here, as the Event form holds one (ADR 0090); a weekly one has none. */
+  const [when, setWhen] = useState<WhenForm | null>(null);
+  const [whenErrors, setWhenErrors] = useState<EventFormErrors>({});
   const [weekdays, setWeekdays] = useState<Weekday[]>([]);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("17:00");
@@ -62,7 +64,9 @@ export function TimeBlockerDialog({
   useEffect(() => {
     if (!open) return;
     setTitle(blocker?.title ?? "");
-    setDate(blocker?.date ?? null);
+    const span = blocker ? blockerSpan(blocker) : null;
+    setWhen(span && { date: span.date, endDate: span.endDate === span.date ? "" : span.endDate, allDay: false, start: span.start, end: span.end });
+    setWhenErrors({});
     setWeekdays(blocker?.weekdays ?? []);
     setStart(blocker?.start ?? "09:00");
     setEnd(blocker?.end ?? "17:00");
@@ -73,9 +77,21 @@ export function TimeBlockerDialog({
 
   async function submit() {
     if (!title.trim()) return void toast.error("Title required");
-    if (!start || !end) return void toast.error("Start and end required");
-    if (blocker?.date && !date) return void toast.error("Day required");
-    const fields = { title: title.trim(), date: blocker?.date ? date : null, weekdays, start, end, color, active, tags };
+    let fields;
+    if (when) {
+      // A one-off band is a span (ADR 0090): its End after its Start, the end day included.
+      const errors: EventFormErrors = {};
+      if (!when.date) errors.date = "Day required";
+      if (!when.start) errors.start = "Start time required";
+      if (!when.end) errors.end = "End time required";
+      else if (when.date && when.start && !spanIsValid({ date: when.date, start: when.start, endDate: when.endDate || when.date, end: when.end })) errors.end = "End must be after start";
+      setWhenErrors(errors);
+      if (Object.keys(errors).length) return;
+      fields = { title: title.trim(), date: when.date, endDate: when.endDate || when.date, weekdays: [], start: when.start, end: when.end, color, active, tags };
+    } else {
+      if (!start || !end) return void toast.error("Start and end required");
+      fields = { title: title.trim(), date: null, endDate: null, weekdays, start, end, color, active, tags };
+    }
     if (blocker) {
       await updateTimeBlocker({ ...blocker, ...fields });
       toast.success("Blocker updated");
@@ -106,52 +122,53 @@ export function TimeBlockerDialog({
               onKeyDown={(e) => e.key === "Enter" && void submit()}
             />
           </div>
-          {blocker?.date ? (
-            <div className="grid gap-2">
-              <Label htmlFor="blk-date">Day</Label>
-              <DatePicker id="blk-date" required className="w-40" value={date ?? ""} onChange={(v) => setDate(v || null)} />
-              <p className="text-muted-foreground text-xs">A one-off band: this day only. Drag it on the Schedule to move it.</p>
-            </div>
+          {when ? (
+            <>
+              <EventWhenFields value={when} onChange={setWhen} errors={whenErrors} idPrefix="blk-" canAllDay={false} />
+              <p className="text-muted-foreground text-xs">A one-off band, on these days only. Drag it on the Schedule to move it.</p>
+            </>
           ) : (
-          <div className="grid gap-2">
-            <Label>Repeats on</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {WEEKDAYS.map((wd) => {
-                const on = weekdays.includes(wd.value);
-                return (
-                  <button
-                    key={wd.value}
-                    type="button"
-                    aria-pressed={on}
-                    className={cn("rounded-md border px-2.5 py-1 text-sm transition-colors", on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent")}
-                    onClick={() => setWeekdays((cur) => (on ? cur.filter((x) => x !== wd.value) : [...cur, wd.value]))}
-                  >
-                    {wd.label}
-                  </button>
-                );
-              })}
+            <>
+            <div className="grid gap-2">
+              <Label>Repeats on</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {WEEKDAYS.map((wd) => {
+                  const on = weekdays.includes(wd.value);
+                  return (
+                    <button
+                      key={wd.value}
+                      type="button"
+                      aria-pressed={on}
+                      className={cn("rounded-md border px-2.5 py-1 text-sm transition-colors", on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent")}
+                      onClick={() => setWeekdays((cur) => (on ? cur.filter((x) => x !== wd.value) : [...cur, wd.value]))}
+                    >
+                      {wd.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {QUICK_DAYS.map((q) => (
+                  <Button key={q.label} type="button" size="xs" variant="ghost" onClick={() => setWeekdays(q.days)}>
+                    {q.label}
+                  </Button>
+                ))}
+              </div>
+              {weekdays.length === 0 && <p className="text-muted-foreground text-xs">No day picked — the band covers every day.</p>}
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {QUICK_DAYS.map((q) => (
-                <Button key={q.label} type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setWeekdays(q.days)}>
-                  {q.label}
-                </Button>
-              ))}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="blk-start">Start</Label>
+                <TimeField id="blk-start" required value={start} onChange={setStart} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="blk-end">End</Label>
+                <TimeField id="blk-end" required value={end} onChange={setEnd} />
+              </div>
             </div>
-            {weekdays.length === 0 && <p className="text-muted-foreground text-xs">No day picked — the band covers every day.</p>}
-          </div>
+            {overnight && <p className="text-muted-foreground text-xs">Runs past midnight: the band ends the next morning.</p>}
+            </>
           )}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label htmlFor="blk-start">From</Label>
-              <TimeField id="blk-start" required value={start} onChange={setStart} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="blk-end">To</Label>
-              <TimeField id="blk-end" required value={end} onChange={setEnd} />
-            </div>
-          </div>
-          {overnight && <p className="text-muted-foreground text-xs">Runs past midnight: the band ends the next morning.</p>}
           <div className="grid gap-2">
             <Label>Colour</Label>
             <div className="flex flex-wrap gap-1.5">

@@ -290,10 +290,16 @@ function BandLayer({ band, from, to, touch, onResize, onOpen }: { band: Band; fr
   return <OneOffBand band={band} s={s} e={e} style={style} title={title} touch={touch} onResize={onResize} onOpen={onOpen} />;
 }
 
-/** A one-off blocker's band: still behind everything, but a draggable with a resize edge. */
+/**
+ * A one-off blocker's band: still behind everything, but a draggable. One
+ * that runs across days (ADR 0090) paints a band per day; any of them drags
+ * the whole blocker, and only the last, where it ends, has a resize edge.
+ */
 function OneOffBand({ band, s, e, style, title, touch, onResize, onOpen }: { band: Band; s: number; e: number; style: React.CSSProperties; title: string; touch: boolean; onResize: (endHours: number) => void; onOpen: (el: HTMLElement) => void }) {
   const grab = useRef(0);
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${band.item.key}`, data: { timed: band.item, grab } });
+  const cut = cutEdges(band.item);
+  // A band clipped to the visible hours (a next-day part from 00:00) is held by its visible top; `hidden` says how far its real start is above it.
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${band.item.key}`, data: { timed: band.item, grab, hidden: s - toHours(band.start) } });
   const resizing = useRef<{ startY: number; startEnd: number } | null>(null);
   return (
     <div
@@ -302,14 +308,15 @@ function OneOffBand({ band, s, e, style, title, touch, onResize, onOpen }: { ban
       {...listeners}
       className={cn("absolute inset-x-0 z-[1] cursor-grab overflow-hidden border-y select-none", isDragging && "opacity-40")}
       style={style}
-      title={`${title} · one-off, drag to move`}
+      title={`${[cut.before, title, cut.after].filter(Boolean).join(" ")} · one-off, drag to move`}
       onPointerDownCapture={(ev) => {
         grab.current = ev.clientY - ev.currentTarget.getBoundingClientRect().top;
       }}
       onClick={(ev) => onOpen(ev.currentTarget)}
     >
-      <span className="text-muted-foreground absolute top-0.5 left-1 truncate text-[10px]">{band.title}</span>
-      {!touch && (
+      <span className="text-muted-foreground absolute inset-x-1 top-0.5 truncate text-2xs">{band.title}</span>
+      {cut.after && (e - s) * HOUR_PX >= 34 && <span className="text-muted-foreground absolute inset-x-1 bottom-0.5 truncate text-2xs">{cut.after}</span>}
+      {!touch && !cut.after && (
       <div
         className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize touch-none"
         aria-hidden
@@ -742,7 +749,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
     endDrag();
     if (!e.over) return;
     const overId = String(e.over.id);
-    const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate };
+    const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate; hidden?: number };
     const at = landing(e);
     if (at) {
       const { date, startH } = at;
@@ -765,7 +772,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
           return;
         }
         // Whichever piece was lifted, the whole item moves by the drop (ADR 0090); one with no end stays end-less.
-        const span = spanMovedTo(d.timed, date, start);
+        const span = spanMovedTo(d.timed, date, d.hidden ? toClock(startH - d.hidden) : start);
         rescheduleTimedItem(d.timed, { ...span, end: d.timed.end === null ? null : span.end }).catch(fail);
       }
       return;
@@ -883,7 +890,8 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
                         else if (canRescheduleTimed(en.item.appId)) rescheduleTimedItem(en.item, spanEndingAt(en.item, end)).catch(fail);
                       }}
                       onBandResize={(b, endH) => {
-                        if (canRescheduleTimed(b.item.appId)) rescheduleTimedItem(b.item, { date: b.item.date, start: b.start, end: toClock(endH) }).catch(fail);
+                        // Only the last band has an edge, and it moves the end alone (ADR 0090).
+                        if (canRescheduleTimed(b.item.appId)) rescheduleTimedItem(b.item, spanEndingAt(b.item, toClock(endH))).catch(fail);
                       }}
                       onComplete={(it) => completeSurfaceItem(it).then(() => toast.success(`${it.title} done`)).catch(fail)}
                       onRemove={(it) => (it.placementId ? unplaceItem(it.placementId).catch(fail) : undefined)}

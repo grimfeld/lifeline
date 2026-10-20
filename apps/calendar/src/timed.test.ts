@@ -1,11 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { timedItemsOf } from "./timed";
-import type { Event } from "./domain/types";
+import type { Event, TimeBlocker } from "./domain/types";
 
 const event = (p: Partial<Event>) =>
   ({ id: "e", type: "event", title: "Night flight", notes: "", tags: [], date: "2026-08-10", endDate: null, start: "22:00", end: "06:00", ...p }) as unknown as Event;
 
+const blocker = (p: Partial<TimeBlocker>) =>
+  ({ id: "b", type: "time_blocker", title: "Travelling", tags: [], date: "2026-08-10", endDate: null, weekdays: [], start: "18:00", end: "09:00", color: null, active: true, ...p }) as unknown as TimeBlocker;
+
 describe("timedItemsOf", () => {
+  it("reports a one-off blocker across days as one movable band per day, each carrying the whole span", () => {
+    const items = timedItemsOf([], [blocker({ endDate: "2026-08-12" })], { start: "2026-08-09", end: "2026-08-16" });
+    const span = { date: "2026-08-10", start: "18:00", endDate: "2026-08-12", end: "09:00" };
+    expect(items.map((i) => ({ date: i.date, start: i.start, end: i.end, background: i.background, fixed: i.fixed, span: i.span }))).toEqual([
+      { date: "2026-08-10", start: "18:00", end: "24:00", background: true, fixed: false, span },
+      { date: "2026-08-11", start: "00:00", end: "24:00", background: true, fixed: false, span },
+      { date: "2026-08-12", start: "00:00", end: "09:00", background: true, fixed: false, span },
+    ]);
+  });
+
+  it("reports a weekly blocker's bands fixed, with no span", () => {
+    const items = timedItemsOf([], [blocker({ date: null, start: "23:00", end: "07:00" })], { start: "2026-08-10", end: "2026-08-10" });
+    expect(items.map((i) => [i.start, i.end, i.fixed, i.span])).toEqual([
+      ["00:00", "07:00", true, undefined],
+      ["23:00", "24:00", true, undefined],
+    ]);
+  });
+
   it("reports a timed Event that runs across days as one piece per day, each carrying the whole span", () => {
     const items = timedItemsOf([event({ endDate: "2026-08-11" })], [], { start: "2026-08-09", end: "2026-08-16" });
     const span = { date: "2026-08-10", start: "22:00", endDate: "2026-08-11", end: "06:00" };
