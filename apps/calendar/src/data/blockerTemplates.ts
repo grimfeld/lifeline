@@ -51,6 +51,6 @@ export async function addBlockerFromTemplate(templateId: string, date: DateStr, 
   if (!row) return null;
   const t = normalize(row);
   const at = start ?? "09:00";
-  const id = await addTimeBlocker({ title: t.title, date, weekdays: [], start: at, end: endOf(t, at), color: t.color, tags: t.tags });
+  const id = await addTimeBlocker({ title: t.title, date, weekdays: [], start: at, ...endOf(t, date, at), color: t.color, tags: t.tags });
   return { id, title: t.title, start: at };
 }

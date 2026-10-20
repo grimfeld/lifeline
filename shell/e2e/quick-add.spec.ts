@@ -57,6 +57,17 @@ test("an hour tapped adds an Event from its Start to its End, an earlier End rol
   await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: "2026-11-10", start: "22:00", end: "01:30" });
 });
 
+test("an Event added at 23:30 for an hour ends at 00:30 the next day, never at 24:00 (#224)", async ({ page, isMobile }) => {
+  const title = `Late call ${Date.now()}`;
+  const quick = await openQuickAdd(page, isMobile);
+  await quick.getByRole("textbox", { name: "Title" }).fill(title);
+  await setTime(quick.getByRole("combobox", { name: "Start" }), "23:30");
+  await expect(quick.getByText(/· 1h$/)).toBeVisible();
+  await quick.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(quick).toBeHidden();
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: "2026-11-10", start: "23:30", end: "00:30" });
+});
+
 test("moving the Start keeps the length, and Enter in the title adds", async ({ page, isMobile }) => {
   const title = `Standup ${Date.now()}`;
   const quick = await openQuickAdd(page, isMobile);

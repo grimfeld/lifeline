@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayPieces } from "./span";
+import { dayPieces, midnightNextDay } from "./span";
 
 describe("dayPieces", () => {
   it("keeps a same-day span as one piece", () => {
@@ -46,5 +46,25 @@ describe("dayPieces", () => {
       { date: "2026-08-25", start: "00:00", end: "06:00" },
     ]);
     expect(dayPieces({ date: "2026-08-27", start: null, endDate: "2026-08-28", end: null }, range)).toEqual([]);
+  });
+});
+
+describe("midnightNextDay", () => {
+  it("rewrites an end of 24:00 to 00:00 on the next day", () => {
+    expect(midnightNextDay({ date: "2026-08-24", start: "22:00", endDate: null, end: "24:00" })).toEqual({ date: "2026-08-24", start: "22:00", endDate: "2026-08-25", end: "00:00" });
+  });
+  it("counts the next day from the end day when the span already crosses days", () => {
+    expect(midnightNextDay({ date: "2026-08-24", start: "09:00", endDate: "2026-08-26", end: "24:00" })).toEqual({ date: "2026-08-24", start: "09:00", endDate: "2026-08-27", end: "00:00" });
+  });
+  it("keeps every other end as it is", () => {
+    const row = { date: "2026-08-24", start: "22:00", endDate: null, end: "23:00", title: "Late" };
+    expect(midnightNextDay(row)).toBe(row);
+    const allDay = { date: "2026-08-24", start: null, endDate: "2026-08-25", end: null };
+    expect(midnightNextDay(allDay)).toBe(allDay);
+  });
+  it("still shows a span that ended at 24:00 ending at midnight on its own day", () => {
+    expect(dayPieces(midnightNextDay({ date: "2026-08-24", start: "22:00", endDate: "2026-08-24", end: "24:00" }))).toEqual([
+      { date: "2026-08-24", start: "22:00", end: "24:00" },
+    ]);
   });
 });

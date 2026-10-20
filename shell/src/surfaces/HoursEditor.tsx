@@ -18,6 +18,7 @@ import {
   renameTimedItem,
   rescheduleTimedItem,
   schedulableHref,
+  spanLasting,
   spanMovedTo,
   timedHref,
   todayStr,
@@ -88,7 +89,7 @@ function endingAt(w: When, end: string): When {
 
 /** The same item from another start, keeping its length (an end-less one stays end-less). */
 function startingAt(w: When, start: string): When {
-  if (!w.start) return { date: w.date, start, endDate: w.date, end: addMinutes(start, 60) };
+  if (!w.start) return spanLasting(w.date, start, 60);
   const moved = spanMovedTo({ date: w.date, start: w.start, end: w.end, span: { ...w, start: w.start, end: w.end ?? w.start } }, w.date, start);
   return { ...moved, end: w.end === null ? null : moved.end };
 }

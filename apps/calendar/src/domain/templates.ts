@@ -1,4 +1,4 @@
-import { formatTime, toHours, type TimeStr } from "@lifeline/core";
+import { formatTime, spanLasting, type DateStr, type TimeStr } from "@lifeline/core";
 import type { EventTemplate } from "./types";
 
 /** A template with no length of its own lasts an hour. */
@@ -9,10 +9,14 @@ export function durationOf(t: Pick<EventTemplate, "durationMin">): number {
   return Number.isFinite(n) && n > 0 ? Math.round(n) : DEFAULT_DURATION_MIN;
 }
 
-/** End time of a template started at `start`, clamped to the end of the day. */
-export function endOf(t: Pick<EventTemplate, "durationMin">, start: TimeStr): TimeStr {
-  const total = Math.min(24 * 60, Math.round(toHours(start) * 60) + durationOf(t));
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+/**
+ * Where a template started at `start` on `date` ends: its length on, into the
+ * next day when it runs past midnight, and at 00:00 there rather than "24:00"
+ * (ADR 0090).
+ */
+export function endOf(t: Pick<EventTemplate, "durationMin">, date: DateStr, start: TimeStr): { endDate: DateStr; end: TimeStr } {
+  const { endDate, end } = spanLasting(date, start, durationOf(t));
+  return { endDate, end };
 }
 
 /** "1 h 30", "45 min", "2 h". */

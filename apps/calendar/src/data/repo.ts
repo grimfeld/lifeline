@@ -3,17 +3,18 @@ import { addDays, diffDays, documentsOf, getDocument, normalizeTags, patchDocume
 import { EVENT_TYPE, type Event } from "../domain/types";
 import type { EventWhen } from "../domain/eventForm";
 import { rescheduled } from "../domain/events";
+import { midnightNextDay } from "../domain/span";
 
-/** PocketBase returns absent text fields as ""; re-establish null on read. */
+/** PocketBase returns absent text fields as ""; re-establish null on read, and an old "24:00" end as 00:00 the next day (ADR 0090). */
 function normalize(e: Event): Event {
-  return {
+  return midnightNextDay({
     ...e,
     notes: e.notes ?? "",
     endDate: e.endDate || null,
     start: e.start || null,
     end: e.end || null,
     tags: e.tags ?? [],
-  };
+  });
 }
 
 export function useEvents(): Event[] {
@@ -35,7 +36,7 @@ export async function addEvent(input: {
   tags?: string[];
 }): Promise<string> {
   const start = input.start || null;
-  const row = await putDocument<Event>({
+  const row = await putDocument<Event>(midnightNextDay({
     type: EVENT_TYPE,
     title: input.title,
     notes: input.notes ?? "",
@@ -45,12 +46,12 @@ export async function addEvent(input: {
     start,
     end: start ? (input.end || null) : null,
     tags: normalizeTags(input.tags ?? []),
-  });
+  }));
   return row.id;
 }
 
 export async function updateEvent(ev: Event): Promise<void> {
-  await putDocument<Event>({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) });
+  await putDocument<Event>(midnightNextDay({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) }));
 }
 
 /** Edit an Event's own words — its notes and Tags — from wherever it is shown (its Peek, ADR 0085). */
@@ -65,7 +66,7 @@ export async function editEvent(id: string, edit: { notes?: string; tags?: strin
 export async function setEventWhen(id: string, when: EventWhen): Promise<void> {
   const ev = await getDocument<Event>(id);
   if (!ev || ev.type !== EVENT_TYPE) return;
-  await patchDocument(id, { date: when.date, endDate: when.endDate, start: when.start, end: when.end });
+  await patchDocument(id, midnightNextDay({ date: when.date, endDate: when.endDate, start: when.start, end: when.end }));
 }
 
 export async function deleteEvent(id: string): Promise<void> {
@@ -86,5 +87,5 @@ export async function moveEvent(id: string, to: DateStr): Promise<void> {
 export async function rescheduleEvent(id: string, when: TimedWhen): Promise<void> {
   const ev = await getDocument<Event>(id);
   if (!ev || ev.type !== EVENT_TYPE) return;
-  await putDocument<Event>(rescheduled(normalize(ev), when));
+  await putDocument<Event>(midnightNextDay(rescheduled(normalize(ev), when)));
 }
