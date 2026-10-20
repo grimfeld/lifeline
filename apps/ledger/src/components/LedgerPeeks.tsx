@@ -79,7 +79,7 @@ export function TransactionPeek({ doc }: { doc: Document }) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <CommitField label="Amount" inputMode="decimal" value={editAmount(Number(t.amount) || 0)} onCommit={(text) => editTransaction(t, { amount: cents(text, { signed: t.kind === "adjustment" }) })} />
-        <CommitField label="Day" type="date" value={t.date ?? ""} onCommit={(date) => editTransaction(t, { date })} />
+        <CommitField label="Day" type="date" required value={t.date ?? ""} onCommit={(date) => editTransaction(t, { date })} />
       </div>
       {t.kind !== "transfer" && <CommitField label="Payee" value={t.payee ?? ""} placeholder="Albert Heijn" onCommit={(payee) => editTransaction(t, { payee })} />}
       {t.kind === "transfer" ? (

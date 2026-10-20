@@ -118,6 +118,13 @@ const ELEMENT_RULES = [
     message: "icon-only Button without aria-label (or a <Tip label> around it)",
   },
   {
+    id: "native-date",
+    heading: "Forms and feedback",
+    // ADR 0087. `type` as a literal or an expression that can yield one; time inputs stay native.
+    test: (tag) => /^<(?:Input|input)\b/.test(tag) && /\btype=(?:\{[^}]*)?["'`](?:date|datetime-local)["'`]/.test(tag),
+    message: "native date/datetime-local input — use DatePicker or DateTimeField (or CommitField type=\"date\") from @lifeline/ui",
+  },
+  {
     id: "icon-title",
     heading: "Components",
     test: (tag) => /^<Button\b/.test(tag) && /\bsize=["']icon/.test(tag) && /(?<![\w-])title=/.test(tag),
@@ -156,11 +163,11 @@ function changedLines(all) {
 
 const allowed = (lines, i, id) => [lines[i], lines[i - 1] ?? ""].some((l) => new RegExp(`ui-allow:\\s*${id}\\b`).test(l));
 
-/** JSX opening tags starting with a capital letter: [line index, tag text, the three lines before it]. */
+/** JSX opening tags starting with a capital letter, plus `<input>`: [line index, tag text, the three lines before it]. */
 function openingTags(lines) {
   const tags = [];
   for (let i = 0; i < lines.length; i++) {
-    for (const m of lines[i].matchAll(/<[A-Z][\w.]*/g)) {
+    for (const m of lines[i].matchAll(/<(?:[A-Z][\w.]*|input\b)/g)) {
       let text = lines[i].slice(m.index);
       let depth = 0;
       let j = i;

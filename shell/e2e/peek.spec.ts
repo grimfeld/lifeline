@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
+import { pickDate } from "./support/date-picker";
 
 /**
  * A Peek edits (ADR 0085): a user-defined type's Document is edited whole in
@@ -27,7 +28,8 @@ async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, a
 async function peek(page: Page, id: string, type: string) {
   await expect.poll(() => inCore(page, async (core, t: string) => !!core.documentType(t), type)).toBe(true);
   await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
-  return page.getByRole("dialog");
+  // The first dialog: a Date picker's popover open over the Peek is a dialog too.
+  return page.getByRole("dialog").first();
 }
 
 test("a user-defined type's Document is edited in its Peek, and an alias added there resolves", async ({ page }) => {
@@ -63,7 +65,8 @@ test("a user-defined type's Document is edited in its Peek, and an alias added t
 
   const dialog = await peek(page, id, typeId);
   await dialog.getByLabel("Aliases").fill(alias);
-  await dialog.getByLabel("Born").fill("1867-11-07");
+  // A date the user enters for themselves may be long past: the calendar reaches back to 1500.
+  await pickDate(page, dialog.getByLabel("Born"), "1867-11-07");
   await dialog.getByLabel("Tags").fill("scientist");
   await dialog.getByLabel("Tags").press("Enter");
 

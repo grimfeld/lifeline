@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Tabs, TabsList, TabsTrigger, Textarea, toast } from "@lifeline/ui";
+import { Button, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Tabs, TabsList, TabsTrigger, Textarea, toast } from "@lifeline/ui";
 import { normalizeTag, todayStr, useTagVocabulary } from "@lifeline/core";
 import { KIND_LABEL, type LedgerAccount, type Transaction, type TransactionKind } from "../domain/types";
 import { payeeIndex, transferCounterparts } from "../domain/derive";
@@ -152,7 +152,7 @@ export function TransactionEditorDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="tx-date">Day</Label>
-              <Input id="tx-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <DatePicker id="tx-date" required value={date} onChange={setDate} />
             </div>
           </div>
           {kind !== "transfer" && (

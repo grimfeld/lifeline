@@ -1,4 +1,4 @@
-import { Checkbox, Field, Input } from "@lifeline/ui";
+import { Checkbox, DatePicker, Field, Input } from "@lifeline/ui";
 import type { EventForm, EventFormErrors } from "../domain/eventForm";
 
 /** When an Event happens, as its form holds it. */
@@ -35,11 +35,11 @@ export function EventWhenFields({
     <>
       <div className="grid grid-cols-2 items-start gap-3">
         <Field label={value.allDay ? "First day" : "Day"} error={errors.date}>
-          <Input id={ids.date} type="date" value={value.date} onChange={(e) => set({ date: e.target.value })} />
+          <DatePicker id={ids.date} required value={value.date} onChange={(date) => set({ date })} />
         </Field>
         {value.allDay ? (
           <Field label="Last day (optional)" error={errors.endDate}>
-            <Input id={ids.endDate} type="date" value={value.endDate} min={value.date} onChange={(e) => set({ endDate: e.target.value })} />
+            <DatePicker id={ids.endDate} value={value.endDate} min={value.date || undefined} onChange={(endDate) => set({ endDate })} />
           </Field>
         ) : (
           <div className="grid grid-cols-2 items-start gap-2">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
+import { Button, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
 import type { Provision } from "../domain/types";
 import { clampQty } from "../domain/rules";
 import { addProvision, deleteProvision, patchProvision, useStorages } from "../data/repo";
@@ -97,11 +97,11 @@ export function ProvisionDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-1.5">
               <Label htmlFor="pantry-expires">Expires (check by)</Label>
-              <Input id="pantry-expires" type="date" value={expires} onChange={(e) => setExpires(e.target.value)} />
+              <DatePicker id="pantry-expires" value={expires} onChange={setExpires} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="pantry-frozen">Frozen on</Label>
-              <Input id="pantry-frozen" type="date" value={frozenOn} onChange={(e) => setFrozenOn(e.target.value)} />
+              <DatePicker id="pantry-frozen" value={frozenOn} onChange={setFrozenOn} />
             </div>
           </div>
         </div>
