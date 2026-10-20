@@ -1,4 +1,4 @@
-import { Button, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { Button, DatePicker, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { documentsOf, useLiveQuery, type Document } from "@lifeline/core";
 import { PROJECT, PROJECT_MILESTONE } from "../domain/types";
 
@@ -33,7 +33,7 @@ export function DayPicker({ id, value, onChange, error }: { id: string; value: s
     <div className="grid gap-2">
       <Label htmlFor={id}>Day</Label>
       <div className="flex gap-2">
-        <Input id={id} type="date" className="min-w-0" value={value} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} onChange={(e) => onChange(e.target.value)} />
+        <DatePicker id={id} className="min-w-0 flex-1" value={value} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} onChange={onChange} />
         <Button type="button" className="shrink-0" variant={value ? "outline" : "secondary"} onClick={() => onChange("")}>
           Unassigned
         </Button>
