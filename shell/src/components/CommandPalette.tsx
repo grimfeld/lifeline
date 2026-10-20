@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   commandDefaultFilter,
@@ -63,6 +63,7 @@ export function CommandPalette() {
   // A pinned fold opens its members here, in place of the full list.
   const [openFold, setOpenFold] = useState<Extract<CaptureEntry, { kind: "fold" }> | null>(null);
   const navigate = useNavigate();
+  const input = useRef<HTMLInputElement>(null);
 
   const screens = useWorkspaceScreens();
   const modules = useWorkspaceModules();
@@ -98,10 +99,18 @@ export function CommandPalette() {
   }
 
   function runCommand(c: DialogCommand) {
-    pick(() => {
-      if (c.dialog) setActiveDialog(c);
-      else void c.run?.({ navigate });
+    if (c.dialog) return pick(() => setActiveDialog(c));
+    // A Command may ask to stay (CommandCtx.keepPalette): the query empties, ready for it.
+    let keep = false;
+    void c.run?.({
+      navigate,
+      keepPalette: () => {
+        keep = true;
+      },
     });
+    if (!keep) return setPaletteOpen(false);
+    setSearch("");
+    input.current?.focus();
   }
 
   function pickEntry(e: CaptureEntry) {
@@ -128,6 +137,7 @@ export function CommandPalette() {
     <>
       <CommandDialog open={open} onOpenChange={setPaletteOpen} filter={rankCaptureFirst}>
         <CommandInput
+          ref={input}
           placeholder={openFold ? `${openFold.title.replace(/…$/, "")}: which?` : "Type a command or search…"}
           value={search}
           onValueChange={setSearch}
