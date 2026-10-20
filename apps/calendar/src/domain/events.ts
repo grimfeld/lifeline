@@ -1,16 +1,12 @@
-import { addDays, diffDays, formatTime, type DateStr } from "@lifeline/core";
+import { diffDays, formatTime, type DateStr } from "@lifeline/core";
+import { dayPieces } from "./span";
 import type { Event } from "./types";
 
-/** Every day an event occupies, clamped to [start, end]. */
+/** Every day an event occupies, clamped to [start, end]: a timed one its own day, an all-day one each day of its span. */
 export function daysOf(ev: Event, range: { start: DateStr; end: DateStr }): DateStr[] {
-  const last = ev.start === null && ev.endDate && ev.endDate > ev.date ? ev.endDate : ev.date;
-  const from = ev.date > range.start ? ev.date : range.start;
-  const to = last < range.end ? last : range.end;
-  if (from > to) return [];
-  const out: DateStr[] = [];
-  const n = diffDays(from, to);
-  for (let i = 0; i <= n; i++) out.push(addDays(from, i));
-  return out;
+  if (ev.start !== null) return ev.date >= range.start && ev.date <= range.end ? [ev.date] : [];
+  const last = ev.endDate && ev.endDate > ev.date ? ev.endDate : ev.date;
+  return dayPieces({ date: ev.date, start: null, endDate: last, end: null }, range).map((p) => p.date);
 }
 
 export function isMultiDay(ev: Event): boolean {
