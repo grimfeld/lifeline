@@ -4,6 +4,7 @@ import { Button, Input, PhoneDock, cn } from "@lifeline/ui";
 import { addDays, documentType, formatHuman, todayStr, useDocuments, useLinkIndex, type DateStr } from "@lifeline/core";
 import { DocumentEditor } from "@lifeline/editor";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, PenLine } from "lucide-react";
+import { isCalendarDay } from "../domain/periods";
 import { DAILY, JOURNAL_HREF, journalHref, type Note } from "../domain/types";
 import { nearestWrittenDay, type Nearest } from "../domain/nearest";
 import { isWrittenDay, writtenDates } from "../domain/written";
@@ -23,7 +24,7 @@ export function JournalScreen() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const today = todayStr();
-  const date: DateStr = /^\d{4}-\d{2}-\d{2}$/.test(params.get("d") ?? "") ? params.get("d")! : today;
+  const date: DateStr = isCalendarDay(params.get("d") ?? "") ? params.get("d")! : today;
   const dailies = useDocuments<Note>(DAILY);
   const index = useLinkIndex();
   const note = dailies.find((n) => n.title === date);

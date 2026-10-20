@@ -150,7 +150,7 @@ export function periodFolder(key: string): string {
 export type JournalPage = { kind: "day" | PeriodKind; key: string; label: string };
 
 /** Whether `date` is "YYYY-MM-DD" naming a day the calendar has. */
-function isCalendarDay(date: string): boolean {
+export function isCalendarDay(date: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
   const { y, m, d } = parts(date);
   const at = new Date(Date.UTC(y, m - 1, d));

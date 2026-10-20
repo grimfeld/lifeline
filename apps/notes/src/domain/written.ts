@@ -6,6 +6,7 @@
  * Every label and mark that says a Day is written asks `isWrittenDay`.
  */
 
+import { isCalendarDay } from "./periods";
 import { DAILY } from "./types";
 
 /** The slice of a Document these helpers read. */
@@ -36,6 +37,6 @@ export function isWrittenDay(day: { body?: string } | undefined): boolean {
 /** The dates (YYYY-MM-DD) of the written Days among `notes`; other types are ignored. */
 export function writtenDates(notes: readonly DayLike[]): Set<string> {
   const out = new Set<string>();
-  for (const n of notes) if (n.type === DAILY && /^\d{4}-\d{2}-\d{2}$/.test(n.title) && isWrittenDay(n)) out.add(n.title);
+  for (const n of notes) if (n.type === DAILY && isCalendarDay(n.title) && isWrittenDay(n)) out.add(n.title);
   return out;
 }

@@ -6,13 +6,14 @@
  */
 
 import { addDays, clampedDate, parts, splitFrontmatter, type DateStr } from "@lifeline/core";
+import { isCalendarDay } from "./periods";
 import { writtenDates } from "./written";
 
 /** The slice of a Document these helpers read. */
 type DailyLike = { type: string; title: string; body?: string };
 const bodyOf = (n: DailyLike) => (typeof n.body === "string" ? n.body : "");
 
-const isDaily = (n: DailyLike) => n.type === "daily" && /^\d{4}-\d{2}-\d{2}$/.test(n.title);
+const isDaily = (n: DailyLike) => n.type === "daily" && isCalendarDay(n.title);
 
 // --- on this day ---------------------------------------------------------
 
