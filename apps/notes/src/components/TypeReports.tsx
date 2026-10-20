@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router";
 import { reportsIn, reportsOf, todayStr, useDocumentTypes, useTopMentioned, type DocumentTypeDef, type LinkIndex, type LinkRef, type ReportSetting, type ReportWindow } from "@lifeline/core";
 import { RankingReport, useOpenLinkRef } from "@lifeline/editor";
-import { Input, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { DatePicker, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { periodRange } from "../domain/periods";
 
 const WINDOWS = { month: "This month", year: "This year", all: "All time", custom: "Custom" } as const;
@@ -55,10 +55,11 @@ export function TypeReports({ type, index }: { type: DocumentTypeDef; index: Lin
             </Select>
           </PhoneDock>
           {name === "custom" && (
-            <>
-              <Input type="date" className="h-8 w-40" value={from} onChange={(e) => set({ from: e.target.value })} aria-label="From" />
-              <Input type="date" className="h-8 w-40" value={to} onChange={(e) => set({ to: e.target.value })} aria-label="To" />
-            </>
+            // One line for both ends, on a phone too (each takes half).
+            <div className="flex min-w-0 gap-2">
+              <DatePicker className="w-40 max-md:flex-1" value={from} max={to || undefined} onChange={(v) => set({ from: v })} placeholder="From" aria-label="From" />
+              <DatePicker className="w-40 max-md:flex-1" value={to} min={from || undefined} onChange={(v) => set({ to: v })} placeholder="To" aria-label="To" />
+            </div>
           )}
         </div>
       )}

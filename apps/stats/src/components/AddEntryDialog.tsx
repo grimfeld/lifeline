@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
+import { Button, Checkbox, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import type { Entry, Stat } from "../domain/types";
 import { checklist, noonOf } from "../domain/aggregate";
@@ -84,7 +84,7 @@ export function AddEntryDialog({
           {stat.kind === "boolean" ? (
             <div className="grid gap-2">
               <Label htmlFor="entry-day">Day</Label>
-              <Input id="entry-day" type="date" value={day} max={todayStr()} onChange={(e) => setDay(e.target.value)} />
+              <DatePicker id="entry-day" required value={day} max={todayStr()} onChange={setDay} />
             </div>
           ) : (
             <>

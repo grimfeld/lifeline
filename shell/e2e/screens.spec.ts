@@ -210,6 +210,18 @@ function peekOf(type: string, userField?: boolean, write?: boolean) {
 async function datePickerOpen(page: Page) {
   await peekOf("provision")(page);
   await page.getByRole("dialog").getByLabel("Expires (check by)").click();
+  await calendarFits(page);
+}
+
+/** A type's reports over two dates (From set), with To's calendar open over the page. */
+async function reportToOpen(page: Page) {
+  await workLocally(page);
+  await page.getByLabel("To", { exact: true }).click();
+  await calendarFits(page);
+}
+
+/** The open Date picker's calendar sits inside the viewport and scrolls nothing sideways. */
+async function calendarFits(page: Page) {
   const calendar = openCalendar(page);
   await expect(calendar).toBeVisible();
   const fit = await calendar.evaluate((el) => {
@@ -429,6 +441,7 @@ const SCREENS: ScreenCase[] = [
     },
   },
   { name: "Journal · One type", path: "/app/journal/t/:type", params: { type: "e2eperson" } },
+  { name: "Journal · One type · two dates, To open", path: "/app/journal/t/:type?w=custom&from=2026-03-10", params: { type: "e2eperson" }, afterOpen: reportToOpen },
   { name: "Journal · One type (old link)", path: "/app/journal/c/:type", params: { type: "e2eperson" } },
   { name: "Journal · Templates", path: "/app/journal/templates" },
   { name: "Journal · Page", path: "/app/journal/d/:id", type: "template" },

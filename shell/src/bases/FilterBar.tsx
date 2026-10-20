@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { Button, DatePicker, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { COMMON_COLUMNS, type DocumentTypeDef, type FieldDef, type ViewFilter, type ViewFilterOp } from "@lifeline/core";
 import { Plus, X } from "lucide-react";
 
@@ -103,10 +103,12 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
                   <SelectItem value="false">no</SelectItem>
                 </SelectContent>
               </Select>
+            ) : field?.kind === "date" ? (
+              <DatePicker className="w-36 text-xs" value={typeof draft.value === "string" ? draft.value : ""} onChange={(v) => setDraft({ ...draft, value: v })} aria-label="Value" />
             ) : (
               <Input
                 className="h-7 w-36 text-xs"
-                type={field?.kind === "date" ? "date" : field?.kind === "number" ? "number" : "text"}
+                type={field?.kind === "number" ? "number" : "text"}
                 placeholder={draft.op === "anyOf" ? "a, b, c" : "value"}
                 value={String(draft.value ?? "")}
                 onChange={(e) => setDraft({ ...draft, value: e.target.value })}
