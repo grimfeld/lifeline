@@ -298,7 +298,8 @@ function BandLayer({ band, from, to, touch, onResize, onOpen }: { band: Band; fr
 function OneOffBand({ band, s, e, style, title, touch, onResize, onOpen }: { band: Band; s: number; e: number; style: React.CSSProperties; title: string; touch: boolean; onResize: (endHours: number) => void; onOpen: (el: HTMLElement) => void }) {
   const grab = useRef(0);
   const cut = cutEdges(band.item);
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${band.item.key}`, data: { timed: band.item, grab } });
+  // A band clipped to the visible hours (a next-day part from 00:00) is held by its visible top; `hidden` says how far its real start is above it.
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `timed:${band.item.key}`, data: { timed: band.item, grab, hidden: s - toHours(band.start) } });
   const resizing = useRef<{ startY: number; startEnd: number } | null>(null);
   return (
     <div
@@ -710,7 +711,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
     endDrag();
     if (!e.over) return;
     const overId = String(e.over.id);
-    const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate };
+    const d = e.active.data.current as { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate; hidden?: number };
     const at = landing(e);
     if (at) {
       const { date, startH } = at;
@@ -733,7 +734,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
           return;
         }
         // Whichever piece was lifted, the whole item moves by the drop (ADR 0090); one with no end stays end-less.
-        const span = spanMovedTo(d.timed, date, start);
+        const span = spanMovedTo(d.timed, date, d.hidden ? toClock(startH - d.hidden) : start);
         rescheduleTimedItem(d.timed, { ...span, end: d.timed.end === null ? null : span.end }).catch(fail);
       }
       return;
