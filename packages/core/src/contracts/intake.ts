@@ -11,10 +11,26 @@ import { singularOf, type Document, type DocumentTypeDef } from "../documents/ty
 // Lifeline extension shares (ADR 0080); Core re-exports it as its own.
 export type { Handoff };
 
+/**
+ * What is already known of a timed thing when its Intake's dialog opens from
+ * inside Lifeline — the Schedule's quick add's "More…": its title, day, start,
+ * end day and end. Whatever is left out takes the dialog's usual default.
+ */
+export interface IntakePrefill {
+  title?: string;
+  date?: string;
+  start?: string;
+  /** Kept for one that ends another day; one on a single day leaves it out. */
+  endDate?: string;
+  end?: string;
+}
+
 export interface IntakeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   handoff: Handoff;
+  /** What is already typed elsewhere (the quick add's "More…"); it beats the Handoff's title. A dialog that has no use for it ignores it. */
+  prefill?: IntakePrefill;
   /**
    * Called once the dialog has saved, with the Document it made, just before it
    * closes — the Handoff page (ADR 0080) tells a save from a cancel by it.

@@ -254,6 +254,23 @@ async function timeListOpen(page: Page) {
   expect(fit.scroll).toBeLessThanOrEqual(fit.width);
 }
 
+/**
+ * The Schedule's quick add (#225) over an empty hour, a very long title typed:
+ * Start, End, the length and More… keep their places, in the bottom sheet on
+ * a phone and the popover on the desk.
+ */
+async function quickAddOpen(page: Page) {
+  await workLocally(page);
+  const column = page.locator("[data-col]").first();
+  await expect(column).toBeVisible();
+  const position = { x: 20, y: 2 * 56 + 10 };
+  if ((page.viewportSize()?.width ?? 1280) < 768) await column.tap({ position });
+  else await column.dblclick({ position });
+  const quick = page.getByRole("dialog", { name: /^Add on / });
+  await quick.getByRole("textbox", { name: "Title" }).fill(longText("A new event"));
+  await expect(quick.getByRole("button", { name: "More…" })).toBeVisible();
+}
+
 /** What Android's share sheet would open (the manifest's GET share target): no title, a long text with a long URL buried in it. */
 const LONG_SHARE = `/handoff?${new URLSearchParams({ text: `${longText("A shared passage")} https://${LONG_WORD.slice(0, 60)}.example.org/${LONG_WORD} ${longText("And more")}` })}`;
 
@@ -321,6 +338,7 @@ const SCREENS: ScreenCase[] = [
   // Core destinations.
   { name: "Calendar · Upcoming", path: "/calendar?view=upcoming" },
   { name: "Calendar · Day", path: "/calendar?view=day" },
+  { name: "Calendar · Day · quick add", path: "/calendar?view=day", afterOpen: quickAddOpen },
   { name: "Calendar · 3 Day", path: "/calendar?view=3day" },
   { name: "Calendar · Week", path: "/calendar?view=week" },
   { name: "Calendar · Month", path: "/calendar?view=month" },
