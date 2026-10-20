@@ -217,8 +217,8 @@ Dragging a Schedulable item to another day on a Surface. The owning App decides 
 _Avoid_: reschedule, pin (a pin is the Core fallback, not the concept)
 
 ### Event
-A thing that happens at a fixed time (start + end, or all-day), owned by the Calendar App. Not work, not completable. The Calendar App owns Events and the calendar Surfaces; it no longer owns Tasks.
-_Avoid_: appointment, meeting
+A thing that happens at a fixed time, owned by the Calendar App. Not work, not completable. A timed Event runs from a start (a day and a time) to an end (a day and a time) on any day — overnight, or across several. An Event is given an **end**; its length is shown, never asked. Work is the other way round: it is given a **length**. An all-day Event runs from a first day to a last day. The Calendar App owns Events and the calendar Surfaces; it no longer owns Tasks.
+_Avoid_: appointment, meeting; duration (for an Event — it has an end, and its length is only shown)
 
 ### Event template
 A named shape for an Event the user adds again and again — "Standup", "Gym", "Dentist": title, length, usual start, notes, Tags, and no day at all. Quick-adding one on the Schedule (dropped on an hour, or added to the open day) creates an ordinary Event and then forgets the template: editing a template never rewrites the Events it made, deleting one never removes them. Owned by the Calendar App.
