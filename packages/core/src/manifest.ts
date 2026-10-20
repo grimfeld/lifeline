@@ -291,6 +291,12 @@ export interface CommandDef {
    */
   capture?: boolean;
   /**
+   * Whether running it takes the user somewhere, so as a Macro's step it must
+   * come last (ADR 0092). Left out, a Command with only `run` — no dialog, no
+   * headless form — is taken to navigate (`commandNavigates`).
+   */
+  navigates?: boolean;
+  /**
    * The Core fold (`FOLDS`) this capture Command sits under on the capture
    * sheet: not listed in its group, reached through the fold's picker, still
    * pinnable and in the palette (CONTEXT.md "Capture sheet").

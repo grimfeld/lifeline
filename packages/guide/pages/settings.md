@@ -46,16 +46,26 @@ See [Capture](capture.md).
 A **Macro** runs several Commands in order, as one Command. **Macros** here opens their own page.
 
 - **New macro** — give it a name, then **Add a step** for each Command, in order: search for the
-  Command and fill in the values it is given. Only Commands that can run without their dialog can
-  be steps.
+  Command, then say where each of its values comes from:
+  - **Fixed** — the value typed here, the same every run;
+  - **Asked when it runs** — every asked value, from all the steps, is asked in one form before the
+    first step runs;
+  - **What step N made** (for a link) — the Document an earlier step made, so a Note can be about
+    the Source step 1 added.
+- **Skip if refused** on a step: when it is refused (today's mood is already set), the report says
+  it was skipped and why, and the Macro carries on.
+- A Command that only has its own dialog can be a step too: its dialog opens at its turn, and the
+  Macro goes on once it is closed.
+- A step that takes you somewhere (**Go to Mood**) must be the last one; the Macro cannot be saved
+  otherwise.
 - **Move up** / **Move down** reorder the steps; **Remove step** drops one.
 - Click a Macro to edit it. The bin deletes it at once; **Undo** in the message brings it back.
 - A Macro is in the palette (Ctrl+K) by its name, marked *Macro*, in every Workspace.
 - Each step is done by the App that owns it, exactly as its own Command would. When a step is
-  refused (the thing is already on the shopping list), the Macro stops there; the steps already
-  done stay done.
+  refused (the thing is already on the shopping list), the Macro stops there, unless it is marked
+  **Skip if refused**; the steps already done stay done.
 - Every run ends with a report: each step **Done** (with what it said, and **Open** for what it
-  made), **Stopped** (with why), or **Not reached**.
+  made), **Skipped** or **Stopped** (with why), or **Not reached**.
 
 ## Workspaces
 

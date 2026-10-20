@@ -163,7 +163,7 @@ const LONG_HANDOFF = encodeHandoff(
 
 /**
  * Settings → Macros over a long-named Macro whose steps carry long fixed
- * values, and a step whose Command is gone — with its editor open when `edit`.
+ * values, an asked argument, a step skipped if refused, and a step whose Command is gone — with its editor open when `edit`.
  */
 function macrosWithLongContent(edit?: boolean) {
   return async (page: Page) => {
@@ -176,8 +176,8 @@ function macrosWithLongContent(edit?: boolean) {
         await core.saveMacro({
           name,
           steps: [
-            { command: "tasks/tasks.add", args: { title: { from: "fixed", value: title }, notes: { from: "fixed", value: note } } },
-            { command: "shopping/shopping.add", args: { title: { from: "fixed", value: title } } },
+            { command: "tasks/tasks.add", args: { title: { from: "fixed", value: title }, notes: { from: "asked" } } },
+            { command: "shopping/shopping.add", args: { title: { from: "fixed", value: title } }, skipIfRefused: true },
             { command: `gone/${name.replace(/ /g, "")}`, args: {} },
           ],
         });

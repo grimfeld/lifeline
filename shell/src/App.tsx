@@ -30,7 +30,7 @@ import { MobileNav } from "./mobile/MobileNav";
 import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
 import { MacrosPage } from "./settings/MacrosPage";
-import { MacroReportHost } from "./macros/MacroReportHost";
+import { MacroHost } from "./macros/MacroHost";
 import { GuidePage } from "./guide/GuidePage";
 import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
@@ -205,7 +205,7 @@ export default function App() {
         <MobileNav />
         <CommandPalette />
         <PeekHost />
-        <MacroReportHost />
+        <MacroHost />
         <SelectionMenu />
         <PrivateDialogs />
         {/* The Demo never signs in (ADR 0077): no sign-in, no signed-out notice, no account switch. */}
