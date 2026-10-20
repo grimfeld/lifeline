@@ -265,7 +265,7 @@ const zoomCalendar = (levels: number) => async (page: Page) => {
   const calendar = page.getByRole("complementary", { name: "Journal" }).getByRole("group", { name: "Calendar" });
   await calendar.getByRole("button", { name: "February 2001" }).click();
   if (levels > 1) await calendar.getByRole("button", { name: "2001", exact: true }).first().click();
-  await expect(calendar.getByRole("button", { name: levels > 1 ? "Earlier years" : "2001-02", exact: true })).toBeVisible();
+  await expect(calendar.getByRole("button", { name: levels > 1 ? /^Earlier years$/ : /^2001-02(, written)?$/ })).toBeVisible();
 };
 
 /** The Selection menu's "Link to…": every Linkable Document, the seeded very long ones among them. */

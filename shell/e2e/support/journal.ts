@@ -99,3 +99,6 @@ export const calendar = (page: Page): Locator => sidebar(page).getByRole("group"
 export async function expectCalendarAt(page: Page, title: string): Promise<void> {
   await expect(calendar(page).getByText(title, { exact: true })).toBeVisible();
 }
+
+/** A day, month or year tile in the calendar (or the sidebar), by its key (`2001-02-14`, `2001-02`, `2001`): named by the key, ", written" after it when written. */
+export const calendarTile = (scope: Locator, key: string): Locator => scope.getByRole("button", { name: new RegExp(`^${key}(, written)?$`) });

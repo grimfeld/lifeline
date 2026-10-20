@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { addDays, formatHuman, todayStr, type DateStr } from "@lifeline/core";
+import { addDays, todayStr, type DateStr } from "@lifeline/core";
 import { Button, Tip, cn } from "@lifeline/ui";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { YEARS_PER_PAGE, writtenMonths, writtenYears, yearsPage, yearsPageEnd } from "../domain/calendarZoom";
@@ -131,23 +131,17 @@ function MonthDays({ month, open, written, onPick }: { month: string; open?: Dat
       <div className="grid grid-cols-7 gap-0.5">
         {cells.map((d, i) =>
           d ? (
-            <button
+            <Tile
               key={d}
-              type="button"
+              name={d}
+              label={String(Number(d.slice(-2)))}
+              className="aspect-square"
+              open={d === open}
+              now={d === today}
+              later={d > today}
+              written={written.has(d)}
               onClick={() => onPick(d)}
-              title={written.has(d) ? `${formatHuman(d)} · written` : formatHuman(d)}
-              aria-label={d}
-              aria-current={d === open ? "date" : undefined}
-              className={cn(
-                "focus-visible:ring-ring relative aspect-square rounded text-xs tabular-nums outline-none focus-visible:ring-2",
-                d === open ? "bg-primary text-primary-foreground" : "hover:bg-accent",
-                d === today && d !== open && "ring-primary ring-1",
-                d > today && "opacity-40",
-              )}
-            >
-              {Number(d.slice(-2))}
-              {written.has(d) && d !== open && <span className="bg-primary absolute bottom-0.5 left-1/2 size-1 -translate-x-1/2 rounded-full" />}
-            </button>
+            />
           ) : (
             <span key={`x${i}`} />
           ),
@@ -157,18 +151,22 @@ function MonthDays({ month, open, written, onPick }: { month: string; open?: Dat
   );
 }
 
-/** One tile of the zoomed-out grids, a month or a year: dotted when written, filled when it holds the open Day, ringed when it holds today. */
-function Tile(props: { name: string; label: string; title: string; open: boolean; now: boolean; later: boolean; written: boolean; onClick: () => void }) {
-  const { name, label, title, open, now, later, written, onClick } = props;
+/**
+ * One tile of the calendar, a day, a month or a year: dotted when written,
+ * filled when it is or holds the open Day, ringed when it holds today. Named
+ * by its key (`2001-02-14`, `2001-02`, `2001`), ", written" after it when written.
+ */
+function Tile(props: { name: string; label: string; className: string; open: boolean; now: boolean; later: boolean; written: boolean; onClick: () => void }) {
+  const { name, label, className, open, now, later, written, onClick } = props;
   return (
     <button
       type="button"
       onClick={onClick}
-      title={written ? `${title} · written` : title}
-      aria-label={name}
+      aria-label={written ? `${name}, written` : name}
       aria-current={open ? "date" : undefined}
       className={cn(
-        "focus-visible:ring-ring relative truncate rounded px-1 py-2 text-xs tabular-nums outline-none focus-visible:ring-2",
+        "focus-visible:ring-ring relative rounded text-xs tabular-nums outline-none focus-visible:ring-2",
+        className,
         open ? "bg-primary text-primary-foreground" : "hover:bg-accent",
         now && !open && "ring-primary ring-1",
         later && "opacity-40",
@@ -179,6 +177,9 @@ function Tile(props: { name: string; label: string; title: string; open: boolean
     </button>
   );
 }
+
+/** A month's or a year's tile: wider than a day, so its label may need cutting short. */
+const TILE = "truncate px-1 py-2";
 
 /** A year's twelve months; picking one shows its days. */
 function YearMonths({ year, open, written, onPick }: { year: string; open?: DateStr; written: Set<string>; onPick: (month: string) => void }) {
@@ -194,7 +195,7 @@ function YearMonths({ year, open, written, onPick }: { year: string; open?: Date
             key={key}
             name={key}
             label={short}
-            title={periodLabel(key)}
+            className={TILE}
             open={open?.slice(0, 7) === key}
             now={key === now}
             later={key > now}
@@ -215,7 +216,7 @@ function YearsList({ years, open, written, onPick }: { years: number[]; open?: D
     <div className="grid grid-cols-3 gap-0.5">
       {years.map((n) => {
         const y = String(n);
-        return <Tile key={y} name={y} label={y} title={y} open={open?.slice(0, 4) === y} now={y === now} later={false} written={marked.has(y)} onClick={() => onPick(y)} />;
+        return <Tile key={y} name={y} label={y} className={TILE} open={open?.slice(0, 4) === y} now={y === now} later={false} written={marked.has(y)} onClick={() => onPick(y)} />;
       })}
     </div>
   );
