@@ -4,7 +4,8 @@ import { setTime } from "./support/time-field";
 
 /**
  * Times typed or picked from the kit's Time field, never the browser's time
- * input: the Time blocker dialog's From and To.
+ * input: the Time blocker dialog's From and To, an Event template's usual start
+ * and the Hours editor's Start.
  */
 
 async function workLocally(page: Page) {
@@ -77,4 +78,58 @@ test("text that isn't a time reverts; arrows step a quarter hour; the list picks
   await expect(dialog, "picking a time leaves the dialog open").toBeVisible();
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect.poll(() => storedBlocker(page, id)).toBe("09:00–18:45");
+});
+
+test("an Event template's usual start is typed into its Time field", async ({ page }) => {
+  const title = `Standup ${Date.now()}`;
+  await page.goto("/app/events?tab=templates");
+  await workLocally(page);
+  await page.getByRole("button", { name: "New event template" }).click();
+  const dialog = page.getByRole("dialog", { name: "New event template" });
+  await dialog.getByRole("textbox", { name: "Title" }).fill(title);
+  await expect(dialog.locator('input[type="time"]'), "no native time input left").toHaveCount(0);
+  await setTime(dialog.getByRole("combobox", { name: "Usual start (optional)" }), "9:15am");
+  await dialog.getByRole("button", { name: "Add template" }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        async ({ coreUrl, title }) => {
+          const core = await import(/* @vite-ignore */ coreUrl);
+          return (await core.documentsOf("event_template")).find((t: { title: string }) => t.title === title)?.defaultStart ?? null;
+        },
+        { coreUrl: CORE_URL, title },
+      ),
+    )
+    .toBe("09:15");
+});
+
+test("an Event's start is typed into the Hours editor's Time field and written at once", async ({ page }) => {
+  const title = `Nudge me ${Date.now()}`;
+  await page.goto("/calendar?view=upcoming");
+  await workLocally(page);
+  const id = await page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const d = new Date();
+      const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      return (await core.putDocument({ type: "event", title, date: day, endDate: null, start: "23:00", end: "23:30", notes: "", tags: [] })).id as string;
+    },
+    { coreUrl: CORE_URL, title },
+  );
+  await page.getByText(title).click();
+  const start = page.getByRole("combobox", { name: "Start" });
+  await expect(page.locator('input[type="time"]'), "no native time input left").toHaveCount(0);
+  await setTime(start, "2230");
+  await expect
+    .poll(() =>
+      page.evaluate(
+        async ({ coreUrl, id }) => {
+          const core = await import(/* @vite-ignore */ coreUrl);
+          const e = await core.getDocument(id);
+          return `${e.start}–${e.end}`;
+        },
+        { coreUrl: CORE_URL, id },
+      ),
+    )
+    .toBe("22:30–23:00");
 });

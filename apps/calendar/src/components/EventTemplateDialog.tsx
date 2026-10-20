@@ -12,6 +12,7 @@ import {
   LengthPicker,
   TagInput,
   Textarea,
+  TimeField,
   toast,
 } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary } from "@lifeline/core";
@@ -98,7 +99,7 @@ export function EventTemplateDialog({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="tpl-start">Usual start (optional)</Label>
-                <Input id="tpl-start" type="time" className="w-36" value={defaultStart} onChange={(e) => setDefaultStart(e.target.value)} />
+                <TimeField id="tpl-start" className="w-36" value={defaultStart} onChange={setDefaultStart} />
                 <p className="text-muted-foreground text-xs">
                   Used when you add it without picking a slot — without one it lands as an all-day event. Dropping it on
                   the Schedule always wins.

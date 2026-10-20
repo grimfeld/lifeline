@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { Button, cn, DatePicker, Input, LengthPicker, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, toast } from "@lifeline/ui";
+import { Button, cn, DatePicker, Input, LengthPicker, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, TimeField, toast } from "@lifeline/ui";
 import {
   addDays,
   addTimeBlock,
@@ -290,12 +290,11 @@ export function HoursEditor({
         <Button size="icon" variant="outline" className="size-9" disabled={!start} onClick={() => nudge(-SNAP_MIN)} aria-label="15 minutes earlier">
           <Minus />
         </Button>
-        <Input
-          type="time"
-          step={SNAP_MIN * 60}
-          className="h-9 w-28"
+        <TimeField
+          className="w-32"
+          required={!!start}
           value={start ?? ""}
-          onChange={(e) => e.target.value && write({ date, start: e.target.value, len })}
+          onChange={(v) => v && write({ date, start: v, len })}
           aria-label="Start"
         />
         <Button size="icon" variant="outline" className="size-9" disabled={!start} onClick={() => nudge(SNAP_MIN)} aria-label="15 minutes later">
