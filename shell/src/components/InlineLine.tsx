@@ -31,8 +31,8 @@ export interface InlineLineProps {
   mark: string;
   /** Put a new line in the input, the caret at `cursor`. */
   onLine: (line: string, cursor: number) => void;
-  /** Open the Command's dialog, or run its `run`: Enter on a line it cannot run headless. */
-  onOpen: (c: InlineCommand) => void;
+  /** Open the Command's dialog (holding `initial`, what the line understood), or run its `run`: Enter on a line it cannot run headless. */
+  onOpen: (c: InlineCommand, initial: Record<string, unknown>) => void;
   /** A headless run succeeded: the palette closes. */
   onDone: () => void;
   children: ReactNode;
@@ -75,7 +75,7 @@ export function InlineLine({ line, cursor, commands, mark, onLine, onOpen, onDon
   async function enter() {
     const c = reading.command;
     if (!c || !canEnter(reading)) return;
-    if (!reading.ready) return onOpen(c);
+    if (!reading.ready) return onOpen(c, reading.args);
     try {
       const result = await invokeCommand(c, reading.args);
       onDone();

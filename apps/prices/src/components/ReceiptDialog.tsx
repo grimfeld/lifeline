@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Checkbox, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, cn, toast } from "@lifeline/ui";
-import { todayStr } from "@lifeline/core";
+import { initialNumber, initialText, todayStr } from "@lifeline/core";
 import { ImagePlus, Plus, TriangleAlert, X } from "lucide-react";
 import type { Line, Receipt } from "../domain/types";
 import { amountIn, amountUnit, defaultAmount, fromAmount, secondaryMeasure } from "../domain/measure";
@@ -51,7 +51,7 @@ const fresh = (over: Partial<EditLine> = {}): EditLine => ({ key: nextKey++, lab
  * total is checked against the sum of Lines and a mismatch is shown, never
  * enforced.
  */
-export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; onOpenChange: (o: boolean) => void; receipt?: Receipt | null }) {
+export function ReceiptDialog({ open, onOpenChange, receipt, initial }: { open: boolean; onOpenChange: (o: boolean) => void; receipt?: Receipt | null; /** Create mode, the palette's inline line (CommandDialogProps.initial): the Shop, day, branch and total it understood (Lines are not typed inline). */ initial?: Record<string, unknown> }) {
   const shops = useShops();
   const products = useProducts();
   const allLines = useLines();
@@ -93,10 +93,11 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
       // A stored second amount — or its absence — stays as it was, whatever the Shop.
       setLines(existingLines.map((l) => fresh({ id: l.id, label: l.label, productId: l.productId, amount: shown(l), second: shownSecond(l), secondTyped: true, price: editAmount(l.price), promo: l.promo, needsAmount: l.needsAmount })));
     } else {
-      setShopId(shops[0]?.id || "");
-      setDate(todayStr());
-      setBranch("");
-      setTotal("");
+      const printed = initialNumber(initial, "total");
+      setShopId(initialText(initial, "shop") || shops[0]?.id || "");
+      setDate(initialText(initial, "date") || todayStr());
+      setBranch(initialText(initial, "branch"));
+      setTotal(printed === undefined ? "" : String(printed));
       setNoticed(false);
       setLines([fresh()]);
     }
@@ -104,7 +105,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt }: { open: boolean; 
     setErrors(new Map());
     // Re-initialising on the existing Lines' arrival is wanted: they load async after the dialog opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, receipt, existingLines.length, products.length]);
+  }, [open, receipt, existingLines.length, products.length, initial]);
 
   // Each untyped second amount follows the Shop: that Product's last pack there.
   useEffect(() => {

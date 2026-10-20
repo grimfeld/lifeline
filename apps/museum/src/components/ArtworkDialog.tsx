@@ -3,9 +3,9 @@ import {
   Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, GeoField, Input, Label,
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Textarea, toast,
 } from "@lifeline/ui";
-import { geocode, normalizeTag, readGeo, suggestAddresses, useTagVocabulary, writeGeo } from "@lifeline/core";
+import { geocode, initialList, initialText, normalizeTag, readGeo, suggestAddresses, useTagVocabulary, writeGeo } from "@lifeline/core";
 import { Search, Trash2 } from "lucide-react";
-import { ART_FORMS, artForm, type ArtFormId } from "../domain/artForms";
+import { ART_FORMS, artForm, isArtForm, type ArtFormId } from "../domain/artForms";
 import type { Artwork } from "../domain/types";
 import { applyHit } from "../domain/enrich";
 import { resolveHit, searchWikidata, type ArtworkHit } from "../data/wikidata";
@@ -27,11 +27,13 @@ function HitRow({ hit, onPick, disabled }: { hit: ArtworkHit; onPick: () => void
  * semantics). Saving links the artist by name, creating the record when it
  * is new (ensureArtist).
  */
-export function ArtworkDialog({ open, onOpenChange, artwork = null, defaultForm = "painting" }: {
+export function ArtworkDialog({ open, onOpenChange, artwork = null, defaultForm = "painting", initial }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   artwork?: Artwork | null;
   defaultForm?: ArtFormId;
+  /** Create mode, the palette's inline line (CommandDialogProps.initial). */
+  initial?: Record<string, unknown>;
 }) {
   const artists = useArtists();
   const tagSuggestions = useTagVocabulary().map((v) => v.tag);
@@ -58,23 +60,23 @@ export function ArtworkDialog({ open, onOpenChange, artwork = null, defaultForm 
 
   useEffect(() => {
     if (!open) return;
-    setForm(artwork?.type ?? defaultForm);
-    setTitle(artwork?.title ?? "");
-    setArtistName(linkedArtist?.title ?? "");
+    setForm(artwork?.type ?? (isArtForm(initialText(initial, "form")) ? (initialText(initial, "form") as ArtFormId) : defaultForm));
+    setTitle(artwork?.title ?? initialText(initial, "title"));
+    setArtistName(linkedArtist?.title ?? initialText(initial, "artist"));
     setArtistKey("");
-    setYear(artwork?.year ?? "");
-    setLocation(artwork?.location ?? "");
-    setMaterials(artwork?.materials ?? "");
-    setDimensions(artwork?.dimensions ?? "");
+    setYear(artwork?.year ?? initialText(initial, "year"));
+    setLocation(artwork?.location ?? initialText(initial, "location"));
+    setMaterials(artwork?.materials ?? initialText(initial, "materials"));
+    setDimensions(artwork?.dimensions ?? initialText(initial, "dimensions"));
     setImageUrl(artwork?.imageUrl ?? "");
-    setSeen(!!artwork?.seen);
+    setSeen(artwork ? !!artwork.seen : ["true", "yes", "1"].includes(String(initial?.seen).toLowerCase()));
     setGeo(artwork?.geo ?? null);
     setExternalKey(artwork?.externalKey ?? "");
-    setComment(artwork?.body ?? "");
-    setTags(artwork?.tags ?? []);
+    setComment(artwork?.body ?? initialText(initial, "comment"));
+    setTags(artwork?.tags ?? initialList(initial, "tags"));
     setHits(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, artwork?.id, linkedArtist?.id]);
+  }, [open, artwork?.id, linkedArtist?.id, initial]);
 
   async function search() {
     const q = title.trim();

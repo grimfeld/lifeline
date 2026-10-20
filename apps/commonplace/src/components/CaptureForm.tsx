@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { initialText } from "@lifeline/core";
 import { Button, Input, Textarea, cn, toast } from "@lifeline/ui";
 import { NotebookPen, Quote as QuoteIcon } from "lucide-react";
 import { useSources } from "../data/works";
@@ -34,16 +35,18 @@ export async function resolveChoice(choice: SourceChoice): Promise<string> {
  * words), with where in the Source. `source` fixes the Source — the Source
  * page's own form — otherwise the picker offers the ones I'm in now first.
  */
-export function CaptureForm({ source, defaultSource, initialMode = "note", autoFocus, onDone, onCancel }: { source?: string; defaultSource?: string; initialMode?: CaptureMode; autoFocus?: boolean; onDone?: (id: string) => void; onCancel?: () => void }) {
+export function CaptureForm({ source, defaultSource, initialMode = "note", autoFocus, onDone, onCancel, initial }: { source?: string; defaultSource?: string; initialMode?: CaptureMode; autoFocus?: boolean; onDone?: (id: string) => void; onCancel?: () => void; /** The palette's inline line (CommandDialogProps.initial): the Source (id or title), text, place and comment it understood. */ initial?: Record<string, unknown> }) {
   const { all, current } = useCaptureSources();
   const [choice, setChoice] = useState<SourceChoice>(() => ({ ...emptyChoice, id: source ?? "" }));
   const [mode, setMode] = useState<CaptureMode>(initialMode);
-  const [text, setText] = useState("");
-  const [locator, setLocator] = useState("");
-  const [comment, setComment] = useState("");
+  const [text, setText] = useState(initialText(initial, "text"));
+  const [locator, setLocator] = useState(initialText(initial, "locator"));
+  const [comment, setComment] = useState(initialText(initial, "comment"));
   const [busy, setBusy] = useState(false);
   // Until the user picks, the picker shows the Source I'm most likely in.
-  const shown: SourceChoice = choice.id || choice.newTitle ? choice : { ...emptyChoice, id: defaultSource ?? current[0]?.id ?? "" };
+  const named = initialText(initial, "source").trim().toLowerCase();
+  const fromLine = named ? all.find((s) => s.id === initialText(initial, "source") || s.title.trim().toLowerCase() === named)?.id : undefined;
+  const shown: SourceChoice = choice.id || choice.newTitle ? choice : { ...emptyChoice, id: fromLine ?? defaultSource ?? current[0]?.id ?? "" };
 
   async function save() {
     if (!text.trim() || busy) return;

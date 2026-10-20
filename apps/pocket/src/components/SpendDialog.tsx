@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
-import { todayStr } from "@lifeline/core";
+import { initialNumber, initialText, todayStr } from "@lifeline/core";
 import { faceOf, type Spend } from "../domain/types";
 import { allowanceRows, sortRows } from "../domain/derive";
+import { allowanceFor } from "../domain/spend";
 import { editAmount, formatCents, parseAmount } from "../domain/money";
 import { addSpend, deleteSpend, updateSpend, useAllowances, useSpends } from "../data/repo";
 
@@ -13,7 +14,7 @@ const BUCKET_TITLE = { current: "Current", upcoming: "Upcoming", past: "Past" } 
  * type an amount, done. Day defaults to today and is free; the label is
  * optional. "Save & add another" keeps the Allowance and day.
  */
-export function SpendDialog({ open, onOpenChange, spend, allowanceId }: { open: boolean; onOpenChange: (open: boolean) => void; /** Present = edit mode. */ spend?: Spend; /** Preselect (a Card tap). */ allowanceId?: string }) {
+export function SpendDialog({ open, onOpenChange, spend, allowanceId, initial }: { open: boolean; onOpenChange: (open: boolean) => void; /** Present = edit mode. */ spend?: Spend; /** Preselect (a Card tap). */ allowanceId?: string; /** The palette's inline line (CommandDialogProps.initial). */ initial?: Record<string, unknown> }) {
   const allowances = useAllowances();
   const spends = useSpends();
   const today = todayStr();
@@ -26,12 +27,24 @@ export function SpendDialog({ open, onOpenChange, spend, allowanceId }: { open: 
 
   useEffect(() => {
     if (!open) return;
-    setPick(spend?.allowanceId ?? allowanceId ?? rows.find((r) => r.bucket === "current")?.allowance.id ?? rows[0]?.allowance.id ?? "");
-    setAmount(spend ? editAmount(spend.amount) : "");
-    setDate(spend?.date ?? todayStr());
-    setLabel(spend?.label ?? "");
+    // The line names an Allowance by id or by name (the one whose period covers the day, else the first of that name).
+    const named = initialText(initial, "allowance");
+    const day = initialText(initial, "date") || todayStr();
+    let fromLine: string | undefined;
+    if (named) {
+      try {
+        fromLine = allowanceFor(named, rows.map((r) => r.allowance), day).id;
+      } catch {
+        fromLine = undefined; // none, or several: the picker is left for the person to settle
+      }
+    }
+    setPick(spend?.allowanceId ?? fromLine ?? allowanceId ?? rows.find((r) => r.bucket === "current")?.allowance.id ?? rows[0]?.allowance.id ?? "");
+    const typed = initialNumber(initial, "amount");
+    setAmount(spend ? editAmount(spend.amount) : typed === undefined ? "" : String(typed));
+    setDate(spend?.date ?? day);
+    setLabel(spend?.label ?? initialText(initial, "label"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, spend, allowanceId]);
+  }, [open, spend, allowanceId, initial, rows.length === 0]);
 
   const picked = rows.find((r) => r.allowance.id === pick);
   const cents = parseAmount(amount);

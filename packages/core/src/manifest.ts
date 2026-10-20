@@ -275,6 +275,19 @@ export interface InlineOffer {
   run: (ctx: CommandCtx) => void | Promise<void>;
 }
 
+/**
+ * What a Command's dialog receives. `initial` holds the raw argument values
+ * (keyed like the Command's `args`, the shapes `readCommandArgs` reads: text,
+ * ids for links, option values, lists as arrays) that the palette's inline line
+ * understood; the dialog opens holding them. Optional both ways: a dialog that
+ * ignores `initial` opens empty, so a Command converts when its turn comes.
+ */
+export interface CommandDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initial?: Record<string, unknown>;
+}
+
 export interface CommandDef {
   id: string;
   title: string;
@@ -283,7 +296,7 @@ export interface CommandDef {
   /** Immediate action. Ignored when `dialog` is set. */
   run?: (ctx: CommandCtx) => void | Promise<void>;
   /** Dialog opened when the command is picked. */
-  dialog?: React.ComponentType<{ open: boolean; onOpenChange: (open: boolean) => void }>;
+  dialog?: React.ComponentType<CommandDialogProps>;
   /**
    * A capture command leaves one new record in seconds, without going
    * anywhere (CONTEXT.md "Command"). Listed in the phone's capture sheet and

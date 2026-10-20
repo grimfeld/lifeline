@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
-import { useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
+import { initialList, initialText, useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import { Brackets } from "lucide-react";
 import { parseCloze } from "../domain/cloze";
 import type { Sentence } from "../domain/types";
@@ -33,7 +33,7 @@ function blankSelection(el: HTMLTextAreaElement, value: string): { next: string;
  * marked — select a word and press Blank, or type `{{ }}` — and an optional
  * translation shown with every Prompt so each blank has one answer.
  */
-export function SentenceDialog({ open, onOpenChange, sentence, prefill, onSaved }: ItemDialogProps & { sentence?: Sentence; prefill?: SentencePrefill }) {
+export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial, onSaved }: ItemDialogProps & { sentence?: Sentence; prefill?: SentencePrefill }) {
   const topics = useTopics();
   const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
@@ -48,15 +48,15 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, onSaved 
 
   useEffect(() => {
     if (!open) return;
-    setLanguageId(sentence?.languageId ?? active?.id ?? "");
-    setText(sentence?.text ?? prefill?.text ?? "");
-    setTranslation(sentence?.translation ?? "");
-    setOrigin(sentence?.origin ?? prefill?.origin ?? "");
+    setLanguageId(sentence?.languageId ?? (initialText(initial, "topic") || (active?.id ?? "")));
+    setText(sentence?.text ?? prefill?.text ?? initialText(initial, "text"));
+    setTranslation(sentence?.translation ?? initialText(initial, "translation"));
+    setOrigin(sentence?.origin ?? prefill?.origin ?? initialText(initial, "origin"));
     setOriginId(sentence?.originId ?? prefill?.originId ?? "");
-    setTags(sentence?.tags ?? []);
+    setTags(sentence?.tags ?? initialList(initial, "tags"));
     setConfirmDelete(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, sentence, prefill]);
+  }, [open, sentence, prefill, initial]);
 
   useEffect(() => {
     if (open && !sentence && !languageId && active) setLanguageId(active.id);

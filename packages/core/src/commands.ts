@@ -182,3 +182,38 @@ export async function invokeCommand(def: CommandDef, raw: Record<string, unknown
   if (!isInvocable(def)) throw new Error(`“${def.title}” cannot be run without its dialog`);
   return def.invoke(await readCommandArgs(def.args, raw));
 }
+
+// ── A dialog's initial values (CommandDialogProps.initial) ────────────────
+// The inline line hands a dialog the raw values it understood; these read them
+// into what a dialog's fields hold. Absent or wrongly shaped reads as empty.
+
+/** Initial text for a field ("" when there is none). */
+export function initialText(initial: Record<string, unknown> | undefined, key: string): string {
+  const v = initial?.[key];
+  return typeof v === "string" ? v : "";
+}
+
+/** Initial number for a field; undefined when absent or not a number. */
+export function initialNumber(initial: Record<string, unknown> | undefined, key: string): number | undefined {
+  const v = initial?.[key];
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** Initial values for a list field: an array as is, a single text as one entry. */
+export function initialList(initial: Record<string, unknown> | undefined, key: string): string[] {
+  const v = initial?.[key];
+  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === "string");
+  return typeof v === "string" && v !== "" ? [v] : [];
+}
+
+/**
+ * Initial moment for a date-and-time field, as `YYYY-MM-DDTHH:MM`: the day
+ * given, the time given or noon (as the headless Commands default it).
+ * undefined when no day is given.
+ */
+export function initialMoment(initial: Record<string, unknown> | undefined, dateKey = "date", timeKey = "time"): string | undefined {
+  const date = initialText(initial, dateKey);
+  if (!date) return undefined;
+  return `${date}T${initialText(initial, timeKey) || "12:00"}`;
+}
