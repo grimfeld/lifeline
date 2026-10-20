@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
     "test:e2e": "playwright test",
+    "test:e2e:quiet": "playwright test --reporter=dot",
     "test": "vitest run"
   },
   "dependencies": {
