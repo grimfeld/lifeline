@@ -85,6 +85,29 @@ export async function runMacro(macro: MacroShape, commands: readonly OwnedComman
   return { name: macro.name, steps };
 }
 
+/**
+ * Whether a Command navigates: it has a `run` and cannot be invoked headless
+ * (no `args`/`invoke`). The one place this is decided; a flag on CommandDef
+ * can replace it.
+ */
+export function navigates(c: CommandDef): boolean {
+  return !!c.run && !c.args && !c.invoke;
+}
+
+/**
+ * A Macro is capture (CONTEXT.md "Macro") when every step's Command is capture
+ * and none navigates. A step whose Command is gone makes it not capture.
+ */
+export function isCaptureMacro(macro: MacroShape, commands: readonly OwnedCommand[]): boolean {
+  return (
+    macro.steps.length > 0 &&
+    macro.steps.every((s) => {
+      const c = findCommand(commands, s.command);
+      return !!c && !!c.capture && !navigates(c);
+    })
+  );
+}
+
 /** The pseudo-App every Macro's Command is listed under: it is Core's, not any App's. */
 export const MACRO_APP = "macros";
 
@@ -109,6 +132,7 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
     id: macro.id,
     title: macro.name,
     keywords: ["macro"],
+    capture: isCaptureMacro(macro, commands),
     run: async () => {
       const report = await runMacro(macro, commands);
       reportListeners.forEach((l) => l(report));
