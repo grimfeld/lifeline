@@ -11,13 +11,9 @@ bad=""
 while read -r local_ref local_sha remote_ref remote_sha; do
   # A deleted ref pushes no commits.
   case "$local_sha" in *[!0]*) ;; *) continue ;; esac
-  case "$remote_sha" in
-    *[!0]*) range="$remote_sha..$local_sha" ;;
-    # A new ref: the commits no remote has yet.
-    *) range="$local_sha --not --remotes" ;;
-  esac
-  # $range is two words for a new ref, on purpose.
-  for line in $(git log --format='%h|%ae|%ce' $range); do
+  # Only the commits no remote has yet: master's own commits arriving through a merge
+  # (GitHub's merge commits, dependabot's) are already on GitHub and pass.
+  for line in $(git log --format='%h|%ae|%ce' "$local_sha" --not --remotes); do
     sha=${line%%|*}
     rest=${line#*|}
     author=${rest%%|*}
