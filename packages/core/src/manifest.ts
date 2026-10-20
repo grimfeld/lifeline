@@ -230,6 +230,13 @@ export interface CardDef {
 
 export interface CommandCtx {
   navigate: (path: string) => void;
+  /**
+   * Called by a Command run from the palette to keep it open, its query
+   * cleared and focused, instead of closing — for a Command that leads into
+   * the palette's own input ("Go to date…" then reads the date inline). Call it
+   * before `run` first awaits. Absent where nothing stays open to type into.
+   */
+  keepPalette?: () => void;
 }
 
 /**

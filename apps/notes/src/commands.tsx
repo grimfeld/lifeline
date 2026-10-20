@@ -129,11 +129,14 @@ function NewNoteCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCha
  * Inline (ADR 0088): a typed date or period key opens that Day or review. The
  * page opens and nothing is made — a page only makes its Document when it is
  * today's Day or the current stretch, as it does however it is reached.
+ * Picked by its title, "Go to date…" keeps the palette open for the date.
  */
 const openJournalPage: CommandDef = {
   id: "notes.open-date",
-  title: "Open a date in the Journal",
+  title: "Go to date…",
+  keywords: ["date", "day", "journal", "jump", "open", "week", "month", "quarter", "year"],
   icon: CalendarDays,
+  run: ({ keepPalette }) => keepPalette?.(),
   inline: (query) => {
     const page = journalPageOf(query);
     if (!page) return undefined;
@@ -147,6 +150,8 @@ export const noteCommands: CommandDef[] = [
   { id: "notes.today", title: "Open today", keywords: ["daily", "diary", "journal", "day"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal") },
   { id: "notes.week", title: "Open this week's review", keywords: ["week", "weekly", "review", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal/p/week") },
   { id: "notes.month", title: "Open this month's review", keywords: ["month", "monthly", "review", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal/p/month") },
+  { id: "notes.quarter", title: "Open this quarter's review", keywords: ["quarter", "quarterly", "review", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal/p/quarter") },
+  { id: "notes.year", title: "Open this year's review", keywords: ["year", "yearly", "annual", "review", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal/p/year") },
   { id: "notes.new", title: "New note…", keywords: ["person", "place", "note"], icon: FilePlus, dialog: NewNoteCommandDialog },
   { id: "notes.capture", title: "Quick capture", keywords: ["journal", "log", "thought"], icon: Zap, dialog: QuickCaptureDialog, capture: true },
   { id: "notes.settings", title: "Document types & templates…", keywords: ["template", "type", "settings", "daily", "bases"], icon: Settings2, run: ({ navigate }) => navigate("/base") },

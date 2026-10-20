@@ -171,3 +171,66 @@ test.describe("Journal navigation · a date typed in the palette (#207)", () => 
     await expect(options(page).first()).toContainText("Week 53, 2020");
   });
 });
+
+/**
+ * "Go to date…" finds the date row by name, and every review is one Command
+ * away (#212).
+ */
+test.describe("Journal navigation · Go to date and the review Commands (#212)", () => {
+  test.skip(({ isMobile }) => isMobile, "the palette is not opened on a phone");
+  test.use({ locale: "en-GB" });
+
+  const palette = (page: Page) => page.getByRole("dialog");
+  const query = (page: Page) => palette(page).getByRole("combobox");
+
+  async function pickByName(page: Page, name: string, how: "enter" | "click") {
+    await page.keyboard.press("Control+k");
+    await query(page).fill(name);
+    const row = palette(page).getByRole("option", { name: new RegExp(`^${name}`) });
+    await expect(row).toBeVisible();
+    if (how === "click") await row.click();
+    else {
+      await expect(palette(page).getByRole("option").first()).toContainText(name);
+      await page.keyboard.press("Enter");
+    }
+  }
+
+  for (const how of ["enter", "click"] as const) {
+    test(`picking Go to date… (${how}) leaves the palette open, empty and focused, ready for a date`, async ({ page }) => {
+      await page.goto("/screens");
+      await workLocally(page);
+      await pickByName(page, "Go to date…", how);
+      await expect(palette(page)).toBeVisible();
+      await expect(query(page)).toHaveValue("");
+      await expect(query(page)).toBeFocused();
+      await page.keyboard.type("2023-03-14");
+      await expect(palette(page).getByRole("option").first()).toContainText("Tuesday 14 March 2023");
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL((u) => u.pathname + u.search === "/app/journal?d=2023-03-14");
+      await expect(palette(page)).toHaveCount(0);
+    });
+  }
+
+  test("Go to date… is listed when the palette opens", async ({ page }) => {
+    await page.goto("/screens");
+    await workLocally(page);
+    await page.keyboard.press("Control+k");
+    await expect(palette(page).getByRole("option", { name: /^Go to date…/ })).toBeAttached();
+  });
+
+  const now = new Date();
+  const year = String(now.getFullYear());
+  const quarter = `${year}-Q${Math.floor(now.getMonth() / 3) + 1}`;
+  for (const { name, key } of [
+    { name: "Open this quarter's review", key: quarter },
+    { name: "Open this year's review", key: year },
+  ]) {
+    test(`${name} opens ${key}`, async ({ page }) => {
+      await page.goto("/screens");
+      await workLocally(page);
+      await pickByName(page, name, "enter");
+      await expect(page).toHaveURL((u) => u.pathname === `/app/journal/p/${key}`);
+      await expect(palette(page)).toHaveCount(0);
+    });
+  }
+});
