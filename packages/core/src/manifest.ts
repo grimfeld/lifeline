@@ -311,8 +311,10 @@ export interface CommandDef {
   invoke?: (args: Record<string, unknown>) => Promise<CommandResult>;
   /**
    * An inline Command (CONTEXT.md "Command", ADR 0088) reads the palette's
-   * query as its argument: asked on every change of the query, it offers a row
-   * pinned above every other, or nothing when the query doesn't parse. Pure
+   * whole query as its argument: asked on every change of the query, it offers
+   * a row pinned above every other, or nothing when the query doesn't parse.
+   * Only the Journal's date is one — the single exception to ADR 0091's marked
+   * arguments; another needs its own decision. Pure
    * and quick — it runs on each keystroke. A Command may be inline only (no
    * `run` or `dialog`): it is then never listed by its title.
    */
