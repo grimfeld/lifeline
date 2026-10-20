@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, toast } from "@lifeline/ui";
+import { Button, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, toast } from "@lifeline/ui";
 import { faceOf, type Fine } from "../domain/types";
 import { activeOffences } from "../domain/derive";
 import { formatCents } from "../domain/money";
@@ -41,7 +41,7 @@ export function FineDialog({ open, onOpenChange, fine, offenceId }: { open: bool
   const picked = offences.find((o) => o.id === pick);
 
   async function save() {
-    // A cleared datetime-local is "": an Invalid Date, which toISOString throws on.
+    // An empty moment is "": an Invalid Date, which toISOString throws on.
     const moment = new Date(when);
     if (!when || Number.isNaN(moment.getTime())) return void toast.error("Pick when it happened");
     const occurredAt = moment.toISOString();
@@ -102,7 +102,7 @@ export function FineDialog({ open, onOpenChange, fine, offenceId }: { open: bool
             </div>
             <div className="grid gap-2">
               <Label htmlFor="fn-when">When it happened</Label>
-              <Input id="fn-when" type="datetime-local" value={when} max={nowLocalInput()} onChange={(e) => setWhen(e.target.value)} />
+              <DateTimeField id="fn-when" required value={when} max={nowLocalInput()} onChange={setWhen} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="fn-note">Note (optional)</Label>

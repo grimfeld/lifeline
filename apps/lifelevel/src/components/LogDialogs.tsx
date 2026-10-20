@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Textarea, toast } from "@lifeline/ui";
+import { Button, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Label, Textarea, toast } from "@lifeline/ui";
 import type { Habit, Negative } from "../domain/types";
 import { completeHabit, deleteCompletion, logNegative, useHabits, useNegatives } from "../data/repo";
 import { celebrateCompletion, mournNegative } from "../feedback/feedback";
@@ -16,7 +16,7 @@ function WhenAndNote({ when, setWhen, note, setNote }: { when: string; setWhen: 
     <>
       <div className="grid gap-2">
         <Label htmlFor="ll-when">When it happened</Label>
-        <Input id="ll-when" type="datetime-local" value={when} max={nowLocalInput()} onChange={(e) => setWhen(e.target.value)} />
+        <DateTimeField id="ll-when" required value={when} max={nowLocalInput()} onChange={setWhen} />
       </div>
       <div className="grid gap-2">
         <Label htmlFor="ll-note">Note (optional)</Label>
