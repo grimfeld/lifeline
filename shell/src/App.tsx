@@ -29,6 +29,8 @@ import { BasesIndex } from "./bases/BasesIndex";
 import { MobileNav } from "./mobile/MobileNav";
 import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
+import { MacrosPage } from "./settings/MacrosPage";
+import { MacroReportHost } from "./macros/MacroReportHost";
 import { KeysPage } from "./settings/KeysPage";
 import { KeyBindingHost } from "./keys/KeyBindingHost";
 import { GuidePage } from "./guide/GuidePage";
@@ -151,6 +153,7 @@ function Places() {
       <Route path="/screens" element={<CorePage><ScreensIndex /></CorePage>} />
       <Route path="/screen/:id" element={<CorePage><UserScreenPage /></CorePage>} />
       <Route path="/settings" element={<CorePage><SettingsPage /></CorePage>} />
+      <Route path="/settings/macros" element={<CorePage><MacrosPage /></CorePage>} />
       <Route path="/settings/keys" element={<CorePage><KeysPage /></CorePage>} />
       <Route path="/guide/:page?" element={<CorePage><GuidePage /></CorePage>} />
       <Route path={HANDOFF_PATH} element={<CorePage><HandoffPage /></CorePage>} />
@@ -206,6 +209,7 @@ export default function App() {
         <CommandPalette />
         <KeyBindingHost />
         <PeekHost />
+        <MacroReportHost />
         <SelectionMenu />
         <PrivateDialogs />
         {/* The Demo never signs in (ADR 0077): no sign-in, no signed-out notice, no account switch. */}

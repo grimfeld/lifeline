@@ -161,6 +161,38 @@ const LONG_HANDOFF = encodeHandoff(
   "commonplace/quote",
 );
 
+/**
+ * Settings → Macros over a long-named Macro whose steps carry long fixed
+ * values, and a step whose Command is gone — with its editor open when `edit`.
+ */
+function macrosWithLongContent(edit?: boolean) {
+  return async (page: Page) => {
+    await workLocally(page);
+    const name = longText("A Macro");
+    await page.evaluate(
+      async ({ coreUrl, name, title, note }) => {
+        const core = await import(/* @vite-ignore */ coreUrl);
+        if ((await core.allMacros()).some((m: { name: string }) => m.name === name)) return;
+        await core.saveMacro({
+          name,
+          steps: [
+            { command: "tasks/tasks.add", args: { title: { from: "fixed", value: title }, notes: { from: "fixed", value: note } } },
+            { command: "shopping/shopping.add", args: { title: { from: "fixed", value: title } } },
+            { command: `gone/${name.replace(/ /g, "")}`, args: {} },
+          ],
+        });
+      },
+      { coreUrl: CORE_URL, name, title: longText("A task"), note: longText("A note") },
+    );
+    const row = page.getByRole("list", { name: "Macros" }).getByRole("button", { name }).first();
+    await row.waitFor();
+    if (edit) {
+      await row.click();
+      await page.getByRole("dialog").waitFor();
+    }
+  };
+}
+
 /** The Handoff page's picker with a second Workspace, long-named, so the Workspace question is asked too. */
 async function pickerWithWorkspaces(page: Page) {
   await workLocally(page);
@@ -397,6 +429,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Screens", path: "/screens" },
   { name: "Screen with every Card", path: "/screen/e2elongcontent1", afterOpen: workLocally },
   { name: "Settings", path: "/settings", afterOpen: workLocally },
+  { name: "Settings · Macros", path: "/settings/macros", afterOpen: macrosWithLongContent() },
+  { name: "Settings · Macros · editor", path: "/settings/macros", afterOpen: macrosWithLongContent(true) },
   { name: "Settings · Keys", path: "/settings/keys", afterOpen: seedKeyBindings },
   { name: "Settings · Keys · bind a key", path: "/settings/keys", afterOpen: bindTakenKey },
   { name: "Guide", path: "/guide" },

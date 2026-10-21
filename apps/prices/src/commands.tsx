@@ -1,4 +1,4 @@
-import { todayStr, type CommandDef } from "@lifeline/core";
+import { todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { Package, Plus, ReceiptText, Store, Tag } from "lucide-react";
 import { DIMENSIONS, DIMENSION_LABEL, PRICES_HREF, PRODUCT, SECONDARY_DIMENSIONS, SHOP, UNIT_LABEL, isDimension, isSecondaryDimension, isUnitOf, type Product, type Unit } from "./domain/types";
 import { matchProduct, receiptTitle, unitPrice } from "./domain/derive";
@@ -10,10 +10,10 @@ import { AddPriceDialog } from "./components/AddPriceDialog";
 import { ProductDialog } from "./components/ProductDialog";
 import { ShopDialog } from "./components/ShopDialog";
 
-function NewReceiptDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function NewReceiptDialog(props: CommandDialogProps) {
   return <ReceiptDialog {...props} />;
 }
-function PriceDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function PriceDialog(props: CommandDialogProps) {
   return <AddPriceDialog {...props} />;
 }
 function NewProductDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {

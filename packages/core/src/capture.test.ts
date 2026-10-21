@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CAPTURE_PINS_MAX, buildCaptureSheet, movePin, togglePin, type CaptureCommand, type CaptureSheetInput } from "./capture";
+import { MACRO_APP, macroCommand, type MacroStep } from "./macros";
+import { CAPTURE_PINS_MAX, captureAppTitle, buildCaptureSheet, movePin, togglePin, type CaptureCommand, type CaptureSheetInput } from "./capture";
 
 const MODULE_OF: Record<string, string | undefined> = {
   shopping: "house",
@@ -127,5 +128,53 @@ describe("pins", () => {
   it("move one place at a time, the others keeping theirs", () => {
     expect(movePin(["a", "b", "c"], "c", -1)).toEqual(["a", "c", "b"]);
     expect(movePin(["a", "b", "c"], "a", -1)).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("capture Macros", () => {
+  const step = (command: string): MacroStep => ({ command, args: {} });
+  const nav = cmd("tasks", "open-board", { capture: false, run: () => {} });
+  const own = [...COMMANDS, nav];
+  const macro = (id: string, ...steps: string[]) => macroCommand({ id, name: id, steps: steps.map(step) }, own);
+  const withMacros = (...ms: CaptureCommand[]) => ({ commands: [...own, ...ms] });
+
+  it("is capture when every step is capture and none navigates", () => {
+    expect(macro("m", "tasks/add-task", "pocket/spend").capture).toBe(true);
+  });
+
+  it("is not capture when a step is not capture", () => {
+    expect(macro("m", "tasks/add-task", "pocket/settings").capture).toBe(false);
+  });
+
+  it("is not capture when a step navigates", () => {
+    const navCapture = cmd("tasks", "go", { run: () => {} });
+    const m = macroCommand({ id: "m", name: "m", steps: [step("tasks/go")] }, [navCapture]);
+    expect(m.capture).toBe(false);
+  });
+
+  it("is not capture when a step's Command is gone, or it has no steps", () => {
+    expect(macro("m", "tasks/add-task", "tasks/gone").capture).toBe(false);
+    expect(macro("m").capture).toBe(false);
+  });
+
+  it("is listed under a group titled Macros, and pinnable", () => {
+    const m = macro("m", "tasks/add-task");
+    const s = sheet({ ...withMacros(m), appTitle: captureAppTitle, moduleOf: (id) => MODULE_OF[id] });
+    const group = s.groups.find((g) => g.id === `app:${MACRO_APP}`);
+    expect(group?.title).toBe("Macros");
+    expect(s.pinnable.map((e) => e.key)).toContain(`${MACRO_APP}/m`);
+  });
+
+  it("keeps a Macro that navigates off the sheet", () => {
+    const m = macro("m", "tasks/open-board");
+    const s = sheet(withMacros(m));
+    expect(s.pinnable.map((e) => e.key)).not.toContain(`${MACRO_APP}/m`);
+  });
+
+  it("drops a pin whose Macro is deleted or stopped being capture", () => {
+    const pins = [`${MACRO_APP}/m`];
+    expect(sheet({ ...withMacros(macro("m", "tasks/add-task")), pins }).pinned).toHaveLength(1);
+    expect(sheet({ pins }).pinned).toHaveLength(0);
+    expect(sheet({ ...withMacros(macro("m", "tasks/open-board")), pins }).pinned).toHaveLength(0);
   });
 });

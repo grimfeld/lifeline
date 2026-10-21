@@ -4,6 +4,7 @@ import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
 import type { LoggableProvider } from "./contracts/loggable";
 import type { RecallableDef } from "./contracts/recallable";
+import { macroCommand, useMacros } from "./macros";
 import { openDb, type LifelineDB, type ScreenLayoutItem } from "./data/db";
 import { registerBuiltinTypes } from "./documents/registry";
 import { registerBuiltinRoles } from "./documents/roles";
@@ -49,14 +50,20 @@ export function allCommands(): (CommandDef & { appId: string })[] {
   return apps.flatMap((a) => a.commands.map((c) => ({ ...c, appId: a.id })));
 }
 
-/** Static + dynamic commands of every App. A React hook (calls each App's `useCommands`). */
+/**
+ * Static + dynamic commands of every App, then the user's Macros (ADR 0092),
+ * each a Command over the Apps' own. A React hook (calls each App's
+ * `useCommands`).
+ */
 export function useAllCommands(): (CommandDef & { appId: string })[] {
   // Hook order is stable: the App list is fixed at compile time (ADR 0003).
-  return apps.flatMap((a) => {
+  const own = apps.flatMap((a) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const dynamic = a.useCommands ? a.useCommands() : [];
     return [...a.commands, ...dynamic].map((c) => ({ ...c, appId: a.id }));
   });
+  const macros = useMacros();
+  return [...own, ...macros.map((m) => macroCommand(m, own))];
 }
 
 export function schedulableProviders(): SchedulableProvider[] {

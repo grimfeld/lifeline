@@ -123,9 +123,10 @@ export interface ViewFilter {
  *   22 — Languages App (ADR 0058): `[type+languageId]`, `[type+itemId]` added
  *   23 — Roles (ADR 0069): multi-entry `*roles` on `documents`, so "every wearer of a Role" is an index hit
  *   24 — Mail retired (ADR 0080): local `_mail_cache` dropped
- *   25 — Key bindings: synced `key_bindings`
+ *   25 — Macros (ADR 0092): synced `macros`
+ *   26 — Key bindings: synced `key_bindings`
  */
-const DB_VERSION = 25;
+const DB_VERSION = 26;
 
 /** Stores that no longer exist — before ADR 0018 (so a client re-pulls into `documents`) or a retired App's — deleted on upgrade. */
 const LEGACY_STORES = [
@@ -142,6 +143,8 @@ export const DOCUMENT_TYPES = "document_types";
 export const ATTACHMENTS = "attachments";
 /** Workspaces (ADR 0047) — synced; which one this device is *in* is not. */
 export const WORKSPACES = "workspaces";
+/** Macros (ADR 0092) — synced, global like Views. */
+export const MACROS = "macros";
 /** Key bindings (CONTEXT.md "Key binding") — synced, global. */
 export const KEY_BINDINGS = "key_bindings";
 export const BLOBS = "_blobs";
@@ -176,6 +179,7 @@ export class LifelineDB extends Dexie {
       screens: "id, updatedAt, deleted, sort, workspace",
       [WORKSPACES]: "id, updatedAt, deleted, sort",
       [VIEWS]: "id, updatedAt, deleted, type, sort",
+      [MACROS]: "id, updatedAt, deleted, sort",
       [DOCUMENT_TYPES]: "id, updatedAt, deleted, typeId",
       [ATTACHMENTS]: "id, updatedAt, deleted, name",
       [KEY_BINDINGS]: "id, updatedAt, deleted, key",

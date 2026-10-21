@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Handoff } from "@lifeline/core";
+import { initialText, type Handoff } from "@lifeline/core";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { suggestions } from "../domain/rules";
@@ -19,7 +19,7 @@ function announce(title: string, res: AddResult) {
  * "milk ⏎ eggs ⏎ bread ⏎" is three Needs. Opened with a Handoff (the
  * Intake), it arrives prefilled and closes on its one save.
  */
-export function AddNeedDialog({ open, onOpenChange, handoff, defaultAisleId, onSaved }: { open: boolean; onOpenChange: (o: boolean) => void; handoff?: Handoff; defaultAisleId?: string; onSaved?: (id: string) => void }) {
+export function AddNeedDialog({ open, onOpenChange, handoff, defaultAisleId, initial, onSaved }: { open: boolean; onOpenChange: (o: boolean) => void; handoff?: Handoff; defaultAisleId?: string; initial?: Record<string, unknown>; onSaved?: (id: string) => void }) {
   const needs = useNeeds();
   const offered = useMemo(() => suggestions(needs), [needs]);
   const [title, setTitle] = useState("");
@@ -31,12 +31,12 @@ export function AddNeedDialog({ open, onOpenChange, handoff, defaultAisleId, onS
 
   useEffect(() => {
     if (!open) return;
-    setTitle(handoff?.title ?? "");
-    setNote(handoff?.text?.trim() ?? "");
-    setAisleId(defaultAisleId ?? "");
-    setMore(!!handoff?.text?.trim());
+    setTitle(handoff?.title ?? initialText(initial, "title"));
+    setNote(handoff?.text?.trim() ?? initialText(initial, "note"));
+    setAisleId(initialText(initial, "aisle") || (defaultAisleId ?? ""));
+    setMore(!!(handoff?.text?.trim() || initialText(initial, "note") || initialText(initial, "aisle")));
     setAdded([]);
-  }, [open, handoff, defaultAisleId]);
+  }, [open, handoff, defaultAisleId, initial]);
 
   async function add() {
     const t = title.trim();

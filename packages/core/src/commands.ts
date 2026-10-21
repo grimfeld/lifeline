@@ -34,15 +34,23 @@ function linkTypes(arg: CommandArg): string[] | undefined {
   return arg.linkType === undefined ? undefined : Array.isArray(arg.linkType) ? arg.linkType : [arg.linkType];
 }
 
+/** What a link argument is matched against: a Document's id, type, title and Roles. */
+export type LinkableDocument = Pick<Document, "id" | "type" | "title"> & { roles?: unknown };
+
+/** The Documents a link argument may name: those of its Role, else of its type(s), else all. */
+export function linkCandidates<T extends LinkableDocument>(arg: CommandArg, docs: readonly T[]): T[] {
+  const types = linkTypes(arg);
+  return arg.linkRole ? docs.filter((d) => hasRole(d, arg.linkRole!)) : types ? docs.filter((d) => types.includes(d.type)) : [...docs];
+}
+
 /**
  * A link argument names a Document by id or by its exact title,
  * case-insensitive, among `docs` (already read through the store's gates, so
  * the call's Workspace only). Never a guess: no match, or several, is an
  * error the caller can act on.
  */
-export function pickLinked(arg: CommandArg, value: string, docs: readonly (Pick<Document, "id" | "type" | "title"> & { roles?: unknown })[]): string {
-  const types = linkTypes(arg);
-  const ofType = arg.linkRole ? docs.filter((d) => hasRole(d, arg.linkRole!)) : types ? docs.filter((d) => types.includes(d.type)) : docs;
+export function pickLinked(arg: CommandArg, value: string, docs: readonly LinkableDocument[]): string {
+  const ofType = linkCandidates(arg, docs);
   const byId = ofType.find((d) => d.id === value);
   if (byId) return byId.id;
   const wanted = value.trim().toLowerCase();
@@ -173,4 +181,39 @@ export async function readCommandArgs(args: CommandArg[], raw: Record<string, un
 export async function invokeCommand(def: CommandDef, raw: Record<string, unknown>): Promise<CommandResult> {
   if (!isInvocable(def)) throw new Error(`“${def.title}” cannot be run without its dialog`);
   return def.invoke(await readCommandArgs(def.args, raw));
+}
+
+// ── A dialog's initial values (CommandDialogProps.initial) ────────────────
+// The inline line hands a dialog the raw values it understood; these read them
+// into what a dialog's fields hold. Absent or wrongly shaped reads as empty.
+
+/** Initial text for a field ("" when there is none). */
+export function initialText(initial: Record<string, unknown> | undefined, key: string): string {
+  const v = initial?.[key];
+  return typeof v === "string" ? v : "";
+}
+
+/** Initial number for a field; undefined when absent or not a number. */
+export function initialNumber(initial: Record<string, unknown> | undefined, key: string): number | undefined {
+  const v = initial?.[key];
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** Initial values for a list field: an array as is, a single text as one entry. */
+export function initialList(initial: Record<string, unknown> | undefined, key: string): string[] {
+  const v = initial?.[key];
+  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === "string");
+  return typeof v === "string" && v !== "" ? [v] : [];
+}
+
+/**
+ * Initial moment for a date-and-time field, as `YYYY-MM-DDTHH:MM`: the day
+ * given, the time given or noon (as the headless Commands default it).
+ * undefined when no day is given.
+ */
+export function initialMoment(initial: Record<string, unknown> | undefined, dateKey = "date", timeKey = "time"): string | undefined {
+  const date = initialText(initial, dateKey);
+  if (!date) return undefined;
+  return `${date}T${initialText(initial, timeKey) || "12:00"}`;
 }

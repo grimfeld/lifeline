@@ -1,4 +1,4 @@
-import type { CommandDef } from "@lifeline/core";
+import type { CommandDef, CommandDialogProps } from "@lifeline/core";
 import { Brain, MessageCircleQuestion, Play, Plus, TextCursorInput } from "lucide-react";
 import { TOPIC, KNOWLEDGE_HREF } from "./domain/types";
 import { addFact, addSentence, addWord, allFacts, allTopics, allSentences, allWords } from "./data/repo";
@@ -15,15 +15,15 @@ import { WordDialog } from "./components/WordDialog";
 import { SentenceDialog } from "./components/SentenceDialog";
 import { FactDialog } from "./components/FactDialog";
 
-function AddWordDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function AddWordDialog(props: CommandDialogProps) {
   return <WordDialog {...props} />;
 }
 
-function AddSentenceDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function AddSentenceDialog(props: CommandDialogProps) {
   return <SentenceDialog {...props} />;
 }
 
-function AddFactDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function AddFactDialog(props: CommandDialogProps) {
   return <FactDialog {...props} />;
 }
 

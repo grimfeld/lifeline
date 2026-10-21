@@ -20,6 +20,7 @@ onRecordCreateRequest(
   "document_types",
   "attachments",
   "workspaces",
+  "macros",
   "key_bindings",
 );
 
@@ -35,5 +36,6 @@ onRecordUpdateRequest(
   "document_types",
   "attachments",
   "workspaces",
+  "macros",
   "key_bindings",
 );

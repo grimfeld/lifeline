@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
-import { momentOf, todayStr, type CommandDef } from "@lifeline/core";
+import { initialText, momentOf, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { BarChart3, PenLine, Plus } from "lucide-react";
 import { StatEditorDialog } from "./components/StatEditorDialog";
 import { AddEntryDialog } from "./components/AddEntryDialog";
@@ -12,10 +12,15 @@ function NewStatCommandDialog(props: { open: boolean; onOpenChange: (o: boolean)
   return <StatEditorDialog {...props} />;
 }
 
-function LogEntryCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function LogEntryCommandDialog({ open, onOpenChange, initial }: CommandDialogProps) {
   const stats = useStats();
   const entries = useEntries();
   const [picked, setPicked] = useState<Stat | null>(null);
+  // The line names a Stat by id: its form opens straight away, holding the rest of the line.
+  const named = initialText(initial, "stat");
+  useEffect(() => {
+    if (open && named) setPicked((p) => p ?? stats.find((s) => s.id === named) ?? null);
+  }, [open, named, stats]);
   if (picked) {
     return (
       <AddEntryDialog
@@ -25,6 +30,7 @@ function LogEntryCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
           onOpenChange(o);
         }}
         stat={picked}
+        initial={initial}
         entries={entries.filter((e) => e.statId === picked.id)}
       />
     );

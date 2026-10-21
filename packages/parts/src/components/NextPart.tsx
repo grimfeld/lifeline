@@ -51,6 +51,7 @@ export function NextPartDialog<W extends PartsWork>({
   matches,
   cover,
   byline,
+  initialQuery = "",
 }: {
   kit: PartsKit<W>;
   works: W[];
@@ -60,8 +61,10 @@ export function NextPartDialog<W extends PartsWork>({
   matches: (w: W, q: string) => boolean;
   cover?: (w: W) => ReactNode;
   byline?: (w: W) => ReactNode;
+  /** The search opens holding this (the palette's inline line). */
+  initialQuery?: string;
 }) {
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialQuery);
   const { parts, groups } = kit.useAllParts();
   const rows = useMemo(
     () =>

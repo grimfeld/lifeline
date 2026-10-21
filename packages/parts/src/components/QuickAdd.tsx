@@ -50,6 +50,8 @@ export interface QuickAddProps<M extends string> {
   autoFocus?: boolean;
   /** A Card's one row: the medium as a small select beside the input. */
   compact?: boolean;
+  /** The input opens holding this (the palette's inline line, `quickAddFromLine`). */
+  initialText?: string;
 }
 
 /**
@@ -65,6 +67,7 @@ export function QuickAdd<M extends string, H extends LookupHit>({
   onAdded,
   autoFocus,
   compact,
+  initialText,
 }: QuickAddProps<M> & { config: QuickAddConfig<M, H> }) {
   const { media } = config;
   const [medium, setMediumState] = useState<M>(() => startingMedium(media, defaultType, readLastMedium()));
@@ -146,6 +149,7 @@ export function QuickAdd<M extends string, H extends LookupHit>({
           placeholder={quickAddPlaceholder(def, config.creatorHint)}
           aria-label={`Quick add ${def.label.toLowerCase()}`}
           autoFocus={autoFocus}
+          initialText={initialText}
           className="min-w-0 flex-1"
         />
         {compact && picker}

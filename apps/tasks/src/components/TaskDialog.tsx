@@ -21,6 +21,9 @@ import {
   usePushFlow,
 } from "@lifeline/ui";
 import {
+  initialList,
+  initialNumber,
+  initialText,
   normalizeTag,
   pushSurfaceItem,
   todayStr,
@@ -94,6 +97,7 @@ export function TaskDialog({
   defaultProject,
   defaultMilestone,
   handoff,
+  initial,
   onSaved,
 }: {
   open: boolean;
@@ -107,6 +111,8 @@ export function TaskDialog({
   defaultMilestone?: string | null;
   /** Create mode, Intake (ADR 0050): the title, and the origin in the notes. */
   handoff?: Handoff;
+  /** Create mode, the palette's inline line (CommandDialogProps.initial): the fields it understood. */
+  initial?: Record<string, unknown>;
   /** Create mode: called with the new Task once it is saved (the Intake contract). */
   onSaved?: (id: string) => void;
 }) {
@@ -126,19 +132,19 @@ export function TaskDialog({
 
   useEffect(() => {
     if (!open) return;
-    setTitle(task?.title ?? handoff?.title ?? "");
-    setNotes(task?.notes ?? (handoff ? handoffNotes(handoff) : ""));
+    setTitle(task?.title ?? handoff?.title ?? initialText(initial, "title"));
+    setNotes(task?.notes ?? (handoff ? handoffNotes(handoff) : initialText(initial, "notes")));
     const r = task?.recurrence ?? null;
     setKind(r ? r.kind : "one-time");
-    setDate(task ? (task.date ?? "") : (defaultDate === undefined ? todayStr() : (defaultDate ?? "")));
+    setDate(task ? (task.date ?? "") : initialText(initial, "date") || (defaultDate === undefined ? todayStr() : (defaultDate ?? "")));
     setWeekdays(r?.kind === "weekly" ? r.weekdays : [1]);
     setMonthDays(r?.kind === "monthly" ? r.days : [1]);
     setYearDates(r?.kind === "yearly" ? r.dates : [{ month: 1, day: 1 }]);
-    setTags(task?.tags ?? []);
-    setEstimate(task?.estimate ?? null);
-    setProject(task ? task.project : (defaultProject ?? null));
+    setTags(task?.tags ?? initialList(initial, "tags"));
+    setEstimate(task?.estimate ?? initialNumber(initial, "estimate") ?? null);
+    setProject(task ? task.project : (initialText(initial, "project") || (defaultProject ?? null)));
     setMilestone(task ? task.milestone : (defaultMilestone ?? null));
-  }, [open, task, defaultDate, defaultProject, defaultMilestone, handoff]);
+  }, [open, task, defaultDate, defaultProject, defaultMilestone, handoff, initial]);
 
   function buildRecurrence(): Recurrence | null {
     if (kind === "weekly") return { kind: "weekly", weekdays: [...weekdays].sort() };

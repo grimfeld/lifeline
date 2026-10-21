@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { addDays, formatHuman, todayStr } from "@lifeline/core";
+import { addDays, formatHuman, initialText, todayStr, type CommandDialogProps } from "@lifeline/core";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { clearMood, setMood, useMoodsByDate } from "../data/repo";
@@ -10,9 +10,11 @@ import { MoodPicker } from "./MoodPicker";
  * The palette's "Set mood…": five buttons for a day, today by default, with
  * a step back for the days you forgot. Future days are refused (ADR 0044).
  */
-export function SetMoodDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+export function SetMoodDialog({ open, onOpenChange, initial }: CommandDialogProps) {
   const today = todayStr();
-  const [date, setDate] = useState(today);
+  // The inline line may name the day (never one still to come).
+  const named = initialText(initial, "date");
+  const [date, setDate] = useState(named && named < today ? named : today);
   const byDate = useMoodsByDate();
   const current = byDate.get(date) ?? null;
 
@@ -23,7 +25,7 @@ export function SetMoodDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (o) setDate(today); onOpenChange(o); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (o) setDate(named && named < today ? named : today); onOpenChange(o); }}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>How was it?</DialogTitle>
