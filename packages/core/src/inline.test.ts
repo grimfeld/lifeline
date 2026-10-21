@@ -100,6 +100,8 @@ describe("the ! mark", () => {
     expect(r.command?.id).toBe("tasks.add");
     expect(r.ready).toBe(false);
     expect(r.problems.join()).toMatch(/one Command/);
+    expect(r.secondCommand).toBe(true);
+    expect(read("!task call mum").secondCommand).toBe(false);
   });
 });
 

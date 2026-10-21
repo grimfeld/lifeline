@@ -31,13 +31,16 @@ import {
   MACRO_APP,
   builtinOf,
   checkMacro,
+  commandKey,
   commandNavigates,
+  commandRun,
   deleteMacro,
-  isInvocable,
+  moveStep,
+  removeStep,
   resetMacro,
   restoreMacro,
+  returnsDocument,
   saveMacro,
-  stepKey,
   useAllCommands,
   useLiveQuery,
   useMacros,
@@ -49,7 +52,7 @@ import {
   type StepArg,
 } from "@lifeline/core";
 import { ArrowDown, ArrowLeft, ArrowUp, Plus, RotateCcw, Trash2, X } from "lucide-react";
-import { ArgInput } from "../macros/ArgInput";
+import { ArgInput, argLabel } from "../macros/ArgInput";
 
 /**
  * `/settings/macros` (ADR 0092): the user's Macros — each a Command made of
@@ -82,7 +85,7 @@ export function MacrosPage() {
       <PageHeader title="Macros">
         <PhoneDock>
           <Button onClick={() => setEditing("new")}>
-            <Plus /> New macro
+            <Plus /> New Macro
           </Button>
         </PhoneDock>
       </PageHeader>
@@ -91,7 +94,7 @@ export function MacrosPage() {
         stops the Macro there, and what was done stays done.
       </p>
       {macros.length === 0 ? (
-        <EmptyState>No macros yet.</EmptyState>
+        <EmptyState>No Macros yet.</EmptyState>
       ) : (
         <ul className="flex flex-col gap-2" aria-label="Macros">
           {macros.map((m) => {
@@ -99,7 +102,11 @@ export function MacrosPage() {
             const broken = check && !check.ok ? check.reasons : undefined;
             return (
               <li key={m.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                <button className="flex min-w-0 flex-1 flex-col items-start text-left hover:underline" onClick={() => setEditing(m)}>
+                <button
+                  type="button"
+                  className="hover:bg-accent focus-visible:ring-ring -mx-2 -my-1 flex min-w-0 flex-1 flex-col items-start rounded-md px-2 py-1 text-left focus-visible:ring-2 focus-visible:outline-none"
+                  onClick={() => setEditing(m)}
+                >
                   <span className="flex w-full min-w-0 items-center gap-2">
                     <span className="min-w-0 truncate font-medium">{m.name}</span>
                     {broken && <Badge variant="destructive">Broken</Badge>}
@@ -117,13 +124,13 @@ export function MacrosPage() {
                 </button>
                 {builtinOf(m) && (
                   <Tip label={`Reset ${m.name} to default`}>
-                    <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label={`Reset ${m.name} to default`} onClick={() => void reset(m)}>
+                    <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => void reset(m)}>
                       <RotateCcw />
                     </Button>
                   </Tip>
                 )}
                 <Tip label={`Delete ${m.name}`}>
-                  <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label={`Delete ${m.name}`} onClick={() => void remove(m)}>
+                  <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => void remove(m)}>
                     <Trash2 />
                   </Button>
                 </Tip>
@@ -144,7 +151,7 @@ export function MacrosPage() {
 
 function stepSummary(m: MacroRecord, commands: readonly OwnedCommand[]): string {
   if (m.steps.length === 0) return "No steps";
-  return m.steps.map((s) => commands.find((c) => stepKey(c) === s.command)?.title ?? s.command).join(" → ");
+  return m.steps.map((s) => commands.find((c) => commandKey(c) === s.command)?.title ?? s.command).join(" → ");
 }
 
 /** A step as the editor holds it: the Command, where each argument comes from, and whether a refusal skips it. */
@@ -164,39 +171,26 @@ function fromDraft(step: DraftStep): MacroStep {
   return { command: step.command, args: Object.fromEntries(given), ...(step.skipIfRefused ? { skipIfRefused: true } : {}) };
 }
 
-/** What kind of step a Command makes: run with its values, its own dialog opened at its turn, or a place it takes the user (last only). */
-function stepKind(def: OwnedCommand): "headless" | "dialog" | "navigates" | "run" {
-  if (isInvocable(def)) return "headless";
-  if (def.dialog) return "dialog";
-  return commandNavigates(def) ? "navigates" : "run";
-}
-
 function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; commands: readonly OwnedCommand[]; onClose: () => void }) {
   const [name, setName] = useState(macro?.name ?? "");
   const [steps, setSteps] = useState<DraftStep[]>(() => macro?.steps.map(toDraft) ?? []);
   // Any Command but a Macro can be a step — headless, dialog-only or one that goes somewhere (ADR 0092).
-  const stepable = useMemo(() => commands.filter((c) => c.appId !== MACRO_APP && (isInvocable(c) || c.dialog || c.run)), [commands]);
-  const byKey = useMemo(() => new Map(stepable.map((c) => [stepKey(c), c])), [stepable]);
-  const options = useMemo(() => stepable.map((c) => ({ value: stepKey(c), label: c.title, keywords: c.keywords })), [stepable]);
+  const stepable = useMemo(() => commands.filter((c) => c.appId !== MACRO_APP && commandRun(c) !== "none"), [commands]);
+  const byKey = useMemo(() => new Map(stepable.map((c) => [commandKey(c), c])), [stepable]);
+  const options = useMemo(() => stepable.map((c) => ({ value: commandKey(c), label: c.title, keywords: c.keywords })), [stepable]);
   const misplaced = steps.some((s, i) => {
     const def = byKey.get(s.command);
     return def && i < steps.length - 1 && commandNavigates(def);
   });
 
-  const move = (i: number, by: -1 | 1) =>
-    setSteps((s) => {
-      const next = [...s];
-      [next[i], next[i + by]] = [next[i + by], next[i]];
-      // A step result follows the step it names.
-      const swap = (n: number) => (n === i ? i + by : n === i + by ? i : n);
-      return next.map((st) => ({ ...st, args: Object.fromEntries(Object.entries(st.args).map(([k, a]) => [k, a.from === "step" ? { ...a, step: swap(a.step) } : a])) }));
-    });
+  // A step result follows the step it names, as a step moves or one before it goes.
+  const move = (i: number, by: -1 | 1) => setSteps((s) => moveStep(s, i, by));
   const update = (i: number, change: Partial<DraftStep>) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, ...change } : st)));
   const setArg = (i: number, key: string, arg: StepArg) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, args: { ...st.args, [key]: arg } } : st)));
 
   async function save() {
     await saveMacro({ id: macro?.id, name: name.trim(), steps: steps.map(fromDraft) });
-    toast.success(macro ? `Saved “${name.trim()}”` : `Made the macro “${name.trim()}”`);
+    toast.success(macro ? `Saved “${name.trim()}”` : `Made the Macro “${name.trim()}”`);
     onClose();
   }
 
@@ -204,7 +198,7 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="min-w-0">{macro ? `Edit ${macro.name}` : "New macro"}</DialogTitle>
+          <DialogTitle className="min-w-0">{macro ? `Edit ${macro.name}` : "New Macro"}</DialogTitle>
           <DialogDescription>Its steps run in order. Each argument is fixed here, asked when the Macro runs, or what an earlier step made.</DialogDescription>
         </DialogHeader>
         <Field label="Name">
@@ -213,10 +207,11 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
         <ol className="flex flex-col gap-3" aria-label="Steps">
           {steps.map((s, i) => {
             const def = byKey.get(s.command);
-            const kind = def && stepKind(def);
+            const kind = def && commandRun(def);
+            // Only an earlier step that returns a Document can give one to a link.
             const earlier = steps.slice(0, i).flatMap((e, j) => {
               const d = byKey.get(e.command);
-              return d && isInvocable(d) ? [{ index: j, title: d.title }] : [];
+              return d && returnsDocument(d) ? [{ index: j, title: d.title }] : [];
             });
             return (
               <li key={i} className="flex flex-col gap-3 rounded-lg border p-3" aria-label={`Step ${i + 1}`}>
@@ -224,17 +219,17 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
                   <span className="text-muted-foreground shrink-0 text-xs">{i + 1}.</span>
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">{def?.title ?? s.command}</span>
                   <Tip label="Move up">
-                    <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)}>
+                    <Button size="icon-sm" variant="ghost" className="shrink-0" disabled={i === 0} onClick={() => move(i, -1)}>
                       <ArrowUp />
                     </Button>
                   </Tip>
                   <Tip label="Move down">
-                    <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label="Move down" disabled={i === steps.length - 1} onClick={() => move(i, 1)}>
+                    <Button size="icon-sm" variant="ghost" className="shrink-0" disabled={i === steps.length - 1} onClick={() => move(i, 1)}>
                       <ArrowDown />
                     </Button>
                   </Tip>
                   <Tip label="Remove step">
-                    <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label="Remove step" onClick={() => setSteps((st) => st.filter((_, j) => j !== i))}>
+                    <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => setSteps((st) => removeStep(st, i))}>
                       <X />
                     </Button>
                   </Tip>
@@ -293,7 +288,7 @@ const ASKED = "asked";
 function ArgSource({ arg, source, earlier, onChange }: { arg: CommandArg; source?: StepArg; earlier: { index: number; title: string }[]; onChange: (a: StepArg) => void }) {
   const current = source ?? { from: "fixed", value: undefined };
   const choice = current.from === "step" ? `step:${current.step}` : current.from;
-  const label = arg.required ? `${arg.label} (required)` : arg.label;
+  const label = argLabel(arg);
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <Select

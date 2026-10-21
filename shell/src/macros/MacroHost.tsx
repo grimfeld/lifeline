@@ -1,10 +1,11 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, cn } from "@lifeline/ui";
 import {
+  argProblems,
+  localWrites,
   onMacroReport,
   openPeek,
   provideMacroUi,
-  readCommandArgs,
   type CommandArg,
   type MacroReport,
   type MacroShape,
@@ -22,6 +23,7 @@ interface Asking {
 
 interface StepDialog {
   Dialog: ComponentType<{ open: boolean; onOpenChange: (open: boolean) => void }>;
+  /** Called once it is closed. */
   done: () => void;
 }
 
@@ -38,10 +40,12 @@ export function MacroHost() {
     () =>
       provideMacroUi({
         ask: (macro, args, initial) => new Promise((done) => setAsking({ macro, args, initial, done })),
+        // A dialog says only that it closed: it was done when it wrote something while open, cancelled when it wrote nothing.
         openDialog: (def) =>
-          new Promise<void>((done) => {
-            if (!def.dialog) return done();
-            setStepDialog({ Dialog: def.dialog, done });
+          new Promise<boolean>((done) => {
+            if (!def.dialog) return done(false);
+            const before = localWrites();
+            setStepDialog({ Dialog: def.dialog, done: () => done(localWrites() > before) });
           }),
       }),
     [],
@@ -76,14 +80,12 @@ export function MacroHost() {
 /** Every asked argument of a Macro, in one form, checked against its signature before the first step runs. */
 function AskedForm({ asking, onDone }: { asking: Asking; onDone: (answers: Record<string, unknown> | undefined) => void }) {
   const [values, setValues] = useState<Record<string, unknown>>(asking.initial ?? {});
-  const [error, setError] = useState<string | null>(null);
+  // What is wrong with each value, shown under its field once Run is pressed.
+  const [errors, setErrors] = useState<Record<string, string>>({});
   async function submit() {
-    try {
-      await readCommandArgs(asking.args, values);
-      onDone(values);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
+    const problems = await argProblems(asking.args, values);
+    if (Object.keys(problems).length === 0) return onDone(values);
+    setErrors(problems);
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onDone(undefined)}>
@@ -100,13 +102,8 @@ function AskedForm({ asking, onDone }: { asking: Asking; onDone: (answers: Recor
           }}
         >
           {asking.args.map((a) => (
-            <ArgInput key={a.key} arg={a} value={values[a.key]} onChange={(v) => setValues((s) => ({ ...s, [a.key]: v }))} />
+            <ArgInput key={a.key} arg={a} value={values[a.key]} error={errors[a.key]} onChange={(v) => setValues((s) => ({ ...s, [a.key]: v }))} />
           ))}
-          {error && (
-            <p role="alert" className="text-destructive text-sm">
-              {error}
-            </p>
-          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onDone(undefined)}>
               Cancel

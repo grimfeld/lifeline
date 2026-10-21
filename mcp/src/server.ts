@@ -48,7 +48,7 @@ function wantsMacroTools(body: unknown): boolean {
 
 /**
  * The tools for one request: the static catalogue and, when it may write and
- * the request needs them, the Account's headless Macros (ADR 0092). Macros are
+ * the request needs them, the Account's headless Macros (ADR 0095). Macros are
  * the Account's data, so they come from its device per request, not from
  * \`TOOLS\` at import. A device that cannot answer costs the Macro tools, never
  * the listing.

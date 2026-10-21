@@ -28,6 +28,7 @@ export const swearjarCommands: CommandDef[] = [
       { key: "time", label: "Time", kind: "time", hint: "With a day; defaults to noon." },
       { key: "note", label: "Note", kind: "longtext" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const offences = (await allOffences()).filter((o) => !o.archived);
       const id = pickLinked({ key: "offence", label: "Offence", kind: "link" }, a.offence as string, offences.map((o) => ({ id: o.id, type: o.type, title: o.name })));

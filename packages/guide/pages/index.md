@@ -46,7 +46,7 @@ More in [Using Lifeline on a phone](phone.md).
 - Lifeline reopens where you last were, per Workspace and per device.
 - **Ctrl+K** (⌘K on a Mac) opens the command palette from anywhere. See [Capture](capture.md).
 - Give the Commands you use daily a key of their own in **Settings → Keys**. See
-  [Settings](settings.md).
+  [Keys](keys.md).
 
 ## Every page of the Guide
 
@@ -81,6 +81,8 @@ More in [Using Lifeline on a phone](phone.md).
 - [Links](links.md) — wikilinks, backlinks, unlinked mentions, aliases
 - [The Vault](vault.md) — the raw editor for bodies
 - [Using Lifeline on a phone](phone.md)
+- [Macros](macros.md) — several Commands run as one
+- [Keys](keys.md) — a key of your own for any Command
 - [Settings](settings.md)
 - [Claude](connector.md) — the Claude connector
 - [About the Guide](guide.md)

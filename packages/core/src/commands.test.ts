@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { initialList, initialMoment, initialNumber, initialText, invokeCommand, momentOf, pickLinked, readCommandArgs } from "./commands";
+import { argProblems, initialList, initialMoment, initialNumber, initialText, invokeCommand, momentOf, pickLinked, readCommandArgs } from "./commands";
 import type { CommandArg, CommandDef } from "./manifest";
 
 const ARGS: CommandArg[] = [
@@ -63,6 +63,17 @@ describe("rows arguments", () => {
     await expect(readCommandArgs(LINES, { lines: [{ label: "Milk", price: 1, colour: "red" }] })).rejects.toThrow("Lines, row 1: Unknown argument: colour");
     await expect(readCommandArgs(LINES, { lines: ["Milk"] })).rejects.toThrow("Lines, row 1: expected a record");
     await expect(readCommandArgs(LINES, { lines: [] })).rejects.toThrow("Lines is required");
+  });
+});
+
+describe("argProblems", () => {
+  it("says what is wrong with each value, by its argument, so a form shows it under that field", async () => {
+    expect(await argProblems(ARGS, { minutes: "lots", date: "tomorrow" })).toEqual({
+      title: "Title is required",
+      date: "Date: expected a date as YYYY-MM-DD",
+      minutes: "Minutes: expected a number",
+    });
+    expect(await argProblems(ARGS, { title: "Walk" })).toEqual({});
   });
 });
 

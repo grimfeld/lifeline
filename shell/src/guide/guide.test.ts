@@ -58,6 +58,8 @@ describe("the Guide", () => {
     expect(guideSlugForPath("/calendar")).toBe("calendar");
     expect(guideSlugForPath("/base/task")).toBe("bases");
     expect(guideSlugForPath("/settings")).toBe("settings");
+    expect(guideSlugForPath("/settings/macros")).toBe("macros");
+    expect(guideSlugForPath("/settings/keys")).toBe("keys");
     expect(guideSlugForPath("/guide/house")).toBe("index");
   });
 });

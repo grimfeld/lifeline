@@ -86,15 +86,16 @@ export const choreCommands: CommandDef[] = [
       { key: "anchorDate", label: "First due", kind: "date", hint: "Interval chores only: the day the first cycle is due. Defaults to today." },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const schedule = readSchedule(a.schedule);
-      await addChore({
+      const id = await addChore({
         title: a.title as string,
         schedule,
         anchorDate: schedule.kind === "interval" ? ((a.anchorDate as string | undefined) ?? todayStr()) : null,
         tags: (a.tags as string[] | undefined) ?? [],
       });
-      return { message: `Added chore “${a.title}” (${describeSchedule(schedule)})` };
+      return { id, message: `Added chore “${a.title}” (${describeSchedule(schedule)})` };
     },
   },
   {

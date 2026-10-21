@@ -23,6 +23,7 @@ export const shoppingCommands: CommandDef[] = [
       { key: "note", label: "Note", kind: "text", hint: "e.g. the big pack." },
       { key: "aisle", label: "Aisle", kind: "link", linkType: AISLE },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const title = a.title as string;
       const out = addOutcome(await allNeeds(), title);

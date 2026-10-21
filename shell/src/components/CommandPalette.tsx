@@ -12,8 +12,7 @@ import {
   CommandShortcut,
 } from "@lifeline/ui";
 import {
-  appById,
-  MACRO_APP,
+  commandAppTitle,
   CALENDAR_VIEWS,
   isInvocable,
   chordLabel,
@@ -229,7 +228,7 @@ export function CommandPalette() {
                     onSelect={() => pick(() => void offer.run({ navigate }))}
                   >
                     <Icon /> <span className="min-w-0 flex-1 truncate">{offer.label}</span>
-                    <span className="text-muted-foreground shrink-0 text-xs">{appById(c.appId)?.title}</span>
+                    <span className="text-muted-foreground shrink-0 text-xs">{commandAppTitle(c.appId)}</span>
                   </CommandItem>
                 );
               })}
@@ -259,11 +258,11 @@ export function CommandPalette() {
                   <CommandItem
                     key={`capture-${c.appId}/${c.id}`}
                     value={`${c.title} ${c.appId}/${c.id}`}
-                    keywords={[...(c.keywords ?? []), appById(c.appId)?.title ?? "", CAPTURE_MARK]}
+                    keywords={[...(c.keywords ?? []), commandAppTitle(c.appId) ?? "", CAPTURE_MARK]}
                     onSelect={() => runCommand(c)}
                   >
                     <Icon /> {c.title}
-                    <span className="text-muted-foreground ml-auto text-xs">{appById(c.appId)?.title}</span>
+                    <span className="text-muted-foreground ml-auto text-xs">{commandAppTitle(c.appId)}</span>
                     {keyHint(c)}
                   </CommandItem>
                 );
@@ -333,7 +332,7 @@ export function CommandPalette() {
                   >
                     <Icon /> {c.title}
                     <span className="text-muted-foreground ml-auto text-xs">
-                      {c.appId === MACRO_APP ? "Macro" : appById(c.appId)?.title}
+                      {commandAppTitle(c.appId)}
                     </span>
                     {keyHint(c)}
                   </CommandItem>

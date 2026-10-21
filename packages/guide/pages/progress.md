@@ -88,7 +88,8 @@ the Session. PRs are worked out from Sessions by themselves.
 
 What you keep here: how each day felt, on five steps — Rough, Meh, Okay, Good, Great. One per day.
 
-- **Set mood** — pick today's mood, or a past day's. Where: the Capture sheet, the palette.
+- **Set mood** — pick today's mood, or a past day's. Where: the Capture sheet, the palette. Typed on
+  one line, `#` reads a mood by other words too: `!mood #awful`, `#bof`, `#génial`.
 - **Go to Mood** — opens Mood. Where: the palette.
 - **Today's mood** — Card: five buttons; tap one to set today, tap it again to clear.
 - **Mood grid** — Card: one cell per day, this month or this year, with the average and the

@@ -64,6 +64,7 @@ export const discothequeCommands: CommandDef[] = [
       { key: "creator", label: "Creator", kind: "text", hint: "Artist." },
       { key: "type", label: "Kind", kind: "select", options: WORK_TYPES.map((t) => ({ value: t.id, label: t.label })), hint: `Defaults to ${WORK_TYPES[0].id}.` },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const medium = ((a.type as WorkTypeId | undefined) ?? WORK_TYPES[0].id) as WorkTypeId;
       const title = (a.title as string).trim();
@@ -86,6 +87,7 @@ export const discothequeCommands: CommandDef[] = [
       { key: "rating", label: "Stars", kind: "number", hint: `Whole stars, 1–${RATING_MAX}.` },
       { key: "liked", label: "Liked", kind: "boolean" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const works = await allWorks();
       const id = pickLinked({ key: "work", label: "Work", kind: "link" }, a.work as string, works);
@@ -108,6 +110,7 @@ export const discothequeCommands: CommandDef[] = [
     dialog: NextPartCommandDialog,
     capture: true,
     args: [{ key: "work", label: "Work", kind: "text", required: true, hint: "Id or exact title of an album already on the shelf." }],
+    returnsDocument: true,
     async invoke(a) {
       const works = await allWorks();
       const id = pickLinked({ key: "work", label: "Work", kind: "link" }, a.work as string, works);

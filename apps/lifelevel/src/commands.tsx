@@ -29,6 +29,7 @@ export const lifelevelCommands: CommandDef[] = [
       { key: "time", label: "Time", kind: "time", hint: "With a day; defaults to noon." },
       { key: "note", label: "Note", kind: "longtext" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const r = await completeHabit(a.habit as string, { occurredAt: momentOf(a.date as string | undefined, a.time as string | undefined), note: a.note as string | undefined });
       if (!r) throw new Error("That Habit no longer exists");
@@ -49,6 +50,7 @@ export const lifelevelCommands: CommandDef[] = [
       { key: "time", label: "Time", kind: "time", hint: "With a day; defaults to noon." },
       { key: "note", label: "Note", kind: "longtext" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const r = await logNegative(a.negative as string, { occurredAt: momentOf(a.date as string | undefined, a.time as string | undefined), note: a.note as string | undefined });
       if (!r) throw new Error("That Negative no longer exists");

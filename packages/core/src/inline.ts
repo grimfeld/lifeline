@@ -1,5 +1,5 @@
-import { isInvocable, linkCandidates, type LinkableDocument } from "./commands";
-import type { CommandArg, CommandDef } from "./manifest";
+import { isInvocable, linkCandidates, type LinkableDocument, type OwnedCommand } from "./commands";
+import type { CommandArg } from "./manifest";
 import { normalizeTag } from "./tags";
 
 /**
@@ -20,7 +20,7 @@ import { normalizeTag } from "./tags";
  * a dialog's initial values when Enter cannot run the Command headless.
  */
 
-export type InlineCommand = CommandDef & { appId: string };
+export type InlineCommand = OwnedCommand;
 
 /** What a date reader makes of the words after `/`: the moment, how many characters it read, and how to show it. */
 export interface InlineDateReading {
@@ -98,6 +98,8 @@ export interface InlineReading {
   suggestions: InlineSuggestion[];
   /** The Command can run headless as read: nothing missing, ambiguous or wrong. */
   ready: boolean;
+  /** The line names a second Command: it runs one, so Enter has nothing to do (the problem says which). */
+  secondCommand: boolean;
 }
 
 interface Token {
@@ -231,6 +233,7 @@ export function readInlineLine(input: InlineLineInput): InlineReading {
     spans: [],
     suggestions: [],
     ready: false,
+    secondCommand: false,
   };
 
   const commandTokens = tokens.filter((t) => markOf(t.raw, false) === "!");
@@ -245,6 +248,7 @@ export function readInlineLine(input: InlineLineInput): InlineReading {
   reading.command = command;
   if (!command) reading.problems.push(`No Command is called “${first.raw}”`);
   for (const t of extra) reading.problems.push(`One line runs one Command: “${t.raw}” is a second`);
+  reading.secondCommand = extra.length > 0;
 
   const args = command?.args ?? [];
   const values: Record<string, unknown> = {};

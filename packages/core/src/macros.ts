@@ -1,19 +1,16 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { invokeCommand, isInvocable, readCommandArgs } from "./commands";
+import { commandKey, commandNavigates, commandRun, invokeCommand, isInvocable, readCommandArgs, type OwnedCommand } from "./commands";
 import { db, MACROS, type SyncedRecord } from "./data/db";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
 import { checkMacro, type DocumentLookup } from "./macroCheck";
-import type { CommandArg, CommandCtx, CommandDef } from "./manifest";
+import type { CommandArg, CommandCtx } from "./manifest";
 
 /**
  * Macros (CONTEXT.md "Macro", ADR 0092): a user-made Command whose steps are
  * other Commands, run in order, each through the App that owns it. Pure over
  * Command definitions — the caller hands in the registry's Commands.
  */
-
-/** A Command as the registry lists it: with the App that owns it. */
-export type OwnedCommand = CommandDef & { appId: string };
 
 /**
  * Where one argument of a step gets its value (ADR 0092): fixed in the Macro,
@@ -53,22 +50,8 @@ export interface MacroReport {
   broken?: string[];
 }
 
-/** The `appId/commandId` key a step names its Command by. */
-export function stepKey(c: Pick<OwnedCommand, "appId" | "id">): string {
-  return `${c.appId}/${c.id}`;
-}
-
 function findCommand(commands: readonly OwnedCommand[], key: string): OwnedCommand | undefined {
-  return commands.find((c) => stepKey(c) === key);
-}
-
-/**
- * Whether running a Command takes the user somewhere: as it says, or — when
- * it doesn't say — when all it has is `run` (no dialog, no headless form),
- * which is how a "Go to…" Command is written. A Macro's navigating step comes last.
- */
-export function commandNavigates(def: CommandDef): boolean {
-  return def.navigates ?? (!!def.run && !def.dialog && !isInvocable(def));
+  return commands.find((c) => commandKey(c) === key);
 }
 
 /** The key an asked argument goes by in the Macro's own signature: namespaced by its step (1-based), so two steps may ask an `amount` each. */
@@ -97,6 +80,39 @@ export function macroArgs(macro: MacroShape, commands: readonly OwnedCommand[]):
   }));
 }
 
+/**
+ * Move step `i` by one place, each "what step N made" following the step it names.
+ * Generic over the step's own shape, so the editor's drafts move the same way.
+ */
+export function moveStep<S extends Pick<MacroStep, "args">>(steps: readonly S[], i: number, by: -1 | 1): S[] {
+  const j = i + by;
+  if (j < 0 || j >= steps.length) return [...steps];
+  const next = [...steps];
+  [next[i], next[j]] = [next[j], next[i]];
+  return renumber(next, (n) => (n === i ? j : n === j ? i : n));
+}
+
+/** Remove step `i`: references to later steps move down one, and one that named it is left empty (fixed, no value). */
+export function removeStep<S extends Pick<MacroStep, "args">>(steps: readonly S[], i: number): S[] {
+  return renumber(
+    steps.filter((_, k) => k !== i),
+    (n) => (n === i ? undefined : n > i ? n - 1 : n),
+  );
+}
+
+function renumber<S extends Pick<MacroStep, "args">>(steps: S[], to: (n: number) => number | undefined): S[] {
+  return steps.map((s) => ({
+    ...s,
+    args: Object.fromEntries(
+      Object.entries(s.args).map(([k, a]): [string, StepArg] => {
+        if (a.from !== "step") return [k, a];
+        const n = to(a.step);
+        return [k, n === undefined ? { from: "fixed", value: undefined } : { from: "step", step: n }];
+      }),
+    ),
+  }));
+}
+
 /** Headless exactly when every step is (ADR 0092): then it runs with its asked arguments alone, from an agent or an inline line. */
 export function isMacroHeadless(macro: MacroShape, commands: readonly OwnedCommand[]): boolean {
   return macro.steps.length > 0 && macro.steps.every((s) => {
@@ -111,8 +127,8 @@ export interface RunOptions {
   asked?: Record<string, unknown>;
   /** Where the run can take the user, for a step that goes somewhere. */
   ctx?: CommandCtx;
-  /** Opens a dialog-only step's dialog; resolves once it is closed. */
-  openDialog?: (def: OwnedCommand) => Promise<void>;
+  /** Opens a dialog-only step's dialog; resolves once it is closed, with whether it was done (false: cancelled). */
+  openDialog?: (def: OwnedCommand) => Promise<boolean>;
   /** Where the check looks up fixed links; the local store by default. */
   lookup?: DocumentLookup;
 }
@@ -136,22 +152,25 @@ function stepValues(step: MacroStep, index: number, asked: Record<string, unknow
   );
 }
 
+/** A step that stops the Macro whether or not it may be skipped: it could not run here, or the person cancelled it. */
 class Broken extends Error {}
 
-/** One step at its turn: headless through `invokeCommand`, else its dialog or its `run`. */
+/** One step at its turn, as `commandRun` reads it: headless through `invokeCommand`, else its dialog or its `run`. */
 async function runStep(def: OwnedCommand, step: MacroStep, index: number, opts: RunOptions, done: (StepOutcome | undefined)[]): Promise<StepOutcome> {
-  if (isInvocable(def)) {
-    const result = await invokeCommand(def, stepValues(step, index, opts.asked ?? {}, done));
-    return { status: "done", message: result.message, ...(result.id ? { id: result.id } : {}) };
-  }
-  if (def.dialog) {
-    if (!opts.openDialog) throw new Broken(`“${def.title}” needs its dialog, and none can be opened here`);
-    await opts.openDialog(def);
-    return { status: "done", message: "Done in its dialog" };
-  }
-  if (def.run && opts.ctx) {
-    await def.run(opts.ctx);
-    return { status: "done", message: "Done" };
+  switch (commandRun(def)) {
+    case "headless": {
+      const result = await invokeCommand(def, stepValues(step, index, opts.asked ?? {}, done));
+      return { status: "done", message: result.message, ...(result.id ? { id: result.id } : {}) };
+    }
+    case "dialog":
+      if (!opts.openDialog) throw new Broken(`“${def.title}” needs its dialog, and none can be opened here`);
+      if (!(await opts.openDialog(def))) throw new Broken("Cancelled");
+      return { status: "done", message: "Done in its dialog" };
+    case "navigates":
+    case "run":
+      if (!opts.ctx) break;
+      await def.run!(opts.ctx);
+      return { status: "done", message: "Done" };
   }
   throw new Broken(`“${def.title}” cannot be run here`);
 }
@@ -228,8 +247,8 @@ export function onMacroReport(listener: (report: MacroReport) => void): () => vo
 export interface MacroUi {
   /** Ask every asked argument at once; undefined when the person cancels (then nothing runs). */
   ask: (macro: MacroShape, args: CommandArg[], initial?: Record<string, unknown>) => Promise<Record<string, unknown> | undefined>;
-  /** Open a dialog-only step's dialog; resolves once it is closed. */
-  openDialog: (def: OwnedCommand) => Promise<void>;
+  /** Open a dialog-only step's dialog; resolves once it is closed, with whether it was done (false: cancelled). */
+  openDialog: (def: OwnedCommand) => Promise<boolean>;
 }
 
 let macroUi: MacroUi | undefined;
@@ -277,12 +296,33 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
     },
   };
   if (!isMacroHeadless(macro, commands)) return def;
-  return { ...def, args, invoke: async (asked) => {
-      const r = await runMacro(macro, commands, { asked });
-      if (r.broken) throw new Error(`“${macro.name}” is broken: ${r.broken.join("; ")}`);
-      return { message: reportMessage(report(r)) };
-    },
-  };
+  return { ...def, args, invoke: async (asked) => ({ message: reportMessage(report(await runMacroHeadless(macro, commands, asked))) }) };
+}
+
+/**
+ * Run a headless Macro with its asked arguments, as an agent does, and hand
+ * back its report: the arguments checked against its signature (`macroArgs`)
+ * first. A Macro that is not headless, or broken, is refused with why — then
+ * nothing ran.
+ */
+export async function runMacroHeadless(macro: MacroShape, commands: readonly OwnedCommand[], raw: Record<string, unknown>): Promise<MacroReport> {
+  if (!isMacroHeadless(macro, commands)) throw new Error(`“${macro.name}” cannot be run without a dialog`);
+  const asked = await readCommandArgs(macroArgs(macro, commands), raw);
+  const r = await runMacro(macro, commands, { asked });
+  if (r.broken) throw new Error(`“${macro.name}” is broken: ${r.broken.join("; ")}`);
+  return r;
+}
+
+/**
+ * The registry a Macro is checked and run against: the Apps' Commands and
+ * every Macro as a Command (`macroCommand`) — one list, so a Macro naming
+ * another as a step is refused as one wherever it is checked. Each Macro holds
+ * the whole list, filled before any of them runs.
+ */
+export function withMacros(own: readonly OwnedCommand[], macros: readonly (MacroShape & { id: string })[]): OwnedCommand[] {
+  const registry: OwnedCommand[] = [...own];
+  registry.push(...macros.map((m) => macroCommand(m, registry)));
+  return registry;
 }
 
 // --- persistence -----------------------------------------------------------
@@ -294,14 +334,14 @@ export interface MacroRecord extends SyncedRecord, MacroShape {
   builtin?: string;
 }
 
-/** Every living Macro, in the user's order. */
-export function useMacros(): MacroRecord[] {
-  return useLiveQuery(async () => (await db().collection<MacroRecord>(MACROS).where("deleted").equals(0).toArray()).sort((a, b) => a.sort - b.sort), [], [] as MacroRecord[]);
-}
-
-/** Every living Macro, read once (for a caller outside React). */
+/** Every living Macro, in the user's order, read once (for a caller outside React). */
 export async function allMacros(): Promise<MacroRecord[]> {
   return (await db().collection<MacroRecord>(MACROS).where("deleted").equals(0).toArray()).sort((a, b) => a.sort - b.sort);
+}
+
+/** Every living Macro, in the user's order, kept live. */
+export function useMacros(): MacroRecord[] {
+  return useLiveQuery(allMacros, [], [] as MacroRecord[]);
 }
 
 /** Create (no `id`) or overwrite a Macro. A new one goes last; an overwritten one stays the built-in it was. */

@@ -331,6 +331,12 @@ export interface CommandDef {
    */
   invoke?: (args: Record<string, unknown>) => Promise<CommandResult>;
   /**
+   * `invoke` returns the id of the Document it made or changed (`CommandResult.id`),
+   * so a later step of a Macro may take it as a link (ADR 0092). Declared, not
+   * guessed: a Command that leaves no Document (setting a mood) leaves it out.
+   */
+  returnsDocument?: boolean;
+  /**
    * An inline Command (CONTEXT.md "Command", ADR 0088) reads the palette's
    * whole query as its argument: asked on every change of the query, it offers
    * a row pinned above every other, or nothing when the query doesn't parse.

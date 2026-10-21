@@ -39,6 +39,7 @@ export const arcadeCommands: CommandDef[] = [
       { key: "creator", label: "Creator", kind: "text", hint: "Developer." },
       { key: "type", label: "Kind", kind: "select", options: WORK_TYPES.map((t) => ({ value: t.id, label: t.label })), hint: `Defaults to ${WORK_TYPES[0].id}.` },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const medium = ((a.type as WorkTypeId | undefined) ?? WORK_TYPES[0].id) as WorkTypeId;
       const title = (a.title as string).trim();

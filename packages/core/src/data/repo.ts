@@ -1,6 +1,17 @@
 import { db, type SyncedRecord } from "./db";
 import { requestSync } from "./sync";
 
+let writes = 0;
+
+/**
+ * How many local writes this device has made since it started: a caller
+ * compares two readings to learn whether anything was written in between (a
+ * Macro's dialog step closed after saving, or cancelled).
+ */
+export function localWrites(): number {
+  return writes;
+}
+
 /**
  * All local writes go through here: stamp the LWW clock, store, queue for
  * push. Apps never talk to PocketBase directly.
@@ -22,6 +33,7 @@ export async function put<T extends SyncedRecord>(
       queuedAt: new Date().toISOString(),
     });
   });
+  writes++;
   requestSync();
 }
 

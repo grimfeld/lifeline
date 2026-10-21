@@ -26,7 +26,7 @@ test("a Macro made in Settings runs from the palette, stops at a refusal and rep
   const need = `Oat milk ${Date.now()}`;
   await page.goto("/settings/macros");
   await workLocally(page);
-  await page.getByRole("button", { name: "New macro" }).click();
+  await page.getByRole("button", { name: "New Macro" }).click();
   await page.getByRole("dialog").getByLabel("Name").fill("Errand run");
   await addStep(page, "Add task", "Title (required)", "Call mum about the errands");
   await addStep(page, "Add need…", "Thing (required)", need);
@@ -86,7 +86,7 @@ test("a Macro asks its asked arguments in one form, skips a step refused when it
   const title = `Water the plants ${Date.now()}`;
   await page.goto("/settings/macros");
   await workLocally(page);
-  await page.getByRole("button", { name: "New macro" }).click();
+  await page.getByRole("button", { name: "New Macro" }).click();
   const editor = page.getByRole("dialog");
   await editor.getByLabel("Name").fill("Morning check");
   const add = editor.getByRole("combobox", { name: "Add a step" });
@@ -157,7 +157,7 @@ test("the built-in morning Macro is given once: reset puts it back as it shipped
   await expect(list.getByText("Morning", { exact: true })).toHaveCount(0);
   await page.reload();
   await workLocally(page);
-  await expect(page.getByRole("button", { name: "New macro" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "New Macro" })).toBeVisible();
   // Seeding runs on every load; give it the chance to (wrongly) bring Morning back.
   await page.waitForTimeout(500);
   await expect(page.getByRole("button", { name: "Delete Morning" })).toHaveCount(0);
@@ -190,6 +190,10 @@ test("a Macro typed inline runs when its asked arguments are complete and opens 
   await page.keyboard.press("Enter");
   const form = page.getByRole("dialog", { name: "Errand" });
   await expect(form.getByLabel("Title (required)")).toHaveValue(`Pick up ${stamp}`);
+  // A value left out is said under its own field.
+  await form.getByRole("button", { name: "Run" }).click();
+  await expect(form.getByLabel("Thing (required)")).toHaveAttribute("aria-invalid", "true");
+  await expect(form.getByText("Thing is required")).toBeVisible();
   await form.getByLabel("Thing (required)").fill(`Oat milk ${stamp}`);
   await form.getByRole("button", { name: "Run" }).click();
   await expect(page.getByRole("dialog", { name: "Errand" }).getByRole("list", { name: "Steps" }).getByRole("listitem")).toHaveCount(2);
@@ -222,4 +226,34 @@ test("a broken Macro is marked in Settings with why, and refuses to start", asyn
     return (await core.documentsOf("task")).map((d: { title: string }) => d.title);
   }, CORE_URL);
   expect(titles).not.toContain("Never written either");
+});
+
+test("a dialog step closed without saving stops the Macro there, reported cancelled", async ({ page, isMobile }) => {
+  test.skip(isMobile, "the palette is not opened on a phone");
+  await page.goto("/settings/macros");
+  await workLocally(page);
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    await core.saveMacro({
+      name: "Chore then task",
+      steps: [
+        { command: "chores/chores.complete", args: {} },
+        { command: "tasks/tasks.add", args: { title: { from: "fixed", value: "Never after a cancel" } } },
+      ],
+    });
+  }, CORE_URL);
+  await runFromPalette(page, "Chore then task");
+  await expect(page.getByRole("dialog", { name: "Complete a chore" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  const report = page.getByRole("dialog", { name: "Chore then task" });
+  const steps = report.getByRole("list", { name: "Steps" }).getByRole("listitem");
+  await expect(steps.nth(0)).toContainText("Stopped");
+  await expect(steps.nth(0)).toContainText("Cancelled");
+  await expect(steps.nth(1)).toContainText("Not reached");
+  const titles = await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    return (await core.documentsOf("task")).map((d: { title: string }) => d.title);
+  }, CORE_URL);
+  expect(titles).not.toContain("Never after a cancel");
 });
