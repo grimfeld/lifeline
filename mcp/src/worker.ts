@@ -3,7 +3,7 @@ import { parentPort, workerData } from "node:worker_threads";
 import { db, initApps, lastSyncError, pb, syncNow } from "@lifeline/core";
 import { manifests } from "./apps";
 import { unsyncedWrite } from "./devices";
-import { runTool, ToolError } from "./handlers";
+import { listMacroTools, runTool, ToolError } from "./handlers";
 
 /**
  * One Account's headless device (ADR 0062). A worker thread has its own
@@ -18,7 +18,11 @@ export interface DeviceAuth {
   record: { id: string; email: string; collectionId: string; collectionName: string };
 }
 
-export type DeviceRequest = { id: number; kind: "call"; tool: string; args: Record<string, unknown>; write: boolean; auth: DeviceAuth } | { id: number; kind: "flush"; auth: DeviceAuth };
+export type DeviceRequest =
+  | { id: number; kind: "call"; tool: string; args: Record<string, unknown>; write: boolean; auth: DeviceAuth }
+  | { id: number; kind: "flush"; auth: DeviceAuth }
+  /** The Account's Macro tools (tools.ts `macroTools`), for the server to list beside its own. */
+  | { id: number; kind: "macro-tools"; auth: DeviceAuth };
 
 export type DeviceResponse =
   | { id: number; ok: true; result: unknown; pending: number }
@@ -62,6 +66,10 @@ async function handle(req: DeviceRequest): Promise<DeviceResponse> {
     if (req.kind === "flush") {
       await sync();
       return { id: req.id, ok: true, result: null, pending: await pending() };
+    }
+    if (req.kind === "macro-tools") {
+      if (Date.now() - lastPull > READ_FRESH_MS) await sync();
+      return { id: req.id, ok: true, result: await listMacroTools(), pending: await pending() };
     }
     if (Date.now() - lastPull > (req.write ? WRITE_FRESH_MS : READ_FRESH_MS)) await sync();
     const result = await runTool(req.tool, req.args);

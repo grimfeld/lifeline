@@ -91,6 +91,9 @@ A **Macro** runs several Commands in order, as one Command. **Macros** here open
   **Skip if refused**; the steps already done stay done.
 - Every run ends with a report: each step **Done** (with what it said, and **Open** for what it
   made), **Skipped** or **Stopped** (with why), or **Not reached**.
+- [Claude](connector.md) can run a Macro whose steps all work without a dialog, and list, create and
+  edit Macros, checked exactly as here. A Macro it makes appears here at once, yours to edit or
+  delete; Claude cannot delete one.
 
 ## Dates in the palette
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { commandToolName, TOOLS } from "./tools";
+import type { MacroShape } from "@lifeline/core";
+import { commandToolName, macroTools, macroToolSpec, TOOLS } from "./tools";
 import { grantedScopes } from "./oauth";
 import { unsyncedWrite } from "./devices";
 
@@ -68,5 +69,56 @@ describe("grantedScopes", () => {
   it("always grants read, and write exactly when Allow changes is ticked", () => {
     expect(grantedScopes(true)).toEqual(["lifeline:read", "lifeline:write"]);
     expect(grantedScopes(false)).toEqual(["lifeline:read"]);
+  });
+});
+
+describe("Macro tools", () => {
+  const add = {
+    appId: "tasks",
+    id: "add",
+    title: "Add task",
+    args: [
+      { key: "title", label: "Title", kind: "text" as const, required: true },
+      { key: "date", label: "Date", kind: "date" as const },
+    ],
+    invoke: async () => ({ message: "ok" }),
+  };
+  const today = { appId: "core", id: "today", title: "Go to Today", run: () => undefined };
+  const macro = (id: string, name: string, steps: MacroShape["steps"]) => ({ id, name, steps });
+
+  it("lists a headless Macro as a write tool whose arguments are its asked ones", () => {
+    const [tool] = macroTools([macro("m1", "Plan a call", [{ command: "tasks/add", args: { title: { from: "asked" }, date: { from: "fixed", value: "2026-10-22" } } }])], [add]);
+    expect(tool).toMatchObject({ name: "macro_plan_a_call", title: "Plan a call", macro: "m1" });
+    const spec = macroToolSpec(tool);
+    expect(Object.keys(spec.input)).toEqual(["workspace", "s1_title"]);
+    expect(spec).toMatchObject({ name: "macro_plan_a_call", macro: "m1", write: true });
+    expect(spec.input.s1_title.safeParse("call mum").success).toBe(true);
+    expect(spec.input.s1_title.safeParse(undefined).success).toBe(false);
+    expect(spec.description).toContain("Add task");
+  });
+
+  it("leaves out a Macro that is not headless, and keeps names apart", () => {
+    const tools = macroTools(
+      [
+        macro("m1", "Morning", [{ command: "core/today", args: {} }]),
+        macro("m2", "Coffee!", [{ command: "tasks/add", args: { title: { from: "fixed", value: "x" } } }]),
+        macro("m3", "coffee", [{ command: "tasks/add", args: { title: { from: "fixed", value: "y" } } }]),
+      ],
+      [add, today],
+    );
+    const names = tools.map((t) => t.name);
+    // Two Macros named alike both go by their id: neither takes the other's name when one is renamed.
+    expect(names).toEqual(["macro_coffee_m2", "macro_coffee_m3"]);
+    for (const n of [...names, ...TOOLS.map((t) => t.name)]) expect(n).toMatch(/^[a-zA-Z0-9_-]{1,64}$/);
+  });
+
+  it("offers list_macros to read-only connections, and create/update only with write", () => {
+    const by = (n: string) => TOOLS.find((t) => t.name === n);
+    expect(by("list_macros")?.write).toBe(false);
+    expect(by("create_macro")?.write).toBe(true);
+    expect(by("update_macro")?.write).toBe(true);
+    expect(by("delete_macro")).toBeUndefined();
+    expect(by("create_macro")!.input.steps.safeParse([{ command: "tasks/add", args: { title: { from: "asked" }, date: { from: "step", step: 0 } }, skipIfRefused: true }]).success).toBe(true);
+    expect(by("create_macro")!.input.steps.safeParse([{ command: "tasks/add", args: { title: { from: "guess" } } }]).success).toBe(false);
   });
 });

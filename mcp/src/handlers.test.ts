@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Document, DocumentTypeDef } from "@lifeline/core";
+import type { Document, DocumentTypeDef, MacroRecord, OwnedCommand } from "@lifeline/core";
 
 // Core's store is stood in for: these tests are about what the handlers do
 // before they write, not about the store itself.
 const types = new Map<string, DocumentTypeDef>();
 const docs = new Map<string, Document>();
+const macros: MacroRecord[] = [];
+const commands: OwnedCommand[] = [];
 const core = vi.hoisted(() => ({
+  saveMacro: vi.fn(),
   createDocument: vi.fn(),
   moveDocument: vi.fn(),
   renameDocument: vi.fn(),
@@ -23,6 +26,8 @@ vi.mock("@lifeline/core", async (importOriginal) => {
     documentTypeSync: (id: string) => types.get(id),
     getDocument: async (id: string) => docs.get(id),
     allDocuments: async () => [...docs.values()],
+    allMacros: async () => macros,
+    allCommands: () => commands,
     timedProviders: () => [{ appId: "calendar", useItems: () => [], reschedule: core.reschedule }],
   };
 });
@@ -121,5 +126,100 @@ describe("reschedule_timed", () => {
     await expect(runTool("reschedule_timed", { appId: "calendar", itemId: "e1", date: "2026-08-10", start: "22:00", end: "06:00" })).rejects.toThrow(/after/);
     await expect(runTool("reschedule_timed", { appId: "calendar", itemId: "e1", date: "2026-08-11", start: "09:00", endDate: "2026-08-10", end: "17:00" })).rejects.toThrow(/after/);
     expect(core.reschedule).not.toHaveBeenCalled();
+  });
+});
+
+describe("Macros", () => {
+  const added: string[] = [];
+  const add: OwnedCommand = {
+    appId: "tasks",
+    id: "add",
+    title: "Add task",
+    args: [{ key: "title", label: "Title", kind: "text", required: true }],
+    invoke: async ({ title }) => {
+      if (title === "dup") throw new Error("Already on the list");
+      added.push(String(title));
+      return { message: `Added “${title}”`, id: `t-${title}` };
+    },
+  };
+  const rec = (id: string, name: string, steps: MacroRecord["steps"]): MacroRecord => ({ id, name, steps, sort: macros.length, updatedAt: "", deleted: 0 });
+
+  beforeEach(() => {
+    added.length = 0;
+    macros.length = 0;
+    commands.length = 0;
+    commands.push(add);
+    core.saveMacro.mockImplementation(async (m: MacroRecord) => ({ ...m, id: m.id ?? "new" }));
+  });
+
+  it("runs a headless Macro's tool with its asked arguments, returning each step's report", async () => {
+    macros.push(rec("m1", "Two tasks", [
+      { command: "tasks/add", args: { title: { from: "asked" } } },
+      { command: "tasks/add", args: { title: { from: "fixed", value: "dup" } }, skipIfRefused: true },
+      { command: "tasks/add", args: { title: { from: "fixed", value: "last" } } },
+    ]));
+    const result = (await runTool("macro_two_tasks", { s1_title: "call mum" })) as { message: string; report: { steps: unknown[] } };
+    expect(added).toEqual(["call mum", "last"]);
+    expect(result.report.steps).toEqual([
+      { title: "Add task", status: "done", message: "Added “call mum”", id: "t-call mum" },
+      { title: "Add task", status: "skipped", reason: "Already on the list" },
+      { title: "Add task", status: "done", message: "Added “last”", id: "t-last" },
+    ]);
+    expect(result.message).toContain("skipped, Already on the list");
+  });
+
+  it("reports where a refused step stopped the Macro", async () => {
+    macros.push(rec("m1", "Stops", [
+      { command: "tasks/add", args: { title: { from: "fixed", value: "dup" } } },
+      { command: "tasks/add", args: { title: { from: "fixed", value: "never" } } },
+    ]));
+    const result = (await runTool("macro_stops", {})) as { report: { steps: { status: string }[] } };
+    expect(result.report.steps.map((s) => s.status)).toEqual(["stopped", "not-reached"]);
+    expect(added).toEqual([]);
+  });
+
+  it("refuses to run a broken Macro, running nothing", async () => {
+    macros.push(rec("m1", "Broken", [
+      { command: "tasks/add", args: { title: { from: "fixed", value: "first" } } },
+      { command: "tasks/add", args: { nope: { from: "fixed", value: 1 }, title: { from: "fixed", value: "x" } } },
+    ]));
+    await expect(runTool("macro_broken", {})).rejects.toThrow(/takes no “nope”/);
+    expect(added).toEqual([]);
+  });
+
+  it("lists Macros with their steps, state and tool", async () => {
+    macros.push(rec("m1", "Fine", [{ command: "tasks/add", args: { title: { from: "asked" } } }]), rec("m2", "Gone", [{ command: "old/thing", args: {} }]));
+    const list = (await runTool("list_macros", {})) as { macros: { id: string; tool?: string; broken?: string[]; steps: unknown[] }[]; commands?: unknown };
+    expect(list.macros[0]).toMatchObject({ id: "m1", name: "Fine", tool: "macro_fine", steps: macros[0].steps });
+    expect(list.macros[0].broken).toBeUndefined();
+    expect(list.macros[1].broken).toEqual([expect.stringMatching(/no longer exists/)]);
+    expect(list.macros[1].tool).toBeUndefined();
+    expect(list.commands).toBeUndefined();
+    const withCommands = (await runTool("list_macros", { commands: true })) as { commands: unknown[] };
+    expect(withCommands.commands).toEqual([expect.objectContaining({ command: "tasks/add", title: "Add task", headless: true })]);
+  });
+
+  it("creates a Macro that passes the check, and refuses a broken one without saving", async () => {
+    await expect(runTool("create_macro", { name: "Bad", steps: [{ command: "tasks/add", args: {} }] })).rejects.toThrow(/Title is required/);
+    await expect(runTool("create_macro", { name: "Nested", steps: [{ command: "macros/m1", args: {} }] })).rejects.toBeInstanceOf(ToolError);
+    expect(core.saveMacro).not.toHaveBeenCalled();
+    const steps = [{ command: "tasks/add", args: { title: { from: "asked" } } }];
+    const made = (await runTool("create_macro", { name: " Plan ", steps })) as { id: string; message: string };
+    expect(core.saveMacro).toHaveBeenCalledWith({ name: "Plan", steps });
+    expect(made.id).toBe("new");
+  });
+
+  it("refuses a Macro as a step, by the check's own reason", async () => {
+    macros.push(rec("m1", "Fine", [{ command: "tasks/add", args: { title: { from: "asked" } } }]));
+    await expect(runTool("create_macro", { name: "Nested", steps: [{ command: "macros/m1", args: {} }] })).rejects.toThrow(/cannot be a step/);
+  });
+
+  it("updates a Macro's name or steps, keeping the rest, and refuses a broken result", async () => {
+    macros.push({ ...rec("m1", "Old", [{ command: "tasks/add", args: { title: { from: "asked" } } }]), builtIn: "morning" } as MacroRecord);
+    await expect(runTool("update_macro", { id: "m1", steps: [{ command: "tasks/add", args: {} }] })).rejects.toBeInstanceOf(ToolError);
+    await expect(runTool("update_macro", { id: "nope", name: "X" })).rejects.toThrow(/No Macro/);
+    expect(core.saveMacro).not.toHaveBeenCalled();
+    await runTool("update_macro", { id: "m1", name: "New" });
+    expect(core.saveMacro).toHaveBeenCalledWith(expect.objectContaining({ id: "m1", name: "New", builtIn: "morning", steps: macros[0].steps, sort: 0 }));
   });
 });
