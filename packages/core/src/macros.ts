@@ -3,6 +3,7 @@ import { invokeCommand, isInvocable, readCommandArgs } from "./commands";
 import { db, MACROS, type SyncedRecord } from "./data/db";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
+import { checkMacro, type DocumentLookup } from "./macroCheck";
 import type { CommandArg, CommandCtx, CommandDef } from "./manifest";
 
 /**
@@ -44,10 +45,12 @@ export type StepOutcome =
 
 export type StepReport = StepOutcome & { title: string };
 
-/** What every Macro run ends with (ADR 0092): each step, in order. */
+/** What every Macro run ends with (ADR 0092): each step, in order — every one not reached when the Macro is broken. */
 export interface MacroReport {
   name: string;
   steps: StepReport[];
+  /** Set when the check before the first step failed (`checkMacro`): its reasons. Then nothing ran. */
+  broken?: string[];
 }
 
 /** The `appId/commandId` key a step names its Command by. */
@@ -110,6 +113,14 @@ export interface RunOptions {
   ctx?: CommandCtx;
   /** Opens a dialog-only step's dialog; resolves once it is closed. */
   openDialog?: (def: OwnedCommand) => Promise<void>;
+  /** Where the check looks up fixed links; the local store by default. */
+  lookup?: DocumentLookup;
+}
+
+/** The report of a Macro that did not start: every step not reached, and why it is broken. */
+function brokenReport(macro: MacroShape, commands: readonly OwnedCommand[], reasons: string[]): MacroReport {
+  const steps = macro.steps.map((s) => ({ title: findCommand(commands, s.command)?.title ?? s.command, status: "not-reached" as const }));
+  return { name: macro.name, broken: reasons, steps };
 }
 
 /** The values a step gives its Command: fixed, answered, or what an earlier step made. */
@@ -128,8 +139,7 @@ function stepValues(step: MacroStep, index: number, asked: Record<string, unknow
 class Broken extends Error {}
 
 /** One step at its turn: headless through `invokeCommand`, else its dialog or its `run`. */
-async function runStep(def: OwnedCommand, step: MacroStep, index: number, last: boolean, opts: RunOptions, done: (StepOutcome | undefined)[]): Promise<StepOutcome> {
-  if (commandNavigates(def) && !last) throw new Broken("A step that goes somewhere must be the last");
+async function runStep(def: OwnedCommand, step: MacroStep, index: number, opts: RunOptions, done: (StepOutcome | undefined)[]): Promise<StepOutcome> {
   if (isInvocable(def)) {
     const result = await invokeCommand(def, stepValues(step, index, opts.asked ?? {}, done));
     return { status: "done", message: result.message, ...(result.id ? { id: result.id } : {}) };
@@ -147,12 +157,15 @@ async function runStep(def: OwnedCommand, step: MacroStep, index: number, last: 
 }
 
 /**
- * Run a Macro: each step in order, so its App checks and records it as its
+ * Run a Macro: checked first (`checkMacro`), so a broken one runs nothing
+ * and its report says why; then each step in order, so its App checks and records it as its
  * own dialog would — headless through `invokeCommand`, a dialog-only step in
  * its dialog at its turn. A refused step stops the Macro there, unless it may
  * be skipped; what is done stays done (nothing is rolled back).
  */
 export async function runMacro(macro: MacroShape, commands: readonly OwnedCommand[], opts: RunOptions = {}): Promise<MacroReport> {
+  const check = await checkMacro(macro, commands, opts.lookup);
+  if (!check.ok) return brokenReport(macro, commands, check.reasons);
   const outcomes: (StepOutcome | undefined)[] = [];
   const steps: StepReport[] = [];
   let stopped = false;
@@ -164,7 +177,7 @@ export async function runMacro(macro: MacroShape, commands: readonly OwnedComman
     else {
       try {
         if (!def) throw new Broken("This Command no longer exists");
-        outcome = await runStep(def, step, i, i === macro.steps.length - 1, opts, outcomes);
+        outcome = await runStep(def, step, i, opts, outcomes);
       } catch (e) {
         const reason = e instanceof Error ? e.message : String(e);
         const skip = step.skipIfRefused && !(e instanceof Broken);
@@ -250,6 +263,9 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
     keywords: ["macro"],
     capture: isCaptureMacro(macro, commands),
     run: async (ctx) => {
+      // Broken, it asks nothing: the report says why at once.
+      const check = await checkMacro(macro, commands);
+      if (!check.ok) return void report(brokenReport(macro, commands, check.reasons));
       const screen = ui();
       let asked: Record<string, unknown> = {};
       if (args.length > 0) {
@@ -261,7 +277,12 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
     },
   };
   if (!isMacroHeadless(macro, commands)) return def;
-  return { ...def, args, invoke: async (asked) => ({ message: reportMessage(report(await runMacro(macro, commands, { asked }))) }) };
+  return { ...def, args, invoke: async (asked) => {
+      const r = await runMacro(macro, commands, { asked });
+      if (r.broken) throw new Error(`“${macro.name}” is broken: ${r.broken.join("; ")}`);
+      return { message: reportMessage(report(r)) };
+    },
+  };
 }
 
 // --- persistence -----------------------------------------------------------

@@ -87,5 +87,6 @@ export * from "./keyBindings";
 export * from "./stable";
 export * from "./capture";
 export * from "./macros";
+export * from "./macroCheck";
 export * from "./selectionMenu";
 export * from "./intakeGroups";

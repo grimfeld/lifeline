@@ -130,9 +130,18 @@ function MacroReportDialog() {
         <DialogHeader>
           <DialogTitle className="min-w-0">{report?.name}</DialogTitle>
           <DialogDescription>
-            {stopped ? "Stopped at a refused step. What was done stays done." : skipped ? "Every step was done or skipped." : "Every step was done."}
+            {report?.broken ? "Broken, so nothing was run. Mend it in Settings → Macros." : stopped ? "Stopped at a refused step. What was done stays done." : skipped ? "Every step was done or skipped." : "Every step was done."}
           </DialogDescription>
         </DialogHeader>
+        {report?.broken && (
+          <ul className="text-destructive flex flex-col gap-1 text-sm" aria-label="Why it is broken">
+            {report.broken.map((r) => (
+              <li key={r} className="break-words">
+                {r}
+              </li>
+            ))}
+          </ul>
+        )}
         <ol className="flex flex-col gap-2" aria-label="Steps">
           {report?.steps.map((s, i) => (
             <StepRow

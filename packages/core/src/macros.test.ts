@@ -46,12 +46,20 @@ describe("runMacro", () => {
     expect(report.steps[1]).toEqual({ title: "mood set", status: "stopped", reason: "Today already has a mood" });
   });
 
-  it("stops at a value its Command's signature refuses, and at a Command that no longer exists", async () => {
+  it("is checked before its first step: a broken Macro records nothing and says why", async () => {
     const log: string[] = [];
-    const commands = [headless("pocket", "spend", AMOUNT, log)];
-    expect((await runMacro({ name: "M", steps: [fixed("pocket/spend", { amount: "lots" })] }, commands)).steps[0]).toMatchObject({ status: "stopped", reason: "Amount: expected a number" });
-    expect((await runMacro({ name: "M", steps: [fixed("gone/away", {})] }, commands)).steps[0]).toMatchObject({ title: "gone/away", status: "stopped" });
+    const commands = [headless("stats", "log", NOTE, log), headless("pocket", "spend", AMOUNT, log)];
+    const report = await runMacro({ name: "M", steps: [fixed("stats/log", {}), fixed("pocket/spend", { amount: "lots" }), fixed("gone/away", {})] }, commands);
     expect(log).toEqual([]);
+    expect(report).toEqual({
+      name: "M",
+      broken: ["Step 2: Amount: expected a number", "Step 3: “gone/away” no longer exists"],
+      steps: [
+        { title: "stats log", status: "not-reached" },
+        { title: "pocket spend", status: "not-reached" },
+        { title: "gone/away", status: "not-reached" },
+      ],
+    });
   });
 });
 
@@ -116,11 +124,6 @@ describe("skip if refused", () => {
     ]);
     expect(log).toEqual(["stats/log {}"]);
   });
-
-  it("never skips a step whose Command no longer exists", async () => {
-    const report = await runMacro({ name: "M", steps: [step("gone/away", {}, { skipIfRefused: true }), step("gone/too", {})] }, []);
-    expect(report.steps.map((s) => s.status)).toEqual(["stopped", "not-reached"]);
-  });
 });
 
 describe("dialog and navigation steps", () => {
@@ -152,13 +155,13 @@ describe("dialog and navigation steps", () => {
     expect(report.steps.map((s) => s.status)).toEqual(["done", "done"]);
   });
 
-  it("refuses a navigating step anywhere but last, even when it may be skipped", async () => {
+  it("is broken by a navigating step anywhere but last, so nothing runs", async () => {
     const went: string[] = [];
     const log: string[] = [];
     const report = await runMacro({ name: "M", steps: [step("hub/go.today", {}, { skipIfRefused: true }), step("stats/log", {})] }, [headless("stats", "log", NOTE, log), goTo("today")], {
       ctx: { navigate: (p) => went.push(p) },
     });
-    expect(report.steps[0]).toMatchObject({ status: "stopped", reason: "A step that goes somewhere must be the last" });
+    expect(report.broken).toEqual(["Step 1: “Go to today” goes somewhere, so it must be the last step"]);
     expect(went).toEqual([]);
     expect(log).toEqual([]);
   });
@@ -236,5 +239,36 @@ describe("a Macro's headless form", () => {
     stop();
     expect(log).toEqual([]);
     expect(reports).toEqual([]);
+  });
+});
+
+describe("a broken Macro as a Command", () => {
+  const broken = (log: string[]) =>
+    macroCommand(
+      { id: "m", name: "Coffee", steps: [step("pocket/spend", { amount: { from: "asked" } }), step("pocket/spend", { amount: { from: "fixed", value: "lots" } })] },
+      [headless("pocket", "spend", AMOUNT, log)],
+      () => ({
+        ask: async () => {
+          log.push("asked");
+          return { s1_amount: 3 };
+        },
+        openDialog: async () => {},
+      }),
+    );
+
+  it("refuses to run headless, saying why", async () => {
+    const log: string[] = [];
+    await expect(invokeCommand(broken(log), { s1_amount: "3" })).rejects.toThrow("“Coffee” is broken: Step 2: Amount: expected a number");
+    expect(log).toEqual([]);
+  });
+
+  it("from the palette, asks nothing and reports why it is broken", async () => {
+    const log: string[] = [];
+    const reports: MacroReport[] = [];
+    const stop = onMacroReport((r) => reports.push(r));
+    await broken(log).run!({ navigate: () => {} });
+    stop();
+    expect(log).toEqual([]);
+    expect(reports.map((r) => r.broken)).toEqual([["Step 2: Amount: expected a number"]]);
   });
 });

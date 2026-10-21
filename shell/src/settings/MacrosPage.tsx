@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import { Link } from "react-router";
 import {
+  Badge,
   Button,
   Checkbox,
   Combobox,
@@ -28,6 +29,7 @@ import {
 } from "@lifeline/ui";
 import {
   MACRO_APP,
+  checkMacro,
   commandNavigates,
   deleteMacro,
   isInvocable,
@@ -35,8 +37,10 @@ import {
   saveMacro,
   stepKey,
   useAllCommands,
+  useLiveQuery,
   useMacros,
   type CommandArg,
+  type MacroCheck,
   type MacroRecord,
   type MacroStep,
   type OwnedCommand,
@@ -54,6 +58,11 @@ export function MacrosPage() {
   const macros = useMacros();
   const commands = useAllCommands();
   const [editing, setEditing] = useState<MacroRecord | "new" | null>(null);
+  // Checked as a run checks it (ADR 0092), again whenever a Document a fixed link names changes.
+  const checks = useLiveQuery(
+    async () => new Map<string, MacroCheck>(await Promise.all(macros.map(async (m) => [m.id, await checkMacro(m, commands)] as const))),
+    [macros, commands],
+  );
 
   async function remove(m: MacroRecord) {
     const before = await deleteMacro(m.id);
@@ -77,19 +86,35 @@ export function MacrosPage() {
         <EmptyState>No macros yet.</EmptyState>
       ) : (
         <ul className="flex flex-col gap-2" aria-label="Macros">
-          {macros.map((m) => (
-            <li key={m.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-              <button className="flex min-w-0 flex-1 flex-col items-start text-left hover:underline" onClick={() => setEditing(m)}>
-                <span className="w-full truncate font-medium">{m.name}</span>
-                <span className="text-muted-foreground w-full truncate text-xs">{stepSummary(m, commands)}</span>
-              </button>
-              <Tip label={`Delete ${m.name}`}>
-                <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label={`Delete ${m.name}`} onClick={() => void remove(m)}>
-                  <Trash2 />
-                </Button>
-              </Tip>
-            </li>
-          ))}
+          {macros.map((m) => {
+            const check = checks?.get(m.id);
+            const broken = check && !check.ok ? check.reasons : undefined;
+            return (
+              <li key={m.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+                <button className="flex min-w-0 flex-1 flex-col items-start text-left hover:underline" onClick={() => setEditing(m)}>
+                  <span className="flex w-full min-w-0 items-center gap-2">
+                    <span className="min-w-0 truncate font-medium">{m.name}</span>
+                    {broken && <Badge variant="destructive">Broken</Badge>}
+                  </span>
+                  <span className="text-muted-foreground w-full truncate text-xs">{stepSummary(m, commands)}</span>
+                  {broken && (
+                    <ul className="text-destructive flex w-full min-w-0 flex-col text-xs" aria-label={`Why ${m.name} is broken`}>
+                      {broken.map((r) => (
+                        <li key={r} className="break-words">
+                          {r}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </button>
+                <Tip label={`Delete ${m.name}`}>
+                  <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label={`Delete ${m.name}`} onClick={() => void remove(m)}>
+                    <Trash2 />
+                  </Button>
+                </Tip>
+              </li>
+            );
+          })}
         </ul>
       )}
       <Button asChild variant="link" className="justify-self-start px-0">

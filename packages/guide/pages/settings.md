@@ -75,6 +75,11 @@ A **Macro** runs several Commands in order, as one Command. **Macros** here open
 - A step that takes you somewhere (**Go to Mood**) must be the last one; the Macro cannot be saved
   otherwise.
 - **Move up** / **Move down** reorder the steps; **Remove step** drops one.
+- Before its first step, a Macro checks that every step can be given what it needs: its Command still
+  exists and is not another Macro (a Macro cannot be a step), each fixed value fits, a fixed link
+  names one Document, a step takes only what an earlier step made, every required value is fixed or
+  asked, and a step that takes you somewhere is last. A Macro that fails is **Broken**: the list
+  marks it, with each reason, until it is mended, and run, it does nothing and says why.
 - Click a Macro to edit it. The bin deletes it at once; **Undo** in the message brings it back.
 - A Macro is in the palette (Ctrl+K) by its name, marked *Macro*, in every Workspace.
 - Each step is done by the App that owns it, exactly as its own Command would. When a step is
