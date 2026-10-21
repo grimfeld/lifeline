@@ -15,6 +15,8 @@ import {
   displayTitle,
   docHref,
   documentType,
+  initialList,
+  initialText,
   normalizeTag,
   todayStr,
   useBacklinks,
@@ -61,11 +63,14 @@ export function ChoreDialog({
   open,
   onOpenChange,
   chore,
+  initial,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Present = edit mode. */
   chore?: Chore;
+  /** Create mode, the palette's inline line (CommandDialogProps.initial): the name and Tags it understood. */
+  initial?: Record<string, unknown>;
 }) {
   const [name, setName] = useState("");
   const [tags, setTags] = useState<string[]>([]);
@@ -74,10 +79,10 @@ export function ChoreDialog({
 
   useEffect(() => {
     if (!open) return;
-    setName(chore?.title ?? "");
-    setTags(chore?.tags ?? []);
+    setName(chore?.title ?? initialText(initial, "title"));
+    setTags(chore?.tags ?? initialList(initial, "tags"));
     setDraft(draftOf(chore?.schedule));
-  }, [open, chore]);
+  }, [open, chore, initial]);
 
   async function submit() {
     const read = scheduleOf(draft);
