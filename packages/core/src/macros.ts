@@ -214,7 +214,7 @@ export function onMacroReport(listener: (report: MacroReport) => void): () => vo
 /** What a Macro run needs of the screen: the up-front form for its asked arguments, and a step's own dialog. The shell provides it. */
 export interface MacroUi {
   /** Ask every asked argument at once; undefined when the person cancels (then nothing runs). */
-  ask: (macro: MacroShape, args: CommandArg[]) => Promise<Record<string, unknown> | undefined>;
+  ask: (macro: MacroShape, args: CommandArg[], initial?: Record<string, unknown>) => Promise<Record<string, unknown> | undefined>;
   /** Open a dialog-only step's dialog; resolves once it is closed. */
   openDialog: (def: OwnedCommand) => Promise<void>;
 }
@@ -253,7 +253,7 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
       const screen = ui();
       let asked: Record<string, unknown> = {};
       if (args.length > 0) {
-        const answers = await screen?.ask(macro, args);
+        const answers = await screen?.ask(macro, args, ctx.initial);
         if (!answers) return;
         asked = await readCommandArgs(args, answers);
       }
