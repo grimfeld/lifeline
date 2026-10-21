@@ -77,6 +77,7 @@ In the palette (Ctrl+K):
 - **Go to Vault** — the [Vault](vault.md).
 - **Go to Bases** — the [Bases](bases.md) list.
 - **Go to Calendar** — the [Calendar](calendar.md).
+- **Go to Today** — Progress's Today page (see [Progress](progress.md)).
 - **Go to Graph** — the [Graph](graph.md).
 - **Go to Map** — the [Map](map.md).
 - **Open … Base** — one per type ("Open Tasks Base", "Open People Base").

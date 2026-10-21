@@ -91,6 +91,11 @@ A **Macro** runs several Commands in order, as one Command. **Macros** here open
   **Skip if refused**; the steps already done stay done.
 - Every run ends with a report: each step **Done** (with what it said, and **Open** for what it
   made), **Skipped** or **Stopped** (with why), or **Not reached**.
+- Lifeline gives you one Macro to start with, **Morning**: it asks for today's mood and sets it
+  (skipped if it is already set), then goes to Today. It is yours like any other: edit it, or
+  delete it, and it never comes back, on any device. A new version of Lifeline never changes it.
+  **Reset to default** (the circular arrow beside it) puts back the name and steps it came with;
+  **Undo** in the message takes the reset back.
 
 ## Dates in the palette
 
