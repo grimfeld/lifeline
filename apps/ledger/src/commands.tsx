@@ -33,6 +33,7 @@ export const ledgerCommands: CommandDef[] = [
       { key: "note", label: "Note", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const kind = (a.kind as "expense" | "income" | undefined) ?? "expense";
       const accounts = await allAccounts();

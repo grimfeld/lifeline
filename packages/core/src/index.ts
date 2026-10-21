@@ -68,7 +68,7 @@ export {
   type ViewFilterOp,
   type LifelineDB,
 } from "./data/db";
-export { put, remove, get, all } from "./data/repo";
+export { put, remove, get, all, localWrites } from "./data/repo";
 export { sharedLiveQuery } from "./data/live";
 export { pb, login, logout, useAuth } from "./data/pb";
 export { startSync, syncNow, requestSync, useSyncState, lastSyncError, type SyncState } from "./data/sync";

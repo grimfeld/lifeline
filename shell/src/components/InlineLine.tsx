@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CommandGroup, CommandItem, toast } from "@lifeline/ui";
+import { CommandGroup, CommandItem, cn, toast } from "@lifeline/ui";
 import {
-  appById,
+  commandAppTitle,
   applySuggestion,
   dateReader,
   invokeCommand,
@@ -27,11 +27,11 @@ import { useDateLanguage } from "../settings/dateLanguage";
  * the search, which still runs: "Super !" is text.
  */
 
-/** Rows the palette's filter ranks above any match (CommandPalette's INLINE_MARK). */
 export interface InlineLineProps {
   line: string;
   cursor: number;
   commands: readonly InlineCommand[];
+  /** The keyword that makes the palette's filter rank these rows above any match (CommandPalette's INLINE_MARK). */
   mark: string;
   /** Put a new line in the input, the caret at `cursor`. */
   onLine: (line: string, cursor: number) => void;
@@ -64,7 +64,7 @@ function gap(r: InlineReading): string | undefined {
 function canEnter(r: InlineReading): boolean {
   const c = r.command;
   if (!c) return false;
-  if (r.problems.some((p) => p.startsWith("One line runs one Command"))) return false;
+  if (r.secondCommand) return false;
   // A Macro's `run` asks its own form, pre-filled with what the line understood.
   return r.ready || !!c.dialog || (!!c.run && (!isInvocable(c) || c.appId === MACRO_APP));
 }
@@ -106,7 +106,7 @@ export function InlineLine({ line, cursor, commands, mark, onLine, onOpen, onDon
       }}
     >
       <span className="min-w-0 flex-1 truncate">{s.label}</span>
-      {s.detail && <span className="text-muted-foreground shrink-0 text-xs">{s.kind === "command" ? (appById(s.detail)?.title ?? s.detail) : s.detail}</span>}
+      {s.detail && <span className="text-muted-foreground shrink-0 text-xs">{s.kind === "command" ? (commandAppTitle(s.detail) ?? s.detail) : s.detail}</span>}
     </CommandItem>
   ));
 
@@ -145,7 +145,7 @@ export function InlineLine({ line, cursor, commands, mark, onLine, onOpen, onDon
       <span className="min-w-0 flex-1">
         <span className="block truncate">{preview}</span>
         {note && (
-          <span role={refusal?.line === line ? "alert" : undefined} className={refusal?.line === line ? "text-destructive block text-xs break-words" : "text-muted-foreground block text-xs break-words"}>
+          <span role={refusal?.line === line ? "alert" : undefined} className={cn(refusal?.line === line ? "text-destructive" : "text-muted-foreground", "block text-xs break-words")}>
             {note}
             {willOpen && " — Enter opens its dialog"}
           </span>
@@ -156,7 +156,7 @@ export function InlineLine({ line, cursor, commands, mark, onLine, onOpen, onDon
   );
 
   return (
-    <CommandGroup heading={c ? appById(c.appId)?.title : "Command"}>
+    <CommandGroup heading={c ? commandAppTitle(c.appId) : "Command"}>
       {!c && reading.problems.length > 0 && <div className="text-muted-foreground px-2 py-1.5 text-xs break-words">{reading.problems.join(" · ")}</div>}
       {marking ? (
         <>

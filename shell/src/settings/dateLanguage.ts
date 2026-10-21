@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { DATE_VOCABULARIES } from "@lifeline/core";
 
 /**
- * The palette's preferred date language (ADR 0091): which language's meaning
+ * The palette's preferred date language (ADR 0091; kept per device, ADR 0093): which language's meaning
  * a `/` word takes when two disagree (`mar`: March or mardi). Every language
  * is read either way. Per device and unsynced, like the Workspace this device
  * is in: it follows the keyboard and the person at it, and there is no

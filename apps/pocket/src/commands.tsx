@@ -30,6 +30,7 @@ export const pocketCommands: CommandDef[] = [
       { key: "date", label: "Day", kind: "date", hint: "Defaults to today." },
       { key: "label", label: "Label", kind: "text", hint: "What it was, e.g. Pizza." },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const date = (a.date as string | undefined) ?? todayStr();
       const cents = Math.round((a.amount as number) * 100);

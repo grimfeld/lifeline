@@ -44,8 +44,8 @@ export async function addChore(input: {
   tags: string[];
   schedule: Schedule;
   anchorDate: DateStr | null;
-}): Promise<void> {
-  await putDocument<Chore>({
+}): Promise<string> {
+  const chore = await putDocument<Chore>({
     type: CHORE,
     title: input.title,
     tags: normalizeTags(input.tags),
@@ -54,6 +54,7 @@ export async function addChore(input: {
     anchorDate: input.anchorDate,
     createdAt: todayStr(),
   });
+  return chore.id;
 }
 
 export async function updateChore(chore: Chore): Promise<void> {

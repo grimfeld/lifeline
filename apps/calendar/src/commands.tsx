@@ -61,6 +61,7 @@ export const calendarCommands: CommandDef[] = [
       { key: "notes", label: "Notes", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const start = (a.start as string | undefined) ?? null;
       const end = (a.end as string | undefined) ?? null;
@@ -93,6 +94,7 @@ export const calendarCommands: CommandDef[] = [
       { key: "date", label: "Day", kind: "date", hint: "Defaults to today." },
       { key: "start", label: "Start", kind: "time", hint: "Overrides the template's default start; ignored for an all-day template." },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const date = (a.date as string | undefined) ?? todayStr();
       const added = await addEventFromTemplate(a.template as string, date, (a.start as string | undefined) ?? null);

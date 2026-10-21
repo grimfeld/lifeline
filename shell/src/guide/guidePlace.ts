@@ -6,6 +6,8 @@ const CORE_PAGES: [root: string, slug: string][] = [
   ["/base", "bases"],
   ["/screens", "screens"],
   ["/screen", "screens"],
+  ["/settings/macros", "macros"],
+  ["/settings/keys", "keys"],
   ["/settings", "settings"],
   ["/vault", "vault"],
   ["/handoff", "peek"],

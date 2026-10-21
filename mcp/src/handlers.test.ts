@@ -199,6 +199,12 @@ describe("Macros", () => {
     expect(withCommands.commands).toEqual([expect.objectContaining({ command: "tasks/add", title: "Add task", headless: true })]);
   });
 
+  it("lists a Macro that takes another as a step as broken for that, as the app does", async () => {
+    macros.push(rec("m1", "Fine", [{ command: "tasks/add", args: { title: { from: "asked" } } }]), rec("m2", "Nested", [{ command: "macros/m1", args: {} }]));
+    const list = (await runTool("list_macros", {})) as { macros: { id: string; broken?: string[] }[] };
+    expect(list.macros[1].broken).toEqual(["Step 1: “Fine” is a Macro, and a Macro cannot be a step"]);
+  });
+
   it("creates a Macro that passes the check, and refuses a broken one without saving", async () => {
     await expect(runTool("create_macro", { name: "Bad", steps: [{ command: "tasks/add", args: {} }] })).rejects.toThrow(/Title is required/);
     await expect(runTool("create_macro", { name: "Nested", steps: [{ command: "macros/m1", args: {} }] })).rejects.toBeInstanceOf(ToolError);

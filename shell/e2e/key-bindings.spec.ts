@@ -65,6 +65,19 @@ test("a key Lifeline or the browser uses is refused, and one already bound is ta
   await expect(dialog.getByRole("button", { name: "Bind", exact: true })).toBeDisabled();
 });
 
+test("a Command that needs values and has no dialog to ask them cannot be given a key", async ({ page, isMobile }) => {
+  test.skip(isMobile, "Key bindings are desk only");
+  await page.goto("/settings/keys");
+  await workLocally(page);
+  await page.getByRole("button", { name: "Bind a key" }).click();
+  const dialog = page.getByRole("dialog", { name: "Bind a key" });
+  await dialog.getByRole("combobox", { name: "Command" }).fill("Add event from a template");
+  await page.getByRole("option", { name: /Add event from a template/ }).first().click();
+  await expect(dialog.getByText(/has no dialog to ask them/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Key", exact: true }).press("Control+Shift+Y");
+  await expect(dialog.getByRole("button", { name: "Bind", exact: true })).toBeDisabled();
+});
+
 test("a binding whose Command no longer exists is shown dead and can be cleared", async ({ page, isMobile }) => {
   test.skip(isMobile, "Key bindings are desk only");
   await page.goto("/settings/keys");

@@ -31,6 +31,7 @@ export const museumCommands: CommandDef[] = [
       { key: "comment", label: "Comment", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const form = a.form as ArtFormId;
       const def = artForm(form);

@@ -4,33 +4,51 @@ import type { CommandArg } from "@lifeline/core";
 
 const NONE = "\u0000none";
 
-/** One argument's fixed value, entered in the control its kind calls for. */
-export function ArgInput({ arg, value, onChange }: { arg: CommandArg; value: unknown; onChange: (v: unknown) => void }) {
+/** An argument's name as a form shows it: marked when it must be given. */
+export function argLabel(arg: CommandArg): string {
+  return arg.required ? `${arg.label} (required)` : arg.label;
+}
+
+/** One argument's value, entered in the control its kind calls for; `error` shows under it (CODING_STANDARDS.md § Forms). */
+export function ArgInput({ arg, value, error, onChange }: { arg: CommandArg; value: unknown; error?: string; onChange: (v: unknown) => void }) {
   const id = useId();
-  const label = arg.required ? `${arg.label} (required)` : arg.label;
+  const label = argLabel(arg);
   switch (arg.kind) {
     case "boolean":
       return (
-        <div className="flex items-center gap-2">
-          <Checkbox id={id} checked={value === true} onCheckedChange={(c) => onChange(c === true ? true : undefined)} />
-          <Label htmlFor={id}>{label}</Label>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id={id}
+              checked={value === true}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? `${id}-error` : undefined}
+              onCheckedChange={(c) => onChange(c === true ? true : undefined)}
+            />
+            <Label htmlFor={id}>{label}</Label>
+          </div>
+          {error && (
+            <p id={`${id}-error`} className="text-destructive text-xs">
+              {error}
+            </p>
+          )}
         </div>
       );
     case "date":
       return (
-        <Field label={label} hint={arg.hint}>
+        <Field label={label} hint={arg.hint} error={error}>
           <DatePicker value={typeof value === "string" ? value : ""} onChange={(v) => onChange(v || undefined)} />
         </Field>
       );
     case "time":
       return (
-        <Field label={label} hint={arg.hint}>
+        <Field label={label} hint={arg.hint} error={error}>
           <TimeField value={typeof value === "string" ? value : ""} onChange={(v) => onChange(v || undefined)} />
         </Field>
       );
     case "select":
       return (
-        <Field label={label} hint={arg.hint}>
+        <Field label={label} hint={arg.hint} error={error}>
           <Select value={typeof value === "string" ? value : NONE} onValueChange={(v) => onChange(v === NONE ? undefined : v)}>
             <SelectTrigger className="w-full min-w-0" aria-label={label}>
               <SelectValue />
@@ -48,7 +66,7 @@ export function ArgInput({ arg, value, onChange }: { arg: CommandArg; value: unk
       );
     default:
       return (
-        <Field label={label} hint={arg.hint ?? kindHint(arg)}>
+        <Field label={label} hint={arg.hint ?? kindHint(arg)} error={error}>
           <Input value={value === undefined ? "" : String(value)} onChange={(e) => onChange(e.target.value)} />
         </Field>
       );

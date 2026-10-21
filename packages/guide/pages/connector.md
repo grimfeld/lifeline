@@ -31,7 +31,7 @@ Lifeline's own tools, the same for every Module:
 - `agenda` — what's on each day in a range: events, deadlines, time blocks, tasks, chores, with
   overdue items included. Optionally the Time blocker bands too.
 - `guide` — read this Guide: the list of pages, or one page.
-- `list_macros` — your [Macros](settings.md) with their steps, whether each is broken and why, and
+- `list_macros` — your [Macros](macros.md) with their steps, whether each is broken and why, and
   the tool that runs it. It can also list every Command a step may name.
 
 With **Allow changes**:

@@ -1,5 +1,5 @@
 import { z, type ZodTypeAny } from "zod";
-import { isInvocable, macroCommand, stepKey, type CommandArg, type CommandDef, type MacroShape, type OwnedCommand } from "@lifeline/core";
+import { isInvocable, macroCommand, commandKey, type CommandArg, type CommandDef, type MacroShape, type OwnedCommand } from "@lifeline/core";
 import { GUIDE_PAGES, guidePage } from "@lifeline/guide";
 import { manifests } from "./apps";
 
@@ -295,7 +295,7 @@ export function macroTools(macros: readonly (MacroShape & { id: string })[], com
   const made = macros.flatMap((m) => {
     const def = macroCommand(m, commands);
     if (!isInvocable(def)) return [];
-    const titles = m.steps.map((s, i) => `${i + 1}. ${commands.find((c) => stepKey(c) === s.command)?.title ?? s.command}`);
+    const titles = m.steps.map((s, i) => `${i + 1}. ${commands.find((c) => commandKey(c) === s.command)?.title ?? s.command}`);
     const description = `Run the user's Macro “${m.name}”: ${titles.join("; ")}. Each step goes through its App; the result reports every step (done, skipped, stopped or not reached).`;
     return [{ slug: commandToolName(m.name).toLowerCase().replace(/^_+|_+$/g, ""), tool: { title: m.name, description, macro: m.id, args: def.args } }];
   });

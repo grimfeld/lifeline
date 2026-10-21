@@ -1,5 +1,5 @@
-import { isInvocable, linkableDocuments, pickLinked, readCommandArgs, type LinkableDocument } from "./commands";
-import { MACRO_APP, commandNavigates, stepKey, type MacroShape, type OwnedCommand } from "./macros";
+import { commandKey, commandNavigates, isInvocable, linkableDocuments, pickLinked, readCommandArgs, type LinkableDocument, type OwnedCommand } from "./commands";
+import { MACRO_APP, type MacroShape } from "./macros";
 import type { CommandArg } from "./manifest";
 
 /**
@@ -73,16 +73,21 @@ async function valueProblems(arg: CommandArg, value: unknown, lookup: DocumentLo
   }
 }
 
+/** Whether a step's result can be taken by a later step: a headless Command that says it returns a Document. */
+export function returnsDocument(def: OwnedCommand): boolean {
+  return isInvocable(def) && def.returnsDocument === true;
+}
+
 /**
  * Check a Macro before it runs: every Command exists and is not a Macro, a
  * step that goes somewhere is last, every value a step gives is one its
  * Command takes and fits it, fixed links name one living Document, a step's
- * result is taken only from an earlier step that makes a Document, and every
+ * result is taken only by a link, from an earlier step that returns a Document, and every
  * required value has a source.
  */
 export async function checkMacro(macro: MacroShape, commands: readonly OwnedCommand[], lookup: DocumentLookup = storeLookup): Promise<MacroCheck> {
   if (macro.steps.length === 0) return { ok: false, reasons: ["It has no steps"] };
-  const defs = macro.steps.map((s) => commands.find((c) => stepKey(c) === s.command));
+  const defs = macro.steps.map((s) => commands.find((c) => commandKey(c) === s.command));
   const reasons: string[] = [];
   for (const [i, step] of macro.steps.entries()) {
     const at = `Step ${i + 1}: `;
@@ -107,9 +112,10 @@ export async function checkMacro(macro: MacroShape, commands: readonly OwnedComm
       if (src.from === "step") {
         const made = `${at}${arg.label} takes what step ${src.step + 1} made, but `;
         const earlier = src.step >= 0 && src.step < i ? defs[src.step] : undefined;
-        if (!(src.step >= 0 && src.step < i)) reasons.push(`${made}step ${src.step + 1} does not come before it`);
-        // Only a headless step reports what it made; a dialog or a place makes nothing a later step can take.
-        else if (earlier && !isInvocable(earlier)) reasons.push(`${made}“${earlier.title}” makes no Document`);
+        if (arg.kind !== "link") reasons.push(`${made}only a link can take a Document`);
+        else if (!(src.step >= 0 && src.step < i)) reasons.push(`${made}step ${src.step + 1} does not come before it`);
+        // Only a headless step that says it returns a Document reports one; a dialog or a place makes nothing a later step can take.
+        else if (earlier && !returnsDocument(earlier)) reasons.push(`${made}“${earlier.title}” makes no Document`);
       }
     }
     for (const arg of args) {

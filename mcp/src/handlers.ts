@@ -8,10 +8,12 @@ import {
   checkMacro,
   commandNavigates,
   isInvocable,
-  macroCommand,
-  onMacroReport,
+  reportMessage,
+  runMacroHeadless,
+  withMacros,
+  type MacroRecord,
   saveMacro,
-  stepKey,
+  commandKey,
   createDocument,
   db,
   defaultFolder,
@@ -43,7 +45,6 @@ import {
   type Document,
   type DocumentTypeDef,
   type FieldDef,
-  type MacroReport,
   type MacroShape,
   type OwnedCommand,
   type Placement,
@@ -186,52 +187,46 @@ async function dayPinOf(appId: string, itemId: string): Promise<string | undefin
 
 // --- Macros (ADR 0092) ---
 
-/** The Commands a step may name: every App's own (a Macro is never a step). */
-function ownCommands(): OwnedCommand[] {
-  return allCommands();
+/**
+ * The registry a Macro is checked and run against, as in the app
+ * (`withMacros`): the Apps' Commands and the user's Macros, so a Macro as a
+ * step is refused as one.
+ */
+async function registry(macros?: readonly MacroRecord[]): Promise<OwnedCommand[]> {
+  return withMacros(allCommands(), macros ?? (await allMacros()));
 }
 
 /** The tools of the Account's headless Macros, as the server lists them (see tools.ts `macroTools`). */
 export async function listMacroTools(): Promise<MacroTool[]> {
-  return macroTools(await allMacros(), ownCommands());
+  const macros = await allMacros();
+  return macroTools(macros, await registry(macros));
 }
 
 /**
- * Check a Macro an agent wrote exactly as the app's editor does: against the
- * Apps' Commands and the user's Macros (so a Macro as a step is refused as
- * one), with fixed links looked up in the Workspace the call is in.
+ * Check a Macro an agent wrote exactly as the app's editor does, with fixed
+ * links looked up in the Workspace the call is in.
  */
 async function assertFine(macro: MacroShape): Promise<void> {
-  const own = ownCommands();
-  const registry = [...own, ...(await allMacros()).map((m) => macroCommand(m, own))];
-  const check = await checkMacro(macro, registry);
+  const check = await checkMacro(macro, await registry());
   if (!check.ok) throw new ToolError(`“${macro.name}” would be broken: ${check.reasons.join("; ")}`);
 }
 
-/**
- * Run a Macro's tool through the headless-Command path (`invokeCommand` over
- * its `macroCommand`), holding on to the report it sends, so the agent gets
- * every step's outcome and not only the sentence.
- */
+/** Run a Macro's tool headless, handing the agent the run's own report: every step's outcome, not only the sentence. */
 async function runMacroTool(tool: MacroTool, args: Args): Promise<unknown> {
-  const macro = (await allMacros()).find((m) => m.id === tool.macro);
+  const macros = await allMacros();
+  const macro = macros.find((m) => m.id === tool.macro);
   if (!macro) throw new ToolError(`Macro ${tool.name} is gone`);
-  const def = macroCommand(macro, ownCommands());
-  let report: MacroReport | undefined;
-  const stop = onMacroReport((r) => (report = r));
   try {
-    const { message } = await invokeCommand(def, args);
-    return { message, report: { name: report?.name ?? macro.name, steps: report?.steps ?? [] } };
+    const report = await runMacroHeadless(macro, await registry(macros), args);
+    return { message: reportMessage(report), report: { name: report.name, steps: report.steps } };
   } catch (e) {
     throw new ToolError((e as Error).message);
-  } finally {
-    stop();
   }
 }
 
 function describeCommand(c: OwnedCommand) {
   return {
-    command: stepKey(c),
+    command: commandKey(c),
     title: c.title,
     headless: isInvocable(c) || undefined,
     navigates: commandNavigates(c) || undefined,
@@ -243,15 +238,17 @@ function describeCommand(c: OwnedCommand) {
 
 const handlers: Record<string, (a: Args) => Promise<unknown>> = {
   async list_macros(a) {
-    const own = ownCommands();
-    const tools = await listMacroTools();
+    const macros = await allMacros();
+    const all = await registry(macros);
+    const tools = macroTools(macros, all);
     const list = await Promise.all(
-      (await allMacros()).map(async (m) => {
-        const check = await checkMacro(m, own);
+      macros.map(async (m) => {
+        const check = await checkMacro(m, all);
         return { id: m.id, name: m.name, builtin: m.builtin, steps: m.steps, tool: tools.find((t) => t.macro === m.id)?.name, broken: check.ok ? undefined : check.reasons };
       }),
     );
-    return { macros: list, commands: a.commands ? own.map(describeCommand) : undefined };
+    // The Commands a step may name: the Apps' own (a Macro is never a step).
+    return { macros: list, commands: a.commands ? allCommands().map(describeCommand) : undefined };
   },
 
   async create_macro(a) {

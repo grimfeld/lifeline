@@ -32,6 +32,7 @@ export const thoughtsCommands: CommandDef[] = [
       { key: "title", label: "Title", kind: "text", hint: "Optional; defaults to the first line." },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const t = await captureThought({ text: String(a.text), title: a.title as string | undefined, kind: isKind(a.kind) ? a.kind : undefined, tags: a.tags as string[] | undefined });
       return { message: `Kept the thought “${t.title}”`, id: t.id };

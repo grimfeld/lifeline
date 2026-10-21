@@ -43,62 +43,13 @@ See [Capture](capture.md).
 
 ## Keys
 
-Give any Command a key of your own, so it runs on the desk without opening the palette.
-**Keys** opens the list of them (**Settings → Keys**).
+Give any Command a key of your own, so it runs on the desk without the palette. **Keys** opens
+their own page; see [Keys](keys.md).
 
-- **Bind a key** — pick a Command, then press the key that runs it. A key needs ⌘ (Ctrl off a
-  Mac), with ⌥/Alt or ⇧/Shift if you like.
-- Keys Lifeline already uses (⌘K, ⌘E, ⌘., ⌘1–9, ⌘↵) and the browser's own (copy, paste, new
-  tab…) are refused. A key you already gave another Command shows as taken, with the Command
-  it runs.
-- Pressing the key runs the Command at once when it needs nothing more; one that asks for
-  something (a mood, a title) opens its dialog; one that goes somewhere goes there.
-- The pencil changes a binding; **×** removes it, with Undo.
-- A binding whose Command no longer exists (its App was removed) is marked **Dead**: clear it.
-- Keys are yours across every Workspace and every desk device. They do nothing on a phone.
-- The palette shows a Command's key beside it.
 ## Macros
 
-A **Macro** runs several Commands in order, as one Command. **Macros** here opens their own page.
-
-- **New macro** — give it a name, then **Add a step** for each Command, in order: search for the
-  Command, then say where each of its values comes from:
-  - **Fixed** — the value typed here, the same every run;
-  - **Asked when it runs** — every asked value, from all the steps, is asked in one form before the
-    first step runs;
-  - **What step N made** (for a link) — the Document an earlier step made, so a Note can be about
-    the Source step 1 added.
-- **Skip if refused** on a step: when it is refused (today's mood is already set), the report says
-  it was skipped and why, and the Macro carries on.
-- A Command that only has its own dialog can be a step too: its dialog opens at its turn, and the
-  Macro goes on once it is closed.
-- A step that takes you somewhere (**Go to Mood**) must be the last one; the Macro cannot be saved
-  otherwise.
-- **Move up** / **Move down** reorder the steps; **Remove step** drops one.
-- Before its first step, a Macro checks that every step can be given what it needs: its Command still
-  exists and is not another Macro (a Macro cannot be a step), each fixed value fits, a fixed link
-  names one Document, a step takes only what an earlier step made, every required value is fixed or
-  asked, and a step that takes you somewhere is last. A Macro that fails is **Broken**: the list
-  marks it, with each reason, until it is mended, and run, it does nothing and says why.
-- Click a Macro to edit it. The bin deletes it at once; **Undo** in the message brings it back.
-- A Macro is in the palette (Ctrl+K) by its name, marked *Macro*, in every Workspace.
-- A Macro whose steps all work without a dialog can also be typed on one line, with the marks of
-  [Capture](capture.md): `!coffee amount:3` (an unmarked word fills the first text argument). A line with
-  every asked argument runs the Macro and shows its report; a line missing some opens the up-front form
-  with what you typed already in it.
-- Each step is done by the App that owns it, exactly as its own Command would. When a step is
-  refused (the thing is already on the shopping list), the Macro stops there, unless it is marked
-  **Skip if refused**; the steps already done stay done.
-- Every run ends with a report: each step **Done** (with what it said, and **Open** for what it
-  made), **Skipped** or **Stopped** (with why), or **Not reached**.
-- Lifeline gives you one Macro to start with, **Morning**: it asks for today's mood and sets it
-  (skipped if it is already set), then goes to Today. It is yours like any other: edit it, or
-  delete it, and it never comes back, on any device. A new version of Lifeline never changes it.
-  **Reset to default** (the circular arrow beside it) puts back the name and steps it came with;
-  **Undo** in the message takes the reset back.
-- [Claude](connector.md) can run a Macro whose steps all work without a dialog, and list, create and
-  edit Macros, checked exactly as here. A Macro it makes appears here at once, yours to edit or
-  delete; Claude cannot delete one.
+A **Macro** runs several Commands in order, as one Command. **Macros** opens their own page; see
+[Macros](macros.md).
 
 ## Dates in the palette
 
@@ -128,6 +79,8 @@ When you are trying the Demo, the first section is **Demo** instead of Account a
 
 ## Related
 
+- [Keys](keys.md)
+- [Macros](macros.md)
 - [Workspaces](workspaces.md)
 - [Using Lifeline on a phone](phone.md)
 - [Capture](capture.md)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chordLabel, chordOf, keyRefusal, howKeyRuns, type KeyBindingRecord } from "./keyBindings";
+import { bindRefusal, chordLabel, chordOf, keyRefusal, howKeyRuns, type KeyBindingRecord } from "./keyBindings";
 import type { CommandDef } from "./manifest";
 
 const press = (key: string, mods: Partial<Record<"metaKey" | "ctrlKey" | "altKey" | "shiftKey", boolean>> = {}, code = "") => ({
@@ -93,5 +93,21 @@ describe("howKeyRuns", () => {
 
   it("is nothing for a Command that needs arguments and has no dialog to ask them", () => {
     expect(howKeyRuns({ ...headless, args: [{ key: "t", label: "T", kind: "text", required: true }] })).toBeUndefined();
+  });
+});
+
+describe("bindRefusal", () => {
+  const Dialog = () => null;
+  const needs: CommandDef = { id: "t", title: "Add from template…", args: [{ key: "template", label: "Template", kind: "link", required: true }], invoke: async () => ({ message: "ok" }) };
+
+  it("refuses a key to a Command that needs values and has no dialog to ask them, saying why", () => {
+    expect(bindRefusal(needs)).toBe("“Add from template” needs values a key cannot give it, and has no dialog to ask them: type it in the palette with ! instead.");
+  });
+
+  it("lets a key run any Command it can: complete, with a dialog, or with a run", () => {
+    expect(bindRefusal({ ...needs, dialog: Dialog })).toBeUndefined();
+    expect(bindRefusal({ ...needs, run: () => {} })).toBeUndefined();
+    expect(bindRefusal({ ...needs, args: [] })).toBeUndefined();
+    expect(bindRefusal({ id: "g", title: "Go", run: () => {} })).toBeUndefined();
   });
 });

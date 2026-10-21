@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ComponentType } from "react";
 import { Link } from "react-router";
 import {
   Button,
@@ -104,28 +104,41 @@ function DemoSection() {
   );
 }
 
-/** Macros (ADR 0092) have a page of their own, `/settings/macros`: a list and an editor of steps. */
-function MacrosSection() {
-  const count = useMacros().length;
+/** A section whose settings have a page of their own: what it is, and a row that says how many there are and goes there. */
+function PageLinkSection({ icon: Icon, title, blurb, to, label }: { icon: ComponentType<{ className?: string }>; title: string; blurb: string; to: string; label: string }) {
   return (
     <section className="flex flex-col gap-3">
       <div>
         <h2 className="flex items-center gap-2 text-base font-medium">
-          <ListOrdered className="size-4" /> Macros
+          <Icon className="size-4" /> {title}
         </h2>
-        <p className="text-muted-foreground text-sm">Several Commands run in order as one, from the palette, in every Workspace.</p>
+        <p className="text-muted-foreground text-sm">{blurb}</p>
       </div>
-      <Link to="/settings/macros" className="hover:bg-accent flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-        <span className="min-w-0 flex-1 truncate">{count === 0 ? "Make a macro" : `${count} macro${count === 1 ? "" : "s"}`}</span>
+      <Link to={to} className="hover:bg-accent flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+        <span className="min-w-0 flex-1 truncate">{label}</span>
         <ChevronRight className="size-4 shrink-0" />
       </Link>
     </section>
   );
 }
 
+/** Macros (ADR 0092) have a page of their own, `/settings/macros`: a list and an editor of steps. */
+function MacrosSection() {
+  const count = useMacros().length;
+  return (
+    <PageLinkSection
+      icon={ListOrdered}
+      title="Macros"
+      blurb="Several Commands run in order as one, from the palette, in every Workspace."
+      to="/settings/macros"
+      label={count === 0 ? "Make a Macro" : `${count} Macro${count === 1 ? "" : "s"}`}
+    />
+  );
+}
+
 /**
  * Which language a palette `/` word means when English and French disagree
- * (ADR 0091). Per device (see dateLanguage.ts); every language is read either way.
+ * (ADR 0091). Per device (ADR 0093, dateLanguage.ts); every language is read either way.
  */
 function DateLanguageSection() {
   const lang = useDateLanguage();
@@ -245,20 +258,15 @@ function PhoneBarSection() {
 
 /** Key bindings live on their own page, `/settings/keys`; this is the way there. */
 function KeysSection() {
-  const bindings = useKeyBindings();
+  const count = useKeyBindings().length;
   return (
-    <section className="flex flex-col gap-3">
-      <div>
-        <h2 className="flex items-center gap-2 text-base font-medium">
-          <Keyboard className="size-4" /> Keys
-        </h2>
-        <p className="text-muted-foreground text-sm">Give any command a key, so it runs on the desk without the palette. The same keys in every workspace.</p>
-      </div>
-      <Link to="/settings/keys" className="hover:bg-accent flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-        <span className="min-w-0 flex-1 truncate">{bindings.length === 0 ? "Bind a key" : `${bindings.length} key${bindings.length === 1 ? "" : "s"} bound`}</span>
-        <ChevronRight className="size-4 shrink-0" />
-      </Link>
-    </section>
+    <PageLinkSection
+      icon={Keyboard}
+      title="Keys"
+      blurb="Give any Command a key, so it runs on the desk without the palette. The same keys in every Workspace."
+      to="/settings/keys"
+      label={count === 0 ? "Bind a key" : `${count} key${count === 1 ? "" : "s"} bound`}
+    />
   );
 }
 

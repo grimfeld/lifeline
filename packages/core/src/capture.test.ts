@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MACRO_APP, macroCommand, type MacroStep } from "./macros";
-import { CAPTURE_PINS_MAX, captureAppTitle, buildCaptureSheet, movePin, togglePin, type CaptureCommand, type CaptureSheetInput } from "./capture";
+import { commandAppTitle } from "./registry";
+import { CAPTURE_PINS_MAX, buildCaptureSheet, movePin, togglePin, type CaptureCommand, type CaptureSheetInput } from "./capture";
 
 const MODULE_OF: Record<string, string | undefined> = {
   shopping: "house",
@@ -159,7 +160,7 @@ describe("capture Macros", () => {
 
   it("is listed under a group titled Macros, and pinnable", () => {
     const m = macro("m", "tasks/add-task");
-    const s = sheet({ ...withMacros(m), appTitle: captureAppTitle, moduleOf: (id) => MODULE_OF[id] });
+    const s = sheet({ ...withMacros(m), appTitle: commandAppTitle, moduleOf: (id) => MODULE_OF[id] });
     const group = s.groups.find((g) => g.id === `app:${MACRO_APP}`);
     expect(group?.title).toBe("Macros");
     expect(s.pinnable.map((e) => e.key)).toContain(`${MACRO_APP}/m`);

@@ -28,6 +28,7 @@ export const pantryCommands: CommandDef[] = [
       { key: "frozenOn", label: "Frozen on", kind: "date" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const title = (a.title as string).trim();
       const storageId = a.storage as string;

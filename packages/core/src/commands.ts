@@ -13,9 +13,41 @@ import type { CommandArg, CommandDef, CommandResult } from "./manifest";
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/** A Command as the registry lists it: with the App that owns it. */
+export type OwnedCommand = CommandDef & { appId: string };
+
+/** The `appId/commandId` key a Command is stored by — a capture pin, a Macro's step, a Key binding. */
+export function commandKey(c: Pick<OwnedCommand, "appId" | "id">): string {
+  return `${c.appId}/${c.id}`;
+}
+
 /** Whether a Command can be run headless. */
 export function isInvocable(def: CommandDef): def is CommandDef & { args: CommandArg[]; invoke: NonNullable<CommandDef["invoke"]> } {
   return !!def.invoke && !!def.args;
+}
+
+/**
+ * How a Command runs when it is picked — the one reading the palette, a
+ * Macro's step and a key all share: headless with its arguments (`invoke`), in
+ * its dialog, or by its `run`, which either takes the user somewhere or stays
+ * (`navigates: false`). "none" when it has none of them (inline only).
+ */
+export type CommandRun = "headless" | "dialog" | "navigates" | "run" | "none";
+
+export function commandRun(def: CommandDef): CommandRun {
+  if (isInvocable(def)) return "headless";
+  if (def.dialog) return "dialog";
+  if (def.run) return (def.navigates ?? true) ? "navigates" : "run";
+  return "none";
+}
+
+/**
+ * Whether running a Command takes the user somewhere: as it says, or — when
+ * it doesn't say — when all it has is `run` (no dialog, no headless form),
+ * which is how a "Go to…" Command is written. A Macro's navigating step comes last.
+ */
+export function commandNavigates(def: CommandDef): boolean {
+  return def.navigates ?? commandRun(def) === "navigates";
 }
 
 function isRealDate(s: string): boolean {
@@ -180,6 +212,19 @@ export async function readCommandArgs(args: CommandArg[], raw: Record<string, un
       continue;
     }
     out[arg.key] = v;
+  }
+  return out;
+}
+
+/** What is wrong with each value, by its argument's key — empty when every one fits — so a form shows each under its own field. */
+export async function argProblems(args: CommandArg[], raw: Record<string, unknown>): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (const arg of args) {
+    try {
+      await readCommandArgs([arg], raw[arg.key] === undefined ? {} : { [arg.key]: raw[arg.key] });
+    } catch (e) {
+      out[arg.key] = e instanceof Error ? e.message : String(e);
+    }
   }
   return out;
 }

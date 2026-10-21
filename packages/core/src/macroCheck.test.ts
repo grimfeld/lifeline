@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { checkMacro, type DocumentLookup } from "./macroCheck";
-import type { MacroStep, OwnedCommand } from "./macros";
+import type { OwnedCommand } from "./commands";
+import type { MacroStep } from "./macros";
 import type { CommandArg } from "./manifest";
 
 const AMOUNT: CommandArg[] = [{ key: "amount", label: "Amount", kind: "number", required: true }];
@@ -11,6 +12,7 @@ const headless = (appId: string, id: string, args: CommandArg[]): OwnedCommand =
   id,
   title: `${appId} ${id}`,
   args,
+  returnsDocument: true,
   invoke: async () => ({ message: "ok", id: "doc" }),
 });
 const goTo: OwnedCommand = {
@@ -32,7 +34,9 @@ const macro: OwnedCommand = {
   run: async () => {},
 };
 
-const COMMANDS = [headless("pocket", "spend", AMOUNT), headless("notes", "add", SOURCE), headless("library", "add", []), goTo, dialogOnly, macro];
+/** A headless Command that makes nothing to take: setting a mood. */
+const setsMood: OwnedCommand = { ...headless("mood", "set", []), returnsDocument: undefined };
+const COMMANDS = [headless("pocket", "spend", AMOUNT), headless("notes", "add", SOURCE), headless("library", "add", []), goTo, dialogOnly, macro, setsMood];
 
 /** Two Sources, one of them a title twice over. */
 const lookup: DocumentLookup = {
@@ -124,6 +128,20 @@ describe("checkMacro", () => {
     expect(await check(s("ledger/reconcile"), s("notes/add", { source: { from: "step", step: 0 } }))).toEqual({
       ok: false,
       reasons: ["Step 2: Source takes what step 1 made, but “Reconcile” makes no Document"],
+    });
+  });
+
+  it("is broken by a reference to a headless step whose Command returns no Document", async () => {
+    expect(await check(s("mood/set"), s("notes/add", { source: { from: "step", step: 0 } }))).toEqual({
+      ok: false,
+      reasons: ["Step 2: Source takes what step 1 made, but “mood set” makes no Document"],
+    });
+  });
+
+  it("is broken by a step's result given to an argument that is not a link", async () => {
+    expect(await check(s("library/add"), s("pocket/spend", { amount: { from: "step", step: 0 } }))).toEqual({
+      ok: false,
+      reasons: ["Step 2: Amount takes what step 1 made, but only a link can take a Document"],
     });
   });
 

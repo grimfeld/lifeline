@@ -1,6 +1,9 @@
+import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { invokeCommand } from "./commands";
-import { MACRO_APP, commandNavigates, macroCommand, onMacroReport, runMacro, type MacroReport, type MacroStep, type OwnedCommand, type StepArg } from "./macros";
+import { commandNavigates, invokeCommand, type OwnedCommand } from "./commands";
+import { db, openDb } from "./data/db";
+import { putDocument } from "./documents/store";
+import { MACRO_APP, macroCommand, moveStep, onMacroReport, removeStep, runMacro, withMacros, type MacroReport, type MacroStep, type StepArg } from "./macros";
 import type { CommandArg, CommandDef } from "./manifest";
 
 /** A fake headless Command that records each run it is given, in `log`. */
@@ -10,6 +13,7 @@ function headless(appId: string, id: string, args: CommandArg[], log: string[], 
     id,
     title: `${appId} ${id}`,
     args,
+    returnsDocument: true,
     invoke: async (a) => {
       if (refuse) throw new Error(refuse);
       log.push(`${appId}/${id} ${JSON.stringify(a)}`);
@@ -92,19 +96,27 @@ describe("a step's arguments", () => {
   });
 
   it("links a later step to the Document an earlier step made", async () => {
+    openDb([], []);
+    await db().open();
     const log: string[] = [];
-    // A text argument stands in for the link: what is checked is that step 1's Document id arrives.
-    const ABOUT: CommandArg[] = [...NOTE, { key: "about", label: "About", kind: "text" }];
-    const commands = [headless("library", "add", NOTE, log), headless("notes", "add", ABOUT, log)];
+    const ABOUT: CommandArg[] = [...NOTE, { key: "about", label: "About", kind: "link" }];
+    // Step 1 makes a real Document, so step 2's link is read as any link is: by the store.
+    const library: OwnedCommand = {
+      ...headless("library", "add", NOTE, log),
+      invoke: async () => ({ message: "Added", id: (await putDocument({ type: "book", title: "Dune", folder: "", tags: [] })).id }),
+    };
+    const commands = [library, headless("notes", "add", ABOUT, log)];
     const macro = { name: "Read", steps: [step("library/add", {}), step("notes/add", { about: { from: "step", step: 0 }, note: { from: "fixed", value: "x" } })] };
     const report = await runMacro(macro, commands);
-    expect(log).toEqual(["library/add {}", 'notes/add {"note":"x","about":"add-doc"}']);
+    const made = report.steps[0].status === "done" ? report.steps[0].id : undefined;
+    expect(made).toBeDefined();
+    expect(log).toEqual([`notes/add {"note":"x","about":"${made}"}`]);
     expect(report.steps.map((s) => s.status)).toEqual(["done", "done"]);
   });
 
-  it("stops at a step whose earlier step made nothing to link to", async () => {
+  it("stops at a step whose earlier step, though it says it returns a Document, made none", async () => {
     const log: string[] = [];
-    const LINK: CommandArg[] = [{ key: "about", label: "About", kind: "text" }];
+    const LINK: CommandArg[] = [{ key: "about", label: "About", kind: "link" }];
     const made = headless("stats", "log", NOTE, log);
     const commands = [{ ...made, invoke: async () => ({ message: "Logged" }) }, headless("notes", "add", LINK, log)];
     const report = await runMacro({ name: "M", steps: [step("stats/log", {}), step("notes/add", { about: { from: "step", step: 0 } })] }, commands);
@@ -138,11 +150,23 @@ describe("dialog and navigation steps", () => {
     const report = await runMacro({ name: "M", steps: [step("stats/log", {}), step("ledger/reconcile", {}), step("stats/log", {})] }, commands, {
       openDialog: async (def) => {
         order.push(`opened ${def.id} after ${log.length} step`);
+        return true;
       },
     });
     expect(order).toEqual(["opened reconcile after 1 step"]);
     expect(report.steps.map((s) => s.status)).toEqual(["done", "done", "done"]);
     expect(log).toHaveLength(2);
+  });
+
+  it("stops at a dialog-only step whose dialog is cancelled, reporting it cancelled", async () => {
+    const log: string[] = [];
+    const commands = [headless("stats", "log", NOTE, log), dialogOnly("ledger", "reconcile")];
+    const report = await runMacro({ name: "M", steps: [step("stats/log", {}), step("ledger/reconcile", {}), step("stats/log", {})] }, commands, {
+      openDialog: async () => false,
+    });
+    expect(report.steps.map((s) => s.status)).toEqual(["done", "stopped", "not-reached"]);
+    expect(report.steps[1]).toEqual({ title: "ledger reconcile", status: "stopped", reason: "Cancelled" });
+    expect(log).toHaveLength(1);
   });
 
   it("runs a navigating step last, taking the user there", async () => {
@@ -218,7 +242,7 @@ describe("a Macro's headless form", () => {
         expect(log).toEqual([]);
         return { s1_amount: "2", s2_note: "tea" };
       },
-      openDialog: async () => {},
+      openDialog: async () => true,
     };
     const commands = [headless("pocket", "spend", AMOUNT, log), headless("stats", "log", NOTE, log)];
     const def = macroCommand({ id: "m", name: "Tea", steps: [step("pocket/spend", { amount: { from: "asked" } }), step("stats/log", { note: { from: "asked" } })] }, commands, () => ui);
@@ -235,7 +259,7 @@ describe("a Macro's headless form", () => {
         seen.push(initial);
         return { s1_amount: "3" };
       },
-      openDialog: async () => {},
+      openDialog: async () => true,
     };
     const def = macroCommand({ id: "m", name: "Coffee", steps: [step("pocket/spend", { amount: { from: "asked" } })] }, [headless("pocket", "spend", AMOUNT, log)], () => ui);
     await def.run!({ navigate: () => {}, initial: { s1_amount: "3" } });
@@ -249,7 +273,7 @@ describe("a Macro's headless form", () => {
     const stop = onMacroReport((r) => reports.push(r));
     const def = macroCommand({ id: "m", name: "Tea", steps: [step("pocket/spend", { amount: { from: "asked" } })] }, [headless("pocket", "spend", AMOUNT, log)], () => ({
       ask: async () => undefined,
-      openDialog: async () => {},
+      openDialog: async () => true,
     }));
     await def.run!({ navigate: () => {} });
     stop();
@@ -268,7 +292,7 @@ describe("a broken Macro as a Command", () => {
           log.push("asked");
           return { s1_amount: 3 };
         },
-        openDialog: async () => {},
+        openDialog: async () => true,
       }),
     );
 
@@ -286,5 +310,41 @@ describe("a broken Macro as a Command", () => {
     stop();
     expect(log).toEqual([]);
     expect(reports.map((r) => r.broken)).toEqual([["Step 2: Amount: expected a number"]]);
+  });
+});
+
+describe("the registry a Macro is checked and run against", () => {
+  it("holds the Macros too, so a Macro taking another as a step is refused as one, not as gone", async () => {
+    const log: string[] = [];
+    const inner = { id: "a", name: "Inner", sort: 0, steps: [step("stats/log", {})] };
+    const outer = { id: "b", name: "Outer", sort: 1, steps: [step(`${MACRO_APP}/a`, {})] };
+    // Outer first: what it names is listed after it.
+    const registry = withMacros([headless("stats", "log", NOTE, log)], [outer, inner]);
+    expect(registry.map((c) => `${c.appId}/${c.id}`)).toEqual(["stats/log", `${MACRO_APP}/b`, `${MACRO_APP}/a`]);
+    const reports: MacroReport[] = [];
+    const stop = onMacroReport((r) => reports.push(r));
+    await registry[1].run!({ navigate: () => {} });
+    stop();
+    expect(reports.map((r) => r.broken)).toEqual([["Step 1: “Inner” is a Macro, and a Macro cannot be a step"]]);
+    expect(log).toEqual([]);
+  });
+});
+
+describe("editing the steps", () => {
+  const link = (n: number): StepArg => ({ from: "step", step: n });
+  const steps = (): MacroStep[] => [step("a/a", {}), step("b/b", { x: link(0) }), step("c/c", { x: link(1), y: link(0) })];
+
+  it("moving a step keeps each reference on the step it names", () => {
+    const moved = moveStep(steps(), 0, 1);
+    expect(moved.map((s) => s.command)).toEqual(["b/b", "a/a", "c/c"]);
+    expect(moved[0].args.x).toEqual(link(1));
+    expect(moved[2].args).toEqual({ x: link(0), y: link(1) });
+  });
+
+  it("removing a step renumbers the references after it, and empties those that named it", () => {
+    const left = removeStep(steps(), 1);
+    expect(left.map((s) => s.command)).toEqual(["a/a", "c/c"]);
+    expect(left[1].args).toEqual({ x: { from: "fixed", value: undefined }, y: link(0) });
+    expect(removeStep(steps(), 0)).toEqual([step("b/b", { x: { from: "fixed", value: undefined } }), step("c/c", { x: link(0), y: { from: "fixed", value: undefined } })]);
   });
 });

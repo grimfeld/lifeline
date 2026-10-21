@@ -27,7 +27,7 @@ palette.
   film, an album…), then opens that one's own form.
 - The others: **Mark done…** and **Next part of…** in Culture, and the Calendar's **Add today…**.
 - Everything inside a fold can still be pinned, and found in the palette.
-- A [Macro](settings.md) whose steps are all capture, none of them going anywhere, is capture too: it gets its own **Macros** group on the sheet and can be pinned. A Macro with any other step stays off the sheet. A pin of a deleted Macro, or one that stopped being capture, disappears.
+- A [Macro](macros.md) whose steps are all capture, none of them going anywhere, is capture too: it gets its own **Macros** group on the sheet and can be pinned. A Macro with any other step stays off the sheet. A pin of a deleted Macro, or one that stopped being capture, disappears.
 
 ## The command palette (Ctrl+K)
 
@@ -44,7 +44,7 @@ Press **Ctrl+K** (⌘K on a Mac) anywhere. Type to filter.
 - The palette is never limited by the Workspace's Modules: everything is reachable from here.
 - It does not search inside Documents; for that use the Vault's **Search**, or a Base.
 - A Command you gave a key shows that key beside it. Pressing the key runs it without the
-  palette; see [Settings](settings.md).
+  palette; see [Keys](keys.md).
 
 ## Commands typed in one line (`!`)
 
@@ -64,6 +64,7 @@ searching:
   two languages disagree (`/mar`: March or mardi), your preferred language in
   [Settings](settings.md) decides; both are always understood.
 - **`#`** picks one of the Command's options (`!mood #great`), or adds a Tag. It suggests both.
+  Some options answer to other words too: a mood reads `#awful`, `#bof` or `#génial`.
 - **`@`** links a Document by its exact title (`@Dune`), and suggests only Documents of the kind
   that Command links to.
 - **`key:`** gives any other detail by its name: `estimate:30`, `notes:"oat milk"`. With nothing
@@ -90,5 +91,7 @@ searching:
 
 - [Using Lifeline on a phone](phone.md)
 - [Settings](settings.md)
+- [Macros](macros.md)
+- [Keys](keys.md)
 - [Workspaces](workspaces.md)
 - [Calendar](calendar.md)

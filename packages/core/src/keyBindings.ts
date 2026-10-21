@@ -2,7 +2,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, KEY_BINDINGS, type SyncedRecord } from "./data/db";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
-import { isApplePlatform } from "./keys";
+import { commandRun } from "./commands";
+import { isApplePlatform, modHeld } from "./keys";
 import type { CommandDef } from "./manifest";
 
 /**
@@ -33,9 +34,7 @@ const MODIFIER_KEYS = new Set(["Meta", "Control", "Alt", "Shift", "AltGraph", "C
  * something nearer the focus already took.
  */
 export function chordOf(e: KeyLike, apple: boolean = isApplePlatform()): string | undefined {
-  if (e.defaultPrevented || MODIFIER_KEYS.has(e.key)) return undefined;
-  const mod = apple ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
-  if (!mod) return undefined;
+  if (e.defaultPrevented || MODIFIER_KEYS.has(e.key) || !modHeld(e, apple)) return undefined;
   const parts = ["Mod"];
   if (e.altKey) parts.push("Alt");
   if (e.shiftKey) parts.push("Shift");
@@ -109,10 +108,16 @@ export function keyRefusal(chord: string, bindings: readonly KeyBindingRecord[],
  * for a Command that needs arguments and has no dialog to ask them.
  */
 export function howKeyRuns(def: CommandDef): "invoke" | "dialog" | "run" | undefined {
-  if (def.invoke && def.args && !def.args.some((a) => a.required)) return "invoke";
+  if (commandRun(def) === "headless" && !def.args!.some((a) => a.required)) return "invoke";
   if (def.dialog) return "dialog";
   if (def.run) return "run";
   return undefined;
+}
+
+/** Why a key cannot be given to a Command (story: a key works for every Command it can run), or nothing when it can. */
+export function bindRefusal(def: CommandDef): string | undefined {
+  if (howKeyRuns(def)) return undefined;
+  return `“${def.title.replace(/…$/, "")}” needs values a key cannot give it, and has no dialog to ask them: type it in the palette with ! instead.`;
 }
 
 // --- persistence -----------------------------------------------------------

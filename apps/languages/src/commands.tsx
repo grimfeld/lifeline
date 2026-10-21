@@ -43,6 +43,7 @@ export const knowledgeCommands: CommandDef[] = [
       { key: "origin", label: "Where it was met", kind: "text" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const topic = await openTopic(a.topic as string);
       const term = a.term as string;
@@ -66,6 +67,7 @@ export const knowledgeCommands: CommandDef[] = [
       { key: "origin", label: "Where it was met", kind: "text" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const topic = await openTopic(a.topic as string);
       const text = a.text as string;
@@ -93,6 +95,7 @@ export const knowledgeCommands: CommandDef[] = [
       { key: "origin", label: "Where it was met", kind: "text" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const topic = await openTopic(a.topic as string);
       const question = a.question as string;
