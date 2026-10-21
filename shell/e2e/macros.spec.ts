@@ -162,3 +162,41 @@ test("the built-in morning Macro is given once: reset puts it back as it shipped
   await page.waitForTimeout(500);
   await expect(page.getByRole("button", { name: "Delete Morning" })).toHaveCount(0);
 });
+
+test("a Macro typed inline runs when its asked arguments are complete and opens its asked form pre-filled when not (#242)", async ({ page, isMobile }) => {
+  test.skip(isMobile, "the palette is not opened on a phone");
+  const stamp = Date.now();
+  await page.goto("/settings/macros");
+  await workLocally(page);
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    await core.saveMacro({ name: "Taskette", steps: [{ command: "tasks/tasks.add", args: { title: { from: "asked" } } }] });
+    await core.saveMacro({ name: "Errand", steps: [{ command: "tasks/tasks.add", args: { title: { from: "asked" } } }, { command: "shopping/shopping.add", args: { title: { from: "asked" } } }] });
+  }, CORE_URL);
+
+  await page.keyboard.press("Control+k");
+  const input = page.getByRole("combobox");
+  await input.fill(`!taskette Call mum ${stamp}`);
+  await expect(page.getByTestId("inline-preview")).toContainText("Taskette");
+  await page.keyboard.press("Enter");
+  const report = page.getByRole("dialog", { name: "Taskette" });
+  await expect(report.getByRole("list", { name: "Steps" }).getByRole("listitem")).toHaveCount(1);
+  await expect(report).toContainText("Done");
+  await report.getByRole("button", { name: "Close", exact: true }).first().click();
+
+  await page.keyboard.press("Control+k");
+  await input.fill(`!errand Pick up ${stamp}`);
+  await expect(page.getByTestId("inline-preview")).toContainText("Missing");
+  await page.keyboard.press("Enter");
+  const form = page.getByRole("dialog", { name: "Errand" });
+  await expect(form.getByLabel("Title (required)")).toHaveValue(`Pick up ${stamp}`);
+  await form.getByLabel("Thing (required)").fill(`Oat milk ${stamp}`);
+  await form.getByRole("button", { name: "Run" }).click();
+  await expect(page.getByRole("dialog", { name: "Errand" }).getByRole("list", { name: "Steps" }).getByRole("listitem")).toHaveCount(2);
+
+  const titles = await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    return (await core.documentsOf("task")).map((d: { title: string }) => d.title);
+  }, CORE_URL);
+  expect(titles).toEqual(expect.arrayContaining([`Call mum ${stamp}`, `Pick up ${stamp}`]));
+});

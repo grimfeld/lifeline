@@ -77,6 +77,10 @@ A **Macro** runs several Commands in order, as one Command. **Macros** here open
 - **Move up** / **Move down** reorder the steps; **Remove step** drops one.
 - Click a Macro to edit it. The bin deletes it at once; **Undo** in the message brings it back.
 - A Macro is in the palette (Ctrl+K) by its name, marked *Macro*, in every Workspace.
+- A Macro whose steps all work without a dialog can also be typed on one line, with the marks of
+  [Capture](capture.md): `!coffee amount:3` (an unmarked word fills the first text argument). A line with
+  every asked argument runs the Macro and shows its report; a line missing some opens the up-front form
+  with what you typed already in it.
 - Each step is done by the App that owns it, exactly as its own Command would. When a step is
   refused (the thing is already on the shopping list), the Macro stops there, unless it is marked
   **Skip if refused**; the steps already done stay done.

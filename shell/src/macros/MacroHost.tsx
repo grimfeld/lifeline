@@ -16,6 +16,7 @@ import { ArgInput } from "./ArgInput";
 interface Asking {
   macro: MacroShape;
   args: CommandArg[];
+  initial?: Record<string, unknown>;
   done: (answers: Record<string, unknown> | undefined) => void;
 }
 
@@ -36,7 +37,7 @@ export function MacroHost() {
   useEffect(
     () =>
       provideMacroUi({
-        ask: (macro, args) => new Promise((done) => setAsking({ macro, args, done })),
+        ask: (macro, args, initial) => new Promise((done) => setAsking({ macro, args, initial, done })),
         openDialog: (def) =>
           new Promise<void>((done) => {
             if (!def.dialog) return done();
@@ -74,7 +75,7 @@ export function MacroHost() {
 
 /** Every asked argument of a Macro, in one form, checked against its signature before the first step runs. */
 function AskedForm({ asking, onDone }: { asking: Asking; onDone: (answers: Record<string, unknown> | undefined) => void }) {
-  const [values, setValues] = useState<Record<string, unknown>>({});
+  const [values, setValues] = useState<Record<string, unknown>>(asking.initial ?? {});
   const [error, setError] = useState<string | null>(null);
   async function submit() {
     try {

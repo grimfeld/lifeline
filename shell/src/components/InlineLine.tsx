@@ -6,6 +6,7 @@ import {
   dateReader,
   invokeCommand,
   isInvocable,
+  MACRO_APP,
   readInlineLine,
   todayStr,
   useAllDocuments,
@@ -64,7 +65,8 @@ function canEnter(r: InlineReading): boolean {
   const c = r.command;
   if (!c) return false;
   if (r.problems.some((p) => p.startsWith("One line runs one Command"))) return false;
-  return r.ready || !!c.dialog || (!!c.run && !isInvocable(c));
+  // A Macro's `run` asks its own form, pre-filled with what the line understood.
+  return r.ready || !!c.dialog || (!!c.run && (!isInvocable(c) || c.appId === MACRO_APP));
 }
 
 export function InlineLine({ line, cursor, commands, mark, onLine, onOpen, onDone, children }: InlineLineProps) {

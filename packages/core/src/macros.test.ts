@@ -224,6 +224,22 @@ describe("a Macro's headless form", () => {
     expect(log).toEqual(['pocket/spend {"amount":2}', 'stats/log {"note":"tea"}']);
   });
 
+  it("hands what an inline line understood to the asked form as its starting values", async () => {
+    const log: string[] = [];
+    const seen: unknown[] = [];
+    const ui = {
+      ask: async (_m: unknown, _args: CommandArg[], initial?: Record<string, unknown>) => {
+        seen.push(initial);
+        return { s1_amount: "3" };
+      },
+      openDialog: async () => {},
+    };
+    const def = macroCommand({ id: "m", name: "Coffee", steps: [step("pocket/spend", { amount: { from: "asked" } })] }, [headless("pocket", "spend", AMOUNT, log)], () => ui);
+    await def.run!({ navigate: () => {}, initial: { s1_amount: "3" } });
+    expect(seen).toEqual([{ s1_amount: "3" }]);
+    expect(log).toEqual(['pocket/spend {"amount":3}']);
+  });
+
   it("runs nothing when the asked form is cancelled", async () => {
     const log: string[] = [];
     const reports: MacroReport[] = [];
