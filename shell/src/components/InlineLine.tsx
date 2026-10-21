@@ -3,9 +3,11 @@ import { CommandGroup, CommandItem, toast } from "@lifeline/ui";
 import {
   appById,
   applySuggestion,
+  dateReader,
   invokeCommand,
   isInvocable,
   readInlineLine,
+  todayStr,
   useAllDocuments,
   useTagVocabulary,
   type InlineCommand,
@@ -13,6 +15,7 @@ import {
   type InlineReading,
 } from "@lifeline/core";
 import { CornerDownLeft, Terminal } from "lucide-react";
+import { useDateLanguage } from "../settings/dateLanguage";
 
 /**
  * The palette's inline mode (ADR 0091): mounted only while the query holds a
@@ -41,7 +44,8 @@ export interface InlineLineProps {
 const bare = (title: string) => title.replace(/…$/, "");
 
 function partText({ arg, text }: InlinePart, content: string | undefined): string {
-  if (arg.key === content || text.startsWith("#")) return text;
+  // Content, a Tag and a day read from `/` say themselves.
+  if (arg.key === content || text.startsWith("#") || arg.kind === "date" || arg.kind === "time") return text;
   return `${arg.label}: ${text}`;
 }
 
@@ -66,10 +70,14 @@ function canEnter(r: InlineReading): boolean {
 export function InlineLine({ line, cursor, commands, mark, onLine, onOpen, onDone, children }: InlineLineProps) {
   const docs = useAllDocuments();
   const vocab = useTagVocabulary();
+  const prefer = useDateLanguage();
   const [refusal, setRefusal] = useState<{ line: string; message: string } | null>(null);
+  // `/` reads dates against today, every language at once, `prefer` settling a word two disagree on.
+  const today = todayStr();
+  const dates = useMemo(() => dateReader({ today, prefer }), [today, prefer]);
   const reading = useMemo(
-    () => readInlineLine({ line, cursor, commands, lookup: { documents: docs, tags: vocab.map((v) => v.tag) } }),
-    [line, cursor, commands, docs, vocab],
+    () => readInlineLine({ line, cursor, commands, lookup: { documents: docs, tags: vocab.map((v) => v.tag) }, dates }),
+    [line, cursor, commands, docs, vocab, dates],
   );
 
   async function enter() {

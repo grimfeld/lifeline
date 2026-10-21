@@ -87,6 +87,7 @@ test.describe("Palette · inline arguments (#232)", () => {
     await expect(dialog).toContainText("family");
   });
 
+
   test("a task line with a Tag but no title opens the task dialog holding the Tag (#236)", async ({ page }) => {
     await openPalette(page);
     await palette(page).fill("!task #family");
@@ -105,5 +106,33 @@ test.describe("Palette · inline arguments (#232)", () => {
     await expect(dialog).toBeVisible();
     await expect(dialog.getByLabel("Name")).toHaveValue("water plants");
     await expect(dialog).toContainText("garden");
+  });
+
+  test("/ reads a date and a time, suggests days as typed, and Enter records them (#235)", async ({ page }) => {
+    const title = `dinner ${Date.now()}`;
+    await openPalette(page);
+    await palette(page).pressSequentially("!event dinner /ve");
+    await expect(options(page).first()).toContainText("vendredi · ven");
+    await palette(page).fill(`!event ${title} /2026-11-02 5pm`);
+    await expect(page.getByTestId("inline-preview")).toContainText(`Add event · ${title} · Mon 2 Nov`);
+    await expect(page.getByTestId("inline-preview")).toContainText("17:00");
+    await page.keyboard.press("Enter");
+    await expect(palette(page)).toHaveCount(0);
+    await expect.poll(() => titled(page, title).then((l) => l.length)).toBe(1);
+  });
+
+  test("the preferred date language in Settings settles /mar (#235)", async ({ page }) => {
+    await openPalette(page);
+    await palette(page).fill("!event dinner /mar");
+    // English by default: March, its first day.
+    await expect(page.getByTestId("inline-preview")).toContainText(/· \w{3} 1 Mar/);
+    await page.keyboard.press("Escape");
+    await page.goto("/settings");
+    await workLocally(page);
+    await page.getByRole("radio", { name: "Français" }).click();
+    await page.keyboard.press("Control+k");
+    await palette(page).fill("!event dinner /mar");
+    // French: the coming Tuesday.
+    await expect(page.getByTestId("inline-preview")).toContainText(/· mar \d+ /);
   });
 });
