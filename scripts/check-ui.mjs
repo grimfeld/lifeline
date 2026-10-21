@@ -85,6 +85,13 @@ const LINE_RULES = [
     test: /\brole=["'{`]*listbox\b/,
     message: "hand-rolled role=\"listbox\" — use Combobox from @lifeline/ui",
   },
+  {
+    id: "toast-raw-error",
+    heading: "Forms and feedback",
+    // The argument is nothing but `<path>.message`; a template or a fallback around it passes.
+    test: /\btoast\.error\(\s*[A-Za-z_$][\w$]*(?:\??\.[\w$]+)*\??\.message\s*[,)]/,
+    message: "toast.error with a raw Error.message alone — say what failed, in a sentence a person understands (`Could not save: ${e.message}`)",
+  },
 ];
 
 /** The local names of the components a file imports from @lifeline/ui. */
@@ -136,6 +143,30 @@ const ELEMENT_RULES = [
     test: (tag) => /^<Button\b/.test(tag) && /\bsize=["']icon/.test(tag) && /(?<![\w-])title=/.test(tag),
     message: "title= on an icon Button — wrap it in <Tip label> (Tooltip), which names it too",
   },
+  {
+    id: "tip-double-label",
+    heading: "Components",
+    // The tag is the Tip's direct child: its opening tag is the last thing before it.
+    test: (tag, before) => /\baria-label=/.test(tag) && /<Tip\b[^<]*\blabel=[^<]*>\s*$/.test(before),
+    message: "aria-label inside <Tip label> — Tip already sets the accessible name; write it once, on the Tip",
+  },
+  {
+    id: "raw-button-type",
+    heading: "Components",
+    // Spread props may carry the type.
+    test: (tag) => /^<button\b/.test(tag) && !/\btype=/.test(tag) && !/\{\.\.\./.test(tag),
+    message: "raw <button> without type — add type=\"button\" (a raw button is for a whole row or tile; otherwise use Button)",
+  },
+  {
+    id: "box-radius",
+    heading: "Layout",
+    // Narrowest pattern with no false positives: a container tag (never a button/control), padded
+    // like a box (p-2 and up). Chips, floating toolbars and unpadded wrappers can't be told from
+    // boxes by class alone, so they are left alone.
+    test: (tag) =>
+      /^<(?:div|li|section|article|aside|ul)\b/.test(tag) && /(?<![\w-])rounded-md(?![\w-])/.test(tag) && /(?<![\w:-])border(?![\w-])/.test(tag) && /(?<![\w-])p-(?:[2-9]|\d{2}|\[)/.test(tag),
+    message: "boxes are rounded-lg border, not rounded-md (rounded-md is for controls); a Card is Card",
+  },
 ];
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] });
@@ -169,11 +200,11 @@ function changedLines(all) {
 
 const allowed = (lines, i, id) => [lines[i], lines[i - 1] ?? ""].some((l) => new RegExp(`ui-allow:\\s*${id}\\b`).test(l));
 
-/** JSX opening tags starting with a capital letter, plus `<input>`: [line index, tag text, the three lines before it]. */
+/** JSX opening tags starting with a capital letter, plus `<input>`, `<button>` and box tags: [line index, tag text, the three lines before it]. */
 function openingTags(lines) {
   const tags = [];
   for (let i = 0; i < lines.length; i++) {
-    for (const m of lines[i].matchAll(/<(?:[A-Z][\w.]*|input\b)/g)) {
+    for (const m of lines[i].matchAll(/<(?:[A-Z][\w.]*|input\b|button\b|div\b|li\b|section\b|article\b|aside\b|ul\b)/g)) {
       let text = lines[i].slice(m.index);
       let depth = 0;
       let j = i;

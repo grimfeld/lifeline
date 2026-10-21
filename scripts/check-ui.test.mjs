@@ -70,3 +70,43 @@ test("CommitField type=\"date\" renders the kit picker, so it is allowed", () =>
 test("a ui-allow on the line above lets one through", () => {
   assert.deepEqual(rules(`{/* ui-allow: native-date — why */}\n<input type="date" />`), []);
 });
+
+test("tip-double-label: an aria-label on the element a Tip names is written twice", () => {
+  assert.deepEqual(rules(`<Tip label="Delete">\n  <Button size="icon" aria-label="Delete" />\n</Tip>`), ["2:tip-double-label"]);
+  assert.deepEqual(rules(`<Tip label={t("x")}><button type="button" aria-label="x" /></Tip>`), ["1:tip-double-label"]);
+});
+
+test("tip-double-label: Tip alone, or an aria-label outside a Tip, passes", () => {
+  assert.deepEqual(rules(`<Tip label="Delete"><Button size="icon" /></Tip>\n<Button size="icon" aria-label="Edit" />`), []);
+});
+
+test("tip-double-label: an aria-label further down inside the Tip is not the named element", () => {
+  assert.deepEqual(rules(`<Tip label="More"><Button size="icon"><Icon aria-label="x" /></Button></Tip>`), []);
+});
+
+test("raw-button-type: a raw <button> without type is flagged", () => {
+  assert.deepEqual(rules(`<button className="x" onClick={go}>Go</button>`), ["1:raw-button-type"]);
+  assert.deepEqual(rules(`<button\n  className="x"\n>Go</button>`), ["1:raw-button-type"]);
+});
+
+test("raw-button-type: with type, with spread props, or the kit Button, passes", () => {
+  assert.deepEqual(rules(`<button type="button">Go</button>\n<button {...props}>Go</button>\n<Button>Go</Button>`), []);
+});
+
+test("toast-raw-error: toast.error with just err.message is flagged", () => {
+  assert.deepEqual(rules(`toast.error(err.message);\ntoast.error(e.message, { id: 1 });\ntoast.error(res.error?.message)`), ["1:toast-raw-error", "2:toast-raw-error", "3:toast-raw-error"]);
+});
+
+test("toast-raw-error: a sentence around the message, or a plain string, passes", () => {
+  assert.deepEqual(rules("toast.error(`Could not save: ${err.message}`);\ntoast.error(\"Could not save\");\ntoast.error(err instanceof Error ? err.message : \"Could not save\");"), []);
+});
+
+test("box-radius: a padded layout box with rounded-md border is flagged", () => {
+  assert.deepEqual(rules(`<li className="grid gap-1.5 rounded-md border p-2">`), ["1:box-radius"]);
+  assert.deepEqual(rules(`<div className={cn("rounded-md border p-4", className)}>`), ["1:box-radius"]);
+});
+
+test("box-radius: rounded-lg boxes, controls, and unpadded or tiny-padded chips pass", () => {
+  const src = `<div className="rounded-lg border p-2">\n<button type="button" className="rounded-md border p-2">x</button>\n<div className="rounded-md border px-2 py-1">\n<div className="rounded-md border p-0.5 shadow-sm">\n<div className="rounded-md py-1 border-l-2">`;
+  assert.deepEqual(rules(src), []);
+});
