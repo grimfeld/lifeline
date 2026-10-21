@@ -2,7 +2,7 @@ import { SURFACES, moduleOfPath } from "@lifeline/core";
 import { guidePageOfModule, guidePageOfSurface } from "@lifeline/guide";
 
 /** Core destinations whose Guide page is their own, by route. */
-const CORE_PAGES: [root: string, slug: string][] = [
+export const CORE_PAGES: [root: string, slug: string][] = [
   ["/base", "bases"],
   ["/screens", "screens"],
   ["/screen", "screens"],

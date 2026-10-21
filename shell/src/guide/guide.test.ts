@@ -1,8 +1,9 @@
+import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { MODULES, SURFACES, type AppManifest } from "@lifeline/core";
 import { GUIDE_PAGES, guidePageOfModule, guidePageOfSurface } from "@lifeline/guide";
-import { guideSlugForPath } from "./guidePlace";
+import { CORE_PAGES, guideSlugForPath } from "./guidePlace";
 
 /**
  * The Guide keeps up with the app (ADR 0089): a Module or Surface with no page,
@@ -12,6 +13,16 @@ import { guideSlugForPath } from "./guidePlace";
  * A deliberate omission goes in `UNLISTED` as "<app>/<title>", with the reason.
  */
 const UNLISTED: Record<string, string> = {};
+
+/**
+ * Routes with no page of their own, by path as `App.tsx` declares it (params cut
+ * off), with the reason. A route is a Core concept's screen: a new one needs a
+ * page, so it lands in `CORE_PAGES` (guidePlace.ts) — or here.
+ */
+const UNLISTED_ROUTES: Record<string, string> = {
+  "/guide": "the Guide itself; its pages are its content",
+  "/module": "a Module's page, found by the Module the path is in (guidePageOfModule)",
+};
 
 let APPS: AppManifest[] = [];
 
@@ -50,6 +61,28 @@ describe("the Guide", () => {
       }
     }
     expect(missing).toEqual([]);
+  });
+
+  it("has a page for every route: a new Core screen is not done until the Guide has its page", () => {
+    // Routes declared in App.tsx as literals; redirects, frames and constants are not screens.
+    const source = readFileSync(new URL("../App.tsx", import.meta.url), "utf8");
+    const routes = [...source.matchAll(/<Route\s+[^>]*?path="(\/[^"]*)"[^>]*?element=\{([^\n]*)\}/g)]
+      .filter(([, , element]) => !/Redirect|Navigate/.test(element))
+      .map(([, path]) => path.split("/").filter((s) => s && !s.startsWith(":") && s !== "*").map((s) => "/" + s).join(""))
+      .filter((path) => path);
+    expect(routes.length, "found no routes in App.tsx: has this test's reading of it broken?").toBeGreaterThan(5);
+
+    for (const [root, slug] of CORE_PAGES) expect(GUIDE_PAGES.map((p) => p.slug), `CORE_PAGES sends ${root} to a page that does not exist`).toContain(slug);
+
+    const owned = [...CORE_PAGES.map(([root]) => root), ...SURFACES.map((s) => s.path)];
+    const missing = [...new Set(routes)].filter((r) => !owned.includes(r) && !(r in UNLISTED_ROUTES));
+    expect(
+      missing,
+      `These routes have no Guide page of their own: ${missing.join(", ")}. A new Core screen or concept needs one: ` +
+        "write packages/guide/pages/<slug>.md (packages/guide/AUTHORING.md), add it to ENTRIES in packages/guide/src/index.ts " +
+        "and link it from index.md, then point the route at it in CORE_PAGES (shell/src/guide/guidePlace.ts). " +
+        "If it deliberately has none, add it to UNLISTED_ROUTES in shell/src/guide/guide.test.ts with the reason.",
+    ).toEqual([]);
   });
 
   it("opens on the page for where the user stands", () => {
