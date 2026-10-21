@@ -1,18 +1,18 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
-import type { CommandDef } from "@lifeline/core";
+import type { CommandDef, CommandDialogProps } from "@lifeline/core";
 import { Lightbulb } from "lucide-react";
 import { ThoughtComposer } from "./components/ThoughtComposer";
 import { captureThought } from "./data/repo";
 import { THOUGHT_KINDS, THOUGHTS_HREF, isKind } from "./domain/types";
 
-function CaptureThoughtDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function CaptureThoughtDialog({ open, onOpenChange, initial }: CommandDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New thought</DialogTitle>
         </DialogHeader>
-        <ThoughtComposer autoFocus onKept={() => onOpenChange(false)} />
+        <ThoughtComposer autoFocus initial={initial} onKept={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );

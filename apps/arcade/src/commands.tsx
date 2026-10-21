@@ -1,4 +1,5 @@
-import type { CommandDef } from "@lifeline/core";
+import { type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { quickAddFromLine } from "@lifeline/parts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
 import { Gamepad2, Plus, Settings2, SlidersHorizontal } from "lucide-react";
 import { AddWorkDialog } from "./components/AddWorkDialog";
@@ -9,14 +10,15 @@ import { WORK_TYPES, workType, type WorkTypeId } from "./domain/workTypes";
 import { quickAddWork } from "./data/repo";
 
 /** One-line quick add in a small dialog; closes as soon as something is added. */
-function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function QuickAddCommandDialog({ open, onOpenChange, initial }: CommandDialogProps) {
+  const line = quickAddFromLine(initial, WORK_TYPES);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add a game</DialogTitle>
         </DialogHeader>
-        <QuickAdd autoFocus onAdded={() => onOpenChange(false)} />
+        <QuickAdd autoFocus defaultType={line.medium} initialText={line.text} onAdded={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );

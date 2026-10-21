@@ -7,7 +7,7 @@ import {
   DialogTitle,
   toast,
 } from "@lifeline/ui";
-import { todayStr, type CommandDef } from "@lifeline/core";
+import { todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { Check, ListChecks, ListTodo, Plus } from "lucide-react";
 import { TaskDialog } from "./components/TaskDialog";
 import { dueItems } from "./domain/occurrences";
@@ -15,7 +15,7 @@ import { addTask, setCompleted, useOverrides, useTasks } from "./data/repo";
 import { readRecurrence, RECURRENCE_HINT } from "./domain/recurrence";
 import { PROJECT } from "./domain/types";
 
-function AddTaskCommandDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function AddTaskCommandDialog(props: CommandDialogProps) {
   return <TaskDialog {...props} />;
 }
 

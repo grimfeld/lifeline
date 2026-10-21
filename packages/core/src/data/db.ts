@@ -124,8 +124,9 @@ export interface ViewFilter {
  *   23 — Roles (ADR 0069): multi-entry `*roles` on `documents`, so "every wearer of a Role" is an index hit
  *   24 — Mail retired (ADR 0080): local `_mail_cache` dropped
  *   25 — Macros (ADR 0092): synced `macros`
+ *   26 — Key bindings: synced `key_bindings`
  */
-const DB_VERSION = 25;
+const DB_VERSION = 26;
 
 /** Stores that no longer exist — before ADR 0018 (so a client re-pulls into `documents`) or a retired App's — deleted on upgrade. */
 const LEGACY_STORES = [
@@ -144,6 +145,8 @@ export const ATTACHMENTS = "attachments";
 export const WORKSPACES = "workspaces";
 /** Macros (ADR 0092) — synced, global like Views. */
 export const MACROS = "macros";
+/** Key bindings (CONTEXT.md "Key binding") — synced, global. */
+export const KEY_BINDINGS = "key_bindings";
 export const BLOBS = "_blobs";
 /** Tallying (ADR 0059): which Tally already fired for which occurrence — per device, never synced. */
 export const TALLY_FIRES = "_tally_fires";
@@ -179,6 +182,7 @@ export class LifelineDB extends Dexie {
       [MACROS]: "id, updatedAt, deleted, sort",
       [DOCUMENT_TYPES]: "id, updatedAt, deleted, typeId",
       [ATTACHMENTS]: "id, updatedAt, deleted, name",
+      [KEY_BINDINGS]: "id, updatedAt, deleted, key",
       [BLOBS]: "id",
       [TALLY_FIRES]: "id",
       [DOCUMENTS]: Array.from(new Set([...DOCUMENT_BASE_INDEXES, ...documentIndexes.map(compileDocumentIndex)])).join(", "),

@@ -1,4 +1,4 @@
-import { pickLinked, type CommandDef } from "@lifeline/core";
+import { pickLinked, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
 import { NotebookPen, Quote as QuoteIcon, Radio } from "lucide-react";
 import { CaptureForm, type CaptureMode } from "./components/CaptureForm";
@@ -9,14 +9,14 @@ import { addSource } from "./data/sources";
 import { QUOTES_HREF, SHELF_HREF, SOURCE_KINDS, SOURCE_ROLE, isSourceKind } from "./domain/types";
 
 function captureDialog(mode: CaptureMode, title: string) {
-  return function CaptureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  return function CaptureDialog({ open, onOpenChange, initial }: CommandDialogProps) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
-          <CaptureForm initialMode={mode} autoFocus onDone={() => onOpenChange(false)} onCancel={() => onOpenChange(false)} />
+          <CaptureForm initialMode={mode} initial={initial} autoFocus onDone={() => onOpenChange(false)} onCancel={() => onOpenChange(false)} />
         </DialogContent>
       </Dialog>
     );

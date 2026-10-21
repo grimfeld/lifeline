@@ -6,6 +6,8 @@ export * from "./manifest";
 export * from "./cards";
 export * from "./registry";
 export * from "./commands";
+export * from "./inline";
+export * from "./inlineDates";
 export * from "./screens";
 export * from "./overviews";
 export * from "./contracts/schedulable";
@@ -55,6 +57,7 @@ export {
   ATTACHMENTS,
   WORKSPACES,
   MACROS,
+  KEY_BINDINGS,
   type SyncedRecord,
   type Placement,
   type UserScreen,
@@ -80,6 +83,7 @@ export * from "./private";
 export * from "./workspaces";
 export * from "./bar";
 export * from "./keys";
+export * from "./keyBindings";
 export * from "./stable";
 export * from "./capture";
 export * from "./macros";

@@ -5,12 +5,15 @@ import {
   Dialog,
   DialogContent,
   Separator,
+  ToggleGroup,
+  ToggleGroupItem,
   cn,
 } from "@lifeline/ui";
 import {
   BAR_PINNED,
   BAR_SLOT_ORDER,
   CAPTURE_PINS_MAX,
+  DATE_VOCABULARIES,
   inhabitedModules,
   isDemo,
   movePin,
@@ -20,6 +23,7 @@ import {
   sameSlot,
   useBarConfig,
   useCurrentWorkspace,
+  useKeyBindings,
   useSlotOptions,
   useMacros,
   useWorkspaces,
@@ -27,12 +31,13 @@ import {
   type CaptureEntry,
   type SlotOption,
 } from "@lifeline/core";
-import { ArrowDown, ArrowUp, Check, ChevronRight, ListOrdered, Lock, Pin, Plus, Smartphone, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronRight, Keyboard, ListOrdered, Lock, Pin, Plus, Smartphone, X } from "lucide-react";
 import { entryIcon, foldMembers } from "../capture/captureParts";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
 import { WorkspaceDialog, WorkspaceForm } from "../components/WorkspaceDialog";
 import { SyncBadge } from "../components/SyncBadge";
 import { ResetDemoButton, SourceLink } from "../demo/DemoActions";
+import { setDateLanguage, useDateLanguage } from "./dateLanguage";
 
 /**
  * `/settings` (ADR 0053): where the user configures Lifeline itself rather
@@ -72,6 +77,10 @@ export function SettingsPage() {
       <Separator />
       <MacrosSection />
       <Separator />
+      <DateLanguageSection />
+      <Separator />
+      <KeysSection />
+      <Separator />
       <WorkspacesSection />
     </div>
   );
@@ -110,6 +119,34 @@ function MacrosSection() {
         <span className="min-w-0 flex-1 truncate">{count === 0 ? "Make a macro" : `${count} macro${count === 1 ? "" : "s"}`}</span>
         <ChevronRight className="size-4 shrink-0" />
       </Link>
+    </section>
+  );
+}
+
+/**
+ * Which language a palette `/` word means when English and French disagree
+ * (ADR 0091). Per device (see dateLanguage.ts); every language is read either way.
+ */
+function DateLanguageSection() {
+  const lang = useDateLanguage();
+  return (
+    <section className="flex flex-col gap-3">
+      <div>
+        <h2 className="flex items-center gap-2 text-base font-medium">
+          <CalendarDays className="size-4" /> Dates in the palette
+        </h2>
+        <p className="text-muted-foreground text-sm">
+          A <code>/</code> in the palette reads a date in English and in French alike. When a word means different things in each
+          (<code>/mar</code>: March or mardi), this language decides. Kept on this device.
+        </p>
+      </div>
+      <ToggleGroup aria-label="Preferred date language" value={lang} onValueChange={setDateLanguage} className="self-start">
+        {Object.entries(DATE_VOCABULARIES).map(([code, v]) => (
+          <ToggleGroupItem key={code} value={code} aria-label={v.name}>
+            {v.name}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
     </section>
   );
 }
@@ -205,6 +242,25 @@ function PhoneBarSection() {
 }
 
 // --- the capture sheet's pins ---
+
+/** Key bindings live on their own page, `/settings/keys`; this is the way there. */
+function KeysSection() {
+  const bindings = useKeyBindings();
+  return (
+    <section className="flex flex-col gap-3">
+      <div>
+        <h2 className="flex items-center gap-2 text-base font-medium">
+          <Keyboard className="size-4" /> Keys
+        </h2>
+        <p className="text-muted-foreground text-sm">Give any command a key, so it runs on the desk without the palette. The same keys in every workspace.</p>
+      </div>
+      <Link to="/settings/keys" className="hover:bg-accent flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+        <span className="min-w-0 flex-1 truncate">{bindings.length === 0 ? "Bind a key" : `${bindings.length} key${bindings.length === 1 ? "" : "s"} bound`}</span>
+        <ChevronRight className="size-4 shrink-0" />
+      </Link>
+    </section>
+  );
+}
 
 /**
  * The Workspace's capture pins (CONTEXT.md "Capture sheet"): the handful on

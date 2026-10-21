@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, toast } from "@lifeline/ui";
-import { useTagVocabulary } from "@lifeline/core";
-import { BASE_UNIT, DIMENSIONS, DIMENSION_LABEL, SECONDARY_DIMENSIONS, UNITS_OF, UNIT_LABEL, type Basis, type Dimension, type Product, type SecondaryDimension, type Unit } from "../domain/types";
+import { initialText, useTagVocabulary } from "@lifeline/core";
+import { BASE_UNIT, DIMENSIONS, DIMENSION_LABEL, SECONDARY_DIMENSIONS, UNITS_OF, UNIT_LABEL, isDimension, isSecondaryDimension, isUnitOf, type Basis, type Dimension, type Product, type SecondaryDimension, type Unit } from "../domain/types";
 import { amountUnit, measureLabel, perUnit } from "../domain/measure";
 import { measureChange } from "../domain/derive";
 import { addProduct, deleteProduct, mergeProduct, updateProduct, useLines, useProducts } from "../data/repo";
@@ -21,7 +21,7 @@ import { NONE, UnitSelect } from "./pickers";
  * merging into a Product without the same one — clears the Lines' second
  * amounts, said beforehand (ADR 0084).
  */
-export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; product?: Product | null; defaultTitle?: string; onCreated?: (id: string) => void }) {
+export function ProductDialog({ open, onOpenChange, product, defaultTitle, initial, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; product?: Product | null; defaultTitle?: string; /** The palette's inline line (CommandDialogProps.initial): the name and Measure it understood. */ initial?: Record<string, unknown>; onCreated?: (id: string) => void }) {
   const products = useProducts();
   const lines = useLines();
   const vocabulary = useTagVocabulary().map((v) => v.tag);
@@ -38,17 +38,25 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, onCre
 
   useEffect(() => {
     if (!open) return;
-    setTitle(product?.title ?? defaultTitle ?? "");
-    setDimension(product?.dimension ?? "count");
-    setUnit(product?.unit ?? "pc");
-    setCountName(product?.countName ?? "");
-    setSecondary(product?.secondaryDimension ?? "");
-    setSecondaryUnit(product?.secondaryUnit ?? "kg");
-    setCompareBy(product?.compareBy ?? "primary");
+    // A new Product may start from the inline line: what it named, kept only when it fits (a unit of the dimension, a count's secondary).
+    const named = product ? undefined : initial;
+    const dim = initialText(named, "dimension");
+    const startDim = isDimension(dim) ? dim : "count";
+    const unitNamed = initialText(named, "unit");
+    const secNamed = initialText(named, "secondary_dimension");
+    const startSec = startDim === "count" && isSecondaryDimension(secNamed) ? secNamed : "";
+    const secUnitNamed = initialText(named, "secondary_unit");
+    setTitle(product?.title ?? (defaultTitle || initialText(named, "name")));
+    setDimension(product?.dimension ?? startDim);
+    setUnit(product?.unit ?? (isUnitOf(startDim, unitNamed) ? unitNamed : BASE_UNIT[startDim]));
+    setCountName(product?.countName ?? (startDim === "count" ? initialText(named, "count_name") : ""));
+    setSecondary(product?.secondaryDimension ?? startSec);
+    setSecondaryUnit(product?.secondaryUnit ?? (startSec && isUnitOf(startSec, secUnitNamed) ? secUnitNamed : BASE_UNIT[startSec || "mass"]));
+    setCompareBy(product?.compareBy ?? (startSec && initialText(named, "compare_by") === "secondary" ? "secondary" : "primary"));
     setTags(product?.tags ?? []);
     setMergeInto("");
     setConfirming(false);
-  }, [open, product, defaultTitle]);
+  }, [open, product, defaultTitle, initial]);
 
   const mergeTargets = products.filter((p) => product && p.id !== product.id);
   const into = mergeTargets.find((p) => p.id === mergeInto);

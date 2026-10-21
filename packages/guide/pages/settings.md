@@ -41,6 +41,22 @@ opens empty.
 
 See [Capture](capture.md).
 
+## Keys
+
+Give any Command a key of your own, so it runs on the desk without opening the palette.
+**Keys** opens the list of them (**Settings → Keys**).
+
+- **Bind a key** — pick a Command, then press the key that runs it. A key needs ⌘ (Ctrl off a
+  Mac), with ⌥/Alt or ⇧/Shift if you like.
+- Keys Lifeline already uses (⌘K, ⌘E, ⌘., ⌘1–9, ⌘↵) and the browser's own (copy, paste, new
+  tab…) are refused. A key you already gave another Command shows as taken, with the Command
+  it runs.
+- Pressing the key runs the Command at once when it needs nothing more; one that asks for
+  something (a mood, a title) opens its dialog; one that goes somewhere goes there.
+- The pencil changes a binding; **×** removes it, with Undo.
+- A binding whose Command no longer exists (its App was removed) is marked **Dead**: clear it.
+- Keys are yours across every Workspace and every desk device. They do nothing on a phone.
+- The palette shows a Command's key beside it.
 ## Macros
 
 A **Macro** runs several Commands in order, as one Command. **Macros** here opens their own page.
@@ -66,6 +82,13 @@ A **Macro** runs several Commands in order, as one Command. **Macros** here open
   **Skip if refused**; the steps already done stay done.
 - Every run ends with a report: each step **Done** (with what it said, and **Open** for what it
   made), **Skipped** or **Stopped** (with why), or **Not reached**.
+
+## Dates in the palette
+
+The palette's `/` reads dates in English and in French (see [Capture](capture.md)). A few words
+mean different things in each: `/mar` is March in English and Tuesday (mardi) in French. Pick
+**English** (the default) or **Français** to say which one wins. Words only one language knows
+are read in that language whatever you pick. The choice is kept on this device.
 
 ## Workspaces
 

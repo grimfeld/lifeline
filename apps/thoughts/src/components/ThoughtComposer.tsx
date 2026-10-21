@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, toast } from "@lifeline/ui";
+import { initialText } from "@lifeline/core";
 import { Lightbulb } from "lucide-react";
 import { captureThought } from "../data/repo";
 import { THOUGHT_KINDS, isKind } from "../domain/types";
@@ -10,9 +11,10 @@ const NO_KIND = "__none__";
  * Capture first (ADR 0068): one box, an optional kind, kept on ⌘/Ctrl+Enter.
  * The title is the first line, so there is nothing else to fill in.
  */
-export function ThoughtComposer({ autoFocus, onKept }: { autoFocus?: boolean; onKept?: () => void }) {
-  const [text, setText] = useState("");
-  const [kind, setKind] = useState<string>(NO_KIND);
+/** `initial` is the palette's inline line (CommandDialogProps.initial): the text and kind it understood. */
+export function ThoughtComposer({ autoFocus, onKept, initial }: { autoFocus?: boolean; onKept?: () => void; initial?: Record<string, unknown> }) {
+  const [text, setText] = useState(initialText(initial, "text"));
+  const [kind, setKind] = useState<string>(isKind(initial?.kind) ? initial.kind : NO_KIND);
   const [busy, setBusy] = useState(false);
 
   async function keep() {

@@ -184,6 +184,20 @@ export function reportMessage(report: MacroReport): string {
   return `${report.name}: ${line.join("; ")}`;
 }
 
+/**
+ * A Macro is capture (CONTEXT.md "Macro") when every step's Command is capture
+ * and none navigates. A step whose Command is gone makes it not capture.
+ */
+export function isCaptureMacro(macro: MacroShape, commands: readonly OwnedCommand[]): boolean {
+  return (
+    macro.steps.length > 0 &&
+    macro.steps.every((s) => {
+      const c = findCommand(commands, s.command);
+      return !!c && !!c.capture && !commandNavigates(c);
+    })
+  );
+}
+
 /** The pseudo-App every Macro's Command is listed under: it is Core's, not any App's. */
 export const MACRO_APP = "macros";
 
@@ -234,6 +248,7 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
     id: macro.id,
     title: macro.name,
     keywords: ["macro"],
+    capture: isCaptureMacro(macro, commands),
     run: async (ctx) => {
       const screen = ui();
       let asked: Record<string, unknown> = {};

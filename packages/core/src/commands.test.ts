@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { invokeCommand, momentOf, pickLinked, readCommandArgs } from "./commands";
+import { initialList, initialMoment, initialNumber, initialText, invokeCommand, momentOf, pickLinked, readCommandArgs } from "./commands";
 import type { CommandArg, CommandDef } from "./manifest";
 
 const ARGS: CommandArg[] = [
@@ -114,5 +114,35 @@ describe("pickLinked", () => {
 
   it("refuses an ambiguous title and lists the candidates' ids", () => {
     expect(() => pickLinked(STAT, "STEPS", docs)).toThrow(/2 stats are called “STEPS”.*s2.*s3/);
+  });
+});
+
+describe("reading a dialog's initial values", () => {
+  const initial = { title: "call mum", n: "3.5", tags: ["a", "b"], one: "solo", none: undefined };
+
+  it("reads text, empty when absent or not text", () => {
+    expect(initialText(initial, "title")).toBe("call mum");
+    expect(initialText(initial, "none")).toBe("");
+    expect(initialText(undefined, "title")).toBe("");
+    expect(initialText(initial, "tags")).toBe("");
+  });
+
+  it("reads a number from a number or text, undefined when it is not one", () => {
+    expect(initialNumber(initial, "n")).toBe(3.5);
+    expect(initialNumber({ n: 2 }, "n")).toBe(2);
+    expect(initialNumber(initial, "title")).toBeUndefined();
+    expect(initialNumber(undefined, "n")).toBeUndefined();
+  });
+
+  it("reads a moment from a day and an optional time", () => {
+    expect(initialMoment({ date: "2026-10-24", time: "17:00" })).toBe("2026-10-24T17:00");
+    expect(initialMoment({ date: "2026-10-24" })).toBe("2026-10-24T12:00");
+    expect(initialMoment({ time: "17:00" })).toBeUndefined();
+  });
+
+  it("reads a list, wrapping a single value", () => {
+    expect(initialList(initial, "tags")).toEqual(["a", "b"]);
+    expect(initialList(initial, "one")).toEqual(["solo"]);
+    expect(initialList(initial, "none")).toEqual([]);
   });
 });

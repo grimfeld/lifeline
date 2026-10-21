@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { initialNumber, initialText } from "@lifeline/core";
 import { Button, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
 import type { Provision } from "../domain/types";
 import { clampQty } from "../domain/rules";
@@ -11,11 +12,14 @@ export function ProvisionDialog({
   onOpenChange,
   provision,
   defaultStorageId,
+  initial,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   provision?: Provision | null;
   defaultStorageId?: string;
+  /** Create mode, the palette's inline line (CommandDialogProps.initial). Tags have no field here. */
+  initial?: Record<string, unknown>;
 }) {
   const storages = useStorages();
   const [title, setTitle] = useState("");
@@ -28,15 +32,15 @@ export function ProvisionDialog({
 
   useEffect(() => {
     if (!open) return;
-    setTitle(provision?.title ?? "");
-    setStorageId(provision?.storageId ?? defaultStorageId ?? storages[0]?.id ?? "");
-    setQuantity(String(provision?.quantity ?? 1));
-    setUnit(provision?.unit ?? "");
-    setMinimum(provision && provision.minimum > 0 ? String(provision.minimum) : "");
-    setExpires(provision?.expires ?? "");
-    setFrozenOn(provision?.frozenOn ?? "");
+    setTitle(provision?.title ?? initialText(initial, "title"));
+    setStorageId(provision?.storageId ?? (initialText(initial, "storage") || (defaultStorageId ?? storages[0]?.id ?? "")));
+    setQuantity(String(provision?.quantity ?? initialNumber(initial, "quantity") ?? 1));
+    setUnit(provision?.unit ?? initialText(initial, "unit"));
+    setMinimum(provision ? (provision.minimum > 0 ? String(provision.minimum) : "") : String(initialNumber(initial, "minimum") ?? ""));
+    setExpires(provision?.expires ?? initialText(initial, "expires"));
+    setFrozenOn(provision?.frozenOn ?? initialText(initial, "frozenOn"));
     // storages load async; re-defaulting on their arrival is wanted for a fresh form
-  }, [open, provision, defaultStorageId, storages]);
+  }, [open, provision, defaultStorageId, storages, initial]);
 
   const canSave = !!title.trim() && !!storageId;
 

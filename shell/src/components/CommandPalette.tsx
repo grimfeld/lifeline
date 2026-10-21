@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import {
   commandDefaultFilter,
@@ -9,11 +9,15 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
+  CommandShortcut,
 } from "@lifeline/ui";
 import {
   appById,
   MACRO_APP,
   CALENDAR_VIEWS,
+  isInvocable,
+  chordLabel,
+  commandKey,
   isModShortcut,
   moduleById,
   moduleHome,
@@ -21,6 +25,7 @@ import {
   screenRoute,
   useAllCommands,
   useCaptureSheet,
+  useKeyBindings,
   useWorkspaceModules,
   useWorkspaceScreens,
   type CaptureEntry,
@@ -31,6 +36,7 @@ import { GUIDE_PAGES } from "@lifeline/guide";
 import { CalendarDays, CircleHelp, LayoutDashboard, MapPin, Terminal } from "lucide-react";
 import { guideHref } from "../guide/guidePlace";
 import { entryIcon, foldMembers } from "../capture/captureParts";
+import { InlineLine } from "./InlineLine";
 
 type DialogCommand = CommandDef & { appId: string };
 
@@ -62,9 +68,13 @@ function rankCaptureFirst(value: string, search: string, keywords?: string[]): n
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [activeDialog, setActiveDialog] = useState<DialogCommand | null>(null);
+  // What the inline line understood, handed to the dialog it opens (CommandDialogProps.initial).
+  const [dialogInitial, setDialogInitial] = useState<Record<string, unknown> | undefined>();
   const [search, setSearch] = useState("");
   // A pinned fold opens its members here, in place of the full list.
   const [openFold, setOpenFold] = useState<Extract<CaptureEntry, { kind: "fold" }> | null>(null);
+  // The caret, for the inline reader's suggestions (ADR 0091).
+  const [cursor, setCursor] = useState(0);
   const navigate = useNavigate();
   const input = useRef<HTMLInputElement>(null);
 
@@ -101,8 +111,13 @@ export function CommandPalette() {
     fn();
   }
 
-  function runCommand(c: DialogCommand) {
-    if (c.dialog) return pick(() => setActiveDialog(c));
+  function runCommand(c: DialogCommand, initial?: Record<string, unknown>) {
+    if (c.dialog) {
+      return pick(() => {
+        setDialogInitial(initial);
+        setActiveDialog(c);
+      });
+    }
     // A Command may ask to stay (CommandCtx.keepPalette): the query empties, ready for it.
     let keep = false;
     void c.run?.({
@@ -125,7 +140,16 @@ export function CommandPalette() {
 
   const commands = useAllCommands();
   const { pinned } = useCaptureSheet();
+  // A Command's Key binding is shown beside it (CONTEXT.md "Key binding").
+  const bindings = useKeyBindings();
+  const keyOf = new Map(bindings.map((b) => [b.command, b.key]));
+  const keyHint = (c: DialogCommand) => {
+    const key = keyOf.get(commandKey(c));
+    return key && <CommandShortcut className="ml-2">{chordLabel(key)}</CommandShortcut>;
+  };
   const runnable = commands.filter((c) => c.dialog || c.run);
+  // What `!` can name: every Command but an inline-only one (ADR 0088), headless-only ones included.
+  const nameable = useMemo(() => commands.filter((c) => c.dialog || c.run || isInvocable(c)), [commands]);
   // Every inline Command reads the query anew on each change of it (ADR 0088).
   const offers =
     search.trim() === ""
@@ -136,6 +160,31 @@ export function CommandPalette() {
         });
   const ActiveDialogComponent = activeDialog?.dialog;
 
+  /** A `!` in the query hands the list to the inline reader, which keeps the search only while the line is no mark. */
+  function withInline(rows: ReactNode) {
+    if (!search.includes("!")) return rows;
+    return (
+      <InlineLine
+        line={search}
+        cursor={Math.min(cursor, search.length)}
+        commands={nameable}
+        mark={INLINE_MARK}
+        onLine={(line, at) => {
+          setSearch(line);
+          setCursor(at);
+          requestAnimationFrame(() => {
+            input.current?.focus();
+            input.current?.setSelectionRange(at, at);
+          });
+        }}
+        onOpen={(c, initial) => runCommand(c, initial)}
+        onDone={() => setPaletteOpen(false)}
+      >
+        {rows}
+      </InlineLine>
+    );
+  }
+
   return (
     <>
       <CommandDialog open={open} onOpenChange={setPaletteOpen} filter={rankCaptureFirst}>
@@ -143,7 +192,11 @@ export function CommandPalette() {
           ref={input}
           placeholder={openFold ? `${openFold.title.replace(/…$/, "")}: which?` : "Type a command or search…"}
           value={search}
-          onValueChange={setSearch}
+          onValueChange={(v) => {
+            setSearch(v);
+            setCursor(input.current?.selectionStart ?? v.length);
+          }}
+          onSelect={(e) => setCursor(e.currentTarget.selectionStart ?? search.length)}
           onKeyDown={(e) => {
             if (openFold && e.key === "Backspace" && search === "") setOpenFold(null);
           }}
@@ -162,7 +215,7 @@ export function CommandPalette() {
               })}
             </CommandGroup>
           ) : (
-          <>
+          withInline(<>
           {offers.length > 0 && (
             <CommandGroup>
               {offers.map(({ command: c, offer }) => {
@@ -210,6 +263,7 @@ export function CommandPalette() {
                   >
                     <Icon /> {c.title}
                     <span className="text-muted-foreground ml-auto text-xs">{appById(c.appId)?.title}</span>
+                    {keyHint(c)}
                   </CommandItem>
                 );
               })}
@@ -280,11 +334,12 @@ export function CommandPalette() {
                     <span className="text-muted-foreground ml-auto text-xs">
                       {c.appId === MACRO_APP ? "Macro" : appById(c.appId)?.title}
                     </span>
+                    {keyHint(c)}
                   </CommandItem>
                 );
               })}
           </CommandGroup>
-          </>
+          </>)
           )}
         </CommandList>
       </CommandDialog>
@@ -293,6 +348,7 @@ export function CommandPalette() {
         <ActiveDialogComponent
           open={activeDialog !== null}
           onOpenChange={(o) => !o && setActiveDialog(null)}
+          initial={dialogInitial}
         />
       )}
     </>

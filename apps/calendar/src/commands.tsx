@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatTime, todayStr, type CommandDef } from "@lifeline/core";
+import { formatTime, initialText, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
 import { Ban, CalendarPlus, LayoutTemplate, Zap } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
@@ -11,8 +11,20 @@ import { addEvent } from "./data/repo";
 import { eventArgsError } from "./domain/eventForm";
 import { EVENT_TEMPLATE_TYPE } from "./domain/types";
 
-function AddEventCommandDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  return <EventDialog {...props} />;
+function AddEventCommandDialog(props: CommandDialogProps) {
+  // What the inline line understood: the title and moment ride the dialog's own prefill, the rest its `initial`.
+  const { initial } = props;
+  const prefill = useMemo(
+    () => ({
+      title: initialText(initial, "title") || undefined,
+      date: initialText(initial, "date") || undefined,
+      start: initialText(initial, "start") || undefined,
+      endDate: initialText(initial, "endDate") || undefined,
+      end: initialText(initial, "end") || undefined,
+    }),
+    [initial],
+  );
+  return <EventDialog {...props} prefill={prefill} />;
 }
 
 function AddTemplateCommandDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
