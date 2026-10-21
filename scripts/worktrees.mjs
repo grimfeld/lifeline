@@ -6,7 +6,8 @@
 //   node scripts/worktrees.mjs prune [--dry-run]
 //
 // `new` fetches origin, adds .claude/worktrees/<name> (under the main checkout) on a new
-// branch <name> off origin/master, installs its packages (which also activates the git
+// branch <name> off origin/master, sets its commit email to claude@grimfeld.tech (this
+// worktree only, through extensions.worktreeConfig), installs its packages (which also activates the git
 // hooks) and makes sure Playwright's Chromium is there for the e2e tests.
 //
 // A worktree goes when all of these hold:
@@ -23,6 +24,7 @@ import { join } from "node:path";
 
 const IDLE_MS = 24 * 60 * 60 * 1000;
 const BASE = "origin/master";
+const AGENT_EMAIL = "claude@grimfeld.tech";
 
 const git = (cwd, ...args) => execFileSync("git", ["-c", "core.longpaths=true", ...args], { cwd, encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "pipe"] });
 const ok = (cwd, ...args) => {
@@ -106,6 +108,10 @@ function create(name) {
   const run = (cwd, cmd, ...args) => execFileSync(cmd, args, { cwd, stdio: "inherit" });
   run(main.path, "git", "fetch", "origin");
   run(main.path, "git", "worktree", "add", "-b", name, path, BASE);
+  // Agent commits carry the noreply email (the machine's own is private, and the pre-push
+  // hook refuses it), set for this worktree only so the main checkout keeps the user's.
+  run(main.path, "git", "config", "extensions.worktreeConfig", "true");
+  run(path, "git", "config", "--worktree", "user.email", AGENT_EMAIL);
   run(path, "pnpm", "install");
   // A quick no-op when Chromium is already there.
   run(path, "pnpm", "--filter", "@lifeline/shell", "exec", "playwright", "install", "chromium");
