@@ -173,3 +173,26 @@ test("a Macro typed inline runs when its asked arguments are complete and opens 
   }, CORE_URL);
   expect(titles).toEqual(expect.arrayContaining([`Call mum ${stamp}`, `Pick up ${stamp}`]));
 });
+
+test("a broken Macro is marked in Settings with why, and refuses to start", async ({ page, isMobile }) => {
+  await page.goto("/settings/macros");
+  await workLocally(page);
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    await core.saveMacro({ name: "Half gone", steps: [{ command: "tasks/tasks.add", args: { title: { from: "fixed", value: "Never written either" } } }, { command: "gone/away", args: {} }] });
+  }, CORE_URL);
+  const row = page.getByRole("list", { name: "Macros" }).getByRole("listitem").filter({ hasText: "Half gone" });
+  await expect(row).toContainText("Broken");
+  await expect(row.getByRole("list", { name: "Why Half gone is broken" })).toContainText("Step 2: “gone/away” no longer exists");
+
+  test.skip(isMobile, "the palette is not opened on a phone");
+  await runFromPalette(page, "Half gone");
+  const report = page.getByRole("dialog", { name: "Half gone" });
+  await expect(report).toContainText("Broken, so nothing was run");
+  await expect(report.getByRole("list", { name: "Why it is broken" })).toContainText("“gone/away” no longer exists");
+  const titles = await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    return (await core.documentsOf("task")).map((d: { title: string }) => d.title);
+  }, CORE_URL);
+  expect(titles).not.toContain("Never written either");
+});

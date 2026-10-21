@@ -61,6 +61,13 @@ export function pickLinked(arg: CommandArg, value: string, docs: readonly Linkab
   throw new Error(`${arg.label}: ${hits.length} ${what}s are called “${value}”; pass one id: ${hits.map((d) => d.id).join(", ")}`);
 }
 
+/** The Documents a link argument may name, read from the store (the current Workspace): of its Role, else its type(s), else all. */
+export async function linkableDocuments(arg: CommandArg): Promise<Document[]> {
+  const types = linkTypes(arg);
+  if (arg.linkRole) return documentsWithRole(arg.linkRole);
+  return types ? (await Promise.all(types.map((t) => documentsOf(t)))).flat() : allDocuments();
+}
+
 /** One argument, coerced to its kind; undefined when absent. Throws a readable message on a bad value. */
 async function readArg(arg: CommandArg, v: unknown): Promise<unknown> {
   if (v === undefined || v === null || v === "") return undefined;
