@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { pressMod } from "./support/keys";
 import { CORE_URL } from "./support/seed";
 
 /**
@@ -46,7 +47,7 @@ async function seedDay(page: Page, stamp: string) {
 async function cursorInLink(page: Page, title: string) {
   await expect(page.locator(".cm-content")).toContainText(title);
   await page.locator(".cm-content .cm-line", { hasText: "Thinking about" }).first().click();
-  await page.keyboard.press("ControlOrMeta+Home");
+  await pressMod(page, "Home");
   for (let i = 0; i < DAY_START.length + 2; i++) await page.keyboard.press("ArrowRight");
 }
 
@@ -54,7 +55,7 @@ test("Ctrl+Enter on a link in a Day peeks it; a link inside the Peek replaces it
   const { a, b } = await seedDay(page, String(Date.now()));
 
   await cursorInLink(page, a);
-  await page.keyboard.press("ControlOrMeta+Enter");
+  await pressMod(page, "Enter");
   const peekA = page.getByRole("dialog", { name: a });
   await expect(peekA).toBeVisible();
   await expect(peekA.getByRole("button", { name: "Back" }), "nothing to go back to yet").toHaveCount(0);
@@ -73,7 +74,7 @@ test("Ctrl+Enter on a link in a Day peeks it; a link inside the Peek replaces it
   await page.getByRole("dialog", { name: a }).getByRole("button", { name: "Close" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await cursorInLink(page, a);
-  await page.keyboard.press("ControlOrMeta+Enter");
+  await pressMod(page, "Enter");
   await expect(page.getByRole("dialog", { name: a })).toBeVisible();
   await expect(page.getByRole("dialog", { name: a }).getByRole("button", { name: "Back" })).toHaveCount(0);
 });
@@ -84,7 +85,7 @@ test("Ctrl+Enter away from a link keeps the editor's own binding", async ({ page
   await expect(line).toBeVisible();
   await line.click({ position: { x: 4, y: 4 } });
   const lines = await page.locator(".cm-content .cm-line").count();
-  await page.keyboard.press("ControlOrMeta+Enter");
+  await pressMod(page, "Enter");
   await expect(page.locator(".cm-content .cm-line")).toHaveCount(lines + 1);
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });

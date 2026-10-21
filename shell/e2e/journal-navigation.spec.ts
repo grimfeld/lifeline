@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { openPalette } from "./support/palette";
 import { TEMPLATE, calendar, calendarTile, expectCalendarAt, hasSidebar, linkHeadings, openDay, openPeriod, seedJournal, sidebar, titlesOf, workLocally } from "./support/journal";
 import { CORE_URL } from "./support/seed";
 
@@ -373,7 +374,7 @@ test.describe("Journal navigation · a date typed in the palette (#207)", () => 
   test.use({ locale: "en-GB" });
 
   async function typeInPalette(page: Page, query: string) {
-    await page.keyboard.press("Control+k");
+    await openPalette(page);
     await page.getByRole("dialog").getByRole("combobox").fill(query);
   }
 
@@ -425,7 +426,7 @@ test.describe("Journal navigation · a date typed in the palette (#207)", () => 
   test("what the calendar doesn't have, and words, offer no date row", async ({ page }) => {
     await page.goto("/screens");
     await workLocally(page);
-    await page.keyboard.press("Control+k");
+    await openPalette(page);
     const query = page.getByRole("dialog").getByRole("combobox");
     for (const junk of ["2023-13", "2023-02-30", "2023-W60", "2023-Q5", "hello", "2023-W53"]) {
       await query.fill(junk);
@@ -450,7 +451,7 @@ test.describe("Journal navigation · Go to date and the review Commands (#212)",
   const query = (page: Page) => palette(page).getByRole("combobox");
 
   async function pickByName(page: Page, name: string, how: "enter" | "click") {
-    await page.keyboard.press("Control+k");
+    await openPalette(page);
     await query(page).fill(name);
     const row = palette(page).getByRole("option", { name: new RegExp(`^${name}`) });
     await expect(row).toBeVisible();
@@ -480,7 +481,7 @@ test.describe("Journal navigation · Go to date and the review Commands (#212)",
   test("Go to date… is listed when the palette opens", async ({ page }) => {
     await page.goto("/screens");
     await workLocally(page);
-    await page.keyboard.press("Control+k");
+    await openPalette(page);
     await expect(palette(page).getByRole("option", { name: /^Go to date…/ })).toBeAttached();
   });
 

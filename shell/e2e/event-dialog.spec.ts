@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { openPalette } from "./support/palette";
 import { CORE_URL } from "./support/seed";
 import { pickDate } from "./support/date-picker";
 import { setTime } from "./support/time-field";
@@ -27,7 +28,7 @@ test('"Add event…" opens a timed Event; the typed start and end are stored, an
   const title = `Board meeting ${Date.now()}`;
   await page.goto("/app/events");
   await workLocally(page);
-  await page.keyboard.press("ControlOrMeta+k");
+  await openPalette(page);
   await page.getByPlaceholder("Type a command or search…").fill("Add event");
   await page.getByRole("option", { name: "Add event Calendar", exact: true }).click();
 

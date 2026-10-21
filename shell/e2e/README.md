@@ -22,6 +22,7 @@ Each run starts its own servers on the first free three ports from 1421 on (1421
 the three instead. The two Demo builds start only when the run includes the `demo` or
 `demo-setup` project (no `--project` at all, or one of those).
 
+- Open the command palette with `openPalette(page)` from `support/palette.ts`, never a bare key press: it waits for a closing palette, then for the input. Press `Control` (editor chords: `pressMod` in `support/keys.ts`), never `ControlOrMeta` (the `desktop` project is a Windows user agent; `scripts/e2e-keys.test.mjs` checks).
 - `seed.setup.ts` runs first: `support/seed.ts` runs every headless Command,
   gives every Document type a Document with every Field filled, and places
   every Card on one Screen — all read from the registry, so new types, Fields,
