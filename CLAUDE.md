@@ -45,7 +45,7 @@ The **Guide** is Lifeline's in-app manual (`/guide`, and Claude's MCP `guide` to
   Find the page from the App's entry in `packages/guide/src/index.ts` (the `apps` lists), or the Module or Surface it
   sits in. Core changes go on the Core page that covers them (capture, bases, screens, peek, phone…).
 - `pnpm --filter @lifeline/shell test` fails when a Command or Card title is missing from its App's page,
-  or a Module or Surface has no page. A new App joins a page's `apps` list. A new Module, Surface or Core page
+  or a Module or Surface has no page, or a shell route (`App.tsx`, `/settings/macros` too) has none of its own: point it at its page in `CORE_PAGES` (`shell/src/guide/guidePlace.ts`), or give it an `UNLISTED_ROUTES` entry with a reason. A new App joins a page's `apps` list. A new Module, Surface or Core page
   gets a page of its own, an entry in `packages/guide/src/index.ts` and a link on `index.md`. A deliberate omission
   goes in `UNLISTED` in `shell/src/guide/guide.test.ts`, with a reason.
 - The test only sees titles, so a rework that keeps them is on you: reread the page and fix what is no longer true.
