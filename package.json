@@ -12,6 +12,7 @@
     "adr:check": "node scripts/adr.mjs check",
     "migrations:next": "node scripts/migrations.mjs next",
     "migrations:check": "node scripts/migrations.mjs check",
+    "integrate": "node scripts/integrate.mjs",
     "worktrees:prune": "node scripts/worktrees.mjs prune",
     "worktree:new": "node scripts/worktrees.mjs new",
     "dev": "pnpm --filter @lifeline/shell dev",

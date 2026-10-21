@@ -11,9 +11,11 @@ pnpm test:e2e:quiet --project=mobile -g Tasks                         # failures
 ```
 
 No `--` before the flags: pnpm would hand it to Playwright, which then reads them as
-file filters. The whole suite runs on master each night; a PR runs
-only the specs it changes, three times each (`.github/workflows/check.yml`, `e2e-changed`).
-Run the layout test locally before pushing a change that touches a screen.
+file filters. A PR runs only the specs it changes, three times each
+(`.github/workflows/check.yml`, `e2e-changed`), or once on four runners past 150 cases. The
+whole suite runs on master each night and on every integration PR (`pnpm integrate`, ADR
+0096). Both split it four ways with `--shard`, and each shard runs the setup projects its
+cases need. Run the layout test locally before pushing a change that touches a screen.
 
 Each run starts its own servers on the first free three ports from 1421 on (1421, 1424,
 1427…), so runs in several worktrees at once don't collide; `E2E_PORT` picks the first of

@@ -12,8 +12,10 @@ its "ADR NNNN" references by meaning, not search-and-replace (the old number sti
 the other ADR).
 
 A new PocketBase migration likewise takes its number from `pnpm migrations:next`;
-`pnpm migrations:check` (in CI) fails on a number taken twice or one below master's newest —
-renumber after merging master in.
+`pnpm migrations:check` (in CI) fails on a number taken twice or one below master's newest.
+`pnpm integrate` renumbers those clashes when a batch lands (below).
+
+Unsure what to do next? `docs/agents/workflow.md` maps each step, from issue to master.
 
 ## UI
 
@@ -30,9 +32,10 @@ Build from `@lifeline/ui` and its tokens; the rules are in `CODING_STANDARDS.md`
 
 Run the e2e specs your change touches before pushing it, and the layout test
 (`screens.spec.ts`) for a change to a screen; the commands are in `shell/e2e/README.md`. A
-PR runs the specs it changes three times each (once past 150 cases); the whole suite runs
-on master each night (`.github/workflows/e2e.yml`), so a red nightly run means master was
-already broken before your change.
+PR runs the specs it changes three times each (once on four runners past 150 cases). The
+whole suite runs, sharded four ways, on every integration PR and on master each night
+(`.github/workflows/e2e.yml`), so a red nightly run means master was already broken before
+your change.
 
 ## The Guide: user-facing changes update it (ADR 0089)
 
@@ -56,6 +59,14 @@ Start each piece of work with `pnpm worktree:new <name>`: a worktree under
 `.claude/worktrees/<name>` on a new branch off `origin/master` (code, ADRs and CONTEXT.md
 alike), installed and ready for e2e. The main checkout belongs to whoever opened it.
 `pnpm worktrees:prune` clears the worktrees whose work is on master.
+
+**PRs land in batches (ADR 0096).** A PR runs its CI once. Once green, don't merge master
+into it to refresh CI, and don't merge it alone: `pnpm integrate` (in a worktree of its
+own) merges every green PR into one `integration/<date>` branch and opens one PR. Only that
+PR's CI gates master. It skips a PR that conflicts and renumbers clashing migrations; an ADR
+clash stops it, for `--continue` once fixed. When it goes red, `--drop <pr>` rebuilds it
+without the PR at fault. It never merges itself: the user or the orchestrator merges the
+integration PR, with a merge commit, never squash.
 
 Agents working in parallel run only their own change's e2e specs, with
 `pnpm test:e2e:quiet` (failures only); the full suite runs once, before the integration
