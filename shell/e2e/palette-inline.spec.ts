@@ -101,6 +101,16 @@ test.describe("Palette · inline arguments (#232)", () => {
     await expect(dialog).toContainText("family");
   });
 
+  test("a chore line missing its schedule opens the chore dialog holding the name and Tag (#239)", async ({ page }) => {
+    await openPalette(page);
+    await palette(page).fill("!chore water plants #garden");
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog", { name: "New chore" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel("Name")).toHaveValue("water plants");
+    await expect(dialog).toContainText("garden");
+  });
+
   test("/ reads a date and a time, suggests days as typed, and Enter records them (#235)", async ({ page }) => {
     const title = `dinner ${Date.now()}`;
     await openPalette(page);

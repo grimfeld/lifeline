@@ -21,6 +21,7 @@ onRecordCreateRequest(
   "attachments",
   "workspaces",
   "macros",
+  "key_bindings",
 );
 
 onRecordUpdateRequest(
@@ -36,4 +37,5 @@ onRecordUpdateRequest(
   "attachments",
   "workspaces",
   "macros",
+  "key_bindings",
 );

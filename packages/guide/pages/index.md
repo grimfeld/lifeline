@@ -45,6 +45,8 @@ More in [Using Lifeline on a phone](phone.md).
 
 - Lifeline reopens where you last were, per Workspace and per device.
 - **Ctrl+K** (⌘K on a Mac) opens the command palette from anywhere. See [Capture](capture.md).
+- Give the Commands you use daily a key of their own in **Settings → Keys**. See
+  [Settings](settings.md).
 
 ## Every page of the Guide
 

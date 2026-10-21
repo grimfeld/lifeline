@@ -23,6 +23,7 @@ import {
   sameSlot,
   useBarConfig,
   useCurrentWorkspace,
+  useKeyBindings,
   useSlotOptions,
   useMacros,
   useWorkspaces,
@@ -30,7 +31,7 @@ import {
   type CaptureEntry,
   type SlotOption,
 } from "@lifeline/core";
-import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronRight, ListOrdered, Lock, Pin, Plus, Smartphone, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronRight, Keyboard, ListOrdered, Lock, Pin, Plus, Smartphone, X } from "lucide-react";
 import { entryIcon, foldMembers } from "../capture/captureParts";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
 import { WorkspaceDialog, WorkspaceForm } from "../components/WorkspaceDialog";
@@ -77,6 +78,8 @@ export function SettingsPage() {
       <MacrosSection />
       <Separator />
       <DateLanguageSection />
+      <Separator />
+      <KeysSection />
       <Separator />
       <WorkspacesSection />
     </div>
@@ -239,6 +242,25 @@ function PhoneBarSection() {
 }
 
 // --- the capture sheet's pins ---
+
+/** Key bindings live on their own page, `/settings/keys`; this is the way there. */
+function KeysSection() {
+  const bindings = useKeyBindings();
+  return (
+    <section className="flex flex-col gap-3">
+      <div>
+        <h2 className="flex items-center gap-2 text-base font-medium">
+          <Keyboard className="size-4" /> Keys
+        </h2>
+        <p className="text-muted-foreground text-sm">Give any command a key, so it runs on the desk without the palette. The same keys in every workspace.</p>
+      </div>
+      <Link to="/settings/keys" className="hover:bg-accent flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+        <span className="min-w-0 flex-1 truncate">{bindings.length === 0 ? "Bind a key" : `${bindings.length} key${bindings.length === 1 ? "" : "s"} bound`}</span>
+        <ChevronRight className="size-4 shrink-0" />
+      </Link>
+    </section>
+  );
+}
 
 /**
  * The Workspace's capture pins (CONTEXT.md "Capture sheet"): the handful on

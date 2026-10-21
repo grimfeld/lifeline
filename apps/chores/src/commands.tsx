@@ -8,7 +8,7 @@ import {
   toast,
 } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
-import type { CommandDef } from "@lifeline/core";
+import type { CommandDef, CommandDialogProps } from "@lifeline/core";
 import { Check, ClipboardCheck, Plus } from "lucide-react";
 import { ChoreDialog } from "./components/ChoreDialog";
 import { addChore, completeChore, lastDoneMap, useChores, useCompletions } from "./data/repo";
@@ -16,14 +16,8 @@ import { readSchedule, SCHEDULE_HINT } from "./domain/readSchedule";
 import { describeSchedule } from "./domain/schedule";
 import { dueState } from "./domain/schedule";
 
-function AddChoreCommandDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  return <ChoreDialog open={open} onOpenChange={onOpenChange} />;
+function AddChoreCommandDialog({ open, onOpenChange, initial }: CommandDialogProps) {
+  return <ChoreDialog open={open} onOpenChange={onOpenChange} initial={initial} />;
 }
 
 function CompleteChoreCommandDialog({

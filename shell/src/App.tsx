@@ -31,6 +31,8 @@ import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
 import { MacrosPage } from "./settings/MacrosPage";
 import { MacroReportHost } from "./macros/MacroReportHost";
+import { KeysPage } from "./settings/KeysPage";
+import { KeyBindingHost } from "./keys/KeyBindingHost";
 import { GuidePage } from "./guide/GuidePage";
 import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
@@ -152,6 +154,7 @@ function Places() {
       <Route path="/screen/:id" element={<CorePage><UserScreenPage /></CorePage>} />
       <Route path="/settings" element={<CorePage><SettingsPage /></CorePage>} />
       <Route path="/settings/macros" element={<CorePage><MacrosPage /></CorePage>} />
+      <Route path="/settings/keys" element={<CorePage><KeysPage /></CorePage>} />
       <Route path="/guide/:page?" element={<CorePage><GuidePage /></CorePage>} />
       <Route path={HANDOFF_PATH} element={<CorePage><HandoffPage /></CorePage>} />
       <Route path={HANDOFF_DONE_PATH} element={<CorePage><HandoffSaved /></CorePage>} />
@@ -204,6 +207,7 @@ export default function App() {
         </div>
         <MobileNav />
         <CommandPalette />
+        <KeyBindingHost />
         <PeekHost />
         <MacroReportHost />
         <SelectionMenu />
