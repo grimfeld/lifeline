@@ -122,6 +122,7 @@ export function CommandPalette() {
     let keep = false;
     void c.run?.({
       navigate,
+      initial,
       keepPalette: () => {
         keep = true;
       },
