@@ -96,6 +96,9 @@ A **Macro** runs several Commands in order, as one Command. **Macros** here open
   delete it, and it never comes back, on any device. A new version of Lifeline never changes it.
   **Reset to default** (the circular arrow beside it) puts back the name and steps it came with;
   **Undo** in the message takes the reset back.
+- [Claude](connector.md) can run a Macro whose steps all work without a dialog, and list, create and
+  edit Macros, checked exactly as here. A Macro it makes appears here at once, yours to edit or
+  delete; Claude cannot delete one.
 
 ## Dates in the palette
 

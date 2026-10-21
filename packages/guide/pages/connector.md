@@ -31,6 +31,8 @@ Lifeline's own tools, the same for every Module:
 - `agenda` — what's on each day in a range: events, deadlines, time blocks, tasks, chores, with
   overdue items included. Optionally the Time blocker bands too.
 - `guide` — read this Guide: the list of pages, or one page.
+- `list_macros` — your [Macros](settings.md) with their steps, whether each is broken and why, and
+  the tool that runs it. It can also list every Command a step may name.
 
 With **Allow changes**:
 
@@ -41,6 +43,20 @@ With **Allow changes**:
 - `create_document` — make a note-like Document, or one of your own types.
 - `update_document` — change a Document's title, body, tags, folder or plain fields. A rename
   rewrites the links to it. Guarded fields are refused — those change through the App's own tools.
+- `create_macro` — save a new Macro from its name and steps.
+- `update_macro` — rename a Macro or replace its steps.
+
+Both check the Macro exactly as Settings → Macros does; one that would be broken is refused with
+the reasons, and nothing is saved. There is no tool to delete a Macro.
+
+## Your Macros as tools
+
+With **Allow changes**, each Macro whose steps all work without a dialog is a tool of its own, named
+after it (`macro_coffee`). Its arguments are the values the Macro asks when it runs, one per step
+(`s1_amount` for step 1's amount). Running it does the steps in order, like the palette, and Claude
+gets the whole report back: each step done (and what it made), skipped or stopped (with why), or not
+reached. A broken Macro is refused before its first step. A Macro you add or rename shows up the
+next time Claude asks for its tools.
 
 ## Each Module's own tools
 

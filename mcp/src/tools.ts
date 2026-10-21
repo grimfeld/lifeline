@@ -1,5 +1,5 @@
 import { z, type ZodTypeAny } from "zod";
-import { isInvocable, type CommandArg, type CommandDef } from "@lifeline/core";
+import { isInvocable, macroCommand, stepKey, type CommandArg, type CommandDef, type MacroShape, type OwnedCommand } from "@lifeline/core";
 import { GUIDE_PAGES, guidePage } from "@lifeline/guide";
 import { manifests } from "./apps";
 
@@ -13,6 +13,10 @@ import { manifests } from "./apps";
  *    Timed Contracts — that work for every App at once, and the Guide;
  *  - one tool per headless Command (a Command with `args` and `invoke`),
  *    so creating a Task or a Chore runs the App's own operation.
+ *
+ * And one kind that is not here: a tool per headless Macro (ADR 0092). Macros
+ * are the Account's own data, so `TOOLS` cannot hold them; `macroTools` builds
+ * them in the Account's device, and the server adds them per request.
  */
 
 export interface ToolSpec {
@@ -25,6 +29,8 @@ export interface ToolSpec {
   write: boolean;
   /** For command tools: the Command id it runs. */
   command?: string;
+  /** For Macro tools: the Macro id it runs. */
+  macro?: string;
   /** Answered by the server itself, with no Account's data: no device runs it. */
   local?: (args: Record<string, unknown>) => unknown;
 }
@@ -43,6 +49,23 @@ function readGuide({ page }: Record<string, unknown>): unknown {
   const p = guidePage(String(page));
   return p ? { page: p.slug, title: p.title, markdown: p.body } : { error: `No Guide page "${String(page)}".`, pages };
 }
+
+/** A step as an agent writes it: the stored shape, so list_macros' steps go back into update_macro unchanged. */
+const stepArg = z.discriminatedUnion("from", [
+  z.object({ from: z.literal("fixed"), value: z.unknown().describe("The value, as the Command's own tool takes it.") }),
+  z.object({ from: z.literal("asked") }),
+  z.object({ from: z.literal("step"), step: z.number().int().min(0).describe("0-based index of an earlier headless step; its Document is the value.") }),
+]);
+const steps = z
+  .array(
+    z.object({
+      command: z.string().describe("The Command as appId/commandId, e.g. tasks/add (list_macros with commands: true lists them)."),
+      args: z.record(z.string(), stepArg).describe("Where each argument gets its value, by the Command's argument key: fixed, asked when the Macro runs, or what an earlier step made."),
+      skipIfRefused: z.boolean().optional().describe("Refused, this step is reported skipped and the Macro carries on."),
+    }),
+  )
+  .min(1)
+  .describe("The steps, in order. A step that goes somewhere comes last; a Macro is never a step.");
 
 const GENERIC: ToolSpec[] = [
   {
@@ -157,6 +180,29 @@ const GENERIC: ToolSpec[] = [
     },
     write: true,
   },
+  {
+    name: "list_macros",
+    title: "List Macros",
+    description:
+      "The user's Macros (saved lists of Commands run as one) with their steps, whether each is broken and why, and the tool that runs it (`tool`, for a headless one). With `commands: true`, also every Command a step may name, with its arguments.",
+    input: { commands: z.boolean().optional().describe("Also list the Commands a step may name. Default false."), workspace },
+    write: false,
+  },
+  {
+    name: "create_macro",
+    title: "Create a Macro",
+    description:
+      "Save a new Macro. It is checked as strictly as in the app's editor (every Command exists, values fit, fixed links name one Document, required values have a source); a broken one is refused with the reasons and nothing is saved.",
+    input: { name: z.string().trim().min(1), steps, workspace },
+    write: true,
+  },
+  {
+    name: "update_macro",
+    title: "Update a Macro",
+    description: "Rename a Macro or replace its steps (the whole list). Checked like create_macro; a broken result is refused and nothing changes.",
+    input: { id: z.string(), name: z.string().trim().min(1).optional(), steps: steps.optional(), workspace },
+    write: true,
+  },
 ];
 
 /** "calendar.add-event" → "calendar_add_event": MCP tool names allow [a-zA-Z0-9_-]. */
@@ -202,10 +248,15 @@ function argSchema(arg: CommandArg): ZodTypeAny {
   return arg.required ? s : s.optional();
 }
 
+function argsInput(args: readonly CommandArg[]): Record<string, ZodTypeAny> {
+  const input: Record<string, ZodTypeAny> = { workspace };
+  for (const a of args) input[a.key] = argSchema(a);
+  return input;
+}
+
 function commandTool(def: CommandDef & { appId: string }): ToolSpec | null {
   if (!isInvocable(def)) return null;
-  const input: Record<string, ZodTypeAny> = { workspace };
-  for (const a of def.args) input[a.key] = argSchema(a);
+  const input = argsInput(def.args);
   return {
     name: commandToolName(def.id),
     title: def.title,
@@ -221,3 +272,44 @@ export const TOOLS: ToolSpec[] = [
   ...GENERIC,
   ...manifests.flatMap((m) => m.commands.map((c) => commandTool({ ...c, appId: m.id }))).filter((t): t is ToolSpec => t !== null),
 ];
+
+/** A headless Macro's tool, as the device describes it: plain data, so it crosses from the worker to the server. */
+export interface MacroTool {
+  name: string;
+  title: string;
+  description: string;
+  macro: string;
+  args: CommandArg[];
+}
+
+const MAX_NAME = 64;
+
+/**
+ * One tool per headless Macro (ADR 0092), named after it (`macro_coffee`) —
+ * a name two Macros share, or one with no letters, takes the Macro's id. Its
+ * arguments are the Macro's asked ones, keyed per step (`s1_title`).
+ * Deterministic over the Macros' order, so the device finds again the tool
+ * the server listed.
+ */
+export function macroTools(macros: readonly (MacroShape & { id: string })[], commands: readonly OwnedCommand[]): MacroTool[] {
+  const made = macros.flatMap((m) => {
+    const def = macroCommand(m, commands);
+    if (!isInvocable(def)) return [];
+    const titles = m.steps.map((s, i) => `${i + 1}. ${commands.find((c) => stepKey(c) === s.command)?.title ?? s.command}`);
+    const description = `Run the user's Macro “${m.name}”: ${titles.join("; ")}. Each step goes through its App; the result reports every step (done, skipped, stopped or not reached).`;
+    return [{ slug: commandToolName(m.name).toLowerCase().replace(/^_+|_+$/g, ""), tool: { title: m.name, description, macro: m.id, args: def.args } }];
+  });
+  const taken = new Set(TOOLS.map((t) => t.name));
+  const count = new Map<string, number>();
+  for (const { slug } of made) count.set(slug, (count.get(slug) ?? 0) + 1);
+  return made.map(({ slug, tool }) => {
+    const unique = slug && count.get(slug) === 1 && !taken.has(`macro_${slug}`);
+    const name = (unique ? `macro_${slug}` : `macro_${slug ? `${slug}_` : ""}${commandToolName(tool.macro)}`).slice(0, MAX_NAME);
+    return { name, ...tool };
+  });
+}
+
+/** A Macro tool as the server registers it: a write tool, like every Command tool. */
+export function macroToolSpec(t: MacroTool): ToolSpec {
+  return { name: t.name, title: t.title, description: t.description, input: argsInput(t.args), write: true, macro: t.macro };
+}

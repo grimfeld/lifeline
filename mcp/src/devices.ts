@@ -1,6 +1,7 @@
 import { Worker } from "node:worker_threads";
 import { fileURLToPath } from "node:url";
 import type PocketBase from "pocketbase";
+import type { MacroTool } from "./tools";
 import type { DeviceAuth, DeviceRequest, DeviceResponse } from "./worker";
 
 /**
@@ -127,6 +128,15 @@ export class DevicePool {
     const res = await this.send(userId, device, { kind: "call", tool, args, write, auth });
     if (res.ok) return res.result;
     throw res.expected ? new ExpectedError(res.error) : new Error(res.error);
+  }
+
+  /** The Account's headless Macros as tools (ADR 0092): its own data, so its device reads them. */
+  async macroTools(userId: string): Promise<MacroTool[]> {
+    const auth = await this.authFor(userId);
+    const device = this.devices.get(userId) ?? this.spawn(userId);
+    const res = await this.send(userId, device, { kind: "macro-tools", auth });
+    if (res.ok) return res.result as MacroTool[];
+    throw new Error(res.error);
   }
 
   /** On shutdown: push what is still queued (within DRAIN_MS), then stop every worker; whatever is left is logged as lost. */
