@@ -29,7 +29,7 @@ nearest existing pattern and don't hand-roll a new one.
 - A control the kit has is used from the kit: `Button`, `Input`, `Select`, `Checkbox`,
   `Textarea`, `Dialog`, `Sheet`, `Popover`, `DropdownMenu`, `Tabs`, `Badge`, `Card`.
   A raw `<button>` is fine for a whole row or tile that acts as one (it gets
-  `type="button"` and a `focus-visible:` style).
+  `type="button"`, **(check)**, and a `focus-visible:` style).
 - Single-choice switches (segments, status chips, shelf pickers) use `ToggleGroup`
   (`ToggleGroupItem` per choice, named with `aria-label`): it looks like `TabsList` and
   becomes a `Select` on a phone by itself. A media App's Shelf is `ShelfControl` from
@@ -42,7 +42,7 @@ nearest existing pattern and don't hand-roll a new one.
 - **(check)** Tooltips use `Tooltip` (`<Tip label>` for an icon Button); `title=` is not a
   tooltip. It shows on the desk only, never on touch. `Tip` sets its `label` as the Button's
   `aria-label`, so the name is written once and the tooltip shows exactly what a screen
-  reader hears.
+  reader hears. **(check)** No `aria-label` on the element inside a `<Tip label>`.
 - A component copied between apps belongs in `packages/parts`.
 
 ### Colour
@@ -101,7 +101,7 @@ nearest existing pattern and don't hand-roll a new one.
 - A page is `Page`: `mx-auto grid w-full gap-4 p-4 md:p-6`, `width="reading"`
   (max-w-3xl, default) or `"wide"` (max-w-6xl). Its title row is `PageHeader` (title +
   actions), an empty list `EmptyState` (message + optional `action`).
-- Boxes are `rounded-lg border`; a Card is `Card`. Hover is `hover:bg-accent`.
+- **(check, padded div/li boxes only)** Boxes are `rounded-lg border`; a Card is `Card`. Hover is `hover:bg-accent`.
 
 On the phone (below `md`; on the desk none of this applies), every page you touch:
 
@@ -170,7 +170,7 @@ or makes a box scroll sideways that was not meant to. How to run it: `shell/e2e/
   `datetime-local` input; a time alone stays a native `type="time"`.
 - A field's error shows under it, with `aria-invalid` on the control — not in a toast.
   Disabling submit until the form is valid is fine.
-- Toasts report what an action did: `toast.success` / `toast.error`, with a sentence a
+- **(check)** Toasts report what an action did: `toast.success` / `toast.error`, with a sentence a
   person understands rather than a raw `Error.message` alone.
 
 ### Classes
