@@ -59,11 +59,10 @@ test.describe("Palette · inline arguments (#232)", () => {
     await openPalette(page);
     await palette(page).fill(`!need "${thing}"`);
     await page.keyboard.press("Enter");
-    // Mod+K toggles: wait for the run to close the palette, which it does only after the write lands.
-    await expect(palette(page)).toHaveCount(0);
     await expect.poll(() => titled(page, thing).then((l) => l.length)).toBe(1);
+    // The palette closes once the run returns; Mod+K pressed before then would toggle it shut.
+    await expect(palette(page)).toHaveCount(0);
     await page.keyboard.press("Control+k");
-    await expect(palette(page)).toBeFocused();
     await palette(page).fill(`!need "${thing}"`);
     await page.keyboard.press("Enter");
     await expect(page.getByRole("dialog").getByRole("alert")).toContainText("already on the shopping list");

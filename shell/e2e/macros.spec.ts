@@ -74,3 +74,64 @@ test("deleting a Macro is undone from its toast", async ({ page }) => {
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(list).toContainText("Short-lived");
 });
+
+async function runFromPalette(page: Page, name: string) {
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox").fill(name);
+  await page.getByRole("option", { name: new RegExp(name) }).click();
+}
+
+test("a Macro asks its asked arguments in one form, skips a step refused when it may be, and goes somewhere last", async ({ page, isMobile }) => {
+  test.skip(isMobile, "the palette is not opened on a phone");
+  const title = `Water the plants ${Date.now()}`;
+  await page.goto("/settings/macros");
+  await workLocally(page);
+  await page.getByRole("button", { name: "New macro" }).click();
+  const editor = page.getByRole("dialog");
+  await editor.getByLabel("Name").fill("Morning check");
+  const add = editor.getByRole("combobox", { name: "Add a step" });
+  for (const command of ["Add task", "Set mood…", "Go to Mood"]) {
+    await add.fill(command);
+    await page.getByRole("option", { name: command, exact: true }).click();
+  }
+  const steps = editor.getByRole("list", { name: "Steps" }).getByRole("listitem");
+  for (const [i, arg] of [[0, "Title"], [1, "Mood"]] as const) {
+    await steps.nth(i).getByRole("combobox", { name: `Source of ${arg}` }).click();
+    await page.getByRole("option", { name: "Asked when it runs" }).click();
+  }
+  await steps.nth(1).getByLabel("Skip if refused").check();
+  await expect(steps.nth(2)).toContainText("it is the last step");
+  // Moved up, the step that goes somewhere is no longer last, and the Macro cannot be saved so.
+  await steps.nth(2).getByRole("button", { name: "Move up" }).click();
+  await expect(steps.nth(1)).toContainText("must be the last step");
+  await expect(editor.getByRole("button", { name: "Save" })).toBeDisabled();
+  await steps.nth(1).getByRole("button", { name: "Move down" }).click();
+  await editor.getByRole("button", { name: "Save" }).click();
+
+  for (const run of [1, 2]) {
+    await runFromPalette(page, "Morning check");
+    const form = page.getByRole("dialog", { name: "Morning check" });
+    await form.getByLabel("Title (required)").fill(`${title} ${run}`);
+    await form.getByRole("combobox", { name: "Mood (required)" }).click();
+    await page.getByRole("option", { name: /Good/ }).click();
+    await form.getByRole("button", { name: "Run" }).click();
+
+    const report = page.getByRole("dialog", { name: "Morning check" }).getByRole("list", { name: "Steps" }).getByRole("listitem");
+    await expect(report).toHaveCount(3);
+    await expect(report.nth(0)).toContainText("Done");
+    await expect(report.nth(2)).toContainText("Done");
+    // Today's mood is set by the first run at the latest: the second is refused, and skipped.
+    if (run === 2) {
+      await expect(report.nth(1)).toContainText("Skipped");
+      await expect(report.nth(1)).toContainText("already has a mood");
+    }
+    await expect(page).toHaveURL(/\/mood/);
+    await page.getByRole("dialog", { name: "Morning check" }).getByRole("button", { name: "Close", exact: true }).first().click();
+  }
+
+  const titles = await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    return (await core.documentsOf("task")).map((d: { title: string }) => d.title);
+  }, CORE_URL);
+  expect(titles).toEqual(expect.arrayContaining([`${title} 1`, `${title} 2`]));
+});

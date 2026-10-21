@@ -4,7 +4,6 @@ import {
   Button,
   Checkbox,
   Combobox,
-  DatePicker,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -23,12 +22,13 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  TimeField,
   Tip,
+  cn,
   toast,
 } from "@lifeline/ui";
 import {
   MACRO_APP,
+  commandNavigates,
   deleteMacro,
   isInvocable,
   restoreMacro,
@@ -40,8 +40,10 @@ import {
   type MacroRecord,
   type MacroStep,
   type OwnedCommand,
+  type StepArg,
 } from "@lifeline/core";
 import { ArrowDown, ArrowLeft, ArrowUp, Plus, Trash2, X } from "lucide-react";
+import { ArgInput } from "../macros/ArgInput";
 
 /**
  * `/settings/macros` (ADR 0092): the user's Macros — each a Command made of
@@ -105,36 +107,52 @@ function stepSummary(m: MacroRecord, commands: readonly OwnedCommand[]): string 
   return m.steps.map((s) => commands.find((c) => stepKey(c) === s.command)?.title ?? s.command).join(" → ");
 }
 
-/** A step as the editor holds it: the Command, and the fixed value typed for each argument. */
+/** A step as the editor holds it: the Command, where each argument comes from, and whether a refusal skips it. */
 interface DraftStep {
   command: string;
-  values: Record<string, unknown>;
+  args: Record<string, StepArg>;
+  skipIfRefused: boolean;
 }
 
 function toDraft(step: MacroStep): DraftStep {
-  return { command: step.command, values: Object.fromEntries(Object.entries(step.args).map(([k, a]) => [k, a.value])) };
+  return { command: step.command, args: step.args, skipIfRefused: step.skipIfRefused === true };
 }
 
 function fromDraft(step: DraftStep): MacroStep {
-  const filled = Object.entries(step.values).filter(([, v]) => v !== undefined && v !== "");
-  return { command: step.command, args: Object.fromEntries(filled.map(([k, value]) => [k, { from: "fixed" as const, value }])) };
+  // A fixed value left empty is no value at all.
+  const given = Object.entries(step.args).filter(([, a]) => a.from !== "fixed" || (a.value !== undefined && a.value !== ""));
+  return { command: step.command, args: Object.fromEntries(given), ...(step.skipIfRefused ? { skipIfRefused: true } : {}) };
+}
+
+/** What kind of step a Command makes: run with its values, its own dialog opened at its turn, or a place it takes the user (last only). */
+function stepKind(def: OwnedCommand): "headless" | "dialog" | "navigates" | "run" {
+  if (isInvocable(def)) return "headless";
+  if (def.dialog) return "dialog";
+  return commandNavigates(def) ? "navigates" : "run";
 }
 
 function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; commands: readonly OwnedCommand[]; onClose: () => void }) {
   const [name, setName] = useState(macro?.name ?? "");
   const [steps, setSteps] = useState<DraftStep[]>(() => macro?.steps.map(toDraft) ?? []);
-  // A step runs headless with fixed values, so only headless Commands — and never a Macro — can be one.
-  const stepable = useMemo(() => commands.filter((c) => c.appId !== MACRO_APP && isInvocable(c)), [commands]);
+  // Any Command but a Macro can be a step — headless, dialog-only or one that goes somewhere (ADR 0092).
+  const stepable = useMemo(() => commands.filter((c) => c.appId !== MACRO_APP && (isInvocable(c) || c.dialog || c.run)), [commands]);
   const byKey = useMemo(() => new Map(stepable.map((c) => [stepKey(c), c])), [stepable]);
   const options = useMemo(() => stepable.map((c) => ({ value: stepKey(c), label: c.title, keywords: c.keywords })), [stepable]);
+  const misplaced = steps.some((s, i) => {
+    const def = byKey.get(s.command);
+    return def && i < steps.length - 1 && commandNavigates(def);
+  });
 
   const move = (i: number, by: -1 | 1) =>
     setSteps((s) => {
       const next = [...s];
       [next[i], next[i + by]] = [next[i + by], next[i]];
-      return next;
+      // A step result follows the step it names.
+      const swap = (n: number) => (n === i ? i + by : n === i + by ? i : n);
+      return next.map((st) => ({ ...st, args: Object.fromEntries(Object.entries(st.args).map(([k, a]) => [k, a.from === "step" ? { ...a, step: swap(a.step) } : a])) }));
     });
-  const setValue = (i: number, key: string, value: unknown) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, values: { ...st.values, [key]: value } } : st)));
+  const update = (i: number, change: Partial<DraftStep>) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, ...change } : st)));
+  const setArg = (i: number, key: string, arg: StepArg) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, args: { ...st.args, [key]: arg } } : st)));
 
   async function save() {
     await saveMacro({ id: macro?.id, name: name.trim(), steps: steps.map(fromDraft) });
@@ -147,7 +165,7 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="min-w-0">{macro ? `Edit ${macro.name}` : "New macro"}</DialogTitle>
-          <DialogDescription>Its steps run in order; each argument is given the value set here.</DialogDescription>
+          <DialogDescription>Its steps run in order. Each argument is fixed here, asked when the Macro runs, or what an earlier step made.</DialogDescription>
         </DialogHeader>
         <Field label="Name">
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Coffee" autoFocus={!macro} />
@@ -155,6 +173,11 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
         <ol className="flex flex-col gap-3" aria-label="Steps">
           {steps.map((s, i) => {
             const def = byKey.get(s.command);
+            const kind = def && stepKind(def);
+            const earlier = steps.slice(0, i).flatMap((e, j) => {
+              const d = byKey.get(e.command);
+              return d && isInvocable(d) ? [{ index: j, title: d.title }] : [];
+            });
             return (
               <li key={i} className="flex flex-col gap-3 rounded-lg border p-3" aria-label={`Step ${i + 1}`}>
                 <div className="flex min-w-0 items-center gap-1">
@@ -176,10 +199,17 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
                     </Button>
                   </Tip>
                 </div>
-                {def ? (
-                  def.args?.map((arg) => <ArgInput key={arg.key} arg={arg} value={s.values[arg.key]} onChange={(v) => setValue(i, arg.key, v)} />)
-                ) : (
-                  <p className="text-destructive text-sm">This Command no longer exists.</p>
+                {!def && <p className="text-destructive text-sm">This Command no longer exists.</p>}
+                {kind === "headless" &&
+                  def!.args!.map((arg) => (
+                    <ArgSource key={arg.key} arg={arg} source={s.args[arg.key]} earlier={earlier} onChange={(a) => setArg(i, arg.key, a)} />
+                  ))}
+                {kind === "headless" && <SkipToggle checked={s.skipIfRefused} onChange={(skipIfRefused) => update(i, { skipIfRefused })} />}
+                {kind === "dialog" && <p className="text-muted-foreground text-sm">Opens its own dialog at its turn.</p>}
+                {kind === "navigates" && (
+                  <p className={cn("text-sm", i < steps.length - 1 ? "text-destructive" : "text-muted-foreground")}>
+                    {i < steps.length - 1 ? "Takes you somewhere, so it must be the last step." : "Takes you somewhere; it is the last step."}
+                  </p>
                 )}
               </li>
             );
@@ -190,14 +220,14 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
           placeholder="Add a step: search Commands…"
           options={options}
           limit={30}
-          leading={<Plus className="size-4" />}
-          onValueChange={(command) => setSteps((s) => [...s, { command, values: {} }])}
+          leading={<Plus />}
+          onValueChange={(command) => setSteps((s) => [...s, { command, args: {}, skipIfRefused: false }])}
         />
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button disabled={!name.trim() || steps.length === 0} onClick={() => void save()}>
+          <Button disabled={!name.trim() || steps.length === 0 || misplaced} onClick={() => void save()}>
             Save
           </Button>
         </DialogFooter>
@@ -206,70 +236,53 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
   );
 }
 
-const NONE = "\u0000none";
-
-/** One argument's fixed value, entered in the control its kind calls for. */
-function ArgInput({ arg, value, onChange }: { arg: CommandArg; value: unknown; onChange: (v: unknown) => void }) {
+function SkipToggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   const id = useId();
-  const label = arg.required ? `${arg.label} (required)` : arg.label;
-  switch (arg.kind) {
-    case "boolean":
-      return (
-        <div className="flex items-center gap-2">
-          <Checkbox id={id} checked={value === true} onCheckedChange={(c) => onChange(c === true ? true : undefined)} />
-          <Label htmlFor={id}>{label}</Label>
-        </div>
-      );
-    case "date":
-      return (
-        <Field label={label} hint={arg.hint}>
-          <DatePicker value={typeof value === "string" ? value : ""} onChange={(v) => onChange(v || undefined)} />
-        </Field>
-      );
-    case "time":
-      return (
-        <Field label={label} hint={arg.hint}>
-          <TimeField value={typeof value === "string" ? value : ""} onChange={(v) => onChange(v || undefined)} />
-        </Field>
-      );
-    case "select":
-      return (
-        <Field label={label} hint={arg.hint}>
-          <Select value={typeof value === "string" ? value : NONE} onValueChange={(v) => onChange(v === NONE ? undefined : v)}>
-            <SelectTrigger className="w-full min-w-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>Not set</SelectItem>
-              {arg.options?.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  <span className="truncate">{o.label}</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-      );
-    default:
-      return (
-        <Field label={label} hint={arg.hint ?? kindHint(arg)}>
-          <Input value={value === undefined ? "" : String(value)} onChange={(e) => onChange(e.target.value)} />
-        </Field>
-      );
-  }
+  return (
+    <div className="flex items-center gap-2">
+      <Checkbox id={id} checked={checked} onCheckedChange={(c) => onChange(c === true)} />
+      <Label htmlFor={id}>Skip if refused</Label>
+    </div>
+  );
 }
 
-function kindHint(arg: CommandArg): string | undefined {
-  switch (arg.kind) {
-    case "list":
-    case "multiselect":
-      return arg.options ? `Comma-separated, among ${arg.options.map((o) => o.value).join(", ")}` : "Comma-separated";
-    case "link":
-      return "The title of the Document";
-    case "json":
-    case "rows":
-      return "As JSON";
-    default:
-      return undefined;
-  }
+const FIXED = "fixed";
+const ASKED = "asked";
+
+/** One argument of a step: where its value comes from, and the fixed value when it is fixed. Only a link can take what an earlier step made. */
+function ArgSource({ arg, source, earlier, onChange }: { arg: CommandArg; source?: StepArg; earlier: { index: number; title: string }[]; onChange: (a: StepArg) => void }) {
+  const current = source ?? { from: "fixed", value: undefined };
+  const choice = current.from === "step" ? `step:${current.step}` : current.from;
+  const label = arg.required ? `${arg.label} (required)` : arg.label;
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <Select
+        value={choice}
+        onValueChange={(v) => onChange(v === FIXED ? { from: "fixed", value: undefined } : v === ASKED ? { from: "asked" } : { from: "step", step: Number(v.slice(5)) })}
+      >
+        <SelectTrigger size="sm" className="w-full min-w-0 md:w-auto md:self-start" aria-label={`Source of ${arg.label}`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={FIXED}>Fixed</SelectItem>
+          <SelectItem value={ASKED}>Asked when it runs</SelectItem>
+          {arg.kind === "link" &&
+            earlier.map((e) => (
+              <SelectItem key={e.index} value={`step:${e.index}`}>
+                <span className="truncate">
+                  What step {e.index + 1} made ({e.title})
+                </span>
+              </SelectItem>
+            ))}
+        </SelectContent>
+      </Select>
+      {current.from === "fixed" ? (
+        <ArgInput arg={arg} value={current.value} onChange={(value) => onChange({ from: "fixed", value })} />
+      ) : (
+        <p className="text-muted-foreground min-w-0 text-sm break-words">
+          {label}: {current.from === "asked" ? "asked when the Macro runs" : `what step ${current.step + 1} made`}
+        </p>
+      )}
+    </div>
+  );
 }
