@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { pressMod } from "./support/keys";
 import { CORE_URL } from "./support/seed";
 
 /**
@@ -49,7 +50,7 @@ test("a Peek's body is read until written; what is typed is kept, and the page's
   else await expect.poll(async () => (await peek.boundingBox())!.height, { message: "the whole height on a phone" }).toBeGreaterThan(viewport.height * 0.95);
 
   await editor.click();
-  await page.keyboard.press("ControlOrMeta+End");
+  await pressMod(page, "End");
   await page.keyboard.type(" Added in the Peek.");
   await expect(editor).toContainText("First line. Added in the Peek.");
 
@@ -89,9 +90,9 @@ test("an empty body offers the type's Templates, and picking one fills it once",
   await peek.getByRole("button", { name: template }).click();
   await expect(peek.locator(".cm-content")).toContainText(`Agenda for ${title}`);
   await peek.locator(".cm-content").click();
-  await page.keyboard.press("ControlOrMeta+z");
+  await pressMod(page, "z");
   await expect(peek.locator(".cm-content"), "undone like any edit").not.toContainText("Agenda for");
-  await page.keyboard.press("ControlOrMeta+Shift+z");
+  await pressMod(page, "Shift+z");
   await expect(peek.locator(".cm-content")).toContainText(`Agenda for ${title}`);
   await expect(peek.getByRole("button", { name: template }), "offered only while the body is empty").toHaveCount(0);
 });
@@ -107,7 +108,7 @@ test("a read Peek with an empty body offers the Templates too; picking one start
   const editor = peek.locator(".cm-content");
   await expect(editor).toContainText(`Minutes of ${title}`);
   await editor.click();
-  await page.keyboard.press("ControlOrMeta+z");
+  await pressMod(page, "z");
   await expect(editor, "undone like any edit").not.toContainText("Minutes of");
 });
 
@@ -118,7 +119,7 @@ test("the body is read and written beneath an App's own part too (a Project's)",
   await peek.getByRole("button", { name: "Write", exact: true }).click();
   const editor = peek.locator(".cm-content");
   await editor.click();
-  await page.keyboard.press("ControlOrMeta+End");
+  await pressMod(page, "End");
   await page.keyboard.type(" And more.");
   await page.keyboard.press("Control+e");
   await expect(peek.getByText("The plan so far. And more.")).toBeVisible();

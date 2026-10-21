@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { pressMod } from "./support/keys";
 import { CORE_URL } from "./support/seed";
 import { selectText } from "./support/selection";
 
@@ -164,7 +165,7 @@ test("Undo of a quick make leaves the Document when its link can no longer be ta
 
   // The text moves under the link: it is no longer where it was written.
   await page.locator(".cm-content").click();
-  await page.keyboard.press("ControlOrMeta+Home");
+  await pressMod(page, "Home");
   await page.keyboard.type("Today. ");
   await expect.poll(() => bodyOf(page, dayId)).toBe("Today. Met [[Ada]] at the lab.");
 
