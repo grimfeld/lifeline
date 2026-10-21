@@ -135,3 +135,30 @@ test("a Macro asks its asked arguments in one form, skips a step refused when it
   }, CORE_URL);
   expect(titles).toEqual(expect.arrayContaining([`${title} 1`, `${title} 2`]));
 });
+
+test("the built-in morning Macro is given once: reset puts it back as it shipped, deleted it never returns", async ({ page }) => {
+  await page.goto("/settings/macros");
+  await workLocally(page);
+  const list = page.getByRole("list", { name: "Macros" });
+  await expect(list).toContainText("Morning");
+  await expect(list).toContainText("Set mood… → Go to Today");
+
+  await page.evaluate(async (coreUrl) => {
+    const core = await import(/* @vite-ignore */ coreUrl);
+    const morning = (await core.allMacros()).find((m: { builtin?: string }) => m.builtin === "morning");
+    await core.saveMacro({ id: morning.id, name: "Slow morning", steps: [] });
+  }, CORE_URL);
+  await expect(list).toContainText("Slow morning");
+  await page.getByRole("button", { name: "Reset Slow morning to default" }).click();
+  await expect(list).toContainText("Set mood… → Go to Today");
+  await expect(list).not.toContainText("Slow morning");
+
+  await page.getByRole("button", { name: "Delete Morning" }).click();
+  await expect(list.getByText("Morning", { exact: true })).toHaveCount(0);
+  await page.reload();
+  await workLocally(page);
+  await expect(page.getByRole("button", { name: "New macro" })).toBeVisible();
+  // Seeding runs on every load; give it the chance to (wrongly) bring Morning back.
+  await page.waitForTimeout(500);
+  await expect(page.getByRole("button", { name: "Delete Morning" })).toHaveCount(0);
+});
