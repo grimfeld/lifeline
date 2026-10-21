@@ -320,6 +320,30 @@ async function openSelectionMenu(page: Page) {
   await expect(page.getByRole("dialog", { name: "Selection menu" }).getByRole("option").first()).toContainText("Link to Selected person");
 }
 
+/** Settings → Keys with a live binding on the longest chord and a dead one whose Command id is one unbroken word. */
+async function seedKeyBindings(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, dead }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const c = core.allCommands().find((x: { dialog?: unknown }) => x.dialog);
+      await core.saveKeyBinding({ key: "Mod+Alt+Shift+ArrowRight", command: `${c.appId}/${c.id}` });
+      await core.put("key_bindings", { id: "e2edeadbinding1", key: "Mod+Alt+Shift+Backspace", command: dead });
+    },
+    { coreUrl: CORE_URL, dead: `${LONG_WORD}/${LONG_WORD}` },
+  );
+  await expect(page.getByText("Dead")).toBeVisible();
+}
+
+/** The bind dialog over a key already taken: its error names the Command that holds it. */
+async function bindTakenKey(page: Page) {
+  await seedKeyBindings(page);
+  await page.getByRole("button", { name: "Bind a key" }).click();
+  const dialog = page.getByRole("dialog", { name: "Bind a key" });
+  await dialog.getByRole("button", { name: "Key", exact: true }).press("Control+Alt+Shift+ArrowRight");
+  await expect(dialog.getByText(/is taken by/)).toBeVisible();
+}
+
 /** An unwritten date's page once written Days lie on both sides: "Start writing" and the links to them (#208). */
 async function seedWrittenNeighbours(page: Page) {
   await workLocally(page);
@@ -373,6 +397,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Screens", path: "/screens" },
   { name: "Screen with every Card", path: "/screen/e2elongcontent1", afterOpen: workLocally },
   { name: "Settings", path: "/settings", afterOpen: workLocally },
+  { name: "Settings · Keys", path: "/settings/keys", afterOpen: seedKeyBindings },
+  { name: "Settings · Keys · bind a key", path: "/settings/keys", afterOpen: bindTakenKey },
   { name: "Guide", path: "/guide" },
   { name: "Guide · Claude connector", path: "/guide/connector" },
   { name: "Handoff · sign in", path: `/handoff#${LONG_HANDOFF}` },

@@ -54,6 +54,7 @@ export {
   DOCUMENT_TYPES,
   ATTACHMENTS,
   WORKSPACES,
+  KEY_BINDINGS,
   type SyncedRecord,
   type Placement,
   type UserScreen,
@@ -79,6 +80,7 @@ export * from "./private";
 export * from "./workspaces";
 export * from "./bar";
 export * from "./keys";
+export * from "./keyBindings";
 export * from "./stable";
 export * from "./capture";
 export * from "./selectionMenu";

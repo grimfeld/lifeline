@@ -42,6 +42,8 @@ Press **Ctrl+K** (⌘K on a Mac) anywhere. Type to filter.
 - **Guide · …** — every page of this Guide by name, under Go to: "guide money" finds it.
 - The palette is never limited by the Workspace's Modules: everything is reachable from here.
 - It does not search inside Documents; for that use the Vault's **Search**, or a Base.
+- A Command you gave a key shows that key beside it. Pressing the key runs it without the
+  palette; see [Settings](settings.md).
 
 ## Tips
 

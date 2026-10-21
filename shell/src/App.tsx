@@ -29,6 +29,8 @@ import { BasesIndex } from "./bases/BasesIndex";
 import { MobileNav } from "./mobile/MobileNav";
 import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
+import { KeysPage } from "./settings/KeysPage";
+import { KeyBindingHost } from "./keys/KeyBindingHost";
 import { GuidePage } from "./guide/GuidePage";
 import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
@@ -149,6 +151,7 @@ function Places() {
       <Route path="/screens" element={<CorePage><ScreensIndex /></CorePage>} />
       <Route path="/screen/:id" element={<CorePage><UserScreenPage /></CorePage>} />
       <Route path="/settings" element={<CorePage><SettingsPage /></CorePage>} />
+      <Route path="/settings/keys" element={<CorePage><KeysPage /></CorePage>} />
       <Route path="/guide/:page?" element={<CorePage><GuidePage /></CorePage>} />
       <Route path={HANDOFF_PATH} element={<CorePage><HandoffPage /></CorePage>} />
       <Route path={HANDOFF_DONE_PATH} element={<CorePage><HandoffSaved /></CorePage>} />
@@ -201,6 +204,7 @@ export default function App() {
         </div>
         <MobileNav />
         <CommandPalette />
+        <KeyBindingHost />
         <PeekHost />
         <SelectionMenu />
         <PrivateDialogs />

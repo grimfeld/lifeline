@@ -19,13 +19,15 @@ import {
   sameSlot,
   useBarConfig,
   useCurrentWorkspace,
+  useKeyBindings,
   useSlotOptions,
   useWorkspaces,
   type BarSlot,
   type CaptureEntry,
   type SlotOption,
 } from "@lifeline/core";
-import { ArrowDown, ArrowUp, Check, Lock, Pin, Plus, Smartphone, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronRight, Keyboard, Lock, Pin, Plus, Smartphone, X } from "lucide-react";
+import { Link } from "react-router";
 import { entryIcon, foldMembers } from "../capture/captureParts";
 import { SURFACE_ICONS, slotIcon } from "../navIcons";
 import { WorkspaceDialog, WorkspaceForm } from "../components/WorkspaceDialog";
@@ -67,6 +69,8 @@ export function SettingsPage() {
       <PhoneBarSection />
       <Separator />
       <CapturePinsSection />
+      <Separator />
+      <KeysSection />
       <Separator />
       <WorkspacesSection />
     </div>
@@ -182,6 +186,28 @@ function PhoneBarSection() {
 }
 
 // --- the capture sheet's pins ---
+
+/** Key bindings live on their own page, `/settings/keys`; this is the way there. */
+function KeysSection() {
+  const bindings = useKeyBindings();
+  return (
+    <section className="flex flex-col gap-3">
+      <div>
+        <h2 className="flex items-center gap-2 text-base font-medium">
+          <Keyboard className="size-4" /> Keys
+        </h2>
+        <p className="text-muted-foreground text-sm">Give any command a key, so it runs on the desk without the palette. The same keys in every workspace.</p>
+      </div>
+      <div>
+        <Button variant="outline" asChild>
+          <Link to="/settings/keys">
+            {bindings.length === 0 ? "Bind a key" : `${bindings.length} ${bindings.length === 1 ? "key" : "keys"} bound`} <ChevronRight />
+          </Link>
+        </Button>
+      </div>
+    </section>
+  );
+}
 
 /**
  * The Workspace's capture pins (CONTEXT.md "Capture sheet"): the handful on

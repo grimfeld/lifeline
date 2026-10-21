@@ -9,10 +9,13 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
+  CommandShortcut,
 } from "@lifeline/ui";
 import {
   appById,
   CALENDAR_VIEWS,
+  chordLabel,
+  commandKey,
   isModShortcut,
   moduleById,
   moduleHome,
@@ -20,6 +23,7 @@ import {
   screenRoute,
   useAllCommands,
   useCaptureSheet,
+  useKeyBindings,
   useWorkspaceModules,
   useWorkspaceScreens,
   type CaptureEntry,
@@ -124,6 +128,13 @@ export function CommandPalette() {
 
   const commands = useAllCommands();
   const { pinned } = useCaptureSheet();
+  // A Command's Key binding is shown beside it (CONTEXT.md "Key binding").
+  const bindings = useKeyBindings();
+  const keyOf = new Map(bindings.map((b) => [b.command, b.key]));
+  const keyHint = (c: DialogCommand) => {
+    const key = keyOf.get(commandKey(c));
+    return key && <CommandShortcut className="ml-2">{chordLabel(key)}</CommandShortcut>;
+  };
   const runnable = commands.filter((c) => c.dialog || c.run);
   // Every inline Command reads the query anew on each change of it (ADR 0088).
   const offers =
@@ -209,6 +220,7 @@ export function CommandPalette() {
                   >
                     <Icon /> {c.title}
                     <span className="text-muted-foreground ml-auto text-xs">{appById(c.appId)?.title}</span>
+                    {keyHint(c)}
                   </CommandItem>
                 );
               })}
@@ -279,6 +291,7 @@ export function CommandPalette() {
                     <span className="text-muted-foreground ml-auto text-xs">
                       {appById(c.appId)?.title}
                     </span>
+                    {keyHint(c)}
                   </CommandItem>
                 );
               })}
