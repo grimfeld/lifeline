@@ -1,4 +1,4 @@
-import type { CommandDef } from "@lifeline/core";
+import type { CommandDef, CommandDialogProps } from "@lifeline/core";
 import { STORAGE } from "./domain/types";
 import { matchByTitle } from "./domain/rules";
 import { addProvision, allProvisions } from "./data/repo";
@@ -6,7 +6,7 @@ import { Plus, ShoppingBasket } from "lucide-react";
 import { ProvisionDialog } from "./components/ProvisionDialog";
 import { PANTRY_HREF } from "./constants";
 
-function AddProvisionCommandDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function AddProvisionCommandDialog(props: CommandDialogProps) {
   return <ProvisionDialog {...props} />;
 }
 
@@ -28,6 +28,7 @@ export const pantryCommands: CommandDef[] = [
       { key: "frozenOn", label: "Frozen on", kind: "date" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const title = (a.title as string).trim();
       const storageId = a.storage as string;

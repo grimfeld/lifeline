@@ -8,7 +8,7 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { loadConfig, SCOPE_READ, SCOPE_WRITE, SCOPES } from "./config";
 import { DevicePool, ExpectedError } from "./devices";
 import { LifelineOAuth, LoginAttempts } from "./oauth";
-import { TOOLS } from "./tools";
+import { macroToolSpec, TOOLS, type ToolSpec } from "./tools";
 
 /**
  * Lifeline's remote MCP server (ADR 0062): OAuth for the person, then the
@@ -31,13 +31,43 @@ const INSTRUCTIONS = `Lifeline is the user's personal dashboard: tasks, chores, 
 Start with \`agenda\` for what is on (today is in its answer) and \`search_documents\` to find things. Items from the agenda are acted on by appId + itemId.
 Create tasks, chores and events with their App's tools (tasks_add, chores_add, calendar_add_event); create_document is for notes and other body-first types.
 Dates are YYYY-MM-DD, times HH:MM, in the user's local time. Ask before changing many things at once.
-For how Lifeline itself works — what a Module does, where a feature lives — read the \`guide\`.`;
+For how Lifeline itself works — what a Module does, where a feature lives — read the \`guide\`.
+The user's Macros (saved lists of Commands run as one) are tools named macro_…; \`list_macros\` shows them and their steps.`;
 
-function buildServer(auth: AuthInfo): McpServer {
+const STATIC_NAMES = new Set(TOOLS.map((t) => t.name));
+
+/**
+ * Whether a request needs the Account's Macro tools: listing tools, or
+ * calling one that is not static. Only then is the device asked — an
+ * \`initialize\` or a call to a static tool never waits on it.
+ */
+function wantsMacroTools(body: unknown): boolean {
+  const messages = (Array.isArray(body) ? body : [body]) as { method?: string; params?: { name?: unknown } }[];
+  return messages.some((m) => m?.method === "tools/list" || (m?.method === "tools/call" && !STATIC_NAMES.has(String(m.params?.name))));
+}
+
+/**
+ * The tools for one request: the static catalogue and, when it may write and
+ * the request needs them, the Account's headless Macros (ADR 0095). Macros are
+ * the Account's data, so they come from its device per request, not from
+ * \`TOOLS\` at import. A device that cannot answer costs the Macro tools, never
+ * the listing.
+ */
+async function toolsFor(auth: AuthInfo, body: unknown): Promise<ToolSpec[]> {
+  if (!auth.scopes.includes(SCOPE_WRITE) || !wantsMacroTools(body)) return TOOLS;
+  try {
+    return [...TOOLS, ...(await devices.macroTools(String(auth.extra?.userId))).map(macroToolSpec)];
+  } catch (err) {
+    console.error("[macro tools]", err);
+    return TOOLS;
+  }
+}
+
+function buildServer(auth: AuthInfo, tools: ToolSpec[]): McpServer {
   const server = new McpServer({ name: "lifeline", version: "0.1.0" }, { instructions: INSTRUCTIONS });
   const userId = String(auth.extra?.userId);
   const canWrite = auth.scopes.includes(SCOPE_WRITE);
-  for (const spec of TOOLS) {
+  for (const spec of tools) {
     if (spec.write && !canWrite) continue;
     server.registerTool(
       spec.name,
@@ -111,7 +141,7 @@ app.post("/mcp", bearer, express.json({ limit: "1mb" }), async (req, res) => {
     res.status(401).json({ error: "invalid_token", error_description: "Token was issued for another resource" });
     return;
   }
-  const server = buildServer(auth);
+  const server = buildServer(auth, await toolsFor(auth, req.body));
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   res.on("close", () => {
     void transport.close();

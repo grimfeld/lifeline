@@ -1,4 +1,4 @@
-import { pickLinked, todayStr, type CommandDef } from "@lifeline/core";
+import { pickLinked, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { ArrowLeftRight, ChartLine, Landmark, ListChecks, PiggyBank, Plus, Wand2 } from "lucide-react";
 import { ACCOUNT, BUDGET_HREF, CATEGORY, REGISTER_HREF, REPORTS_HREF, RULES_HREF } from "./domain/types";
 import { completeEntry } from "./domain/entry";
@@ -7,7 +7,7 @@ import { addTransaction, allAccounts, allCategories, allTransactions } from "./d
 import { TransactionEditorDialog } from "./components/TransactionEditorDialog";
 import { PaypalSweepDialog } from "./components/PaypalSweepDialog";
 
-function AddTransactionDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function AddTransactionDialog(props: CommandDialogProps) {
   return <TransactionEditorDialog {...props} />;
 }
 
@@ -33,6 +33,7 @@ export const ledgerCommands: CommandDef[] = [
       { key: "note", label: "Note", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const kind = (a.kind as "expense" | "income" | undefined) ?? "expense";
       const accounts = await allAccounts();

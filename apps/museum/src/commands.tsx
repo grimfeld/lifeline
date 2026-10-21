@@ -1,11 +1,11 @@
-import type { CommandDef } from "@lifeline/core";
+import type { CommandDef, CommandDialogProps } from "@lifeline/core";
 import { DoorOpen, Landmark, Plus } from "lucide-react";
 import { ArtworkDialog } from "./components/ArtworkDialog";
 import { MUSEUM_HREF } from "./constants";
 import { ART_FORMS, artForm, type ArtFormId } from "./domain/artForms";
 import { addArtwork, allArtists, allArtworks, ensureArtist, patchArtwork } from "./data/repo";
 
-function AddArtworkCommandDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function AddArtworkCommandDialog(props: CommandDialogProps) {
   return <ArtworkDialog {...props} />;
 }
 
@@ -31,6 +31,7 @@ export const museumCommands: CommandDef[] = [
       { key: "comment", label: "Comment", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const form = a.form as ArtFormId;
       const def = artForm(form);

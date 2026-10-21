@@ -1,7 +1,7 @@
 import { todayStr, type CommandDef } from "@lifeline/core";
 import { Smile } from "lucide-react";
 import { SetMoodDialog } from "./components/SetMoodDialog";
-import { MOOD_HREF, MOOD_STEPS, moodLabel, type MoodLevel } from "./domain/types";
+import { MOOD_HREF, MOOD_STEPS, moodLabel, moodOptions, type MoodLevel } from "./domain/types";
 import { isSettable, moodOn, setMood } from "./data/repo";
 
 export const moodCommands: CommandDef[] = [
@@ -13,7 +13,7 @@ export const moodCommands: CommandDef[] = [
     dialog: SetMoodDialog,
     capture: true,
     args: [
-      { key: "mood", label: "Mood", kind: "select", required: true, options: MOOD_STEPS.map((s) => ({ value: s.label.toLowerCase(), label: `${s.emoji} ${s.label}` })), hint: "Worst to best: rough, meh, okay, good, great." },
+      { key: "mood", label: "Mood", kind: "select", required: true, options: moodOptions(), hint: "Worst to best: rough, meh, okay, good, great." },
       { key: "date", label: "Day", kind: "date", hint: "Defaults to today; never a day still to come." },
     ],
     async invoke(a) {

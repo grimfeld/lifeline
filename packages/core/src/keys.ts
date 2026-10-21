@@ -15,6 +15,10 @@ type KeyLike = Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey" | "s
  */
 export function isModShortcut(e: KeyLike, key: string, apple: boolean = isApplePlatform()): boolean {
   if (e.defaultPrevented || e.altKey || e.shiftKey) return false;
-  const mod = apple ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
-  return mod && e.key.toLowerCase() === key.toLowerCase();
+  return modHeld(e, apple) && e.key.toLowerCase() === key.toLowerCase();
+}
+
+/** Whether the platform's shortcut key is held, alone of the two: ⌘ without Ctrl on a Mac, Ctrl without ⌘ elsewhere. Key bindings' chords read it too. */
+export function modHeld(e: Pick<KeyboardEvent, "metaKey" | "ctrlKey">, apple: boolean = isApplePlatform()): boolean {
+  return apple ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
 }

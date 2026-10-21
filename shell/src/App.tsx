@@ -6,6 +6,7 @@ import {
   MODULES,
   appById,
   backgroundApps,
+  ensureBuiltinMacros,
   ensureDefaultWorkspace,
   frames,
   isDemo,
@@ -29,6 +30,10 @@ import { BasesIndex } from "./bases/BasesIndex";
 import { MobileNav } from "./mobile/MobileNav";
 import { PhoneHeader } from "./mobile/PhoneHeader";
 import { SettingsPage } from "./settings/SettingsPage";
+import { MacrosPage } from "./settings/MacrosPage";
+import { MacroHost } from "./macros/MacroHost";
+import { KeysPage } from "./settings/KeysPage";
+import { KeyBindingHost } from "./keys/KeyBindingHost";
 import { GuidePage } from "./guide/GuidePage";
 import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
@@ -149,6 +154,8 @@ function Places() {
       <Route path="/screens" element={<CorePage><ScreensIndex /></CorePage>} />
       <Route path="/screen/:id" element={<CorePage><UserScreenPage /></CorePage>} />
       <Route path="/settings" element={<CorePage><SettingsPage /></CorePage>} />
+      <Route path="/settings/macros" element={<CorePage><MacrosPage /></CorePage>} />
+      <Route path="/settings/keys" element={<CorePage><KeysPage /></CorePage>} />
       <Route path="/guide/:page?" element={<CorePage><GuidePage /></CorePage>} />
       <Route path={HANDOFF_PATH} element={<CorePage><HandoffPage /></CorePage>} />
       <Route path={HANDOFF_DONE_PATH} element={<CorePage><HandoffSaved /></CorePage>} />
@@ -184,6 +191,8 @@ export default function App() {
   const { state: syncState } = useSyncState();
   useEffect(() => {
     void ensureDefaultWorkspace();
+    // The built-in Macros, given once per account, on the same wait (ADR 0094).
+    void ensureBuiltinMacros();
   }, [syncState]);
   return (
     <PushProvider>
@@ -201,7 +210,9 @@ export default function App() {
         </div>
         <MobileNav />
         <CommandPalette />
+        <KeyBindingHost />
         <PeekHost />
+        <MacroHost />
         <SelectionMenu />
         <PrivateDialogs />
         {/* The Demo never signs in (ADR 0077): no sign-in, no signed-out notice, no account switch. */}

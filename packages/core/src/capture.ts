@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { MODULES, foldById, type CommandDef, type FoldDef } from "./manifest";
-import { appById, useAllCommands } from "./registry";
+import { appById, commandAppTitle, useAllCommands } from "./registry";
+import { commandKey, type OwnedCommand } from "./commands";
 import { put } from "./data/repo";
 import { WORKSPACES } from "./data/db";
 import { useCurrentWorkspace, useWorkspaceModules, type WorkspaceRecord } from "./workspaces";
@@ -17,7 +18,7 @@ import { useCurrentWorkspace, useWorkspaceModules, type WorkspaceRecord } from "
  * too, so pinning one never shifts the others under the thumb.
  */
 
-export type CaptureCommand = CommandDef & { appId: string };
+export type CaptureCommand = OwnedCommand;
 
 /** How many pins a Workspace holds — a handful, the ones reached for daily. Even, so the two-column grid stays square. */
 export const CAPTURE_PINS_MAX = 6;
@@ -40,11 +41,7 @@ export interface CaptureSheet {
   pinnable: CaptureEntry[];
 }
 
-/** A pin's stored form: an App's Command, or a fold. */
-export function commandKey(c: { appId: string; id: string }): string {
-  return `${c.appId}/${c.id}`;
-}
-
+/** A pin's stored form: an App's Command (`commandKey`), or a fold. */
 export function foldKey(f: FoldDef): string {
   return `fold:${f.id}`;
 }
@@ -163,7 +160,7 @@ export function useCaptureSheet(): CaptureSheet & { pins: string[] } {
         commands,
         modules,
         moduleOf: (id) => appById(id)?.module,
-        appTitle: (id) => appById(id)?.title,
+        appTitle: commandAppTitle,
         pins,
       }),
     [commands, modules, pins],

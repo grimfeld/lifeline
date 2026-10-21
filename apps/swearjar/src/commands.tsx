@@ -1,4 +1,4 @@
-import { pickLinked, type CommandDef } from "@lifeline/core";
+import { pickLinked, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { Gavel, PiggyBank, Plus } from "lucide-react";
 import { SWEARJAR_HREF } from "./domain/types";
 import { formatCents } from "./domain/money";
@@ -6,7 +6,7 @@ import { allOffences, logFine } from "./data/repo";
 import { FineDialog } from "./components/FineDialog";
 import { OffenceEditorDialog } from "./components/OffenceEditorDialog";
 
-function FineCommandDialog(props: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function FineCommandDialog(props: CommandDialogProps) {
   return <FineDialog {...props} />;
 }
 
@@ -28,6 +28,7 @@ export const swearjarCommands: CommandDef[] = [
       { key: "time", label: "Time", kind: "time", hint: "With a day; defaults to noon." },
       { key: "note", label: "Note", kind: "longtext" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const offences = (await allOffences()).filter((o) => !o.archived);
       const id = pickLinked({ key: "offence", label: "Offence", kind: "link" }, a.offence as string, offences.map((o) => ({ id: o.id, type: o.type, title: o.name })));

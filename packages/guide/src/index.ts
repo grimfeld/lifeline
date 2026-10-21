@@ -25,6 +25,8 @@ import links from "../pages/links.md?raw";
 import vault from "../pages/vault.md?raw";
 import phone from "../pages/phone.md?raw";
 import settings from "../pages/settings.md?raw";
+import macros from "../pages/macros.md?raw";
+import keys from "../pages/keys.md?raw";
 import connector from "../pages/connector.md?raw";
 
 /**
@@ -81,6 +83,8 @@ const ENTRIES: Entry[] = [
   { slug: "vault", kind: "core", body: vault },
   { slug: "phone", kind: "core", body: phone },
   { slug: "settings", kind: "core", body: settings },
+  { slug: "macros", kind: "core", body: macros },
+  { slug: "keys", kind: "core", body: keys },
   { slug: "connector", kind: "core", body: connector },
   { slug: "guide", kind: "core", body: guide },
 ];

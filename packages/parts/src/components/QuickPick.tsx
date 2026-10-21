@@ -20,6 +20,7 @@ export function QuickPick<H extends LookupHit>({
   placeholder,
   "aria-label": ariaLabel,
   autoFocus,
+  initialText = "",
   className,
 }: {
   /** The medium searched; a change starts the lookup over. */
@@ -34,9 +35,11 @@ export function QuickPick<H extends LookupHit>({
   placeholder?: string;
   "aria-label"?: string;
   autoFocus?: boolean;
+  /** The input opens holding this. */
+  initialText?: string;
   className?: string;
 }) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   return (
     <Combobox<Row<H>>
       key={medium}

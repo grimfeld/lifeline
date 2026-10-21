@@ -237,6 +237,8 @@ export interface CommandCtx {
    * before `run` first awaits. Absent where nothing stays open to type into.
    */
   keepPalette?: () => void;
+  /** What the palette's inline line understood, for a Command with no dialog that asks its own form (a Macro). */
+  initial?: Record<string, unknown>;
 }
 
 /**
@@ -275,6 +277,19 @@ export interface InlineOffer {
   run: (ctx: CommandCtx) => void | Promise<void>;
 }
 
+/**
+ * What a Command's dialog receives. `initial` holds the raw argument values
+ * (keyed like the Command's `args`, the shapes `readCommandArgs` reads: text,
+ * ids for links, option values, lists as arrays) that the palette's inline line
+ * understood; the dialog opens holding them. Optional both ways: a dialog that
+ * ignores `initial` opens empty, so a Command converts when its turn comes.
+ */
+export interface CommandDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initial?: Record<string, unknown>;
+}
+
 export interface CommandDef {
   id: string;
   title: string;
@@ -283,13 +298,19 @@ export interface CommandDef {
   /** Immediate action. Ignored when `dialog` is set. */
   run?: (ctx: CommandCtx) => void | Promise<void>;
   /** Dialog opened when the command is picked. */
-  dialog?: React.ComponentType<{ open: boolean; onOpenChange: (open: boolean) => void }>;
+  dialog?: React.ComponentType<CommandDialogProps>;
   /**
    * A capture command leaves one new record in seconds, without going
    * anywhere (CONTEXT.md "Command"). Listed in the phone's capture sheet and
    * ranked first in the palette. Starting something live is not capture.
    */
   capture?: boolean;
+  /**
+   * Whether running it takes the user somewhere, so as a Macro's step it must
+   * come last (ADR 0092). Left out, a Command with only `run` — no dialog, no
+   * headless form — is taken to navigate (`commandNavigates`).
+   */
+  navigates?: boolean;
   /**
    * The Core fold (`FOLDS`) this capture Command sits under on the capture
    * sheet: not listed in its group, reached through the fold's picker, still
@@ -309,6 +330,12 @@ export interface CommandDef {
    * whoever calls. Throws with a readable message on bad input.
    */
   invoke?: (args: Record<string, unknown>) => Promise<CommandResult>;
+  /**
+   * `invoke` returns the id of the Document it made or changed (`CommandResult.id`),
+   * so a later step of a Macro may take it as a link (ADR 0092). Declared, not
+   * guessed: a Command that leaves no Document (setting a mood) leaves it out.
+   */
+  returnsDocument?: boolean;
   /**
    * An inline Command (CONTEXT.md "Command", ADR 0088) reads the palette's
    * whole query as its argument: asked on every change of the query, it offers

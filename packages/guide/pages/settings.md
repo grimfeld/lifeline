@@ -41,6 +41,23 @@ opens empty.
 
 See [Capture](capture.md).
 
+## Keys
+
+Give any Command a key of your own, so it runs on the desk without the palette. **Keys** opens
+their own page; see [Keys](keys.md).
+
+## Macros
+
+A **Macro** runs several Commands in order, as one Command. **Macros** opens their own page; see
+[Macros](macros.md).
+
+## Dates in the palette
+
+The palette's `/` reads dates in English and in French (see [Capture](capture.md)). A few words
+mean different things in each: `/mar` is March in English and Tuesday (mardi) in French. Pick
+**English** (the default) or **Français** to say which one wins. Words only one language knows
+are read in that language whatever you pick. The choice is kept on this device.
+
 ## Workspaces
 
 - Every Workspace, with how many Modules it has; a lock marks a separated one.
@@ -62,6 +79,8 @@ When you are trying the Demo, the first section is **Demo** instead of Account a
 
 ## Related
 
+- [Keys](keys.md)
+- [Macros](macros.md)
 - [Workspaces](workspaces.md)
 - [Using Lifeline on a phone](phone.md)
 - [Capture](capture.md)

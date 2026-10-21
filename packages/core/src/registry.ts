@@ -1,9 +1,11 @@
-import { DASHBOARD_FRAME, MODULES, type AppManifest, type AppScreenDef, type CardDef, type CommandDef, type DocumentPanelDef, type ModuleDef, type FrameDef } from "./manifest";
+import { DASHBOARD_FRAME, MODULES, type AppManifest, type AppScreenDef, type CardDef, type DocumentPanelDef, type ModuleDef, type FrameDef } from "./manifest";
 import type { SchedulableProvider } from "./contracts/schedulable";
 import type { TimedProvider } from "./contracts/timed";
 import type { DaylogProvider } from "./contracts/daylog";
 import type { LoggableProvider } from "./contracts/loggable";
 import type { RecallableDef } from "./contracts/recallable";
+import { MACRO_APP, withMacros, useMacros } from "./macros";
+import type { OwnedCommand } from "./commands";
 import { openDb, type LifelineDB, type ScreenLayoutItem } from "./data/db";
 import { registerBuiltinTypes } from "./documents/registry";
 import { registerBuiltinRoles } from "./documents/roles";
@@ -45,18 +47,29 @@ export function allCards(): (CardDef & { appId: string })[] {
   return apps.flatMap((a) => a.cards.map((c) => ({ ...c, appId: a.id })));
 }
 
-export function allCommands(): (CommandDef & { appId: string })[] {
+export function allCommands(): OwnedCommand[] {
   return apps.flatMap((a) => a.commands.map((c) => ({ ...c, appId: a.id })));
 }
 
-/** Static + dynamic commands of every App. A React hook (calls each App's `useCommands`). */
-export function useAllCommands(): (CommandDef & { appId: string })[] {
+/** What the App behind a Command is called, where a row or group names it; a Macro's is Core's pseudo-App, "Macros". */
+export function commandAppTitle(appId: string): string | undefined {
+  return appId === MACRO_APP ? "Macros" : appById(appId)?.title;
+}
+
+/**
+ * Static + dynamic commands of every App, then the user's Macros (ADR 0092),
+ * each a Command checked and run against this whole list (`withMacros`). A
+ * React hook (calls each App's `useCommands`).
+ */
+export function useAllCommands(): OwnedCommand[] {
   // Hook order is stable: the App list is fixed at compile time (ADR 0003).
-  return apps.flatMap((a) => {
+  const own = apps.flatMap((a) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const dynamic = a.useCommands ? a.useCommands() : [];
     return [...a.commands, ...dynamic].map((c) => ({ ...c, appId: a.id }));
   });
+  const macros = useMacros();
+  return withMacros(own, macros);
 }
 
 export function schedulableProviders(): SchedulableProvider[] {

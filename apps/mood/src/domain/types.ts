@@ -1,4 +1,4 @@
-import type { Document } from "@lifeline/core";
+import type { Document, FieldOption } from "@lifeline/core";
 
 /** The one Document type the Mood App owns (ADR 0044). */
 export const MOOD = "mood";
@@ -23,6 +23,20 @@ export const MOOD_STEPS: MoodStep[] = [
   { level: 4, emoji: "🙂", label: "Good", color: "var(--chart-aqua)" },
   { level: 5, emoji: "😄", label: "Great", color: "var(--chart-green)" },
 ];
+
+/** Other words for each mood, English then French, that the palette's `#` reads as it (story 28). No word names two moods. */
+const SYNONYMS: Record<MoodLevel, string[]> = {
+  1: ["awful", "terrible", "bad", "horrible", "affreux", "mauvais", "nul"],
+  2: ["blah", "so-so", "bof", "moyen", "mouais"],
+  3: ["ok", "fine", "alright", "correct", "passable"],
+  4: ["nice", "happy", "bien", "content", "contente"],
+  5: ["amazing", "awesome", "excellent", "super", "génial", "genial", "top"],
+};
+
+/** The scale as a select argument's options: valued by label, read by their synonyms too. */
+export function moodOptions(): FieldOption[] {
+  return MOOD_STEPS.map((s) => ({ value: s.label.toLowerCase(), label: `${s.emoji} ${s.label}`, keywords: SYNONYMS[s.level] }));
+}
 
 export const stepOf = (level: MoodLevel): MoodStep => MOOD_STEPS[level - 1];
 

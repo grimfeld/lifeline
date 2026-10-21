@@ -4,6 +4,16 @@ import {
   allDocumentTypes,
   allWorkspaces,
   allCommands,
+  allMacros,
+  checkMacro,
+  commandNavigates,
+  isInvocable,
+  reportMessage,
+  runMacroHeadless,
+  withMacros,
+  type MacroRecord,
+  saveMacro,
+  commandKey,
   createDocument,
   db,
   defaultFolder,
@@ -35,9 +45,11 @@ import {
   type Document,
   type DocumentTypeDef,
   type FieldDef,
+  type MacroShape,
+  type OwnedCommand,
   type Placement,
 } from "@lifeline/core";
-import { TOOLS } from "./tools";
+import { macroTools, TOOLS, type MacroTool } from "./tools";
 
 /**
  * Tool handlers, run inside one Account's device worker (ADR 0062). Every
@@ -173,9 +185,88 @@ async function dayPinOf(appId: string, itemId: string): Promise<string | undefin
   return pins.find((p) => !p.deleted && !p.start)?.id;
 }
 
+// --- Macros (ADR 0092) ---
+
+/**
+ * The registry a Macro is checked and run against, as in the app
+ * (`withMacros`): the Apps' Commands and the user's Macros, so a Macro as a
+ * step is refused as one.
+ */
+async function registry(macros?: readonly MacroRecord[]): Promise<OwnedCommand[]> {
+  return withMacros(allCommands(), macros ?? (await allMacros()));
+}
+
+/** The tools of the Account's headless Macros, as the server lists them (see tools.ts `macroTools`). */
+export async function listMacroTools(): Promise<MacroTool[]> {
+  const macros = await allMacros();
+  return macroTools(macros, await registry(macros));
+}
+
+/**
+ * Check a Macro an agent wrote exactly as the app's editor does, with fixed
+ * links looked up in the Workspace the call is in.
+ */
+async function assertFine(macro: MacroShape): Promise<void> {
+  const check = await checkMacro(macro, await registry());
+  if (!check.ok) throw new ToolError(`“${macro.name}” would be broken: ${check.reasons.join("; ")}`);
+}
+
+/** Run a Macro's tool headless, handing the agent the run's own report: every step's outcome, not only the sentence. */
+async function runMacroTool(tool: MacroTool, args: Args): Promise<unknown> {
+  const macros = await allMacros();
+  const macro = macros.find((m) => m.id === tool.macro);
+  if (!macro) throw new ToolError(`Macro ${tool.name} is gone`);
+  try {
+    const report = await runMacroHeadless(macro, await registry(macros), args);
+    return { message: reportMessage(report), report: { name: report.name, steps: report.steps } };
+  } catch (e) {
+    throw new ToolError((e as Error).message);
+  }
+}
+
+function describeCommand(c: OwnedCommand) {
+  return {
+    command: commandKey(c),
+    title: c.title,
+    headless: isInvocable(c) || undefined,
+    navigates: commandNavigates(c) || undefined,
+    args: isInvocable(c) ? c.args.map((a) => ({ key: a.key, label: a.label, kind: a.kind, required: a.required || undefined, options: a.options?.map((o) => o.value), hint: a.hint })) : undefined,
+  };
+}
+
 // --- the handlers ---
 
 const handlers: Record<string, (a: Args) => Promise<unknown>> = {
+  async list_macros(a) {
+    const macros = await allMacros();
+    const all = await registry(macros);
+    const tools = macroTools(macros, all);
+    const list = await Promise.all(
+      macros.map(async (m) => {
+        const check = await checkMacro(m, all);
+        return { id: m.id, name: m.name, builtin: m.builtin, steps: m.steps, tool: tools.find((t) => t.macro === m.id)?.name, broken: check.ok ? undefined : check.reasons };
+      }),
+    );
+    // The Commands a step may name: the Apps' own (a Macro is never a step).
+    return { macros: list, commands: a.commands ? allCommands().map(describeCommand) : undefined };
+  },
+
+  async create_macro(a) {
+    const macro = { name: String(a.name).trim(), steps: a.steps as MacroShape["steps"] };
+    await assertFine(macro);
+    const saved = await saveMacro(macro);
+    return { id: saved.id, message: `Created the Macro “${saved.name}”` };
+  },
+
+  async update_macro(a) {
+    const existing = (await allMacros()).find((m) => m.id === a.id);
+    if (!existing) throw new ToolError(`No Macro ${a.id}`);
+    const macro = { ...existing, name: a.name === undefined ? existing.name : String(a.name).trim(), steps: (a.steps as MacroShape["steps"] | undefined) ?? existing.steps };
+    await assertFine(macro);
+    await saveMacro(macro);
+    return { id: existing.id, message: `Updated the Macro “${macro.name}”` };
+  },
+
   async list_workspaces() {
     const list = await allWorkspaces();
     const def = defaultWorkspace(list);
@@ -377,9 +468,11 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
 /** Run one tool. Command tools run the App's Command through Core's argument check. */
 export async function runTool(name: string, args: Args): Promise<unknown> {
   const spec = TOOLS.find((t) => t.name === name);
-  if (!spec) throw new ToolError(`Unknown tool ${name}`);
+  const macro = spec ? undefined : (await listMacroTools()).find((t) => t.name === name);
+  if (!spec && !macro) throw new ToolError(`Unknown tool ${name}`);
   const { workspace, ...rest } = args;
   await enterWorkspace(workspace);
+  if (!spec) return runMacroTool(macro!, rest);
   if (spec.command) {
     const def = allCommands().find((c) => c.id === spec.command);
     if (!def) throw new ToolError(`Command ${spec.command} is gone`);

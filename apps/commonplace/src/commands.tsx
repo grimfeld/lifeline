@@ -1,4 +1,4 @@
-import { pickLinked, type CommandDef } from "@lifeline/core";
+import { pickLinked, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
 import { NotebookPen, Quote as QuoteIcon, Radio } from "lucide-react";
 import { CaptureForm, type CaptureMode } from "./components/CaptureForm";
@@ -9,14 +9,14 @@ import { addSource } from "./data/sources";
 import { QUOTES_HREF, SHELF_HREF, SOURCE_KINDS, SOURCE_ROLE, isSourceKind } from "./domain/types";
 
 function captureDialog(mode: CaptureMode, title: string) {
-  return function CaptureDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  return function CaptureDialog({ open, onOpenChange, initial }: CommandDialogProps) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
-          <CaptureForm initialMode={mode} autoFocus onDone={() => onOpenChange(false)} onCancel={() => onOpenChange(false)} />
+          <CaptureForm initialMode={mode} initial={initial} autoFocus onDone={() => onOpenChange(false)} onCancel={() => onOpenChange(false)} />
         </DialogContent>
       </Dialog>
     );
@@ -46,6 +46,7 @@ export const commonplaceCommands: CommandDef[] = [
       { key: "locator", label: "Where", kind: "text", hint: "Page, chapter, timestamp…" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const source = await pickSource(a.source as string);
       const n = await addNote({ source: source.id, text: String(a.text), locator: a.locator as string | undefined, tags: a.tags as string[] | undefined });
@@ -67,6 +68,7 @@ export const commonplaceCommands: CommandDef[] = [
       { key: "comment", label: "Comment", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const source = await pickSource(a.source as string);
       const q = await addQuote({ source: source.id, text: String(a.text), locator: a.locator as string | undefined, comment: a.comment as string | undefined, tags: a.tags as string[] | undefined });
@@ -86,6 +88,7 @@ export const commonplaceCommands: CommandDef[] = [
       { key: "author", label: "Author", kind: "text" },
       { key: "parent", label: "Part of", kind: "text", hint: "Id or exact title of the Source it belongs to — the show of an episode, the magazine of an article." },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const parent = a.parent ? (await pickSource(a.parent as string)).id : "";
       const s = await addSource({ title: String(a.title), kind: isSourceKind(a.kind) ? a.kind : "", url: a.url as string | undefined, author: a.author as string | undefined, parent });

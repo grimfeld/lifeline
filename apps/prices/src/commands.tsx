@@ -1,4 +1,4 @@
-import { todayStr, type CommandDef } from "@lifeline/core";
+import { todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { Package, Plus, ReceiptText, Store, Tag } from "lucide-react";
 import { DIMENSIONS, DIMENSION_LABEL, PRICES_HREF, PRODUCT, SECONDARY_DIMENSIONS, SHOP, UNIT_LABEL, isDimension, isSecondaryDimension, isUnitOf, type Product, type Unit } from "./domain/types";
 import { matchProduct, receiptTitle, unitPrice } from "./domain/derive";
@@ -10,16 +10,16 @@ import { AddPriceDialog } from "./components/AddPriceDialog";
 import { ProductDialog } from "./components/ProductDialog";
 import { ShopDialog } from "./components/ShopDialog";
 
-function NewReceiptDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function NewReceiptDialog(props: CommandDialogProps) {
   return <ReceiptDialog {...props} />;
 }
-function PriceDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function PriceDialog(props: CommandDialogProps) {
   return <AddPriceDialog {...props} />;
 }
-function NewProductDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function NewProductDialog(props: CommandDialogProps) {
   return <ProductDialog {...props} />;
 }
-function NewShopDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function NewShopDialog(props: CommandDialogProps) {
   return <ShopDialog {...props} />;
 }
 
@@ -104,6 +104,7 @@ export const pricesCommands: CommandDef[] = [
         ],
       },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const shops = await allShops();
       const products = await allProducts();
@@ -145,6 +146,7 @@ export const pricesCommands: CommandDef[] = [
       { key: "bought", label: "Bought it", kind: "boolean", hint: "True only when the user bought it. Defaults to false: a price noticed on a shelf or a flyer, kept as a Sighting that never counts as spending." },
       { key: "date", label: "Day", kind: "date", hint: "Defaults to today." },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const cents = toCents(a.price, "The price")!;
       const products = await allProducts();
@@ -204,6 +206,7 @@ export const pricesCommands: CommandDef[] = [
       { key: "secondary_unit", label: "Secondary read in", kind: "select", options: (Object.keys(UNIT_LABEL) as Unit[]).map((u) => ({ value: u, label: UNIT_LABEL[u] })), hint: "The secondary Measure's unit: g, kg or 100g for mass; ml or L for volume. Defaults to kg or L." },
       { key: "compare_by", label: "Compare by", kind: "select", options: [{ value: "primary", label: "Primary" }, { value: "secondary", label: "Secondary" }], hint: "Which unit price decides the cheapest shop and the price change: primary (€/pc, eggs) or secondary (€/kg, croissants). Defaults to primary." },
     ],
+    returnsDocument: true,
     async invoke(a) {
       // The older `measure` arg (ADR 0082) stands in for a dimension and unit, so agents written before ADR 0084 still work.
       const legacy = a.dimension === undefined ? legacyMeasure(a.measure) : undefined;
@@ -234,6 +237,7 @@ export const pricesCommands: CommandDef[] = [
     icon: Store,
     dialog: NewShopDialog,
     args: [{ key: "name", label: "Name", kind: "text", required: true, hint: "The chain, never the branch: \"Lidl\"." }],
+    returnsDocument: true,
     async invoke(a) {
       const id = await addShop({ title: a.name as string });
       return { id, message: `Shop ${a.name as string}` };

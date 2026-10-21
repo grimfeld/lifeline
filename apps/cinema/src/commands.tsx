@@ -1,5 +1,5 @@
-import { pickLinked, type CommandDef } from "@lifeline/core";
-import { NextPartDialog, partName } from "@lifeline/parts";
+import { initialText, pickLinked, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { NextPartDialog, partName, quickAddFromLine } from "@lifeline/parts";
 import { cinemaParts } from "./parts";
 import { matchesSearch } from "./domain/browse";
 import { Cover } from "./components/Cover";
@@ -17,21 +17,22 @@ import { finish } from "./domain/rules";
 import { RATING_MAX } from "./domain/types";
 
 /** One-line quick add in a small dialog; closes as soon as something is added. */
-function QuickAddCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function QuickAddCommandDialog({ open, onOpenChange, initial }: CommandDialogProps) {
+  const line = quickAddFromLine(initial, WORK_TYPES);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add a movie or series</DialogTitle>
         </DialogHeader>
-        <QuickAdd autoFocus onAdded={() => onOpenChange(false)} />
+        <QuickAdd autoFocus defaultType={line.medium} initialText={line.text} onAdded={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );
 }
 
 /** "Watch next episode…" (ADR 0074): pick a work, its next Part is watched today. */
-function NextPartCommandDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function NextPartCommandDialog({ open, onOpenChange, initial }: CommandDialogProps) {
   const works = useWorks();
   return (
     <NextPartDialog
@@ -39,6 +40,7 @@ function NextPartCommandDialog({ open, onOpenChange }: { open: boolean; onOpenCh
       works={works}
       open={open}
       onOpenChange={onOpenChange}
+      initialQuery={initialText(initial, "work")}
       title="Watch the next episode"
       matches={matchesSearch}
       cover={(w) => <Cover item={w} className="shrink-0 rounded border" />}
@@ -62,6 +64,7 @@ export const cinemaCommands: CommandDef[] = [
       { key: "creator", label: "Creator", kind: "text", hint: "Director or creator." },
       { key: "type", label: "Kind", kind: "select", options: WORK_TYPES.map((t) => ({ value: t.id, label: t.label })), hint: `Defaults to ${WORK_TYPES[0].id}.` },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const medium = ((a.type as WorkTypeId | undefined) ?? WORK_TYPES[0].id) as WorkTypeId;
       const title = (a.title as string).trim();
@@ -84,6 +87,7 @@ export const cinemaCommands: CommandDef[] = [
       { key: "rating", label: "Stars", kind: "number", hint: `Whole stars, 1–${RATING_MAX}.` },
       { key: "liked", label: "Liked", kind: "boolean" },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const works = await allWorks();
       const id = pickLinked({ key: "work", label: "Work", kind: "link" }, a.work as string, works);
@@ -106,6 +110,7 @@ export const cinemaCommands: CommandDef[] = [
     dialog: NextPartCommandDialog,
     capture: true,
     args: [{ key: "work", label: "Work", kind: "text", required: true, hint: "Id or exact title of a series already on the shelf." }],
+    returnsDocument: true,
     async invoke(a) {
       const works = await allWorks();
       const id = pickLinked({ key: "work", label: "Work", kind: "link" }, a.work as string, works);

@@ -1,4 +1,4 @@
-import type { CommandDef } from "@lifeline/core";
+import type { CommandDef, CommandDialogProps } from "@lifeline/core";
 import { AISLE } from "./domain/types";
 import { addOutcome } from "./domain/rules";
 import { addNeed, allNeeds } from "./data/repo";
@@ -6,7 +6,7 @@ import { Plus, ShoppingCart } from "lucide-react";
 import { AddNeedDialog } from "./components/AddNeedDialog";
 import { SHOPPING_HREF } from "./constants";
 
-function AddNeedCommandDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function AddNeedCommandDialog(props: CommandDialogProps) {
   return <AddNeedDialog {...props} />;
 }
 
@@ -23,6 +23,7 @@ export const shoppingCommands: CommandDef[] = [
       { key: "note", label: "Note", kind: "text", hint: "e.g. the big pack." },
       { key: "aisle", label: "Aisle", kind: "link", linkType: AISLE },
     ],
+    returnsDocument: true,
     async invoke(a) {
       const title = a.title as string;
       const out = addOutcome(await allNeeds(), title);

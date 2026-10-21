@@ -6,6 +6,8 @@ export * from "./manifest";
 export * from "./cards";
 export * from "./registry";
 export * from "./commands";
+export * from "./inline";
+export * from "./inlineDates";
 export * from "./screens";
 export * from "./overviews";
 export * from "./contracts/schedulable";
@@ -54,6 +56,8 @@ export {
   DOCUMENT_TYPES,
   ATTACHMENTS,
   WORKSPACES,
+  MACROS,
+  KEY_BINDINGS,
   type SyncedRecord,
   type Placement,
   type UserScreen,
@@ -64,7 +68,7 @@ export {
   type ViewFilterOp,
   type LifelineDB,
 } from "./data/db";
-export { put, remove, get, all } from "./data/repo";
+export { put, remove, get, all, localWrites } from "./data/repo";
 export { sharedLiveQuery } from "./data/live";
 export { pb, login, logout, useAuth } from "./data/pb";
 export { startSync, syncNow, requestSync, useSyncState, lastSyncError, type SyncState } from "./data/sync";
@@ -79,7 +83,11 @@ export * from "./private";
 export * from "./workspaces";
 export * from "./bar";
 export * from "./keys";
+export * from "./keyBindings";
 export * from "./stable";
 export * from "./capture";
+export * from "./macros";
+export * from "./macroCheck";
+export * from "./builtinMacros";
 export * from "./selectionMenu";
 export * from "./intakeGroups";

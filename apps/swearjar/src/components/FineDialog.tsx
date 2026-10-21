@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, DateTimeField, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Textarea, nowMoment, toast } from "@lifeline/ui";
+import { initialMoment, initialText } from "@lifeline/core";
 import { faceOf, type Fine } from "../domain/types";
 import { activeOffences } from "../domain/derive";
 import { formatCents } from "../domain/money";
@@ -18,7 +19,7 @@ export function localInputOf(iso: string): string {
  * The amount is never typed — it is the Offence's price. In edit mode only
  * the moment and the note move; Delete is there for the mis-tap.
  */
-export function FineDialog({ open, onOpenChange, fine, offenceId }: { open: boolean; onOpenChange: (open: boolean) => void; /** Present = edit mode. */ fine?: Fine; /** Preselect (a long-press on its button). */ offenceId?: string }) {
+export function FineDialog({ open, onOpenChange, fine, offenceId, initial }: { open: boolean; onOpenChange: (open: boolean) => void; /** Present = edit mode. */ fine?: Fine; /** Preselect (a long-press on its button). */ offenceId?: string; /** The palette's inline line (CommandDialogProps.initial). */ initial?: Record<string, unknown> }) {
   const offences = useOffences();
   const active = useMemo(() => activeOffences(offences), [offences]);
   const [pick, setPick] = useState("");
@@ -27,11 +28,14 @@ export function FineDialog({ open, onOpenChange, fine, offenceId }: { open: bool
 
   useEffect(() => {
     if (!open) return;
-    setPick(fine?.offenceId ?? offenceId ?? active[0]?.id ?? "");
-    setWhen(fine ? localInputOf(fine.occurredAt) : nowMoment());
-    setNote(fine?.note ?? "");
+    // The line names the Offence by id or exact name.
+    const named = initialText(initial, "offence").trim().toLowerCase();
+    const fromLine = named ? active.find((o) => o.id === initialText(initial, "offence") || o.name.trim().toLowerCase() === named)?.id : undefined;
+    setPick(fine?.offenceId ?? fromLine ?? offenceId ?? active[0]?.id ?? "");
+    setWhen(fine ? localInputOf(fine.occurredAt) : (initialMoment(initial) ?? nowMoment()));
+    setNote(fine?.note ?? initialText(initial, "note"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, fine, offenceId]);
+  }, [open, fine, offenceId, initial, active.length === 0]);
 
   const picked = offences.find((o) => o.id === pick);
 

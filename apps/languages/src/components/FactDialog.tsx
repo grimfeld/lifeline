@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
-import { useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
+import { initialList, initialText, useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import type { Fact } from "../domain/types";
 import { addFact, deleteItem, updateFact, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
@@ -20,7 +20,7 @@ export interface FactPrefill {
  * ever filled in for them. Made from a selection, the passage stays in view
  * while they write, and "add another" keeps it for the next Fact.
  */
-export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: ItemDialogProps & { fact?: Fact; prefill?: FactPrefill }) {
+export function FactDialog({ open, onOpenChange, fact, prefill, initial, onSaved }: ItemDialogProps & { fact?: Fact; prefill?: FactPrefill }) {
   const topics = useTopics();
   const active = useActiveTopic();
   const suggestions = useTagVocabulary().map((v) => v.tag);
@@ -37,18 +37,18 @@ export function FactDialog({ open, onOpenChange, fact, prefill, onSaved }: ItemD
 
   useEffect(() => {
     if (!open) return;
-    setLanguageId(fact?.languageId ?? active?.id ?? "");
-    setQuestion(fact?.question ?? "");
-    setAnswer(fact?.answer ?? "");
-    setNotes(fact?.notes ?? "");
-    setOrigin(fact?.origin ?? prefill?.origin ?? "");
+    setLanguageId(fact?.languageId ?? (initialText(initial, "topic") || (active?.id ?? "")));
+    setQuestion(fact?.question ?? initialText(initial, "question"));
+    setAnswer(fact?.answer ?? initialText(initial, "answer"));
+    setNotes(fact?.notes ?? initialText(initial, "notes"));
+    setOrigin(fact?.origin ?? prefill?.origin ?? initialText(initial, "origin"));
     setOriginId(fact?.originId ?? prefill?.originId ?? "");
-    setTags(fact?.tags ?? []);
+    setTags(fact?.tags ?? initialList(initial, "tags"));
     setConfirmDelete(false);
     kept.current = "";
     // `active` settles after the first render; a Fact's own Topic never moves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, fact, prefill]);
+  }, [open, fact, prefill, initial]);
 
   useEffect(() => {
     if (open && !fact && !languageId && active) setLanguageId(active.id);
