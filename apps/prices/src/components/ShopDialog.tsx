@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, toast } from "@lifeline/ui";
+import { initialText } from "@lifeline/core";
 import type { Shop } from "../domain/types";
 import { addShop, deleteShop, updateShop } from "../data/repo";
 
 /** A Shop is a chain (ADR 0082): a name and a note. A referenced one cannot be deleted. */
-export function ShopDialog({ open, onOpenChange, shop, defaultTitle, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; shop?: Shop | null; defaultTitle?: string; onCreated?: (id: string) => void }) {
+export function ShopDialog({ open, onOpenChange, shop, defaultTitle, initial, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; shop?: Shop | null; defaultTitle?: string; /** The palette's inline line (CommandDialogProps.initial): the name it understood. */ initial?: Record<string, unknown>; onCreated?: (id: string) => void }) {
   const [title, setTitle] = useState("");
   const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!open) return;
-    setTitle(shop?.title ?? defaultTitle ?? "");
+    setTitle(shop?.title ?? (defaultTitle || initialText(initial, "name")));
     setNote(shop?.note ?? "");
-  }, [open, shop, defaultTitle]);
+  }, [open, shop, defaultTitle, initial]);
 
   async function save() {
     try {

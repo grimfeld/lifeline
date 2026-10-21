@@ -16,10 +16,10 @@ function NewReceiptDialog(props: CommandDialogProps) {
 function PriceDialog(props: CommandDialogProps) {
   return <AddPriceDialog {...props} />;
 }
-function NewProductDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function NewProductDialog(props: CommandDialogProps) {
   return <ProductDialog {...props} />;
 }
-function NewShopDialog(props: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function NewShopDialog(props: CommandDialogProps) {
   return <ShopDialog {...props} />;
 }
 
