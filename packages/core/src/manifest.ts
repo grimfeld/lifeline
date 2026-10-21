@@ -237,6 +237,8 @@ export interface CommandCtx {
    * before `run` first awaits. Absent where nothing stays open to type into.
    */
   keepPalette?: () => void;
+  /** What the palette's inline line understood, for a Command with no dialog that asks its own form (a Macro). */
+  initial?: Record<string, unknown>;
 }
 
 /**
