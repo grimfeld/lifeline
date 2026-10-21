@@ -290,6 +290,8 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
 /** A saved Macro: synced, global Core bookkeeping like a View (no Workspace). */
 export interface MacroRecord extends SyncedRecord, MacroShape {
   sort: number;
+  /** The built-in it was given as (builtinMacros.ts); kept through every edit, so it can be reset and is never given twice. */
+  builtin?: string;
 }
 
 /** Every living Macro, in the user's order. */
@@ -302,12 +304,13 @@ export async function allMacros(): Promise<MacroRecord[]> {
   return (await db().collection<MacroRecord>(MACROS).where("deleted").equals(0).toArray()).sort((a, b) => a.sort - b.sort);
 }
 
-/** Create (no `id`) or overwrite a Macro. A new one goes last. */
-export async function saveMacro(input: MacroShape & { id?: string; sort?: number }): Promise<MacroRecord> {
-  const { id, sort, ...rest } = input;
+/** Create (no `id`) or overwrite a Macro. A new one goes last; an overwritten one stays the built-in it was. */
+export async function saveMacro(input: MacroShape & { id?: string; sort?: number; builtin?: string }): Promise<MacroRecord> {
+  const { id, sort, builtin, ...rest } = input;
   const existing = id ? await db().collection<MacroRecord>(MACROS).get(id) : undefined;
   const order = sort ?? existing?.sort ?? Math.max(0, ...(await allMacros()).map((m) => m.sort + 1));
-  const rec: MacroRecord = { ...rest, id: id ?? newId(), sort: order, updatedAt: "", deleted: 0 };
+  const given = builtin ?? existing?.builtin;
+  const rec: MacroRecord = { ...rest, ...(given ? { builtin: given } : {}), id: id ?? newId(), sort: order, updatedAt: "", deleted: 0 };
   await put<MacroRecord>(MACROS, rec);
   return rec;
 }

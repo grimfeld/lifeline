@@ -199,6 +199,14 @@ export const hubApp: AppManifest = {
       run: ({ navigate }) => navigate("/base"),
     },
     {
+      // Progress's Overview, "Today": the day's logging on one page. The built-in morning Macro ends here (ADR 0094).
+      id: "hub.go-today",
+      title: "Go to Today",
+      keywords: ["today", "progress", "day", "morning", "overview"],
+      icon: Sun,
+      run: ({ navigate }) => navigate("/module/progress"),
+    },
+    {
       id: "hub.today-icon",
       title: "Go to Calendar",
       keywords: ["month", "schedule"],

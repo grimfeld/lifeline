@@ -248,7 +248,7 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     const list = await Promise.all(
       (await allMacros()).map(async (m) => {
         const check = await checkMacro(m, own);
-        return { id: m.id, name: m.name, steps: m.steps, tool: tools.find((t) => t.macro === m.id)?.name, broken: check.ok ? undefined : check.reasons };
+        return { id: m.id, name: m.name, builtin: m.builtin, steps: m.steps, tool: tools.find((t) => t.macro === m.id)?.name, broken: check.ok ? undefined : check.reasons };
       }),
     );
     return { macros: list, commands: a.commands ? own.map(describeCommand) : undefined };

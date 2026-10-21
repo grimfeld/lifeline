@@ -88,5 +88,6 @@ export * from "./stable";
 export * from "./capture";
 export * from "./macros";
 export * from "./macroCheck";
+export * from "./builtinMacros";
 export * from "./selectionMenu";
 export * from "./intakeGroups";

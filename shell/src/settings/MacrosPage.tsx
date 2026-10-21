@@ -29,10 +29,12 @@ import {
 } from "@lifeline/ui";
 import {
   MACRO_APP,
+  builtinOf,
   checkMacro,
   commandNavigates,
   deleteMacro,
   isInvocable,
+  resetMacro,
   restoreMacro,
   saveMacro,
   stepKey,
@@ -46,7 +48,7 @@ import {
   type OwnedCommand,
   type StepArg,
 } from "@lifeline/core";
-import { ArrowDown, ArrowLeft, ArrowUp, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { ArgInput } from "../macros/ArgInput";
 
 /**
@@ -67,6 +69,12 @@ export function MacrosPage() {
   async function remove(m: MacroRecord) {
     const before = await deleteMacro(m.id);
     toast.success(`Deleted “${m.name}”`, before ? { action: { label: "Undo", onClick: () => void restoreMacro(before) } } : undefined);
+  }
+
+  /** A built-in back to how it ships (ADR 0094); Undo puts the user's version back. */
+  async function reset(m: MacroRecord) {
+    const before = await resetMacro(m.id);
+    toast.success(`Reset “${m.name}” to default`, before ? { action: { label: "Undo", onClick: () => void saveMacro(before) } } : undefined);
   }
 
   return (
@@ -107,6 +115,13 @@ export function MacrosPage() {
                     </ul>
                   )}
                 </button>
+                {builtinOf(m) && (
+                  <Tip label={`Reset ${m.name} to default`}>
+                    <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label={`Reset ${m.name} to default`} onClick={() => void reset(m)}>
+                      <RotateCcw />
+                    </Button>
+                  </Tip>
+                )}
                 <Tip label={`Delete ${m.name}`}>
                   <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label={`Delete ${m.name}`} onClick={() => void remove(m)}>
                     <Trash2 />

@@ -215,11 +215,11 @@ describe("Macros", () => {
   });
 
   it("updates a Macro's name or steps, keeping the rest, and refuses a broken result", async () => {
-    macros.push({ ...rec("m1", "Old", [{ command: "tasks/add", args: { title: { from: "asked" } } }]), builtIn: "morning" } as MacroRecord);
+    macros.push({ ...rec("m1", "Old", [{ command: "tasks/add", args: { title: { from: "asked" } } }]), builtin: "morning" });
     await expect(runTool("update_macro", { id: "m1", steps: [{ command: "tasks/add", args: {} }] })).rejects.toBeInstanceOf(ToolError);
     await expect(runTool("update_macro", { id: "nope", name: "X" })).rejects.toThrow(/No Macro/);
     expect(core.saveMacro).not.toHaveBeenCalled();
     await runTool("update_macro", { id: "m1", name: "New" });
-    expect(core.saveMacro).toHaveBeenCalledWith(expect.objectContaining({ id: "m1", name: "New", builtIn: "morning", steps: macros[0].steps, sort: 0 }));
+    expect(core.saveMacro).toHaveBeenCalledWith(expect.objectContaining({ id: "m1", name: "New", builtin: "morning", steps: macros[0].steps, sort: 0 }));
   });
 });

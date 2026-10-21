@@ -6,6 +6,7 @@ import {
   MODULES,
   appById,
   backgroundApps,
+  ensureBuiltinMacros,
   ensureDefaultWorkspace,
   frames,
   isDemo,
@@ -190,6 +191,8 @@ export default function App() {
   const { state: syncState } = useSyncState();
   useEffect(() => {
     void ensureDefaultWorkspace();
+    // The built-in Macros, given once per account, on the same wait (ADR 0094).
+    void ensureBuiltinMacros();
   }, [syncState]);
   return (
     <PushProvider>
