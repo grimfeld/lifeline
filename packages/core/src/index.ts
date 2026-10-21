@@ -57,6 +57,7 @@ export {
   ATTACHMENTS,
   WORKSPACES,
   MACROS,
+  KEY_BINDINGS,
   type SyncedRecord,
   type Placement,
   type UserScreen,
@@ -82,6 +83,7 @@ export * from "./private";
 export * from "./workspaces";
 export * from "./bar";
 export * from "./keys";
+export * from "./keyBindings";
 export * from "./stable";
 export * from "./capture";
 export * from "./macros";
