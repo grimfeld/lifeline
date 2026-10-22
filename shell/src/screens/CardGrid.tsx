@@ -19,6 +19,7 @@ import { appById, cardById, cardSchema, isConfigured, moveStacked, newId, normal
 import { ChevronDown, ChevronUp, Minus, Plus, Settings2, Trash2 } from "lucide-react";
 import { CardPicker } from "../components/CardPicker";
 import { CardSettingsForm } from "../components/CardSettingsForm";
+import { CardBoundary } from "../components/ErrorBoundary";
 
 const Grid = WidthProvider(GridLayout);
 
@@ -101,7 +102,10 @@ function PlacedCard({
             </Button>
           </div>
         ) : (
-          <CardBody item={item} configure={onConfigure} />
+          // A Card that throws breaks only itself (#301); new settings try it again.
+          <CardBoundary resetKey={JSON.stringify(settings)}>
+            <CardBody item={item} configure={onConfigure} />
+          </CardBoundary>
         )}
       </CardContent>
     </Card>
