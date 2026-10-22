@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { decodeHandoff, encodeHandoff, HANDOFF_DONE_PATH, handoffFromShare, type HandoffDecodeError } from "@lifeline/handoff";
 import { allIntakes, allWorkspaces, appById, currentWorkspaceId, docHref, getDocument, groupIntakes, isDemo, lastIntakeKey, pb, rememberIntake, setCurrentWorkspace, typeIntakesOf, useDocumentTypes, useWorkspaces, type HandoffIntake, type WorkspaceRecord } from "@lifeline/core";
-import { Button, PhoneDock, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { Button, PageHeader, PhoneDock, Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { CircleCheck, Lock } from "lucide-react";
 import { arrivingHandoff, dropPendingHandoff, keepPendingHandoff } from "./pending";
 import { HandoffSignIn } from "./HandoffSignIn";
@@ -116,7 +116,7 @@ export function HandoffPage() {
   if (!decoded.ok) {
     return (
       <HandoffBody>
-        <h1 className="text-xl font-semibold tracking-tight">This Handoff can't be read</h1>
+        <PageHeader title="This Handoff can't be read" />
         <p className="text-muted-foreground text-sm">{UNREADABLE[decoded.error]}</p>
       </HandoffBody>
     );
@@ -127,7 +127,7 @@ export function HandoffPage() {
   return (
     <HandoffBody>
       <div className="grid gap-1">
-        <h1 className="text-xl font-semibold tracking-tight">{handoff.title || "Untitled"}</h1>
+        <PageHeader title={handoff.title || "Untitled"} />
         {handoff.url && <p className="text-muted-foreground text-sm">{handoff.url}</p>}
       </div>
       {!signInDone ? (
@@ -225,7 +225,7 @@ export function HandoffSaved({ made, what }: { made?: string; what?: string }) {
     <HandoffBody>
       <div className="flex items-center gap-2">
         <CircleCheck className="text-success size-4 shrink-0" />
-        <h1 className="text-xl font-semibold tracking-tight">Saved</h1>
+        <PageHeader title="Saved" />
       </div>
       {made ? (
         <div className="flex flex-wrap items-center gap-2 max-md:contents">

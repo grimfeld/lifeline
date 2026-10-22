@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Tip,
 } from "@lifeline/ui";
 import { setCurrentWorkspace, useCurrentWorkspace, useWorkspaces } from "@lifeline/core";
 import { Check, ChevronsUpDown, Lock, Plus, Settings2 } from "lucide-react";
@@ -36,11 +37,13 @@ export function WorkspacePicker({ className, compact = false }: { className?: st
     return (
       <>
         {compact ? (
-          <Button variant="outline" size="icon" className={cn("size-9", className)} title="Setting up… — make a workspace" onClick={() => setCreating(true)}>
-            <Plus className="text-muted-foreground size-4" />
-          </Button>
+          <Tip label="Setting up… — make a workspace">
+            <Button variant="outline" size="icon-lg" className={className} onClick={() => setCreating(true)}>
+              <Plus className="text-muted-foreground size-4" />
+            </Button>
+          </Tip>
         ) : (
-          <Button variant="ghost" className={cn("h-8 w-full justify-start gap-1.5 px-2", className)} onClick={() => setCreating(true)}>
+          <Button variant="ghost" className={cn("w-full justify-start gap-1.5 px-2", className)} onClick={() => setCreating(true)}>
             <span className="text-muted-foreground truncate">Setting up…</span>
             <Plus className="text-muted-foreground ml-auto size-3.5 shrink-0" />
           </Button>
@@ -53,20 +56,24 @@ export function WorkspacePicker({ className, compact = false }: { className?: st
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          {compact ? (
-            // The Rail's top cell (ADR 0057): the Workspace as its initial.
-            <Button variant="outline" size="icon" className={cn("size-9 text-sm font-semibold", className)} title={`Workspace: ${current.name}`}>
-              {current.name.trim().charAt(0).toUpperCase() || "?"}
-            </Button>
-          ) : (
-            <Button variant="ghost" className={cn("h-8 w-full justify-start gap-1.5 px-2 font-medium", className)}>
+        {compact ? (
+          // The Rail's top cell (ADR 0057): the Workspace as its initial.
+          <Tip label={`Workspace: ${current.name}`}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon-lg" className={cn("text-sm font-semibold", className)}>
+                {current.name.trim().charAt(0).toUpperCase() || "?"}
+              </Button>
+            </DropdownMenuTrigger>
+          </Tip>
+        ) : (
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className={cn("w-full justify-start gap-1.5 px-2 font-medium", className)}>
               {current.separated && <Lock className="text-muted-foreground size-3.5 shrink-0" />}
               <span className="truncate">{current.name}</span>
               <ChevronsUpDown className="text-muted-foreground ml-auto size-3.5 shrink-0" />
             </Button>
-          )}
-        </DropdownMenuTrigger>
+          </DropdownMenuTrigger>
+        )}
         <DropdownMenuContent align="start" side={compact ? "right" : "bottom"} className="w-56">
           {workspaces.map((w) => (
             <DropdownMenuItem

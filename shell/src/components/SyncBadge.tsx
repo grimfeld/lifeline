@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
+import { Button, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
 import { isDemo, logout, pendingWriteCount, switchAccount, syncNow, useAuth, useSyncState } from "@lifeline/core";
 import { Cloud, CloudOff, Loader2, RefreshCw, Trash2, User } from "lucide-react";
 import { openSignIn } from "./AccountDialogs";
@@ -57,6 +57,7 @@ function LiveSyncBadge({ compact }: { compact: boolean }) {
   return (
     <>
       <button
+        type="button"
         className={
           compact
             ? "hover:bg-accent/50 text-muted-foreground relative flex size-9 items-center justify-center rounded-md"
@@ -68,7 +69,7 @@ function LiveSyncBadge({ compact }: { compact: boolean }) {
           (pending > 0 ? ` (${pending} pending)` : "")
         }
       >
-        <Icon className={`${compact ? "size-4" : "size-3.5"} ${state === "syncing" ? "animate-spin" : ""} ${state === "error" ? "text-destructive" : ""}`} />
+        <Icon className={cn(compact ? "size-4" : "size-3.5", state === "syncing" && "animate-spin", state === "error" && "text-destructive")} />
         {compact && pending > 0 && <span className="bg-primary absolute top-1.5 right-1.5 size-1.5 rounded-full" />}
         <span className={compact ? "sr-only" : "truncate"}>
           {loggedIn ? (LABELS[state] ?? state) : "Sign in to sync"}
@@ -78,6 +79,7 @@ function LiveSyncBadge({ compact }: { compact: boolean }) {
       </button>
       {loggedIn && !compact && (
         <button
+          type="button"
           className="hover:bg-accent/50 text-muted-foreground flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs"
           onClick={() => {
             logout();
@@ -90,6 +92,7 @@ function LiveSyncBadge({ compact }: { compact: boolean }) {
       )}
       {!compact && (
         <button
+          type="button"
           className="hover:bg-accent/50 text-muted-foreground flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs"
           onClick={() => void askErase()}
           title="Delete everything stored on this device and download this account's data again"

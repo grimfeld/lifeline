@@ -216,7 +216,7 @@ class DaylogWidget extends WidgetType {
     const el = document.createElement("div");
     el.className = "cm-daylog rounded-md border px-3 py-2 my-1";
     const head = document.createElement("div");
-    head.className = "text-muted-foreground mb-1 text-[10px] font-medium tracking-wide uppercase";
+    head.className = "text-muted-foreground mb-1 text-2xs font-medium tracking-wide uppercase";
     head.textContent = `Daylog · ${this.date}`;
     el.appendChild(head);
     const body = document.createElement("div");

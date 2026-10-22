@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, PhoneDock, Tip, toast } from "@lifeline/ui";
+import { Badge, Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, PageHeader, PhoneDock, Tip, toast } from "@lifeline/ui";
 import {
   appById,
   basePath,
@@ -55,13 +55,15 @@ export function BasesIndex() {
         )}
         {t.overridden && <Badge variant="outline">edited</Badge>}
         {t.body !== "none" && t.titleRule !== "derived" && (
-          <Button asChild size="icon" variant="ghost" className="size-7" title={`Templates · ${templatesFor(t.id, templateDocs).length}`}>
-            <Link to={templatesPath(t.id)} aria-label={`${t.label} templates`}>
-              <LayoutTemplate className="size-3.5" />
-            </Link>
-          </Button>
+          <Tip label={`${t.label} templates (${templatesFor(t.id, templateDocs).length})`}>
+            <Button asChild size="icon-sm" variant="ghost">
+              <Link to={templatesPath(t.id)}>
+                <LayoutTemplate className="size-3.5" />
+              </Link>
+            </Button>
+          </Tip>
         )}
-        <Button size="icon" variant="ghost" className="size-7" onClick={() => setEditing({ record: rec ?? null, base: t.builtIn ? t : undefined })} aria-label="Edit type">
+        <Button size="icon-sm" variant="ghost" onClick={() => setEditing({ record: rec ?? null, base: t.builtIn ? t : undefined })} aria-label="Edit type">
           <Pencil className="size-3.5" />
         </Button>
         {rec && (
@@ -78,7 +80,7 @@ export function BasesIndex() {
   return (
     <div className="mx-auto grid max-w-3xl gap-4 p-6">
       <header className="flex items-center gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">Bases</h1>
+        <PageHeader title="Bases" className="w-auto" />
         <span className="text-muted-foreground text-sm">one per Document type — adding a type adds a Base</span>
         <PhoneDock>
           <Button className="ml-auto" onClick={() => setEditing({ record: null })}>

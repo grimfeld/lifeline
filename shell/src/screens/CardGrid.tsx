@@ -14,11 +14,13 @@ import {
   Input,
   Label,
   cn,
+  usePhone,
 } from "@lifeline/ui";
-import { appById, cardById, cardSchema, isConfigured, moveStacked, newId, normalizeLayout, resolveSettings, settingsTags, stackOrder, TagFilterProvider, useCardInstanceTitle, useIsMobile, type CardDef, type CardSettings, type ScreenLayoutItem } from "@lifeline/core";
+import { appById, cardById, cardSchema, isConfigured, moveStacked, newId, normalizeLayout, resolveSettings, settingsTags, stackOrder, TagFilterProvider, useCardInstanceTitle, type CardDef, type CardSettings, type ScreenLayoutItem } from "@lifeline/core";
 import { ChevronDown, ChevronUp, Minus, Plus, Settings2, Trash2 } from "lucide-react";
 import { CardPicker } from "../components/CardPicker";
 import { CardSettingsForm } from "../components/CardSettingsForm";
+import { CardBoundary } from "../components/ErrorBoundary";
 
 const Grid = WidthProvider(GridLayout);
 
@@ -101,7 +103,10 @@ function PlacedCard({
             </Button>
           </div>
         ) : (
-          <CardBody item={item} configure={onConfigure} />
+          // A Card that throws breaks only itself (#301); new settings try it again.
+          <CardBoundary resetKey={JSON.stringify(settings)}>
+            <CardBody item={item} configure={onConfigure} />
+          </CardBoundary>
         )}
       </CardContent>
     </Card>
@@ -148,7 +153,6 @@ function StackedItems({
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="size-8"
                     aria-label="Move card up"
                     disabled={i === 0}
                     onClick={() => onMove(id, -1)}
@@ -158,7 +162,6 @@ function StackedItems({
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="size-8"
                     aria-label="Move card down"
                     disabled={i === sorted.length - 1}
                     onClick={() => onMove(id, 1)}
@@ -169,7 +172,6 @@ function StackedItems({
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="size-8"
                     aria-label="Make card shorter"
                     disabled={l.h <= minRows}
                     onClick={() => onResize(id, Math.max(minRows, l.h - 1))}
@@ -179,7 +181,6 @@ function StackedItems({
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="size-8"
                     aria-label="Make card taller"
                     disabled={l.h >= MAX_ROWS}
                     onClick={() => onResize(id, Math.min(MAX_ROWS, l.h + 1))}
@@ -187,10 +188,10 @@ function StackedItems({
                     <Plus />
                   </Button>
                   <span className="ml-auto flex items-center">
-                    <Button size="icon" variant="ghost" className="size-8" aria-label="Configure card" onClick={() => onConfigure(id)}>
+                    <Button size="icon" variant="ghost" aria-label="Configure card" onClick={() => onConfigure(id)}>
                       <Settings2 />
                     </Button>
-                    <Button size="icon" variant="ghost" className="size-8" aria-label="Remove card" onClick={() => onRemove(id)}>
+                    <Button size="icon" variant="ghost" aria-label="Remove card" onClick={() => onRemove(id)}>
                       <Trash2 />
                     </Button>
                   </span>
@@ -230,7 +231,7 @@ export function CardGrid({
   const [configuring, setConfiguring] = useState<string | null>(null);
   const [draft, setDraft] = useState<CardSettings>({});
   const [draftTitle, setDraftTitle] = useState("");
-  const isMobile = useIsMobile();
+  const isMobile = usePhone();
 
   /** Layout with instance ids and resolved settings (backfills pre-instance layouts, ADR 0008). */
   const items = useMemo(() => normalizeLayout(raw), [raw]);
@@ -342,18 +343,16 @@ export function CardGrid({
                   editing && (
                     <span className="card-action ml-auto flex items-center">
                       <Button
-                        size="icon"
+                        size="icon-xs"
                         variant="ghost"
-                        className="size-6"
                         aria-label="Configure card"
                         onClick={() => openConfigure(l.instanceId!)}
                       >
                         <Settings2 className="size-3" />
                       </Button>
                       <Button
-                        size="icon"
+                        size="icon-xs"
                         variant="ghost"
-                        className="size-6"
                         aria-label="Remove card"
                         onClick={() => void removeInstance(l.instanceId!)}
                       >

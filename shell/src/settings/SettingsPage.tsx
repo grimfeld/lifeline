@@ -4,7 +4,9 @@ import {
   Button,
   Dialog,
   DialogContent,
+  PageHeader,
   Separator,
+  Tip,
   ToggleGroup,
   ToggleGroupItem,
   cn,
@@ -59,7 +61,7 @@ import { setDateLanguage, useDateLanguage } from "./dateLanguage";
 export function SettingsPage() {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-4 md:p-6">
-      <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
+      <PageHeader title="Settings" />
       {isDemo() ? (
         <DemoSection />
       ) : (
@@ -187,8 +189,9 @@ function PhoneBarSection() {
     const Icon = s ? (found?.icon ?? slotIcon(s.kind, s.id)) : Plus;
     return (
       <button
+        type="button"
         key={i}
-        className={cn("hover:bg-accent flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px]", border && "border-r", !s && "opacity-40")}
+        className={cn("hover:bg-accent flex flex-1 flex-col items-center gap-0.5 py-2 text-2xs", border && "border-r", !s && "opacity-40")}
         onClick={() => setPicking(i)}
       >
         <Icon className="size-5" />
@@ -214,14 +217,14 @@ function PhoneBarSection() {
         {BAR_PINNED.map((s) => {
           const Icon = SURFACE_ICONS[s.id];
           return (
-            <div key={s.id} className="text-muted-foreground flex flex-1 flex-col items-center gap-0.5 border-r py-2 text-[10px]">
+            <div key={s.id} className="text-muted-foreground flex flex-1 flex-col items-center gap-0.5 border-r py-2 text-2xs">
               <Icon className="size-5" /> {s.title}
               <Lock className="size-2.5 opacity-50" />
             </div>
           );
         })}
         {slotCell(BAR_SLOT_ORDER[0], true)}
-        <div className="text-muted-foreground flex flex-1 flex-col items-center gap-0.5 border-r py-2 text-[10px]">
+        <div className="text-muted-foreground flex flex-1 flex-col items-center gap-0.5 border-r py-2 text-2xs">
           <Plus className="size-5" /> Capture
           <Lock className="size-2.5 opacity-50" />
         </div>
@@ -305,20 +308,26 @@ function CapturePinsSection() {
             <div key={e.key} className="flex items-center gap-2 rounded-md border px-3 py-2">
               <Icon className="size-4 shrink-0" />
               <span className="min-w-0 flex-1 truncate text-sm">{e.title}</span>
-              <Button size="icon" variant="ghost" className="size-7 shrink-0" title="Move up" disabled={i === 0} onClick={() => void save(movePin(live, e.key, -1))}>
-                <ArrowUp className="size-3.5" />
-              </Button>
-              <Button size="icon" variant="ghost" className="size-7 shrink-0" title="Move down" disabled={i === pinned.length - 1} onClick={() => void save(movePin(live, e.key, 1))}>
-                <ArrowDown className="size-3.5" />
-              </Button>
-              <Button size="icon" variant="ghost" className="size-7 shrink-0" title="Unpin" onClick={() => void save(live.filter((k) => k !== e.key))}>
-                <X className="size-3.5" />
-              </Button>
+              <Tip label="Move up">
+                <Button size="icon-sm" variant="ghost" className="shrink-0" disabled={i === 0} onClick={() => void save(movePin(live, e.key, -1))}>
+                  <ArrowUp className="size-3.5" />
+                </Button>
+              </Tip>
+              <Tip label="Move down">
+                <Button size="icon-sm" variant="ghost" className="shrink-0" disabled={i === pinned.length - 1} onClick={() => void save(movePin(live, e.key, 1))}>
+                  <ArrowDown className="size-3.5" />
+                </Button>
+              </Tip>
+              <Tip label="Unpin">
+                <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => void save(live.filter((k) => k !== e.key))}>
+                  <X className="size-3.5" />
+                </Button>
+              </Tip>
             </div>
           );
         })}
         {pinned.length < CAPTURE_PINS_MAX && (
-          <button className="hover:bg-accent/50 text-muted-foreground rounded-md border border-dashed px-3 py-2 text-left text-sm" onClick={() => setPicking(true)}>
+          <button type="button" className="hover:bg-accent/50 text-muted-foreground rounded-md border border-dashed px-3 py-2 text-left text-sm" onClick={() => setPicking(true)}>
             {pinned.length === 0 ? "Nothing pinned yet. Pin a capture command…" : "Pin another…"}
           </button>
         )}
@@ -359,6 +368,7 @@ function PinChoice({ entry, label, indent, pinned, onPick }: { entry: CaptureEnt
   const Icon = entryIcon(entry);
   return (
     <button
+      type="button"
       className={cn("hover:bg-accent/50 flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm disabled:opacity-50", indent && "ml-6")}
       disabled={pinned}
       onClick={onPick}
@@ -388,7 +398,7 @@ function SlotRow({
   const [draft, setDraft] = useState<string | null>(null);
   if (!slot) {
     return (
-      <button className="hover:bg-accent/50 text-muted-foreground rounded-md border border-dashed px-3 py-2 text-left text-sm" onClick={onPick}>
+      <button type="button" className="hover:bg-accent/50 text-muted-foreground rounded-md border border-dashed px-3 py-2 text-left text-sm" onClick={onPick}>
         Slot {index + 1} — empty. Choose what it opens…
       </button>
     );
@@ -402,7 +412,7 @@ function SlotRow({
   return (
     <div className="flex items-center gap-2 rounded-md border px-3 py-2">
       <Icon className="size-4 shrink-0" />
-      <button className="min-w-0 flex-1 text-left text-sm hover:underline" onClick={onPick}>
+      <button type="button" className="min-w-0 flex-1 text-left text-sm hover:underline" onClick={onPick}>
         {gone ? <span className="text-destructive">No longer there — pick something else</span> : <span className="truncate">{title}</span>}
       </button>
       <input
@@ -418,9 +428,11 @@ function SlotRow({
         }}
         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
       />
-      <Button size="icon" variant="ghost" className="size-7 shrink-0" title="Empty this slot" onClick={onClear}>
-        <X className="size-3.5" />
-      </Button>
+      <Tip label="Empty this slot">
+        <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={onClear}>
+          <X className="size-3.5" />
+        </Button>
+      </Tip>
     </div>
   );
 }
@@ -449,6 +461,7 @@ function SlotPicker({
                 const Icon = o.icon ?? slotIcon(o.slot.kind, o.slot.id);
                 return (
                   <button
+                    type="button"
                     key={`${o.slot.kind}:${o.slot.id}`}
                     className="hover:bg-accent/50 flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm"
                     // The label is the slot's, so re-pointing a slot keeps the
@@ -490,6 +503,7 @@ function WorkspacesSection() {
       <div className="flex flex-col gap-1">
         {workspaces.map((w) => (
           <button
+            type="button"
             key={w.id}
             className={cn(
               "hover:bg-accent/50 flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm",

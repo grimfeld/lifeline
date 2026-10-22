@@ -107,6 +107,7 @@ function DayCell({ date, inMonth, today, children, onOpen }: { date: DateStr; in
       className={cn("bg-background flex min-h-0 cursor-pointer flex-col gap-0.5 p-1 max-md:p-0.5", !inMonth && "bg-muted/40 text-muted-foreground", isOver && "bg-accent/50")}
     >
       <button
+        type="button"
         onClick={(e) => {
           e.stopPropagation();
           onOpen();
@@ -141,7 +142,7 @@ function Pool({ items, overdue, collapsible, chip }: { items: DayWork[]; overdue
   if (collapsible) {
     return (
       <div ref={setNodeRef} className={cn("shrink-0 rounded-lg border", isOver && "bg-accent/40")}>
-        <button className="text-muted-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <button type="button" className="text-muted-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
           <Inbox className="size-3.5" /> Unplaced <span className="tabular-nums">{items.length}</span>
           {overdue.length > 0 && <span className="text-destructive tabular-nums">· {overdue.length} overdue</span>}
           <ChevronDown className={cn("ml-auto size-3.5 transition-transform", open && "rotate-180")} />
@@ -206,7 +207,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
       if (to === null || to === d.timed.date) return;
       moveTimedItem(d.timed, startDayMovedTo(d.timed, to))
         .then(() => toast.success(`Moved to ${formatHuman(to)}`))
-        .catch((err: Error) => toast.error(err.message));
+        .catch((err: Error) => toast.error(`Could not move it: ${err.message}`));
     } else if (d.item) {
       moveWork(d.item, to);
     }
@@ -262,7 +263,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
             </div>
           </div>
         </div>
-        <p className="text-muted-foreground shrink-0 text-[11px]">
+        <p className="text-muted-foreground shrink-0 text-xs">
           {isMobile
             ? "Tap a day to open it · tap an item for its actions · press and hold to drag it to another day."
             : "Click a day to open it · click an item for its actions · drag an item to another day, or from Unplaced onto one."}

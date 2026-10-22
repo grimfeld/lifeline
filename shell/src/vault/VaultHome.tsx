@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { PageHeader } from "@lifeline/ui";
 import { displayTitle, docHref, isVaultType, useAllDocuments, useDocumentTypes } from "@lifeline/core";
 import { useMemo } from "react";
 
@@ -23,7 +24,7 @@ export function VaultHome() {
   return (
     <div className="mx-auto grid w-full max-w-2xl gap-4 p-6">
       <div className="grid gap-1">
-        <h1 className="text-xl font-semibold tracking-tight">Vault</h1>
+        <PageHeader title="Vault" />
         <p className="text-muted-foreground text-sm">
           Every body, as plain markdown with its frontmatter — for bulk edits, moves and fixes. Writing has its own places: the Journal, Notes, Research, Manuscript and
           Thoughts.

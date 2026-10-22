@@ -181,7 +181,7 @@ export function TypeEditor({
         <div className="grid gap-1">
           <Label className="text-xs">Name</Label>
           <Input autoFocus value={label} onChange={(e) => setLabel(e.target.value)} placeholder="People" />
-          <span className={cn("truncate text-[10px]", idTaken ? "text-destructive" : "text-muted-foreground")}>
+          <span className={cn("truncate text-2xs", idTaken ? "text-destructive" : "text-muted-foreground")}>
             id: {typeId || "…"}
             {record || base ? " (fixed)" : ""}
           </span>
@@ -196,7 +196,7 @@ export function TypeEditor({
           <div className="grid gap-1">
             <Label className="text-xs">Home Module</Label>
             <Select value={module || "__none__"} onValueChange={(v) => setModule(v === "__none__" ? "" : v)}>
-              <SelectTrigger className="h-8">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -208,7 +208,7 @@ export function TypeEditor({
                 ))}
               </SelectContent>
             </Select>
-            <span className="text-muted-foreground text-[10px]">Where its Documents live and open — People and Places in the Journal.</span>
+            <span className="text-muted-foreground text-2xs">Where its Documents live and open — People and Places in the Journal.</span>
           </div>
         )}
         {base && base.fields.some((f) => !f.hidden) && (
@@ -222,7 +222,7 @@ export function TypeEditor({
             <div className="grid min-w-0 gap-1">
               <Label className="text-xs">Writing</Label>
               <Select value={body} onValueChange={(v) => setBody(v as BodyPolicy)}>
-                <SelectTrigger className="h-8 min-w-0">
+                <SelectTrigger className="min-w-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -302,7 +302,7 @@ export function TypeEditor({
         {hasReports && (
           <div className="grid gap-1">
             <Label className="text-xs">Reports</Label>
-            <span className="text-muted-foreground text-[10px]">Figures from the Days that link to its Documents — on the type's page, each Document's page and the Journal's periods.</span>
+            <span className="text-muted-foreground text-2xs">Figures from the Days that link to its Documents — on the type's page, each Document's page and the Journal's periods.</span>
             <ReportsEditor value={reports} onChange={setReports} />
           </div>
         )}

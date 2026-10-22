@@ -22,7 +22,6 @@ export function TagFilterBar({ value, onChange, className }: { value: string[]; 
           <Button
             size="icon"
             variant="ghost"
-            className="size-8"
             aria-label="Clear tag filter"
             onClick={() => {
               onChange([]);
@@ -33,7 +32,7 @@ export function TagFilterBar({ value, onChange, className }: { value: string[]; 
           </Button>
         </>
       ) : (
-        <Button variant="outline" className="h-8" onClick={() => setOpen(true)}>
+        <Button variant="outline" onClick={() => setOpen(true)}>
           <Tag /> Tags
         </Button>
       )}

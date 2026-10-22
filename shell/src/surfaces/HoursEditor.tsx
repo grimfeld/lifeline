@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { Button, cn, DatePicker, formatLength, Input, LengthPicker, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, TimeField, toast } from "@lifeline/ui";
+import { Button, cn, DatePicker, formatLength, Input, LengthPicker, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, TimeField, toast, usePhone } from "@lifeline/ui";
 import {
   addDays,
   addTimeBlock,
@@ -28,7 +28,6 @@ import {
   todayStr,
   toHours,
   unplaceItem,
-  useIsMobile,
   type DateStr,
   type SchedulableItem,
   type SurfaceTimedItem,
@@ -142,7 +141,7 @@ export function HoursEditor({
   onGo: (d: DateStr) => void;
   onClose: () => void;
 }) {
-  const isMobile = useIsMobile();
+  const isMobile = usePhone();
   const navigate = useNavigate();
   const { target } = editing;
   // A new visit supersedes the last one's Undo (only the newest is live) — and on a phone its toast would cover the sheet.
@@ -301,7 +300,7 @@ export function HoursEditor({
   const header = (
     <div className="flex items-center gap-2">
       {work && !work.completedOn && (
-        <button className="hover:bg-accent flex size-6 shrink-0 items-center justify-center rounded-full border" onClick={completeNow} aria-label={`Complete ${work.title}`} title="Complete">
+        <button type="button" className="hover:bg-accent flex size-6 shrink-0 items-center justify-center rounded-full border" onClick={completeNow} aria-label={`Complete ${work.title}`} title="Complete">
           <Check className="size-3.5" />
         </button>
       )}
@@ -311,7 +310,7 @@ export function HoursEditor({
         <Input
           value={title}
           aria-label="Title"
-          className="h-8 font-medium"
+          className="font-medium"
           onChange={(e) => setTitle(e.target.value)}
           onBlur={commitTitle}
           onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}

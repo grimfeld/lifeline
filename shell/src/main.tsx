@@ -17,7 +17,13 @@ setTypeIntakeDialog(TypeIntakeDialog);
 initApps(APPS);
 startSync();
 
-const root = ReactDOM.createRoot(document.getElementById("root")!);
+// Every error is logged to the console (#301), the one place a future reporter would hook in: those
+// a boundary caught (a broken page or Card), those none did, and promises nobody awaited.
+window.addEventListener("unhandledrejection", (e) => console.error("[lifeline] unhandled rejection:", e.reason));
+const root = ReactDOM.createRoot(document.getElementById("root")!, {
+  onCaughtError: (error, info) => console.error("[lifeline] caught by a boundary:", error, info.componentStack),
+  onUncaughtError: (error, info) => console.error("[lifeline] uncaught:", error, info.componentStack),
+});
 const app = (
   <React.StrictMode>
     <BrowserRouter>

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Root } from "react-dom/client";
-import { Button } from "@lifeline/ui";
+import { Button, PageHeader } from "@lifeline/ui";
 import { eraseDevice } from "@lifeline/core";
 
 /**
@@ -35,7 +35,7 @@ export function startDemo(root: Root, app: ReactNode): void {
 function SeedFailed({ error }: { error: unknown }) {
   return (
     <div role="alert" className="mx-auto flex h-dvh max-w-md flex-col items-center justify-center gap-3 p-4 text-center">
-      <h1 className="text-base font-medium">The Demo could not be set up</h1>
+      <PageHeader title="The Demo could not be set up" className="justify-center" />
       <p className="text-muted-foreground text-sm">
         Its made-up life was not written into this browser
         {error instanceof Error && error.message ? ` (${error.message})` : ""}. Trying again starts from an empty store.

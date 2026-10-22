@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import { NavLink } from "react-router";
-import { cn, PhoneDock } from "@lifeline/ui";
+import { cn, PageHeader, PhoneDock } from "@lifeline/ui";
 import { screenRoute, screensOf } from "@lifeline/core";
 import { navRowClass, RawDataLinks } from "./RawDataLinks";
 import type { ModuleShell } from "./shells";
@@ -106,7 +106,7 @@ function routeOfScreen(id: string | undefined): string | undefined {
 export function ModuleHomeHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="flex items-baseline gap-3">
-      <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+      <PageHeader title={title} className="w-auto" />
       {subtitle && <span className="text-muted-foreground text-sm first-letter:uppercase">{subtitle}</span>}
     </div>
   );

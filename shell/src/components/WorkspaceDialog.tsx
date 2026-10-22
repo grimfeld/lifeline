@@ -183,6 +183,7 @@ export function WorkspaceForm({
         )}
       </div>
 
+      {/* ui-allow: sm-breakpoint — the kit DialogFooter turns to a row at sm; this keeps its buttons apart there */}
       <DialogFooter className="sm:justify-between">
         {canDelete ? (
           <Button variant="destructive" disabled={busy} onClick={() => void askRemove()}>

@@ -44,6 +44,9 @@ you may rearrange. Culture calls its Overview "Now", Progress "Today".
   **Configure…** until you make it.
 - A Card that can filter by Tag gets a **Tags** setting of its own, which narrows further within
   the Screen's filter.
+- A Card that breaks shows **This card couldn't load.** with **Try again**; the other Cards keep
+  working, and changing its settings tries it again too. A page that breaks says **Something went
+  wrong on this page**, with **Reload** and **Go home**; going anywhere else clears it.
 
 ## The card picker
 
