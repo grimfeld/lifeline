@@ -1,6 +1,6 @@
 ---
 status: accepted
-supersedes: ADR 0024 (in part — the Commonplace book's Quote limited to works), ADR 0016 (in part — the name "Source")
+supersedes: ADR 0024 (in part — the Commonplace book's Quote limited to works), ADR 0016 (in part — the name "Source"), ADR 0019 (in part — the Clipping type)
 ---
 
 # The Source is the hub; Quotes absorb Clippings
@@ -25,3 +25,7 @@ The old Sources App — Embeds, Feeds, Calendar subscriptions, Live values — i
 - Quotes Cards (random, of-the-day, quotes of a work) carry over, now over any Source.
 - Migration: each Clipping becomes a Quote; Sources are created from the distinct old `source` strings; Quotes keep their work as Source.
 - A Thought converts into a Note by attaching a Source, and back by detaching it, keeping the Document so links survive.
+
+## Amendment (2026-10-22): Mail and Languages are gone
+
+Mail is retired (ADR 0080), and its "keep" Intake with it; Languages is now Knowledge (ADR 0073), whose Words, Sentences and Facts keep their origin as a link.

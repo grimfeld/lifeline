@@ -133,7 +133,7 @@ const ELEMENT_RULES = [
   {
     id: "native-date",
     heading: "Forms and feedback",
-    // ADR 0087. `type` as a literal or an expression that can yield one; time inputs stay native.
+    // ADR 0087. `type` as a literal or an expression that can yield one; a native time input is `native-time`.
     test: (tag) => /^<(?:Input|input)\b/.test(tag) && /\btype=(?:\{[^}]*)?["'`](?:date|datetime-local)["'`]/.test(tag),
     message: "native date/datetime-local input — use DatePicker or DateTimeField (or CommitField type=\"date\") from @lifeline/ui",
   },

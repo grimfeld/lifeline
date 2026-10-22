@@ -1,3 +1,8 @@
+---
+status: superseded
+superseded-by: ADR 0047 (in part — Nav groups become Modules), ADR 0057 (in part — the sidebar)
+---
+
 # The sidebar shelves App screens into Core-owned Nav groups, closed by default
 
 Twenty App screens had accumulated under one "Apps" header — Arcade, Bible quick, Events, Chores, Cinema, Clippings, Quotes, Discotheque, Ledger, Budget, Money reports, Library, Life Level, Museum, Pocket, Sources, Stats, Tasks, Workout, Writings — in registry order, which is neither alphabetical nor meaningful. Finding Budget meant reading the column.

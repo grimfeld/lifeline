@@ -1,3 +1,8 @@
+---
+status: superseded
+superseded-by: ADR 0071
+---
+
 # The Bible App is a lens: it owns the references and scopes the material
 
 Bible study wanted "its own graph, references, clippings and writings". Rather than a walled notebook with its own note, clipping and writing types (three editors re-implemented, "a Note is my thinking about things" split by subject, Journal/Graph integrations redone), the Bible App owns only what did not exist — the **references**: **Verse** (one per single verse, `John 3:16`), **Chapter** (`John 3`), **Book** (`John`; type ids `verse` / `bible_chapter` / `bible_book`, since the Library owns `book`), **Character** and **Concept**, all Linkable, all with bodies, none seeded — a Verse and its Chapter and Book are created the first time they are written. The study material stays what it is: Notes, Clippings and Writings (a **Talk** is a Writing in a "Talks" project) that wikilink those references, wherever they live. The App is a lens over them: it lists what links to its references, draws the Graph scoped to its types plus their neighbours, and reads verse references in any body.

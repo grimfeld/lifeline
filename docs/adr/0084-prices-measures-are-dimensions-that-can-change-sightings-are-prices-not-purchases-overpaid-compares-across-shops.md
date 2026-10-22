@@ -1,5 +1,6 @@
 ---
 status: accepted
+supersedes: ADR 0082 (in part — the measure)
 ---
 
 # Prices measures are dimensions that can change, Sightings are prices not purchases, Overpaid compares across Shops

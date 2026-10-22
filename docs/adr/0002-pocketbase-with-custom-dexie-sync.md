@@ -1,3 +1,8 @@
+---
+status: accepted
+superseded-by: ADR 0039 (in part — "single user")
+---
+
 # PocketBase backend with a custom Dexie-based offline sync layer
 
 > "Single user" and "all collection rules simply require an authenticated user" are superseded by ADR 0039: one instance now serves many Accounts, each seeing only its own rows. The rest stands.

@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: ADR 0033 (in part — the stored `ledger_recurring` definition)
+amended-by: ADR 0042 (in part — the Due's confirm)
+---
+
 # Recurring transactions derive from the ledger
 
 > **Amended by ADR 0042**: the Due's confirm is retired — a Due is read-only and the ledger accepts only witnessed events. Mute now means "don't forecast me". Everything else here stands.

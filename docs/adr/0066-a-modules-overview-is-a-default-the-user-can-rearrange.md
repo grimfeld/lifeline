@@ -1,5 +1,6 @@
 ---
 status: accepted
+amends: ADR 0049 (in part — a Module lands on its Overview), ADR 0053 (in part — a Module's home may be its Overview), ADR 0057 (a Module's landing page of Cards)
 ---
 
 # A Module's Overview is a default the user can rearrange
@@ -58,3 +59,7 @@ it.
   becomes an Overview is a separate decision.
 - `UserScreen.module`, which ADR 0049 used to let a Screen claim a Module, is
   unread today. It must not be revived to mean "this is an Overview".
+
+## Amendment (2026-10-22): Mail and Languages are gone
+
+Mail is retired (ADR 0080), Languages is now the Knowledge Module (ADR 0073), and the Vault is no longer a Module but the raw editor (ADR 0068).

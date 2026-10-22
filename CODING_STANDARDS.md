@@ -39,8 +39,8 @@ nearest existing pattern and don't hand-roll a new one.
 - **(check)** A time of day is `TimeField` (typed, or picked from quarter hours), never
   the browser's `type="time"` input; in a Peek, `CommitField type="time"`. A length of
   time is `LengthPicker`.
-- **(check)** Tooltips use `Tooltip` (`<Tip label>` for an icon Button); `title=` is not a
-  tooltip. It shows on the desk only, never on touch. `Tip` sets its `label` as the Button's
+- Tooltips use `Tooltip` (`<Tip label>` for an icon Button); `title=` is not a
+  tooltip (**(check)** on an icon-size `<Button>` only). It shows on the desk only, never on touch. `Tip` sets its `label` as the Button's
   `aria-label`, so the name is written once and the tooltip shows exactly what a screen
   reader hears. **(check)** No `aria-label` on the element inside a `<Tip label>`.
 - A component copied between apps belongs in `packages/parts`.
@@ -77,9 +77,9 @@ nearest existing pattern and don't hand-roll a new one.
   Button `size` = `default` `sm` `xs` `lg` `icon` `icon-sm` `icon-xs` `icon-lg`, and
   `touch` (44px) for phone buttons stacked full width, as in the AlertDialog;
   `SelectTrigger size="sm"`; `Input` is `h-8` already. The check covers every component a
-  file imports from `@lifeline/ui` except the boxes the page lays out, which a size class
-  may size: `Card*`, `Page`, `*Content` (Sheet, Dialog, Popover, Tabs…), headers and
-  footers, lists and groups, `Separator`, `MapView`, `GraphView`.
+  file imports from `@lifeline/ui` except the layout components a size class may size
+  (`KIT_LAYOUT` in `scripts/check-ui.mjs`: `Card*`, `Page*`, `*Content`, headers, footers,
+  titles, lists, groups, `Separator`, `Field`, `MapView`…).
 - Icons are `size-3`, `size-3.5` or `size-4` (`size-5` in big tiles); an icon inside a
   `Button` needs no class.
 - Spacing stays on the scale (`gap-1` … `gap-6`); arbitrary lengths only for a real
@@ -88,8 +88,8 @@ nearest existing pattern and don't hand-roll a new one.
 ### Icons
 
 - lucide-react only, imported without the `Icon` suffix.
-- **(check)** Every icon-only `Button` has an `aria-label` (a raw icon `<button>` too), or
-  a `<Tip label>` around it.
+- **(check)** Every icon-only `<Button size="icon…">` has an `aria-label`, or a
+  `<Tip label>` around it. A raw icon `<button>` too (not checked).
   `title` alone is not a label.
 
 ### Layout
@@ -167,7 +167,8 @@ or makes a box scroll sideways that was not meant to. How to run it: `shell/e2e/
 - **(check)** Dates are picked from the kit's calendar, never the browser's (ADR 0087):
   `DatePicker` for a day, `DateTimeField` for a day and time, `DatePickerButton` for an
   icon jump, `CommitField type="date"` in a Peek. No native `type="date"` or
-  `datetime-local` input; a time alone stays a native `type="time"`.
+  `datetime-local` input, and no native `type="time"` either: a time is `TimeField`
+  (`CommitField type="time"` in a Peek).
 - A field's error shows under it, with `aria-invalid` on the control — not in a toast.
   Disabling submit until the form is valid is fine.
 - **(check)** Toasts report what an action did: `toast.success` / `toast.error`, with a sentence a

@@ -1,6 +1,7 @@
 ---
 status: accepted
-amends: ADR 0058
+amends: ADR 0058, ADR 0050 (in part — the Handoff gains an origin Document), ADR 0059 (in part — a Topic's Tally is reported by Knowledge)
+amended-by: ADR 0086 (in part — selecting text offers every Intake)
 ---
 
 # Recallable is a Core Contract; Knowledge owns practice, in Topics
@@ -31,3 +32,7 @@ Languages kept Words and Sentences from being forgotten (ADR 0058). The same ret
 - The Handoff (ADR 0050) gains an optional origin Document, and selecting text in any body offers every Intake. A Word, Sentence or Fact keeps its origin as a link; the Source it is narrowed by is read through that link, never stored, so narrowing by Source follows a Note to a new Source. A body names its Document by a `data-origin` attribute on its container, which the Document editor sets for every body it shows. A Mail Message is drawn in a sandboxed frame the page cannot read a selection from, so it is still handed off whole.
 - The Due Card shows everything due, broken down by Topic, and opens the *everything* Practice.
 - Delivery: (1) re-home Languages as Knowledge with Topics and no change in behaviour, checked by every Prompt's next due date being identical before and after; (2) Fact, selection-to-Intake and the origin Document on the Handoff; (3) Practice over everything and narrowed by Source; (4) other implementers when needed.
+
+## Amendment (2026-10-22): Mail is gone
+
+Mail is retired (ADR 0080): there is no Mail Message to hand off, and a Handoff can now come from outside Lifeline.

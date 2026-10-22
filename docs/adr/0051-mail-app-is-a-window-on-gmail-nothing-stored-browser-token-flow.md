@@ -1,3 +1,8 @@
+---
+status: superseded
+superseded-by: ADR 0080
+---
+
 # Mail is a window onto Gmail: nothing about a message is stored, and sign-in is Google's browser token flow with no server piece
 
 _Superseded by ADR 0080: Mail is retired._

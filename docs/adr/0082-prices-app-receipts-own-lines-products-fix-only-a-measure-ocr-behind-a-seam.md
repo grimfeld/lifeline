@@ -1,5 +1,7 @@
 ---
+status: accepted
 formerly: 0045
+superseded-by: ADR 0075 (in part — the reader), ADR 0084 (in part — the measure)
 ---
 
 # Prices is its own App: Receipts own Lines, Products fix only a measure, the receipt reader sits behind one seam
@@ -35,3 +37,7 @@ Superseded by ADR 0075 in the part about the reader: the third paragraph (Tesser
 ## Amendment (2026-10-19): measures change
 
 Superseded by ADR 0084 in the part about the measure: a Product's measure is a dimension (mass, volume, count, length) with a reading unit, a count Product may carry a secondary measure, the measure can change after creation, and Products of different measures merge. ADR 0084 also adds the Sighting (a Receipt marked noticed, not bought) and the Overpaid comparison, which leaves the per-Shop-only price change untouched.
+
+## Amendment (2026-10-22): the type ids
+
+The types are `price_product`, `price_shop`, `price_receipt` and the internal `price_line` (`apps/prices/src/domain/types.ts`), not `product`, `shop`, `receipt` and `receipt_line`.

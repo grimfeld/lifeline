@@ -20,7 +20,7 @@ A hand-written domain module (Chores, Stats, Media, Tasks…) living inside the 
 _Avoid_: plugin, widget, service, processor
 
 ### Core
-The neutral part of the system: shell, Contracts, sync layer, command registry, the Document store and type registry, Bases, Surfaces and generic Cards. Owns no Document types; its own bookkeeping — Screens and Card instances, Placements, Views, user-defined type definitions — is synced but is *not* Documents (Documents are user-facing content only). Of it, only **Screens** belong to a Workspace; Views and user-defined types are global (a View belongs to its Base, which follows the Module, and a type defined twice to be used in two Workspaces would be a bug), and Placements and Attachments follow the Document they serve.
+The neutral part of the system: shell, Contracts, sync layer, command registry, the Document store and type registry, Bases, Surfaces and generic Cards. Owns no Document types; its own bookkeeping — Screens and Card instances, Placements, Views, user-defined type definitions — is synced but is *not* Documents (Documents are user-facing content only). Of it, **Screens**, Overview arrangements, the Phone bar and capture pins belong to a Workspace; Views and user-defined types are global (a View belongs to its Base, which follows the Module, and a type defined twice to be used in two Workspaces would be a bug), and Placements and Attachments follow the Document they serve.
 
 ### Account
 One sign-in, owning its own Documents and Core bookkeeping (Screens, Placements, Views, user-defined types, Attachments) outright. Nothing is shared or visible across Accounts; the server, never the client, decides which Account a record belongs to. One device holds one Account's data at a time.
@@ -31,7 +31,7 @@ Lifeline as a stranger meets it: a device bound to no Account, holding a made-up
 _Avoid_: sandbox (a word Separation already avoids), guest, trial, preview
 
 ### Contract
-An interface defined by Core that a Document type implements (Schedulable, Timed, Loggable, Linkable, Locatable, Taggable, Daylog…). Carries data shape *and* behaviour hooks — the consuming Surface calls the hook; the owning App decides what happens. Built-in types implement Contracts in code; user-defined types may declare the data-only ones (e.g. Locatable through a geo field). The five things that serve Documents — Card, Screen, Surface, App, Base — are *not* Contracts and have no collective name.
+An interface defined by Core that a Document type implements (Schedulable, Timed, Loggable, Linkable, Locatable, Daylog…). Carries data shape *and* behaviour hooks — the consuming Surface calls the hook; the owning App decides what happens. Built-in types implement Contracts in code; user-defined types may declare the data-only ones (e.g. Locatable through a geo field). The five things that serve Documents — Card, Screen, Surface, App, Base — are *not* Contracts and have no collective name.
 _Avoid_: capability, trait, API, decorator
 
 ### Schedulable
@@ -62,11 +62,11 @@ Where a Handoff from outside Lifeline arrives: it asks which Intake receives it 
 _Avoid_: share page, inbox, import
 
 ### Lifeline extension
-The browser extension (Chrome-family and Firefox) whose one action is **Send to Lifeline**: it makes a Handoff from the page in front of the user — the selected text as markdown, else nothing but the page's title and URL; an author and date when the page declares them — and opens the Handoff page with it. It reads nothing else from the page, stores nothing, and writes nothing itself: Lifeline does the keeping.
+The browser extension (Chrome-family and Firefox) whose one action is **Send to Lifeline**: it makes a Handoff from the page in front of the user — the selected text as markdown, else nothing but the page's title and URL; an author and date when the page declares them — and opens the Handoff page with it. It reads nothing else from the page, stores no Lifeline data (only the fetched Intakes list and the base URL, cached in the browser's local storage), and writes nothing itself: Lifeline does the keeping.
 _Avoid_: clipper (Clipping is retired into Quote), share (sharing with people), plugin
 
 ### Tally
-A standing instruction on a Document to log each of its **occurrences** somewhere Loggable — a Workout "tallies to Habit *Train*" (each Session), a Topic "tallies to Habit *Spanish*" (each day practised). Carries the target and what value to send (one, the duration, a Block's result). Core's, through the Tallying Contract, and kept on the Document it sits on, so it follows it wherever it goes. Fires once per occurrence, when the occurrence happens, and never again — never retracted either: what it logged is the receiving App's Document, with that App's own undo. Never backfilled: a Tally set up today logs nothing for yesterday.
+A standing instruction on a Document to log each of its **occurrences** somewhere Loggable — a Workout "tallies to Habit *Train*" (each Session), a Topic "tallies to Habit *Spanish*" (each day practised). Carries the target and what value to send (one, or a measured value the type declares: a Workout's duration). Core's, through the Tallying Contract, and kept on the Document it sits on, so it follows it wherever it goes. Fires once per occurrence, when the occurrence happens, and never again — never retracted either: what it logged is the receiving App's Document, with that App's own undo. Never backfilled: a Tally set up today logs nothing for yesterday.
 _Avoid_: feed (a Source kind), sync, bridge (the idea, not the thing), hook
 
 ### Tallying
@@ -90,7 +90,7 @@ One tap that finds an item time in the Schedule's hours, owned by Core and offer
 _Avoid_: reschedule, auto-schedule, snooze, defer, Move (that changes the day), find time
 
 ### Calendar
-The one Surface for time, the way Google's calendar is one place: a single destination whose **views** — **Upcoming · Day · 3 Day · Week · Month** — are switched in place. Day, 3 Day and Week are hour-scaled and together are the **Schedule**; Month and Upcoming are day-granular, show each item on its own day only, and leave Time blocker bands out. The Unplaced pool is a drawer the Calendar offers in every view. Every view shows the one **day in view**: switching view keeps it (Week shows its week, Month its month, Upcoming starts from it), and 3 Day starts on it rather than on a week boundary. Month takes Moves by drag, the pool's included; Upcoming only reads and ticks. Embedded in a Module, the Calendar is a lens: scoped to that Module's types, offering only the views the Module picks (House: Month and Upcoming), and keeping its own day and view apart from the general one. Supersedes the separate month Calendar, Schedule and Week planner Surfaces. Not the **Calendar App**, which owns Events and has no destination of its own — say "the Calendar App" for that.
+The one Surface for time, the way Google's calendar is one place: a single destination whose **views** — **Upcoming · Day · 3 Day · Week · Month** — are switched in place. Day, 3 Day and Week are hour-scaled and together are the **Schedule**; Month and Upcoming are day-granular, show each item on its own day only, and leave Time blocker bands out. The Unplaced pool is a drawer the Calendar offers in every view but Upcoming. Every view shows the one **day in view**: switching view keeps it (Week shows its week, Month its month, Upcoming starts from it), and 3 Day starts on it rather than on a week boundary. Month takes Moves by drag, the pool's included; Upcoming only reads and ticks. Embedded in a Module, the Calendar is a lens: scoped to that Module's types, offering only the views the Module picks (House: Month and Upcoming), and keeping its own day and view apart from the general one. Supersedes the separate month Calendar, Schedule and Week planner Surfaces. Not the **Calendar App**, which owns Events and has one screen of its own, **Events** (`/app/events`), a manager reached from the palette — say "the Calendar App" for that.
 _Avoid_: calendar view (say which view), Week planner (retired: Week is hour-scaled), time Surface
 
 ### Schedule
@@ -105,11 +105,11 @@ The one bulk place for one Document type: every Document of that type, shown for
 _Avoid_: table (one layout), database, list, explorer
 
 ### View
-A named, saved configuration inside a Base: filters, sort, visible fields and a **layout** — table, list, cards, gallery, map, board or calendar. A layout that reads one particular field (gallery's image URL, map's geo, board's group-by select, calendar's date) stores that field pick in the View and is only offered when the type has such a field; Documents the layout cannot place (no coordinates, no date) are left out but counted, never silently swallowed. Layouts display — they never bypass ownership: a board drag on a guarded field is a request to the owning App, which runs its real operation or declines (no App answer → that board is read-only), and the calendar layout never moves anything (moving through time is Surface work). Every Base starts with an "All" View; the user adds more ("To read", "Open · work"). A View is the unit you place on a Screen as a Card, rendered in its own layout wherever it appears.
+A named, saved configuration inside a Base: filters, sort, visible fields and a **layout** — table, list, cards, gallery, map, board or calendar. Gallery and calendar are always offered (calendar can fall back on `createdAt`); a layout that reads one particular field (map's geo, board's group-by select) stores that field pick in the View and is only offered when the type has such a field; Documents the layout cannot place (no coordinates, no date) are left out but counted, never silently swallowed. Layouts display — they never bypass ownership: a board drag on a guarded field is a request to the owning App, which runs its real operation or declines (no App answer → that board is read-only), and the calendar layout never moves anything (moving through time is Surface work). Every Base starts with an "All" View; the user adds more ("To read", "Open · work"). A View is the unit you place on a Screen as a Card, rendered in its own layout wherever it appears.
 _Avoid_: saved search, filter (one part of a View), base (the container), view type (say layout)
 
 ### Surface
-A fixed, hand-written page owned by Core that shows Documents of *many* types together through a Contract, never through a type directly (Calendar, map, Today feed, Journal). Surfaces are general; Apps are specific. A Surface exists in two places: **general** — a top-level destination beside the Modules, belonging to none of them, showing everything its Contract reaches, never less; and **embedded** in a Module, scoped to that Module's own types (House's calendar shows Chores, Money's shows Dues). The general one is the truth about Tuesday; an embedded one is openly a lens. Distinct from an App screen (one App's own page) and a Screen (user-composed).
+A fixed, hand-written page owned by Core that shows Documents of *many* types together through a Contract, never through a type directly (Calendar, Map, Graph). Surfaces are general; Apps are specific. A Surface exists in two places: **general** — a top-level destination beside the Modules, belonging to none of them, showing everything its Contract reaches, never less; and **embedded** in a Module, scoped to that Module's own types (House's calendar shows Chores). The general one is the truth about Tuesday; an embedded one is openly a lens. Distinct from an App screen (one App's own page) and a Screen (user-composed).
 _Avoid_: page, dashboard, view (that's a Base's saved configuration), screen
 
 ### App screen
@@ -117,7 +117,7 @@ A fixed, hand-written page an App ships over its own types (Gallery, Chores, a S
 _Avoid_: surface (Core-owned, cross-type), screen (user-composed), page
 
 ### Module
-**The thing the user opens**: a hand-written product over a domain — Money, House, Projects, Culture, Journal, Notes, Research, Manuscript, Thoughts, Progress — with its own layout and navigation, written for that domain and no other. It composes what its Apps supply (App screens, Cards) and the Surfaces it embeds, and may mix them on one page: Money's home may put Pocket's Allowances beside the Ledger's Budget. The Apps inside it keep ownership of their types; the Module owns only the arrangement. So the user meets "Money", never Ledger, Pocket and Prices as three neighbours. **Whatever the user opens is a Module**: a Module of one App is fine (Thoughts), because the layout is still the Module's — and a Module of one screen wears no chrome of its own, since a sidebar holding one link is chrome for nothing. An App belongs to no Module only when it never needs a destination of its own — the Calendar App, whose Events live on the general time Surfaces and are managed from them. The **Vault** is no Module's layout: it is the raw editor for bodies, beside the Bases. Core owns the list, the titles and the order — fixed in code; an App names the one Module it belongs to and nothing else, and cannot invent one, and neither can the user. The user owns which Modules a **Workspace** takes: nobody needs a "Work" Module because a Work Workspace is the thing they wanted — work Tasks are still Tasks. A Module never gates a general Surface, the Bases, the command palette or a Screen's card picker; what it scopes is its own embedded Surfaces and every *list of things to run* — the phone's capture sheet shows the Workspace's Modules' capture Commands and no others. It never gates the *ability* to create: the palette reaches everything. **Modules scope chrome; Workspaces scope data.** Supersedes the Nav group, which was the same shelf when it held only screens and was explicitly not a container.
+**The thing the user opens**: a hand-written product over a domain — Money, House, Projects, Culture, Journal, Notes, Research, Manuscript, Thoughts, Progress, Knowledge — with its own layout and navigation, written for that domain and no other. Six Modules have a hand-written shell (Money, Progress, House, Culture, Tasks, Journal); Notes, Research, Manuscript, Thoughts and Knowledge still use the generated stand-in (nav from their screens, landing on the first screen) until they get their own. It composes what its Apps supply (App screens, Cards) and the Surfaces it embeds, and may mix them on one page: Money's home may put Pocket's Allowances beside the Ledger's Budget. The Apps inside it keep ownership of their types; the Module owns only the arrangement. So the user meets "Money", never Ledger, Pocket and Prices as three neighbours. **Whatever the user opens is a Module**: a Module of one App is fine (Thoughts), because the layout is still the Module's — and a Module of one screen wears no chrome of its own, since a sidebar holding one link is chrome for nothing. An App belongs to no Module only when it never needs a destination of its own — the Calendar App, whose Events live on the general time Surfaces and are managed from its one **Events** screen, reached from the palette. The **Vault** is no Module's layout: it is the raw editor for bodies, beside the Bases. Core owns the list, the titles and the order — fixed in code; an App names the one Module it belongs to and nothing else, and cannot invent one, and neither can the user. The user owns which Modules a **Workspace** takes: nobody needs a "Work" Module because a Work Workspace is the thing they wanted — work Tasks are still Tasks. A Module never gates a general Surface, the Bases, the command palette or a Screen's card picker; what it scopes is its own embedded Surfaces and every *list of things to run* — the phone's capture sheet shows the Workspace's Modules' capture Commands and no others. It never gates the *ability* to create: the palette reaches everything. **Modules scope chrome; Workspaces scope data.** Supersedes the Nav group, which was the same shelf when it held only screens and was explicitly not a container.
 _Avoid_: Nav group (the retired name), App (one member — the part that owns types, not the thing the user opens), Frame (retired), category, folder, section, suite, plugin
 
 ### Module screen
@@ -181,7 +181,7 @@ What the Phone bar's centre opens: every capture Command the Workspace's Modules
 _Avoid_: quick-add menu, plus menu, launcher, favourites (say pinned), merged or hidden (say folded — nothing is lost)
 
 ### Settings
-The page where the user configures Lifeline itself rather than any of its content — the current Workspace's **Phone bar**, and Workspace management. Core's, one per install, reached from the foot of the sidebar. The **sixth** kind of page, and with the **Guide** one of the two that serve no Documents: a Card, a Screen, a Surface, an App screen and a Base all present or process Documents, while Settings configures the app and the Guide explains it. Everything it holds is configuration that had no object of its own to hang off — where configuration *does* have one it stays there, at the thing it configures, as a Card's settings are on the Card and a Base's fields are on the Base.
+The page where the user configures Lifeline itself rather than any of its content — Account and sync, Workspaces, the current Workspace's **Phone bar** and capture-sheet pins, date language, Macros (`/settings/macros`), Keys (`/settings/keys`), and, in the Demo, the Demo section. Core's, one per install, reached from the foot of the sidebar. The **sixth** kind of page, and with the **Guide** one of the two that serve no Documents: a Card, a Screen, a Surface, an App screen and a Base all present or process Documents, while Settings configures the app and the Guide explains it. Everything it holds is configuration that had no object of its own to hang off — where configuration *does* have one it stays there, at the thing it configures, as a Card's settings are on the Card and a Base's fields are on the Base.
 _Avoid_: preferences, options, config, admin, account (one sign-in, a different axis), Screen (user-composed, of Cards), Surface (Core's, over Documents)
 
 ### Guide
@@ -229,7 +229,7 @@ Dragging a Schedulable item to another day on a Surface. The owning App decides 
 _Avoid_: reschedule, pin (a pin is the Core fallback, not the concept)
 
 ### Event
-A thing that happens at a fixed time, owned by the Calendar App. Not work, not completable. A timed Event runs from a start (a day and a time) to an end (a day and a time) on any day — overnight, or across several. An Event is given an **end**; its length is shown, never asked. Work is the other way round: it is given a **length**. An all-day Event runs from a first day to a last day. The Calendar App owns Events and the calendar Surfaces; it no longer owns Tasks.
+A thing that happens at a fixed time, owned by the Calendar App. Not work, not completable. A timed Event runs from a start (a day and a time) to an end (a day and a time) on any day — overnight, or across several. An Event is given an **end**; its length is shown, never asked. Work is the other way round: it is given a **length**. An all-day Event runs from a first day to a last day. The Calendar App owns Events; the Calendar Surface is Core's; it no longer owns Tasks.
 _Avoid_: appointment, meeting; duration (for an Event — it has an end, and its length is only shown)
 
 ### Event template
@@ -380,7 +380,7 @@ One logged incident of an Offence, an internal Document owned by the Swear Jar A
 _Avoid_: entry (a Stat's), Completion (Life Level's), Spend (Pocket's), transaction (a Ledger fact), penalty, coin
 
 ### Media item
-_Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics, manga), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus **Quotes** (born as the Commonplace book) for Quotes. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry a creator (in the Library, **Authors** — Documents of their own since ADR 0052; a string elsewhere), year, size, cover by URL and an optional **Reason** (who sent me here — offered at add, never required). The old "Studied" mark is gone.
+_Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics, manga), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus the `commonplace` App, now **Notes**, which owns Source, Note and Quote. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry a creator (in the Library, **Authors** — Documents of their own since ADR 0052; a string elsewhere), year, size, cover by URL and an optional **Reason** (who sent me here — offered at add, never required). The old "Studied" mark is gone.
 _Avoid_: media (as a type id or an App — neither exists), title, copy, edition, studied
 
 ### Author
@@ -469,7 +469,7 @@ _Avoid_: revision, history (implies automatic), backup (fine in prose)
 _Retired_ — use **Document type**. (Was: a kind of Note fixing its title rule, Properties and template.)
 
 ### Field
-A typed value a Document type declares (mood, aliases, birthday, geo, employer…), edited as a form, shown as a Base column, and read/written as frontmatter when the Document is opened as text. Kinds: text, long text, number, boolean, date, datetime, **Choice**, **Multi-choice**, url, geo, list of text, and **Link**. No formulas — a computed value belongs to a View, not a type. Every type has its own Fields, and the user may add Fields to any type, built-ins included; a built-in's own Fields stay its App's, the user's sit beside them. A Field is fixed once it exists: it can be relabelled, and its kind changed only to one every value it already holds still fits; removing it keeps the values Documents hold, and they return if it is added back.
+A typed value a Document type declares (mood, aliases, birthday, geo, employer…), edited as a form, shown as a Base column, and read/written as frontmatter when the Document is opened as text. Kinds: text, long text, number, boolean, date, datetime, **Choice**, **Multi-choice**, url, geo, list of text, **Link**, **Links** (several Links, e.g. a Work's Authors) and JSON (an opaque structured value, shown but never edited generically). No formulas — a computed value belongs to a View, not a type. Every type has its own Fields, and the user may add Fields to any type, built-ins included; a built-in's own Fields stay its App's, the user's sit beside them. A Field is fixed once it exists: it can be relabelled, and its kind changed only to one every value it already holds still fits; removing it keeps the values Documents hold, and they return if it is added back.
 _Avoid_: property (old Notes word — same thing), metadata, attribute, column (a View's rendering of a Field)
 
 ### Link (field)
@@ -501,7 +501,7 @@ The Module for living day to day in writing: Days and their Weeks, Months, Quart
 _Avoid_: diary, vault (the raw editor), collections (for its Types — a Collection is a Stat kind)
 
 ### Wikilink
-`[[Name]]` in any Document's body. Resolves by name — case- and accent-insensitive, spaces collapsed — across every Linkable Document type — exact title first, then alias — with an optional type prefix (`[[media:Dune]]`) to disambiguate; once resolved, the link remembers its target so later collisions don't move it. Unresolved links stay unresolved (click to create a Note). The editor's completer shows the type of each candidate.
+`[[Name]]` in any Document's body. Resolves by name — case- and accent-insensitive, spaces collapsed — across every Linkable Document type — exact title first, then alias — with an optional type prefix (`[[book:Dune]]`) to disambiguate; once resolved, the link remembers its target so later collisions don't move it. Unresolved links stay unresolved (click to create a Thought). The editor's completer shows the type of each candidate.
 _Avoid_: reference, mention (a mention is what the *target* sees)
 
 ### Backlink
@@ -532,7 +532,7 @@ The depth-limited neighbourhood of one Document — its links, backlinks and Gho
 _Avoid_: connections panel, related items
 
 ### Ghost node
-An unresolved wikilink name drawn on a Graph: a hole in the vault. Clicking it creates the Note, exactly like clicking the unresolved link itself.
+An unresolved wikilink name drawn on a Graph: a hole in the vault. Clicking it creates a Thought, exactly like clicking the unresolved link itself.
 _Avoid_: phantom, placeholder, unresolved node (fine in prose)
 
 ### Locatable
@@ -563,7 +563,7 @@ A **Role**: what a Document wears when I take Notes and Quotes from it — a boo
 _Avoid_: origin, reference (any Linkable thing), work (one kind of Source), window (the old meaning)
 
 ### Window
-Something outside Lifeline shown inside it, unowned and not understood, kept by the Windows App in the Notes Module — a Feed's item becomes a Source in one tap. Kinds: Embed, Feed, Calendar subscription, Live value. Named, tagged and pickable for a Card; Lifeline never owns the data behind it. Was called "Source" until Source became the hub of Notes and Quotes.
+Something outside Lifeline shown inside it, unowned and not understood, kept by the Windows App in the Notes Module (a Feed's item only opens outside). Kinds: Embed, Feed, Calendar subscription, Live value. Named, tagged and pickable for a Card; Lifeline never owns the data behind it. Was called "Source" until Source became the hub of Notes and Quotes.
 _Avoid_: source (the hub), integration (that is an App talking to a service), widget
 
 ### Embed
@@ -598,7 +598,7 @@ Which content a Document is. **Shared** (the default, the field empty) means eve
 _Avoid_: private, owned (an Account owns), scoped, global (say shared)
 
 ### Frame
-_Retired_ — it was the Vault/Dashboard axis (what you *do*), two chromes chosen by URL. Chrome now follows the **Module** (what it is *about*): each Module ships its own layout, so a separate word for "the chrome around a Module" names nothing the Module does not already. The Vault survives as the raw editor for bodies; the Dashboard is retired.
+_Retired_ — it was the Vault/Dashboard axis (what you *do*), two chromes chosen by URL. Chrome now follows the **Module** (what it is *about*): each Module ships its own layout, so a separate word for "the chrome around a Module" names nothing the Module does not already. The Vault survives as the raw editor for bodies; the Dashboard is retired. The Frame survives only as internal routing (`FrameDef`, `DASHBOARD_FRAME`, `VAULT_FRAME`, `FrameRoutes`), not a user-facing concept.
 _Avoid_: Frame (say the Module, or the Vault)
 
 ### Attachment
@@ -610,7 +610,7 @@ The **raw** editor for bodies, as a Base is the raw editor for fields: tree, sea
 _Avoid_: notes (one type), library, folder, journal (a Module)
 
 ### Dashboard
-The Frame where data is **read and operated**: Screens of Cards, Surfaces, App screens and Bases. What changes here changes through a defined operation — a form, a dialog, a click whose effect is known — never through free text. An App screen lists, filters and starts things; the body it opens belongs to the Vault.
+_Retired_ with the Frame (see Frame). It was the Frame where data is **read and operated**: Screens of Cards, Surfaces, App screens and Bases. What changes here changes through a defined operation — a form, a dialog, a click whose effect is known — never through free text. An App screen lists, filters and starts things; the body it opens belongs to the Vault.
 _Avoid_: home (the phone has none; say the Screen), main app, frame (say which), workspace (a different axis)
 
 ### Folder

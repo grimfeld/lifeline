@@ -1,6 +1,7 @@
 ---
 status: accepted
-supersedes: ADR 0045 (in part — "the Vault writes"), ADR 0046 (in part — the type-shaped Vault root)
+supersedes: ADR 0045 (in part — "the Vault writes"), ADR 0046 (in part — the type-shaped Vault root), ADR 0019 (in part — the prose Apps and their types)
+amended-by: ADR 0085 (in part — bodies written in the Vault)
 ---
 
 # Writing splits into five Modules; the Vault becomes the raw editor

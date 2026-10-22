@@ -1,3 +1,8 @@
+---
+status: accepted
+superseded-by: ADR 0090 (in part — "timed events are single-day")
+---
+
 # Events reach surfaces through a separate Timed contract, not Schedulable
 
 > "Timed events are single-day" is superseded by ADR 0090: a timed Event runs from a start to an end on any day, and reaches surfaces as one piece per day carrying its whole span. The rest stands.
