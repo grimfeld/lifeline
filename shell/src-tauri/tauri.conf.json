@@ -21,12 +21,30 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "* data: blob:",
+        "media-src": "* data: blob:",
+        "font-src": "'self' data:",
+        "connect-src": "ipc: http://ipc.localhost 'self' https://lifeline-pb.fly.dev https://api.rawg.io https://api.themoviedb.org https://musicbrainz.org https://openlibrary.org https://www.googleapis.com https://www.wikidata.org https://nominatim.openstreetmap.org https://photon.komoot.io",
+        "frame-src": "https:",
+        "worker-src": "'self' blob:",
+        "manifest-src": "'self'",
+        "object-src": "'none'",
+        "base-uri": "'self'",
+        "form-action": "'self'"
+      },
+      "devCsp": null
     }
   },
   "bundle": {
     "active": true,
     "targets": "all",
-    "icon": ["icons/icon.ico", "icons/icon.png"]
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.png"
+    ]
   }
 }
