@@ -22,6 +22,9 @@ const fake = vi.hoisted(() => {
     afterList: null as null | ((name: string, call: number) => void),
     listCalls: 0,
     failGetOne: new Set<string>(),
+    /** Local reads, by kind: a pull reads a page at once, never row by row. */
+    localGets: 0,
+    localBulkGets: 0,
   };
   const table = (name: string) => {
     let t = state.tables.get(name);
@@ -50,8 +53,16 @@ vi.mock("./db", () => ({
       put: async (e: { key: string; value: string }) => void fake.state.meta.set(e.key, e.value),
     },
     collection: (name: string) => ({
-      get: async (id: string) => fake.table(name).get(id),
+      get: async (id: string) => {
+        fake.state.localGets++;
+        return fake.table(name).get(id);
+      },
+      bulkGet: async (ids: string[]) => {
+        fake.state.localBulkGets++;
+        return ids.map((id) => fake.table(name).get(id));
+      },
       put: async (r: Row) => void fake.table(name).set(r.id, r),
+      bulkPut: async (rs: Row[]) => void rs.forEach((r) => fake.table(name).set(r.id, r)),
       update: async (id: string, patch: Row) => void fake.table(name).set(id, { ...fake.table(name).get(id)!, ...patch }),
     }),
     table: (name: string) => ({ get: async (id: string) => fake.table(name).get(id) }),
@@ -131,6 +142,8 @@ beforeEach(() => {
   fake.state.afterList = null;
   fake.state.listCalls = 0;
   fake.state.failGetOne.clear();
+  fake.state.localGets = 0;
+  fake.state.localBulkGets = 0;
 });
 
 describe("syncNow", () => {
@@ -175,6 +188,16 @@ describe("pull", () => {
     const local = fake.table("things");
     expect(local.size).toBe(250);
     expect(fake.state.meta.get("cursor:things")).toBe(stamp(5000));
+  });
+
+  it("reads the local rows once per page, not once per row (#282)", async () => {
+    fake.state.server.set("things", Array.from({ length: 250 }, (_, i) => serverRow(i)));
+    // One row already stored as the server has it: not written again.
+    fake.table("things").set("r0003", { id: "r0003", updatedAt: stamp(3), deleted: 0 });
+    await syncNow();
+    expect(fake.state.localGets).toBe(0);
+    expect(fake.state.localBulkGets).toBe(2);
+    expect(fake.table("things").size).toBe(250);
   });
 
   it("holds back only the record whose push keeps failing, not the cursor (CR-08)", async () => {

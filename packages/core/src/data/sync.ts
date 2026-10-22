@@ -212,22 +212,32 @@ const HELD_CHUNK = 50;
  * Store a page of pulled rows. A row with a locally-queued write is newer
  * intent and is left for push to resolve (the LWW check happens there); its id
  * is added to `held` so the server copy is fetched again once push is done.
+ * The page's local rows are read in one `bulkGet` and the changed ones written
+ * in one `bulkPut`: a read per row was 200 IndexedDB round trips a page.
+ * Returns how many rows it wrote.
  */
-async function applyPulled(name: string, items: PbRecord[], held: Set<string>): Promise<void> {
-  await db().transaction("rw", db().collection(name), db()._outbox, async () => {
+async function applyPulled(name: string, items: PbRecord[], held: Set<string>): Promise<number> {
+  return db().transaction("rw", db().collection(name), db()._outbox, async () => {
     const pending = new Set(
       (await db()._outbox.where("collection").equals(name).toArray()).map((e) => e.recordId),
     );
+    const fresh: PbRecord[] = [];
     for (const r of items) {
-      if (pending.has(r.id)) {
-        held.add(r.id);
-        continue;
+      if (pending.has(r.id)) held.add(r.id);
+      else {
+        held.delete(r.id);
+        fresh.push(r);
       }
-      held.delete(r.id);
-      const local = await db().collection(name).get(r.id);
-      const incoming = toLocal(name, r);
-      if (shouldApply(local, incoming)) await db().collection(name).put(incoming);
     }
+    if (!fresh.length) return 0;
+    const locals = await db().collection(name).bulkGet(fresh.map((r) => r.id));
+    const writes: SyncedRecord[] = [];
+    fresh.forEach((r, i) => {
+      const incoming = toLocal(name, r);
+      if (shouldApply(locals[i], incoming)) writes.push(incoming);
+    });
+    if (writes.length) await db().collection(name).bulkPut(writes);
+    return writes.length;
   });
 }
 
