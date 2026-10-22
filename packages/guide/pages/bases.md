@@ -27,7 +27,8 @@ Open **Bases** on the Rail (or **Go to Bases** in the palette).
 - **Select** several (checkboxes) to:
   - **Add tags**;
   - **Move to workspace** (see [Workspaces](workspaces.md));
-  - **Delete**.
+  - **Delete** — each one goes on its own; one a type refuses (an Offence that has Fines) stays selected,
+    and a message says why.
 - The footer says how many of how many show, and which fields are guarded (🔒: they change only
   through the owning App).
 
