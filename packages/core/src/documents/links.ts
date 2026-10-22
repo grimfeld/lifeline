@@ -92,15 +92,62 @@ function originatesLinks(def: DocumentTypeDef | undefined): boolean {
   return !def?.internal;
 }
 
+/** A wikilink as a body writes it, with the text around it: what a body says, before anything is resolved. */
+interface WrittenLink {
+  link: WikiLink;
+  context: string;
+}
+
 /**
- * Derive every link relation from the Documents (ADR 0018): wikilinks in
- * bodies and Link fields. Precedence (CONTEXT.md "Wikilink"): an exact
- * `Folder/Name` path → a unique title across linkable types (ties: the
- * shallowest path, then the first) → an alias → unresolved. `[[type:Name]]`
- * restricts to one type (id, label or plural, case-insensitive). Pure;
- * rebuild whenever Documents or types change.
+ * The links a body writes, per Document object. The store hands back the same
+ * object while a Document is unchanged (`reuseUnchanged`), so a vault's bodies
+ * are parsed once, not once per change to any of them.
  */
-export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[], locked: PrivateLockedRefs = NO_LOCKED): LinkIndex {
+const written = new WeakMap<Document, WrittenLink[]>();
+
+function writtenLinks(d: Document): WrittenLink[] {
+  let out = written.get(d);
+  if (!out) {
+    const body = typeof d.body === "string" ? d.body : "";
+    // An image embed points at an Attachment (ADR 0037), not a Document: never unresolved, never a Ghost.
+    out = body ? extractLinks(body).filter((l) => !isImageEmbed(l)).map((link) => ({ link, context: contextAround(body, link.from, link.to) })) : [];
+    written.set(d, out);
+  }
+  return out;
+}
+
+/** What resolves a written name: the linkable Documents by path, title and alias. Built from every Document. */
+interface Targets {
+  defs: Map<string, DocumentTypeDef>;
+  byId: Map<string, Document>;
+  /** The linkable Documents. */
+  targets: Document[];
+  resolve(name: string): LinkRef;
+  resolveAll(name: string): LinkRef[];
+  ref(id: string): LinkRef;
+  titleOf(d: Document): string;
+}
+
+/** What one Document adds to the index, given the Targets. */
+interface Contribution {
+  links: ResolvedLink[];
+  backlinks: { to: string; backlink: Backlink }[];
+  /** Normalised unresolved names, each once. */
+  unresolved: string[];
+  tags: string[];
+}
+
+/**
+ * Everything about a Document the Targets read. Two Documents with the same
+ * key resolve every name the same way, so a change that keeps it (a body
+ * typed into) leaves every other Document's links as they were.
+ */
+function targetKey(d: Document, defs: Map<string, DocumentTypeDef>): string {
+  const def = defs.get(d.type);
+  return [d.type, d.folder, displayTitle(d, def), ...aliasesOf(d, def)].join("\u0000");
+}
+
+function buildTargets(docs: Document[], types: DocumentTypeDef[], locked: PrivateLockedRefs): Targets {
   const defs = new Map(types.map((t) => [t.id, t]));
   const typeByWord = new Map<string, string>();
   for (const t of types) {
@@ -134,7 +181,9 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[], locke
     }
   }
 
-  const ref = (id: string): LinkRef => ({ kind: "doc", id, type: byId.get(id)?.type ?? "" });
+  // A Document's type is part of its target key, so a patched index's Documents keep the type read here.
+  const types0 = new Map(docs.map((d) => [d.id, d.type]));
+  const ref = (id: string): LinkRef => ({ kind: "doc", id, type: types0.get(id) ?? "" });
   const expanders = types.filter((t) => typeof t.linkable === "object" && t.linkable.expand).map((t) => ({ type: t.id, expand: (t.linkable as { expand: (n: string) => string[] | null }).expand }));
 
   /**
@@ -185,59 +234,69 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[], locke
     return { kind: "unresolved", name: name.trim() };
   }
 
+  return { defs, byId, targets, resolve, resolveAll, ref, titleOf };
+}
+
+function contributionOf(d: Document, t: Targets): Contribution {
+  const def = t.defs.get(d.type);
+  const resolved = writtenLinks(d).map((w) => ({ ...w, refs: t.resolveAll(w.link.name) }));
+  const out: Contribution = { links: resolved.flatMap((w) => w.refs.map((r) => ({ link: w.link, ref: r }))), backlinks: [], unresolved: [], tags: [] };
+  // Resolved for the Document's own panel — a Version's snapshot still renders
+  // its wikilinks — but nothing below this line, which is what others see.
+  if (!originatesLinks(def)) return out;
+  const unresolved = new Set<string>();
+  for (const { context, refs } of resolved) {
+    for (const r of refs) {
+      if (r.kind === "locked") continue; // behind the gate: no backlink, no Ghost
+      if (r.kind === "unresolved") {
+        unresolved.add(normalizeName(r.name));
+        continue;
+      }
+      if (r.id === d.id) continue; // self-link
+      out.backlinks.push({ to: r.id, backlink: { sourceId: d.id, context } });
+    }
+  }
+  out.unresolved = [...unresolved];
+  // Link fields (ADR 0019): a stored id is a reference too — one or several (ADR 0052).
+  for (const f of fieldsOfDocument(d, def)) {
+    if (!isLinkKind(f.kind)) continue;
+    const v = d[f.key];
+    const ids = Array.isArray(v) ? v : typeof v === "string" && v ? [v] : [];
+    for (const id of ids) {
+      if (typeof id !== "string" || id === d.id || !t.byId.has(id)) continue;
+      out.backlinks.push({ to: id, backlink: { sourceId: d.id, context: "", field: f.key } });
+    }
+  }
+  out.tags = d.tags ?? [];
+  return out;
+}
+
+/** The index over `docs`, from their Targets and each one's Contribution: no body is read here. */
+function assemble(docs: Document[], t: Targets, contributions: Map<string, Contribution>): LinkIndex {
   const linksFromMap = new Map<string, ResolvedLink[]>();
   const backlinks = new Map<string, Backlink[]>();
   const unresolved = new Map<string, string[]>();
   const tags = new Map<string, string[]>();
-
+  const push = <V>(m: Map<string, V[]>, k: string, v: V) => {
+    const list = m.get(k);
+    if (list) list.push(v);
+    else m.set(k, [v]);
+  };
   for (const d of docs) {
-    const def = defs.get(d.type);
-    const body = typeof d.body === "string" ? d.body : "";
-    // An image embed points at an Attachment (ADR 0037), not a Document: never unresolved, never a Ghost.
-    const links = body ? extractLinks(body).filter((l) => !isImageEmbed(l)).flatMap((link) => resolveAll(link.name).map((r) => ({ link, ref: r }))) : [];
-    // Resolved for the Document's own panel — a Version's snapshot still renders
-    // its wikilinks — but nothing below this line, which is what others see.
-    linksFromMap.set(d.id, links);
-    if (!originatesLinks(def)) continue;
-    for (const { link, ref: r } of links) {
-      if (r.kind === "locked") continue; // behind the gate: no backlink, no Ghost
-      if (r.kind === "unresolved") {
-        const k = normalizeName(r.name);
-        const list = unresolved.get(k) ?? [];
-        if (!list.includes(d.id)) list.push(d.id);
-        unresolved.set(k, list);
-        continue;
-      }
-      if (r.id === d.id) continue; // self-link
-      const list = backlinks.get(r.id) ?? [];
-      list.push({ sourceId: d.id, context: contextAround(body, link.from, link.to) });
-      backlinks.set(r.id, list);
-    }
-    // Link fields (ADR 0019): a stored id is a reference too — one or several (ADR 0052).
-    for (const f of fieldsOfDocument(d, def)) {
-      if (!isLinkKind(f.kind)) continue;
-      const v = d[f.key];
-      const ids = Array.isArray(v) ? v : typeof v === "string" && v ? [v] : [];
-      for (const id of ids) {
-        if (typeof id !== "string" || id === d.id || !byId.has(id)) continue;
-        const list = backlinks.get(id) ?? [];
-        list.push({ sourceId: d.id, context: "", field: f.key });
-        backlinks.set(id, list);
-      }
-    }
-    for (const t of d.tags ?? []) {
-      const list = tags.get(t) ?? [];
-      list.push(d.id);
-      tags.set(t, list);
-    }
+    const c = contributions.get(d.id)!;
+    linksFromMap.set(d.id, c.links);
+    for (const b of c.backlinks) push(backlinks, b.to, b.backlink);
+    for (const k of c.unresolved) push(unresolved, k, d.id);
+    for (const tag of c.tags) push(tags, tag, d.id);
   }
+  const { defs, byId, targets, titleOf, ref } = t;
 
   return {
     docs,
     linkSources: docs.filter((d) => originatesLinks(defs.get(d.type))),
     byId,
-    resolve,
-    resolveAll,
+    resolve: t.resolve,
+    resolveAll: t.resolveAll,
     linksFrom: (id) => linksFromMap.get(id) ?? [],
     backlinksTo: (id) => backlinks.get(id) ?? [],
     unresolved,
@@ -267,6 +326,73 @@ export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[], locke
   }
 }
 
+/**
+ * Derive every link relation from the Documents (ADR 0018): wikilinks in
+ * bodies and Link fields. Precedence (CONTEXT.md "Wikilink"): an exact
+ * `Folder/Name` path → a unique title across linkable types (ties: the
+ * shallowest path, then the first) → an alias → unresolved. `[[type:Name]]`
+ * restricts to one type (id, label or plural, case-insensitive). Pure;
+ * rebuild whenever Documents or types change (`linkIndexFor` patches instead
+ * when it can).
+ */
+export function buildLinkIndex(docs: Document[], types: DocumentTypeDef[], locked: PrivateLockedRefs = NO_LOCKED): LinkIndex {
+  return build(docs, types, locked).index;
+}
+
+interface Built {
+  docs: Document[];
+  types: DocumentTypeDef[];
+  locked: PrivateLockedRefs;
+  targets: Targets;
+  contributions: Map<string, Contribution>;
+  index: LinkIndex;
+}
+
+const builds = { full: 0, patched: 0 };
+
+/** How many times `linkIndexFor` built the index whole, and how many it patched one: for tests and profiling. */
+export function linkIndexBuilds(): { full: number; patched: number } {
+  return { ...builds };
+}
+
+function build(docs: Document[], types: DocumentTypeDef[], locked: PrivateLockedRefs): Built {
+  const targets = buildTargets(docs, types, locked);
+  const contributions = new Map(docs.map((d) => [d.id, contributionOf(d, targets)]));
+  return { docs, types, locked, targets, contributions, index: assemble(docs, targets, contributions) };
+}
+
+/** Past this many changed Documents a patch saves nothing worth the bookkeeping: a whole build. */
+const PATCH_LIMIT = 50;
+
+/**
+ * The index after `docs` replaced `prev.docs`, when only some Documents
+ * changed and none in a way that moves a name (`targetKey`): the same
+ * Documents, in the same order, the changed ones' bodies or fields edited.
+ * Their contributions are worked out again and everyone else's reused, so
+ * typing in a Note reads one body, not the vault's. Undefined when the change
+ * is of another kind (a Document added, removed, renamed, retyped).
+ */
+function patch(prev: Built, docs: Document[]): Built | undefined {
+  if (docs.length !== prev.docs.length) return undefined;
+  const changed: number[] = [];
+  for (let i = 0; i < docs.length; i++) {
+    if (docs[i] === prev.docs[i]) continue;
+    if (docs[i].id !== prev.docs[i].id) return undefined;
+    changed.push(i);
+    if (changed.length > PATCH_LIMIT) return undefined;
+  }
+  // The same Documents in a new array: the index stands.
+  if (!changed.length) return { ...prev, docs };
+  const { defs } = prev.targets;
+  if (changed.some((i) => targetKey(docs[i], defs) !== targetKey(prev.docs[i], defs))) return undefined;
+  const byId = new Map(prev.targets.byId);
+  for (const i of changed) byId.set(docs[i].id, docs[i]);
+  const targets: Targets = { ...prev.targets, byId, targets: docs.filter((d) => isLinkable(defs.get(d.type))) };
+  const contributions = new Map(prev.contributions);
+  for (const i of changed) contributions.set(docs[i].id, contributionOf(docs[i], targets));
+  return { ...prev, docs, targets, contributions, index: assemble(docs, targets, contributions) };
+}
+
 /** Whether a type's Documents may be offered as Unlinked mentions (CONTEXT.md): linkable, and not opted out. */
 export function mentionable(def: DocumentTypeDef | undefined): boolean {
   if (!isLinkable(def)) return false;
@@ -274,14 +400,19 @@ export function mentionable(def: DocumentTypeDef | undefined): boolean {
   return !(typeof l === "object" && l.mentions === false);
 }
 
-let last: { docs: Document[]; types: DocumentTypeDef[]; locked: PrivateLockedRefs; index: LinkIndex } | null = null;
+let last: Built | null = null;
 
-/** The index for one (docs, types, locked) triple — built once per change, however many components ask. */
+/**
+ * The index for one (docs, types, locked) triple — built once per change, however many components ask.
+ * A change to a few Documents' bodies or fields patches the last index rather than building one (`patch`).
+ */
 export function linkIndexFor(docs: Document[], types: DocumentTypeDef[], locked: PrivateLockedRefs = NO_LOCKED): LinkIndex {
   if (last && last.docs === docs && last.types === types && last.locked === locked) return last.index;
-  const index = buildLinkIndex(docs, types, locked);
-  last = { docs, types, locked, index };
-  return index;
+  const patched = last && last.types === types && last.locked === locked ? patch(last, docs) : undefined;
+  if (patched) builds.patched++;
+  else builds.full++;
+  last = patched ?? build(docs, types, locked);
+  return last.index;
 }
 
 /** The live link index over every Document (ADR 0018). A React hook; every mount shares one build per change. */
