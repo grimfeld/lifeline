@@ -38,6 +38,7 @@ export * from "./documents/addFieldMenu";
 export * from "./documents/knownFields";
 export * from "./documents/typeAdmin";
 export * from "./documents/store";
+export * from "./documents/conflict";
 export * from "./documents/roles";
 export * from "./documents/links";
 export * from "./documents/mentions";

@@ -583,7 +583,7 @@ A Window kind: a URL polled on a period, from whose response one value is read (
 _Avoid_: metric, sensor, stat (a Stat is owned data with history — a Live value has none)
 
 ### Conflict copy
-A sibling Note "<title> (conflict HH:MM)" saved when sync would have overwritten unsynced local edits. Nothing is merged, nothing is lost.
+A sibling Document of the same type, "<title> (conflict HH:MM)", saved when sync would have overwritten unsynced local edits, and carrying every field the local one had (a Note keeps its Source). Days, Periods, Thoughts, Notes, Quotes, Essays and Chapters keep one; the rest are last-write-wins. Nothing is merged, nothing is lost.
 
 ### Workspace
 **A separate world of data, with the Modules that world needs.** One **default** Workspace reads the shared content; every other Workspace the user creates is **separated** — it holds its own content and sees nothing else. "Work" takes Tasks and Research and holds work's Documents; the general Calendar in Work shows work's Tasks and Events and nothing personal, and Money is simply not there. The choice of Modules decides which Modules stand at the top level; separation decides the data. There is no Workspace that shares the default's data with fewer Modules — that was only ever a shorter sidebar.

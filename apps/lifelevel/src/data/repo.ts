@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { documentsOf, documentsWhere, getDocument, normalizeTags, putDocument, removeDocument, useLiveQuery } from "@lifeline/core";
+import { documentsOf, getDocument, normalizeTags, putDocument, removeDocument, useLiveQuery } from "@lifeline/core";
 import { damageForNegativeCompletion, xpGainForPositiveCompletion } from "../domain/difficulty";
 import { computeProgression } from "../domain/progression";
 import { diffHabit } from "../domain/progressionDiff";
@@ -100,15 +100,8 @@ export async function updateHabit(habit: Habit, input: HabitInput): Promise<void
   await putDocument<Habit>({ ...habit, title: input.title.trim(), difficulty: input.difficulty, tags: normalizeTags(input.tags) });
 }
 
-/**
- * Honest quitting (ADR 0026): the Habit's own completions die with it, and so
- * do the Negative completions that hit it — earned levels and debt together.
- */
+/** Honest quitting (ADR 0026): the Habit's `onDelete` takes its Completions with it, from wherever it is deleted. */
 export async function deleteHabit(habitId: string): Promise<void> {
-  const own = await documentsWhere<HabitCompletion>(HABIT_COMPLETION, "habitId", habitId);
-  for (const c of own) await removeDocument(c.id);
-  const hits = await documentsWhere<NegativeCompletion>(NEGATIVE_COMPLETION, "affectedHabitId", habitId);
-  for (const c of hits) await removeDocument(c.id);
   await removeDocument(habitId);
 }
 
@@ -135,14 +128,8 @@ export async function updateNegative(negative: Negative, input: NegativeInput): 
   await putDocument<Negative>({ ...negative, title: input.title.trim(), gravity: input.gravity, affectsHabitId: input.affectsHabitId, tags: normalizeTags(input.tags) });
 }
 
-/**
- * Deleting a Negative takes its own Completions with it (ADR 0026, the same
- * honest-quitting cascade as a Habit): the damage it did is undone, and the
- * Habits it hit climb back out of that much debt.
- */
+/** Deleting a Negative takes its own Completions with it (ADR 0026) — its `onDelete`, so every delete path does. */
 export async function deleteNegative(negativeId: string): Promise<void> {
-  const own = await documentsWhere<NegativeCompletion>(NEGATIVE_COMPLETION, "negativeId", negativeId);
-  for (const c of own) await removeDocument(c.id);
   await removeDocument(negativeId);
 }
 

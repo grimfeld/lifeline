@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { assertWitnessed } from "../domain/entry";
-import { documentsOf, documentsWhere, newId, normalizeTags, patchDocument, putDocument, removeDocument, todayStr, useDocuments, type DateStr } from "@lifeline/core";
+import { documentsOf, documentsWhere, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocuments, type DateStr, type Document } from "@lifeline/core";
 import {
   ACCOUNT,
   ALLOCATION,
@@ -278,11 +278,15 @@ export async function saveImportMapping(id: string, importMapping: ImportMapping
   await patchDocument(id, { importMapping });
 }
 
-/** Hard delete only when empty (ADR 0033) — archive is the way out for a used Account. */
+/** Hard delete only when empty (ADR 0033) — archive is the way out for a used Account. The type's `onDelete` guard refuses, so a Base or the Vault is held to it too. */
 export async function deleteAccount(id: string): Promise<void> {
-  const ts = (await documentsOf<Transaction>(TRANSACTION)).map(normalizeTransaction);
-  if (ts.some((t) => t.accountId === id || t.fromAccountId === id || t.toAccountId === id)) throw new Error("Account has transactions — archive it instead");
   await removeDocument(id);
+}
+
+/** The Account `onDelete` guard: throwing leaves the Account in place. */
+export async function refuseDeletingUsedAccount(doc: Document): Promise<void> {
+  const ts = (await documentsOf<Transaction>(TRANSACTION)).map(normalizeTransaction);
+  if (ts.some((t) => t.accountId === doc.id || t.fromAccountId === doc.id || t.toAccountId === doc.id)) throw new Error("Account has transactions — archive it instead");
 }
 
 // ---- Categories ----
@@ -319,15 +323,18 @@ export async function editCategory(c: LedgerCategory, patch: Partial<Pick<Catego
 export async function mergeCategory(fromId: string, intoId: string): Promise<void> {
   if (fromId === intoId) throw new Error("Pick a different category to merge into");
   for (const t of await documentsWhere<Transaction>(TRANSACTION, "categoryId", fromId)) await patchDocument(t.id, { categoryId: intoId });
-  for (const a of (await documentsOf<Allocation>(ALLOCATION)).filter((a) => a.categoryId === fromId)) await removeDocument(a.id);
   await removeDocument(fromId);
 }
 
-/** Plain delete passes only for an unreferenced Category. */
+/** Plain delete passes only for an unreferenced Category (the type's `onDelete` guard refuses, from wherever the delete comes). */
 export async function deleteCategory(id: string): Promise<void> {
-  if ((await documentsWhere<Transaction>(TRANSACTION, "categoryId", id)).length > 0) throw new Error("Category has transactions — merge it instead");
-  for (const a of (await documentsOf<Allocation>(ALLOCATION)).filter((a) => a.categoryId === id)) await removeDocument(a.id);
   await removeDocument(id);
+}
+
+/** The Category `onDelete` guard: refuses a referenced one, else drops its Allocation overrides (tombstoned directly, so it cannot re-enter). */
+export async function refuseDeletingUsedCategory(doc: Document): Promise<void> {
+  if ((await documentsWhere<Transaction>(TRANSACTION, "categoryId", doc.id)).length > 0) throw new Error("Category has transactions — merge it instead");
+  await removeDocumentsWhere(ALLOCATION, (a) => (a as Allocation).categoryId === doc.id);
 }
 
 // ---- Allocation overrides ----

@@ -1,4 +1,4 @@
-import { documentsWhere, removeDocumentsWhere, type DocumentTypeDef } from "@lifeline/core";
+import { conflictCopy, documentsWhere, removeDocumentsWhere, type DocumentTypeDef } from "@lifeline/core";
 import { VERSION } from "@lifeline/app-writer";
 import { CHAPTER, FORMS, MANUSCRIPT, MANUSCRIPTS_FOLDER, OUTTAKE, STATUSES, manuscriptHref } from "./domain/types";
 
@@ -47,6 +47,7 @@ export const chapterType: DocumentTypeDef = {
   indexes: ["manuscriptId"],
   /** Its Versions go with it. */
   onDelete: async (d) => removeDocumentsWhere(VERSION, (v) => v.writingId === d.id),
+  onConflict: conflictCopy,
   order: 27,
   builtIn: true,
 };

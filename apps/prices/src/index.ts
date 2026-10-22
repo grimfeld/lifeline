@@ -8,6 +8,7 @@ import { pricesDaylog } from "./daylog";
 import { formatCents } from "./domain/money";
 import { receiptTitle } from "./domain/derive";
 import { APP_ID, DIMENSIONS, DIMENSION_LABEL, SECONDARY_DIMENSIONS, LINE, PRICES_COLOR, PRICES_HREF, PRODUCT, RECEIPT, SHOP, productHref, UNIT_LABEL, type Line, type Product, type Receipt, type Shop, type Unit } from "./domain/types";
+import { cascadeReceiptDelete, refuseDeletingUsedProduct, refuseDeletingUsedShop } from "./data/repo";
 import { measureOf, perUnit, readMeasure, readSecondary } from "./domain/measure";
 
 /** A stored Product's compared-by Measure, whichever shape it was written in. */
@@ -45,6 +46,7 @@ const productType: DocumentTypeDef = {
   linkable: { subtitle: (d) => `Product · €${perUnit(readProductMeasure(d as Product))}` },
   href: (d) => productHref(d.id),
   peekEdit: ProductPeek,
+  onDelete: refuseDeletingUsedProduct,
   order: 87,
   builtIn: true,
 };
@@ -60,6 +62,7 @@ const shopType: DocumentTypeDef = {
   linkable: { subtitle: () => "Shop" },
   href: () => `${PRICES_HREF}?tab=shops`,
   peekEdit: ShopPeek,
+  onDelete: refuseDeletingUsedShop,
   order: 88,
   builtIn: true,
 };
@@ -82,6 +85,7 @@ const receiptType: DocumentTypeDef = {
   indexes: ["shopId", "date"],
   href: () => `${PRICES_HREF}?tab=receipts`,
   peekEdit: ReceiptPeek,
+  onDelete: cascadeReceiptDelete,
   order: 89,
   builtIn: true,
 };
