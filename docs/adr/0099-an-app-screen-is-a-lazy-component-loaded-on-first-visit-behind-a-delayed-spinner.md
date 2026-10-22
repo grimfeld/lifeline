@@ -10,6 +10,8 @@ Every App's manifest imported its screens, and `shell/src/apps.ts` imports every
 
 **The shell holds a screen's place while it loads.** Each App screen route, each hand-written Module page and each Core page renders inside `<Suspense fallback={<ScreenLoading />}>`. `ScreenLoading` (`@lifeline/ui`) is blank for 300 ms, then shows a centred spinner. A cached chunk never flashes it, and a slow network gets an answer. It fills only the content area, so the Rail and the Module's sidebar stay painted. On a phone the area keeps its place under the header (ADR 0064).
 
+**Every lazy chunk is fetched ahead once the first page is idle.** Lazy components are made with `lazyChunk` (`@lifeline/ui`), which is `React.lazy` and also registers the loader. After first paint the shell runs every registered loader, one after another, and then marks `<html data-chunks="loaded">`. Lifeline has no service worker, so without this a chunk never fetched could not load once the network was gone, and a loaded app has to keep working offline. The first load gets lighter, and the total download stays the same.
+
 Code a Card or Command shares with a screen lives outside `screens/` (`components/`, `domain/`). A Card that imports from a screen file pulls the whole screen back into the entry chunk.
 
 The same rule covers heavy view libraries that eager code reaches: recharts (Stats and Prices charts), react-markdown (`MarkdownView`, `PlainMarkdownView`), d3-force (`GraphView`) and ical.js (calendar Sources). Each loads behind a wrapper that keeps its name and props, as `MapView` already did for Leaflet. The Guide's index (`@lifeline/guide`) is apart from its pages' Markdown (`@lifeline/guide/pages`), which only the lazy Guide page and the MCP server import.
