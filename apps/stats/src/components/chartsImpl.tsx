@@ -60,7 +60,7 @@ export function AdditiveChart({ stat, entries, period }: { stat: Stat; entries: 
     <div className="grid gap-2">
       <div className="flex justify-end gap-1">
         {(["daily", "cumulative"] as const).map((m) => (
-          <Button key={m} size="sm" variant={mode === m ? "default" : "ghost"} className="h-7 capitalize" onClick={() => setMode(m)}>
+          <Button key={m} size="sm" variant={mode === m ? "default" : "ghost"} className="capitalize" onClick={() => setMode(m)}>
             {m}
           </Button>
         ))}

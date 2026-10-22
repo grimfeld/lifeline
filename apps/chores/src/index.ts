@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest, DocumentTypeDef } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { CheckCircle2, ClipboardList } from "lucide-react";
 import { ChorePeek } from "./components/ChorePeek";
 import { DueTodayCard } from "./cards/DueTodayCard";
@@ -11,7 +11,7 @@ import { describeSchedule } from "./domain/schedule";
 import { CHORE, COMPLETION, type Chore, type Completion } from "./domain/types";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const ChoresScreen = lazy(() => import("./screens/ChoresScreen").then((m) => ({ default: m.ChoresScreen })));
+const ChoresScreen = lazyChunk(() => import("./screens/ChoresScreen").then((m) => ({ default: m.ChoresScreen })));
 
 /**
  * Built-in Document types owned by the Chores App (ADR 0019). `schedule`,

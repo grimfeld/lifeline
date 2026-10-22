@@ -1,10 +1,10 @@
-import { lazy, Suspense, type ComponentProps } from "react";
-import { COLOR_SLOTS, colorVar } from "@lifeline/ui";
+import { Suspense, type ComponentProps } from "react";
+import { COLOR_SLOTS, colorVar, lazyChunk } from "@lifeline/ui";
 import type { Shop } from "../domain/types";
 
 // recharts stays out of the first load (the Product price Card would carry it):
 // the chart loads on first draw, behind a placeholder of its height.
-const Impl = lazy(() => import("./PriceChartImpl").then((m) => ({ default: m.PriceChart })));
+const Impl = lazyChunk(() => import("./PriceChartImpl").then((m) => ({ default: m.PriceChart })));
 
 /** One stable colour per Shop, by its position in the sorted Shop list. */
 export function shopColor(shopId: string, shops: readonly Shop[]): string {

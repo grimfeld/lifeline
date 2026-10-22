@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { ShoppingCart } from "lucide-react";
 import { ShoppingListCard } from "./cards/ShoppingListCard";
 import { AddNeedDialog } from "./components/AddNeedDialog";
@@ -7,7 +7,7 @@ import { shoppingCommands } from "./commands";
 import { shoppingTypeDefs } from "./types";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const ShoppingScreen = lazy(() => import("./screens/ShoppingScreen").then((m) => ({ default: m.ShoppingScreen })));
+const ShoppingScreen = lazyChunk(() => import("./screens/ShoppingScreen").then((m) => ({ default: m.ShoppingScreen })));
 
 /** Shopping list App (ADR 0055): anything to buy at the next chance, written in seconds. */
 export const shoppingApp: AppManifest = {

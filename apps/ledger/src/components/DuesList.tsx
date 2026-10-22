@@ -1,4 +1,4 @@
-import { Button } from "@lifeline/ui";
+import { Button, cn } from "@lifeline/ui";
 import type { Due } from "../domain/types";
 import { formatCents } from "../domain/money";
 import { describeDueDay, isOverdue } from "../domain/recur";
@@ -13,7 +13,7 @@ export function DuesList({ dues, today, compact }: { dues: Due[]; today: string;
         <li key={`${due.series.key}/${due.date}`} className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
           <span className="min-w-0 flex-1 truncate">
             {due.series.payee}
-            <span className={`ml-2 text-xs ${isOverdue(due, today) ? "text-destructive" : "text-muted-foreground"}`}>{describeDueDay(due.date, today)}</span>
+            <span className={cn("ml-2 text-xs", isOverdue(due, today) ? "text-destructive" : "text-muted-foreground")}>{describeDueDay(due.date, today)}</span>
           </span>
           <span className="text-muted-foreground shrink-0 tabular-nums">{formatCents(due.series.amount)}</span>
           <Button size="sm" variant="ghost" title="Wave this one day off — the bank's import is what clears a Due" onClick={() => void dismissDue(due)}>

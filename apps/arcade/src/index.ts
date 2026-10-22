@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { Gamepad2 } from "lucide-react";
 import { WantedListCard } from "./cards/WantedListCard";
 import { InProgressCard } from "./cards/InProgressCard";
@@ -16,7 +16,7 @@ import { arcadeDaylog } from "./daylog";
 import { settingsTypeDef, workTypeDefs } from "./types";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const ArcadeScreen = lazy(() => import("./screens/ArcadeScreen").then((m) => ({ default: m.ArcadeScreen })));
+const ArcadeScreen = lazyChunk(() => import("./screens/ArcadeScreen").then((m) => ({ default: m.ArcadeScreen })));
 
 /** Arcade App (ADR 0024): games — bought, played, finished. No slots, no medium knob. */
 export const arcadeApp: AppManifest = {

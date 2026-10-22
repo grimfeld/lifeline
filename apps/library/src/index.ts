@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { Library as LibraryIcon } from "lucide-react";
 import { AuthorPanel } from "./components/AuthorPanel";
 import { NightstandCard } from "./cards/NightstandCard";
@@ -22,8 +22,8 @@ import { authorTypeDef, authorRole, settingsTypeDef, workTypeDefs } from "./type
 import { libraryParts } from "./parts";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const LibraryScreen = lazy(() => import("./screens/LibraryScreen").then((m) => ({ default: m.LibraryScreen })));
-const AuthorScreen = lazy(() => import("./screens/AuthorScreen").then((m) => ({ default: m.AuthorScreen })));
+const LibraryScreen = lazyChunk(() => import("./screens/LibraryScreen").then((m) => ({ default: m.LibraryScreen })));
+const AuthorScreen = lazyChunk(() => import("./screens/AuthorScreen").then((m) => ({ default: m.AuthorScreen })));
 
 /** Library App (ADR 0024, 0074): the reading family — books, comics and manga, Nightstand, Parts and all. */
 export const libraryApp: AppManifest = {

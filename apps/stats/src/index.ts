@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest, Document, DocumentTypeDef } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { BarChart3, ListPlus } from "lucide-react";
 import { StatPeek } from "./components/StatPeek";
 import { StatsOverviewCard } from "./cards/StatsOverviewCard";
@@ -15,8 +15,8 @@ import { statHref } from "./domain/daylog";
 import { formatValue } from "./domain/aggregate";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const StatsScreen = lazy(() => import("./screens/StatsScreen").then((m) => ({ default: m.StatsScreen })));
-const StatDetailScreen = lazy(() => import("./screens/StatDetailScreen").then((m) => ({ default: m.StatDetailScreen })));
+const StatsScreen = lazyChunk(() => import("./screens/StatsScreen").then((m) => ({ default: m.StatsScreen })));
+const StatDetailScreen = lazyChunk(() => import("./screens/StatDetailScreen").then((m) => ({ default: m.StatDetailScreen })));
 
 /** The `stat` Document type (ADR 0019): a named series; `kind` is fixed after creation. */
 const statType: DocumentTypeDef = {

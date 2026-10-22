@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { Feather } from "lucide-react";
 import { DraftsCard } from "./cards/DraftsCard";
 import { VersionsPanel } from "./VersionsPanel";
@@ -7,8 +7,8 @@ import { EssayPeek } from "./EssayPeek";
 import { APP_ID, RESEARCH_HREF, essayType, versionType } from "./types";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const ResearchScreen = lazy(() => import("./screens/ResearchScreen").then((m) => ({ default: m.ResearchScreen })));
-const EssayScreen = lazy(() => import("./screens/EssayScreen").then((m) => ({ default: m.EssayScreen })));
+const ResearchScreen = lazyChunk(() => import("./screens/ResearchScreen").then((m) => ({ default: m.ResearchScreen })));
+const EssayScreen = lazyChunk(() => import("./screens/EssayScreen").then((m) => ({ default: m.EssayScreen })));
 
 /**
  * The Research App (ADR 0068), born the Writer's pad — its id stays `writer`:

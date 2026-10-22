@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { Landmark } from "lucide-react";
 import { OnDisplayCard, useHangingExhibitionOptions, useOnDisplayTitle } from "./cards/OnDisplayCard";
 import { museumCommands } from "./commands";
@@ -8,8 +8,8 @@ import { EXHIBITION, type Exhibition } from "./domain/types";
 import { hangExhibition, reopenExhibition, takeDownExhibition } from "./data/repo";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const MuseumScreen = lazy(() => import("./screens/MuseumScreen").then((m) => ({ default: m.MuseumScreen })));
-const ExhibitionScreen = lazy(() => import("./screens/ExhibitionScreen").then((m) => ({ default: m.ExhibitionScreen })));
+const MuseumScreen = lazyChunk(() => import("./screens/MuseumScreen").then((m) => ({ default: m.MuseumScreen })));
+const ExhibitionScreen = lazyChunk(() => import("./screens/ExhibitionScreen").then((m) => ({ default: m.ExhibitionScreen })));
 
 /** Museum App (ADR 0022): classical art, curated as exhibitions of rooms. */
 export const museumApp: AppManifest = {

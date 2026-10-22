@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { preloadLater } from "@lifeline/ui";
 import type { DateStr, TimedItem, TimedProvider } from "@lifeline/core";
 import { allCalendarSubs, useCalendarSubs } from "./data/repo";
 import { cachedEntries, useSourceCaches } from "./data/cache";
@@ -6,6 +7,9 @@ import { useIcal } from "./data/useIcal";
 import { expandIcal, loadIcal, type Ical } from "./domain/ical";
 import { colorVar, type CalendarSub, type SourceCacheEntry } from "./domain/types";
 import { APP_ID } from "./hrefs";
+
+// Fetched ahead once the app is idle, with the lazy screens (ADR 0099).
+preloadLater(loadIcal);
 
 /** Every cached subscription's occurrences in range, as Timed items. */
 function timedItemsOf(ical: Ical, subs: CalendarSub[], caches: Map<string, SourceCacheEntry>, range: { start: DateStr; end: DateStr }): TimedItem[] {

@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest, DocumentTypeDef } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { Package, Receipt as ReceiptIcon, Store, Tag } from "lucide-react";
 import { ProductPriceCard, useProductCardTitle, useProductOptions } from "./cards/ProductPriceCard";
 import { pricesCommands } from "./commands";
@@ -18,8 +18,8 @@ function readProductMeasure(d: Product) {
 import { ProductPeek, ReceiptPeek, ShopPeek } from "./components/PricesPeeks";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const PricesScreen = lazy(() => import("./screens/PricesScreen").then((m) => ({ default: m.PricesScreen })));
-const ProductScreen = lazy(() => import("./screens/ProductScreen").then((m) => ({ default: m.ProductScreen })));
+const PricesScreen = lazyChunk(() => import("./screens/PricesScreen").then((m) => ({ default: m.PricesScreen })));
+const ProductScreen = lazyChunk(() => import("./screens/ProductScreen").then((m) => ({ default: m.ProductScreen })));
 
 /**
  * The `price_product` type (ADR 0082, 0084): a thing bought again — a name

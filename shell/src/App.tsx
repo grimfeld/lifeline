@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { Suspense, useEffect, type ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation, useParams, useSearchParams } from "react-router";
-import { ScreenLoading, Toaster, useDocumentTitle } from "@lifeline/ui";
+import { lazyChunk, preloadLazyChunks, ScreenLoading, Toaster, useDocumentTitle } from "@lifeline/ui";
 import { HANDOFF_DONE_PATH, HANDOFF_PATH } from "@lifeline/handoff";
 import {
   MODULES,
@@ -46,10 +46,10 @@ import { DemoBanner, DemoFilling } from "./demo/DemoBanner";
 import { RouteBoundary } from "./components/ErrorBoundary";
 
 // The heavier Surfaces load when first visited, not with the shell (CR-23).
-const MapPage = lazy(() => import("./surfaces/MapPage").then((m) => ({ default: m.MapPage })));
-const GraphPage = lazy(() => import("./surfaces/GraphPage").then((m) => ({ default: m.GraphPage })));
+const MapPage = lazyChunk(() => import("./surfaces/MapPage").then((m) => ({ default: m.MapPage })));
+const GraphPage = lazyChunk(() => import("./surfaces/GraphPage").then((m) => ({ default: m.GraphPage })));
 // The Guide's pages are ~180 KB of Markdown: they come with the Guide, not the shell.
-const GuidePage = lazy(() => import("./guide/GuidePage").then((m) => ({ default: m.GuidePage })));
+const GuidePage = lazyChunk(() => import("./guide/GuidePage").then((m) => ({ default: m.GuidePage })));
 
 /** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
 function ResumeRedirect() {
@@ -189,6 +189,23 @@ function Places() {
   );
 }
 
+/**
+ * Once the first page has painted and the browser is idle, fetch every lazy
+ * chunk (ADR 0099), so a loaded app keeps working offline. `data-chunks` on
+ * <html> says when they are all in (the Demo's offline e2e case waits on it).
+ */
+function usePreloadChunks() {
+  useEffect(() => {
+    const start = () => void preloadLazyChunks().then(() => (document.documentElement.dataset.chunks = "loaded"));
+    if ("requestIdleCallback" in window) {
+      const id = requestIdleCallback(start, { timeout: 5000 });
+      return () => cancelIdleCallback(id);
+    }
+    const t = setTimeout(start, 2000);
+    return () => clearTimeout(t);
+  }, []);
+}
+
 /** One component per App with a background hook, so each hook runs under React's rules (ADR 0032). */
 function AppBackground({ app }: { app: AppManifest }) {
   app.useBackground!();
@@ -199,6 +216,7 @@ export default function App() {
   useResume();
   // The tab names the place; a page's PageHeader names it more closely (WCAG 2.4.2).
   useDocumentTitle(placeTitle(useLocation().pathname), { fallback: true });
+  usePreloadChunks();
   // A genuinely empty account makes its one Workspace here; an existing one was
   // given it by the server (PocketBase migration 1757400000), and this waits
   // for the first full pull rather than racing it into a second "Personal"

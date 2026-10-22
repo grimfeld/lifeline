@@ -848,6 +848,8 @@ for (const w of WIDTHS) {
 
     test("a loaded Demo keeps working offline", async ({ page, context }) => {
       await open(page, "/settings");
+      // Loaded means every lazy chunk too (ADR 0099): they are fetched once the first page is idle.
+      await page.locator("html[data-chunks=loaded]").waitFor({ state: "attached" });
       await context.setOffline(true);
       // Moving around inside the app needs nothing from the network.
       await page.evaluate(() => {

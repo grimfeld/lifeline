@@ -1,13 +1,13 @@
-import { lazy } from "react";
 import type { AppManifest, CommandDef } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { BookOpenText, FileText, Scissors } from "lucide-react";
 import { chapterType, manuscriptType, outtakeType } from "./types";
 import { SHELF_HREF } from "./domain/types";
 import { ChapterPeek, ManuscriptPeek } from "./components/ManuscriptPeeks";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const ShelfScreen = lazy(() => import("./screens/ShelfScreen").then((m) => ({ default: m.ShelfScreen })));
-const ManuscriptScreen = lazy(() => import("./screens/ManuscriptScreen").then((m) => ({ default: m.ManuscriptScreen })));
+const ShelfScreen = lazyChunk(() => import("./screens/ShelfScreen").then((m) => ({ default: m.ShelfScreen })));
+const ManuscriptScreen = lazyChunk(() => import("./screens/ManuscriptScreen").then((m) => ({ default: m.ManuscriptScreen })));
 
 const commands: CommandDef[] = [
   { id: "manuscript.go", title: "Go to Manuscripts", keywords: ["manuscript", "novel", "poems", "book", "chapter", "writing", "fiction"], icon: BookOpenText, run: ({ navigate }) => navigate(SHELF_HREF) },

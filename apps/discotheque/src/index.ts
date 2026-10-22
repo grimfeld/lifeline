@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { discothequeParts } from "./parts";
 import { Disc3 } from "lucide-react";
 import { InProgressCard } from "./cards/InProgressCard";
@@ -16,7 +16,7 @@ import { discothequeDaylog } from "./daylog";
 import { playlistTypeDef, workTypeDefs } from "./types";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const DiscothequeScreen = lazy(() => import("./screens/DiscothequeScreen").then((m) => ({ default: m.DiscothequeScreen })));
+const DiscothequeScreen = lazyChunk(() => import("./screens/DiscothequeScreen").then((m) => ({ default: m.DiscothequeScreen })));
 
 /** Discotheque App (ADR 0024): albums — streamed, keyless lookup, no settings. */
 export const discothequeApp: AppManifest = {

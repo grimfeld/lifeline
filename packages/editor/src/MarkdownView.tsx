@@ -1,12 +1,12 @@
-import { lazy, Suspense, type ComponentProps } from "react";
-import { cn } from "@lifeline/ui";
+import { Suspense, type ComponentProps } from "react";
+import { cn, lazyChunk } from "@lifeline/ui";
 
 /*
  * Reading mode loads react-markdown and its micromark parser on first use, as
  * the editor loads CodeMirror (MarkdownEditor.tsx): most first loads draw no
  * body. Until the parser arrives the view holds its place, empty.
  */
-const Impl = lazy(() => import("./MarkdownViewImpl").then((m) => ({ default: m.MarkdownView })));
+const Impl = lazyChunk(() => import("./MarkdownViewImpl").then((m) => ({ default: m.MarkdownView })));
 
 export type MarkdownViewProps = ComponentProps<typeof import("./MarkdownViewImpl").MarkdownView>;
 

@@ -1,6 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest, DocumentTypeDef } from "@lifeline/core";
-import { COLOR_SLOTS } from "@lifeline/ui";
+import { COLOR_SLOTS, lazyChunk } from "@lifeline/ui";
 import { HandCoins, Wallet } from "lucide-react";
 import { AllowancesCard } from "./cards/PocketCards";
 import { pocketCommands } from "./commands";
@@ -11,7 +10,7 @@ import { allowanceTitle, periodLabel } from "./domain/period";
 import { ALLOWANCE, APP_ID, PERIOD_KINDS, PERIOD_LABEL, POCKET_HREF, SPEND, type Allowance, type Spend } from "./domain/types";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const PocketScreen = lazy(() => import("./screens/PocketScreen").then((m) => ({ default: m.PocketScreen })));
+const PocketScreen = lazyChunk(() => import("./screens/PocketScreen").then((m) => ({ default: m.PocketScreen })));
 
 /**
  * The `pocket_allowance` Document type (ADR 0081): a named sum for one

@@ -1,12 +1,12 @@
-import { lazy, Suspense, type ComponentProps } from "react";
-import { cn } from "@lifeline/ui";
+import { Suspense, type ComponentProps } from "react";
+import { cn, lazyChunk } from "@lifeline/ui";
 
 /*
  * CodeMirror and its markdown grammar load with the first editor shown: they
  * are a large share of the bundle, and reading mode, the Bases and most
  * screens never need them. Same name and props as before.
  */
-const Impl = lazy(() => import("./MarkdownEditorImpl").then((m) => ({ default: m.MarkdownEditor })));
+const Impl = lazyChunk(() => import("./MarkdownEditorImpl").then((m) => ({ default: m.MarkdownEditor })));
 
 export type MarkdownEditorProps = ComponentProps<typeof import("./MarkdownEditorImpl").MarkdownEditor>;
 

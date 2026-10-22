@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest, Document, DocumentTypeDef } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { Brain, History, Layers, MessageCircleQuestion, Shapes, TextCursorInput, WholeWord } from "lucide-react";
 import { DueCard } from "./cards/DueCard";
 import { ItemPeek } from "./components/ItemPeek";
@@ -14,7 +14,7 @@ import { refuseDeletingUsedTopic, removeItemRecalls } from "./data/repo";
 import { APP_ID, DECK, FACT, TOPIC, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Fact, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const KnowledgeScreen = lazy(() => import("./screens/KnowledgeScreen").then((m) => ({ default: m.KnowledgeScreen })));
+const KnowledgeScreen = lazyChunk(() => import("./screens/KnowledgeScreen").then((m) => ({ default: m.KnowledgeScreen })));
 
 const WORDS_HREF = `${KNOWLEDGE_HREF}?tab=words`;
 

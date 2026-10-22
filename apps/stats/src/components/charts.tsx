@@ -1,15 +1,15 @@
-import { lazy, Suspense, type ComponentProps } from "react";
-import { cn } from "@lifeline/ui";
+import { Suspense, type ComponentProps } from "react";
+import { cn, lazyChunk } from "@lifeline/ui";
 import type { Period } from "../domain/types";
 import { dayKey, dotGridWeeks, periodStart, shiftDay } from "../domain/aggregate";
 
 // recharts stays out of the first load (it rides with the Cards otherwise): the
 // line and bar charts load on first draw, behind a placeholder of their size.
 const Impl = {
-  AdditiveChart: lazy(() => import("./chartsImpl").then((m) => ({ default: m.AdditiveChart }))),
-  MeasurementChart: lazy(() => import("./chartsImpl").then((m) => ({ default: m.MeasurementChart }))),
-  CollectionChart: lazy(() => import("./chartsImpl").then((m) => ({ default: m.CollectionChart }))),
-  Sparkline: lazy(() => import("./chartsImpl").then((m) => ({ default: m.Sparkline }))),
+  AdditiveChart: lazyChunk(() => import("./chartsImpl").then((m) => ({ default: m.AdditiveChart }))),
+  MeasurementChart: lazyChunk(() => import("./chartsImpl").then((m) => ({ default: m.MeasurementChart }))),
+  CollectionChart: lazyChunk(() => import("./chartsImpl").then((m) => ({ default: m.CollectionChart }))),
+  Sparkline: lazyChunk(() => import("./chartsImpl").then((m) => ({ default: m.Sparkline }))),
 };
 
 export function Empty({ children }: { children: string }) {

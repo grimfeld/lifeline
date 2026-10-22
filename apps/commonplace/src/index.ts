@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { NotebookPen, Quote as QuoteIcon } from "lucide-react";
 import { QuoteIntakeDialog } from "./components/QuoteIntakeDialog";
 import { SourcePanel } from "./components/SourcePanel";
@@ -17,10 +17,10 @@ import { quoteReading } from "./domain/recallable";
 import { QuoteFace } from "./components/QuoteFace";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const CommonplaceScreen = lazy(() => import("./screens/CommonplaceScreen").then((m) => ({ default: m.CommonplaceScreen })));
-const ShelfScreen = lazy(() => import("./screens/ShelfScreen").then((m) => ({ default: m.ShelfScreen })));
-const SourceScreen = lazy(() => import("./screens/SourceScreen").then((m) => ({ default: m.SourceScreen })));
-const NoteScreen = lazy(() => import("./screens/NoteScreen").then((m) => ({ default: m.NoteScreen })));
+const CommonplaceScreen = lazyChunk(() => import("./screens/CommonplaceScreen").then((m) => ({ default: m.CommonplaceScreen })));
+const ShelfScreen = lazyChunk(() => import("./screens/ShelfScreen").then((m) => ({ default: m.ShelfScreen })));
+const SourceScreen = lazyChunk(() => import("./screens/SourceScreen").then((m) => ({ default: m.SourceScreen })));
+const NoteScreen = lazyChunk(() => import("./screens/NoteScreen").then((m) => ({ default: m.NoteScreen })));
 
 /**
  * The Notes App (ADR 0070), born as the Commonplace book (ADR 0024): a shelf

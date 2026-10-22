@@ -1,5 +1,5 @@
-import { lazy } from "react";
 import type { AppManifest, DocumentTypeDef } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { Globe } from "lucide-react";
 import { EmbedCard, embedCardSettings, useEmbedCardTitle } from "./cards/EmbedCard";
 import { FeedCard, feedCardSettings, useFeedCardTitle } from "./cards/FeedCard";
@@ -11,8 +11,8 @@ import { COLOR_SLOTS, SOURCE_CACHE, SOURCE_TYPE, SOURCES } from "./domain/types"
 import { hostOf } from "./domain/url";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
-const SourcesScreen = lazy(() => import("./screens/SourcesScreen").then((m) => ({ default: m.SourcesScreen })));
-const SourcePage = lazy(() => import("./screens/SourcePage").then((m) => ({ default: m.SourcePage })));
+const SourcesScreen = lazyChunk(() => import("./screens/SourcesScreen").then((m) => ({ default: m.SourcesScreen })));
+const SourcePage = lazyChunk(() => import("./screens/SourcePage").then((m) => ({ default: m.SourcePage })));
 
 /** The `window` Document type (ADR 0019, ADR 0070): one type for every kind; `kind` discriminates. */
 const sourceType: DocumentTypeDef = {

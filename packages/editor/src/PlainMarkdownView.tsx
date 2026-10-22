@@ -1,8 +1,8 @@
-import { lazy, Suspense, type ComponentProps } from "react";
-import { cn } from "@lifeline/ui";
+import { Suspense, type ComponentProps } from "react";
+import { cn, lazyChunk } from "@lifeline/ui";
 
 // Loads react-markdown on first use, as MarkdownView does.
-const Impl = lazy(() => import("./PlainMarkdownViewImpl").then((m) => ({ default: m.PlainMarkdownView })));
+const Impl = lazyChunk(() => import("./PlainMarkdownViewImpl").then((m) => ({ default: m.PlainMarkdownView })));
 
 /**
  * Markdown that is no Document's body — the Guide's pages: the reading view's
