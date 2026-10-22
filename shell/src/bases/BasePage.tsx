@@ -23,6 +23,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Tip,
   cn,
   usePhone,
   toast,
@@ -117,6 +118,8 @@ export function BasePage() {
   const [newOpen, setNewOpen] = useState(false);
   const [saveAsOpen, setSaveAsOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameName, setRenameName] = useState("");
   const [tagOpen, setTagOpen] = useState(false);
   const [bulkTags, setBulkTags] = useState<string[]>([]);
   const [moveOpen, setMoveOpen] = useState(false);
@@ -160,8 +163,14 @@ export function BasePage() {
   }
   function renameView() {
     if (!view) return;
-    const name = window.prompt("Rename view", view.name);
-    if (name?.trim()) void saveView({ ...view, name: name.trim() });
+    setRenameName(view.name);
+    setRenameOpen(true);
+  }
+  async function commitRename() {
+    const name = renameName.trim();
+    if (!view || !name) return;
+    await saveView({ ...view, name });
+    setRenameOpen(false);
   }
   function openInApp() {
     if (def?.href) navigate(def.href({ id: "", type, title: "", tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0 }));
@@ -320,14 +329,16 @@ export function BasePage() {
           )}
           {view && !dirty && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost" className="ml-auto size-7">
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
+              <Tip label="View actions">
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon-sm" variant="ghost" className="ml-auto">
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenuTrigger>
+              </Tip>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={renameView}>
-                  Rename
+                  Rename view
                 </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onClick={() => void removeView()}>
                   <Trash2 /> Delete view
@@ -453,6 +464,19 @@ export function BasePage() {
           <DialogFooter>
             <Button onClick={() => void saveAs()} disabled={!saveName.trim()}>
               Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Rename view</DialogTitle>
+          </DialogHeader>
+          <Input autoFocus aria-label="View name" value={renameName} onChange={(e) => setRenameName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void commitRename()} />
+          <DialogFooter>
+            <Button onClick={() => void commitRename()} disabled={!renameName.trim()}>
+              Rename
             </Button>
           </DialogFooter>
         </DialogContent>

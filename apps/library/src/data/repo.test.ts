@@ -6,7 +6,7 @@ import { documentsOf, documentsTable, getDocument, initApps, patchDocument, putD
 import { workTypeDefs, authorRole, authorTypeDef } from "../types";
 import { libraryParts } from "../parts";
 import type { Work } from "../domain/types";
-import { addWork, allAuthors, allWorks, ensureAuthor, normalize, patchWork, quickAddWork } from "./repo";
+import { addWork, allAuthors, allWorks, deleteAuthor, ensureAuthor, normalize, patchWork, quickAddWork, restoreAuthor } from "./repo";
 
 initApps([{ id: "library", title: "Library", types: [...workTypeDefs, authorTypeDef, ...libraryParts.typeDefs], roles: [authorRole], screens: [], cards: [], commands: [] }]);
 
@@ -85,5 +85,32 @@ describe("ensureAuthor", () => {
   it("links a typed name to the Author it names, keyed or not", async () => {
     const keyed = await ensureAuthor({ name: "Frank Herbert", externalKey: ol("9") });
     expect(await ensureAuthor({ name: "Frank Herbert" })).toBe(keyed);
+  });
+});
+
+describe("deleteAuthor and restoreAuthor", () => {
+  it("brings the Author back under its id with its Works re-linked, and leaves other Works alone", async () => {
+    const herbert = await putDocument({ type: "author", title: "Frank Herbert", aliases: ["F. Herbert"], externalKey: "openlibrary:/authors/OL1A", photoUrl: "", born: "1920", died: "1986" });
+    const other = await putDocument({ type: "author", title: "Jane Austen", aliases: [], externalKey: "", photoUrl: "", born: "", died: "" });
+    const dune = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "" });
+    const messiah = await addWork({ medium: "book", title: "Dune Messiah", acquisition: "WANTED", reason: "" });
+    const emma = await addWork({ medium: "book", title: "Emma", acquisition: "WANTED", reason: "" });
+    await patchDocument(dune, { authors: [herbert.id] });
+    await patchDocument(messiah, { authors: [herbert.id, other.id] });
+    await patchDocument(emma, { authors: [other.id] });
+
+    const snapshot = (await getDocument(herbert.id))!;
+    const unlinked = await deleteAuthor(herbert.id);
+    expect([...unlinked].sort()).toEqual([dune, messiah].sort());
+    expect((await allAuthors()).map((a) => a.id)).toEqual([other.id]);
+    expect((await work(dune)).authors).toEqual([]);
+    expect((await work(messiah)).authors).toEqual([other.id]);
+
+    await restoreAuthor(snapshot as never, unlinked);
+    const back = (await getDocument(herbert.id)) as unknown as Record<string, unknown>;
+    expect(back).toMatchObject({ id: herbert.id, title: "Frank Herbert", aliases: ["F. Herbert"], externalKey: "openlibrary:/authors/OL1A", born: "1920", died: "1986", deleted: 0 });
+    expect((await work(dune)).authors).toEqual([herbert.id]);
+    expect((await work(messiah)).authors.sort()).toEqual([herbert.id, other.id].sort());
+    expect((await work(emma)).authors).toEqual([other.id]);
   });
 });

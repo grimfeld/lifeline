@@ -6,7 +6,7 @@ import { ArrowLeft, ExternalLink, FileText, GitMerge, MoreHorizontal, Pencil, Re
 import { foldBibliography, ownedByKey, type BibliographyRow } from "../domain/authors";
 import type { Author, Work } from "../domain/types";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
-import { deleteAuthor, patchAuthor, useAuthor, useWorks } from "../data/repo";
+import { deleteAuthor, patchAuthor, restoreAuthor, useAuthor, useWorks } from "../data/repo";
 import { addFromBibliography, fetchBibliography, refreshAuthor } from "../data/authorActions";
 import { olAuthorId } from "../data/openlibrary";
 import { APP_HREF } from "../constants";
@@ -250,9 +250,12 @@ export function AuthorScreen() {
 
   async function remove() {
     if (!author) return;
-    if (!window.confirm(`Delete “${author.title}”? Their ${mine.length} work${mine.length === 1 ? "" : "s"} stay, unlinked.`)) return;
-    await deleteAuthor(author.id);
-    toast.success("Author deleted");
+    const gone = author;
+    const unlinked = await deleteAuthor(gone.id);
+    toast.success(`Deleted “${gone.title}”`, {
+      description: unlinked.length ? `Their ${unlinked.length} work${unlinked.length === 1 ? "" : "s"} stay, unlinked.` : undefined,
+      action: { label: "Undo", onClick: () => void restoreAuthor(gone, unlinked) },
+    });
     navigate(APP_HREF);
   }
 
