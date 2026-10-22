@@ -1,3 +1,8 @@
+---
+status: accepted
+superseded-by: ADR 0046 (in part — the migration rule "others → root")
+---
+
 # Real note folders: a `folder` path on the Note, titles unique per folder, shortest-path link resolution
 
 Notes get an Obsidian-style folder tree. We chose a real `folder` field on each Note (a `/`-separated path, `""` = root) over a type-derived virtual tree (People / Places / Journal by month) and over folder records. Folders exist because notes are in them; a small local list keeps user-created empty folders alive until their first note. Titles are unique per folder, as on disk. Wikilinks stay name-based (ADR 0009) with Obsidian's rule for ambiguity: an exact `[[Folder/Name]]` path wins, else a unique title anywhere, else the shortest path, then aliases, then App entities. Moving or renaming a note or folder never touches name-form links; path-form links are rewritten. Daily notes live in `Journal/YYYY/MM`, templates in `Templates/`; the vault importer maps directories 1:1.

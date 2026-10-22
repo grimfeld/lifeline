@@ -22,3 +22,7 @@ The value in and out is still the `YYYY-MM-DD` string the native input gave (`""
 - **Only a time on its own stays native.** `<input type="time">` (an Event's start and end, a Time blocker, a `DateTimeField`'s time) is left alone: the browser's time inputs are consistent enough, and a typed time is quicker than a picked one. `pnpm check:ui` flags any native `type="date"` or `datetime-local` input.
 - Radix `PopoverContent` is `role="dialog"`, so while a picker is open over a Peek or a Dialog, `getByRole("dialog")` in e2e is ambiguous. Tests pick dates with the shared helper `shell/e2e/support/date-picker.ts` (`pickDate`), which scopes to the calendar.
 - The kit depends on `react-day-picker` (and through it `date-fns`); apps don't.
+
+## Amendment (2026-10-22): a time on its own is picked from the kit too
+
+"Only a time on its own stays native" no longer holds. A time is `TimeField` (typed, or picked from quarter hours), never the browser's `type="time"` input; in a Peek, `CommitField type="time"` renders it. `DateTimeField` is a `DatePicker` beside a `TimeField`, not a native time input. `pnpm check:ui` flags `type="time"` (`native-time`) as well as `type="date"` and `datetime-local`.

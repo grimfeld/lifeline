@@ -1,3 +1,8 @@
+---
+status: accepted
+amended-by: ADR 0073 (in part — the Handoff gains an origin Document), ADR 0080 (in part — a Handoff may come from outside Lifeline), ADR 0086 (Intake)
+---
+
 # Intake: one App hands material to another, which makes its own Document through its own form
 
 Mail needs to turn a message into a Clipping, a Task or an Event. No App imports another (ADR 0001, 0031), Commands take no arguments, and the receiving App must stay the one that writes its Documents. So Core gains a fourth behavioural Contract after Schedulable, Timed and Loggable: **Intake**. An App declares the Intakes it offers — a label ("Clipping", "Task", "Event") and a dialog — and any App may hand a **Handoff** (title, markdown text, origin URL, author, date) to one of them; Core opens the receiver's dialog prefilled with the Handoff, and nothing is written until that dialog saves. The sender lists the Intakes Core knows and never names a receiver.

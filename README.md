@@ -19,9 +19,9 @@ shell/           @lifeline/shell: Vite + React SPA. Dashboard, Vault, Screens, B
                  command palette, phone layout. Tauri 2 desktop config in shell/src-tauri.
 apps/<name>      26 Apps, one package each, each exporting an AppManifest: its Document types, screens,
                  Cards, Commands and Contract implementations (Tasks, Calendar, Chores, Journal, Notes,
-                 Research, Manuscript, Projects, Stats, Habits, Mood, Workout, Ledger, Pocket, Prices,
-                 Pantry, Shopping, Library, Cinema, Discotheque, Arcade, Museum, Languages, Thoughts,
-                 Swear jar, Sources)
+                 Research, Manuscript, Projects, Stats, Life Level, Mood, Workout, Ledger, Pocket, Prices,
+                 Pantry, Shopping list, Library, Cinema, Discotheque, Arcade, Museum, Knowledge, Thoughts,
+                 Swear jar, Windows)
 packages/core    @lifeline/core: the Document store (one `documents` table), type registry (built-in and
                  user-defined types), link index, Views/Bases queries, Contracts, the App registry, and the
                  Dexie offline store with its PocketBase sync engine
@@ -30,6 +30,9 @@ packages/parts   @lifeline/parts: Parts and Groups (chapters, episodes, tracks) 
 packages/ui      @lifeline/ui: the shared component kit and design tokens (shadcn + Tailwind)
 pocketbase/      the sync backend: PocketBase migrations (pb_migrations) and server hooks (pb_hooks)
 mcp/             the remote MCP server: Core and the Apps running headless, one worker per Account
+packages/guide   @lifeline/guide: the in-app manual (Markdown pages, also served by the MCP `guide` tool)
+packages/extension @lifeline/extension: the Lifeline extension (Send to Lifeline from a web page)
+packages/handoff @lifeline/handoff: the Handoff codec (ADR 0080), shared by the shell and the extension
 ```
 
 Some ideas the code is built around:
@@ -57,8 +60,9 @@ pnpm dev            # shell on http://localhost:1420, offline only (no backend)
 pnpm dev:all        # installs, downloads the pinned PocketBase, runs backend (:8090) and shell together
 pnpm typecheck      # all packages
 pnpm test           # unit and domain tests
-pnpm check          # what CI runs: UI rules, ADR numbering, typecheck, tests
-pnpm test:e2e       # Playwright screen checks at phone and desktop widths (slow, not in CI)
+pnpm check          # what CI runs: scripts' tests, UI rules, ADR and migration numbering, typecheck, tests
+                    # (CI also re-runs the tests under fr_FR and America/Los_Angeles)
+pnpm test:e2e       # Playwright screen checks at phone and desktop widths (slow; CI runs the changed specs on every PR, the full suite on integration PRs and nightly)
 pnpm tauri dev      # desktop shell (needs Rust)
 ```
 
@@ -71,20 +75,23 @@ regular `users` record and sign in from the shell's sidebar. The shell reads `VI
 ```sh
 pnpm --filter @lifeline/mcp build
 node --env-file=mcp/.env mcp/dist/server.mjs     # BASE_URL, PB_URL, PB_SUPERUSER_EMAIL, PB_SUPERUSER_PASSWORD, TZ
-node mcp/scripts/e2e.mjs http://localhost:8787 <email> <password>   # OAuth + every tool, against a scratch PocketBase
+node mcp/scripts/e2e.mjs http://localhost:8787 <email> <password> [<pocketbase-url>]   # OAuth + every tool, against a scratch PocketBase (default http://127.0.0.1:8099)
 ```
 
 An MCP client (Claude, or any other) connects to `<BASE_URL>/mcp`. The person signs in on the server's own OAuth
-page, and the agent gets `agenda`, `search_documents`, `get_document`, `complete_item`, `move_item`,
-`create_document`, `update_document`, plus one tool per headless Command. It never sees the Private folder and
-cannot delete.
+page, and the agent gets `guide`, `list_workspaces`, `list_types`, `agenda`, `search_documents`, `get_document`,
+`complete_item`, `move_item`, `reschedule_timed`, `create_document`, `update_document`, `list_macros`,
+`create_macro`, `update_macro`, plus one tool per headless Command and one `macro_…` tool per Macro (ADR 0095).
+It never sees the Private folder and cannot delete.
 
 ### Adding an App (ADR 0003)
 
 1. Add a package under `apps/<name>` that exports an `AppManifest`.
 2. Register it in `shell/src/apps.ts` (`APPS`) and `mcp/src/apps.ts`, add the package to
    `shell/package.json` and `mcp/package.json`, and add its `src` to the `@source` list in `shell/src/index.css`.
-3. Bump `DB_VERSION` in `packages/core/src/data/db.ts` so Dexie migrates existing local databases.
+3. Join exactly one Guide page's `apps` list in `packages/guide/src/index.ts`; the shell test fails without it.
+4. Bump `DB_VERSION` in `packages/core/src/data/db.ts` only if the store set or indexes change (a type that
+   declares indexed fields or local tables), so Dexie migrates existing local databases.
 
 Offline storage, sync, palette entries, the card picker and calendar presence all come from Core.
 

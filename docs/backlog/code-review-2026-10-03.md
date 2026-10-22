@@ -106,4 +106,3 @@ Status: `[ ]` open · `[x]` done
 
 - `SavedSearchCard` re-runs `plainText` over every body each time the link index changes.
 - Sources' `EmbedFrame` iframe has no `sandbox` attribute.
-- Mail's periodic refresh resets the paging tokens.

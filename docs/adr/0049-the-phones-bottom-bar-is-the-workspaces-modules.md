@@ -1,3 +1,10 @@
+---
+status: accepted
+supersedes: ADR 0021 (in part — "one bottom bar per Workspace")
+superseded-by: ADR 0053 (in part — the slot list and per-Module memory), ADR 0057 (in part — a Screen claims a Module)
+amended-by: ADR 0066 (in part — a Module lands on its Overview)
+---
+
 # The phone's bottom bar is the Workspace's Modules
 
 ADR 0021 gave the phone one bottom bar, and its 2026-09-05 amendment gave it

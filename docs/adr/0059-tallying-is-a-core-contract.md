@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: ADR 0031 (in part — the per-App Tally)
+amended-by: ADR 0073 (in part — a Topic's Tally is reported by Knowledge)
+---
+
 # Tallying is a Core Contract, the sending side of Loggable
 
 ADR 0031 made the receiving side of cross-App logging a Core Contract (**Loggable**: Stats and Life Level list targets and do the writing). It left the sending side inside Workout: a `tallies` field on the Workout, Workout's own editor, and Workout's own firing on Session save. It also expected Chores or Tasks to grow "a Tally-like field on their side". Languages is the second sender: a Language "tallies to Habit *Spanish*" once per day practised. Rather than copying Workout's pattern, the sending side becomes Core's **Tallying** Contract.
@@ -21,3 +27,7 @@ This supersedes the per-App Tally described in ADR 0031. Loggable is unchanged.
 - An archived Language's Tallies stay silent.
 - Known gap: two devices practising offline on the same day can each fire before they sync, and so can a second device after the first one's only Recall of the day was struck out. At worst there is one extra Completion or Entry, removed in the receiving App.
 - Chores and Tasks can become senders by declaring their occurrences, without new Core work.
+
+## Amendment (2026-10-22): Languages is Knowledge
+
+Languages is retired: a Language is now a Knowledge Topic, and its Tally is reported by the Knowledge App (ADR 0073).

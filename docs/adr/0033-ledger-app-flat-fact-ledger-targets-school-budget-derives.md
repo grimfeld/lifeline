@@ -1,3 +1,8 @@
+---
+status: accepted
+superseded-by: ADR 0034 (in part — the stored `ledger_recurring` definition), ADR 0042 (in part — confirming a Due)
+---
+
 # Ledger App: a flat fact ledger, a targets-school budget that derives
 
 A money tracker could have been an envelope budgeter (YNAB-shaped) or a bare expense list. The **Ledger App** is ledger-first: **Transactions** are witnessed facts — expense, income, transfer (one Document, two Accounts), adjustment (the reconcile gap, recorded not hidden) — and everything summed (an **Account**'s balance, a month's spent, a sinking fund's pot) derives at read, never stored. The **Budget** is a lens of policy over those facts: each expense **Category** carries a standing monthly **Target**, overridable per month by an internal Allocation override; spent derives from the ledger; nothing couples targets to account balances. Rollover is opt-in per Category (*accumulating* — a sinking fund whose pot derives from full history and may go negative), not the default. The ledger is flat: one Transaction, one Category, no split lines. Recurring transactions never post themselves — a **Due** is confirmed in one tap. File import ships in v1 — CSV (mapping saved per Account) and OFX/QFX (self-describing, no mapping; FITID makes dedupe exact) — with dedupe previewed (row id, else account+date+amount fingerprint, never silent); imported rows may arrive uncategorized into a loud inbox while manual entry still requires a Category.

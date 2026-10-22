@@ -1,3 +1,8 @@
+---
+status: superseded
+superseded-by: ADR 0024
+---
+
 # The Media App generalises Nightstand to any medium, with a per-medium slot cap fixed in code
 
 readlist/Nightstand tracked books on two independent axes (Acquisition × Engagement) with five held Slots as an attention budget. Lifeline's Media App keeps that model verbatim and makes the medium a field: a compile-time `MEDIA_TYPES` registry (book, comic, movie, series, music, game) supplies the labels that actually differ per medium — creator wording, size unit, Engagement verbs, cover shape, lookup source and slot cap — while the axes, Studied, Reason, Backlog, the auto-stamped days and every transition are shared. Adding a medium is adding a registry entry.

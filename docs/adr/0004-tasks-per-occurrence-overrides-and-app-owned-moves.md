@@ -10,3 +10,7 @@ Moving an item on a Surface is delegated to the owning App: the Schedulable cont
 - Recurring Occurrences are generated from the Task's `createdAt`, not for all history; a recurring Task never sits in the Unassigned pool (a null move throws, surfaces show the error).
 - Surfaces need no App-specific code: pool items are those with natural date `null`; `canUnplace(appId)` tells a surface whether "back to the pool" exists for an item.
 - PocketBase returns absent text fields as `""`; the Tasks data layer normalises to `null` on every read so domain checks stay strict.
+
+## Amendment (2026-10-22): monthly and yearly recurrence
+
+Recurrence is no longer weekly only: the `Recurrence` union also has `monthly` (days of the month) and `yearly` (dates), clamped to the month's length (`apps/tasks/src/domain/types.ts`).

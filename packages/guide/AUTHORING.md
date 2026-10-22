@@ -51,8 +51,10 @@ with where), Tips, Related.
 
 Every change that adds, renames, removes or reworks something a user sees updates the page
 that covers it, in the same PR. `pnpm --filter @lifeline/shell test` fails while a Command or
-Card of an App is not named on its page (the title as shown, any trailing "…" dropped), or a
-Module or Surface has no page. A deliberate omission goes in `UNLISTED` in
+Card of an App is not named on its page (the title as shown, any trailing "…" dropped), a
+Module or Surface has no page, an App is on no page or on several, or a route in `App.tsx` has
+neither a `CORE_PAGES` entry (`shell/src/guide/guidePlace.ts`) nor an `UNLISTED_ROUTES` entry
+(`guide.test.ts`). A deliberate omission goes in `UNLISTED` in
 `shell/src/guide/guide.test.ts`, with a reason.
 
 Text only: no screenshots, which go stale with every change to the UI and no test can tell.

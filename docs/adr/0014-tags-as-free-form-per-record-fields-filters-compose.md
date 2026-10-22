@@ -1,3 +1,8 @@
+---
+status: accepted
+superseded-by: ADR 0019 (in part — the Taggable Contract)
+---
+
 # Tags are free-form strings stored on each App's records; Tag filters compose Screen ∧ Card
 
 Users want to group and filter across Apps ("only `garden` events on this Screen"). Two shapes were on the table for the vocabulary — a Core-owned `Tag` entity (ids, colour, rename/merge, referenced from entities) or free-form lower-cased words — and two for storage — a `tags: string[]` field on each App's record, or a Core-owned `{appId, itemId, tag}` join collection mirroring Placement. We chose free-form words on a per-record field: a tag is *part of the thing* and the owning App keeps owning it, the sync layer carries the field for free (no allowlist), one save = one LWW clock, and Notes' existing `#tag`-in-prose vocabulary is the same vocabulary with no bridge (a Note's tags are read from prose and its frontmatter `tags` list, never stored beside the text). Core owns no tag data — it derives the vocabulary through a Taggable Contract. Rename/merge is retagging; a colour map, if ever wanted, is a Core setting keyed by word, not an entity.

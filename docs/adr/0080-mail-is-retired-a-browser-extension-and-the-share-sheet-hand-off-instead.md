@@ -1,3 +1,9 @@
+---
+status: accepted
+amends: ADR 0050 (in part — a Handoff may come from outside Lifeline)
+supersedes: ADR 0051
+---
+
 # Mail is retired: a browser extension and the share sheet hand off to Intakes instead
 
 ADR 0051 made Mail a window onto Gmail through Google's browser token flow. In use it did nothing Gmail's own app does not do better. Its sign-in also lapsed every hour, and it could not reach anyone else: Gmail's read scopes are restricted, so opening it to other people means Google's app verification and a paid yearly security assessment. Outside "Testing" there is no way around that, and "Testing" caps the app at a hundred hand-listed users. The one thing Lifeline adds to email is **keeping** a message: making a Task, an Event or a Quote from it through an Intake (ADR 0050). That job does not need a mail client. It needs a way to make a Handoff from outside Lifeline, which every web page, not only email, wants too.
