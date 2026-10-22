@@ -93,6 +93,21 @@ once the next one comes round.
 The Capture sheet (the **+** in the middle of the Phone bar), under Projects, offers **Add task**.
 Making a Project is deliberate, so **New project** is in the palette only.
 
+## Milestone and Lane Commands
+
+Claude, the palette (Ctrl+K) and Macros can shape a Project's Milestones and the Lanes of its Board
+without opening its page. Each takes the Project (by name) and names the Milestone or Lane by name
+too, looked up only among that Project's own — "To do" is this Project's "To do". A name that
+matches none, or more than one, is refused and the candidates listed. Positions count from 0.
+
+- **Add milestone** — title, start, Deadline and position.
+- **Edit milestone** — title, start, Deadline and position.
+- **Reach milestone** — declare it reached (today, or a day you give), or un-reach it.
+- **Delete milestone** — its Tasks stay in the Project.
+- **Add lane** — title and position.
+- **Edit lane** — title, position, and whether it is the **done lane** (making one unmarks any other).
+- **Delete lane** — its Tasks go to the first Lane.
+
 ## Ask Claude
 
 Through the Lifeline connector, Claude can:
