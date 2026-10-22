@@ -19,7 +19,7 @@ export function TemplateSelect({ type, value, onChange }: { type: string; value:
   if (mine.length < 2) return null;
   return (
     <Select value={value || def?.id || BUILT_IN} onValueChange={(v) => onChange(v === BUILT_IN ? "" : v)}>
-      <SelectTrigger className="h-8 w-full" aria-label="Template">
+      <SelectTrigger className="w-full" aria-label="Template">
         <SelectValue placeholder="Template" />
       </SelectTrigger>
       <SelectContent>

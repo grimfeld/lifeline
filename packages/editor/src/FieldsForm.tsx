@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Checkbox, DatePicker, DateTimeField, GeoField, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Textarea } from "@lifeline/ui";
+import { Checkbox, DatePicker, DateTimeField, GeoField, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Textarea, cn } from "@lifeline/ui";
 import { displayTitle, documentType, geocode, isLinkTarget, roleDef, readGeo, singularOf, suggestAddresses, useAllDocuments, useDocumentTypes, writeGeo, type DocumentTypeDef, type FieldDef } from "@lifeline/core";
 
 const NONE = "__none__";
@@ -39,9 +39,9 @@ export function FieldsForm({
   const list = (fields ?? def.fields).filter((f) => !f.hidden);
   if (list.length === 0) return null;
   return (
-    <div className={columns === 2 ? "grid gap-2 sm:grid-cols-2" : "grid gap-2"}>
+    <div className={columns === 2 ? "grid gap-2 md:grid-cols-2" : "grid gap-2"}>
       {list.map((f) => (
-        <div key={f.key} className={`grid gap-1 ${f.kind === "longtext" ? "sm:col-span-2" : ""}`}>
+        <div key={f.key} className={cn("grid gap-1", f.kind === "longtext" && "md:col-span-2")}>
           <Label htmlFor={`${idPrefix}${f.key}`} className="text-muted-foreground text-xs">
             {f.label}
             {f.guarded && !allowGuarded && <span className="ml-1 opacity-60" title="Guarded: only its App changes this">🔒</span>}
@@ -74,12 +74,12 @@ export function FieldControl({
   switch (def.kind) {
     case "text":
     case "url":
-      return <Input id={id} className="h-8" type={def.kind === "url" ? "url" : "text"} disabled={disabled} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} />;
+      return <Input id={id}  type={def.kind === "url" ? "url" : "text"} disabled={disabled} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} />;
     case "longtext":
       return <Textarea id={id} rows={3} disabled={disabled} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} />;
     case "number":
       return (
-        <Input id={id} className="h-8" type="number" disabled={disabled} value={value === undefined || value === null ? "" : String(value)} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))} />
+        <Input id={id}  type="number" disabled={disabled} value={value === undefined || value === null ? "" : String(value)} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))} />
       );
     case "boolean":
       return (
@@ -113,7 +113,7 @@ export function FieldControl({
     case "select":
       return (
         <Select value={value === undefined || value === null || value === "" ? NONE : String(value)} onValueChange={(v) => onChange(v === NONE ? "" : v)} disabled={disabled}>
-          <SelectTrigger id={id} className="h-8 w-full">
+          <SelectTrigger id={id} className="w-full">
             <SelectValue placeholder="—" />
           </SelectTrigger>
           <SelectContent>
@@ -141,7 +141,7 @@ export function FieldControl({
     case "links":
       return <LinksField id={id} linkType={def.linkType} linkRole={def.linkRole} value={value} disabled={disabled} onChange={onChange} />;
     case "json":
-      return <Input id={id} className="h-8 font-mono text-xs" disabled readOnly value={value === undefined || value === null ? "" : JSON.stringify(value)} />;
+      return <Input id={id} className="font-mono text-xs" disabled readOnly value={value === undefined || value === null ? "" : JSON.stringify(value)} />;
   }
 }
 
@@ -171,7 +171,7 @@ function ListInput({ id, value, disabled, onChange }: { id: string; value: unkno
   return (
     <Input
       id={id}
-      className="h-8"
+      
       disabled={disabled}
       placeholder="comma-separated"
       value={text}
@@ -233,7 +233,7 @@ function LinksField({ id, linkType, linkRole, value, disabled, onChange }: { id:
         </div>
       )}
       <Select value={NONE} onValueChange={(v) => v !== NONE && onChange([...ids, v])} disabled={disabled || rest.length === 0}>
-        <SelectTrigger id={id} className="h-8 w-full">
+        <SelectTrigger id={id} className="w-full">
           <SelectValue placeholder={singularLabel ? `Add ${article(singularLabel)} ${singularLabel}` : "Add a Document"} />
         </SelectTrigger>
         <SelectContent>
@@ -254,7 +254,7 @@ function LinkField({ id, linkType, linkRole, value, disabled, onChange }: { id: 
   const current = typeof value === "string" ? value : Array.isArray(value) ? String(value[0] ?? "") : "";
   return (
     <Select value={current || NONE} onValueChange={(v) => onChange(v === NONE ? "" : v)} disabled={disabled}>
-      <SelectTrigger id={id} className="h-8 w-full">
+      <SelectTrigger id={id} className="w-full">
         <SelectValue placeholder={singularLabel ? `Pick ${article(singularLabel)} ${singularLabel}` : "Pick a Document"} />
       </SelectTrigger>
       <SelectContent>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useOpenLinkRef, usePeekLinkRef } from "./openDocument";
-import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, cn, toast } from "@lifeline/ui";
+import { Badge, Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, Label, MiniMap, Sheet, SheetContent, SheetTitle, TagInput, Textarea, Tip, PageHeader, cn, toast, usePhone } from "@lifeline/ui";
 import {
   isLinkable,
   isModShortcut,
@@ -22,7 +22,6 @@ import {
   ROLES_KEY,
   singularOf,
   textToDocument,
-  useIsMobile,
   useTagVocabulary,
   wearableRoles,
   withRoleFields,
@@ -85,7 +84,7 @@ export interface DocumentEditorProps {
  */
 export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, linksPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn, minimal = false, bodyOnly = false }: DocumentEditorProps) {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const isMobile = usePhone();
   const [panelOpen, setPanelOpen] = useState(showPanel);
   /** Phone: the panel is a right sheet, not a column — it starts closed whatever `showPanel` says. */
   const [panelSheet, setPanelSheet] = useState(false);
@@ -358,14 +357,19 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
         >
           {Icon && <Icon className="text-muted-foreground size-4 shrink-0" />}
           {def?.titleRule === "date" ? (
-            <h1 className="text-lg font-semibold tracking-tight">
-              {formatHuman(doc.title)} <span className="text-muted-foreground text-sm font-normal">{doc.title}</span>
-            </h1>
+            <PageHeader
+              className="contents"
+              title={
+                <>
+                  {formatHuman(doc.title)} <span className="text-muted-foreground text-sm font-normal">{doc.title}</span>
+                </>
+              }
+            />
           ) : def?.titleRule === "derived" ? (
-            <h1 className="truncate text-lg font-semibold tracking-tight">{displayTitle(doc, def)}</h1>
+            <PageHeader className="contents" title={displayTitle(doc, def)} />
           ) : (
             <Input
-              className="h-8 max-w-md border-transparent px-1 text-lg font-semibold tracking-tight shadow-none focus-visible:border-input"
+              className="max-w-md border-transparent px-1 text-lg font-semibold tracking-tight shadow-none focus-visible:border-input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={() => void commitTitle()}
@@ -378,30 +382,40 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
           </Badge>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-1 max-md:basis-full md:flex-nowrap">
             {toolbar}
-            <Button size="icon" variant="ghost" className={cn("size-8 md:hidden", detailsOpen && "bg-accent")} onClick={() => setDetailsOpen((o) => !o)} aria-label="Fields and tags" title="Fields and tags">
-              <SlidersHorizontal />
-            </Button>
-            {hasBody && (
-              <Button size="icon" variant="ghost" className="size-8" onClick={() => setMode((m) => (m === "read" ? "edit" : "read"))} aria-label={mode === "read" ? "Edit" : "Reading mode"} title={mode === "read" ? "Edit (⌘E)" : "Reading mode (⌘E)"}>
-                {mode === "read" ? <Pencil /> : <BookOpen />}
+            <Tip label="Fields and tags">
+              <Button size="icon" variant="ghost" className={cn("md:hidden", detailsOpen && "bg-accent")} onClick={() => setDetailsOpen((o) => !o)}>
+                <SlidersHorizontal />
               </Button>
+            </Tip>
+            {hasBody && (
+              <Tip label={mode === "read" ? "Edit (⌘E)" : "Reading mode (⌘E)"}>
+                <Button size="icon" variant="ghost" onClick={() => setMode((m) => (m === "read" ? "edit" : "read"))}>
+                  {mode === "read" ? <Pencil /> : <BookOpen />}
+                </Button>
+              </Tip>
             )}
             {hasFields && (
-              <Button size="icon" variant="ghost" className={`size-8 ${mode === "text" ? "bg-accent" : ""}`} onClick={() => setMode((m) => (m === "text" ? "edit" : "text"))} aria-label="Raw text" title="Frontmatter + body as text">
-                <Code2 />
-              </Button>
+              <Tip label="Raw text">
+                <Button size="icon" variant="ghost" className={cn(mode === "text" && "bg-accent")} onClick={() => setMode((m) => (m === "text" ? "edit" : "text"))}>
+                  <Code2 />
+                </Button>
+              </Tip>
             )}
             {hasPanel && (
-              <Button size="icon" variant="ghost" className={cn("size-8", isMobile && panelShown && "bg-accent")} onClick={togglePanel} aria-label="Toggle links panel" title="Links panel">
-                {panelShown ? <PanelRightClose /> : <PanelRightOpen />}
-              </Button>
+              <Tip label="Toggle links panel">
+                <Button size="icon" variant="ghost" className={cn(isMobile && panelShown && "bg-accent")} onClick={togglePanel}>
+                  {panelShown ? <PanelRightClose /> : <PanelRightOpen />}
+                </Button>
+              </Tip>
             )}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost" className="size-8">
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
+              <Tip label="More">
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost">
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenuTrigger>
+              </Tip>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => navigate(basePath(doc.type))}>
                   <Table2 /> Open {def?.label ?? "Base"}
