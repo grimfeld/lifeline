@@ -1,12 +1,12 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { documentsTable, getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
+import { documentsTable, documentsWhere, getDocument, initApps, removeDocument, type DocumentTypeDef } from "@lifeline/core";
 import { LINE, PRODUCT, RECEIPT, SHOP, type Line, type Receipt } from "../domain/types";
-import { addPrice, addProduct, addShop, allProducts, allShops, saveReceipt, type ReceiptInput } from "./repo";
+import { addPrice, addProduct, addShop, allProducts, allShops, cascadeReceiptDelete, mergeProduct, refuseDeletingUsedProduct, refuseDeletingUsedShop, saveReceipt, type ReceiptInput } from "./repo";
 
 // The Prices types, bare: the App manifest pulls in screens that need a DOM.
-const bare = (id: string, indexes: string[] = []) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes, builtIn: true }) as unknown as DocumentTypeDef;
-initApps([{ id: "prices", title: "Prices", types: [bare(PRODUCT), bare(SHOP), bare(RECEIPT, ["shopId", "date"]), bare(LINE, ["receiptId", "productId"])], screens: [], cards: [], commands: [] }]);
+const bare = (id: string, indexes: string[] = [], onDelete?: DocumentTypeDef["onDelete"]) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes, onDelete, builtIn: true }) as unknown as DocumentTypeDef;
+initApps([{ id: "prices", title: "Prices", types: [bare(PRODUCT, [], refuseDeletingUsedProduct), bare(SHOP, [], refuseDeletingUsedShop), bare(RECEIPT, ["shopId", "date"], cascadeReceiptDelete), bare(LINE, ["receiptId", "productId"])], screens: [], cards: [], commands: [] }]);
 
 const receipt = async (id: string) => (await getDocument<Receipt>(id))!;
 
@@ -63,5 +63,57 @@ describe("the noticed mark", () => {
     await saveReceipt({ shopId: r.shopId, date: r.date, total: 0, noticed: false, lines: lines.map((l) => ({ id: l.id, productId: l.productId, label: l.label, amount: l.amount, price: l.price, promo: l.promo })) }, await allShops(), await allProducts(), { receipt: r, lines });
     expect((await receipt(id)).noticed).toBe(false);
     expect((await documentsTable().toArray()).filter((d) => d.type === LINE && !d.deleted)).toHaveLength(1);
+  });
+});
+
+describe("deleting, from any path (removeDocument)", () => {
+  const linesOf = (receiptId: string) => documentsWhere<Line>(LINE, "receiptId", receiptId);
+
+  it("refuses deleting a Product that Lines reference, and leaves it", async () => {
+    await saveReceipt(bought(), await allShops(), await allProducts());
+    await expect(removeDocument(milk)).rejects.toThrow(/merge it into another/);
+    expect(await getDocument(milk)).toBeDefined();
+  });
+
+  it("deletes a Product no Line references", async () => {
+    await removeDocument(milk);
+    expect(await getDocument(milk)).toBeUndefined();
+  });
+
+  it("refuses deleting a Shop that Receipts reference, and leaves it", async () => {
+    await saveReceipt(bought(), await allShops(), await allProducts());
+    await expect(removeDocument(lidl)).rejects.toThrow(/it stays/);
+    expect(await getDocument(lidl)).toBeDefined();
+  });
+
+  it("deletes a Shop no Receipt references", async () => {
+    await removeDocument(lidl);
+    expect(await getDocument(lidl)).toBeUndefined();
+  });
+
+  it("deleting a Receipt deletes its Lines and no one else's", async () => {
+    const a = await saveReceipt(bought(), await allShops(), await allProducts());
+    const b = await saveReceipt(bought({ date: "2026-10-02" }), await allShops(), await allProducts());
+    expect(await linesOf(a)).toHaveLength(1);
+    await removeDocument(a);
+    expect(await getDocument(a)).toBeUndefined();
+    expect(await linesOf(a)).toHaveLength(0);
+    expect(await linesOf(b)).toHaveLength(1);
+  });
+
+  it("a Product can be deleted once its Receipt is gone", async () => {
+    const r = await saveReceipt(bought(), await allShops(), await allProducts());
+    await removeDocument(r);
+    await removeDocument(milk);
+    expect(await getDocument(milk)).toBeUndefined();
+  });
+
+  it("merging a Product repoints its Lines, then the removal passes", async () => {
+    const oil = await addProduct({ title: "Oil", dimension: "volume", unit: "L" });
+    const r = await saveReceipt(bought(), await allShops(), await allProducts());
+    const products = await allProducts();
+    await mergeProduct(products.find((p) => p.id === milk)!, products.find((p) => p.id === oil)!);
+    expect(await getDocument(milk)).toBeUndefined();
+    expect((await linesOf(r)).map((l) => l.productId)).toEqual([oil]);
   });
 });

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { addAttachment, documentsOf, documentsWhere, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, type DateStr } from "@lifeline/core";
+import { addAttachment, documentsOf, documentsWhere, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, type DateStr, type Document } from "@lifeline/core";
 import { LINE, PRODUCT, RECEIPT, SHOP, isDimension, isSecondaryDimension, isUnitOf, type Basis, type Dimension, type LabelMemory, type Line, type Product, type Receipt, type SecondaryDimension, type Shop, type Unit } from "../domain/types";
 import { fromAmount, matchedAmount, readMeasure, readSecondary, secondaryMeasure } from "../domain/measure";
 import { clearsSecondAmounts, lastSecondAmount, linesToRetype, observe, receiptTitle, relabel, withLabel, withoutLabel, type LineMatch } from "../domain/derive";
@@ -94,9 +94,12 @@ export async function updateShop(shop: Shop, input: ShopInput): Promise<void> {
   if (title !== shop.title) for (const r of await documentsWhere<Receipt>(RECEIPT, "shopId", shop.id)) await patchDocument(r.id, { title: receiptTitle(title, r.date) });
 }
 
-/** Blocked while Receipts reference it (ADR 0082). */
+/** The Shop type's `onDelete` guard (ADR 0082): blocked while Receipts reference it, from wherever the delete comes. */
+export async function refuseDeletingUsedShop(doc: Document): Promise<void> {
+  if ((await documentsWhere<Receipt>(RECEIPT, "shopId", doc.id)).length > 0) throw new Error("Shop has receipts — it stays");
+}
+
 export async function deleteShop(id: string): Promise<void> {
-  if ((await documentsWhere<Receipt>(RECEIPT, "shopId", id)).length > 0) throw new Error("Shop has receipts — it stays");
   await removeDocument(id);
 }
 
@@ -176,9 +179,12 @@ export async function updateProduct(product: Product, input: Partial<Omit<Produc
   await putDocument<Product>({ ...product, title, ...measure, ...secondary, tags: normalizeTags(input.tags ?? product.tags) });
 }
 
-/** Blocked while Lines reference it — merge instead (ADR 0082). */
+/** The Product type's `onDelete` guard (ADR 0082): blocked while Lines reference it — merge instead. */
+export async function refuseDeletingUsedProduct(doc: Document): Promise<void> {
+  if ((await documentsWhere<Line>(LINE, "productId", doc.id)).length > 0) throw new Error("Product has prices — merge it into another instead");
+}
+
 export async function deleteProduct(id: string): Promise<void> {
-  if ((await documentsWhere<Line>(LINE, "productId", id)).length > 0) throw new Error("Product has prices — merge it into another instead");
   await removeDocument(id);
 }
 
@@ -338,9 +344,12 @@ function prefiller(shopId: string): (productId: string) => Promise<number> {
   };
 }
 
-/** A Receipt takes its Lines with it; the photo stays an Attachment until a clean-up (ADR 0037). */
+/** The Receipt type's `onDelete` cascade: it takes its Lines with it; the photo stays an Attachment until a clean-up (ADR 0037). */
+export async function cascadeReceiptDelete(doc: Document): Promise<void> {
+  await removeDocumentsWhere(LINE, (d) => (d as Line).receiptId === doc.id);
+}
+
 export async function deleteReceipt(id: string): Promise<void> {
-  await removeDocumentsWhere(LINE, (d) => (d as Line).receiptId === id);
   await removeDocument(id);
 }
 
