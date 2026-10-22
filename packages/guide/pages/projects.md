@@ -84,7 +84,7 @@ Milestones.
 - **New task** — title, type (one-time or weekly / monthly / yearly recurring), day, Project and
   Milestone, Estimate (minutes), notes and Tags. **Push** in the form saves and finds it time.
   Where: **New task** on the Tasks page.
-- **Add task** — the same form from the palette or the Capture sheet.
+- **Add task** — the same form from the palette or the Capture sheet. Claude and Macros can also name the Milestone and Lane of its Project (by name, among that Project's own; the done Lane ticks it); either without a Project is refused.
 - **Complete a task** — lists today's and overdue Tasks; tap each one you did. Where: the palette.
 - **Plan the week** — opens the Calendar's Week view. Where: the palette.
 - **Push** — finds the Task time in your Schedule: a Time block of its Estimate in the first free
@@ -122,6 +122,17 @@ matches none, or more than one, is refused and the candidates listed. Positions 
 - **Add lane** — title and position.
 - **Edit lane** — title, position, and whether it is the **done lane** (making one unmarks any other).
 - **Delete lane** — its Tasks go to the first Lane.
+
+## Place task
+
+Claude, the palette (Ctrl+K) and Macros can put a Task on a Project's Board, as dragging it would.
+
+- **Place task** — the Task (by name), then any of its Project, Milestone, Lane and position
+  (counted from 0, top of the Lane). A Task placed in the done Lane is ticked; moved out of it, it
+  is unticked. Changing Project drops the Milestone, unless one of the new Project's is given, and
+  puts the Task in the new Project's first Lane. No position puts it at the bottom of its Lane. Say
+  **loose** to take the Task out of its Project. A recurring Task has no Lane, so it is refused
+  one, but it may take a Project and Milestone.
 
 ## Ask Claude
 
