@@ -16,8 +16,35 @@ start and Deadline, Milestones, a Board, and the material that links to it.
   **Board**: one column per stage — drag a Project to change its stage. Where: the first place in
   Projects.
 - **New project** — name, **Outcome** (one line: what finished looks like), stage, start,
-  Deadline, a face (emoji and colour, shown on its Tasks) and Tags. Where: **Project** on the
-  Projects page, or the palette (Ctrl+K).
+  Deadline, a face (emoji and colour, shown on its Tasks) and Tags. A Project made without the
+  dialog, by Claude or a Macro, starts with To do, Doing and Done lanes like one made by hand.
+  Where: **Project** on the Projects page, or the palette (Ctrl+K).
+- **Edit project** — changes a Project's name, Outcome, start, Deadline, emoji or colour: only the
+  fields you give, and you can name fields to **clear** (empty) instead; a field cannot be both
+  given and cleared. Where: the palette, and Claude or a Macro.
+- **Move project to stage** — moves a Project to Planned, Active, Paused, Done or Dropped.
+  Finishing or dropping one with open Tasks is refused, naming how many are open, unless you say
+  what becomes of them: leave them open, archive them, or keep them as loose Tasks (the same
+  choices as the stage dialog). Where: the palette, and Claude or a Macro.
+- **Add milestone** — a Project's title, start, Deadline and position (counted from 0). A
+  Milestone is named by title among that Project's own; a name matching none, or several, is
+  refused with the candidates. Where: the palette, and Claude or a Macro.
+- **Edit milestone** — title, start, Deadline and position, with start and Deadline clearable.
+  Where: the palette, and Claude or a Macro.
+- **Reach milestone** — declare it reached (today, or a day you give), or un-reach it. Where: the
+  palette, and Claude or a Macro.
+- **Delete milestone** — its Tasks stay in the Project. Where: the palette, and Claude or a Macro.
+- **Add lane** — title and position. Where: the palette, and Claude or a Macro.
+- **Edit lane** — title, position, and whether it is the **done lane** (making one unmarks any
+  other). Where: the palette, and Claude or a Macro.
+- **Delete lane** — its Tasks go to the first Lane. Where: the palette, and Claude or a Macro.
+- **Place task** — puts a Task (by name) on a Project's Board as dragging would: its Project,
+  Milestone, Lane and position (counted from 0, top of the Lane; none puts it at the bottom). A
+  Task placed in the done Lane is ticked, moved out of it unticked. Changing Project drops the
+  Milestone, unless one of the new Project's is given, and puts the Task in the new Project's
+  first Lane. You can clear its Milestone, keeping the Project, or take it out of its Project
+  altogether to make it a loose Task. A recurring Task stands in no Lane, so it is refused one,
+  but may take a Project and Milestone. Where: the palette, and Claude or a Macro.
 - **Go to Projects** — opens the Projects page. Where: the palette.
 - **A Project's page** — its Outcome, stage, Deadline, progress and the estimated time left, then
   four tabs:
@@ -69,7 +96,9 @@ Milestones.
 - **New task** — title, type (one-time or weekly / monthly / yearly recurring), day, Project and
   Milestone, Estimate (minutes), notes and Tags. **Push** in the form saves and finds it time.
   Where: **New task** on the Tasks page.
-- **Add task** — the same form from the palette or the Capture sheet.
+- **Add task** — the same form. Claude and Macros can also name the Milestone and Lane of its
+  Project (by name, among that Project's own; the done Lane ticks it); either without a Project is
+  refused, and a recurring Task takes no Lane. Where: the palette or the Capture sheet.
 - **Complete a task** — lists today's and overdue Tasks; tap each one you did. Where: the palette.
 - **Plan the week** — opens the Calendar's Week view. Where: the palette.
 - **Push** — finds the Task time in your Schedule: a Time block of its Estimate in the first free
@@ -102,7 +131,10 @@ Through the Lifeline connector, Claude can:
 - See and tick off what is due — "What's on today?", `agenda` then `complete_item`.
 - Move a Task to another day or back to the pool — "Move the plumber call to Monday",
   `move_item`.
-- Read a Project and what links to it — `search_documents`, `get_document`.
+- Read a Project's whole Board — its stage, Outcome and dates, its Milestones with their progress,
+  its Lanes with their Tasks in order, its recurring Tasks and its next Task — and what links to
+  it: "What's next on the bathroom?", `search_documents` then `get_document`. A Milestone's or
+  Lane's id reads as its Project.
 
 ## Tips
 

@@ -74,6 +74,7 @@ export const TASK_OCCURRENCE = "task_occurrence";
  */
 export const PROJECT = "project";
 export const PROJECT_MILESTONE = "project_milestone";
+export const PROJECT_LANE = "project_lane";
 
 /** Where a Task opens: the App has no per-task route, so the main screen. */
 export const TASKS_HREF = "/app/tasks";

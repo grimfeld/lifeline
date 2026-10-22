@@ -27,7 +27,8 @@ Lifeline's own tools, the same for every Module:
 - `list_workspaces` — list your Workspaces.
 - `list_types` — list the types of Document and their fields, and which ones it may create.
 - `search_documents` — find Documents by words, type, tag or folder.
-- `get_document` — read one Document in full: fields, tags, folder and body.
+- `get_document` — read one Document in full: fields, tags, folder and body, plus what its App adds under
+  `detail` (a Project's Board).
 - `agenda` — what's on each day in a range: events, deadlines, time blocks, tasks, chores, with
   overdue items included. Optionally the Time blocker bands too.
 - `guide` — read this Guide: the list of pages, or one page.

@@ -11,9 +11,10 @@ import { todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/co
 import { Check, ListChecks, ListTodo, Plus } from "lucide-react";
 import { TaskDialog } from "./components/TaskDialog";
 import { dueItems } from "./domain/occurrences";
-import { addTask, setCompleted, useOverrides, useTasks } from "./data/repo";
+import { addTask, setCompleted, settleForLane, useOverrides, useTasks } from "./data/repo";
 import { readRecurrence, RECURRENCE_HINT } from "./domain/recurrence";
 import { PROJECT } from "./domain/types";
+import { resolveInProject } from "./data/scoped";
 
 function AddTaskCommandDialog(props: CommandDialogProps) {
   return <TaskDialog {...props} />;
@@ -85,12 +86,21 @@ export const taskCommands: CommandDef[] = [
       { key: "estimate", label: "Estimate", kind: "number", hint: "Whole minutes the task should take." },
       { key: "tags", label: "Tags", kind: "list" },
       { key: "project", label: "Project", kind: "link", linkType: PROJECT, hint: "The Project it serves." },
+      { key: "milestone", label: "Milestone", kind: "text", hint: "One of the Project's Milestones, by id or title. Needs a Project." },
+      { key: "lane", label: "Lane", kind: "text", hint: "One of the Project's Board Lanes, by id or title; the first Lane when omitted. Needs a Project. A done Lane ticks the task." },
     ],
     returnsDocument: true,
     async invoke(a) {
       const recurrence = a.recurrence === undefined ? null : readRecurrence(a.recurrence);
       const estimate = a.estimate === undefined ? null : Math.round(a.estimate as number);
       if (estimate !== null && estimate <= 0) throw new Error("Estimate must be a positive number of minutes");
+      const project = (a.project as string | undefined) ?? null;
+      if (!project && (a.milestone !== undefined || a.lane !== undefined)) {
+        throw new Error("Milestone and Lane belong to a Project: give the project too");
+      }
+      if (recurrence && a.lane !== undefined) throw new Error("Lane: a recurring task stands in no Lane; it may take a Project and a Milestone");
+      const milestone = project && a.milestone !== undefined ? await resolveInProject("milestone", project, a.milestone as string) : null;
+      const lane = project && a.lane !== undefined ? await resolveInProject("lane", project, a.lane as string) : null;
       const id = await addTask({
         title: a.title as string,
         date: (a.date as string | undefined) ?? null,
@@ -98,8 +108,11 @@ export const taskCommands: CommandDef[] = [
         notes: a.notes as string | undefined,
         estimate,
         tags: a.tags as string[] | undefined,
-        project: (a.project as string | undefined) ?? null,
+        project,
+        milestone: milestone?.id ?? null,
+        lane: lane?.id ?? null,
       });
+      if (lane) await settleForLane({ id, completedOn: null }, !!lane.done);
       const when = recurrence ? "recurring" : a.date ? `on ${a.date}` : "unassigned";
       return { id, message: `Added task “${a.title}” (${when})` };
     },
