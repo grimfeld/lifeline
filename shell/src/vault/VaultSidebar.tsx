@@ -31,7 +31,7 @@ export function VaultSidebar() {
       <div className="flex items-center gap-1 px-2 pt-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" className="h-7 flex-1 justify-start">
+            <Button size="sm" className="flex-1 justify-start">
               <Plus /> New
             </Button>
           </DropdownMenuTrigger>
@@ -55,7 +55,7 @@ export function VaultSidebar() {
           .map((s) => {
             const I = s.icon ?? CalendarDays;
             return (
-              <Button key={s.id} size="sm" variant="outline" className="h-7" title={s.title} onClick={() => navigate(`/vault/${s.path}`)}>
+              <Button key={s.id} size="sm" variant="outline" title={s.title} onClick={() => navigate(`/vault/${s.path}`)}>
                 <I /> {s.title}
               </Button>
             );
@@ -64,6 +64,7 @@ export function VaultSidebar() {
       <div className="mx-2 mt-2 flex gap-0.5 border-b">
         {tabs.map((t) => (
           <button
+            type="button"
             key={t.id}
             className={cn("flex flex-1 items-center justify-center gap-1 border-b-2 py-1 text-xs", tab === t.id ? "border-primary text-foreground" : "text-muted-foreground border-transparent hover:text-foreground")}
             onClick={() => setTab(t.id)}

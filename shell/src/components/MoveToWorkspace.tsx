@@ -74,6 +74,7 @@ export function MoveToWorkspaceDialog({
         <div className="flex flex-col gap-1">
           {destinations.map((d) => (
             <button
+              type="button"
               key={d.id || "shared"}
               disabled={busy || d.id === currentScope}
               className="hover:bg-accent/50 flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm disabled:opacity-50"

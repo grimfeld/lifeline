@@ -99,7 +99,7 @@ for (const w of WIDTHS) {
       await expect(page.getByTitle(/sync/i)).toHaveCount(0);
       if (w.isMobile) {
         // The Phone header's drawer, where the badge sat under the Rail.
-        await page.getByTitle("Menu").click();
+        await page.getByRole("button", { name: "Menu" }).click();
         await expect(page.getByRole("dialog")).toBeVisible();
         await expect(syncBadges(page)).toHaveCount(0);
         await page.keyboard.press("Escape");

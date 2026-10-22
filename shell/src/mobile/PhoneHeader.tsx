@@ -48,9 +48,11 @@ export function PhoneHeader() {
   return (
     <>
       <header className="bg-background flex shrink-0 items-center gap-1 border-b px-2 py-1 md:hidden">
-        <Button variant="ghost" size="icon" className="size-8 shrink-0" title="Menu" onClick={openDrawer}>
-          <Menu className="size-5" />
-        </Button>
+        <Tip label="Menu">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={openDrawer}>
+            <Menu className="size-5" />
+          </Button>
+        </Tip>
         <div className="min-w-0 flex-1">
           <WorkspacePicker />
         </div>

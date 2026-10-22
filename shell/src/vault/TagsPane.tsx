@@ -17,7 +17,7 @@ export function TagsPane() {
         {tags.length === 0 && <li className="text-muted-foreground px-2 py-3 text-xs">No #tags yet.</li>}
         {tags.map(([tag, ids]) => (
           <li key={tag}>
-            <button className={cn("flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-sm hover:bg-accent/60", openTag === tag && "bg-accent/40")} onClick={() => setOpenTag((t) => (t === tag ? null : tag))}>
+            <button type="button" className={cn("flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-sm hover:bg-accent/60", openTag === tag && "bg-accent/40")} onClick={() => setOpenTag((t) => (t === tag ? null : tag))}>
               <Hash className="text-muted-foreground size-3.5" />
               <span className="truncate">{tag}</span>
               <span className="text-muted-foreground ml-auto text-xs">{ids.length}</span>
@@ -29,7 +29,7 @@ export function TagsPane() {
                   if (!n) return null;
                   return (
                     <li key={id}>
-                      <button className="hover:bg-accent/60 w-full truncate rounded-md px-2 py-0.5 text-left text-xs" onClick={() => navigate(docHref(n))}>
+                      <button type="button" className="hover:bg-accent/60 w-full truncate rounded-md px-2 py-0.5 text-left text-xs" onClick={() => navigate(docHref(n))}>
                         {n.type === "daily" ? formatHuman(n.title) : displayTitle(n)}
                       </button>
                     </li>
