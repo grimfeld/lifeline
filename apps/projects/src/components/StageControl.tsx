@@ -13,11 +13,11 @@ import {
   DropdownMenuTrigger,
   toast,
 } from "@lifeline/ui";
-import { setArchived, setTaskProject, type Task } from "@lifeline/app-tasks";
+import { type Task } from "@lifeline/app-tasks";
 import { ChevronDown } from "lucide-react";
 import { boardTasks } from "../domain/board";
 import { STAGES, stageLabel, type Project, type Stage } from "../domain/types";
-import { setStage } from "../data/repo";
+import { setStage, settleOpenTasks } from "../data/repo";
 import { StageBadge } from "./parts";
 
 /**
@@ -43,8 +43,7 @@ export function useStageMove(tasks: Task[]) {
   async function end(withTasks: "leave" | "archive" | "unlink") {
     if (!ending) return;
     const { project, stage, open } = ending;
-    if (withTasks === "archive") for (const t of open) await setArchived(t, true);
-    if (withTasks === "unlink") for (const t of open) await setTaskProject(t.id, null);
+    await settleOpenTasks(open, withTasks === "unlink" ? "loose" : withTasks);
     await setStage(project.id, stage);
     toast.success(stage === "done" ? `${project.title} finished` : `${project.title} dropped`);
     setEnding(null);

@@ -7,6 +7,7 @@ import { PROJECT, PROJECT_LANE, PROJECT_MILESTONE, type Lane, type Milestone, ty
 import { boardOf } from "../domain/board";
 import { addMilestone, addProject, deleteLane, dropTask, lanesOf, setDeadline, setStage } from "./repo";
 import { projectsTimed } from "../timed";
+import { projectCommands } from "../commands";
 
 initApps([
   { id: "tasks", title: "Tasks", types: taskTypes, screens: [], cards: [], commands: [] },
@@ -143,5 +144,70 @@ describe("agents", () => {
     expect((await invokeCommand(def, { project: "website" })).id).toBe(id);
     expect((await invokeCommand(def, { project: id })).id).toBe(id);
     await expect(invokeCommand(def, { project: "Webside" })).rejects.toThrow("no project called");
+  });
+});
+
+describe("agents run the Project Commands headless", () => {
+  const run = (id: string, args: Record<string, unknown>) => invokeCommand(projectCommands.find((c) => c.id === id)!, args);
+  const projects = async () => documentsOf<Project>(PROJECT);
+
+  it("make a Project that starts with the three Lanes", async () => {
+    const r = await run("projects.new", { title: "Bathroom", outcome: "Tiled", stage: "active", deadline: "2026-12-01", emoji: "🛁", color: "blue" });
+    const p = (await projects()).find((x) => x.id === r.id)!;
+    expect([p.title, p.outcome, p.stage, p.deadline, p.emoji, p.color]).toEqual(["Bathroom", "Tiled", "active", "2026-12-01", "🛁", "blue"]);
+    expect((await lanesOf(r.id!)).map((l) => [l.title, l.done])).toEqual([["To do", false], ["Doing", false], ["Done", true]]);
+  });
+
+  it("refuse a Deadline before the start and a colour that is no slot", async () => {
+    await expect(run("projects.new", { title: "X", start: "2026-05-02", deadline: "2026-05-01" })).rejects.toThrow("before");
+    await expect(run("projects.new", { title: "X", color: "puce" })).rejects.toThrow("Colour");
+  });
+
+  it("edit only the fields given, naming the Project by title", async () => {
+    const id = await addProject({ title: "Bathroom", outcome: "Tiled", deadline: "2026-12-01", emoji: "🛁" });
+    await run("projects.edit", { project: "bathroom", deadline: "2027-01-15" });
+    const p = (await projects())[0];
+    expect([p.id, p.title, p.outcome, p.deadline, p.emoji]).toEqual([id, "Bathroom", "Tiled", "2027-01-15", "🛁"]);
+  });
+
+  it("move a Project between open stages freely", async () => {
+    const id = await addProject({ title: "Trip" });
+    await run("projects.stage", { project: id, stage: "active" });
+    await run("projects.stage", { project: id, stage: "paused" });
+    expect((await projects())[0].stage).toBe("paused");
+  });
+
+  it("refuse Done with open Tasks unless told what becomes of them, naming the count", async () => {
+    const id = await addProject({ title: "Trip" });
+    await addTask({ title: "a", project: id });
+    await addTask({ title: "b", project: id });
+    await expect(run("projects.stage", { project: id, stage: "done" })).rejects.toThrow("2 open tasks");
+    expect((await projects())[0].stage).toBe("planned");
+  });
+
+  it("leave, archive or release the open Tasks as asked", async () => {
+    const mk = async (title: string) => {
+      const id = await addProject({ title });
+      const t = await addTask({ title: `${title} task`, project: id });
+      const d = await addTask({ title: `${title} done`, project: id });
+      await setCompleted(d, "2026-03-01");
+      return { id, t, d };
+    };
+    const a = await mk("Leave");
+    const b = await mk("Archive");
+    const c = await mk("Loose");
+    await run("projects.stage", { project: a.id, stage: "done", openTasks: "leave" });
+    await run("projects.stage", { project: b.id, stage: "dropped", openTasks: "archive" });
+    await run("projects.stage", { project: c.id, stage: "done", openTasks: "loose" });
+    expect(await projects().then((ps) => ps.map((p) => p.stage).sort())).toEqual(["done", "done", "dropped"]);
+    expect([(await one(a.t)).project, (await one(a.t)).status]).toEqual([a.id, "active"]);
+    expect([(await one(b.t)).project, (await one(b.t)).status]).toEqual([b.id, "archived"]);
+    expect([(await one(c.t)).project, (await one(c.d)).project]).toEqual([null, c.id]);
+  });
+
+  it("need no openTasks when none is open", async () => {
+    const id = await addProject({ title: "Empty" });
+    await run("projects.stage", { project: id, stage: "done" });
+    expect((await projects())[0].stage).toBe("done");
   });
 });
