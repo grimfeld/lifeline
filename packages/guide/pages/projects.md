@@ -56,6 +56,21 @@ start and Deadline, Milestones, a Board, and the material that links to it.
 - **Peek** — a Project opened from a link: change its stage, edit Outcome, start and Deadline, see
   its progress, next Task and Milestones, and go on to its page.
 
+## Making and moving Projects by Command
+
+Claude, the palette and Macros can run the same operations the Projects page does. There is no
+Command to delete a Project: to let one go, drop it.
+
+- **New project…** — also runs without its dialog, given a title and optionally Outcome, stage,
+  start, Deadline, emoji and colour. A Project made this way starts with To do, Doing and Done
+  lanes, like one you make by hand.
+- **Edit project** — changes a Project's title, Outcome, start, Deadline, emoji or colour; only
+  the fields you give.
+- **Move project to stage** — moves a Project to Planned, Active, Paused, Done or Dropped.
+  Finishing or dropping one with open Tasks is refused, naming how many are open, unless you say
+  what becomes of them: `leave`, `archive` or `loose` (keep as loose Tasks), the same three
+  choices as the stage dialog.
+
 ## Tasks
 
 A Task is one piece of work: one-time (on a day, or **Unassigned** in the pool until you give it
