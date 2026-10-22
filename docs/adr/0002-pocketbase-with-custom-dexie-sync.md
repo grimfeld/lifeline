@@ -29,7 +29,11 @@ collection. One typing pause cost a dozen requests and more.
   copy, unless another write to it was queued meanwhile. A 404 still means the
   record is new to the server.
 - **A local write pushes and pulls nothing.** What other devices changed
-  arrives with the interval, focus and online triggers.
+  arrives with the timer, focus, online and the tab coming back.
+- **A hidden tab pulls nothing.** The timer waits 30 s while things move and
+  stretches to 5 minutes over pulls that find nothing moved either way. A
+  local write or a remote change brings the 30 s back; focus, coming back
+  online and the tab being shown again do too, and pull at once.
 
 Until the hook is deployed, an update older than the server's copy overwrites
 it. The window is the minutes between the web deploy and the PocketBase one.

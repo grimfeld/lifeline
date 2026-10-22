@@ -194,6 +194,7 @@ async function pushOnce(): Promise<void> {
       } catch (err) {
         if (isStale(err)) {
           await resolveStale(collection, recordId, local, seqs);
+          moved++;
           continue;
         }
         if ((err as { status?: number }).status !== 404) throw err;
@@ -206,6 +207,7 @@ async function pushOnce(): Promise<void> {
         }
       }
       await db()._outbox.bulkDelete(seqs);
+      moved++;
     } catch (err) {
       // Leave the entry queued; next cycle retries. Keep pushing the rest.
       if (isMissingCollection(err)) {
@@ -281,7 +283,7 @@ async function pullCollection(name: string): Promise<void> {
       const params = Object.fromEntries(chunk.map((id, j) => [`id${j}`, id]));
       const filter = pb.filter(chunk.map((_, j) => `id = {:id${j}}`).join(" || "), params);
       const res = await pb.collection(name).getList<PbRecord>(1, HELD_CHUNK, { filter, skipTotal: true });
-      await applyPulled(name, res.items, held);
+      moved += await applyPulled(name, res.items, held);
     }
   }
   // Keyset paging: each page starts after the last row of the one before, by
@@ -303,7 +305,7 @@ async function pullCollection(name: string): Promise<void> {
     const last = items.at(-1);
     if (!last) break;
     after = last;
-    await applyPulled(name, items, held);
+    moved += await applyPulled(name, items, held);
     if (after.updated > maxUpdated) maxUpdated = after.updated;
     if (items.length < PULL_PAGE) break;
   }
@@ -346,6 +348,12 @@ export async function hasPulledOnce(collection: string): Promise<boolean> {
   return !!(await db()._meta.get(pulledKey(collection)));
 }
 
+/** Records pushed, or written by a pull, since this device started. */
+let moved = 0;
+/** `moved` as the last pull left it: a pull that finds it unchanged moved nothing since, either way. */
+let movedAtLastPull = 0;
+/** Pulls in a row that found nothing moved: they stretch the wait for the next (`nextPullDelay`). */
+let quietCycles = 0;
 let syncing = false;
 /** The cycle asked for while one ran: a full one if any trigger wanted a pull. */
 let queued: "push" | "full" | null = null;
@@ -418,6 +426,10 @@ async function cycle(pull: boolean): Promise<void> {
       }
     }
     problems.push(...pullProblems);
+    if (pull) {
+      quietCycles = moved === movedAtLastPull ? quietCycles + 1 : 0;
+      movedAtLastPull = moved;
+    }
     lastSyncError = problems[0] ?? "";
     listeners.forEach((l) => l());
     if (problems.length) {
@@ -446,18 +458,71 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 export function requestSync(): void {
   void refreshPending();
   if (!started) return;
+  wakeUp();
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => void pushNow(), 400);
 }
 
-const PULL_INTERVAL_MS = 30_000;
+/**
+ * How long the engine waits before the next pull, by how many pulls in a row
+ * found nothing moved either way: 30 s while things change, stretching to 5
+ * minutes when nothing does. A local write, a remote change, focus or the tab
+ * coming back sets it to 30 s again.
+ */
+const PULL_DELAYS_MS = [30_000, 30_000, 60_000, 120_000, 300_000];
+/** Two triggers this close together (focus and visibilitychange on the same return) pull once. */
+const WAKE_DEDUPE_MS = 2_000;
+
+let pullTimer: ReturnType<typeof setTimeout> | null = null;
+let lastWake = 0;
+
+export function nextPullDelay(quiet: number): number {
+  return PULL_DELAYS_MS[Math.min(quiet, PULL_DELAYS_MS.length - 1)];
+}
+
+const hidden = () => typeof document !== "undefined" && document.visibilityState === "hidden";
+
+/**
+ * The next pull. A hidden tab schedules none: it pulls nothing, which on a
+ * phone was a battery drain and on the server idle load; it pulls again on
+ * coming back (`visibilitychange`).
+ */
+function schedulePull(): void {
+  if (pullTimer) clearTimeout(pullTimer);
+  pullTimer = null;
+  if (hidden()) return;
+  pullTimer = setTimeout(() => void pullAndReschedule(), nextPullDelay(quietCycles));
+}
+
+async function pullAndReschedule(): Promise<void> {
+  if (hidden()) return;
+  await syncNow();
+  schedulePull();
+}
+
+/** Back to the short wait, without pulling now: a local write pushes on its own. */
+function wakeUp(): void {
+  if (quietCycles === 0) return;
+  quietCycles = 0;
+  schedulePull();
+}
+
+/** Something says the world may have moved (focus, back online, the tab shown): pull now, and keep pulling often. */
+function wake(): void {
+  if (hidden()) return;
+  const now = Date.now();
+  if (now - lastWake < WAKE_DEDUPE_MS) return;
+  lastWake = now;
+  quietCycles = 0;
+  void pullAndReschedule();
+}
 
 export function startSync(): void {
   // The Demo has no backend (ADR 0077): local writes fill the outbox, which nothing drains.
   if (started || isDemo()) return;
   started = true;
-  void syncNow();
-  setInterval(() => void syncNow(), PULL_INTERVAL_MS);
-  window.addEventListener("online", () => void syncNow());
-  window.addEventListener("focus", () => void syncNow());
+  wake();
+  window.addEventListener("online", wake);
+  window.addEventListener("focus", wake);
+  document.addEventListener("visibilitychange", wake);
 }

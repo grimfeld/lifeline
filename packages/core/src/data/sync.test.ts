@@ -141,7 +141,7 @@ vi.mock("./pb", () => ({
   },
 }));
 
-const { pushNow, syncNow } = await import("./sync");
+const { nextPullDelay, pushNow, requestSync, startSync, syncNow } = await import("./sync");
 
 const stamp = (i: number) => `2026-10-01 10:00:${String(Math.floor(i / 1000)).padStart(2, "0")}.${String(i % 1000).padStart(3, "0")}Z`;
 const serverRow = (i: number, over: Partial<ServerRow> = {}): ServerRow => ({
@@ -318,5 +318,69 @@ describe("pull", () => {
     await syncNow();
     expect(fake.state.outbox).toEqual([]);
     expect(fake.table("things").get("r0001")).toEqual({ id: "r0001", updatedAt: stamp(1), deleted: 0 });
+  });
+});
+
+describe("when to pull (#274)", () => {
+  it("waits 30 s while things move, stretching to 5 minutes when nothing does", () => {
+    expect([0, 1, 2, 3, 4, 9].map(nextPullDelay)).toEqual([30_000, 30_000, 60_000, 120_000, 300_000, 300_000]);
+  });
+
+  // Last in the file: startSync runs once per module, and its listeners stay.
+  it("pulls on a timer while shown, never while hidden, and again on coming back", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    const win = new EventTarget();
+    const doc = Object.assign(new EventTarget(), { visibilityState: "visible" as DocumentVisibilityState });
+    vi.stubGlobal("window", win);
+    vi.stubGlobal("document", doc);
+    try {
+      startSync();
+      await vi.waitFor(() => expect(fake.state.listCalls).toBe(1));
+      // Nothing moves: 30 s after that first pull, then a minute, then two.
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(fake.state.listCalls).toBe(2);
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(fake.state.listCalls).toBe(2);
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(fake.state.listCalls).toBe(3);
+      await vi.advanceTimersByTimeAsync(119_000);
+      expect(fake.state.listCalls).toBe(3);
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(fake.state.listCalls).toBe(4);
+
+      // Hidden: the pending pull does nothing and none follows.
+      doc.visibilityState = "hidden";
+      doc.dispatchEvent(new Event("visibilitychange"));
+      await vi.advanceTimersByTimeAsync(30 * 60_000);
+      expect(fake.state.listCalls).toBe(4);
+      win.dispatchEvent(new Event("focus"));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fake.state.listCalls).toBe(4);
+
+      // Shown again: one pull now (focus arriving with it is the same return)…
+      doc.visibilityState = "visible";
+      doc.dispatchEvent(new Event("visibilitychange"));
+      win.dispatchEvent(new Event("focus"));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fake.state.listCalls).toBe(5);
+      // …and back to the short wait.
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(fake.state.listCalls).toBe(6);
+
+      // A local write after a quiet stretch brings the 30 s wait back too.
+      await vi.advanceTimersByTimeAsync(60_000 + 120_000 + 300_000);
+      expect(fake.state.listCalls).toBe(9);
+      fake.table("things").set("r0001", { id: "r0001", updatedAt: stamp(1), deleted: 0 });
+      fake.state.outbox = [{ seq: 1, collection: "things", recordId: "r0001" }];
+      requestSync();
+      await vi.advanceTimersByTimeAsync(400);
+      expect(fake.state.requests).toEqual(["update things/r0001", "create things/r0001"]);
+      expect(fake.state.listCalls).toBe(9);
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(fake.state.listCalls).toBe(10);
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
   });
 });
