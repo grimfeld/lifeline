@@ -133,11 +133,39 @@ function isMissingCollection(err: unknown): boolean {
   return e?.status === 404 && /collection/i.test(e.response?.message ?? "");
 }
 
+/** The server refused an update because its copy is newer (`pocketbase/pb_hooks/lww.pb.js`). */
+function isStale(err: unknown): boolean {
+  return (err as { status?: number })?.status === 409;
+}
+
 /**
- * Push every queued local write. One failing record (or a collection the
- * server doesn't have yet) is skipped and left queued for the next cycle —
- * it never blocks the others. Throws at the end if anything failed, so the
- * badge shows an error while everything that could sync did.
+ * The server holds a newer copy than the queued write (LWW, ADR 0002). The App
+ * may rescue the losing local edit (ADR 0010); then the server copy replaces
+ * the local row — unless another write to it was queued meanwhile, which push
+ * sends next cycle. Stored here, not left to the pull: a push-only cycle pulls
+ * nothing, and a cursor already past the server copy would never bring it.
+ */
+async function resolveStale(collection: string, recordId: string, local: SyncedRecord, seqs: number[]): Promise<void> {
+  const server = toLocal(collection, (await pb.collection(collection).getOne(recordId)) as unknown as PbRecord);
+  const hook = collection === DOCUMENTS ? documentTypeSync((local as Document).type)?.onConflict : undefined;
+  if (hook) await hook(local as Document, server as Document);
+  await db().transaction("rw", db().collection(collection), db()._outbox, async () => {
+    const rewritten = (await db()._outbox.where("collection").equals(collection).toArray()).some((e) => e.recordId === recordId && !seqs.includes(e.seq!));
+    if (!rewritten && shouldApply(await db().collection(collection).get(recordId), server)) await db().collection(collection).put(server);
+    await db()._outbox.bulkDelete(seqs);
+  });
+}
+
+/**
+ * Push every queued local write: one request per record. The update goes
+ * straight up and the server keeps last-writer-wins — it refuses a write older
+ * than its copy with 409 (`lww.pb.js`); a 404 means the record is new to it.
+ * Reading the server copy first, to compare here, cost a request per record.
+ *
+ * One failing record (or a collection the server doesn't have yet) is skipped
+ * and left queued for the next cycle — it never blocks the others. Throws at
+ * the end if anything failed, so the badge shows an error while everything
+ * that could sync did.
  */
 async function pushOnce(): Promise<void> {
   // Coalesce multiple queued writes of the same record into one push.
@@ -161,29 +189,20 @@ async function pushOnce(): Promise<void> {
     }
     const col = pb.collection(collection);
     try {
-      let serverNewer = false;
       try {
-        const server = await col.getOne<PbRecord>(recordId);
-        // LWW: the newer client clock wins; a newer server copy will arrive via pull.
-        if (server.updatedAt && server.updatedAt > local.updatedAt) serverNewer = true;
-        if (serverNewer) {
-          // The App may rescue the losing local edit (ADR 0010) before pull overwrites it.
-          const hook = collection === DOCUMENTS ? documentTypeSync((local as Document).type)?.onConflict : undefined;
-          if (hook) await hook(local as Document, toLocal(collection, server) as Document);
-        } else {
-          await col.update(recordId, toRemote(collection, local));
-        }
+        await col.update(recordId, toRemote(collection, local));
       } catch (err) {
-        if ((err as { status?: number }).status === 404) {
-          try {
-            if (collection === ATTACHMENTS) await createAttachment(recordId, local);
-            else await col.create({ ...toRemote(collection, local), id: recordId });
-          } catch (createErr) {
-            if (isForeignRecord(createErr)) throw new ForeignRecordError(collection, recordId);
-            throw createErr;
-          }
-        } else {
-          throw err;
+        if (isStale(err)) {
+          await resolveStale(collection, recordId, local, seqs);
+          continue;
+        }
+        if ((err as { status?: number }).status !== 404) throw err;
+        try {
+          if (collection === ATTACHMENTS) await createAttachment(recordId, local);
+          else await col.create({ ...toRemote(collection, local), id: recordId });
+        } catch (createErr) {
+          if (isForeignRecord(createErr)) throw new ForeignRecordError(collection, recordId);
+          throw createErr;
         }
       }
       await db()._outbox.bulkDelete(seqs);
@@ -328,8 +347,11 @@ export async function hasPulledOnce(collection: string): Promise<boolean> {
 }
 
 let syncing = false;
-let queued = false;
+/** The cycle asked for while one ran: a full one if any trigger wanted a pull. */
+let queued: "push" | "full" | null = null;
 let started = false;
+/** What the last pull found wrong: a push-only cycle reports it still, rather than a clean badge it cannot vouch for. */
+let pullProblems: string[] = [];
 
 export async function syncNow(): Promise<void> {
   await cycle(true);
@@ -338,7 +360,8 @@ export async function syncNow(): Promise<void> {
 /**
  * Push the outbox and pull nothing: for a device that has just written. Its
  * change reaches the server; what other devices changed waits for the next
- * pull. A trigger while a cycle runs queues a full one, as `syncNow` does.
+ * pull. A trigger while a cycle runs queues one to follow it: a push, or a
+ * full cycle when any trigger in between asked for a pull.
  */
 export async function pushNow(): Promise<void> {
   await cycle(false);
@@ -351,7 +374,7 @@ async function cycle(pull: boolean): Promise<void> {
     return;
   }
   if (syncing) {
-    queued = true;
+    queued = pull || queued === "full" ? "full" : "push";
     return;
   }
   // Claimed before the first await: focus, online, the interval and the
@@ -367,7 +390,7 @@ async function cycle(pull: boolean): Promise<void> {
       listeners.forEach((l) => l());
       setState("error");
       syncing = false;
-      queued = false;
+      queued = null;
       return;
     }
     if (!bound) await bindAccount(me);
@@ -383,14 +406,18 @@ async function cycle(pull: boolean): Promise<void> {
     } catch (err) {
       problems.push((err as Error).message);
     }
-    for (const name of pull ? syncedCollectionNames() : []) {
-      try {
-        await pullCollection(name);
-      } catch (err) {
-        // A collection missing on the server (pending migration) must not stop the others.
-        problems.push(isMissingCollection(err) ? `server has no "${name}" collection yet — run the PocketBase migrations` : `${name}: ${(err as Error).message}`);
+    if (pull) {
+      pullProblems = [];
+      for (const name of syncedCollectionNames()) {
+        try {
+          await pullCollection(name);
+        } catch (err) {
+          // A collection missing on the server (pending migration) must not stop the others.
+          pullProblems.push(isMissingCollection(err) ? `server has no "${name}" collection yet — run the PocketBase migrations` : `${name}: ${(err as Error).message}`);
+        }
       }
     }
+    problems.push(...pullProblems);
     lastSyncError = problems[0] ?? "";
     listeners.forEach((l) => l());
     if (problems.length) {
@@ -402,21 +429,25 @@ async function cycle(pull: boolean): Promise<void> {
   } finally {
     await refreshPending();
     syncing = false;
-    if (queued) {
-      queued = false;
-      void syncNow();
-    }
+    const next = queued;
+    queued = null;
+    if (next) void cycle(next === "full");
   }
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Nudge the engine after a local write (debounced). */
+/**
+ * Nudge the engine after a local write (debounced): a push, and no pull. A
+ * typing pause used to run a whole cycle — the push, then every collection
+ * pulled — a dozen requests for one edit. Other devices' changes arrive with
+ * the interval, focus and online triggers.
+ */
 export function requestSync(): void {
   void refreshPending();
   if (!started) return;
   if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => void syncNow(), 400);
+  debounceTimer = setTimeout(() => void pushNow(), 400);
 }
 
 const PULL_INTERVAL_MS = 30_000;

@@ -14,3 +14,22 @@ Requirements: desktop + Android (Tauri) + hosted web, offline support everywhere
 - Every App gets offline reads/writes for free by storing through Core's data layer; no App builds its own sync.
 - LWW is acceptable because a single user on multiple devices produces rare conflicts; notch's old "corrections are online-only, offline queue is append-only" rule is obsolete and dropped.
 - Auth is one regular PocketBase user account; all collection rules simply require an authenticated user.
+
+## Amendment (2026-10-22): the server keeps last-writer-wins, and a write only pushes
+
+A push read every record before updating it, to compare the clocks on the
+client, and each local write ran a whole cycle: the push, then a pull of every
+collection. One typing pause cost a dozen requests and more.
+
+- **The server refuses a stale write.** A hook (`pocketbase/pb_hooks/lww.pb.js`)
+  answers an update whose `updatedAt` is older than the stored one with 409 and
+  leaves the record alone. The client sends the update straight away, so an
+  uncontested edit is one request. On 409 it fetches the server copy, lets the
+  App rescue its losing edit (`onConflict`, ADR 0010) and stores the server's
+  copy, unless another write to it was queued meanwhile. A 404 still means the
+  record is new to the server.
+- **A local write pushes and pulls nothing.** What other devices changed
+  arrives with the interval, focus and online triggers.
+
+Until the hook is deployed, an update older than the server's copy overwrites
+it. The window is the minutes between the web deploy and the PocketBase one.

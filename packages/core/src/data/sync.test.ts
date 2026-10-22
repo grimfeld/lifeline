@@ -21,7 +21,12 @@ const fake = vi.hoisted(() => {
     /** Called after each getList, so a test can change the server mid-pull. */
     afterList: null as null | ((name: string, call: number) => void),
     listCalls: 0,
-    failGetOne: new Set<string>(),
+    /** Records whose update the server answers with a 500. */
+    failUpdate: new Set<string>(),
+    /** Every write request the engine sends, as `method collection/id`. */
+    requests: [] as string[],
+    afterGetOne: null as null | (() => void),
+    onConflict: null as null | ((local: Row, server: Row) => Promise<void>),
     /** Local reads, by kind: a pull reads a page at once, never row by row. */
     localGets: 0,
     localBulkGets: 0,
@@ -80,7 +85,9 @@ vi.mock("./account", () => ({
   bindAccount: async (a: { id: string; email: string }) => void (fake.state.bound = a),
 }));
 
-vi.mock("../documents/registry", () => ({ documentTypeSync: () => undefined }));
+vi.mock("../documents/registry", () => ({
+  documentTypeSync: () => (fake.state.onConflict ? { onConflict: fake.state.onConflict } : undefined),
+}));
 
 /** The filter expressions the engine sends, read back by the fake server. */
 vi.mock("./pb", () => ({
@@ -108,13 +115,28 @@ vi.mock("./pb", () => ({
         return { items };
       },
       getOne: async (id: string) => {
-        if (fake.state.failGetOne.has(id)) throw Object.assign(new Error("server error"), { status: 500 });
+        fake.state.requests.push(`getOne ${name}/${id}`);
         const r = (fake.state.server.get(name) ?? []).find((x) => x.id === id);
         if (!r) throw Object.assign(new Error("not found"), { status: 404 });
+        fake.state.afterGetOne?.();
         return r;
       },
-      update: async () => ({}),
-      create: async () => ({}),
+      // Last-writer-wins as pb_hooks/lww.pb.js keeps it: an older `updatedAt` is refused with 409.
+      update: async (id: string, body: Row) => {
+        fake.state.requests.push(`update ${name}/${id}`);
+        if (fake.state.failUpdate.has(id)) throw Object.assign(new Error("server error"), { status: 500 });
+        const rows = fake.state.server.get(name) ?? [];
+        const i = rows.findIndex((x) => x.id === id);
+        if (i < 0) throw Object.assign(new Error("not found"), { status: 404 });
+        if (String(rows[i].updatedAt) > String(body.updatedAt)) throw Object.assign(new Error("stale"), { status: 409 });
+        rows[i] = { ...body, id, updated: stamp(9000) };
+        return rows[i];
+      },
+      create: async (body: Row) => {
+        fake.state.requests.push(`create ${name}/${body.id}`);
+        fake.state.server.set(name, [...(fake.state.server.get(name) ?? []), { ...body, updated: stamp(9000) }]);
+        return body;
+      },
     }),
   },
 }));
@@ -141,7 +163,10 @@ beforeEach(() => {
   fake.state.boundGate = null;
   fake.state.afterList = null;
   fake.state.listCalls = 0;
-  fake.state.failGetOne.clear();
+  fake.state.failUpdate.clear();
+  fake.state.requests = [];
+  fake.state.onConflict = null;
+  fake.state.afterGetOne = null;
   fake.state.localGets = 0;
   fake.state.localBulkGets = 0;
 });
@@ -171,6 +196,81 @@ describe("pushNow", () => {
     expect(fake.state.outbox).toEqual([]);
     expect(fake.state.listCalls).toBe(0);
     expect(fake.table("things").has("r0005")).toBe(false);
+  });
+});
+
+describe("push (#273)", () => {
+  const queue = (collection: string, ...ids: string[]) => {
+    fake.state.outbox = ids.map((recordId, i) => ({ seq: i + 1, collection, recordId }));
+  };
+
+  it("sends one request for an uncontested edit", async () => {
+    fake.state.server.set("things", [serverRow(1)]);
+    fake.table("things").set("r0001", { id: "r0001", updatedAt: stamp(2), deleted: 0, n: 2 });
+    queue("things", "r0001");
+    await pushNow();
+    expect(fake.state.requests).toEqual(["update things/r0001"]);
+    expect(fake.state.outbox).toEqual([]);
+    expect(fake.state.server.get("things")![0]).toMatchObject({ n: 2, updatedAt: stamp(2) });
+  });
+
+  it("coalesces several queued writes of one record into one request", async () => {
+    fake.state.server.set("things", [serverRow(1)]);
+    fake.table("things").set("r0001", { id: "r0001", updatedAt: stamp(3), deleted: 0 });
+    queue("things", "r0001", "r0001", "r0001");
+    await pushNow();
+    expect(fake.state.requests).toEqual(["update things/r0001"]);
+  });
+
+  it("creates a record the server does not have (404 → create)", async () => {
+    fake.table("things").set("r0007", { id: "r0007", updatedAt: stamp(7), deleted: 0 });
+    queue("things", "r0007");
+    await pushNow();
+    expect(fake.state.requests).toEqual(["update things/r0007", "create things/r0007"]);
+    expect(fake.state.server.get("things")).toEqual([expect.objectContaining({ id: "r0007" })]);
+    expect(fake.state.outbox).toEqual([]);
+  });
+
+  it("keeps the newer server copy (LWW) and stores it locally", async () => {
+    fake.state.server.set("things", [serverRow(5, { id: "r0001", n: "server" })]);
+    fake.table("things").set("r0001", { id: "r0001", updatedAt: stamp(1), deleted: 0, n: "mine" });
+    queue("things", "r0001");
+    await pushNow();
+    expect(fake.state.requests).toEqual(["update things/r0001", "getOne things/r0001"]);
+    expect(fake.state.server.get("things")![0]).toMatchObject({ n: "server" });
+    expect(fake.table("things").get("r0001")).toEqual({ id: "r0001", updatedAt: stamp(5), deleted: 0, n: "server" });
+    expect(fake.state.outbox).toEqual([]);
+  });
+
+  it("hands the losing Document edit to its type's onConflict (ADR 0010)", async () => {
+    fake.state.collections = ["documents"];
+    const seen: [Row, Row][] = [];
+    fake.state.onConflict = async (local, server) => void seen.push([local, server]);
+    fake.state.server.set("documents", [serverRow(5, { id: "d1", type: "note", body: "theirs", fields: {} })]);
+    fake.table("documents").set("d1", { id: "d1", type: "note", updatedAt: stamp(1), deleted: 0, body: "mine", tags: [], folder: "", workspace: "" });
+    queue("documents", "d1");
+    await pushNow();
+    expect(seen).toHaveLength(1);
+    expect(seen[0][0]).toMatchObject({ body: "mine" });
+    expect(seen[0][1]).toMatchObject({ body: "theirs" });
+    expect(fake.table("documents").get("d1")).toMatchObject({ body: "theirs" });
+  });
+
+  it("leaves a write made during the conflict queued, and the local row alone", async () => {
+    fake.state.server.set("things", [serverRow(5, { id: "r0001", n: "server" })]);
+    fake.table("things").set("r0001", { id: "r0001", updatedAt: stamp(1), deleted: 0, n: "mine" });
+    queue("things", "r0001");
+    // The user writes again while the server copy is being fetched.
+    fake.state.afterGetOne = () => {
+      fake.table("things").set("r0001", { id: "r0001", updatedAt: stamp(8), deleted: 0, n: "newer" });
+      fake.state.outbox.push({ seq: 2, collection: "things", recordId: "r0001" });
+    };
+    await pushNow();
+    expect(fake.table("things").get("r0001")).toMatchObject({ n: "newer" });
+    expect(fake.state.outbox).toEqual([{ seq: 2, collection: "things", recordId: "r0001" }]);
+    // …and that write wins on the next push.
+    await pushNow();
+    expect(fake.state.server.get("things")![0]).toMatchObject({ n: "newer" });
   });
 });
 
@@ -205,7 +305,7 @@ describe("pull", () => {
     // A local edit to r0001, older than the server's, that cannot reach the server yet.
     fake.table("things").set("r0001", { id: "r0001", updatedAt: "2026-01-01", deleted: 0, mine: true });
     fake.state.outbox = [{ seq: 1, collection: "things", recordId: "r0001" }];
-    fake.state.failGetOne.add("r0001");
+    fake.state.failUpdate.add("r0001");
 
     await syncNow();
     expect(fake.state.meta.get("cursor:things")).toBe(stamp(9));
@@ -214,7 +314,7 @@ describe("pull", () => {
 
     // The push resolves next cycle (the server copy wins); the server copy then
     // still arrives although the cursor is already past it.
-    fake.state.failGetOne.clear();
+    fake.state.failUpdate.clear();
     await syncNow();
     expect(fake.state.outbox).toEqual([]);
     expect(fake.table("things").get("r0001")).toEqual({ id: "r0001", updatedAt: stamp(1), deleted: 0 });
