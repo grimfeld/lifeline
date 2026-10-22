@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
 import { intakesPlugin } from "./build/intakes.ts";
 import { noStorePlugin } from "./build/noStore.ts";
+import { vercelHeadersPlugin } from "./build/headers.ts";
 
 export default defineConfig(({ mode }) => {
   // VITE_* from the environment or a .env file, the environment winning.
@@ -11,7 +12,8 @@ export default defineConfig(({ mode }) => {
   return {
     // intakesPlugin: /intakes.json, the Intakes list the Lifeline extension reads (ADR 0080).
     // noStorePlugin: the e2e dev server's responses are never cached (build/noStore.ts).
-    plugins: [react(), tailwindcss(), intakesPlugin(), noStorePlugin()],
+    // vercelHeadersPlugin: `vite preview` sends vercel.json's headers, CSP included (build/headers.ts).
+    plugins: [react(), tailwindcss(), intakesPlugin(), noStorePlugin(), vercelHeadersPlugin()],
     // The Demo switch as literals (packages/core/src/demo.ts, ADR 0077): the
     // real build sees `false` and drops every Demo branch.
     define: {
