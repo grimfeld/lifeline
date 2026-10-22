@@ -36,6 +36,8 @@ The user's Macros (saved lists of Commands run as one) are tools named macro_…
 
 const STATIC_NAMES = new Set(TOOLS.map((t) => t.name));
 
+const INTERNAL_ERROR = "Lifeline could not do that just now (an internal error). Try again in a moment.";
+
 /**
  * Whether a request needs the Account's Macro tools: listing tools, or
  * calling one that is not static. Only then is the device asked — an
@@ -49,8 +51,9 @@ function wantsMacroTools(body: unknown): boolean {
 /**
  * The tools for one request: the static catalogue and, when it may write and
  * the request needs them, the Account's headless Macros (ADR 0095). Macros are
- * the Account's data, so they come from its device per request, not from
- * \`TOOLS\` at import. A device that cannot answer costs the Macro tools, never
+ * the Account's data, so they come from its device, not from \`TOOLS\` at
+ * import; the pool keeps each Account's list a while, so most requests don't
+ * wait on the device. A device that cannot answer costs the Macro tools, never
  * the listing.
  */
 async function toolsFor(auth: AuthInfo, body: unknown): Promise<ToolSpec[]> {
@@ -63,6 +66,11 @@ async function toolsFor(auth: AuthInfo, body: unknown): Promise<ToolSpec[]> {
   }
 }
 
+/**
+ * One server per request, as stateless Streamable HTTP needs: a server serves
+ * one transport at a time. Building one with every tool costs well under a
+ * millisecond, so it is not cached.
+ */
 function buildServer(auth: AuthInfo, tools: ToolSpec[]): McpServer {
   const server = new McpServer({ name: "lifeline", version: "0.1.0" }, { instructions: INSTRUCTIONS });
   const userId = String(auth.extra?.userId);
@@ -82,8 +90,10 @@ function buildServer(auth: AuthInfo, tools: ToolSpec[]): McpServer {
           const result = spec.local ? spec.local(args) : await devices.call(userId, spec.name, args, spec.write);
           return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
         } catch (err) {
-          if (!(err instanceof ExpectedError)) console.error(`[tool ${spec.name}]`, err);
-          return { content: [{ type: "text" as const, text: (err as Error).message }], isError: true };
+          // The agent's own mistakes are its to read; anything else is logged here and never shown.
+          if (err instanceof ExpectedError) return { content: [{ type: "text" as const, text: err.message }], isError: true };
+          console.error(`[tool ${spec.name}]`, err);
+          return { content: [{ type: "text" as const, text: INTERNAL_ERROR }], isError: true };
         }
       },
     );
