@@ -40,7 +40,7 @@ export function CellValue({ doc, field }: { doc: Document; field: FieldDef }) {
         </a>
       );
     case "json":
-      return <code className="text-muted-foreground text-[10px]">{JSON.stringify(v)}</code>;
+      return <code className="text-muted-foreground text-2xs">{JSON.stringify(v)}</code>;
     case "select": {
       const o = field.options?.find((o) => o.value === String(v));
       return <span>{o?.label ?? String(v)}</span>;

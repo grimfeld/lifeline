@@ -23,7 +23,10 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  PageHeader,
   Tip,
+  ToggleGroup,
+  ToggleGroupItem,
   cn,
   usePhone,
   toast,
@@ -216,7 +219,7 @@ export function BasePage() {
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
         {Icon && <Icon className="text-muted-foreground size-5" />}
-        <h1 className="text-lg font-semibold tracking-tight">{def.label}</h1>
+        <PageHeader title={def.label} className="w-auto" />
         <Badge variant="secondary">{docs.length}</Badge>
         {def.internal && <Badge variant="outline">internal</Badge>}
         {app && (
@@ -228,9 +231,11 @@ export function BasePage() {
           <div className="ml-auto flex items-center gap-1 max-md:contents">
             {creatable &&
               (phone ? (
-                <Button size="icon" className="size-8" aria-label={`New ${singularOf(def).toLowerCase()}`} title={`New ${singularOf(def).toLowerCase()}`} onClick={() => setNewOpen(true)}>
-                  <Plus />
-                </Button>
+                <Tip label={`New ${singularOf(def).toLowerCase()}`}>
+                  <Button size="icon" onClick={() => setNewOpen(true)}>
+                    <Plus />
+                  </Button>
+                </Tip>
               ) : (
                 <Button size="sm" onClick={() => setNewOpen(true)}>
                   <Plus /> New {singularOf(def).toLowerCase()}
@@ -243,9 +248,11 @@ export function BasePage() {
               </Button>
             )}
             {!phone && (
-              <Button size="icon" variant="ghost" className="size-8" title="Document types" onClick={() => navigate("/base")}>
-                <Settings2 />
-              </Button>
+              <Tip label="Document types">
+                <Button size="icon" variant="ghost" onClick={() => navigate("/base")}>
+                  <Settings2 />
+                </Button>
+              </Tip>
             )}
           </div>
         </PhoneDock>
@@ -255,7 +262,7 @@ export function BasePage() {
       {phone ? (
         <PhoneDock order={1}>
           <Select value={viewId} onValueChange={selectView}>
-            <SelectTrigger size="sm" aria-label="View" className="h-8">
+            <SelectTrigger size="sm" aria-label="View">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -268,11 +275,13 @@ export function BasePage() {
             </SelectContent>
           </Select>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="icon" variant={dirty ? "secondary" : "ghost"} className="size-8" aria-label="View actions" title="View actions">
-                <MoreHorizontal />
-              </Button>
-            </DropdownMenuTrigger>
+            <Tip label="View actions">
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant={dirty ? "secondary" : "ghost"}>
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+            </Tip>
             <DropdownMenuContent align="end" className="min-w-48">
               {dirty && view && (
                 <DropdownMenuItem onClick={() => void saveCurrent()}>
@@ -301,28 +310,28 @@ export function BasePage() {
         </PhoneDock>
       ) : (
         <div className="flex flex-wrap items-center gap-1 border-b px-4 py-1.5">
-          <button className={cn("rounded-md px-2 py-1 text-sm", viewId === ALL_VIEW_ID ? "bg-accent font-medium" : "hover:bg-accent/50")} onClick={() => selectView(ALL_VIEW_ID)}>
-            All
-          </button>
-          {views.map((v) => (
-            <button key={v.id} className={cn("rounded-md px-2 py-1 text-sm", viewId === v.id ? "bg-accent font-medium" : "hover:bg-accent/50")} onClick={() => selectView(v.id)}>
-              {v.name}
-            </button>
-          ))}
-          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSaveAsOpen(true)}>
+          <ToggleGroup aria-label="View" value={viewId} onValueChange={selectView}>
+            <ToggleGroupItem value={ALL_VIEW_ID}>All</ToggleGroupItem>
+            {views.map((v) => (
+              <ToggleGroupItem key={v.id} value={v.id}>
+                {v.name}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <Button size="sm" variant="ghost" className="text-xs" onClick={() => setSaveAsOpen(true)}>
             <Plus className="size-3" /> View
           </Button>
           {dirty && (
             <span className="ml-auto flex items-center gap-1">
               {view && (
-                <Button size="sm" variant="outline" className="h-7" onClick={() => void saveCurrent()}>
+                <Button size="sm" variant="outline" onClick={() => void saveCurrent()}>
                   <Save /> Save “{view.name}”
                 </Button>
               )}
-              <Button size="sm" variant="ghost" className="h-7" onClick={() => setSaveAsOpen(true)}>
+              <Button size="sm" variant="ghost" onClick={() => setSaveAsOpen(true)}>
                 Save as…
               </Button>
-              <Button size="sm" variant="ghost" className="h-7" onClick={() => setState(stateOf(view, def))}>
+              <Button size="sm" variant="ghost" onClick={() => setState(stateOf(view, def))}>
                 Reset
               </Button>
             </span>
@@ -354,14 +363,14 @@ export function BasePage() {
         <PhoneDock>
           <div className="relative max-md:basis-28">
             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2" />
-            <Input className="h-7 w-48 pl-7 text-xs max-md:h-8 max-md:w-full" placeholder="Search…" value={state.search} onChange={(e) => setState({ ...state, search: e.target.value })} />
+            <Input className="w-48 pl-7 text-xs max-md:h-8 max-md:w-full" placeholder="Search…" value={state.search} onChange={(e) => setState({ ...state, search: e.target.value })} />
           </div>
           <PhoneFilters active={state.filters.length}>
             <FilterBar def={def} filters={state.filters} onChange={(filters) => setState({ ...state, filters })} />
             <div className="ml-auto flex items-center gap-1 max-md:ml-0 max-md:flex-wrap">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs">
+                  <Button size="sm" variant="ghost" className="text-xs">
                     Sort: {allFields.find((f) => f.key === state.sortBy)?.label ?? state.sortBy} {state.sortDir === "asc" ? "↑" : "↓"} <ChevronDown className="size-3" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -376,7 +385,7 @@ export function BasePage() {
               </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs" title="Columns">
+                  <Button size="sm" variant="ghost" className="text-xs" title="Columns">
                     <Columns3 className="size-3.5" /> Columns
                   </Button>
                 </DropdownMenuTrigger>
@@ -391,7 +400,7 @@ export function BasePage() {
               {pickKey && pickCandidates.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs" title={`Field the ${LAYOUT_META[state.layout].label} layout reads`}>
+                    <Button size="sm" variant="ghost" className="text-xs" title={`Field the ${LAYOUT_META[state.layout].label} layout reads`}>
                       {pickLabel}: {pickedField?.label ?? "—"} <ChevronDown className="size-3" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -405,16 +414,18 @@ export function BasePage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <div className="bg-muted/60 flex rounded-md p-0.5">
+              <ToggleGroup aria-label="Layout" value={state.layout} onValueChange={(layout) => setState({ ...state, layout: layout as ViewLayout })}>
                 {layouts.map((id) => {
                   const l = LAYOUT_META[id];
                   return (
-                    <button key={id} title={l.label} className={cn("rounded px-1.5 py-0.5", state.layout === id ? "bg-background shadow-sm" : "text-muted-foreground")} onClick={() => setState({ ...state, layout: id })}>
-                      <l.icon className="size-3.5" />
-                    </button>
+                    <Tip key={id} label={l.label}>
+                      <ToggleGroupItem value={id}>
+                        <l.icon className="size-3.5" />
+                      </ToggleGroupItem>
+                    </Tip>
                   );
                 })}
-              </div>
+              </ToggleGroup>
             </div>
           </PhoneFilters>
         </PhoneDock>
@@ -424,19 +435,19 @@ export function BasePage() {
       {selected.size > 0 && (
         <div className="bg-accent/40 flex items-center gap-2 border-b px-4 py-1.5 text-sm">
           <span>{selected.size} selected</span>
-          <Button size="sm" variant="outline" className="h-7" onClick={() => setTagOpen(true)}>
+          <Button size="sm" variant="outline" onClick={() => setTagOpen(true)}>
             <Tag /> Add tags
           </Button>
-          <Button size="sm" variant="outline" className="h-7" onClick={() => setMoveOpen(true)}>
+          <Button size="sm" variant="outline" onClick={() => setMoveOpen(true)}>
             <FolderInput /> Move to workspace
           </Button>
-          <Button size="sm" variant="outline" className="h-7 text-destructive" onClick={() => void bulkDelete()}>
+          <Button size="sm" variant="outline" className="text-destructive" onClick={() => void bulkDelete()}>
             <Trash2 /> Delete
           </Button>
-          <Button size="sm" variant="ghost" className="h-7" onClick={() => setSelected(new Set(rows.map((r) => r.id)))}>
+          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set(rows.map((r) => r.id)))}>
             Select all {rows.length}
           </Button>
-          <Button size="sm" variant="ghost" className="h-7" onClick={() => setSelected(new Set())}>
+          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
             Clear
           </Button>
         </div>

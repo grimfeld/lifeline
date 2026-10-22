@@ -49,7 +49,7 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
       {filters.map((f, i) => (
         <span key={i} className="bg-muted inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs">
           {describe(f, def)}
-          <button className="hover:text-destructive" onClick={() => onChange(filters.filter((_, j) => j !== i))} aria-label="Remove filter">
+          <button type="button" className="hover:text-destructive" onClick={() => onChange(filters.filter((_, j) => j !== i))} aria-label="Remove filter">
             <X className="size-3" />
           </button>
         </span>
@@ -83,7 +83,7 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
           {op.needsValue &&
             (field?.kind === "select" && draft.op !== "contains" ? (
               <Select value={String(draft.value ?? "")} onValueChange={(v) => setDraft({ ...draft, value: v })}>
-                <SelectTrigger className="h-7 w-32 text-xs">
+                <SelectTrigger size="sm" className="w-32 text-xs">
                   <SelectValue placeholder="value" />
                 </SelectTrigger>
                 <SelectContent>
@@ -96,7 +96,7 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
               </Select>
             ) : field?.kind === "boolean" ? (
               <Select value={String(draft.value ?? "true")} onValueChange={(v) => setDraft({ ...draft, value: v })}>
-                <SelectTrigger className="h-7 w-24 text-xs">
+                <SelectTrigger size="sm" className="w-24 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -109,7 +109,7 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
               <DatePicker size="sm" className="w-36" value={typeof draft.value === "string" ? draft.value : ""} onChange={(v) => commit(v)} aria-label="Value" />
             ) : (
               <Input
-                className="h-7 w-36 text-xs"
+                className="w-36 text-xs"
                 type={field?.kind === "number" ? "number" : "text"}
                 placeholder={draft.op === "anyOf" ? "a, b, c" : "value"}
                 value={String(draft.value ?? "")}
@@ -121,12 +121,12 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
           <Button size="sm" onClick={() => commit()}>
             Add
           </Button>
-          <Button size="sm" variant="ghost" className="h-7" onClick={() => setAdding(false)}>
+          <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>
             Cancel
           </Button>
         </span>
       ) : (
-        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAdding(true)}>
+        <Button size="sm" variant="ghost" className="text-xs" onClick={() => setAdding(true)}>
           <Plus className="size-3" /> Filter
         </Button>
       )}
