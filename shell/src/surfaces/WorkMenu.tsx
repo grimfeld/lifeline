@@ -30,7 +30,7 @@ import { usePush } from "./push";
 /** A work item on a day-granular view: placed on a day, or in the pool. */
 export type DayWork = (SurfaceItem | (PoolItem & { displayDate?: undefined; placementId?: undefined; start?: undefined; end?: undefined })) & { color?: string };
 
-const fail = (err: Error) => toast.error(err.message);
+const fail = (err: Error) => toast.error(`Could not save: ${err.message}`);
 
 export function completeWork(item: DayWork) {
   completeSurfaceItem(item as SurfaceItem)

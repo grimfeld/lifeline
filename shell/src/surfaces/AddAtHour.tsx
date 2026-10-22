@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Button, Field, formatLength, Input, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, TimeField, toast } from "@lifeline/ui";
+import { Button, Field, formatLength, Input, Popover, PopoverAnchor, PopoverContent, Sheet, SheetContent, SheetTitle, TimeField, toast, usePhone } from "@lifeline/ui";
 import {
   addTimeBlock,
   BLOCK_DEFAULT_MIN,
@@ -14,7 +14,6 @@ import {
   spanProblem,
   timedCreators,
   unplaceItem,
-  useIsMobile,
   type DateStr,
   type Handoff,
   type IntakePrefill,
@@ -42,7 +41,7 @@ export interface AddingAt {
  * had no way in on a phone), or unplaced work, which gets a Time block.
  */
 export function AddAtHour({ at, templates, pool, onClose }: { at: AddingAt; templates: TimedTemplate[]; pool: (PoolItem & { color?: string })[]; onClose: () => void }) {
-  const isMobile = useIsMobile();
+  const isMobile = usePhone();
   const [title, setTitle] = useState("");
   const [start, setStart] = useState(() => toClock(at.hours));
   /** How long the new Event lasts (an hour, unless a swept range says otherwise): moving the Start keeps it, and the End is read from it. */
@@ -159,7 +158,7 @@ export function AddAtHour({ at, templates, pool, onClose }: { at: AddingAt; temp
         <Group icon={<Inbox className="size-3.5" />} label="Unplaced work">
           <div className="grid max-h-48 w-full gap-1 overflow-y-auto">
             {work.map((w) => (
-              <button key={w.key} className="hover:bg-accent flex items-center gap-2 rounded-md border px-2 py-1.5 text-left text-sm" onClick={() => plan(w)}>
+              <button type="button" key={w.key} className="hover:bg-accent flex items-center gap-2 rounded-md border px-2 py-1.5 text-left text-sm" onClick={() => plan(w)}>
                 <span className="size-1.5 shrink-0 rounded-full" style={{ background: w.color ?? "var(--muted-foreground)" }} />
                 <span className="min-w-0 flex-1 truncate">{w.title}</span>
                 {w.estimateMin ? <span className="text-muted-foreground text-xs tabular-nums">{w.estimateMin}m</span> : null}

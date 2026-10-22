@@ -21,7 +21,7 @@ export function TimeAppLinks() {
       {screens.map((s) => {
         const Icon = s.icon;
         return (
-          <Button key={s.id} variant="outline" className="h-8" title={`Manage ${s.title.toLowerCase()}`} onClick={() => navigate(screenRoute(s))}>
+          <Button key={s.id} variant="outline" title={`Manage ${s.title.toLowerCase()}`} onClick={() => navigate(screenRoute(s))}>
             {Icon && <Icon />} <span className="max-md:hidden">{s.title}</span>
           </Button>
         );
