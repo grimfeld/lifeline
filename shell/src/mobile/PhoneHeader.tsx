@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
 import { Button, Sheet, SheetContent, SheetTitle, Tip } from "@lifeline/ui";
-import { moduleOfPath } from "@lifeline/core";
+import { frameById, frameOfPath, moduleOfPath } from "@lifeline/core";
 import { ChevronLeft, CircleHelp, Menu } from "lucide-react";
 import { WorkspacePicker } from "../components/WorkspacePicker";
 import { Rail } from "../components/Rail";
@@ -27,9 +27,10 @@ export function PhoneHeader() {
   const [showRail, setShowRail] = useState(false);
   const moduleId = moduleOfPath(location.pathname);
   const shell = moduleId ? MODULE_SHELLS[moduleId] : undefined;
-  const FrameSidebar = shell ? undefined : layoutOf(moduleId)?.sidebar;
+  // No Module owns the Vault (ADR 0068): its frame's sidebar stands in.
+  const FrameSidebar = shell ? undefined : moduleId ? layoutOf(moduleId)?.sidebar : frameById(frameOfPath(location.pathname))?.sidebar;
   const ShellNav = shell?.Nav;
-  const hasModuleNav = !!moduleId && (!shell || !!ShellNav) && !isSingleScreen(moduleId);
+  const hasModuleNav = moduleId ? (!shell || !!ShellNav) && !isSingleScreen(moduleId) : !!FrameSidebar;
 
   // The drawer always opens on the Module's navigation, wherever it was left.
   const openDrawer = () => {
