@@ -16,12 +16,19 @@ import { loginPage } from "./login";
  * this server's page; the client then holds an opaque access token (1 h) and a
  * rotating refresh token (90 days, sliding). Grants live in PocketBase as
  * SHA-256 hashes; deleting the row disconnects the client.
+ *
+ * Within VERIFY_CACHE_MS, not at once: a verified access token is trusted that
+ * long without asking PocketBase again. A revocation through this server
+ * clears the cache, but a row deleted in PocketBase's dashboard (the only
+ * other way, as no Lifeline screen does it) is not heard here, so its token
+ * keeps working until the entry expires. That window is accepted.
  */
 
 const ACCESS_SECONDS = 60 * 60;
 const REFRESH_SECONDS = 90 * 24 * 60 * 60;
 const PENDING_MS = 10 * 60_000;
 const CODE_MS = 5 * 60_000;
+/** How long a verified access token is trusted without a lookup: also how long a deleted grant keeps working. */
 const VERIFY_CACHE_MS = 30_000;
 /** How often the hot paths clear expired entries. */
 const SWEEP_EVERY_MS = 60_000;

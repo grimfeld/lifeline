@@ -320,6 +320,19 @@ let queued = false;
 let started = false;
 
 export async function syncNow(): Promise<void> {
+  await cycle(true);
+}
+
+/**
+ * Push the outbox and pull nothing: for a device that has just written. Its
+ * change reaches the server; what other devices changed waits for the next
+ * pull. A trigger while a cycle runs queues a full one, as `syncNow` does.
+ */
+export async function pushNow(): Promise<void> {
+  await cycle(false);
+}
+
+async function cycle(pull: boolean): Promise<void> {
   const me = currentAccount();
   if (!me) {
     setState("unauthenticated");
@@ -358,7 +371,7 @@ export async function syncNow(): Promise<void> {
     } catch (err) {
       problems.push((err as Error).message);
     }
-    for (const name of syncedCollectionNames()) {
+    for (const name of pull ? syncedCollectionNames() : []) {
       try {
         await pullCollection(name);
       } catch (err) {

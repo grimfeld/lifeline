@@ -11,7 +11,8 @@
 // resolves or redirects to a private address is not caught here; `$http.send`
 // follows redirects and exposes no hook to stop it.
 
-const BLOCKED_SUFFIXES = [".localhost", ".internal", ".local", ".lan", ".home.arpa", ".intranet", ".corp"];
+// `.flycast` names are Fly's private load-balanced addresses (fdaa:…), like `.internal`.
+const BLOCKED_SUFFIXES = [".localhost", ".internal", ".flycast", ".local", ".lan", ".home.arpa", ".intranet", ".corp"];
 
 function hostOf(url) {
   const m = /^https?:\/\/(?:[^@/?#]*@)?(\[[^\]]*\]|[^:/?#]*)/i.exec(url);

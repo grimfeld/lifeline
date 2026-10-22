@@ -9,10 +9,16 @@ import type { DeviceAuth, DeviceRequest, DeviceResponse } from "./worker";
  * recently. A worker holds the Account's whole store in memory, so the first
  * call after a cold start pays one full pull; later calls pull only what
  * changed. An idle worker is stopped — but never while it holds writes the
- * server has not taken yet.
+ * server has not taken yet. Each worker holds all of Core and a copy of its
+ * Account, so the pool is capped: past MAX_DEVICES the least recently used
+ * idle one is stopped, and pays a full pull again on its next call.
  */
 
 const IDLE_MS = 15 * 60_000;
+/** Warm devices kept at once, for a 512 MB machine (fly.toml). Busy ones are never stopped, so the pool may run over while they finish. */
+const MAX_DEVICES = 4;
+/** How long an Account's Macro tool list is reused before its device is asked again: a Macro made on another device shows within this. */
+const MACRO_TOOLS_MS = 60_000;
 const RETRY_MS = 30_000;
 const CALL_TIMEOUT_MS = 60_000;
 /** Lifetime of the per-Account PocketBase token a worker acts with. */
@@ -50,9 +56,26 @@ interface Device {
 
 const WORKER_URL = new URL("./worker.mjs", import.meta.url);
 
+/** The Accounts whose devices to stop to get back under `max`: least recently used first (the map's order), never one with a call or a write in flight. */
+export function overCap(devices: Map<string, Pick<Device, "pending" | "waiting">>, max: number): string[] {
+  let excess = devices.size - max;
+  const out: string[] = [];
+  for (const [userId, d] of devices) {
+    if (excess <= 0) break;
+    if (d.pending > 0 || d.waiting.size > 0) continue;
+    out.push(userId);
+    excess--;
+  }
+  return out;
+}
+
 export class DevicePool {
+  /** In order of last use, oldest first. */
   private devices = new Map<string, Device>();
   private tokens = new Map<string, { auth: DeviceAuth; expires: number }>();
+  private macros = new Map<string, { tools: MacroTool[]; until: number }>();
+  /** Counts writes, so a Macro list read while one ran is not kept. */
+  private writes = 0;
 
   constructor(
     private admin: PocketBase,
@@ -84,6 +107,10 @@ export class DevicePool {
     worker.on("error", (err) => console.error(`[device ${userId}]`, err));
     worker.on("exit", (code) => {
       if (this.devices.get(userId) === device) this.devices.delete(userId);
+      if (!this.devices.has(userId)) {
+        this.tokens.delete(userId);
+        this.macros.delete(userId);
+      }
       if (device.pending > 0) console.error(`[device ${userId}] stopped (exit ${code}) with ${device.pending} write(s) the server never took; they are lost`);
       for (const w of device.waiting.values()) {
         clearTimeout(w.timer);
@@ -92,6 +119,25 @@ export class DevicePool {
     });
     this.devices.set(userId, device);
     return device;
+  }
+
+  /** The Account's device, started if need be and moved to most recently used. */
+  private deviceFor(userId: string): Device {
+    const warm = this.devices.get(userId);
+    if (warm) {
+      this.devices.delete(userId);
+      this.devices.set(userId, warm);
+      return warm;
+    }
+    const device = this.spawn(userId);
+    for (const id of overCap(this.devices, MAX_DEVICES)) void this.stop(id, this.devices.get(id)!);
+    return device;
+  }
+
+  private async stop(userId: string, device: Device): Promise<void> {
+    clearTimeout(device.idleTimer);
+    if (this.devices.get(userId) === device) this.devices.delete(userId);
+    await device.worker.terminate();
   }
 
   private send(userId: string, device: Device, req: Outgoing): Promise<DeviceResponse> {
@@ -116,27 +162,38 @@ export class DevicePool {
         await this.send(userId, device, { kind: "flush", auth: await this.authFor(userId) }).catch(() => undefined);
         return;
       }
-      this.devices.delete(userId);
-      await device.worker.terminate();
+      await this.stop(userId, device);
     }, delay);
   }
 
   /** Run one tool as the Account. Resolves to the tool's result; rejects with ExpectedError for the agent's own mistakes. */
   async call(userId: string, tool: string, args: Record<string, unknown>, write: boolean): Promise<unknown> {
     const auth = await this.authFor(userId);
-    const device = this.devices.get(userId) ?? this.spawn(userId);
+    if (write) {
+      this.writes++;
+      this.macros.delete(userId);
+    }
+    const device = this.deviceFor(userId);
     const res = await this.send(userId, device, { kind: "call", tool, args, write, auth });
     if (res.ok) return res.result;
     throw res.expected ? new ExpectedError(res.error) : new Error(res.error);
   }
 
-  /** The Account's headless Macros as tools (ADR 0092): its own data, so its device reads them. */
+  /**
+   * The Account's headless Macros as tools (ADR 0092): its own data, so its
+   * device reads them. Kept for MACRO_TOOLS_MS and dropped by any write
+   * through this server, so listing tools rarely waits on the device.
+   */
   async macroTools(userId: string): Promise<MacroTool[]> {
+    const hit = this.macros.get(userId);
+    if (hit && hit.until > Date.now()) return hit.tools;
+    const writes = this.writes;
     const auth = await this.authFor(userId);
-    const device = this.devices.get(userId) ?? this.spawn(userId);
-    const res = await this.send(userId, device, { kind: "macro-tools", auth });
-    if (res.ok) return res.result as MacroTool[];
-    throw new Error(res.error);
+    const res = await this.send(userId, this.deviceFor(userId), { kind: "macro-tools", auth });
+    if (!res.ok) throw new Error(res.error);
+    const tools = res.result as MacroTool[];
+    if (writes === this.writes) this.macros.set(userId, { tools, until: Date.now() + MACRO_TOOLS_MS });
+    return tools;
   }
 
   /** On shutdown: push what is still queued (within DRAIN_MS), then stop every worker; whatever is left is logged as lost. */
