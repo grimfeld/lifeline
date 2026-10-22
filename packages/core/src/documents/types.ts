@@ -222,6 +222,19 @@ export interface DocumentTypeDef {
    * (ADR 0060). Followed once, not recursively.
    */
   followers?: (doc: Document) => Promise<string[]>;
+  /**
+   * How the type describes one of its Documents to an agent (ADR 0098): what
+   * the owning App's screens show of it beyond its fields — a Project's Board
+   * — as plain JSON. `get_document` answers it under `detail`; the UI never
+   * reads it.
+   */
+  describe?: (doc: Document) => Promise<Record<string, unknown>>;
+  /**
+   * For an internal type (ADR 0098): the Document that speaks for one of its
+   * own — a Lane's Project. `get_document` on the internal id answers as if
+   * asked for the owner; without one, the id is refused like any internal one.
+   */
+  owner?: (doc: Document) => Promise<Document | undefined>;
   /** Sort order in pickers / the Bases list. */
   order?: number;
   /** The Reports the user chose for this type (ADR 0076); absent = the defaults (`reportsOf`). */

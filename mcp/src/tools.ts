@@ -109,7 +109,7 @@ const GENERIC: ToolSpec[] = [
   {
     name: "get_document",
     title: "Get a Document",
-    description: "One Document in full: fields, tags, folder and markdown body.",
+    description: "One Document in full: fields, tags, folder and markdown body. Some types add `detail`: a Project gives its Milestones, Lanes with their Tasks in order, recurring Tasks and next Task. A Milestone or Lane id answers with its Project.",
     input: { id: z.string(), workspace },
     write: false,
   },

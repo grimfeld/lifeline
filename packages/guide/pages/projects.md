@@ -102,7 +102,10 @@ Through the Lifeline connector, Claude can:
 - See and tick off what is due — "What's on today?", `agenda` then `complete_item`.
 - Move a Task to another day or back to the pool — "Move the plumber call to Monday",
   `move_item`.
-- Read a Project and what links to it — `search_documents`, `get_document`.
+- Read a Project's whole Board — its stage, Outcome and dates, its Milestones with their progress,
+  its Lanes with their Tasks in order, its recurring Tasks and its next Task — and what links to
+  it: "What's next on the bathroom?", `search_documents` then `get_document`. A Milestone's or
+  Lane's id reads as its Project.
 
 ## Tips
 

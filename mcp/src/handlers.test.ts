@@ -229,3 +229,44 @@ describe("Macros", () => {
     expect(core.saveMacro).toHaveBeenCalledWith(expect.objectContaining({ id: "m1", name: "New", builtin: "morning", steps: macros[0].steps, sort: 0 }));
   });
 });
+
+describe("get_document", () => {
+  const doc = (id: string, type: string, folder = "") =>
+    ({ id, type, title: id, folder, tags: [], createdAt: "", updatedAt: "" }) as unknown as Document;
+
+  it("merges a type's own description under detail", async () => {
+    types.set("board", { ...journal, id: "board", describe: async (d) => ({ lanes: [`of ${d.id}`] }) });
+    docs.set("b1", doc("b1", "board"));
+    expect(await runTool("get_document", { id: "b1" })).toMatchObject({ id: "b1", detail: { lanes: ["of b1"] } });
+  });
+
+  it("answers as before for a type without one", async () => {
+    types.set(journal.id, journal);
+    docs.set("j1", doc("j1", journal.id));
+    const got = (await runTool("get_document", { id: "j1" })) as Record<string, unknown>;
+    expect(got.id).toBe("j1");
+    expect("detail" in got).toBe(false);
+  });
+
+  it("answers for an internal Document as the Document that owns it", async () => {
+    types.set("board", { ...journal, id: "board", describe: async () => ({ lanes: 2 }) });
+    types.set("lane", { ...journal, id: "lane", internal: true, owner: async () => docs.get("b1") });
+    docs.set("b1", doc("b1", "board"));
+    docs.set("l1", doc("l1", "lane"));
+    expect(await runTool("get_document", { id: "l1" })).toMatchObject({ id: "b1", type: "board", detail: { lanes: 2 } });
+  });
+
+  it("still refuses an internal Document whose type names no owner", async () => {
+    types.set("version", { ...journal, id: "version", internal: true });
+    docs.set("v1", doc("v1", "version"));
+    await expect(runTool("get_document", { id: "v1" })).rejects.toThrow(/No Document v1/);
+  });
+
+  it("refuses an owner kept in the Private folder", async () => {
+    types.set("board", journal);
+    types.set("lane", { ...journal, id: "lane", internal: true, owner: async () => docs.get("b1") });
+    docs.set("b1", doc("b1", "board", "Private"));
+    docs.set("l1", doc("l1", "lane"));
+    await expect(runTool("get_document", { id: "l1" })).rejects.toThrow(/No Document l1/);
+  });
+});

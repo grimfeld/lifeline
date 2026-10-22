@@ -163,6 +163,19 @@ async function visibleDocument(id: unknown): Promise<Document> {
   return doc;
 }
 
+/**
+ * The Document `get_document` answers with (ADR 0098): the one asked for, or,
+ * for an internal Document whose type names an owner, that owner — a Lane
+ * answers as its Project. The owner must itself be visible to an agent.
+ */
+async function describedDocument(id: unknown): Promise<Document> {
+  const doc = await getDocument(String(id));
+  const def = doc ? documentTypeSync(doc.type) : undefined;
+  const answer = doc && def?.internal && def.owner && !inPrivateFolder(doc.folder) ? await def.owner(doc) : doc;
+  if (!answer || !isAgentVisible(answer)) throw new ToolError(`No Document ${id} in this Workspace`);
+  return answer;
+}
+
 function assertNotPrivate(folder: string): void {
   if (inPrivateFolder(normalizeFolder(folder))) throw new ToolError("The Private folder is out of an agent's reach");
 }
@@ -309,7 +322,9 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
   },
 
   async get_document(a) {
-    return full(await visibleDocument(a.id));
+    const doc = await describedDocument(a.id);
+    const def = documentTypeSync(doc.type);
+    return def?.describe ? { ...full(doc), detail: await def.describe(doc) } : full(doc);
   },
 
   async agenda(a) {
