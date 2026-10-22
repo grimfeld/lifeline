@@ -1,6 +1,7 @@
 import { z, type ZodTypeAny } from "zod";
 import { isInvocable, macroCommand, commandKey, type CommandArg, type CommandDef, type MacroShape, type OwnedCommand } from "@lifeline/core";
 import { GUIDE_PAGES, guidePage } from "@lifeline/guide";
+import { guideBody } from "@lifeline/guide/pages";
 import { manifests } from "./apps";
 
 /**
@@ -47,7 +48,7 @@ function readGuide({ page }: Record<string, unknown>): unknown {
   const pages = GUIDE_PAGES.map((p) => ({ page: p.slug, title: p.title }));
   if (page === undefined) return { pages };
   const p = guidePage(String(page));
-  return p ? { page: p.slug, title: p.title, markdown: p.body } : { error: `No Guide page "${String(page)}".`, pages };
+  return p ? { page: p.slug, title: p.title, markdown: guideBody(p.slug) } : { error: `No Guide page "${String(page)}".`, pages };
 }
 
 /** A step as an agent writes it: the stored shape, so list_macros' steps go back into update_macro unchanged. */

@@ -1,6 +1,6 @@
+import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
 import { ShoppingBasket } from "lucide-react";
-import { PantryScreen } from "./screens/PantryScreen";
 import { RunningLowCard } from "./cards/RunningLowCard";
 import { ExpiringCard } from "./cards/ExpiringCard";
 import { StorageCard, useStorageCardTitle } from "./cards/StorageCard";
@@ -9,6 +9,9 @@ import { useStorageOptions } from "./data/repo";
 import { pantryCommands } from "./commands";
 import { pantryTypeDefs } from "./types";
 import { DEFAULT_EXPIRY_WINDOW_DAYS } from "./domain/rules";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const PantryScreen = lazy(() => import("./screens/PantryScreen").then((m) => ({ default: m.PantryScreen })));
 
 /** Pantry App (ADR 0043): the household's stocks — Provisions counted per Storage. */
 export const pantryApp: AppManifest = {

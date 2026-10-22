@@ -1,10 +1,13 @@
+import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
 import { ShoppingCart } from "lucide-react";
-import { ShoppingScreen } from "./screens/ShoppingScreen";
 import { ShoppingListCard } from "./cards/ShoppingListCard";
 import { AddNeedDialog } from "./components/AddNeedDialog";
 import { shoppingCommands } from "./commands";
 import { shoppingTypeDefs } from "./types";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const ShoppingScreen = lazy(() => import("./screens/ShoppingScreen").then((m) => ({ default: m.ShoppingScreen })));
 
 /** Shopping list App (ADR 0055): anything to buy at the next chance, written in seconds. */
 export const shoppingApp: AppManifest = {

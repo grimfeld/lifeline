@@ -7,6 +7,7 @@ import { useSource } from "../data/repo";
 import { ago, refreshSource, useSourceCache } from "../data/cache";
 import { hostOf } from "../domain/url";
 import { expandIcal } from "../domain/ical";
+import { useIcal } from "../data/useIcal";
 import { colorVar, type CalendarSub } from "../domain/types";
 import { EmbedFrame } from "../components/EmbedFrame";
 import { SourceDialog } from "../components/SourceDialog";
@@ -68,15 +69,16 @@ export function SourcePage() {
 function CalendarSubPreview({ sub }: { sub: CalendarSub }) {
   const entry = useSourceCache(sub);
   const today = todayStr();
+  const ical = useIcal(true);
   const occ = useMemo(() => {
-    if (!entry?.body) return null;
+    if (!entry?.body || !ical) return null;
     try {
-      return expandIcal(entry.body, today, addDays(today, 30));
+      return expandIcal(ical, entry.body, today, addDays(today, 30));
     } catch (e) {
       return { error: (e as Error).message };
     }
-  }, [entry?.body, today]);
-  if (!entry) return <div className="text-muted-foreground p-2 text-xs">Fetching…</div>;
+  }, [ical, entry?.body, today]);
+  if (!entry || (entry.body && !ical)) return <div className="text-muted-foreground p-2 text-xs">Fetching…</div>;
   if (occ && "error" in occ) return <div className="text-destructive p-2 text-xs">{occ.error}</div>;
   if (!entry.ok && !entry.body) return <div className="text-destructive p-2 text-xs">{entry.error}</div>;
   const list = occ ?? [];

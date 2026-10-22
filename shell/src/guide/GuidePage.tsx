@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { Button, Page } from "@lifeline/ui";
 import { PlainMarkdownView } from "@lifeline/editor";
 import { guideLink, guidePage } from "@lifeline/guide";
+import { guideBody } from "@lifeline/guide/pages";
 import { ChevronLeft } from "lucide-react";
 import { guideHref } from "./guidePlace";
 
@@ -10,7 +11,8 @@ import { guideHref } from "./guidePlace";
  * `/guide` and `/guide/:page` (ADR 0089): the **Guide**, Lifeline's manual.
  * With Settings, one of the two pages that serve no Documents — Settings
  * configures the app, this explains it. Its pages are Markdown from
- * `@lifeline/guide`; a link to another page's file opens that page here.
+ * `@lifeline/guide`; a link to another page's file opens that page here. Loaded
+ * on first visit (App.tsx), so the manual stays out of the first load.
  */
 export function GuidePage() {
   const { page } = useParams<{ page: string }>();
@@ -43,7 +45,7 @@ export function GuidePage() {
           </Button>
         )}
       </div>
-      <PlainMarkdownView body={p.body} onLink={onLink} />
+      <PlainMarkdownView body={guideBody(p.slug) ?? ""} onLink={onLink} />
     </Page>
   );
 }

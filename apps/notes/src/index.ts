@@ -1,10 +1,6 @@
-import { useEffect } from "react";
+import { lazy, useEffect } from "react";
 import { addDays, documentType, formatHuman, migrateTypeTemplates, PRIVATE_SETTINGS_TYPE, repairPrivateSettings, todayStr, type AppManifest, type CardSettings } from "@lifeline/core";
 import { CalendarDays, CalendarRange, LayoutTemplate, Lock, NotebookPen, Shapes } from "lucide-react";
-import { PeriodScreen } from "./screens/PeriodScreen";
-import { JournalDocScreen, OldCollectionsRedirect, TypesScreen } from "./screens/TypesScreen";
-import { TemplatesScreen } from "./screens/TemplatesScreen";
-import { JournalScreen } from "./screens/JournalScreen";
 import { TodayJournalCard } from "./cards/TodayJournalCard";
 import { DaylogCard } from "./cards/DaylogCard";
 import { RecentNotesCard, useRecentTypeOptions } from "./cards/RecentNotesCard";
@@ -28,6 +24,14 @@ import { FolderCard, folderTitle } from "./cards/FolderCard";
 import { TagCard, tagTitle } from "./cards/TagCard";
 import { RandomNoteCard, randomTitle, useRandomTypeOptions } from "./cards/RandomNoteCard";
 import { SavedSearchCard, searchTitle } from "./cards/SavedSearchCard";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const PeriodScreen = lazy(() => import("./screens/PeriodScreen").then((m) => ({ default: m.PeriodScreen })));
+const JournalDocScreen = lazy(() => import("./screens/TypesScreen").then((m) => ({ default: m.JournalDocScreen })));
+const OldCollectionsRedirect = lazy(() => import("./screens/TypesScreen").then((m) => ({ default: m.OldCollectionsRedirect })));
+const TypesScreen = lazy(() => import("./screens/TypesScreen").then((m) => ({ default: m.TypesScreen })));
+const TemplatesScreen = lazy(() => import("./screens/TemplatesScreen").then((m) => ({ default: m.TemplatesScreen })));
+const JournalScreen = lazy(() => import("./screens/JournalScreen").then((m) => ({ default: m.JournalScreen })));
 
 const APP_ID = "notes";
 

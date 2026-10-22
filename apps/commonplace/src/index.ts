@@ -1,9 +1,6 @@
+import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
 import { NotebookPen, Quote as QuoteIcon } from "lucide-react";
-import { CommonplaceScreen } from "./screens/CommonplaceScreen";
-import { ShelfScreen } from "./screens/ShelfScreen";
-import { SourceScreen } from "./screens/SourceScreen";
-import { NoteScreen } from "./screens/NoteScreen";
 import { QuoteIntakeDialog } from "./components/QuoteIntakeDialog";
 import { SourcePanel } from "./components/SourcePanel";
 import { NotePeek, QuotePeek, SourcePeek } from "./components/NotesPeeks";
@@ -18,6 +15,12 @@ import { commonplaceDaylog } from "./daylog";
 import { noteTypeDef, quoteTypeDef, sourceRole, sourceTypeDef } from "./types";
 import { quoteReading } from "./domain/recallable";
 import { QuoteFace } from "./components/QuoteFace";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const CommonplaceScreen = lazy(() => import("./screens/CommonplaceScreen").then((m) => ({ default: m.CommonplaceScreen })));
+const ShelfScreen = lazy(() => import("./screens/ShelfScreen").then((m) => ({ default: m.ShelfScreen })));
+const SourceScreen = lazy(() => import("./screens/SourceScreen").then((m) => ({ default: m.SourceScreen })));
+const NoteScreen = lazy(() => import("./screens/NoteScreen").then((m) => ({ default: m.NoteScreen })));
 
 /**
  * The Notes App (ADR 0070), born as the Commonplace book (ADR 0024): a shelf

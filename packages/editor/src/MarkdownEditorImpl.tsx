@@ -31,8 +31,11 @@ import { caretRoom } from "./caretRoom";
 import { isUserScrollUp } from "./userScroll";
 import { ACCESSORY_BAR_HEIGHT, EditorAccessoryBar } from "./EditorAccessoryBar";
 import { textChange } from "./textDiff";
-import { SELECTION_EVENT } from "./selection";
+import { provideEditorFinder, SELECTION_EVENT } from "./selection";
 import "./editor.css";
+
+// The body selection reader (selection.ts) reaches editors through this chunk.
+provideEditorFinder((dom) => EditorView.findFromDOM(dom));
 
 /** The caret's scroll margins and the document's tail — both sized from the editor's box. */
 const room = new Compartment();

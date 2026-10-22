@@ -1,6 +1,6 @@
+import { lazy } from "react";
 import { formatHuman, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
 import { Ban, CalendarClock, LayoutTemplate } from "lucide-react";
-import { EventsScreen } from "./screens/EventsScreen";
 import { EventDialog } from "./components/EventDialog";
 import { EventPeek } from "./components/EventPeek";
 import { UpcomingEventsCard } from "./cards/UpcomingEventsCard";
@@ -25,6 +25,9 @@ import {
   type EventTemplate,
   type TimeBlocker,
 } from "./domain/types";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const EventsScreen = lazy(() => import("./screens/EventsScreen").then((m) => ({ default: m.EventsScreen })));
 
 /** The `event` Document type (ADR 0019): structured, no body; time fields are guarded (moves go through the Timed hooks). */
 const eventType: DocumentTypeDef = {

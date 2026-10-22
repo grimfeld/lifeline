@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { expandIcal } from "./ical";
+import { beforeAll, describe, expect, it } from "vitest";
+import { expandIcal as expandWith, loadIcal, type Ical } from "./ical";
+
+let ical: Ical;
+beforeAll(async () => {
+  ical = await loadIcal();
+});
+const expandIcal = (body: string, start: string, end: string) => expandWith(ical, body, start, end);
 
 // Floating (zone-less) times: they read as local wall-clock time, so the
 // expected days hold in any time zone. With UTC times the 10:00Z standup lands

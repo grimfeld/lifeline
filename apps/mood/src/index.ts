@@ -1,11 +1,14 @@
+import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
 import { Smile } from "lucide-react";
-import { MoodScreen } from "./screens/MoodScreen";
 import { TodayMoodCard } from "./cards/TodayMoodCard";
 import { MoodGridCard } from "./cards/MoodGridCard";
 import { moodCommands } from "./commands";
 import { moodTypeDefs } from "./types";
 import { moodDaylog } from "./daylog";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const MoodScreen = lazy(() => import("./screens/MoodScreen").then((m) => ({ default: m.MoodScreen })));
 
 /** Mood App (ADR 0044): how each day felt, one Mood per day, drawn as a grid. */
 export const moodApp: AppManifest = {

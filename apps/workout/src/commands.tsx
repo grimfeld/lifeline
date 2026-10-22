@@ -7,7 +7,7 @@ import { WORKOUT_HREF } from "./domain/types";
 import { useWorkouts } from "./data/repo";
 import { WorkoutEditorDialog } from "./components/WorkoutEditorDialog";
 import { ExerciseEditorDialog } from "./components/ExerciseEditorDialog";
-import { runHref } from "./screens/WorkoutScreen";
+import { runHref } from "./domain/types";
 
 /** "Start workout": pick one, land on the timer. A capture command, so it sits in the phone's "+" sheet. */
 function StartWorkoutDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {

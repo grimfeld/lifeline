@@ -1,7 +1,6 @@
+import { lazy } from "react";
 import { removeDocumentsWhere, type AppManifest, type Document, type DocumentTypeDef } from "@lifeline/core";
 import { Check, Skull, Swords, TriangleAlert, Trophy } from "lucide-react";
-import { LifeLevelScreen } from "./screens/LifeLevelScreen";
-import { HabitDetailScreen } from "./screens/HabitDetailScreen";
 import { HabitTileCard, useHabitTileOptions, useHabitTileTitle } from "./cards/HabitTileCard";
 import { LogNegativeCard } from "./cards/LogNegativeCard";
 import { lifelevelCommands } from "./commands";
@@ -20,6 +19,10 @@ import {
   type HabitCompletion,
   type NegativeCompletion,
 } from "./domain/types";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const LifeLevelScreen = lazy(() => import("./screens/LifeLevelScreen").then((m) => ({ default: m.LifeLevelScreen })));
+const HabitDetailScreen = lazy(() => import("./screens/HabitDetailScreen").then((m) => ({ default: m.HabitDetailScreen })));
 
 /** The `habit` Document type: an XP-bearing track. Only Difficulty is stored — all numbers derive (ADR 0026). */
 const habitType: DocumentTypeDef = {

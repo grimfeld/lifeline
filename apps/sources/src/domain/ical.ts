@@ -1,4 +1,4 @@
-import ICAL from "ical.js";
+import type ICAL from "ical.js";
 import type { DateStr } from "@lifeline/core";
 
 /** One occurrence of a subscribed event on one day (multi-day events yield one per day). */
@@ -37,12 +37,26 @@ const MAX_SHOWN = 5000;
 /** …and this many stepped over before it (a century of a daily event). */
 const MAX_SKIPPED = 50_000;
 
-export function expandIcal(body: string, rangeStart: DateStr, rangeEnd: DateStr): IcalOccurrence[] {
-  const jcal = ICAL.parse(body);
-  const comp = new ICAL.Component(jcal);
+/** ical.js, once loaded. */
+export type Ical = typeof ICAL;
+
+let loading: Promise<Ical> | undefined;
+
+/**
+ * ical.js loads on first use, not with the app: only a calendar Source parses
+ * iCalendar, and most first loads show none. The same promise serves every caller.
+ */
+export function loadIcal(): Promise<Ical> {
+  loading ??= import("ical.js").then((m) => m.default);
+  return loading;
+}
+
+export function expandIcal(ical: Ical, body: string, rangeStart: DateStr, rangeEnd: DateStr): IcalOccurrence[] {
+  const jcal = ical.parse(body);
+  const comp = new ical.Component(jcal);
   const vevents = comp.getAllSubcomponents("vevent");
-  const rangeStartT = ICAL.Time.fromDateString(rangeStart);
-  const rangeEndT = ICAL.Time.fromDateString(addDays(rangeEnd, 1)); // exclusive
+  const rangeStartT = ical.Time.fromDateString(rangeStart);
+  const rangeEndT = ical.Time.fromDateString(addDays(rangeEnd, 1)); // exclusive
   const out: IcalOccurrence[] = [];
 
   // Group by UID: master + overrides (RECURRENCE-ID) — ical.js's Event handles that with `exceptions`.
@@ -87,12 +101,12 @@ export function expandIcal(body: string, rangeStart: DateStr, rangeEnd: DateStr)
     if (!g.master) {
       // Orphan overrides: show them as-is.
       for (const x of g.exceptions) {
-        const ev = new ICAL.Event(x);
+        const ev = new ical.Event(x);
         push(uid, ev.summary ?? "(untitled)", ev.startDate, ev.endDate, ev.location ?? undefined);
       }
       continue;
     }
-    const ev = new ICAL.Event(g.master, { exceptions: g.exceptions });
+    const ev = new ical.Event(g.master, { exceptions: g.exceptions });
     if (!ev.isRecurring()) {
       if (ev.endDate.compare(rangeStartT) < 0 || ev.startDate.compare(rangeEndT) >= 0) continue;
       push(uid, ev.summary ?? "(untitled)", ev.startDate, ev.endDate, ev.location ?? undefined);

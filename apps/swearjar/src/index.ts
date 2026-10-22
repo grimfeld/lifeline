@@ -1,7 +1,7 @@
+import { lazy } from "react";
 import type { AppManifest, Document, DocumentTypeDef } from "@lifeline/core";
 import { COLOR_SLOTS } from "@lifeline/ui";
 import { Coins, Gavel, PiggyBank } from "lucide-react";
-import { SwearJarScreen } from "./screens/SwearJarScreen";
 import { JarCard } from "./cards/JarCard";
 import { swearjarCommands } from "./commands";
 import { FinePeek } from "./components/FinePeek";
@@ -10,6 +10,9 @@ import { formatCents } from "./domain/money";
 import { dayKeyOf } from "./domain/derive";
 import { refuseDeletingUsedOffence } from "./data/repo";
 import { APP_ID, FINE, OFFENCE, SWEARJAR_HREF, type Fine, type Offence } from "./domain/types";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const SwearJarScreen = lazy(() => import("./screens/SwearJarScreen").then((m) => ({ default: m.SwearJarScreen })));
 
 /**
  * The `swearjar_offence` Document type (ADR 0083): a named, priced thing the

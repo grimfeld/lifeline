@@ -9,7 +9,7 @@ import { formatCents } from "../domain/money";
 import { openDues } from "../domain/recur";
 import { useAccounts, useAllocations, useCategories, useSeries, useTransactions } from "../data/repo";
 import { TransactionEditorDialog } from "../components/TransactionEditorDialog";
-import { DuesList } from "../screens/RegisterScreen";
+import { DuesList } from "../components/DuesList";
 
 /** Quick add (capture): the entry form one tap away — the phone's way in. */
 export function QuickAddCard(_props: CardProps) {

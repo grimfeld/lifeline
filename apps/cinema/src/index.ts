@@ -1,7 +1,7 @@
+import { lazy } from "react";
 import type { AppManifest } from "@lifeline/core";
 import { cinemaParts } from "./parts";
 import { Clapperboard } from "lucide-react";
-import { CinemaScreen } from "./screens/CinemaScreen";
 import { InProgressCard } from "./cards/InProgressCard";
 import { FinishedCard } from "./cards/FinishedCard";
 import { SurpriseCard } from "./cards/SurpriseCard";
@@ -16,6 +16,9 @@ import { patchWork } from "./data/repo";
 import { abandon, finish, start } from "./domain/rules";
 import { cinemaDaylog } from "./daylog";
 import { playlistTypeDef, settingsTypeDef, workTypeDefs } from "./types";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const CinemaScreen = lazy(() => import("./screens/CinemaScreen").then((m) => ({ default: m.CinemaScreen })));
 
 /** Cinema App (ADR 0024): movies and series — streamed, never owned. */
 export const cinemaApp: AppManifest = {

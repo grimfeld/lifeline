@@ -1,4 +1,4 @@
-import { EditorView } from "@codemirror/view";
+import type { EditorView } from "@codemirror/view";
 import type { LinkPlacement } from "@lifeline/core";
 
 /** The attribute a body's container carries to name the Document it belongs to (ADR 0073). */
@@ -20,6 +20,18 @@ export interface BodySelection {
   placement: LinkPlacement | null;
   /** Set when the selection is in an editor: its live text, and a replacement made as one undoable edit. */
   editor?: { body: () => string; replace: (from: number, to: number, insert: string) => void };
+}
+
+/**
+ * Finds the editor a `.cm-editor` element belongs to. Set by the editor's own
+ * chunk when it loads (MarkdownEditorImpl), so this module, which the shell
+ * mounts on every page, never imports CodeMirror: an editor on screen means
+ * the chunk is there.
+ */
+let findView: (dom: HTMLElement) => EditorView | null = () => null;
+
+export function provideEditorFinder(find: (dom: HTMLElement) => EditorView | null): void {
+  findView = find;
 }
 
 function elementOf(node: Node | null): Element | null {
@@ -75,7 +87,7 @@ export function readBodySelection(): BodySelection | null {
   const anchor = elementOf(sel?.anchorNode ?? null) ?? document.activeElement;
   const cm = anchor?.closest(".cm-editor");
   if (cm instanceof HTMLElement) {
-    const view = EditorView.findFromDOM(cm);
+    const view = findView(cm);
     const origin = cm.closest(`[${ORIGIN_ATTR}]`)?.getAttribute(ORIGIN_ATTR);
     if (!view || !origin) return null;
     const { from, to, head } = view.state.selection.main;
