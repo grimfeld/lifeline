@@ -2,6 +2,7 @@ import { type CommandArg, type CommandDef, type CommandDialogProps, type DateStr
 import { COLOR_SLOTS } from "@lifeline/ui";
 import { FolderKanban, ChartGantt, Pencil, Plus, Shuffle } from "lucide-react";
 import { ProjectDialog } from "./components/ProjectDialog";
+import { milestoneLaneCommands } from "./milestoneLaneCommands";
 import { addProject, getProject, moveProject, updateProject, type OpenTasks } from "./data/repo";
 import { PROJECT, PROJECTS_HOME, STAGES, stageLabel, type Stage } from "./domain/types";
 
@@ -114,4 +115,5 @@ export const projectCommands: CommandDef[] = [
   },
   { id: "projects.open", title: "Go to Projects", keywords: ["projects", "board", "kanban"], icon: FolderKanban, run: ({ navigate }) => navigate(PROJECTS_HOME) },
   { id: "projects.timeline", title: "Go to project timeline", keywords: ["projects", "timeline", "gantt", "deadlines"], icon: ChartGantt, run: ({ navigate }) => navigate("/app/projects/timeline") },
+  ...milestoneLaneCommands,
 ];

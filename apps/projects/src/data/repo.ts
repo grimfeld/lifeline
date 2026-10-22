@@ -203,7 +203,12 @@ export async function deleteProject(projectId: string): Promise<void> {
 
 // --- Milestones ---
 
-export async function addMilestone(projectId: string, title: string, deadline: DateStr | null = null): Promise<string> {
+export async function addMilestone(
+  projectId: string,
+  title: string,
+  deadline: DateStr | null = null,
+  opts: { start?: DateStr | null; position?: number } = {},
+): Promise<string> {
   const last = (await milestonesOf(projectId)).at(-1);
   const id = newId();
   await putDocument<Milestone>({
@@ -212,11 +217,12 @@ export async function addMilestone(projectId: string, title: string, deadline: D
     title: title.trim(),
     project: projectId,
     rank: rankBetween(last?.rank, null),
-    start: null,
+    start: opts.start ?? null,
     deadline,
     reachedOn: null,
     tags: [],
   });
+  if (opts.position !== undefined) await setMilestonePosition(projectId, id, opts.position);
   return id;
 }
 
@@ -239,13 +245,18 @@ export async function shiftMilestone(m: Milestone, dir: -1 | 1): Promise<void> {
   await shift(await milestonesOf(m.project), m.id, dir);
 }
 
+/** Put a Milestone at a 0-based place in its Project's order, rewriting the list whole. */
+export async function setMilestonePosition(projectId: string, id: string, position: number): Promise<void> {
+  await place(await milestonesOf(projectId), id, position);
+}
+
 export async function deleteMilestone(id: string): Promise<void> {
   await removeDocument(id);
 }
 
 // --- Lanes ---
 
-export async function addLane(projectId: string, title: string): Promise<string> {
+export async function addLane(projectId: string, title: string, position?: number): Promise<string> {
   const lanes = await lanesOf(projectId);
   // A new Lane goes before the done Lane, which stays last unless moved.
   const doneAt = lanes.findIndex((l) => l.done);
@@ -253,7 +264,13 @@ export async function addLane(projectId: string, title: string): Promise<string>
   const after = doneAt >= 0 ? lanes[doneAt] : undefined;
   const id = newId();
   await putDocument<Lane>({ id, type: PROJECT_LANE, title: title.trim(), project: projectId, rank: rankBetween(before?.rank, after?.rank), done: false, tags: [] });
+  if (position !== undefined) await setLanePosition(projectId, id, position);
   return id;
+}
+
+/** Put a Lane at a 0-based place in its Board's order, rewriting the list whole. */
+export async function setLanePosition(projectId: string, id: string, position: number): Promise<void> {
+  await place(await lanesOf(projectId), id, position);
 }
 
 export async function renameLane(l: Lane, title: string): Promise<void> {
@@ -296,6 +313,18 @@ export async function dropTask(task: Task, lane: Lane, column: Task[], index: nu
     const t = order[k];
     const rank = (k + 1) * 1000;
     if (t.id === task.id || t.rank !== rank || t.lane !== lane.id) await placeTask(t.id, lane.id, rank);
+  }
+}
+
+/** Move an ordered item to a 0-based index (clamped), re-ranking the whole list. */
+async function place<T extends Milestone | Lane>(list: T[], id: string, position: number): Promise<void> {
+  const item = list.find((x) => x.id === id);
+  if (!item) return;
+  const next = list.filter((x) => x.id !== id);
+  next.splice(Math.max(0, Math.min(Math.trunc(position), next.length)), 0, item);
+  for (let k = 0; k < next.length; k++) {
+    const rank = (k + 1) * 1000;
+    if (next[k].rank !== rank) await putDocument<T>({ ...next[k], rank });
   }
 }
 

@@ -70,3 +70,5 @@ export const projectsApp: AppManifest = {
 
 export { PROJECT, PROJECT_MILESTONE, PROJECT_LANE, PROJECTS_HOME };
 export { ProjectsHome } from "./screens/ProjectsHome";
+/** Name a Milestone or Lane of one Project by id or title (lives in the Tasks App's data, which both Apps reach). */
+export { resolveInProject } from "@lifeline/app-tasks/data";
