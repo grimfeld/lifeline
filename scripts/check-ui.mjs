@@ -3,7 +3,8 @@
 // lines a change adds to screen code — `.tsx` outside the kit itself.
 //
 //   node scripts/check-ui.mjs          lines added since the merge base with origin/master
-//   node scripts/check-ui.mjs --all    every line (the cleanup backlog)
+//   node scripts/check-ui.mjs --all    every line (the cleanup backlog), with counts per rule and area
+//   node scripts/check-ui.mjs --all shell packages/editor    the same, limited to those paths
 //
 // CHECK_UI_BASE overrides the base ref. A line a rule must let through carries
 // `ui-allow: <rule>` and the reason, on that line or the one above.
@@ -247,16 +248,42 @@ export function checkSource(source, checked = () => true) {
   return problems;
 }
 
+/** Whether `file` is one of `paths` or under one; no paths means everything. */
+export function inPaths(file, paths) {
+  return paths.length === 0 || paths.some((p) => file === p || file.startsWith(p + "/"));
+}
+
+/** The App or package a file belongs to: `shell`, `apps/<name>`, `packages/<name>`. */
+export const areaOf = (file) => file.split("/").slice(0, file.startsWith("shell/") ? 1 : 2).join("/");
+
+/** Counts of problems by rule and by area, each sorted most first: { rules, areas }. */
+export function summarize(problems) {
+  const tally = (key) => [...problems.reduce((m, p) => m.set(key(p), (m.get(key(p)) ?? 0) + 1), new Map())].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  return { rules: tally((p) => p.r.id), areas: tally((p) => areaOf(p.file)) };
+}
+
 function main() {
-  const all = process.argv.includes("--all");
+  const args = process.argv.slice(2);
+  const all = args.includes("--all");
+  // Paths only narrow the --all sweep; normal mode checks every added line.
+  const paths = all ? args.filter((a) => !a.startsWith("--")).map((a) => a.replaceAll("\\", "/").replace(/^\.\//, "").replace(/\/+$/, "")) : [];
   const problems = [];
   for (const [file, only] of changedLines(all)) {
+    if (!inPaths(file, paths)) continue;
     const checked = (i) => only === null || only.has(i + 1);
     for (const p of checkSource(readFileSync(file, "utf8"), checked)) problems.push({ file, ...p });
   }
+  if (all) problems.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
   for (const { file, line, r } of problems) console.log(`${file}:${line}  ${r.id}  ${r.message}  (CODING_STANDARDS.md § UI › ${r.heading})`);
   if (problems.length) {
     console.log(`\n${problems.length} UI problem${problems.length === 1 ? "" : "s"}. A real exception carries \`ui-allow: <rule> — why\` on the line or the one above.`);
+    if (all) {
+      const { rules, areas } = summarize(problems);
+      console.log("\nBy rule:");
+      for (const [id, n] of rules) console.log(`  ${String(n).padStart(5)}  ${id}`);
+      console.log("\nBy area:");
+      for (const [area, n] of areas) console.log(`  ${String(n).padStart(5)}  ${area}`);
+    }
     process.exit(1);
   }
   console.log(all ? "check-ui: every line clean" : "check-ui: added lines clean");

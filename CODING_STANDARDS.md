@@ -1,7 +1,7 @@
 # Coding standards
 
 Read at review time. Rules marked **(check)** are also enforced by `scripts/check-ui.mjs`
-on the lines a change adds; a reviewer spends attention on the rest. A documented
+on the lines a change adds (`pnpm check:ui --all [paths]` lists every violation in the tree instead, counted per rule and area); a reviewer spends attention on the rest. A documented
 decision in `docs/adr/` outranks anything here.
 
 ## General

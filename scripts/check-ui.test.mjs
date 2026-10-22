@@ -1,7 +1,8 @@
 // node --test scripts/*.test.mjs (part of `pnpm check`).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkSource, kitImports } from "./check-ui.mjs";
+import { execFileSync } from "node:child_process";
+import { areaOf, checkSource, inPaths, kitImports, summarize } from "./check-ui.mjs";
 
 const rules = (source) => checkSource(source).map((p) => `${p.line}:${p.r.id}`);
 
@@ -109,4 +110,25 @@ test("box-radius: a padded layout box with rounded-md border is flagged", () => 
 test("box-radius: rounded-lg boxes, controls, and unpadded or tiny-padded chips pass", () => {
   const src = `<div className="rounded-lg border p-2">\n<button type="button" className="rounded-md border p-2">x</button>\n<div className="rounded-md border px-2 py-1">\n<div className="rounded-md border p-0.5 shadow-sm">\n<div className="rounded-md py-1 border-l-2">`;
   assert.deepEqual(rules(src), []);
+});
+
+test("--all path filter: a path matches itself and what is under it, not a sibling prefix", () => {
+  assert.equal(inPaths("shell/src/App.tsx", ["shell"]), true);
+  assert.equal(inPaths("packages/editor/src/a.tsx", ["shell", "packages/editor"]), true);
+  assert.equal(inPaths("packages/editor-extra/src/a.tsx", ["packages/editor"]), false);
+  assert.equal(inPaths("apps/tasks/src/a.tsx", []), true);
+});
+
+test("--all summary: counts by rule and by area, most first", () => {
+  const p = (file, id) => ({ file, line: 1, r: { id } });
+  assert.equal(areaOf("shell/src/a.tsx"), "shell");
+  assert.equal(areaOf("apps/tasks/src/a.tsx"), "apps/tasks");
+  const { rules, areas } = summarize([p("shell/src/a.tsx", "x"), p("shell/src/b.tsx", "y"), p("apps/tasks/src/a.tsx", "x")]);
+  assert.deepEqual(rules, [["x", 2], ["y", 1]]);
+  assert.deepEqual(areas, [["shell", 2], ["apps/tasks", 1]]);
+});
+
+test("--all with a path that holds no screen code is clean and exits 0", () => {
+  const out = execFileSync("node", ["scripts/check-ui.mjs", "--all", "no/such/path"], { encoding: "utf8" });
+  assert.match(out, /every line clean/);
 });
