@@ -453,7 +453,7 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null;
  * Nudge the engine after a local write (debounced): a push, and no pull. A
  * typing pause used to run a whole cycle — the push, then every collection
  * pulled — a dozen requests for one edit. Other devices' changes arrive with
- * the interval, focus and online triggers.
+ * the next pull: the timer, focus, online or the tab being shown again.
  */
 export function requestSync(): void {
   void refreshPending();
