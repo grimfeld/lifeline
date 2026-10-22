@@ -10,8 +10,8 @@ import {
   useLiveQuery,
   type DateStr,
 } from "@lifeline/core";
-import { placeTask, setCompleted, type Task } from "@lifeline/app-tasks/data";
-import { byRank, rankBetween } from "../domain/board";
+import { placeTask, setArchived, setCompleted, setTaskProject, TASK, type Task } from "@lifeline/app-tasks/data";
+import { boardTasks, byRank, rankBetween } from "../domain/board";
 import {
   PROJECT,
   PROJECT_LANE,
@@ -158,6 +158,32 @@ export async function setStage(projectId: string, stage: Stage, on: DateStr = to
     startedOn: stage === "active" ? on : p.startedOn,
     endedOn: ended ? on : null,
   });
+}
+
+/** What becomes of a Project's open Tasks when it is finished or dropped: the stage dialog's three choices. */
+export type OpenTasks = "leave" | "archive" | "loose";
+
+export async function settleOpenTasks(open: Task[], how: OpenTasks): Promise<void> {
+  if (how === "archive") for (const t of open) await setArchived(t, true);
+  if (how === "loose") for (const t of open) await setTaskProject(t.id, null);
+}
+
+/**
+ * Move a Project to a stage as the stage dialog does. Done or Dropped with
+ * open Tasks needs `openTasks` to say what becomes of them; without it the
+ * move is refused, naming how many are open.
+ */
+export async function moveProject(projectId: string, stage: Stage, openTasks?: OpenTasks): Promise<void> {
+  if (stage === "done" || stage === "dropped") {
+    const open = boardTasks(await documentsOf<Task>(TASK), projectId).filter((t) => !t.completedOn);
+    if (open.length > 0) {
+      if (!openTasks) {
+        throw new Error(`${open.length} open task${open.length === 1 ? " is" : "s are"} still in this project; say what becomes of them with openTasks: leave, archive or loose`);
+      }
+      await settleOpenTasks(open, openTasks);
+    }
+  }
+  await setStage(projectId, stage);
 }
 
 export async function setDeadline(projectId: string, deadline: DateStr | null): Promise<void> {
