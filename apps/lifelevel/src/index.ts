@@ -1,4 +1,4 @@
-import type { AppManifest, Document, DocumentTypeDef } from "@lifeline/core";
+import { removeDocumentsWhere, type AppManifest, type Document, type DocumentTypeDef } from "@lifeline/core";
 import { Check, Skull, Swords, TriangleAlert, Trophy } from "lucide-react";
 import { LifeLevelScreen } from "./screens/LifeLevelScreen";
 import { HabitDetailScreen } from "./screens/HabitDetailScreen";
@@ -34,6 +34,11 @@ const habitType: DocumentTypeDef = {
   linkable: { subtitle: (d) => String(d.difficulty ?? "") },
   href: (d) => habitHref(d.id),
   peekEdit: HabitPeek,
+  /** Honest quitting (ADR 0026): its own Completions die with it, and so do the Negative Completions that hit it. */
+  onDelete: async (d) => {
+    await removeDocumentsWhere(HABIT_COMPLETION, (c) => (c as HabitCompletion).habitId === d.id);
+    await removeDocumentsWhere(NEGATIVE_COMPLETION, (c) => (c as NegativeCompletion).affectedHabitId === d.id);
+  },
   order: 45,
   builtIn: true,
 };
@@ -53,6 +58,8 @@ const negativeType: DocumentTypeDef = {
   linkable: { subtitle: (d) => String(d.gravity ?? "") },
   href: () => LIFELEVEL_HREF,
   peekEdit: NegativePeek,
+  /** The damage it did is undone: its own Completions go with it (ADR 0026). */
+  onDelete: async (d) => removeDocumentsWhere(NEGATIVE_COMPLETION, (c) => (c as NegativeCompletion).negativeId === d.id),
   order: 46,
   builtIn: true,
 };
