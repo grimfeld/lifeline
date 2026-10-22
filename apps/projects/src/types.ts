@@ -3,7 +3,7 @@ import { FolderKanban, Flag, Columns3 } from "lucide-react";
 import { releaseTasksOf, clearLane, clearMilestone, tasksOfProject } from "@lifeline/app-tasks/data";
 import { PROJECT, PROJECT_LANE, PROJECT_MILESTONE, STAGES, projectHref, stageLabel, type Stage } from "./domain/types";
 import { lanesOf, milestonesOf, removeChildren } from "./data/repo";
-import { describeProject, projectOf } from "./describe";
+import { describeProject, ownerProject } from "./describe";
 
 /**
  * The Projects App's Document types (ADR 0060). The stage and its days are
@@ -63,7 +63,7 @@ export const milestoneType: DocumentTypeDef = {
   async onDelete(doc) {
     await clearMilestone(doc.id);
   },
-  owner: projectOf,
+  owner: ownerProject,
   builtIn: true,
 };
 
@@ -82,7 +82,7 @@ export const laneType: DocumentTypeDef = {
   async onDelete(doc) {
     await clearLane(doc.id);
   },
-  owner: projectOf,
+  owner: ownerProject,
   builtIn: true,
 };
 

@@ -3,6 +3,7 @@ import { COLOR_SLOTS } from "@lifeline/ui";
 import { FolderKanban, ChartGantt, Pencil, Plus, Shuffle } from "lucide-react";
 import { ProjectDialog } from "./components/ProjectDialog";
 import { milestoneLaneCommands } from "./milestoneLaneCommands";
+import { clearArg, readClear } from "./commandParts";
 import { placeTaskCommand } from "./placeTaskCommand";
 import { addProject, getProject, moveProject, updateProject, type OpenTasks } from "./data/repo";
 import { PROJECT, PROJECTS_HOME, STAGES, stageLabel, type Stage } from "./domain/types";
@@ -21,6 +22,13 @@ const projectFields: CommandArg[] = [
   { key: "emoji", label: "Emoji", kind: "text", hint: "The Project's face; one emoji." },
   { key: "color", label: "Colour", kind: "select", options: COLOR_SLOTS.map((c) => ({ value: c, label: c })) },
 ];
+
+/** The fields a Project is made and edited by, as the Command read them; the cleared ones emptied. */
+function readProjectFields(a: Record<string, unknown>, clear: Set<string> = new Set()) {
+  const text = (k: string) => (clear.has(k) ? "" : (a[k] as string | undefined));
+  const day = (k: string) => (clear.has(k) ? null : (a[k] as DateStr | undefined));
+  return { outcome: text("outcome"), start: day("start"), deadline: day("deadline"), emoji: text("emoji"), color: text("color") };
+}
 
 function checkDates(start: DateStr | null | undefined, deadline: DateStr | null | undefined) {
   if (start && deadline && deadline < start) throw new Error("The deadline comes before the start");
@@ -47,16 +55,9 @@ export const projectCommands: CommandDef[] = [
     ],
     returnsDocument: true,
     async invoke(a) {
-      checkDates(a.start as DateStr | undefined, a.deadline as DateStr | undefined);
-      const id = await addProject({
-        title: a.title as string,
-        outcome: a.outcome as string | undefined,
-        stage: a.stage as Stage | undefined,
-        start: a.start as DateStr | undefined,
-        deadline: a.deadline as DateStr | undefined,
-        emoji: a.emoji as string | undefined,
-        color: a.color as string | undefined,
-      });
+      const fields = readProjectFields(a);
+      checkDates(fields.start, fields.deadline);
+      const id = await addProject({ title: a.title as string, stage: a.stage as Stage | undefined, ...fields });
       return { id, message: `Added project “${a.title}” with To do, Doing and Done lanes` };
     },
   },
@@ -69,20 +70,15 @@ export const projectCommands: CommandDef[] = [
       { key: "project", label: "Project", kind: "link", linkType: PROJECT, required: true },
       { key: "title", label: "Title", kind: "text" },
       ...projectFields,
+      clearArg(["outcome", "start", "deadline", "emoji", "color"]),
     ],
     returnsDocument: true,
     async invoke(a) {
+      const fields = readProjectFields(a, readClear(a));
       const p = await projectOf(a.project);
-      checkDates((a.start as DateStr | undefined) ?? p.start, (a.deadline as DateStr | undefined) ?? p.deadline);
+      checkDates(fields.start === undefined ? p.start : fields.start, fields.deadline === undefined ? p.deadline : fields.deadline);
       const title = (a.title as string | undefined) ?? p.title;
-      await updateProject(p, {
-        title,
-        outcome: a.outcome as string | undefined,
-        start: a.start as DateStr | undefined,
-        deadline: a.deadline as DateStr | undefined,
-        emoji: a.emoji as string | undefined,
-        color: a.color as string | undefined,
-      });
+      await updateProject(p, { title, ...fields });
       return { id: p.id, message: `Edited project “${title}”` };
     },
   },

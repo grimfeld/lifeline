@@ -43,6 +43,6 @@ export async function describeProject(doc: Document): Promise<Record<string, unk
 }
 
 /** A Milestone or Lane speaks through its Project. */
-export async function projectOf(doc: Document): Promise<Document | undefined> {
+export async function ownerProject(doc: Document): Promise<Document | undefined> {
   return typeof doc.project === "string" ? getProject(doc.project) : undefined;
 }

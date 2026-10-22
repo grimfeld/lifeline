@@ -10,7 +10,7 @@ import {
   useLiveQuery,
   type DateStr,
 } from "@lifeline/core";
-import { placeTask, setArchived, setCompleted, setTaskProject, TASK, type Task } from "@lifeline/app-tasks/data";
+import { placeTask, setArchived, settleForLane, setTaskProject, TASK, type Task } from "@lifeline/app-tasks/data";
 import { boardTasks, byRank, rankBetween } from "../domain/board";
 import {
   PROJECT,
@@ -305,8 +305,7 @@ export async function deleteLane(l: Lane): Promise<void> {
  * write — it owns the Task — and this only decides what they are.
  */
 export async function dropTask(task: Task, lane: Lane, column: Task[], index: number): Promise<void> {
-  if (lane.done && !task.completedOn) await setCompleted(task.id, todayStr());
-  if (!lane.done && task.completedOn) await setCompleted(task.id, null);
+  await settleForLane(task, lane.done);
   const order = column.filter((t) => t.id !== task.id);
   order.splice(Math.max(0, Math.min(index, order.length)), 0, task);
   for (let k = 0; k < order.length; k++) {

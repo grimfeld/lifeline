@@ -17,7 +17,7 @@ import { type Task } from "@lifeline/app-tasks";
 import { ChevronDown } from "lucide-react";
 import { boardTasks } from "../domain/board";
 import { STAGES, stageLabel, type Project, type Stage } from "../domain/types";
-import { setStage, settleOpenTasks } from "../data/repo";
+import { setStage, settleOpenTasks, type OpenTasks } from "../data/repo";
 import { StageBadge } from "./parts";
 
 /**
@@ -40,10 +40,10 @@ export function useStageMove(tasks: Task[]) {
     toast.success(stage === "done" ? `${project.title} finished` : `${project.title} → ${stageLabel(stage)}`);
   }
 
-  async function end(withTasks: "leave" | "archive" | "unlink") {
+  async function end(withTasks: OpenTasks) {
     if (!ending) return;
     const { project, stage, open } = ending;
-    await settleOpenTasks(open, withTasks === "unlink" ? "loose" : withTasks);
+    await settleOpenTasks(open, withTasks);
     await setStage(project.id, stage);
     toast.success(stage === "done" ? `${project.title} finished` : `${project.title} dropped`);
     setEnding(null);
@@ -69,7 +69,7 @@ export function useStageMove(tasks: Task[]) {
           <Button variant="outline" onClick={() => void end("archive")}>
             Archive {them}
           </Button>
-          <Button variant="outline" onClick={() => void end("unlink")}>
+          <Button variant="outline" onClick={() => void end("loose")}>
             Keep as loose task{n === 1 ? "" : "s"}
           </Button>
         </div>
