@@ -17,6 +17,7 @@ export {
   clearMilestone,
   clearLane,
   tasksOfProject,
+  settleForLane,
 } from "./data/repo";
 export { taskTypes } from "./types";
-export { resolveInProject, type ScopedKind } from "./data/scoped";
+export { resolveInProject, type ScopedKind, type ScopedDoc } from "./data/scoped";

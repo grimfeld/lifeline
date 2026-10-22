@@ -15,6 +15,11 @@ The Projects App is the first to use both: a Project describes its stage, Outcom
 
 Only the MCP server reads these hooks. The UI keeps rendering through the App's own screens and Peek parts.
 
+## Consequences
+
+- The resolver that names a Milestone or Lane of one Project by id or title lives in the Tasks App (`resolveInProject`), not in Projects as the spec had it. Projects imports Tasks, never the reverse, and `tasks.add` takes a Milestone and a Lane too, so the shared code sits below both.
+- The rule that a Task stands ticked in the done Lane and unticked in any other likewise lives in Tasks (`settleForLane`), used by the Board's drop and by `tasks.add`.
+
 ## Considered options
 
 - **A Projects tool (`get_project_board`)**: rejected. It would be a second reading path beside `get_document`, and every App wanting the same would add its own tool. One hook on the type keeps `get_document` the one way in.

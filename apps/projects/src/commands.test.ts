@@ -12,10 +12,12 @@ import { addTask, TASK, taskTypes, type Task } from "@lifeline/app-tasks/data";
 import { projectTypes } from "./types";
 import { projectCommands } from "./commands";
 import {
+  PROJECT,
   PROJECT_LANE,
   PROJECT_MILESTONE,
   type Lane,
   type Milestone,
+  type Project,
 } from "./domain/types";
 import { addProject, lanesOf, dropTask, milestonesOf } from "./data/repo";
 
@@ -338,6 +340,16 @@ describe("tasks.add with a Milestone and a Lane, run headless", () => {
     await expect(add({ title: "x", milestone: "M" })).rejects.toThrow(/project/i);
   });
 
+  it("a recurring Task is refused a Lane and is never ticked", async () => {
+    const pid = await addProject({ title: "P" });
+    const recurrence = { kind: "weekly", weekdays: [1] };
+    await expect(add({ title: "r", project: pid, lane: "Done", recurrence })).rejects.toThrow(/lane/i);
+    expect(await tasks()).toEqual([]);
+    const { id } = await add({ title: "r", project: pid, recurrence });
+    const t = (await tasks()).find((x) => x.id === id)!;
+    expect([t.project, t.lane, t.completedOn]).toEqual([pid, null, null]);
+  });
+
   it("a Lane that is not the Project's is refused", async () => {
     await addProject({ title: "P" });
     await expect(add({ title: "x", project: "P", lane: "Nope" })).rejects.toThrow(/No lane/);
@@ -347,5 +359,49 @@ describe("tasks.add with a Milestone and a Lane, run headless", () => {
     const pid = await addProject({ title: "P" });
     const { id } = await add({ title: "x", project: pid, lane: "Done" });
     expect((await tasks()).find((x) => x.id === id)!.completedOn).not.toBeNull();
+  });
+});
+
+describe("Clearing fields, run headless", () => {
+  const getP = async (id: string) => (await documentsOf<Project>(PROJECT)).find((p) => p.id === id)!;
+
+  it("Edit project empties the fields named in clear", async () => {
+    const pid = await addProject({ title: "P", outcome: "o", start: "2026-01-01", deadline: "2026-02-01", emoji: "🛁", color: "teal" });
+    await run("projects.edit", { project: pid, clear: ["outcome", "start", "deadline", "emoji", "color"] });
+    const p = await getP(pid);
+    expect([p.outcome, p.start, p.deadline, p.emoji, p.color]).toEqual(["", null, null, "", ""]);
+  });
+
+  it("clearing the start lets a lone deadline stand", async () => {
+    const pid = await addProject({ title: "P", start: "2026-03-01", deadline: "2026-04-01" });
+    await run("projects.edit", { project: pid, start: undefined, deadline: "2026-02-01", clear: ["start"] });
+    expect((await getP(pid)).deadline).toBe("2026-02-01");
+  });
+
+  it("a field both given and cleared is refused", async () => {
+    const pid = await addProject({ title: "P", outcome: "o" });
+    await expect(run("projects.edit", { project: pid, outcome: "x", clear: ["outcome"] })).rejects.toThrow(/both given and cleared/);
+    expect((await getP(pid)).outcome).toBe("o");
+  });
+
+  it("Edit milestone empties its start and deadline", async () => {
+    const pid = await addProject({ title: "P" });
+    await run("projects.milestone.add", { project: pid, title: "M", start: "2026-01-01", deadline: "2026-02-01" });
+    await run("projects.milestone.edit", { project: pid, milestone: "M", clear: ["start", "deadline"] });
+    const m = (await milestonesOf(pid))[0];
+    expect([m.start, m.deadline]).toEqual([null, null]);
+    await expect(run("projects.milestone.edit", { project: pid, milestone: "M", start: "2026-01-01", clear: ["start"] })).rejects.toThrow(/both given and cleared/);
+  });
+
+  it("Place task removes the Milestone and keeps the Project", async () => {
+    const pid = await addProject({ title: "P" });
+    await run("projects.milestone.add", { project: pid, title: "M" });
+    const id = await addTask({ title: "t" });
+    await run("projects.task.place", { task: id, project: pid, milestone: "M" });
+    await run("projects.task.place", { task: id, clear: ["milestone"] });
+    const t = (await tasks()).find((x) => x.id === id)!;
+    expect([t.project, t.milestone]).toEqual([pid, null]);
+    await expect(run("projects.task.place", { task: id, milestone: "M", clear: ["milestone"] })).rejects.toThrow(/both given and cleared/);
+    await expect(run("projects.task.place", { task: id, loose: true, clear: ["milestone"] })).rejects.toThrow(/Loose/);
   });
 });

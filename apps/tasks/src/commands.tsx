@@ -7,11 +7,11 @@ import {
   DialogTitle,
   toast,
 } from "@lifeline/ui";
-import { getDocument, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { Check, ListChecks, ListTodo, Plus } from "lucide-react";
 import { TaskDialog } from "./components/TaskDialog";
 import { dueItems } from "./domain/occurrences";
-import { addTask, setCompleted, useOverrides, useTasks } from "./data/repo";
+import { addTask, setCompleted, settleForLane, useOverrides, useTasks } from "./data/repo";
 import { readRecurrence, RECURRENCE_HINT } from "./domain/recurrence";
 import { PROJECT } from "./domain/types";
 import { resolveInProject } from "./data/scoped";
@@ -98,6 +98,7 @@ export const taskCommands: CommandDef[] = [
       if (!project && (a.milestone !== undefined || a.lane !== undefined)) {
         throw new Error("Milestone and Lane belong to a Project: give the project too");
       }
+      if (recurrence && a.lane !== undefined) throw new Error("Lane: a recurring task stands in no Lane; it may take a Project and a Milestone");
       const milestone = project && a.milestone !== undefined ? await resolveInProject("milestone", project, a.milestone as string) : null;
       const lane = project && a.lane !== undefined ? await resolveInProject("lane", project, a.lane as string) : null;
       const id = await addTask({
@@ -108,10 +109,10 @@ export const taskCommands: CommandDef[] = [
         estimate,
         tags: a.tags as string[] | undefined,
         project,
-        milestone,
-        lane,
+        milestone: milestone?.id ?? null,
+        lane: lane?.id ?? null,
       });
-      if (lane && ((await getDocument(lane)) as { done?: boolean } | undefined)?.done) await setCompleted(id, todayStr());
+      if (lane) await settleForLane({ id, completedOn: null }, !!lane.done);
       const when = recurrence ? "recurring" : a.date ? `on ${a.date}` : "unassigned";
       return { id, message: `Added task “${a.title}” (${when})` };
     },

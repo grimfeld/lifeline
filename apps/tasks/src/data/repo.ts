@@ -227,6 +227,15 @@ export async function placeTask(taskId: string, lane: string | null, rank: numbe
   await putDocument<Task>({ ...task, lane, rank });
 }
 
+/**
+ * A Task stands in a Lane: ticked when it is the Board's done Lane, unticked in
+ * any other (ADR 0062). The one rule behind a Board drop and `tasks.add`.
+ */
+export async function settleForLane(task: Pick<Task, "id" | "completedOn">, laneDone: boolean): Promise<void> {
+  if (laneDone && !task.completedOn) await setCompleted(task.id, todayStr());
+  if (!laneDone && task.completedOn) await setCompleted(task.id, null);
+}
+
 /** A deleted Project releases its Tasks: they stay, as loose Tasks (ADR 0060). */
 export async function releaseTasksOf(projectId: string): Promise<void> {
   for (const t of await tasksOfProject(projectId)) await putDocument<Task>({ ...t, project: null, milestone: null, lane: null, rank: null });
