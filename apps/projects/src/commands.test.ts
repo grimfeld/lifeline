@@ -7,6 +7,7 @@ import {
   invokeCommand,
   type CommandDef,
 } from "@lifeline/core";
+import { tasksApp } from "@lifeline/app-tasks";
 import { addTask, TASK, taskTypes, type Task } from "@lifeline/app-tasks/data";
 import { projectTypes } from "./types";
 import { projectCommands } from "./commands";
@@ -212,5 +213,139 @@ describe("Lane Commands, run headless", () => {
     expect(await documentsOf<Lane>(PROJECT_LANE).then((l) => l.length)).toBe(2);
     const t = (await tasks()).find((x) => x.id === tid)!;
     expect(t.lane ?? todo.id).toBe(todo.id);
+  });
+});
+
+describe("Place task, run headless", () => {
+  const place = (args: Record<string, unknown>) =>
+    run("projects.task.place", args);
+  const one = async (id: string) => (await tasks()).find((t) => t.id === id)!;
+  const inLane = async (laneId: string) =>
+    (await tasks())
+      .filter((t) => t.lane === laneId)
+      .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
+      .map((t) => t.title);
+
+  it("puts a Task in a Project, Milestone and Lane, at the bottom by default", async () => {
+    const pid = await addProject({ title: "Bathroom" });
+    await run("projects.milestone.add", { project: pid, title: "Tiling" });
+    const [, doing] = await lanesOf(pid);
+    const a = await addTask({ title: "a" });
+    const b = await addTask({ title: "b" });
+    await place({ task: a, project: "bathroom", milestone: "tiling", lane: "Doing" });
+    await place({ task: b, project: pid, lane: "doing" });
+    const ta = await one(a);
+    expect([ta.project, ta.lane]).toEqual([pid, doing.id]);
+    expect(ta.milestone).toBe((await milestonesOf(pid))[0].id);
+    expect(await inLane(doing.id)).toEqual(["a", "b"]);
+  });
+
+  it("a position puts it at that place in the Lane's hand order", async () => {
+    const pid = await addProject({ title: "P" });
+    const ids = [] as string[];
+    for (const t of ["a", "b", "c"]) {
+      const id = await addTask({ title: t });
+      await place({ task: id, project: pid, lane: "To do" });
+      ids.push(id);
+    }
+    await place({ task: ids[2], lane: "To do", position: 0 });
+    const [todo] = await lanesOf(pid);
+    expect(await inLane(todo.id)).toEqual(["c", "a", "b"]);
+    await place({ task: ids[2], position: 99 });
+    expect(await inLane(todo.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("into the done Lane ticks it, out of it unticks it", async () => {
+    const pid = await addProject({ title: "P" });
+    const id = await addTask({ title: "t", project: pid });
+    await place({ task: id, lane: "Done" });
+    expect((await one(id)).completedOn).not.toBeNull();
+    await place({ task: id, lane: "Doing" });
+    expect((await one(id)).completedOn).toBeNull();
+  });
+
+  it("changing Project drops the Milestone and lands in the first Lane", async () => {
+    const a = await addProject({ title: "A" });
+    const b = await addProject({ title: "B" });
+    await run("projects.milestone.add", { project: a, title: "M" });
+    await run("projects.milestone.add", { project: b, title: "N" });
+    const id = await addTask({ title: "t", project: a });
+    await place({ task: id, milestone: "M" });
+    expect((await one(id)).milestone).not.toBeNull();
+    await place({ task: id, project: b });
+    const t = await one(id);
+    expect([t.project, t.milestone]).toEqual([b, null]);
+    expect(t.lane).toBe((await lanesOf(b))[0].id);
+    await place({ task: id, project: a, milestone: "M" });
+    expect((await one(id)).milestone).toBe((await milestonesOf(a))[0].id);
+  });
+
+  it("loose takes a Task out of its Project", async () => {
+    const pid = await addProject({ title: "P" });
+    const id = await addTask({ title: "t", project: pid });
+    await place({ task: id, loose: true });
+    const t = await one(id);
+    expect([t.project, t.milestone, t.lane]).toEqual([null, null, null]);
+    await expect(place({ task: id, loose: true, lane: "Doing" })).rejects.toThrow();
+  });
+
+  it("a loose Task needs a Project to take a Lane", async () => {
+    const id = await addTask({ title: "t" });
+    await expect(place({ task: id, lane: "Doing" })).rejects.toThrow(/project/i);
+  });
+
+  it("a recurring Task is refused a Lane but takes a Project and Milestone", async () => {
+    const pid = await addProject({ title: "P" });
+    await run("projects.milestone.add", { project: pid, title: "M" });
+    const id = await addTask({
+      title: "r",
+      recurrence: { freq: "daily", interval: 1 } as never,
+    });
+    await expect(place({ task: id, project: pid, lane: "Doing" })).rejects.toThrow(/lane/i);
+    await place({ task: id, project: pid, milestone: "M" });
+    const t = await one(id);
+    expect([t.project, t.lane]).toEqual([pid, null]);
+    expect(t.milestone).not.toBeNull();
+  });
+
+  it("a Lane of another Project is not found", async () => {
+    const a = await addProject({ title: "A" });
+    await addProject({ title: "B" });
+    const id = await addTask({ title: "t" });
+    await place({ task: id, project: a, lane: "To do" });
+    await expect(place({ task: id, project: a, lane: "Nope" })).rejects.toThrow(/No lane/);
+  });
+});
+
+describe("tasks.add with a Milestone and a Lane, run headless", () => {
+  const add = (args: Record<string, unknown>) =>
+    invokeCommand(
+      tasksApp.commands.find((c) => c.id === "tasks.add") as CommandDef,
+      args,
+    );
+
+  it("places the new Task in the Milestone and Lane of its Project", async () => {
+    const pid = await addProject({ title: "Bathroom" });
+    await run("projects.milestone.add", { project: pid, title: "Tiling" });
+    const { id } = await add({ title: "Quote", project: "Bathroom", milestone: "tiling", lane: "Doing" });
+    const t = (await tasks()).find((x) => x.id === id)!;
+    expect(t.milestone).toBe((await milestonesOf(pid))[0].id);
+    expect(t.lane).toBe((await lanesOf(pid))[1].id);
+  });
+
+  it("refuses either without a Project", async () => {
+    await expect(add({ title: "x", lane: "Doing" })).rejects.toThrow(/project/i);
+    await expect(add({ title: "x", milestone: "M" })).rejects.toThrow(/project/i);
+  });
+
+  it("a Lane that is not the Project's is refused", async () => {
+    await addProject({ title: "P" });
+    await expect(add({ title: "x", project: "P", lane: "Nope" })).rejects.toThrow(/No lane/);
+  });
+
+  it("into the done Lane it is ticked", async () => {
+    const pid = await addProject({ title: "P" });
+    const { id } = await add({ title: "x", project: pid, lane: "Done" });
+    expect((await tasks()).find((x) => x.id === id)!.completedOn).not.toBeNull();
   });
 });
