@@ -152,7 +152,7 @@ export class LifelineOAuth implements OAuthServerProvider {
   private rotating = new Map<string, Promise<OAuthTokens>>();
 
   constructor(
-    /** Superuser client: the OAuth collections have no rules, so only it reads them. */
+    /** The server's own PocketBase account: the OAuth collections open to it alone (#263). */
     private admin: PocketBase,
     private pbUrl: string,
     /** Redirect URIs a client may register (`redirectAllowed`). */

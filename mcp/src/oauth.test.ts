@@ -5,7 +5,7 @@ import type { OAuthClientInformationFull } from "@modelcontextprotocol/sdk/share
 import { InvalidGrantError, OAuthError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import type { Response } from "express";
 import type { AuthorizationParams } from "@modelcontextprotocol/sdk/server/auth/provider.js";
-import { DEFAULT_REDIRECT_ALLOW, parseRedirectAllow } from "./config";
+import { DEFAULT_REDIRECT_ALLOW, parseRedirectAllow, pbAccountFrom } from "./config";
 import { loginPage } from "./login";
 import { LifelineOAuth, LoginAttempts, redirectAllowed } from "./oauth";
 
@@ -198,5 +198,18 @@ describe("redirectAllowed", () => {
     expect(redirectAllowed("https://chatgpt.com/connector/oauth/x1", ["https://chatgpt.com/connector/oauth/*"])).toBe(true);
     expect(redirectAllowed("https://chatgpt.com/connector/oauthx/x1", ["https://chatgpt.com/connector/oauth/*"])).toBe(false);
     expect(redirectAllowed("http://chatgpt.com/connector/oauth/x1", ["https://chatgpt.com/connector/oauth/*"])).toBe(false);
+  });
+});
+
+describe("pbAccountFrom", () => {
+  it("signs in as the mcp_service record when its secrets are set", () => {
+    expect(pbAccountFrom({ MCP_SERVICE_EMAIL: "s@x", MCP_SERVICE_PASSWORD: "p", PB_SUPERUSER_EMAIL: "su@x", PB_SUPERUSER_PASSWORD: "q" })).toEqual({ collection: "mcp_service", email: "s@x", password: "p" });
+  });
+  it("falls back to the superuser until then, and refuses neither", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    expect(pbAccountFrom({ PB_SUPERUSER_EMAIL: "su@x", PB_SUPERUSER_PASSWORD: "q" }).collection).toBe("_superusers");
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+    expect(() => pbAccountFrom({ MCP_SERVICE_EMAIL: "s@x" })).toThrow(/MCP_SERVICE_PASSWORD/);
   });
 });
