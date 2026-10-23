@@ -63,8 +63,9 @@ const demoServer = (port: number, outDir: string) =>
 function selectedProjects(argv = process.argv) {
   const names: string[] = [];
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i].startsWith("--project=")) names.push(argv[i].slice("--project=".length));
-    else if (argv[i] === "--project") while (argv[i + 1] && !argv[i + 1].startsWith("-")) names.push(argv[++i]);
+    const arg = argv[i]!;
+    if (arg.startsWith("--project=")) names.push(arg.slice("--project=".length));
+    else if (arg === "--project") for (let next = argv[i + 1]; next && !next.startsWith("-"); next = argv[++i + 1]) names.push(next);
   }
   return names.map((n) => new RegExp(`^${n.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`, "i"));
 }

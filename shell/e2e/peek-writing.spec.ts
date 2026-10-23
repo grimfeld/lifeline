@@ -14,7 +14,7 @@ async function workLocally(page: Page) {
 }
 
 /** Put the Documents (in order: a later one may name an earlier one's id as `$0`, `$1`…), then peek the last, over the Vault. */
-async function peekNew(page: Page, docs: Record<string, unknown>[]) {
+async function peekNew<const T extends Record<string, unknown>[]>(page: Page, docs: T) {
   await page.goto("/vault");
   await workLocally(page);
   const ids = await inCore(
@@ -25,14 +25,14 @@ async function peekNew(page: Page, docs: Record<string, unknown>[]) {
         const resolved = Object.fromEntries(Object.entries(d).map(([k, v]) => [k, typeof v === "string" && /^\$\d+$/.test(v) ? out[Number(v.slice(1))] : v]));
         out.push((await core.putDocument({ body: "", ...resolved } as unknown as { type: string })).id as string);
       }
-      core.openPeek(out[out.length - 1]);
+      core.openPeek(out[out.length - 1]!);
       return out;
     },
     docs,
   );
   const dialog = page.getByRole("dialog");
   await dialog.waitFor();
-  return { dialog, id: ids[ids.length - 1], ids };
+  return { dialog, id: ids[ids.length - 1]!, ids: ids as { [K in keyof T]: string } };
 }
 
 const field = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))!?.[a.key], { id, key });

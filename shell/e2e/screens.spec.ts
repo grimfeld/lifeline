@@ -55,7 +55,7 @@ async function openProductMerge(page: Page) {
       const dimension = own?.dimension === "length" ? "mass" : "length";
       await core.putDocument({ type: "price_product", title, dimension, unit: dimension === "length" ? "m" : "kg", countName: "", labels: [], folder: "", tags: [] });
     },
-    [CORE_URL, target],
+    [CORE_URL, target] as const,
   );
   await page.getByRole("button", { name: "Edit" }).first().click();
   const dialog = page.getByRole("dialog");
@@ -170,7 +170,7 @@ function macrosWithLongContent(edit?: boolean) {
     await workLocally(page);
     const name = longText("A Macro");
     await page.evaluate(
-      async ({ coreUrl, name, title, note }) => {
+      async ({ coreUrl, name, title }) => {
         const core = await import(/* @vite-ignore */ coreUrl);
         if ((await core.allMacros()).some((m: { name: string }) => m.name === name)) return;
         await core.saveMacro({
@@ -182,7 +182,7 @@ function macrosWithLongContent(edit?: boolean) {
           ],
         });
       },
-      { coreUrl: CORE_URL, name, title: longText("A task"), note: longText("A note") },
+      { coreUrl: CORE_URL, name, title: longText("A task") },
     );
     const row = page.getByRole("list", { name: "Macros" }).getByRole("button", { name }).first();
     await row.waitFor();
@@ -777,7 +777,9 @@ test("every screen has a row in this file", async ({ page }) => {
   await open(page, "/settings");
   const registered = await page.evaluate(async (coreUrl) => {
     const core = await import(/* @vite-ignore */ coreUrl);
-    const { MODULE_SHELLS } = await import(/* @vite-ignore */ "/src/modules/shells.ts");
+    // A path the dev server serves, not one on disk: typed as a plain string, it is not resolved.
+    const shellsUrl: string = "/src/modules/shells.ts";
+    const { MODULE_SHELLS } = await import(/* @vite-ignore */ shellsUrl);
     const routes: string[] = [];
     for (const s of core.screensOf()) routes.push(core.screenRoute(s));
     for (const f of core.frames()) for (const s of core.screensOf(f.id)) routes.push(core.screenRoute(s));

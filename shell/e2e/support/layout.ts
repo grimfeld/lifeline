@@ -56,7 +56,7 @@ function findLayoutProblems(): LayoutProblem[] {
   const isHidden = (el: Element, s: CSSStyleDeclaration) =>
     s.display === "none" || s.visibility === "hidden" || s.visibility === "collapse" || Number(s.opacity) === 0 || el.closest("[aria-hidden='true'], [inert]") !== null;
   // Screen-reader-only text and other deliberately clipped boxes.
-  const isSrOnly = (s: CSSStyleDeclaration, r: DOMRect) => (r.width <= 1 && r.height <= 1) || (s.clip && s.clip !== "auto") || (s.clipPath && s.clipPath !== "none");
+  const isSrOnly = (s: CSSStyleDeclaration, r: DOMRect) => (r.width <= 1 && r.height <= 1) || (!!s.clip && s.clip !== "auto") || (!!s.clipPath && s.clipPath !== "none");
   const ellipsizes = (s: CSSStyleDeclaration) => s.textOverflow === "ellipsis" || (s.webkitLineClamp && s.webkitLineClamp !== "none");
 
   // Stray sideways scrolling.

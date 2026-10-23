@@ -14,7 +14,8 @@ async function workLocally(page: Page) {
 }
 
 /** Store the Documents in order (each may name the ids before it as `$0`, `$1`…) and return their ids. */
-async function make(page: Page, docs: Record<string, unknown>[]): Promise<string[]> {
+/** One id per Document put, so `ids[2]` of three is a string. */
+async function make<const T extends Record<string, unknown>[]>(page: Page, docs: T): Promise<{ [K in keyof T]: string }> {
   await page.goto("/");
   await workLocally(page);
   return inCore(
@@ -28,7 +29,7 @@ async function make(page: Page, docs: Record<string, unknown>[]): Promise<string
       return ids;
     },
     docs,
-  );
+  ) as Promise<{ [K in keyof T]: string }>;
 }
 
 async function peek(page: Page, id: string) {

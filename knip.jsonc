@@ -20,9 +20,7 @@
         "tailwindcss",
         // Imported from index.css as a stylesheet; it comes with react-grid-layout.
         "react-resizable"
-      ],
-      // screens.spec.ts imports this path inside the page (the Vite dev server), not from disk.
-      "ignoreUnresolved": ["/src/modules/shells.ts"]
+      ]
     }
   }
 }
