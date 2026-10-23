@@ -71,8 +71,9 @@ function SetupDialog({ open, onClose }: { open: boolean; onClose: () => void }) 
         <DialogHeader>
           <DialogTitle>Set up private notes</DialogTitle>
           <DialogDescription>
-            Notes in the <b>{PRIVATE_FOLDER}</b> folder stay out of sight — tree, search, links, graph — until you unlock them. A gate against eyes at your device, not encryption. A folder already
-            named {PRIVATE_FOLDER} is adopted as is.
+            Notes in the <b>{PRIVATE_FOLDER}</b> folder stay out of sight — tree, search, links, graph, the Claude connector — until you unlock them. A gate against eyes at
+            your screen, not encryption: they are stored and synced as plain text, so anyone with this browser's data or the server's database can read them. A folder
+            already named {PRIVATE_FOLDER} is adopted as is.
           </DialogDescription>
         </DialogHeader>
         <form

@@ -71,7 +71,8 @@ book. This page covers what every Document has, whatever its type.
 - It locks again after ten minutes without use (or ten minutes in the background), and when the
   app reloads.
 - Only body-first Documents (notes, thoughts…) can go in it.
-- It keeps eyes off, but it is not encryption.
+- It keeps eyes and agents off, but it is not encryption: its Documents are stored and synced as
+  plain text, so anyone with this browser's data or the server's database can read them.
 - In the palette: **Unlock private notes…**, **Lock private notes**, **Change private notes
   password…**, **Turn off private notes…**.
 
