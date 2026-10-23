@@ -85,31 +85,34 @@
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
+    --muted-foreground: oklch(0.542 0 0);
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
-    --success: oklch(0.627 0.194 149.214);
+    --success: oklch(0.533 0.194 149.214);
     --success-foreground: oklch(0.985 0 0);
-    --warning: oklch(0.666 0.179 58.318);
+    --warning: oklch(0.574 0.179 58.318);
     --warning-foreground: oklch(0.985 0 0);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --ring: oklch(0.66 0 0);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
-    /* Named accent palette (from notch): Apps and Stats reference slots, never hexes. */
-    --chart-blue: #2a78d6;
-    --chart-orange: #eb6834;
-    --chart-aqua: #1baf7a;
-    --chart-yellow: #eda100;
-    --chart-magenta: #e87ba4;
+    /*
+     * Named accent palette (from notch): Apps and Stats reference slots, never hexes.
+     * Each is text-safe on the background: ≥ 4.5:1 here, and on the Card in .dark.
+     */
+    --chart-blue: #2674d2;
+    --chart-orange: #cb4b0c;
+    --chart-aqua: #008654;
+    --chart-yellow: #ab6300;
+    --chart-magenta: #b9517b;
     --chart-green: #008300;
     --chart-violet: #4a3aa7;
-    --chart-red: #e34948;
+    --chart-red: #d53b3d;
     --chart-grid: #e1e0d9;
     --chart-baseline: #c3c2b7;
     --chart-muted: #898781;
@@ -121,7 +124,7 @@
     --sidebar-accent: oklch(0.97 0 0);
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar-ring: oklch(0.66 0 0);
 }
 
 .dark {
@@ -157,7 +160,7 @@
     --chart-aqua: #199e70;
     --chart-yellow: #c98500;
     --chart-magenta: #d55181;
-    --chart-green: #008300;
+    --chart-green: #259521;
     --chart-violet: #9085e9;
     --chart-red: #e66767;
     --chart-grid: #2c2c2a;
@@ -191,6 +194,23 @@
     height: 100%;
     overflow: hidden;
     overscroll-behavior: none;
+  }
+
+  /*
+   * Reduced motion (WCAG 2.3.3): every animation and transition — the kit's
+   * dialog zoom and sheet slides from tw-animate-css included — runs in an
+   * instant. Not `none`, so `animationend` still fires and Radix unmounts
+   * what closed.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 /*
