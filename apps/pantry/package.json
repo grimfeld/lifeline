@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@types/react": "catalog:",
+    "fake-indexeddb": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@types/react": "catalog:",
+    "fake-indexeddb": "catalog:",
     "@types/react-dom": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
