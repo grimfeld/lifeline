@@ -1,3 +1,8 @@
+---
+status: superseded
+superseded-by: ADR 0057
+---
+
 # Two Workspaces — Notes and Dashboard — owned by Core
 
 The Notes App wants Obsidian's chrome (file tree, search, tags rail; editor; links panel) and the rest of Lifeline wants a dashboard's chrome (Screens of Cards, Surfaces, App screens). Rather than one shell whose sidebar swaps per App, or per-App "full-screen modes", Core defines **Workspaces**: full-screen environments over the same data, chosen by URL — `/notes/…` is the Notes workspace, everything else the Dashboard. Core owns the switcher (segmented control at the top of each workspace's sidebar, ⌘1/⌘2, palette commands), remembers each workspace's last location, and lets an App declare which workspace its screens live in. Cross-workspace navigation is plain links, so a Journal card lands in Notes and a `[[Dune]]` wikilink lands in the Dashboard's Media screen.

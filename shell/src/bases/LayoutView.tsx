@@ -69,7 +69,7 @@ function OmittedNote({ shown, omitted, what, def }: { shown: number; omitted: Do
   if (omitted.length === 0) return null;
   return (
     <div className="text-muted-foreground border-t px-3 py-1 text-xs">
-      <button className="hover:text-foreground underline-offset-2 hover:underline" onClick={() => setOpen((o) => !o)}>
+      <button type="button" className="hover:text-foreground underline-offset-2 hover:underline" onClick={() => setOpen((o) => !o)}>
         {shown} shown · {omitted.length} without {what}
       </button>
       {open && (
@@ -199,7 +199,7 @@ function Board({ docs, def, picks, compact, editable }: { docs: Document[]; def:
                   draggable={draggable}
                   onDragStart={() => setDragging(d.id)}
                   onDragEnd={() => setDragging(null)}
-                  className={cn("bg-card rounded-md border p-2 text-xs", draggable && "cursor-grab active:cursor-grabbing", dragging === d.id && "opacity-50")}
+                  className={cn("bg-card rounded-lg border p-2 text-xs", draggable && "cursor-grab active:cursor-grabbing", dragging === d.id && "opacity-50")}
                 >
                   <Link to={docHref(d, def)} className="line-clamp-2 font-medium hover:underline" draggable={false}>
                     {displayTitle(d, def)}
@@ -252,17 +252,17 @@ function CalendarGrid({ docs, def, picks, compact }: { docs: Document[]; def: Do
       <div className="flex items-center gap-1 px-3 py-1.5">
         <span className="text-sm font-medium">{monthName}</span>
         <span className="ml-auto" />
-        <Button size="icon" variant="ghost" className="size-6" onClick={() => shift(-1)} aria-label="Previous month">
+        <Button size="icon-xs" variant="ghost" onClick={() => shift(-1)} aria-label="Previous month">
           <ChevronLeft className="size-3.5" />
         </Button>
-        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setMonth(today.slice(0, 7))}>
+        <Button size="xs" variant="ghost" className="px-2" onClick={() => setMonth(today.slice(0, 7))}>
           Today
         </Button>
-        <Button size="icon" variant="ghost" className="size-6" onClick={() => shift(1)} aria-label="Next month">
+        <Button size="icon-xs" variant="ghost" onClick={() => shift(1)} aria-label="Next month">
           <ChevronRight className="size-3.5" />
         </Button>
       </div>
-      <div className="text-muted-foreground grid grid-cols-7 border-b px-px text-center text-[10px]">
+      <div className="text-muted-foreground grid grid-cols-7 border-b px-px text-center text-2xs">
         {WEEKDAYS.map((w) => (
           <div key={w}>{w}</div>
         ))}
@@ -273,13 +273,13 @@ function CalendarGrid({ docs, def, picks, compact }: { docs: Document[]; def: Do
           const items = byDay.get(day) ?? [];
           return (
             <div key={day} className={cn("min-h-16 border-r border-b p-1", !inMonth && "bg-muted/30")}>
-              <div className={cn("text-right text-[10px]", day === today ? "text-primary font-semibold" : "text-muted-foreground")}>{parts(day).day}</div>
+              <div className={cn("text-right text-2xs", day === today ? "text-primary font-semibold" : "text-muted-foreground")}>{parts(day).day}</div>
               {items.slice(0, max).map((d) => (
-                <Link key={d.id} to={docHref(d, def)} className="bg-accent/60 hover:bg-accent mb-0.5 block truncate rounded px-1 text-[11px] leading-4">
+                <Link key={d.id} to={docHref(d, def)} className="bg-accent/60 hover:bg-accent mb-0.5 block truncate rounded px-1 text-2xs leading-4">
                   {displayTitle(d, def)}
                 </Link>
               ))}
-              {items.length > max && <div className="text-muted-foreground px-1 text-[10px]">+{items.length - max} more</div>}
+              {items.length > max && <div className="text-muted-foreground px-1 text-2xs">+{items.length - max} more</div>}
             </div>
           );
         })}

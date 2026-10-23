@@ -1,3 +1,8 @@
+---
+status: accepted
+supersedes: ADR 0015 (in part — one Placement per item)
+---
+
 # An item may have many Time blocks; a block never moves the item's day
 
 A long Task wants to be planned as several stretches — Monday 9–11, Wednesday 14–16 — and stay in the pool, greyed, ready for a third. Until now a Placement was unique per item (`[appId+itemId]`), dropping a chip on the Schedule first *moved* the Task to that day and then pinned the time, and a pin on any other day than the Task's own was ignored as stale (ADR 0015). We drop the uniqueness: an item may own any number of Placements, on any days, and a Time block is a copy made from a chip — the chip (in the pool or in a day's strip) stays where it is, greyed while a block lies ahead. Placing a block never calls the App's `move`; the Task's own day is the plan day the week planner and the Tasks screen show, and only a day-granular drop (or a drop into a day's *untimed strip*) changes it. A block has no done state: its tick is the item's tick, and completing the item drops every block that starts after that moment and keeps the past ones as record.
@@ -17,3 +22,9 @@ A long Task wants to be planned as several stretches — Monday 9–11, Wednesda
 - Chores keep their day-only Placement pin as the Core fallback for Apps that own no moves; nothing changes for them except that they, too, may carry several timed blocks.
 - Deleting an item leaves its Placements as invisible orphans (as before); Core sweeps Placements whose item no longer reports.
 - Blocks never roll forward: a passed block of an open item stays where it was, drawn muted, as record. The item's own row still rolls per the App's policy (ADR 0015), which is where a missed Chore shows up on today.
+
+## Amendment (2026-10-22): `placeItem` keeps one untimed pin; the week planner is a Calendar view
+
+`placeItem` does not always insert: it upserts the item's one untimed pin. Time blocks have calls of their own: `addTimeBlock` always adds a Placement, and `moveTimeBlock(placementId, …)` retimes or moves one (`packages/core/src/contracts/surface.ts`).
+
+The "week planner" is now the Calendar Surface's views (ADR 0063). Week is hour-scaled, so it shows every block; Month and Upcoming are the day-granular ones that show the item on its own day only.

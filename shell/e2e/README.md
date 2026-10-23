@@ -7,7 +7,7 @@ over a store filled with the longest content a person could type (ADR 0065).
 pnpm test:e2e                                                        # everything, from the repo root
 pnpm --filter @lifeline/shell test:e2e --project=mobile -g Tasks      # one screen, one width
 pnpm --filter @lifeline/shell test:e2e --only-changed=origin/master  # the specs your branch changes
-pnpm test:e2e:quiet --project=mobile -g Tasks                         # failures only, for agents
+pnpm test:e2e:quiet --project=mobile -g Tasks                         # dot reporter, for agents
 ```
 
 No `--` before the flags: pnpm would hand it to Playwright, which then reads them as

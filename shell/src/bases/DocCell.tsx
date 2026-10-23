@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Checkbox, TagChips, cn } from "@lifeline/ui";
-import { displayTitle, documentType, formatHuman, patchDocument, readGeo, useAllDocuments, type Document, type FieldDef } from "@lifeline/core";
+import { displayTitle, documentType, formatHuman, isExternalUrl, patchDocument, readGeo, useAllDocuments, type Document, type FieldDef } from "@lifeline/core";
 import { DocLink, FieldControl } from "@lifeline/editor";
 
 /** Read-only rendering of one field value. */
@@ -34,13 +34,15 @@ export function CellValue({ doc, field }: { doc: Document; field: FieldDef }) {
     case "links":
       return <LinkValue ids={(Array.isArray(v) ? v.map(String) : [String(v)]).filter(Boolean)} />;
     case "url":
+      // Only an http(s) address becomes a link: a stored `javascript:` one stays text.
+      if (!isExternalUrl(String(v))) return <span className="truncate">{String(v)}</span>;
       return (
         <a href={String(v)} target="_blank" rel="noreferrer" className="text-primary truncate hover:underline">
           {String(v).replace(/^https?:\/\//, "")}
         </a>
       );
     case "json":
-      return <code className="text-muted-foreground text-[10px]">{JSON.stringify(v)}</code>;
+      return <code className="text-muted-foreground text-2xs">{JSON.stringify(v)}</code>;
     case "select": {
       const o = field.options?.find((o) => o.value === String(v));
       return <span>{o?.label ?? String(v)}</span>;

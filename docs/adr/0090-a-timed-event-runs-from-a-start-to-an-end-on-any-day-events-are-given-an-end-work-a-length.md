@@ -1,6 +1,7 @@
 ---
 status: accepted
 supersedes: ADR 0005 (in part — "timed events are single-day")
+amends: ADR 0015 (in part — retiming an Event keeps its end day)
 ---
 
 # A timed Event runs from a start to an end on any day; Events are given an end, work a length

@@ -1,25 +1,6 @@
-import { newId, PRIVATE_SETTINGS_TYPE, putDocument, todayStr, type Document, type DocumentTypeDef } from "@lifeline/core";
+import { conflictCopy, PRIVATE_SETTINGS_TYPE, type DocumentTypeDef } from "@lifeline/core";
 import { DAILY, DAILY_TEMPLATE, PERIOD_TEMPLATES, PERIOD_TYPES, TEMPLATE, journalHref, noteHref, periodHref } from "./domain/types";
 import { PERIOD_LABELS } from "./domain/periods";
-
-/**
- * Sync conflict (ADR 0010): the server copy is newer than an unsynced local
- * edit. Keep the local text as a sibling of the same type, "<title> (conflict HH:MM)".
- */
-export async function onNoteConflict(local: Document, server: Document): Promise<void> {
-  if (local.body === server.body && local.title === server.title) return;
-  const d = new Date();
-  const stamp = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  await putDocument({
-    id: newId(),
-    type: local.type,
-    folder: local.folder ?? "",
-    title: `${local.title} (conflict ${stamp})`,
-    body: typeof local.body === "string" ? local.body : "",
-    conflictOf: local.title,
-    createdAt: todayStr(),
-  });
-}
 
 /** UI-free type definitions (icons are attached in index.ts so tests don't pull the UI kit). */
 export const noteTypes: DocumentTypeDef[] = [
@@ -36,7 +17,7 @@ export const noteTypes: DocumentTypeDef[] = [
     // A date in prose is not a mention of the day; the Daylog ties days together (CONTEXT.md "Unlinked mention").
     linkable: { mentions: false },
     href: (d) => journalHref(d.title),
-    onConflict: onNoteConflict,
+    onConflict: conflictCopy,
     order: 0,
     builtIn: true,
   },
@@ -52,7 +33,7 @@ export const noteTypes: DocumentTypeDef[] = [
       // Like a Day: a stretch is written about, and prose naming "2026" is not a mention of it.
       linkable: { mentions: false },
       href: (d) => periodHref(d.title),
-      onConflict: onNoteConflict,
+      onConflict: conflictCopy,
       order: 1 + i,
       builtIn: true,
     }),

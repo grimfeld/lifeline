@@ -3,7 +3,8 @@
 //
 //   node scripts/adr.mjs new "The title"            takes the next free number, writes docs/adr/NNNN-the-title.md
 //   node scripts/adr.mjs mv docs/adr/NNNN-slug.md   moves that ADR to the next free number, same slug
-//   node scripts/adr.mjs check                      no number twice in docs/adr; warns when a number
+//   node scripts/adr.mjs check                      no number twice in docs/adr; every supersedes/amends
+//                                                   answered by the ADR it names; warns when a number
 //                                                   this change adds is taken on another branch
 //
 // "Free" means above every number in docs/adr on any local or origin branch and in
@@ -13,9 +14,14 @@
 // `mv` only renames the file. A moved ADR gains `formerly: NNNN` in its frontmatter, and
 // its "ADR NNNN" references are updated by meaning, not search-and-replace — the old
 // number still names the ADR that kept it.
+//
+// A later ADR that changes an earlier one says so in its frontmatter (`supersedes: ADR 0045
+// (in part — …)` or `amends: ADR 0057`), and the earlier one answers (`superseded-by` /
+// `amended-by`), so a reader of the older ADR can tell it is stale. `check` holds both sides.
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const DIR = "docs/adr";
 const NAME = /^(\d{4})-.+\.md$/;
@@ -89,6 +95,41 @@ function move(file) {
   console.log(to);
 }
 
+/** Each key that names another ADR, and the key that ADR answers with. */
+const ANSWER = { supersedes: "superseded-by", "superseded-by": "supersedes", amends: "amended-by", "amended-by": "amends" };
+
+/** An ADR's frontmatter as { key: value }; {} without one. */
+export function frontmatter(text) {
+  const block = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(text);
+  const out = {};
+  for (const line of block ? block[1].split(/\r?\n/) : []) {
+    const kv = /^([a-z-]+):\s*(.*)$/.exec(line);
+    if (kv) out[kv[1]] = kv[2];
+  }
+  return out;
+}
+
+/** The ADR numbers a value names. A parenthesis is a note on the ADR before it: `ADR 0045 (in part — see ADR 0012)` names 0045 only. */
+export const cited = (value = "") => [...value.replace(/\([^)]*\)/g, "").matchAll(/ADR (\d{4})/g)].map((m) => m[1]);
+
+/** Each `supersedes` / `amends` (and the reverse) the ADR it names does not answer, from { "NNNN-slug.md": text }. */
+export function unanswered(texts) {
+  const problems = [];
+  const byNumber = new Map(Object.keys(texts).map((name) => [number(name), name]));
+  for (const [name, text] of Object.entries(texts)) {
+    const fm = frontmatter(text);
+    for (const [key, back] of Object.entries(ANSWER)) {
+      for (const n of cited(fm[key])) {
+        const other = byNumber.get(n);
+        if (!other) problems.push(`${name} has \`${key}: ADR ${n}\`, and there is no ADR ${n}`);
+        else if (!cited(frontmatter(texts[other])[back]).includes(number(name)))
+          problems.push(`${name} has \`${key}: ADR ${n}\`, but ${other} does not answer: add \`${back}: ADR ${number(name)}\` to its frontmatter`);
+      }
+    }
+  }
+  return problems;
+}
+
 function check() {
   const problems = [];
   const here = adrs(readdirSync(DIR));
@@ -114,16 +155,27 @@ function check() {
   for (const p of problems) console.log(`${DIR}: ${p}`);
   if (problems.length) {
     console.log(`\nRenumber the newer ADR: \`pnpm adr:mv <file>\` moves it to a free number. Update its "ADR NNNN" references too.`);
-    process.exit(1);
   }
-  console.log("adr: numbers unique");
+
+  const answers = unanswered(Object.fromEntries(here.map((name) => [name, readFileSync(join(DIR, name), "utf8")])));
+  for (const p of answers) console.log(`${DIR}: ${p}`);
+  if (answers.length) {
+    console.log(`\nA later ADR's \`supersedes\` / \`amends\` is answered by \`superseded-by\` / \`amended-by\` on the ADR it names, and the reverse. Leave the older ADR's body alone: it is history.`);
+  }
+
+  if (problems.length || answers.length) process.exit(1);
+  console.log("adr: numbers unique, supersession answered");
 }
 
-const [command, ...rest] = process.argv.slice(2);
-if (command === "new") create(rest.join(" "));
-else if (command === "mv") move(rest[0]);
-else if (command === "check") check();
-else {
-  console.error("usage: node scripts/adr.mjs new <title> | mv <file> | check");
-  process.exit(1);
+function main() {
+  const [command, ...rest] = process.argv.slice(2);
+  if (command === "new") create(rest.join(" "));
+  else if (command === "mv") move(rest[0]);
+  else if (command === "check") check();
+  else {
+    console.error("usage: node scripts/adr.mjs new <title> | mv <file> | check");
+    process.exit(1);
+  }
 }
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) main();

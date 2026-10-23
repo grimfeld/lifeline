@@ -9,6 +9,8 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
+  PageHeader,
+  usePhone,
   PhoneDock,
 } from "@lifeline/ui";
 import {
@@ -19,7 +21,6 @@ import {
   parts,
   stepView,
   todayStr,
-  useIsMobile,
   useSurfaceScope,
   viewDays,
   type CalendarView,
@@ -114,7 +115,7 @@ function label(view: CalendarView, days: DateStr[], anchor: DateStr): string {
  */
 export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { views?: CalendarView[] }) {
   const [params, setParams] = useSearchParams();
-  const isMobile = useIsMobile();
+  const isMobile = usePhone();
   const scope = useSurfaceScope();
   const place = scope?.moduleId ?? "general";
   const today = todayStr();
@@ -147,27 +148,31 @@ export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { v
       <div className="flex flex-wrap items-center gap-2" data-no-swipe>
         {isMobile ? (
           // A phone has no width for five segments: the views are a menu under the title, as in Google's.
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-baseline gap-1.5 text-left" aria-label="Change view">
-                <h1 className="text-xl font-semibold tracking-tight">{CALENDAR_VIEWS.find((v) => v.id === view)!.title}</h1>
-                <span className="text-muted-foreground text-sm">{label(view, days, anchor)}</span>
-                <ChevronDown className="text-muted-foreground size-4 self-center" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuRadioGroup value={view} onValueChange={(v) => isCalendarView(v) && go(anchor, v)}>
-                {CALENDAR_VIEWS.filter((v) => views.includes(v.id)).map((v) => (
-                  <DropdownMenuRadioItem key={v.id} value={v.id}>
-                    {v.title}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <PageHeader
+            title={
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="flex items-baseline gap-1.5 text-left" aria-label="Change view">
+                    <span>{CALENDAR_VIEWS.find((v) => v.id === view)!.title}</span>
+                    <span className="text-muted-foreground text-sm font-normal">{label(view, days, anchor)}</span>
+                    <ChevronDown className="text-muted-foreground size-4 self-center" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuRadioGroup value={view} onValueChange={(v) => isCalendarView(v) && go(anchor, v)}>
+                    {CALENDAR_VIEWS.filter((v) => views.includes(v.id)).map((v) => (
+                      <DropdownMenuRadioItem key={v.id} value={v.id}>
+                        {v.title}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            }
+          />
         ) : (
           <>
-            <h1 className="text-xl font-semibold tracking-tight">Calendar</h1>
+            <PageHeader title="Calendar" />
             <span className="text-muted-foreground text-sm">{label(view, days, anchor)}</span>
           </>
         )}
@@ -179,6 +184,7 @@ export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { v
             <div className="bg-muted/60 mr-2 flex gap-0.5 rounded-lg p-0.5" role="tablist" aria-label="View">
               {CALENDAR_VIEWS.filter((v) => views.includes(v.id)).map((v) => (
                 <button
+                  type="button"
                   key={v.id}
                   role="tab"
                   aria-selected={view === v.id}
@@ -191,15 +197,15 @@ export function CalendarSurface({ views = CALENDAR_VIEWS.map((v) => v.id) }: { v
             </div>
           )}
           {pageable && (
-            <Button size="icon" variant="outline" className="size-8" onClick={() => go(stepView(view, anchor, -1))} aria-label="Previous">
+            <Button size="icon" variant="outline" onClick={() => go(stepView(view, anchor, -1))} aria-label="Previous">
               <ChevronLeft />
             </Button>
           )}
-          <Button variant="outline" className="h-8 max-md:flex-1" onClick={() => go(today)}>
+          <Button variant="outline" className="max-md:flex-1" onClick={() => go(today)}>
             Today
           </Button>
           {pageable && (
-            <Button size="icon" variant="outline" className="size-8" onClick={() => go(stepView(view, anchor, 1))} aria-label="Next">
+            <Button size="icon" variant="outline" onClick={() => go(stepView(view, anchor, 1))} aria-label="Next">
               <ChevronRight />
             </Button>
           )}

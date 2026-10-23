@@ -1,3 +1,8 @@
+---
+status: accepted
+supersedes: ADR 0082 (in part — the reader)
+---
+
 # An agent reads the receipt; Lifeline reads no photo
 
 ADR 0082 put Tesseract on the device behind one reader seam, an image in and a draft Receipt out, and expected a cloud model to replace it if it read too poorly. It did read too poorly: a receipt's columns, discounts and weights need a model that understands what it is looking at, not character recognition followed by a regex parser. Putting a vision model in the app would mean a PocketBase route holding an LLM API key, billed per scan. Instead, **the reading moves out of Lifeline**. The person hands the photo to an agent they already use (Claude on the phone, through the MCP server of ADR 0062), the agent reads it, and runs **Add receipt…** headless with the Receipt's Lines as structured arguments. Lifeline keeps no reader at all.

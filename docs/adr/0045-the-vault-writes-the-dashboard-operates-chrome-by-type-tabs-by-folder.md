@@ -1,3 +1,8 @@
+---
+status: accepted
+superseded-by: ADR 0057 (in part — "the Dashboard operates"), ADR 0068 (in part — "the Vault writes")
+---
+
 # The Vault writes, the Dashboard operates — chrome follows the type, tabs follow the folder
 
 ADR 0012 split the app into two Workspaces because "the two chromes differ in

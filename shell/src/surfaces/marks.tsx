@@ -4,6 +4,7 @@ import { isMissedMarker, todayStr, type SchedulableItem, type TimedItem } from "
 export function ItemMark({ mark }: { mark?: SchedulableItem["mark"] }) {
   if (!mark) return null;
   return (
+    // ui-allow: text-size — scales with the title it marks (em), not a fixed step
     <span className="mr-1 inline-block shrink-0 text-[0.85em] font-semibold leading-none" style={{ color: mark.color }} aria-hidden>
       {mark.text}
     </span>

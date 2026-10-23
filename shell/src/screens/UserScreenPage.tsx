@@ -7,7 +7,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  PageHeader,
   PhoneDock,
+  Tip,
   toast,
 } from "@lifeline/ui";
 import { put, remove, screensOfWorkspace, TagFilterProvider, useLiveQuery, type ScreenLayoutItem, type UserScreen } from "@lifeline/core";
@@ -58,51 +60,57 @@ export function UserScreenPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Wraps below `md`: the tag picker takes its own row; the actions sit in the dock. */}
-      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
-        <h1 className="truncate text-lg font-semibold tracking-tight">{screen.name}</h1>
-        {editing && <Badge variant="secondary">editing</Badge>}
-        {editing ? (
-          <div className="flex items-center gap-1.5 max-md:order-last max-md:w-full">
-            <Tag className="text-muted-foreground size-3.5 shrink-0" />
-            <TagPicker
-              value={screen.tags ?? []}
-              onChange={(t) => void saveScreenTags(t)}
-              placeholder="Screen tag filter…"
-              className="w-56 max-md:w-full"
-            />
-          </div>
-        ) : (
-          <TagChips tags={screen.tags} />
-        )}
-        <PhoneDock>
-          <div className="ml-auto flex items-center gap-1 max-md:contents">
-            {editing && (
-              <Button variant="outline" className="h-8" onClick={() => setPickerOpen(true)}>
-                <Plus /> Add card
-              </Button>
-            )}
-            <Button
-              variant={editing ? "default" : "outline"}
-              className="h-8"
-              onClick={() => setEditing((e) => !e)}
-            >
-              {editing ? <Check /> : <LayoutGrid />}
-              {editing ? "Done" : "Edit"}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost" className="size-8" aria-label="Screen actions" title="Screen actions">
-                  <MoreHorizontal />
+      <div className="grid gap-2 border-b px-4 py-2">
+        <PageHeader title={screen.name}>
+          <PhoneDock>
+            <div className="ml-auto flex items-center gap-1 max-md:contents">
+              {editing && (
+                <Button variant="outline" onClick={() => setPickerOpen(true)}>
+                  <Plus /> Add card
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem variant="destructive" onClick={() => void deleteScreen()}>
-                  <Trash2 /> Delete screen
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+              <Button
+                variant={editing ? "default" : "outline"}
+                onClick={() => setEditing((e) => !e)}
+              >
+                {editing ? <Check /> : <LayoutGrid />}
+                {editing ? "Done" : "Edit"}
+              </Button>
+              <DropdownMenu>
+                <Tip label="Screen actions">
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost">
+                      <MoreHorizontal />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </Tip>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem variant="destructive" onClick={() => void deleteScreen()}>
+                    <Trash2 /> Delete screen
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </PhoneDock>
+        </PageHeader>
+        {(editing || screen.tags?.length) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {editing && <Badge variant="secondary">editing</Badge>}
+            {editing ? (
+              <div className="flex items-center gap-1.5 max-md:w-full">
+                <Tag className="text-muted-foreground size-3.5 shrink-0" />
+                <TagPicker
+                  value={screen.tags ?? []}
+                  onChange={(t) => void saveScreenTags(t)}
+                  placeholder="Screen tag filter…"
+                  className="w-56 max-md:w-full"
+                />
+              </div>
+            ) : (
+              <TagChips tags={screen.tags} />
+            )}
           </div>
-        </PhoneDock>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">

@@ -1,4 +1,4 @@
-import { removeDocumentsWhere, type Document, type DocumentTypeDef } from "@lifeline/core";
+import { conflictCopy, removeDocumentsWhere, type Document, type DocumentTypeDef } from "@lifeline/core";
 
 /** The Research App (ADR 0068) — born the Writer's pad; its id stays `writer`, Card ids live in synced layouts. */
 export const APP_ID = "writer";
@@ -59,6 +59,7 @@ export const essayType: DocumentTypeDef = {
   indexes: ["status"],
   /** A Version exists only in service of its Essay, so it goes down with it. */
   onDelete: async (d) => removeDocumentsWhere(VERSION, (v) => v.writingId === d.id),
+  onConflict: conflictCopy,
   order: 25,
   builtIn: true,
 };

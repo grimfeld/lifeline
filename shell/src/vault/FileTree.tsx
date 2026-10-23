@@ -128,6 +128,7 @@ export function FileTree() {
       return (
         <li key={node.path}>
           <button
+            type="button"
             className="flex w-full items-center gap-1 rounded-md py-1 pr-1 text-left text-sm hover:bg-accent/60"
             style={{ paddingLeft: depth * 12 + 4 }}
             title="Locked — click to unlock"
@@ -152,7 +153,7 @@ export function FileTree() {
               onDragStart={(e) => e.dataTransfer.setData("application/x-lifeline-folder", node.path)}
               {...dropProps(node.path)}
             >
-              <button className="flex min-w-0 flex-1 items-center gap-1 py-1 text-left" onClick={() => toggle(node.path)}>
+              <button type="button" className="flex min-w-0 flex-1 items-center gap-1 py-1 text-left" onClick={() => toggle(node.path)}>
                 <Chevron className="text-muted-foreground size-3.5 shrink-0" />
                 {isPrivate && <LockOpen className="text-muted-foreground size-3 shrink-0" />}
                 <span className="truncate font-medium">{node.name}</span>
@@ -222,6 +223,7 @@ export function FileTree() {
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <button
+              type="button"
               className={cn("flex w-full items-center gap-1.5 rounded-md py-1 pr-1 text-left text-sm", active ? "bg-accent text-accent-foreground" : "hover:bg-accent/50")}
               style={{ paddingLeft: depth * 12 + 8 }}
               draggable
@@ -231,7 +233,7 @@ export function FileTree() {
             >
               {I && <I className="text-muted-foreground size-3.5 shrink-0" />}
               <span className="truncate">{n.type === "daily" ? formatHuman(n.title) : displayTitle(n, def)}</span>
-              {def && def.body !== "required" && !(def.vault ?? false) && <span className="text-muted-foreground ml-auto shrink-0 text-[9px] uppercase">{singularOf(def)}</span>}
+              {def && def.body !== "required" && !(def.vault ?? false) && <span className="text-muted-foreground ml-auto shrink-0 text-2xs uppercase">{singularOf(def)}</span>}
             </button>
           </ContextMenuTrigger>
           <ContextMenuContent>

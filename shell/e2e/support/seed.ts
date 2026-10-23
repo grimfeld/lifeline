@@ -104,7 +104,16 @@ export async function seedInPage(arg: { coreUrl: string; longWord: string }): Pr
       await core.invokeCommand(cmd, raw);
       commandsRun.add(cmd.id);
     } catch (e) {
-      if (final) failedCommands.push(`${cmd.id}: ${(e as Error).message}`);
+      // An optional argument may name what the seed can't know (a Project's
+      // Milestone by title): run the Command once more with only what it needs.
+      const required = cmd.args.filter((a: { required?: boolean }) => a.required);
+      try {
+        if (required.length === cmd.args.length) throw e;
+        await core.invokeCommand(cmd, await fill(required));
+        commandsRun.add(cmd.id);
+      } catch {
+        if (final) failedCommands.push(`${cmd.id}: ${(e as Error).message}`);
+      }
     }
   }
   };

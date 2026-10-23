@@ -1,3 +1,8 @@
+---
+status: accepted
+superseded-by: ADR 0018 (in part — "markdown is the source of truth"), ADR 0019 (in part — the rejection of typed links)
+---
+
 # Notes engine: markdown is the source of truth, everything else is a derived index
 
 The Journal (an Obsidian daily-notes port) is built as the daily-note mode of a general Notes App, and the goal is to grow toward most of Obsidian's features over time. We copy Obsidian's architecture rather than its feature list: a Note is a title plus raw markdown, and wikilinks, backlinks, tags, headings, properties (frontmatter), aliases and unresolved links are a *derived index* rebuilt from the text on save and never hand-maintained. `[[Name]]` stays verbatim in the text and resolves live by name — note title, then note alias, then an entity of an App implementing the Core `Linkable` contract (Media title, Event, Chore, Task, Stat), else unresolved. Only the note text syncs; the index is local. Other Apps' facts enter a note through fenced `daylog` blocks rendered live from a second Core contract, `Daylog` ("what happened on day D"), never written into the text.

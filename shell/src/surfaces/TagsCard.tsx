@@ -30,6 +30,7 @@ export function TagsCard(_: CardProps) {
         return (
           <li key={tag}>
             <button
+              type="button"
               className={cn("hover:bg-accent/60 flex w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-left", expanded && "bg-accent/40")}
               onClick={() => setOpen(expanded ? null : tag)}
             >
@@ -42,6 +43,7 @@ export function TagsCard(_: CardProps) {
                 {list.map((it) => (
                   <li key={it.key}>
                     <button
+                      type="button"
                       className="hover:bg-accent/60 flex w-full items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left text-xs"
                       disabled={!it.href}
                       onClick={() => it.href && navigate(it.href)}

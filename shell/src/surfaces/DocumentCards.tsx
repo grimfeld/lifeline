@@ -64,7 +64,7 @@ export function ViewCard({ settings, configure }: CardProps) {
   const rows = useMemo(() => applyView(docs, sel?.view ?? {}, def).filter((d) => matchesTagFilter(d.tags, filter)), [docs, sel?.view, def, filter]);
   if (!sel || !def) {
     return (
-      <button className="text-muted-foreground flex h-full w-full items-center justify-center text-xs underline" onClick={configure}>
+      <button type="button" className="text-muted-foreground flex h-full w-full items-center justify-center text-xs underline" onClick={configure}>
         Choose a View…
       </button>
     );
@@ -76,7 +76,7 @@ export function ViewCard({ settings, configure }: CardProps) {
       <div className={["map", "board", "calendar"].includes(layout) ? "min-h-0 flex-1 overflow-hidden" : "min-h-0 flex-1 overflow-auto"}>
         <LayoutView docs={rows} def={def} columns={columns} layout={layout} picks={sel.view ?? {}} compact editable={layout === "table" || layout === "board"} />
       </div>
-      <div className="text-muted-foreground flex items-center justify-between border-t px-2 py-0.5 text-[10px]">
+      <div className="text-muted-foreground flex items-center justify-between border-t px-2 py-0.5 text-2xs">
         <span>{rows.length}</span>
         <Link to={sel.view ? `${basePath(type)}?view=${sel.view.id}` : basePath(type)} className="flex items-center gap-0.5 hover:underline">
           Open Base <ArrowUpRight className="size-3" />
@@ -109,7 +109,7 @@ export function DocumentCard({ settings, configure }: CardProps) {
   const index = useLinkIndex();
   if (!doc) {
     return (
-      <button className="text-muted-foreground flex h-full w-full items-center justify-center text-xs underline" onClick={configure}>
+      <button type="button" className="text-muted-foreground flex h-full w-full items-center justify-center text-xs underline" onClick={configure}>
         Choose a Document…
       </button>
     );
@@ -117,7 +117,7 @@ export function DocumentCard({ settings, configure }: CardProps) {
   const fields = fieldsOfDocument(doc, def).filter((f) => !f.hidden && doc[f.key] !== undefined && doc[f.key] !== null && doc[f.key] !== "");
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <button className="flex items-center gap-1 px-1 text-left text-sm font-medium hover:underline" onClick={() => navigate(docHref(doc, def))}>
+      <button type="button" className="flex items-center gap-1 px-1 text-left text-sm font-medium hover:underline" onClick={() => navigate(docHref(doc, def))}>
         {displayTitle(doc, def)} <ArrowUpRight className="text-muted-foreground size-3" />
       </button>
       {fields.length > 0 && (
@@ -148,7 +148,7 @@ export function CountTile({ settings, configure }: CardProps) {
   const n = useMemo(() => applyView(docs, sel?.view ?? {}, def).filter((d) => matchesTagFilter(d.tags, filter)).length, [docs, sel?.view, def, filter]);
   if (!sel || !def) {
     return (
-      <button className="text-muted-foreground flex h-full w-full items-center justify-center text-xs underline" onClick={configure}>
+      <button type="button" className="text-muted-foreground flex h-full w-full items-center justify-center text-xs underline" onClick={configure}>
         Choose a View…
       </button>
     );

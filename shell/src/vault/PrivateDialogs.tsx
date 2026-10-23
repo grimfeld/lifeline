@@ -132,6 +132,7 @@ function UnlockDialog({ open, onClose }: { open: boolean; onClose: () => void })
         >
           <Input autoFocus type="password" placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" />
           {wrong && <p className="text-destructive mt-1 text-xs">Wrong password.</p>}
+          {/* ui-allow: sm-breakpoint — the kit DialogFooter turns to a row at sm; this keeps its buttons apart there */}
           <DialogFooter className="mt-3 sm:justify-between">
             <Button type="button" variant="ghost" size="sm" onClick={() => setForgot(true)}>
               Forgot?

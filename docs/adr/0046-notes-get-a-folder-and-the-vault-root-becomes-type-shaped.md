@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: ADR 0013 (in part — the migration rule "others → root")
+superseded-by: ADR 0068 (in part — the type-shaped Vault root)
+---
+
 # Notes get a Folder of their own, and the vault root becomes type-shaped
 
 `note` was the only body-first type with no home Folder: Clipping →

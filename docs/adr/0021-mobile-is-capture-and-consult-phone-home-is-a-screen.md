@@ -1,3 +1,10 @@
+---
+status: accepted
+superseded-by: ADR 0049 (in part — "one bottom bar per Workspace"), ADR 0053 (in part — the phone home is a user Screen)
+---
+
+> "The phone home is a user Screen" is superseded by ADR 0053: `screens.phoneHome`, the `/phone` route and the phone-home page are gone, and `/` resumes the last place (ADR 0057). Its other parts that later ADRs changed are listed in the frontmatter.
+
 # 21. Mobile is capture-and-consult; the phone home is a user Screen
 
 Date: 2026-08-20

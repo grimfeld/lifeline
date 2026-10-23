@@ -1,6 +1,15 @@
+---
+status: accepted
+supersedes: ADR 0021 (in part — the phone home is a user Screen), ADR 0047 (in part — the phone home per Workspace), ADR 0049 (in part — the slot list and per-Module memory)
+superseded-by: ADR 0057 (in part — a Module slot lands on the Module's home), ADR 0063 (in part — the two pinned time slots)
+amended-by: ADR 0066 (in part — a Module's home may be its Overview), ADR 0089 (in part — Settings is no longer the only page that serves no Documents)
+---
+
 # The Phone bar is configured, not derived
 
 > The two pinned time slots are one since ADR 0063: Calendar and Schedule merged into one Calendar Surface, and the freed cell is the user's. The rest stands.
+
+> A Module slot no longer resolves to a Screen claiming the Module: since ADR 0057 a Screen claims no Module, and the slot opens the Module's home (`moduleHome`, in `destinationOf` in `packages/core/src/bar.ts`). The rest stands.
 
 ADR 0049 gave the phone's bottom bar to the Workspace's Modules — `☰ · Home ·
 up to three Modules · +` — and said so in the strongest terms available: that

@@ -52,7 +52,7 @@ export function ReportCard({ settings, configure }: CardProps) {
   const window = useMemo(() => windowOf(String(settings.window ?? "month"), today), [settings.window, today]);
   const figures = useDocumentFigures(index, docId, today);
   const choose = (what: string) => (
-    <button className="text-muted-foreground flex h-full w-full items-center justify-center text-xs underline" onClick={configure}>
+    <button type="button" className="text-muted-foreground flex h-full w-full items-center justify-center text-xs underline" onClick={configure}>
       Choose {what}…
     </button>
   );

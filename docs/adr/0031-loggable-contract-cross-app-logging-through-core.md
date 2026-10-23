@@ -1,3 +1,8 @@
+---
+status: accepted
+superseded-by: ADR 0059 (in part — the per-App Tally)
+---
+
 # Loggable: cross-App logging goes through a Core Contract, never App-to-App
 
 A Workout Session should count as a Habit Completion (Life Level) or a Stat Entry (Stats). No App imports another (CONTEXT.md: Apps interoperate only through Contracts defined by the Core), and the owning App must stay the one that writes its Documents. So Core gains a third behavioural Contract after Schedulable and Timed: **Loggable** — an App entity that accepts a logged occurrence from anywhere. A provider lists its targets (`useTargets()`: key, title, what value it wants — none, a count, a duration, a number) and does the write (`log(targetId, { at, value?, note? })`). A Workout carries **Tallies** — target + what to send (one, the duration, a Block's result) — and saving a Session logs each through Core, once.

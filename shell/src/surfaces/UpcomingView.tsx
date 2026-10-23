@@ -61,6 +61,7 @@ function Tick({ item }: { item: DayWork }) {
   const done = !!item.completedOn;
   return (
     <button
+      type="button"
       className={cn("flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors", done ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent")}
       disabled={done}
       aria-label={done ? "Done" : `Complete ${item.title}`}
@@ -90,7 +91,7 @@ function Row({ color, lead, tick, menu, children, onOpen, faded, late }: { color
     >
       <span ref={anchor} className="text-muted-foreground w-16 shrink-0 py-1.5 text-xs tabular-nums">{lead}</span>
       {tick}
-      <button className="flex min-w-0 flex-1 items-center gap-2 self-stretch py-1.5 text-left" onClick={(e) => {
+      <button type="button" className="flex min-w-0 flex-1 items-center gap-2 self-stretch py-1.5 text-left" onClick={(e) => {
         e.stopPropagation();
         onOpen(anchor.current!);
       }}>
@@ -216,11 +217,12 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
                 {headings}
                 <section className={cn("flex gap-3 py-2", past && "opacity-70")} aria-label={formatHuman(d)}>
                   <button
+                    type="button"
                     className="hover:bg-accent flex w-11 shrink-0 flex-col items-center self-start rounded-md py-0.5"
                     title={`Open ${formatHuman(d)}`}
                     onClick={() => openDay(d)}
                   >
-                    <span className={cn("text-[11px] uppercase", d === today ? "text-primary font-semibold" : "text-muted-foreground")}>{weekday(d)}</span>
+                    <span className={cn("text-xs uppercase", d === today ? "text-primary font-semibold" : "text-muted-foreground")}>{weekday(d)}</span>
                     <span className={cn("flex size-8 items-center justify-center rounded-full text-lg leading-none tabular-nums", d === today && "bg-primary text-primary-foreground font-semibold")}>
                       {parts(d).day}
                     </span>

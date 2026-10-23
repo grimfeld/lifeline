@@ -130,8 +130,8 @@ for today's Day, stamped with the time.
 
 ## Ask Claude
 
-The Journal has no tools of its own; Claude works with its pages as Documents.
-
+- "Jot down that the plumber came" — `notes_capture`: one line appended to today's Day with the
+  time, as **Quick capture** does.
 - "What did I write last Tuesday?" — `search_documents`, `get_document`.
 - "Add a paragraph to today's journal" — `update_document` (it replaces the whole text, so
   Claude reads it first).

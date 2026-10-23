@@ -1,12 +1,11 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { PhoneDockHost, Sheet, SheetContent, SheetTitle, cn } from "@lifeline/ui";
+import { PhoneDockHost, Sheet, SheetContent, SheetTitle, cn, usePhone } from "@lifeline/ui";
 import {
   BAR_LEFT_SLOT,
   BAR_PINNED,
   useBarSlots,
   useCaptureSheet,
-  useIsMobile,
   useKeyboardInset,
   setPhoneNavHeight,
   type CaptureCommand,
@@ -20,7 +19,7 @@ type FoldEntry = Extract<CaptureEntry, { kind: "fold" }>;
 
 /** One bottom-bar slot; shared by both bars and by the Vault's tab buttons. */
 function slot(active: boolean) {
-  return cn("flex flex-1 flex-col items-center justify-center gap-0.5 py-1 text-[10px]", active ? "text-foreground" : "text-muted-foreground");
+  return cn("flex flex-1 flex-col items-center justify-center gap-0.5 py-1 text-2xs", active ? "text-foreground" : "text-muted-foreground");
 }
 
 /**
@@ -50,7 +49,7 @@ export function MobileNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const nav = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
+  const isMobile = usePhone();
   // iOS never shrinks the layout viewport for the keyboard, so the frame — and
   // this nav at the foot of it — runs on underneath the keys. The nav reserves
   // that strip itself and ends above them, which Chromium's viewport resize
@@ -122,6 +121,7 @@ export function MobileNav() {
       // pinned ones never shift, and says what it is for (ADR 0053).
       return (
         <button
+          type="button"
           key={`empty-${i}`}
           className={cn(slot(false), "opacity-40")}
           title="Choose what this slot opens"
@@ -133,7 +133,7 @@ export function MobileNav() {
     }
     const Icon = s.icon ?? slotIcon(s.slot.kind, s.slot.id);
     return (
-      <button key={`${s.slot.kind}:${s.slot.id}`} className={slot(location.pathname === s.path)} onClick={() => navigate(s.path)}>
+      <button type="button" key={`${s.slot.kind}:${s.slot.id}`} className={slot(location.pathname === s.path)} onClick={() => navigate(s.path)}>
         <Icon className="size-5" /> <span className="max-w-full truncate px-0.5">{s.title}</span>
       </button>
     );
@@ -159,7 +159,7 @@ export function MobileNav() {
           {BAR_PINNED.map((s) => {
             const Icon = SURFACE_ICONS[s.id];
             return (
-              <button key={s.id} className={slot(location.pathname === s.path)} onClick={() => navigate(s.path)}>
+              <button type="button" key={s.id} className={slot(location.pathname === s.path)} onClick={() => navigate(s.path)}>
                 <Icon className="size-5" /> {s.title}
               </button>
             );
@@ -167,7 +167,7 @@ export function MobileNav() {
 
           {slotCell(slots[BAR_LEFT_SLOT], BAR_LEFT_SLOT)}
 
-          <button className={slot(false)} onClick={() => setCaptureOpen(true)}>
+          <button type="button" className={slot(false)} onClick={() => setCaptureOpen(true)}>
             <Plus className="size-5" /> Capture
           </button>
 
@@ -181,7 +181,7 @@ export function MobileNav() {
           {openFold ? (
             <>
               <SheetTitle className="flex items-center gap-1">
-                <button className="hover:bg-accent -ml-1 rounded p-1" aria-label="Back" onClick={() => setOpenFold(null)}>
+                <button type="button" className="hover:bg-accent -ml-1 rounded p-1" aria-label="Back" onClick={() => setOpenFold(null)}>
                   <ChevronLeft className="size-5" />
                 </button>
                 {openFold.title}

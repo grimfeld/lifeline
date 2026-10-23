@@ -23,7 +23,7 @@ export function LocalGraphPanel({ docId, index, onOpen }: { docId: string; index
               type="button"
               onClick={() => setDepth(d)}
               aria-pressed={depth === d}
-              className={cn("rounded border px-1.5 text-[10px] tabular-nums", depth === d ? "bg-accent" : "text-muted-foreground opacity-60")}
+              className={cn("rounded border px-1.5 text-2xs tabular-nums", depth === d ? "bg-accent" : "text-muted-foreground opacity-60")}
             >
               {d}
             </button>

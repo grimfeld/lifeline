@@ -78,7 +78,7 @@ function RankList({ index, rows, quiet, onOpen }: { index: LinkIndex; rows: Rank
         const name = d ? displayTitle(d, documentType(d.type)) : "?";
         return (
           <li key={r.docId} className="min-w-0">
-            <button className="hover:bg-accent relative flex w-full min-w-0 items-center gap-2 overflow-hidden rounded px-1.5 py-1 text-left text-sm" onClick={() => onOpen({ kind: "doc", id: r.docId, type: d?.type ?? "" }, name)}>
+            <button type="button" className="hover:bg-accent relative flex w-full min-w-0 items-center gap-2 overflow-hidden rounded px-1.5 py-1 text-left text-sm" onClick={() => onOpen({ kind: "doc", id: r.docId, type: d?.type ?? "" }, name)}>
               {!quiet && <span aria-hidden className="bg-primary/10 absolute inset-y-0 left-0" style={{ width: `${(r.count / max) * 100}%` }} />}
               <span className="relative min-w-0 flex-1 truncate">{name}</span>
               <span className="text-muted-foreground relative shrink-0 text-xs tabular-nums" title={`Last: ${formatHuman(r.last)}`}>
@@ -143,7 +143,7 @@ export function MentionHeatmap({ days, today }: { days: Set<DateStr>; today: Dat
         <div className="flex w-max gap-[2px]" role="img" aria-label={`${inYear} Days in the last 12 months`}>
           {weeks.map((col) => (
             <div key={col[0]} className="grid gap-[2px]">
-              <span className="text-muted-foreground h-3 text-[8px] leading-3">{col.some((d) => d.endsWith("-01")) ? MONTHS[Number(col.find((d) => d.endsWith("-01"))!.slice(5, 7)) - 1] : ""}</span>
+              <span className="text-muted-foreground h-3 text-2xs leading-3">{col.some((d) => d.endsWith("-01")) ? MONTHS[Number(col.find((d) => d.endsWith("-01"))!.slice(5, 7)) - 1] : ""}</span>
               {col.map((d) => (
                 <span key={d} title={d <= today ? formatHuman(d) : undefined} className={cn("size-2 rounded-[2px]", d > today ? "opacity-0" : days.has(d) ? "bg-primary" : "bg-muted")} />
               ))}
@@ -151,7 +151,7 @@ export function MentionHeatmap({ days, today }: { days: Set<DateStr>; today: Dat
           ))}
         </div>
       </div>
-      <span className="text-muted-foreground text-[10px]">{inYear} Days in the last 12 months</span>
+      <span className="text-muted-foreground text-2xs">{inYear} Days in the last 12 months</span>
     </div>
   );
 }
@@ -179,26 +179,26 @@ export function ReportsEditor({ value, onChange }: { value: ReportSetting[]; onC
             <Checkbox checked onCheckedChange={() => onChange(value.filter((_, j) => j !== i))} aria-label={`Turn off ${k.label}`} />
             <span className="min-w-0 flex-1 truncate text-sm" title={k.description}>
               {k.label}
-              <span className="text-muted-foreground ml-1.5 text-[10px] uppercase">{k.family === "ranking" ? "type" : "each"}</span>
+              <span className="text-muted-foreground ml-1.5 text-2xs uppercase">{k.family === "ranking" ? "type" : "each"}</span>
             </span>
             {k.params.n !== undefined && (
               <label className="flex shrink-0 items-center gap-1 text-xs">
                 Top
-                <Input type="number" className="h-7 w-14" min={1} max={50} value={r.n ?? k.params.n} onChange={(e) => patch(i, { n: num(e.target.value, 1, 50) })} aria-label={`${k.label}: how many`} />
+                <Input type="number" className="w-14" min={1} max={50} value={r.n ?? k.params.n} onChange={(e) => patch(i, { n: num(e.target.value, 1, 50) })} aria-label={`${k.label}: how many`} />
               </label>
             )}
             {k.params.days !== undefined && (
               <label className="flex shrink-0 items-center gap-1 text-xs">
                 for
-                <Input type="number" className="h-7 w-16" min={1} max={3650} value={r.days ?? k.params.days} onChange={(e) => patch(i, { days: num(e.target.value, 1, 3650) })} aria-label={`${k.label}: days`} />
+                <Input type="number" className="w-16" min={1} max={3650} value={r.days ?? k.params.days} onChange={(e) => patch(i, { days: num(e.target.value, 1, 3650) })} aria-label={`${k.label}: days`} />
                 days
               </label>
             )}
             <div className="flex shrink-0">
-              <Button size="icon" variant="ghost" className="size-7" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move ${k.label} up`}>
+              <Button size="icon-sm" variant="ghost" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move ${k.label} up`}>
                 <ArrowUp className="size-3.5" />
               </Button>
-              <Button size="icon" variant="ghost" className="size-7" disabled={i === value.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${k.label} down`}>
+              <Button size="icon-sm" variant="ghost" disabled={i === value.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${k.label} down`}>
                 <ArrowDown className="size-3.5" />
               </Button>
             </div>
@@ -210,7 +210,7 @@ export function ReportsEditor({ value, onChange }: { value: ReportSetting[]; onC
           <Checkbox checked={false} onCheckedChange={() => onChange([...value, { kind: k.kind, ...k.params }])} />
           <span className="min-w-0 flex-1 truncate" title={k.description}>
             {k.label}
-            <span className="ml-1.5 text-[10px] uppercase">{k.family === "ranking" ? "type" : "each"}</span>
+            <span className="ml-1.5 text-2xs uppercase">{k.family === "ranking" ? "type" : "each"}</span>
           </span>
         </label>
       ))}

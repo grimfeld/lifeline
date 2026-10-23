@@ -32,7 +32,7 @@ export function SearchPane() {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="relative p-2">
         <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2" />
-        <Input className="h-8 pl-8" placeholder="Search the Vault…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+        <Input className="pl-8" placeholder="Search the Vault…" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
       </div>
       <ul className="min-h-0 flex-1 overflow-y-auto px-1 pb-4">
         {q && results.length === 0 && <li className="text-muted-foreground px-2 py-3 text-xs">No matches.</li>}
@@ -40,9 +40,9 @@ export function SearchPane() {
           const n = notes.find((x) => x.id === r.id)!;
           return (
             <li key={r.id}>
-              <button className="hover:bg-accent/60 w-full rounded-md px-2 py-1 text-left" onClick={() => navigate(docHref(n))}>
+              <button type="button" className="hover:bg-accent/60 w-full rounded-md px-2 py-1 text-left" onClick={() => navigate(docHref(n))}>
                 <div className="truncate text-sm">{r.title}</div>
-                <div className="text-muted-foreground truncate text-[10px]">{r.path} · {r.type}</div>
+                <div className="text-muted-foreground truncate text-2xs">{r.path} · {r.type}</div>
                 {r.snippet && <div className="text-muted-foreground line-clamp-2 text-xs">…{r.snippet}…</div>}
               </button>
             </li>

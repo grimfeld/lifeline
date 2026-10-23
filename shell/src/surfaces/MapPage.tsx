@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useLocatablePins, useLocatableTypes } from "@lifeline/core";
-import { cn, MapView, PhoneDock } from "@lifeline/ui";
+import { cn, MapView, PageHeader, PhoneDock } from "@lifeline/ui";
 import { MapPin } from "lucide-react";
 
 /**
@@ -34,7 +34,7 @@ export function MapPage() {
     <div className="flex h-full flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
         <MapPin className="text-muted-foreground size-4" />
-        <h1 className="text-lg font-semibold tracking-tight">Map</h1>
+        <PageHeader title="Map" />
         <span className="text-muted-foreground text-xs">
           {pins.length} {pins.length === 1 ? "pin" : "pins"}
         </span>

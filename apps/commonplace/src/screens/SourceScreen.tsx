@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router";
 import { Badge, Button } from "@lifeline/ui";
-import { docHref, documentType, patchDocument, useDocument, useLinkIndex, type Document } from "@lifeline/core";
+import { docHref, documentType, isExternalUrl, patchDocument, useDocument, useLinkIndex, type Document } from "@lifeline/core";
 import { FieldsForm, MarkdownView } from "@lifeline/editor";
 import { ArrowLeft, ArrowUpRight, ExternalLink } from "lucide-react";
 import { useSources } from "../data/works";
@@ -67,11 +67,15 @@ export function SourceScreen() {
             )}
           </div>
           <div className="flex flex-wrap gap-2 text-xs">
-            {item.url && (
-              <a href={item.url} target="_blank" rel="noreferrer" className="text-muted-foreground inline-flex min-w-0 items-center gap-1 underline-offset-2 hover:underline">
-                <ExternalLink className="size-3 shrink-0" /> <span className="truncate">{item.url}</span>
-              </a>
-            )}
+            {/* Only an http(s) address becomes a link: a stored `javascript:` one stays text. */}
+            {item.url &&
+              (isExternalUrl(item.url) ? (
+                <a href={item.url} target="_blank" rel="noreferrer" className="text-muted-foreground inline-flex min-w-0 items-center gap-1 underline-offset-2 hover:underline">
+                  <ExternalLink className="size-3 shrink-0" /> <span className="truncate">{item.url}</span>
+                </a>
+              ) : (
+                <span className="text-muted-foreground min-w-0 truncate">{item.url}</span>
+              ))}
             {!isOwn && (
               <Link to={docHref(doc)} className="text-muted-foreground inline-flex items-center gap-1 underline-offset-2 hover:underline">
                 <ArrowUpRight className="size-3" /> Open its own page

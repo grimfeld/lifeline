@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { displayTitle, documentType, excerpt, getDocument, linkMentions, patchDocument, planLinkAll, singularOf, unambiguousHits, useUnlinkedIn, useUnlinkedMentionsOf, type LinkIndex, type LinkRef, type MentionHit } from "@lifeline/core";
-import { Button, toast } from "@lifeline/ui";
+import { Button, cn, toast } from "@lifeline/ui";
 
 type OnOpen = (ref: LinkRef, name: string) => void;
 interface SectionProps {
@@ -26,10 +26,10 @@ function SourceRow({ index, sourceId, context, onOpen }: { index: LinkIndex; sou
   const def = src ? documentType(src.type) : undefined;
   const title = src ? displayTitle(src, def) : "?";
   return (
-    <button className="hover:bg-accent w-full min-w-0 flex-1 rounded-md px-2 py-1 text-left" onClick={() => onOpen({ kind: "doc", id: sourceId, type: src?.type ?? "" }, title)}>
+    <button type="button" className="hover:bg-accent w-full min-w-0 flex-1 rounded-md px-2 py-1 text-left" onClick={() => onOpen({ kind: "doc", id: sourceId, type: src?.type ?? "" }, title)}>
       <div className="flex min-w-0 items-baseline gap-2">
         <span className="min-w-0 truncate font-medium">{title}</span>
-        {def && <span className="text-muted-foreground shrink-0 text-[10px] uppercase">{singularOf(def)}</span>}
+        {def && <span className="text-muted-foreground shrink-0 text-2xs uppercase">{singularOf(def)}</span>}
       </div>
       <div className="text-muted-foreground line-clamp-2 text-xs break-words">{context}</div>
     </button>
@@ -108,7 +108,7 @@ export function UnlinkedMentionsSection({ docId, index, onOpen }: SectionProps) 
         {unlinkedOf.map((m, i) => (
           <li key={`${m.sourceId}-${m.hit.from}-${i}`} className="flex min-w-0 items-start gap-1">
             <SourceRow index={index} sourceId={m.sourceId} context={m.context} onOpen={onOpen} />
-            <Button size="sm" variant="outline" className="mt-1 h-6 shrink-0 px-2 text-xs" onClick={() => void linkThere(m.sourceId, m.hit)}>
+            <Button size="xs" variant="outline" className="mt-1 shrink-0" onClick={() => void linkThere(m.sourceId, m.hit)}>
               Link
             </Button>
           </li>
@@ -121,16 +121,16 @@ export function UnlinkedMentionsSection({ docId, index, onOpen }: SectionProps) 
               Link {name} in {plan.sources.length} {plan.sources.length === 1 ? "page" : "pages"}?
             </p>
             <div className="flex gap-1">
-              <Button size="sm" className="h-6 flex-1 text-xs" onClick={() => void linkAll()}>
+              <Button size="xs" className="flex-1" onClick={() => void linkAll()}>
                 Link
               </Button>
-              <Button size="sm" variant="ghost" className="h-6 flex-1 text-xs" onClick={() => setConfirming(false)}>
+              <Button size="xs" variant="ghost" className="flex-1" onClick={() => setConfirming(false)}>
                 Cancel
               </Button>
             </div>
           </div>
         ) : (
-          <Button size="sm" variant="outline" className="mt-1.5 h-6 w-full text-xs" onClick={() => setConfirming(true)}>
+          <Button size="xs" variant="outline" className="mt-1.5 w-full" onClick={() => setConfirming(true)}>
             Link all ({safe})
           </Button>
         ))}
@@ -167,9 +167,9 @@ export function UnlinkedNamesSection({ docId, index }: Omit<SectionProps, "onOpe
               <span className="min-w-0 flex-1 truncate text-xs" title={h.canonical}>
                 {h.text}
                 {h.text !== h.canonical && <span className="text-muted-foreground"> → {h.canonical}</span>}
-                {def && <span className="text-muted-foreground ml-1 text-[10px] uppercase">{singularOf(def)}</span>}
+                {def && <span className="text-muted-foreground ml-1 text-2xs uppercase">{singularOf(def)}</span>}
               </span>
-              <Button size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" onClick={() => void linkHere([h])}>
+              <Button size="xs" variant="outline" className="shrink-0" onClick={() => void linkHere([h])}>
                 Link
               </Button>
             </li>
@@ -202,7 +202,8 @@ export function OutgoingLinksSection({ docId, index, onOpen }: SectionProps) {
         {uniqueOut.map(({ link, ref }) => (
           <li key={link.from} className="max-w-full min-w-0">
             <button
-              className={`block max-w-full truncate rounded-md border px-1.5 py-0.5 text-xs ${ref.kind === "unresolved" ? "text-muted-foreground border-dashed" : ref.kind === "locked" ? "text-muted-foreground" : "hover:bg-accent"}`}
+              type="button"
+              className={cn("block max-w-full truncate rounded-md border px-1.5 py-0.5 text-xs", ref.kind === "unresolved" ? "text-muted-foreground border-dashed" : ref.kind === "locked" ? "text-muted-foreground" : "hover:bg-accent")}
               title={ref.kind === "unresolved" ? "Create note" : ref.kind === "locked" ? "In Private — unlock to open" : (() => { const d = documentType(ref.type); return d ? singularOf(d) : undefined; })()}
               onClick={() => onOpen(ref, link.name)}
             >

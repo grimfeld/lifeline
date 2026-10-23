@@ -82,6 +82,7 @@ function PushIcon({ item, className }: { item: WorkItem; className?: string }) {
   if (!push) return null;
   return (
     <button
+      type="button"
       className={cn("text-muted-foreground hover:text-foreground shrink-0", className)}
       title="Push — find it time"
       aria-label={`Push ${item.title}`}
@@ -109,13 +110,14 @@ function Chip({ id, data, title, color, done, planned, onComplete, work, onOpen,
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={cn("group bg-card flex cursor-grab items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs select-none max-md:py-1.5", compact && "gap-0.5 px-0.5 text-[10px]", isDragging && "opacity-40", (done || scheduled) && "opacity-60", scheduled && "border-dashed")}
+      className={cn("group bg-card flex cursor-grab items-center gap-1.5 rounded-md border px-1.5 py-1 text-xs select-none max-md:py-1.5", compact && "gap-0.5 px-0.5 text-2xs", isDragging && "opacity-40", (done || scheduled) && "opacity-60", scheduled && "border-dashed")}
       onClick={(ev) => onOpen?.(ev.currentTarget)}
       title={scheduled ? `${title} · ${planned} block${planned === 1 ? "" : "s"} planned — drag again for another` : title}
     >
       {/* Too narrow for controls (a phone's Week): the tap opens the editor, which ticks too. */}
       {onComplete && !done && !compact && (
         <button
+          type="button"
           className="hover:bg-accent flex size-4 shrink-0 items-center justify-center rounded-full border"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
@@ -188,6 +190,7 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
       <div className="flex items-center gap-1">
         {isBlock && !done && onComplete && (
           <button
+            type="button"
             className="hover:bg-accent flex size-3.5 shrink-0 items-center justify-center rounded-full border"
             onPointerDown={(ev) => ev.stopPropagation()}
             onClick={(ev) => {
@@ -204,6 +207,7 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
         {isBlock && <PushIcon item={entry.item} className="ml-auto hidden group-hover:block" />}
         {isBlock && onRemove && (
           <button
+            type="button"
             className={cn("text-muted-foreground hover:text-foreground hidden shrink-0 group-hover:block", !canPush(entry.item.appId) && "ml-auto")}
             title="Remove this block"
             onPointerDown={(ev) => ev.stopPropagation()}
@@ -264,7 +268,7 @@ function Strip({ date, work, allDay, onCompleteChip, onOpen, compact }: { date: 
       {work.map((w) => (
         <Chip key={w.key} id={`item:${w.key}`} data={{ item: w }} title={w.title} color={w.color} done={!!w.completedOn} planned={w.blocksAhead} onComplete={() => onCompleteChip(w)} work={w} compact={compact} onOpen={(el) => onOpen({ kind: "work", item: w }, el)} />
       ))}
-      {allDay.length === 0 && work.length === 0 && !compact && <div className="text-muted-foreground px-1 text-[10px]">untimed</div>}
+      {allDay.length === 0 && work.length === 0 && !compact && <div className="text-muted-foreground px-1 text-2xs">untimed</div>}
     </div>
   );
 }
@@ -286,7 +290,7 @@ function BandLayer({ band, from, to, touch, onResize, onOpen }: { band: Band; fr
   if (band.fixed) {
     return (
       <div className="pointer-events-none absolute inset-x-0 z-0 overflow-hidden border-y" style={style} title={title}>
-        <span className="text-muted-foreground absolute top-0.5 left-1 truncate text-[10px]">{band.title}</span>
+        <span className="text-muted-foreground absolute top-0.5 left-1 truncate text-2xs">{band.title}</span>
       </div>
     );
   }
@@ -471,7 +475,7 @@ function DayColumn({
             style={{ top: (shown.startH - from) * HOUR_PX + 1, height: Math.max(18, shown.lenH * HOUR_PX - 2) }}
           >
             {/* Bottom right: the lifted chip rides the top left under the finger. */}
-            <span className="bg-background text-primary absolute right-1 bottom-0.5 rounded px-1 text-[11px] font-semibold tabular-nums">
+            <span className="bg-background text-primary absolute right-1 bottom-0.5 rounded px-1 text-xs font-semibold tabular-nums">
               {formatTime(toClock(shown.startH))}–{formatTime(toClock(shown.startH + shown.lenH))}
             </span>
           </div>
@@ -510,6 +514,7 @@ function TemplateChip({ template, onAdd }: { template: TimedTemplate; onAdd: () 
       </span>
       {!template.background && (
       <button
+        type="button"
         className="hover:bg-accent flex size-4 shrink-0 items-center justify-center rounded-full border"
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
@@ -537,7 +542,7 @@ function TemplatePalette({ templates, onAdd, collapsible }: { templates: TimedTe
   if (collapsible) {
     return (
       <div className="shrink-0 rounded-lg border">
-        <button className="text-muted-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <button type="button" className="text-muted-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
           <LayoutTemplate className="size-3.5" /> Templates <span className="ml-auto tabular-nums">{templates.length}</span>
           <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} />
         </button>
@@ -568,7 +573,7 @@ function PoolColumn({ items, onComplete, onOpen, collapsible }: { items: WorkIte
   if (collapsible) {
     return (
       <div ref={setNodeRef} className={cn("shrink-0 rounded-lg border", isOver && "bg-accent/40")}>
-        <button className="text-muted-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <button type="button" className="text-muted-foreground flex w-full items-center gap-1 px-2 py-1.5 text-xs font-medium" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
           <Inbox className="size-3.5" /> Unplaced <span className="ml-auto tabular-nums">{items.length}</span>
           <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} />
         </button>
@@ -603,11 +608,12 @@ function DayStrip({ anchor, today, onPick }: { anchor: DateStr; today: DateStr; 
         const active = d === anchor;
         return (
           <button
+            type="button"
             key={d}
             onClick={() => onPick(d)}
             aria-current={active ? "date" : undefined}
             className={cn(
-              "flex flex-1 flex-col items-center rounded-md border py-1 text-[10px] leading-tight",
+              "flex flex-1 flex-col items-center rounded-md border py-1 text-2xs leading-tight",
               active ? "bg-primary text-primary-foreground border-primary" : d === today ? "text-primary" : "text-muted-foreground",
             )}
           >
@@ -700,7 +706,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
     scroller.current.scrollTop = Math.max(0, (Math.min(nowH, 23) - from - 1) * HOUR_PX);
   }, [nowH, from]);
 
-  const fail = (err: Error) => toast.error(err.message);
+  const fail = (err: Error) => toast.error(`Could not save: ${err.message}`);
 
   useEffect(() => {
     const track = (ev: PointerEvent) => {
@@ -826,7 +832,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
             <Button
               size="icon"
               variant="outline"
-              className="size-8 md:hidden"
+              className="md:hidden"
               aria-label="Add"
               onClick={() => setAdding({ date: anchor, hours: anchor === today ? Math.min(snap(nowH), to - 1) : Math.max(from, 9), point: null })}
             >
@@ -846,8 +852,9 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
               <div />
               {days.map((d) => (
                 <button
+                  type="button"
                   key={d}
-                  className={cn("hover:bg-accent/40 border-l px-2 py-1 text-left text-xs max-md:px-0.5 max-md:text-center max-md:text-[10px]", d === today && "text-primary font-semibold")}
+                  className={cn("hover:bg-accent/40 border-l px-2 py-1 text-left text-xs max-md:px-0.5 max-md:text-center max-md:text-2xs", d === today && "text-primary font-semibold")}
                   onClick={() => view !== "day" && ctx.openDay(d)}
                   title={view !== "day" ? `Open ${formatHuman(d)}` : undefined}
                 >
@@ -857,7 +864,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
               ))}
             </div>
             <div className="grid shrink-0 border-b" style={{ gridTemplateColumns: `${gutter} repeat(${days.length}, minmax(0, 1fr))` }}>
-              <div className="text-muted-foreground px-1 pt-1 text-[10px]">all day</div>
+              <div className="text-muted-foreground px-1 pt-1 text-2xs">all day</div>
               {days.map((d) => {
                 const st = stripFor(d);
                 return <Strip key={d} date={d} work={st.work} allDay={st.allDay} compact={isMobile && view === "week"} onOpen={open} onCompleteChip={(w) => completeSurfaceItem(w as SurfaceItem).then(() => toast.success(`${w.title} done`)).catch(fail)} />;
@@ -868,7 +875,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
                 <div className="relative">
                   <div className="relative" style={{ height: (to - from) * HOUR_PX }}>
                     {Array.from({ length: to - from }, (_, i) => (
-                      <div key={i} className="text-muted-foreground absolute right-1 -translate-y-1.5 text-[10px] tabular-nums" style={{ top: i * HOUR_PX }}>
+                      <div key={i} className="text-muted-foreground absolute right-1 -translate-y-1.5 text-2xs tabular-nums" style={{ top: i * HOUR_PX }}>
                         {hourLabel(from + i, isMobile)}
                       </div>
                     ))}
@@ -910,7 +917,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
             </div>
           </div>
         </div>
-        <p className="text-muted-foreground shrink-0 text-[11px]">
+        <p className="text-muted-foreground shrink-0 text-xs">
           {isMobile
             ? "Tap anything to edit it · tap an empty hour to add · press and hold to drag."
             : "Click anything to edit it · double-click a slot or drag down empty hours to add · drag work or a template into a slot to plan it — a chip stays and can be planned again · drag a block to the strip or the pool to remove it · resize the bottom edge · shaded bands are your time blockers; one-off bands drag."}

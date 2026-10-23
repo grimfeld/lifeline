@@ -1,5 +1,5 @@
 import { Fragment, createContext, useContext, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from "react";
-import { Button, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetTitle, cn, usePhone } from "@lifeline/ui";
+import { Button, Checkbox, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Sheet, SheetContent, SheetTitle, Tip, cn, usePhone } from "@lifeline/ui";
 import {
   ADD_FIELD_KINDS,
   FIELD_KINDS,
@@ -90,10 +90,10 @@ export function FieldRow({
       <div className="grid grid-cols-[minmax(0,1fr)_1.75rem_1.75rem] items-center gap-1 md:grid-cols-[minmax(0,1fr)_11.5rem_1.75rem_1.75rem]">
         <div className="col-span-3 flex min-w-0 items-center gap-1 md:col-span-1">
           {handle}
-          <Input ref={labelRef} className="h-8 min-w-0 flex-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value, known))} />
+          <Input ref={labelRef} className="min-w-0 flex-1" placeholder="Label" aria-label="Field label" value={row.label} onChange={(e) => onChange(relabelField(row, e.target.value, known))} />
         </div>
         <Select value={row.kind} disabled={known} onValueChange={(v) => onChange({ ...row, kind: v as FieldKind })}>
-          <SelectTrigger className="h-8 w-full min-w-0" aria-label="Field kind" title={known ? "A Known field's kind is locked" : undefined}>
+          <SelectTrigger className="w-full min-w-0" aria-label="Field kind" title={known ? "A Known field's kind is locked" : undefined}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -106,7 +106,7 @@ export function FieldRow({
                   {why ? (
                     <span className="grid min-w-0">
                       <span>{kindLabel(k)}</span>
-                      <span className="text-muted-foreground text-[10px] whitespace-normal">{why}</span>
+                      <span className="text-muted-foreground text-2xs whitespace-normal">{why}</span>
                     </span>
                   ) : (
                     kindLabel(k)
@@ -117,9 +117,11 @@ export function FieldRow({
           </SelectContent>
         </Select>
         {settings ? (
-          <Button size="icon" variant={open ? "secondary" : "ghost"} className="size-7" onClick={onToggle} aria-label="Field settings" aria-expanded={open} title={summary || "Key"}>
-            <Settings2 className="size-3.5" />
-          </Button>
+          <Tip label={summary ? `Field settings — ${summary}` : "Field settings"}>
+            <Button size="icon-sm" variant={open ? "secondary" : "ghost"} onClick={onToggle} aria-expanded={open}>
+              <Settings2 className="size-3.5" />
+            </Button>
+          </Tip>
         ) : known ? (
           <span className="text-primary flex size-7 items-center justify-center" title="Known field — Lifeline acts on it; its key and kind are locked" aria-label="Known field">
             <BadgeCheck className="size-4" />
@@ -127,19 +129,19 @@ export function FieldRow({
         ) : (
           <span />
         )}
-        <Button size="icon" variant="ghost" className="size-7" onClick={onRemove} aria-label="Remove field">
+        <Button size="icon-sm" variant="ghost" onClick={onRemove} aria-label="Remove field">
           <Trash2 className="size-3.5" />
         </Button>
       </div>
       {reading.note && (
-        <p className={cn("min-w-0 px-1 text-[10px]", reading.known ? "text-muted-foreground" : "text-amber-700 dark:text-amber-400")}>
+        <p className={cn("min-w-0 px-1 text-2xs", reading.known ? "text-muted-foreground" : "text-warning")}>
           {reading.known && <span className="text-foreground font-medium">{known ? "Known field · " : `Will be the ${knownField(reading.known).label} Known field · `}</span>}
           {reading.note}
         </p>
       )}
       {/* Folded: a saved Field's key (story 13 — seen without a fold-out), then its settings' summary. */}
       {!open && (row.saved || summary) && (
-        <div className="text-muted-foreground flex min-w-0 items-center gap-2 px-1 text-[10px]">
+        <div className="text-muted-foreground flex min-w-0 items-center gap-2 px-1 text-2xs">
           {row.saved && (
             <code className="min-w-0 truncate" title={`Key “${row.key}” — fixed once saved`}>
               {row.key}
@@ -162,14 +164,14 @@ function FieldSettings({ row, linkTypes, onChange }: { row: FieldDraft; linkType
   return (
     <div className="bg-muted/40 grid min-w-0 gap-2 rounded-md p-2">
       {row.saved ? (
-        <p className="text-muted-foreground text-[10px]">
+        <p className="text-muted-foreground text-2xs">
           Key <code className="text-foreground">{row.key}</code> — fixed once saved; rename its label instead.
         </p>
       ) : (
         <div className="flex min-w-0 items-center gap-2">
           <Label className="shrink-0 text-xs">Key</Label>
-          <Input className="h-7 min-w-0 flex-1" placeholder="key" aria-label="Field key" value={row.key} onChange={(e) => onChange(rekeyField(row, e.target.value))} />
-          <span className="text-muted-foreground hidden shrink-0 text-[10px] md:inline">Fixed once saved</span>
+          <Input className="min-w-0 flex-1" placeholder="key" aria-label="Field key" value={row.key} onChange={(e) => onChange(rekeyField(row, e.target.value))} />
+          <span className="text-muted-foreground hidden shrink-0 text-2xs md:inline">Fixed once saved</span>
         </div>
       )}
       {isChoiceKind(row.kind) && <OptionList row={row} onChange={onChange} />}
@@ -209,7 +211,7 @@ export function AddFieldMenu({ known, onPick }: { known: KnownFieldChoice[]; onP
             e,
             <span className="grid min-w-0 gap-0.5 text-left">
               <span className="text-sm">{e.choice.label}</span>
-              <span className="text-muted-foreground text-[11px] leading-snug">{e.choice.note}</span>
+              <span className="text-muted-foreground text-2xs leading-snug">{e.choice.note}</span>
             </span>,
           ),
         )}
@@ -322,7 +324,7 @@ function OptionList({ row, onChange }: { row: FieldDraft; onChange: (d: FieldDra
                   {handle}
                   <Input
                     ref={(el) => void (inputs.current[i] = el)}
-                    className="h-7 min-w-0 flex-1"
+                    className="min-w-0 flex-1"
                     placeholder="Option"
                     aria-label="Option label"
                     value={o.label}
@@ -331,32 +333,26 @@ function OptionList({ row, onChange }: { row: FieldDraft; onChange: (d: FieldDra
                     onPaste={(e) => onPaste(e, i)}
                   />
                   {/* The stored value, in a fixed column so the labels line up. */}
-                  <span className="text-muted-foreground w-16 shrink-0 truncate font-mono text-[10px] md:w-32" title={o.value ? `Stored as “${o.value}”` : undefined}>
+                  <span className="text-muted-foreground w-16 shrink-0 truncate font-mono text-2xs md:w-32" title={o.value ? `Stored as “${o.value}”` : undefined}>
                     {o.value}
                   </span>
                   {anyUsed && (
-                    <span className="text-muted-foreground w-14 shrink-0 truncate text-right text-[10px]" title={used ? `${used} Document${used === 1 ? "" : "s"} hold this option` : undefined}>
+                    <span className="text-muted-foreground w-14 shrink-0 truncate text-right text-2xs" title={used ? `${used} Document${used === 1 ? "" : "s"} hold this option` : undefined}>
                       {used > 0 && `used by ${used}`}
                     </span>
                   )}
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="size-7 shrink-0"
-                    disabled={used > 0}
-                    onClick={() => onChange(removeOption(row, i))}
-                    aria-label={used ? `Used by ${used} — can't be removed` : "Remove option"}
-                    title={used ? `Used by ${used} Document${used === 1 ? "" : "s"} — can't be removed` : undefined}
-                  >
-                    <X className="size-3.5" />
-                  </Button>
+                  <Tip label={used ? `Used by ${used} Document${used === 1 ? "" : "s"} — can't be removed` : "Remove option"}>
+                    <Button size="icon-sm" variant="ghost" className="shrink-0 aria-disabled:opacity-50" aria-disabled={used > 0 || undefined} onClick={() => used === 0 && onChange(removeOption(row, i))}>
+                      <X className="size-3.5" />
+                    </Button>
+                  </Tip>
                 </>
               )}
             </ReorderItem>
           );
         })}
       </Reorderable>
-      <Button size="sm" variant="ghost" className="h-7 justify-self-start" onClick={() => add(row.options.length)}>
+      <Button size="sm" variant="ghost" className="justify-self-start" onClick={() => add(row.options.length)}>
         <Plus /> Option
       </Button>
     </div>
@@ -378,7 +374,7 @@ function LinkTargetPicker({ target, linkTypes, onChange }: { target: LinkTarget;
     <div className="grid min-w-0 gap-1">
       <Label className="text-xs">Links to</Label>
       <Select value={target.to} onValueChange={pickMode}>
-        <SelectTrigger className="h-8 w-full min-w-0 md:w-48" aria-label="Links to">
+        <SelectTrigger className="w-full min-w-0 md:w-48" aria-label="Links to">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -399,7 +395,7 @@ function LinkTargetPicker({ target, linkTypes, onChange }: { target: LinkTarget;
       )}
       {target.to === "role" && (
         <Select value={target.role} onValueChange={(role) => onChange({ to: "role", role })}>
-          <SelectTrigger className="h-8 w-full min-w-0 md:w-48" aria-label="Role">
+          <SelectTrigger className="w-full min-w-0 md:w-48" aria-label="Role">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -411,7 +407,7 @@ function LinkTargetPicker({ target, linkTypes, onChange }: { target: LinkTarget;
           </SelectContent>
         </Select>
       )}
-      {target.to === "role" && <span className="text-muted-foreground text-[10px]">Documents of its home type, and any Document wearing it.</span>}
+      {target.to === "role" && <span className="text-muted-foreground text-2xs">Documents of its home type, and any Document wearing it.</span>}
     </div>
   );
 }

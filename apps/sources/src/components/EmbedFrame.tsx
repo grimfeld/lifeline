@@ -7,6 +7,9 @@ import type { Embed } from "../domain/types";
  * `scale` < 1 (dense dashboards in small cards), reloaded every
  * `refreshMinutes`. A page that refuses framing simply stays blank — the
  * caller offers "Open ↗" beside it.
+ *
+ * Sandboxed: an embedded page runs its scripts, forms and popups as itself but
+ * cannot navigate Lifeline away, and may write the clipboard but never read it.
  */
 export function EmbedFrame({ embed, scale = 1, className }: { embed: Embed; scale?: number; className?: string }) {
   const [gen, setGen] = useState(0);
@@ -35,7 +38,8 @@ export function EmbedFrame({ embed, scale = 1, className }: { embed: Embed; scal
         title={embed.title}
         src={embed.url}
         onLoad={() => setLoaded(true)}
-        allow="fullscreen; clipboard-read; clipboard-write"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+        allow="fullscreen; clipboard-write"
         referrerPolicy="no-referrer-when-downgrade"
         className="border-0"
         style={{

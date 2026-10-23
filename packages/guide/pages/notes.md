@@ -81,7 +81,8 @@ What you keep here: things from outside Lifeline shown inside it, which Lifeline
 Four kinds:
 
 - **Embed** — a web page shown as-is in a frame. Pages that refuse to be framed stay blank: use
-  **Open** for those. Can reload on a period.
+  **Open** for those. Can reload on a period. The page runs fenced in: it can play, sign in and
+  open new tabs, but can't take Lifeline elsewhere or read your clipboard.
 - **Feed** — the latest items of an RSS or Atom feed, opened outside; new ones are marked.
 - **Calendar subscription** — an iCal link whose events appear, read-only and in their colour,
   on the calendar, week and schedule. Nothing is copied, moved or completed.

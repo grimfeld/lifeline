@@ -23,3 +23,7 @@ A **Time blocker** (`time_blocker`) is a weekly rule — weekdays, from, to, col
 - The rule is by scale, not by page: anything hour-scaled paints bands (the Schedule, the Agenda card on Today), anything day-granular drops them (month grid, week planner, Today feed). Bands also ignore the Tag filter — they are the hours around the content, not content — and they are a guide only: nothing refuses a drop over a band.
 - `weekdays`, `start` and `end` are guarded: a Base may retitle, recolour or switch a blocker off, but the weekly rule and the overnight split go through the App.
 - Both types get a Base, Tags and links for free (ADR 0018/0019); neither has a body, so neither shows up in the Vault tree.
+
+## Amendment (2026-10-22): the week planner is a Calendar view
+
+The "week planner" is now the Calendar Surface's views (ADR 0063). The rule by scale stands: Day, 3 Day and Week are hour-scaled and paint bands; Month and Upcoming are day-granular and drop them.

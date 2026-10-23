@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, documentsWithRole, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
+import { type DocumentInput, documentsOf, documentsWithRole, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
 import { AUTHOR, SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Author, type Work, type LookupSettings } from "../domain/types";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
@@ -254,10 +254,24 @@ export async function worksBy(authorId: string): Promise<Work[]> {
   return rows.filter((w) => w.authors.includes(authorId));
 }
 
-/** Delete an Author: its Works are unlinked, never deleted (CONTEXT.md). */
-export async function deleteAuthor(id: string): Promise<void> {
-  for (const w of await worksBy(id)) await patchDocument(w.id, { authors: w.authors.filter((a) => a !== id) });
+/** Delete an Author: its Works are unlinked, never deleted (CONTEXT.md). Returns the ids it unlinked, for `restoreAuthor`. */
+export async function deleteAuthor(id: string): Promise<string[]> {
+  const unlinked: string[] = [];
+  for (const w of await worksBy(id)) {
+    await patchDocument(w.id, { authors: w.authors.filter((a) => a !== id) });
+    unlinked.push(w.id);
+  }
   await removeDocument(id);
+  return unlinked;
+}
+
+/** Undo `deleteAuthor`: the Author comes back under its own id and takes back the Works it had (the Undo toast). */
+export async function restoreAuthor(author: Author, workIds: string[]): Promise<void> {
+  await putDocument<Author>(author as DocumentInput<Author>);
+  for (const wid of workIds) {
+    const w = await getDocument<Work>(wid);
+    if (w && !w.authors.includes(author.id)) await patchDocument(wid, { authors: [...w.authors, author.id] });
+  }
 }
 
 /**

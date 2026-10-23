@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, PhoneDock } from "@lifeline/ui";
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, PageHeader, PhoneDock } from "@lifeline/ui";
 import { newId, put, useCurrentWorkspace, useWorkspaceScreens, type UserScreen } from "@lifeline/core";
 import { LayoutDashboard, Plus } from "lucide-react";
 
@@ -34,14 +34,13 @@ export function ScreensIndex() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 md:p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Screens</h1>
+      <PageHeader title="Screens">
         <PhoneDock>
           <Button size="sm" onClick={() => setOpen(true)}>
             <Plus /> New screen
           </Button>
         </PhoneDock>
-      </div>
+      </PageHeader>
       {screens.length === 0 ? (
         <p className="text-muted-foreground text-sm">No screens in this workspace. A Screen is a page of Cards you arrange yourself, across Modules.</p>
       ) : (

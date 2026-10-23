@@ -1,5 +1,6 @@
 ---
 status: accepted
+amends: ADR 0024 (in part — the Library gains manga), ADR 0035 (in part — Marks and the Review are no longer Cinema's and the Discotheque's alone)
 ---
 
 # A work is made of Parts that exist only once they have something to say

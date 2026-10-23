@@ -1,3 +1,8 @@
+---
+status: accepted
+amended-by: ADR 0073
+---
+
 # Languages derives every schedule from Recalls
 
 Languages is a simpler rebuild of lexica-v3 inside Lifeline: Words and Sentences the user met, kept by spaced repetition (FSRS, graded pass/fail). lexica-v3 stored each derived card's FSRS state and kept no history. Lifeline does the opposite, as its Ledger, Stats and Life Level already do. The only stored fact about practice is the **Recall**: one pass or fail on one Prompt at one moment, kept as an internal Document. A **Prompt** (a Word's forward or reverse, one blank of a Sentence) is never stored. Its schedule is derived at read by replaying its Recalls through FSRS. A Prompt's identity is its Document plus a slot: `forward`, `reverse`, or a blank known by its own normalised text. So identity follows what is tested, not where it sits.
