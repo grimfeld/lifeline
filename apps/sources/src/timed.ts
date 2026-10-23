@@ -47,7 +47,7 @@ export const sourcesTimed: TimedProvider = {
     const subs = useCalendarSubs();
     const caches = useSourceCaches(subs);
     const key = subs.map((s) => `${s.id}:${caches.get(s.id)?.fetchedAt ?? ""}:${s.color}`).join("|");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on each subscription's id, fetch time and colour (`key`) and the range's dates: subs, caches and range are new objects on every read
     return useMemo(() => timedItemsOf(subs, caches, range), [key, range.start, range.end]);
   },
   async itemsIn(range) {

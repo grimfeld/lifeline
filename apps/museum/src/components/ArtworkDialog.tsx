@@ -75,7 +75,7 @@ export function ArtworkDialog({ open, onOpenChange, artwork = null, defaultForm 
     setComment(artwork?.body ?? initialText(initial, "comment"));
     setTags(artwork?.tags ?? initialList(initial, "tags"));
     setHits(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seeds the form when it opens or its subject changes, by id: a re-read of the same records must not wipe what was typed
   }, [open, artwork?.id, linkedArtist?.id, initial]);
 
   async function search() {

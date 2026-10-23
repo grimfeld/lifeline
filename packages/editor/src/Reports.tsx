@@ -58,7 +58,8 @@ export function RankingReport({
   empty?: string | null;
 }) {
   const today = todayStr();
-  const rows = useMemo(() => rankingRows(index, typeId, setting, window, today), [index, typeId, setting, window.from, window.to, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the window is keyed by its dates: callers pass a new object each render
+  const rows = useMemo(() => rankingRows(index, typeId, setting, window, today), [index, typeId, setting, window.from, window.to, today]);
   if (rows.length === 0 && empty === null) return null;
   return (
     <section className="min-w-0">

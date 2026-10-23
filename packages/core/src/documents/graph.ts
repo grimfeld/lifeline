@@ -294,7 +294,7 @@ export function useGraphModel(opts: GraphOptions = {}): GraphModel {
   const tagKey = tagFilter?.join(",") ?? "";
   return useMemo(
     () => buildGraph(index, types, { ghosts, tags, orphans, hiddenTypes, tagFilter }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hiddenTypes and tagFilter are keyed by value (hiddenKey, tagKey): callers pass new arrays each render
     [index, types, ghosts, tags, orphans, hiddenKey, tagKey],
   );
 }

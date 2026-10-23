@@ -35,7 +35,7 @@ async function peekNew<const T extends Record<string, unknown>[]>(page: Page, do
   return { dialog, id: ids[ids.length - 1]!, ids: ids as { [K in keyof T]: string } };
 }
 
-const field = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))!?.[a.key], { id, key });
+const field = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))?.[a.key], { id, key });
 
 async function pick(page: Page, dialog: ReturnType<Page["getByRole"]>, label: string, option: string) {
   await dialog.getByRole("combobox", { name: label }).click();

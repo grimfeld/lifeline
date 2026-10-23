@@ -100,7 +100,7 @@ export function BasePage() {
   useEffect(() => {
     setState(stateOf(view, def));
     setSelected(new Set());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seed only when the View or type changes: `view` and `def` are new objects on each read
   }, [viewId, type, view?.updatedAt, def?.id]);
 
   const rows = useMemo(() => applyView(docs, state, def), [docs, state, def]);

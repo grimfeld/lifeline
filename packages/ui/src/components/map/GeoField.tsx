@@ -89,7 +89,7 @@ export function GeoField({
       alive = false;
       if (debounce.current) window.clearTimeout(debounce.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `suggest` is usually an inline closure; the query drives the lookup
   }, [search]);
   function pickSuggestion(c: GeoCandidate) {
     onChange({ lat: c.lat, lon: c.lon });
@@ -98,7 +98,8 @@ export function GeoField({
     setSuggestions([]);
   }
   const [text, setText] = useState(formatCoords(value));
-  useEffect(() => setText(formatCoords(value)), [value?.lat, value?.lon]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- follows the coordinates by value: `value` is a new object on each read
+  useEffect(() => setText(formatCoords(value)), [value?.lat, value?.lon]);
   const [busy, setBusy] = useState(false);
   const [candidates, setCandidates] = useState<GeoCandidate[] | null>(null);
   const [error, setError] = useState<string | null>(null);

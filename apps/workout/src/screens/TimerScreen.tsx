@@ -95,7 +95,7 @@ export function TimerScreen() {
       lastTick.current = left;
       beepCount();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per change of the shown state (step, whole second, done); everything else is read as it is then
   }, [pos.index, Math.ceil(pos.remaining), pos.done, clock, finished]);
 
   function start() {

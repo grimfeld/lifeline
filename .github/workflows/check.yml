@@ -53,6 +53,8 @@ jobs:
       - run: pnpm -r typecheck
       # No unused dependency, file or export (knip.jsonc).
       - run: pnpm knip
+      # Lint: typescript-eslint and the React hooks rules (eslint.config.js).
+      - run: pnpm lint
       - run: pnpm -r test
       # Again on a French desk west of UTC: no test may lean on the runner's
       # English locale or UTC clock. The full e2e suite is too slow for here: it runs

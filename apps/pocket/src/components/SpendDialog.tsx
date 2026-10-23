@@ -43,7 +43,7 @@ export function SpendDialog({ open, onOpenChange, spend, allowanceId, initial }:
     setAmount(spend ? editAmount(spend.amount) : typed === undefined ? "" : String(typed));
     setDate(spend?.date ?? day);
     setLabel(spend?.label ?? initialText(initial, "label"));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seeds the form when it opens or its subject changes; the live rows re-seed only on their first arrival, so a re-read does not wipe what was typed
   }, [open, spend, allowanceId, initial, rows.length === 0]);
 
   const picked = rows.find((r) => r.allowance.id === pick);

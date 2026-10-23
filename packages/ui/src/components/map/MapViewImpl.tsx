@@ -39,8 +39,7 @@ function FitToPins({ pins, focus }: { pins: MapPin[]; focus?: string }) {
       return;
     }
     map.fitBounds(L.latLngBounds(pins.map((p) => [p.lat, p.lon] as [number, number])), { padding: [32, 32], maxZoom: 15 });
-    // Refit only when the set of pins (or the focus) changes, not on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refit only when the set of pins (or the focus) changes, not on every render
   }, [map, signature, focus]);
   return null;
 }

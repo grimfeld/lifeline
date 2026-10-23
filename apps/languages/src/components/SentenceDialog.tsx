@@ -55,7 +55,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
     setOriginId(sentence?.originId ?? prefill?.originId ?? "");
     setTags(sentence?.tags ?? initialList(initial, "tags"));
     setConfirmDelete(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seeds the form when it opens or its subject changes; `active` settles after the first render and must not wipe what was typed
   }, [open, sentence, prefill, initial]);
 
   useEffect(() => {

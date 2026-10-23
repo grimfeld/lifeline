@@ -21,8 +21,10 @@ export const emptyChoice: SourceChoice = { id: "", newTitle: "", newKind: "" };
  */
 export function SourcePicker({ current, all, value, onChange, id = "source-picker", nowCount = 5 }: { current: SourceItem[]; all: SourceItem[]; value: SourceChoice; onChange: (v: SourceChoice) => void; id?: string; nowCount?: number }) {
   const now = current.slice(0, nowCount);
-  const nowIds = new Set(now.map((s) => s.id));
-  const rest = useMemo(() => all.filter((s) => !nowIds.has(s.id)).sort((a, b) => a.title.localeCompare(b.title)), [all, nowIds]);
+  const rest = useMemo(() => {
+    const nowIds = new Set(current.slice(0, nowCount).map((s) => s.id));
+    return all.filter((s) => !nowIds.has(s.id)).sort((a, b) => a.title.localeCompare(b.title));
+  }, [all, current, nowCount]);
   const label = (s: SourceItem) => `${s.title}${s.creator ? ` — ${s.creator}` : ""}`;
   return (
     <div className="grid gap-2">

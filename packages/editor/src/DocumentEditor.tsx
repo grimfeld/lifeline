@@ -271,7 +271,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
   );
   useEffect(() => {
     if (mode === "text") setText(documentToText(doc, textDef, codec));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-serialise only on switching into text mode; while in it, the text is the person's
   }, [mode]);
   function commitText() {
     const { patch, rejected } = textToDocument(text, doc, textDef, codec);

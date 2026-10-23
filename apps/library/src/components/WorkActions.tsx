@@ -5,8 +5,8 @@ import type { Work } from "../domain/types";
 import { abandon, acquire, evict, finish, freeSlotsOf, isBuySignal, promote, release, start, type Patch } from "../domain/rules";
 import { deleteWork, patchWork } from "../data/repo";
 
-/** Applies a transition patch to an item and toasts. */
-export function useAct(item: Work) {
+/** Applies a transition patch to an item and toasts. A plain function, not a hook: the detail dialog calls it after its early return. */
+export function actOn(item: Work) {
   return (label: string, patch: Patch) => () => {
     void patchWork(item, patch);
     toast.success(label);
@@ -24,7 +24,7 @@ export function WorkActionsMenu({ item, all, onEdit, onDeleted, onOpenChange, tr
   const buy = isBuySignal(item);
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
-  const act = useAct(item);
+  const act = actOn(item);
 
   return (
     <DropdownMenu onOpenChange={onOpenChange}>
