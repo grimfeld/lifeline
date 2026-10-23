@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
 import { datePickerLabelled, dayFromToday, openCalendar, pickDate, pickInCalendar, showPhoneFilters } from "./support/date-picker";
 
 /**
@@ -11,17 +11,6 @@ import { datePickerLabelled, dayFromToday, openCalendar, pickDate, pickInCalenda
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
-}
-
-/** Runs in the page against the app's own Core module. */
-async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
-  return page.evaluate(
-    async ({ coreUrl, src, arg }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
-    },
-    { coreUrl: CORE_URL, src: fn.toString(), arg },
-  );
 }
 
 test("a yes/no Stat is marked for a past day, never a future one", async ({ page }) => {
@@ -52,7 +41,7 @@ test("a yes/no Stat is marked for a past day, never a future one", async ({ page
       inCore(
         page,
         async (core, statId: string) =>
-          ((await core.documentsOf("stat_entry")) as { statId: string; ts: string }[])
+          ((await core.documentsOf("stat_entry")) as unknown as { statId: string; ts: string }[])
             .filter((e) => e.statId === statId)
             .map((e) => { const d = new Date(e.ts); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }),
         id,
@@ -85,7 +74,7 @@ test("a type's reports over two dates: To can't fall before From", async ({ page
   await expect(page).toHaveURL(new RegExp(`to=${to}`));
 });
 
-const dateOf = (page: Page, id: string) => inCore(page, async (core, docId: string) => (await core.getDocument(docId)).date as string, id);
+const dateOf = (page: Page, id: string) => inCore(page, async (core, docId: string) => (await core.getDocument(docId))!.date as string, id);
 
 test("a Task moved to another day from Upcoming's Move to day…", async ({ page }) => {
   const title = `Move me ${Date.now()}`;

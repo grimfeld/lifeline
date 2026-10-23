@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { inCore, type Core } from "./support/core";
 import { setTime } from "./support/time-field";
 
 /**
@@ -13,19 +13,8 @@ async function workLocally(page: Page) {
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
 }
 
-/** Runs in the page against the app's own Core module. */
-async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
-  return page.evaluate(
-    async ({ coreUrl, src, arg }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
-    },
-    { coreUrl: CORE_URL, src: fn.toString(), arg },
-  );
-}
-
 /** Put the Documents `make` returns the id of, then open its Peek over the Vault. */
-async function peekNew(page: Page, make: (core: any, stamp: number) => Promise<string>) {
+async function peekNew(page: Page, make: (core: Core, stamp: number) => Promise<string>) {
   await page.goto("/vault");
   await workLocally(page);
   const id = await inCore(page, make, Date.now());
@@ -35,7 +24,7 @@ async function peekNew(page: Page, make: (core: any, stamp: number) => Promise<s
   return { id, dialog };
 }
 
-const field = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))?.[a.key], { id, key });
+const field = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))!?.[a.key], { id, key });
 
 test("Stats: a Stat's unit is edited in its Peek; its kind stays fixed", async ({ page }) => {
   const { id, dialog } = await peekNew(page, async (core, stamp) => (await core.putDocument({ type: "stat", title: `Push-ups ${stamp}`, kind: "additive", unit: "reps", color: "blue", defaultIncrement: 10 })).id);
