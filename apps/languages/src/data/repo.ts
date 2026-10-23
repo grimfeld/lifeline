@@ -189,7 +189,7 @@ function topicRowOf(input: TopicInput) {
 }
 
 export async function addTopic(input: TopicInput): Promise<string> {
-  const row = await putDocument<Topic>({ ...topicRowOf(input), archived: false, tags: [] } as unknown as Topic);
+  const row = await putDocument<Topic>({ ...topicRowOf(input), archived: false, tags: [] });
   return row.id;
 }
 
@@ -255,7 +255,7 @@ export async function allSentences(): Promise<Sentence[]> {
 }
 
 export async function addWord(input: WordInput): Promise<string> {
-  const row = await putDocument<Word>({ ...wordRowOf(input), paused: false, addedAt: new Date().toISOString() } as unknown as Word);
+  const row = await putDocument<Word>({ ...wordRowOf(input), paused: false, addedAt: new Date().toISOString() });
   return row.id;
 }
 
@@ -281,7 +281,7 @@ function sentenceRowOf(input: SentenceInput) {
 }
 
 export async function addSentence(input: SentenceInput): Promise<string> {
-  const row = await putDocument<Sentence>({ ...sentenceRowOf(input), paused: false, addedAt: new Date().toISOString() } as unknown as Sentence);
+  const row = await putDocument<Sentence>({ ...sentenceRowOf(input), paused: false, addedAt: new Date().toISOString() });
   return row.id;
 }
 
@@ -314,7 +314,7 @@ export async function allFacts(): Promise<Fact[]> {
 }
 
 export async function addFact(input: FactInput): Promise<string> {
-  const row = await putDocument<Fact>({ ...factRowOf(input), paused: false, addedAt: new Date().toISOString() } as unknown as Fact);
+  const row = await putDocument<Fact>({ ...factRowOf(input), paused: false, addedAt: new Date().toISOString() });
   return row.id;
 }
 
@@ -342,7 +342,7 @@ export async function removeItemRecalls(doc: Document): Promise<void> {
 export async function addDeck(languageId: string, name: string): Promise<string> {
   const n = name.trim();
   if (!n) throw new Error("Give the deck a name");
-  const row = await putDocument<Deck>({ type: DECK, title: n, name: n, languageId, members: [], folder: "", tags: [] } as unknown as Deck);
+  const row = await putDocument<Deck>({ type: DECK, title: n, name: n, languageId, members: [], folder: "", tags: [] });
   return row.id;
 }
 
@@ -393,7 +393,7 @@ export async function recordRecall(item: Material, slot: string, grade: Grade): 
   const at = new Date().toISOString();
   const day = dayOf(at);
   const earlier = (await documentsWhere<Recall>(RECALL, "languageId", item.topicId)).some((r) => r.at && dayOf(r.at) === day);
-  const row = await putDocument<Recall>({ type: RECALL, title: `${grade === "pass" ? "✓" : "✗"} ${item.title} · ${day}`, languageId: item.topicId, itemId: item.id, slot, grade, at, folder: "", tags: [] } as unknown as Recall);
+  const row = await putDocument<Recall>({ type: RECALL, title: `${grade === "pass" ? "✓" : "✗"} ${item.title} · ${day}`, languageId: item.topicId, itemId: item.id, slot, grade, at, folder: "", tags: [] });
   if (earlier) return { id: row.id };
   const topic = await getDocument<Topic>(item.topicId);
   if (!topic || topic.archived) return { id: row.id };

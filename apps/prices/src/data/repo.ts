@@ -81,7 +81,7 @@ export async function addShop(input: ShopInput): Promise<string> {
   const title = input.title.trim();
   if (!title) throw new Error("Give the shop a name");
   if ((await allShops()).some((s) => sameName(s.title, title))) throw new Error(`There is already a shop called “${title}”`);
-  const row = await putDocument<Shop>({ type: SHOP, title, note: input.note?.trim() ?? "", folder: "", tags: [] } as unknown as Shop);
+  const row = await putDocument<Shop>({ type: SHOP, title, note: input.note?.trim() ?? "", folder: "", tags: [] });
   return row.id;
 }
 
@@ -143,7 +143,7 @@ export async function addProduct(input: ProductInput): Promise<string> {
   const measure = measureFields(input.dimension, input.unit, input.countName);
   const secondary = secondaryFields(measure.dimension, input.secondaryDimension, input.secondaryUnit, input.compareBy);
   if ((await allProducts()).some((p) => sameName(p.title, title))) throw new Error(`There is already a product called “${title}”`);
-  const row = await putDocument<Product>({ type: PRODUCT, title, ...measure, ...secondary, labels: [], folder: "", tags: normalizeTags(input.tags ?? []) } as unknown as Product);
+  const row = await putDocument<Product>({ type: PRODUCT, title, ...measure, ...secondary, labels: [], folder: "", tags: normalizeTags(input.tags ?? []) });
   return row.id;
 }
 
@@ -294,7 +294,7 @@ export async function saveReceipt(input: ReceiptInput, shops: readonly Shop[], p
     body = `${body.trim()}\n\n![[${att.name}]]`.trim();
   }
   const base = { shopId: input.shopId, date: input.date, branch: input.branch?.trim() ?? "", total: Math.max(0, Math.round(input.total)), noticed, title: receiptTitle(shopName, input.date), tags: normalizeTags(input.tags ?? existing?.receipt.tags ?? []) };
-  const receipt = existing ? await putDocument<Receipt>({ ...existing.receipt, ...base, body }) : await putDocument<Receipt>({ type: RECEIPT, ...base, body, folder: "" } as unknown as Receipt);
+  const receipt = existing ? await putDocument<Receipt>({ ...existing.receipt, ...base, body }) : await putDocument<Receipt>({ type: RECEIPT, ...base, body, folder: "" });
 
   const keep = new Set(input.lines.map((l) => l.id).filter(Boolean));
   for (const old of existing?.lines ?? []) if (!keep.has(old.id)) await removeDocument(old.id);
@@ -307,7 +307,7 @@ export async function saveReceipt(input: ReceiptInput, shops: readonly Shop[], p
     const secondAmount = !product || !secondaryMeasure(product) ? 0 : (l.secondAmount ?? (old ? Number(old.secondAmount) || 0 : await prefill(product.id)));
     const row = { receiptId: receipt.id, productId: l.productId, label: l.label.trim(), amount: l.amount, secondAmount, price: Math.round(l.price), promo: !!l.promo, needsAmount: !l.retyped && !!old?.needsAmount, title: "" };
     if (l.id) await patchDocument(l.id, row);
-    else await putDocument<Line>({ type: LINE, ...row, folder: "", tags: [] } as unknown as Line);
+    else await putDocument<Line>({ type: LINE, ...row, folder: "", tags: [] });
     matches.push({ productId: row.productId, label: row.label, before: old && { productId: old.productId, label: old.label } });
   }
   // One write per Product, built from every Line — patching each Line's label
