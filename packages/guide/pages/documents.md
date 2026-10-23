@@ -90,6 +90,9 @@ book. This page covers what every Document has, whatever its type.
 - Attachments are not Documents: no type, no tags, not in the tree.
 - Removing the embed keeps the image. **Clean up unused attachments…** in the palette removes
   the ones no body uses any more.
+- An image linked from another site (`![](https://…)`, often in a clipped page) waits for a click
+  when you read the body: loading it would tell that site you are reading. **Load** shows it once;
+  **Always from …** trusts that site on this device.
 
 ## Opening a Document
 
