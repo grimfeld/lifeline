@@ -272,7 +272,11 @@ export function SelectionMenu() {
           void (async () => {
             if (unlink && !(await unlink())) return void toast.error(`${UNDO_MOVED}, so ${made.title} stays`);
             if (peekStack().includes(id)) closePeek();
-            await removeDocument(id);
+            try {
+              await removeDocument(id);
+            } catch (e) {
+              toast.error(`Couldn’t undo — ${e instanceof Error ? e.message : String(e)}`);
+            }
           })(),
       },
     });

@@ -53,6 +53,7 @@ import {
 } from "@lifeline/core";
 import { CalendarDays, ChevronDown, Columns3, Images, LayoutGrid, List, MapPin, MoreHorizontal, Plus, Save, Search, Settings2, SquareKanban, Table2, Tag, Trash2 , FolderInput } from "lucide-react";
 import { LayoutView } from "./LayoutView";
+import { removeEach, refusalSummary } from "./removeEach";
 import { FilterBar } from "./FilterBar";
 import { NewDocumentDialog } from "../vault/NewDocumentDialog";
 import { TagPicker } from "../components/TagPicker";
@@ -186,9 +187,10 @@ export function BasePage() {
     });
   async function bulkDelete() {
     const ids = Array.from(selected);
-    for (const id of ids) await removeDocument(id);
-    setSelected(new Set());
-    toast.success(`${ids.length} deleted`);
+    const { removed, refused } = await removeEach(ids, removeDocument);
+    setSelected((s) => new Set(Array.from(s).filter((id) => !removed.includes(id))));
+    if (removed.length) toast.success(`${removed.length} deleted`);
+    if (refused.length) toast.error(`${refused.length} kept — ${refusalSummary(refused)}`);
   }
   async function bulkTag() {
     const ids = Array.from(selected);

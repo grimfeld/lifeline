@@ -8,6 +8,7 @@ import { ledgerCommands } from "./commands";
 import { ledgerDaylog } from "./daylog";
 import { AccountPeek, CategoryPeek, TransactionPeek } from "./components/LedgerPeeks";
 import { formatCents, formatSigned } from "./domain/money";
+import { refuseDeletingUsedAccount, refuseDeletingUsedCategory } from "./data/repo";
 import {
   ACCOUNT,
   ALLOCATION,
@@ -83,6 +84,7 @@ const accountType: DocumentTypeDef = {
   linkable: { subtitle: (d) => (d as LedgerAccount).flavor },
   href: () => `${REGISTER_HREF}?tab=accounts`,
   peekEdit: AccountPeek,
+  onDelete: refuseDeletingUsedAccount,
   order: 81,
   builtIn: true,
 };
@@ -104,6 +106,7 @@ const categoryType: DocumentTypeDef = {
   linkable: { subtitle: (d) => ((d as LedgerCategory).group ? `${(d as LedgerCategory).group} · ${(d as LedgerCategory).kind}` : (d as LedgerCategory).kind) },
   href: () => BUDGET_HREF,
   peekEdit: CategoryPeek,
+  onDelete: refuseDeletingUsedCategory,
   order: 82,
   builtIn: true,
 };

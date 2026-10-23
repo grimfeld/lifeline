@@ -1,4 +1,4 @@
-import type { DocumentTypeDef, RoleDef } from "@lifeline/core";
+import { conflictCopy, type DocumentTypeDef, type RoleDef } from "@lifeline/core";
 import { NotebookPen, Quote as QuoteIcon, Radio } from "lucide-react";
 import { NOTE, NOTES_FOLDER, QUOTES, QUOTES_FOLDER, SOURCE, SOURCE_KINDS, SOURCE_ROLE, SOURCES_FOLDER, TOPIC_TYPE, noteHref, quoteHref, sourceHref, sourceKindLabel, type Quote } from "./domain/types";
 import { WORK_TYPE_IDS } from "./domain/works";
@@ -63,6 +63,7 @@ export const noteTypeDef: DocumentTypeDef = {
   linkable: true,
   href: (d) => noteHref(d.id),
   indexes: ["source"],
+  onConflict: conflictCopy,
   order: 45,
   builtIn: true,
   fields: [
@@ -89,6 +90,7 @@ export const quoteTypeDef: DocumentTypeDef = {
   linkable: { subtitle: () => "Quote" },
   href: (d) => quoteHref(d as Quote),
   indexes: ["source", "capturedOn"],
+  onConflict: conflictCopy,
   order: 46,
   builtIn: true,
   fields: [
