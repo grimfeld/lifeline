@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Button, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
-import { isDemo, logout, pendingWriteCount, switchAccount, syncNow, useAuth, useSyncState } from "@lifeline/core";
+import { Button, Checkbox, cn, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
+import { isDemo, pendingWriteCount, signOut, switchAccount, syncNow, useAuth, useSyncState } from "@lifeline/core";
 import { Cloud, CloudOff, Loader2, RefreshCw, Trash2, User } from "lucide-react";
 import { openSignIn } from "./AccountDialogs";
 
@@ -30,6 +30,27 @@ function LiveSyncBadge({ compact }: { compact: boolean }) {
   const [busy, setBusy] = useState(false);
   /** The explicit "wipe this device" confirm; carries the unpushed-write count it would lose. */
   const [erase, setErase] = useState<{ pending: number } | null>(null);
+  /** The sign-out confirm (#261): erases the device unless asked to keep it; carries the unpushed-write count. */
+  const [leaving, setLeaving] = useState<{ pending: number; keep: boolean } | null>(null);
+
+  async function askSignOut() {
+    setLeaving({ pending: await pendingWriteCount(), keep: false });
+  }
+
+  async function confirmSignOut() {
+    if (!leaving) return;
+    setBusy(true);
+    try {
+      await signOut({ keepData: leaving.keep });
+      // Only a kept device gets here: an erased one reloads.
+      setBusy(false);
+      setLeaving(null);
+      toast("Signed out — this device keeps its data, Private locked");
+    } catch (err) {
+      setBusy(false);
+      toast.error(`Could not erase local data: ${(err as Error).message}`);
+    }
+  }
 
   async function eraseAndSwitch() {
     setBusy(true);
@@ -81,10 +102,7 @@ function LiveSyncBadge({ compact }: { compact: boolean }) {
         <button
           type="button"
           className="hover:bg-accent/50 text-muted-foreground flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs"
-          onClick={() => {
-            logout();
-            toast("Signed out — working locally");
-          }}
+          onClick={() => void askSignOut()}
         >
           <User className="size-3" />
           <span className="truncate">{email} · sign out</span>
@@ -135,6 +153,36 @@ function LiveSyncBadge({ compact }: { compact: boolean }) {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!leaving} onOpenChange={(o) => !o && setLeaving(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Sign out?</DialogTitle>
+          </DialogHeader>
+          <p className="text-muted-foreground text-sm">
+            {leaving?.keep
+              ? "This device keeps its copy of your data to work on locally, with Private locked. Anyone who uses it can read what is not Private."
+              : "Everything stored on this device is deleted and the app reloads. What is synced stays on the server and comes back when you sign in."}
+          </p>
+          {!leaving?.keep && !!leaving?.pending && (
+            <p className="text-destructive text-sm">
+              {leaving.pending} local change{leaving.pending === 1 ? "" : "s"} never reached the server and will be lost. Sync first, or
+              keep this device's data.
+            </p>
+          )}
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={!!leaving?.keep} onCheckedChange={(c) => leaving && setLeaving({ ...leaving, keep: c === true })} />
+            Keep this device's data
+          </label>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLeaving(null)}>
+              Cancel
+            </Button>
+            <Button variant={leaving?.keep ? "default" : "destructive"} disabled={busy} onClick={() => void confirmSignOut()}>
+              {busy && <Loader2 className="animate-spin" />} {leaving?.keep ? "Sign out" : "Sign out and erase"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

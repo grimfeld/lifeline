@@ -1,3 +1,4 @@
+import { lockPrivate } from "../private";
 import { db } from "./db";
 import { pb } from "./pb";
 
@@ -67,4 +68,16 @@ export async function switchAccount(): Promise<void> {
 export async function eraseDevice(): Promise<void> {
   await db().delete();
   location.reload();
+}
+
+/**
+ * Sign out (#261). By default the device is erased too: the local copy holds
+ * every Document, Private ones in plain text, and on a shared device the next
+ * person could read it all offline. `keepData` keeps the copy for working on
+ * locally, with Private locked. Either way the session's token is forgotten.
+ */
+export async function signOut({ keepData = false }: { keepData?: boolean } = {}): Promise<void> {
+  pb.authStore.clear();
+  if (keepData) await lockPrivate();
+  else await eraseDevice();
 }
