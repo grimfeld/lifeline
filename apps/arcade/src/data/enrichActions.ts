@@ -1,9 +1,13 @@
-import { applyHit, confidentMatch, refreshFromHit } from "../domain/enrich";
+import { applyHit, confidentMatch, refreshFromHit } from "@lifeline/parts";
 import type { Patch } from "../domain/rules";
 import type { Work, LookupSettings } from "../domain/types";
 import { lookupFor, lookupGapMs, resolveHit, type LookupKeys } from "./lookup";
 import type { WorkHit } from "./lookup";
 import { patchWork } from "./repo";
+
+/** What a lookup fills when empty, and what a refresh re-pulls (never title or creator). */
+const FILLED = ["creator", "year", "size", "coverUrl"] as const;
+const REFRESHED = ["coverUrl", "size", "year"] as const;
 
 /** Lookup-driven writes: find candidates for an item, apply a pick, refresh, enrich all. */
 
@@ -16,7 +20,7 @@ export async function findCandidates(item: Work, settings: LookupKeys, signal?: 
 /** Apply a chosen hit (after lazy resolve) to the item — empty fields only. Returns the patch (may be {}). */
 export async function applyPick(item: Work, hit: WorkHit): Promise<Patch> {
   const full = await resolveHit(hit);
-  const patch = applyHit(item, full);
+  const patch = applyHit(item, full, FILLED);
   if (Object.keys(patch).length) await patchWork(item, patch);
   return patch;
 }
@@ -30,7 +34,7 @@ export async function refreshFromSource(item: Work, settings: LookupKeys): Promi
   const raw = hits.find((h) => h.externalKey === item.externalKey) ?? confidentMatch(item.title, item.year, hits);
   if (!raw) return null;
   const hit = await resolveHit(raw);
-  const patch = refreshFromHit(item, hit);
+  const patch = refreshFromHit(item, hit, REFRESHED);
   if (Object.keys(patch).length) await patchWork(item, patch);
   return patch;
 }

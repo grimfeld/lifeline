@@ -7,6 +7,8 @@ export * from "./components/NextPart";
 export * from "./components/ShelfControl";
 export { announceRead, attempt } from "./components/announce";
 export * from "./lookup";
+export * from "./enrich";
+export * from "./shelf";
 export * from "./components/QuickPick";
 export * from "./quickAdd";
 export * from "./components/QuickAdd";
