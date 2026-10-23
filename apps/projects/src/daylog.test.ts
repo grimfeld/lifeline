@@ -22,7 +22,7 @@ describe("the Projects Daylog (ADR 0060)", () => {
       ["Finished", "Trip", "Went"],
       ["Reached", "Tiles", "Bathroom"],
     ]);
-    expect(items[2].tags).toEqual(["home"]);
+    expect(items[2]?.tags).toEqual(["home"]);
   });
 
   it("never tells a Project dropped, another day, or a Milestone of no Project", () => {

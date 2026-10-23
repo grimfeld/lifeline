@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { openPeek } from "@lifeline/core";
 import { cn, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast, ToggleGroup, ToggleGroupItem } from "@lifeline/ui";
 import type { LookupHit } from "../lookup";
-import { quickAddPlaceholder, startingMedium, type QuickAddMedium } from "../quickAdd";
+import { firstMedium, quickAddPlaceholder, startingMedium, type QuickAddMedium } from "../quickAdd";
 import { QuickPick } from "./QuickPick";
 
 /** Shared by every family App, so a medium picked in one is offered again wherever that App has it. */
@@ -72,7 +72,7 @@ export function QuickAdd<M extends string, H extends LookupHit>({
   const { media } = config;
   const [medium, setMediumState] = useState<M>(() => startingMedium(media, defaultType, readLastMedium()));
   const search = config.useSearch(medium);
-  const def = media.find((m) => m.id === medium) ?? media[0];
+  const def = media.find((m) => m.id === medium) ?? firstMedium(media);
 
   useEffect(() => {
     if (defaultType) setMediumState(defaultType);

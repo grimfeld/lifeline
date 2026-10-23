@@ -40,7 +40,7 @@ export function seriesKey(payee: string, kind: "expense" | "income"): string {
 function median(ns: number[]): number {
   const s = [...ns].sort((a, b) => a - b);
   const mid = Math.floor(s.length / 2);
-  return s.length % 2 === 1 ? s[mid] : Math.round((s[mid - 1] + s[mid]) / 2);
+  return s.length % 2 === 1 ? (s[mid] ?? 0) : Math.round(((s[mid - 1] ?? 0) + (s[mid] ?? 0)) / 2);
 }
 
 /** The cadence a gap of this many days reads as, or null when it reads as none. */
@@ -49,7 +49,7 @@ function cadenceOfGap(days: number): (typeof CADENCES)[number] | null {
 }
 
 /** The day of month the series lands on: the commonest, ties to the later day (a bill on the 31st clamps down in February, never up). */
-function anchorDayOf(dates: DateStr[]): number {
+function anchorDayOf(dates: [DateStr, ...DateStr[]]): number {
   const count = new Map<number, number>();
   for (const d of dates) {
     const day = parts(d).day;
@@ -64,7 +64,7 @@ function anchorDayOf(dates: DateStr[]): number {
 }
 
 /** The month a yearly series lands in: the commonest, ties to the newest (dates come newest first). An early payment in late December still names January. */
-function anchorMonthOf(dates: DateStr[]): number {
+function anchorMonthOf(dates: [DateStr, ...DateStr[]]): number {
   const count = new Map<number, number>();
   for (const d of dates) {
     const m = parts(d).m;
@@ -83,16 +83,17 @@ function anchorMonthOf(dates: DateStr[]): number {
  * price start a fresh, shorter run instead of vanishing.
  */
 function readSeries(rows: Transaction[], today: DateStr, override: SeriesOverride | undefined): Series | null {
-  if (rows.length < MIN_OCCURRENCES) return null;
-  const gap = diffDays(rows[1].date, rows[0].date);
+  const [newest, second] = rows;
+  if (rows.length < MIN_OCCURRENCES || !newest || !second) return null;
+  const gap = diffDays(second.date, newest.date);
   const c = cadenceOfGap(gap);
   if (!c) return null;
-  const run = [rows[0], rows[1]];
+  const run: [Transaction, ...Transaction[]] = [newest, second];
   for (let i = 2; i < rows.length; i++) {
     // Against the run's own rhythm, not just the nominal period: eleven days
     // then sixteen is nobody's fortnight, though both land in the window.
-    if (Math.abs(diffDays(rows[i].date, rows[i - 1].date) - gap) > c.tolerance) break;
-    run.push(rows[i]);
+    if (Math.abs(diffDays(rows[i]!.date, rows[i - 1]!.date) - gap) > c.tolerance) break;
+    run.push(rows[i]!);
   }
   if (run.length < MIN_OCCURRENCES) return null;
 
@@ -102,8 +103,7 @@ function readSeries(rows: Transaction[], today: DateStr, override: SeriesOverrid
   const spread = Math.max(...amounts.map((a) => Math.abs(a - amount))) / amount;
   if (spread > MAX_SPREAD) return null;
 
-  const newest = run[0];
-  const dates = run.map((t) => t.date);
+  const dates = run.map((t) => t.date) as [DateStr, ...DateStr[]];
   const kind = newest.kind as "expense" | "income";
   return {
     key: seriesKey(newest.payee, kind),
@@ -116,7 +116,7 @@ function readSeries(rows: Transaction[], today: DateStr, override: SeriesOverrid
     accountId: newest.accountId,
     categoryId: newest.categoryId,
     occurrences: run,
-    firstDate: dates[dates.length - 1],
+    firstDate: run[run.length - 1]!.date,
     lastDate: dates[0],
     anchorDay: anchorDayOf(dates),
     anchorMonth: anchorMonthOf(dates),

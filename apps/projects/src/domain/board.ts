@@ -53,8 +53,8 @@ export interface Column {
  */
 export function boardOf(lanes: Lane[], tasks: Task[], projectId: string, milestoneId?: string | null): Column[] {
   const ordered = lanes.filter((l) => l.project === projectId).sort(byRank);
-  if (ordered.length === 0) return [];
   const first = ordered[0];
+  if (!first) return [];
   const doneLane = ordered.find((l) => l.done);
   const cols = new Map(ordered.map((l) => [l.id, [] as Task[]]));
   for (const t of boardTasks(tasks, projectId)) {
@@ -109,7 +109,7 @@ export function markerId(projectId: string, milestoneId?: string): string {
 }
 
 export function parseMarkerId(itemId: string): { projectId: string; milestoneId: string | null } {
-  const [projectId, milestoneId] = itemId.split(":");
+  const [projectId = "", milestoneId] = itemId.split(":");
   return { projectId, milestoneId: milestoneId ?? null };
 }
 

@@ -121,7 +121,7 @@ export function GeoField({
     try {
       const hits = await geocode(query);
       if (hits.length === 0) setError("Nothing found for that address.");
-      else if (hits.length === 1) onChange({ lat: hits[0].lat, lon: hits[0].lon });
+      else if (hits.length === 1) onChange({ lat: hits[0]!.lat, lon: hits[0]!.lon });
       else setCandidates(hits);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Geocoding failed.");
@@ -151,7 +151,8 @@ export function GeoField({
                 setHighlight((h) => (h - 1 + suggestions.length) % suggestions.length);
               } else if (e.key === "Enter") {
                 e.preventDefault();
-                pickSuggestion(suggestions[highlight]);
+                const picked = suggestions[highlight];
+                if (picked) pickSuggestion(picked);
               } else if (e.key === "Escape") {
                 setSuggestions([]);
               }

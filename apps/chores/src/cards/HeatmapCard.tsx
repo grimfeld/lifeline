@@ -91,8 +91,10 @@ export function HeatmapCard({ settings, configure }: CardProps) {
   const monthLabels: (string | null)[] = [];
   let lastMonth = -1;
   for (let w = 0; w < cols; w++) {
-    const { m } = parts(days[w * 7]);
-    monthLabels.push(m !== lastMonth ? MONTHS[m - 1] : null);
+    const day = days[w * 7];
+    if (!day) continue;
+    const { m } = parts(day);
+    monthLabels.push(m !== lastMonth ? (MONTHS[m - 1] ?? null) : null);
     lastMonth = m;
   }
   const total = days.reduce((n, d) => n + (perDay.get(d)?.length ?? 0), 0);
@@ -157,6 +159,7 @@ function RowCells({
   const cells = [];
   for (let w = 0; w < cols; w++) {
     const d = days[w * 7 + row];
+    if (!d) continue;
     const done = perDay.get(d) ?? [];
     const n = done.length;
     const future = d > today;

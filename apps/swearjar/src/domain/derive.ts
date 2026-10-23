@@ -24,14 +24,14 @@ export function monthKeyOf(iso: string): MonthKey {
 
 /** The month `delta` months from `month` (negative goes back). */
 export function shiftMonth(month: MonthKey, delta: number): MonthKey {
-  const [y, m] = month.split("-").map(Number);
+  const [y = 0, m = 1] = month.split("-").map(Number);
   const i = y * 12 + (m - 1) + delta;
   return `${Math.floor(i / 12)}-${pad((i % 12) + 1)}`;
 }
 
 /** "September 2026". */
 export function monthLabel(month: MonthKey): string {
-  const [y, m] = month.split("-").map(Number);
+  const [y = 0, m = 1] = month.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 

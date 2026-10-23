@@ -12,7 +12,7 @@ export function monthOf(d: DateStr): MonthStr {
 }
 
 export function monthAdd(m: MonthStr, n: number): MonthStr {
-  const [y, mo] = m.split("-").map(Number);
+  const [y = 0, mo = 1] = m.split("-").map(Number);
   const t = y * 12 + (mo - 1) + n;
   const ny = Math.floor(t / 12);
   const nm = (t % 12) + 1;
@@ -24,7 +24,7 @@ export function thisMonth(today: DateStr): MonthStr {
 }
 
 export function formatMonth(m: MonthStr): string {
-  const [y, mo] = m.split("-").map(Number);
+  const [y = 0, mo = 1] = m.split("-").map(Number);
   return new Date(Date.UTC(y, mo - 1, 1)).toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
 }
 

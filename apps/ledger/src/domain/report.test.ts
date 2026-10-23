@@ -230,15 +230,15 @@ describe("groupReport / topSlices / stackedByMonth / sorts", () => {
       ["Living", 120_000, 2],
       ["Play", 10_000, 1],
     ]);
-    expect(groups[0].perMonth).toEqual([30_000, 90_000]);
-    expect(groups[0].share).toBeCloseTo(120_000 / 130_000);
+    expect(groups[0]!.perMonth).toEqual([30_000, 90_000]);
+    expect(groups[0]!.share).toBeCloseTo(120_000 / 130_000);
   });
 
   it("collects the pie's tail into one Other slice instead of a hundred hairlines", () => {
     const slices = topSlices(report, 1);
     expect(slices.map((s) => s.title)).toEqual(["Rent", "Other (2)"]);
-    expect(slices[1].value).toBe(40_000);
-    expect(slices[0].share + slices[1].share).toBeCloseTo(1);
+    expect(slices[1]!.value).toBe(40_000);
+    expect(slices[0]!.share + slices[1]!.share).toBeCloseTo(1);
     expect(topSlices([{ title: "nothing", total: 0 }], 5)).toEqual([]);
   });
 
@@ -254,7 +254,7 @@ describe("groupReport / topSlices / stackedByMonth / sorts", () => {
     expect([...report].sort(CATEGORY_SORTS["total-asc"]).map((r) => r.categoryId)).toEqual(["fun", "food", "rent"]);
     expect([...report].sort(CATEGORY_SORTS.name).map((r) => r.title)).toEqual(["Food", "Fun", "Rent"]);
     expect(sortByMonth(report, 0, "desc").map((r) => r.categoryId)).toEqual(["food", "fun", "rent"]);
-    expect(sortByMonth(report, 1, "desc")[0].categoryId).toBe("rent");
+    expect(sortByMonth(report, 1, "desc")[0]!.categoryId).toBe("rent");
   });
 
   it("sorts rows without a Target last, whichever way budget sorting goes", () => {
@@ -279,13 +279,13 @@ describe("payeeReport", () => {
       ["Landlord", 9_000, 1],
       ["aldi", 4_000, 2],
     ]);
-    expect(report[1].categoryId).toBe("groceries");
-    expect(report[1].average).toBe(2_000);
-    expect(report[1].last).toBe("2026-02-05");
+    expect(report[1]!.categoryId).toBe("groceries");
+    expect(report[1]!.average).toBe(2_000);
+    expect(report[1]!.last).toBe("2026-02-05");
   });
 
   it("offers its sorts and reads income too", () => {
-    expect(payeeReport(rows, "expense", "count-desc")[0].payee).toBe("aldi");
+    expect(payeeReport(rows, "expense", "count-desc")[0]!.payee).toBe("aldi");
     expect(payeeReport(rows, "expense", "name").map((r) => r.payee)).toEqual(["aldi", "Landlord"]);
     expect(payeeReport(rows, "income").map((r) => r.payee)).toEqual(["Work"]);
   });
@@ -309,8 +309,8 @@ describe("budgetTrend / potTrend", () => {
     const { pots, data } = potTrend(categories, [], rows, months);
     expect(pots.map((c) => c.id)).toEqual(["gifts"]);
     // Nov + Dec + Jan allocations (€300) minus €50 spent in December, in units.
-    expect(data[0].gifts).toBe(250);
-    expect(data[1].gifts).toBe(350);
+    expect(data[0]!.gifts).toBe(250);
+    expect(data[1]!.gifts).toBe(350);
   });
 
   it("comes back empty when nothing accumulates", () => {

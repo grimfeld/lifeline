@@ -49,9 +49,9 @@ export function YearGrid({ byDate, today, size, onSet, onClear, y }: GridProps &
       </div>,
     );
     for (let m = 0; m < 12; m++) {
-      const date = cols[m][d];
+      const date = cols[m]?.[d];
       rows.push(
-        date === null ? (
+        date == null ? (
           <div key={`pad-${m}-${d}`} style={{ width: size, height: size }} />
         ) : (
           <MoodCell key={date} date={date} level={byDate.get(date) ?? null} today={today} size={size} onSet={onSet} onClear={onClear} />

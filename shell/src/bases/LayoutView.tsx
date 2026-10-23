@@ -217,7 +217,7 @@ function CalendarGrid({ docs, def, picks, compact }: { docs: Document[]; def: Do
   const [month, setMonth] = useState(() => today.slice(0, 7)); // "YYYY-MM"
   const { byDay, omitted, placed } = useMemo(() => byDayOf(docs, field), [docs, field]);
 
-  const [y, m] = month.split("-").map(Number);
+  const [y = 0, m = 1] = month.split("-").map(Number);
   const days = monthGrid(y, m);
   const shift = (n: number) => setMonth(fromParts(y, m + n, 1).slice(0, 7));
   const monthName = new Date(y, m - 1, 1).toLocaleString(undefined, { month: "long", year: "numeric" });

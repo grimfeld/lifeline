@@ -47,7 +47,7 @@ describe("seeding the built-ins", () => {
 
   it("never brings back a built-in the user deleted", async () => {
     await ensureBuiltinMacros([MORNING]);
-    await deleteMacro((await allMacros())[0].id);
+    await deleteMacro((await allMacros())[0]!.id);
     await ensureBuiltinMacros([MORNING]);
     expect(await allMacros()).toEqual([]);
   });
@@ -62,7 +62,7 @@ describe("seeding the built-ins", () => {
 
   it("leaves the user's copy alone when a later release changes the built-in", async () => {
     await ensureBuiltinMacros([MORNING]);
-    const [mine] = await allMacros();
+    const mine = (await allMacros())[0]!;
     await saveMacro({ id: mine.id, name: "My morning", steps: mine.steps.slice(0, 1) });
     await ensureBuiltinMacros([{ ...MORNING, name: "Morning (new)", steps: [] }]);
     expect(await allMacros()).toMatchObject([{ name: "My morning", builtin: "morning", steps: [{ command: "mood/mood.set" }] }]);
@@ -79,7 +79,7 @@ describe("reset to default", () => {
   it("restores the shipped name and steps, keeping the Macro and its place", async () => {
     await saveMacro({ name: "Coffee", steps: [] });
     await ensureBuiltinMacros([MORNING]);
-    const mine = (await allMacros())[1];
+    const mine = (await allMacros())[1]!;
     await saveMacro({ id: mine.id, name: "Late morning", steps: [] });
     await resetMacro(mine.id, [MORNING]);
     expect(await allMacros()).toMatchObject([{ name: "Coffee" }, { id: mine.id, name: "Morning", builtin: "morning", steps: MORNING.steps }]);

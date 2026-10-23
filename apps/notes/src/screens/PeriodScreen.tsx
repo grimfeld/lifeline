@@ -21,7 +21,7 @@ function parentOf(key: string): string | undefined {
   const next: Partial<Record<PeriodKind, PeriodKind>> = { week: "month", month: "quarter", quarter: "year" };
   const up = next[kind];
   if (!up) return undefined;
-  const anchor = kind === "week" ? daysOf(key)[3] : r.from;
+  const anchor = kind === "week" ? (daysOf(key)[3] ?? r.from) : r.from;
   return periodKey(up, anchor);
 }
 

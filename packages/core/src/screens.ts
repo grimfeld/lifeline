@@ -28,11 +28,11 @@ export function moveStacked<T extends ScreenLayoutItem>(items: T[], instanceId: 
   const to = from + dir;
   if (from < 0 || to < 0 || to >= order.length) return items;
   const swapped = [...order];
-  swapped[from] = order[to];
-  swapped[to] = order[from];
+  swapped[from] = order[to]!;
+  swapped[to] = order[from]!;
   // Slots stay where they are and the cards move between them — which also
   // settles the case coordinates alone cannot (two cards on the same slot).
-  return swapped.map((l, i) => ({ ...l, x: order[i].x, y: order[i].y }));
+  return swapped.map((l, i) => ({ ...l, x: order[i]!.x, y: order[i]!.y }));
 }
 
 
@@ -61,7 +61,7 @@ export async function screensOfWorkspace(workspaceId?: string): Promise<UserScre
 /** Whether this is the Workspace unstamped rows fall to: the first by sort. */
 async function isDefaultWorkspace(id: string): Promise<boolean> {
   const list = await allWorkspaces();
-  return list.length === 0 || list[0].id === id;
+  return list.length === 0 || list[0]?.id === id;
 }
 
 export function useWorkspaceScreens(): UserScreen[] {

@@ -6,8 +6,8 @@ import { APP_HREF } from "./constants";
 import { WorkPeek } from "./components/ArcadePeeks";
 import { cascadeWorkDelete } from "./data/repo";
 
-const ACQ_LABELS: Record<string, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
-const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
+const ACQ_LABELS: Record<(typeof ACQUISITION)[number], string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
+const ENG_LABELS: Record<(typeof ENGAGEMENT)[number], string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
 
 /**
  * The game type (ADR 0024, type id unchanged from Media — no data

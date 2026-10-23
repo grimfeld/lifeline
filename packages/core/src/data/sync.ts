@@ -43,7 +43,8 @@ export function useSyncState(): { state: SyncState; pending: number; error: stri
   return { state, pending: pendingCount, error: lastSyncError };
 }
 
-type PbRecord = Record<string, unknown> & { id: string; updated: string };
+/** A synced collection's row on the wire: every one carries the LWW keys (`updatedAt`, `deleted`) beside PocketBase's own. */
+type PbRecord = Record<string, unknown> & SyncedRecord & { updated: string };
 
 /**
  * Strip PocketBase system fields before storing locally; Documents get their
@@ -52,7 +53,7 @@ type PbRecord = Record<string, unknown> & { id: string; updated: string };
  * Document's `fields` on the way back up.
  */
 function toLocal(collection: string, r: PbRecord): SyncedRecord {
-  const { collectionId: _c, collectionName: _n, created: _cr, updated: _u, owner: _o, ...rest } = r as Record<string, unknown>;
+  const { collectionId: _c, collectionName: _n, created: _cr, updated: _u, owner: _o, ...rest } = r;
   if (collection === DOCUMENTS) {
     const { fields, ...common } = rest as Record<string, unknown> & { fields?: unknown };
     const extra = fields && typeof fields === "object" && !Array.isArray(fields) ? (fields as Record<string, unknown>) : {};
@@ -65,7 +66,7 @@ function toLocal(collection: string, r: PbRecord): SyncedRecord {
     if (doc.body === null || (doc.body === "" && documentTypeSync(doc.type)?.body === "none")) delete doc.body;
     return doc;
   }
-  return rest as unknown as SyncedRecord;
+  return rest;
 }
 
 /**
@@ -76,10 +77,10 @@ function toLocal(collection: string, r: PbRecord): SyncedRecord {
  */
 function toRemote(collection: string, local: SyncedRecord): Record<string, unknown> {
   if (collection === ATTACHMENTS) {
-    const { file: _f, ...rest } = local as unknown as Record<string, unknown>;
+    const { file: _f, ...rest } = local as SyncedRecord & { file?: unknown };
     return local.deleted ? { ...rest, file: null } : rest;
   }
-  if (collection !== DOCUMENTS) return local as unknown as Record<string, unknown>;
+  if (collection !== DOCUMENTS) return { ...local };
   const common: Record<string, unknown> = {};
   const fields: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(local)) {
@@ -104,8 +105,8 @@ async function createAttachment(recordId: string, local: SyncedRecord): Promise<
     if (v === undefined || v === null) continue;
     form.append(k, String(v));
   }
-  form.append("file", row.blob, (local as unknown as { name: string }).name);
-  const created = (await pb.collection(ATTACHMENTS).create(form)) as unknown as { file?: string };
+  form.append("file", row.blob, (local as SyncedRecord & { name: string }).name);
+  const created = await pb.collection(ATTACHMENTS).create<{ file?: string }>(form);
   if (created.file) await db().collection<SyncedRecord & { file?: string }>(ATTACHMENTS).update(recordId, { file: created.file });
 }
 
@@ -162,7 +163,7 @@ async function pushOnce(): Promise<void> {
     try {
       let serverNewer = false;
       try {
-        const server = (await col.getOne(recordId)) as unknown as PbRecord & { updatedAt?: string };
+        const server = await col.getOne<PbRecord>(recordId);
         // LWW: the newer client clock wins; a newer server copy will arrive via pull.
         if (server.updatedAt && server.updatedAt > local.updatedAt) serverNewer = true;
         if (serverNewer) {
@@ -250,8 +251,8 @@ async function pullCollection(name: string): Promise<void> {
       const chunk = due.slice(i, i + HELD_CHUNK);
       const params = Object.fromEntries(chunk.map((id, j) => [`id${j}`, id]));
       const filter = pb.filter(chunk.map((_, j) => `id = {:id${j}}`).join(" || "), params);
-      const res = await pb.collection(name).getList(1, HELD_CHUNK, { filter, skipTotal: true });
-      await applyPulled(name, res.items as unknown as PbRecord[], held);
+      const res = await pb.collection(name).getList<PbRecord>(1, HELD_CHUNK, { filter, skipTotal: true });
+      await applyPulled(name, res.items, held);
     }
   }
   // Keyset paging: each page starts after the last row of the one before, by
@@ -264,14 +265,15 @@ async function pullCollection(name: string): Promise<void> {
       : cursor
         ? pb.filter("updated > {:c}", { c: cursor })
         : "";
-    const res = await pb.collection(name).getList(1, PULL_PAGE, {
+    const res = await pb.collection(name).getList<PbRecord>(1, PULL_PAGE, {
       filter,
       sort: "updated,id",
       skipTotal: true,
     });
-    const items = res.items as unknown as PbRecord[];
-    if (items.length === 0) break;
-    after = items[items.length - 1];
+    const items = res.items;
+    const last = items.at(-1);
+    if (!last) break;
+    after = last;
     await applyPulled(name, items, held);
     if (after.updated > maxUpdated) maxUpdated = after.updated;
     if (items.length < PULL_PAGE) break;

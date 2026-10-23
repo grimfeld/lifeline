@@ -60,7 +60,7 @@ function countOutsideQuotes(line: string, ch: string): number {
 export function parseDate(text: string, format: ImportMapping["dateFormat"]): DateStr | null {
   const nums = text.trim().split(/[^\d]+/).filter(Boolean).map(Number);
   if (nums.length !== 3) return null;
-  const [a, b, c] = nums;
+  const [a = 0, b = 0, c = 0] = nums;
   const [y, m, d] = format === "YMD" ? [a, b, c] : format === "DMY" ? [c, b, a] : [c, a, b];
   if (y < 1900 || y > 2200 || m < 1 || m > 12 || d < 1 || d > 31) return null;
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;

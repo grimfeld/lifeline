@@ -12,7 +12,7 @@ export function formatLength(min: number): string {
   return parts.length ? parts.join(" ") : "0m";
 }
 
-const UNIT: Record<string, number> = { d: 1440, h: 60, m: 1 };
+const UNIT = { d: 1440, h: 60, m: 1 };
 
 /**
  * Typed text as minutes: "90", "45m", "1h 30m", "1h30", "1.5h", "1:15",

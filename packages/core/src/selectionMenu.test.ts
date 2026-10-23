@@ -71,13 +71,13 @@ describe("Link", () => {
   const named = (groups: ReturnType<typeof menu>) => groups.find((g) => g.id === "link")?.entries.filter((e) => e.kind === "link") ?? [];
 
   it("comes first when the text names a Document by its title", () => {
-    const [first] = menu({ text: "Pierre" });
+    const first = menu({ text: "Pierre" })[0]!;
     expect(first.title).toBe("Link");
     expect(first.entries.slice(0, 1)).toMatchObject([{ kind: "link", title: "Link to Pierre (Person)", targetId: "p2", canonical: "Pierre" }]);
   });
 
   it("resolves an alias, case aside, and links to the title", () => {
-    const [first] = menu({ text: "marie" });
+    const first = menu({ text: "marie" })[0]!;
     expect(first.entries.slice(0, 1)).toMatchObject([{ kind: "link", title: "Link to Marie Curie (Person)", targetId: "p1", canonical: "Marie Curie" }]);
   });
 
@@ -97,13 +97,13 @@ describe("Link", () => {
   });
 
   it("is offered from a rendered body when the occurrence can be placed", () => {
-    const [first] = menu({ text: "Pierre", body: "Pierre and Pierre", placement: { text: "Pierre", occurrence: 1, count: 2 } });
+    const first = menu({ text: "Pierre", body: "Pierre and Pierre", placement: { text: "Pierre", occurrence: 1, count: 2 } })[0]!;
     expect(first.id).toBe("link");
   });
 
   it("writes the canonical path when the title is shared", () => {
     const shared = [doc("a", "person", "Alex", { folder: "Work" }), doc("b", "person", "Alex", { folder: "Home/Family" })];
-    const [first] = menu({ text: "Alex", index: buildLinkIndex(shared, types), originId: "x" });
+    const first = menu({ text: "Alex", index: buildLinkIndex(shared, types), originId: "x" })[0]!;
     expect(first.entries.slice(0, 1)).toMatchObject([{ targetId: "a", canonical: "Work/Alex" }]);
   });
 });

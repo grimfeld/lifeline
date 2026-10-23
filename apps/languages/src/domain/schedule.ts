@@ -43,9 +43,10 @@ function rating(g: Grade): Rating.Good | Rating.Again {
 
 /** Replay a Prompt's Recalls, oldest first, into how it is held now. No Recalls: new. */
 export function replay(recalls: RecallFact[]): Held {
-  if (!recalls.length) return { state: "new", due: null, stability: 0, reps: 0, lapses: 0 };
   const sorted = [...recalls].sort((a, b) => a.at.localeCompare(b.at));
-  let card: Card = createEmptyCard(new Date(sorted[0].at));
+  const first = sorted[0];
+  if (!first) return { state: "new", due: null, stability: 0, reps: 0, lapses: 0 };
+  let card: Card = createEmptyCard(new Date(first.at));
   for (const r of sorted) card = scheduler.next(card, new Date(r.at), rating(r.grade)).card;
   return { state: STATE[card.state], due: card.due, stability: card.stability, reps: card.reps, lapses: card.lapses };
 }

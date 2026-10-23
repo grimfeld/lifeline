@@ -385,7 +385,7 @@ async function seedKnowledge(c: LifeClock): Promise<void> {
     await word("amanhã", "tomorrow"),
     await word("a esplanada", "an outdoor café terrace"),
     await word("cansada", "tired (feminine)"),
-  ];
+  ] as const;
 
   for (const [text, translation] of [
     ["Eu {{moro}} em Cork.", "I live in Cork."],

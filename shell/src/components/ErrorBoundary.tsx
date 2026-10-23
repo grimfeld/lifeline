@@ -14,7 +14,7 @@ export class ErrorBoundary extends Component<
   { fallback: (reset: () => void) => ReactNode; resetKey?: string; children: ReactNode },
   { error: unknown; resetKey?: string }
 > {
-  state: { error: unknown; resetKey?: string } = { error: null, resetKey: this.props.resetKey };
+  override state: { error: unknown; resetKey?: string } = { error: null, resetKey: this.props.resetKey };
 
   static getDerivedStateFromError(error: unknown) {
     return { error: error ?? new Error("Unknown error") };
@@ -27,7 +27,7 @@ export class ErrorBoundary extends Component<
 
   reset = () => this.setState({ error: null });
 
-  render() {
+  override render() {
     return this.state.error ? this.props.fallback(this.reset) : this.props.children;
   }
 }

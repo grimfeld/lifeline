@@ -51,7 +51,7 @@ describe("links", () => {
       ["Paris", undefined, "Trip", false],
       ["img.png", undefined, undefined, true],
     ]);
-    expect(text.slice(links[0].from, links[0].to)).toBe("[[Yasmine|Y]]");
+    expect(text.slice(links[0]!.from, links[0]!.to)).toBe("[[Yasmine|Y]]");
   });
   it("renames links case-insensitively, keeping alias and heading", () => {
     expect(renameLinks("a [[old name|x]] b [[Old Name#h]] c [[other]]", "old name", "New")).toBe("a [[New|x]] b [[New#h]] c [[other]]");
@@ -85,9 +85,9 @@ describe("tags / headings / blocks", () => {
     const text = "x\n```daylog\napps: tasks\n```\ny\n```daylog\n```\n";
     const blocks = extractBlocks(text);
     expect(blocks.map((b) => [b.lang, b.body])).toEqual([["daylog", "apps: tasks"], ["daylog", ""]]);
-    expect(text.slice(blocks[0].from, blocks[0].to)).toBe("```daylog\napps: tasks\n```");
-    expect(text.slice(blocks[1].from, blocks[1].to)).toBe("```daylog\n```");
-    expect(parseBlockOptions(blocks[0].body)).toEqual({ apps: "tasks" });
+    expect(text.slice(blocks[0]!.from, blocks[0]!.to)).toBe("```daylog\napps: tasks\n```");
+    expect(text.slice(blocks[1]!.from, blocks[1]!.to)).toBe("```daylog\n```");
+    expect(parseBlockOptions(blocks[0]!.body)).toEqual({ apps: "tasks" });
   });
   it("reads a CRLF heading without its carriage return", () => {
     expect(extractHeadings("## Title ##\r\ntext")).toEqual([{ level: 2, text: "Title", line: 0 }]);

@@ -91,7 +91,7 @@ export function moveAisle(aisles: Aisle[], id: string, dir: -1 | 1): { id: strin
   const i = sorted.findIndex((a) => a.id === id);
   const j = i + dir;
   if (i < 0 || j < 0 || j >= sorted.length) return [];
-  [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
+  [sorted[i], sorted[j]] = [sorted[j]!, sorted[i]!];
   return sorted.map((a, rank) => ({ id: a.id, rank })).filter((r) => aisles.find((a) => a.id === r.id)?.rank !== r.rank);
 }
 

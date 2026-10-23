@@ -37,9 +37,9 @@ describe("a new Project", () => {
     await setStage(id, "active", "2026-03-01");
     await setStage(id, "done", "2026-03-09");
     const p = (await documentsOf<Project>(PROJECT))[0];
-    expect([p.stage, p.startedOn, p.endedOn]).toEqual(["done", "2026-03-01", "2026-03-09"]);
+    expect([p!.stage, p!.startedOn, p!.endedOn]).toEqual(["done", "2026-03-01", "2026-03-09"]);
     await setStage(id, "active", "2026-03-10");
-    expect((await documentsOf<Project>(PROJECT))[0].endedOn).toBeNull();
+    expect((await documentsOf<Project>(PROJECT))[0]!.endedOn).toBeNull();
   });
 });
 
@@ -48,11 +48,11 @@ describe("the Board", () => {
     const pid = await addProject({ title: "Bathroom" });
     const [todo, , done] = await lanesOf(pid);
     const tid = await addTask({ title: "Tile", project: pid });
-    await dropTask(await one(tid), done, [], 0);
+    await dropTask(await one(tid), done!, [], 0);
     expect((await one(tid)).completedOn).not.toBeNull();
-    await dropTask(await one(tid), todo, [], 0);
+    await dropTask(await one(tid), todo!, [], 0);
     expect((await one(tid)).completedOn).toBeNull();
-    expect((await one(tid)).lane).toBe(todo.id);
+    expect((await one(tid)).lane).toBe(todo!.id);
   });
 
   it("rewrites the Lane's hand order whole when a Task lands in it", async () => {
@@ -62,8 +62,8 @@ describe("the Board", () => {
     const b = await addTask({ title: "b", project: pid });
     const c = await addTask({ title: "c", project: pid });
     const col = boardOf(lanes, await tasks(), pid)[0];
-    await dropTask(await one(c), lanes[0], col.tasks, 0);
-    const after = boardOf(lanes, await tasks(), pid)[0].tasks.map((t) => t.title);
+    await dropTask(await one(c), lanes[0]!, col!.tasks, 0);
+    const after = boardOf(lanes, await tasks(), pid)[0]!.tasks.map((t) => t.title);
     expect(after).toEqual(["c", "a", "b"]);
     expect(new Set([a, b, c]).size).toBe(3);
   });
@@ -72,11 +72,11 @@ describe("the Board", () => {
     const pid = await addProject({ title: "Bathroom" });
     const [todo, doing] = await lanesOf(pid);
     const tid = await addTask({ title: "Tile", project: pid });
-    await dropTask(await one(tid), doing, [], 0);
-    await deleteLane(doing);
+    await dropTask(await one(tid), doing!, [], 0);
+    await deleteLane(doing!);
     const cols = boardOf(await documentsOf<Lane>(PROJECT_LANE), await tasks(), pid);
-    expect(cols[0].lane.id).toBe(todo.id);
-    expect(cols[0].tasks.map((t) => t.id)).toEqual([tid]);
+    expect(cols[0]!.lane.id).toBe(todo!.id);
+    expect(cols[0]!.tasks.map((t) => t.id)).toEqual([tid]);
   });
 });
 
@@ -87,7 +87,7 @@ describe("a Task's Project", () => {
     const m = await addMilestone(p1, "Phase");
     const [, doing] = await lanesOf(p1);
     const tid = await addTask({ title: "t", project: p1, milestone: m });
-    await dropTask(await one(tid), doing, [], 0);
+    await dropTask(await one(tid), doing!, [], 0);
     await setTaskProject(tid, p2);
     const t = await one(tid);
     expect([t.project, t.milestone, t.lane, t.rank]).toEqual([p2, null, null, null]);
@@ -154,10 +154,10 @@ describe("agents", () => {
     const [todo, doing, done] = await lanesOf(pid);
     const quote = await addTask({ title: "Tiling quote", project: pid, milestone: tiling });
     const tiles = await addTask({ title: "Buy tiles", project: pid, milestone: tiling, date: "2099-11-05" });
-    await dropTask(await one(tiles), todo, [], 0);
-    await dropTask(await one(quote), todo, [await one(tiles)], 0);
+    await dropTask(await one(tiles), todo!, [], 0);
+    await dropTask(await one(quote), todo!, [await one(tiles)], 0);
     const pipes = await addTask({ title: "Pipes", project: pid, milestone: plumbing });
-    await dropTask(await one(pipes), done, [], 0);
+    await dropTask(await one(pipes), done!, [], 0);
     const clean = await addTask({ title: "Clean", project: pid, recurrence: { kind: "weekly", weekdays: [1] } });
 
     const project = (await getDocument(pid))!;
@@ -174,7 +174,7 @@ describe("agents", () => {
       ],
       lanes: [
         {
-          id: todo.id,
+          id: todo!.id,
           title: "To do",
           done: false,
           tasks: [
@@ -182,8 +182,8 @@ describe("agents", () => {
             { id: tiles, title: "Buy tiles", day: "2099-11-05", done: false, milestone: tiling },
           ],
         },
-        { id: doing.id, title: "Doing", done: false, tasks: [] },
-        { id: done.id, title: "Done", done: true, tasks: [{ id: pipes, title: "Pipes", day: null, done: true, milestone: plumbing }] },
+        { id: doing!.id, title: "Doing", done: false, tasks: [] },
+        { id: done!.id, title: "Done", done: true, tasks: [{ id: pipes, title: "Pipes", day: null, done: true, milestone: plumbing }] },
       ],
       recurring: [{ id: clean, title: "Clean", milestone: null }],
       next: { id: quote, title: "Tiling quote" },
@@ -194,7 +194,7 @@ describe("agents", () => {
     const pid = await addProject({ title: "Bathroom" });
     const mid = await addMilestone(pid, "Tiling");
     const [lane] = await lanesOf(pid);
-    for (const id of [mid, lane.id]) {
+    for (const id of [mid, lane!.id]) {
       const doc = (await getDocument(id))!;
       expect((await documentTypeSync(doc.type)!.owner!(doc))?.id).toBe(pid);
     }
@@ -221,14 +221,14 @@ describe("agents run the Project Commands headless", () => {
     const id = await addProject({ title: "Bathroom", outcome: "Tiled", deadline: "2026-12-01", emoji: "🛁" });
     await run("projects.edit", { project: "bathroom", deadline: "2027-01-15" });
     const p = (await projects())[0];
-    expect([p.id, p.title, p.outcome, p.deadline, p.emoji]).toEqual([id, "Bathroom", "Tiled", "2027-01-15", "🛁"]);
+    expect([p!.id, p!.title, p!.outcome, p!.deadline, p!.emoji]).toEqual([id, "Bathroom", "Tiled", "2027-01-15", "🛁"]);
   });
 
   it("move a Project between open stages freely", async () => {
     const id = await addProject({ title: "Trip" });
     await run("projects.stage", { project: id, stage: "active" });
     await run("projects.stage", { project: id, stage: "paused" });
-    expect((await projects())[0].stage).toBe("paused");
+    expect((await projects())[0]!.stage).toBe("paused");
   });
 
   it("refuse Done with open Tasks unless told what becomes of them, naming the count", async () => {
@@ -236,7 +236,7 @@ describe("agents run the Project Commands headless", () => {
     await addTask({ title: "a", project: id });
     await addTask({ title: "b", project: id });
     await expect(run("projects.stage", { project: id, stage: "done" })).rejects.toThrow("2 open tasks");
-    expect((await projects())[0].stage).toBe("planned");
+    expect((await projects())[0]!.stage).toBe("planned");
   });
 
   it("leave, archive or release the open Tasks as asked", async () => {
@@ -262,6 +262,6 @@ describe("agents run the Project Commands headless", () => {
   it("need no openTasks when none is open", async () => {
     const id = await addProject({ title: "Empty" });
     await run("projects.stage", { project: id, stage: "done" });
-    expect((await projects())[0].stage).toBe("done");
+    expect((await projects())[0]!.stage).toBe("done");
   });
 });

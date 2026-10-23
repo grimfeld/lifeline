@@ -135,7 +135,7 @@ export function booleanHeadline(days: Set<string>, period: Period, now = new Dat
 }
 
 export function shiftDay(key: string, delta: number): string {
-  const [y, m, d] = key.split("-").map(Number);
+  const [y = 0, m = 1, d = 1] = key.split("-").map(Number);
   return dayKey(new Date(y, m - 1, d + delta));
 }
 

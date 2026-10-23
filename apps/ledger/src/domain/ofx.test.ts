@@ -82,7 +82,7 @@ describe("parseOfx", () => {
 
   it("decodes each entity once: an escaped entity stays literal", () => {
     const xml = XML.replace("<NAME>Shop</NAME>", "<NAME>A &amp;lt; B &amp;amp; C &#38;gt;</NAME>");
-    expect(parseOfx(xml)[0].payee).toBe("A &lt; B &amp; C &gt;");
+    expect(parseOfx(xml)[0]!.payee).toBe("A &lt; B &amp; C &gt;");
   });
 
   it("never reads the ledger balance as a transaction", () => {

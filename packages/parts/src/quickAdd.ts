@@ -9,10 +9,17 @@ export interface QuickAddMedium<M extends string = string> {
   creatorLabel: string;
 }
 
+/** An App's first medium: a QuickAdd with none is a configuration error. */
+export function firstMedium<M extends string>(media: readonly QuickAddMedium<M>[]): QuickAddMedium<M> {
+  const first = media[0];
+  if (!first) throw new Error("A QuickAdd needs at least one medium");
+  return first;
+}
+
 /** The medium a QuickAdd opens on: the one asked for, else the last one added to in this App, else the App's first. */
 export function startingMedium<M extends string>(media: readonly QuickAddMedium<M>[], asked: M | undefined, remembered: string | null): M {
   if (asked) return asked;
-  return media.find((m) => m.id === remembered)?.id ?? media[0].id;
+  return media.find((m) => m.id === remembered)?.id ?? firstMedium(media).id;
 }
 
 /** "Add a movie — director…": what to type, and that a creator may follow the title. */

@@ -73,7 +73,7 @@ function propertyToField(f: FieldDef, v: PropertyValue | undefined, codec: TextC
       const names = Array.isArray(v) ? v.map(String) : [String(v)];
       const ids = names.map((n) => {
         const m = LINK_WRAP.exec(n.trim());
-        const name = m ? m[1] : n.trim();
+        const name = m?.[1] ?? n.trim();
         return codec.resolveLink?.(name) ?? name;
       });
       return f.kind === "links" ? ids : ids.length === 1 ? ids[0] : ids;

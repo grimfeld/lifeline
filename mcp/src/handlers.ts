@@ -125,7 +125,7 @@ function summary(doc: Document, query?: string) {
   const body = typeof doc.body === "string" ? doc.body : "";
   let snippet: string | undefined;
   if (body) {
-    const at = query ? body.toLowerCase().indexOf(query.toLowerCase().split(/\s+/)[0]) : 0;
+    const at = query ? body.toLowerCase().indexOf(query.toLowerCase().split(/\s+/)[0] ?? "") : 0;
     const from = Math.max(0, at - 60);
     snippet = (from > 0 ? "…" : "") + body.slice(from, from + 200).replace(/\s+/g, " ").trim() + (body.length > from + 200 ? "…" : "");
   }
@@ -495,5 +495,7 @@ export async function runTool(name: string, args: Args): Promise<unknown> {
       throw new ToolError(e.message);
     });
   }
-  return handlers[name](rest);
+  const handler = handlers[name];
+  if (!handler) throw new ToolError(`Tool ${name} has no handler`);
+  return handler(rest);
 }

@@ -25,7 +25,7 @@ export function AliasesField({ doc }: { doc: Document }) {
       delay={500}
       onCommit={(text) => {
         const next = parse(text);
-        if (JSON.stringify(next) !== JSON.stringify(aliases)) return patchDocument(doc.id, { aliases: next });
+        return JSON.stringify(next) !== JSON.stringify(aliases) ? patchDocument(doc.id, { aliases: next }) : undefined;
       }}
     />
   );

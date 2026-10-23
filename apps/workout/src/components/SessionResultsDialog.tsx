@@ -45,7 +45,10 @@ export function SessionResultsDialog({
 
   const exById = new Map(exercises.map((e) => [e.id, e]));
   const setResult = (i: number, r: BlockResult) => setResults((cur) => cur.map((x, j) => (j === i ? r : x)));
-  const setMovement = (bi: number, mi: number, m: MovementResult) => setResult(bi, { ...results[bi], movements: results[bi].movements.map((x, j) => (j === mi ? m : x)) });
+  const setMovement = (bi: number, mi: number, m: MovementResult) => {
+    const block = results[bi];
+    if (block) setResult(bi, { ...block, movements: block.movements.map((x, j) => (j === mi ? m : x)) });
+  };
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && !saving && onDiscard()}>
@@ -134,5 +137,6 @@ function parseClock(v: string): number | null {
   if (!t) return null;
   const parts = t.split(":").map(Number);
   if (parts.some((n) => !Number.isFinite(n))) return null;
-  return parts.length === 1 ? parts[0] : parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0] * 3600 + parts[1] * 60 + parts[2];
+  const [a = 0, b = 0, c = 0] = parts;
+  return parts.length === 1 ? a : parts.length === 2 ? a * 60 + b : a * 3600 + b * 60 + c;
 }

@@ -28,7 +28,7 @@ export function AttachmentsCleanupDialog({ open, onOpenChange }: { open: boolean
     setBusy(true);
     try {
       for (const a of list) await deleteAttachment(a.id);
-      toast.success(list.length === 1 ? `“${list[0].name}” deleted` : `${list.length} attachments deleted`);
+      toast.success(list.length === 1 ? `“${list[0]!.name}” deleted` : `${list.length} attachments deleted`);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {

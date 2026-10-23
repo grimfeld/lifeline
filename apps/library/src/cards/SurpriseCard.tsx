@@ -21,7 +21,7 @@ export function SurpriseCard({ settings }: CardProps) {
   const pick = currentIndex >= 0 ? pool[currentIndex] : undefined;
   // First pick, or re-pick when the current one left the pool (slotted, started, filtered out).
   useEffect(() => {
-    if (!pick && pool.length > 0) setPickedId(pool[pickIndex(pool.length, null)].id);
+    if (!pick && pool.length > 0) setPickedId(pool[pickIndex(pool.length, null)]?.id ?? null);
   }, [pick, pool]);
 
   if (!pick) {
@@ -29,10 +29,10 @@ export function SurpriseCard({ settings }: CardProps) {
   }
   const def = workType(pick.type);
   const free = freeSlots(items, pick.type);
-  const reroll = () => setPickedId(pool[pickIndex(pool.length, currentIndex)].id);
+  const reroll = () => setPickedId(pool[pickIndex(pool.length, currentIndex)]?.id ?? null);
   const toNightstand = () => {
     if (free.length === 0) return void toast.error(`The ${def.plural.toLowerCase()} nightstand is full`);
-    void patchWork(pick, promote(free[0]));
+    void patchWork(pick, promote(free[0]!));
     toast.success(`Slot ${free[0]} taken`);
   };
   return (

@@ -12,7 +12,7 @@ export function allowanceFor(value: string, allowances: readonly Allowance[], da
   if (byId) return byId;
   const wanted = value.trim().toLowerCase();
   const hits = allowances.filter((a) => a.name.trim().toLowerCase() === wanted && bucketOf(a, date) === "current");
-  if (hits.length === 1) return hits[0];
+  if (hits.length === 1) return hits[0]!;
   if (hits.length === 0) throw new Error(`No allowance called “${value}” runs on ${date}`);
   throw new Error(`${hits.length} allowances called “${value}” run on ${date}; pass one id: ${hits.map((a) => a.id).join(", ")}`);
 }

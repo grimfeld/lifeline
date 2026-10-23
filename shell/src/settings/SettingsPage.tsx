@@ -183,7 +183,8 @@ function PhoneBarSection() {
   }
 
   /** One of the user's cells in the preview, by its stored index. */
-  function slotCell(i: number, border: boolean) {
+  function slotCell(i: number | undefined, border: boolean) {
+    if (i === undefined) return null;
     const s = config[i];
     const found = s ? options.find((o) => sameSlot(o.slot, s)) : undefined;
     const Icon = s ? (found?.icon ?? slotIcon(s.kind, s.id)) : Plus;
@@ -218,7 +219,7 @@ function PhoneBarSection() {
           const Icon = SURFACE_ICONS[s.id];
           return (
             <div key={s.id} className="text-muted-foreground flex flex-1 flex-col items-center gap-0.5 border-r py-2 text-2xs">
-              <Icon className="size-5" /> {s.title}
+              {Icon && <Icon className="size-5" />} {s.title}
               <Lock className="size-2.5 opacity-50" />
             </div>
           );
@@ -233,7 +234,7 @@ function PhoneBarSection() {
       </div>
 
       <div className="flex flex-col gap-2">
-        {BAR_SLOT_ORDER.map((i, pos) => [config[i], i, pos] as const).map(([s, i, pos]) => (
+        {BAR_SLOT_ORDER.map((i, pos) => [config[i] ?? null, i, pos] as const).map(([s, i, pos]) => (
           <SlotRow
             key={i}
             index={pos}
@@ -248,7 +249,7 @@ function PhoneBarSection() {
 
       {picking !== null && (
         <SlotPicker
-          current={config[picking]}
+          current={config[picking] ?? null}
           onClose={() => setPicking(null)}
           onPick={(slot) => void set(picking, slot)}
         />

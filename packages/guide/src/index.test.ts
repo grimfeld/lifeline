@@ -15,7 +15,7 @@ describe("the Guide", () => {
   it("links only to pages that exist", () => {
     for (const p of GUIDE_PAGES) {
       for (const [, href] of p.body.matchAll(/\]\(([^)\s]+\.md[^)\s]*)\)/g)) {
-        expect(guideLink(href), `${p.slug} → ${href}`).toBeDefined();
+        expect(guideLink(href!), `${p.slug} → ${href}`).toBeDefined();
       }
     }
   });

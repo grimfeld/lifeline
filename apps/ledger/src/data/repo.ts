@@ -256,7 +256,7 @@ export interface AccountInput {
 }
 
 export async function addAccount(input: AccountInput): Promise<string> {
-  const row = await putDocument<LedgerAccount>({ type: ACCOUNT, title: input.title.trim(), flavor: input.flavor, openingBalance: input.openingBalance, archived: false, importMapping: null, folder: "", tags: [] } as unknown as LedgerAccount);
+  const row = await putDocument<LedgerAccount>({ type: ACCOUNT, title: input.title.trim(), flavor: input.flavor, openingBalance: input.openingBalance, archived: false, importMapping: null, folder: "", tags: [] });
   return row.id;
 }
 
@@ -300,7 +300,7 @@ export interface CategoryInput {
 }
 
 export async function addCategory(input: CategoryInput): Promise<string> {
-  const row = await putDocument<LedgerCategory>({ type: CATEGORY, title: input.title.trim(), kind: input.kind, group: input.group?.trim() ?? "", target: input.target ?? 0, accumulating: !!input.accumulating, folder: "", tags: [] } as unknown as LedgerCategory);
+  const row = await putDocument<LedgerCategory>({ type: CATEGORY, title: input.title.trim(), kind: input.kind, group: input.group?.trim() ?? "", target: input.target ?? 0, accumulating: !!input.accumulating, folder: "", tags: [] });
   return row.id;
 }
 
@@ -347,7 +347,7 @@ export async function setAllocation(categoryId: string, month: MonthStr, amount:
     return;
   }
   if (cur) await patchDocument(cur.id, { amount });
-  else await putDocument<Allocation>({ type: ALLOCATION, title: "", categoryId, month, amount, folder: "", tags: [] } as unknown as Allocation);
+  else await putDocument<Allocation>({ type: ALLOCATION, title: "", categoryId, month, amount, folder: "", tags: [] });
 }
 
 // ---- Categorize rules ----
@@ -390,7 +390,7 @@ export async function addRule(input: RuleInput): Promise<string> {
   if (!normalizePayee(input.match)) throw new Error("A rule needs payee text to look for");
   const kind = await ruleKindOf(input);
   await assertUnique(input, kind);
-  const row = await putDocument<CategorizeRule>({ type: RULE, ...ruleRowOf(input, kind), folder: "", tags: [] } as unknown as CategorizeRule);
+  const row = await putDocument<CategorizeRule>({ type: RULE, ...ruleRowOf(input, kind), folder: "", tags: [] });
   return row.id;
 }
 
@@ -440,7 +440,7 @@ async function overrideSeries(series: Series, next: { muted: boolean; skipped: D
     await patchDocument(series.overrideId, next);
     return;
   }
-  await putDocument<SeriesOverride>({ type: SERIES, title: series.payee, key: series.key, ...next, folder: "", tags: [] } as unknown as SeriesOverride);
+  await putDocument<SeriesOverride>({ type: SERIES, title: series.payee, key: series.key, ...next, folder: "", tags: [] });
 }
 
 /** Silence a series: it stays listed and greyed, and surfaces no Dues. */

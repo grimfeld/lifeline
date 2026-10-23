@@ -91,7 +91,7 @@ const ENTRIES: Entry[] = [
 
 /** A page's title: its first `# ` heading. */
 function titleOf(body: string, slug: string): string {
-  return /^# (.+)$/m.exec(body)?.[1].trim() ?? slug;
+  return /^# (.+)$/m.exec(body)?.[1]?.trim() ?? slug;
 }
 
 /** Every page, in the order the Guide's home lists them. */

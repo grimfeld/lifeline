@@ -606,8 +606,8 @@ function DayStrip({ anchor, today, onPick }: { anchor: DateStr; today: DateStr; 
  */
 export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
   const { view, anchor, today, days, tags, isMobile, go } = ctx;
-  const first = days[0];
-  const last = days[days.length - 1];
+  const first = days[0] ?? anchor;
+  const last = days.at(-1) ?? first;
   const items = useSurfaceItems({ start: first, end: last }, { tags });
   const pool = usePoolItems({ tags });
   const allTimed = useTimedItems({ start: first, end: last }, { tags });

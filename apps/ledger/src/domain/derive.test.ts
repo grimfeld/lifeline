@@ -94,8 +94,8 @@ describe("budget", () => {
     const allocations = [{ id: "x", categoryId: "vacation", month: "2026-02", amount: 20_000 } as Allocation];
     // Jan 10k + Feb 20k (override) + Mar 10k = 40k allocated; 50k spent in Mar → pot −10k.
     const rows = budgetRows([c], allocations, [tx({ categoryId: "vacation", amount: 50_000, date: "2026-03-05" })], "2026-03");
-    expect(rows[0].pot).toBe(-10_000);
-    expect(rows[0].available).toBe(-10_000);
+    expect(rows[0]!.pot).toBe(-10_000);
+    expect(rows[0]!.available).toBe(-10_000);
   });
 
   it("each category's pot counts only its own spending, through the shown month", () => {

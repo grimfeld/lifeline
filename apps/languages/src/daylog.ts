@@ -25,9 +25,10 @@ export const knowledgeDaylog: DaylogProvider = {
     const out: DaylogItem[] = [];
     for (const l of topics) {
       const today = recalls.filter((r) => r.languageId === l.id && r.at && dayOf(r.at) === date).sort((a, b) => a.at.localeCompare(b.at));
-      if (today.length) {
+      const first = today[0];
+      if (first) {
         const passed = today.filter((r) => r.grade === "pass").length;
-        out.push({ key: `${APP_ID}/practice/${l.id}`, appId: APP_ID, itemId: l.id, kind: "Practised", title: l.name, subtitle: `${today.length} recall${today.length === 1 ? "" : "s"} · ${passed} passed`, time: clockOf(today[0].at), href: KNOWLEDGE_HREF, tags: l.tags });
+        out.push({ key: `${APP_ID}/practice/${l.id}`, appId: APP_ID, itemId: l.id, kind: "Practised", title: l.name, subtitle: `${today.length} recall${today.length === 1 ? "" : "s"} · ${passed} passed`, time: clockOf(first.at), href: KNOWLEDGE_HREF, tags: l.tags });
       }
       const added = [...words, ...sentences, ...facts].filter((i) => i.languageId === l.id && i.addedAt && dayOf(i.addedAt) === date);
       if (added.length) {

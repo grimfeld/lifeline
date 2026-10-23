@@ -65,8 +65,9 @@ function compile(names: MentionName[]): Matcher {
     }
     const list = (node.names ??= []);
     const i = list.findIndex((m) => m.targetId === n.targetId);
-    if (i < 0) list.push(n);
-    else if (list[i].name !== list[i].canonical && n.name === n.canonical) list[i] = n;
+    const had = list[i];
+    if (!had) list.push(n);
+    else if (had.name !== had.canonical && n.name === n.canonical) list[i] = n;
     empty = false;
   }
   return { root, empty };
@@ -77,7 +78,7 @@ export function maskProse(body: string): string {
   const chars = new Array<string>(body.length).fill(" ");
   const { raw } = splitFrontmatter(body);
   for (const seg of proseSegments(body)) {
-    for (let i = 0; i < seg.text.length; i++) chars[seg.offset + i] = seg.text[i];
+    for (let i = 0; i < seg.text.length; i++) chars[seg.offset + i] = seg.text[i]!;
   }
   for (let i = 0; i < raw.length; i++) chars[i] = " ";
   return chars
@@ -112,7 +113,7 @@ function foldWithMap(text: string): { folded: string; map: number[] } {
 function charBefore(text: string, i: number): string {
   if (i === 0) return "";
   const lo = text.charCodeAt(i - 1);
-  return lo >= 0xdc00 && lo <= 0xdfff && i >= 2 ? text.slice(i - 2, i) : text[i - 1];
+  return lo >= 0xdc00 && lo <= 0xdfff && i >= 2 ? text.slice(i - 2, i) : text.charAt(i - 1);
 }
 function charAt(text: string, i: number): string {
   return i < text.length ? String.fromCodePoint(text.codePointAt(i)!) : "";
@@ -131,8 +132,9 @@ function scan(body: string, m: Matcher): MentionHit[] {
         node = node.next.get(ch);
         j += ch.length;
         if (node?.names && !WORD_RE.test(charAt(folded, j))) {
-          const from = map[i];
-          const to = map[j];
+          // `map` has an entry per folded unit and one past the end, so both are in range.
+          const from = map[i]!;
+          const to = map[j]!;
           for (const n of node.names) all.push({ from, to, text: body.slice(from, to), name: n.name, canonical: n.canonical, targetId: n.targetId });
         }
       }

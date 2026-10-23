@@ -7,7 +7,7 @@ import { headersFor, PRODUCTION_PB, vercelHeaders } from "./headers";
 const shell = path.resolve(import.meta.dirname, "..");
 const repo = path.resolve(shell, "..");
 const rules = vercelHeaders(shell);
-const webCsp = headersFor(rules, "/")["Content-Security-Policy"];
+const webCsp = headersFor(rules, "/")["Content-Security-Policy"]!;
 
 /** A CSP as { directive: sources }. */
 function parse(csp: string): Record<string, string[]> {
@@ -28,10 +28,10 @@ describe("vercel.json headers", () => {
   });
 
   it("lets a preview pointed at another PocketBase reach it instead of production's", () => {
-    const csp = parse(headersFor(rules, "/", "http://127.0.0.1:8090")["Content-Security-Policy"]);
+    const csp = parse(headersFor(rules, "/", "http://127.0.0.1:8090")["Content-Security-Policy"]!);
     expect(csp["connect-src"]).toContain("http://127.0.0.1:8090");
     expect(csp["connect-src"]).not.toContain(PRODUCTION_PB);
-    expect(parse(headersFor(rules, "/", PRODUCTION_PB)["Content-Security-Policy"])["connect-src"]).toContain(PRODUCTION_PB);
+    expect(parse(headersFor(rules, "/", PRODUCTION_PB)["Content-Security-Policy"]!)["connect-src"]).toContain(PRODUCTION_PB);
   });
 });
 
@@ -41,7 +41,7 @@ describe("the desktop CSP", () => {
     const desktop = conf.app.security.csp as Record<string, string>;
     const web = parse(webCsp);
     delete web["frame-ancestors"];
-    web["connect-src"] = ["ipc:", "http://ipc.localhost", ...web["connect-src"]];
+    web["connect-src"] = ["ipc:", "http://ipc.localhost", ...web["connect-src"]!];
     expect(Object.fromEntries(Object.entries(desktop).map(([k, v]) => [k, v.split(/\s+/)]))).toEqual(web);
   });
 });
@@ -62,6 +62,6 @@ describe("connect-src", () => {
       .filter(Boolean);
     const origins = new Set(files.flatMap((f) => [...readFileSync(path.join(repo, f), "utf8").matchAll(/https:\/\/[a-z0-9.-]+\.[a-z]+/g)].map((m) => m[0])));
     const allowed = parse(webCsp)["connect-src"];
-    expect([...origins].filter((o) => !NOT_FETCHED.has(o) && !allowed.includes(o))).toEqual([]);
+    expect([...origins].filter((o) => !NOT_FETCHED.has(o) && !allowed!.includes(o))).toEqual([]);
   });
 });

@@ -88,7 +88,7 @@ export function pickLinked(arg: CommandArg, value: string, docs: readonly Linkab
   const wanted = value.trim().toLowerCase();
   const hits = ofType.filter((d) => d.title.trim().toLowerCase() === wanted);
   const what = arg.label.toLowerCase();
-  if (hits.length === 1) return hits[0].id;
+  if (hits.length === 1) return hits[0]!.id;
   if (hits.length === 0) throw new Error(`${arg.label}: no ${what} called “${value}”`);
   throw new Error(`${arg.label}: ${hits.length} ${what}s are called “${value}”; pass one id: ${hits.map((d) => d.id).join(", ")}`);
 }

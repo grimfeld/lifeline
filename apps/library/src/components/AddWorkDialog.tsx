@@ -83,7 +83,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
   }, [open, defaultType]);
 
   // The picked Author narrows the search: by key when resolved, by name otherwise.
-  const pickedAuthor = authorIds.length ? authorIndex.get(authorIds[0]) : undefined;
+  const pickedAuthor = authorIds[0] ? authorIndex.get(authorIds[0]) : undefined;
   const query = useMemo<LookupQuery | null>(() => {
     const t = title.trim();
     const a = pickedAuthor ? pickedAuthor.title : authorText.trim();
@@ -128,14 +128,15 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
   }, [query, type, settings, manual]); // `search` derives from type + settings
 
   async function loadMore() {
-    if (!search || !query || !hits.length) return;
+    const firstHit = hits[0];
+    if (!search || !query || !firstHit) return;
     const next = page + 1;
     moreCtl.current?.abort();
     const ctl = new AbortController();
     moreCtl.current = ctl;
     setSearching(true);
     try {
-      const res = await search({ ...query, page: next, provider: providerOf(hits[0]) }, ctl.signal);
+      const res = await search({ ...query, page: next, provider: providerOf(firstHit) }, ctl.signal);
       if (ctl.signal.aborted) return;
       setHits((h) => [...h, ...res.filter((r) => !h.some((x) => x.externalKey === r.externalKey))]);
       setPage(next);

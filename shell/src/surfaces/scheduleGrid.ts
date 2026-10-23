@@ -33,7 +33,7 @@ export function hourLabel(hour: number, compact: boolean): string {
 
 /** A day's short name, Monday first: "Mon".."Sun". */
 export function weekdayName(d: DateStr): string {
-  return DAY_NAMES[(new Date(d + "T12:00:00").getDay() + 6) % 7];
+  return DAY_NAMES[(new Date(d + "T12:00:00").getDay() + 6) % 7]!;
 }
 
 /** Hours from `start` to `end`, at least one grid step; `fallbackMin` when there is no end. */

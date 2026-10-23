@@ -20,14 +20,14 @@ export function SurpriseCard({ settings }: CardProps) {
   const pick = currentIndex >= 0 ? pool[currentIndex] : undefined;
   // First pick, or re-pick when the current one left the pool (started, filtered out).
   useEffect(() => {
-    if (!pick && pool.length > 0) setPickedId(pool[pickIndex(pool.length, null)].id);
+    if (!pick && pool.length > 0) setPickedId(pool[pickIndex(pool.length, null)]?.id ?? null);
   }, [pick, pool]);
 
   if (!pick) {
     return <div className="text-muted-foreground flex h-full items-center justify-center text-sm">Nothing in the backlog to pick from.</div>;
   }
   const def = workType(pick.type);
-  const reroll = () => setPickedId(pool[pickIndex(pool.length, currentIndex)].id);
+  const reroll = () => setPickedId(pool[pickIndex(pool.length, currentIndex)]?.id ?? null);
   const startIt = () => {
     void patchWork(pick, start());
     toast.success(`${def.engagement.IN_PROGRESS}…`);

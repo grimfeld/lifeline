@@ -34,9 +34,9 @@ describe("tree", () => {
     );
     expect(root.folders.map((f) => f.name)).toEqual(["Empty", "Journal", "People"]);
     expect(allFolders(root)).toEqual(["Empty", "Empty/Sub", "Journal", "Journal/2026", "Journal/2026/08", "People"]);
-    const aug = root.folders[1].folders[0].folders[0];
+    const aug = root.folders[1]!.folders[0]!.folders[0]!;
     expect(aug.notes.map((n) => n.title)).toEqual(["2026-08-17", "2026-08-16"]);
-    expect(root.folders[2].notes.map((n) => n.title)).toEqual(["Adam", "Zoe"]);
+    expect(root.folders[2]!.notes.map((n) => n.title)).toEqual(["Adam", "Zoe"]);
     expect(root.notes.map((n) => n.title)).toEqual(["Root note"]);
   });
   it("titleTaken is per folder and case-insensitive", () => {
