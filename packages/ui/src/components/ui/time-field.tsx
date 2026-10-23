@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Clock } from "lucide-react"
+import { Check, Clock } from "lucide-react"
 
 import { cn } from "../../lib/utils"
 import { Input } from "./input"
@@ -11,7 +11,9 @@ import { formatTimeValue, minutesOf, nextQuarter, parseTimeText, QUARTER_HOURS, 
  * a field you type into ("14:30", "1430", "930", "9", "2pm") that opens a list
  * of quarter hours in the kit Popover, scrolled to the value or to the next
  * quarter hour. Typed minutes stay as typed; text that isn't a time reverts.
- * Arrow up and down step 15 minutes. Shown in the browser's 12h or 24h clock.
+ * Arrow up and down step 15 minutes; while the list is open they move through
+ * it instead (announced with `aria-activedescendant`), and Enter picks.
+ * Alt+Arrow down opens the list, Alt+Arrow up closes it. Shown in the browser's 12h or 24h clock.
  * Value in and out is the native time input's string — `HH:MM`, `""` for none
  * — so nothing stored changes. A `Field` child: it takes the Field's id,
  * description and invalid state.
@@ -46,13 +48,21 @@ function TimeField({
   "aria-describedby"?: string
   "aria-invalid"?: React.AriaAttributes["aria-invalid"]
 }) {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpenState] = React.useState(false)
+  /** The highlighted row while the list is open; null until the arrows move it (then it's the target). */
+  const [active, setActive] = React.useState<string | null>(null)
   /** What is being typed; null while the field shows the value. */
   const [draft, setDraft] = React.useState<string | null>(null)
   const anchorRef = React.useRef<HTMLDivElement>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const listId = React.useId()
   const shown = formatTimeValue(value, locale)
+  const listOpen = open && !disabled
+  const highlighted = active ?? listTarget(value)
+  const setOpen = (next: boolean | ((o: boolean) => boolean)) => {
+    setOpenState(next)
+    setActive(null)
+  }
 
   const change = (next: string) => {
     if (next !== value) onChange(next)
@@ -72,15 +82,16 @@ function TimeField({
   }
 
   return (
-    <Popover open={open && !disabled} onOpenChange={setOpen}>
+    <Popover open={listOpen} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
         <div ref={anchorRef} data-slot="time-field" className={cn("relative w-full min-w-0", className)}>
           <Input
             ref={inputRef}
             id={id}
             role="combobox"
-            aria-expanded={open}
-            aria-controls={open ? listId : undefined}
+            aria-expanded={listOpen}
+            aria-controls={listOpen ? listId : undefined}
+            aria-activedescendant={listOpen ? optionId(listId, highlighted) : undefined}
             aria-haspopup="listbox"
             aria-autocomplete="none"
             aria-label={ariaLabel}
@@ -106,9 +117,13 @@ function TimeField({
               if (e.key === "ArrowUp" || e.key === "ArrowDown") {
                 e.preventDefault()
                 if (e.altKey) return setOpen(e.key === "ArrowDown")
+                if (listOpen) return setActive(moveQuarter(highlighted, e.key === "ArrowUp" ? -1 : 1))
                 const from = draft === null ? value : (parseTimeText(draft) ?? value)
                 setDraft(null)
                 change(stepTime(from, e.key === "ArrowUp" ? 15 : -15))
+              } else if (e.key === "Enter" && listOpen) {
+                e.preventDefault()
+                pick(highlighted)
               } else if (e.key === "Enter" && draft !== null) {
                 e.preventDefault()
                 commit()
@@ -136,18 +151,47 @@ function TimeField({
         onEscapeKeyDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.preventDefault()}
       >
-        <TimeList id={listId} value={value} locale={locale} onPick={pick} />
+        <TimeList id={listId} value={value} active={highlighted} locale={locale} onPick={pick} onHover={setActive} />
       </PopoverContent>
     </Popover>
   )
 }
 
-/** The quarter hours, the value (or, when empty, the next quarter hour) scrolled into view. */
-function TimeList({ id, value, locale, onPick }: { id: string; value: string; locale?: string; onPick: (value: string) => void }) {
-  const ref = React.useRef<HTMLDivElement>(null)
+/** The row the list opens on: the value's quarter hour (an odd "09:10" lands on the quarter before it), or the next quarter hour. */
+function listTarget(value: string): string {
   const minutes = minutesOf(value)
-  // An odd value ("09:10") lands on the quarter before it.
-  const target = minutes === undefined ? nextQuarter(new Date()) : QUARTER_HOURS[Math.floor(minutes / 15)]
+  const quarter = minutes === undefined ? undefined : QUARTER_HOURS[Math.floor(minutes / 15)]
+  return quarter ?? nextQuarter(new Date())
+}
+
+/** The row `by` rows away, stopping at the first and last. */
+function moveQuarter(from: string, by: number): string {
+  const i = QUARTER_HOURS.indexOf(from)
+  return QUARTER_HOURS[Math.min(QUARTER_HOURS.length - 1, Math.max(0, i + by))] ?? from
+}
+
+const optionId = (listId: string, time: string) => `${listId}-${time.replace(":", "")}`
+
+/** The quarter hours, the highlighted row (at first the value, or the next quarter hour) scrolled into view. */
+function TimeList({
+  id,
+  value,
+  active,
+  locale,
+  onPick,
+  onHover,
+}: {
+  id: string
+  value: string
+  active: string
+  locale?: string
+  onPick: (value: string) => void
+  onHover: (value: string) => void
+}) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  // Centred once the list opens, on its first row; later moves only scroll as far as they must.
+  const opened = React.useRef(active)
+  const target = opened.current
   React.useLayoutEffect(() => {
     const list = ref.current
     if (!list) return
@@ -161,6 +205,10 @@ function TimeList({ id, value, locale, onPick }: { id: string; value: string; lo
     observer.observe(list)
     return () => observer.disconnect()
   }, [target])
+  React.useEffect(() => {
+    if (active === target) return
+    ref.current?.querySelector<HTMLElement>(`[data-time="${active}"]`)?.scrollIntoView?.({ block: "nearest" })
+  }, [active, target])
   return (
     <div
       ref={ref}
@@ -172,13 +220,17 @@ function TimeList({ id, value, locale, onPick }: { id: string; value: string; lo
       {QUARTER_HOURS.map((t) => (
         <div
           key={t}
+          id={optionId(id, t)}
           role="option"
           aria-selected={t === value}
           data-time={t}
-          className="hover:bg-accent hover:text-accent-foreground aria-selected:bg-accent aria-selected:font-medium flex min-h-8 cursor-default items-center rounded-md px-2 text-sm tabular-nums select-none max-md:min-h-10"
+          data-active={t === active || undefined}
+          className="data-active:bg-accent data-active:text-accent-foreground aria-selected:font-medium flex min-h-8 cursor-default items-center justify-between gap-2 rounded-md px-2 text-sm tabular-nums select-none max-md:min-h-10"
           onClick={() => onPick(t)}
+          onMouseMove={() => t !== active && onHover(t)}
         >
           {formatTimeValue(t, locale)}
+          {t === value && <Check className="size-4" aria-hidden />}
         </div>
       ))}
     </div>

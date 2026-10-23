@@ -85,6 +85,10 @@ The **Events** page has three tabs:
   Weekends), from and to, and a colour; **Turn off** stops painting it but keeps it. One-off
   blockers (made by dropping a Blocker template on an hour) are listed too.
 
+A time (a start, an end, a usual start) is typed — `930`, `14:30`, `2pm` — or picked from the
+list of quarter hours that opens on a click or ⌥/Alt+↓. With the list shut, ↑/↓ nudge the time
+15 minutes; with it open, they move through the list and Enter picks.
+
 Commands and Cards:
 
 - **Add event** — the event form. Where: the palette (Ctrl+K), the Capture sheet.

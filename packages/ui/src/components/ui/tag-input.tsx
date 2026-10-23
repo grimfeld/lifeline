@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type AriaAttributes, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type AriaAttributes, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -37,17 +37,27 @@ export interface TagInputProps {
 /**
  * Chip/token editor for Tags (ADR 0014). Enter, comma or Tab commits the
  * typed word; Backspace on an empty input removes the last chip; typing
- * filters `suggestions`, Arrow keys + Enter pick one.
+ * filters `suggestions`, Arrow keys + Enter pick one. The input is a combobox:
+ * the highlighted suggestion is its `aria-activedescendant`.
  */
 export function TagInput({ id, value, onChange, suggestions = [], placeholder = "Add tag…", normalize = defaultNormalizeTag, className, autoFocus, disabled, "aria-describedby": describedBy, "aria-invalid": invalid }: TagInputProps) {
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(0);
+  const [activeAt, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const listId = useId();
+  const optionId = (i: number) => `${listId}-${i}`;
 
   const q = text.trim().replace(/^#/, "").toLowerCase();
   const matches = suggestions.filter((s) => !value.includes(s) && (q === "" || s.includes(q))).slice(0, 8);
+  const shown = open && matches.length > 0;
+  // Suggestions shrink as tags are added: the highlight stays on the last one left.
+  const active = Math.min(activeAt, Math.max(matches.length - 1, 0));
+
+  useEffect(() => {
+    if (shown) listRef.current?.children[active]?.scrollIntoView?.({ block: "nearest" });
+  }, [shown, active]);
 
   const add = (raw: string) => {
     const t = normalize(raw);
@@ -60,7 +70,7 @@ export function TagInput({ id, value, onChange, suggestions = [], placeholder = 
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === "," || (e.key === "Tab" && text !== "")) {
-      if (open && matches[active] && (text === "" || e.key !== ",")) {
+      if (shown && matches[active] && (text === "" || e.key !== ",")) {
         e.preventDefault();
         add(matches[active]);
         return;
@@ -73,11 +83,14 @@ export function TagInput({ id, value, onChange, suggestions = [], placeholder = 
       removeAt(value.length - 1);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      setOpen(true);
-      setActive((a) => Math.min(a + 1, Math.max(matches.length - 1, 0)));
+      // A closed list opens on its first suggestion; an open one moves down it.
+      if (!shown) {
+        setOpen(true);
+        setActive(0);
+      } else setActive(Math.min(active + 1, matches.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setActive((a) => Math.max(a - 1, 0));
+      setActive(Math.max(active - 1, 0));
     } else if (e.key === "Escape") {
       setOpen(false);
     }
@@ -118,8 +131,9 @@ export function TagInput({ id, value, onChange, suggestions = [], placeholder = 
           role="combobox"
           aria-describedby={describedBy}
           aria-invalid={invalid}
-          aria-expanded={open && matches.length > 0}
-          aria-controls={listId}
+          aria-expanded={shown}
+          aria-controls={shown ? listId : undefined}
+          aria-activedescendant={shown ? optionId(active) : undefined}
           aria-autocomplete="list"
           className="h-6 min-w-16 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground"
           placeholder={value.length === 0 ? placeholder : ""}
@@ -139,15 +153,18 @@ export function TagInput({ id, value, onChange, suggestions = [], placeholder = 
           onKeyDown={onKeyDown}
         />
       </div>
-      {open && matches.length > 0 && (
+      {shown && (
         <ul
+          ref={listRef}
           id={listId}
           role="listbox"
+          aria-label="Tag suggestions"
           className="absolute left-0 z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover p-1 text-sm text-popover-foreground shadow-md"
         >
           {matches.map((s, i) => (
             <li
               key={s}
+              id={optionId(i)}
               role="option"
               aria-selected={i === active}
               className={cn("cursor-pointer rounded-sm px-2 py-1", i === active && "bg-accent text-accent-foreground")}
