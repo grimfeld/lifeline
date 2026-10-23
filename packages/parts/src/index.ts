@@ -9,6 +9,7 @@ export { announceRead, attempt } from "./components/announce";
 export * from "./lookup";
 export * from "./enrich";
 export * from "./shelf";
+export * from "./versions";
 export * from "./components/QuickPick";
 export * from "./quickAdd";
 export * from "./components/QuickAdd";
