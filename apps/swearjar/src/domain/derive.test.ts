@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Fine, Offence } from "./types";
-import { activeOffences, finesIn, jarTotal, monthKeyOf, shiftMonth, tallyByOffence } from "./derive";
+import { activeOffences, dayKeyOf, finesIn, jarTotal, monthKeyOf, shiftMonth, tallyByOffence, timeOf } from "./derive";
 
 function offence(partial: Partial<Offence>): Offence {
   return {
@@ -84,5 +84,13 @@ describe("offences", () => {
   it("offers only unarchived ones, by name", () => {
     const os = [offence({ name: "Swore" }), offence({ name: "Doomscrolled", archived: true }), offence({ name: "Ate junk" })];
     expect(activeOffences(os).map((o) => o.name)).toEqual(["Ate junk", "Swore"]);
+  });
+});
+
+describe("local day and time", () => {
+  it("read an instant in the local zone, not UTC", () => {
+    const at = new Date(2026, 0, 1, 0, 30).toISOString();
+    expect(dayKeyOf(at)).toBe("2026-01-01");
+    expect(timeOf(at)).toBe("00:30");
   });
 });
