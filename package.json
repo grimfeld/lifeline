@@ -3,7 +3,6 @@
   "private": true,
   "version": "0.1.0",
   "license": "PolyForm-Noncommercial-1.0.0",
-  "type": "module",
   "scripts": {
     "prepare": "node scripts/install-hooks.mjs",
     "check": "node --test scripts/*.test.mjs && node scripts/check-ui.mjs && node scripts/adr.mjs check && node scripts/migrations.mjs check && pnpm -r typecheck && pnpm knip && pnpm lint && pnpm -r test",
