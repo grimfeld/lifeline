@@ -1,3 +1,10 @@
+---
+status: accepted
+supersedes: ADR 0006
+superseded-by: ADR 0070 (in part — the Commonplace book's Quote limited to works)
+amended-by: ADR 0074 (in part — the Library gains manga)
+---
+
 # The Media App splits into four family Apps plus a Commonplace book; duplicated logic over shared abstractions
 
 The one Media App (ADR 0006 and amendments) funnelled six media types through one screen and one medium-neutral model. In use, three complaints compounded: one crammed destination (chip-filtering to reach the medium you came for), medium-neutral chrome (the same furniture for a novel and a video game), and a bland identity — and beneath them a real model divergence: Acquisition is meaningless for streamed media, visual media want image features books never will, and per-family extension kept threading through shared code.

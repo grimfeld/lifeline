@@ -1,3 +1,10 @@
+---
+status: accepted
+superseded-by: ADR 0057 (in part — "off by default")
+---
+
+> "Off by default" is superseded by ADR 0057: the first Workspace is the default and every one made after it is separated; it is not a choice (`separatedWhenCreated` and `createWorkspace` in `packages/core/src/workspaces.ts`). The rest stands.
+
 # Workspace separation is a sealed box, and no type is exempt
 
 A Workspace (ADR 0047) may keep its content to itself. The option is **off by

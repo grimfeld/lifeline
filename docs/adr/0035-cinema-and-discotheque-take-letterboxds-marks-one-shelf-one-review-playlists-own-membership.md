@@ -1,3 +1,8 @@
+---
+status: accepted
+amended-by: ADR 0074 (in part — Marks and the Review are no longer Cinema's and the Discotheque's alone)
+---
+
 # Cinema and Discotheque take Letterboxd's marks: one Shelf and one Review per work, no diary; Playlists own their membership
 
 The Cinema and the Discotheque (ADR 0024) tracked only where a work stood — the four-state Shelf and its stamped days. In use the missing half was Letterboxd's: say in one click that a film was watched, that I liked it, how many stars, a few words about it, and gather works into hand-made lists. The decision is to add exactly that surface on the existing model rather than adopt Letterboxd's. **Done is one click from any shelf** (a film needs no "in progress"; a series keeps it), and a second click undoes it. **Marks** — `liked` and a whole-star `rating` (unrated is its own state, not zero) — are plain fields on the work: independent of each other, of the Shelf, and of any date; a Shelf move never touches them. The **Review is the work's Document body**, not a field: one per work, and it gets text mode, wikilinks, `#tags` and Backlinks for free. There is **no diary**: `finishedOn` is the last watch, and a rewatch overwrites it. A **Playlist** is its own Document type per App (`cinema_playlist`, `discotheque_playlist`) holding an ordered, guarded list of work ids, an optional blurb (its body) and a `ranked` flag; **membership belongs to the Playlist**, never to the work, and a work in any number of them. Library and Arcade are untouched: the Library has its own instruments for this (Nightstand, Shopping list) and the marks do not fit games.

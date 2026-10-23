@@ -1,3 +1,8 @@
+---
+status: accepted
+superseded-by: ADR 0096 (in part — "not in CI")
+---
+
 # Every screen is tested with long content at phone and desktop width
 
 Long titles, names and unbroken words kept breaking screens on the phone:

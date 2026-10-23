@@ -1,3 +1,9 @@
+---
+status: accepted
+superseded-by: ADR 0028 (in part — one Placement per item)
+amended-by: ADR 0090 (in part — retiming an Event keeps its end day)
+---
+
 # Time blocks are Placements with a time; Apps never own clock times
 
 The Schedule surface (day/week, hour-scaled) lets the user drag Schedulable items — Tasks, Chores, any App's work — onto hour slots to plan a day. Where the block's time lives was the decision. We extend Core's surface-owned `Placement` with optional `start`/`end` ("HH:MM"): a Placement now says "this item, on this day, at this time", exactly what the glossary already promised ("assignment to a day or time slot; subsumes the old TimeBlock"). The owning App's state is untouched — a Task still knows only its day, a Chore only its cycle — and dropping an item on a slot is the App-owned day move (when the day changes) plus a Placement with a time. Events are already timed and belong to the Calendar App, so retiming them on the surface goes through a new optional Timed hook `reschedule(itemId, date, start, end)` that Core never bypasses.

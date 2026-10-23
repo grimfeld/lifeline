@@ -1,3 +1,8 @@
+---
+status: accepted
+supersedes: ADR 0002 (in part — "single user")
+---
+
 # Accounts are isolated by a server-stamped owner on one PocketBase
 
 ADR 0002 assumed a single user and made every collection rule "any signed-in user"; the day a second account was created for a friend, it saw everything. The decision is that the one PocketBase instance now serves many **Accounts** (CONTEXT.md), isolated by an `owner` relation on every synced collection (`documents`, `placements`, `screens`, `views`, `document_types`, `attachments`) that a server hook pins to the signed-in user on every create and update, with list/view/update/delete rules of `owner = @request.auth.id`. The client never sends, stores or knows about `owner`: `toLocal` strips it, the local database stays single-user-shaped, and the sync engine is unchanged except for one guard. Rows that existed before the migration went to the oldest `users` record via raw SQL, so `updated` stayed put and no device re-pulled. Signup is closed (`users.createRule = null`): a superuser makes accounts. Fixed-id singletons ("default", "privatesettings") were replaced by "the one Document of that type", since a second Account could never create the same id. One device holds one Account at a time: the local database is bound to the first Account that syncs through it, and a different sign-in is refused until the user erases the device's local data (blocked while unpushed writes remain) or signs back in as the bound Account.

@@ -4,7 +4,9 @@ Read `CONTEXT.md` (the language) and `docs/adr/` (the decisions) before changing
 
 A new ADR takes its number from `pnpm adr:new "The decision, as a sentence"`, never by
 hand: it looks past every branch and worktree, so parallel work doesn't collide.
-`pnpm adr:check` (in CI) fails when a number is taken twice; fix it with
+An ADR that supersedes or amends another says so in its frontmatter (`supersedes:` /
+`amends:`), and the older one answers (`superseded-by:` / `amended-by:`).
+`pnpm adr:check` (in CI) fails when either side is missing, or when a number is taken twice; fix it with
 `pnpm adr:mv docs/adr/NNNN-slug.md`, which moves an ADR to a free number. Of the two, the
 decision scoped to one App (the narrower) moves and the cross-cutting one keeps its number.
 `adr:mv` only renames: give the moved ADR `formerly: NNNN` in its frontmatter, and update
@@ -33,8 +35,8 @@ Build from `@lifeline/ui` and its tokens; the rules are in `CODING_STANDARDS.md`
 Run the e2e specs your change touches before pushing it, and the layout test
 (`screens.spec.ts`) for a change to a screen; the commands are in `shell/e2e/README.md`. A
 PR runs the specs it changes three times each (once on four runners past 150 cases). The
-whole suite runs, sharded four ways, on every integration PR and on master each night
-(`.github/workflows/e2e.yml`), so a red nightly run means master was already broken before
+whole suite runs, sharded four ways, on every integration PR (`.github/workflows/check.yml`) and on
+master each night (`.github/workflows/e2e.yml`), so a red nightly run means master was already broken before
 your change.
 
 ## The Guide: user-facing changes update it (ADR 0089)
@@ -69,7 +71,7 @@ without the PR at fault. It never merges itself: the user or the orchestrator me
 integration PR, with a merge commit, never squash.
 
 Agents working in parallel run only their own change's e2e specs, with
-`pnpm test:e2e:quiet` (failures only); the full suite runs once, before the integration
+`pnpm test:e2e:quiet` (dot reporter: a dot per case, then the failures); the full suite runs once, before the integration
 branch merges. A subagent reports in ten lines at most: branch, commit, what failed, and
 each decision it took.
 
@@ -81,7 +83,7 @@ A subagent has no user to ask. Where a skill says to confirm something with the 
 seams, a design choice), take the answer from the spec, ticket or prompt you were given,
 decide, and list each such decision in your report.
 
-A worktree made by `pnpm worktree:new` already commits as `claude@grimfeld.tech`; the machine's git email
+A worktree made by `pnpm worktree:new` already commits as `claude@grimfeld.tech` (`48754678+grimfeld@users.noreply.github.com` also passes); the machine's git email
 is private, and a pre-push hook refuses any other and prints the fix.
 
 ## Agent skills

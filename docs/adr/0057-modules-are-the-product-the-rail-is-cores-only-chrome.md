@@ -1,5 +1,7 @@
 ---
 status: accepted
+supersedes: ADR 0012, ADR 0041 (in part — the sidebar), ADR 0045 (in part — "the Dashboard operates"), ADR 0047 (in part — what a Module is), ADR 0048 (in part — "off by default"), ADR 0049 (in part — a Screen claims a Module), ADR 0053 (in part — a Module slot lands on the Module's home)
+amended-by: ADR 0066 (a Module's landing page of Cards), ADR 0085 (the Peek)
 ---
 
 > A Module's landing page of Cards is no longer fixed: ADR 0066 makes it an Overview, a hand-written default the user can rearrange. The rest stands.
@@ -102,3 +104,7 @@ Settings             |
   **stand-in** layout — its Apps' screens in a plain list, the old sidebar cut
   down to one Module — openly temporary. Then one Module at a time: Money, the
   Vault, Progress, House, Culture, Tasks and Mail.
+
+## Amendment (2026-10-22): the Frame is retired as a user concept
+
+"The Frame is retired" means the user no longer sees or chooses one. In code, `FrameDef`, `DASHBOARD_FRAME` and `VAULT_FRAME` (`packages/core/src/manifest.ts`) and `FrameRoutes` (`shell/src/App.tsx`) remain, as internal routing.

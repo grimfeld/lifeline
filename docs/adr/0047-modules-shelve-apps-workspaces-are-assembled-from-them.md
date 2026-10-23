@@ -1,3 +1,9 @@
+---
+status: accepted
+supersedes: ADR 0041 (in part — Nav groups become Modules)
+superseded-by: ADR 0053 (in part — the phone home per Workspace), ADR 0057 (in part — what a Module is)
+---
+
 # Modules shelve Apps, Workspaces are assembled from them, and the old Workspace becomes the Frame
 
 ADR 0041 gave the sidebar **Nav groups**: shelves of App screens, Core-owned,

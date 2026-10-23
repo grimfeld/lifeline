@@ -1,3 +1,8 @@
+---
+status: accepted
+supersedes: ADR 0053 (in part — the two pinned time slots)
+---
+
 # One Calendar Surface with views; the Phone bar keeps one time slot
 
 Time was three Surfaces: the month Calendar, the Week planner (day columns and

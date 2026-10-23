@@ -9,8 +9,8 @@ import { inhabitedModules } from "./registry";
 import { seedBar } from "./bar";
 
 /**
- * Workspaces (ADR 0047): a user-created, named set of Modules, with the option
- * — off by default — to keep its content to itself (ADR 0048).
+ * Workspaces (ADR 0047): a user-created, named set of Modules. Every one but
+ * the default keeps its content to itself (ADRs 0048, 0057).
  *
  * Two things a Workspace decides, and they must not be confused:
  *
