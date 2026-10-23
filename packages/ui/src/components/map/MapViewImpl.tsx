@@ -35,7 +35,7 @@ function FitToPins({ pins, focus }: { pins: MapPin[]; focus?: string }) {
       return;
     }
     if (pins.length === 1) {
-      map.setView([pins[0].lat, pins[0].lon], 13);
+      map.setView([pins[0]!.lat, pins[0]!.lon], 13);
       return;
     }
     map.fitBounds(L.latLngBounds(pins.map((p) => [p.lat, p.lon] as [number, number])), { padding: [32, 32], maxZoom: 15 });

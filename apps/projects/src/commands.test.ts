@@ -70,7 +70,7 @@ describe("Milestone Commands, run headless", () => {
     });
     const ms = await milestonesOf(pid);
     expect(ms.map((m) => m.title)).toEqual(["First", "Demolition", "Tiling"]);
-    expect([ms[2].start, ms[2].deadline]).toEqual(["2026-11-01", "2026-11-09"]);
+    expect([ms[2]!.start, ms[2]!.deadline]).toEqual(["2026-11-01", "2026-11-09"]);
   });
 
   it("edit and reorder by title, looked up only among the Project's own", async () => {
@@ -107,8 +107,8 @@ describe("Milestone Commands, run headless", () => {
       milestone: "Phase",
       title: "x",
     }).catch((e: Error) => e.message);
-    expect(err).toContain(m1.id);
-    expect(err).toContain(m2.id);
+    expect(err).toContain(m1!.id);
+    expect(err).toContain(m2!.id);
     await expect(
       run("projects.milestone.edit", {
         project: pid,
@@ -126,15 +126,15 @@ describe("Milestone Commands, run headless", () => {
       milestone: "Phase",
       on: "2026-10-01",
     });
-    expect((await milestonesOf(pid))[0].reachedOn).toBe("2026-10-01");
+    expect((await milestonesOf(pid))[0]!.reachedOn).toBe("2026-10-01");
     await run("projects.milestone.reach", {
       project: pid,
       milestone: "Phase",
       reached: false,
     });
-    expect((await milestonesOf(pid))[0].reachedOn).toBeNull();
+    expect((await milestonesOf(pid))[0]!.reachedOn).toBeNull();
     await run("projects.milestone.reach", { project: pid, milestone: "Phase" });
-    expect((await milestonesOf(pid))[0].reachedOn).not.toBeNull();
+    expect((await milestonesOf(pid))[0]!.reachedOn).not.toBeNull();
   });
 
   it("delete keeps its Tasks in the Project", async () => {
@@ -210,11 +210,11 @@ describe("Lane Commands, run headless", () => {
     const [todo, doing] = await lanesOf(pid);
     const tid = await addTask({ title: "t", project: pid });
     const task = (await tasks()).find((x) => x.id === tid)!;
-    await dropTask(task, doing, [], 0);
+    await dropTask(task, doing!, [], 0);
     await run("projects.lane.delete", { project: pid, lane: "Doing" });
     expect(await documentsOf<Lane>(PROJECT_LANE).then((l) => l.length)).toBe(2);
     const t = (await tasks()).find((x) => x.id === tid)!;
-    expect(t.lane ?? todo.id).toBe(todo.id);
+    expect(t.lane ?? todo!.id).toBe(todo!.id);
   });
 });
 
@@ -237,9 +237,9 @@ describe("Place task, run headless", () => {
     await place({ task: a, project: "bathroom", milestone: "tiling", lane: "Doing" });
     await place({ task: b, project: pid, lane: "doing" });
     const ta = await one(a);
-    expect([ta.project, ta.lane]).toEqual([pid, doing.id]);
-    expect(ta.milestone).toBe((await milestonesOf(pid))[0].id);
-    expect(await inLane(doing.id)).toEqual(["a", "b"]);
+    expect([ta.project, ta.lane]).toEqual([pid, doing!.id]);
+    expect(ta.milestone).toBe((await milestonesOf(pid))[0]!.id);
+    expect(await inLane(doing!.id)).toEqual(["a", "b"]);
   });
 
   it("a position puts it at that place in the Lane's hand order", async () => {
@@ -252,9 +252,9 @@ describe("Place task, run headless", () => {
     }
     await place({ task: ids[2], lane: "To do", position: 0 });
     const [todo] = await lanesOf(pid);
-    expect(await inLane(todo.id)).toEqual(["c", "a", "b"]);
+    expect(await inLane(todo!.id)).toEqual(["c", "a", "b"]);
     await place({ task: ids[2], position: 99 });
-    expect(await inLane(todo.id)).toEqual(["a", "b", "c"]);
+    expect(await inLane(todo!.id)).toEqual(["a", "b", "c"]);
   });
 
   it("into the done Lane ticks it, out of it unticks it", async () => {
@@ -277,9 +277,9 @@ describe("Place task, run headless", () => {
     await place({ task: id, project: b });
     const t = await one(id);
     expect([t.project, t.milestone]).toEqual([b, null]);
-    expect(t.lane).toBe((await lanesOf(b))[0].id);
+    expect(t.lane).toBe((await lanesOf(b))[0]!.id);
     await place({ task: id, project: a, milestone: "M" });
-    expect((await one(id)).milestone).toBe((await milestonesOf(a))[0].id);
+    expect((await one(id)).milestone).toBe((await milestonesOf(a))[0]!.id);
   });
 
   it("loose takes a Task out of its Project", async () => {
@@ -331,8 +331,8 @@ describe("tasks.add with a Milestone and a Lane, run headless", () => {
     await run("projects.milestone.add", { project: pid, title: "Tiling" });
     const { id } = await add({ title: "Quote", project: "Bathroom", milestone: "tiling", lane: "Doing" });
     const t = (await tasks()).find((x) => x.id === id)!;
-    expect(t.milestone).toBe((await milestonesOf(pid))[0].id);
-    expect(t.lane).toBe((await lanesOf(pid))[1].id);
+    expect(t.milestone).toBe((await milestonesOf(pid))[0]!.id);
+    expect(t.lane).toBe((await lanesOf(pid))[1]!.id);
   });
 
   it("refuses either without a Project", async () => {
@@ -389,7 +389,7 @@ describe("Clearing fields, run headless", () => {
     await run("projects.milestone.add", { project: pid, title: "M", start: "2026-01-01", deadline: "2026-02-01" });
     await run("projects.milestone.edit", { project: pid, milestone: "M", clear: ["start", "deadline"] });
     const m = (await milestonesOf(pid))[0];
-    expect([m.start, m.deadline]).toEqual([null, null]);
+    expect([m!.start, m!.deadline]).toEqual([null, null]);
     await expect(run("projects.milestone.edit", { project: pid, milestone: "M", start: "2026-01-01", clear: ["start"] })).rejects.toThrow(/both given and cleared/);
   });
 

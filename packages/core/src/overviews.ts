@@ -32,7 +32,7 @@ export function defaultOverview(slots: OverviewSlot[]): ScreenLayoutItem[] {
   let row: { slot: OverviewSlot; i: number }[] = [];
   const flush = () => {
     const h = Math.max(...row.map(({ slot }) => cardById(slot.cardId)?.defaultSize.h ?? 6));
-    const w = row.length === 1 && row[0].slot.wide ? COLS : COLS / 2;
+    const w = row.length === 1 && row[0]?.slot.wide ? COLS : COLS / 2;
     row.forEach(({ slot, i }, k) => {
       out.push({
         instanceId: `default-${i}`,

@@ -308,8 +308,7 @@ export async function dropTask(task: Task, lane: Lane, column: Task[], index: nu
   await settleForLane(task, lane.done);
   const order = column.filter((t) => t.id !== task.id);
   order.splice(Math.max(0, Math.min(index, order.length)), 0, task);
-  for (let k = 0; k < order.length; k++) {
-    const t = order[k];
+  for (const [k, t] of order.entries()) {
     const rank = (k + 1) * 1000;
     if (t.id === task.id || t.rank !== rank || t.lane !== lane.id) await placeTask(t.id, lane.id, rank);
   }
@@ -321,9 +320,9 @@ async function place<T extends Milestone | Lane>(list: T[], id: string, position
   if (!item) return;
   const next = list.filter((x) => x.id !== id);
   next.splice(Math.max(0, Math.min(Math.trunc(position), next.length)), 0, item);
-  for (let k = 0; k < next.length; k++) {
+  for (const [k, x] of next.entries()) {
     const rank = (k + 1) * 1000;
-    if (next[k].rank !== rank) await putDocument<T>({ ...next[k], rank });
+    if (x.rank !== rank) await putDocument<T>({ ...x, rank });
   }
 }
 
@@ -333,9 +332,9 @@ async function shift<T extends Milestone | Lane>(list: T[], id: string, dir: -1 
   const j = i + dir;
   if (i < 0 || j < 0 || j >= list.length) return;
   const next = [...list];
-  [next[i], next[j]] = [next[j], next[i]];
-  for (let k = 0; k < next.length; k++) {
+  [next[i], next[j]] = [next[j]!, next[i]!];
+  for (const [k, x] of next.entries()) {
     const rank = (k + 1) * 1000;
-    if (next[k].rank !== rank) await putDocument<T>({ ...next[k], rank });
+    if (x.rank !== rank) await putDocument<T>({ ...x, rank });
   }
 }

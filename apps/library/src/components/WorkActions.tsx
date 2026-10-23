@@ -61,7 +61,7 @@ export function WorkActionsMenu({ item, all, onEdit, onDeleted, onOpenChange, tr
         ) : (
           <>
             {!done && (
-              <DropdownMenuItem disabled={free.length === 0} onClick={act(`Slot ${free[0]} taken`, promote(free[0]))}>
+              <DropdownMenuItem disabled={free.length === 0} onClick={act(`Slot ${free[0]} taken`, promote(free[0]!))}>
                 <ArrowDownToLine /> Slot it{free.length === 0 ? " (full)" : ""}
               </DropdownMenuItem>
             )}

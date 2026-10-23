@@ -48,11 +48,11 @@ describe("groupByAisle", () => {
   });
   it("oldest onto the list first inside a group", () => {
     const groups = groupByAisle([need("late", { aisleId: "super", listedAt: "2026-09-03" }), need("early", { aisleId: "super", listedAt: "2026-09-02" })], aisles);
-    expect(groups[1].needs.map((n) => n.id)).toEqual(["early", "late"]);
+    expect(groups[1]!.needs.map((n) => n.id)).toEqual(["early", "late"]);
   });
   it("a Need pointing at a deleted Aisle is buyable anywhere", () => {
     const groups = groupByAisle([need("x", { aisleId: "gone" })], aisles);
-    expect(groups[0].needs.map((n) => n.id)).toEqual(["x"]);
+    expect(groups[0]!.needs.map((n) => n.id)).toEqual(["x"]);
   });
 });
 
@@ -69,7 +69,7 @@ describe("boughtRecently & suggestions", () => {
 describe("Aisle order", () => {
   const aisles = [aisle("a", 0), aisle("b", 1), aisle("c", 2)];
   it("sorts by rank", () => {
-    expect(sortAisles([aisles[2], aisles[0], aisles[1]]).map((a) => a.id)).toEqual(["a", "b", "c"]);
+    expect(sortAisles([aisles[2]!, aisles[0]!, aisles[1]!]).map((a) => a.id)).toEqual(["a", "b", "c"]);
   });
   it("moving swaps neighbours and reports only changed ranks", () => {
     expect(moveAisle(aisles, "c", -1)).toEqual([

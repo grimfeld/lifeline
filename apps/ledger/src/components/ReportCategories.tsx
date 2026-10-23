@@ -210,7 +210,8 @@ function CategoryRow({ row, months, monthTotals, mode }: { row: CategoryReportRo
       {months.map((m, i) => {
         const v = row.perMonth[i] ?? 0;
         if (mode === "money") return <MoneyCell key={m} cents={v} />;
-        const share = monthTotals[i] > 0 ? v / monthTotals[i] : 0;
+        const total = monthTotals[i] ?? 0;
+        const share = total > 0 ? v / total : 0;
         return (
           <td key={m} className={`px-2 py-1 text-right tabular-nums ${v === 0 ? "text-muted-foreground/40" : ""}`}>
             {v === 0 ? "·" : formatPercent(share)}

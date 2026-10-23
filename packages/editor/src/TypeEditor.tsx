@@ -143,8 +143,8 @@ export function TypeEditor({
   async function save() {
     if (!label.trim() || !typeId) return;
     if (idTaken) return void toast.error(`A type with id “${typeId}” already exists`);
-    if (problems.length) return void toast.error(problems[0]);
-    if (keyClashesRefused.length) return void toast.error(keyClashesRefused[0].message);
+    if (problems.length) return void toast.error(problems[0]!);
+    if (keyClashesRefused.length) return void toast.error(keyClashesRefused[0]!.message);
     setBusy(true);
     try {
       await saveDocumentType({
@@ -237,7 +237,7 @@ export function TypeEditor({
               <label className="flex min-h-8 items-center gap-2 text-sm">
                 <Checkbox checked={linkable} onCheckedChange={(c) => setLinkable(c === true)} /> Linkable — [[link]] to it by name or alias
               </label>
-              {geoRows.length > 0 && <span className="text-muted-foreground text-xs">Locatable via “{geoRows.find((r) => r.key === locatableField)?.label ?? geoRows[0].label}”</span>}
+              {geoRows.length > 0 && <span className="text-muted-foreground text-xs">Locatable via “{geoRows.find((r) => r.key === locatableField)?.label ?? geoRows[0]!.label}”</span>}
             </div>
           </div>
         )}
@@ -262,7 +262,7 @@ export function TypeEditor({
                   {(handle) => (
                     <FieldRow
                       row={r}
-                      reading={readings[i]}
+                      reading={readings[i]!} // one reading per row
                       handle={handle}
                       open={open.has(r.uid)}
                       focus={r.uid === added}

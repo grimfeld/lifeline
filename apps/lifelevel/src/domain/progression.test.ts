@@ -198,7 +198,7 @@ describe("computeProgression for one Habit", () => {
       now,
     ).habits[0];
     expect(alone).toEqual(whole);
-    expect(alone.completionCount).toBe(3);
-    expect(alone.lastCompletedAt).toBe(at(9, 8));
+    expect(alone?.completionCount).toBe(3);
+    expect(alone?.lastCompletedAt).toBe(at(9, 8));
   });
 });

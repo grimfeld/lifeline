@@ -36,7 +36,7 @@ export const TARGET_COLOR = "var(--chart-violet)";
 
 /** The eight theme slots, cycled — a Category takes the colour of its rank, so the pie and the stack agree. */
 export function sliceColor(i: number): string {
-  return colorVar(COLOR_SLOTS[i % COLOR_SLOTS.length]);
+  return colorVar(COLOR_SLOTS[i % COLOR_SLOTS.length]!);
 }
 
 const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });

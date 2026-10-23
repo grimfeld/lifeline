@@ -50,7 +50,8 @@ function RoomEditor({ room, rooms, artworks, byId, artistOf, onOpen }: { room: R
   const [pick, setPick] = useState("");
   const idx = rooms.findIndex((r) => r.id === room.id);
   const candidates = artworks.filter((a) => !room.artworkIds.includes(a.id)).sort((a, b) => a.title.localeCompare(b.title));
-  function swap(other: Room) {
+  function swap(other: Room | undefined) {
+    if (!other) return;
     const [pa, pb] = swapOrders(room, other);
     void setRoomOrder(room.id, pa.order as number);
     void setRoomOrder(other.id, pb.order as number);

@@ -15,7 +15,7 @@ const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 export function splitFrontmatter(text: string): { properties: Properties; content: string; raw: string } {
   const m = FM_RE.exec(text);
   if (!m) return { properties: {}, content: text, raw: "" };
-  return { properties: parseYamlSubset(m[1]), content: text.slice(m[0].length), raw: m[0] };
+  return { properties: parseYamlSubset(m[1]!), content: text.slice(m[0].length), raw: m[0] };
 }
 
 /**
@@ -26,15 +26,15 @@ export function parseYamlSubset(src: string): Properties {
   const out: Properties = {};
   const lines = src.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]!;
     const m = /^([A-Za-z0-9_-]+):(.*)$/s.exec(line); // the value is trimmed below; `\s*` before it made a long line slow
     if (!m) continue;
-    const key = m[1];
-    const rest = m[2].trim();
+    const key = m[1]!;
+    const rest = m[2]!.trim();
     if (rest === "") {
       const items: string[] = [];
-      while (i + 1 < lines.length && /^\s+-\s*/.test(lines[i + 1])) {
-        items.push(unquote(lines[++i].replace(/^\s+-\s*/, "")));
+      while (i + 1 < lines.length && /^\s+-\s*/.test(lines[i + 1]!)) {
+        items.push(unquote(lines[++i]!.replace(/^\s+-\s*/, "")));
       }
       out[key] = items;
     } else if (rest.startsWith("[") && rest.endsWith("]")) {
@@ -156,7 +156,7 @@ export function extractLinks(text: string): WikiLink[] {
     while ((m = LINK_RE.exec(seg.text))) {
       out.push({
         embed: m[1] === "!",
-        name: m[2].trim(),
+        name: m[2]!.trim(),
         heading: m[3]?.trim(),
         alias: m[4]?.trim(),
         from: seg.offset + m.index,
@@ -191,7 +191,7 @@ export function extractProseTags(content: string): string[] {
       TAG_RE.lastIndex = 0;
       let m: RegExpExecArray | null;
       while ((m = TAG_RE.exec(line))) {
-        const t = normalizeTag(m[2]);
+        const t = normalizeTag(m[2]!);
         if (t && !seen.has(t)) {
           seen.add(t);
           out.push(t);
@@ -245,11 +245,11 @@ function readHeading(line: string): { level: number; text: string } | null {
   if (!m) return null;
   const rest = line.slice(m[0].length);
   // At least one space after the marks, then at least one character.
-  if (rest.length < 2 || rest[0].trim() !== "") return null;
-  const body = rest.trimStart() || rest[rest.length - 1];
+  if (rest.length < 2 || rest.charAt(0).trim() !== "") return null;
+  const body = rest.trimStart() || rest.charAt(rest.length - 1);
   let end = body.trimEnd().length;
   while (end > 0 && body[end - 1] === "#") end--;
-  return { level: m[1].length, text: body.slice(0, end).trimEnd() || body[0] };
+  return { level: m[1]!.length, text: body.slice(0, end).trimEnd() || body.charAt(0) };
 }
 
 export interface FencedBlock {
@@ -266,15 +266,15 @@ export function extractBlocks(text: string): FencedBlock[] {
   const re = /(^|\n)([ \t]{0,3})(```|~~~)([^\n]*)\n([\s\S]*?)(?:\n[ \t]{0,3}\3[ \t]*)(?=\n|$)/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
-    const start = m.index + m[1].length;
-    out.push({ lang: m[4].trim().split(/\s+/)[0] ?? "", body: m[5], from: start, to: m.index + m[0].length });
+    const start = m.index + m[1]!.length;
+    out.push({ lang: m[4]!.trim().split(/\s+/)[0] ?? "", body: m[5]!, from: start, to: m.index + m[0].length });
   }
   // Also handle an empty fence "```lang\n```" (no body line)
   const emptyRe = /(^|\n)([ \t]{0,3})(```|~~~)([^\n]*)\n[ \t]{0,3}\3[ \t]*(?=\n|$)/g;
   while ((m = emptyRe.exec(text))) {
-    const start = m.index + m[1].length;
+    const start = m.index + m[1]!.length;
     if (out.some((b) => b.from === start)) continue;
-    out.push({ lang: m[4].trim().split(/\s+/)[0] ?? "", body: "", from: start, to: m.index + m[0].length });
+    out.push({ lang: m[4]!.trim().split(/\s+/)[0] ?? "", body: "", from: start, to: m.index + m[0].length });
   }
   return out.sort((a, b) => a.from - b.from);
 }
@@ -333,7 +333,7 @@ export function parseBlockOptions(body: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of body.split("\n")) {
     const m = /^\s*([A-Za-z_-]+)\s*:(.*)$/s.exec(line);
-    if (m) out[m[1]] = m[2].trim();
+    if (m) out[m[1]!] = m[2]!.trim();
   }
   return out;
 }

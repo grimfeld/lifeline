@@ -85,8 +85,8 @@ describe("price change", () => {
   it("is per shop, earliest to latest inside the span, and needs two points", () => {
     const c = shopChanges("p1", obs, "2026-01-01", "2026-12-31");
     expect(c).toHaveLength(1);
-    expect(c[0].shopId).toBe("lidl");
-    expect(c[0].pct).toBeCloseTo(20);
+    expect(c[0]!.shopId).toBe("lidl");
+    expect(c[0]!.pct).toBeCloseTo(20);
   });
   it("a shop switch is not inflation: nothing crosses shops", () => {
     expect(shopChanges("p1", obs, "2026-02-01", "2026-12-31")).toHaveLength(0);
@@ -214,8 +214,8 @@ describe("compare-by (secondary Measure)", () => {
 
 describe("a Line's unit price on a basis (the Product page's every-price list)", () => {
   const croissants = { ...product("c", "Croissants"), dimension: "count", unit: "pc", countName: "", secondaryDimension: "mass", secondaryUnit: "g", compareBy: "secondary" } as Product;
-  const [o] = observe([{ ...line("c1", "r1", "c", 240, 4), secondAmount: 0.24 } as Line], [receipt("r1", "lidl", "2026-01-10")]);
-  const [bare] = observe([line("c2", "r1", "c", 200, 4)], [receipt("r1", "lidl", "2026-01-10")]);
+  const o = observe([{ ...line("c1", "r1", "c", 240, 4), secondAmount: 0.24 } as Line], [receipt("r1", "lidl", "2026-01-10")])[0]!;
+  const bare = observe([line("c2", "r1", "c", 200, 4)], [receipt("r1", "lidl", "2026-01-10")])[0]!;
 
   it("reads the compared-by basis by default, the other on demand", () => {
     expect(unitPriceOn(o, croissants)).toBe(1000);

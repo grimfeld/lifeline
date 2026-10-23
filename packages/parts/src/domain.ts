@@ -146,7 +146,7 @@ export function runOf({ medium, work, parts, groups }: RunInput): RunSection[] {
   const open = !runSize(medium, work);
   if (runOnGroups.length === 0) return [{ group: 0, first: 1, last: lastKnown, open }];
   const out: RunSection[] = [];
-  if (runOnGroups[0].firstPart > 1) out.push({ group: 0, first: 1, last: runOnGroups[0].firstPart - 1, open: false });
+  if (runOnGroups[0]!.firstPart > 1) out.push({ group: 0, first: 1, last: runOnGroups[0]!.firstPart - 1, open: false });
   runOnGroups.forEach((g, i) => {
     const next = runOnGroups[i + 1];
     out.push({ group: g.number, groupDoc: g, first: g.firstPart, last: next ? next.firstPart - 1 : lastKnown, open: next ? false : open });
@@ -263,11 +263,12 @@ export function averageRating(items: Marked[]): number {
 /** One Daylog line's subtitle for the Parts of one work read on one day: "Chapter 1046", "3 chapters", "S2E4–6". */
 export function daySummary(m: PartsMedium, read: Pos[]): string {
   const sorted = [...read].sort(comparePos);
-  if (sorted.length === 1) return partName(m, sorted[0]);
   const first = sorted[0];
-  const last = sorted[sorted.length - 1];
-  const consecutive = sorted.every((p, i) => i === 0 || (p.group === first.group && p.number === sorted[i - 1].number + 1));
+  const last = sorted.at(-1);
+  if (!first || !last) return `0 ${m.parts}`;
+  if (sorted.length === 1) return partName(m, first);
+  const consecutive = sorted.every((p, i) => i === 0 || (p.group === first.group && p.number === sorted[i - 1]!.number + 1));
   if (consecutive && first.group > 0) return `${partName(m, first)}–${last.number}`;
-  if (consecutive) return `${m.parts[0].toUpperCase()}${m.parts.slice(1)} ${first.number}–${last.number}`;
+  if (consecutive) return `${m.parts.charAt(0).toUpperCase()}${m.parts.slice(1)} ${first.number}–${last.number}`;
   return `${sorted.length} ${m.parts}`;
 }

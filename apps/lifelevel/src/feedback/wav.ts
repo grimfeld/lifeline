@@ -23,7 +23,7 @@ export function floatSamplesToWavDataUrl(samples: Float32Array, sampleRate: numb
   view.setUint32(40, dataSize, true);
   let offset = 44;
   for (let i = 0; i < samples.length; i++) {
-    const s = Math.max(-1, Math.min(1, samples[i]));
+    const s = Math.max(-1, Math.min(1, samples[i]!));
     view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
     offset += 2;
   }

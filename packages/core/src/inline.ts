@@ -117,12 +117,12 @@ function tokenize(line: string): Token[] {
   const out: Token[] = [];
   let i = 0;
   while (i < line.length) {
-    if (/\s/.test(line[i])) {
+    if (/\s/.test(line.charAt(i))) {
       i++;
       continue;
     }
     const start = i;
-    while (i < line.length && !/\s/.test(line[i])) {
+    while (i < line.length && !/\s/.test(line.charAt(i))) {
       if (line[i] === '"') {
         const close = line.indexOf('"', i + 1);
         i = close < 0 ? line.length : close + 1;
@@ -236,14 +236,13 @@ export function readInlineLine(input: InlineLineInput): InlineReading {
     secondCommand: false,
   };
 
-  const commandTokens = tokens.filter((t) => markOf(t.raw, false) === "!");
-  if (commandTokens.length === 0) {
+  const [first, ...extra] = tokens.filter((t) => markOf(t.raw, false) === "!");
+  if (!first) {
     // A bare `!` under the caret offers the Commands, though the line is no mark yet ("Super !" stays text).
     reading.suggestions = suggest(input, tokens, cursor, undefined, reading);
     return reading;
   }
   reading.inline = true;
-  const [first, ...extra] = commandTokens;
   const command = resolveCommand(commands, fold(first.raw.slice(1)));
   reading.command = command;
   if (!command) reading.problems.push(`No Command is called “${first.raw}”`);
@@ -275,26 +274,28 @@ export function readInlineLine(input: InlineLineInput): InlineReading {
       .filter((h) => h.docs.length > 0);
     if (among.length === 0) return void reading.problems.push(`${command!.title.replace(/…$/, "")} takes no link`);
     if (hits.length === 0) {
-      const what = among.length === 1 ? among[0].label.toLowerCase() : "Document";
+      const what = among.length === 1 ? among[0]!.label.toLowerCase() : "Document";
       return void reading.problems.push(`No ${what} is called “${value}”`);
     }
     if (hits.length > 1) return void reading.problems.push(`“${value}” fits ${hits.map((h) => h.a.label).join(" and ")}: say which with key:`);
-    const [{ a, docs: found }] = hits;
+    const { a, docs: found } = hits[0]!;
     if (found.length > 1) {
       values[a.key] = undefined;
       reading.ambiguous.push({ arg: a, value, ids: found.map((d) => d.id) });
       reading.parts.push({ arg: a, text: `${value}? (${found.length} Documents)` });
       return;
     }
-    put(a, found[0].id, found[0].title);
+    const [doc] = found;
+    if (doc) put(a, doc.id, doc.title);
   };
 
   const option = (value: string) => {
     const fits = args.filter((a) => hasOptions(a) && a.options!.some((o) => optionMatches(o, value)));
     if (fits.length > 1) return void reading.problems.push(`#${value} fits ${fits.map((a) => a.label).join(" and ")}: say which with key:`);
-    if (fits.length === 1) {
-      const o = fits[0].options!.find((x) => optionMatches(x, value))!;
-      return put(fits[0], o.value, o.label);
+    const [fit] = fits;
+    if (fit) {
+      const o = fit.options!.find((x) => optionMatches(x, value))!;
+      return put(fit, o.value, o.label);
     }
     const tags = args.find(isTags);
     const tag = normalizeTag(value);
@@ -339,8 +340,8 @@ export function readInlineLine(input: InlineLineInput): InlineReading {
         if (got.time) values[timeArg!.key] = got.time;
         reading.parts.push({ arg: (dateArg ?? timeArg)!, text: got.label });
       }
-    } else if (!t.raw.includes("://") && KEY.test(t.raw) && argByName(args, KEY.exec(t.raw)![1])) {
-      const name = KEY.exec(t.raw)![1];
+    } else if (!t.raw.includes("://") && KEY.test(t.raw) && argByName(args, KEY.exec(t.raw)![1]!)) {
+      const name = KEY.exec(t.raw)![1]!;
       const a = argByName(args, name)!;
       const value = unquote(t.raw.slice(name.length + 1));
       span("argument", t);
@@ -422,13 +423,13 @@ function suggest(input: InlineLineInput, tokens: Token[], cursor: number, comman
   if (mark === "@" || token.raw === "@") return linkSuggestions(args.filter((a) => a.kind === "link"), partial, "@");
   if (mark === "/" && input.dates) return input.dates.suggest(token.raw.slice(1)).map((s) => ({ kind: "date" as const, ...s, insert: `/${s.insert}`, from, to }));
 
-  const key = KEY.exec(token.raw);
-  const a = key ? argByName(args, key[1]) : undefined;
-  if (key && a) {
-    const value = fold(unquote(token.raw.slice(key[1].length + 1)));
-    if (a.kind === "link") return linkSuggestions([a], value, `${key[1]}:`);
+  const keyName = KEY.exec(token.raw)?.[1];
+  const a = keyName ? argByName(args, keyName) : undefined;
+  if (keyName && a) {
+    const value = fold(unquote(token.raw.slice(keyName.length + 1)));
+    if (a.kind === "link") return linkSuggestions([a], value, `${keyName}:`);
     if (hasOptions(a))
-      return a.options!.filter((o) => near(o.label, value) || near(o.value, value)).map((o) => ({ kind: "option" as const, label: o.label, detail: a.label, insert: `${key[1]}:${quoted(o.value)}`, from, to }));
+      return a.options!.filter((o) => near(o.label, value) || near(o.value, value)).map((o) => ({ kind: "option" as const, label: o.label, detail: a.label, insert: `${keyName}:${quoted(o.value)}`, from, to }));
     return [];
   }
   // A plain word, or none yet: the arguments still to give, by name.

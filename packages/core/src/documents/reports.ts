@@ -89,7 +89,8 @@ export function topMentioned(index: LinkIndex, typeId: string, window: ReportWin
   for (const d of index.docs) {
     if (d.type !== typeId) continue;
     const days = mentionDays(index, d.id).filter((x) => inWindow(x, window));
-    if (days.length) rows.push({ docId: d.id, count: days.length, last: days[days.length - 1] });
+    const last = days.at(-1);
+    if (last) rows.push({ docId: d.id, count: days.length, last });
   }
   const title = (id: string) => index.byId.get(id)?.title ?? "";
   return rows.sort((a, b) => b.count - a.count || b.last.localeCompare(a.last) || title(a.docId).localeCompare(title(b.docId)));

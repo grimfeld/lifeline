@@ -136,13 +136,13 @@ const HEADING = /^(\s*)(#{1,6}) /;
 export const cycleHeading: Command = (view) => {
   const lines = selectedLines(view);
   const first = HEADING.exec(lines[0]?.text ?? "");
-  const level = first ? first[2].length : 0;
+  const level = first ? first[2]!.length : 0;
   const next = level >= 3 ? 0 : level + 1;
   const changes: ChangeSpec[] = [];
   for (const line of lines) {
     const found = HEADING.exec(line.text);
-    const from = line.from + (found ? found[1].length : /^\s*/.exec(line.text)![0].length);
-    const to = from + (found ? found[2].length + 1 : 0);
+    const from = line.from + (found ? found[1]!.length : /^\s*/.exec(line.text)![0].length);
+    const to = from + (found ? found[2]!.length + 1 : 0);
     const insert = next ? "#".repeat(next) + " " : "";
     if (from !== to || insert) changes.push({ from, to, insert });
   }
@@ -167,7 +167,7 @@ export const toggleTask: Command = (view) => {
   for (const [i, line] of lines.entries()) {
     const task = marks[i];
     if (task) {
-      const at = line.from + task[1].length + task[2].length + 1;
+      const at = line.from + task[1]!.length + task[2]!.length + 1;
       changes.push({ from: at, to: at + 1, insert: done ? " " : "x" });
       continue;
     }

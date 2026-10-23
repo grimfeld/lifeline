@@ -3,7 +3,7 @@ import type { TimeBlocker } from "./types";
 import { dayPieces } from "./span";
 
 /** Monday-first display order; values are Core weekdays (0 = Sunday). */
-export const WEEKDAYS: { value: Weekday; label: string }[] = ([1, 2, 3, 4, 5, 6, 0] as Weekday[]).map((value) => ({ value, label: WEEKDAY_NAMES[value] }));
+export const WEEKDAYS: { value: Weekday; label: string }[] = ([1, 2, 3, 4, 5, 6, 0] as Weekday[]).map((value) => ({ value, label: WEEKDAY_NAMES[value] ?? "" }));
 
 /** One painted band on one day: always inside [00:00, 24:00]. */
 export interface BlockerBand {

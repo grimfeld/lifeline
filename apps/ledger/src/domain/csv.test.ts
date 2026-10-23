@@ -49,9 +49,9 @@ describe("applyMapping", () => {
     const rows = parseCsv('Date;Amount;Payee;Id\n10-03-2026;-12,50;"Albert Heijn";tx9\nbroken;x;;\n');
     const out = applyMapping(rows, { ...mapping });
     expect(out[0]).toMatchObject({ date: "2026-03-10", amount: -1250, payee: "Albert Heijn", importId: "tx9", invalid: false });
-    expect(out[1].invalid).toBe(true);
+    expect(out[1]!.invalid).toBe(true);
     const inverted = applyMapping(rows, { ...mapping, invert: true });
-    expect(inverted[0].amount).toBe(1250);
+    expect(inverted[0]!.amount).toBe(1250);
   });
 });
 
@@ -76,13 +76,13 @@ describe("flagDuplicates", () => {
   it("importId match is certain, fingerprint is probable, others pass", () => {
     const rows = applyMapping(parseCsv("h;h;h;h\n10-03-2026;-12,50;X;\n11-03-2026;-1,00;Y;bank-7\n12-03-2026;-5,00;Z;"), mapping);
     const flagged = flagDuplicates(rows, existing, "a");
-    expect(flagged[0].duplicateOf).toBe("t1"); // same account+date+amount+kind
-    expect(flagged[1].duplicateOf).toBe("t2"); // bank row id
-    expect(flagged[2].duplicateOf).toBeNull();
+    expect(flagged[0]!.duplicateOf).toBe("t1"); // same account+date+amount+kind
+    expect(flagged[1]!.duplicateOf).toBe("t2"); // bank row id
+    expect(flagged[2]!.duplicateOf).toBeNull();
   });
 
   it("fingerprints never cross accounts", () => {
     const rows = applyMapping(parseCsv("h;h;h;h\n10-03-2026;-12,50;X;"), mapping);
-    expect(flagDuplicates(rows, existing, "b")[0].duplicateOf).toBeNull();
+    expect(flagDuplicates(rows, existing, "b")[0]!.duplicateOf).toBeNull();
   });
 });

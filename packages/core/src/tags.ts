@@ -18,8 +18,8 @@ export function trimSeparators(t: string): string {
   const sep = (c: string) => c === "/" || c === "-";
   let from = 0;
   let to = t.length;
-  while (from < to && sep(t[from])) from++;
-  while (to > from && sep(t[to - 1])) to--;
+  while (from < to && sep(t.charAt(from))) from++;
+  while (to > from && sep(t.charAt(to - 1))) to--;
   return t.slice(from, to);
 }
 

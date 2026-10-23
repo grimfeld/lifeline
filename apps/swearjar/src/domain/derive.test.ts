@@ -76,7 +76,7 @@ describe("the jar", () => {
       ["alarm", 1, 200],
       ["ghost", 1, 50],
     ]);
-    expect(rows[2].offence).toBeUndefined();
+    expect(rows[2]!.offence).toBeUndefined();
   });
 });
 

@@ -108,7 +108,7 @@ describe("a step's arguments", () => {
     const commands = [library, headless("notes", "add", ABOUT, log)];
     const macro = { name: "Read", steps: [step("library/add", {}), step("notes/add", { about: { from: "step", step: 0 }, note: { from: "fixed", value: "x" } })] };
     const report = await runMacro(macro, commands);
-    const made = report.steps[0].status === "done" ? report.steps[0].id : undefined;
+    const made = report.steps[0]!.status === "done" ? report.steps[0]!.id : undefined;
     expect(made).toBeDefined();
     expect(log).toEqual([`notes/add {"note":"x","about":"${made}"}`]);
     expect(report.steps.map((s) => s.status)).toEqual(["done", "done"]);
@@ -323,7 +323,7 @@ describe("the registry a Macro is checked and run against", () => {
     expect(registry.map((c) => `${c.appId}/${c.id}`)).toEqual(["stats/log", `${MACRO_APP}/b`, `${MACRO_APP}/a`]);
     const reports: MacroReport[] = [];
     const stop = onMacroReport((r) => reports.push(r));
-    await registry[1].run!({ navigate: () => {} });
+    await registry[1]!.run!({ navigate: () => {} });
     stop();
     expect(reports.map((r) => r.broken)).toEqual([["Step 1: “Inner” is a Macro, and a Macro cannot be a step"]]);
     expect(log).toEqual([]);
@@ -337,14 +337,14 @@ describe("editing the steps", () => {
   it("moving a step keeps each reference on the step it names", () => {
     const moved = moveStep(steps(), 0, 1);
     expect(moved.map((s) => s.command)).toEqual(["b/b", "a/a", "c/c"]);
-    expect(moved[0].args.x).toEqual(link(1));
-    expect(moved[2].args).toEqual({ x: link(0), y: link(1) });
+    expect(moved[0]!.args.x).toEqual(link(1));
+    expect(moved[2]!.args).toEqual({ x: link(0), y: link(1) });
   });
 
   it("removing a step renumbers the references after it, and empties those that named it", () => {
     const left = removeStep(steps(), 1);
     expect(left.map((s) => s.command)).toEqual(["a/a", "c/c"]);
-    expect(left[1].args).toEqual({ x: { from: "fixed", value: undefined }, y: link(0) });
+    expect(left[1]!.args).toEqual({ x: { from: "fixed", value: undefined }, y: link(0) });
     expect(removeStep(steps(), 0)).toEqual([step("b/b", { x: { from: "fixed", value: undefined } }), step("c/c", { x: link(0), y: { from: "fixed", value: undefined } })]);
   });
 });

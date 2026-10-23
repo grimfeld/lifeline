@@ -118,7 +118,7 @@ export function computeProgression(
     const completionCount = mine.length;
     const completionsToday = mine.filter((c) => dayKeyOf(c.occurredAt) === today).length;
     const lastCompletedAt =
-      mine.length > 0 ? mine.reduce((best, c) => (c.occurredAt > best ? c.occurredAt : best), mine[0].occurredAt) : null;
+      mine.length > 0 ? mine.reduce((best, c) => (c.occurredAt > best ? c.occurredAt : best), mine[0]!.occurredAt) : null;
 
     const gain = xpGainForPositiveCompletion(act.difficulty);
     const totalPositiveXp = completionCount * gain;
@@ -143,8 +143,9 @@ export function computeProgression(
     if (mine.length > 0) {
       for (let i = 0; i < mine.length; i++) {
         decayedGrossXp += gain;
-        const fromIso = mine[i].occurredAt;
-        const toDate = i + 1 < mine.length ? new Date(mine[i + 1].occurredAt) : now;
+        const fromIso = mine[i]!.occurredAt;
+        const next = mine[i + 1];
+        const toDate = next ? new Date(next.occurredAt) : now;
         const gapHours = hoursBetween(fromIso, toDate);
         const { expLoss } = decayFromIdleSpan(
           gapHours,
@@ -206,7 +207,7 @@ export function computeProgression(
   const negativesOut: ComputedNegativeState[] = negatives.map((act) => {
     const mine = negativeCompletionsByNegative.get(act.id) ?? [];
     const lastOccurredAt =
-      mine.length > 0 ? mine.reduce((best, c) => (c.occurredAt > best ? c.occurredAt : best), mine[0].occurredAt) : null;
+      mine.length > 0 ? mine.reduce((best, c) => (c.occurredAt > best ? c.occurredAt : best), mine[0]!.occurredAt) : null;
     return {
       negativeId: act.id,
       name: act.title,

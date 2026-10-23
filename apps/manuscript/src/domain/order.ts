@@ -20,7 +20,7 @@ export function moveChapter<T extends Pick<Chapter, "position" | "createdAt" | "
   const at = order.findIndex((c) => c.id === id);
   const to = at + by;
   if (at < 0 || to < 0 || to >= order.length) return [];
-  [order[at], order[to]] = [order[to], order[at]];
+  [order[at], order[to]] = [order[to]!, order[at]!];
   return order.flatMap((c, i) => (c.position === i + 1 ? [] : [{ id: c.id, position: i + 1 }]));
 }
 

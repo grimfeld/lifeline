@@ -33,9 +33,9 @@ describe("leftOf / allowanceRows", () => {
     expect(leftOf(a, spends)).toBe(-1000);
     expect(leftOf(b, spends)).toBe(1500);
     const rows = allowanceRows([a, b], spends, "2026-09-15");
-    expect(rows[0].spent).toBe(31000);
-    expect(rows[0].spends).toHaveLength(2);
-    expect(rows[0].bucket).toBe("current");
+    expect(rows[0]!.spent).toBe(31000);
+    expect(rows[0]!.spends).toHaveLength(2);
+    expect(rows[0]!.bucket).toBe("current");
   });
   it("counts a Spend dated outside the period all the same — the Allowance was picked explicitly", () => {
     const a = allowance({ id: "a" });
@@ -43,7 +43,7 @@ describe("leftOf / allowanceRows", () => {
   });
   it("orders Spends newest first", () => {
     const rows = allowanceRows([allowance({ id: "a" })], [spend("a", 1, "2026-09-01"), spend("a", 2, "2026-09-12"), spend("a", 3, "2026-09-05")], "2026-09-15");
-    expect(rows[0].spends.map((s) => s.amount)).toEqual([2, 3, 1]);
+    expect(rows[0]!.spends.map((s) => s.amount)).toEqual([2, 3, 1]);
   });
 });
 

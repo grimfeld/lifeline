@@ -271,8 +271,9 @@ async function pullCollection(name: string): Promise<void> {
       skipTotal: true,
     });
     const items = res.items;
-    if (items.length === 0) break;
-    after = items[items.length - 1];
+    const last = items.at(-1);
+    if (!last) break;
+    after = last;
     await applyPulled(name, items, held);
     if (after.updated > maxUpdated) maxUpdated = after.updated;
     if (items.length < PULL_PAGE) break;

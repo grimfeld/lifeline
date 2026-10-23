@@ -54,8 +54,8 @@ describe("on display", () => {
     const works = [art("a"), art("b"), art("c")];
     const hung = hungArtworks(shows, rooms, works);
     expect(hung.map((h) => h.artwork.id)).toEqual(["a", "b", "c"]);
-    expect(hung[0].room.id).toBe("r1");
-    expect(hung[2].exhibition.id).toBe("e2");
+    expect(hung[0]?.room.id).toBe("r1");
+    expect(hung[2]?.exhibition.id).toBe("e2");
   });
   it("picks deterministically per day and moves with the date", () => {
     const pool = hungArtworks([ex("e1", "HANGING")], [room("r1", "e1", 1, ["a", "b", "c", "d", "e"])], ["a", "b", "c", "d", "e"].map(art));

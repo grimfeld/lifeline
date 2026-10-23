@@ -30,13 +30,13 @@ describe("one-time intents", () => {
   it("completes and un-completes on the definition; moves change the day; null unassigns", async () => {
     const id = await addTask({ title: "a", date: day(2) });
     await setCompleted(id, day(2));
-    expect((await state()).items[0].completedOn).toBe(day(2));
+    expect((await state()).items[0]?.completedOn).toBe(day(2));
     await setCompleted(id, null);
-    expect((await state()).items[0].completedOn).toBeNull();
+    expect((await state()).items[0]?.completedOn).toBeNull();
     await moveItem(id, day(4));
-    expect((await state()).items[0].date).toBe(day(4));
+    expect((await state()).items[0]?.date).toBe(day(4));
     await moveItem(id, null);
-    expect((await state()).items[0].date).toBeNull();
+    expect((await state()).items[0]?.date).toBeNull();
     expect((await state()).overrides).toEqual([]);
   });
 });
@@ -57,7 +57,7 @@ describe("recurring intents", () => {
     const occ = occurrenceItemId(id, day(0));
     await moveItem(occ, day(3));
     let s = await state();
-    expect(s.overrides[0].movedTo).toBe(day(3));
+    expect(s.overrides[0]?.movedTo).toBe(day(3));
     expect(s.items.find((i) => i.itemId === occ)?.date).toBe(day(3));
     await moveItem(occ, day(0));
     s = await state();
@@ -96,6 +96,6 @@ describe("editing a Task's own words", () => {
     const id = await addTask({ title: "a", date: day(2), notes: "old" });
     await editTask(id, { notes: "new", tags: ["Home", "home", " errands "], date: day(5) } as never);
     const [t] = (await state()).tasks;
-    expect({ notes: t.notes, tags: t.tags, date: t.date }).toEqual({ notes: "new", tags: ["home", "errands"], date: day(2) });
+    expect({ notes: t?.notes, tags: t?.tags, date: t?.date }).toEqual({ notes: "new", tags: ["home", "errands"], date: day(2) });
   });
 });

@@ -46,5 +46,5 @@ export function confidentMatch(title: string, hits: ArtworkHit[]): ArtworkHit | 
   const key = normalizeTitle(title);
   if (!key) return null;
   const matching = hits.filter((h) => normalizeTitle(h.title) === key);
-  return matching.length === 1 ? matching[0] : null;
+  return matching.length === 1 ? matching[0]! : null;
 }

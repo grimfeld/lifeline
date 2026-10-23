@@ -158,14 +158,14 @@ export function monthlyTotals(transactions: Transaction[], months: MonthStr[]): 
   for (const t of transactions) {
     const i = index.get(monthOf(t.date));
     if (i === undefined) continue;
-    if (t.kind === "expense") spent[i] += t.amount;
-    else if (t.kind === "income") income[i] += t.amount;
+    if (t.kind === "expense") spent[i]! += t.amount;
+    else if (t.kind === "income") income[i]! += t.amount;
   }
   let running = 0;
   return months.map((month, i) => {
-    const net = income[i] - spent[i];
+    const net = income[i]! - spent[i]!;
     running += net;
-    return { month, label: month.slice(2), income: income[i], spent: spent[i], net, cumulative: running };
+    return { month, label: month.slice(2), income: income[i]!, spent: spent[i]!, net, cumulative: running };
   });
 }
 
@@ -251,7 +251,7 @@ export function categoryReport(
     const i = index.get(monthOf(t.date));
     if (i === undefined) continue;
     const row = sums.get(t.categoryId) ?? blank();
-    row[i] += t.amount;
+    row[i]! += t.amount;
     sums.set(t.categoryId, row);
   }
 
@@ -514,7 +514,7 @@ export function potTrend(categories: LedgerCategory[], allocations: Allocation[]
       sum += targetFor(c, allocations, m);
       sum -= spent?.get(m) ?? 0;
       const at = months.indexOf(m);
-      if (at >= 0) data[at][c.id] = sum / 100;
+      if (at >= 0) data[at]![c.id] = sum / 100;
     }
     // Months before the Category existed carry the pot's first value, so the line starts where the pot does.
     for (const point of data) if (point[c.id] === undefined) point[c.id] = 0;
@@ -548,7 +548,7 @@ export function balanceTrend(accounts: LedgerAccount[], transactions: Transactio
   }
   // Everything that happened before the window is already in the opening balance the first point shows.
   let running = opening;
-  for (const [m, delta] of perMonth) if (m < months[0]) running += delta;
+  for (const [m, delta] of perMonth) if (m < (months[0] ?? "")) running += delta;
   return months.map((month) => {
     running += perMonth.get(month) ?? 0;
     return { month, label: month.slice(2), balance: running };

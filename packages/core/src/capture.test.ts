@@ -66,18 +66,18 @@ describe("folds", () => {
   it("stand in for the Commands folded under them, members in registry order", () => {
     const culture = sheet().groups.find((g) => g.id === "culture")!;
     expect(culture.entries.map((e) => e.key)).toEqual(["fold:culture.add", "fold:culture.done"]);
-    const add = culture.entries[0];
+    const add = culture.entries[0]!;
     expect(add.kind === "fold" && add.members.map((m) => m.id)).toEqual(["add-movie", "add-book"]);
   });
 
   it("fold one type's templates too, beside the plain Command", () => {
-    const cal = sheet().groups[0];
+    const cal = sheet().groups[0]!;
     expect(cal.entries.map((e) => e.key)).toEqual(["calendar/add-event", "fold:calendar.today"]);
   });
 
   it("vanish when nothing is folded under them", () => {
     const s = sheet({ commands: COMMANDS.filter((c) => c.fold !== "calendar.today") });
-    expect(s.groups[0].entries.map((e) => e.key)).toEqual(["calendar/add-event"]);
+    expect(s.groups[0]!.entries.map((e) => e.key)).toEqual(["calendar/add-event"]);
   });
 
   it("leave folded Commands pinnable", () => {
@@ -89,7 +89,7 @@ describe("folds", () => {
 
   it("are ignored when the App names one Core does not know", () => {
     const s = sheet({ commands: [cmd("tasks", "x", { fold: "made-up" })] });
-    expect(s.groups[0].entries[0]).toMatchObject({ kind: "command", key: "tasks/x" });
+    expect(s.groups[0]!.entries[0]).toMatchObject({ kind: "command", key: "tasks/x" });
   });
 });
 

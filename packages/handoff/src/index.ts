@@ -60,7 +60,7 @@ export function addressOn(base: string, path: string): string {
  */
 function trimEndWhile(s: string, drop: (c: string) => boolean): string {
   let to = s.length;
-  while (to > 0 && drop(s[to - 1])) to--;
+  while (to > 0 && drop(s.charAt(to - 1))) to--;
   return s.slice(0, to);
 }
 

@@ -41,6 +41,6 @@ describe("planFires", () => {
 
   it("sends one when the occurrence did not measure the asked value", () => {
     const plan = planFires("d1", [minutes], { key: "k", at: occ.at }, new Set());
-    expect(plan[0].payload.value).toBe(1);
+    expect(plan[0]!.payload.value).toBe(1);
   });
 });

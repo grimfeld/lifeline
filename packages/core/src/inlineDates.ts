@@ -198,9 +198,9 @@ interface Match {
 
 export function dateReader({ today, prefer, vocabularies = DATE_VOCABULARIES }: DateReaderOptions): InlineDateReader {
   const langs = Object.keys(vocabularies);
-  const entries = new Map(langs.map((l) => [l, entriesOf(vocabularies[l])]));
-  const ordinals = [...new Set(langs.flatMap((l) => vocabularies[l].ordinals.map(fold)))];
-  const hourMarks = [...new Set(langs.flatMap((l) => vocabularies[l].hour.map(fold)))];
+  const entries = new Map(Object.entries(vocabularies).map(([l, v]) => [l, entriesOf(v)]));
+  const ordinals = [...new Set(Object.values(vocabularies).flatMap((v) => v.ordinals.map(fold)))];
+  const hourMarks = [...new Set(Object.values(vocabularies).flatMap((v) => v.hour.map(fold)))];
   const ordered = (first: string) => [first, ...langs.filter((l) => l !== first)].filter((l) => entries.has(l));
 
   /**
@@ -212,7 +212,7 @@ export function dateReader({ today, prefer, vocabularies = DATE_VOCABULARIES }: 
     for (const lang of order) {
       for (const e of entries.get(lang)!) {
         const n = e.words.length;
-        if (i + n > words.length || !e.words.every((w, k) => fold(words[i + k].text) === w)) continue;
+        if (i + n > words.length || !e.words.every((w, k) => fold(words[i + k]!.text) === w)) continue;
         if (!best || i + n > best.next) best = { meanings: [e.meaning], lang, next: i + n };
         else if (best.lang === lang && i + n === best.next) best.meanings.push(e.meaning);
       }
@@ -308,7 +308,8 @@ export function dateReader({ today, prefer, vocabularies = DATE_VOCABULARIES }: 
         if (unit?.kind === "unit") return { value: nextOf(unit.unit), next: what!.next, lang: what!.lang };
       }
       if (m.kind === "in") {
-        const count = words[p.next] && /^\d{1,3}$/.test(words[p.next].text) ? Number(words[p.next].text) : undefined;
+        const at = words[p.next];
+        const count = at && /^\d{1,3}$/.test(at.text) ? Number(at.text) : undefined;
         const unit = count === undefined ? undefined : phrase(words, p.next + 1, order);
         const u = has(unit, "unit");
         if (u?.kind === "unit") return { value: plus(count!, u.unit), next: unit!.next, lang: p.lang };
@@ -351,10 +352,12 @@ export function dateReader({ today, prefer, vocabularies = DATE_VOCABULARIES }: 
 
   function label(date: string | undefined, time: string | undefined, lang: string): string {
     const v = vocabularies[lang];
+    if (!v) return "";
     const out: string[] = [];
     if (date) {
       const { y, m, day } = parts(date);
-      out.push(v.weekdayLabels[weekdayOf(date)], String(day), v.monthLabels[m - 1]);
+      // A weekday is 0–6 and a month 1–12: both labels are there.
+      out.push(v.weekdayLabels[weekdayOf(date)]!, String(day), v.monthLabels[m - 1]!);
       if (y !== parts(today).y) out.push(String(y));
     }
     if (time) out.push(time);
@@ -381,7 +384,7 @@ export function dateReader({ today, prefer, vocabularies = DATE_VOCABULARIES }: 
       if (date) i = date.next;
     }
     if (!date && !time) return undefined;
-    return { date: date?.value, time: time?.value, length: words[i - 1].end, label: label(date?.value, time?.value, date?.lang ?? order[0]) };
+    return { date: date?.value, time: time?.value, length: words[i - 1]!.end, label: label(date?.value, time?.value, date?.lang ?? order[0] ?? prefer) };
   }
 
   const preferred = ordered(prefer);
@@ -395,6 +398,7 @@ export function dateReader({ today, prefer, vocabularies = DATE_VOCABULARIES }: 
       const out: { insert: string; label: string }[] = [];
       for (const lang of preferred) {
         const v = vocabularies[lang];
+        if (!v) continue;
         const groups = [...Object.keys(v.relative).map((p) => [p]), ...v.weekdays, ...v.months, ...Object.keys(v.clock).map((p) => [p])];
         for (const group of groups) {
           // The word as typed when the group has it, else the first it begins (`ve` → vendredi).

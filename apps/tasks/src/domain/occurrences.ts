@@ -108,7 +108,7 @@ function lookbackStart(r: Recurrence, on: DateStr): DateStr {
 export function currentSourceDate(task: Task, on: DateStr): DateStr | null {
   if (!task.recurrence) return null;
   const dates = sourceDatesInRange(task, lookbackStart(task.recurrence, on), on);
-  return dates.length > 0 ? dates[dates.length - 1] : null;
+  return dates.at(-1) ?? null;
 }
 
 /**
@@ -234,7 +234,7 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 export function ordinal(n: number): string {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
-  return n + (s[(v - 20) % 10] ?? s[v] ?? s[0]);
+  return n + (s[(v - 20) % 10] ?? s[v] ?? "th");
 }
 
 export function describeRecurrence(r: Recurrence): string {

@@ -4,7 +4,7 @@ import { originOf, typeIntakesOf } from "./contracts/intake";
 import { groupIntakes, type IntakeGroup } from "./intakeGroups";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
-  id, label: id[0].toUpperCase() + id.slice(1) + "s", titleRule: "name", body: "optional", fields: [], builtIn: false, ...extra,
+  id, label: id[0]!.toUpperCase() + id.slice(1) + "s", titleRule: "name", body: "optional", fields: [], builtIn: false, ...extra,
 });
 
 const MODULE_OF: Record<string, string | undefined> = { commonplace: "notes", tasks: "tasks", shopping: "house", calendar: undefined };
@@ -32,9 +32,9 @@ describe("Core's generic Intake for user-defined types", () => {
   });
 
   it("keeps one dialog per type, so a re-render does not remount it", () => {
-    const a = typeIntakesOf([T("place")])[0].dialog;
-    expect(typeIntakesOf([T("place")])[0].dialog).toBe(a);
-    expect(typeIntakesOf([T("person")])[0].dialog).not.toBe(a);
+    const a = typeIntakesOf([T("place")])[0]!.dialog;
+    expect(typeIntakesOf([T("place")])[0]!.dialog).toBe(a);
+    expect(typeIntakesOf([T("person")])[0]!.dialog).not.toBe(a);
   });
 });
 

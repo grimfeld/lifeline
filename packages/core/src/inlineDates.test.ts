@@ -159,7 +159,7 @@ describe("suggestions as typed", () => {
 
 describe("a new language is a new table", () => {
   const de: DateVocabulary = {
-    ...DATE_VOCABULARIES.en,
+    ...DATE_VOCABULARIES.en!,
     name: "Deutsch",
     relative: { heute: 0, morgen: 1, übermorgen: 2, gestern: -1 },
     weekdays: [["sonntag", "so"], ["montag", "mo"], ["dienstag", "di"], ["mittwoch", "mi"], ["donnerstag", "do"], ["freitag", "fr"], ["samstag", "sa"]],

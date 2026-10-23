@@ -230,7 +230,7 @@ export function WorkRow({ item, all, onEdit, compact = false }: { item: Work; al
         </div>
       )}
       {!compact && !slotted && !done && (
-        <Button size="sm" variant="outline" className="shrink-0" disabled={free.length === 0} title={free.length === 0 ? `The ${def.plural.toLowerCase()} nightstand is full` : ""} onClick={act(`Slot ${free[0]} taken`, promote(free[0]))}>
+        <Button size="sm" variant="outline" className="shrink-0" disabled={free.length === 0} title={free.length === 0 ? `The ${def.plural.toLowerCase()} nightstand is full` : ""} onClick={act(`Slot ${free[0]} taken`, promote(free[0]!))}>
           <ArrowDownToLine /> Slot it
         </Button>
       )}

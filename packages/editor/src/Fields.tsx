@@ -297,7 +297,7 @@ function OptionList({ row, onChange }: { row: FieldDraft; onChange: (d: FieldDra
     if (e.key === "Enter") {
       e.preventDefault();
       add(i + 1);
-    } else if (e.key === "Backspace" && row.options[i].label === "" && !usage[row.options[i].value]) {
+    } else if (e.key === "Backspace" && row.options[i]?.label === "" && !usage[row.options[i]!.value]) {
       e.preventDefault();
       onChange(removeOption(row, i));
       if (row.options.length > 1) setFocusAt(Math.max(0, i - 1));
@@ -308,7 +308,7 @@ function OptionList({ row, onChange }: { row: FieldDraft; onChange: (d: FieldDra
     if (labels.length < 2) return;
     e.preventDefault();
     onChange(pasteOptions(row, i, labels));
-    setFocusAt(i + labels.length - (row.options[i].label.trim() ? 0 : 1));
+    setFocusAt(i + labels.length - (row.options[i]?.label.trim() ? 0 : 1));
   };
   return (
     <div className="grid min-w-0 gap-1">

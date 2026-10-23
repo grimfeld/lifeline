@@ -79,7 +79,7 @@ describe("ensureAuthor", () => {
   it("gives a keyless namesake the hit's identity", async () => {
     const typed = await ensureAuthor({ name: "Frank Herbert" });
     expect(await ensureAuthor({ name: "frank herbert", externalKey: ol("9") })).toBe(typed);
-    expect((await allAuthors())[0].externalKey).toBe(ol("9"));
+    expect((await allAuthors())[0]?.externalKey).toBe(ol("9"));
   });
 
   it("links a typed name to the Author it names, keyed or not", async () => {

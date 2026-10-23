@@ -238,7 +238,7 @@ function CalendarGrid({ docs, def, picks, compact }: { docs: Document[]; def: Do
     return { byDay, omitted, placed };
   }, [docs, field]);
 
-  const [y, m] = month.split("-").map(Number);
+  const [y = 0, m = 1] = month.split("-").map(Number);
   const gridStart = startOfWeek(fromParts(y, m, 1));
   const days = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
     // Drop the 6th row when it lies wholly in the next month.

@@ -78,8 +78,8 @@ describe("fixedSplit", () => {
   it("a muted series still counts fixed — mute means don't forecast, not don't count", () => {
     const rows = [...netflix, ...groceries];
     const unmutedSeries = detectSeries(rows, [], TODAY);
-    const muted = detectSeries(rows, [override(unmutedSeries[0].key, true)], TODAY);
-    expect(muted[0].muted).toBe(true);
+    const muted = detectSeries(rows, [override(unmutedSeries[0]!.key, true)], TODAY);
+    expect(muted[0]!.muted).toBe(true);
     expect(fixedSplit(rows, muted, MONTHS)).toEqual(fixedSplit(rows, unmutedSeries, MONTHS));
   });
 });

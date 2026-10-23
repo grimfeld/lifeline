@@ -51,7 +51,7 @@ describe("CardBoundary", () => {
     expect(host.textContent).toContain("Three works");
     const alerts = host.querySelectorAll('[role="alert"]');
     expect(alerts).toHaveLength(1);
-    expect(alerts[0].textContent).toContain("This card couldn't load.");
+    expect(alerts[0]!.textContent).toContain("This card couldn't load.");
   });
 
   it("tries the Card again on Try again, and when its settings change", () => {

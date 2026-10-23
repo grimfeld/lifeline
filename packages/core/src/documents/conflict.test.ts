@@ -18,7 +18,7 @@ describe("conflictCopy (ADR 0010)", () => {
 
   it("saves the local edit as a sibling titled with the time, linked back by conflictOf", async () => {
     await conflictCopy(doc({}), doc({ body: "theirs" }));
-    const copy = put.mock.calls[0][0];
+    const copy = put.mock.calls[0]![0];
     expect(copy).toMatchObject({ type: "note", folder: "F", title: "T (conflict 09:05)", body: "mine", conflictOf: "T" });
     expect(copy.id).not.toBe("a");
     expect(copy.updatedAt).toBeUndefined();
@@ -27,7 +27,7 @@ describe("conflictCopy (ADR 0010)", () => {
 
   it("keeps every field of the local Document (a Note keeps its Source)", async () => {
     await conflictCopy(doc({ source: "s1", locator: "p. 4", aliases: ["x"], tags: ["a"], workspace: "w" }), doc({ body: "theirs" }));
-    expect(put.mock.calls[0][0]).toMatchObject({ source: "s1", locator: "p. 4", aliases: ["x"], tags: ["a"], workspace: "w" });
+    expect(put.mock.calls[0]![0]).toMatchObject({ source: "s1", locator: "p. 4", aliases: ["x"], tags: ["a"], workspace: "w" });
   });
 
   it("does nothing when the body and title are the same", async () => {
@@ -37,6 +37,6 @@ describe("conflictCopy (ADR 0010)", () => {
 
   it("copes with a missing body and folder", async () => {
     await conflictCopy(doc({ body: undefined, folder: undefined as never }), doc({ title: "Z" }));
-    expect(put.mock.calls[0][0]).toMatchObject({ body: "", folder: "" });
+    expect(put.mock.calls[0]![0]).toMatchObject({ body: "", folder: "" });
   });
 });

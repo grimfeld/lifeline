@@ -77,7 +77,7 @@ describe("the ! mark", () => {
 
   it("suggests every Command after a bare !, and narrows as it is typed", () => {
     expect(read("!").suggestions.map((s) => s.label)).toHaveLength(COMMANDS.length);
-    expect(read("!ta").suggestions[0].label).toBe("Add task");
+    expect(read("!ta").suggestions[0]!.label).toBe("Add task");
     expect(read("!mo").suggestions.map((s) => s.label)).toEqual(["Set mood…"]);
   });
 
@@ -89,7 +89,7 @@ describe("the ! mark", () => {
   });
 
   it("inserts a picked Command's name, which then reads back to it", () => {
-    const s = read("call mum !ta", { cursor: 12 }).suggestions[0];
+    const s = read("call mum !ta", { cursor: 12 }).suggestions[0]!;
     const next = applySuggestion("call mum !ta", s);
     expect(next.line).toBe("call mum !add-task ");
     expect(read(next.line).command?.id).toBe("tasks.add");

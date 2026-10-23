@@ -33,8 +33,8 @@ describe("monthWeeks", () => {
   it("pads to whole Monday-first weeks", () => {
     // 1 Sep 2026 is a Tuesday: one leading blank.
     const weeks = monthWeeks(2026, 9);
-    expect(weeks[0][0]).toBeNull();
-    expect(weeks[0][1]).toBe("2026-09-01");
+    expect(weeks[0]?.[0]).toBeNull();
+    expect(weeks[0]?.[1]).toBe("2026-09-01");
     for (const w of weeks) expect(w).toHaveLength(7);
   });
   it("holds every day of the month exactly once", () => {
@@ -44,7 +44,7 @@ describe("monthWeeks", () => {
   });
   it("starts a month that falls on a Monday with no padding", () => {
     // 1 Jun 2026 is a Monday.
-    expect(monthWeeks(2026, 6)[0][0]).toBe("2026-06-01");
+    expect(monthWeeks(2026, 6)[0]?.[0]).toBe("2026-06-01");
   });
 });
 
@@ -53,9 +53,9 @@ describe("yearColumns", () => {
     const cols = yearColumns(2026);
     expect(cols).toHaveLength(12);
     for (const c of cols) expect(c).toHaveLength(31);
-    expect(cols[1][27]).toBe("2026-02-28");
-    expect(cols[1][28]).toBeNull();
-    expect(cols[3][30]).toBeNull(); // April has 30 days
+    expect(cols[1]?.[27]).toBe("2026-02-28");
+    expect(cols[1]?.[28]).toBeNull();
+    expect(cols[3]?.[30]).toBeNull(); // April has 30 days
   });
   it("covers the whole year and nothing else", () => {
     const dates = datesOf(yearColumns(2025));

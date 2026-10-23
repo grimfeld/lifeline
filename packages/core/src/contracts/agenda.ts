@@ -5,7 +5,7 @@ import type { TimedItem } from "./timed";
 /** "HH:MM" → fractional hours. */
 export function toHours(t: string): number {
   const [h, m] = t.split(":").map(Number);
-  return h + (m ?? 0) / 60;
+  return (h ?? 0) + (m ?? 0) / 60;
 }
 
 /** Visible hour window: the configured range, stretched to fit any timed item outside it (never past 24). */

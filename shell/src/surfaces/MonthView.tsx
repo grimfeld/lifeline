@@ -172,8 +172,8 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
   const { y, m } = parts(anchor);
   const monthStart = fromParts(y, m, 1);
   const monthEnd = fromParts(y, m, daysInMonth(y, m));
-  const gridStart = days[0];
-  const gridEnd = days[days.length - 1];
+  const gridStart = days[0] ?? monthStart;
+  const gridEnd = days.at(-1) ?? monthEnd;
 
   // Day-granular: the item on its own day only — its Time blocks are Schedule detail (ADR 0028).
   // Looking back lets work missed before the grid surface in the pool as Overdue.

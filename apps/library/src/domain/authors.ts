@@ -74,7 +74,7 @@ export function confidentAuthorMatch(name: string, hits: AuthorHit[]): AuthorHit
   const key = normalizeAuthorName(name);
   if (!key) return null;
   const exact = hits.filter((h) => normalizeAuthorName(h.name) === key || h.alternateNames.some((a) => normalizeAuthorName(a) === key));
-  return exact.length === 1 ? exact[0] : null;
+  return exact.length === 1 ? exact[0]! : null;
 }
 
 /** Aliases worth keeping from a resolved identity: every alternate name that is not the title itself, deduped. */

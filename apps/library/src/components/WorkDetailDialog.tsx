@@ -147,7 +147,7 @@ export function WorkDetailDialog({ item, all, onClose, onEdit }: { item: Work | 
             )
           ) : (
             !done && (
-              <Button size="sm" variant="outline" disabled={free.length === 0} title={free.length === 0 ? `The ${def.plural.toLowerCase()} nightstand is full` : ""} onClick={act(`Slot ${free[0]} taken`, promote(free[0]))}>
+              <Button size="sm" variant="outline" disabled={free.length === 0} title={free.length === 0 ? `The ${def.plural.toLowerCase()} nightstand is full` : ""} onClick={act(`Slot ${free[0]} taken`, promote(free[0]!))}>
                 <ArrowDownToLine /> Slot it
               </Button>
             )

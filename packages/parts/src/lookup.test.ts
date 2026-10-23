@@ -8,7 +8,7 @@ describe("lookupRows", () => {
   it("lists a hit by its title, with creator and year under it", () => {
     const [row] = lookupRows([hit("tmdb:1", "Alien", "Ridley Scott", 1979)], byline);
     expect(row).toMatchObject({ value: "tmdb:1", label: "Alien", description: "Ridley Scott · 1979" });
-    expect(row.hit.title).toBe("Alien");
+    expect(row?.hit.title).toBe("Alien");
   });
 
   it("leaves out a missing creator or year", () => {

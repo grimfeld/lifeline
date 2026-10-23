@@ -85,7 +85,7 @@ export function useAllMaterial(): MaterialDoc[] {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const rows = defs.map((d) => useDocuments(d.typeId));
   return useMemo(
-    () => defs.flatMap((d, i) => rows[i].map((doc) => materialOf(d, doc))).filter((m) => m.topicId),
+    () => defs.flatMap((d, i) => (rows[i] ?? []).map((doc) => materialOf(d, doc))).filter((m) => m.topicId),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     rows,
   );

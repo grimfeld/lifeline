@@ -89,7 +89,7 @@ function label(view: CalendarView, days: DateStr[], anchor: DateStr): string {
       return formatHuman(anchor);
     case "3day":
     case "week":
-      return `${formatHuman(days[0])} – ${formatHuman(days[days.length - 1])}`;
+      return `${formatHuman(days[0] ?? anchor)} – ${formatHuman(days.at(-1) ?? anchor)}`;
     case "month": {
       const { y, m } = parts(anchor);
       return `${MONTHS[m - 1]} ${y}`;

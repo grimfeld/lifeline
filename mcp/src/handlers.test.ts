@@ -190,10 +190,10 @@ describe("Macros", () => {
   it("lists Macros with their steps, state and tool", async () => {
     macros.push(rec("m1", "Fine", [{ command: "tasks/add", args: { title: { from: "asked" } } }]), rec("m2", "Gone", [{ command: "old/thing", args: {} }]));
     const list = (await runTool("list_macros", {})) as { macros: { id: string; tool?: string; broken?: string[]; steps: unknown[] }[]; commands?: unknown };
-    expect(list.macros[0]).toMatchObject({ id: "m1", name: "Fine", tool: "macro_fine", steps: macros[0].steps });
-    expect(list.macros[0].broken).toBeUndefined();
-    expect(list.macros[1].broken).toEqual([expect.stringMatching(/no longer exists/)]);
-    expect(list.macros[1].tool).toBeUndefined();
+    expect(list.macros[0]).toMatchObject({ id: "m1", name: "Fine", tool: "macro_fine", steps: macros[0]!.steps });
+    expect(list.macros[0]!.broken).toBeUndefined();
+    expect(list.macros[1]!.broken).toEqual([expect.stringMatching(/no longer exists/)]);
+    expect(list.macros[1]!.tool).toBeUndefined();
     expect(list.commands).toBeUndefined();
     const withCommands = (await runTool("list_macros", { commands: true })) as { commands: unknown[] };
     expect(withCommands.commands).toEqual([expect.objectContaining({ command: "tasks/add", title: "Add task", headless: true })]);
@@ -202,7 +202,7 @@ describe("Macros", () => {
   it("lists a Macro that takes another as a step as broken for that, as the app does", async () => {
     macros.push(rec("m1", "Fine", [{ command: "tasks/add", args: { title: { from: "asked" } } }]), rec("m2", "Nested", [{ command: "macros/m1", args: {} }]));
     const list = (await runTool("list_macros", {})) as { macros: { id: string; broken?: string[] }[] };
-    expect(list.macros[1].broken).toEqual(["Step 1: “Fine” is a Macro, and a Macro cannot be a step"]);
+    expect(list.macros[1]!.broken).toEqual(["Step 1: “Fine” is a Macro, and a Macro cannot be a step"]);
   });
 
   it("creates a Macro that passes the check, and refuses a broken one without saving", async () => {
@@ -226,7 +226,7 @@ describe("Macros", () => {
     await expect(runTool("update_macro", { id: "nope", name: "X" })).rejects.toThrow(/No Macro/);
     expect(core.saveMacro).not.toHaveBeenCalled();
     await runTool("update_macro", { id: "m1", name: "New" });
-    expect(core.saveMacro).toHaveBeenCalledWith(expect.objectContaining({ id: "m1", name: "New", builtin: "morning", steps: macros[0].steps, sort: 0 }));
+    expect(core.saveMacro).toHaveBeenCalledWith(expect.objectContaining({ id: "m1", name: "New", builtin: "morning", steps: macros[0]!.steps, sort: 0 }));
   });
 });
 

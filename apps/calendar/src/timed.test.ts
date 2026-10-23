@@ -44,7 +44,7 @@ describe("timedItemsOf", () => {
 
   it("keeps a one-day Event whole, with its span", () => {
     const [item] = timedItemsOf([event({ start: "09:00", end: "10:00" })], [], { start: "2026-08-10", end: "2026-08-10" });
-    expect([item.start, item.end, item.span]).toEqual(["09:00", "10:00", { date: "2026-08-10", start: "09:00", endDate: "2026-08-10", end: "10:00" }]);
+    expect([item?.start, item?.end, item?.span]).toEqual(["09:00", "10:00", { date: "2026-08-10", start: "09:00", endDate: "2026-08-10", end: "10:00" }]);
   });
 
   it("reports an all-day Event on each day, with no span", () => {

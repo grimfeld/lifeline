@@ -25,7 +25,7 @@ describe("searchNotes", () => {
     expect(searchNotes(notes, "ALPHA", (n) => (n.id === "c" ? ["alphabet"] : [])).map((h) => h.note.id)).toEqual(["a", "c", "b"]);
   });
   it("snippets around a body match and returns nothing for an empty query", () => {
-    expect(searchNotes(notes, "particle")[0].snippet).toContain("alpha particle");
+    expect(searchNotes(notes, "particle")[0]?.snippet).toContain("alpha particle");
     expect(searchNotes(notes, "  ")).toEqual([]);
   });
 });

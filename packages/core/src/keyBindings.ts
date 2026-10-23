@@ -46,7 +46,7 @@ export function chordOf(e: KeyLike, apple: boolean = isApplePlatform()): string 
 function keyName(e: KeyLike): string {
   if (/^[a-z0-9]$/i.test(e.key)) return e.key.toUpperCase();
   const m = /^(?:Key([A-Z])|Digit([0-9]))$/.exec(e.code ?? "");
-  if (m) return m[1] ?? m[2];
+  if (m) return m[1] ?? m[2]!;
   return e.key.length === 1 ? e.key.toUpperCase() : e.key;
 }
 
@@ -66,7 +66,7 @@ const KEY_SYMBOLS: Record<string, string> = {
 export function chordLabel(chord: string, apple: boolean = isApplePlatform()): string {
   const parts = chord.split("+");
   // "Mod++" — the key is "+" itself.
-  const key = chord.endsWith("++") ? "+" : parts[parts.length - 1];
+  const key = chord.endsWith("++") ? "+" : (parts.at(-1) ?? "");
   const mods = new Set(parts.slice(0, chord.endsWith("++") ? -2 : -1));
   const name = KEY_SYMBOLS[key] ?? key;
   if (apple) return `${mods.has("Alt") ? "⌥" : ""}${mods.has("Shift") ? "⇧" : ""}${mods.has("Mod") ? "⌘" : ""}${name}`;

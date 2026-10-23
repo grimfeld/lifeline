@@ -179,6 +179,7 @@ export async function quickAddWork(input: { medium: WorkTypeId; title: string; c
 export function parseQuickTitle(raw: string): { title: string; creator: string } {
   const t = raw.trim();
   const m = /^(.*?)\s+(?:—|–|-|by)\s+(.+)$/.exec(t);
-  if (m && m[1].trim() && m[2].trim()) return { title: m[1].trim(), creator: m[2].trim() };
+  const [, title = "", creator = ""] = m ?? [];
+  if (title.trim() && creator.trim()) return { title: title.trim(), creator: creator.trim() };
   return { title: t, creator: "" };
 }

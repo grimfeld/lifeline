@@ -10,7 +10,7 @@ const word = { ...base, id: "w", type: WORD, title: "tener ganas de", languageId
 const fact = { ...base, id: "f", type: FACT, title: "When was Westphalia?", languageId: "hist", question: "When was Westphalia?", answer: "1648", notes: "", origin: "", originId: "n1", paused: false, addedAt: "2026-09-03T09:00:00.000Z" };
 const sentence = { ...base, id: "s", type: SENTENCE, title: "Tengo ganas de comer", languageId: "es", text: "Tengo {{ganas}} de {{comer}}", translation: "", origin: "", paused: true, addedAt: "2026-09-02T09:00:00.000Z" };
 
-const defOf = (type: string) => knowledgeReadings[type];
+const defOf = (type: string) => knowledgeReadings[type]!;
 const plain = ({ doc: _doc, ...m }: ReturnType<typeof materialOf>) => m;
 
 /**

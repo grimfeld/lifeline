@@ -67,7 +67,7 @@ describe("Bibliography", () => {
     const rows = [row("Dune", 0, "", "a"), row("Dune", 1965, "https://c/1.jpg", "b"), row("Dune Messiah", 1969), row("Untitled", 0), row("dune", 1966, "", "c")];
     expect(foldBibliography(rows).map((r) => r.externalKey)).toEqual(["openlibrary:/works/Dune Messiah", "openlibrary:/works/b", "openlibrary:/works/Untitled"]);
     expect(foldBibliography(rows, true)).toHaveLength(5);
-    expect(foldBibliography(rows, true)[0].title).toBe("Dune Messiah");
+    expect(foldBibliography(rows, true)[0]?.title).toBe("Dune Messiah");
   });
   it("ownedByKey finds the Work for a row by external key, in one pass over the shelf (CR-58)", () => {
     const w = { externalKey: "openlibrary:/works/b" } as Work;

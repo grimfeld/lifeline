@@ -27,7 +27,7 @@ describe("expand", () => {
     const iv = expandWorkout({ blocks: [tabata, amrap] });
     expect(iv[0]).toMatchObject({ kind: "prep", seconds: 10 });
     expect(iv).toHaveLength(1 + 15 + 1);
-    expect(iv[16].blockIndex).toBe(1);
+    expect(iv[16]?.blockIndex).toBe(1);
   });
   it("describes blocks", () => {
     expect(describeBlock(tabata)).toBe("Tabata 8 × 20/10");

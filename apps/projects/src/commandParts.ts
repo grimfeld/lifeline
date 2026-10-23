@@ -17,7 +17,7 @@ export const clearArg = (fields: string[]): CommandArg => ({
   key: "clear",
   label: "Clear",
   kind: "multiselect",
-  options: fields.map((f) => ({ value: f, label: f[0].toUpperCase() + f.slice(1) })),
+  options: fields.map((f) => ({ value: f, label: f.charAt(0).toUpperCase() + f.slice(1) })),
   hint: "Fields to empty. A field cannot be both given and cleared.",
 });
 
