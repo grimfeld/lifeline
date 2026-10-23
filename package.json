@@ -3,9 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "license": "PolyForm-Noncommercial-1.0.0",
+  "type": "module",
   "scripts": {
     "prepare": "node scripts/install-hooks.mjs",
-    "check": "node --test scripts/*.test.mjs && node scripts/check-ui.mjs && node scripts/adr.mjs check && node scripts/migrations.mjs check && pnpm -r typecheck && pnpm knip && pnpm -r test",
+    "check": "node --test scripts/*.test.mjs && node scripts/check-ui.mjs && node scripts/adr.mjs check && node scripts/migrations.mjs check && pnpm -r typecheck && pnpm knip && pnpm lint && pnpm -r test",
     "check:ui": "node scripts/check-ui.mjs",
     "check:ui:all": "node scripts/check-ui.mjs --all",
     "adr:new": "node scripts/adr.mjs new",
@@ -25,7 +26,8 @@
     "tauri": "pnpm --filter @lifeline/shell tauri",
     "test:e2e": "pnpm --filter @lifeline/shell test:e2e",
     "test:e2e:quiet": "pnpm --filter @lifeline/shell test:e2e:quiet",
-    "knip": "knip"
+    "knip": "knip",
+    "lint": "eslint ."
   },
   "packageManager": "pnpm@9.11.0",
   "engines": {
@@ -46,6 +48,9 @@
     }
   },
   "devDependencies": {
-    "knip": "^6.42.1"
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "knip": "^6.42.1",
+    "typescript-eslint": "^8.72.0"
   }
 }
