@@ -1,21 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { Button, PhoneDock, cn } from "@lifeline/ui";
-import { addDays, diffDays, fromParts, parts, todayStr, type DateStr } from "@lifeline/core";
+import { diffDays, parts, todayStr, type DateStr } from "@lifeline/core";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { byRank } from "../domain/board";
 import { isOpenStage, projectHref, type Milestone, type Project } from "../domain/types";
 import { useMilestones, useProjects } from "../data/repo";
+import { SPAN, barOf, flagsOf, monthStart, timelineWindow } from "../domain/timeline";
 import { Face, faceColor } from "../components/parts";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const SPAN = 6;
-
-function monthStart(d: DateStr, shift = 0): DateStr {
-  const { y, m } = parts(d);
-  const k = y * 12 + (m - 1) + shift;
-  return fromParts(Math.floor(k / 12), (k % 12) + 1, 1);
-}
 
 /**
  * The Projects across months (ADR 0060): each a bar from its start to its
@@ -29,9 +23,7 @@ export function TimelineScreen() {
   const today = todayStr();
   const [from, setFrom] = useState(() => monthStart(today, -1));
   const [ended, setEnded] = useState(false);
-  const to = addDays(monthStart(from, SPAN), -1);
-  const days = diffDays(from, to) + 1;
-  const x = (d: DateStr) => (Math.min(Math.max(diffDays(from, d), 0), days) / days) * 100;
+  const { to, x } = timelineWindow(from);
 
   const shown = projects.filter((p) => ended || isOpenStage(p.stage)).sort(byRank);
   const placed = shown.filter((p) => p.start || p.deadline);
@@ -96,14 +88,8 @@ export function TimelineScreen() {
 }
 
 function TimelineRow({ project, milestones, from, to, x, today }: { project: Project; milestones: Milestone[]; from: DateStr; to: DateStr; x: (d: DateStr) => number; today: DateStr }) {
-  // A bar needs two ends: the start (else the day it became Active, else made), the Deadline (else the start).
-  const begin = project.start ?? project.startedOn ?? project.createdAt;
-  const end = project.deadline ?? project.endedOn ?? begin;
-  const a = begin <= end ? begin : end;
-  const b = begin <= end ? end : begin;
-  const visible = b >= from && a <= to;
-  const late = !!project.deadline && project.deadline < today && isOpenStage(project.stage);
-  const flags = milestones.filter((m) => m.project === project.id && m.deadline && m.deadline >= from && m.deadline <= to);
+  const { a, b, visible, late } = barOf(project, from, to, today);
+  const flags = flagsOf(milestones, project.id, from, to);
   return (
     <div className="flex h-10 items-center border-b">
       <Link to={projectHref(project.id)} className="hover:text-primary flex w-48 shrink-0 items-center gap-2 truncate pr-2 text-sm">
