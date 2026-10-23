@@ -47,6 +47,7 @@ test("private names and IPv6 literals are refused", () => {
     "http://foo.localhost/",
     "http://lifeline-mcp.internal:8080/",
     "http://_api.internal:4280/",
+    "http://lifeline-pb.flycast/",
     "http://printer.local/",
     "http://nas.home.arpa/",
     "http://pocketbase/",

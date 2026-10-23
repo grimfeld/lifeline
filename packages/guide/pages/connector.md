@@ -57,7 +57,7 @@ after it (`macro_coffee`). Its arguments are the values the Macro asks when it r
 (`s1_amount` for step 1's amount). Running it does the steps in order, like the palette, and Claude
 gets the whole report back: each step done (and what it made), skipped or stopped (with why), or not
 reached. A broken Macro is refused before its first step. A Macro you add or rename shows up the
-next time Claude asks for its tools.
+next time Claude asks for its tools — within a minute when you made it in the app.
 
 ## Each Module's own tools
 

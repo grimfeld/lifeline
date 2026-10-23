@@ -52,7 +52,9 @@ RRULE:FREQ=DAILY
 END:VEVENT
 END:VCALENDAR`;
     expect(expandIcal(daily, "2026-08-18", "2026-08-20").map((o) => o.date)).toEqual(["2026-08-18", "2026-08-19", "2026-08-20"]);
-  });
+    // It walks ~9,700 occurrences: a quarter-second here, but over 5 s on a CI runner
+    // shared with every other package's tests.
+  }, 30_000);
   it("respects range", () => {
     expect(expandIcal(ICS, "2026-09-01", "2026-09-30")).toEqual([]);
   });

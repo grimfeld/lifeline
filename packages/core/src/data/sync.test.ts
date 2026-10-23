@@ -108,7 +108,7 @@ vi.mock("./pb", () => ({
   },
 }));
 
-const { syncNow } = await import("./sync");
+const { pushNow, syncNow } = await import("./sync");
 
 const stamp = (i: number) => `2026-10-01 10:00:${String(Math.floor(i / 1000)).padStart(2, "0")}.${String(i % 1000).padStart(3, "0")}Z`;
 const serverRow = (i: number, over: Partial<ServerRow> = {}): ServerRow => ({
@@ -146,6 +146,18 @@ describe("syncNow", () => {
     // …and runs once the first has finished.
     await vi.waitFor(() => expect(fake.state.boundCalls).toBe(2));
     await vi.waitFor(() => expect(fake.state.listCalls).toBe(2));
+  });
+});
+
+describe("pushNow", () => {
+  it("pushes the outbox without pulling any collection", async () => {
+    fake.table("things").set("r0001", { id: "r0001", updatedAt: stamp(1), deleted: 0 });
+    fake.state.outbox = [{ seq: 1, collection: "things", recordId: "r0001" }];
+    fake.state.server.set("things", [serverRow(5)]);
+    await pushNow();
+    expect(fake.state.outbox).toEqual([]);
+    expect(fake.state.listCalls).toBe(0);
+    expect(fake.table("things").has("r0005")).toBe(false);
   });
 });
 

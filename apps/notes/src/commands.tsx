@@ -153,7 +153,20 @@ export const noteCommands: CommandDef[] = [
   { id: "notes.quarter", title: "Open this quarter's review", keywords: ["quarter", "quarterly", "review", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal/p/quarter") },
   { id: "notes.year", title: "Open this year's review", keywords: ["year", "yearly", "annual", "review", "journal"], icon: CalendarDays, run: ({ navigate }) => navigate("/app/journal/p/year") },
   { id: "notes.new", title: "New note…", keywords: ["person", "place", "note"], icon: FilePlus, dialog: NewNoteCommandDialog },
-  { id: "notes.capture", title: "Quick capture", keywords: ["journal", "log", "thought"], icon: Zap, dialog: QuickCaptureDialog, capture: true },
+  {
+    id: "notes.capture",
+    title: "Quick capture",
+    keywords: ["journal", "log", "thought"],
+    icon: Zap,
+    dialog: QuickCaptureDialog,
+    capture: true,
+    args: [{ key: "text", label: "Text", kind: "longtext", required: true, hint: "Appended to today's Day with the time." }],
+    returnsDocument: true,
+    async invoke(a) {
+      const day = await appendToDaily(String(a.text));
+      return { message: "Captured in today's journal", id: day.id };
+    },
+  },
   { id: "notes.settings", title: "Document types & templates…", keywords: ["template", "type", "settings", "daily", "bases"], icon: Settings2, run: ({ navigate }) => navigate("/base") },
   { id: "notes.attachments.cleanup", title: "Clean up unused attachments…", keywords: ["image", "attachment", "orphan", "storage", "delete"], icon: ImageOff, dialog: AttachmentsCleanupDialog },
 ];

@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { parentPort, workerData } from "node:worker_threads";
-import { db, initApps, lastSyncError, pb, syncNow } from "@lifeline/core";
+import { db, initApps, lastSyncError, pb, pushNow, syncNow } from "@lifeline/core";
 import { manifests } from "./apps";
 import { unsyncedWrite } from "./devices";
 import { listMacroTools, runTool, ToolError } from "./handlers";
@@ -10,7 +10,8 @@ import { listMacroTools, runTool, ToolError } from "./handlers";
  * module instances and its own in-memory IndexedDB, so Core's singletons — the
  * database, the PocketBase client, the current Workspace — are this Account's
  * alone. It syncs like any phone or laptop: pull before a call, push after a
- * write, last write wins.
+ * write, last write wins. A write only pushes: what other devices changed
+ * arrives with the next call's pull, not as a second round of every collection.
  */
 
 export interface DeviceAuth {
@@ -64,7 +65,7 @@ async function handle(req: DeviceRequest): Promise<DeviceResponse> {
   try {
     useAuth(req.auth);
     if (req.kind === "flush") {
-      await sync();
+      await pushNow();
       return { id: req.id, ok: true, result: null, pending: await pending() };
     }
     if (req.kind === "macro-tools") {
@@ -75,7 +76,7 @@ async function handle(req: DeviceRequest): Promise<DeviceResponse> {
     const result = await runTool(req.tool, req.args);
     let unsynced: object | undefined;
     if (req.write) {
-      await sync();
+      await pushNow();
       if ((await pending()) > 0) unsynced = unsyncedWrite(lastSyncError);
     }
     return { id: req.id, ok: true, result: unsynced ? { ...(result as object), ...unsynced } : result, pending: await pending() };
