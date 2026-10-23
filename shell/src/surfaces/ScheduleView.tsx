@@ -163,9 +163,10 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
     >
       <div className="flex items-center gap-1">
         {isBlock && !done && onComplete && (
+          // A 14px disc, with a hit area grown to 26px like the kit's Checkbox (WCAG 2.5.8).
           <button
             type="button"
-            className="hover:bg-accent flex size-3.5 shrink-0 items-center justify-center rounded-full border"
+            className="hover:bg-accent focus-visible:ring-ring/50 relative flex size-3.5 shrink-0 items-center justify-center rounded-full border outline-none after:absolute after:-inset-1.5 focus-visible:ring-3"
             onPointerDown={(ev) => ev.stopPropagation()}
             onClick={(ev) => {
               ev.stopPropagation();
