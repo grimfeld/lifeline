@@ -9,7 +9,7 @@ import {
   useLinkIndex,
   type GraphNode,
 } from "@lifeline/core";
-import { cn, GraphView, Input, PhoneDock, PhoneFilters, toast } from "@lifeline/ui";
+import { cn, GraphView, Input, PageHeader, PhoneDock, PhoneFilters, toast } from "@lifeline/ui";
 import { Waypoints } from "lucide-react";
 import { TagFilterBar } from "../components/TagFilterBar";
 
@@ -125,12 +125,12 @@ export function GraphPage() {
     <div className="flex h-full flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
         <Waypoints className="text-muted-foreground size-4" />
-        <h1 className="text-lg font-semibold tracking-tight">Graph</h1>
+        <PageHeader title="Graph" />
         <span className="text-muted-foreground text-xs tabular-nums">
           {model.nodes.length} nodes · {model.edges.length} links
         </span>
         <PhoneDock>
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find…" className="h-7 w-40 text-xs max-md:h-8 max-md:w-auto max-md:basis-32" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find…" className="w-40 text-xs max-md:w-auto max-md:basis-32" />
           <PhoneFilters active={activeFilters}>
             <TagFilterBar value={prefs.tagFilter} onChange={(tagFilter) => setPrefs({ tagFilter })} />
             <div className="ml-auto flex flex-wrap items-center gap-1 max-md:ml-0">

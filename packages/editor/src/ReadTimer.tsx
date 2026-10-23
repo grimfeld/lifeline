@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, cn } from "@lifeline/ui";
+import { Button, Tip, cn } from "@lifeline/ui";
 import { useWakeLock } from "@lifeline/core";
 import { Pause, Play, RotateCcw, Timer } from "lucide-react";
 import { elapsedSeconds, formatClock, pauseClock, resumeClock, startClock, type TalkClock } from "./talkClock";
@@ -49,19 +49,18 @@ export function ReadTimer() {
           {running ? <Pause /> : <Play />}
           {running ? "Pause" : clock ? "Resume" : "Start"}
         </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-8"
-          // Only once there is something to clear, so the row does not offer a
-          // button that does nothing before the talk has started.
-          disabled={!clock}
-          onClick={() => setClock(null)}
-          aria-label="Reset the timer"
-          title="Reset"
-        >
-          <RotateCcw />
-        </Button>
+        <Tip label="Reset the timer">
+          <Button
+            size="icon"
+            variant="ghost"
+            // Only once there is something to clear, so the row does not offer a
+            // button that does nothing before the talk has started.
+            disabled={!clock}
+            onClick={() => setClock(null)}
+          >
+            <RotateCcw />
+          </Button>
+        </Tip>
       </div>
     </div>
   );

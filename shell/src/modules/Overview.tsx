@@ -74,11 +74,11 @@ export function overviewPage(opts: {
           <PhoneDock>
             <div className="ml-auto flex items-center gap-1 max-md:contents">
               {editing && (
-                <Button variant="outline" className="h-8" onClick={() => setPickerOpen(true)}>
+                <Button variant="outline" onClick={() => setPickerOpen(true)}>
                   <Plus /> Add card
                 </Button>
               )}
-              <Button variant={editing ? "default" : "outline"} className="h-8" onClick={() => setEditing((e) => !e)}>
+              <Button variant={editing ? "default" : "outline"} onClick={() => setEditing((e) => !e)}>
                 {editing ? <Check /> : <LayoutGrid />}
                 {editing ? "Done" : "Edit"}
               </Button>

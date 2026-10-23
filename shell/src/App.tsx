@@ -42,6 +42,7 @@ import { PeekHost } from "./peek/PeekHost";
 import { SelectionMenu } from "./intake/SelectionMenu";
 import { HandoffPage, HandoffSaved } from "./handoff/HandoffPage";
 import { DemoBanner, DemoFilling } from "./demo/DemoBanner";
+import { RouteBoundary } from "./components/ErrorBoundary";
 
 // The heavier Surfaces load when first visited, not with the shell (CR-23).
 const MapPage = lazy(() => import("./surfaces/MapPage").then((m) => ({ default: m.MapPage })));
@@ -81,11 +82,13 @@ function LegacyTimeRedirect({ view }: { view: "week" | "schedule" }) {
   return <Navigate to={`/calendar?view=${to}${d ? `&d=${d}` : ""}`} replace />;
 }
 
-/** A Core destination — a general Surface, the Bases, Screens, Settings, the Guide: no chrome but the Rail's. */
+/** A Core destination — a general Surface, the Bases, Screens, Settings, the Guide: no chrome but the Rail's. A throw below shows the broken-page message, not a blank shell (#301). */
 function CorePage({ children }: { children: ReactNode }) {
   return (
     <main className="min-w-0 flex-1 overflow-y-auto">
-      <Suspense fallback={null}>{children}</Suspense>
+      <RouteBoundary>
+        <Suspense fallback={null}>{children}</Suspense>
+      </RouteBoundary>
     </main>
   );
 }
@@ -121,7 +124,7 @@ function Places() {
       <Route path="/" element={<ResumeRedirect />} />
       {frames().map((f) => {
         const moduleId = moduleOfFrame(f);
-        const routes = <FrameRoutes frame={f} />;
+        const routes = <RouteBoundary><FrameRoutes frame={f} /></RouteBoundary>;
         return (
           <Route
             key={f.id}
@@ -131,7 +134,7 @@ function Places() {
         );
       })}
       <Route path="/vault/journal" element={<LegacyJournalRedirect />} />
-      <Route path="/module/:id/*" element={<ModulePage />} />
+      <Route path="/module/:id/*" element={<RouteBoundary><ModulePage /></RouteBoundary>} />
       {screensOf().map((s) => {
         const Component = s.component;
         const moduleId = appById(s.appId)?.module;
@@ -140,7 +143,7 @@ function Places() {
           <Route
             key={s.id}
             path={`/app/${s.path}`}
-            element={known ? <ModuleLayout moduleId={moduleId}><Component /></ModuleLayout> : <CorePage><Component /></CorePage>}
+            element={known ? <ModuleLayout moduleId={moduleId}><RouteBoundary><Component /></RouteBoundary></ModuleLayout> : <CorePage><Component /></CorePage>}
           />
         );
       })}
@@ -206,7 +209,10 @@ export default function App() {
         <PhoneHeader />
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <Rail className="max-md:hidden" />
-          <Places />
+          {/* Each place has its own boundary (#301), inside its Module's chrome; this one catches the chrome. */}
+          <RouteBoundary>
+            <Places />
+          </RouteBoundary>
         </div>
         <MobileNav />
         <CommandPalette />

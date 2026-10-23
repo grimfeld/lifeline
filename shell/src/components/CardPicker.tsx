@@ -86,7 +86,7 @@ export function CardPicker({
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <Button size="icon" variant="ghost" className="size-7" onClick={() => setConfiguring(null)} aria-label="Back">
+                <Button size="icon-sm" variant="ghost" onClick={() => setConfiguring(null)} aria-label="Back">
                   <ArrowLeft />
                 </Button>
                 Configure “{configuring.title}”
@@ -127,6 +127,7 @@ export function CardPicker({
                     </h3>
                     {cards.map((c) => (
                       <button
+                        type="button"
                         key={c.id}
                         className="hover:bg-accent flex items-start gap-3 rounded-lg border p-3 text-left"
                         onClick={() => pick(c)}

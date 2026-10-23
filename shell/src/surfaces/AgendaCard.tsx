@@ -99,7 +99,7 @@ export function AgendaCard({ settings }: CardProps) {
           })}
           {hours.map((h) => (
             <div key={h} className="absolute right-0 left-0 flex" style={{ top: (h - from) * HOUR_PX, height: HOUR_PX }}>
-              <span className="text-muted-foreground w-10 shrink-0 -translate-y-1.5 text-right text-[10px] tabular-nums pr-1">
+              <span className="text-muted-foreground w-10 shrink-0 -translate-y-1.5 text-right text-2xs tabular-nums pr-1">
                 {formatTime(`${String(h).padStart(2, "0")}:00`)}
               </span>
               <span className="border-border/60 flex-1 border-t" />

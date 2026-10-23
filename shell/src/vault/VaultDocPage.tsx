@@ -1,8 +1,8 @@
 import { useParams } from "react-router";
 import { DocumentEditor } from "@lifeline/editor";
-import { Button } from "@lifeline/ui";
+import { Button, usePhone } from "@lifeline/ui";
 import { Lock } from "lucide-react";
-import { openPrivateDialog, useDocument, useDocumentType, useIsMobile, useLinkIndex, usePrivateLockedRefs } from "@lifeline/core";
+import { openPrivateDialog, useDocument, useDocumentType, useLinkIndex, usePrivateLockedRefs } from "@lifeline/core";
 
 /** Breadcrumb of a Document's folder path. */
 export function Breadcrumb({ folder }: { folder: string }) {
@@ -27,7 +27,7 @@ export function VaultDocPage() {
   const def = useDocumentType(doc?.type);
   const index = useLinkIndex();
   const locked = usePrivateLockedRefs();
-  const isMobile = useIsMobile();
+  const isMobile = usePhone();
   if (!doc && id && locked.ids.has(id)) {
     // Behind the gate (ADR 0038): say so and offer to unlock, never "not found".
     return (

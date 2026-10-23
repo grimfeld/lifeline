@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Button, Sheet, SheetClose, SheetContent, SheetTitle, Tip, cn } from "@lifeline/ui";
+import { Button, Sheet, SheetClose, SheetContent, SheetTitle, Tip, cn, usePhone } from "@lifeline/ui";
 import {
   backPeek,
   closePeek,
@@ -13,7 +13,6 @@ import {
   singularOf,
   useDocument,
   useDocumentType,
-  useIsMobile,
   usePeekedId,
   usePeekStack,
   vaultDocPath,
@@ -46,7 +45,7 @@ export function PeekHost() {
   const id = usePeekedId();
   const doc = useDocument(id ?? undefined);
   const def = useDocumentType(doc?.type);
-  const isMobile = useIsMobile();
+  const isMobile = usePhone();
   const location = useLocation();
   /** The Document whose body is being written; any other (or none) is read. */
   const [writingId, setWritingId] = useState<string | null>(null);
@@ -115,6 +114,7 @@ function PeekBody({ doc, def, writing, onToggleWriting }: { doc: Document; def: 
           <PeekBack />
           {onToggleWriting && (
             <Tip label={writing ? "Read (⌘E)" : "Write (⌘E)"}>
+              {/* ui-allow: tip-double-label — the tooltip carries the shortcut; the accessible name stays plain Read/Write */}
               <Button variant="ghost" size="icon-sm" aria-label={writing ? "Read" : "Write"} aria-pressed={writing} onClick={onToggleWriting}>
                 {writing ? <BookOpen /> : <Pencil />}
               </Button>
