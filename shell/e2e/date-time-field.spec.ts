@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
 import { pickDate } from "./support/date-picker";
 import { setTime } from "./support/time-field";
 
@@ -15,17 +15,6 @@ async function workLocally(page: Page) {
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
 }
 
-/** Runs in the page against the app's own Core module. */
-async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
-  return page.evaluate(
-    async ({ coreUrl, src, arg }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
-    },
-    { coreUrl: CORE_URL, src: fn.toString(), arg },
-  );
-}
-
 const pad = (n: number) => String(n).padStart(2, "0");
 const dayOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const daysAgo = (n: number) => {
@@ -39,8 +28,8 @@ const storedWhen = (page: Page, offenceId: string) =>
   inCore(
     page,
     async (core, id: string) => {
-      const fine = (await core.documentsOf("swearjar_fine")).find((f: any) => f.offenceId === id);
-      const d = new Date(fine.occurredAt);
+      const fine = (await core.documentsOf("swearjar_fine")).find((f) => f.offenceId === id);
+      const d = new Date(fine!.occurredAt as string);
       const p = (n: number) => String(n).padStart(2, "0");
       return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
     },

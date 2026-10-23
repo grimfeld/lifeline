@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
 import { pickDate } from "./support/date-picker";
 
 /**
@@ -11,17 +11,6 @@ import { pickDate } from "./support/date-picker";
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
-}
-
-/** Runs in the page against the app's own Core module. */
-async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
-  return page.evaluate(
-    async ({ coreUrl, src, arg }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
-    },
-    { coreUrl: CORE_URL, src: fn.toString(), arg },
-  );
 }
 
 /** Open the Peek of a Document once the type registry has picked up `type`. */
@@ -71,7 +60,7 @@ test("a user-defined type's Document is edited in its Peek, and an alias added t
   await dialog.getByLabel("Tags").press("Enter");
 
   await expect
-    .poll(() => inCore(page, async (core, docId: string) => { const d = await core.getDocument(docId); return { aliases: d.aliases, born: d.born, tags: d.tags }; }, id))
+    .poll(() => inCore(page, async (core, docId: string) => { const d = (await core.getDocument(docId))!; return { aliases: d.aliases, born: d.born, tags: d.tags }; }, id))
     .toEqual({ aliases: [alias], born: "1867-11-07", tags: ["scientist"] });
   await expect
     .poll(() => inCore(page, async (core, name: string) => core.linkIndexFor(await core.allDocuments(), core.allDocumentTypes()).resolve(name), alias))
@@ -90,11 +79,11 @@ test("the user's own Field on Book is edited beneath the Library's part of a Boo
     },
     `A book ${stamp}`,
   );
-  await expect.poll(() => inCore(page, async (core) => core.documentType("book").fields.some((f: { key: string }) => f.key === "lentTo"), null)).toBe(true);
+  await expect.poll(() => inCore(page, async (core) => core.documentType("book")!.fields.some((f) => f.key === "lentTo"), null)).toBe(true);
 
   const dialog = await peek(page, id, "book");
   await dialog.getByLabel("Lent to").fill("Pierre");
-  await expect.poll(() => inCore(page, async (core, docId: string) => (await core.getDocument(docId)).lentTo, id)).toBe("Pierre");
+  await expect.poll(() => inCore(page, async (core, docId: string) => (await core.getDocument(docId))!.lentTo, id)).toBe("Pierre");
   // The Library's own Fields stay the Library's: Core draws no second control for them.
   await expect(dialog.getByLabel("Year")).toHaveCount(1);
 });

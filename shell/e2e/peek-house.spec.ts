@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
 import { openCalendar, pickDate } from "./support/date-picker";
 
 /**
@@ -13,22 +13,11 @@ async function workLocally(page: Page) {
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
 }
 
-/** Runs in the page against the app's own Core module. */
-async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
-  return page.evaluate(
-    async ({ coreUrl, src, arg }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
-    },
-    { coreUrl: CORE_URL, src: fn.toString(), arg },
-  );
-}
-
 /** Make a Document over the Vault and open its Peek. */
 async function peekNew(page: Page, doc: Record<string, unknown>) {
   await page.goto("/vault");
   await workLocally(page);
-  const id = await inCore(page, async (core, d: Record<string, unknown>) => (await core.putDocument(d)).id as string, doc);
+  const id = await inCore(page, async (core, d: Record<string, unknown>) => (await core.putDocument(d as { type: string })).id as string, doc);
   await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
   // The first dialog is the Peek; an open Date picker's popover is a dialog too.
   const dialog = page.getByRole("dialog").first();
@@ -37,7 +26,7 @@ async function peekNew(page: Page, doc: Record<string, unknown>) {
 }
 
 const field = (page: Page, id: string, key: string) =>
-  inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))[a.key], { id, key });
+  inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))![a.key], { id, key });
 
 test("a Chore's schedule is changed and the Chore paused in its Peek", async ({ page }) => {
   const { id, dialog } = await peekNew(page, {

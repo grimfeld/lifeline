@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
 import { openCalendar, pickDate } from "./support/date-picker";
 
 /**
@@ -11,17 +11,6 @@ import { openCalendar, pickDate } from "./support/date-picker";
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
-}
-
-/** Runs in the page against the app's own Core module. */
-async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
-  return page.evaluate(
-    async ({ coreUrl, src, arg }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
-    },
-    { coreUrl: CORE_URL, src: fn.toString(), arg },
-  );
 }
 
 /** Every load asks to sign in again; this one works locally. */
@@ -81,8 +70,8 @@ test("Calendar: an all-day Event's last day disables the days before its first",
   await expect(dialog).toBeHidden();
   const stored = await inCore(page, async (core, t: string) => {
     const docs = await core.allDocuments();
-    const ev = docs.find((d: any) => d.title === t);
-    return ev && { date: ev.date, endDate: ev.endDate };
+    const ev = docs.find((d) => d.title === t);
+    return ev && { date: ev.date as string, endDate: ev.endDate as string | null };
   }, title);
   expect(stored).toEqual({ date: "2026-11-10", endDate: "2026-11-12" });
 });

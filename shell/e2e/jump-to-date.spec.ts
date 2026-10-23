@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { openCalendar, pickDate } from "./support/date-picker";
-import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
 
 /**
  * "Jump to date" is a Date picker button (ADR 0087): picking a day goes there
@@ -11,17 +11,6 @@ import { CORE_URL } from "./support/seed";
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
-}
-
-/** Runs in the page against the app's own Core module. */
-async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
-  return page.evaluate(
-    async ({ coreUrl, src, arg }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
-    },
-    { coreUrl: CORE_URL, src: fn.toString(), arg },
-  );
 }
 
 /** The page's local day `offset` days from today, `YYYY-MM-DD`. */
@@ -118,7 +107,7 @@ test("a Part is marked read on a day picked before today, and no later day can b
       inCore(
         page,
         async (core, workId: string) =>
-          (await core.documentsWhere("library_part", "work", workId)).map((p: any) => `${p.number}:${p.readOn}`),
+          (await core.documentsWhere("library_part", "work", workId)).map((p) => `${p.number}:${p.readOn}`),
         id,
       ),
     )
