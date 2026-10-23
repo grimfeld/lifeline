@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { keepFocus, itemKey, MONTH_INSTRUCTIONS, type Step } from "./itemKeys";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { cn, toast } from "@lifeline/ui";
 import {
@@ -30,6 +31,9 @@ const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 /** As on the Schedule: long enough that a flick to scroll (or to page the month) never lifts a chip. */
 const LONG_PRESS_MS = 350;
 
+/** What keeps the keyboard on a Timed item across a move: its pieces share it, whatever their day. */
+const timedFocus = (t: SurfaceTimedItem) => `timed:${t.appId}/${t.itemId}`;
+
 /** A drag ends with a click on whatever it was released over: that click is not a tap. */
 function useDragGuard() {
   const last = useRef(0);
@@ -41,7 +45,7 @@ function useDragGuard() {
  * One that runs across days shows on each: its first day with its start, later days with "→ its end" (ADR 0090);
  * any of them drags, moving the whole Event by the days between the chip's day and the drop.
  */
-function TimedChip({ item, onOpen }: { item: SurfaceTimedItem; onOpen: (el: HTMLElement) => void }) {
+function TimedChip({ item, onOpen, onStep }: { item: SurfaceTimedItem; onOpen: (el: HTMLElement) => void; onStep: (step: Step) => void }) {
   const later = !!item.span && item.date > item.span.date;
   const movable = canMoveTimed(item.appId);
   const lead = later ? pieceLead(item) : item.start && formatTime(item.start);
@@ -51,6 +55,12 @@ function TimedChip({ item, onOpen }: { item: SurfaceTimedItem; onOpen: (el: HTML
       ref={setNodeRef}
       {...attributes}
       {...listeners}
+      data-focus-key={timedFocus(item)}
+      onKeyDown={(e) => {
+        const k = itemKey(e, "week");
+        if (k?.open) onOpen(e.currentTarget);
+        else if (k && movable) onStep(k);
+      }}
       className={cn("hover:bg-accent flex w-full items-center gap-1 truncate rounded px-1 py-0.5 text-xs", movable && "cursor-grab", isDragging && "opacity-40", missed(item) && "text-destructive font-medium")}
       title={`${appById(item.appId)?.title} · ${item.subtitle ?? item.title}`}
       onClick={(e) => {
@@ -66,7 +76,7 @@ function TimedChip({ item, onOpen }: { item: SurfaceTimedItem; onOpen: (el: HTML
 }
 
 /** A work item: tap for its menu, drag (long press on a phone) to Move it. */
-function WorkChip({ item, onTap, menu }: { item: DayWork; onTap: () => void; menu: React.ReactNode }) {
+function WorkChip({ item, onTap, onStep, menu }: { item: DayWork; onTap: () => void; onStep: (step: Step) => void; menu: React.ReactNode }) {
   const done = !!item.completedOn;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `item:${item.key}`, data: { item }, disabled: done });
   return (
@@ -74,6 +84,12 @@ function WorkChip({ item, onTap, menu }: { item: DayWork; onTap: () => void; men
       ref={setNodeRef}
       {...attributes}
       {...listeners}
+      data-focus-key={`item:${item.key}`}
+      onKeyDown={(e) => {
+        const k = itemKey(e, "week");
+        if (k?.open) onTap();
+        else if (k && !done) onStep(k);
+      }}
       className={cn(
         "hover:bg-accent relative flex w-full items-center gap-1 truncate rounded px-1 py-0.5 text-left text-xs transition-colors",
         !done && "cursor-grab",
@@ -213,10 +229,25 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
     }
   }
 
+  /** An arrow key on a chip (#284): the keyboard's drag, by a day or a week. A pool chip has no day to step from. */
+  function stepTimed(t: SurfaceTimedItem, st: Step) {
+    const to = addDays(t.date, st.days);
+    keepFocus(timedFocus(t));
+    moveTimedItem(t, startDayMovedTo(t, to))
+      .then(() => toast.success(`Moved to ${formatHuman(to)}`))
+      .catch((err: Error) => toast.error(`Could not move ${t.title}: ${err.message}`));
+  }
+  function stepWork(item: DayWork, st: Step) {
+    if (!item.displayDate) return;
+    keepFocus(`item:${item.key}`);
+    moveWork(item, addDays(item.displayDate, st.days));
+  }
+
   const chip = (item: DayWork) => (
     <WorkChip
       key={item.key}
       item={item}
+      onStep={(st) => stepWork(item, st)}
       onTap={() => !drag.recent() && setMenuFor(item.key)}
       menu={<WorkMenu item={item} open={menuFor === item.key} onOpenChange={(o) => setMenuFor(o ? item.key : null)} onMove={move.start} />}
     />
@@ -226,6 +257,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
     <DndContext
       sensors={sensors}
       collisionDetection={pointerWithin}
+      accessibility={{ screenReaderInstructions: { draggable: MONTH_INSTRUCTIONS } }}
       onDragStart={(e) => {
         const d = e.active.data.current as { item?: DayWork; timed?: SurfaceTimedItem };
         setActive(d.item?.title ?? d.timed?.title ?? null);
@@ -255,7 +287,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
                   {timed
                     .filter((t) => t.date === d)
                     .map((t) => (
-                      <TimedChip key={t.key} item={t} onOpen={(el) => !drag.recent() && setEditing({ target: { kind: "timed", item: t }, anchor: el, id: Date.now() })} />
+                      <TimedChip key={t.key} item={t} onStep={(st) => stepTimed(t, st)} onOpen={(el) => !drag.recent() && setEditing({ target: { kind: "timed", item: t }, anchor: el, id: Date.now() })} />
                     ))}
                   {inGrid.filter((i) => i.displayDate === d).map(chip)}
                 </DayCell>
@@ -266,7 +298,7 @@ export function MonthView({ ctx }: { ctx: CalendarCtx }) {
         <p className="text-muted-foreground shrink-0 text-xs">
           {isMobile
             ? "Tap a day to open it · tap an item for its actions · press and hold to drag it to another day."
-            : "Click a day to open it · click an item for its actions · drag an item to another day, or from Unplaced onto one."}
+            : "Click a day to open it · click an item for its actions · drag an item to another day, or from Unplaced onto one · on the keyboard, Enter opens an item and the arrow keys move it."}
         </p>
       </div>
 

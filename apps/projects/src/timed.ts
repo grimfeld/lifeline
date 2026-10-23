@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { TimedProvider } from "@lifeline/core";
 import { markersIn, parseMarkerId } from "./domain/board";
 import { APP_ID, projectHref } from "./domain/types";
@@ -15,7 +16,8 @@ export const projectsTimed: TimedProvider = {
   useItems(range) {
     const projects = useProjects();
     const milestones = useMilestones();
-    return markersIn(projects, milestones, range);
+    const { start, end } = range;
+    return useMemo(() => markersIn(projects, milestones, { start, end }), [projects, milestones, start, end]);
   },
 
   async itemsIn(range) {

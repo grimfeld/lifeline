@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { addDays, diffDays, formatHuman, weekdayOf, type DateStr } from "../dates";
 import { appById, timedProviders } from "../registry";
 import { matchesTagFilter, type TagFilter } from "../tags";
@@ -321,20 +322,23 @@ export function useTimedItems(range: { start: DateStr; end: DateStr }, opts?: { 
     items: p.useItems(range),
   }));
   const scope = useSurfaceScope();
-  const out: SurfaceTimedItem[] = [];
-  for (const { provider, items } of perProvider) {
-    const color = appById(provider.appId)?.color;
-    const scoped = inSurfaceScope(scope, provider.appId);
-    // Background bands (Time blockers) are the shape of the hours, not items,
-    // so a Module's embedded Schedule keeps them whatever its scope (ADR 0057).
-    for (const item of items) {
-      if (item.background || (scoped && matchesTagFilter(item.tags, filter))) out.push({ ...item, color: item.color ?? color });
+  // Rebuilt only when an input moved: one dependency per provider, whose number is fixed (ADR 0003).
+  const out = useMemo(() => {
+    const rows: SurfaceTimedItem[] = [];
+    for (const { provider, items } of perProvider) {
+      const color = appById(provider.appId)?.color;
+      const scoped = inSurfaceScope(scope, provider.appId);
+      // Background bands (Time blockers) are the shape of the hours, not items,
+      // so a Module's embedded Schedule keeps them whatever its scope (ADR 0057).
+      for (const item of items) {
+        if (item.background || (scoped && matchesTagFilter(item.tags, filter))) rows.push({ ...item, color: item.color ?? color });
+      }
     }
-  }
+    return rows.sort((a, b) => a.date.localeCompare(b.date) || (a.start ?? "").localeCompare(b.start ?? "") || a.title.localeCompare(b.title));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...perProvider.map((p) => p.items), scope, filter]);
   // Stable while nothing changed, so the surfaces' memos can hit.
-  return useStructuralMemo(
-    out.sort((a, b) => a.date.localeCompare(b.date) || (a.start ?? "").localeCompare(b.start ?? "") || a.title.localeCompare(b.title)),
-  );
+  return useStructuralMemo(out);
 }
 
 /**

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   todayStr,
   type DateStr,
@@ -23,7 +24,12 @@ export const choresSchedulable: SchedulableProvider = {
   overduePolicy: "roll-forward",
 
   useItems(range) {
-    return itemsOf(useChores(), useCompletions(), range);
+    const chores = useChores();
+    const completions = useCompletions();
+    const today = todayStr();
+    const { start, end } = range;
+    // Surfaces call this on every render: derive again only when an input moves — today included, which itemsOf reads.
+    return useMemo(() => itemsOf(chores, completions, { start, end }), [chores, completions, start, end, today]);
   },
 
   async itemsIn(range) {
