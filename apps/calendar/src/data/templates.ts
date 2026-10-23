@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, normalizeTags, putDocument, removeDocument, useDocuments, type DateStr, type TimeStr } from "@lifeline/core";
+import { getDocument, normalizeTags, putDocument, removeDocument, useDocuments, type DateStr, type TimeStr } from "@lifeline/core";
 import { compareTemplates, DEFAULT_DURATION_MIN, durationOf, endOf } from "../domain/templates";
 import { EVENT_TEMPLATE_TYPE, type EventTemplate } from "../domain/types";
 import { addEvent } from "./repo";
@@ -19,10 +19,6 @@ function normalize(t: EventTemplate): EventTemplate {
 export function useEventTemplates(): EventTemplate[] {
   const rows = useDocuments<EventTemplate>(EVENT_TEMPLATE_TYPE);
   return useMemo(() => rows.map(normalize).sort(compareTemplates), [rows]);
-}
-
-export async function allEventTemplates(): Promise<EventTemplate[]> {
-  return (await documentsOf<EventTemplate>(EVENT_TEMPLATE_TYPE)).map(normalize);
 }
 
 export async function addEventTemplate(input: {

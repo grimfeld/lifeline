@@ -78,5 +78,3 @@ export interface Room extends Document {
 export const ARTIST = "artist";
 export const EXHIBITION = "exhibition";
 export const ROOM = "room";
-
-export { ART_FORM_IDS } from "./artForms";

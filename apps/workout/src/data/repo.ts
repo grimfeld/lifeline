@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, documentsWhere, fireTallies, getDocument, newId, talliesOf, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments } from "@lifeline/core";
+import { documentsOf, fireTallies, getDocument, newId, talliesOf, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments } from "@lifeline/core";
 import { EXERCISE, SESSION, WORKOUT, type Block, type BlockResult, type Category, type Exercise, type Measure, type Movement, type Session, type Workout } from "../domain/types";
 import type { Tally } from "@lifeline/core";
 
@@ -52,10 +52,6 @@ function byTitle<T extends { title: string }>(a: T, b: T): number {
 export function useExercises(): Exercise[] {
   const rows = useDocuments<Exercise>(EXERCISE);
   return useMemo(() => rows.map(normalizeExercise).sort(byTitle), [rows]);
-}
-
-export async function allExercises(): Promise<Exercise[]> {
-  return (await documentsOf<Exercise>(EXERCISE)).map(normalizeExercise);
 }
 
 export interface ExerciseInput {
@@ -153,10 +149,6 @@ export function useSessions(): Session[] {
 
 export async function allSessions(): Promise<Session[]> {
   return (await documentsOf<Session>(SESSION)).map(normalizeSession);
-}
-
-export async function sessionsOfWorkout(workoutId: string): Promise<Session[]> {
-  return (await documentsWhere<Session>(SESSION, "workoutId", workoutId)).map(normalizeSession);
 }
 
 /** Local "YYYY-MM-DD" and "HH:MM" of an ISO instant. */

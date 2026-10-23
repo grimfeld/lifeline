@@ -24,7 +24,8 @@
     "test": "pnpm -r test",
     "tauri": "pnpm --filter @lifeline/shell tauri",
     "test:e2e": "pnpm --filter @lifeline/shell test:e2e",
-    "test:e2e:quiet": "pnpm --filter @lifeline/shell test:e2e:quiet"
+    "test:e2e:quiet": "pnpm --filter @lifeline/shell test:e2e:quiet",
+    "knip": "knip"
   },
   "packageManager": "pnpm@9.11.0",
   "engines": {
@@ -43,5 +44,8 @@
       "source-map-js@<1.2.2": "^1.2.2",
       "undici@>=7 <7.29.1": "^7.29.1"
     }
+  },
+  "devDependencies": {
+    "knip": "^6.42.1"
   }
 }

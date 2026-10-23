@@ -1,32 +1,5 @@
 import { addDays, type DateStr } from "@lifeline/core";
 
-/**
- * The persona sheet of the Demo's made-up life (CONTEXT.md "Demo", ADR 0077):
- * the single source of who the person is, where they live, the money they
- * count in, and the people and places their life touches. Every slice of the
- * Demo life (`./life/*`) takes its names from here, so the person reads the
- * same in the Agenda, the Journal, the Ledger and the Map.
- *
- * Fictional throughout: the venues are invented, the people are no one.
- * The life is dated by offsets from the visit day, never fixed dates — use
- * the helpers at the bottom.
- */
-export const PERSONA = {
-  name: "Iris Calloway",
-  firstName: "Iris",
-  age: 36,
-  occupation: "Physiotherapist at a sports clinic",
-  city: "Cork",
-  country: "Ireland",
-  /** Ledger, Prices and Swear Jar count in euros, so the person lives in the euro area. */
-  currency: "EUR",
-  /** Her own language: everything in the Demo life is written in English. */
-  language: "en",
-  summary:
-    "Iris treats runners and rugby players at a clinic near the river, climbs twice a week, " +
-    "swims in the sea on Saturdays, and is slowly learning Portuguese for a summer in Lisbon.",
-} as const;
-
 export interface Person {
   /** The name as it appears in titles and wikilinks. */
   name: string;

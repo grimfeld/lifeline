@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
+import { documentsOf, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useLiveQuery } from "@lifeline/core";
 import { SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Work, type LookupSettings } from "../domain/types";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
@@ -37,11 +37,6 @@ export function useWorks(): Work[] {
 /** Every work, read once — what headless Commands match titles against. */
 export async function allWorks(): Promise<Work[]> {
   return (await Promise.all(WORK_TYPE_IDS.map((t) => documentsOf<Work>(t)))).flat().map(normalize);
-}
-
-export function useMediaItem(id: string | undefined): Work | undefined {
-  const row = useDocument<Work>(id);
-  return useMemo(() => (row ? normalize(row) : undefined), [row]);
 }
 
 export async function addWork(input: {
