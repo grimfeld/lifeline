@@ -86,7 +86,7 @@ export function FineDialog({ open, onOpenChange, fine, offenceId, initial }: { o
                 </p>
               ) : (
                 <Select value={pick} onValueChange={setPick}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Offence">
                     <SelectValue placeholder="Pick an offence" />
                   </SelectTrigger>
                   <SelectContent>

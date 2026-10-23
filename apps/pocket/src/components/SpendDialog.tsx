@@ -92,7 +92,7 @@ export function SpendDialog({ open, onOpenChange, spend, allowanceId, initial }:
             <div className="grid gap-2">
               <Label>Allowance</Label>
               <Select value={pick} onValueChange={setPick}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Allowance">
                   <SelectValue placeholder="Pick an allowance" />
                 </SelectTrigger>
                 <SelectContent>

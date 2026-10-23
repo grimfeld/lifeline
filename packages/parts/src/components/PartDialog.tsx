@@ -28,7 +28,7 @@ function NameField({ value, onSave, placeholder }: { value: string; onSave: (v: 
   return (
     <div className="grid gap-1">
       <Label className="text-muted-foreground text-[11px] tracking-wide uppercase">Title</Label>
-      <Input value={draft} placeholder={placeholder} onChange={(e) => setDraft(e.target.value)} onBlur={save} onKeyDown={(e) => e.key === "Enter" && save()} />
+      <Input aria-label="Title" value={draft} placeholder={placeholder} onChange={(e) => setDraft(e.target.value)} onBlur={save} onKeyDown={(e) => e.key === "Enter" && save()} />
     </div>
   );
 }
@@ -160,12 +160,12 @@ export function GroupDialog<W extends PartsWork>({
             {isNew && (
               <div className="grid w-24 gap-1">
                 <Label className="text-muted-foreground text-[11px] tracking-wide uppercase">{medium.group}</Label>
-                <Input inputMode="numeric" value={num} onChange={(e) => setNum(e.target.value)} />
+                <Input aria-label={medium.group} inputMode="numeric" value={num} onChange={(e) => setNum(e.target.value)} />
               </div>
             )}
             <div className="grid w-36 gap-1">
               <Label className="text-muted-foreground text-[11px] tracking-wide uppercase">{restart ? `${medium.parts} in it` : `Starts at ${medium.part.toLowerCase()}`}</Label>
-              <Input inputMode="numeric" value={extent} placeholder={restart ? "Not known yet" : ""} onChange={(e) => setExtent(e.target.value)} />
+              <Input aria-label={restart ? `${medium.parts} in it` : `Starts at ${medium.part.toLowerCase()}`} inputMode="numeric" value={extent} placeholder={restart ? "Not known yet" : ""} onChange={(e) => setExtent(e.target.value)} />
             </div>
             <Button type="submit" size="sm" variant={isNew ? "default" : "outline"}>
               {isNew ? "Add" : "Save"}

@@ -87,7 +87,7 @@ export function AllowanceEditorDialog({ open, onOpenChange, allowance, spendCoun
             <div className="grid gap-2">
               <Label>Period</Label>
               <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKind)}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Period">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

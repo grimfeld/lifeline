@@ -48,7 +48,7 @@ export function StorageDialog({ open, onOpenChange, storage }: { open: boolean; 
           <div className="grid gap-1.5">
             <Label>Kind</Label>
             <Select value={kind} onValueChange={(v) => setKind(v as StorageKind)}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Kind">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

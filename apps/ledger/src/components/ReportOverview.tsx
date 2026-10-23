@@ -162,7 +162,7 @@ export function ReportOverview({ data }: { data: ReportData }) {
               ]}
             />
             <Select value={payeeSort} onValueChange={(v) => setPayeeSort(v as PayeeSortKey)}>
-              <SelectTrigger className="h-7 w-44">
+       <SelectTrigger size="sm" aria-label="Sort payees by" className="w-44">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

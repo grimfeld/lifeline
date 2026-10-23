@@ -85,7 +85,7 @@ export function PantryScreen() {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="mr-auto text-lg font-semibold">Pantry</h1>
         <PhoneDock>
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search the stocks…" className="w-48 min-w-0 max-md:w-auto max-md:basis-36" />
+          <Input aria-label="Search the stocks" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search the stocks…" className="w-48 min-w-0 max-md:w-auto max-md:basis-36" />
           <Button type="button" variant="outline" onClick={() => openStorage(null)}>
             <span className="max-md:hidden">New storage</span>
             <span className="md:hidden">Storage</span>

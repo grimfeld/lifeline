@@ -58,7 +58,7 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
           {op.needsValue &&
             (field?.kind === "select" && draft.op !== "contains" ? (
               <Select value={String(draft.value ?? "")} onValueChange={(v) => setDraft({ ...draft, value: v })}>
-                <SelectTrigger size="sm" className="w-32 text-xs">
+                <SelectTrigger size="sm" aria-label="Filter value" className="w-32 text-xs">
                   <SelectValue placeholder="value" />
                 </SelectTrigger>
                 <SelectContent>
@@ -71,7 +71,7 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
               </Select>
             ) : field?.kind === "boolean" ? (
               <Select value={String(draft.value ?? "true")} onValueChange={(v) => setDraft({ ...draft, value: v })}>
-                <SelectTrigger size="sm" className="w-24 text-xs">
+                <SelectTrigger size="sm" aria-label="Filter value" className="w-24 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -84,6 +84,7 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
               <DatePicker size="sm" className="w-36" value={typeof draft.value === "string" ? draft.value : ""} onChange={(v) => commit(v)} aria-label="Value" />
             ) : (
               <Input
+                aria-label="Filter value"
                 className="w-36 text-xs"
                 type={field?.kind === "number" ? "number" : "text"}
                 placeholder={draft.op === "anyOf" ? "a, b, c" : "value"}

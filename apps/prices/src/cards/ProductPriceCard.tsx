@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
 import { CardUnavailable } from "@lifeline/ui";
 import type { CardOption, CardProps, CardSettings } from "@lifeline/core";
 import { productHref } from "../domain/types";
@@ -21,7 +21,6 @@ export function useProductCardTitle(settings: CardSettings): string {
 /** Product price (ADR 0082): the cheapest Shop's usual price, every Shop's beside it, and the sparkline of all of them — in the Product's compared-by unit (ADR 0084). */
 export function ProductPriceCard({ settings, configure }: CardProps) {
   const id = settings.product as string;
-  const navigate = useNavigate();
   const products = useProducts();
   const shops = useShops();
   const receipts = useReceipts();
@@ -33,7 +32,12 @@ export function ProductPriceCard({ settings, configure }: CardProps) {
   const best = cheapest(history);
   const others = [...history.entries()].map(([sid, pts]) => ({ sid, usual: latestUsual(pts) })).filter((r) => r.usual && r.sid !== best?.shopId);
   return (
-    <div className="hover:bg-accent/40 flex h-full cursor-pointer flex-col gap-1 rounded-md transition-colors" role="link" onClick={() => navigate(productHref(product.id))}>
+    <Link
+      to={productHref(product.id)}
+      draggable={false}
+      className="hover:bg-accent/40 focus-visible:ring-ring flex h-full flex-col gap-1 rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
+    >
+      <span className="sr-only">{product.title}</span>
       {best ? (
         <div className="flex flex-wrap items-baseline gap-x-1.5">
           <span className="text-2xl font-semibold tabular-nums">{formatUnitPrice(best.point.unit, measure)}</span>
@@ -58,6 +62,6 @@ export function ProductPriceCard({ settings, configure }: CardProps) {
       <div className="mt-auto min-h-0 flex-1">
         <PriceChart history={history} shops={shops} measure={measure} height={72} compact />
       </div>
-    </div>
+    </Link>
   );
 }

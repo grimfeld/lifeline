@@ -25,6 +25,7 @@ export function UnassignedCard() {
     <div className="flex h-full flex-col gap-2">
       <Input
         className="h-8"
+        aria-label="Add a task"
         placeholder="Add a task…"
         value={quick}
         onChange={(e) => setQuick(e.target.value)}

@@ -65,7 +65,7 @@ function DeckDialog({ open, onOpenChange, deck, topic, items }: { open: boolean;
           {deck && (
             <div className="grid gap-2">
               <Label>In this deck</Label>
-              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search words and sentences" />
+              <Input aria-label="In this deck" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search words and sentences" />
               <div className="grid max-h-80 gap-0.5 overflow-y-auto rounded-md border p-1">
                 {shown.length === 0 && <p className="text-muted-foreground p-2 text-sm">Nothing to add yet.</p>}
                 {shown.map((i) => {

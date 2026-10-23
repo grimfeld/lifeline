@@ -62,7 +62,7 @@ function Review({ item }: { item: Work }) {
   if (editing) {
     return (
       <div className="grid gap-2">
-        <Textarea autoFocus rows={5} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What did you make of it? Markdown, [[links]] and #tags all count." />
+        <Textarea aria-label="Your take" autoFocus rows={5} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What did you make of it? Markdown, [[links]] and #tags all count." />
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="ghost" onClick={() => { setDraft(item.body ?? ""); setEditing(false); }}>
             Cancel

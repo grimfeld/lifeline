@@ -1,5 +1,6 @@
 import type * as React from "react";
 import { cn } from "../../lib/utils";
+import { useDocumentTitle } from "../../lib/useDocumentTitle";
 
 /**
  * A page's frame: centred, one column, the same gutter everywhere — `p-4` on a
@@ -30,13 +31,18 @@ function Page({
  * long title wraps beside the actions, which keep their size (ADR 0065).
  * Controls that belong in the Phone dock stay in a `PhoneDock` inside the
  * actions — on a phone they move down, and the title has the row.
+ *
+ * The title names the browser tab too ("<title> · Lifeline"); a title that is
+ * not plain text passes `documentTitle` for that.
  */
 function PageHeader({
   title,
+  documentTitle,
   className,
   children,
   ...props
-}: Omit<React.ComponentProps<"div">, "title"> & { title: React.ReactNode }) {
+}: Omit<React.ComponentProps<"div">, "title"> & { title: React.ReactNode; documentTitle?: string }) {
+  useDocumentTitle(documentTitle ?? (typeof title === "string" ? title : undefined));
   return (
     <div data-slot="page-header" className={cn("flex min-w-0 items-center gap-2", className)} {...props}>
       <h1 className="min-w-0 flex-1 text-xl font-semibold tracking-tight">{title}</h1>

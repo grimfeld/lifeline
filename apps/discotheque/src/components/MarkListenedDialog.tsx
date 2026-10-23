@@ -72,7 +72,7 @@ export function MarkListenedDialog({ open, onOpenChange, initial }: CommandDialo
           </div>
         ) : (
           <div className="grid gap-2">
-            <Input autoFocus placeholder="Album, artist, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Input aria-label="Find an album" autoFocus placeholder="Album, artist, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
             {candidates.length === 0 ? (
               <p className="text-muted-foreground py-4 text-center text-sm">{items.length === 0 ? "The Discotheque is empty." : "Nothing unheard matches."}</p>
             ) : (

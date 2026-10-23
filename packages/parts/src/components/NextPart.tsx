@@ -87,7 +87,7 @@ export function NextPartDialog<W extends PartsWork>({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-2">
-          <Input autoFocus placeholder="Title, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input aria-label="Find a title" autoFocus placeholder="Title, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
           {rows.length === 0 ? (
             <p className="text-muted-foreground py-4 text-center text-sm">Nothing in progress matches.</p>
           ) : (

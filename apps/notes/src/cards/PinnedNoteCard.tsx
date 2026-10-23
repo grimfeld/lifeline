@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { docHref, excerpt, formatHuman, useLinkIndex, type CardProps } from "@lifeline/core";
 import { CardUnavailable } from "@lifeline/ui";
 import { MarkdownView } from "@lifeline/editor";
@@ -22,6 +22,13 @@ export function PinnedNoteCard({ settings, configure }: CardProps) {
   const text = mode === "excerpt" ? excerpt(note.body, 800) : "";
   return (
     <div className="hover:bg-accent/40 h-full cursor-pointer overflow-y-auto rounded-md text-sm" onClick={open}>
+      {/* The keyboard's way in to what a click anywhere does: shown only while it has focus. */}
+      <Link
+        to={docHref(note)}
+        className="focus-visible:ring-ring bg-background sr-only rounded-md px-2 py-1 focus-visible:not-sr-only focus-visible:mb-1 focus-visible:inline-block focus-visible:ring-2 focus-visible:outline-none"
+      >
+        Open note
+      </Link>
       {mode === "excerpt" ? (
         text ? <div className="whitespace-pre-line">{text}</div> : <span className="text-muted-foreground italic">Empty note.</span>
       ) : (

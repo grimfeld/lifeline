@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
   TagChips,
   toast,
+  Tip,
 } from "@lifeline/ui";
 import { formatTime, todayStr } from "@lifeline/core";
 import { Ban, Clock, LayoutTemplate, MoreHorizontal, Pencil, Plus, Trash2, Zap } from "lucide-react";
@@ -43,11 +44,13 @@ function TemplateRow({ t, onEdit }: { t: EventTemplate; onEdit: (t: EventTemplat
           <Zap /> Add today
         </Button>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="size-8">
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
+          <Tip label="More actions">
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" >
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+          </Tip>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(t)}>
               <Pencil /> Edit
@@ -86,11 +89,13 @@ function BlockerTemplateRow({ t, onEdit }: { t: BlockerTemplate; onEdit: (t: Blo
           </div>
         </div>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="size-8">
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
+          <Tip label="More actions">
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" >
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+          </Tip>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(t)}>
               <Pencil /> Edit

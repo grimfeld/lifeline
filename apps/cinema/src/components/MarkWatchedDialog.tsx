@@ -72,7 +72,7 @@ export function MarkWatchedDialog({ open, onOpenChange, initial }: CommandDialog
           </div>
         ) : (
           <div className="grid gap-2">
-            <Input autoFocus placeholder="Title, director, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Input aria-label="Find a film" autoFocus placeholder="Title, director, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
             {candidates.length === 0 ? (
               <p className="text-muted-foreground py-4 text-center text-sm">{items.length === 0 ? "The Cinema is empty." : "Nothing unwatched matches."}</p>
             ) : (

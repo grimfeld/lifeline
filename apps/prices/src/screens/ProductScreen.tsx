@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Badge, Button, Card, CardContent, TagChips, cn } from "@lifeline/ui";
+import { Badge, Button, Card, CardContent, TagChips, cn, Tip } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { ArrowLeft, Pencil, Plus } from "lucide-react";
 import { PRICES_HREF, type Basis, type Observation, type Receipt } from "../domain/types";
@@ -68,9 +68,11 @@ export function ProductScreen() {
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-4 p-4">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate(PRICES_HREF)} title="Back to Prices">
-          <ArrowLeft />
-        </Button>
+        <Tip label="Back to Prices">
+          <Button variant="ghost" size="icon" onClick={() => navigate(PRICES_HREF)}>
+            <ArrowLeft />
+          </Button>
+        </Tip>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-semibold">{product.title}</h1>
           <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">

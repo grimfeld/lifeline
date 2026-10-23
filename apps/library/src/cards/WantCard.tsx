@@ -34,16 +34,19 @@ export function WantCard({ settings }: CardProps) {
           const def = workType(m.type);
           return (
             <li key={m.id} className="hover:bg-accent/50 flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5" onClick={() => setEditing(m)}>
-              <Cover item={m} className="h-8 w-6" />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm">{m.title}</div>
-                {m.authors.length > 0 && <div className="text-muted-foreground truncate text-xs"><AuthorNames item={m} plain /></div>}
-              </div>
-              {!medium && (
-                <Badge variant="outline" className="shrink-0 text-[10px]">
-                  {def.label}
-                </Badge>
-              )}
+              {/* The row opens on a click anywhere; this button is its face for the keyboard (Enter bubbles to the row). */}
+              <button type="button" className="focus-visible:ring-ring rounded-md focus-visible:ring-2 focus-visible:outline-none flex min-w-0 flex-1 items-center gap-2 text-left">
+                <Cover item={m} className="h-8 w-6" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm">{m.title}</div>
+                  {m.authors.length > 0 && <div className="text-muted-foreground truncate text-xs"><AuthorNames item={m} plain /></div>}
+                </div>
+                {!medium && (
+                  <Badge variant="outline" className="shrink-0 text-2xs">
+                    {def.label}
+                  </Badge>
+                )}
+              </button>
               <Button
                 size="sm"
                 variant="ghost"

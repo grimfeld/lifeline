@@ -48,6 +48,13 @@ you may rearrange. Culture calls its Overview "Now", Progress "Today".
   working, and changing its settings tries it again too. A page that breaks says **Something went
   wrong on this page**, with **Reload** and **Go home**; going anywhere else clears it.
 
+## With the keyboard
+
+- **Tab** reaches every row a Card opens on a click (a Work on a shelf, a Stat, a Product, a
+  block in **Today's agenda**), and **Enter** opens it. A **Pinned note** Card offers **Open note**
+  as you Tab into it.
+- Each Card's title is a heading, so a screen reader can jump from Card to Card.
+
 ## The card picker
 
 - **Search cards…** by name, description or App.

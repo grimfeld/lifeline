@@ -1,4 +1,5 @@
 export * from "./lib/utils";
+export * from "./lib/useDocumentTitle";
 export { useCommitDraft } from "./lib/useCommitDraft";
 export * from "./components/ui/alert-dialog";
 export * from "./components/ui/badge";

@@ -53,7 +53,7 @@ export function AddToPlaylistDialog({ item, open, onOpenChange }: { item: Work; 
             void create();
           }}
         >
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="New playlist…" className="h-8 text-sm" />
+          <Input aria-label="New playlist name" value={name} onChange={(e) => setName(e.target.value)} placeholder="New playlist…" className="text-sm" />
           <Button type="submit" size="sm" variant="outline" disabled={!name.trim()}>
             <Plus /> Create
           </Button>

@@ -114,7 +114,7 @@ export function CommonplaceScreen() {
         <PhoneDock>
           {/* Desk: the chips stay above the search (md:-order-1); phone: they and the selects go in the Filters sheet. */}
           <div className="flex flex-1 flex-wrap gap-2 max-md:contents">
-            <Input className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search quotes, comments, titles, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Input aria-label="Search quotes and sources" className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search quotes, comments, titles, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
             <PhoneFilters active={+(type !== "all") + +(itemId !== "all") + +(sort !== "newest")}>
               <div className="w-full md:-order-1 md:mb-1">
                 <TypeChips

@@ -34,7 +34,7 @@ export function NewDocumentDialog({ type, folder, onOpenChange }: { type: string
             {folder && <span className="text-muted-foreground font-normal"> in {folder}</span>}
           </DialogTitle>
         </DialogHeader>
-        <Input autoFocus placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
+        <Input aria-label="Title" autoFocus placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
         {type && <TemplateSelect type={type} value={templateId} onChange={setTemplateId} />}
         <DialogFooter>
           <Button onClick={() => void submit()} disabled={!title.trim()}>

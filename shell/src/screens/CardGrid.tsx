@@ -83,15 +83,15 @@ function PlacedCard({
   const unconfigured = def ? !isConfigured(cardSchema(def), settings) : false;
   return (
     <Card className={cn("gap-2 overflow-hidden py-3", className)} style={style}>
-      <CardHeader className="px-3">
-        <CardTitle className="flex items-center gap-2 text-sm">
+      <CardHeader className="flex items-center gap-2 px-3">
+        <CardTitle className="flex min-w-0 flex-1 items-center gap-2 text-sm">
           <span
             className="size-2 shrink-0 rounded-full"
             style={{ background: def ? (appById(def.appId)?.color ?? "var(--muted-foreground)") : "var(--muted-foreground)" }}
           />
           <span className="truncate">{def ? <InstanceTitle def={def} item={item} /> : item.cardId}</span>
-          {actions}
         </CardTitle>
+        {actions}
       </CardHeader>
       {toolbar}
       <CardContent className="min-h-0 flex-1 overflow-hidden px-3">

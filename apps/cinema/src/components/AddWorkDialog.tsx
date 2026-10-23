@@ -153,7 +153,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "movie" }: { o
                 setHits([]);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Medium">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

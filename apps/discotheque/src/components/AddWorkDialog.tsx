@@ -156,7 +156,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "music" }: { o
                 setHits([]);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Medium">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

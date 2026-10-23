@@ -24,7 +24,7 @@ function QuickCaptureDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         <DialogHeader>
           <DialogTitle>Quick capture</DialogTitle>
         </DialogHeader>
-        <Textarea
+        <Textarea aria-label="Note text"
           autoFocus
           rows={3}
           placeholder="A thought, a moment… appended to today's note with the time."
@@ -67,7 +67,7 @@ export function NewTypedDialog({ type, open, onOpenChange }: { type: DocumentTyp
         <DialogHeader>
           <DialogTitle>New {singularOf(type).toLowerCase()}</DialogTitle>
         </DialogHeader>
-        <Input autoFocus placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
+        <Input aria-label="Title" autoFocus placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
         <TemplateSelect type={type.id} value={templateId} onChange={setTemplateId} />
         <DialogFooter>
           <Button onClick={() => void submit()} disabled={!title.trim()}>

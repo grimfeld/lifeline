@@ -137,7 +137,7 @@ export function ProjectDialog({
             <div className="grid gap-2">
               <Label>Stage</Label>
               <Select value={stage} onValueChange={(v) => setStage(v as Stage)}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Stage">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

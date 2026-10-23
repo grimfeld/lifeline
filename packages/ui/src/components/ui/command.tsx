@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Command as CommandPrimitive, defaultFilter } from "cmdk"
+import { Command as CommandPrimitive, defaultFilter, useCommandState } from "cmdk"
 import { SearchIcon } from "lucide-react"
 
 import { cn } from "../../lib/utils"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./dialog"
 
 function Command({
   className,
@@ -23,14 +23,31 @@ function Command({
   )
 }
 
+/** Says how many results the search left, politely, to a screen reader (WCAG 4.1.3). */
+function CommandStatus() {
+  const search = useCommandState((state) => state.search)
+  const count = useCommandState((state) => state.filtered.count)
+  return (
+    <div role="status" aria-live="polite" className="sr-only">
+      {search ? (count === 1 ? "1 result" : `${count} results`) : ""}
+    </div>
+  )
+}
+
 function CommandDialog({
   title = "Command Palette",
+  description = "Search for a command to run, or type to capture.",
+  label = "Search commands",
   children,
   open,
   onOpenChange,
   filter,
 }: {
   title?: string
+  /** Read after the title when the dialog opens; visually hidden. */
+  description?: string
+  /** The search input's name: the placeholder alone is not one. */
+  label?: string
   children: React.ReactNode
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -38,15 +55,17 @@ function CommandDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-      </DialogHeader>
       <DialogContent
         showCloseButton={false}
         className="overflow-hidden p-0"
       >
-        <Command filter={filter} className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <Command label={label} filter={filter} className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
           {children}
+          <CommandStatus />
         </Command>
       </DialogContent>
     </Dialog>

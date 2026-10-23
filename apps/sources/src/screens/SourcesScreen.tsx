@@ -11,6 +11,7 @@ import {
   PhoneDock,
   TagChips,
   toast,
+  Tip,
 } from "@lifeline/ui";
 import { CalendarDays, Gauge, Globe, MoreHorizontal, Pencil, Plus, RefreshCw, Rss, Trash2 } from "lucide-react";
 import { colorVar, type Source, type SourceKind } from "../domain/types";
@@ -50,11 +51,13 @@ function SourceRow({ source, onEdit }: { source: Source; onEdit: (s: Source) => 
         </button>
         <OpenExternalButton url={source.url} iconOnly className="size-8" />
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="size-8">
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
+          <Tip label="More actions">
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" >
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+          </Tip>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(source)}>
               <Pencil /> Edit

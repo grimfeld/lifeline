@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
-import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, PhoneDock, toast } from "@lifeline/ui";
+import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Input, PhoneDock, toast, Tip } from "@lifeline/ui";
 import { basePath, createDocument, displayTitle, documentType, excerpt, singularOf, useAllDocuments, useDocument, useDocumentTypes, useLinkIndex, useUserDocumentTypes, type DocumentTypeDef } from "@lifeline/core";
 import { DocumentEditor, TemplateSelect, TypeEditor } from "@lifeline/editor";
 import { ArrowLeft, Pencil, Plus, Table2 } from "lucide-react";
@@ -112,11 +112,13 @@ export function TypesScreen() {
                 <Button size="icon" variant="ghost" className="size-7 shrink-0" onClick={() => setEditing(t)} title={`Edit the type ${t.label}`} aria-label={`Edit the type ${t.label}`}>
                   <Pencil />
                 </Button>
-                <Button asChild size="icon" variant="ghost" className="size-7 shrink-0" title={`${t.label} Base`}>
-                  <Link to={basePath(t.id)} aria-label={`${t.label} Base`}>
-                    <Table2 />
-                  </Link>
-                </Button>
+                <Tip label={`${t.label} Base`}>
+                  <Button asChild size="icon-sm" variant="ghost" className="shrink-0">
+                    <Link to={basePath(t.id)} aria-label={`${t.label} Base`}>
+                      <Table2 />
+                    </Link>
+                  </Button>
+                </Tip>
               </div>
               {only && <TypeReports type={t} index={index} />}
               {mine.length > 0 && (

@@ -92,18 +92,25 @@ export function AgendaCard({ settings }: CardProps) {
             // Nothing for an empty band, or one whose start or end is no time (NaN): a bad stored value must not paint at `top: NaN`.
             if (!(e > s)) return null;
             const color = b.color ?? "var(--muted-foreground)";
-            return (
-              <div
+            const label = `${formatTime(b.start)}–${formatTime(b.end ?? "24:00")} ${b.title}`;
+            const style = {
+              top: (s - from) * HOUR_PX,
+              height: (e - s) * HOUR_PX,
+              background: `repeating-linear-gradient(135deg, color-mix(in oklab, ${color} 14%, transparent) 0 6px, transparent 6px 12px)`,
+              borderColor: `color-mix(in oklab, ${color} 35%, transparent)`,
+            };
+            // A fixed band only paints; one that opens is a button, so Tab reaches it.
+            return b.fixed ? (
+              <div key={b.key} className="pointer-events-none absolute right-0 left-10 z-0 border-y" style={style} title={label} />
+            ) : (
+              <button
                 key={b.key}
-                className={cn("absolute right-0 left-10 z-0 border-y", b.fixed ? "pointer-events-none" : "cursor-pointer")}
-                onClick={b.fixed ? undefined : (ev) => open({ kind: "timed", item: b }, ev.currentTarget)}
-                style={{
-                  top: (s - from) * HOUR_PX,
-                  height: (e - s) * HOUR_PX,
-                  background: `repeating-linear-gradient(135deg, color-mix(in oklab, ${color} 14%, transparent) 0 6px, transparent 6px 12px)`,
-                  borderColor: `color-mix(in oklab, ${color} 35%, transparent)`,
-                }}
-                title={`${formatTime(b.start)}–${formatTime(b.end ?? "24:00")} ${b.title}`}
+                type="button"
+                aria-label={label}
+                className="focus-visible:ring-ring absolute right-0 left-10 z-0 cursor-pointer border-y focus-visible:ring-2 focus-visible:outline-none"
+                onClick={(ev) => open({ kind: "timed", item: b }, ev.currentTarget)}
+                style={style}
+                title={label}
               />
             );
           })}
@@ -120,11 +127,7 @@ export function AgendaCard({ settings }: CardProps) {
               return (
                 <div
                   key={item.key}
-                  className="absolute cursor-pointer overflow-hidden rounded-sm border-l-[3px] px-1.5 py-0.5 text-xs"
-                  onClick={(ev) => {
-                    if (item.block) open({ kind: "work", item: item.block }, ev.currentTarget);
-                    else if (item.timed) open({ kind: "timed", item: item.timed }, ev.currentTarget);
-                  }}
+                  className="absolute overflow-hidden rounded-sm border-l-[3px] text-xs"
                   style={{
                     top: (s - from) * HOUR_PX + 1,
                     height: (e - s) * HOUR_PX - 2,
@@ -140,11 +143,20 @@ export function AgendaCard({ settings }: CardProps) {
                       <PushButton item={item.block} className="absolute top-0 right-0" />
                     </span>
                   )}
-                  <div className="truncate font-medium">{item.title}</div>
-                  <div className="truncate opacity-80">
-                    {formatTime(item.start)}
-                    {item.end ? `–${formatTime(item.end)}` : ""}
-                  </div>
+                  <button
+                    type="button"
+                    className="focus-visible:ring-ring block size-full cursor-pointer rounded-sm px-1.5 py-0.5 text-left focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset"
+                    onClick={(ev) => {
+                      if (item.block) open({ kind: "work", item: item.block }, ev.currentTarget);
+                      else if (item.timed) open({ kind: "timed", item: item.timed }, ev.currentTarget);
+                    }}
+                  >
+                    <span className="block truncate font-medium">{item.title}</span>
+                    <span className="block truncate opacity-80">
+                      {formatTime(item.start)}
+                      {item.end ? `–${formatTime(item.end)}` : ""}
+                    </span>
+                  </button>
                 </div>
               );
             })}

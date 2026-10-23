@@ -18,8 +18,7 @@ import {
   TagChips,
   TagInput,
   Textarea,
-  toast,
-} from "@lifeline/ui";
+  toast, Field } from "@lifeline/ui";
 import { AlertTriangle, ArrowDownToLine, Check, Play, ShoppingCart } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import { ACQUISITION, type Acquisition, type Work } from "../domain/types";
@@ -89,32 +88,17 @@ export function EditWorkDialog({ item, onClose }: { item: Work | null; onClose: 
           <DialogTitle>Edit {def.label.toLowerCase()}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-3">
-          <div className="grid gap-2">
-            <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
+          <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
           <div className="grid gap-2">
             <Label>{def.creatorLabel}</Label>
             <AuthorPicker value={authors} onChange={setAuthors} placeholder="Add an author…" />
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div className="grid gap-2">
-              <Label>Year</Label>
-              <Input type="number" value={year} onChange={(e) => setYear(e.target.value)} />
-            </div>
-            <div className="grid gap-2">
-              <Label className="truncate">{def.sizeUnit}</Label>
-              <Input type="number" value={size} onChange={(e) => setSize(e.target.value)} />
-            </div>
+            <Field label="Year"><Input type="number" value={year} onChange={(e) => setYear(e.target.value)} /></Field>
+            <Field label={def.sizeUnit}><Input type="number" value={size} onChange={(e) => setSize(e.target.value)} /></Field>
           </div>
-          <div className="grid gap-2">
-            <Label>Cover URL</Label>
-            <Input value={coverUrl} placeholder="https://…" onChange={(e) => setCoverUrl(e.target.value)} />
-          </div>
-          <div className="grid gap-2">
-            <Label>Reason <span className="text-muted-foreground font-normal">(optional)</span></Label>
-            <Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />
-          </div>
+          <Field label="Cover URL"><Input value={coverUrl} placeholder="https://…" onChange={(e) => setCoverUrl(e.target.value)} /></Field>
+          <Field label={<>Reason <span className="text-muted-foreground font-normal">(optional)</span></>}><Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
           <div className="grid gap-2">
             <Label htmlFor="media-edit-tags">Tags</Label>
             <TagInput id="media-edit-tags" value={tags} onChange={setTags} suggestions={tagSuggestions} normalize={normalizeTag} placeholder="Add tag…" />
@@ -122,7 +106,7 @@ export function EditWorkDialog({ item, onClose }: { item: Work | null; onClose: 
           <div className="grid gap-2">
             <Label>Acquisition</Label>
             <Select value={acq} onValueChange={(v) => setAcq(v as Acquisition)}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Acquisition">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

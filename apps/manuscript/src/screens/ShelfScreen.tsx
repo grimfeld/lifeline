@@ -79,7 +79,7 @@ export function ShelfScreen() {
           <DialogHeader>
             <DialogTitle>New manuscript</DialogTitle>
           </DialogHeader>
-          <Input autoFocus placeholder="Working title" value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && title.trim() && void create()} />
+          <Input aria-label="Working title" autoFocus placeholder="Working title" value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && title.trim() && void create()} />
           <Select value={form} onValueChange={setForm}>
             <SelectTrigger aria-label="Form">
               <SelectValue />

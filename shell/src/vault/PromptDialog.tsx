@@ -33,7 +33,7 @@ export function PromptDialog({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
-        <Input autoFocus placeholder={label} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
+        <Input aria-label={label} autoFocus placeholder={label} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
         <DialogFooter>
           <Button onClick={() => void submit()} disabled={!value.trim()}>
             {confirm}
@@ -73,7 +73,7 @@ export function FolderPickerDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <Select value={value === "" ? ROOT : value} onValueChange={(v) => setValue(v === ROOT ? "" : v)}>
-          <SelectTrigger className="w-full">
+          <SelectTrigger aria-label="Folder" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
