@@ -89,3 +89,14 @@ test("Ctrl+Enter away from a link keeps the editor's own binding", async ({ page
   await expect(page.locator(".cm-content .cm-line")).toHaveCount(lines + 1);
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
+
+test("a Peek opened from a link by keyboard gives focus back to where it came from on Escape", async ({ page }) => {
+  const { a } = await seedDay(page, String(Date.now()));
+  await cursorInLink(page, a);
+  await pressMod(page, "Enter");
+  await expect(page.getByRole("dialog", { name: a })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  // Opened without a Trigger, so not Radix's own return: the editor it came from (WCAG 2.4.3).
+  await expect(page.locator(".cm-content").first()).toBeFocused();
+});
