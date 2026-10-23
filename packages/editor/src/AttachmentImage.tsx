@@ -74,7 +74,7 @@ export function AttachmentImage({ name }: { name: string }) {
             Rename…
           </ContextMenuItem>
           <ContextMenuItem onClick={() => void navigator.clipboard?.writeText(`![[${att.name}]]`).then(() => toast.success("Embed copied"))}>Copy embed</ContextMenuItem>
-          <ContextMenuItem disabled={!src} onClick={() => src && window.open(src, "_blank")}>
+          <ContextMenuItem disabled={!src} onClick={() => src && window.open(src, "_blank", "noopener")}>
             Open original
           </ContextMenuItem>
         </ContextMenuContent>
