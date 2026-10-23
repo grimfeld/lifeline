@@ -20,13 +20,16 @@ export interface Config {
 }
 
 /**
- * Who may register as a client: claude.ai's connector callbacks, and loopback
- * on any port (Claude Code and other local clients). An entry is an exact URL
- * or `scheme://host:*` for any port and path on that host.
+ * Who may register as a client: claude.ai's connector callbacks, ChatGPT's
+ * (one per connector, under `/connector/oauth/`, plus its older single
+ * callback), and loopback on any port (Claude Code and other local clients).
+ * The entry forms are in `redirectAllowed` (oauth.ts).
  */
 export const DEFAULT_REDIRECT_ALLOW = [
   "https://claude.ai/api/mcp/auth_callback",
   "https://claude.com/api/mcp/auth_callback",
+  "https://chatgpt.com/connector/oauth/*",
+  "https://chatgpt.com/connector_platform_oauth_redirect",
   "http://localhost:*",
   "http://127.0.0.1:*",
 ];
