@@ -27,6 +27,9 @@
     "test:e2e:quiet": "pnpm --filter @lifeline/shell test:e2e:quiet"
   },
   "packageManager": "pnpm@9.11.0",
+  "engines": {
+    "node": ">=22.12"
+  },
   "pnpm": {
     "overrides": {
       "brace-expansion@>=4 <5.0.12": "^5.0.12",
