@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { addAttachment, documentsOf, documentsWhere, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocument, useDocuments, type DateStr, type Document } from "@lifeline/core";
 import { LINE, PRODUCT, RECEIPT, SHOP, isDimension, isSecondaryDimension, isUnitOf, type Basis, type Dimension, type LabelMemory, type Line, type Product, type Receipt, type SecondaryDimension, type Shop, type Unit } from "../domain/types";
 import { fromAmount, matchedAmount, readMeasure, readSecondary, secondaryMeasure } from "../domain/measure";
-import { clearsSecondAmounts, lastSecondAmount, linesToRetype, observe, receiptTitle, relabel, withLabel, withoutLabel, type LineMatch } from "../domain/derive";
+import { clearsSecondAmounts, lastSecondAmount, linesToRetype, observe, receiptTitle, relabel, withLabel, type LineMatch } from "../domain/derive";
 
 /**
  * PocketBase returns absent fields as "" / undefined; re-establish shapes on
@@ -215,10 +215,6 @@ async function rememberLabel(product: Product, shopId: string, label: string): P
   if (labels !== product.labels) await patchDocument(product.id, { labels });
 }
 
-async function forgetLabel(product: Product, shopId: string, label: string): Promise<void> {
-  const labels = withoutLabel(product, shopId, label);
-  if (labels !== product.labels) await patchDocument(product.id, { labels });
-}
 
 // ---- Receipts and Lines ----
 
@@ -361,12 +357,6 @@ export async function deleteReceipt(id: string): Promise<void> {
 export async function matchLine(line: Line, product: Product, receipt: Receipt): Promise<void> {
   await patchDocument(line.id, { productId: product.id, amount: matchedAmount(line, product) });
   await rememberLabel(product, receipt.shopId, line.label);
-}
-
-/** Back to the inbox, and the Product forgets that label at that Shop. */
-export async function unmatchLine(line: Line, product: Product | undefined, receipt: Receipt): Promise<void> {
-  await patchDocument(line.id, { productId: "" });
-  if (product) await forgetLabel(product, receipt.shopId, line.label);
 }
 
 /**

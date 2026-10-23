@@ -13,8 +13,7 @@
     "@lifeline/core": "workspace:*",
     "@lifeline/parts": "workspace:*",
     "@lifeline/ui": "workspace:*",
-    "lucide-react": "catalog:",
-    "react-router": "catalog:"
+    "lucide-react": "catalog:"
   },
   "peerDependencies": {
     "react": "catalog:"

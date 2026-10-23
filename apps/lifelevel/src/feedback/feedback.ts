@@ -24,10 +24,6 @@ const MUTE_KEY = "lifelevel.audio.muted";
 let mutedState = typeof localStorage !== "undefined" && localStorage.getItem(MUTE_KEY) === "1";
 const muteListeners = new Set<() => void>();
 
-export function isMuted(): boolean {
-  return mutedState;
-}
-
 export function setMuted(m: boolean): void {
   mutedState = m;
   try {

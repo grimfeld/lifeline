@@ -1,0 +1,28 @@
+// Unused files, dependencies and exports (CLAUDE.md: `pnpm knip`). Entry points that
+// the plugins cannot see are listed here; anything ignored says why.
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // An export only its own file uses is not dead: the file may use it, so keep it.
+  "ignoreExportsUsedInFile": true,
+  // `docPath`/`notePath`, `STAT`/`STATS`...: deliberate aliases, not duplicates.
+  "rules": { "duplicates": "off" },
+  // Windows-only lookup in scripts/dev-launcher.mjs.
+  "ignoreBinaries": ["where"],
+  "workspaces": {
+    ".": { "entry": ["scripts/*.mjs"], "project": ["scripts/**"] },
+    "mcp": { "entry": ["src/server.ts", "scripts/*.mjs"], "project": ["src/**", "scripts/**"] },
+    "packages/extension": { "entry": ["src/background.ts", "src/inject.ts"], "project": ["src/**", "scripts/**"] },
+    "shell": {
+      "entry": ["e2e/*.setup.ts", "e2e/*.spec.ts"],
+      "project": ["src/**", "e2e/**"],
+      "ignoreDependencies": [
+        // @tailwindcss/vite requires it as a peer.
+        "tailwindcss",
+        // Imported from index.css as a stylesheet; it comes with react-grid-layout.
+        "react-resizable"
+      ],
+      // screens.spec.ts imports this path inside the page (the Vite dev server), not from disk.
+      "ignoreUnresolved": ["/src/modules/shells.ts"]
+    }
+  }
+}

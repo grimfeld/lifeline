@@ -14,8 +14,7 @@
     "@lifeline/editor": "workspace:*",
     "@lifeline/ui": "workspace:*",
     "lucide-react": "catalog:",
-    "react-router": "catalog:",
-    "remark-gfm": "catalog:"
+    "react-router": "catalog:"
   },
   "peerDependencies": {
     "react": "catalog:",

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsWhere, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, todayStr, useDocuments } from "@lifeline/core";
+import { getDocument, normalizeTags, patchDocument, putDocument, removeDocument, todayStr, useDocuments } from "@lifeline/core";
 import { QUOTES, QUOTES_FOLDER, type Quote } from "../domain/types";
 
 function normalize(q: Quote): Quote {
@@ -54,9 +54,4 @@ export async function unkeepQuote(id: string): Promise<void> {
 
 export async function deleteQuote(id: string): Promise<void> {
   await removeDocument(id);
-}
-
-/** Every Quote taken from one Source. */
-export async function quotesOf(source: string): Promise<Quote[]> {
-  return (await documentsWhere<Quote>(QUOTES, "source", source)).map(normalize);
 }

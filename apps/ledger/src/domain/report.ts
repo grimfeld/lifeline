@@ -324,19 +324,6 @@ export function groupReport(rows: CategoryReportRow[], months: MonthStr[]): Grou
 
 export type CategorySortKey = "total-desc" | "total-asc" | "average-desc" | "share-desc" | "change-desc" | "change-asc" | "over-budget" | "under-budget" | "name" | "group";
 
-export const CATEGORY_SORT_LABEL: Record<CategorySortKey, string> = {
-  "total-desc": "Biggest total",
-  "total-asc": "Smallest total",
-  "average-desc": "Biggest monthly average",
-  "share-desc": "Biggest share",
-  "change-desc": "Climbing fastest",
-  "change-asc": "Falling fastest",
-  "over-budget": "Most over target",
-  "under-budget": "Most under target",
-  name: "Name A–Z",
-  group: "Group A–Z",
-};
-
 /** The sorts the category and budget tables offer — one comparator per option, no hidden tiebreaks. */
 export const CATEGORY_SORTS: Record<CategorySortKey, (a: CategoryReportRow, b: CategoryReportRow) => number> = {
   "total-desc": (a, b) => b.total - a.total || a.title.localeCompare(b.title),

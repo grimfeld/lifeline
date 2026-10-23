@@ -60,17 +60,6 @@ export function familyLabel(family: string, plural = false, typeLabel?: (id: str
 /** "" = any family (the card knob). */
 export type WorkFilter = string;
 
-export const byType = (items: SourceItem[], family: WorkFilter) => (family ? items.filter((m) => m.family === family) : items);
-
-/**
- * The Source a capture should default to: the latest-started work in
- * progress (what I'm reading, watching, listening to now), else the Source
- * last noted or quoted from, else the most recently added.
- */
-export function defaultCaptureItem(items: SourceItem[], family: WorkFilter = "", lastUsed: ReadonlyMap<string, string> = new Map()): SourceItem | undefined {
-  return currentSources(byType(items, family), lastUsed)[0];
-}
-
 /**
  * "The Sources I'm in now", in order (ADR 0070's capture): works in progress
  * by when they started, then Sources by when I last took something from

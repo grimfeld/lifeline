@@ -46,7 +46,6 @@
     "@lifeline/guide": "workspace:*",
     "@lifeline/handoff": "workspace:^",
     "@lifeline/ui": "workspace:*",
-    "@tauri-apps/api": "^2.12.4",
     "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
