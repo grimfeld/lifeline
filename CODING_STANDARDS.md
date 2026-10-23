@@ -55,6 +55,9 @@ nearest existing pattern and don't hand-roll a new one.
 - **(check)** A colour a Document chooses is a slot: `bg-slot-blue`, `text-slot-red`…, or
   `colorVar(slot)` when the slot is data. Hearts are `text-slot-red`, star ratings
   `text-slot-yellow`.
+- Text on a slot colour is the foreground over a tint (`color-mix(in oklab, <slot> 25%,
+  var(--card))`, the slot on a left border), never white on the bare slot: that falls near
+  3:1 (WCAG 1.4.3). Every token is text-safe at 4.5:1 on its background.
 - White or black text over a cover image is the one palette exception; mark it
   `ui-allow: raw-colour — over a cover image`.
 - Dark mode is the tokens' job; `dark:` variants only patch something the tokens can't.
@@ -80,6 +83,9 @@ nearest existing pattern and don't hand-roll a new one.
   file imports from `@lifeline/ui` except the layout components a size class may size
   (`KIT_LAYOUT` in `scripts/check-ui.mjs`: `Card*`, `Page*`, `*Content`, headers, footers,
   titles, lists, groups, `Separator`, `Field`, `MapView`…).
+- A tap target is at least 24×24 (WCAG 2.5.8): `icon-xs` is the smallest icon Button. A
+  smaller mark (a 14px disc) grows its hit area with `relative after:absolute
+  after:-inset-1.5`, as `Checkbox` does.
 - Icons are `size-3`, `size-3.5` or `size-4` (`size-5` in big tiles); an icon inside a
   `Button` needs no class.
 - Spacing stays on the scale (`gap-1` … `gap-6`); arbitrary lengths only for a real
