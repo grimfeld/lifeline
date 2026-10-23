@@ -64,6 +64,7 @@ export function ItemPeek({ doc }: { doc: Document }) {
   const topic = useTopics().find((l) => l.id === item.languageId);
   const decks = useDecks().filter((d) => d.languageId === item.languageId);
   const [editing, setEditing] = useState(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read the clock whenever a Recall lands
   const now = useMemo(() => new Date(), [recalls]);
   const prompts = useMemo(() => heldPrompts([itemMaterial(item)], recalls), [item, recalls]);
 

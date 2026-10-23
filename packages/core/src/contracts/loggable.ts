@@ -41,7 +41,6 @@ export function useLoggableTargets(): LoggableTarget[] {
   const providers = loggableProviders();
   // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
   return providers.flatMap((p) =>
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     p.useTargets().map((t) => ({ ...t, key: t.key || `${p.appId}/${t.id}`, appId: p.appId })),
   );
 }

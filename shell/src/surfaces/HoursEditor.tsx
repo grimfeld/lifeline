@@ -158,8 +158,7 @@ export function HoursEditor({
     const w = target.item;
     if (isBlock(w)) return { date: w.displayDate ?? w.date ?? defaultDay, start: w.start!, len: minutesBetween(w.start!, w.end, BLOCK_DEFAULT_MIN) };
     return { date: w.displayDate ?? defaultDay, start: null as string | null, len: w.estimateMin && w.estimateMin > 0 ? w.estimateMin : BLOCK_DEFAULT_MIN };
-    // The editor is keyed per target: the snapshot is taken once, when it opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the editor is keyed per target: the snapshot is taken once, when it opens
   }, []);
   const [date, setDate] = useState<DateStr>(initial.date);
   const [start, setStart] = useState<string | null>(initial.start);

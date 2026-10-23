@@ -64,7 +64,6 @@ export function commandAppTitle(appId: string): string | undefined {
 export function useAllCommands(): OwnedCommand[] {
   // Hook order is stable: the App list is fixed at compile time (ADR 0003).
   const own = apps.flatMap((a) => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const dynamic = a.useCommands ? a.useCommands() : [];
     return [...a.commands, ...dynamic].map((c) => ({ ...c, appId: a.id }));
   });
@@ -120,7 +119,6 @@ export function cardById(id: string): (CardDef & { appId: string }) | undefined 
  */
 export function useCardInstanceTitle(def: CardDef, settings: CardSettings): string {
   // Hook order is stable per component instance: `def` never changes for a mounted card.
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const t = def.instanceTitle ? def.instanceTitle(resolveSettings(cardSchema(def), settings)) : "";
   const base = t || def.title;
   // A tagFilterable instance with its own filter says so: "Today · #garden #plants" (ADR 0014).

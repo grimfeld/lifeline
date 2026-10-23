@@ -66,7 +66,7 @@ export function TransactionEditorDialog({
     setNote(transaction?.note ?? initialText(initial, "note"));
     setTags(transaction?.tags ?? initialList(initial, "tags"));
     setMergeCounterpartId("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seeds the form when it opens or its subject changes; the live lists re-seed only on their first arrival, so a re-read does not wipe what was typed
   }, [open, transaction, initialKind, initial, categories.length === 0]);
 
   /** Picking a known payee prefills the rest of the form from its last Transaction. */

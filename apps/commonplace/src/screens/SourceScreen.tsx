@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router";
 import { Badge, Button } from "@lifeline/ui";
 import { docHref, documentType, isExternalUrl, patchDocument, useDocument, useLinkIndex, type Document } from "@lifeline/core";
@@ -29,9 +29,9 @@ export function SourceScreen() {
   const children = useMemo(() => sources.filter((s) => s.parent === id), [sources, id]);
   // A parent Source gathers what was taken from its children too (CONTEXT.md "Source"), each marked with the child it came from.
   const childTitle = useMemo(() => new Map(children.map((c) => [c.id, c.title])), [children]);
-  const from = (source: string) => source === id || childTitle.has(source);
-  const own = useMemo(() => newestFirst(quotes.filter((q) => from(q.source))), [quotes, id, childTitle]); // eslint-disable-line react-hooks/exhaustive-deps
-  const mine = useMemo(() => notes.filter((n) => from(n.source)).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.updatedAt.localeCompare(a.updatedAt)), [notes, id, childTitle]); // eslint-disable-line react-hooks/exhaustive-deps
+  const from = useCallback((source: string) => source === id || childTitle.has(source), [id, childTitle]);
+  const own = useMemo(() => newestFirst(quotes.filter((q) => from(q.source))), [quotes, from]);
+  const mine = useMemo(() => notes.filter((n) => from(n.source)).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.updatedAt.localeCompare(a.updatedAt)), [notes, from]);
   const parent = item?.parent ? sources.find((s) => s.id === item.parent) : undefined;
 
   if (!doc || !item) {

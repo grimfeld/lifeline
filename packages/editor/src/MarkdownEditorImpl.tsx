@@ -184,8 +184,7 @@ export function MarkdownEditor({
       viewRef.current = null;
       setView(null);
     };
-    // The editor is created once per mount; value/index/context are pushed via effects below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the editor is created once per mount; value/index/context are pushed via effects below
   }, []);
 
   useEffect(() => {

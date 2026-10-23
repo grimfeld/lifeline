@@ -24,7 +24,7 @@ async function peekNew(page: Page, make: (core: Core, stamp: number) => Promise<
   return { id, dialog };
 }
 
-const field = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))!?.[a.key], { id, key });
+const field = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))?.[a.key], { id, key });
 
 test("Stats: a Stat's unit is edited in its Peek; its kind stays fixed", async ({ page }) => {
   const { id, dialog } = await peekNew(page, async (core, stamp) => (await core.putDocument({ type: "stat", title: `Push-ups ${stamp}`, kind: "additive", unit: "reps", color: "blue", defaultIncrement: 10 })).id);

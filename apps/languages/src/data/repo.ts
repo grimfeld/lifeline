@@ -81,12 +81,11 @@ export function useItems(languageId: string | undefined): Item[] {
  */
 export function useAllMaterial(): MaterialDoc[] {
   const defs = recallableDefs();
-  // Hook order is stable: the declarations are fixed at compile time (ADR 0003).
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- hook order is stable: the declarations are fixed at compile time (ADR 0003)
   const rows = defs.map((d) => useDocuments(d.typeId));
   return useMemo(
     () => defs.flatMap((d, i) => (rows[i] ?? []).map((doc) => materialOf(d, doc))).filter((m) => m.topicId),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `rows` is the list itself: one live query per Recallable declaration, fixed in length (ADR 0003)
     rows,
   );
 }

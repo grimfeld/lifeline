@@ -6,7 +6,7 @@ import { freeSlots, isBuySignal, isStale, promote, slotAge, start } from "../dom
 import { Cover } from "./Cover";
 import { ACQ_LABEL } from "./AddWorkDialog";
 import { QuickActionsRow } from "./QuickActions";
-import { WorkActionsMenu, useAct } from "./WorkActions";
+import { WorkActionsMenu, actOn } from "./WorkActions";
 import { useState } from "react";
 import { toast } from "@lifeline/ui";
 import { patchWork, useLookupSettings } from "../data/repo";
@@ -76,7 +76,7 @@ export function WorkDetailDialog({ item, all, onClose, onEdit }: { item: Work | 
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
   const age = slotAge(item);
   const stale = isStale(item);
-  const act = useAct(item);
+  const act = actOn(item);
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>

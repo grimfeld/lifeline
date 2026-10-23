@@ -8,6 +8,6 @@ import { useMemo } from "react";
  */
 export function useStructuralMemo<T>(value: T): T {
   const key = JSON.stringify(value);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the value's JSON, which is this hook's whole point
   return useMemo(() => value, [key]);
 }

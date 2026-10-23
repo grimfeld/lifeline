@@ -84,8 +84,8 @@ export function useSourceCache(s: Source | undefined): SourceCacheEntry | undefi
     if (stale) void refreshSource(s);
     const t = setInterval(() => void refreshSource(s), periodMs(s));
     return () => clearInterval(t);
-    // Re-arm when the source's url/headers/period change or it becomes stale.
-  }, [s?.id, s?.url, s?.refreshMinutes, JSON.stringify(s?.headers ?? null), stale]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-arm when the source's url/headers/period change or it becomes stale
+  }, [s?.id, s?.url, s?.refreshMinutes, JSON.stringify(s?.headers ?? null), stale]);
   return entry;
 }
 
@@ -110,7 +110,8 @@ export function useSourceCaches(sources: Source[]): Map<string, SourceCacheEntry
     for (const s of sources) if (isStale(map.get(s.id), s)) void refreshSource(s);
     const timers = sources.map((s) => setInterval(() => void refreshSource(s), periodMs(s)));
     return () => timers.forEach(clearInterval);
-  }, [key, staleKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the ids and the stale ones: `sources` and `map` are new on every render
+  }, [key, staleKey]);
   return map;
 }
 

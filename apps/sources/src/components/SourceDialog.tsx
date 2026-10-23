@@ -111,18 +111,26 @@ export function SourceDialog({
     let id: string;
     try {
       if (k === "embed") {
-        if (source?.kind === "embed") (await updateEmbed(source, base), (id = source.id));
-        else id = await addEmbed(base);
+        if (source?.kind === "embed") {
+          await updateEmbed(source, base);
+          id = source.id;
+        } else id = await addEmbed(base);
       } else if (k === "feed") {
-        if (source?.kind === "feed") (await updateFeed(source, base), (id = source.id));
-        else id = await addFeed(base);
+        if (source?.kind === "feed") {
+          await updateFeed(source, base);
+          id = source.id;
+        } else id = await addFeed(base);
       } else if (k === "ical") {
-        if (source?.kind === "ical") (await updateCalendarSub(source, { ...base, color }), (id = source.id));
-        else id = await addCalendarSub({ ...base, color });
+        if (source?.kind === "ical") {
+          await updateCalendarSub(source, { ...base, color });
+          id = source.id;
+        } else id = await addCalendarSub({ ...base, color });
       } else {
         const v = { ...base, mode, path, unit, prefix, decimals: decimals.trim() === "" ? null : Number(decimals) };
-        if (source?.kind === "value") (await updateLiveValue(source, v), (id = source.id));
-        else id = await addLiveValue(v);
+        if (source?.kind === "value") {
+          await updateLiveValue(source, v);
+          id = source.id;
+        } else id = await addLiveValue(v);
       }
     } catch (e) {
       return void toast.error((e as Error).message);

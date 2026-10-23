@@ -41,7 +41,7 @@ export function JournalScreen() {
     if (date !== today || note || creating) return;
     setCreating(true);
     void ensureDailyNote(today).finally(() => setCreating(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the Day and its note's id; `creating` only guards a second create and must not re-run it
   }, [date, today, note?.id]);
 
   return (

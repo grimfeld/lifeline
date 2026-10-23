@@ -170,7 +170,7 @@ function macrosWithLongContent(edit?: boolean) {
     await workLocally(page);
     const name = longText("A Macro");
     await page.evaluate(
-      async ({ coreUrl, name, title, note }) => {
+      async ({ coreUrl, name, title }) => {
         const core = await import(/* @vite-ignore */ coreUrl);
         if ((await core.allMacros()).some((m: { name: string }) => m.name === name)) return;
         await core.saveMacro({
@@ -182,7 +182,7 @@ function macrosWithLongContent(edit?: boolean) {
           ],
         });
       },
-      { coreUrl: CORE_URL, name, title: longText("A task"), note: longText("A note") },
+      { coreUrl: CORE_URL, name, title: longText("A task") },
     );
     const row = page.getByRole("list", { name: "Macros" }).getByRole("button", { name }).first();
     await row.waitFor();

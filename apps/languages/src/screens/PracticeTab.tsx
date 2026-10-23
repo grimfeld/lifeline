@@ -56,7 +56,8 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
   }, [allMaterial, liveTopics]);
   const { chains, titleOf } = useSourceChains(everything);
 
-  const now = useMemo(() => new Date(), [allRecalls]); // re-read the clock whenever practice changes something
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read the clock whenever practice changes something
+  const now = useMemo(() => new Date(), [allRecalls]);
   const live = useMemo(() => items.filter((i) => i.live), [items]);
   const liveAll = useMemo(() => everything.filter((i) => i.live), [everything]);
   // The Recalls are replayed once per change; the Topic's queue, each Deck's, each Source's and the week ahead all read these.

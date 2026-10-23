@@ -85,8 +85,10 @@ export function TypeEditor({
   const [body, setBody] = useState<BodyPolicy>(record?.body ?? base?.body ?? "optional");
   const [linkable, setLinkable] = useState(record?.linkable ?? (base ? !!base.linkable : true));
   // A built-in's own Fields stay its App's (CONTEXT.md "Field"): the form holds only the ones the user adds beside them.
-  const ownKeys = new Set((base?.fields ?? []).map((f) => f.key));
-  const savedFields = useMemo(() => (record?.fields ?? []).filter((f) => !ownKeys.has(f.key)), [record, base]);
+  const savedFields = useMemo(() => {
+    const ownKeys = new Set((base?.fields ?? []).map((f) => f.key));
+    return (record?.fields ?? []).filter((f) => !ownKeys.has(f.key));
+  }, [record, base]);
   const [rows, setRows] = useState<Row[]>(
     record || base ? toRows(savedFields) : [withUid(newKnownFieldDraft(knownField("aliases")))],
   );
