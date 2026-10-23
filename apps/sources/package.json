@@ -13,16 +13,16 @@
     "@lifeline/core": "workspace:*",
     "@lifeline/ui": "workspace:*",
     "ical.js": "^2",
-    "lucide-react": "^1.58.0",
-    "react-router": "^7.18.4"
+    "lucide-react": "catalog:",
+    "react-router": "catalog:"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "catalog:"
   },
   "devDependencies": {
-    "@types/react": "^19.3.0",
-    "jsdom": "^26",
-    "typescript": "~5.9.3",
-    "vitest": "^5.0.5"
+    "@types/react": "catalog:",
+    "jsdom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

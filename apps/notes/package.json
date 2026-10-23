@@ -13,20 +13,20 @@
     "@lifeline/core": "workspace:*",
     "@lifeline/editor": "workspace:*",
     "@lifeline/ui": "workspace:*",
-    "lucide-react": "^1.58.0",
-    "react-router": "^7.18.4",
-    "remark-gfm": "^4.0.1"
+    "lucide-react": "catalog:",
+    "react-router": "catalog:",
+    "remark-gfm": "catalog:"
   },
   "peerDependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "typescript": "~5.9.3",
-    "vitest": "^5.0.5"
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

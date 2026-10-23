@@ -4,6 +4,60 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    '@dnd-kit/core':
+      specifier: ^6.3.1
+      version: 6.3.1
+    '@types/node':
+      specifier: ^26.6.5
+      version: 26.6.5
+    '@types/react':
+      specifier: ^19.3.0
+      version: 19.3.0
+    '@types/react-dom':
+      specifier: ^19.3.0
+      version: 19.3.0
+    fake-indexeddb:
+      specifier: ^6.2.6
+      version: 6.2.6
+    jsdom:
+      specifier: ^26.1.0
+      version: 26.1.0
+    lucide-react:
+      specifier: ^1.58.0
+      version: 1.58.0
+    pocketbase:
+      specifier: ^0.28.1
+      version: 0.28.1
+    react:
+      specifier: ^19.3.1
+      version: 19.3.1
+    react-dom:
+      specifier: ^19.3.1
+      version: 19.3.1
+    react-router:
+      specifier: ^7.18.4
+      version: 7.18.4
+    recharts:
+      specifier: ^3.10.1
+      version: 3.10.1
+    remark-gfm:
+      specifier: ^4.0.1
+      version: 4.0.1
+    tailwindcss:
+      specifier: ^4.3.3
+      version: 4.3.3
+    typescript:
+      specifier: ~5.9.3
+      version: 5.9.3
+    vite:
+      specifier: ^8.3.4
+      version: 8.3.4
+    vitest:
+      specifier: ^5.0.5
+      version: 5.0.5
+
 overrides:
   brace-expansion@>=4 <5.0.12: ^5.0.12
   fast-uri@>=3 <3.1.8: ^3.1.8
@@ -32,26 +86,26 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/calendar:
@@ -63,23 +117,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/chores:
@@ -91,23 +145,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/cinema:
@@ -122,29 +176,29 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       jsdom:
-        specifier: ^26
+        specifier: 'catalog:'
         version: 26.1.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/commonplace:
@@ -159,23 +213,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/discotheque:
@@ -190,29 +244,29 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       jsdom:
-        specifier: ^26
+        specifier: 'catalog:'
         version: 26.1.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/languages:
@@ -224,29 +278,29 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       ts-fsrs:
         specifier: ^5.4.2
         version: 5.4.2
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/ledger:
@@ -258,29 +312,29 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       recharts:
-        specifier: ^3.10.1
+        specifier: 'catalog:'
         version: 3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@16.13.1)(react@19.3.1)(redux@5.0.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/library:
@@ -295,29 +349,29 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       jsdom:
-        specifier: ^26
+        specifier: 'catalog:'
         version: 26.1.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/lifelevel:
@@ -329,29 +383,29 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       jsdom:
-        specifier: ^26
+        specifier: 'catalog:'
         version: 26.1.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/manuscript:
@@ -369,29 +423,29 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       '@types/react-dom':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
       react:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1
       react-dom:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/mood:
@@ -403,23 +457,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/museum:
@@ -434,26 +488,26 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/notes:
@@ -468,32 +522,32 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       remark-gfm:
-        specifier: ^4.0.1
+        specifier: 'catalog:'
         version: 4.0.1
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       '@types/react-dom':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
       react:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1
       react-dom:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/pantry:
@@ -505,23 +559,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/pocket:
@@ -533,23 +587,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/prices:
@@ -561,32 +615,32 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       recharts:
-        specifier: ^3.10.1
+        specifier: 'catalog:'
         version: 3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@16.13.1)(react@19.3.1)(redux@5.0.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       jsdom:
-        specifier: ^26
+        specifier: 'catalog:'
         version: 26.1.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/projects:
@@ -604,26 +658,26 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/shopping:
@@ -635,23 +689,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/sources:
@@ -666,26 +720,26 @@ importers:
         specifier: ^2
         version: 2.2.1
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       jsdom:
-        specifier: ^26
+        specifier: 'catalog:'
         version: 26.1.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/stats:
@@ -697,26 +751,26 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       recharts:
-        specifier: ^3.10.1
+        specifier: 'catalog:'
         version: 3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@16.13.1)(react@19.3.1)(redux@5.0.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/swearjar:
@@ -728,23 +782,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/tasks:
@@ -756,23 +810,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/thoughts:
@@ -787,29 +841,29 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       '@types/react-dom':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
       react:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1
       react-dom:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/workout:
@@ -821,23 +875,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   apps/writer:
@@ -852,23 +906,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   mcp:
@@ -967,16 +1021,16 @@ importers:
         specifier: ^5.3.0
         version: 5.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       pocketbase:
-        specifier: ^0.28.1
+        specifier: 'catalog:'
         version: 0.28.1
       react:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1
       react-dom:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
       zod:
         specifier: ^4.6.7
@@ -986,22 +1040,22 @@ importers:
         specifier: ^5.0.0
         version: 5.0.6
       '@types/node':
-        specifier: ^26.6.5
+        specifier: 'catalog:'
         version: 26.6.5
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
       jsdom:
-        specifier: ^26.1.0
+        specifier: 'catalog:'
         version: 26.1.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   packages/core:
@@ -1022,26 +1076,26 @@ importers:
         specifier: ^4.4.0
         version: 4.4.0(dexie@4.4.6)(react@19.3.1)
       pocketbase:
-        specifier: ^0.28.1
+        specifier: 'catalog:'
         version: 0.28.1
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
     devDependencies:
       '@types/node':
-        specifier: ^26.6.5
+        specifier: 'catalog:'
         version: 26.6.5
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       fake-indexeddb:
-        specifier: ^6.2.6
+        specifier: 'catalog:'
         version: 6.2.6
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   packages/editor:
@@ -1065,7 +1119,7 @@ importers:
         specifier: ^6.43.14
         version: 6.43.14
       '@dnd-kit/core':
-        specifier: ^6.3.1
+        specifier: 'catalog:'
         version: 6.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@lezer/highlight':
         specifier: ^1.2.5
@@ -1077,35 +1131,35 @@ importers:
         specifier: workspace:*
         version: link:../ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react-markdown:
         specifier: ^10.1.0
         version: 10.1.0(@types/react@19.3.0)(react@19.3.1)
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       remark-gfm:
-        specifier: ^4.0.1
+        specifier: 'catalog:'
         version: 4.0.1
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       '@types/react-dom':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
       react:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1
       react-dom:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   packages/extension:
@@ -1127,37 +1181,37 @@ importers:
         specifier: ^5.0.5
         version: 5.0.6
       jsdom:
-        specifier: ^26
+        specifier: 'catalog:'
         version: 26.1.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^8.3.4
+        specifier: 'catalog:'
         version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   packages/guide:
     devDependencies:
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   packages/handoff:
     devDependencies:
       '@types/node':
-        specifier: ^26.6.5
+        specifier: 'catalog:'
         version: 26.6.5
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   packages/parts:
@@ -1169,20 +1223,20 @@ importers:
         specifier: workspace:*
         version: link:../ui
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
     devDependencies:
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   packages/ui:
@@ -1206,7 +1260,7 @@ importers:
         specifier: ^1.9.4
         version: 1.9.4
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       next-themes:
         specifier: ^0.4.6
@@ -1215,13 +1269,13 @@ importers:
         specifier: ^1.8.1
         version: 1.8.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1
       react-day-picker:
         specifier: 10.0.2
         version: 10.0.2(@types/react@19.3.0)(react@19.3.1)
       react-dom:
-        specifier: ^19.0.0
+        specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
       react-leaflet:
         specifier: ^5.0.0
@@ -1246,25 +1300,25 @@ importers:
         specifier: ^1.9.22
         version: 1.9.22
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       '@types/react-dom':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
       tailwindcss:
-        specifier: ^4.3.3
+        specifier: 'catalog:'
         version: 4.3.3
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   shell:
     dependencies:
       '@dnd-kit/core':
-        specifier: ^6.3.1
+        specifier: 'catalog:'
         version: 6.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@lifeline/app-arcade':
         specifier: workspace:*
@@ -1363,19 +1417,19 @@ importers:
         specifier: ^2.12.4
         version: 2.12.4
       lucide-react:
-        specifier: ^1.58.0
+        specifier: 'catalog:'
         version: 1.58.0(@types/react@19.3.0)(react@19.3.1)
       react:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1
       react-dom:
-        specifier: ^19.3.1
+        specifier: 'catalog:'
         version: 19.3.1(react@19.3.1)
       react-grid-layout:
         specifier: ^1.5.2
         version: 1.5.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react-router:
-        specifier: ^7.18.4
+        specifier: 'catalog:'
         version: 7.18.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@playwright/test':
@@ -1388,13 +1442,13 @@ importers:
         specifier: ^2.12.3
         version: 2.12.3
       '@types/node':
-        specifier: ^26.6.5
+        specifier: 'catalog:'
         version: 26.6.5
       '@types/react':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0
       '@types/react-dom':
-        specifier: ^19.3.0
+        specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
       '@types/react-grid-layout':
         specifier: ^1.3.5
@@ -1403,19 +1457,19 @@ importers:
         specifier: ^6.1.2
         version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
       jsdom:
-        specifier: ^26.1.0
+        specifier: 'catalog:'
         version: 26.1.0
       tailwindcss:
-        specifier: ^4.3.3
+        specifier: 'catalog:'
         version: 4.3.3
       typescript:
-        specifier: ~5.9.3
+        specifier: 'catalog:'
         version: 5.9.3
       vite:
-        specifier: ^8.3.4
+        specifier: 'catalog:'
         version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)
       vitest:
-        specifier: ^5.0.5
+        specifier: 'catalog:'
         version: 5.0.5(@types/node@26.6.5)(jsdom@26.1.0)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
 packages:
