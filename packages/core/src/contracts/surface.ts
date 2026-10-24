@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { db, type Placement } from "../data/db";
 import { sharedLiveQuery } from "../data/live";
 import { newId } from "../ids";
@@ -139,20 +140,26 @@ export function useSurfaceItems(range: { start: DateStr; end: DateStr }, opts?: 
 
   const today = todayStr();
   const now = nowClock();
-  const byItem = groupByItem(placements);
+  const { start, end } = range;
 
-  const out: SurfaceItem[] = [];
-  for (const { provider, items } of perProvider) {
-    if (!inSurfaceScope(scope, provider.appId)) continue;
-    const color = appById(provider.appId)?.color;
-    const resolve: ResolveOptions = { ownsMoves: !!provider.move, overduePolicy: provider.overduePolicy, today, now };
-    for (const item of items) {
-      if (!matchesTagFilter(item.tags, filter)) continue;
-      for (const row of resolveItemRows(item, byItem.get(item.key) ?? [], resolve)) out.push({ ...row, color });
+  // Rebuilt only when an input moved: one dependency per provider, whose number is fixed (ADR 0003).
+  const out = useMemo(() => {
+    const byItem = groupByItem(placements);
+    const rows: SurfaceItem[] = [];
+    for (const { provider, items } of perProvider) {
+      if (!inSurfaceScope(scope, provider.appId)) continue;
+      const color = appById(provider.appId)?.color;
+      const resolve: ResolveOptions = { ownsMoves: !!provider.move, overduePolicy: provider.overduePolicy, today, now };
+      for (const item of items) {
+        if (!matchesTagFilter(item.tags, filter)) continue;
+        for (const row of resolveItemRows(item, byItem.get(item.key) ?? [], resolve)) rows.push({ ...row, color });
+      }
     }
-  }
+    return rows.filter((i) => i.displayDate >= start && i.displayDate <= end);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...perProvider.map((p) => p.items), placements, today, now, scope, filter, start, end]);
   // Stable while nothing changed, so the surfaces' memos can hit.
-  return useStructuralMemo(out.filter((i) => i.displayDate >= range.start && i.displayDate <= range.end));
+  return useStructuralMemo(out);
 }
 
 /**
@@ -195,19 +202,23 @@ export function usePoolItems(opts?: { tags?: TagFilter }): PoolItem[] {
   const scope = useSurfaceScope();
   const perProvider = useProviderItems({ start: today, end: today });
   const placements = usePlacements();
-  const byItem = groupByItem(placements);
-  const out: PoolItem[] = [];
-  for (const { provider, items } of perProvider) {
-    if (!inSurfaceScope(scope, provider.appId)) continue;
-    const color = appById(provider.appId)?.color;
-    for (const item of items) {
-      const own = byItem.get(item.key) ?? [];
-      if (!isPoolItem(item, own, !!provider.move)) continue;
-      if (!matchesTagFilter(item.tags, filter)) continue;
-      const blocksAhead = own.filter((pl) => isBlock(pl) && blockAhead(pl, today, now)).length;
-      out.push({ ...item, color, blocksAhead });
+  const out = useMemo(() => {
+    const byItem = groupByItem(placements);
+    const rows: PoolItem[] = [];
+    for (const { provider, items } of perProvider) {
+      if (!inSurfaceScope(scope, provider.appId)) continue;
+      const color = appById(provider.appId)?.color;
+      for (const item of items) {
+        const own = byItem.get(item.key) ?? [];
+        if (!isPoolItem(item, own, !!provider.move)) continue;
+        if (!matchesTagFilter(item.tags, filter)) continue;
+        const blocksAhead = own.filter((pl) => isBlock(pl) && blockAhead(pl, today, now)).length;
+        rows.push({ ...item, color, blocksAhead });
+      }
     }
-  }
+    return rows;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...perProvider.map((p) => p.items), placements, today, now, scope, filter]);
   return useStructuralMemo(out);
 }
 

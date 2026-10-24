@@ -1,67 +1,15 @@
-import type { Engagement, Work } from "./types";
-import { workType, type WorkTypeId } from "./workTypes";
+import { GALLERY_SORTS as ALL_SORTS, matchesWorkSearch } from "@lifeline/parts";
+import type { Work } from "./types";
+
+export { onShelf, SHELVES, sortGallery, type GallerySort, type Shelf } from "@lifeline/parts";
+export { shelfLabel } from "./cardQueries";
 
 /**
- * Free-text search over title, Author names, reason and tags. Empty needle
- * matches all. A leading `#` restricts the needle to tags (`#garden`); a bare
- * word also matches items tagged with it (`garden`). `authorNames` resolves a
- * Work's Author ids to names (ADR 0052) — the caller has the index.
+ * Free-text search over title, Author names, reason and tags (packages/parts).
+ * `authorNames` resolves a Work's Author ids to names (ADR 0052) — the caller
+ * has the index.
  */
-export function matchesSearch(m: Work, q: string, authorNames: (m: Work) => string[] = () => []): boolean {
-  const raw = q.trim().toLowerCase();
-  if (!raw) return true;
-  const tags = m.tags ?? [];
-  if (raw.startsWith("#")) {
-    const needle = raw.slice(1);
-    return !needle || tags.some((t) => t.includes(needle));
-  }
-  return [m.title, m.reason, ...authorNames(m)].some((s) => s.toLowerCase().includes(raw)) || tags.some((t) => t.includes(raw));
-}
+export const matchesSearch = (m: Work, q: string, authorNames: (m: Work) => string[] = () => []): boolean => matchesWorkSearch(m, q, authorNames(m));
 
-/** Gallery orderings. */
-export type GallerySort = "TITLE" | "ADDED" | "FINISHED" | "YEAR";
-export const GALLERY_SORTS: { value: GallerySort; label: string }[] = [
-  { value: "TITLE", label: "Title" },
-  { value: "ADDED", label: "Recently added" },
-  { value: "FINISHED", label: "Recently finished" },
-  { value: "YEAR", label: "Year" },
-];
-
-const byTitle = (a: Work, b: Work) => a.title.localeCompare(b.title);
-
-/**
- * Sort for the Gallery. Date sorts are newest first; items without the date
- * (never finished, no year) sink to the end, in title order. Year sorts newest
- * release first.
- */
-export function sortGallery(items: Work[], sort: GallerySort): Work[] {
-  const out = [...items];
-  switch (sort) {
-    case "TITLE":
-      return out.sort(byTitle);
-    case "ADDED":
-      return out.sort((a, b) => b.addedOn.localeCompare(a.addedOn) || byTitle(a, b));
-    case "FINISHED":
-      return out.sort((a, b) => Number(!!b.finishedOn) - Number(!!a.finishedOn) || b.finishedOn.localeCompare(a.finishedOn) || byTitle(a, b));
-    case "YEAR":
-      return out.sort((a, b) => Number(!!b.year) - Number(!!a.year) || b.year - a.year || byTitle(a, b));
-  }
-}
-
-/** The Shelf filter (ADR 0006 amendment): one Engagement value or ALL. */
-export type Shelf = Engagement | "ALL";
-export const SHELVES: Shelf[] = ["UNSTARTED", "IN_PROGRESS", "DONE", "ABANDONED", "ALL"];
-
-/** Shelf label in the medium's verbs; for "all" media, a neutral wording. */
-export function shelfLabel(shelf: Shelf, type: WorkTypeId | "all"): string {
-  if (shelf === "ALL") return "All";
-  if (shelf === "UNSTARTED") {
-    if (type === "all") return "To do";
-    return workType(type).wantLabel;
-  }
-  if (shelf === "IN_PROGRESS") return "In progress";
-  if (shelf === "DONE") return "Done";
-  return "Dropped";
-}
-
-export const onShelf = (m: Work, shelf: Shelf) => shelf === "ALL" || m.engagement === shelf;
+/** Gallery orderings, Rating aside. */
+export const GALLERY_SORTS = ALL_SORTS.filter((s) => s.value !== "RATING");

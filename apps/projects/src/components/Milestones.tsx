@@ -91,7 +91,7 @@ export function Milestones({ project, milestones, tasks }: { project: Project; m
       </section>
 
       <div className="flex gap-2">
-        <Input
+        <Input aria-label="New milestone name"
           value={name}
           placeholder="New milestone — e.g. Demolition"
           className="max-w-xs"

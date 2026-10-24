@@ -1,11 +1,12 @@
 import { conflictCopy, removeDocumentsWhere, type Document, type DocumentTypeDef } from "@lifeline/core";
+import { VERSION } from "@lifeline/parts";
 
 /** The Research App (ADR 0068) — born the Writer's pad; its id stays `writer`, Card ids live in synced layouts. */
 export const APP_ID = "writer";
 /** The Essay (CONTEXT.md): prose argued from my material. Was `writing` until the split. */
 export const ESSAY = "essay";
-/** A Version (CONTEXT.md): a deliberate snapshot of an Essay's or a Chapter's body. The id predates the split and stays. */
-export const VERSION = "writing_version";
+/** A Version (CONTEXT.md): a deliberate snapshot of an Essay's or a Chapter's body. Its id is shared through parts (ADR 0100). */
+export { VERSION };
 /** The types a Version may be taken of: an Essay here, a Chapter in the Manuscript App. */
 export const VERSIONED = [ESSAY, "chapter"] as const;
 export const ESSAYS_FOLDER = "Essays";

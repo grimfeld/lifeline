@@ -113,7 +113,7 @@ export function ReportFilterBar({
     <div className="grid gap-2">
       <div className="flex flex-wrap items-center gap-2 max-md:flex-col max-md:items-stretch max-md:*:w-full">
         <Select value={range} onValueChange={(v) => onRangeChange(v as ReportRange, { from: filter.from, to: filter.to })}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger aria-label="Period" className="w-40">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -128,7 +128,7 @@ export function ReportFilterBar({
         {range === "custom" ? (
           <div className="flex items-center gap-1">
             <Select value={filter.from} onValueChange={(v) => set({ from: v })}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger aria-label="From month" className="w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -141,7 +141,7 @@ export function ReportFilterBar({
             </Select>
             <span className="text-muted-foreground text-sm">→</span>
             <Select value={filter.to} onValueChange={(v) => set({ to: v })}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger aria-label="To month" className="w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -176,7 +176,7 @@ export function ReportFilterBar({
           width="w-48"
         />
         <Select value={String(filter.minAmount)} onValueChange={(v) => set({ minAmount: Number(v) })}>
-          <SelectTrigger className="w-36">
+          <SelectTrigger aria-label="Minimum amount" className="w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -197,7 +197,7 @@ export function ReportFilterBar({
         </Button>
         <div className="relative min-w-48 flex-1">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-          <Input className="pl-8" placeholder="Payee or note…" value={filter.search} onChange={(e) => set({ search: e.target.value })} />
+          <Input aria-label="Search payee or note" className="pl-8" placeholder="Payee or note…" value={filter.search} onChange={(e) => set({ search: e.target.value })} />
         </div>
         {active > 0 && (
           <Button variant="ghost" onClick={() => set({ accountIds: [], groups: [], categoryIds: [], includeUncategorized: true, minAmount: 0, search: "" })}>

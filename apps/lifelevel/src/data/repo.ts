@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { documentsOf, getDocument, normalizeTags, putDocument, removeDocument, useLiveQuery } from "@lifeline/core";
+import { documentsOf, editQueue, getDocument, normalizeTags, putDocument, removeDocument, useLiveQuery } from "@lifeline/core";
 import { damageForNegativeCompletion, xpGainForPositiveCompletion } from "../domain/difficulty";
 import { computeProgression } from "../domain/progression";
 import { diffHabit } from "../domain/progressionDiff";
@@ -224,13 +224,8 @@ export async function deleteCompletion(id: string): Promise<void> {
   await removeDocument(id);
 }
 
-let editing: Promise<unknown> = Promise.resolve();
 /** One edit after another, each over the Document as stored when it runs: two changes made in quick succession never write back each other's old value. */
-function inTurn(run: () => Promise<void>): Promise<void> {
-  const next = editing.then(run);
-  editing = next.catch(() => {});
-  return next;
-}
+const inTurn = editQueue();
 
 /** Change a Habit's Difficulty from its Peek (ADR 0085) — through `updateHabit`, so the ledger re-values as it does from the editor. */
 export function editHabit(id: string, patch: Pick<HabitInput, "difficulty">): Promise<void> {

@@ -66,7 +66,7 @@ function MovementRow({ m, exercises, onChange, onRemove, onNewExercise }: { m: M
           else onChange({ ...m, exerciseId: v });
         }}
       >
-        <SelectTrigger className="h-8 w-48">
+        <SelectTrigger aria-label="Exercise" className="w-48">
           <SelectValue placeholder="Exercise…" />
         </SelectTrigger>
         <SelectContent>
@@ -83,7 +83,7 @@ function MovementRow({ m, exercises, onChange, onRemove, onNewExercise }: { m: M
       {measure === "time" && field("seconds", "s", 5)}
       {measure === "distance" && field("distance", "m", 50)}
       {measure === "calories" && field("calories", "cal")}
-      <Input className="h-8 min-w-24 flex-1" placeholder="Cue (optional)" value={m.cue} onChange={(e) => onChange({ ...m, cue: e.target.value })} />
+      <Input aria-label="Cue" className="min-w-24 flex-1" placeholder="Cue (optional)" value={m.cue} onChange={(e) => onChange({ ...m, cue: e.target.value })} />
       <Button size="icon" variant="ghost" className="size-8" onClick={onRemove} aria-label="Remove movement">
         <Trash2 className="size-3.5" />
       </Button>
@@ -123,7 +123,7 @@ function BlockEditor({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-muted-foreground w-5 text-xs tabular-nums">{index + 1}.</span>
         <Select value={block.mode} onValueChange={(v) => setMode(v as Mode)}>
-          <SelectTrigger className="h-8 w-32">
+          <SelectTrigger aria-label="Block type" className="w-32">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -134,7 +134,7 @@ function BlockEditor({
             ))}
           </SelectContent>
         </Select>
-        <Input className="h-8 min-w-32 flex-1" placeholder="Label (optional)" value={block.label} onChange={(e) => set({ label: e.target.value })} />
+        <Input aria-label="Block label" className="min-w-32 flex-1" placeholder="Label (optional)" value={block.label} onChange={(e) => set({ label: e.target.value })} />
         <span className="text-muted-foreground text-xs">{describeBlock(block)}</span>
         <div className="ml-auto flex gap-0.5">
           <Button size="icon" variant="ghost" className="size-8" disabled={index === 0} onClick={() => onMove(-1)} aria-label="Move up">

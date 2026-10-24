@@ -25,9 +25,9 @@ export function QuickAdd({ defaultStorageId, autoFocus }: { defaultStorageId?: s
   }
   return (
     <div className="flex items-center gap-2">
-      <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add or restock…" autoFocus={autoFocus} onKeyDown={(e) => e.key === "Enter" && void add()} />
+      <Input aria-label="Add or restock" value={text} onChange={(e) => setText(e.target.value)} placeholder="Add or restock…" autoFocus={autoFocus} onKeyDown={(e) => e.key === "Enter" && void add()} />
       <Select value={storageId} onValueChange={setChosen}>
-        <SelectTrigger className="w-32 shrink-0">
+        <SelectTrigger aria-label="Storage" className="w-32 shrink-0">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

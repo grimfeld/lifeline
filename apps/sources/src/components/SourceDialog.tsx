@@ -183,7 +183,7 @@ export function SourceDialog({
                 <div className="grid gap-2">
                   <Label>Read as</Label>
                   <Select value={mode} onValueChange={(v) => setMode(v as "json" | "regex")}>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger aria-label="Read as" className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

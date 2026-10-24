@@ -14,7 +14,8 @@ Switch views in place: tabs at the top on the desk, a menu under the title on a 
 - **Day**, **3 Day** and **Week** — the **Schedule**: hours laid out, where you plan work into
   time. See below.
 - **Month** — a six-week grid, each item on its own day. Drag an item to another day; tap a day
-  to open it in Day view.
+  to open it in Day view. On the keyboard, Tab to an item: **Enter** opens it, **←** / **→** move
+  it a day and **↑** / **↓** a week.
 
 All views share one **day in view**: switching keeps it. Page with **‹** / **›**, jump back with
 **Today**, or pick a date (desk). On a phone, swipe sideways to page. The Calendar remembers the
@@ -45,6 +46,10 @@ blocker bands.
   one-off bands can be dragged and resized like blocks.
 - **Ticking** — ticking a block ticks the item itself: its later blocks go, its past ones stay as
   record.
+- **On the keyboard** — Tab to a block, an Event, a chip or a one-off band: **Enter** opens it
+  (the editor sets its length too; closing it brings you back to the item). **↑** / **↓** move it
+  a quarter hour (an hour with **Shift**), **←** / **→** a day. A chip in a day's strip moves by
+  the day only; **Enter** on an Event template puts it on the day in view.
 
 ## Push
 
@@ -84,6 +89,10 @@ The **Events** page has three tabs:
 - **Blockers** — your Time blockers. A weekly one has a title, weekdays (or Every day / Weekdays /
   Weekends), from and to, and a colour; **Turn off** stops painting it but keeps it. One-off
   blockers (made by dropping a Blocker template on an hour) are listed too.
+
+A time (a start, an end, a usual start) is typed — `930`, `14:30`, `2pm` — or picked from the
+list of quarter hours that opens on a click or ⌥/Alt+↓. With the list shut, ↑/↓ nudge the time
+15 minutes; with it open, they move through the list and Enter picks.
 
 Commands and Cards:
 

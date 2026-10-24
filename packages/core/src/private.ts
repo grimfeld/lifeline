@@ -13,10 +13,12 @@ import { onWorkspaceChange, workspaceScope } from "./workspaces";
 /**
  * The Private folder (ADR 0038, CONTEXT.md "Private folder", "Locked /
  * Unlocked"): one reserved Folder whose Documents Core's store drops from
- * every read while the gate is **locked**. A gate, not a safe — bytes stay
- * plain; this module only decides what a read may see, keeps the lock state
- * and the idle timeout, and checks the password. Nothing outside Core reads
- * around it, on purpose.
+ * every read while the gate is **locked**. A gate, not a safe (ADR 0105):
+ * bytes stay plain on the device and the server, and the password's hash
+ * syncs in a Document. It keeps eyes at the screen and agents (the MCP
+ * server's own checks) away from them; this module only decides what a read
+ * may see, keeps the lock state and the idle timeout, and checks the
+ * password. Nothing outside Core reads around it, on purpose.
  */
 
 export const PRIVATE_FOLDER = "Private";
@@ -211,18 +213,28 @@ export async function setPrivatePassword(password: string): Promise<void> {
   await unlock();
 }
 
-let failures = 0;
-/** Check the password; on success the gate opens. Wrong tries wait a little longer each time (in memory only). */
+/** Wrong tries in a row, kept on the device so a reload does not reset the wait (#271). */
+const FAILURES_KEY = "private:failures";
+
+/** The wait before trying again after `failures` wrong tries in a row: 0.5 s, doubling, at most 8 s. */
+export function unlockDelayMs(failures: number): number {
+  return failures > 0 ? Math.min(8000, 500 * 2 ** (failures - 1)) : 0;
+}
+
+/** Check the password; on success the gate opens. Wrong tries wait a little longer each time. */
 export async function unlockPrivate(password: string): Promise<boolean> {
   const row = await settingsRow();
   if (!row) return false;
-  if (failures > 0) await new Promise((r) => setTimeout(r, Math.min(8000, 500 * 2 ** (failures - 1))));
+  const d = db();
+  const failures = Number((await d._meta.get(FAILURES_KEY))?.value) || 0;
+  const delay = unlockDelayMs(failures);
+  if (delay) await new Promise((r) => setTimeout(r, delay));
   const hash = await derivePrivateHash(password, unb64(row.salt), row.iterations || ITERATIONS);
   if (hash !== row.hash) {
-    failures++;
+    await d._meta.put({ key: FAILURES_KEY, value: String(failures + 1) });
     return false;
   }
-  failures = 0;
+  await d._meta.delete(FAILURES_KEY);
   await unlock();
   return true;
 }

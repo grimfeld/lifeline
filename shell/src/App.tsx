@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
-import { Navigate, Route, Routes, useParams, useSearchParams } from "react-router";
-import { Toaster } from "@lifeline/ui";
+import { Navigate, Route, Routes, useLocation, useParams, useSearchParams } from "react-router";
+import { Toaster, useDocumentTitle } from "@lifeline/ui";
 import { HANDOFF_DONE_PATH, HANDOFF_PATH } from "@lifeline/handoff";
 import {
   MODULES,
@@ -38,6 +38,7 @@ import { GuidePage } from "./guide/GuidePage";
 import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
 import { FALLBACK_PLACE, lastPlace, useResume } from "./nav/resume";
+import { placeTitle } from "./nav/placeTitle";
 import { PeekHost } from "./peek/PeekHost";
 import { SelectionMenu } from "./intake/SelectionMenu";
 import { HandoffPage, HandoffSaved } from "./handoff/HandoffPage";
@@ -186,6 +187,8 @@ function AppBackground({ app }: { app: AppManifest }) {
 
 export default function App() {
   useResume();
+  // The tab names the place; a page's PageHeader names it more closely (WCAG 2.4.2).
+  useDocumentTitle(placeTitle(useLocation().pathname), { fallback: true });
   // A genuinely empty account makes its one Workspace here; an existing one was
   // given it by the server (PocketBase migration 1757400000), and this waits
   // for the first full pull rather than racing it into a second "Personal"

@@ -30,13 +30,16 @@ export function NightstandCard({ settings }: CardProps) {
           const stale = isStale(m);
           return (
             <li key={m.id} className="hover:bg-accent/50 flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5" onClick={() => setEditing(m)}>
-              <Cover item={m} className="h-8 w-6" />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm">{m.title}</div>
-                <div className="text-muted-foreground truncate text-xs">
-                  {workType(m.type).label} · {m.engagement === "IN_PROGRESS" ? workType(m.type).engagement.IN_PROGRESS.toLowerCase() : "queued"}
+              {/* The row opens on a click anywhere; this button is its face for the keyboard (Enter bubbles to the row). */}
+              <button type="button" className="focus-visible:ring-ring rounded-md focus-visible:ring-2 focus-visible:outline-none flex min-w-0 flex-1 items-center gap-2 text-left">
+                <Cover item={m} className="h-8 w-6" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm">{m.title}</div>
+                  <div className="text-muted-foreground truncate text-xs">
+                    {workType(m.type).label} · {m.engagement === "IN_PROGRESS" ? workType(m.type).engagement.IN_PROGRESS.toLowerCase() : "queued"}
+                  </div>
                 </div>
-              </div>
+              </button>
               {m.partsTracked && <NextPartButton kit={libraryParts} work={m} parts={parts} groups={groups} />}
               {isBuySignal(m) && <ShoppingCart className="text-primary size-3.5 shrink-0" />}
               <span className={cn("shrink-0 text-xs", stale ? "text-destructive flex items-center gap-1" : "text-muted-foreground")}>

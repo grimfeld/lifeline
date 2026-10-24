@@ -5,7 +5,7 @@ import type { Topic } from "../domain/types";
 export function TopicSelect({ topics, value, onChange, className }: { topics: Topic[]; value: string; onChange: (id: string) => void; className?: string }) {
   return (
     <Select value={value || undefined} onValueChange={onChange}>
-      <SelectTrigger className={className ?? "w-40"}>
+      <SelectTrigger aria-label="Topic" className={className ?? "w-40"}>
         <SelectValue placeholder="Topic" />
       </SelectTrigger>
       <SelectContent>

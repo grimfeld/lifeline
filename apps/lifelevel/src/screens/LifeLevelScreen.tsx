@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Button, Card, CardContent, PhoneDock } from "@lifeline/ui";
+import { Button, Card, CardContent, PhoneDock, Tip } from "@lifeline/ui";
 import { Plus, Skull, Volume2, VolumeX } from "lucide-react";
 import { computeProgression } from "../domain/progression";
 import { habitHref } from "../domain/daylog";
@@ -37,9 +37,11 @@ export function LifeLevelScreen() {
         <h1 className="text-2xl font-semibold tracking-tight">Life Level</h1>
         <PhoneDock>
           <div className="flex items-center gap-2 max-md:contents">
-            <Button size="icon" variant="ghost" className="size-8" title={muted ? "Unmute sounds" : "Mute sounds"} onClick={toggle}>
-              {muted ? <VolumeX /> : <Volume2 />}
-            </Button>
+            <Tip label={muted ? "Unmute sounds" : "Mute sounds"}>
+              <Button size="icon" variant="ghost" onClick={toggle}>
+                {muted ? <VolumeX /> : <Volume2 />}
+              </Button>
+            </Tip>
             <Button
               variant="outline"
               onClick={() => {

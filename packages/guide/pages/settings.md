@@ -12,7 +12,7 @@ on its Base. Settings holds the rest.
   sync now.
 - **Sign in to sync** — when signed out. Until you sign in, you work on this device's own copy and
   nothing syncs.
-- **… · sign out** — sign out; this device keeps its data and you keep working locally.
+- **… · sign out** — sign out. By default this also erases everything stored on this device, so the next person to use it can't read your data; what is synced comes back when you sign in again. Tick **Keep this device's data** to keep working locally instead, with Private locked.
 - **Erase local data…** — delete everything stored on this device and download your account's
   data again. Anything already synced comes back; changes that never reached the server are lost,
   and it says how many.

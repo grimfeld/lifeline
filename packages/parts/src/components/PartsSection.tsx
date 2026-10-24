@@ -96,12 +96,12 @@ function CatchUp<W extends PartsWork>({ kit, work, medium, grouped }: { kit: Par
             {withGroup && (
               <div className="grid w-20 gap-1">
                 <Label className="text-[11px]">{medium.group}</Label>
-                <Input inputMode="numeric" value={g} onChange={(e) => setG(e.target.value)} />
+                <Input aria-label={medium.group} inputMode="numeric" value={g} onChange={(e) => setG(e.target.value)} />
               </div>
             )}
             <div className="grid min-w-0 flex-1 gap-1">
               <Label className="text-[11px]">{medium.part}</Label>
-              <Input autoFocus inputMode="numeric" value={n} onChange={(e) => setN(e.target.value)} />
+              <Input aria-label={medium.part} autoFocus inputMode="numeric" value={n} onChange={(e) => setN(e.target.value)} />
             </div>
             <Button type="submit" size="sm">
               Save
@@ -134,7 +134,7 @@ function RunLength<W extends PartsWork>({ kit, work, medium, total }: { kit: Par
         <form className="grid gap-2" onSubmit={(e) => { e.preventDefault(); void attempt(save); }}>
           <Label className="text-[11px]">How many {medium.parts}</Label>
           <div className="flex gap-2">
-            <Input autoFocus inputMode="numeric" placeholder="Ongoing" value={n} onChange={(e) => setN(e.target.value)} />
+            <Input aria-label={`How many ${medium.parts}`} autoFocus inputMode="numeric" placeholder="Ongoing" value={n} onChange={(e) => setN(e.target.value)} />
             <Button type="submit" size="sm">Save</Button>
           </div>
           <p className="text-muted-foreground text-xs">Blank: still going, the end not known.</p>

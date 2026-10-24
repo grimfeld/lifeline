@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Button, cn, MapView, TagChips, toast, type MapPin } from "@lifeline/ui";
+import { Button, cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, MapView, TagChips, toast, type MapPin } from "@lifeline/ui";
 import {
   appById,
   displayTitle,
@@ -15,16 +15,16 @@ import {
   type LayoutFields,
   type ViewLayout,
 } from "@lifeline/core";
-import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, ImageOff, MoreHorizontal } from "lucide-react";
 import { DocList, type Layout as FlatLayout } from "./DocList";
 import { boardColumns, byDayOf, geoOf, monthGrid } from "./layouts";
 
 /**
  * Render a View's Documents in its layout (ADR 0020). The three flat
  * layouts go through DocList; gallery/map/board/calendar live here. Layouts
- * display — a board drag routes through requestFieldChange (raw write for
- * plain fields, owning-App request for guarded ones), everything else is
- * read-only. Documents a layout cannot place are omitted but counted.
+ * display — a board move (a drag, or a card's Move to menu) routes through
+ * requestFieldChange (raw write for plain fields, owning-App request for
+ * guarded ones), everything else is read-only. Documents a layout cannot place are omitted but counted.
  */
 export function LayoutView({
   docs,
@@ -157,10 +157,14 @@ function Board({ docs, def, picks, compact, editable }: { docs: Document[]; def:
   const { columns, byValue } = boardColumns(docs, field);
 
   async function drop(value: string) {
-    if (!dragging || !field) return;
+    if (!dragging) return;
     const doc = docs.find((d) => d.id === dragging);
     setDragging(null);
-    if (!doc || String(doc[field.key] ?? "") === value || value === "") return;
+    if (doc) await move(doc, value);
+  }
+
+  async function move(doc: Document, value: string) {
+    if (!field || String(doc[field.key] ?? "") === value || value === "") return;
     const result = await requestFieldChange(doc, def, field.key, value);
     if (result === "declined") toast.error(`${appById(def?.appId ?? "")?.title ?? "The App"} declined ${field.label} → ${columns.find((c) => c.value === value)?.label ?? value}`);
     if (result === "readonly") toast.error(`${field.label} changes only through its App`);
@@ -190,11 +194,31 @@ function Board({ docs, def, picks, compact, editable }: { docs: Document[]; def:
                   draggable={draggable}
                   onDragStart={() => setDragging(d.id)}
                   onDragEnd={() => setDragging(null)}
-                  className={cn("bg-card rounded-lg border p-2 text-xs", draggable && "cursor-grab active:cursor-grabbing", dragging === d.id && "opacity-50")}
+                  className={cn("bg-card group rounded-lg border p-2 text-xs", draggable && "cursor-grab active:cursor-grabbing", dragging === d.id && "opacity-50")}
                 >
-                  <Link to={docHref(d, def)} className="line-clamp-2 font-medium hover:underline" draggable={false}>
-                    {displayTitle(d, def)}
-                  </Link>
+                  <div className="flex items-start gap-1">
+                    <Link to={docHref(d, def)} className="line-clamp-2 min-w-0 flex-1 font-medium hover:underline" draggable={false}>
+                      {displayTitle(d, def)}
+                    </Link>
+                    {/* The drag's twin for a keyboard or a hand that cannot drag (WCAG 2.5.7), as on a Project's board. */}
+                    {draggable && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon-xs" variant="ghost" className="text-muted-foreground hover:text-foreground shrink-0 opacity-60 group-hover:opacity-100" aria-label={`Move ${displayTitle(d, def)}`}>
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">Move to</DropdownMenuLabel>
+                          {columns.filter((o) => o.value !== "").map((o) => (
+                            <DropdownMenuItem key={o.value} disabled={o.value === c.value} onClick={() => void move(d, o.value)}>
+                              <ArrowRight /> {o.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
                   {d.tags.length > 0 && !compact && <TagChips tags={d.tags} size="xs" />}
                 </div>
               ))}

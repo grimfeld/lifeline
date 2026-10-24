@@ -71,7 +71,7 @@ export function ArcadeScreen() {
       <PhoneDock>
         {/* Phone: the sort goes in the Filters sheet. */}
         <div className="flex flex-1 flex-wrap gap-2 max-md:contents">
-          <Input className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search title, developer, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input aria-label="Search games" className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search title, developer, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
           <PhoneFilters active={+(sort !== "ADDED")}>
             <Select value={sort} onValueChange={(v) => setSort(v as GallerySort)}>
               <SelectTrigger className="w-44" aria-label="Sort">

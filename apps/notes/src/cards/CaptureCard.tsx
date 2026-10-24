@@ -26,6 +26,7 @@ export function CaptureCard({ settings }: CardProps) {
     <div className="flex h-full items-center">
       <Input
         className="h-8 w-full"
+        aria-label={bullet ? "Jot something" : "What's happening?"}
         placeholder={bullet ? "Jot something…" : "What's happening?"}
         value={value}
         onChange={(e) => setValue(e.target.value)}

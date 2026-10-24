@@ -10,7 +10,7 @@ export function AisleSelect({ id, value, onChange, className }: { id?: string; v
   const known = aisles.some((a) => a.id === value);
   return (
     <Select value={known ? value : ANYWHERE} onValueChange={(v) => onChange(v === ANYWHERE ? "" : v)}>
-      <SelectTrigger id={id} className={className}>
+      <SelectTrigger aria-label="Aisle" id={id} className={className}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

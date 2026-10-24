@@ -1,4 +1,4 @@
-import { Button, cn, toast } from "@lifeline/ui";
+import { Button, cn, toast, Tip } from "@lifeline/ui";
 import { Eye, Heart, Star } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
@@ -39,18 +39,20 @@ export function WatchedToggle({ item, size = "sm", className }: { item: Work; si
 /** The heart. */
 export function LikeToggle({ item, size = "sm", className }: { item: Work; size?: keyof typeof ICON; className?: string }) {
   return (
-    <button
-      type="button"
-      aria-pressed={item.liked}
-      title={item.liked ? "Liked — click to unlike" : "Like"}
-      className={cn("flex items-center justify-center rounded-full transition-colors", item.liked ? "text-rose-400" : "text-white/80 hover:text-white", className)}
-      onClick={(e) => {
-        e.stopPropagation();
-        void patchWork(item, toggleLiked(item));
-      }}
-    >
-      <Heart className={cn(ICON[size], item.liked && "fill-current")} />
-    </button>
+    <Tip label={item.liked ? "Liked — click to unlike" : "Like"}>
+      <button
+        type="button"
+        aria-pressed={item.liked}
+        // ui-allow: raw-colour — the heart and the stars keep their rose and amber
+        className={cn("flex items-center justify-center rounded-full transition-colors", item.liked ? "text-rose-400" : "text-white/80 hover:text-white", className)}
+        onClick={(e) => {
+          e.stopPropagation();
+          void patchWork(item, toggleLiked(item));
+        }}
+      >
+        <Heart className={cn(ICON[size], item.liked && "fill-current")} />
+      </button>
+    </Tip>
   );
 }
 
@@ -61,20 +63,21 @@ export function StarRating({ item, size = "md", className }: { item: Work; size?
       {Array.from({ length: RATING_MAX }, (_, i) => i + 1).map((n) => {
         const on = n <= item.rating;
         return (
-          <button
-            key={n}
-            type="button"
-            role="radio"
-            aria-checked={item.rating === n}
-            title={n === item.rating ? "Clear rating" : `${n} star${n > 1 ? "s" : ""}`}
-            className={cn("rounded transition-colors", on ? "text-amber-400" : "text-muted-foreground/40 hover:text-amber-300")}
-            onClick={(e) => {
-              e.stopPropagation();
-              void patchWork(item, rate(item, n));
-            }}
-          >
-            <Star className={cn(ICON[size], on && "fill-current")} />
-          </button>
+          <Tip key={n} label={n === item.rating ? "Clear rating" : `${n} star${n > 1 ? "s" : ""}`}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={item.rating === n}
+              // ui-allow: raw-colour — the heart and the stars keep their rose and amber
+              className={cn("rounded transition-colors", on ? "text-amber-400" : "text-muted-foreground/40 hover:text-amber-300")}
+              onClick={(e) => {
+                e.stopPropagation();
+                void patchWork(item, rate(item, n));
+              }}
+            >
+              <Star className={cn(ICON[size], on && "fill-current")} />
+            </button>
+          </Tip>
         );
       })}
     </div>

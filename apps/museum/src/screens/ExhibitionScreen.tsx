@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Badge, Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { Badge, Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tip } from "@lifeline/ui";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react";
 import { artForm } from "../domain/artForms";
 import type { Artist, Artwork, Room } from "../domain/types";
@@ -64,15 +64,21 @@ function RoomEditor({ room, rooms, artworks, byId, artistOf, onOpen }: { room: R
           {room.artworkIds.length} work{room.artworkIds.length === 1 ? "" : "s"}
         </span>
         <div className="ml-auto flex gap-1">
-          <Button size="sm" variant="ghost" className="size-7 p-0" disabled={idx <= 0} title="Earlier in the walk" onClick={() => swap(rooms[idx - 1])}>
-            <ArrowUp className="size-3.5" />
-          </Button>
-          <Button size="sm" variant="ghost" className="size-7 p-0" disabled={idx >= rooms.length - 1} title="Later in the walk" onClick={() => swap(rooms[idx + 1])}>
-            <ArrowDown className="size-3.5" />
-          </Button>
-          <Button size="sm" variant="ghost" className="text-destructive size-7 p-0" title="Delete room (the works stay in the Holdings)" onClick={() => void deleteRoom(room.id)}>
-            <Trash2 className="size-3.5" />
-          </Button>
+          <Tip label="Earlier in the walk">
+            <Button size="icon-sm" variant="ghost" disabled={idx <= 0} onClick={() => swap(rooms[idx - 1])}>
+              <ArrowUp className="size-3.5" />
+            </Button>
+          </Tip>
+          <Tip label="Later in the walk">
+            <Button size="icon-sm" variant="ghost" disabled={idx >= rooms.length - 1} onClick={() => swap(rooms[idx + 1])}>
+              <ArrowDown className="size-3.5" />
+            </Button>
+          </Tip>
+          <Tip label="Delete room (the works stay in the Holdings)">
+            <Button size="icon-sm" variant="ghost" className="text-destructive" onClick={() => void deleteRoom(room.id)}>
+              <Trash2 className="size-3.5" />
+            </Button>
+          </Tip>
         </div>
       </div>
       <ul className="flex flex-wrap gap-2">
@@ -87,15 +93,21 @@ function RoomEditor({ room, rooms, artworks, byId, artistOf, onOpen }: { room: R
                 <span className="text-muted-foreground line-clamp-1 text-[9px]">{placard(a, artistOf)}</span>
               </button>
               <span className="absolute top-0.5 right-0.5 hidden gap-0.5 group-hover:flex">
-                <Button size="sm" variant="secondary" className="size-5 p-0" title="Left" onClick={() => void setRoomArtworks(room.id, moveInRoom(room.artworkIds, id, -1))}>
-                  <ArrowLeft className="size-3" />
-                </Button>
-                <Button size="sm" variant="secondary" className="size-5 p-0" title="Right" onClick={() => void setRoomArtworks(room.id, moveInRoom(room.artworkIds, id, 1))}>
-                  <ArrowRight className="size-3" />
-                </Button>
-                <Button size="sm" variant="secondary" className="size-5 p-0" title="Take off the wall" onClick={() => void setRoomArtworks(room.id, removeFromRoom(room.artworkIds, id))}>
-                  <X className="size-3" />
-                </Button>
+                <Tip label="Left">
+                  <Button size="icon-xs" variant="secondary" onClick={() => void setRoomArtworks(room.id, moveInRoom(room.artworkIds, id, -1))}>
+                    <ArrowLeft className="size-3" />
+                  </Button>
+                </Tip>
+                <Tip label="Right">
+                  <Button size="icon-xs" variant="secondary" onClick={() => void setRoomArtworks(room.id, moveInRoom(room.artworkIds, id, 1))}>
+                    <ArrowRight className="size-3" />
+                  </Button>
+                </Tip>
+                <Tip label="Take off the wall">
+                  <Button size="icon-xs" variant="secondary" onClick={() => void setRoomArtworks(room.id, removeFromRoom(room.artworkIds, id))}>
+                    <X className="size-3" />
+                  </Button>
+                </Tip>
               </span>
             </li>
           );
@@ -180,7 +192,7 @@ export function ExhibitionScreen() {
             <RoomEditor key={r.id} room={r} rooms={rooms} artworks={artworks} byId={byId} artistOf={artistOf} onOpen={setEditing} />
           ))}
           <div className="flex max-w-sm gap-2">
-            <Input value={newRoom} onChange={(e) => setNewRoom(e.target.value)} placeholder="New room — “The Dutch wall”" onKeyDown={(e) => { if (e.key === "Enter" && newRoom.trim()) { void addRoom(show.id, newRoom); setNewRoom(""); } }} />
+            <Input aria-label="New room name" value={newRoom} onChange={(e) => setNewRoom(e.target.value)} placeholder="New room — “The Dutch wall”" onKeyDown={(e) => { if (e.key === "Enter" && newRoom.trim()) { void addRoom(show.id, newRoom); setNewRoom(""); } }} />
             <Button variant="outline" disabled={!newRoom.trim()} onClick={() => { void addRoom(show.id, newRoom); setNewRoom(""); }}>
               <Plus className="size-4" /> Add room
             </Button>

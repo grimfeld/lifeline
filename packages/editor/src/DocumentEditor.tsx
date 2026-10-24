@@ -440,7 +440,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
         {banner}
         {mode === "text" ? (
           <div className="flex min-h-0 flex-1 flex-col gap-2 p-3 md:p-4">
-            <Textarea className="min-h-0 flex-1 resize-none font-mono text-sm" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
+            <Textarea aria-label="Document text" className="min-h-0 flex-1 resize-none font-mono text-sm" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setMode("edit")}>
                 Cancel

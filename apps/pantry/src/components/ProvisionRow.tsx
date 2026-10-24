@@ -1,5 +1,5 @@
 import { Minus, Plus } from "lucide-react";
-import { cn } from "@lifeline/ui";
+import { cn, Tip } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import type { Provision } from "../domain/types";
 import { DEFAULT_EXPIRY_WINDOW_DAYS, expiresSoon, isExpired, isRunningLow } from "../domain/rules";
@@ -9,15 +9,16 @@ import { HandOffMenu } from "./HandOffMenu";
 /** One tap on a Provision's counter — the row's and the Peek's. */
 export function Step({ label, icon: Icon, disabled, onClick }: { label: string; icon: typeof Plus; disabled?: boolean; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      className="hover:bg-accent flex size-6 shrink-0 items-center justify-center rounded-full border disabled:pointer-events-none disabled:opacity-30"
-      title={label}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      <Icon className="size-3" />
-    </button>
+    <Tip label={label}>
+      <button
+        type="button"
+        className="hover:bg-accent flex size-6 shrink-0 items-center justify-center rounded-full border disabled:pointer-events-none disabled:opacity-30"
+        disabled={disabled}
+        onClick={onClick}
+      >
+        <Icon className="size-3" />
+      </button>
+    </Tip>
   );
 }
 

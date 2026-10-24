@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router";
-import { cn } from "@lifeline/ui";
+import { cn, Tip } from "@lifeline/ui";
 import { SURFACES, moduleById, moduleHome, moduleOfPath, useWorkspaceModules } from "@lifeline/core";
 import { CircleHelp, LayoutDashboard, Settings, Table2 } from "lucide-react";
 import { MODULE_ICONS, SURFACE_ICONS } from "../navIcons";
@@ -85,10 +85,9 @@ function Divider({ expanded }: { expanded: boolean }) {
 
 function RailLink({ item, expanded }: { item: RailItem; expanded: boolean }) {
   const Icon = item.icon;
-  return (
+  const link = (
     <NavLink
       to={item.to}
-      title={expanded ? undefined : item.title}
       aria-current={item.active ? "page" : undefined}
       className={cn(
         "flex shrink-0 items-center rounded-md transition-colors",
@@ -99,5 +98,10 @@ function RailLink({ item, expanded }: { item: RailItem; expanded: boolean }) {
       <Icon className={expanded ? "size-4" : "size-[18px]"} />
       {expanded && <span className="truncate">{item.title}</span>}
     </NavLink>
+  );
+  return expanded ? link : (
+    <Tip label={item.title} side="right">
+      {link}
+    </Tip>
   );
 }

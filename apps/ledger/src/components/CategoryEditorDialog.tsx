@@ -75,7 +75,7 @@ export function CategoryEditorDialog({ open, onOpenChange, category, initialKind
             <div className="grid gap-2">
               <Label>Kind</Label>
               <Select value={kind} onValueChange={(v) => setKind(v as CategoryKind)} disabled={!!category}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Kind">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -104,7 +104,7 @@ export function CategoryEditorDialog({ open, onOpenChange, category, initialKind
             <div className="grid gap-2 rounded-md border p-2">
               <Label>Delete — a used category must merge into another</Label>
               <Select value={mergeInto} onValueChange={setMergeInto}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Delete — a used category must merge into another">
                   <SelectValue placeholder="No merge (only works when unused)" />
                 </SelectTrigger>
                 <SelectContent>

@@ -152,7 +152,7 @@ export function PlaylistWorks({ playlist, works, onOpenWork }: { playlist: Playl
           {works.map((w, i) => (
             <li key={w.id} className="flex items-center gap-3 rounded-lg border px-3 py-2">
               {playlist.ranked && <span className="text-muted-foreground w-6 shrink-0 text-right text-sm tabular-nums">{i + 1}</span>}
-              <button type="button" className="shrink-0" onClick={() => onOpenWork(w)}>
+              <button type="button" aria-label={`Open ${w.title}`} className="shrink-0" onClick={() => onOpenWork(w)}>
                 <Cover item={w} className="h-14 w-10 rounded border shadow-sm" />
               </button>
               <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onOpenWork(w)}>

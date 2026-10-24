@@ -6,7 +6,7 @@ export function StorageSelect({ id, value, onChange }: { id?: string; value: str
   const storages = useStorages();
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger id={id} className="w-full min-w-0">
+      <SelectTrigger aria-label="Storage" id={id} className="w-full min-w-0">
         <SelectValue placeholder="Pick a storage" />
       </SelectTrigger>
       <SelectContent>

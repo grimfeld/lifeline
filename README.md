@@ -74,7 +74,7 @@ regular `users` record and sign in from the shell's sidebar. The shell reads `VI
 
 ```sh
 pnpm --filter @lifeline/mcp build
-node --env-file=mcp/.env mcp/dist/server.mjs     # BASE_URL, PB_URL, PB_SUPERUSER_EMAIL, PB_SUPERUSER_PASSWORD, TZ
+node --env-file=mcp/.env mcp/dist/server.mjs     # BASE_URL, PB_URL, MCP_SERVICE_EMAIL, MCP_SERVICE_PASSWORD, TZ
 node mcp/scripts/e2e.mjs http://localhost:8787 <email> <password> [<pocketbase-url>]   # OAuth + every tool, against a scratch PocketBase (default http://127.0.0.1:8099)
 ```
 

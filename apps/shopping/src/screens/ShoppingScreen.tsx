@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, PhoneDock } from "@lifeline/ui";
+import { Button, PhoneDock, Tip } from "@lifeline/ui";
 import { ChevronDown, ChevronUp, Pencil, Plus } from "lucide-react";
 import type { Aisle, Need } from "../domain/types";
 import { isListed } from "../domain/rules";
@@ -11,9 +11,11 @@ import { AisleDialog } from "../components/AisleDialog";
 
 function IconButton({ title, icon: Icon, onClick, disabled }: { title: string; icon: typeof Plus; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" className="text-muted-foreground hover:text-foreground disabled:opacity-30" title={title} disabled={disabled} onClick={onClick}>
-      <Icon className="size-3.5" />
-    </button>
+    <Tip label={title}>
+      <Button variant="ghost" size="icon-xs" className="text-muted-foreground" disabled={disabled} onClick={onClick}>
+        <Icon />
+      </Button>
+    </Tip>
   );
 }
 

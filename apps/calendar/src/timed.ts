@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { getDocument, patchDocument, putDocument, removeDocument, vaultDocPath, type DateStr, type DocumentInput, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
 import { daysOf, describeTime, piecesOf, spanOf } from "./domain/events";
 import { bandsIn, blockerSpan, describeBlocker, isOneOff } from "./domain/blockers";
@@ -65,7 +66,11 @@ export function timedItemsOf(events: Event[], blockers: TimeBlocker[], range: { 
 export const calendarTimed: TimedProvider = {
   appId: APP_ID,
   useItems(range) {
-    return timedItemsOf(useEvents(), useTimeBlockers(), range);
+    const events = useEvents();
+    const blockers = useTimeBlockers();
+    const { start, end } = range;
+    // Surfaces call this on every render: expand the Events and blockers again only when one moves.
+    return useMemo(() => timedItemsOf(events, blockers, { start, end }), [events, blockers, start, end]);
   },
   async itemsIn(range) {
     return timedItemsOf(await allEvents(), await allTimeBlockers(), range);

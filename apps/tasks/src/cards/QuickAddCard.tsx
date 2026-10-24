@@ -20,6 +20,7 @@ export function QuickAddCard({ settings }: CardProps) {
     <div className="flex h-full items-center">
       <Input
         className="h-8 w-full"
+        aria-label="Add a task"
         placeholder="Add a task…"
         value={value}
         onChange={(e) => setValue(e.target.value)}

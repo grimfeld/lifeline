@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, cn } from "@lifeline/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, cn, Tip } from "@lifeline/ui";
 import { Pencil } from "lucide-react";
 import type { ComputedNegativeState } from "../domain/types";
 import { deleteCompletion, logNegative } from "../data/repo";
@@ -58,9 +58,11 @@ export function NegativeCard({
         <div className="flex shrink-0 items-center gap-1">
           <Badge variant="destructive">{state.gravity}</Badge>
           {/* Deleting a Negative lives in its editor; without this the only way in is guessing the title is a button. */}
-          <Button size="icon" variant="ghost" className="size-7" title="Edit or delete" onClick={onOpen}>
-            <Pencil className="size-3.5" />
-          </Button>
+          <Tip label="Edit or delete">
+            <Button size="icon-sm" variant="ghost" onClick={onOpen}>
+              <Pencil className="size-3.5" />
+            </Button>
+          </Tip>
         </div>
       </CardHeader>
       <CardContent className="grid gap-2">

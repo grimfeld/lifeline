@@ -12,6 +12,7 @@
   "dependencies": {
     "@lifeline/core": "workspace:*",
     "@lifeline/editor": "workspace:*",
+    "@lifeline/parts": "workspace:*",
     "@lifeline/ui": "workspace:*",
     "lucide-react": "catalog:",
     "react-router": "catalog:"

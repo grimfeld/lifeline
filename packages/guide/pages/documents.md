@@ -71,7 +71,8 @@ book. This page covers what every Document has, whatever its type.
 - It locks again after ten minutes without use (or ten minutes in the background), and when the
   app reloads.
 - Only body-first Documents (notes, thoughts…) can go in it.
-- It keeps eyes off, but it is not encryption.
+- It keeps eyes and agents off, but it is not encryption: its Documents are stored and synced as
+  plain text, so anyone with this browser's data or the server's database can read them.
 - In the palette: **Unlock private notes…**, **Lock private notes**, **Change private notes
   password…**, **Turn off private notes…**.
 
@@ -90,6 +91,9 @@ book. This page covers what every Document has, whatever its type.
 - Attachments are not Documents: no type, no tags, not in the tree.
 - Removing the embed keeps the image. **Clean up unused attachments…** in the palette removes
   the ones no body uses any more.
+- An image linked from another site (`![](https://…)`, often in a clipped page) waits for a click
+  when you read the body: loading it would tell that site you are reading. **Load** shows it once;
+  **Always from …** trusts that site on this device.
 
 ## Opening a Document
 

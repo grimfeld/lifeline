@@ -34,7 +34,7 @@ function TallyRow({ t, targets, values, onChange, onRemove }: { t: TallyValue; t
       {target?.subtitle && <span className="text-muted-foreground text-xs">{target.subtitle}</span>}
       {target?.wants === "number" && values.length > 0 ? (
         <Select value={t.value} onValueChange={(v) => onChange({ ...t, value: v })}>
-          <SelectTrigger className="h-8 w-44">
+          <SelectTrigger aria-label="Value to log" className="h-8 w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -80,7 +80,7 @@ export function TallyEditor({ tallies, onChange, targets, values = [], occurrenc
               setAdding("");
             }}
           >
-            <SelectTrigger className="h-8 w-64">
+            <SelectTrigger aria-label="Add a tally" className="h-8 w-64">
               <SelectValue placeholder={`Log each ${occurrence} to…`} />
             </SelectTrigger>
             <SelectContent>

@@ -3,6 +3,11 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
+# Secrets: MCP_SERVICE_EMAIL / MCP_SERVICE_PASSWORD (the MCP server's account,
+# kept at each start by pb_hooks/mcp_service.pb.js, #263), and PB_ADMIN_PRIVATE=1
+# to refuse the admin UI and superuser sign-in from the internet (#258); admin
+# work then goes through `fly proxy 8080 -a lifeline-pb` and http://localhost:8080/_/.
+
 app = 'lifeline-pb'
 primary_region = 'fra'
 

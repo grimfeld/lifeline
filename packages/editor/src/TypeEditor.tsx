@@ -182,7 +182,7 @@ export function TypeEditor({
       <div className="grid min-w-0 gap-3">
         <div className="grid gap-1">
           <Label className="text-xs">Name</Label>
-          <Input autoFocus value={label} onChange={(e) => setLabel(e.target.value)} placeholder="People" />
+          <Input aria-label="Name" autoFocus value={label} onChange={(e) => setLabel(e.target.value)} placeholder="People" />
           <span className={cn("truncate text-2xs", idTaken ? "text-destructive" : "text-muted-foreground")}>
             id: {typeId || "…"}
             {record || base ? " (fixed)" : ""}
@@ -191,14 +191,14 @@ export function TypeEditor({
         {!fixedFolder && (
           <div className="grid gap-1">
             <Label className="text-xs">Default folder</Label>
-            <Input value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="People (empty = root)" />
+            <Input aria-label="Default folder" value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="People (empty = root)" />
           </div>
         )}
         {!base && (
           <div className="grid gap-1">
             <Label className="text-xs">Home Module</Label>
             <Select value={module || "__none__"} onValueChange={(v) => setModule(v === "__none__" ? "" : v)}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Home Module">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -224,7 +224,7 @@ export function TypeEditor({
             <div className="grid min-w-0 gap-1">
               <Label className="text-xs">Writing</Label>
               <Select value={body} onValueChange={(v) => setBody(v as BodyPolicy)}>
-                <SelectTrigger className="min-w-0">
+                <SelectTrigger aria-label="Writing" className="min-w-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

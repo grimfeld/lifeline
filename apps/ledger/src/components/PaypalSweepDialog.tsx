@@ -132,7 +132,7 @@ export function PaypalSweepDialog({ open, onOpenChange }: { open: boolean; onOpe
                         <td className="text-muted-foreground max-w-40 truncate px-2 py-1 text-xs">{t.payee}</td>
                         <td className="px-2 py-1">
                           <Select value={resolutionOf(t)?.entry.id ?? "none"} onValueChange={(v) => pick(t, v === "none" ? "" : v)}>
-                            <SelectTrigger size="sm" className="h-7 w-48 text-xs">
+              <SelectTrigger aria-label="Merchant" size="sm" className="w-48 text-xs">
                               <SelectValue placeholder="which merchant?" />
                             </SelectTrigger>
                             <SelectContent>

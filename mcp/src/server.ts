@@ -22,7 +22,7 @@ const mcpUrl = new URL("/mcp", config.baseUrl);
 
 const admin = new PocketBase(config.pbUrl);
 admin.autoCancellation(false);
-await admin.collection("_superusers").authWithPassword(config.pbSuperuserEmail, config.pbSuperuserPassword, { autoRefreshThreshold: 30 * 60 });
+await admin.collection(config.pbAccount.collection).authWithPassword(config.pbAccount.email, config.pbAccount.password, { autoRefreshThreshold: 30 * 60 });
 
 const oauth = new LifelineOAuth(admin, config.pbUrl, config.redirectAllow);
 const devices = new DevicePool(admin, config.pbUrl);

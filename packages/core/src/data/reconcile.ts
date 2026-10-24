@@ -38,3 +38,25 @@ function withoutEmptyBody(r: SyncedRecord): SyncedRecord {
   const { body: _b, ...rest } = r as SyncedRecord & { body?: string };
   return rest as SyncedRecord;
 }
+
+/**
+ * A fresh read of live rows, with every row unchanged since the last read
+ * handed back as the object that read returned, and the last read's array
+ * itself when nothing changed at all. Dexie returns new objects on every
+ * emission; reused, they let anything memoised per row (the link index's
+ * parsed bodies, a memoised Card) skip the rows a change did not touch.
+ * Unchanged means the same LWW clock and the same content: a pull can rewrite
+ * a row without moving its clock.
+ */
+export function reuseUnchanged<T extends SyncedRecord>(prev: readonly T[], next: T[]): T[] {
+  if (!prev.length) return next;
+  const before = new Map(prev.map((r) => [r.id, r]));
+  let same = prev.length === next.length;
+  const out = next.map((r, i) => {
+    const old = before.get(r.id);
+    const kept = old && old.updatedAt === r.updatedAt && sameRecord(old, r) ? old : r;
+    if (kept !== prev[i]) same = false;
+    return kept;
+  });
+  return same ? (prev as T[]) : out;
+}

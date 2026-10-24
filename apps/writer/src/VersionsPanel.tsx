@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, cn, toast } from "@lifeline/ui";
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Tip, cn, toast } from "@lifeline/ui";
 import { MarkdownView } from "@lifeline/editor";
 import type { Document, LinkIndex } from "@lifeline/core";
 import { Camera, RotateCcw, Trash2 } from "lucide-react";
@@ -38,7 +38,7 @@ export function VersionsPanel({ doc, index }: { doc: Document; index: LinkIndex 
         <span className="text-muted-foreground ml-auto text-xs tabular-nums">{wordCount(writing.body ?? "")} words</span>
       </div>
       <div className="mb-1 flex gap-1">
-        <Input className="h-8 text-xs" placeholder="Label (optional)" value={label} onChange={(e) => setLabel(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void take()} />
+        <Input className="text-xs" aria-label="Version label (optional)" placeholder="Label (optional)" value={label} onChange={(e) => setLabel(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void take()} />
         <Button size="sm" className="h-8" onClick={() => void take()} title="Save a version of the current text">
           <Camera />
         </Button>
@@ -47,15 +47,18 @@ export function VersionsPanel({ doc, index }: { doc: Document; index: LinkIndex 
         {versions.length === 0 && <li className="text-muted-foreground py-2 text-xs">No versions yet. Press the camera to keep the current text.</li>}
         {versions.map((v) => (
           <li key={v.id} className="group flex items-start gap-1 border-b py-1.5 last:border-b-0">
-            <button className="min-w-0 flex-1 text-left" onClick={() => setCompare(v)}>
+            <button type="button" className="focus-visible:ring-ring min-w-0 flex-1 rounded-sm text-left focus-visible:ring-2 focus-visible:outline-none" onClick={() => setCompare(v)}>
               <div className="truncate font-medium">{v.label || "Version"}</div>
               <div className="text-muted-foreground text-xs">
                 {new Date(v.takenAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })} · {v.words} w
               </div>
             </button>
-            <Button size="icon" variant="ghost" className="size-6 md:opacity-0 md:group-hover:opacity-100" onClick={() => void deleteVersion(v.id)} title="Delete version">
-              <Trash2 className="size-3" />
-            </Button>
+            {/* Faded out on the desk until the row is hovered or holds focus: Tab must not land on an invisible button. */}
+            <Tip label="Delete version">
+              <Button size="icon-xs" variant="ghost" className="md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100" onClick={() => void deleteVersion(v.id)}>
+                <Trash2 className="size-3" />
+              </Button>
+            </Tip>
           </li>
         ))}
       </ul>

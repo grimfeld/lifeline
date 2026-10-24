@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { derivePrivateHash, inPrivateFolder, mayBePrivate, PRIVATE_FOLDER, visibleUnder } from "./private";
+import { derivePrivateHash, inPrivateFolder, mayBePrivate, PRIVATE_FOLDER, unlockDelayMs, visibleUnder } from "./private";
 import type { DocumentTypeDef } from "./documents/types";
 
 const T = (extra: Partial<DocumentTypeDef>): DocumentTypeDef => ({ id: "x", label: "Xs", titleRule: "name", body: "optional", fields: [], builtIn: true, ...extra });
@@ -41,4 +41,8 @@ describe("Private folder (ADR 0038)", () => {
     expect(a).not.toContain("hunter");
     expect(a.length).toBe(44); // 32 bytes, base64
   });
+});
+
+it("waits longer after each wrong Private password, up to 8 s (#271)", () => {
+  expect([0, 1, 2, 3, 4, 5, 9].map(unlockDelayMs)).toEqual([0, 500, 1000, 2000, 4000, 8000, 8000]);
 });

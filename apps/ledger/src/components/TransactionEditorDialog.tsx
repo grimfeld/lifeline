@@ -195,7 +195,7 @@ export function TransactionEditorDialog({
                 <div className="grid gap-2">
                   <Label>Category</Label>
                   <Select value={categoryId} onValueChange={setCategoryId}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Category">
                       <SelectValue placeholder="Uncategorized" />
                     </SelectTrigger>
                     <SelectContent>
@@ -277,7 +277,7 @@ function AccountSelect({ label, accounts, value, onChange }: { label: string; ac
     <div className="grid gap-2">
       <Label>{label}</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger>
+        <SelectTrigger aria-label={label}>
           <SelectValue placeholder="Account" />
         </SelectTrigger>
         <SelectContent>

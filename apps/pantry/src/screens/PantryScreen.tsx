@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Badge, Button, Input, PhoneDock, cn } from "@lifeline/ui";
+import { Badge, Button, Input, PhoneDock, Tip, cn } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import { Archive, Pencil, Plus, Refrigerator, Snowflake, TriangleAlert } from "lucide-react";
 import type { Provision, Storage, StorageKind } from "../domain/types";
@@ -20,12 +20,16 @@ function StorageSection({ storage, list, onOpen, onEditStorage, onAddHere }: { s
         <Icon className="text-muted-foreground size-4" />
         <h2 className="text-sm font-semibold">{storage.title}</h2>
         <span className="text-muted-foreground text-xs">{list.length}</span>
-        <button type="button" className="text-muted-foreground hover:text-foreground" title="Edit storage" onClick={onEditStorage}>
-          <Pencil className="size-3.5" />
-        </button>
-        <button type="button" className="text-muted-foreground hover:text-foreground" title="Add here" onClick={onAddHere}>
-          <Plus className="size-3.5" />
-        </button>
+        <Tip label="Edit storage">
+          <Button variant="ghost" size="icon-xs" className="text-muted-foreground" onClick={onEditStorage}>
+            <Pencil />
+          </Button>
+        </Tip>
+        <Tip label="Add here">
+          <Button variant="ghost" size="icon-xs" className="text-muted-foreground" onClick={onAddHere}>
+            <Plus />
+          </Button>
+        </Tip>
       </div>
       {list.length === 0 ? (
         <div className="text-muted-foreground px-1 text-sm">Empty.</div>
@@ -81,7 +85,7 @@ export function PantryScreen() {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="mr-auto text-lg font-semibold">Pantry</h1>
         <PhoneDock>
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search the stocks…" className="w-48 min-w-0 max-md:w-auto max-md:basis-36" />
+          <Input aria-label="Search the stocks" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search the stocks…" className="w-48 min-w-0 max-md:w-auto max-md:basis-36" />
           <Button type="button" variant="outline" onClick={() => openStorage(null)}>
             <span className="max-md:hidden">New storage</span>
             <span className="md:hidden">Storage</span>

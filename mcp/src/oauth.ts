@@ -110,12 +110,18 @@ export class InvalidRedirectUriError extends OAuthError {
   static override errorCode = "invalid_redirect_uri";
 }
 
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
 /**
- * Whether `uri` may be a client's redirect URI. Each allow-list entry is an
- * exact URL, or `scheme://host:*` for that host on any port and path (the
- * loopback callbacks of Claude Code and other local clients). Registration
- * is open, so without this anyone could register "Claude" with their own
- * callback and phish a grant on this server's real sign-in page.
+ * Whether `uri` may be a client's redirect URI. Each allow-list entry is one of:
+ * - an exact URL;
+ * - `https://host/path/*`: that origin, any path under `/path/` (ChatGPT gives
+ *   each connector its own `https://chatgpt.com/connector/oauth/{id}`);
+ * - `scheme://host:*`: any port and path, for loopback hosts only (the local
+ *   callbacks of Claude Code and other local clients). On any other host it
+ *   matches nothing: a whole host's paths include its open redirects.
+ * Registration is open, so without this anyone could register "Claude" with
+ * their own callback and phish a grant on this server's real sign-in page.
  */
 export function redirectAllowed(uri: string, allow: readonly string[]): boolean {
   let u: URL;
@@ -124,11 +130,15 @@ export function redirectAllowed(uri: string, allow: readonly string[]): boolean 
   } catch {
     return false;
   }
-  if (u.username || u.password) return false;
+  if (u.username || u.password || u.hash) return false;
   return allow.some((entry) => {
     if (entry.endsWith(":*")) {
       const base = URL.canParse(entry.slice(0, -2)) ? new URL(entry.slice(0, -2)) : null;
-      return !!base && u.protocol === base.protocol && u.hostname === base.hostname;
+      return !!base && LOOPBACK.has(base.hostname) && u.protocol === base.protocol && u.hostname === base.hostname;
+    }
+    if (entry.endsWith("/*")) {
+      const base = URL.canParse(entry.slice(0, -1)) ? new URL(entry.slice(0, -1)) : null;
+      return !!base && u.origin === base.origin && u.pathname.startsWith(base.pathname) && u.pathname.length > base.pathname.length;
     }
     return URL.canParse(entry) && u.href === new URL(entry).href;
   });
@@ -142,7 +152,7 @@ export class LifelineOAuth implements OAuthServerProvider {
   private rotating = new Map<string, Promise<OAuthTokens>>();
 
   constructor(
-    /** Superuser client: the OAuth collections have no rules, so only it reads them. */
+    /** The server's own PocketBase account: the OAuth collections open to it alone (#263). */
     private admin: PocketBase,
     private pbUrl: string,
     /** Redirect URIs a client may register (`redirectAllowed`). */
@@ -160,7 +170,11 @@ export class LifelineOAuth implements OAuthServerProvider {
     registerClient: async (client) => {
       const full = client as OAuthClientInformationFull;
       const refused = full.redirect_uris.find((uri) => !redirectAllowed(String(uri), this.redirectAllow));
-      if (refused !== undefined) throw new InvalidRedirectUriError(`Redirect URI not allowed: ${String(refused)}`);
+      if (refused !== undefined) {
+        // The client only shows a vague rejection; this line is how to find the callback to allow.
+        console.warn(`mcp: refused client registration, redirect URI not allowed: ${String(refused)}`);
+        throw new InvalidRedirectUriError(`Redirect URI not allowed: ${String(refused)}`);
+      }
       await this.admin.collection("mcp_clients").create({ client_id: full.client_id, info: full });
       return full;
     },
@@ -319,7 +333,7 @@ export class LifelineOAuth implements OAuthServerProvider {
       extra: { userId: row.user },
     };
     this.verified.set(hash, { info, until: Math.min(Date.now() + VERIFY_CACHE_MS, info.expiresAt! * 1000) });
-    void this.admin.collection("mcp_grants").update(row.id, { last_used: iso(0) }).catch(() => undefined);
+    void this.admin.collection("mcp_grants").update(row.id, { last_used: iso(0) }).catch((err) => console.error(`[oauth] recording grant ${row.id}'s last use failed`, err));
     return info;
   }
 
@@ -327,7 +341,7 @@ export class LifelineOAuth implements OAuthServerProvider {
     const row = (await this.grantBy("access_hash", request.token)) ?? (await this.grantBy("refresh_hash", request.token));
     if (!row || row.client_id !== client.client_id) return;
     this.verified.clear();
-    await this.admin.collection("mcp_grants").delete(row.id).catch(() => undefined);
+    await this.admin.collection("mcp_grants").delete(row.id).catch((err) => console.error(`[oauth] revoking grant ${row.id} failed: the token stays valid`, err));
   }
 
   private async grantBy(field: "access_hash" | "refresh_hash", raw: string): Promise<GrantRow | null> {

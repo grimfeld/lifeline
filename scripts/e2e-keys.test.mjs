@@ -3,8 +3,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("../shell/e2e", import.meta.url).pathname;
+const root = fileURLToPath(new URL("../shell/e2e", import.meta.url));
 const files = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
     e.isDirectory() ? (e.name === "node_modules" || e.name.startsWith(".") ? [] : files(join(dir, e.name))) : /\.(ts|tsx|mjs)$/.test(e.name) ? [join(dir, e.name)] : [],

@@ -9,7 +9,8 @@
 // numeric host that isn't a plain dotted quad (`2130706433`, `0x7f.1`, `0177.1`)
 // is refused outright — resolvers read those as IPs. A public name that
 // resolves or redirects to a private address is not caught here; `$http.send`
-// follows redirects and exposes no hook to stop it.
+// follows redirects and exposes no hook to stop it. That residual is accepted
+// while sign-up stays closed (ADR 0101).
 
 // `.flycast` names are Fly's private load-balanced addresses (fdaa:…), like `.internal`.
 const BLOCKED_SUFFIXES = [".localhost", ".internal", ".flycast", ".local", ".lan", ".home.arpa", ".intranet", ".corp"];

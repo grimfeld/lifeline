@@ -6,6 +6,7 @@ import { extractBlocks, openPrivateDialog, parseBlockOptions, splitFrontmatter, 
 import { DaylogBlock } from "./DaylogBlock";
 import { useOpenDocument } from "./openDocument";
 import { AttachmentImage } from "./AttachmentImage";
+import { RemoteImage } from "./RemoteImage";
 import { wikify } from "./wikify";
 import "./editor.css";
 
@@ -43,7 +44,7 @@ export function MarkdownView({ body, index, docDate, className, compact, origin 
       img: ({ src, alt }) => {
         const s = typeof src === "string" ? src : "";
         if (s.startsWith("attachment:")) return <AttachmentImage name={decodeURIComponent(s.slice("attachment:".length))} />;
-        return <img src={s} alt={alt} />;
+        return <RemoteImage src={s} alt={alt} />;
       },
       a: ({ href, children }) => {
         if (href?.startsWith("wikilink:")) {

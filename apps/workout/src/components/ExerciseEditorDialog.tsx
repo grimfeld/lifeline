@@ -69,7 +69,7 @@ export function ExerciseEditorDialog({
             <div className="grid gap-2">
               <Label>Category</Label>
               <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Category">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -84,7 +84,7 @@ export function ExerciseEditorDialog({
             <div className="grid gap-2">
               <Label>Measure</Label>
               <Select value={measure} onValueChange={(v) => setMeasure(v as Measure)}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Measure">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

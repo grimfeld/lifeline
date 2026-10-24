@@ -58,7 +58,7 @@ export function ScreensIndex() {
           <DialogHeader>
             <DialogTitle>New screen</DialogTitle>
           </DialogHeader>
-          <Input
+          <Input aria-label="Screen name"
             placeholder="Morning review"
             value={name}
             autoFocus
