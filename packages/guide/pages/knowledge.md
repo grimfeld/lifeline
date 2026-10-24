@@ -55,6 +55,28 @@ Topic to a set you choose.
 - A Deck is a set you choose inside one Topic ("Kitchen", "Work emails"), to practise on its own.
 - Name it and tick what it holds. Deleting a Deck keeps its words.
 
+### Puzzles
+
+- A daily word game for each Topic, built only from what you kept and have already practised —
+  Lifeline never brings in words of its own, not even a dictionary. Open the **Puzzles** tab: one
+  row per Topic that can make one, showing whether today's is not started, in progress, solved or
+  unsolved. **Play**, **Resume** or **See** it.
+- **Wordle-like** — you are shown a Word's meaning (and a Sentence's translation, when the Word is
+  one of its blanks) and the number of letters; guess the word in six tries. Each letter turns
+  green (right place), amber (in the word, wrong place) or grey (not in the word). Type on your
+  keyboard and press Enter.
+- Any word of the right length counts as a guess. Case and accents don't matter, and ñ counts as
+  n: *arbol* matches *árbol*. The grid and the end show the spelling you kept.
+- Only Words you have practised the other way round (meaning → word), not paused, with a one-word
+  term of 4 to 10 letters, are drawn — those due back soonest most often. An archived Topic, or one
+  with nothing that fits, has no Puzzle.
+- Today's Puzzle is fixed when you first open it: come back to it later the same day, guesses kept.
+  At midnight an unfinished one ends unsolved. **Give up** ends it too, unsolved, and shows the word.
+- The end shows the Word in full — meaning, notes, where you met it — and **Practise now** starts a
+  practice of the Topic.
+- Playing never changes when anything comes back: only a practice, graded by you, does. No score,
+  no streak.
+
 ### Commands
 
 - **Add word…** — a term and its meaning in a Topic. Where: the Capture sheet, the palette
@@ -90,7 +112,7 @@ answer for you.
   `knowledge_sentence`.
 - "Keep a fact in History: When was the Peace of Westphalia? 1648" — `knowledge_fact`.
 - Adding the same thing twice is refused, not duplicated.
-- Practising is yours: Claude does not grade recalls.
+- Practising is yours: Claude does not grade recalls, and does not play or start Puzzles.
 
 ## Tips
 
@@ -101,4 +123,5 @@ answer for you.
 ## Related
 
 - [Notes](notes.md) — Quotes you can keep, and the Sources practice can be narrowed to.
-- [Journal](journal.md) — each day you practise shows in its Daylog.
+- [Journal](journal.md) — each day you practise, and each daily Puzzle you finish, shows in its
+  Daylog.

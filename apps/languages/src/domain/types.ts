@@ -1,4 +1,4 @@
-import type { Document } from "@lifeline/core";
+import type { DateStr, Document } from "@lifeline/core";
 
 /** Stored ids keep the retired Languages name (ADR 0073): App, Module, URL, the `language` type and every `languageId`. */
 export const APP_ID = "languages";
@@ -12,6 +12,8 @@ export const DECK = "language_deck";
 export const RECALL = "language_recall";
 /** New with Knowledge (ADR 0073), so it carries Knowledge's name. */
 export const FACT = "knowledge_fact";
+/** New with Knowledge too (ADR 0106), so `knowledge_` like the Fact. */
+export const PUZZLE = "knowledge_puzzle";
 
 /** The daily new cap a Topic starts with (CONTEXT.md "Prompt"). */
 export const DEFAULT_NEW_CAP = 10;
@@ -125,4 +127,52 @@ export interface Material {
   slots: string[];
   /** The Document it was taken from — followed to its Source, never copied. Empty for none. */
   originId: string;
+}
+
+/** A Puzzle's format (CONTEXT.md "Puzzle"): a field, not a term. Only the Wordle-like is built so far. */
+export type PuzzleFormat = "wordle" | "crossword" | "connections";
+
+/** One per format per Topic per day, or as many replays as wanted. */
+export type PuzzleKind = "daily" | "replay";
+
+/** Given up and expired at midnight both count as unsolved. */
+export type PuzzleOutcome = "playing" | "solved" | "unsolved";
+
+/**
+ * One piece of material a Puzzle drew, as it was when drawn: the item and the
+ * Prompt it plays, plus a snapshot of its answer and clue — so the Puzzle
+ * stays readable after the item is edited or deleted.
+ */
+export interface PuzzleDraw {
+  itemId: string;
+  /** The Prompt it plays: a Word's "reverse", a Fact's "forward", a Sentence's "blank:<text>". */
+  slot: string;
+  /** In the stored spelling, accents and all: what the grid and the reveal show. */
+  answer: string;
+  /** A Word's meaning, a Fact's question, a Sentence with its blank. */
+  clue: string;
+  /** A second clue, empty for none: a Sentence's translation. */
+  hint: string;
+}
+
+/**
+ * A Puzzle (CONTEXT.md "Puzzle", ADR 0106, internal): one word game over one
+ * Topic's kept material, kept as a fact — what it drew is fixed when first
+ * opened. Never writes a Recall. A crossword will add its grid layout, a
+ * Connections its groups, beside these.
+ */
+export interface Puzzle extends Document {
+  type: typeof PUZZLE;
+  languageId: string;
+  format: PuzzleFormat;
+  kind: PuzzleKind;
+  /** The local day it belongs to. */
+  day: DateStr;
+  drawn: PuzzleDraw[];
+  /** Each guess in order, as typed: a Wordle-like's word. Later formats write theirs as a string too. */
+  guesses: string[];
+  /** As stored: a daily still "playing" from an earlier day reads as unsolved. */
+  outcome: PuzzleOutcome;
+  /** ISO instant it was solved or given up; empty while playing (and for one left to expire). */
+  finishedAt: string;
 }

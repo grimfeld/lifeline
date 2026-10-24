@@ -14,7 +14,7 @@ export function deckItems<T extends { id: string }>(deck: Deck, items: T[]): T[]
   return items.filter((i) => ids.has(i.id));
 }
 
-/** A Practice opened by link — the Due Card's "everything", or one Source's. */
+/** A Practice opened by link — the Due Card's "everything", one Source's, or the active Topic's (a Puzzle's "practise now"). */
 const PRACTICE_PARAM = "practice";
 
 /** How many Sources are listed before "show all". */
@@ -24,6 +24,7 @@ type Run = { kind: "topic" } | { kind: "deck"; deck: Deck } | { kind: "all" } | 
 
 function runOf(param: string | null): Run | null {
   if (param === "all") return { kind: "all" };
+  if (param === "topic") return { kind: "topic" };
   if (param?.startsWith("source:")) return { kind: "source", id: param.slice("source:".length) };
   return null;
 }

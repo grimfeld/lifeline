@@ -102,6 +102,44 @@ async function openNeedsAmount(page: Page) {
   await expect(page.getByRole("dialog", { name: "Lines that need an amount" })).toBeVisible();
 }
 
+/**
+ * Knowledge → Puzzles over a Topic with one Word a Wordle-like can draw (ADR
+ * 0106): a short term met reversed, with the longest meaning, notes, origin
+ * and Sentence translation a person could type.
+ */
+async function withPuzzleWord(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      const w = await core.putDocument({ type: "language_word", languageId: topic.id, term: "palabra", meaning: `${long} ${word}`, notes: `${long} ${word}`, origin: `${long} ${word}`, originId: "", paused: false, addedAt: at, tags: [] });
+      await core.putDocument({ type: "language_sentence", languageId: topic.id, text: "Una {{palabra}} más", translation: `${long} ${word}`, origin: "", originId: "", paused: false, addedAt: at, tags: [] });
+      await core.putDocument({ type: "language_recall", title: "", languageId: topic.id, itemId: w.id, slot: "reverse", grade: "pass", at, tags: [] });
+    },
+    [CORE_URL, longText("Puzzle topic"), LONG_WORD] as const,
+  );
+  await expect(page.getByRole("button", { name: "Play" }).first()).toBeVisible();
+}
+
+/** …and today's Wordle-like opened, one guess in. */
+async function playPuzzle(page: Page) {
+  await withPuzzleWord(page);
+  await page.getByRole("button", { name: "Play" }).last().click();
+  const guess = page.getByLabel("Guess 1 of 6");
+  await guess.fill("palomas");
+  await guess.press("Enter");
+  await expect(page.getByLabel("Guess 2 of 6")).toBeVisible();
+}
+
+/** …and given up: the end, the Word in full. */
+async function givenUpPuzzle(page: Page) {
+  await playPuzzle(page);
+  await page.getByRole("button", { name: "Give up" }).click();
+  await expect(page.getByRole("button", { name: "Practise now" })).toBeVisible();
+}
+
 /** Journal → Types → the Type editor over the seeded People type. */
 async function openPeopleTypeEditor(page: Page) {
   await workLocally(page);
@@ -715,6 +753,9 @@ const SCREENS: ScreenCase[] = [
   { name: "Mood", path: "/app/mood" },
   { name: "Swear Jar", path: "/app/swearjar" },
   { name: "Knowledge", path: "/app/languages" },
+  { name: "Knowledge · Puzzles", path: "/app/languages?tab=puzzles", afterOpen: withPuzzleWord },
+  { name: "Knowledge · Puzzle player", path: "/app/languages?tab=puzzles", afterOpen: playPuzzle },
+  { name: "Knowledge · Puzzle played", path: "/app/languages?tab=puzzles", afterOpen: givenUpPuzzle },
 ];
 
 async function firstOfType(page: Page, type: string): Promise<string> {
