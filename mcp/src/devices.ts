@@ -82,14 +82,16 @@ export class DevicePool {
     private pbUrl: string,
   ) {}
 
-  /** A token acting as the Account, minted by the server's superuser and reused until it nears expiry. */
+  /**
+   * A token acting as the Account, minted by PocketBase's `mcp_service.pb.js`
+   * for the server's own account (#263) and reused until it nears expiry.
+   */
   private async authFor(userId: string): Promise<DeviceAuth> {
     const cached = this.tokens.get(userId);
     if (cached && cached.expires - Date.now() > 10 * 60_000) return cached.auth;
-    const client = await this.admin.collection("users").impersonate(userId, TOKEN_SECONDS);
-    const r = client.authStore.record;
-    if (!r) throw new Error("Impersonation returned no Account");
-    const auth: DeviceAuth = { token: client.authStore.token, record: { id: r.id, email: r.email, collectionId: r.collectionId, collectionName: r.collectionName } };
+    const minted = await this.admin.send<DeviceAuth>(`/api/lifeline/mcp/impersonate/${encodeURIComponent(userId)}`, { method: "POST", body: { seconds: TOKEN_SECONDS } });
+    const r = minted.record;
+    const auth: DeviceAuth = { token: minted.token, record: { id: r.id, email: r.email, collectionId: r.collectionId, collectionName: r.collectionName } };
     this.tokens.set(userId, { auth, expires: Date.now() + TOKEN_SECONDS * 1000 });
     return auth;
   }

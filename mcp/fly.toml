@@ -1,6 +1,7 @@
 # Lifeline MCP server (ADR 0062). Deploy from the repository root:
 #   fly deploy . --config mcp/fly.toml
-# Secrets (once): fly secrets set -a lifeline-mcp PB_SUPERUSER_EMAIL=… PB_SUPERUSER_PASSWORD=…
+# Secrets (once), the same pair on lifeline-pb, which keeps the `mcp_service` record from them (#263):
+#   fly secrets set -a lifeline-mcp MCP_SERVICE_EMAIL=… MCP_SERVICE_PASSWORD=…
 #
 # Run exactly ONE machine (`fly scale count 1 -a lifeline-mcp`): a sign-in in
 # progress and the Accounts' warm devices live in that machine's memory.

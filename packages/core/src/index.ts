@@ -74,7 +74,7 @@ export { put, remove, get, all, localWrites } from "./data/repo";
 export { sharedLiveQuery } from "./data/live";
 export { pb, login, logout, useAuth } from "./data/pb";
 export { startSync, syncNow, pushNow, requestSync, useSyncState, lastSyncError, type SyncState } from "./data/sync";
-export { accountConflict, boundAccount, currentAccount, eraseDevice, pendingWriteCount, switchAccount, type AccountRef } from "./data/account";
+export { accountConflict, boundAccount, currentAccount, eraseDevice, pendingWriteCount, signOut, switchAccount, type AccountRef } from "./data/account";
 export { useLiveQuery } from "dexie-react-hooks";
 export { liveQuery } from "dexie";
 export * from "./external";

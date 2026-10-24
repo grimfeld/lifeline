@@ -121,3 +121,17 @@
 .prose-note a.wikilink-locked::before, .ll-editor .cm-wikilink-locked::before { content: "🔒 "; font-size: 0.8em; }
 .prose-note a.wikilink-app { color: var(--chart-magenta); background: color-mix(in oklab, var(--chart-magenta) 12%, transparent); }
 .prose-note table { border-collapse: collapse; font-size: 0.9em; } .prose-note th, .prose-note td { border: 1px solid var(--border); padding: 0.2em 0.5em; }
+
+/* A remote image waiting for a click (#270): one line, wraps on a phone. */
+.remote-image {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  margin: 0.35em 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 0.85em;
+}

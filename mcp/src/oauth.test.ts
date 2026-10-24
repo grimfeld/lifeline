@@ -5,9 +5,9 @@ import type { OAuthClientInformationFull } from "@modelcontextprotocol/sdk/share
 import { InvalidGrantError, OAuthError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import type { Response } from "express";
 import type { AuthorizationParams } from "@modelcontextprotocol/sdk/server/auth/provider.js";
-import { DEFAULT_REDIRECT_ALLOW, parseRedirectAllow } from "./config";
+import { DEFAULT_REDIRECT_ALLOW, parseRedirectAllow, pbAccountFrom } from "./config";
 import { loginPage } from "./login";
-import { LifelineOAuth, LoginAttempts } from "./oauth";
+import { LifelineOAuth, LoginAttempts, redirectAllowed } from "./oauth";
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 const later = new Date(Date.now() + 86_400_000).toISOString().replace("T", " ");
@@ -110,6 +110,13 @@ describe("dynamic client registration", () => {
     expect(create).toHaveBeenCalledTimes(1);
   });
 
+  it("registers ChatGPT's per-connector callback and its older single one", async () => {
+    const { admin, create } = clientsAdmin();
+    const oauth = new LifelineOAuth(admin, "http://pb");
+    await register(oauth, ["https://chatgpt.com/connector/oauth/abc123", "https://chatgpt.com/connector_platform_oauth_redirect"]);
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     ["another site", "https://evil.example/cb"],
     ["another path on claude.ai", "https://claude.ai/somewhere/else"],
@@ -118,6 +125,10 @@ describe("dynamic client registration", () => {
     ["credentials hiding the real host", "http://localhost:80@evil.example/cb"],
     ["plain http to claude.ai", "http://claude.ai/api/mcp/auth_callback"],
     ["something that is not a URL", "not a url"],
+    ["another path on chatgpt.com", "https://chatgpt.com/other"],
+    ["the bare ChatGPT prefix", "https://chatgpt.com/connector/oauth/"],
+    ["a dot segment out of the prefix", "https://chatgpt.com/connector/oauth/../../r?u=https://evil.example"],
+    ["a fragment", "https://claude.ai/api/mcp/auth_callback#x"],
   ])("refuses %s with invalid_redirect_uri", async (_why, uri) => {
     const { admin, create } = clientsAdmin();
     const oauth = new LifelineOAuth(admin, "http://pb");
@@ -171,5 +182,34 @@ describe("the consent page", () => {
     const box = html.match(/<input type="checkbox" name="allow_write"[^>]*>/)?.[0];
     expect(box).toBeDefined();
     expect(box).not.toMatch(/\bchecked\b/);
+  });
+});
+
+describe("redirectAllowed", () => {
+  it("lets `:*` match any port and path on loopback only", () => {
+    expect(redirectAllowed("http://localhost:1234/cb", ["http://localhost:*"])).toBe(true);
+    expect(redirectAllowed("https://chatgpt.com/anything", ["https://chatgpt.com:*"])).toBe(false);
+  });
+  it("matches an exact entry exactly", () => {
+    expect(redirectAllowed("https://chatgpt.com/other", ["https://chatgpt.com/connector_platform_oauth_redirect"])).toBe(false);
+    expect(redirectAllowed("https://chatgpt.com/connector_platform_oauth_redirect", ["https://chatgpt.com/connector_platform_oauth_redirect"])).toBe(true);
+  });
+  it("matches a `/*` entry under its path, on its origin", () => {
+    expect(redirectAllowed("https://chatgpt.com/connector/oauth/x1", ["https://chatgpt.com/connector/oauth/*"])).toBe(true);
+    expect(redirectAllowed("https://chatgpt.com/connector/oauthx/x1", ["https://chatgpt.com/connector/oauth/*"])).toBe(false);
+    expect(redirectAllowed("http://chatgpt.com/connector/oauth/x1", ["https://chatgpt.com/connector/oauth/*"])).toBe(false);
+  });
+});
+
+describe("pbAccountFrom", () => {
+  it("signs in as the mcp_service record when its secrets are set", () => {
+    expect(pbAccountFrom({ MCP_SERVICE_EMAIL: "s@x", MCP_SERVICE_PASSWORD: "p", PB_SUPERUSER_EMAIL: "su@x", PB_SUPERUSER_PASSWORD: "q" })).toEqual({ collection: "mcp_service", email: "s@x", password: "p" });
+  });
+  it("falls back to the superuser until then, and refuses neither", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    expect(pbAccountFrom({ PB_SUPERUSER_EMAIL: "su@x", PB_SUPERUSER_PASSWORD: "q" }).collection).toBe("_superusers");
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+    expect(() => pbAccountFrom({ MCP_SERVICE_EMAIL: "s@x" })).toThrow(/MCP_SERVICE_PASSWORD/);
   });
 });
