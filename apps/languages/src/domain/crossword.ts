@@ -1,7 +1,7 @@
 import { parseCloze } from "./cloze";
 import { recallsByPrompt } from "./practice";
 import { promptKey } from "./prompts";
-import { fold, lettersOf } from "./puzzle";
+import { fold, leastRecentFirst, lettersOf, type Avoid } from "./puzzle";
 import { replay } from "./schedule";
 import { FACT, SENTENCE, WORD, type Fact, type Puzzle, type PuzzleDraw, type Recall, type Sentence, type Word } from "./types";
 
@@ -209,10 +209,10 @@ export function crosswordDraws(topicId: string, items: { words: Word[]; sentence
 /**
  * The draws in the order a layout should prefer them: toward the Prompt due
  * soonest, each next pick weighted 1/rank among those left (so not the same
- * grid every day), `avoid`'s items last. With `random` always 0 it is
- * simply the due order.
+ * grid every day), `avoid`'s items last, the least recently drawn first.
+ * With `random` always 0 and nothing to avoid it is simply the due order.
  */
-export function orderTowardDue(draws: PuzzleDraw[], recalls: Recall[], opts: { random: () => number; avoid?: Set<string> }): PuzzleDraw[] {
+export function orderTowardDue(draws: PuzzleDraw[], recalls: Recall[], opts: { random: () => number; avoid?: Avoid }): PuzzleDraw[] {
   const by = recallsByPrompt(recalls);
   const dueOf = (d: PuzzleDraw) => replay(by.get(promptKey(d.itemId, d.slot)) ?? []).due?.getTime() ?? Number.POSITIVE_INFINITY;
   const rank = (xs: PuzzleDraw[]) =>
@@ -238,7 +238,8 @@ export function orderTowardDue(draws: PuzzleDraw[], recalls: Recall[], opts: { r
     }
     return out;
   };
-  return [...draw(draws.filter((d) => !opts.avoid?.has(d.itemId))), ...draw(draws.filter((d) => opts.avoid?.has(d.itemId)))];
+  const avoid = opts.avoid ?? new Map<string, string>();
+  return [...draw(draws.filter((d) => !avoid.has(d.itemId))), ...leastRecentFirst(rank(draws.filter((d) => avoid.has(d.itemId))), (d) => d.itemId, avoid)];
 }
 
 /**

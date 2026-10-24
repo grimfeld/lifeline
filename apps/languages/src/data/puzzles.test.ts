@@ -317,18 +317,36 @@ describe("replays", () => {
   });
 
   it("avoids today's daily item where another is left, and draws it when it is the only one", async () => {
-    const t = await topic();
-    await practised(t, "mesa");
-    await practised(t, "silla");
-    const daily = (await openDailyPuzzle(t, "wordle", { now: NOW }))!;
     for (let i = 0; i < 5; i++) {
-      const r = (await openReplayPuzzle(t, "wordle", { now: NOW, random: () => i / 5 }))!;
+      const other = await topic();
+      await practised(other, "mesa");
+      await practised(other, "silla");
+      const daily = (await openDailyPuzzle(other, "wordle", { now: NOW, random: () => i / 5 }))!;
+      const r = (await openReplayPuzzle(other, "wordle", { now: NOW, random: () => i / 5 }))!;
       expect(r.drawn[0]?.itemId).not.toBe(daily.drawn[0]?.itemId);
     }
     const solo = await topic();
     await practised(solo, "plato");
     await openDailyPuzzle(solo, "wordle", { now: NOW });
     expect((await openReplayPuzzle(solo, "wordle", { now: NOW }))?.drawn[0]?.answer).toBe("plato");
+  });
+
+  it("draws what no Puzzle of today drew yet, then the least recently drawn once everything was", async () => {
+    const t = await topic();
+    for (const term of ["mesa", "silla", "plato"]) await practised(t, term);
+    const tick = () => new Promise((r) => setTimeout(r, 2));
+    const daily = (await openDailyPuzzle(t, "wordle", { now: NOW, random: () => 0 }))!;
+    const seen = [daily.drawn[0]!.itemId];
+    for (let i = 0; i < 2; i++) {
+      await tick();
+      const r = (await openReplayPuzzle(t, "wordle", { now: NOW, random: () => 0 }))!;
+      expect(seen).not.toContain(r.drawn[0]!.itemId);
+      seen.push(r.drawn[0]!.itemId);
+    }
+    await tick();
+    expect((await openReplayPuzzle(t, "wordle", { now: NOW, random: () => 0 }))!.drawn[0]!.itemId).toBe(seen[0]);
+    await tick();
+    expect((await openReplayPuzzle(t, "wordle", { now: NOW, random: () => 0 }))!.drawn[0]!.itemId).toBe(seen[1]);
   });
 
   it("is null for a Topic with nothing to draw, or archived", async () => {

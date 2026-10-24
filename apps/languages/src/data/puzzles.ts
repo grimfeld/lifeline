@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { addDays, documentsOf, fireTallies, documentsWhere, getDocument, putDocument, todayStr, useDocuments, type DateStr } from "@lifeline/core";
-import { lettersOf, MAX_GUESSES, isAnswer, outcomeAt, pickTowardDue, wordleCandidates, wordleDraw } from "../domain/puzzle";
+import { drawnBy, lettersOf, MAX_GUESSES, isAnswer, outcomeAt, pickTowardDue, wordleCandidates, wordleDraw, type Avoid } from "../domain/puzzle";
 import { buildCrossword, crosswordCells, crosswordDraws, crosswordSolved, entryGuess, orderTowardDue, type Placement } from "../domain/crossword";
 import { connectionsDraw, connectionsItems, connectionsState, GROUPS, MAX_MISTAKES as CONNECTIONS_MISTAKES, settleConnections } from "../domain/connections";
 import { DECK, FACT, OCCURRENCE_PUZZLE, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Fact, type Puzzle, type PuzzleDraw, type PuzzleFormat, type PuzzleOutcome, type Recall, type Sentence, type Topic, type Word } from "../domain/types";
@@ -109,7 +109,7 @@ export function todayOf(topics: Topic[], words: Word[], recalls: Recall[], puzzl
 /** Whether a format has enough in a Topic to build one now. */
 function canBuild(topic: Topic, format: PuzzleFormat, words: Word[], recalls: Recall[], more: { facts?: Fact[]; decks?: Deck[]; sentences?: Sentence[] }): boolean {
   const topicId = topic.id;
-  if (format === "crossword") return drawCrossword(topic, { words, sentences: more.sentences ?? [], facts: more.facts ?? [] }, recalls, () => 0, new Set()) !== null;
+  if (format === "crossword") return drawCrossword(topic, { words, sentences: more.sentences ?? [], facts: more.facts ?? [] }, recalls, () => 0, new Map()) !== null;
   if (format === "wordle") return wordleCandidates(topicId, words, recalls).length > 0;
   if (format === "connections") return connectionsDraw(topicId, more.decks ?? [], connectionsItems(topicId, words, more.facts ?? [], recalls), recalls, { random: () => 0 }) !== null;
   return false;
@@ -166,7 +166,7 @@ export function openDailyPuzzle(topicId: string, format: PuzzleFormat, opts: { n
     const existing = dailyOf(mine, topicId, format, day);
     if (existing) return existing;
     const since = addDays(day, -AVOID_DAYS);
-    const avoid = new Set(mine.filter((p) => p.format === format && p.kind === "daily" && p.day >= since).flatMap((p) => p.drawn.map((d) => d.itemId)));
+    const avoid = drawnBy(mine.filter((p) => p.format === format && p.kind === "daily" && p.day >= since));
     const built = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
     if (!built?.drawn.length) return null;
     const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · ${day}`, languageId: topicId, format, kind: "daily", day, ...built, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
@@ -175,12 +175,12 @@ export function openDailyPuzzle(topicId: string, format: PuzzleFormat, opts: { n
 }
 
 /** What a format draws from a Topic now (and a crossword's grid), or null when there is not enough to build it. */
-async function drawFor(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Set<string> }): Promise<{ drawn: PuzzleDraw[]; layout?: Placement[] } | null> {
+async function drawFor(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Avoid }): Promise<{ drawn: PuzzleDraw[]; layout?: Placement[] } | null> {
   const built = await drawn(topic, format, opts);
   return Array.isArray(built) ? { drawn: built } : built;
 }
 
-async function drawn(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Set<string> }): Promise<PuzzleDraw[] | { drawn: PuzzleDraw[]; layout: Placement[] } | null> {
+async function drawn(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Avoid }): Promise<PuzzleDraw[] | { drawn: PuzzleDraw[]; layout: Placement[] } | null> {
   const topicId = topic.id;
   const [words, recalls] = await Promise.all([documentsWhere<Word>(WORD, "languageId", topicId), documentsWhere<Recall>(RECALL, "languageId", topicId)]);
   const live = words.map((w) => ({ ...w, paused: !!w.paused }));
@@ -301,7 +301,8 @@ export function giveUpPuzzle(id: string, now: Date = new Date()): Promise<Played
 
 /**
  * A replay: a new Puzzle each call, drawing fresh material toward what is due
- * soonest, leaving out today's daily item where anything else remains. Never
+ * soonest, leaving out what today's daily and replays drew where anything else
+ * remains, then the least recently drawn. Never
  * a daily (no day-end expiry) and never tallied. Null when the Topic is
  * archived or has nothing to draw.
  */
@@ -312,7 +313,7 @@ export function openReplayPuzzle(topicId: string, format: PuzzleFormat, opts: { 
     const topic = await getDocument<Topic>(topicId);
     if (!topic || topic.type !== TOPIC || topic.archived) return null;
     const mine = await topicPuzzles(topicId, now);
-    const avoid = new Set(mine.filter((p) => p.format === format && p.kind === "daily" && p.day === day).flatMap((p) => p.drawn.map((d) => d.itemId)));
+    const avoid = drawnBy(mine.filter((p) => p.format === format && p.day === day));
     const built = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
     if (!built?.drawn.length) return null;
     const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · replay`, languageId: topicId, format, kind: "replay", day, ...built, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
@@ -323,7 +324,7 @@ export function openReplayPuzzle(topicId: string, format: PuzzleFormat, opts: { 
 // ---- The crossword ----
 
 /** A Topic's crossword, drawn toward what is due, `avoid`'s items last: null when fewer than five cross. */
-function drawCrossword(topic: Topic, items: { words: Word[]; sentences: Sentence[]; facts: Fact[] }, recalls: Recall[], random: () => number, avoid: Set<string>) {
+function drawCrossword(topic: Topic, items: { words: Word[]; sentences: Sentence[]; facts: Fact[] }, recalls: Recall[], random: () => number, avoid: Avoid) {
   const enye = !!topic.enyeOwn;
   const draws = crosswordDraws(topic.id, items, recalls, enye);
   return buildCrossword(orderTowardDue(draws, recalls, { random, avoid }), orderTowardDue(draws, recalls, { random: () => 0 }), enye);
