@@ -210,7 +210,9 @@ export function crosswordDraws(topicId: string, items: { words: Word[]; sentence
  * The draws in the order a layout should prefer them: toward the Prompt due
  * soonest, each next pick weighted 1/rank among those left (so not the same
  * grid every day), `avoid`'s items last, the least recently drawn first.
- * With `random` always 0 and nothing to avoid it is simply the due order.
+ * With `random` always 0 and nothing to avoid it is simply the due order,
+ * ties by the folded answer, then the item: never by anything random, such
+ * as an id alone, so the same material always lays out the same.
  */
 export function orderTowardDue(draws: PuzzleDraw[], recalls: Recall[], opts: { random: () => number; avoid?: Avoid }): PuzzleDraw[] {
   const by = recallsByPrompt(recalls);
@@ -218,7 +220,7 @@ export function orderTowardDue(draws: PuzzleDraw[], recalls: Recall[], opts: { r
   const rank = (xs: PuzzleDraw[]) =>
     xs
       .map((d) => ({ d, due: dueOf(d) }))
-      .sort((a, b) => a.due - b.due || a.d.itemId.localeCompare(b.d.itemId) || a.d.slot.localeCompare(b.d.slot))
+      .sort((a, b) => a.due - b.due || fold(a.d.answer).localeCompare(fold(b.d.answer)) || a.d.itemId.localeCompare(b.d.itemId) || a.d.slot.localeCompare(b.d.slot))
       .map((x) => x.d);
   const draw = (xs: PuzzleDraw[]) => {
     const left = rank(xs);
