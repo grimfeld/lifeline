@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addDays, documentsOf, fireTallies, documentsWhere, getDocument, putDocument, todayStr, useDocuments, type DateStr } from "@lifeline/core";
 import { drawnBy, lettersOf, MAX_GUESSES, isAnswer, outcomeAt, pickTowardDue, wordleCandidates, wordleDraw, type Avoid } from "../domain/puzzle";
 import { buildCrossword, crosswordCells, crosswordDraws, crosswordSolved, entryGuess, orderTowardDue, type Placement } from "../domain/crossword";
 import { connectionsDraw, connectionsItems, connectionsState, GROUPS, MAX_MISTAKES as CONNECTIONS_MISTAKES, settleConnections } from "../domain/connections";
 import { DECK, FACT, OCCURRENCE_PUZZLE, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Fact, type Puzzle, type PuzzleDraw, type PuzzleFormat, type PuzzleOutcome, type Recall, type Sentence, type Topic, type Word } from "../domain/types";
+import { useDecks, useFacts, useRecalls, useSentences, useTopics, useWords } from "./repo";
 
 /**
  * Puzzles' data (CONTEXT.md "Puzzle", ADR 0106). Nothing here writes a
@@ -124,6 +125,33 @@ export async function todaysPuzzles(now: Date = new Date()): Promise<TodaysPuzzl
 export function usePuzzles(now: Date): Puzzle[] {
   const rows = useDocuments<Puzzle>(PUZZLE);
   return useMemo(() => rows.map((p) => normalizePuzzle(p, now)), [rows, now]);
+}
+
+/**
+ * Today's Puzzles, live: every row `todayOf` lists, every Puzzle and Topic,
+ * and the clock — re-read once a minute, so a daily left open past midnight
+ * ends there.
+ */
+export function useTodaysPuzzles(): { rows: TodaysPuzzle[]; puzzles: Puzzle[]; topics: Topic[] } {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const topics = useTopics();
+  const words = useWords();
+  const recalls = useRecalls();
+  const facts = useFacts();
+  const decks = useDecks();
+  const sentences = useSentences();
+  const puzzles = usePuzzles(now);
+  const rows = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { facts, decks, sentences }), [topics, words, recalls, puzzles, now, facts, decks, sentences]);
+  return { rows, puzzles, topics };
+}
+
+/** What a row's button says: Play before it is opened, Resume while playing, See once finished. */
+export function playLabel(row: TodaysPuzzle): "Play" | "Resume" | "See" {
+  return !row.puzzle ? "Play" : row.puzzle.outcome === "playing" ? "Resume" : "See";
 }
 
 /** A format as the user reads it. */

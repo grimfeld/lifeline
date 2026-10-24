@@ -1,43 +1,27 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { useNavigate } from "react-router";
 import { Button, CardUnavailable } from "@lifeline/ui";
 import type { CardProps } from "@lifeline/core";
 import { Grid3x3 } from "lucide-react";
 import { KNOWLEDGE_HREF } from "../domain/types";
-import { useDecks, useFacts, useRecalls, useSentences, useTopics, useWords } from "../data/repo";
-import { FORMAT_LABEL, todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
+import { FORMAT_LABEL, playLabel, useTodaysPuzzles, type TodaysPuzzle } from "../data/puzzles";
+import { usePuzzleOpener } from "../components/PuzzleShell";
 
 /** How today's Puzzle stands, in two words. */
-export function standing(row: TodaysPuzzle): string {
+function standing(row: TodaysPuzzle): string {
   if (!row.puzzle) return "not started";
   if (row.puzzle.outcome === "playing") return "in progress";
   return row.puzzle.outcome;
 }
 
-/** Where a row opens: its Puzzle if started, else the Puzzles tab, where Play draws it. */
-export function puzzleHref(row: TodaysPuzzle): string {
-  return row.puzzle ? `${KNOWLEDGE_HREF}?tab=puzzles&puzzle=${row.puzzle.id}` : `${KNOWLEDGE_HREF}?tab=puzzles`;
-}
-
 /**
  * "Today's Puzzles" (a Card, ADR 0106): each active Topic's daily Puzzles and
- * how each stands — not started, in progress, solved or unsolved — one tap in.
+ * how each stands — not started, in progress, solved or unsolved — one tap
+ * into the Puzzle itself, drawn then if it was not opened yet.
  */
 export function PuzzlesCard(_: CardProps) {
-  const topics = useTopics();
-  const words = useWords();
-  const recalls = useRecalls();
-  const facts = useFacts();
-  const decks = useDecks();
-  // A daily ends at midnight: re-read the clock every minute.
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(t);
-  }, []);
-  const sentences = useSentences();
-  const puzzles = usePuzzles(now);
-  const rows = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { facts, decks, sentences }), [topics, words, recalls, puzzles, now, facts, decks, sentences]);
+  const navigate = useNavigate();
+  const { rows, topics } = useTodaysPuzzles();
+  const { open, busy } = usePuzzleOpener((p) => navigate(`${KNOWLEDGE_HREF}?tab=puzzles&puzzle=${p.id}`));
 
   if (!topics.some((t) => !t.archived)) return <CardUnavailable message="No topic yet" />;
   if (!rows.length) return <CardUnavailable message="No puzzle today" />;
@@ -51,8 +35,8 @@ export function PuzzlesCard(_: CardProps) {
               {r.topic.name} · {FORMAT_LABEL[r.format]}
             </span>
             <span className="text-muted-foreground shrink-0">{standing(r)}</span>
-            <Button size="xs" variant="outline" className="shrink-0" asChild>
-              <Link to={puzzleHref(r)}>{r.puzzle ? (r.puzzle.outcome === "playing" ? "Resume" : "See") : "Play"}</Link>
+            <Button size="xs" variant="outline" className="shrink-0" onClick={() => void open(r)} disabled={busy(r)}>
+              {playLabel(r)}
             </Button>
           </li>
         ))}
