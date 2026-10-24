@@ -60,8 +60,8 @@ Topic to a set you choose.
 
 - A daily word game for each Topic, built only from what you kept and have already practised —
   Lifeline never brings in words of its own, not even a dictionary. Open the **Puzzles** tab: one
-  row per Topic that can make one, showing whether today's is not started, in progress, solved or
-  unsolved. **Play**, **Resume** or **See** it.
+  row per Topic and format it can make, showing whether today's is not started, in progress,
+  solved or unsolved. **Play**, **Resume** or **See** it.
 - **Wordle-like** — you are shown a Word's meaning (and a Sentence's translation, when the Word is
   one of its blanks) and the number of letters; guess the word in six tries. Each letter turns
   green (right place), amber (in the word, wrong place) or grey (not in the word). Type on your
@@ -75,16 +75,26 @@ Topic to a set you choose.
 - Only Words you have practised the other way round (meaning → word), not paused, with a one-word
   term of 4 to 10 letters, are drawn — those due back soonest most often. An archived Topic, or one
   with nothing that fits, has no Puzzle.
+- **Connections** — 16 tiles, Word terms and Fact answers, to sort into 4 of the Topic's Decks.
+  Pick four and **Submit**: a right group shows under its Deck's name; a wrong one is a mistake
+  ("One away…" when three of the four belong together), and the fourth mistake ends it unsolved.
+  **Shuffle** moves the tiles around; **Deselect** clears your pick.
+- Connections draws from 4 Decks that each hold at least 4 Words or Facts you have practised (either
+  way round), not paused. Something kept in two of those Decks, or two tiles that read the same, is
+  left out, so every group has one right answer. A Topic without 4 such Decks has no Connections.
+  The groups are fixed when drawn: renaming or editing a Deck later changes nothing in it.
 - Today's Puzzle is fixed when you first open it: come back to it later the same day, guesses kept.
-  At midnight an unfinished one ends unsolved. **Give up** ends it too, unsolved, and shows the word.
-- The end shows the Word in full — meaning, notes, where you met it — and **Practise now** starts a
-  practice of the Topic.
+  At midnight an unfinished one ends unsolved. **Give up** ends it too, unsolved, and shows the
+  answers.
+- The end shows what it drew in full — each Word's meaning or Fact's question, notes, where you met
+  it, and in Connections every group under its Deck — and **Practise now** starts a practice of the
+  Topic.
 - Finishing a daily Puzzle (solved, failed out or given up) counts once for any Topic Tally set to
   **daily Puzzle finished**, whether you solved it or not, so it can log a Habit. A replay, or a
   Puzzle that ran out at midnight, counts for nothing; a Tally set to **day practised** is not
   touched. If the Tally cannot log, the Puzzle still ends as it did and an error appears.
 - **Replay** (the circular arrow on a Topic's row) starts another puzzle of the same format as often as you like, drawn
-  afresh and avoiding today's daily word where it can. A replay doesn't end at midnight and never counts toward
+  afresh and avoiding what today's daily drew where it can. A replay doesn't end at midnight and never counts toward
   anything: only the daily does.
 - Playing never changes when anything comes back: only a practice, graded by you, does. No score,
   no streak.

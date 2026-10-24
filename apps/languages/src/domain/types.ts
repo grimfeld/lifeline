@@ -159,6 +159,9 @@ export interface PuzzleDraw {
   clue: string;
   /** A second clue, empty for none: a Sentence's translation. */
   hint: string;
+  /** In a Connections, the Deck it was drawn from, id and name as drawn — so its group survives the Deck being edited. */
+  deckId?: string;
+  deck?: string;
 }
 
 /**

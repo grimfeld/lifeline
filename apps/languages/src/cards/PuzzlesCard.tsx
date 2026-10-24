@@ -4,8 +4,8 @@ import { Button, CardUnavailable } from "@lifeline/ui";
 import type { CardProps } from "@lifeline/core";
 import { Grid3x3 } from "lucide-react";
 import { KNOWLEDGE_HREF } from "../domain/types";
-import { useRecalls, useTopics, useWords } from "../data/repo";
-import { todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
+import { useDecks, useFacts, useRecalls, useTopics, useWords } from "../data/repo";
+import { FORMAT_LABEL, todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
 
 /** How today's Puzzle stands, in two words. */
 export function standing(row: TodaysPuzzle): string {
@@ -27,6 +27,8 @@ export function PuzzlesCard(_: CardProps) {
   const topics = useTopics();
   const words = useWords();
   const recalls = useRecalls();
+  const facts = useFacts();
+  const decks = useDecks();
   // A daily ends at midnight: re-read the clock every minute.
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -34,7 +36,7 @@ export function PuzzlesCard(_: CardProps) {
     return () => clearInterval(t);
   }, []);
   const puzzles = usePuzzles(now);
-  const rows = useMemo(() => todayOf(topics, words, recalls, puzzles, now), [topics, words, recalls, puzzles, now]);
+  const rows = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { facts, decks }), [topics, words, recalls, puzzles, now, facts, decks]);
 
   if (!topics.some((t) => !t.archived)) return <CardUnavailable message="No topic yet" />;
   if (!rows.length) return <CardUnavailable message="No puzzle today" />;
@@ -44,7 +46,9 @@ export function PuzzlesCard(_: CardProps) {
         {rows.slice(0, 5).map((r) => (
           <li key={`${r.topic.id}|${r.format}`} className="flex min-w-0 items-center gap-2">
             <Grid3x3 className="text-muted-foreground size-3.5 shrink-0" />
-            <span className="min-w-0 flex-1 truncate">{r.topic.name}</span>
+            <span className="min-w-0 flex-1 truncate">
+              {r.topic.name} · {FORMAT_LABEL[r.format]}
+            </span>
             <span className="text-muted-foreground shrink-0">{standing(r)}</span>
             <Button size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" asChild>
               <Link to={puzzleHref(r)}>{r.puzzle ? (r.puzzle.outcome === "playing" ? "Resume" : "See") : "Play"}</Link>
