@@ -32,6 +32,7 @@ const topicType: DocumentTypeDef = {
     { key: "name", label: "Name", kind: "text", required: true, column: true },
     { key: "newCap", label: "New per day", kind: "number", column: true },
     { key: "archived", label: "Archived", kind: "boolean", guarded: true, column: true },
+    { key: "enyeOwn", label: "ñ is its own letter", kind: "boolean" },
     { key: "tallies", label: "Tallies", kind: "json", guarded: true },
   ],
   href: () => KNOWLEDGE_HREF,

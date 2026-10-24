@@ -20,11 +20,13 @@ export const WORDLE_MIN = 4;
 export const WORDLE_MAX = 10;
 
 /**
- * Matching folds case and accents: "Árbol" is "arbol", and ñ is n (a Topic
- * setting to keep ñ apart comes later). What is shown keeps the stored spelling.
+ * Matching folds case and accents: "Árbol" is "arbol", and ñ is n — unless the
+ * Topic keeps ñ as its own letter (`enye`). What is shown keeps the stored spelling.
  */
-export function fold(s: string): string {
-  return s.normalize("NFD").replace(/\p{M}+/gu, "").toLocaleLowerCase();
+export function fold(s: string, enye = false): string {
+  const base = (c: string) => c.normalize("NFD").replace(/\p{M}+/gu, "").toLocaleLowerCase();
+  if (!enye) return base(s);
+  return Array.from(s.normalize("NFC"), (c) => (c.toLocaleLowerCase() === "ñ" ? "ñ" : base(c))).join("");
 }
 
 /** A word's letters as written, one per cell — or null when one of them is not a single letter once folded. */
@@ -70,21 +72,21 @@ export function pickTowardDue(candidates: Word[], recalls: Recall[], opts: { ran
 }
 
 /** What a Wordle-like draws from a Word: its term, its meaning, and a Sentence's translation where the term is one of its blanks. */
-export function wordleDraw(word: Word, sentences: Sentence[]): PuzzleDraw {
-  const term = fold(word.term.trim());
+export function wordleDraw(word: Word, sentences: Sentence[], enye = false): PuzzleDraw {
+  const term = fold(word.term.trim(), enye);
   const sentence = sentences
     .filter((s) => s.type === SENTENCE && s.languageId === word.languageId && !s.paused && s.translation?.trim())
     .sort((a, b) => (a.addedAt ?? "").localeCompare(b.addedAt ?? "") || a.id.localeCompare(b.id))
-    .find((s) => parseCloze(s.text ?? "").some((p) => p.kind === "blank" && fold(p.text) === term));
+    .find((s) => parseCloze(s.text ?? "").some((p) => p.kind === "blank" && fold(p.text, enye) === term));
   return { itemId: word.id, slot: "reverse", answer: word.term.trim(), clue: word.meaning, hint: sentence?.translation.trim() ?? "" };
 }
 
 export type Mark = "right" | "present" | "absent";
 
 /** One guess against the answer, letter by letter: a repeated letter is marked only as often as the answer holds it. */
-export function scoreGuess(answer: string, guess: string): Mark[] {
-  const a = Array.from(fold(answer.normalize("NFC")));
-  const g = Array.from(fold(guess.normalize("NFC")));
+export function scoreGuess(answer: string, guess: string, enye = false): Mark[] {
+  const a = Array.from(fold(answer.normalize("NFC"), enye));
+  const g = Array.from(fold(guess.normalize("NFC"), enye));
   const marks: Mark[] = g.map((c, i) => (c === a[i] ? "right" : "absent"));
   const left = new Map<string, number>();
   a.forEach((c, i) => {
@@ -108,18 +110,44 @@ export interface Cell {
 }
 
 /** A Wordle-like's guesses as its grid shows them, oldest first. */
-export function wordleRows(p: Puzzle): Cell[][] {
+export function wordleRows(p: Puzzle, enye = false): Cell[][] {
   const answer = p.drawn[0]?.answer ?? "";
   const shown = lettersOf(answer) ?? [];
   return p.guesses.map((g) => {
     const typed = lettersOf(g) ?? Array.from(g);
-    return scoreGuess(answer, g).map((mark, i) => ({ letter: (mark === "right" ? shown[i] : undefined) ?? typed[i] ?? "", mark }));
+    return scoreGuess(answer, g, enye).map((mark, i) => ({ letter: (mark === "right" ? shown[i] : undefined) ?? typed[i] ?? "", mark }));
   });
 }
 
 /** Whether a guess is the answer, folded. */
-export function isAnswer(answer: string, guess: string): boolean {
-  return fold(answer.normalize("NFC")) === fold(guess.trim().normalize("NFC"));
+export function isAnswer(answer: string, guess: string, enye = false): boolean {
+  return fold(answer.normalize("NFC"), enye) === fold(guess.trim().normalize("NFC"), enye);
+}
+
+/**
+ * The on-screen keyboard's letters: the folded letters of a Topic's kept terms
+ * (plus `extra`, such as the answer's and the guesses'), once each, in
+ * alphabetical order — ñ after n when it is its own letter.
+ */
+export function keyboardLetters(terms: string[], enye: boolean, extra: string[] = []): string[] {
+  const seen = new Set<string>();
+  for (const t of [...terms, ...extra]) for (const c of Array.from(fold(t, enye))) if (/^\p{L}$/u.test(c)) seen.add(c);
+  return [...seen].sort((a, b) => a.localeCompare(b, "es"));
+}
+
+const RANK: Record<Mark, number> = { absent: 0, present: 1, right: 2 };
+
+/** What the guesses so far revealed of each (folded) letter: the best mark any guess gave it. A letter not yet tried is absent from the map. */
+export function letterMarks(answer: string, guesses: string[], enye = false): Map<string, Mark> {
+  const out = new Map<string, Mark>();
+  for (const g of guesses) {
+    const letters = Array.from(fold(g.trim().normalize("NFC"), enye));
+    scoreGuess(answer, g, enye).forEach((mark, i) => {
+      const c = letters[i];
+      if (c !== undefined && RANK[mark] >= (out.has(c) ? RANK[out.get(c)!] : -1)) out.set(c, mark);
+    });
+  }
+  return out;
 }
 
 /** How a Puzzle stands now: a daily still playing from an earlier day is unsolved — "daily" means daily. */
