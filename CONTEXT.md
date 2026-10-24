@@ -16,7 +16,7 @@ _Avoid_: schema, collection (storage detail), category, template (a part of a ty
 
 
 ### App
-A hand-written domain module (Chores, Stats, Media, Tasks…) living inside the shell. Owns one or more built-in Document types: it alone defines their behaviour — Contract hooks, commands, rules, and which fields are **guarded** (editable only through the App's own operations — never by a Base's raw write, and read-only when the Document is opened as text). Any App or generic tool may *read* any Document; semantic operations go through the owner. Apps are never generated per type; user-defined types have no owning App and are served by Core's generic behaviour.
+A hand-written domain module (Chores, Stats, Media, Tasks…) living inside the shell. Owns one or more built-in Document types: it alone defines their behaviour — Contract hooks, commands, rules, and which fields are **guarded** (editable only through the App's own operations — never by a Base's raw write, and read-only when the Document is opened as text). Any App or generic tool may *read* any Document; semantic operations go through the owner. Apps are never generated per type; user-defined types have no owning App and are served by Core's generic behaviour. No App imports another; the one exception is the Projects App, which builds on the Tasks App's own operations and dialog (ADR 0100).
 _Avoid_: plugin, widget, service, processor
 
 ### Core

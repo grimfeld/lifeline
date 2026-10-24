@@ -1,9 +1,13 @@
-import { applyHit, confidentMatch, refreshFromHit } from "../domain/enrich";
+import { applyHit, confidentMatch, refreshFromHit } from "@lifeline/parts";
 import type { Patch } from "../domain/rules";
 import type { Work, LookupSettings } from "../domain/types";
 import { lookupFor, lookupGapMs, resolveHit, type LookupKeys } from "./lookup";
 import type { WorkHit } from "./openlibrary";
 import { ensureAuthorRefs, patchWork } from "./repo";
+
+/** What a lookup fills when empty: Authors are filled apart (Documents to find-or-create, ADR 0052). */
+const FILLED = ["year", "size", "coverUrl"] as const;
+const REFRESHED = ["coverUrl", "size", "year"] as const;
 
 /** Lookup-driven writes: find candidates for an item, apply a pick, refresh, enrich all. */
 
@@ -20,7 +24,7 @@ export async function findCandidates(item: Work, settings: LookupKeys, signal?: 
  */
 export async function applyPick(item: Work, hit: WorkHit): Promise<Patch> {
   const full = await resolveHit(hit);
-  const patch = applyHit(item, full);
+  const patch = applyHit(item, full, FILLED);
   if ((item.authors ?? []).length === 0 && full.authors.length > 0) {
     const authors = await ensureAuthorRefs(full.authors);
     if (authors.length) patch.authors = authors;
@@ -38,7 +42,7 @@ export async function refreshFromSource(item: Work, settings: LookupKeys): Promi
   const raw = hits.find((h) => h.externalKey === item.externalKey) ?? confidentMatch(item.title, item.year, hits);
   if (!raw) return null;
   const hit = await resolveHit(raw);
-  const patch = refreshFromHit(item, hit);
+  const patch = refreshFromHit(item, hit, REFRESHED);
   if (Object.keys(patch).length) await patchWork(item, patch);
   return patch;
 }

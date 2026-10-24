@@ -1,14 +1,12 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { documentsOf, documentsTable, getDocument, initApps, putDocument, removeDocument } from "@lifeline/core";
-import { writerApp } from "@lifeline/app-writer";
 import { chapterType, manuscriptType, outtakeType } from "../types";
 import { CHAPTER, MANUSCRIPTS_FOLDER, OUTTAKE, type Chapter, type Outtake } from "../domain/types";
 import { defaultChapterTitle, nextPosition, wordCount } from "../domain/order";
 import { addChapter, cutToOuttake, moveChapterBy, newManuscript, restoreOuttake } from "./repo";
 
 initApps([
-  writerApp,
   { id: "manuscript", title: "Manuscripts", types: [manuscriptType, chapterType, outtakeType], screens: [], cards: [], commands: [] },
 ]);
 

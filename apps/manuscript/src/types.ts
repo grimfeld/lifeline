@@ -1,5 +1,5 @@
 import { conflictCopy, documentsWhere, removeDocumentsWhere, type DocumentTypeDef } from "@lifeline/core";
-import { VERSION } from "@lifeline/app-writer";
+import { VERSION } from "@lifeline/parts";
 import { CHAPTER, FORMS, MANUSCRIPT, MANUSCRIPTS_FOLDER, OUTTAKE, STATUSES, manuscriptHref } from "./domain/types";
 
 /** A Manuscript: a creative work of ordered Chapters; its body is the outline and the plan. */

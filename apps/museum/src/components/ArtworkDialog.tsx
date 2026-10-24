@@ -7,7 +7,7 @@ import { geocode, initialList, initialText, normalizeTag, readGeo, suggestAddres
 import { Search, Trash2 } from "lucide-react";
 import { ART_FORMS, artForm, isArtForm, type ArtFormId } from "../domain/artForms";
 import type { Artwork } from "../domain/types";
-import { applyHit } from "../domain/enrich";
+import { applyHit } from "@lifeline/parts";
 import { resolveHit, searchWikidata, type ArtworkHit } from "../data/wikidata";
 import { addArtwork, deleteArtwork, ensureArtist, patchArtwork, useArtists } from "../data/repo";
 
@@ -96,7 +96,7 @@ export function ArtworkDialog({ open, onOpenChange, artwork = null, defaultForm 
     setSearching(true);
     try {
       const full = await resolveHit(hit);
-      const patch = applyHit({ year, imageUrl, location, materials, dimensions, externalKey }, full);
+      const patch = applyHit({ year, imageUrl, location, materials, dimensions, externalKey }, full, ["year", "imageUrl", "location", "materials", "dimensions"]);
       if (typeof patch.year === "string") setYear(patch.year);
       if (typeof patch.imageUrl === "string") setImageUrl(patch.imageUrl);
       if (typeof patch.location === "string") setLocation(patch.location);

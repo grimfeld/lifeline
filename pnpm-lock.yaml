@@ -414,15 +414,15 @@ importers:
 
   apps/manuscript:
     dependencies:
-      '@lifeline/app-writer':
-        specifier: workspace:*
-        version: link:../writer
       '@lifeline/core':
         specifier: workspace:*
         version: link:../../packages/core
       '@lifeline/editor':
         specifier: workspace:*
         version: link:../../packages/editor
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@lifeline/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -912,6 +912,9 @@ importers:
       '@lifeline/editor':
         specifier: workspace:*
         version: link:../../packages/editor
+      '@lifeline/parts':
+        specifier: workspace:*
+        version: link:../../packages/parts
       '@lifeline/ui':
         specifier: workspace:*
         version: link:../../packages/ui
