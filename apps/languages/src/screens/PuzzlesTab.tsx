@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button, EmptyState, toast } from "@lifeline/ui";
 import { Grid3x3, Play, RotateCw } from "lucide-react";
-import { setActiveTopic, useDecks, useFacts, useRecalls, useTopics, useWords } from "../data/repo";
+import { setActiveTopic, useDecks, useFacts, useRecalls, useSentences, useTopics, useWords } from "../data/repo";
 import { FORMAT_LABEL, openDailyPuzzle, openReplayPuzzle, puzzleLine, todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
 import { WordlePlayer } from "../components/WordlePlayer";
 import { ConnectionsPlayer } from "../components/ConnectionsPlayer";
+import { CrosswordPlayer } from "../components/CrosswordPlayer";
 
 /** The Puzzle being played, by id: a link back to it survives a reload. */
 const PUZZLE_PARAM = "puzzle";
@@ -28,8 +29,9 @@ export function PuzzlesTab() {
   const recalls = useRecalls();
   const facts = useFacts();
   const decks = useDecks();
+  const sentences = useSentences();
   const puzzles = usePuzzles(now);
-  const today = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { facts, decks }), [topics, words, recalls, puzzles, now, facts, decks]);
+  const today = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { facts, decks, sentences }), [topics, words, recalls, puzzles, now, facts, decks, sentences]);
   const [opening, setOpening] = useState("");
 
   const playingId = params.get(PUZZLE_PARAM);
@@ -64,7 +66,7 @@ export function PuzzlesTab() {
 
   if (playing) {
     const topic = topics.find((t) => t.id === playing.languageId);
-    const Player = playing.format === "connections" ? ConnectionsPlayer : WordlePlayer;
+    const Player = playing.format === "connections" ? ConnectionsPlayer : playing.format === "crossword" ? CrosswordPlayer : WordlePlayer;
     return (
       <Player
         puzzle={playing}
@@ -79,7 +81,7 @@ export function PuzzlesTab() {
   }
 
   if (!today.length) {
-    return <EmptyState>No puzzles today. A Wordle-like uses words you have already practised the other way round (meaning to word), with a one-word term of 4 to 10 letters. Connections needs 4 decks with at least 4 practised words or facts each.</EmptyState>;
+    return <EmptyState>No puzzles today. A Wordle-like uses words you have already practised the other way round (meaning to word), with a one-word term of 4 to 10 letters. A crossword needs five one-word answers that cross. Connections needs 4 decks with at least 4 practised words or facts each.</EmptyState>;
   }
 
   return (

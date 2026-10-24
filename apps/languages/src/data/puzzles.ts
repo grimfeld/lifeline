@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { addDays, documentsOf, fireTallies, documentsWhere, getDocument, putDocument, todayStr, useDocuments, type DateStr } from "@lifeline/core";
 import { lettersOf, MAX_GUESSES, isAnswer, outcomeAt, pickTowardDue, wordleCandidates, wordleDraw } from "../domain/puzzle";
+import { buildCrossword, crosswordCells, crosswordDraws, crosswordSolved, entryGuess, orderTowardDue, type Placement } from "../domain/crossword";
 import { connectionsDraw, connectionsItems, connectionsState, GROUPS, MAX_MISTAKES as CONNECTIONS_MISTAKES, settleConnections } from "../domain/connections";
 import { DECK, FACT, OCCURRENCE_PUZZLE, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Fact, type Puzzle, type PuzzleDraw, type PuzzleFormat, type PuzzleOutcome, type Recall, type Sentence, type Topic, type Word } from "../domain/types";
 
@@ -9,8 +10,8 @@ import { DECK, FACT, OCCURRENCE_PUZZLE, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, t
  * Recall, or calls anything that does: playing never moves the schedule.
  */
 
-/** The formats built so far; a crossword and Connections join later. */
-export const PUZZLE_FORMATS = ["wordle", "connections"] as const satisfies readonly PuzzleFormat[];
+/** The formats built so far. */
+export const PUZZLE_FORMATS = ["wordle", "crossword", "connections"] as const satisfies readonly PuzzleFormat[];
 
 /** A recent daily's Word is drawn again only when nothing else is left. */
 const AVOID_DAYS = 7;
@@ -27,16 +28,27 @@ function normalizeDraw(d: unknown): PuzzleDraw | null {
   return draw;
 }
 
+function normalizeLayout(l: unknown): Placement[] | undefined {
+  if (!Array.isArray(l)) return undefined;
+  return l.map((x) => {
+    const r = (x ?? {}) as Record<string, unknown>;
+    return { row: Number(r.row) || 0, col: Number(r.col) || 0, dir: r.dir === "down" ? "down" : "across" };
+  });
+}
+
 /** Read as it stands at `now`: a daily left playing past midnight reads unsolved. */
 export function normalizePuzzle(p: Puzzle, now: Date = new Date()): Puzzle {
   const drawn = Array.isArray(p.drawn) ? p.drawn.map(normalizeDraw).filter((d): d is PuzzleDraw => d !== null) : [];
   const guesses = Array.isArray(p.guesses) ? p.guesses.filter((g): g is string => typeof g === "string") : [];
   const outcome = p.outcome === "solved" || p.outcome === "unsolved" ? p.outcome : "playing";
   const read: Puzzle = { ...p, languageId: p.languageId ?? "", format: p.format || "wordle", kind: p.kind === "replay" ? "replay" : "daily", day: p.day || "", drawn, guesses, outcome, finishedAt: p.finishedAt || "", tags: p.tags ?? [] };
+  const layout = normalizeLayout(p.layout);
+  if (layout) read.layout = layout;
   return { ...read, outcome: outcomeAt(read, now) };
 }
 
 const liveFact = (f: Fact): Fact => ({ ...f, paused: !!f.paused, answer: f.answer ?? "", question: f.question || f.title || "" });
+const liveSentence = (s: Sentence): Sentence => ({ ...s, paused: !!s.paused, text: s.text ?? "", translation: s.translation ?? "" });
 const liveDeck = (d: Deck): Deck => ({ ...d, name: d.name || d.title || "", members: Array.isArray(d.members) ? d.members.filter((x): x is string => typeof x === "string") : [] });
 
 /** A Puzzle that drew nothing is no Puzzle: never offered, never played. */
@@ -81,29 +93,31 @@ export interface TodaysPuzzle {
  * or has already built today. An archived Topic, and a format with nothing
  * to draw, has none.
  */
-export function todayOf(topics: Topic[], words: Word[], recalls: Recall[], puzzles: Puzzle[], now: Date, more: { facts?: Fact[]; decks?: Deck[] } = {}): TodaysPuzzle[] {
+export function todayOf(topics: Topic[], words: Word[], recalls: Recall[], puzzles: Puzzle[], now: Date, more: { facts?: Fact[]; decks?: Deck[]; sentences?: Sentence[] } = {}): TodaysPuzzle[] {
   const day = todayStr(now);
   const out: TodaysPuzzle[] = [];
   for (const topic of topics) {
     if (topic.archived) continue;
     for (const format of PUZZLE_FORMATS) {
       const puzzle = dailyOf(puzzles, topic.id, format, day) ?? null;
-      if (puzzle || canBuild(topic.id, format, words, recalls, more)) out.push({ topic, format, puzzle });
+      if (puzzle || canBuild(topic, format, words, recalls, more)) out.push({ topic, format, puzzle });
     }
   }
   return out;
 }
 
 /** Whether a format has enough in a Topic to build one now. */
-function canBuild(topicId: string, format: PuzzleFormat, words: Word[], recalls: Recall[], more: { facts?: Fact[]; decks?: Deck[] }): boolean {
+function canBuild(topic: Topic, format: PuzzleFormat, words: Word[], recalls: Recall[], more: { facts?: Fact[]; decks?: Deck[]; sentences?: Sentence[] }): boolean {
+  const topicId = topic.id;
+  if (format === "crossword") return drawCrossword(topic, { words, sentences: more.sentences ?? [], facts: more.facts ?? [] }, recalls, () => 0, new Set()) !== null;
   if (format === "wordle") return wordleCandidates(topicId, words, recalls).length > 0;
   if (format === "connections") return connectionsDraw(topicId, more.decks ?? [], connectionsItems(topicId, words, more.facts ?? [], recalls), recalls, { random: () => 0 }) !== null;
   return false;
 }
 
 export async function todaysPuzzles(now: Date = new Date()): Promise<TodaysPuzzle[]> {
-  const [topics, words, recalls, puzzles, facts, decks] = await Promise.all([documentsOf<Topic>(TOPIC), documentsOf<Word>(WORD), documentsOf<Recall>(RECALL), documentsOf<Puzzle>(PUZZLE), documentsOf<Fact>(FACT), documentsOf<Deck>(DECK)]);
-  return todayOf(topics.map((t) => ({ ...t, archived: !!t.archived })), words.map((w) => ({ ...w, paused: !!w.paused })), recalls, puzzles.map((p) => normalizePuzzle(p, now)), now, { facts: facts.map(liveFact), decks: decks.map(liveDeck) });
+  const [topics, words, recalls, puzzles, facts, decks, sentences] = await Promise.all([documentsOf<Topic>(TOPIC), documentsOf<Word>(WORD), documentsOf<Recall>(RECALL), documentsOf<Puzzle>(PUZZLE), documentsOf<Fact>(FACT), documentsOf<Deck>(DECK), documentsOf<Sentence>(SENTENCE)]);
+  return todayOf(topics.map((t) => ({ ...t, archived: !!t.archived })), words.map((w) => ({ ...w, paused: !!w.paused })), recalls, puzzles.map((p) => normalizePuzzle(p, now)), now, { facts: facts.map(liveFact), decks: decks.map(liveDeck), sentences: sentences.map(liveSentence) });
 }
 
 /** Every Puzzle, live, read as it stands now. */
@@ -118,6 +132,11 @@ export const FORMAT_LABEL: Record<PuzzleFormat, string> = { wordle: "Wordle-like
 /** "Wordle-like · solved in 4", "Connections · 2 of 4 groups · 1 mistake of 4" — how a Puzzle stands, in a line. */
 export function puzzleLine(p: Puzzle): string {
   const what = FORMAT_LABEL[p.format] ?? p.format;
+  if (p.format === "crossword") {
+    if (p.outcome !== "playing") return `${what} · ${p.outcome}`;
+    const cells = crosswordCells(p);
+    return `${what} · ${cells.filter((c) => c.entry).length} of ${cells.length} letters`;
+  }
   if (p.format === "connections") {
     const { found, mistakes } = connectionsState(p);
     const missed = `${mistakes} mistake${mistakes === 1 ? "" : "s"}`;
@@ -148,15 +167,20 @@ export function openDailyPuzzle(topicId: string, format: PuzzleFormat, opts: { n
     if (existing) return existing;
     const since = addDays(day, -AVOID_DAYS);
     const avoid = new Set(mine.filter((p) => p.format === format && p.kind === "daily" && p.day >= since).flatMap((p) => p.drawn.map((d) => d.itemId)));
-    const drawn = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
-    if (!drawn?.length) return null;
-    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · ${day}`, languageId: topicId, format, kind: "daily", day, drawn, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
+    const built = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
+    if (!built?.drawn.length) return null;
+    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · ${day}`, languageId: topicId, format, kind: "daily", day, ...built, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
     return normalizePuzzle(row, now);
   });
 }
 
-/** What a format draws from a Topic now, or null when there is not enough to build it. */
-async function drawFor(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Set<string> }): Promise<PuzzleDraw[] | null> {
+/** What a format draws from a Topic now (and a crossword's grid), or null when there is not enough to build it. */
+async function drawFor(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Set<string> }): Promise<{ drawn: PuzzleDraw[]; layout?: Placement[] } | null> {
+  const built = await drawn(topic, format, opts);
+  return Array.isArray(built) ? { drawn: built } : built;
+}
+
+async function drawn(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Set<string> }): Promise<PuzzleDraw[] | { drawn: PuzzleDraw[]; layout: Placement[] } | null> {
   const topicId = topic.id;
   const [words, recalls] = await Promise.all([documentsWhere<Word>(WORD, "languageId", topicId), documentsWhere<Recall>(RECALL, "languageId", topicId)]);
   const live = words.map((w) => ({ ...w, paused: !!w.paused }));
@@ -164,6 +188,10 @@ async function drawFor(topic: Topic, format: PuzzleFormat, opts: { random: () =>
     const sentences = await documentsWhere<Sentence>(SENTENCE, "languageId", topicId);
     const word = pickTowardDue(wordleCandidates(topicId, live, recalls), recalls, opts);
     return word ? [wordleDraw(word, sentences, !!topic.enyeOwn)] : null;
+  }
+  if (format === "crossword") {
+    const [sentences, facts] = await Promise.all([documentsWhere<Sentence>(SENTENCE, "languageId", topicId), documentsWhere<Fact>(FACT, "languageId", topicId)]);
+    return drawCrossword(topic, { words: live, sentences: sentences.map(liveSentence), facts: facts.map(liveFact) }, recalls, opts.random, opts.avoid);
   }
   if (format === "connections") {
     const [facts, decks] = await Promise.all([documentsWhere<Fact>(FACT, "languageId", topicId), documentsWhere<Deck>(DECK, "languageId", topicId)]);
@@ -201,27 +229,53 @@ async function finished(before: Puzzle, after: Puzzle): Promise<Played> {
   }
 }
 
+/** Letters into a crossword's cells; an empty letter clears one. */
+export type CellEntry = { row: number; col: number; letter: string };
+
 /**
  * One guess: at a Wordle-like, any word of the answer's length, no dictionary;
- * at a Connections, a group of four item ids. Appended, then the outcome
- * settled — solved, or unsolved on the sixth miss (the fourth mistake).
+ * at a Connections, a group of four item ids; at a crossword, cell entries.
+ * Appended, then the outcome settled — solved, or unsolved on the sixth miss
+ * (the fourth mistake); a crossword is solved once every cell is right.
  */
-export function guessPuzzle(id: string, guess: string | readonly string[], now: Date = new Date()): Promise<Played> {
+export function guessPuzzle(id: string, guess: string | readonly string[] | readonly CellEntry[], now: Date = new Date()): Promise<Played> {
   return serially(`play|${id}`, async () => {
     const p = await playing(id, now);
-    const enye = p.format === "wordle" && !!(await getDocument<Topic>(p.languageId))?.enyeOwn;
-    const { guesses, outcome } = p.format === "connections" ? settleConnections(p, asGroup(guess)) : settleWordle(p, asWord(guess), enye);
+    const enye = p.format !== "connections" && !!(await getDocument<Topic>(p.languageId))?.enyeOwn;
+    const { guesses, outcome } = p.format === "connections" ? settleConnections(p, asGroup(guess)) : p.format === "crossword" ? settleCrossword(p, asCells(guess), enye) : settleWordle(p, asWord(guess), enye);
     const row = await putDocument<Puzzle>({ ...p, guesses, outcome, finishedAt: outcome === "playing" ? "" : now.toISOString() });
     return finished(p, normalizePuzzle(row, now));
   });
 }
 
-function asGroup(guess: string | readonly string[]): readonly string[] {
-  if (typeof guess === "string") throw new Error("Pick a group of four");
-  return guess;
+function asGroup(guess: string | readonly string[] | readonly CellEntry[]): readonly string[] {
+  if (typeof guess === "string" || !guess.every((g) => typeof g === "string")) throw new Error("Pick a group of four");
+  return guess as readonly string[];
 }
 
-function asWord(guess: string | readonly string[]): string {
+function asCells(guess: string | readonly string[] | readonly CellEntry[]): readonly CellEntry[] {
+  if (typeof guess === "string" || !guess.every((g) => typeof g === "object" && g !== null)) throw new Error("A crossword takes letters in its cells");
+  return guess as readonly CellEntry[];
+}
+
+/**
+ * Crossword entries checked and appended, each kept as one guess in order.
+ * Solved once every cell holds its letter, folded as the Wordle-like folds;
+ * there is no running out of guesses.
+ */
+function settleCrossword(p: Puzzle, entries: readonly CellEntry[], enye: boolean): { guesses: string[]; outcome: PuzzleOutcome } {
+  const cells = new Set(crosswordCells(p).map((c) => `${c.row},${c.col}`));
+  const guesses = [...p.guesses];
+  for (const e of entries) {
+    const letter = e.letter.trim().normalize("NFC");
+    if (!cells.has(`${e.row},${e.col}`)) throw new Error("That cell is not in the grid");
+    if (letter && lettersOf(letter)?.length !== 1) throw new Error("One letter per cell");
+    guesses.push(entryGuess(e.row, e.col, letter));
+  }
+  return { guesses, outcome: crosswordSolved({ ...p, guesses }, enye) ? "solved" : "playing" };
+}
+
+function asWord(guess: string | readonly string[] | readonly CellEntry[]): string {
   if (typeof guess !== "string") throw new Error("Guess a word");
   return guess;
 }
@@ -259,9 +313,18 @@ export function openReplayPuzzle(topicId: string, format: PuzzleFormat, opts: { 
     if (!topic || topic.type !== TOPIC || topic.archived) return null;
     const mine = await topicPuzzles(topicId, now);
     const avoid = new Set(mine.filter((p) => p.format === format && p.kind === "daily" && p.day === day).flatMap((p) => p.drawn.map((d) => d.itemId)));
-    const drawn = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
-    if (!drawn?.length) return null;
-    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · replay`, languageId: topicId, format, kind: "replay", day, drawn, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
+    const built = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
+    if (!built?.drawn.length) return null;
+    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · replay`, languageId: topicId, format, kind: "replay", day, ...built, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
     return normalizePuzzle(row, now);
   });
+}
+
+// ---- The crossword ----
+
+/** A Topic's crossword, drawn toward what is due, `avoid`'s items last: null when fewer than five cross. */
+function drawCrossword(topic: Topic, items: { words: Word[]; sentences: Sentence[]; facts: Fact[] }, recalls: Recall[], random: () => number, avoid: Set<string>) {
+  const enye = !!topic.enyeOwn;
+  const draws = crosswordDraws(topic.id, items, recalls, enye);
+  return buildCrossword(orderTowardDue(draws, recalls, { random, avoid }), orderTowardDue(draws, recalls, { random: () => 0 }), enye);
 }

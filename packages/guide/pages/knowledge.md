@@ -75,6 +75,16 @@ Topic to a set you choose.
 - Only Words you have practised the other way round (meaning → word), not paused, with a one-word
   term of 4 to 10 letters, are drawn — those due back soonest most often. An archived Topic, or one
   with nothing that fits, has no Puzzle.
+- **Crossword** — a small free-form crossword of 5 to 8 answers that cross, from the Topic's
+  practised material: Words (clue: the meaning; met meaning → word), Facts whose answer is one word
+  (clue: the question) and Sentence blanks (clue: the Sentence with that blank open, plus its
+  translation). Each answer is one word of 3 to 12 letters, not paused, its prompt practised at
+  least once. A Topic with fewer than five that cross has no crossword.
+- Tap a cell to pick it, tap it again to turn between across and down, or tap a clue in the list
+  (the arrows beside the clue step through them). Type with the on-screen letters or your keyboard;
+  delete steps back, Enter goes to the next clue. Letters match as in the Wordle-like: no case, no
+  accents, ñ as n unless the Topic keeps it its own. It is solved when every cell is right; there is
+  no running out of tries. **Give up** shows the answers (wrong cells in red) and counts as unsolved.
 - **Connections** — 16 tiles, Word terms and Fact answers, to sort into 4 of the Topic's Decks.
   Pick four and **Submit**: a right group shows under its Deck's name; a wrong one is a mistake
   ("One away…" when three of the four belong together), and the fourth mistake ends it unsolved.
@@ -87,7 +97,7 @@ Topic to a set you choose.
   At midnight an unfinished one ends unsolved. **Give up** ends it too, unsolved, and shows the
   answers.
 - The end shows what it drew in full — each Word's meaning or Fact's question, notes, where you met
-  it, and in Connections every group under its Deck — and **Practise now** starts a practice of the
+  it, and in Connections every group under its Deck, in a crossword every answer — and **Practise now** starts a practice of the
   Topic.
 - Finishing a daily Puzzle (solved, failed out or given up) counts once for any Topic Tally set to
   **daily Puzzle finished**, whether you solved it or not, so it can log a Habit. A replay, or a

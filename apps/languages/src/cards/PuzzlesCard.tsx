@@ -4,7 +4,7 @@ import { Button, CardUnavailable } from "@lifeline/ui";
 import type { CardProps } from "@lifeline/core";
 import { Grid3x3 } from "lucide-react";
 import { KNOWLEDGE_HREF } from "../domain/types";
-import { useDecks, useFacts, useRecalls, useTopics, useWords } from "../data/repo";
+import { useDecks, useFacts, useRecalls, useSentences, useTopics, useWords } from "../data/repo";
 import { FORMAT_LABEL, todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
 
 /** How today's Puzzle stands, in two words. */
@@ -35,8 +35,9 @@ export function PuzzlesCard(_: CardProps) {
     const t = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(t);
   }, []);
+  const sentences = useSentences();
   const puzzles = usePuzzles(now);
-  const rows = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { facts, decks }), [topics, words, recalls, puzzles, now, facts, decks]);
+  const rows = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { facts, decks, sentences }), [topics, words, recalls, puzzles, now, facts, decks, sentences]);
 
   if (!topics.some((t) => !t.archived)) return <CardUnavailable message="No topic yet" />;
   if (!rows.length) return <CardUnavailable message="No puzzle today" />;
@@ -50,7 +51,7 @@ export function PuzzlesCard(_: CardProps) {
               {r.topic.name} · {FORMAT_LABEL[r.format]}
             </span>
             <span className="text-muted-foreground shrink-0">{standing(r)}</span>
-            <Button size="sm" variant="outline" className="h-6 shrink-0 px-2 text-xs" asChild>
+            <Button size="xs" variant="outline" className="shrink-0" asChild>
               <Link to={puzzleHref(r)}>{r.puzzle ? (r.puzzle.outcome === "playing" ? "Resume" : "See") : "Play"}</Link>
             </Button>
           </li>
