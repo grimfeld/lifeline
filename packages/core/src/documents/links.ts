@@ -374,22 +374,23 @@ const PATCH_LIMIT = 50;
  */
 function patch(prev: Built, docs: Document[]): Built | undefined {
   if (docs.length !== prev.docs.length) return undefined;
-  const changed: number[] = [];
-  for (let i = 0; i < docs.length; i++) {
-    if (docs[i] === prev.docs[i]) continue;
-    if (docs[i].id !== prev.docs[i].id) return undefined;
-    changed.push(i);
+  const changed: { doc: Document; was: Document }[] = [];
+  for (const [i, doc] of docs.entries()) {
+    const was = prev.docs[i];
+    if (!was || doc === was) continue;
+    if (doc.id !== was.id) return undefined;
+    changed.push({ doc, was });
     if (changed.length > PATCH_LIMIT) return undefined;
   }
   // The same Documents in a new array: the index stands.
   if (!changed.length) return { ...prev, docs };
   const { defs } = prev.targets;
-  if (changed.some((i) => targetKey(docs[i], defs) !== targetKey(prev.docs[i], defs))) return undefined;
+  if (changed.some(({ doc, was }) => targetKey(doc, defs) !== targetKey(was, defs))) return undefined;
   const byId = new Map(prev.targets.byId);
-  for (const i of changed) byId.set(docs[i].id, docs[i]);
+  for (const { doc } of changed) byId.set(doc.id, doc);
   const targets: Targets = { ...prev.targets, byId, targets: docs.filter((d) => isLinkable(defs.get(d.type))) };
   const contributions = new Map(prev.contributions);
-  for (const i of changed) contributions.set(docs[i].id, contributionOf(docs[i], targets));
+  for (const { doc } of changed) contributions.set(doc.id, contributionOf(doc, targets));
   return { ...prev, docs, targets, contributions, index: assemble(docs, targets, contributions) };
 }
 

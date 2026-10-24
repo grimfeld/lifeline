@@ -127,10 +127,12 @@ vi.mock("./pb", () => ({
         if (fake.state.failUpdate.has(id)) throw Object.assign(new Error("server error"), { status: 500 });
         const rows = fake.state.server.get(name) ?? [];
         const i = rows.findIndex((x) => x.id === id);
-        if (i < 0) throw Object.assign(new Error("not found"), { status: 404 });
-        if (String(rows[i].updatedAt) > String(body.updatedAt)) throw Object.assign(new Error("stale"), { status: 409 });
-        rows[i] = { ...body, id, updated: stamp(9000) };
-        return rows[i];
+        const row = rows[i];
+        if (!row) throw Object.assign(new Error("not found"), { status: 404 });
+        if (String(row.updatedAt) > String(body.updatedAt)) throw Object.assign(new Error("stale"), { status: 409 });
+        const updated = { ...body, id, updated: stamp(9000) };
+        rows[i] = updated;
+        return updated;
       },
       create: async (body: Row) => {
         fake.state.requests.push(`create ${name}/${body.id}`);
@@ -251,8 +253,9 @@ describe("push (#273)", () => {
     queue("documents", "d1");
     await pushNow();
     expect(seen).toHaveLength(1);
-    expect(seen[0][0]).toMatchObject({ body: "mine" });
-    expect(seen[0][1]).toMatchObject({ body: "theirs" });
+    const [mine, theirs] = seen[0] ?? [];
+    expect(mine).toMatchObject({ body: "mine" });
+    expect(theirs).toMatchObject({ body: "theirs" });
     expect(fake.table("documents").get("d1")).toMatchObject({ body: "theirs" });
   });
 

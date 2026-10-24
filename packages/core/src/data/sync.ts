@@ -470,6 +470,7 @@ export function requestSync(): void {
  * coming back sets it to 30 s again.
  */
 const PULL_DELAYS_MS = [30_000, 30_000, 60_000, 120_000, 300_000];
+const PULL_DELAYS_MS_MAX = 300_000;
 /** Two triggers this close together (focus and visibilitychange on the same return) pull once. */
 const WAKE_DEDUPE_MS = 2_000;
 
@@ -477,7 +478,7 @@ let pullTimer: ReturnType<typeof setTimeout> | null = null;
 let lastWake = 0;
 
 export function nextPullDelay(quiet: number): number {
-  return PULL_DELAYS_MS[Math.min(quiet, PULL_DELAYS_MS.length - 1)];
+  return PULL_DELAYS_MS[Math.min(quiet, PULL_DELAYS_MS.length - 1)] ?? PULL_DELAYS_MS_MAX;
 }
 
 const hidden = () => typeof document !== "undefined" && document.visibilityState === "hidden";
