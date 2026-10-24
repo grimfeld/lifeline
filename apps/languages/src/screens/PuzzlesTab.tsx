@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button, EmptyState, toast } from "@lifeline/ui";
 import { Grid3x3, Play } from "lucide-react";
-import { setActiveTopic, useRecalls, useTopics, useWords } from "../data/repo";
+import { setActiveTopic, useDecks, useFacts, useRecalls, useTopics, useWords } from "../data/repo";
 import { FORMAT_LABEL, openDailyPuzzle, puzzleLine, todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
 import { WordlePlayer } from "../components/WordlePlayer";
+import { ConnectionsPlayer } from "../components/ConnectionsPlayer";
 
 /** The Puzzle being played, by id: a link back to it survives a reload. */
 const PUZZLE_PARAM = "puzzle";
@@ -25,8 +26,10 @@ export function PuzzlesTab() {
   const topics = useTopics();
   const words = useWords();
   const recalls = useRecalls();
+  const facts = useFacts();
+  const decks = useDecks();
   const puzzles = usePuzzles(now);
-  const today = useMemo(() => todayOf(topics, words, recalls, puzzles, now), [topics, words, recalls, puzzles, now]);
+  const today = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { facts, decks }), [topics, words, recalls, puzzles, now, facts, decks]);
   const [opening, setOpening] = useState("");
 
   const playingId = params.get(PUZZLE_PARAM);
@@ -34,7 +37,7 @@ export function PuzzlesTab() {
 
   async function open(row: TodaysPuzzle) {
     if (row.puzzle) return setParams({ tab: "puzzles", [PUZZLE_PARAM]: row.puzzle.id });
-    setOpening(row.topic.id);
+    setOpening(`${row.topic.id}|${row.format}`);
     try {
       const p = await openDailyPuzzle(row.topic.id, row.format);
       if (p) setParams({ tab: "puzzles", [PUZZLE_PARAM]: p.id });
@@ -48,8 +51,9 @@ export function PuzzlesTab() {
 
   if (playing) {
     const topic = topics.find((t) => t.id === playing.languageId);
+    const Player = playing.format === "connections" ? ConnectionsPlayer : WordlePlayer;
     return (
-      <WordlePlayer
+      <Player
         puzzle={playing}
         topicName={topic?.name ?? "A topic"}
         onBack={() => setParams({ tab: "puzzles" })}
@@ -62,7 +66,7 @@ export function PuzzlesTab() {
   }
 
   if (!today.length) {
-    return <EmptyState>No puzzles today. A puzzle uses words you have already practised the other way round (meaning to word), with a one-word term of 4 to 10 letters.</EmptyState>;
+    return <EmptyState>No puzzles today. A Wordle-like uses words you have already practised the other way round (meaning to word), with a one-word term of 4 to 10 letters. Connections needs 4 decks with at least 4 practised words or facts each.</EmptyState>;
   }
 
   return (
@@ -75,7 +79,7 @@ export function PuzzlesTab() {
             <span className="truncate font-medium">{row.topic.name}</span>
             <span className="text-muted-foreground truncate text-xs">{row.puzzle ? puzzleLine(row.puzzle) : `${FORMAT_LABEL[row.format]} · not started`}</span>
           </span>
-          <Button size="sm" variant={row.puzzle && row.puzzle.outcome !== "playing" ? "outline" : "default"} className="shrink-0" onClick={() => void open(row)} disabled={opening === row.topic.id}>
+          <Button size="sm" variant={row.puzzle && row.puzzle.outcome !== "playing" ? "outline" : "default"} className="shrink-0" onClick={() => void open(row)} disabled={opening === `${row.topic.id}|${row.format}`}>
             {!row.puzzle ? (
               <>
                 <Play /> Play
