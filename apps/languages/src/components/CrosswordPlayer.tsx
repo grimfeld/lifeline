@@ -4,10 +4,15 @@ import { ChevronLeft, ChevronRight, Flag, Play } from "lucide-react";
 import { crosswordCells, crosswordClues, type CrosswordClue, type Direction } from "../domain/crossword";
 import { fold, keyboardLetters, lettersOf, type Mark } from "../domain/puzzle";
 import type { Puzzle } from "../domain/types";
-import { FORMAT_LABEL, enterCrossword, giveUpPuzzle } from "../data/puzzles";
+import { FORMAT_LABEL, giveUpPuzzle, guessPuzzle, type Played } from "../data/puzzles";
 import { useTopics, useWords } from "../data/repo";
 import { LetterKeyboard } from "./LetterKeyboard";
 import { PuzzleMaterial } from "./PuzzleMaterial";
+
+/** A finished daily's Tally that failed to fire: the outcome stands, the Habit missed it. */
+function tallied(p: Played) {
+  if (p.tallyError) toast.error(p.tallyError);
+}
 
 const NO_MARKS: ReadonlyMap<string, Mark> = new Map();
 const at = (r: number, c: number) => `${r},${c}`;
@@ -51,7 +56,7 @@ export function CrosswordPlayer({ puzzle, topicName, onBack, onPractise }: { puz
 
   function write(row: number, col: number, letter: string) {
     setTyped((m) => new Map(m).set(at(row, col), letter));
-    enterCrossword(puzzle.id, [{ row, col, letter }]).catch((e: Error) => toast.error(`Couldn't keep that letter: ${e.message}`));
+    guessPuzzle(puzzle.id, [{ row, col, letter }]).then(tallied, (e: Error) => toast.error(`Couldn't keep that letter: ${e.message}`));
   }
 
   function pick(row: number, col: number) {
@@ -105,7 +110,7 @@ export function CrosswordPlayer({ puzzle, topicName, onBack, onPractise }: { puz
 
   async function giveUp() {
     try {
-      await giveUpPuzzle(puzzle.id);
+      tallied(await giveUpPuzzle(puzzle.id));
     } catch (err) {
       toast.error(`Couldn't give up: ${(err as Error).message}`);
     }

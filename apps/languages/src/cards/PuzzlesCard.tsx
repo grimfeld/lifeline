@@ -4,7 +4,7 @@ import { Button, CardUnavailable } from "@lifeline/ui";
 import type { CardProps } from "@lifeline/core";
 import { Grid3x3 } from "lucide-react";
 import { KNOWLEDGE_HREF } from "../domain/types";
-import { useFacts, useRecalls, useSentences, useTopics, useWords } from "../data/repo";
+import { useDecks, useFacts, useRecalls, useSentences, useTopics, useWords } from "../data/repo";
 import { FORMAT_LABEL, todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
 
 /** How today's Puzzle stands, in two words. */
@@ -27,6 +27,8 @@ export function PuzzlesCard(_: CardProps) {
   const topics = useTopics();
   const words = useWords();
   const recalls = useRecalls();
+  const facts = useFacts();
+  const decks = useDecks();
   // A daily ends at midnight: re-read the clock every minute.
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -34,9 +36,8 @@ export function PuzzlesCard(_: CardProps) {
     return () => clearInterval(t);
   }, []);
   const sentences = useSentences();
-  const facts = useFacts();
   const puzzles = usePuzzles(now);
-  const rows = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { sentences, facts }), [topics, words, recalls, puzzles, now, sentences, facts]);
+  const rows = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { facts, decks, sentences }), [topics, words, recalls, puzzles, now, facts, decks, sentences]);
 
   if (!topics.some((t) => !t.archived)) return <CardUnavailable message="No topic yet" />;
   if (!rows.length) return <CardUnavailable message="No puzzle today" />;

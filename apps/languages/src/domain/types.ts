@@ -16,6 +16,10 @@ export const FACT = "knowledge_fact";
 /** New with Knowledge too (ADR 0106), so `knowledge_` like the Fact. */
 export const PUZZLE = "knowledge_puzzle";
 
+/** The Topic's Tally occurrences (ADR 0106); the first is the default. */
+export const OCCURRENCE_PRACTISED = "day practised";
+export const OCCURRENCE_PUZZLE = "daily Puzzle finished";
+
 /** The daily new cap a Topic starts with (CONTEXT.md "Prompt"). */
 export const DEFAULT_NEW_CAP = 10;
 
@@ -156,6 +160,9 @@ export interface PuzzleDraw {
   clue: string;
   /** A second clue, empty for none: a Sentence's translation. */
   hint: string;
+  /** In a Connections, the Deck it was drawn from, id and name as drawn — so its group survives the Deck being edited. */
+  deckId?: string;
+  deck?: string;
 }
 
 /**

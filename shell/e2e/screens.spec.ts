@@ -141,6 +141,53 @@ async function givenUpPuzzle(page: Page) {
 }
 
 /**
+ * Knowledge → Puzzles over a Topic with four Decks a Connections can draw
+ * from (ADR 0106): the longest Deck names, and Words and Facts with the
+ * longest terms, answers, meanings, questions, notes and origins.
+ */
+async function withConnections(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      for (let d = 0; d < 4; d++) {
+        const members: string[] = [];
+        for (let i = 0; i < 4; i++) {
+          const item =
+            i % 2
+              ? await core.putDocument({ type: "knowledge_fact", title: `${long} ${d}${i}`, languageId: topic.id, question: `${long} ${d}${i}`, answer: `${word}${d}${i} ${long}`, notes: `${long} ${word}`, origin: `${long} ${word}`, originId: "", paused: false, addedAt: at, tags: [] })
+              : await core.putDocument({ type: "language_word", languageId: topic.id, term: `${word}${d}${i}`, meaning: `${long} ${word}`, notes: `${long} ${word}`, origin: `${long} ${word}`, originId: "", paused: false, addedAt: at, tags: [] });
+          await core.putDocument({ type: "language_recall", title: "", languageId: topic.id, itemId: item.id, slot: "forward", grade: "pass", at, tags: [] });
+          members.push(item.id);
+        }
+        await core.putDocument({ type: "language_deck", title: `${long} ${d}`, name: `${long} ${d}`, languageId: topic.id, members, tags: [] });
+      }
+    },
+    [CORE_URL, longText("Connections topic"), LONG_WORD] as const,
+  );
+  await expect(page.getByRole("button", { name: "Play" }).first()).toBeVisible();
+}
+
+/** …and today's Connections opened, four tiles picked and submitted. */
+async function playConnections(page: Page) {
+  await withConnections(page);
+  await page.locator("div").filter({ hasText: "Connections · not started" }).getByRole("button", { name: "Play" }).last().click();
+  const tiles = page.getByRole("group", { name: "Items left" }).getByRole("button");
+  for (let i = 0; i < 4; i++) await tiles.nth(i).click();
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.getByText(/mistakes left/)).toBeVisible();
+}
+
+/** …and given up: the end, every group under its Deck, each item in full. */
+async function givenUpConnections(page: Page) {
+  await playConnections(page);
+  await page.getByRole("button", { name: "Give up" }).click();
+  await expect(page.getByRole("button", { name: "Practise now" })).toBeVisible();
+}
+
+/**
  * Knowledge → Puzzles over a Topic whose kept material makes a crossword
  * (ADR 0106): four Words, a Fact and a Sentence blank, all met, with the
  * longest meaning, question and translation a person could type.
@@ -170,7 +217,7 @@ async function withCrossword(page: Page) {
 /** …and today's crossword opened, a letter in. */
 async function playCrossword(page: Page) {
   await withCrossword(page);
-  await page.locator("div", { hasText: /Crossword · not started/ }).last().getByRole("button", { name: "Play" }).click();
+  await page.locator("div").filter({ hasText: "Crossword · not started" }).getByRole("button", { name: "Play" }).last().click();
   await expect(page.getByRole("grid", { name: "Crossword" })).toBeVisible();
   await page.getByRole("group", { name: "Letters" }).getByRole("button", { name: "a", exact: true }).click();
 }
@@ -798,8 +845,11 @@ const SCREENS: ScreenCase[] = [
   { name: "Knowledge · Puzzles", path: "/app/languages?tab=puzzles", afterOpen: withPuzzleWord },
   { name: "Knowledge · Puzzle player", path: "/app/languages?tab=puzzles", afterOpen: playPuzzle },
   { name: "Knowledge · Puzzle played", path: "/app/languages?tab=puzzles", afterOpen: givenUpPuzzle },
+  { name: "Knowledge · Connections", path: "/app/languages?tab=puzzles", afterOpen: withConnections },
+  { name: "Knowledge · Connections player", path: "/app/languages?tab=puzzles", afterOpen: playConnections },
   { name: "Knowledge · Crossword", path: "/app/languages?tab=puzzles", afterOpen: playCrossword },
   { name: "Knowledge · Crossword played", path: "/app/languages?tab=puzzles", afterOpen: givenUpCrossword },
+  { name: "Knowledge · Connections played", path: "/app/languages?tab=puzzles", afterOpen: givenUpConnections },
 ];
 
 async function firstOfType(page: Page, type: string): Promise<string> {

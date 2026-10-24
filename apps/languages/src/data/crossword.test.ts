@@ -1,14 +1,40 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { documentsOf, initApps, putDocument, removeDocument, type DocumentTypeDef } from "@lifeline/core";
-import { DECK, FACT, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Grade, type Puzzle, type Recall, type Topic } from "../domain/types";
+import { documentsOf, getDocument, initApps, putDocument, removeDocument, type DocumentTypeDef } from "@lifeline/core";
+import { DECK, FACT, OCCURRENCE_PRACTISED, OCCURRENCE_PUZZLE, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Grade, type Puzzle, type Recall, type Topic } from "../domain/types";
 import { crosswordCells } from "../domain/crossword";
 import { addFact, addSentence, addWord, setPaused, setTopicArchived } from "./repo";
-import { enterCrossword, getPuzzle, giveUpPuzzle, openDailyPuzzle, openReplayPuzzle, todaysPuzzles } from "./puzzles";
+import { getPuzzle, guessPuzzle, giveUpPuzzle, openDailyPuzzle, openReplayPuzzle, todaysPuzzles } from "./puzzles";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId", "itemId"], builtIn: true }) as unknown as DocumentTypeDef;
-initApps([{ id: "languages", title: "Knowledge", types: [TOPIC, WORD, SENTENCE, FACT, RECALL, DECK, PUZZLE].map(bare), screens: [], cards: [], commands: [] }]);
+const logged: string[] = [];
+initApps([
+  {
+    id: "languages",
+    title: "Knowledge",
+    types: [TOPIC, WORD, SENTENCE, FACT, RECALL, DECK, PUZZLE].map(bare),
+    screens: [],
+    cards: [],
+    commands: [],
+    tallying: [{ typeId: TOPIC, occurrence: OCCURRENCE_PRACTISED, occurrences: [{ id: OCCURRENCE_PRACTISED, label: "day practised" }, { id: OCCURRENCE_PUZZLE, label: "daily Puzzle finished" }] }],
+  },
+  {
+    id: "habits",
+    title: "Habits",
+    types: [],
+    screens: [],
+    cards: [],
+    commands: [],
+    loggable: {
+      appId: "habits",
+      useTargets: () => [],
+      async log(id: string) {
+        logged.push(id);
+      },
+    },
+  },
+] as never);
 
 const NOW = new Date(2026, 9, 24, 10, 0);
 const TOMORROW = new Date(2026, 9, 25, 0, 5);
@@ -42,7 +68,7 @@ const answers = (p: Puzzle | null) => (p?.drawn.map((d) => d.answer) ?? []).sort
 
 /** Every cell filled with its own letter, as typed: `spell` turns the answer's letter into what is typed. */
 async function solve(p: Puzzle, spell: (letter: string) => string = (l) => l, now = NOW): Promise<Puzzle> {
-  return enterCrossword(p.id, crosswordCells(p).map((c) => ({ row: c.row, col: c.col, letter: spell(c.letter) })), now);
+  return guessPuzzle(p.id, crosswordCells(p).map((c) => ({ row: c.row, col: c.col, letter: spell(c.letter) })), now);
 }
 
 describe("what a crossword may draw", () => {
@@ -128,29 +154,29 @@ describe("today's crossword", () => {
     await five(t);
     const p = (await openDailyPuzzle(t, "crossword", { now: NOW }))!;
     const [first] = crosswordCells(p);
-    let after = await enterCrossword(p.id, [{ row: first!.row, col: first!.col, letter: "x" }], NOW);
+    let after = await guessPuzzle(p.id, [{ row: first!.row, col: first!.col, letter: "x" }], NOW);
     expect(after.outcome).toBe("playing");
     expect(crosswordCells(after)[0]!.entry).toBe("x");
-    after = await enterCrossword(p.id, [{ row: first!.row, col: first!.col, letter: "" }], NOW);
+    after = await guessPuzzle(p.id, [{ row: first!.row, col: first!.col, letter: "" }], NOW);
     expect(crosswordCells(after)[0]!.entry).toBe("");
     expect(after.guesses).toHaveLength(2);
 
     const most = crosswordCells(p).slice(1);
-    after = await enterCrossword(p.id, most.map((c) => ({ row: c.row, col: c.col, letter: c.letter })), NOW);
+    after = await guessPuzzle(p.id, most.map((c) => ({ row: c.row, col: c.col, letter: c.letter })), NOW);
     expect(after.outcome).toBe("playing");
-    after = await enterCrossword(p.id, [{ row: first!.row, col: first!.col, letter: first!.letter.toUpperCase() }], NOW);
+    after = await guessPuzzle(p.id, [{ row: first!.row, col: first!.col, letter: first!.letter.toUpperCase() }], NOW);
     expect(after.outcome).toBe("solved");
     expect(after.finishedAt).not.toBe("");
-    await expect(enterCrossword(p.id, [{ row: first!.row, col: first!.col, letter: "x" }], NOW)).rejects.toThrow();
+    await expect(guessPuzzle(p.id, [{ row: first!.row, col: first!.col, letter: "x" }], NOW)).rejects.toThrow();
   });
 
   it("refuses a cell outside the grid, or more than one letter", async () => {
     const t = await topic();
     await five(t);
     const p = (await openDailyPuzzle(t, "crossword", { now: NOW }))!;
-    await expect(enterCrossword(p.id, [{ row: -1, col: -1, letter: "a" }], NOW)).rejects.toThrow();
+    await expect(guessPuzzle(p.id, [{ row: -1, col: -1, letter: "a" }], NOW)).rejects.toThrow();
     const [c] = crosswordCells(p);
-    await expect(enterCrossword(p.id, [{ row: c!.row, col: c!.col, letter: "ab" }], NOW)).rejects.toThrow();
+    await expect(guessPuzzle(p.id, [{ row: c!.row, col: c!.col, letter: "ab" }], NOW)).rejects.toThrow();
   });
 
   it("folds accents, and ñ as n unless the Topic keeps it its own letter", async () => {
@@ -213,5 +239,37 @@ describe("today's crossword", () => {
     const read = (await getPuzzle(p.id, NOW))!;
     expect(answers(read)).toEqual(answers(p));
     expect(crosswordCells(read)).toEqual(crosswordCells(p));
+  });
+});
+
+describe("finishing a daily crossword", () => {
+  const tallied = async () => {
+    const t = await topic();
+    await putDocument({ ...(await getDocument<Topic>(t))!, tallies: [{ target: "habits/play", value: "one", occurrence: OCCURRENCE_PUZZLE }, { target: "habits/practise", value: "one" }] });
+    await five(t);
+    return t;
+  };
+
+  it("solved or given up, logs once to the puzzle Tally and never to day practised; entries before that log nothing", async () => {
+    for (const finish of ["solve", "giveup"] as const) {
+      logged.length = 0;
+      const t = await tallied();
+      const p = (await openDailyPuzzle(t, "crossword", { now: NOW }))!;
+      const [c] = crosswordCells(p);
+      const mid = await guessPuzzle(p.id, [{ row: c!.row, col: c!.col, letter: c!.letter }], NOW);
+      expect(mid.tallyError).toBeUndefined();
+      expect(logged).toEqual([]);
+      const done = finish === "solve" ? await solve(p) : await giveUpPuzzle(p.id, NOW);
+      expect(done.outcome).toBe(finish === "solve" ? "solved" : "unsolved");
+      expect(logged).toEqual(["play"]);
+    }
+  });
+
+  it("a replay never tallies", async () => {
+    logged.length = 0;
+    const t = await tallied();
+    const r = (await openReplayPuzzle(t, "crossword", { now: NOW }))!;
+    await solve(r);
+    expect(logged).toEqual([]);
   });
 });
