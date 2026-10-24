@@ -110,7 +110,7 @@ export function todayOf(topics: Topic[], words: Word[], recalls: Recall[], puzzl
 /** Whether a format has enough in a Topic to build one now. */
 function canBuild(topic: Topic, format: PuzzleFormat, words: Word[], recalls: Recall[], more: { facts?: Fact[]; decks?: Deck[]; sentences?: Sentence[] }): boolean {
   const topicId = topic.id;
-  if (format === "crossword") return drawCrossword(topic, { words, sentences: more.sentences ?? [], facts: more.facts ?? [] }, recalls, () => 0, new Map()) !== null;
+  if (format === "crossword") return drawCrossword(topic, { words, sentences: more.sentences ?? [], facts: more.facts ?? [] }, recalls) !== null;
   if (format === "wordle") return wordleCandidates(topicId, words, recalls).length > 0;
   if (format === "connections") return connectionsDraw(topicId, more.decks ?? [], connectionsItems(topicId, words, more.facts ?? [], recalls), recalls, { random: () => 0 }) !== null;
   return false;
@@ -129,13 +129,13 @@ export function usePuzzles(now: Date): Puzzle[] {
 
 /**
  * Today's Puzzles, live: every row `todayOf` lists, every Puzzle and Topic,
- * and the clock — re-read once a minute, so a daily left open past midnight
- * ends there.
+ * and the day — checked once a minute, so a daily left open past midnight
+ * ends there. Only the day matters to them, so only a new day re-reads them.
  */
 export function useTodaysPuzzles(): { rows: TodaysPuzzle[]; puzzles: Puzzle[]; topics: Topic[] } {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60_000);
+    const t = setInterval(() => setNow((was) => (todayStr(was) === todayStr() ? was : new Date())), 60_000);
     return () => clearInterval(t);
   }, []);
   const topics = useTopics();
@@ -219,7 +219,7 @@ async function drawn(topic: Topic, format: PuzzleFormat, opts: { random: () => n
   }
   if (format === "crossword") {
     const [sentences, facts] = await Promise.all([documentsWhere<Sentence>(SENTENCE, "languageId", topicId), documentsWhere<Fact>(FACT, "languageId", topicId)]);
-    return drawCrossword(topic, { words: live, sentences: sentences.map(liveSentence), facts: facts.map(liveFact) }, recalls, opts.random, opts.avoid);
+    return drawCrossword(topic, { words: live, sentences: sentences.map(liveSentence), facts: facts.map(liveFact) }, recalls, opts);
   }
   if (format === "connections") {
     const [facts, decks] = await Promise.all([documentsWhere<Fact>(FACT, "languageId", topicId), documentsWhere<Deck>(DECK, "languageId", topicId)]);
@@ -351,9 +351,14 @@ export function openReplayPuzzle(topicId: string, format: PuzzleFormat, opts: { 
 
 // ---- The crossword ----
 
-/** A Topic's crossword, drawn toward what is due, `avoid`'s items last: null when fewer than five cross. */
-function drawCrossword(topic: Topic, items: { words: Word[]; sentences: Sentence[]; facts: Fact[] }, recalls: Recall[], random: () => number, avoid: Avoid) {
+/**
+ * A Topic's crossword, drawn toward what is due, `avoid`'s items last: null
+ * when fewer than five cross. Without `draw`, in plain due order — enough to
+ * know whether one can be built.
+ */
+function drawCrossword(topic: Topic, items: { words: Word[]; sentences: Sentence[]; facts: Fact[] }, recalls: Recall[], draw?: { random: () => number; avoid: Avoid }) {
   const enye = !!topic.enyeOwn;
   const draws = crosswordDraws(topic.id, items, recalls, enye);
-  return buildCrossword(orderTowardDue(draws, recalls, { random, avoid }), orderTowardDue(draws, recalls, { random: () => 0 }), enye);
+  const due = orderTowardDue(draws, recalls, { random: () => 0 });
+  return buildCrossword(draw ? orderTowardDue(draws, recalls, draw) : due, due, enye);
 }

@@ -246,11 +246,11 @@ export function orderTowardDue(draws: PuzzleDraw[], recalls: Recall[], opts: { r
 
 /**
  * A crossword built from draws: laid out in `order`, else in `fallback`
- * (plain due order) should that fail. What it drew and where each sits,
- * side by side; null when fewer than five cross.
+ * (plain due order) should that fail — tried once when they are the same.
+ * What it drew and where each sits, side by side; null when fewer than five cross.
  */
 export function buildCrossword(order: PuzzleDraw[], fallback: PuzzleDraw[], enye = false): { drawn: PuzzleDraw[]; layout: Placement[] } | null {
-  for (const pool of [order, fallback]) {
+  for (const pool of order === fallback ? [order] : [order, fallback]) {
     const head = pool.slice(0, POOL);
     const placed = layoutCrossword(head.map((d) => Array.from(fold(d.answer.normalize("NFC"), enye))));
     if (placed) return { drawn: placed.map((p) => head[p.index]!), layout: placed.map(({ row, col, dir }) => ({ row, col, dir })) };

@@ -130,6 +130,24 @@ describe("today's daily Wordle-like", () => {
     expect(a!.id).toBe(b!.id);
   });
 
+  it("leaves out the last seven days' daily Words while another is left, and draws one again once none is", async () => {
+    const t = await topic();
+    const held = await addWord({ languageId: t, term: "lejos", meaning: "far" });
+    await recall(t, held, "reverse", daysAgo(20));
+    await recall(t, held, "reverse", daysAgo(10));
+    await recall(t, held, "reverse", daysAgo(1)); // due long after "cerca": drawn second
+    await practised(t, "cerca", "near", daysAgo(5));
+    const at = (n: number) => new Date(2026, 9, 24 - n, 10, 0);
+    const draw = async (n: number) => (await openDailyPuzzle(t, "wordle", { now: at(n), random: () => 0 }))?.drawn[0]?.answer;
+    expect(await draw(9)).toBe("cerca");
+    expect(await draw(1)).toBe("cerca"); // eight days before it: out of the seven
+    expect(await draw(0)).toBe("lejos"); // yesterday's is left out
+    const only = await topic();
+    await practised(only, "nube");
+    expect((await openDailyPuzzle(only, "wordle", { now: at(1) }))?.drawn[0]?.answer).toBe("nube");
+    expect((await openDailyPuzzle(only, "wordle", { now: NOW }))?.drawn[0]?.answer).toBe("nube");
+  });
+
   it("colours each guess right place, wrong place, absent — a repeated letter only as often as the answer has it", async () => {
     const t = await topic();
     await practised(t, "casa");
