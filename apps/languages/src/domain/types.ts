@@ -30,6 +30,8 @@ export interface Topic extends Document {
   /** How many new Prompts enter practice per day at most. */
   newCap: number;
   archived: boolean;
+  /** "ñ is its own letter" (Puzzles, ADR 0106): off (the default) folds ñ to n when a guess is matched. */
+  enyeOwn?: boolean;
 }
 
 /** A Word (CONTEXT.md "Word"): a term met in the wild, its meaning in the user's own words. Yields forward and reverse. */

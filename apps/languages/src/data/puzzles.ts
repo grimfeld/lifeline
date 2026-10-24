@@ -148,7 +148,7 @@ export function openDailyPuzzle(topicId: string, format: PuzzleFormat, opts: { n
     if (existing) return existing;
     const since = addDays(day, -AVOID_DAYS);
     const avoid = new Set(mine.filter((p) => p.format === format && p.kind === "daily" && p.day >= since).flatMap((p) => p.drawn.map((d) => d.itemId)));
-    const drawn = await drawFor(topicId, format, { random: opts.random ?? Math.random, avoid });
+    const drawn = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
     if (!drawn?.length) return null;
     const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · ${day}`, languageId: topicId, format, kind: "daily", day, drawn, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
     return normalizePuzzle(row, now);
@@ -156,13 +156,14 @@ export function openDailyPuzzle(topicId: string, format: PuzzleFormat, opts: { n
 }
 
 /** What a format draws from a Topic now, or null when there is not enough to build it. */
-async function drawFor(topicId: string, format: PuzzleFormat, opts: { random: () => number; avoid: Set<string> }): Promise<PuzzleDraw[] | null> {
+async function drawFor(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Set<string> }): Promise<PuzzleDraw[] | null> {
+  const topicId = topic.id;
   const [words, recalls] = await Promise.all([documentsWhere<Word>(WORD, "languageId", topicId), documentsWhere<Recall>(RECALL, "languageId", topicId)]);
   const live = words.map((w) => ({ ...w, paused: !!w.paused }));
   if (format === "wordle") {
     const sentences = await documentsWhere<Sentence>(SENTENCE, "languageId", topicId);
     const word = pickTowardDue(wordleCandidates(topicId, live, recalls), recalls, opts);
-    return word ? [wordleDraw(word, sentences)] : null;
+    return word ? [wordleDraw(word, sentences, !!topic.enyeOwn)] : null;
   }
   if (format === "connections") {
     const [facts, decks] = await Promise.all([documentsWhere<Fact>(FACT, "languageId", topicId), documentsWhere<Deck>(DECK, "languageId", topicId)]);
@@ -188,7 +189,8 @@ async function playing(id: string, now: Date): Promise<Puzzle> {
 export function guessPuzzle(id: string, guess: string | readonly string[], now: Date = new Date()): Promise<Puzzle> {
   return serially(`play|${id}`, async () => {
     const p = await playing(id, now);
-    const { guesses, outcome } = p.format === "connections" ? settleConnections(p, asGroup(guess)) : settleWordle(p, asWord(guess));
+    const enye = p.format === "wordle" && !!(await getDocument<Topic>(p.languageId))?.enyeOwn;
+    const { guesses, outcome } = p.format === "connections" ? settleConnections(p, asGroup(guess)) : settleWordle(p, asWord(guess), enye);
     const row = await putDocument<Puzzle>({ ...p, guesses, outcome, finishedAt: outcome === "playing" ? "" : now.toISOString() });
     return normalizePuzzle(row, now);
   });
@@ -205,13 +207,13 @@ function asWord(guess: string | readonly string[]): string {
 }
 
 /** A Wordle-like guess checked and appended: solved, or unsolved on the sixth miss. */
-function settleWordle(p: Puzzle, guess: string): { guesses: string[]; outcome: PuzzleOutcome } {
+function settleWordle(p: Puzzle, guess: string, enye: boolean): { guesses: string[]; outcome: PuzzleOutcome } {
   const answer = p.drawn[0]!.answer;
   const want = lettersOf(answer)?.length ?? 0;
   const typed = guess.trim();
   if (lettersOf(typed)?.length !== want) throw new Error(`Guess a word of ${want} letters`);
   const guesses = [...p.guesses, typed];
-  return { guesses, outcome: isAnswer(answer, typed) ? "solved" : guesses.length >= MAX_GUESSES ? "unsolved" : "playing" };
+  return { guesses, outcome: isAnswer(answer, typed, enye) ? "solved" : guesses.length >= MAX_GUESSES ? "unsolved" : "playing" };
 }
 
 /** Giving up ends it unsolved, the answer shown. */
@@ -219,6 +221,27 @@ export function giveUpPuzzle(id: string, now: Date = new Date()): Promise<Puzzle
   return serially(`play|${id}`, async () => {
     const p = await playing(id, now);
     const row = await putDocument<Puzzle>({ ...p, outcome: "unsolved", finishedAt: now.toISOString() });
+    return normalizePuzzle(row, now);
+  });
+}
+
+/**
+ * A replay: a new Puzzle each call, drawing fresh material toward what is due
+ * soonest, leaving out today's daily item where anything else remains. Never
+ * a daily (no day-end expiry) and never tallied. Null when the Topic is
+ * archived or has nothing to draw.
+ */
+export function openReplayPuzzle(topicId: string, format: PuzzleFormat, opts: { now?: Date; random?: () => number } = {}): Promise<Puzzle | null> {
+  const now = opts.now ?? new Date();
+  const day = todayStr(now);
+  return serially(`replay|${topicId}|${format}`, async () => {
+    const topic = await getDocument<Topic>(topicId);
+    if (!topic || topic.type !== TOPIC || topic.archived) return null;
+    const mine = await topicPuzzles(topicId, now);
+    const avoid = new Set(mine.filter((p) => p.format === format && p.kind === "daily" && p.day === day).flatMap((p) => p.drawn.map((d) => d.itemId)));
+    const drawn = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
+    if (!drawn?.length) return null;
+    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · replay`, languageId: topicId, format, kind: "replay", day, drawn, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
     return normalizePuzzle(row, now);
   });
 }

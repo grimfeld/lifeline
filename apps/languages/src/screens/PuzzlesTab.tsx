@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button, EmptyState, toast } from "@lifeline/ui";
-import { Grid3x3, Play } from "lucide-react";
+import { Grid3x3, Play, RotateCw } from "lucide-react";
 import { setActiveTopic, useDecks, useFacts, useRecalls, useTopics, useWords } from "../data/repo";
-import { FORMAT_LABEL, openDailyPuzzle, puzzleLine, todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
+import { FORMAT_LABEL, openDailyPuzzle, openReplayPuzzle, puzzleLine, todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
 import { WordlePlayer } from "../components/WordlePlayer";
 import { ConnectionsPlayer } from "../components/ConnectionsPlayer";
 
@@ -49,6 +49,19 @@ export function PuzzlesTab() {
     }
   }
 
+  async function replay(row: TodaysPuzzle) {
+    setOpening(`${row.topic.id}|${row.format}`);
+    try {
+      const p = await openReplayPuzzle(row.topic.id, row.format);
+      if (p) setParams({ tab: "puzzles", [PUZZLE_PARAM]: p.id });
+      else toast.error(`${row.topic.name} has nothing to build a puzzle from.`);
+    } catch (e) {
+      toast.error(`Couldn't open the replay: ${(e as Error).message}`);
+    } finally {
+      setOpening("");
+    }
+  }
+
   if (playing) {
     const topic = topics.find((t) => t.id === playing.languageId);
     const Player = playing.format === "connections" ? ConnectionsPlayer : WordlePlayer;
@@ -89,6 +102,9 @@ export function PuzzlesTab() {
             ) : (
               "See"
             )}
+          </Button>
+          <Button size="sm" variant="ghost" className="shrink-0" aria-label={`Replay ${FORMAT_LABEL[row.format]} on ${row.topic.name}`} title="Replay: a new puzzle, not counted" onClick={() => void replay(row)} disabled={opening === `${row.topic.id}|${row.format}`}>
+            <RotateCw />
           </Button>
         </div>
       ))}

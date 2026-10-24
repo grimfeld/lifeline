@@ -64,9 +64,13 @@ Topic to a set you choose.
 - **Wordle-like** — you are shown a Word's meaning (and a Sentence's translation, when the Word is
   one of its blanks) and the number of letters; guess the word in six tries. Each letter turns
   green (right place), amber (in the word, wrong place) or grey (not in the word). Type on your
-  keyboard and press Enter.
+  keyboard and press Enter, or tap the on-screen letters (with delete and enter keys): they are the
+  letters of the words you kept in the Topic, each coloured by what your guesses showed of it. On a
+  phone the device's own keyboard stays out of the way.
 - Any word of the right length counts as a guess. Case and accents don't matter, and ñ counts as
-  n: *arbol* matches *árbol*. The grid and the end show the spelling you kept.
+  n: *arbol* matches *árbol*. The grid and the end show the spelling you kept. A Topic where ñ is a
+  letter of its own (Spanish, say) can say so: edit the Topic and tick **ñ is its own letter**;
+  then *nino* no longer matches *niño*, and ñ joins the on-screen letters.
 - Only Words you have practised the other way round (meaning → word), not paused, with a one-word
   term of 4 to 10 letters, are drawn — those due back soonest most often. An archived Topic, or one
   with nothing that fits, has no Puzzle.
@@ -84,6 +88,9 @@ Topic to a set you choose.
 - The end shows what it drew in full — each Word's meaning or Fact's question, notes, where you met
   it, and in Connections every group under its Deck — and **Practise now** starts a practice of the
   Topic.
+- **Replay** (the circular arrow on a Topic's row) starts another puzzle of the same format as often as you like, drawn
+  afresh and avoiding what today's daily drew where it can. A replay doesn't end at midnight and never counts toward
+  anything: only the daily does.
 - Playing never changes when anything comes back: only a practice, graded by you, does. No score,
   no streak.
 
@@ -106,6 +113,7 @@ it came from; for a Fact, the selection stays beside you while you write the que
 ### Cards
 
 - **Due today** — everything due, by Topic; one tap into practising everything.
+- **Today's Puzzles** — each Topic's daily puzzles and how they stand (not started, in progress, solved, unsolved); one tap opens it.
 
 ## Capture
 

@@ -4,7 +4,7 @@ import { documentsOf, initApps, putDocument, removeDocument, type DocumentTypeDe
 import { DECK, FACT, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Puzzle, type Recall, type Topic } from "../domain/types";
 import { addFact, addWord, setPaused } from "./repo";
 import { connectionsState } from "../domain/connections";
-import { getPuzzle, giveUpPuzzle, guessPuzzle, openDailyPuzzle, todaysPuzzles } from "./puzzles";
+import { getPuzzle, giveUpPuzzle, guessPuzzle, openDailyPuzzle, openReplayPuzzle, todaysPuzzles } from "./puzzles";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId", "itemId"], builtIn: true }) as unknown as DocumentTypeDef;
@@ -118,6 +118,15 @@ describe("playing a Connections", () => {
     expect(last.outcome).toBe("unsolved");
     await expect(guessPuzzle(p.id, [...groups(p).values()][0]!, NOW)).rejects.toThrow();
     expect(connectionsState(last).groups).toHaveLength(4);
+  });
+
+  it("replays as a new Connections each time, drawn from the same Decks", async () => {
+    const { t, p } = await fourDecks();
+    const r = (await openReplayPuzzle(t, "connections", { now: NOW }))!;
+    expect(r.kind).toBe("replay");
+    expect(r.id).not.toBe(p.id);
+    expect(r.drawn).toHaveLength(16);
+    expect(new Set(r.drawn.map((d) => d.deck))).toEqual(new Set(p.drawn.map((d) => d.deck)));
   });
 
   it("given up, it is unsolved; left past midnight, it reads unsolved and refuses groups", async () => {
