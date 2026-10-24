@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button, EmptyState, toast } from "@lifeline/ui";
 import { Grid3x3, Play, RotateCw } from "lucide-react";
-import { setActiveTopic, useRecalls, useTopics, useWords } from "../data/repo";
+import { setActiveTopic, useFacts, useRecalls, useSentences, useTopics, useWords } from "../data/repo";
 import { FORMAT_LABEL, openDailyPuzzle, openReplayPuzzle, puzzleLine, todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
 import { WordlePlayer } from "../components/WordlePlayer";
+import { CrosswordPlayer } from "../components/CrosswordPlayer";
 
 /** The Puzzle being played, by id: a link back to it survives a reload. */
 const PUZZLE_PARAM = "puzzle";
@@ -25,8 +26,10 @@ export function PuzzlesTab() {
   const topics = useTopics();
   const words = useWords();
   const recalls = useRecalls();
+  const sentences = useSentences();
+  const facts = useFacts();
   const puzzles = usePuzzles(now);
-  const today = useMemo(() => todayOf(topics, words, recalls, puzzles, now), [topics, words, recalls, puzzles, now]);
+  const today = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { sentences, facts }), [topics, words, recalls, puzzles, now, sentences, facts]);
   const [opening, setOpening] = useState("");
 
   const playingId = params.get(PUZZLE_PARAM);
@@ -61,8 +64,9 @@ export function PuzzlesTab() {
 
   if (playing) {
     const topic = topics.find((t) => t.id === playing.languageId);
+    const Player = playing.format === "crossword" ? CrosswordPlayer : WordlePlayer;
     return (
-      <WordlePlayer
+      <Player
         puzzle={playing}
         topicName={topic?.name ?? "A topic"}
         onBack={() => setParams({ tab: "puzzles" })}
@@ -75,7 +79,7 @@ export function PuzzlesTab() {
   }
 
   if (!today.length) {
-    return <EmptyState>No puzzles today. A puzzle uses words you have already practised the other way round (meaning to word), with a one-word term of 4 to 10 letters.</EmptyState>;
+    return <EmptyState>No puzzles today. A puzzle uses only what you have already practised: a Wordle-like needs a word met the other way round (meaning to word) with a one-word term of 4 to 10 letters, a crossword five one-word answers that cross.</EmptyState>;
   }
 
   return (

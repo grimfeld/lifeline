@@ -140,6 +140,48 @@ async function givenUpPuzzle(page: Page) {
   await expect(page.getByRole("button", { name: "Practise now" })).toBeVisible();
 }
 
+/**
+ * Knowledge → Puzzles over a Topic whose kept material makes a crossword
+ * (ADR 0106): four Words, a Fact and a Sentence blank, all met, with the
+ * longest meaning, question and translation a person could type.
+ */
+async function withCrossword(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      const met = (itemId: string, slot: string) => core.putDocument({ type: "language_recall", title: "", languageId: topic.id, itemId, slot, grade: "pass", at, tags: [] });
+      for (const term of ["casa", "mapa", "sala", "pasa"]) {
+        const w = await core.putDocument({ type: "language_word", languageId: topic.id, term, meaning: `${long} ${word}`, notes: `${long} ${word}`, origin: `${long} ${word}`, originId: "", paused: false, addedAt: at, tags: [] });
+        await met(w.id, "reverse");
+      }
+      const f = await core.putDocument({ type: "knowledge_fact", languageId: topic.id, question: `${long} ${word}?`, answer: "lata", notes: `${long} ${word}`, origin: "", originId: "", paused: false, addedAt: at, tags: [] });
+      await met(f.id, "forward");
+      const s = await core.putDocument({ type: "language_sentence", languageId: topic.id, text: `${long} {{nata}} ${word}`, translation: `${long} ${word}`, origin: "", originId: "", paused: false, addedAt: at, tags: [] });
+      await met(s.id, "blank:nata");
+    },
+    [CORE_URL, longText("Crossword topic"), LONG_WORD] as const,
+  );
+  await expect(page.getByText(/Crossword · not started/).first()).toBeVisible();
+}
+
+/** …and today's crossword opened, a letter in. */
+async function playCrossword(page: Page) {
+  await withCrossword(page);
+  await page.locator("div", { hasText: /Crossword · not started/ }).last().getByRole("button", { name: "Play" }).click();
+  await expect(page.getByRole("grid", { name: "Crossword" })).toBeVisible();
+  await page.getByRole("group", { name: "Letters" }).getByRole("button", { name: "a", exact: true }).click();
+}
+
+/** …and given up: the end, every answer's material in full. */
+async function givenUpCrossword(page: Page) {
+  await playCrossword(page);
+  await page.getByRole("button", { name: "Give up" }).click();
+  await expect(page.getByRole("button", { name: "Practise now" })).toBeVisible();
+}
+
 /** Journal → Types → the Type editor over the seeded People type. */
 async function openPeopleTypeEditor(page: Page) {
   await workLocally(page);
@@ -756,6 +798,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Knowledge · Puzzles", path: "/app/languages?tab=puzzles", afterOpen: withPuzzleWord },
   { name: "Knowledge · Puzzle player", path: "/app/languages?tab=puzzles", afterOpen: playPuzzle },
   { name: "Knowledge · Puzzle played", path: "/app/languages?tab=puzzles", afterOpen: givenUpPuzzle },
+  { name: "Knowledge · Crossword", path: "/app/languages?tab=puzzles", afterOpen: playCrossword },
+  { name: "Knowledge · Crossword played", path: "/app/languages?tab=puzzles", afterOpen: givenUpCrossword },
 ];
 
 async function firstOfType(page: Page, type: string): Promise<string> {

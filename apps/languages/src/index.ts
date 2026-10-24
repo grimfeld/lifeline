@@ -185,6 +185,7 @@ const puzzleType: DocumentTypeDef = {
     { key: "guesses", label: "Guesses", kind: "json", guarded: true },
     { key: "outcome", label: "Outcome", kind: "select", options: [{ value: "playing", label: "In progress" }, { value: "solved", label: "Solved" }, { value: "unsolved", label: "Unsolved" }], guarded: true, column: true },
     { key: "finishedAt", label: "Finished", kind: "datetime", guarded: true },
+    { key: "layout", label: "Grid", kind: "json", guarded: true },
   ],
   indexes: ["languageId"],
   href: () => `${KNOWLEDGE_HREF}?tab=puzzles`,

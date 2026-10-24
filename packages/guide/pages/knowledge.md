@@ -57,7 +57,7 @@ Topic to a set you choose.
 
 ### Puzzles
 
-- A daily word game for each Topic, built only from what you kept and have already practised —
+- A daily word game of each format for each Topic, built only from what you kept and have already practised —
   Lifeline never brings in words of its own, not even a dictionary. Open the **Puzzles** tab: one
   row per Topic that can make one, showing whether today's is not started, in progress, solved or
   unsolved. **Play**, **Resume** or **See** it.
@@ -73,11 +73,23 @@ Topic to a set you choose.
   then *nino* no longer matches *niño*, and ñ joins the on-screen letters.
 - Only Words you have practised the other way round (meaning → word), not paused, with a one-word
   term of 4 to 10 letters, are drawn — those due back soonest most often. An archived Topic, or one
-  with nothing that fits, has no Puzzle.
+  with nothing that fits, has no Wordle-like.
 - Today's Puzzle is fixed when you first open it: come back to it later the same day, guesses kept.
   At midnight an unfinished one ends unsolved. **Give up** ends it too, unsolved, and shows the word.
 - The end shows the Word in full — meaning, notes, where you met it — and **Practise now** starts a
   practice of the Topic.
+- **Crossword** — a small free-form crossword of 5 to 8 answers that cross, from the Topic's
+  practised material: Words (clue: the meaning; met meaning → word), Facts whose answer is one word
+  (clue: the question) and Sentence blanks (clue: the Sentence with that blank open, plus its
+  translation). Each answer is one word of 3 to 12 letters, not paused, its prompt practised at
+  least once. A Topic with fewer than five that cross has no crossword.
+- Tap a cell to pick it, tap it again to turn between across and down, or tap a clue in the list
+  (the arrows beside the clue step through them). Type with the on-screen letters or your keyboard;
+  delete steps back, Enter goes to the next clue. Letters match as in the Wordle-like: no case, no
+  accents, ñ as n unless the Topic keeps it its own. It is solved when every cell is right; there is
+  no running out of tries. **Give up** shows the answers (wrong cells in red) and counts as unsolved.
+  The end lists every answer's material in full, with where you met it, and **Practise now**.
+  Daily, resume, midnight and replay work as for the Wordle-like.
 - **Replay** (the circular arrow on a Topic's row) starts another puzzle of the same format as often as you like, drawn
   afresh and avoiding today's daily word where it can. A replay doesn't end at midnight and never counts toward
   anything: only the daily does.

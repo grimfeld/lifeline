@@ -1,4 +1,5 @@
 import type { DateStr, Document } from "@lifeline/core";
+import type { Placement } from "./crossword";
 
 /** Stored ids keep the retired Languages name (ADR 0073): App, Module, URL, the `language` type and every `languageId`. */
 export const APP_ID = "languages";
@@ -160,8 +161,8 @@ export interface PuzzleDraw {
 /**
  * A Puzzle (CONTEXT.md "Puzzle", ADR 0106, internal): one word game over one
  * Topic's kept material, kept as a fact — what it drew is fixed when first
- * opened. Never writes a Recall. A crossword will add its grid layout, a
- * Connections its groups, beside these.
+ * opened. Never writes a Recall. A crossword keeps its grid layout beside
+ * these; a Connections will add its groups.
  */
 export interface Puzzle extends Document {
   type: typeof PUZZLE;
@@ -177,4 +178,6 @@ export interface Puzzle extends Document {
   outcome: PuzzleOutcome;
   /** ISO instant it was solved or given up; empty while playing (and for one left to expire). */
   finishedAt: string;
+  /** A crossword's grid: where each drawn answer sits, side by side with `drawn`. Absent for other formats. */
+  layout?: Placement[];
 }
