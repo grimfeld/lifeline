@@ -4,7 +4,7 @@ import { documentsOf, initApps, putDocument, removeDocument, type DocumentTypeDe
 import { DECK, FACT, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Grade, type Recall, type Topic } from "../domain/types";
 import { wordleRows } from "../domain/puzzle";
 import { addSentence, addWord, setPaused, setTopicArchived } from "./repo";
-import { getPuzzle, giveUpPuzzle, guessPuzzle, openDailyPuzzle, todaysPuzzles } from "./puzzles";
+import { getPuzzle, giveUpPuzzle, guessPuzzle, openDailyPuzzle, openReplayPuzzle, todaysPuzzles } from "./puzzles";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId", "itemId"], builtIn: true }) as unknown as DocumentTypeDef;
@@ -205,5 +205,60 @@ describe("today's Puzzles", () => {
     const p = (await openDailyPuzzle(t, "wordle", { now: NOW }))!;
     const after = (await todaysPuzzles(NOW)).find((x) => x.topic.id === t);
     expect(after?.puzzle?.id).toBe(p.id);
+  });
+});
+
+describe("replays", () => {
+  it("each is a new Puzzle of kind replay, apart from today's daily", async () => {
+    const t = await topic();
+    await practised(t, "mesa");
+    const daily = (await openDailyPuzzle(t, "wordle", { now: NOW }))!;
+    const a = (await openReplayPuzzle(t, "wordle", { now: NOW }))!;
+    const b = (await openReplayPuzzle(t, "wordle", { now: NOW }))!;
+    expect(new Set([daily.id, a.id, b.id]).size).toBe(3);
+    expect([a.kind, b.kind]).toEqual(["replay", "replay"]);
+    expect((await openDailyPuzzle(t, "wordle", { now: NOW }))!.id).toBe(daily.id);
+    expect((await todaysPuzzles(NOW)).find((x) => x.topic.id === t)?.puzzle?.id).toBe(daily.id);
+  });
+
+  it("avoids today's daily item where another is left, and draws it when it is the only one", async () => {
+    const t = await topic();
+    await practised(t, "mesa");
+    await practised(t, "silla");
+    const daily = (await openDailyPuzzle(t, "wordle", { now: NOW }))!;
+    for (let i = 0; i < 5; i++) {
+      const r = (await openReplayPuzzle(t, "wordle", { now: NOW, random: () => i / 5 }))!;
+      expect(r.drawn[0]?.itemId).not.toBe(daily.drawn[0]?.itemId);
+    }
+    const solo = await topic();
+    await practised(solo, "plato");
+    await openDailyPuzzle(solo, "wordle", { now: NOW });
+    expect((await openReplayPuzzle(solo, "wordle", { now: NOW }))?.drawn[0]?.answer).toBe("plato");
+  });
+
+  it("is null for a Topic with nothing to draw, or archived", async () => {
+    const t = await topic();
+    expect(await openReplayPuzzle(t, "wordle", { now: NOW })).toBeNull();
+    await practised(t, "gato");
+    await setTopicArchived(t, true);
+    expect(await openReplayPuzzle(t, "wordle", { now: NOW })).toBeNull();
+  });
+
+  it("never writes a Recall, and finishes as a replay, distinguishable from a daily", async () => {
+    const t = await topic();
+    await practised(t, "nube");
+    const before = await recallCount();
+    const r = (await openReplayPuzzle(t, "wordle", { now: NOW }))!;
+    const done = await guessPuzzle(r.id, "nube", NOW);
+    expect(done).toMatchObject({ kind: "replay", outcome: "solved" });
+    expect(await recallCount()).toBe(before);
+  });
+
+  it("is not ended by midnight as a daily is", async () => {
+    const t = await topic();
+    await practised(t, "nube");
+    const r = (await openReplayPuzzle(t, "wordle", { now: NOW }))!;
+    expect((await getPuzzle(r.id, TOMORROW))?.outcome).toBe("playing");
+    expect((await guessPuzzle(r.id, "nube", TOMORROW)).outcome).toBe("solved");
   });
 });

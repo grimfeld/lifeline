@@ -171,3 +171,24 @@ export function giveUpPuzzle(id: string, now: Date = new Date()): Promise<Puzzle
     return normalizePuzzle(row, now);
   });
 }
+
+/**
+ * A replay: a new Puzzle each call, drawing fresh material toward what is due
+ * soonest, leaving out today's daily item where anything else remains. Never
+ * a daily (no day-end expiry) and never tallied. Null when the Topic is
+ * archived or has nothing to draw.
+ */
+export function openReplayPuzzle(topicId: string, format: PuzzleFormat, opts: { now?: Date; random?: () => number } = {}): Promise<Puzzle | null> {
+  const now = opts.now ?? new Date();
+  const day = todayStr(now);
+  return serially(`replay|${topicId}|${format}`, async () => {
+    const topic = await getDocument<Topic>(topicId);
+    if (!topic || topic.type !== TOPIC || topic.archived || format !== "wordle") return null;
+    const [mine, words, recalls, sentences] = await Promise.all([topicPuzzles(topicId, now), documentsWhere<Word>(WORD, "languageId", topicId), documentsWhere<Recall>(RECALL, "languageId", topicId), documentsWhere<Sentence>(SENTENCE, "languageId", topicId)]);
+    const avoid = new Set(mine.filter((p) => p.format === format && p.kind === "daily" && p.day === day).flatMap((p) => p.drawn.map((d) => d.itemId)));
+    const word = pickTowardDue(wordleCandidates(topicId, words.map((w) => ({ ...w, paused: !!w.paused })), recalls), recalls, { random: opts.random ?? Math.random, avoid });
+    if (!word) return null;
+    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · Wordle-like · replay`, languageId: topicId, format, kind: "replay", day, drawn: [wordleDraw(word, sentences)], guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
+    return normalizePuzzle(row, now);
+  });
+}
