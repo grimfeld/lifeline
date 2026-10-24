@@ -242,7 +242,7 @@ export function TaskDialog({
             <div className="grid gap-2">
               <Label>Type</Label>
               <Select value={kind} onValueChange={(v) => setKind(v as Kind)}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -313,7 +313,7 @@ export function TaskDialog({
                   {yearDates.map((d, i) => (
                     <div key={i} className="flex items-center gap-1">
                       <Select value={String(d.month)} onValueChange={(v) => setYearDates((cur) => cur.map((x, j) => (j === i ? { ...x, month: Number(v) } : x)))}>
-                        <SelectTrigger className="h-8 w-28">
+                        <SelectTrigger aria-label="Month" className="w-28">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>

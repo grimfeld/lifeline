@@ -112,7 +112,7 @@ export function TasksScreen() {
         </PhoneDock>
       </PageHeader>
 
-      <Input
+      <Input aria-label="Quick add a task"
         placeholder="Quick add — type a task and press Enter (goes to Unassigned)"
         value={quick}
         onChange={(e) => setQuick(e.target.value)}

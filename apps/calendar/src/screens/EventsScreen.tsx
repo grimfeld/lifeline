@@ -16,6 +16,7 @@ import {
   TabsList,
   TabsTrigger,
   toast,
+  Tip,
 } from "@lifeline/ui";
 import { formatHuman, nowClock, todayStr } from "@lifeline/core";
 import { Clock, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
@@ -48,11 +49,13 @@ function EventRow({ ev, onEdit }: { ev: Event; onEdit: (e: Event) => void }) {
           {isMultiDay(ev) ? ` → ${formatHuman(ev.endDate!)}` : ""}
         </Badge>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="size-8">
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
+          <Tip label="More actions">
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" >
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+          </Tip>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(ev)}>
               <Pencil /> Edit

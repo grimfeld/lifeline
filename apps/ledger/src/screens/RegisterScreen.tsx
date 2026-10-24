@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Badge, Button, Card, CardContent, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast, usePhone } from "@lifeline/ui";
+import { Badge, Button, Card, CardContent, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast, usePhone, Tip } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { ArrowLeftRight, Bell, BellOff, Import, Inbox, Landmark, ListChecks, Pencil, Plus, Scale, Search, Wand2 } from "lucide-react";
 import type { Due, LedgerAccount, Series, Transaction } from "../domain/types";
@@ -234,7 +234,7 @@ export function RegisterScreen() {
                   )}
                 </Button>
                 <Select value={accountFilter} onValueChange={setAccountFilter}>
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger aria-label="Account" className="w-44">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -249,7 +249,7 @@ export function RegisterScreen() {
                   </SelectContent>
                 </Select>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger aria-label="Category" className="w-44">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -262,7 +262,7 @@ export function RegisterScreen() {
                   </SelectContent>
                 </Select>
                 <Select value={monthFilter} onValueChange={setMonthFilter}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger aria-label="Month" className="w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -275,7 +275,7 @@ export function RegisterScreen() {
                   </SelectContent>
                 </Select>
                 <Select value={kindFilter} onValueChange={setKindFilter}>
-                  <SelectTrigger className="w-36">
+                  <SelectTrigger aria-label="Kind" className="w-36">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -287,7 +287,7 @@ export function RegisterScreen() {
                   </SelectContent>
                 </Select>
                 <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-                  <SelectTrigger className="w-36">
+                  <SelectTrigger aria-label="Sort by" className="w-36">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -300,7 +300,7 @@ export function RegisterScreen() {
                 </Select>
               </div>
             </PhoneFilters>
-            <Input className="min-w-0 flex-1 max-md:basis-40" placeholder="Search payee, note, amount (12,50) or date (10-03)…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input aria-label="Search transactions" className="min-w-0 flex-1 max-md:basis-40" placeholder="Search payee, note, amount (12,50) or date (10-03)…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </PhoneDock>
           <div className="text-muted-foreground text-xs">
             {filtered.length} transaction{filtered.length === 1 ? "" : "s"}
@@ -376,9 +376,11 @@ export function RegisterScreen() {
                   <Button size="sm" variant="outline" onClick={() => setImporting(a)}>
                     <Import /> Import
                   </Button>
-                  <Button size="icon" variant="ghost" className="size-8" onClick={() => setAccountEditing(a)}>
-                    <Pencil />
-                  </Button>
+                  <Tip label="Edit account">
+                    <Button size="icon" variant="ghost" onClick={() => setAccountEditing(a)}>
+                      <Pencil />
+                    </Button>
+                  </Tip>
                 </CardContent>
               </Card>
             );
@@ -483,20 +485,22 @@ function SeriesCard({ series, today, category, account, onShow }: { series: Seri
           <div className="tabular-nums">{formatCents(series.amount)}</div>
           <div className="text-muted-foreground text-xs">{quiet ? `last ${formatHuman(series.lastDate)}` : next < today ? `overdue since ${formatHuman(next)}` : `next ${describeDueDay(next, today)}`}</div>
         </div>
-        <Button size="icon" variant="ghost" className="size-8" title="Show these transactions in the register" onClick={onShow}>
-          <Search />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="size-8"
-          title={series.muted ? "Unmute — let it surface Dues again" : "Mute — keep it listed, surface no Dues"}
-          onClick={() =>
-            void setSeriesMuted(series, !series.muted).then(() => toast.success(series.muted ? `${series.payee} unmuted` : `${series.payee} muted — no more dues`))
-          }
-        >
-          {series.muted ? <Bell /> : <BellOff />}
-        </Button>
+        <Tip label="Show these transactions in the register">
+          <Button size="icon" variant="ghost" onClick={onShow}>
+            <Search />
+          </Button>
+        </Tip>
+        <Tip label={series.muted ? "Unmute — let it surface Dues again" : "Mute — keep it listed, surface no Dues"}>
+          <Button
+            size="icon"
+            variant="ghost"
+                        onClick={() =>
+              void setSeriesMuted(series, !series.muted).then(() => toast.success(series.muted ? `${series.payee} unmuted` : `${series.payee} muted — no more dues`))
+            }
+          >
+            {series.muted ? <Bell /> : <BellOff />}
+          </Button>
+        </Tip>
       </CardContent>
     </Card>
   );

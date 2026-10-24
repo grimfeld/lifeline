@@ -170,9 +170,9 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
   }
 
   const cols = rows?.[0]?.length ?? 0;
-  const colPick = (value: number | null, onChange: (v: number | null) => void, allowNone: boolean) => (
+  const colPick = (value: number | null, onChange: (v: number | null) => void, allowNone: boolean, label: string) => (
     <Select value={value === null ? "none" : String(value)} onValueChange={(v) => onChange(v === "none" ? null : Number(v))}>
-      <SelectTrigger>
+      <SelectTrigger aria-label={label}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -221,30 +221,30 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
               <div className="grid gap-1">
                 <Label>Date</Label>
-                {colPick(mapping.dateCol, (v) => setMapping({ ...mapping, dateCol: v ?? 0 }), false)}
+                {colPick(mapping.dateCol, (v) => setMapping({ ...mapping, dateCol: v ?? 0 }), false, "Date")}
               </div>
               <div className="grid gap-1">
                 <Label>Amount</Label>
-                {colPick(mapping.amountCol, (v) => setMapping({ ...mapping, amountCol: v ?? 1 }), false)}
+                {colPick(mapping.amountCol, (v) => setMapping({ ...mapping, amountCol: v ?? 1 }), false, "Amount")}
               </div>
               <div className="grid gap-1">
                 <Label>Payee</Label>
-                {colPick(mapping.payeeCol, (v) => setMapping({ ...mapping, payeeCol: v }), true)}
+                {colPick(mapping.payeeCol, (v) => setMapping({ ...mapping, payeeCol: v }), true, "Payee")}
               </div>
               <div className="grid gap-1">
                 <Label>Note</Label>
-                {colPick(mapping.noteCol, (v) => setMapping({ ...mapping, noteCol: v }), true)}
+                {colPick(mapping.noteCol, (v) => setMapping({ ...mapping, noteCol: v }), true, "Note")}
               </div>
               <div className="grid gap-1">
                 <Label>Row id</Label>
-                {colPick(mapping.idCol, (v) => setMapping({ ...mapping, idCol: v }), true)}
+                {colPick(mapping.idCol, (v) => setMapping({ ...mapping, idCol: v }), true, "Row id")}
               </div>
             </div>
             <div className="flex flex-wrap items-end gap-3">
               <div className="grid gap-1">
                 <Label>Date format</Label>
                 <Select value={mapping.dateFormat} onValueChange={(v) => setMapping({ ...mapping, dateFormat: v as ImportMapping["dateFormat"] })}>
-                  <SelectTrigger className="w-36">
+                  <SelectTrigger aria-label="Date format" className="w-36">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -285,7 +285,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
                         {paypalMatches.has(r.index) ? (
                           <div className="grid gap-0.5">
                             <Select value={resolutionOf(r)?.entry.id ?? "none"} onValueChange={(v) => setPickedPayees(new Map(pickedPayees).set(r.index, v === "none" ? "" : v))}>
-                              <SelectTrigger size="sm" className="h-7 w-44 text-xs">
+               <SelectTrigger aria-label="Merchant" size="sm" className="w-44 text-xs">
                                 <SelectValue placeholder="which merchant?" />
                               </SelectTrigger>
                               <SelectContent>
@@ -306,7 +306,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
                       <td className="px-2 py-1">
                         {!r.invalid && r.amount !== null && (
                           <Select value={categoryOf(r) || "none"} onValueChange={(v) => setPickedCategories(new Map(pickedCategories).set(r.index, v === "none" ? "" : v))}>
-                            <SelectTrigger size="sm" className="h-7 w-40 text-xs">
+              <SelectTrigger aria-label="Category" size="sm" className="w-40 text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>

@@ -67,7 +67,7 @@ export function FolderCard({ settings }: CardProps) {
               New note <span className="text-muted-foreground font-normal">in {folder || "root"}</span>
             </DialogTitle>
           </DialogHeader>
-          <Input autoFocus placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void create()} />
+          <Input autoFocus aria-label="Title" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void create()} />
           <DialogFooter>
             <Button onClick={() => void create()} disabled={!title.trim()}>
               Create

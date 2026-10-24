@@ -47,7 +47,7 @@ export function AccountEditorDialog({ open, onOpenChange, account }: { open: boo
             <div className="grid gap-2">
               <Label>Kind</Label>
               <Select value={flavor} onValueChange={(v) => setFlavor(v as AccountFlavor)}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Kind">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

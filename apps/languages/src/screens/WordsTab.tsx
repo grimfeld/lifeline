@@ -70,7 +70,7 @@ export function WordsTab({ items, others = [], decks, recalls }: { items: Item[]
           {/* A real starting width on a phone: the dock lets items shrink to nothing, and a search box must not. */}
           <div className="relative min-w-40 flex-1 max-md:basis-28">
             <Search className="text-muted-foreground absolute top-2.5 left-2.5 size-4" />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" className="pl-8" />
+            <Input aria-label="Search words" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search" className="pl-8" />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

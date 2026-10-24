@@ -42,8 +42,8 @@ function PasswordPair({ onChange, autoFocus }: { onChange: (pw: string | null) =
   useEffect(() => onChange(a && a === b ? a : null), [a, b, onChange]);
   return (
     <div className="grid gap-2">
-      <Input autoFocus={autoFocus} type="password" placeholder="Password" value={a} onChange={(e) => setA(e.target.value)} autoComplete="new-password" />
-      <Input type="password" placeholder="Again" value={b} onChange={(e) => setB(e.target.value)} autoComplete="new-password" />
+      <Input aria-label="Password" autoFocus={autoFocus} type="password" placeholder="Password" value={a} onChange={(e) => setA(e.target.value)} autoComplete="new-password" />
+      <Input aria-label="Repeat password" type="password" placeholder="Again" value={b} onChange={(e) => setB(e.target.value)} autoComplete="new-password" />
       {a && b && a !== b && <p className="text-destructive text-xs">The two do not match.</p>}
     </div>
   );
@@ -130,7 +130,7 @@ function UnlockDialog({ open, onClose }: { open: boolean; onClose: () => void })
             void submit();
           }}
         >
-          <Input autoFocus type="password" placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" />
+          <Input aria-label="Password" autoFocus type="password" placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" />
           {wrong && <p className="text-destructive mt-1 text-xs">Wrong password.</p>}
           {/* ui-allow: sm-breakpoint — the kit DialogFooter turns to a row at sm; this keeps its buttons apart there */}
           <DialogFooter className="mt-3 sm:justify-between">
@@ -195,7 +195,7 @@ function ResetDialog({ open, onClose }: { open: boolean; onClose: () => void }) 
           {proved ? (
             <PasswordPair onChange={setPw} autoFocus />
           ) : (
-            <Input autoFocus type="password" placeholder="Account password" value={account} onChange={(e) => setAccount(e.target.value)} autoComplete="current-password" />
+            <Input aria-label="Account password" autoFocus type="password" placeholder="Account password" value={account} onChange={(e) => setAccount(e.target.value)} autoComplete="current-password" />
           )}
           <DialogFooter className="mt-3">
             <Button type="submit" disabled={busy || (proved ? !pw : !account)}>
@@ -246,7 +246,7 @@ function ChangeDialog({ open, onClose }: { open: boolean; onClose: () => void })
           }}
           className="grid gap-3"
         >
-          <Input autoFocus type="password" placeholder="Current password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
+          <Input aria-label="Current password" autoFocus type="password" placeholder="Current password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
           <PasswordPair onChange={setPw} />
           <DialogFooter>
             <Button type="submit" disabled={!pw || !current || busy}>
@@ -296,7 +296,7 @@ function DisableDialog({ open, onClose }: { open: boolean; onClose: () => void }
             void submit();
           }}
         >
-          <Input autoFocus type="password" placeholder="Password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
+          <Input aria-label="Password" autoFocus type="password" placeholder="Password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
           <DialogFooter className="mt-3">
             <Button type="submit" variant="destructive" disabled={!current || busy}>
               Turn off

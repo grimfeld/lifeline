@@ -16,7 +16,7 @@ export function ShopSelect({ value, onChange, shops, onNew, placeholder = "Pick 
         else onChange(v);
       }}
     >
-      <SelectTrigger className={className}>
+      <SelectTrigger aria-label="Shop" className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
@@ -40,7 +40,7 @@ export function ProductSelect({ value, onChange, products, onNew, allowNone, cla
         else onChange(v === NONE ? "" : v);
       }}
     >
-      <SelectTrigger className={className}>
+      <SelectTrigger aria-label="Product" className={className}>
         <SelectValue placeholder="Pick a product" />
       </SelectTrigger>
       <SelectContent>

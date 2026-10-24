@@ -130,7 +130,7 @@ export function GraphPage() {
           {model.nodes.length} nodes · {model.edges.length} links
         </span>
         <PhoneDock>
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find…" className="w-40 text-xs max-md:w-auto max-md:basis-32" />
+          <Input aria-label="Find in the graph" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find…" className="w-40 text-xs max-md:w-auto max-md:basis-32" />
           <PhoneFilters active={activeFilters}>
             <TagFilterBar value={prefs.tagFilter} onChange={(tagFilter) => setPrefs({ tagFilter })} />
             <div className="ml-auto flex flex-wrap items-center gap-1 max-md:ml-0">

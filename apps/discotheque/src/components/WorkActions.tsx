@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, toast } from "@lifeline/ui";
+import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Tip, toast } from "@lifeline/ui";
 import { BookOpenCheck, Check, Eye, ListPlus, MoreHorizontal, Pencil, Play, Trash2, X } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
@@ -29,13 +29,17 @@ export function WorkActionsMenu({ item, onEdit, onDeleted, onOpenChange, trigger
   return (
     <>
     <DropdownMenu onOpenChange={onOpenChange}>
-      <DropdownMenuTrigger asChild>
-        {trigger ?? (
-          <Button size="icon" variant="ghost" className="size-7 shrink-0">
-            <MoreHorizontal />
-          </Button>
-        )}
-      </DropdownMenuTrigger>
+      {trigger ? (
+        <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      ) : (
+        <Tip label="More actions">
+          <DropdownMenuTrigger asChild>
+            <Button size="icon-sm" variant="ghost" className="shrink-0">
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+        </Tip>
+      )}
       <DropdownMenuContent align="end">
         {!reading && !done && (
           <DropdownMenuItem onClick={act(`${def.engagement.IN_PROGRESS}…`, start())}>

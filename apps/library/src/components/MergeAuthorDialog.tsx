@@ -44,7 +44,7 @@ export function MergeAuthorDialog({ author, onClose, onMerged }: { author: Autho
           <div className="grid gap-2">
             <Label>Same person as</Label>
             <Select value={otherId} onValueChange={setOtherId}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Same person as">
                 <SelectValue placeholder="Pick an author…" />
               </SelectTrigger>
               <SelectContent>

@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ItemMark, missed } from "./marks";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from "@dnd-kit/core";
-import { Button, cn, toast, Tooltip, TooltipContent, TooltipTrigger } from "@lifeline/ui";
+import { Button, cn, Tip, toast, Tooltip, TooltipContent, TooltipTrigger } from "@lifeline/ui";
 import {
   canPush,
   addDays,
@@ -234,20 +234,25 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
         )}
         {done && <Check className="size-3 shrink-0" />}
         <span className={cn("truncate font-medium", done && "line-through")}>{entry.item.title}</span>
-        {isBlock && <PushIcon item={entry.item} className="ml-auto hidden group-hover:block" />}
+        {isBlock && <PushIcon item={entry.item} className="ml-auto hidden group-focus-within:block group-hover:block" />}
         {isBlock && onRemove && (
-          <button
-            type="button"
-            className={cn("text-muted-foreground hover:text-foreground hidden shrink-0 group-hover:block", !canPush(entry.item.appId) && "ml-auto")}
-            title="Remove this block"
-            onPointerDown={(ev) => ev.stopPropagation()}
-            onClick={(ev) => {
-              ev.stopPropagation();
-              onRemove();
-            }}
-          >
-            <Trash2 className="size-3" />
-          </button>
+          // Shown on hover, and while anything in the block has focus, so Tab finds it (WCAG 2.1.1).
+          <Tip label="Remove this block">
+            <button
+              type="button"
+              className={cn(
+                "text-muted-foreground hover:text-foreground focus-visible:ring-ring hidden shrink-0 rounded-sm group-focus-within:block group-hover:block focus-visible:ring-2 focus-visible:outline-none",
+                !canPush(entry.item.appId) && "ml-auto",
+              )}
+              onPointerDown={(ev) => ev.stopPropagation()}
+              onClick={(ev) => {
+                ev.stopPropagation();
+                onRemove();
+              }}
+            >
+              <Trash2 className="size-3" />
+            </button>
+          </Tip>
         )}
       </div>
       {!short && (

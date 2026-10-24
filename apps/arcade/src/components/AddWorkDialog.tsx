@@ -159,7 +159,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "game" }: { op
                 setHits([]);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Medium">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -256,7 +256,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "game" }: { op
                 <div className="grid gap-2 pt-2">
                   <Label>Owned?</Label>
                   <Select value={acq} onValueChange={(v) => setAcq(v as Acquisition)}>
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Owned?">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

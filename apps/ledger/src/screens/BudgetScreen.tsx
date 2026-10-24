@@ -145,8 +145,8 @@ function BudgetRowLine({ row, month, allocations, onEdit }: { row: BudgetRow; mo
           </button>
           <span className="text-muted-foreground text-xs tabular-nums">{formatCents(row.spent)} spent</span>
           {editingTarget ? (
-            <Input
-              className="h-7 w-24 text-right"
+            <Input aria-label={`Target for ${category.title}`}
+              className="w-24 text-right"
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}

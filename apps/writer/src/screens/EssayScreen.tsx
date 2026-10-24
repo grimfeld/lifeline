@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { Button, PhoneDock, Sheet, SheetContent, SheetTitle, cn } from "@lifeline/ui";
+import { Button, PhoneDock, Sheet, SheetContent, SheetTitle, cn, Tip } from "@lifeline/ui";
 import { displayTitle, documentType, singularOf, useDocument, useDocumentTypes, useLinkIndex, type Document, type LinkIndex } from "@lifeline/core";
 import { DocumentEditor, LocalGraphPanel } from "@lifeline/editor";
 import { ArrowLeft, Library, Pin, PinOff, X } from "lucide-react";
@@ -142,11 +142,13 @@ export function EssayScreen() {
     <div className="flex h-full min-h-0">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex min-w-0 items-center gap-1 border-b px-2 py-1">
-          <Button asChild size="icon" variant="ghost" className="size-7 shrink-0" title="Research">
-            <Link to={RESEARCH_HREF} aria-label="Back to Research">
-              <ArrowLeft />
-            </Link>
-          </Button>
+          <Tip label="Research">
+            <Button asChild size="icon-sm" variant="ghost" className="shrink-0">
+              <Link to={RESEARCH_HREF} aria-label="Back to Research">
+                <ArrowLeft />
+              </Link>
+            </Button>
+          </Tip>
           <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto" data-scroll-x role="tablist" aria-label="Open pages">
             {[id, ...tabs].map((t) => (
               <div key={t} className={cn("flex max-w-56 shrink-0 items-center rounded-md border text-xs", active === t ? "bg-accent text-accent-foreground border-transparent" : "text-muted-foreground")}>

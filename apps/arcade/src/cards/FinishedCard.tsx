@@ -31,7 +31,10 @@ export function FinishedCard({ settings }: CardProps) {
         <ul className="grid min-h-0 flex-1 content-start gap-1.5 overflow-y-auto" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(48px, 1fr))" }}>
           {done.map((m) => (
             <li key={m.id} className="flex cursor-pointer justify-center" title={`${m.title}${m.creator ? ` — ${m.creator}` : ""} · ${m.finishedOn}`} onClick={() => setEditing(m)}>
-              <Cover item={m} className="h-16 w-12" />
+              {/* The row opens on a click anywhere; this button is its face for the keyboard (Enter bubbles to the row). */}
+              <button type="button" aria-label={`${m.title}${m.creator ? ` — ${m.creator}` : ""} · ${m.finishedOn}`} className="focus-visible:ring-ring rounded-md focus-visible:ring-2 focus-visible:outline-none flex flex-col items-center gap-0.5">
+                <Cover item={m} className="h-16 w-12" />
+              </button>
             </li>
           ))}
         </ul>

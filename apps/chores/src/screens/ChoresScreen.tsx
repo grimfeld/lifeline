@@ -10,6 +10,7 @@ import {
   PhoneDock,
   TagChips,
   toast,
+  Tip,
 } from "@lifeline/ui";
 import { todayStr } from "@lifeline/core";
 import {
@@ -77,11 +78,13 @@ function ChoreRow({ row, onEdit }: { row: Row; onEdit: (c: Chore) => void }) {
         </div>
         <DueBadge due={due} />
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="size-8">
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
+          <Tip label="More actions">
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" >
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+          </Tip>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(chore)}>
               <Pencil /> Edit

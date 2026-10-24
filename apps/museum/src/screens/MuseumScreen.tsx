@@ -64,7 +64,7 @@ function NewExhibitionDialog({ open, onOpenChange }: { open: boolean; onOpenChan
         <DialogHeader>
           <DialogTitle>New exhibition</DialogTitle>
         </DialogHeader>
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dutch light" autoFocus onKeyDown={(e) => e.key === "Enter" && void create()} />
+        <Input aria-label="Exhibition name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Dutch light" autoFocus onKeyDown={(e) => e.key === "Enter" && void create()} />
         <DialogFooter>
           <Button type="button" disabled={!name.trim()} onClick={() => void create()}>
             Create
@@ -160,7 +160,7 @@ export function MuseumScreen() {
               <PhoneFilters active={formFilter === "all" ? 0 : 1}>
                 <FormChips value={formFilter} onChange={setFormFilter} counts={counts} />
               </PhoneFilters>
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search title or artist…" className="ml-auto h-8 w-56 max-md:ml-0 max-md:w-auto max-md:min-w-0" />
+              <Input aria-label="Search the museum" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search title or artist…" className="ml-auto w-56 max-md:ml-0 max-md:w-auto max-md:min-w-0" />
             </div>
           </PhoneDock>
           {grid.length === 0 ? (

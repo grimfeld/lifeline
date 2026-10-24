@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Checkbox, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, cn, toast } from "@lifeline/ui";
+import { Button, Checkbox, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, cn, toast, Tip } from "@lifeline/ui";
 import { initialNumber, initialText, todayStr } from "@lifeline/core";
 import { ImagePlus, Plus, TriangleAlert, X } from "lucide-react";
 import type { Line, Receipt } from "../domain/types";
@@ -230,7 +230,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt, initial }: { open: 
                 const said = [err.amount, err.second, err.price].filter(Boolean);
                 return (
                   <div key={l.key} className={cn("grid grid-cols-2 items-center gap-1.5 rounded-md border p-1.5 md:grid-cols-[1fr_1fr_64px_64px_80px_28px_28px] md:border-0 md:p-0", !l.productId && "bg-warning/5 md:bg-transparent")}>
-                    <Input value={l.label} onChange={(e) => update(l.key, { label: e.target.value })} placeholder="As printed" className="h-8 text-sm" />
+                    <Input aria-label="Item as printed" value={l.label} onChange={(e) => update(l.key, { label: e.target.value })} placeholder="As printed" className="text-sm" />
                     <ProductSelect value={l.productId} onChange={(id) => pick(l.key, id)} products={products} allowNone onNew={() => setNewProductFor(l.key)} className={cn("h-8 text-sm", !l.productId && "border-warning/60")} />
                     <Input value={l.amount} onChange={(e) => update(l.key, { amount: e.target.value, retyped: true })} inputMode="decimal" className={cn("text-sm", l.needsAmount && !l.retyped && "border-warning")} aria-invalid={err.amount || (l.needsAmount && !l.retyped) ? true : undefined} aria-describedby={err.amount ? errId : undefined} title={product ? `Amount in ${amountUnit(product)}` : "Amount"} placeholder={defaultAmount(product) ? "1" : product ? amountUnit(product) : "Amount"} aria-label={product ? `Amount in ${amountUnit(product)}` : "Amount"} />
                     {secondM ? (
@@ -243,9 +243,11 @@ export function ReceiptDialog({ open, onOpenChange, receipt, initial }: { open: 
                       <Checkbox checked={l.promo} onCheckedChange={(v) => update(l.key, { promo: v === true })} />
                       <span className="md:hidden">Promo</span>
                     </label>
-                    <Button type="button" size="icon" variant="ghost" className="size-8" onClick={() => removeLine(l.key)} title="Remove line">
-                      <X className="size-3.5" />
-                    </Button>
+                    <Tip label="Remove line">
+                      <Button type="button" size="icon" variant="ghost" onClick={() => removeLine(l.key)}>
+                        <X className="size-3.5" />
+                      </Button>
+                    </Tip>
                     {said.length > 0 && (
                       <p id={errId} className="text-destructive col-span-full text-xs">
                         {said.join(" · ")}

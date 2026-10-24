@@ -16,6 +16,7 @@ import {
   TabsTrigger,
   TagChips,
   toast,
+  Tip,
 } from "@lifeline/ui";
 import { ArrowLeft, Check, Pencil, Trash2 } from "lucide-react";
 import type { Period } from "../domain/types";
@@ -98,18 +99,24 @@ export function StatDetailScreen() {
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-6 p-6">
       <div className="flex items-center gap-2">
-        <Button size="icon" variant="ghost" className="size-8" onClick={() => navigate("/app/stats")}>
-          <ArrowLeft />
-        </Button>
+        <Tip label="Back">
+          <Button size="icon" variant="ghost" onClick={() => navigate("/app/stats")}>
+            <ArrowLeft />
+          </Button>
+        </Tip>
         <span className="size-2.5 rounded-full" style={{ background: color }} />
         <h1 className="truncate text-2xl font-semibold tracking-tight">{stat.title}</h1>
         <div className="ml-auto flex items-center gap-1">
-          <Button size="icon" variant="ghost" className="size-8" title="Edit" onClick={() => setEditOpen(true)}>
-            <Pencil />
-          </Button>
-          <Button size="icon" variant="ghost" className="size-8" title="Delete stat" onClick={() => setConfirmDelete(true)}>
-            <Trash2 />
-          </Button>
+          <Tip label="Edit">
+            <Button size="icon" variant="ghost" onClick={() => setEditOpen(true)}>
+              <Pencil />
+            </Button>
+          </Tip>
+          <Tip label="Delete stat">
+            <Button size="icon" variant="ghost" onClick={() => setConfirmDelete(true)}>
+              <Trash2 />
+            </Button>
+          </Tip>
           <Button onClick={() => setLogOpen(true)}>{stat.kind === "boolean" ? "Mark" : "Log"}</Button>
         </div>
       </div>
@@ -189,9 +196,11 @@ export function StatDetailScreen() {
               <span className="text-muted-foreground text-xs">
                 {stat.kind === "boolean" ? new Date(e.ts).toLocaleDateString() : new Date(e.ts).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
               </span>
-              <Button size="icon" variant="ghost" className="size-7" title="Delete entry" onClick={() => void deleteEntry(e.id)}>
-                <Trash2 className="size-3.5" />
-              </Button>
+              <Tip label="Delete entry">
+                <Button size="icon-sm" variant="ghost" onClick={() => void deleteEntry(e.id)}>
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </Tip>
             </li>
           ))}
         </ul>

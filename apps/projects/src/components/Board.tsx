@@ -186,11 +186,11 @@ function QuickTask({ project, lane, milestone, onDone }: { project: Project; lan
     setTitle("");
   }
   return (
-    <Input
+    <Input aria-label="Task title"
       autoFocus
       value={title}
       placeholder="Task title, Enter"
-      className="h-8 text-sm"
+      className="text-sm"
       onChange={(e) => setTitle(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter") void add();
@@ -207,10 +207,10 @@ function LaneHeader({ project, lane, count, first, last, compact }: { project: P
   return (
     <div className="flex items-center gap-1 border-b px-2 py-1.5">
       {renaming ? (
-        <Input
+        <Input aria-label="Lane name"
           autoFocus
           value={name}
-          className="h-7 text-sm"
+          className="text-sm"
           onChange={(e) => setName(e.target.value)}
           onBlur={() => {
             void renameLane(lane, name);
@@ -282,7 +282,7 @@ function AddLane({ projectId }: { projectId: string }) {
     );
   return (
     <div className="w-48 shrink-0">
-      <Input
+      <Input aria-label="New lane name"
         autoFocus
         value={name}
         placeholder="Lane name, Enter"

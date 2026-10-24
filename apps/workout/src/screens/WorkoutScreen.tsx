@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, PhoneDock, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast } from "@lifeline/ui";
+import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, PhoneDock, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast, Tip } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import { Dumbbell, MoreHorizontal, Pencil, Play, Plus, Trash2, Trophy } from "lucide-react";
 import { describeBlock, describeWorkout, resultsSummary } from "../domain/intervals";
@@ -36,11 +36,13 @@ function WorkoutRow({ w, exercises, onEdit }: { w: Workout; exercises: Map<strin
           <Play /> Start
         </Button>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="size-8">
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
+          <Tip label="More actions">
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" >
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+          </Tip>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(w)}>
               <Pencil /> Edit
@@ -81,11 +83,13 @@ function ExerciseRow({ e, sessions, onEdit }: { e: Exercise; sessions: Session[]
           </Badge>
         )}
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon" variant="ghost" className="size-8">
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
+          <Tip label="More actions">
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" >
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+          </Tip>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onEdit(e)}>
               <Pencil /> Edit

@@ -99,7 +99,7 @@ export function RuleEditorDialog({ open, onOpenChange, rule, initialMatch, initi
           <div className="grid gap-2">
             <Label>Match</Label>
             <Select value={mode} onValueChange={(v) => setMode(v as RuleMode)}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Match">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -119,7 +119,7 @@ export function RuleEditorDialog({ open, onOpenChange, rule, initialMatch, initi
             <div className="grid gap-2">
               <Label>Category</Label>
               <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
+                <SelectTrigger aria-label="Category">
                   <SelectValue placeholder="Pick the category this payee always means" />
                 </SelectTrigger>
                 <SelectContent>

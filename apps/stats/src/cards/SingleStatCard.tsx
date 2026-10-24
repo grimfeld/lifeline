@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
 import { Flame } from "lucide-react";
 import { CardUnavailable, cn } from "@lifeline/ui";
 import type { CardOption, CardProps, CardSettings } from "@lifeline/core";
@@ -151,21 +151,21 @@ export function SingleStatCard({ settings, configure }: CardProps) {
   const period = settings.period as Period;
   const stats = useStats();
   const entries = useEntries();
-  const navigate = useNavigate();
   const stat = stats.find((s) => s.id === statId);
   const own = useMemo(() => entriesByStat(entries).get(statId) ?? [], [entries, statId]);
   if (!stat) return <CardUnavailable message="That stat no longer exists." onConfigure={configure} />;
   return (
-    <div
-      className="relative flex h-full cursor-pointer flex-col gap-1 rounded-md transition-colors hover:bg-accent/40"
-      role="link"
-      onClick={() => navigate(`/app/stats/${stat.id}`)}
-    >
+    <div className="relative flex h-full flex-col gap-1 rounded-md transition-colors hover:bg-accent/40">
       {/* The Screen header already carries the stat's name (instanceTitle); the body is just the numbers. */}
-      <QuickLogButton stat={stat} entries={own} className="absolute top-0 right-0" />
-      <div className="flex min-h-0 flex-1 flex-col gap-1 [&>*:first-child]:pr-8">
+      <Link
+        to={`/app/stats/${stat.id}`}
+        draggable={false}
+        className="focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none flex min-h-0 flex-1 flex-col gap-1 rounded-md [&>*:nth-child(2)]:pr-8"
+      >
+        <span className="sr-only">{stat.title}</span>
         <Body stat={stat} entries={own} period={period} />
-      </div>
+      </Link>
+      <QuickLogButton stat={stat} entries={own} className="absolute top-0 right-0" />
     </div>
   );
 }

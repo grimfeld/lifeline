@@ -112,7 +112,7 @@ export function CardPicker({
             </DialogHeader>
             <div className="relative">
               <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-              <Input autoFocus placeholder="Search cards…" className="pl-8" value={query} onChange={(e) => setQuery(e.target.value)} />
+              <Input aria-label="Search cards" autoFocus placeholder="Search cards…" className="pl-8" value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
             <div className="-mr-2 grid max-h-[60vh] gap-4 overflow-y-auto pr-2">
               {groups.length === 0 && <div className="text-muted-foreground py-6 text-center text-sm">No cards match.</div>}

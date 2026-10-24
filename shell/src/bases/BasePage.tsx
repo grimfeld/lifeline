@@ -337,7 +337,7 @@ export function BasePage() {
         <PhoneDock>
           <div className="relative max-md:basis-28">
             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2" />
-            <Input className="w-48 pl-7 text-xs max-md:h-8 max-md:w-full" placeholder="Search…" value={state.search} onChange={(e) => setState({ ...state, search: e.target.value })} />
+            <Input aria-label="Search" className="w-48 pl-7 text-xs max-md:h-8 max-md:w-full" placeholder="Search…" value={state.search} onChange={(e) => setState({ ...state, search: e.target.value })} />
           </div>
           <PhoneFilters active={state.filters.length}>
             <FilterBar def={def} filters={state.filters} onChange={(filters) => setState({ ...state, filters })} />
@@ -445,7 +445,7 @@ export function BasePage() {
           <DialogHeader>
             <DialogTitle>Save View</DialogTitle>
           </DialogHeader>
-          <Input autoFocus placeholder="To read" value={saveName} onChange={(e) => setSaveName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void saveAs()} />
+          <Input aria-label="Saved view name" autoFocus placeholder="To read" value={saveName} onChange={(e) => setSaveName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void saveAs()} />
           <DialogFooter>
             <Button onClick={() => void saveAs()} disabled={!saveName.trim()}>
               Save

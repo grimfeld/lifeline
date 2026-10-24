@@ -1,4 +1,4 @@
-import { Button, cn, Textarea, toast } from "@lifeline/ui";
+import { Button, cn, Textarea, toast, Tip } from "@lifeline/ui";
 import { Heart, Pencil, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { RATING_MAX } from "../domain";
@@ -25,20 +25,21 @@ export function Stars({ rating, onRate, size = "md", className }: { rating: numb
       {Array.from({ length: RATING_MAX }, (_, i) => i + 1).map((n) => {
         const on = n <= rating;
         return (
-          <button
-            key={n}
-            type="button"
-            role="radio"
-            aria-checked={rating === n}
-            title={n === rating ? "Clear rating" : `${n} star${n > 1 ? "s" : ""}`}
-            className={cn("rounded transition-colors", on ? "text-amber-400" : "text-muted-foreground/40 hover:text-amber-300")}
-            onClick={(e) => {
-              e.stopPropagation();
-              onRate(n === rating ? 0 : n);
-            }}
-          >
-            <Star className={cn(ICON[size], on && "fill-current")} />
-          </button>
+          <Tip key={n} label={n === rating ? "Clear rating" : `${n} star${n > 1 ? "s" : ""}`}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={rating === n}
+              // ui-allow: raw-colour — the heart and the stars keep their rose and amber
+              className={cn("rounded transition-colors", on ? "text-amber-400" : "text-muted-foreground/40 hover:text-amber-300")}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRate(n === rating ? 0 : n);
+              }}
+            >
+              <Star className={cn(ICON[size], on && "fill-current")} />
+            </button>
+          </Tip>
         );
       })}
     </div>
@@ -92,7 +93,7 @@ export function ReviewEditor({ body, onSave, label = "Review" }: { body: string;
   if (editing) {
     return (
       <div className="grid gap-2">
-        <Textarea autoFocus rows={5} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What did you make of it? Markdown, [[links]] and #tags all count." />
+        <Textarea aria-label="Your take" autoFocus rows={5} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What did you make of it? Markdown, [[links]] and #tags all count." />
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="ghost" onClick={() => { setDraft(body); setEditing(false); }}>
             Cancel

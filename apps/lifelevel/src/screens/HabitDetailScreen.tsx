@@ -11,6 +11,7 @@ import {
   DialogTitle,
   TagChips,
   toast,
+  Tip,
 } from "@lifeline/ui";
 import { ArrowLeft, Check, Pencil, Skull, Trash2 } from "lucide-react";
 import { computeProgression } from "../domain/progression";
@@ -105,16 +106,22 @@ export function HabitDetailScreen() {
     <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 sm:gap-6 sm:p-6">
       <div className="grid gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <Button size="icon" variant="ghost" className="size-8 shrink-0" onClick={() => navigate(LIFELEVEL_HREF)}>
-            <ArrowLeft />
-          </Button>
+          <Tip label="Back">
+            <Button size="icon" variant="ghost" className="shrink-0" onClick={() => navigate(LIFELEVEL_HREF)}>
+              <ArrowLeft />
+            </Button>
+          </Tip>
           <h1 className="min-w-0 flex-1 truncate text-xl font-semibold tracking-tight sm:text-2xl">{habit.title}</h1>
-          <Button size="icon" variant="ghost" className="size-8 shrink-0" title="Edit" onClick={() => setEditOpen(true)}>
-            <Pencil />
-          </Button>
-          <Button size="icon" variant="ghost" className="size-8 shrink-0" title="Delete habit" onClick={() => setConfirmDelete(true)}>
-            <Trash2 />
-          </Button>
+          <Tip label="Edit">
+            <Button size="icon" variant="ghost" className="shrink-0" onClick={() => setEditOpen(true)}>
+              <Pencil />
+            </Button>
+          </Tip>
+          <Tip label="Delete habit">
+            <Button size="icon" variant="ghost" className="shrink-0" onClick={() => setConfirmDelete(true)}>
+              <Trash2 />
+            </Button>
+          </Tip>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary" className="tabular-nums">Lv {state.level}</Badge>
@@ -160,19 +167,20 @@ export function HabitDetailScreen() {
                   <span className="text-muted-foreground">{new Date(r.occurredAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</span>
                 </span>
               </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-7 shrink-0"
-                title={r.kind === "completion" ? "Delete this completion" : "Delete this negative log"}
-                onClick={() =>
-                  void deleteCompletion(r.id).then(() =>
-                    toast.success(r.kind === "completion" ? "Completion removed — its XP with it" : "Negative log removed — the XP damage is undone"),
-                  )
-                }
-              >
-                <Trash2 className="size-3.5" />
-              </Button>
+              <Tip label={r.kind === "completion" ? "Delete this completion" : "Delete this negative log"}>
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  className="shrink-0"
+                  onClick={() =>
+                    void deleteCompletion(r.id).then(() =>
+                      toast.success(r.kind === "completion" ? "Completion removed — its XP with it" : "Negative log removed — the XP damage is undone"),
+                    )
+                  }
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </Tip>
             </li>
           ))}
         </ul>

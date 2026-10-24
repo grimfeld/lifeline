@@ -130,7 +130,7 @@ export function CinemaScreen() {
           <PhoneDock>
             {/* Desk: the chips stay above the search (md:-order-1); phone: they and the sort go in the Filters sheet. */}
             <div className="flex flex-1 flex-wrap gap-2 max-md:contents">
-              <Input className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search title, director, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
+              <Input aria-label="Search films" className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search title, director, reason, #tag…" value={q} onChange={(e) => setQ(e.target.value)} />
               <PhoneFilters active={+(type !== "all") + +likedOnly + +(sort !== "ADDED")}>
                 <div className="w-full md:-order-1">
                   <TypeChips value={type} onChange={setType} counts={typeCounts} liked={likedOnly} onLiked={setLikedOnly} likedCount={likedCount} />

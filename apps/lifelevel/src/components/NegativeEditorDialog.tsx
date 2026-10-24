@@ -11,6 +11,7 @@ import {
   Label,
   TagInput,
   toast,
+  Tip,
 } from "@lifeline/ui";
 import { Trash2 } from "lucide-react";
 import type { Gravity, Negative } from "../domain/types";
@@ -109,9 +110,11 @@ export function NegativeEditorDialog({ open, onOpenChange, negative }: { open: b
                         <span className="text-muted-foreground"> · hit {habitById.get(c.affectedHabitId)?.title ?? "a deleted habit"}</span>
                         {c.note && <span className="text-muted-foreground"> · {c.note}</span>}
                       </span>
-                      <Button size="icon" variant="ghost" className="size-6 shrink-0" title="Delete log" onClick={() => void removeLog(c.id)}>
-                        <Trash2 className="size-3" />
-                      </Button>
+                      <Tip label="Delete log">
+                        <Button size="icon-xs" variant="ghost" className="shrink-0" onClick={() => void removeLog(c.id)}>
+                          <Trash2 className="size-3" />
+                        </Button>
+                      </Tip>
                     </li>
                   ))}
                 </ul>

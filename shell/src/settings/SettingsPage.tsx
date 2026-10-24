@@ -416,7 +416,7 @@ function SlotRow({
       <button type="button" className="min-w-0 flex-1 text-left text-sm hover:underline" onClick={onPick}>
         {gone ? <span className="text-destructive">No longer there — pick something else</span> : <span className="truncate">{title}</span>}
       </button>
-      <input
+      <input aria-label={`Label for ${title ?? "this item"}`}
         className="border-input w-24 shrink-0 rounded-md border bg-transparent px-2 py-1 text-xs"
         placeholder={gone ? "" : title}
         value={value}

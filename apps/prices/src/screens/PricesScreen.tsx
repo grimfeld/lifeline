@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Badge, Button, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn } from "@lifeline/ui";
+import { Badge, Button, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger, cn, Tip } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { Inbox, Pencil, Plus, ReceiptText, Ruler, Tag, TriangleAlert } from "lucide-react";
 import { productHref, type Receipt, type Shop } from "../domain/types";
@@ -161,7 +161,7 @@ export function PricesScreen() {
           <div className="flex flex-wrap items-center gap-2 empty:hidden">
             {/* Search and the product add lead the phone line; the receipt actions and tabs follow. */}
             <PhoneDock order={-1}>
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products…" className="w-56 min-w-0 max-md:w-auto max-md:basis-40" />
+              <Input aria-label="Search products" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products…" className="w-56 min-w-0 max-md:w-auto max-md:basis-40" />
               <Button variant="outline" className="md:ml-auto" onClick={() => setNewProduct(true)}>
                 <Plus /> Product
               </Button>
@@ -266,7 +266,7 @@ export function PricesScreen() {
         <TabsContent value="change" className="grid gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <Select value={String(months)} onValueChange={(v) => setMonths(Number(v))}>
-              <SelectTrigger className="w-44">
+              <SelectTrigger aria-label="Time span" className="w-44">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -334,9 +334,11 @@ export function PricesScreen() {
                     <span className="text-muted-foreground text-xs">
                       {n} receipt{n === 1 ? "" : "s"}
                     </span>
-                    <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditShop(s)} title="Edit shop">
-                      <Pencil className="size-3.5" />
-                    </Button>
+                    <Tip label="Edit shop">
+                      <Button variant="ghost" size="icon-sm" onClick={() => setEditShop(s)}>
+                        <Pencil className="size-3.5" />
+                      </Button>
+                    </Tip>
                   </li>
                 );
               })}

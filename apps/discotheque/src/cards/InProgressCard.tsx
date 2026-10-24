@@ -33,12 +33,15 @@ export function InProgressCard({ settings }: CardProps) {
       <ul className="grid content-start gap-3 overflow-y-auto" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))" }}>
         {rows.map((m) => (
           <li key={m.id} className="hover:bg-accent/50 flex min-w-0 cursor-pointer flex-col items-center gap-1 rounded-md p-1 text-center" onClick={() => setEditing(m)}>
-            <Cover item={m} className={workType(m.type).cover === "square" ? "size-24 text-xs" : "h-32 w-24 text-xs"} />
-            <div className="line-clamp-2 w-full text-xs font-medium leading-tight">{m.title}</div>
-            {m.startedOn && <div className="text-muted-foreground text-[11px]">{startedLabel(m.startedOn, today)}</div>}
+            {/* The row opens on a click anywhere; this button is its face for the keyboard (Enter bubbles to the row). */}
+            <button type="button" className="focus-visible:ring-ring rounded-md focus-visible:ring-2 focus-visible:outline-none flex w-full min-w-0 flex-col items-center gap-1">
+              <Cover item={m} className={workType(m.type).cover === "square" ? "size-24 text-xs" : "h-32 w-24 text-xs"} />
+              <div className="line-clamp-2 w-full text-xs font-medium leading-tight">{m.title}</div>
+              {m.startedOn && <div className="text-muted-foreground text-2xs">{startedLabel(m.startedOn, today)}</div>}
+            </button>
             {m.partsTracked && <NextPartButton kit={discothequeParts} work={m} parts={parts} groups={groups} />}
             {!medium && (
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="text-2xs">
                 {workType(m.type).label}
               </Badge>
             )}
