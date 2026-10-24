@@ -3,20 +3,21 @@ import { useSearchParams } from "react-router";
 import { Badge, Button, Card, CardContent, Input, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagChips, Tabs, TabsContent, TabsList, TabsTrigger, toast, usePhone, Tip } from "@lifeline/ui";
 import { formatHuman, todayStr } from "@lifeline/core";
 import { ArrowLeftRight, Bell, BellOff, Import, Inbox, Landmark, ListChecks, Pencil, Plus, Scale, Search, Wand2 } from "lucide-react";
-import type { Due, LedgerAccount, Series, Transaction } from "../domain/types";
+import type { LedgerAccount, Series, Transaction } from "../domain/types";
 import { balanceOf, formatMonth, isUncategorized, monthOf } from "../domain/derive";
 import { formatCents, formatSigned, parseAmount } from "../domain/money";
 import { describeDueDay, isOverdue, openDues } from "../domain/recur";
 import { coveredDate, describeCadence, nextOccurrence } from "../domain/series";
 import { matchRule, payeeCategoryIndex, suggestCategory } from "../domain/suggest";
 import { looksLikePaypal } from "../domain/paypal";
-import { categorizeTransaction, dismissDue, setSeriesMuted, useAccounts, useCategories, useCategorizeRules, useSeries, useTransactions } from "../data/repo";
+import { categorizeTransaction, setSeriesMuted, useAccounts, useCategories, useCategorizeRules, useSeries, useTransactions } from "../data/repo";
 import { TransactionEditorDialog } from "../components/TransactionEditorDialog";
 import { AccountEditorDialog } from "../components/AccountEditorDialog";
 import { ReconcileDialog } from "../components/ReconcileDialog";
 import { ImportDialog } from "../components/ImportDialog";
 import { PaypalSweepDialog } from "../components/PaypalSweepDialog";
 import { RulesPanel } from "../components/RulesPanel";
+import { DuesList } from "../components/DuesList";
 
 const PAGE = 100;
 
@@ -423,27 +424,6 @@ export function RegisterScreen() {
       {importing && <ImportDialog open onOpenChange={(o) => !o && setImporting(undefined)} account={importing} />}
       {paypalOpen && <PaypalSweepDialog open onOpenChange={setPaypalOpen} />}
     </div>
-  );
-}
-
-/** Open Dues, overdue loud — a reading only: the bank's import is what clears a Due; skip waves one day off by hand (ADR 0042). */
-export function DuesList({ dues, today, compact }: { dues: Due[]; today: string; compact?: boolean }) {
-  if (dues.length === 0) return compact ? <p className="text-muted-foreground p-3 text-sm">Nothing due.</p> : null;
-  return (
-    <ul className={compact ? "grid content-start gap-1 overflow-y-auto p-2" : "grid gap-1"}>
-      {dues.map((due) => (
-        <li key={`${due.series.key}/${due.date}`} className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
-          <span className="min-w-0 flex-1 truncate">
-            {due.series.payee}
-            <span className={`ml-2 text-xs ${isOverdue(due, today) ? "text-destructive" : "text-muted-foreground"}`}>{describeDueDay(due.date, today)}</span>
-          </span>
-          <span className="text-muted-foreground shrink-0 tabular-nums">{formatCents(due.series.amount)}</span>
-          <Button size="sm" variant="ghost" title="Wave this one day off — the bank's import is what clears a Due" onClick={() => void dismissDue(due)}>
-            Skip
-          </Button>
-        </li>
-      ))}
-    </ul>
   );
 }
 

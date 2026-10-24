@@ -245,7 +245,8 @@ for (const w of WIDTHS) {
       await expect(page.getByText(/Doomscrolling/).first()).toBeVisible();
 
       await open(page, "/app/mood");
-      expect(await page.getByRole("button", { name: MOOD_CELL }).count(), "moods this month").toBeGreaterThanOrEqual(1);
+      // Polled: the Mood screen arrives with its chunk (ADR 0099), after the page settles.
+      await expect.poll(() => page.getByRole("button", { name: MOOD_CELL }).count(), { message: "moods this month" }).toBeGreaterThanOrEqual(1);
 
       await open(page, "/app/workout?tab=sessions");
       // A Session row: the Workout's name over "Sat, Oct 17 · 08:00–08:24 · 24 min".
@@ -848,6 +849,8 @@ for (const w of WIDTHS) {
 
     test("a loaded Demo keeps working offline", async ({ page, context }) => {
       await open(page, "/settings");
+      // Loaded means every lazy chunk too (ADR 0099): they are fetched once the first page is idle.
+      await page.locator("html[data-chunks=loaded]").waitFor({ state: "attached" });
       await context.setOffline(true);
       // Moving around inside the app needs nothing from the network.
       await page.evaluate(() => {

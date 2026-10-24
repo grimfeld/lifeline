@@ -3,6 +3,7 @@ import { JSDOM } from "jsdom";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { MODULES, SURFACES, type AppManifest } from "@lifeline/core";
 import { GUIDE_PAGES, guidePageOfModule, guidePageOfSurface } from "@lifeline/guide";
+import { guideBody } from "@lifeline/guide/pages";
 import { CORE_PAGES, guideSlugForPath } from "./guidePlace";
 
 /**
@@ -50,7 +51,7 @@ describe("the Guide", () => {
   it("names every Command and Card of an App on its page", () => {
     const missing: string[] = [];
     for (const page of GUIDE_PAGES) {
-      const body = page.body.toLowerCase();
+      const body = (guideBody(page.slug) ?? "").toLowerCase();
       for (const id of page.apps) {
         const app = APPS.find((a) => a.id === id);
         expect(app, `${page.slug} answers for an App that does not exist: ${id}`).toBeDefined();

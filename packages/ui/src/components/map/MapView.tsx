@@ -1,5 +1,6 @@
-import { lazy, Suspense, type ComponentProps } from "react";
+import { Suspense, type ComponentProps } from "react";
 import { cn } from "../../lib/utils";
+import { lazyChunk } from "../../lib/lazyChunk";
 
 export { OSM_ATTRIBUTION, OSM_TILES, type MapPin } from "./tiles";
 
@@ -8,8 +9,8 @@ export { OSM_ATTRIBUTION, OSM_TILES, type MapPin } from "./tiles";
  * most screens never draw a map. The components keep their names and props;
  * until Leaflet arrives they hold their place with an empty panel.
  */
-const MapViewImpl = lazy(() => import("./MapViewImpl").then((m) => ({ default: m.MapView })));
-const MiniMapImpl = lazy(() => import("./MiniMapImpl").then((m) => ({ default: m.MiniMap })));
+const MapViewImpl = lazyChunk(() => import("./MapViewImpl").then((m) => ({ default: m.MapView })));
+const MiniMapImpl = lazyChunk(() => import("./MiniMapImpl").then((m) => ({ default: m.MiniMap })));
 
 export type MapViewProps = ComponentProps<typeof import("./MapViewImpl").MapView>;
 export type MiniMapProps = ComponentProps<typeof import("./MiniMapImpl").MiniMap>;

@@ -5,7 +5,7 @@ import { formatHuman } from "@lifeline/core";
 import { Dumbbell, MoreHorizontal, Pencil, Play, Plus, Trash2, Trophy } from "lucide-react";
 import { describeBlock, describeWorkout, resultsSummary } from "../domain/intervals";
 import { formatMeasure, prOf } from "../domain/prs";
-import { WORKOUT_HREF, type Exercise, type Session, type Workout } from "../domain/types";
+import { runHref, type Exercise, type Session, type Workout } from "../domain/types";
 import { deleteExercise, deleteSession, deleteWorkout, useExercises, useSessions, useWorkouts } from "../data/repo";
 import { WorkoutEditorDialog } from "../components/WorkoutEditorDialog";
 import { ExerciseEditorDialog } from "../components/ExerciseEditorDialog";
@@ -13,9 +13,6 @@ import { ExerciseEditorDialog } from "../components/ExerciseEditorDialog";
 const TABS = ["workouts", "exercises", "sessions", "prs"] as const;
 type Tab = (typeof TABS)[number];
 
-export function runHref(workoutId: string): string {
-  return `${WORKOUT_HREF}/run/${workoutId}`;
-}
 
 function WorkoutRow({ w, exercises, onEdit }: { w: Workout; exercises: Map<string, Exercise>; onEdit: (w: Workout) => void }) {
   const navigate = useNavigate();

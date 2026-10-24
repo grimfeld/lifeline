@@ -1,8 +1,6 @@
 import type { AppManifest, DocumentTypeDef } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { ChartLine, Landmark, PiggyBank, Repeat, Tags, Wallet, Wand2 } from "lucide-react";
-import { RegisterScreen } from "./screens/RegisterScreen";
-import { BudgetScreen } from "./screens/BudgetScreen";
-import { ReportsScreen } from "./screens/ReportsScreen";
 import { BalancesCard, BudgetMonthCard, DuesCard, QuickAddCard } from "./cards/LedgerCards";
 import { ledgerCommands } from "./commands";
 import { ledgerDaylog } from "./daylog";
@@ -28,6 +26,11 @@ import {
   type Series,
   type Transaction,
 } from "./domain/types";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const RegisterScreen = lazyChunk(() => import("./screens/RegisterScreen").then((m) => ({ default: m.RegisterScreen })));
+const BudgetScreen = lazyChunk(() => import("./screens/BudgetScreen").then((m) => ({ default: m.BudgetScreen })));
+const ReportsScreen = lazyChunk(() => import("./screens/ReportsScreen").then((m) => ({ default: m.ReportsScreen })));
 
 /**
  * The `ledger_transaction` Document type (ADR 0033): one movement of money

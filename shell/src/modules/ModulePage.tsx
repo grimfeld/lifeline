@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router";
+import { ScreenLoading } from "@lifeline/ui";
 import { inhabitedModules, moduleById, moduleHome, moduleScreens, screenRoute } from "@lifeline/core";
 import { ModuleLayout } from "./ModuleLayout";
 import { FALLBACK_PLACE } from "../nav/resume";
@@ -38,7 +40,9 @@ export function ModulePage() {
               path={p.path || "/"}
               element={
                 <ModuleLayout moduleId={id} bare={p.bare}>
-                  <Page />
+                  <Suspense fallback={<ScreenLoading />}>
+                    <Page />
+                  </Suspense>
                 </ModuleLayout>
               }
             />

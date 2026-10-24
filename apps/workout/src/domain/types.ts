@@ -3,6 +3,10 @@ import type { DateStr, Document, Tally, TimeStr } from "@lifeline/core";
 export const APP_ID = "workout";
 export const WORKOUT_HREF = "/app/workout";
 
+export function runHref(workoutId: string): string {
+  return `${WORKOUT_HREF}/run/${workoutId}`;
+}
+
 /** Document type ids (ADR 0030). */
 export const WORKOUT = "workout";
 export const EXERCISE = "exercise";
