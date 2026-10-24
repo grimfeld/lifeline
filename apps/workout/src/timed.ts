@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { DateStr, TimedItem, TimedProvider } from "@lifeline/core";
 import { allSessions, allWorkouts, useSessions, useWorkouts } from "./data/repo";
 import { APP_ID, type Session, type Workout } from "./domain/types";
@@ -28,7 +29,10 @@ export function sessionItems(sessions: Session[], workouts: Workout[], range: { 
 export const workoutTimed: TimedProvider = {
   appId: APP_ID,
   useItems(range) {
-    return sessionItems(useSessions(), useWorkouts(), range);
+    const sessions = useSessions();
+    const workouts = useWorkouts();
+    const { start, end } = range;
+    return useMemo(() => sessionItems(sessions, workouts, { start, end }), [sessions, workouts, start, end]);
   },
   async itemsIn(range) {
     return sessionItems(await allSessions(), await allWorkouts(), range);

@@ -36,6 +36,7 @@ import {
 import { Check, ExternalLink, Minus, Plus, Trash2 } from "lucide-react";
 import { usePush } from "./push";
 import { addMinutes, minutesBetween, SNAP_MIN, toClock } from "./hours";
+import { keepFocus } from "./itemKeys";
 
 /** A work item as the hours show it: a Time block (placement + start) or an untimed chip. */
 export type WorkLike = Pick<SchedulableItem, "appId" | "itemId" | "title" | "date" | "completedOn" | "estimateMin"> & {
@@ -119,6 +120,24 @@ function useVirtualAnchor(el: HTMLElement | null) {
 }
 
 /**
+ * Closing hands the focus back to what was opened (#284), as a menu does to
+ * its trigger: the editor has no trigger of its own, only the item. An item
+ * the edit redrew elsewhere is found again by its `data-focus-key`; a focus
+ * already taken by something outside the editor stays where it went.
+ */
+function useReturnFocus(anchor: HTMLElement | null) {
+  const content = useRef<HTMLDivElement>(null);
+  const onCloseAutoFocus = (e: Event) => {
+    const active = document.activeElement;
+    if (!anchor || (active && active !== document.body && !content.current?.contains(active))) return;
+    e.preventDefault();
+    if (anchor.isConnected) anchor.focus({ preventScroll: true });
+    else if (anchor.dataset.focusKey) keepFocus(anchor.dataset.focusKey);
+  };
+  return { ref: content, onCloseAutoFocus };
+}
+
+/**
  * The one editor for anything on the hours (CONTEXT.md — Schedule): a bottom
  * sheet on a phone, a popover beside the item at a desk. Every change is
  * written at once; closing leaves one Undo that puts back whatever the item
@@ -144,6 +163,7 @@ export function HoursEditor({
   const isMobile = usePhone();
   const navigate = useNavigate();
   const { target } = editing;
+  const returnFocus = useReturnFocus(editing.anchor);
   // A new visit supersedes the last one's Undo (only the newest is live) — and on a phone its toast would cover the sheet.
   useEffect(() => {
     if (isMobile) toast.dismiss(TOAST_ID);
@@ -441,7 +461,7 @@ export function HoursEditor({
   if (isMobile) {
     return (
       <Sheet open onOpenChange={(o) => !o && finish()}>
-        <SheetContent side="bottom" className="gap-4 px-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]" aria-describedby={undefined} onOpenAutoFocus={(e) => e.preventDefault()}>
+        <SheetContent {...returnFocus} side="bottom" className="gap-4 px-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]" aria-describedby={undefined} onOpenAutoFocus={(e) => e.preventDefault()}>
           <span className="bg-muted-foreground/30 mx-auto h-1 w-10 shrink-0 rounded-full" aria-hidden />
           <SheetTitle className="sr-only">Edit {target.item.title}</SheetTitle>
           {header}
@@ -454,7 +474,7 @@ export function HoursEditor({
   return (
     <Popover open onOpenChange={(o) => !o && finish()}>
       <PopoverAnchor virtualRef={virtual} />
-      <PopoverContent side="right" align="start" className="grid w-[22rem] gap-3">
+      <PopoverContent {...returnFocus} side="right" align="start" className="grid w-[22rem] gap-3">
         {header}
         {body}
         {actions}

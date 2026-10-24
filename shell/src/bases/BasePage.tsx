@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   Badge,
@@ -158,13 +158,17 @@ export function BasePage() {
   function toggleColumn(key: string) {
     setState((s) => withColumnToggled(s, key));
   }
-  const select = (id: string, on: boolean) =>
-    setSelected((s) => {
-      const n = new Set(s);
-      if (on) n.add(id);
-      else n.delete(id);
-      return n;
-    });
+  // Stable, so ticking one row redraws that row alone.
+  const select = useCallback(
+    (id: string, on: boolean) =>
+      setSelected((s) => {
+        const n = new Set(s);
+        if (on) n.add(id);
+        else n.delete(id);
+        return n;
+      }),
+    [],
+  );
   async function bulkDelete() {
     const ids = Array.from(selected);
     const { removed, refused } = await removeEach(ids, removeDocument);

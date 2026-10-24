@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Button,
   Dialog,
@@ -55,13 +55,25 @@ export function moveWork(item: DayWork, to: DateStr | null) {
 export function WorkMenu({ item, open, onOpenChange, onMove }: { item: DayWork; open: boolean; onOpenChange: (o: boolean) => void; onMove: (item: DayWork) => void }) {
   const push = usePush(item);
   const done = !!item.completedOn;
+  const anchor = useRef<HTMLSpanElement>(null);
   return (
     <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
-        <span aria-hidden className="pointer-events-none absolute inset-0" />
+        <span ref={anchor} aria-hidden className="pointer-events-none absolute inset-0" />
       </DropdownMenuTrigger>
       {/* Portalled, but React events still bubble to the row and its day — keep them here. */}
-      <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+      <DropdownMenuContent
+        align="start"
+        onClick={(e) => e.stopPropagation()}
+        onCloseAutoFocus={(e) => {
+          // The trigger is a bare span: the focus goes back to the row that opened the menu, when it takes one.
+          const row = anchor.current?.parentElement;
+          if (row && row.tabIndex >= 0) {
+            e.preventDefault();
+            row.focus({ preventScroll: true });
+          }
+        }}
+      >
         <div className="text-muted-foreground px-2 py-1 text-xs">
           {appById(item.appId)?.title} · {item.subtitle ?? item.title}
           {item.urgency === "overdue" && !done ? " · overdue" : ""}
