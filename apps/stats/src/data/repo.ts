@@ -1,4 +1,4 @@
-import { documentsOf, documentsWhere, getDocument, normalizeTags, putDocument, removeDocument, useLiveQuery } from "@lifeline/core";
+import { documentsOf, documentsWhere, editQueue, getDocument, normalizeTags, putDocument, removeDocument, useLiveQuery } from "@lifeline/core";
 import { cleanItemList, normalizeItem } from "../domain/aggregate";
 import { STAT, STAT_ENTRY, type ColorSlot, type Entry, type Stat, type StatKind } from "../domain/types";
 
@@ -128,7 +128,7 @@ export async function uncollectItem(statId: string, item: string): Promise<void>
   for (const e of entries) if (e.item && normalizeItem(e.item) === key) await removeDocument(e.id);
 }
 
-let editing: Promise<unknown> = Promise.resolve();
+const inTurn = editQueue();
 
 /**
  * Change some of a Stat's Fields (its Peek, ADR 0085): over the Stat as it is
@@ -138,12 +138,10 @@ let editing: Promise<unknown> = Promise.resolve();
  * scrubbed for it.
  */
 export function editStat(id: string, patch: Partial<Omit<StatInput, "kind" | "title" | "tags">>): Promise<void> {
-  const run = editing.then(async () => {
+  return inTurn(async () => {
     const row = await getDocument<Stat>(id);
     if (!row || row.type !== STAT) return;
     const s = normalizeStat(row);
     await updateStat(s, { title: s.title, unit: s.unit, color: s.color, defaultIncrement: s.defaultIncrement, universeSize: s.universeSize, items: s.items, tags: s.tags ?? [], ...patch });
   });
-  editing = run.catch(() => {});
-  return run;
 }

@@ -21,7 +21,7 @@ export function AttachmentsCleanupDialog({ open, onOpenChange }: { open: boolean
   const [busy, setBusy] = useState(false);
   // Bytes of Attachments deleted elsewhere are dropped while we are here anyway.
   useEffect(() => {
-    if (open) void pruneAttachmentBlobs().catch(() => {});
+    if (open) void pruneAttachmentBlobs().catch((err) => console.error("[attachments] dropping the bytes of deleted Attachments failed", err));
   }, [open]);
 
   async function remove(list: Attachment[]) {

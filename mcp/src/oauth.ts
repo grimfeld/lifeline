@@ -319,7 +319,7 @@ export class LifelineOAuth implements OAuthServerProvider {
       extra: { userId: row.user },
     };
     this.verified.set(hash, { info, until: Math.min(Date.now() + VERIFY_CACHE_MS, info.expiresAt! * 1000) });
-    void this.admin.collection("mcp_grants").update(row.id, { last_used: iso(0) }).catch(() => undefined);
+    void this.admin.collection("mcp_grants").update(row.id, { last_used: iso(0) }).catch((err) => console.error(`[oauth] recording grant ${row.id}'s last use failed`, err));
     return info;
   }
 
@@ -327,7 +327,7 @@ export class LifelineOAuth implements OAuthServerProvider {
     const row = (await this.grantBy("access_hash", request.token)) ?? (await this.grantBy("refresh_hash", request.token));
     if (!row || row.client_id !== client.client_id) return;
     this.verified.clear();
-    await this.admin.collection("mcp_grants").delete(row.id).catch(() => undefined);
+    await this.admin.collection("mcp_grants").delete(row.id).catch((err) => console.error(`[oauth] revoking grant ${row.id} failed: the token stays valid`, err));
   }
 
   private async grantBy(field: "access_hash" | "refresh_hash", raw: string): Promise<GrantRow | null> {

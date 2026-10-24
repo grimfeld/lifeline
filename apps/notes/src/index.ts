@@ -283,8 +283,9 @@ export const notesApp: AppManifest = {
    */
   useBackground: () => {
     useEffect(() => {
-      void repairPrivateSettings().catch(() => {});
-      void migrateTypeTemplates().catch(() => {});
+      // Each runs again next launch; a failure is logged, so a migration that never lands leaves a trace.
+      void repairPrivateSettings().catch((err) => console.error("[notes] re-keying the Private settings row failed", err));
+      void migrateTypeTemplates().catch((err) => console.error("[notes] moving body templates into Templates failed", err));
     }, []);
   },
 };

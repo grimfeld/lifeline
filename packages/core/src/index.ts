@@ -2,6 +2,7 @@ export * from "./demo";
 export * from "./dates";
 export * from "./calendarViews";
 export * from "./ids";
+export * from "./editQueue";
 export * from "./manifest";
 export * from "./cards";
 export * from "./registry";

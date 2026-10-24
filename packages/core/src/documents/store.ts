@@ -2,6 +2,7 @@ import type { Table } from "dexie";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ATTACHMENTS, db, DOCUMENTS, type SyncedRecord } from "../data/db";
 import { sharedLiveQuery } from "../data/live";
+import { reuseUnchanged } from "../data/reconcile";
 import { put, remove } from "../data/repo";
 import { newId } from "../ids";
 import { todayStr } from "../dates";
@@ -97,9 +98,13 @@ export function useDocument<T extends Document = Document>(id: string | undefine
   return useLiveQuery(async () => (id ? await getDocument<T>(id) : undefined), [id, wsId], undefined);
 }
 
-const allLive = sharedLiveQuery(async () => allDocuments(), [] as Document[], { restartOn: onWorkspaceChange });
+let liveRows: Document[] = [];
+const allLive = sharedLiveQuery(async () => (liveRows = reuseUnchanged(liveRows, await allDocuments())), [] as Document[], { restartOn: onWorkspaceChange });
 
-/** React hook: every live Document (cross-type tooling). One shared query: every consumer sees the same array per change. */
+/**
+ * React hook: every live Document (cross-type tooling). One shared query: every consumer sees the same array per change,
+ * and the same object for each Document the change left alone (`reuseUnchanged`), so an autosave re-derives one Document.
+ */
 export function useAllDocuments(): Document[] {
   return allLive.use();
 }

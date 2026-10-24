@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type Document } from "@lifeline/core";
+import { documentsOf, editQueue, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type Document } from "@lifeline/core";
 import { isColorSlot } from "@lifeline/ui";
 import { FINE, OFFENCE, firstGrapheme, type Fine, type Offence } from "../domain/types";
 import { dayKeyOf } from "../domain/derive";
@@ -107,7 +107,7 @@ export async function deleteFine(id: string): Promise<void> {
   await removeDocument(id);
 }
 
-let editing: Promise<unknown> = Promise.resolve();
+const inTurn = editQueue();
 
 /**
  * Move a Fine's moment or change its note from its Peek (ADR 0085), through
@@ -116,13 +116,11 @@ let editing: Promise<unknown> = Promise.resolve();
  * closed with both typed in keeps both.
  */
 export function editFine(id: string, patch: Partial<{ occurredAt: string; note: string }>): Promise<void> {
-  const run = editing.then(async () => {
+  return inTurn(async () => {
     const row = await getDocument<Fine>(id);
     if (!row || row.type !== FINE) return;
     const f = normalizeFine(row);
     const o = (await allOffences()).find((x) => x.id === f.offenceId);
     await updateFine(f, o, { occurredAt: f.occurredAt, note: f.note, ...patch });
   });
-  editing = run.catch(() => {});
-  return run;
 }
