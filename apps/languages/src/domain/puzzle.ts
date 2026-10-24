@@ -6,7 +6,7 @@ import { replay } from "./schedule";
 import { SENTENCE, type Puzzle, type PuzzleDraw, type Recall, type Sentence, type Word } from "./types";
 
 /**
- * Puzzles (CONTEXT.md "Puzzle", ADR 0106): word games over material already
+ * Puzzles (CONTEXT.md "Puzzle", ADR 0106): word puzzles over material already
  * kept and already met in a Practice. Pure: what may be drawn, what a guess
  * reveals, how a Puzzle stands. Nothing here reads or writes a Recall's
  * schedule — a Puzzle only looks at which Prompts were met.
@@ -51,17 +51,37 @@ export function wordleCandidates(topicId: string, words: Word[], recalls: Recall
 }
 
 /**
+ * What recent Puzzles drew: each item id with when a Puzzle of it was last opened or played. A
+ * draw leaves these out where anything else remains; once nothing else does,
+ * the least recently drawn comes first.
+ */
+export type Avoid = ReadonlyMap<string, string>;
+
+/** The items these Puzzles drew, each with the latest of their `updatedAt` (an ISO instant: when last opened or played). */
+export function drawnBy(puzzles: Puzzle[]): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const p of puzzles) for (const d of p.drawn) if ((out.get(d.itemId) ?? "") < (p.updatedAt ?? "")) out.set(d.itemId, p.updatedAt ?? "");
+  return out;
+}
+
+/** `xs` that `avoid` holds, least recently drawn first (stable otherwise). */
+export function leastRecentFirst<T>(xs: T[], idOf: (x: T) => string, avoid: Avoid): T[] {
+  return [...xs].sort((a, b) => (avoid.get(idOf(a)) ?? "").localeCompare(avoid.get(idOf(b)) ?? ""));
+}
+
+/**
  * Pick one, drawn toward the Prompt due soonest: candidates ranked by when
  * their reverse Prompt is due, the n-th weighted 1/n — so what is about to
  * be forgotten comes most often, without the same Word every day while it
- * waits. `avoid` (recent dailies' items) is left out where anything else remains.
+ * waits. `avoid`'s items are left out where anything else remains.
  */
-export function pickTowardDue(candidates: Word[], recalls: Recall[], opts: { random: () => number; avoid?: Set<string> }): Word | undefined {
-  const fresh = candidates.filter((w) => !opts.avoid?.has(w.id));
-  const pool = fresh.length ? fresh : candidates;
+export function pickTowardDue(candidates: Word[], recalls: Recall[], opts: { random: () => number; avoid?: Avoid }): Word | undefined {
   const by = recallsByPrompt(recalls);
   const dueOf = (w: Word) => replay(by.get(promptKey(w.id, "reverse")) ?? []).due?.getTime() ?? Number.POSITIVE_INFINITY;
-  const ranked = pool.map((w) => ({ w, due: dueOf(w) })).sort((a, b) => a.due - b.due || a.w.id.localeCompare(b.w.id));
+  const rank = (ws: Word[]) => ws.map((w) => ({ w, due: dueOf(w) })).sort((a, b) => a.due - b.due || a.w.id.localeCompare(b.w.id));
+  const pool = candidates.filter((w) => !opts.avoid?.has(w.id));
+  if (!pool.length) return leastRecentFirst(rank(candidates), (x) => x.w.id, opts.avoid ?? new Map())[0]?.w;
+  const ranked = rank(pool);
   const weights = ranked.map((_, i) => 1 / (i + 1));
   let r = opts.random() * weights.reduce((a, b) => a + b, 0);
   for (let i = 0; i < ranked.length; i++) {

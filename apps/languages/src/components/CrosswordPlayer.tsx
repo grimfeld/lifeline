@@ -1,18 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, CardContent, cn, toast } from "@lifeline/ui";
-import { ChevronLeft, ChevronRight, Flag, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flag } from "lucide-react";
 import { crosswordCells, crosswordClues, type CrosswordClue, type Direction } from "../domain/crossword";
 import { fold, keyboardLetters, lettersOf, type Mark } from "../domain/puzzle";
-import type { Puzzle } from "../domain/types";
-import { FORMAT_LABEL, giveUpPuzzle, guessPuzzle, type Played } from "../data/puzzles";
-import { useTopics, useWords } from "../data/repo";
+import { guessPuzzle } from "../data/puzzles";
+import { useWords } from "../data/repo";
 import { LetterKeyboard } from "./LetterKeyboard";
 import { PuzzleMaterial } from "./PuzzleMaterial";
-
-/** A finished daily's Tally that failed to fire: the outcome stands, the Habit missed it. */
-function tallied(p: Played) {
-  if (p.tallyError) toast.error(p.tallyError);
-}
+import { giveUp, PuzzleEnd, PuzzleShell, tallied, type PlayerProps } from "./PuzzleShell";
 
 const NO_MARKS: ReadonlyMap<string, Mark> = new Map();
 const at = (r: number, c: number) => `${r},${c}`;
@@ -24,9 +19,9 @@ const at = (r: number, c: number) => `${r},${c}`;
  * one; letters match without case or accents. Solved when every cell is
  * right. Ends on the material in full. Never writes a Recall.
  */
-export function CrosswordPlayer({ puzzle, topicName, onBack, onPractise }: { puzzle: Puzzle; topicName: string; onBack: () => void; onPractise: () => void }) {
-  const topic = useTopics().find((t) => t.id === puzzle.languageId);
-  const enye = !!topic?.enyeOwn;
+export function CrosswordPlayer({ puzzle, topicName, onBack, onPractise }: PlayerProps) {
+  // As the Topic set it when the Puzzle was first opened, never the setting now.
+  const enye = !!puzzle.enyeOwn;
   const words = useWords();
   const over = puzzle.outcome !== "playing";
   const clues = useMemo(() => crosswordClues(puzzle), [puzzle]);
@@ -108,25 +103,8 @@ export function CrosswordPlayer({ puzzle, topicName, onBack, onPractise }: { puz
     return () => window.removeEventListener("keydown", onKey);
   }, [over, enye]);
 
-  async function giveUp() {
-    try {
-      tallied(await giveUpPuzzle(puzzle.id));
-    } catch (err) {
-      toast.error(`Couldn't give up: ${(err as Error).message}`);
-    }
-  }
-
   return (
-    <div className="mx-auto grid w-full max-w-xl gap-4">
-      <div className="text-muted-foreground flex items-center justify-between gap-2 text-sm">
-        <span className="min-w-0 flex-1 truncate">
-          {topicName} · {FORMAT_LABEL[puzzle.format]}
-        </span>
-        <Button size="sm" variant="ghost" className="shrink-0" onClick={onBack}>
-          Back
-        </Button>
-      </div>
-
+    <PuzzleShell puzzle={puzzle} topicName={topicName} onBack={onBack}>
       {!over && clue && (
         <Card className="py-0">
           <CardContent className="flex items-start gap-2 px-3 py-3">
@@ -174,7 +152,13 @@ export function CrosswordPlayer({ puzzle, topicName, onBack, onPractise }: { puz
       </div>
 
       {over ? (
-        <CrosswordPlayed puzzle={puzzle} onPractise={onPractise} onBack={onBack} />
+        <PuzzleEnd puzzle={puzzle} status={puzzle.outcome === "solved" ? "Solved" : "Unsolved"} onPractise={onPractise} onBack={onBack}>
+          <ul className="grid gap-2">
+            {puzzle.drawn.map((d) => (
+              <PuzzleMaterial key={`${d.itemId}|${d.slot}`} draw={d} />
+            ))}
+          </ul>
+        </PuzzleEnd>
       ) : (
         <>
           <LetterKeyboard letters={keys} marks={NO_MARKS} onLetter={press} onDelete={erase} onEnter={() => goClue(1)} />
@@ -182,12 +166,12 @@ export function CrosswordPlayer({ puzzle, topicName, onBack, onPractise }: { puz
               setClueAt(i);
               setCellAt(0);
             }} />
-          <Button type="button" variant="ghost" className="justify-self-start" onClick={() => void giveUp()}>
+          <Button type="button" variant="ghost" className="justify-self-start" onClick={() => void giveUp(puzzle)}>
             <Flag /> Give up
           </Button>
         </>
       )}
-    </div>
+    </PuzzleShell>
   );
 }
 
@@ -239,27 +223,3 @@ function ClueList({ clues, current, onPick }: { clues: CrosswordClue[]; current:
   );
 }
 
-/** The end: each answer's material in full, and a way to practise. */
-function CrosswordPlayed({ puzzle, onPractise, onBack }: { puzzle: Puzzle; onPractise: () => void; onBack: () => void }) {
-  return (
-    <Card className="py-0">
-      <CardContent className="grid gap-2 px-4 py-4">
-        <span className={cn("text-sm font-medium", puzzle.outcome === "solved" ? "text-success" : "text-muted-foreground")}>{puzzle.outcome === "solved" ? "Solved" : "Unsolved"}</span>
-        <ul className="grid gap-2">
-          {puzzle.drawn.map((d) => (
-            <PuzzleMaterial key={`${d.itemId}|${d.slot}`} draw={d} />
-          ))}
-        </ul>
-        <p className="text-muted-foreground text-xs">Playing never changes when anything comes back: only a practice does.</p>
-        <div className="flex flex-wrap gap-2 pt-1">
-          <Button className="flex-1" onClick={onPractise}>
-            <Play /> Practise now
-          </Button>
-          <Button variant="outline" onClick={onBack}>
-            Back
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}

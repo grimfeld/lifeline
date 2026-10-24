@@ -33,21 +33,21 @@ export function LetterKeyboard({
   onEnter: () => void;
   disabled?: boolean;
 }) {
-  const key = "h-11 shrink-0 px-0 text-base font-semibold uppercase";
+  const key = "shrink-0 px-0 text-base font-semibold uppercase";
   return (
     <div role="group" aria-label="Letters" className="flex flex-wrap justify-center gap-1.5">
       {letters.map((l) => {
         const mark = marks.get(l);
         return (
-          <Button key={l} type="button" variant="outline" disabled={disabled} className={cn(key, "w-9", mark && MARK_CLASS[mark])} aria-label={mark ? `${l}, ${MARK_LABEL[mark]}` : l} onClick={() => onLetter(l)}>
+          <Button key={l} type="button" size="touch" variant="outline" disabled={disabled} className={cn(key, "w-9", mark && MARK_CLASS[mark])} aria-label={mark ? `${l}, ${MARK_LABEL[mark]}` : l} onClick={() => onLetter(l)}>
             {l}
           </Button>
         );
       })}
-      <Button type="button" variant="outline" disabled={disabled} className={cn(key, "w-14")} aria-label="Delete" onClick={onDelete}>
+      <Button type="button" size="touch" variant="outline" disabled={disabled} className={cn(key, "w-14")} aria-label="Delete" onClick={onDelete}>
         <Delete />
       </Button>
-      <Button type="button" variant="outline" disabled={disabled} className={cn(key, "w-14")} aria-label="Enter" onClick={onEnter}>
+      <Button type="button" size="touch" variant="outline" disabled={disabled} className={cn(key, "w-14")} aria-label="Enter" onClick={onEnter}>
         <CornerDownLeft />
       </Button>
     </div>

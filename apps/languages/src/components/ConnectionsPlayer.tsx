@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
-import { Button, Card, CardContent, cn, toast } from "@lifeline/ui";
-import { useDocument } from "@lifeline/core";
+import { Button, cn } from "@lifeline/ui";
 import { Flag, Play, Shuffle, X } from "lucide-react";
-import { connectionsState, GROUP_SIZE, MAX_MISTAKES, type ConnectionsGroup } from "../domain/connections";
-import { FACT, WORD, type Fact, type Puzzle, type PuzzleDraw, type Word } from "../domain/types";
-import { FORMAT_LABEL, giveUpPuzzle, guessPuzzle } from "../data/puzzles";
-import { OriginLine } from "./OriginLine";
+import { connectionsState, GROUP_SIZE, MAX_MISTAKES } from "../domain/connections";
+import { guessPuzzle } from "../data/puzzles";
+import { PuzzleMaterial } from "./PuzzleMaterial";
+import { giveUp, PuzzleEnd, PuzzleShell, tallied, type PlayerProps } from "./PuzzleShell";
 
 /**
  * A Connections Puzzle (CONTEXT.md "Puzzle", ADR 0106): 16 items — Word terms
@@ -13,7 +12,7 @@ import { OriginLine } from "./OriginLine";
  * a right group shows under its Deck's name, and four mistakes end it. Ends on
  * every item in full and a way to practise. Never writes a Recall.
  */
-export function ConnectionsPlayer({ puzzle, topicName, onBack, onPractise }: { puzzle: Puzzle; topicName: string; onBack: () => void; onPractise: () => void }) {
+export function ConnectionsPlayer({ puzzle, topicName, onBack, onPractise }: PlayerProps) {
   const state = useMemo(() => connectionsState(puzzle), [puzzle]);
   const [picked, setPicked] = useState<string[]>([]);
   const [order, setOrder] = useState<string[] | null>(null);
@@ -34,8 +33,7 @@ export function ConnectionsPlayer({ puzzle, topicName, onBack, onPractise }: { p
 
   async function submit() {
     try {
-      const r = await guessPuzzle(puzzle.id, picked);
-      if (r.tallyError) toast.error(r.tallyError);
+      tallied(await guessPuzzle(puzzle.id, picked));
       setPicked([]);
       setError("");
     } catch (err) {
@@ -52,30 +50,23 @@ export function ConnectionsPlayer({ puzzle, topicName, onBack, onPractise }: { p
     setOrder(ids);
   }
 
-  async function giveUp() {
-    try {
-      const r = await giveUpPuzzle(puzzle.id);
-      if (r.tallyError) toast.error(r.tallyError);
-    } catch (err) {
-      toast.error(`Couldn't give up: ${(err as Error).message}`);
-    }
-  }
-
   const mistakesLeft = Math.max(0, MAX_MISTAKES - state.mistakes);
 
   return (
-    <div className="mx-auto grid w-full max-w-xl gap-4">
-      <div className="text-muted-foreground flex items-center justify-between gap-2 text-sm">
-        <span className="min-w-0 flex-1 truncate">
-          {topicName} · {FORMAT_LABEL[puzzle.format]}
-        </span>
-        <Button size="sm" variant="ghost" className="shrink-0" onClick={onBack}>
-          Back
-        </Button>
-      </div>
-
+    <PuzzleShell puzzle={puzzle} topicName={topicName} onBack={onBack}>
       {over ? (
-        <ConnectionsPlayed puzzle={puzzle} groups={state.groups} found={state.found.length} mistakes={state.mistakes} onPractise={onPractise} onBack={onBack} />
+        <PuzzleEnd puzzle={puzzle} status={puzzle.outcome === "solved" ? `Solved, ${state.mistakes} mistake${state.mistakes === 1 ? "" : "s"}` : `Unsolved · ${state.found.length} of ${state.groups.length} groups found`} onPractise={onPractise} onBack={onBack}>
+          {state.groups.map((g, i) => (
+            <section key={g.deck + g.items[0]?.itemId} className="grid gap-2">
+              <h3 className={cn("text-sm font-medium", i < state.found.length ? "text-success" : "text-muted-foreground")}>{g.deck}</h3>
+              <ul className="grid gap-2">
+                {g.items.map((d) => (
+                  <PuzzleMaterial key={d.itemId} draw={d} />
+                ))}
+              </ul>
+            </section>
+          ))}
+        </PuzzleEnd>
       ) : (
         <>
           <p className="text-muted-foreground text-sm">Sort these into four of your decks, four in each.</p>
@@ -129,60 +120,12 @@ export function ConnectionsPlayer({ puzzle, topicName, onBack, onPractise }: { p
             <Button variant="outline" onClick={shuffle}>
               <Shuffle /> Shuffle
             </Button>
-            <Button variant="ghost" onClick={() => void giveUp()}>
+            <Button variant="ghost" onClick={() => void giveUp(puzzle)}>
               <Flag /> Give up
             </Button>
           </div>
         </>
       )}
-    </div>
-  );
-}
-
-/** The end: every group under its Deck's name, each item in full as kept now — or as drawn, once deleted — and a way to practise. */
-function ConnectionsPlayed({ puzzle, groups, found, mistakes, onPractise, onBack }: { puzzle: Puzzle; groups: ConnectionsGroup[]; found: number; mistakes: number; onPractise: () => void; onBack: () => void }) {
-  return (
-    <Card className="py-0">
-      <CardContent className="grid gap-3 px-4 py-4">
-        <span className={cn("text-sm font-medium", puzzle.outcome === "solved" ? "text-success" : "text-muted-foreground")}>
-          {puzzle.outcome === "solved" ? `Solved, ${mistakes} mistake${mistakes === 1 ? "" : "s"}` : `Unsolved · ${found} of ${groups.length} groups found`}
-        </span>
-        {groups.map((g, i) => (
-          <section key={g.deck + g.items[0]?.itemId} className="grid gap-2">
-            <h3 className={cn("text-sm font-medium", i < found ? "text-success" : "text-muted-foreground")}>{g.deck}</h3>
-            <ul className="grid gap-2">
-              {g.items.map((d) => (
-                <PlayedItem key={d.itemId} draw={d} />
-              ))}
-            </ul>
-          </section>
-        ))}
-        <p className="text-muted-foreground text-xs">Playing never changes when anything comes back: only a practice does.</p>
-        <div className="flex flex-wrap gap-2 pt-1">
-          <Button className="flex-1" onClick={onPractise}>
-            <Play /> Practise now
-          </Button>
-          <Button variant="outline" onClick={onBack}>
-            Back
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-/** One item at the end: a Word's term and meaning, or a Fact's answer and question, with notes and where it was met. */
-function PlayedItem({ draw }: { draw: PuzzleDraw }) {
-  const live = useDocument<Word | Fact>(draw.itemId || undefined);
-  const word = live?.type === WORD ? (live as Word) : undefined;
-  const fact = live?.type === FACT ? (live as Fact) : undefined;
-  const item = word ?? fact;
-  return (
-    <li className="grid gap-0.5 rounded-lg border px-3 py-2">
-      <span className="font-semibold">{word?.term || fact?.answer || draw.answer}</span>
-      <span className="text-sm">{word?.meaning || fact?.question || draw.clue}</span>
-      {item?.notes && <span className="text-muted-foreground text-sm whitespace-pre-line">{item.notes}</span>}
-      {item ? <OriginLine originId={item.originId} origin={item.origin} /> : <span className="text-muted-foreground text-xs">Since deleted.</span>}
-    </li>
+    </PuzzleShell>
   );
 }

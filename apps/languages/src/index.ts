@@ -12,7 +12,7 @@ import { knowledgeRecallable } from "./recallable";
 import { knowledgeDaylog } from "./daylog";
 import { plainSentence } from "./domain/cloze";
 import { refuseDeletingUsedTopic, removeItemRecalls } from "./data/repo";
-import { APP_ID, DECK, FACT, OCCURRENCE_PRACTISED, OCCURRENCE_PUZZLE, PUZZLE, TOPIC, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Fact, type Puzzle, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
+import { APP_ID, DECK, FACT, OCCURRENCE_PRACTISED, PUZZLE, TOPIC, TOPIC_OCCURRENCES, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Fact, type Puzzle, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
 
 const WORDS_HREF = `${KNOWLEDGE_HREF}?tab=words`;
 
@@ -161,7 +161,7 @@ const recallType: DocumentTypeDef = {
 };
 
 /**
- * A Puzzle (CONTEXT.md "Puzzle", ADR 0106, internal): one word game over one
+ * A Puzzle (CONTEXT.md "Puzzle", ADR 0106, internal): one word puzzle over one
  * Topic's kept material, kept as a fact. Not Linkable, not Recallable, no body,
  * and every field the App's: what it drew is fixed when first opened.
  */
@@ -186,6 +186,7 @@ const puzzleType: DocumentTypeDef = {
     { key: "outcome", label: "Outcome", kind: "select", options: [{ value: "playing", label: "In progress" }, { value: "solved", label: "Solved" }, { value: "unsolved", label: "Unsolved" }], guarded: true, column: true },
     { key: "finishedAt", label: "Finished", kind: "datetime", guarded: true },
     { key: "layout", label: "Grid", kind: "json", guarded: true },
+    { key: "enyeOwn", label: "ñ is its own letter", kind: "boolean", guarded: true },
   ],
   indexes: ["languageId"],
   href: () => `${KNOWLEDGE_HREF}?tab=puzzles`,
@@ -226,7 +227,7 @@ export const knowledgeApp: AppManifest = {
   ],
   commands: knowledgeCommands,
   daylog: knowledgeDaylog,
-  tallying: [{ typeId: TOPIC, occurrence: OCCURRENCE_PRACTISED, occurrences: [{ id: OCCURRENCE_PRACTISED, label: "day practised" }, { id: OCCURRENCE_PUZZLE, label: "daily Puzzle finished" }] }],
+  tallying: [{ typeId: TOPIC, occurrence: OCCURRENCE_PRACTISED, occurrences: TOPIC_OCCURRENCES }],
   recallable: knowledgeRecallable,
   // Every Recallable Document's Recalls go when it is deleted — Knowledge's own types and any other App's (ADR 0073).
   forgetRecallable: removeItemRecalls,

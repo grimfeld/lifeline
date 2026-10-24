@@ -1,16 +1,17 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addDays, documentsOf, fireTallies, documentsWhere, getDocument, putDocument, todayStr, useDocuments, type DateStr } from "@lifeline/core";
-import { lettersOf, MAX_GUESSES, isAnswer, outcomeAt, pickTowardDue, wordleCandidates, wordleDraw } from "../domain/puzzle";
+import { drawnBy, lettersOf, MAX_GUESSES, isAnswer, outcomeAt, pickTowardDue, wordleCandidates, wordleDraw, type Avoid } from "../domain/puzzle";
 import { buildCrossword, crosswordCells, crosswordDraws, crosswordSolved, entryGuess, orderTowardDue, type Placement } from "../domain/crossword";
 import { connectionsDraw, connectionsItems, connectionsState, GROUPS, MAX_MISTAKES as CONNECTIONS_MISTAKES, settleConnections } from "../domain/connections";
 import { DECK, FACT, OCCURRENCE_PUZZLE, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Fact, type Puzzle, type PuzzleDraw, type PuzzleFormat, type PuzzleOutcome, type Recall, type Sentence, type Topic, type Word } from "../domain/types";
+import { useDecks, useFacts, useRecalls, useSentences, useTopics, useWords } from "./repo";
 
 /**
  * Puzzles' data (CONTEXT.md "Puzzle", ADR 0106). Nothing here writes a
  * Recall, or calls anything that does: playing never moves the schedule.
  */
 
-/** The formats built so far. */
+/** Every format, in the order today's Puzzles list them. */
 export const PUZZLE_FORMATS = ["wordle", "crossword", "connections"] as const satisfies readonly PuzzleFormat[];
 
 /** A recent daily's Word is drawn again only when nothing else is left. */
@@ -41,7 +42,7 @@ export function normalizePuzzle(p: Puzzle, now: Date = new Date()): Puzzle {
   const drawn = Array.isArray(p.drawn) ? p.drawn.map(normalizeDraw).filter((d): d is PuzzleDraw => d !== null) : [];
   const guesses = Array.isArray(p.guesses) ? p.guesses.filter((g): g is string => typeof g === "string") : [];
   const outcome = p.outcome === "solved" || p.outcome === "unsolved" ? p.outcome : "playing";
-  const read: Puzzle = { ...p, languageId: p.languageId ?? "", format: p.format || "wordle", kind: p.kind === "replay" ? "replay" : "daily", day: p.day || "", drawn, guesses, outcome, finishedAt: p.finishedAt || "", tags: p.tags ?? [] };
+  const read: Puzzle = { ...p, languageId: p.languageId ?? "", format: p.format || "wordle", kind: p.kind === "replay" ? "replay" : "daily", day: p.day || "", drawn, guesses, outcome, finishedAt: p.finishedAt || "", enyeOwn: p.enyeOwn === true, tags: p.tags ?? [] };
   const layout = normalizeLayout(p.layout);
   if (layout) read.layout = layout;
   return { ...read, outcome: outcomeAt(read, now) };
@@ -109,7 +110,7 @@ export function todayOf(topics: Topic[], words: Word[], recalls: Recall[], puzzl
 /** Whether a format has enough in a Topic to build one now. */
 function canBuild(topic: Topic, format: PuzzleFormat, words: Word[], recalls: Recall[], more: { facts?: Fact[]; decks?: Deck[]; sentences?: Sentence[] }): boolean {
   const topicId = topic.id;
-  if (format === "crossword") return drawCrossword(topic, { words, sentences: more.sentences ?? [], facts: more.facts ?? [] }, recalls, () => 0, new Set()) !== null;
+  if (format === "crossword") return drawCrossword(topic, { words, sentences: more.sentences ?? [], facts: more.facts ?? [] }, recalls, () => 0, new Map()) !== null;
   if (format === "wordle") return wordleCandidates(topicId, words, recalls).length > 0;
   if (format === "connections") return connectionsDraw(topicId, more.decks ?? [], connectionsItems(topicId, words, more.facts ?? [], recalls), recalls, { random: () => 0 }) !== null;
   return false;
@@ -124,6 +125,33 @@ export async function todaysPuzzles(now: Date = new Date()): Promise<TodaysPuzzl
 export function usePuzzles(now: Date): Puzzle[] {
   const rows = useDocuments<Puzzle>(PUZZLE);
   return useMemo(() => rows.map((p) => normalizePuzzle(p, now)), [rows, now]);
+}
+
+/**
+ * Today's Puzzles, live: every row `todayOf` lists, every Puzzle and Topic,
+ * and the clock — re-read once a minute, so a daily left open past midnight
+ * ends there.
+ */
+export function useTodaysPuzzles(): { rows: TodaysPuzzle[]; puzzles: Puzzle[]; topics: Topic[] } {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const topics = useTopics();
+  const words = useWords();
+  const recalls = useRecalls();
+  const facts = useFacts();
+  const decks = useDecks();
+  const sentences = useSentences();
+  const puzzles = usePuzzles(now);
+  const rows = useMemo(() => todayOf(topics, words, recalls, puzzles, now, { facts, decks, sentences }), [topics, words, recalls, puzzles, now, facts, decks, sentences]);
+  return { rows, puzzles, topics };
+}
+
+/** What a row's button says: Play before it is opened, Resume while playing, See once finished. */
+export function playLabel(row: TodaysPuzzle): "Play" | "Resume" | "See" {
+  return !row.puzzle ? "Play" : row.puzzle.outcome === "playing" ? "Resume" : "See";
 }
 
 /** A format as the user reads it. */
@@ -166,21 +194,21 @@ export function openDailyPuzzle(topicId: string, format: PuzzleFormat, opts: { n
     const existing = dailyOf(mine, topicId, format, day);
     if (existing) return existing;
     const since = addDays(day, -AVOID_DAYS);
-    const avoid = new Set(mine.filter((p) => p.format === format && p.kind === "daily" && p.day >= since).flatMap((p) => p.drawn.map((d) => d.itemId)));
+    const avoid = drawnBy(mine.filter((p) => p.format === format && p.kind === "daily" && p.day >= since));
     const built = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
     if (!built?.drawn.length) return null;
-    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · ${day}`, languageId: topicId, format, kind: "daily", day, ...built, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
+    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · ${day}`, languageId: topicId, format, kind: "daily", day, ...built, enyeOwn: !!topic.enyeOwn, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
     return normalizePuzzle(row, now);
   });
 }
 
 /** What a format draws from a Topic now (and a crossword's grid), or null when there is not enough to build it. */
-async function drawFor(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Set<string> }): Promise<{ drawn: PuzzleDraw[]; layout?: Placement[] } | null> {
+async function drawFor(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Avoid }): Promise<{ drawn: PuzzleDraw[]; layout?: Placement[] } | null> {
   const built = await drawn(topic, format, opts);
   return Array.isArray(built) ? { drawn: built } : built;
 }
 
-async function drawn(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Set<string> }): Promise<PuzzleDraw[] | { drawn: PuzzleDraw[]; layout: Placement[] } | null> {
+async function drawn(topic: Topic, format: PuzzleFormat, opts: { random: () => number; avoid: Avoid }): Promise<PuzzleDraw[] | { drawn: PuzzleDraw[]; layout: Placement[] } | null> {
   const topicId = topic.id;
   const [words, recalls] = await Promise.all([documentsWhere<Word>(WORD, "languageId", topicId), documentsWhere<Recall>(RECALL, "languageId", topicId)]);
   const live = words.map((w) => ({ ...w, paused: !!w.paused }));
@@ -241,7 +269,7 @@ export type CellEntry = { row: number; col: number; letter: string };
 export function guessPuzzle(id: string, guess: string | readonly string[] | readonly CellEntry[], now: Date = new Date()): Promise<Played> {
   return serially(`play|${id}`, async () => {
     const p = await playing(id, now);
-    const enye = p.format !== "connections" && !!(await getDocument<Topic>(p.languageId))?.enyeOwn;
+    const enye = !!p.enyeOwn;
     const { guesses, outcome } = p.format === "connections" ? settleConnections(p, asGroup(guess)) : p.format === "crossword" ? settleCrossword(p, asCells(guess), enye) : settleWordle(p, asWord(guess), enye);
     const row = await putDocument<Puzzle>({ ...p, guesses, outcome, finishedAt: outcome === "playing" ? "" : now.toISOString() });
     return finished(p, normalizePuzzle(row, now));
@@ -301,7 +329,8 @@ export function giveUpPuzzle(id: string, now: Date = new Date()): Promise<Played
 
 /**
  * A replay: a new Puzzle each call, drawing fresh material toward what is due
- * soonest, leaving out today's daily item where anything else remains. Never
+ * soonest, leaving out what today's daily and replays drew where anything else
+ * remains, then the least recently drawn. Never
  * a daily (no day-end expiry) and never tallied. Null when the Topic is
  * archived or has nothing to draw.
  */
@@ -312,10 +341,10 @@ export function openReplayPuzzle(topicId: string, format: PuzzleFormat, opts: { 
     const topic = await getDocument<Topic>(topicId);
     if (!topic || topic.type !== TOPIC || topic.archived) return null;
     const mine = await topicPuzzles(topicId, now);
-    const avoid = new Set(mine.filter((p) => p.format === format && p.kind === "daily" && p.day === day).flatMap((p) => p.drawn.map((d) => d.itemId)));
+    const avoid = drawnBy(mine.filter((p) => p.format === format && p.day === day));
     const built = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
     if (!built?.drawn.length) return null;
-    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · replay`, languageId: topicId, format, kind: "replay", day, ...built, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
+    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · replay`, languageId: topicId, format, kind: "replay", day, ...built, enyeOwn: !!topic.enyeOwn, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
     return normalizePuzzle(row, now);
   });
 }
@@ -323,7 +352,7 @@ export function openReplayPuzzle(topicId: string, format: PuzzleFormat, opts: { 
 // ---- The crossword ----
 
 /** A Topic's crossword, drawn toward what is due, `avoid`'s items last: null when fewer than five cross. */
-function drawCrossword(topic: Topic, items: { words: Word[]; sentences: Sentence[]; facts: Fact[] }, recalls: Recall[], random: () => number, avoid: Set<string>) {
+function drawCrossword(topic: Topic, items: { words: Word[]; sentences: Sentence[]; facts: Fact[] }, recalls: Recall[], random: () => number, avoid: Avoid) {
   const enye = !!topic.enyeOwn;
   const draws = crosswordDraws(topic.id, items, recalls, enye);
   return buildCrossword(orderTowardDue(draws, recalls, { random, avoid }), orderTowardDue(draws, recalls, { random: () => 0 }), enye);

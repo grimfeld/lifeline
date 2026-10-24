@@ -163,6 +163,24 @@ describe("today's daily Wordle-like", () => {
     await expect(guessPuzzle(p.id, "nino", NOW)).rejects.toThrow();
   });
 
+  it("keeps ñ as the Topic set it when first opened: changing the setting mid-game changes nothing", async () => {
+    const t = await topic();
+    await putDocument({ ...(await getDocument<Topic>(t))!, enyeOwn: true });
+    await practised(t, "niño");
+    const p = (await openDailyPuzzle(t, "wordle", { now: NOW }))!;
+    await putDocument({ ...(await getDocument<Topic>(t))!, enyeOwn: false });
+    const missed = await guessPuzzle(p.id, "nino", NOW);
+    expect(missed.outcome).toBe("playing");
+    expect(wordleRows(missed, missed.enyeOwn)[0]!.map((c) => c.mark)).toEqual(["right", "right", "absent", "right"]);
+    expect((await guessPuzzle(p.id, "niño", NOW)).outcome).toBe("solved");
+
+    const folded = await topic();
+    await practised(folded, "baño");
+    const q = (await openDailyPuzzle(folded, "wordle", { now: NOW }))!;
+    await putDocument({ ...(await getDocument<Topic>(folded))!, enyeOwn: true });
+    expect((await guessPuzzle(q.id, "bano", NOW)).outcome).toBe("solved");
+  });
+
   it("is unsolved after six wrong guesses, and takes no seventh", async () => {
     const t = await topic();
     await practised(t, "verde");
@@ -317,18 +335,36 @@ describe("replays", () => {
   });
 
   it("avoids today's daily item where another is left, and draws it when it is the only one", async () => {
-    const t = await topic();
-    await practised(t, "mesa");
-    await practised(t, "silla");
-    const daily = (await openDailyPuzzle(t, "wordle", { now: NOW }))!;
     for (let i = 0; i < 5; i++) {
-      const r = (await openReplayPuzzle(t, "wordle", { now: NOW, random: () => i / 5 }))!;
+      const other = await topic();
+      await practised(other, "mesa");
+      await practised(other, "silla");
+      const daily = (await openDailyPuzzle(other, "wordle", { now: NOW, random: () => i / 5 }))!;
+      const r = (await openReplayPuzzle(other, "wordle", { now: NOW, random: () => i / 5 }))!;
       expect(r.drawn[0]?.itemId).not.toBe(daily.drawn[0]?.itemId);
     }
     const solo = await topic();
     await practised(solo, "plato");
     await openDailyPuzzle(solo, "wordle", { now: NOW });
     expect((await openReplayPuzzle(solo, "wordle", { now: NOW }))?.drawn[0]?.answer).toBe("plato");
+  });
+
+  it("draws what no Puzzle of today drew yet, then the least recently drawn once everything was", async () => {
+    const t = await topic();
+    for (const term of ["mesa", "silla", "plato"]) await practised(t, term);
+    const tick = () => new Promise((r) => setTimeout(r, 2));
+    const daily = (await openDailyPuzzle(t, "wordle", { now: NOW, random: () => 0 }))!;
+    const seen = [daily.drawn[0]!.itemId];
+    for (let i = 0; i < 2; i++) {
+      await tick();
+      const r = (await openReplayPuzzle(t, "wordle", { now: NOW, random: () => 0 }))!;
+      expect(seen).not.toContain(r.drawn[0]!.itemId);
+      seen.push(r.drawn[0]!.itemId);
+    }
+    await tick();
+    expect((await openReplayPuzzle(t, "wordle", { now: NOW, random: () => 0 }))!.drawn[0]!.itemId).toBe(seen[0]);
+    await tick();
+    expect((await openReplayPuzzle(t, "wordle", { now: NOW, random: () => 0 }))!.drawn[0]!.itemId).toBe(seen[1]);
   });
 
   it("is null for a Topic with nothing to draw, or archived", async () => {

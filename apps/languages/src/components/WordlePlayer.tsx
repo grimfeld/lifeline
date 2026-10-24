@@ -1,27 +1,27 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Button, Card, CardContent, Field, Input, cn, toast } from "@lifeline/ui";
-import { useDocument } from "@lifeline/core";
+import { Button, Card, CardContent, Field, Input, cn } from "@lifeline/ui";
 import { Flag, Play } from "lucide-react";
 import { keyboardLetters, letterMarks, lettersOf, MAX_GUESSES, wordleRows } from "../domain/puzzle";
-import { WORD, type Puzzle, type Word } from "../domain/types";
-import { FORMAT_LABEL, giveUpPuzzle, guessPuzzle } from "../data/puzzles";
-import { useTopics, useWords } from "../data/repo";
+import { guessPuzzle } from "../data/puzzles";
+import { useWords } from "../data/repo";
 import { LetterKeyboard, MARK_CLASS, MARK_LABEL } from "./LetterKeyboard";
-import { OriginLine } from "./OriginLine";
+import { PuzzleMaterial } from "./PuzzleMaterial";
+import { giveUp, PuzzleEnd, PuzzleShell, tallied, type PlayerProps } from "./PuzzleShell";
 
 /**
  * A Wordle-like Puzzle (CONTEXT.md "Puzzle", ADR 0106): shown a Word's
  * meaning, guess its term in six. Typed on the device's own keyboard or the
- * on-screen one (letters of the Topic's kept terms), any word of the right length; matched without case or accents. Ends on the
- * Word in full and a way to practise. Never writes a Recall.
+ * on-screen one (letters of the Topic's kept terms), any word of the right
+ * length; matched without case or accents. Ends on the Word in full and a
+ * way to practise. Never writes a Recall.
  */
-export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle: Puzzle; topicName: string; onBack: () => void; onPractise: () => void }) {
+export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: PlayerProps) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const draw = puzzle.drawn[0];
   const answer = lettersOf(draw?.answer ?? "") ?? [];
-  const topic = useTopics().find((t) => t.id === puzzle.languageId);
-  const enye = !!topic?.enyeOwn;
+  // As the Topic set it when the Puzzle was first opened, never the setting now.
+  const enye = !!puzzle.enyeOwn;
   const words = useWords();
   const rows = wordleRows(puzzle, enye);
   const keys = useMemo(
@@ -35,21 +35,11 @@ export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle
     e?.preventDefault();
     if (!draft.trim()) return;
     try {
-      const r = await guessPuzzle(puzzle.id, draft);
-      if (r.tallyError) toast.error(r.tallyError);
+      tallied(await guessPuzzle(puzzle.id, draft));
       setDraft("");
       setError("");
     } catch (err) {
       setError((err as Error).message);
-    }
-  }
-
-  async function giveUp() {
-    try {
-      const r = await giveUpPuzzle(puzzle.id);
-      if (r.tallyError) toast.error(r.tallyError);
-    } catch (err) {
-      toast.error(`Couldn't give up: ${(err as Error).message}`);
     }
   }
 
@@ -59,16 +49,7 @@ export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle
   const blankRows = Math.max(0, MAX_GUESSES - rows.length - (over ? 0 : 1));
 
   return (
-    <div className="mx-auto grid w-full max-w-xl gap-4">
-      <div className="text-muted-foreground flex items-center justify-between gap-2 text-sm">
-        <span className="min-w-0 flex-1 truncate">
-          {topicName} · {FORMAT_LABEL[puzzle.format]}
-        </span>
-        <Button size="sm" variant="ghost" className="shrink-0" onClick={onBack}>
-          Back
-        </Button>
-      </div>
-
+    <PuzzleShell puzzle={puzzle} topicName={topicName} onBack={onBack}>
       <Card className="py-0">
         <CardContent className="grid gap-1 px-4 py-4">
           <span className="text-muted-foreground text-xs">Meaning</span>
@@ -109,7 +90,9 @@ export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle
       </div>
 
       {over ? (
-        <WordlePlayed puzzle={puzzle} onPractise={onPractise} onBack={onBack} />
+        <PuzzleEnd puzzle={puzzle} status={puzzle.outcome === "solved" ? `Solved in ${puzzle.guesses.length}` : "Unsolved"} onPractise={onPractise} onBack={onBack}>
+          <ul className="grid gap-2">{draw && <PuzzleMaterial draw={draw} />}</ul>
+        </PuzzleEnd>
       ) : (
         <form className="grid gap-3" onSubmit={(e) => void guess(e)}>
           <Field label={`Guess ${rows.length + 1} of ${MAX_GUESSES}`} error={error}>
@@ -120,39 +103,12 @@ export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle
             <Button type="submit" className="flex-1" disabled={!draft.trim()}>
               <Play /> Guess
             </Button>
-            <Button type="button" variant="ghost" onClick={() => void giveUp()}>
+            <Button type="button" variant="ghost" onClick={() => void giveUp(puzzle)}>
               <Flag /> Give up
             </Button>
           </div>
         </form>
       )}
-    </div>
-  );
-}
-
-/** The end: the Word in full, as kept now — or as drawn, once deleted — and a way to practise it. */
-function WordlePlayed({ puzzle, onPractise, onBack }: { puzzle: Puzzle; onPractise: () => void; onBack: () => void }) {
-  const draw = puzzle.drawn[0];
-  const live = useDocument<Word>(draw?.itemId || undefined);
-  const word = live && live.type === WORD ? live : undefined;
-  return (
-    <Card className="py-0">
-      <CardContent className="grid gap-2 px-4 py-4">
-        <span className={cn("text-sm font-medium", puzzle.outcome === "solved" ? "text-success" : "text-muted-foreground")}>{puzzle.outcome === "solved" ? `Solved in ${puzzle.guesses.length}` : "Unsolved"}</span>
-        <p className="text-xl font-semibold">{word?.term || draw?.answer}</p>
-        <p className="text-sm">{word?.meaning || draw?.clue}</p>
-        {word?.notes && <p className="text-muted-foreground text-sm whitespace-pre-wrap">{word.notes}</p>}
-        {word ? <OriginLine originId={word.originId} origin={word.origin} /> : <span className="text-muted-foreground text-xs">This word has since been deleted.</span>}
-        <p className="text-muted-foreground text-xs">Playing never changes when anything comes back: only a practice does.</p>
-        <div className="flex flex-wrap gap-2 pt-1">
-          <Button className="flex-1" onClick={onPractise}>
-            <Play /> Practise now
-          </Button>
-          <Button variant="outline" onClick={onBack}>
-            Back
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    </PuzzleShell>
   );
 }

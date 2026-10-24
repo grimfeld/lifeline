@@ -1,7 +1,7 @@
 import { promptKey } from "./prompts";
 import { recallsByPrompt } from "./practice";
 import { replay } from "./schedule";
-import { fold } from "./puzzle";
+import { fold, leastRecentFirst, type Avoid } from "./puzzle";
 import type { Deck, Fact, Puzzle, PuzzleDraw, PuzzleOutcome, Recall, Word } from "./types";
 
 /**
@@ -70,8 +70,8 @@ function apart(decks: { deck: Deck; members: ConnectionsItem[] }[]): Connections
   return decks.map(({ members }) => members.filter((m) => ids.get(m.id) === 1 && shown.get(fold(m.answer))!.size === 1));
 }
 
-/** `k` of them, drawn toward the Prompt due soonest (the n-th weighted 1/n), recent dailies' items only when nothing else is left. */
-function drawTowardDue(pool: ConnectionsItem[], k: number, dueOf: (id: string) => number, random: () => number, avoid: Set<string>): ConnectionsItem[] {
+/** `k` of them, drawn toward the Prompt due soonest (the n-th weighted 1/n), `avoid`'s items only when nothing else is left, the least recently drawn first. */
+function drawTowardDue(pool: ConnectionsItem[], k: number, dueOf: (id: string) => number, random: () => number, avoid: Avoid): ConnectionsItem[] {
   const rank = (xs: ConnectionsItem[]) => xs.map((x) => ({ x, due: dueOf(x.id) })).sort((a, b) => a.due - b.due || a.x.id.localeCompare(b.x.id)).map((r) => r.x);
   const take = (from: ConnectionsItem[], n: number) => {
     const left = rank(from);
@@ -89,7 +89,7 @@ function drawTowardDue(pool: ConnectionsItem[], k: number, dueOf: (id: string) =
     return out;
   };
   const fresh = take(pool.filter((x) => !avoid.has(x.id)), k);
-  return [...fresh, ...take(pool.filter((x) => avoid.has(x.id)), k - fresh.length)];
+  return [...fresh, ...leastRecentFirst(rank(pool.filter((x) => avoid.has(x.id))), (x) => x.id, avoid).slice(0, k - fresh.length)];
 }
 
 /**
@@ -98,7 +98,7 @@ function drawTowardDue(pool: ConnectionsItem[], k: number, dueOf: (id: string) =
  * each kept with its Deck's id and name, so the groups survive the Decks being
  * edited later. Null when no 4 Decks will do.
  */
-export function connectionsDraw(topicId: string, decks: Deck[], items: Map<string, ConnectionsItem>, recalls: Recall[], opts: { random: () => number; avoid?: Set<string> }): PuzzleDraw[] | null {
+export function connectionsDraw(topicId: string, decks: Deck[], items: Map<string, ConnectionsItem>, recalls: Recall[], opts: { random: () => number; avoid?: Avoid }): PuzzleDraw[] | null {
   const usable = decks
     .filter((d) => d.languageId === topicId)
     .map((deck) => ({ deck, members: [...new Set(deck.members)].map((id) => items.get(id)).filter((m): m is ConnectionsItem => !!m) }))
@@ -114,7 +114,7 @@ export function connectionsDraw(topicId: string, decks: Deck[], items: Map<strin
     for (const r of recalls) slots.set(r.itemId, (slots.get(r.itemId) ?? new Set()).add(r.slot));
     const dueOf = (id: string) => Math.min(...[...(slots.get(id) ?? [])].map((s) => replay(by.get(promptKey(id, s)) ?? []).due?.getTime() ?? Number.POSITIVE_INFINITY), Number.POSITIVE_INFINITY);
     const drawn = chosen.flatMap(({ deck }, g) =>
-      drawTowardDue(kept[g]!, GROUP_SIZE, dueOf, opts.random, opts.avoid ?? new Set()).map((m): PuzzleDraw => ({ itemId: m.id, slot: "", answer: m.answer, clue: m.clue, hint: "", deckId: deck.id, deck: deck.name })),
+      drawTowardDue(kept[g]!, GROUP_SIZE, dueOf, opts.random, opts.avoid ?? new Map()).map((m): PuzzleDraw => ({ itemId: m.id, slot: "", answer: m.answer, clue: m.clue, hint: "", deckId: deck.id, deck: deck.name })),
     );
     return shuffled(drawn, opts.random);
   }
