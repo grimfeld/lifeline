@@ -58,56 +58,30 @@ Topic to a set you choose.
 
 ### Puzzles
 
-- A daily word game for each Topic, built only from what you kept and have already practised —
-  Lifeline never brings in words of its own, not even a dictionary. Open the **Puzzles** tab: one
-  row per Topic and format it can make, showing whether today's is not started, in progress,
-  solved or unsolved. **Play**, **Resume** or **See** it.
-- **Wordle-like** — you are shown a Word's meaning (and a Sentence's translation, when the Word is
-  one of its blanks) and the number of letters; guess the word in six tries. Each letter turns
-  green (right place), amber (in the word, wrong place) or grey (not in the word). Type on your
-  keyboard and press Enter, or tap the on-screen letters (with delete and enter keys): they are the
-  letters of the words you kept in the Topic, each coloured by what your guesses showed of it. On a
-  phone the device's own keyboard stays out of the way.
-- Any word of the right length counts as a guess. Case and accents don't matter, and ñ counts as
-  n: *arbol* matches *árbol*. The grid and the end show the spelling you kept. A Topic where ñ is a
-  letter of its own (Spanish, say) can say so: edit the Topic and tick **ñ is its own letter**;
-  then *nino* no longer matches *niño*, and ñ joins the on-screen letters.
-- Only Words you have practised the other way round (meaning → word), not paused, with a one-word
-  term of 4 to 10 letters, are drawn — those due back soonest most often. An archived Topic, or one
-  with nothing that fits, has no Puzzle.
-- **Crossword** — a small free-form crossword of 5 to 8 answers that cross, from the Topic's
-  practised material: Words (clue: the meaning; met meaning → word), Facts whose answer is one word
-  (clue: the question) and Sentence blanks (clue: the Sentence with that blank open, plus its
-  translation). Each answer is one word of 3 to 12 letters, not paused, its prompt practised at
-  least once. A Topic with fewer than five that cross has no crossword.
-- Tap a cell to pick it, tap it again to turn between across and down, or tap a clue in the list
-  (the arrows beside the clue step through them). Type with the on-screen letters or your keyboard;
-  delete steps back, Enter goes to the next clue. Letters match as in the Wordle-like: no case, no
-  accents, ñ as n unless the Topic keeps it its own. It is solved when every cell is right; there is
-  no running out of tries. **Give up** shows the answers (wrong cells in red) and counts as unsolved.
-- **Connections** — 16 tiles, Word terms and Fact answers, to sort into 4 of the Topic's Decks.
-  Pick four and **Submit**: a right group shows under its Deck's name; a wrong one is a mistake
-  ("One away…" when three of the four belong together), and the fourth mistake ends it unsolved.
-  **Shuffle** moves the tiles around; **Deselect** clears your pick.
-- Connections draws from 4 Decks that each hold at least 4 Words or Facts you have practised (either
-  way round), not paused. Something kept in two of those Decks, or two tiles that read the same, is
-  left out, so every group has one right answer. A Topic without 4 such Decks has no Connections.
-  The groups are fixed when drawn: renaming or editing a Deck later changes nothing in it.
-- Today's Puzzle is fixed when you first open it: come back to it later the same day, guesses kept.
-  At midnight an unfinished one ends unsolved. **Give up** ends it too, unsolved, and shows the
-  answers.
-- The end shows what it drew in full — each Word's meaning or Fact's question, notes, where you met
-  it, and in Connections every group under its Deck, in a crossword every answer — and **Practise now** starts a practice of the
-  Topic.
-- Finishing a daily Puzzle (solved, failed out or given up) counts once for any Topic Tally set to
-  **daily Puzzle finished**, whether you solved it or not, so it can log a Habit. A replay, or a
-  Puzzle that ran out at midnight, counts for nothing; a Tally set to **day practised** is not
-  touched. If the Tally cannot log, the Puzzle still ends as it did and an error appears.
-- **Replay** (the circular arrow on a Topic's row) starts another puzzle of the same format as often as you like, drawn
-  afresh and avoiding what today's daily drew where it can. A replay doesn't end at midnight and never counts toward
-  anything: only the daily does.
-- Playing never changes when anything comes back: only a practice, graded by you, does. No score,
-  no streak.
+- **Puzzles** tab — a daily word puzzle per Topic and format, only from what you kept and practised;
+  **Play**, **Resume** or **See** each. Lifeline brings in no words of its own, not even a dictionary.
+- **Wordle-like** — guess a Word from its meaning (and a Sentence's translation) in six tries;
+  letters turn green (right place), amber (wrong place) or grey. Type, or tap the on-screen letters.
+- Any word of the right length is a guess; case and accents don't count, and ñ is n unless you
+  tick **ñ is its own letter** on the Topic. A Puzzle keeps the setting it was opened with.
+- The Wordle-like draws Words practised meaning → word, not paused, one word of 4 to 10 letters,
+  those due back soonest most often.
+- **Crossword** — 5 to 8 crossing answers: Words (clue: the meaning), Facts (the question) and
+  Sentence blanks (the Sentence, and its translation), each one word of 3 to 12 letters, practised.
+- Tap a cell (again to turn across/down) or a clue, then type; Enter goes to the next clue. It is
+  solved when every cell is right; **Give up** shows the answers, wrong cells in red.
+- **Connections** — 16 tiles to sort into 4 of the Topic's Decks, four mistakes allowed ("One
+  away…" when three of four belong together); **Shuffle** and **Deselect** help.
+- Connections needs 4 Decks of at least 4 practised Words or Facts; anything in two of them, or
+  tiles that read the same without accents, is left out, so each group has one answer.
+- A daily is fixed when first opened, guesses kept all day, and ends unsolved at midnight. It
+  avoids what the last 7 days' dailies drew, where anything else is left.
+- **Replay** (the circular arrow) — another puzzle of that format, never counted, not ended at
+  midnight; it avoids what today's daily and replays drew until nothing else is left.
+- The end shows each answer in its own spelling with its material in full; **Practise now**
+  practises what the puzzle drew (the whole Topic once none of it is kept).
+- A finished daily (solved, failed or given up) counts once for a Topic Tally set to **daily Puzzle
+  finished**. Playing never changes when anything comes back: no score, no streak.
 
 ### Commands
 
@@ -128,7 +102,7 @@ it came from; for a Fact, the selection stays beside you while you write the que
 ### Cards
 
 - **Due today** — everything due, by Topic; one tap into practising everything.
-- **Today's Puzzles** — each Topic's daily puzzles and how they stand (not started, in progress, solved, unsolved); one tap opens it.
+- **Today's Puzzles** — each Topic's daily puzzles and how they stand; **Play** opens one.
 
 ## Capture
 
