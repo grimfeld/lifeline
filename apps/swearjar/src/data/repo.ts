@@ -93,7 +93,7 @@ export async function logFine(o: Offence, opts?: { occurredAt?: string; note?: s
   if (o.archived) throw new Error(`${o.name} is archived`);
   if (!(o.price > 0)) throw new Error("The offence has no price");
   const occurredAt = opts?.occurredAt ?? new Date().toISOString();
-  const row = await putDocument<Fine>({ type: FINE, title: fineTitle(o, o.price, occurredAt), offenceId: o.id, amount: o.price, occurredAt, note: opts?.note?.trim() ?? "", folder: "", tags: [] } as unknown as Fine);
+  const row = await putDocument<Fine>({ type: FINE, title: fineTitle(o, o.price, occurredAt), offenceId: o.id, amount: o.price, occurredAt, note: opts?.note?.trim() ?? "", folder: "", tags: [] });
   return row.id;
 }
 

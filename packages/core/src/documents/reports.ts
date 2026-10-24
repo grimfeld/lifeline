@@ -89,7 +89,8 @@ export function topMentioned(index: LinkIndex, typeId: string, window: ReportWin
   for (const d of index.docs) {
     if (d.type !== typeId) continue;
     const days = mentionDays(index, d.id).filter((x) => inWindow(x, window));
-    if (days.length) rows.push({ docId: d.id, count: days.length, last: days[days.length - 1] });
+    const last = days.at(-1);
+    if (last) rows.push({ docId: d.id, count: days.length, last });
   }
   const title = (id: string) => index.byId.get(id)?.title ?? "";
   return rows.sort((a, b) => b.count - a.count || b.last.localeCompare(a.last) || title(a.docId).localeCompare(title(b.docId)));
@@ -143,7 +144,8 @@ export function documentFigures(index: LinkIndex, docId: string, today: DateStr)
 
 /** React hooks over the live index — recomputed only when the index is rebuilt. */
 export function useTopMentioned(index: LinkIndex, typeId: string, window: ReportWindow = {}): RankRow[] {
-  return useMemo(() => topMentioned(index, typeId, window), [index, typeId, window.from, window.to]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the window is keyed by its dates: callers pass a new object each render
+  return useMemo(() => topMentioned(index, typeId, window), [index, typeId, window.from, window.to]);
 }
 export function useDocumentFigures(index: LinkIndex, docId: string, today: DateStr): DocumentFigures {
   return useMemo(() => documentFigures(index, docId, today), [index, docId, today]);

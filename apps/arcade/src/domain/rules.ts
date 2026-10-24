@@ -1,14 +1,8 @@
-import { todayStr, type DateStr } from "@lifeline/core";
+import { todayStr } from "@lifeline/core";
 import type { Acquisition, Work } from "./types";
 
 /** A partial change to an item. Transitions return patches, never whole records. */
 export type Patch = Partial<Omit<Work, "id" | "updatedAt" | "deleted">>;
-
-export function daysSince(d: DateStr, today = todayStr()): number | null {
-  if (!d) return null;
-  const ms = new Date(today).getTime() - new Date(d).getTime();
-  return Math.max(0, Math.round(ms / 86400000));
-}
 
 // --- transitions (pure, patch-returning) ---------------------------------
 
@@ -25,8 +19,6 @@ export const shelfOfShame = (items: Work[]) =>
   items
     .filter((m) => m.acquisition === "OWNED" && m.engagement === "UNSTARTED")
     .sort((a, b) => (a.acquiredOn || "9999").localeCompare(b.acquiredOn || "9999"));
-
-export const finishedIn = (items: Work[], year: number) => items.filter((m) => m.finishedOn.startsWith(String(year)));
 
 /** Every Wanted item, oldest wish first — the Wanted list (ADR 0024: Arcade keeps Acquisition). */
 export const wantedList = (items: Work[]) =>

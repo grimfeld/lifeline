@@ -12,9 +12,6 @@ export function nightstand(items: Work[], type: WorkTypeId): Work[] {
   return items.filter((m) => m.type === type && onNightstand(m)).sort((a, b) => a.slot - b.slot);
 }
 
-/** Everything not on a Nightstand — an unranked pool (includes done/gone). */
-export const backlog = (items: Work[]) => items.filter((m) => !onNightstand(m));
-
 export function freeSlots(items: Work[], type: WorkTypeId): number[] {
   const taken = new Set(nightstand(items, type).map((m) => m.slot));
   const free: number[] = [];
@@ -87,8 +84,6 @@ export const shelfOfShame = (items: Work[]) =>
   items
     .filter((m) => m.acquisition === "OWNED" && m.engagement === "UNSTARTED")
     .sort((a, b) => (a.acquiredOn || "9999").localeCompare(b.acquiredOn || "9999"));
-export const finishedIn = (items: Work[], year: number) =>
-  items.filter((m) => m.finishedOn.startsWith(String(year)));
 /** Every Wanted item, wherever it lives — slotted ones (buy now) first, then oldest wish first. */
 export const wantedList = (items: Work[]) =>
   items

@@ -1,4 +1,4 @@
-import { useDocumentTypes, VAULT_FRAME, type AppManifest } from "@lifeline/core";
+import { useDocumentTypes, VAULT_FRAME, type AppManifest, type CardSettings } from "@lifeline/core";
 import { FileText, Hash, LayoutDashboard, MapPin, Sun, Table2, Vault, Waypoints } from "lucide-react";
 import { TodayCard } from "./surfaces/TodayCard";
 import { AgendaCard } from "./surfaces/AgendaCard";
@@ -75,7 +75,7 @@ export const hubApp: AppManifest = {
       settings: {
         app: { kind: "entity", label: "Type", useOptions: useLocatableAppOptions, anyLabel: "All types" },
       },
-      instanceTitle: (s) => (s.app ? `Map · ${useLocatableAppOptions().find((o) => o.value === s.app)?.label ?? s.app}` : ""),
+      instanceTitle: useMapCardTitle,
     },
     {
       id: "hub.tags",
@@ -111,7 +111,7 @@ export const hubApp: AppManifest = {
           ],
         },
       },
-      instanceTitle: (s) => useViewOptions().find((o) => o.value === s.view)?.label ?? "",
+      instanceTitle: useViewCardTitle,
     },
     {
       id: "hub.document",
@@ -123,7 +123,7 @@ export const hubApp: AppManifest = {
       settings: {
         doc: { kind: "entity", label: "Document", required: true, useOptions: useDocumentOptions },
       },
-      instanceTitle: (s) => useDocumentOptions().find((o) => o.value === s.doc)?.label.split(" · ")[0] ?? "",
+      instanceTitle: useDocumentCardTitle,
     },
     {
       id: "hub.graph",
@@ -144,7 +144,7 @@ export const hubApp: AppManifest = {
           ],
         },
       },
-      instanceTitle: (s) => useDocumentOptions().find((o) => o.value === s.doc)?.label.split(" · ")[0] ?? "",
+      instanceTitle: useDocumentCardTitle,
     },
     {
       id: "hub.count",
@@ -157,7 +157,7 @@ export const hubApp: AppManifest = {
       settings: {
         view: { kind: "entity", label: "View", required: true, useOptions: useViewOptions },
       },
-      instanceTitle: (s) => useViewOptions().find((o) => o.value === s.view)?.label ?? "",
+      instanceTitle: useViewCardTitle,
     },
     {
       id: "hub.report",
@@ -230,7 +230,6 @@ export const hubApp: AppManifest = {
   ],
   useCommands: () => {
     // One "Open <plural> Base" per Document type.
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const types = useDocumentTypesForCommands();
     return types.map((t) => ({
       id: `hub.base.${t.id}`,
@@ -241,6 +240,21 @@ export const hubApp: AppManifest = {
     }));
   },
 };
+
+// Instance titles are hooks (CardDef.instanceTitle), so each is a named `use…` function
+// that calls its hooks unconditionally.
+function useMapCardTitle(s: CardSettings): string {
+  const options = useLocatableAppOptions();
+  return s.app ? `Map · ${options.find((o) => o.value === s.app)?.label ?? s.app}` : "";
+}
+
+function useViewCardTitle(s: CardSettings): string {
+  return useViewOptions().find((o) => o.value === s.view)?.label ?? "";
+}
+
+function useDocumentCardTitle(s: CardSettings): string {
+  return useDocumentOptions().find((o) => o.value === s.doc)?.label.split(" · ")[0] ?? "";
+}
 
 function useDocumentTypesForCommands() {
   return useDocumentTypes().filter((t) => !t.internal);

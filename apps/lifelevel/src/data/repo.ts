@@ -201,13 +201,8 @@ export async function logNegative(negativeId: string, opts?: { occurredAt?: stri
   if (!negative || negative.type !== NEGATIVE) return null;
   const habits = (await documentsOf<Habit>(HABIT)).map(normalizeHabit);
   if (habits.length === 0) return { ok: false, reason: "no-habits" };
-  let victim: Habit | undefined;
-  if (negative.affectsHabitId) {
-    victim = habits.find((h) => h.id === negative.affectsHabitId);
-    if (!victim) return { ok: false, reason: "unpaired" };
-  } else {
-    victim = habits[Math.floor(Math.random() * habits.length)];
-  }
+  const victim = negative.affectsHabitId ? habits.find((h) => h.id === negative.affectsHabitId) : habits[Math.floor(Math.random() * habits.length)];
+  if (!victim) return { ok: false, reason: "unpaired" };
   const occurredAt = opts?.occurredAt ?? new Date().toISOString();
   const row = await putDocument<NegativeCompletion>({
     type: NEGATIVE_COMPLETION,

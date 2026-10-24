@@ -24,7 +24,7 @@ export function ProvisionPeek({ doc }: PeekProps) {
   const saveUnit = (unit: string) => unit.trim() !== p.unit && patchProvision(p.id, { unit: unit.trim() });
   const saveMinimum = (typed: string) => {
     const n = clampQty(Number(typed) || 0);
-    if (n !== p.minimum) return patchProvision(p.id, { minimum: n });
+    return n !== p.minimum ? patchProvision(p.id, { minimum: n }) : undefined;
   };
 
   return (

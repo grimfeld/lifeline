@@ -37,8 +37,8 @@ export const pocketCommands: CommandDef[] = [
       if (!(cents > 0)) throw new Error("Amount must be above zero");
       const allowance = allowanceFor(a.allowance as string, await allAllowances(), date);
       const id = await addSpend({ allowanceId: allowance.id, amount: cents, date, label: a.label as string | undefined });
-      const row = allowanceRows([allowance], await allSpends(), todayStr())[0];
-      return { id, message: `${formatCents(cents)} from ${allowance.name}: ${formatCents(row.left)} left` };
+      const left = allowanceRows([allowance], await allSpends(), todayStr())[0]?.left ?? 0;
+      return { id, message: `${formatCents(cents)} from ${allowance.name}: ${formatCents(left)} left` };
     },
   },
   { id: "pocket.allowance", title: "New allowance", keywords: ["pocket", "allowance", "budget", "month", "week"], icon: Plus, dialog: NewAllowanceDialog },

@@ -18,7 +18,7 @@ describe("an Essay's material and candidates", () => {
   const index = buildLinkIndex(docs, types);
 
   it("is what I pinned, then what the text links, each once", () => {
-    expect(materialOf(docs[0], index)).toEqual([
+    expect(materialOf(docs[0]!, index)).toEqual([
       { id: "t", via: "pinned" },
       { id: "n", via: "linked" },
       { id: "s", via: "linked" },
@@ -26,7 +26,7 @@ describe("an Essay's material and candidates", () => {
   });
 
   it("offers what sits one link from the material and is not material yet", () => {
-    const cands = candidatesOf("e", materialOf(docs[0], index), index);
+    const cands = candidatesOf("e", materialOf(docs[0]!, index), index);
     // q is a Note on the Source s (a Link field), so it touches s; nothing else is near.
     expect(cands).toEqual([{ id: "q", touches: 1 }]);
   });

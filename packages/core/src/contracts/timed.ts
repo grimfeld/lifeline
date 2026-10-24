@@ -318,7 +318,6 @@ export function useTimedItems(range: { start: DateStr; end: DateStr }, opts?: { 
   // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
   const perProvider = providers.map((p) => ({
     provider: p,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     items: p.useItems(range),
   }));
   const scope = useSurfaceScope();
@@ -349,7 +348,6 @@ export function useTimedTemplates(): TimedTemplate[] {
   // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
   const perProvider = providers.map((p) => ({
     provider: p,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     templates: p.useTemplates && p.createFromTemplate ? p.useTemplates() : [],
   }));
   const out: TimedTemplate[] = [];

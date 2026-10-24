@@ -67,8 +67,8 @@ describe("the Guide", () => {
     // Routes declared in App.tsx as literals; redirects, frames and constants are not screens.
     const source = readFileSync(new URL("../App.tsx", import.meta.url), "utf8");
     const routes = [...source.matchAll(/<Route\s+[^>]*?path="(\/[^"]*)"[^>]*?element=\{([^\n]*)\}/g)]
-      .filter(([, , element]) => !/Redirect|Navigate/.test(element))
-      .map(([, path]) => path.split("/").filter((s) => s && !s.startsWith(":") && s !== "*").map((s) => "/" + s).join(""))
+      .filter(([, , element]) => !/Redirect|Navigate/.test(element!))
+      .map(([, path]) => path!.split("/").filter((s) => s && !s.startsWith(":") && s !== "*").map((s) => "/" + s).join(""))
       .filter((path) => path);
     expect(routes.length, "found no routes in App.tsx: has this test's reading of it broken?").toBeGreaterThan(5);
 

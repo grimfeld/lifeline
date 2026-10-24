@@ -52,8 +52,7 @@ export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved
     setTags(word?.tags ?? initialList(initial, "tags"));
     setConfirmDelete(false);
     kept.current = "";
-    // `active` settles after the first render; a Word's own Topic never moves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `active` settles after the first render; a Word's own Topic never moves
   }, [open, word, prefill, initial]);
 
   useEffect(() => {

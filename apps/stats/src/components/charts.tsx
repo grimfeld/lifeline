@@ -42,9 +42,10 @@ function ChartTooltip({
   unit: string;
   color: string;
 }) {
-  if (!active || !payload?.length) return null;
-  const v = payload[0].value;
-  const lbl = payload[0].payload?.label ?? label;
+  const top = payload?.[0];
+  if (!active || !top) return null;
+  const v = top.value;
+  const lbl = top.payload?.label ?? label;
   return (
     <div className="bg-popover text-popover-foreground rounded-md border px-2 py-1 text-xs shadow-md">
       <div className="text-muted-foreground">{lbl}</div>
@@ -142,10 +143,8 @@ export function CollectionChart({ stat, items }: { stat: Stat; items: CollectedI
 /** GitHub-style grid: one column per week (Monday first), 7 rows. */
 export function DotGrid({ days, period, color, now = new Date() }: { days: Set<string>; period: Period; color: string; now?: Date }) {
   const start = periodStart(period, now);
-  let first: string;
-  if (start) first = dayKey(start);
-  else if (days.size) first = [...days].sort()[0];
-  else return <Empty>No days marked yet.</Empty>;
+  const first = start ? dayKey(start) : [...days].sort()[0];
+  if (!first) return <Empty>No days marked yet.</Empty>;
   const weeks = dotGridWeeks(days, first, dayKey(now));
   return (
     <div className="overflow-x-auto py-2">

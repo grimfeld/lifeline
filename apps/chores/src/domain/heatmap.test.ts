@@ -12,8 +12,8 @@ describe("heatmapDays", () => {
     // 2026-08-12 is a Wednesday
     const days = heatmapDays(12, "2026-08-12");
     expect(days.length).toBe(13 * 7);
-    expect(weekdayOf(days[0])).toBe(1); // Monday
-    expect(weekdayOf(days[days.length - 1])).toBe(0); // Sunday
+    expect(weekdayOf(days[0]!)).toBe(1); // Monday
+    expect(weekdayOf(days[days.length - 1]!)).toBe(0); // Sunday
     expect(days[0]).toBe("2026-05-18");
     expect(days[days.length - 1]).toBe("2026-08-16");
     expect(days).toContain("2026-08-12");

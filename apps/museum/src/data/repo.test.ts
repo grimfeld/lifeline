@@ -21,7 +21,7 @@ describe("ensureArtist", () => {
   it("gives a keyless namesake the hit's identity", async () => {
     const typed = await ensureArtist({ name: "Vermeer" });
     expect(await ensureArtist({ name: "vermeer", externalKey: "wikidata:Q41264" })).toBe(typed);
-    expect((await allArtists())[0].externalKey).toBe("wikidata:Q41264");
+    expect((await allArtists())[0]?.externalKey).toBe("wikidata:Q41264");
   });
 
   it("links a typed name to the Artist it names, keyed or not", async () => {

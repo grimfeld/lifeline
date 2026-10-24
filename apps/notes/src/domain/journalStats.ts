@@ -135,7 +135,7 @@ export function entriesPerMonth(notes: DayLike[], months: number, today: DateStr
   const idx = new Map(out.map((mc, i) => [mc.month, i]));
   for (const d of written) {
     const i = idx.get(d.slice(0, 7));
-    if (i !== undefined) out[i].count++;
+    if (i !== undefined) out[i]!.count++;
   }
   return out;
 }

@@ -57,7 +57,7 @@ describe("Field drafts round-trip", () => {
 
 describe("Field drafts being edited", () => {
   it("derives a new Field's key from what was typed, and keeps a saved one's", () => {
-    const [saved] = toFieldDrafts([{ key: "Odd Key", label: "Odd", kind: "text" }]);
+    const saved = toFieldDrafts([{ key: "Odd Key", label: "Odd", kind: "text" }])[0]!;
     expect(fieldsFromDrafts([{ ...newFieldDraft(), key: "Met at", label: "Met at" }, { ...saved, label: "Renamed" }])).toEqual([
       { key: "met_at", label: "Met at", kind: "text" },
       { key: "Odd Key", label: "Renamed", kind: "text" },
@@ -77,14 +77,14 @@ describe("Field drafts being edited", () => {
   });
 
   it("drops a Link's restriction when it is retargeted or stops being a Link", () => {
-    const [d] = toFieldDrafts([{ key: "to", label: "To", kind: "link", linkRole: "author", linkType: "person" }]);
+    const d = toFieldDrafts([{ key: "to", label: "To", kind: "link", linkRole: "author", linkType: "person" }])[0]!;
     expect(fieldsFromDrafts([{ ...d, target: { to: "types", types: ["work"] } }])).toEqual([{ key: "to", label: "To", kind: "link", linkType: "work" }]);
     expect(fieldsFromDrafts([{ ...d, kind: "text" }])).toEqual([{ key: "to", label: "To", kind: "text" }]);
   });
 
   it("drops a Choice's options when it stops being a Choice", () => {
-    const [d] = toFieldDrafts([{ key: "mood", label: "Mood", kind: "select", options: [{ value: "a", label: "A" }] }]);
-    expect(fieldsFromDrafts([{ ...d, kind: "multiselect" }])[0].options).toEqual([{ value: "a", label: "A" }]);
+    const d = toFieldDrafts([{ key: "mood", label: "Mood", kind: "select", options: [{ value: "a", label: "A" }] }])[0]!;
+    expect(fieldsFromDrafts([{ ...d, kind: "multiselect" }])[0]!.options).toEqual([{ value: "a", label: "A" }]);
     expect(fieldsFromDrafts([{ ...d, kind: "text" }])).toEqual([{ key: "mood", label: "Mood", kind: "text" }]);
   });
 });
@@ -96,13 +96,13 @@ describe("Choice options", () => {
   });
 
   it("keeps a saved option's value when it is relabelled", () => {
-    const [d] = toFieldDrafts([{ key: "mood", label: "Mood", kind: "select", options: [{ value: "home", label: "Home" }] }]);
+    const d = toFieldDrafts([{ key: "mood", label: "Mood", kind: "select", options: [{ value: "home", label: "Home" }] }])[0]!;
     const relabelled = { ...d, options: d.options.map((o) => ({ ...o, label: "At home" })) };
-    expect(fieldsFromDrafts([relabelled])[0].options).toEqual([{ value: "home", label: "At home" }]);
+    expect(fieldsFromDrafts([relabelled])[0]!.options).toEqual([{ value: "home", label: "At home" }]);
   });
 
-  const mood = () => toFieldDrafts([{ key: "mood", label: "Mood", kind: "select", options: [{ value: "home", label: "Home" }] }])[0];
-  const saved = (d: FieldDraft) => fieldsFromDrafts([d])[0].options;
+  const mood = () => toFieldDrafts([{ key: "mood", label: "Mood", kind: "select", options: [{ value: "home", label: "Home" }] }])[0]!;
+  const saved = (d: FieldDraft) => fieldsFromDrafts([d])[0]!.options;
 
   it("adds an option whose value follows its label until saved", () => {
     const d = renameOption(addOption(mood()), 1, "Eating out");
@@ -154,7 +154,7 @@ describe("A Field's key", () => {
   it("stops following once typed by hand, and can be typed until saved", () => {
     const d = relabelField(rekeyField(relabelField(newFieldDraft(), "Met"), "where"), "Met at");
     expect(d.key).toBe("where");
-    const [saved] = toFieldDrafts([{ key: "met", label: "Met", kind: "text" }]);
+    const saved = toFieldDrafts([{ key: "met", label: "Met", kind: "text" }])[0]!;
     expect(rekeyField(saved, "other").key).toBe("met");
     expect(relabelField(saved, "Met at").key).toBe("met");
   });
@@ -175,21 +175,21 @@ describe("A folded Field row", () => {
   it("has a fold-out while unsaved, whatever its kind, so its key can be edited", () => {
     expect(hasFoldOut(newFieldDraft("text", "Tags"))).toBe(true);
     const [text, choice] = toFieldDrafts([{ key: "met", label: "Met", kind: "text" }, { key: "mood", label: "Mood", kind: "select" }]);
-    expect(hasFoldOut(text)).toBe(false);
-    expect(hasFoldOut(choice)).toBe(true);
+    expect(hasFoldOut(text!)).toBe(false);
+    expect(hasFoldOut(choice!)).toBe(true);
   });
 
   it("locks a Known field's key and kind once it is added from the menu or saved (ADR 0078)", () => {
     const aliases = { known: "aliases" as const };
     expect(knownFieldLocked(newKnownFieldDraft({ key: "aliases", kind: "list", label: "Aliases" }), aliases)).toBe(true);
-    expect(knownFieldLocked(toFieldDrafts([{ key: "aliases", label: "Aliases", kind: "list" }])[0], aliases)).toBe(true);
+    expect(knownFieldLocked(toFieldDrafts([{ key: "aliases", label: "Aliases", kind: "list" }])[0]!, aliases)).toBe(true);
   });
 
   it("doesn't lock a plain Field being typed whose key happens to match a Known field's", () => {
     const typed = rekeyField(newFieldDraft("list", "Other names"), "aliases");
     expect(knownFieldLocked(typed, { known: "aliases" })).toBe(false);
     expect(hasFoldOut(typed, knownFieldLocked(typed, { known: "aliases" }))).toBe(true);
-    expect(knownFieldLocked(toFieldDrafts([{ key: "met", label: "Met", kind: "text" }])[0], {})).toBe(false);
+    expect(knownFieldLocked(toFieldDrafts([{ key: "met", label: "Met", kind: "text" }])[0]!, {})).toBe(false);
   });
 
   it("has no fold-out on a Known field — its key and kind are locked (ADR 0078)", () => {
@@ -230,7 +230,7 @@ describe("Reordering", () => {
 
   it("saves a Choice's options in the order they were moved to", () => {
     const choice: FieldDef = { key: "mood", label: "Mood", kind: "select", options: [{ value: "low", label: "Low" }, { value: "mid", label: "Mid" }, { value: "high", label: "High" }] };
-    const [d] = toFieldDrafts([choice]);
-    expect(fieldsFromDrafts([moveOption(d, 2, 0)])[0].options).toEqual([{ value: "high", label: "High" }, { value: "low", label: "Low" }, { value: "mid", label: "Mid" }]);
+    const d = toFieldDrafts([choice])[0]!;
+    expect(fieldsFromDrafts([moveOption(d, 2, 0)])[0]!.options).toEqual([{ value: "high", label: "High" }, { value: "low", label: "Low" }, { value: "mid", label: "Mid" }]);
   });
 });

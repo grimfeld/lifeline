@@ -22,7 +22,7 @@ function timeStr(d: Date): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 function addDays(d: DateStr, n: number): DateStr {
-  const [y, m, day] = d.split("-").map(Number);
+  const [y = 0, m = 1, day = 1] = d.split("-").map(Number);
   const dt = new Date(y, m - 1, day + n);
   return dateStr(dt);
 }

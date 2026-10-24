@@ -30,7 +30,7 @@ describe("rankByStreak", () => {
     const rows = rankByStreak(stats, m, false, now);
     expect(rows.map((r) => r.stat.id)).toEqual(["b", "a", "c"]);
     expect(rows.map((r) => r.current)).toEqual([2, 2, 0]);
-    expect(rows[0].longest).toBe(3);
+    expect(rows[0]?.longest).toBe(3);
   });
   it("activeOnly drops streak 0", () => {
     expect(rankByStreak(stats, m, true, now).map((r) => r.stat.id)).toEqual(["b", "a"]);
@@ -59,10 +59,10 @@ describe("sortCollections", () => {
   it("computes distinct counts and percent, sorts by progress with universe-less last", () => {
     const rows = sortCollections(stats, m, "progress");
     expect(rows.map((r) => r.stat.id)).toEqual(["c2", "c1", "c4", "c3"]);
-    expect(rows[0].percent).toBe(75);
-    expect(rows[1].count).toBe(2);
-    expect(rows[1].percent).toBe(20);
-    expect(rows[2].percent).toBeNull();
+    expect(rows[0]?.percent).toBe(75);
+    expect(rows[1]?.count).toBe(2);
+    expect(rows[1]?.percent).toBe(20);
+    expect(rows[2]?.percent).toBeNull();
   });
   it("sorts by name when asked", () => {
     expect(sortCollections(stats, m, "name").map((r) => r.stat.title)).toEqual(["Albums", "Beers", "Countries", "Zoos"]);

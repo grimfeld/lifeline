@@ -7,9 +7,9 @@ const mood = (title: string, level: unknown): Mood => ({ id: "m" + title, type: 
 describe("daylogMood", () => {
   it("reports the day's mood, untimed", () => {
     const [item] = daylogMood([mood("2026-09-01", 5)], "2026-09-01");
-    expect(item.kind).toBe("Felt");
-    expect(item.title).toBe("😄 Great");
-    expect(item.time).toBeNull();
+    expect(item?.kind).toBe("Felt");
+    expect(item?.title).toBe("😄 Great");
+    expect(item?.time).toBeNull();
   });
   it("says nothing about a day with no Mood", () => {
     expect(daylogMood([mood("2026-09-01", 5)], "2026-09-02")).toEqual([]);

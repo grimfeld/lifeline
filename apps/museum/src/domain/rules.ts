@@ -97,5 +97,5 @@ export function dailyPick<T extends { artwork: { id: string } }>(pool: T[], seed
     h ^= ch.charCodeAt(0);
     h = Math.imul(h, 0x01000193) >>> 0;
   }
-  return sorted[h % sorted.length];
+  return sorted[h % sorted.length] ?? null;
 }

@@ -107,7 +107,7 @@ export class LoginAttempts {
 
 /** RFC 7591 §3.2.2: a redirect URI the server will not register. */
 export class InvalidRedirectUriError extends OAuthError {
-  static errorCode = "invalid_redirect_uri";
+  static override errorCode = "invalid_redirect_uri";
 }
 
 /**

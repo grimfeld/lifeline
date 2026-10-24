@@ -69,12 +69,12 @@ const linkTagMatcher = new MatchDecorator({
   regexp: LINK_OR_TAG,
   decorate(add, from, to, m, view) {
     if (m[6] !== undefined) {
-      const start = from + m[5].length;
+      const start = from + m[5]!.length;
       if (normalizeTag(m[6]) && proseAt(view.state, start, true)) add(start, to, tagMark);
       return;
     }
     if (!proseAt(view.state, from)) return;
-    const link = { embed: m[1] === "!", name: m[2].trim() };
+    const link = { embed: m[1] === "!", name: m[2]!.trim() };
     const index = view.state.field(indexField, false);
     const attachments = view.state.field(attachmentsField, false) ?? [];
     // An image embed resolves against Attachments (ADR 0037), never the Document index.
@@ -209,7 +209,7 @@ class DaylogWidget extends WidgetType {
   constructor(readonly date: string, readonly apps: string[] | undefined) {
     super();
   }
-  eq(other: DaylogWidget) {
+  override eq(other: DaylogWidget) {
     return other.date === this.date && (other.apps ?? []).join() === (this.apps ?? []).join();
   }
   toDOM() {
@@ -225,12 +225,12 @@ class DaylogWidget extends WidgetType {
     this.root.render(<DaylogBlock date={this.date} apps={this.apps} compact />);
     return el;
   }
-  destroy() {
+  override destroy() {
     const root = this.root;
     this.root = null;
     if (root) queueMicrotask(() => root.unmount());
   }
-  ignoreEvent() {
+  override ignoreEvent() {
     return true;
   }
 }
@@ -299,7 +299,7 @@ class ImageWidget extends WidgetType {
   constructor(readonly name: string) {
     super();
   }
-  eq(other: ImageWidget) {
+  override eq(other: ImageWidget) {
     return other.name === this.name;
   }
   toDOM() {
@@ -309,12 +309,12 @@ class ImageWidget extends WidgetType {
     this.root.render(<AttachmentImage name={this.name} />);
     return el;
   }
-  destroy() {
+  override destroy() {
     const root = this.root;
     this.root = null;
     if (root) queueMicrotask(() => root.unmount());
   }
-  ignoreEvent() {
+  override ignoreEvent() {
     return true;
   }
 }

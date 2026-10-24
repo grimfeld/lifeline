@@ -92,7 +92,8 @@ function Bibliography({ author, works }: { author: Author; works: Work[] }) {
         if (e.name !== "AbortError") setError(navigator.onLine ? e.message || "Could not fetch" : "Offline — no bibliography");
       });
     return () => ctl.abort();
-  }, [author.id, author.externalKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the Author's identity or key changes, not on every edit of the record
+  }, [author.id, author.externalKey]);
 
   // Hundreds of rows against the whole shelf: one key index and one fold per change, not per row or render.
   const owned = useMemo(() => ownedByKey(works), [works]);

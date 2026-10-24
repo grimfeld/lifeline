@@ -42,7 +42,6 @@ function useProviderItems(range: { start: DateStr; end: DateStr }) {
   // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
   return providers.map((p) => ({
     provider: p,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     items: p.useItems(range),
   }));
 }

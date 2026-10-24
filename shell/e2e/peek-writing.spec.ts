@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
 
 /**
  * A Peek edits (ADR 0085), the writing Apps' part: a Day, a Source, a Note, a
@@ -13,19 +13,8 @@ async function workLocally(page: Page) {
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
 }
 
-/** Runs in the page against the app's own Core module. */
-async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
-  return page.evaluate(
-    async ({ coreUrl, src, arg }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
-    },
-    { coreUrl: CORE_URL, src: fn.toString(), arg },
-  );
-}
-
 /** Put the Documents (in order: a later one may name an earlier one's id as `$0`, `$1`…), then peek the last, over the Vault. */
-async function peekNew(page: Page, docs: Record<string, unknown>[]) {
+async function peekNew<const T extends Record<string, unknown>[]>(page: Page, docs: T) {
   await page.goto("/vault");
   await workLocally(page);
   const ids = await inCore(
@@ -34,16 +23,16 @@ async function peekNew(page: Page, docs: Record<string, unknown>[]) {
       const out: string[] = [];
       for (const d of list) {
         const resolved = Object.fromEntries(Object.entries(d).map(([k, v]) => [k, typeof v === "string" && /^\$\d+$/.test(v) ? out[Number(v.slice(1))] : v]));
-        out.push((await core.putDocument({ body: "", ...resolved })).id as string);
+        out.push((await core.putDocument({ body: "", ...resolved } as unknown as { type: string })).id as string);
       }
-      core.openPeek(out[out.length - 1]);
+      core.openPeek(out[out.length - 1]!);
       return out;
     },
     docs,
   );
   const dialog = page.getByRole("dialog");
   await dialog.waitFor();
-  return { dialog, id: ids[ids.length - 1], ids };
+  return { dialog, id: ids[ids.length - 1]!, ids: ids as { [K in keyof T]: string } };
 }
 
 const field = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))?.[a.key], { id, key });

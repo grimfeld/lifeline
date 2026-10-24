@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { createDocument, defaultFolder, documentsOf, putDocument, todayStr, useAllDocuments, type DateStr } from "@lifeline/core";
-import { DAILY, NOTE_TYPES, TEMPLATE, THOUGHT, type Note } from "../domain/types";
+import { DAILY, NOTE_TYPES, THOUGHT, type Note } from "../domain/types";
 import { kindOfKey, periodFolder } from "../domain/periods";
 
 const isNoteType = (t: string) => (NOTE_TYPES as readonly string[]).includes(t);
@@ -13,11 +13,6 @@ function normalize(n: Note): Note {
 export function useNotes(): Note[] {
   const docs = useAllDocuments();
   return useMemo(() => docs.filter((d) => isNoteType(d.type)).map((d) => normalize(d as Note)), [docs]);
-}
-
-export async function allNotes(): Promise<Note[]> {
-  const lists = await Promise.all(NOTE_TYPES.map((t) => documentsOf<Note>(t)));
-  return lists.flat().map(normalize);
 }
 
 /** Create a note-shaped Document from its type's template (Core handles folder rules and user templates). */
@@ -80,5 +75,3 @@ export async function appendBlockToDaily(markdown: string, now = new Date()): Pr
   const sep = note.body === "" ? "" : note.body.endsWith("\n\n") ? "" : note.body.endsWith("\n") ? "\n" : "\n\n";
   return putDocument<Note>({ ...note, body: `${note.body}${sep}${block}\n` });
 }
-
-export { TEMPLATE };

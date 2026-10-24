@@ -5,7 +5,7 @@ import { isDemo } from "../demo";
 // The Demo (ADR 0077) carries no backend URL: its client points nowhere and is never used.
 const url = isDemo()
   ? ""
-  : ((import.meta as unknown as { env?: Record<string, string> }).env?.VITE_PB_URL ?? "http://127.0.0.1:8090");
+  : ((import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_PB_URL ?? "http://127.0.0.1:8090");
 
 export const pb = new PocketBase(url);
 pb.autoCancellation(false);

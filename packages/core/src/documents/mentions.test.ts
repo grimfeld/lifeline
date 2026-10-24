@@ -28,8 +28,8 @@ describe("findMentions", () => {
       ["alex", "p1"],
       ["dune", "b1"],
     ]);
-    expect(body.slice(hits[0].from, hits[0].to)).toBe("alex doe");
-    expect(body.slice(hits[3].from, hits[3].to)).toBe("dune");
+    expect(body.slice(hits[0]!.from, hits[0]!.to)).toBe("alex doe");
+    expect(body.slice(hits[3]!.from, hits[3]!.to)).toBe("dune");
   });
   it("keeps offsets right when folding changes string length", () => {
     // decomposed é (2 code units) before the hit; Turkish İ lower-cases to two code units
@@ -41,7 +41,7 @@ describe("findMentions", () => {
     const body = "---\ntitle: Alex\n---\n[[Alex]] and [[Alex Doe|alex]] and `alex` and https://alex.example/dune\n\n```\nalex\n```\nbut alex here";
     const hits = findMentions(body, names);
     expect(hits.map((h) => h.text)).toEqual(["alex"]);
-    expect(body.slice(hits[0].from, hits[0].to)).toBe("alex");
+    expect(body.slice(hits[0]!.from, hits[0]!.to)).toBe("alex");
   });
   it("offers every Document whose name is at a spot, not only the longest", () => {
     const own: MentionName[] = [
@@ -123,7 +123,7 @@ describe("over the link index", () => {
       ["n1", "Alex Doe"],
       ["tpl", "alex"],
     ]);
-    expect(rows[1].context).toContain("Lunch with alex");
+    expect(rows[1]!.context).toContain("Lunch with alex");
     expect(unlinkedMentionsOf(idx, "d1")).toEqual([]);
     expect(unlinkedMentionsOf(idx, "tpl")).toEqual([]);
   });

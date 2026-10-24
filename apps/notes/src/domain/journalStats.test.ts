@@ -28,7 +28,7 @@ describe("onThisDay", () => {
   it("optional 1- and 4-week lookbacks come first", () => {
     const hits = onThisDay(["2026-08-11", "2026-08-04", "2026-07-21", "2025-08-18"], "2026-08-18", { alsoWeeks: true });
     expect(hits.map((h) => h.label)).toEqual(["1 week ago", "4 weeks ago", "1 year ago"]);
-    expect(hits[1].date).toBe("2026-07-21");
+    expect(hits[1]?.date).toBe("2026-07-21");
   });
   it("leap day falls back to Feb 28", () => {
     expect(sameDayInYear("2024-02-29", 2023)).toBe("2023-02-28");

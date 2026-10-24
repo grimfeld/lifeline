@@ -222,7 +222,7 @@ export function writeLink(body: string, at: LinkPlacement, canonical: string): L
     const hits: number[] = [];
     for (let i = prose.indexOf(at.text); i >= 0; i = prose.indexOf(at.text, i + at.text.length)) hits.push(i);
     if (hits.length !== at.count || at.occurrence < 0 || at.occurrence >= hits.length) return null;
-    from = hits[at.occurrence];
+    from = hits[at.occurrence]!;
     to = from + at.text.length;
   }
   if (from < 0 || to <= from || to > body.length) return null;

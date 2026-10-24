@@ -89,7 +89,8 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "game" }: { op
       clearTimeout(t);
       ctl.abort();
     };
-  }, [query, type, settings, manual]); // `search` derives from type + settings
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `search` derives from type + settings, a new function each render
+  }, [query, type, settings, manual]);
 
 
   async function choose(raw: WorkHit) {

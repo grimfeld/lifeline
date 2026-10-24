@@ -7,8 +7,8 @@ import { cascadeWorkDelete } from "./data/repo";
 import { libraryParts } from "./parts";
 import { AuthorPeek, WorkPeek } from "./components/LibraryPeeks";
 
-const ACQ_LABELS: Record<string, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
-const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
+const ACQ_LABELS: Record<(typeof ACQUISITION)[number], string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
+const ENG_LABELS: Record<(typeof ENGAGEMENT)[number], string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
 
 /**
  * The fields books, comics and manga share (ADR 0024): both axes plus the

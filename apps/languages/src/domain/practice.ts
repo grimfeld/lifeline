@@ -67,7 +67,7 @@ export function spaceSiblings<T extends { itemId: string }>(queue: T[]): T[] {
   while (rest.length) {
     const last = out[out.length - 1]?.itemId;
     const i = rest.findIndex((p) => p.itemId !== last);
-    out.push(rest.splice(i === -1 ? 0 : i, 1)[0]);
+    out.push(...rest.splice(i === -1 ? 0 : i, 1));
   }
   return out;
 }

@@ -19,7 +19,7 @@ export const PERIOD_LABELS: Record<PeriodKind, { one: string; many: string; this
 const pad = (n: number) => String(n).padStart(2, "0");
 
 function parts(date: DateStr): { y: number; m: number; d: number } {
-  const [y, m, d] = date.split("-").map(Number);
+  const [y = 0, m = 1, d = 1] = date.split("-").map(Number);
   return { y, m, d };
 }
 
@@ -76,7 +76,7 @@ export function periodRange(key: string): { from: DateStr; to: DateStr } | undef
   if (!kind) return undefined;
   if (kind === "year") return { from: `${key}-01-01`, to: `${key}-12-31` };
   if (kind === "month") {
-    const [y, m] = key.split("-").map(Number);
+    const [y = 0, m = 1] = key.split("-").map(Number);
     const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
     return { from: `${key}-01`, to: `${key}-${pad(last)}` };
   }
@@ -134,7 +134,7 @@ export function periodLabel(key: string, locale?: string): string {
   const kind = kindOfKey(key);
   if (kind === "week") return `Week ${Number(key.slice(-2))}, ${key.slice(0, 4)}`;
   if (kind === "month") {
-    const [y, m] = key.split("-").map(Number);
+    const [y = 0, m = 1] = key.split("-").map(Number);
     return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString(locale, { month: "long", year: "numeric", timeZone: "UTC" });
   }
   if (kind === "quarter") return `Q${key.slice(-1)} ${key.slice(0, 4)}`;

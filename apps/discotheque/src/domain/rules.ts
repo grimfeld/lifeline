@@ -32,7 +32,3 @@ export const setReview = (body: string): Patch => ({ body: body.trim() });
 
 /** The star row is offered once the work is not merely To listen — or as soon as it carries a rating. */
 export const showsRating = (item: Work): boolean => item.rating > 0 || item.engagement !== "UNSTARTED";
-
-// --- derived views ---------------------------------------------------------
-
-export const finishedIn = (items: Work[], year: number) => items.filter((m) => m.finishedOn.startsWith(String(year)));

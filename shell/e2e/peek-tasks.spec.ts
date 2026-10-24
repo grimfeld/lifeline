@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
 import { openCalendar, pickDate, pickInCalendar } from "./support/date-picker";
 import { setTime } from "./support/time-field";
 
@@ -14,24 +14,13 @@ async function workLocally(page: Page) {
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
 }
 
-/** Runs in the page against the app's own Core module. */
-async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
-  return page.evaluate(
-    async ({ coreUrl, src, arg }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
-    },
-    { coreUrl: CORE_URL, src: fn.toString(), arg },
-  );
-}
-
 async function peek(page: Page, id: string) {
   await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
   // The first dialog: a Date picker's popover is a later one.
   return page.getByRole("dialog").first();
 }
 
-const field = (page: Page, id: string) => inCore(page, async (core, docId: string) => core.getDocument(docId), id);
+const field = (page: Page, id: string) => inCore(page, async (core, docId: string) => (await core.getDocument(docId))!, id);
 
 test("a Task peeked from the Vault is moved to another day and given notes there", async ({ page }) => {
   const stamp = Date.now();

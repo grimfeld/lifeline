@@ -227,7 +227,7 @@ export function WorkoutEditorDialog({ open, onOpenChange, workout }: { open: boo
       const next = [...cur];
       const j = i + dir;
       if (j < 0 || j >= next.length) return cur;
-      [next[i], next[j]] = [next[j], next[i]];
+      [next[i], next[j]] = [next[j]!, next[i]!];
       return next;
     });
 

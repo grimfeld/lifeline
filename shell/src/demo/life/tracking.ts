@@ -234,9 +234,10 @@ const MOODS = ["rough", "meh", "okay", "good", "great"] as const;
 async function seedMoods(c: LifeClock): Promise<void> {
   // Mostly okay to good, the odd rough day, Saturdays at the sea a little better; a few days not recorded.
   const pattern = [3, 4, 3, 4, 4, 2, 3, 4, 5, 3, 4, 3, 1, 3, 4, 4, 3, 5, 4, 2, 4, 3, 4, 4, 3, 5, 4, 3, 4, 3, 2, 4, 4, 3, 4];
-  for (let n = -HISTORY; n < 0; n++) {
+  for (const [k, base] of pattern.entries()) {
+    const n = k - HISTORY;
     if (wobble(n, 7) === 0) continue;
-    let level = pattern[n + HISTORY];
+    let level = base;
     if (weekdayOf(c.day(n)) === 6) level = Math.min(5, level + 1);
     await run("mood.set", { mood: MOODS[level - 1], date: c.day(n) });
   }

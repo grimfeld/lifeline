@@ -7,7 +7,7 @@ import { PlaylistPeek, WorkPeek } from "./components/CinemaPeeks";
 import { cascadeWorkDelete } from "./data/repo";
 import { cinemaParts } from "./parts";
 
-const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
+const ENG_LABELS: Record<(typeof ENGAGEMENT)[number], string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
 
 /**
  * The watching family's shared fields (ADR 0024, type ids unchanged from

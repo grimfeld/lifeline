@@ -217,8 +217,8 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
    * value until the debounced save comes back and eats the keys typed meanwhile.
    */
   const [fieldDraft, setFieldDraft] = useState<FieldDraft>({});
-  useEffect(() => setFieldDraft((d) => settleDraft(d, doc as unknown as Record<string, unknown>)), [doc]);
-  const fieldValues = useMemo(() => draftedValues(fields, doc as unknown as Record<string, unknown>, fieldDraft), [doc, fields, fieldDraft]);
+  useEffect(() => setFieldDraft((d) => settleDraft(d, doc)), [doc]);
+  const fieldValues = useMemo(() => draftedValues(fields, doc, fieldDraft), [doc, fields, fieldDraft]);
   const changeFields = (next: Record<string, unknown>) => {
     const changed: FieldDraft = {};
     for (const [k, v] of Object.entries(next)) if (v !== fieldValues[k]) changed[k] = v;
@@ -271,7 +271,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
   );
   useEffect(() => {
     if (mode === "text") setText(documentToText(doc, textDef, codec));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-serialise only on switching into text mode; while in it, the text is the person's
   }, [mode]);
   function commitText() {
     const { patch, rejected } = textToDocument(text, doc, textDef, codec);

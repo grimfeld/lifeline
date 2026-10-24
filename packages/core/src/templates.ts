@@ -5,5 +5,5 @@ export function renderTemplate(text: string, vars: { title: string; date: DateSt
   const now = vars.now ?? new Date();
   const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   const map: Record<string, string> = { title: vars.title, date: vars.date, time };
-  return text.replace(/\{\{\s*([a-zA-Z]+)\s*\}\}/g, (m, key: string) => (key in map ? map[key] : m));
+  return text.replace(/\{\{\s*([a-zA-Z]+)\s*\}\}/g, (m, key: string) => (key in map ? (map[key] ?? m) : m));
 }

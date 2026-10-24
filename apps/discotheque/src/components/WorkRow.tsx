@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  Badge,
   Button,
-  cn,
   Dialog,
   DialogContent,
   DialogFooter,
@@ -10,18 +8,13 @@ import {
   DialogTitle,
   Input,
   Label,
-  TagChips,
   TagInput,
   Textarea,
   toast,
 } from "@lifeline/ui";
-import { Check, Play } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import { type Work } from "../domain/types";
-import { finish, start } from "../domain/rules";
 import { patchWork } from "../data/repo";
-import { Cover } from "./Cover";
-import { WorkActionsMenu, useAct } from "./WorkActions";
 import { displayTitle, docHref, normalizeTag, useLinkIndex, useTagVocabulary } from "@lifeline/core";
 
 /** Documents mentioning this item via [[wikilink]] (ADR 0018). Muted, read-only. */
@@ -136,50 +129,5 @@ export function EditWorkDialog({ item, onClose }: { item: Work | null; onClose: 
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-/** One item with its transitions — cover, credit line, badges, start/finish. */
-export function WorkRow({ item, all: _all, onEdit, compact = false }: { item: Work; all?: Work[]; onEdit: (m: Work) => void; compact?: boolean }) {
-  const def = workType(item.type);
-  const reading = item.engagement === "IN_PROGRESS";
-  const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
-  const act = useAct(item);
-
-  return (
-    <div className={cn("bg-card flex items-center gap-3 rounded-lg border px-3 py-2", compact && "px-2 py-1.5")}>
-      <Cover item={item} />
-      <div className="min-w-0 flex-1">
-        <span className="truncate text-sm font-medium">{item.title}</span>
-        <div className="text-muted-foreground truncate text-xs">
-          {item.creator}
-          {item.year ? ` · ${item.year}` : ""}
-          {!compact && item.size ? ` · ${item.size} ${def.sizeUnit}` : ""}
-        </div>
-        {!compact && item.reason && <div className="text-muted-foreground line-clamp-2 text-xs italic">{item.reason}</div>}
-        {(item.tags ?? []).length > 0 && <TagChips tags={item.tags} size="xs" className="mt-0.5" />}
-        <div className="mt-1 flex flex-wrap items-center gap-1">
-          {reading && <Badge>{def.engagement.IN_PROGRESS}</Badge>}
-          {item.engagement !== "UNSTARTED" && !reading && <Badge variant="secondary">{def.engagement[item.engagement]}</Badge>}
-        </div>
-      </div>
-
-      {!compact && (
-        <div className="hidden shrink-0 gap-1 sm:flex">
-          {!reading && !done && (
-            <Button size="sm" variant="outline" onClick={act(`${def.engagement.IN_PROGRESS}…`, start())}>
-              <Play /> {def.startVerb}
-            </Button>
-          )}
-          {reading && (
-            <Button size="sm" onClick={act(`${item.title} — ${def.engagement.DONE.toLowerCase()}.`, finish())}>
-              <Check /> {def.finishVerb}
-            </Button>
-          )}
-        </div>
-      )}
-
-      <WorkActionsMenu item={item} onEdit={onEdit} />
-    </div>
   );
 }

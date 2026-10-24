@@ -18,7 +18,7 @@ export function ReceiptPhoto({ body, className }: { body: string | undefined; cl
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the attachment's id and file: the record object is new on every read
   }, [attId, attFile]);
   if (!name) return null;
   if (!src) return <div className={`text-muted-foreground text-xs ${className ?? ""}`}>{att ? "Loading photo…" : `Missing photo "${name}"`}</div>;

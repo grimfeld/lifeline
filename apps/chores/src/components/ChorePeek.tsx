@@ -34,7 +34,7 @@ export function ChorePeek({ doc }: PeekProps) {
       const read = scheduleOf(d);
       return read.ok && JSON.stringify(read.schedule) === saved ? d : draftOf(chore.schedule);
     });
-    // Keyed on `saved`, the schedule's value: the object itself changes identity on every read.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on `saved`, the schedule's value: the object itself changes identity on every read
   }, [saved]);
   const read = scheduleOf(draft);
 

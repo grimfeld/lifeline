@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { useTasks } from "@lifeline/app-tasks";
-import { todayStr, type CardOption, type CardProps } from "@lifeline/core";
+import { todayStr, type CardOption, type CardProps, type CardSettings } from "@lifeline/core";
 import { byRank, nextTaskOf, progressOf } from "../domain/board";
 import { projectHref } from "../domain/types";
 import { useLanes, useMilestones, useProjects } from "../data/repo";
@@ -15,8 +15,19 @@ export function useProjectOptions(): CardOption[] {
     .map((p) => ({ value: p.id, label: p.title }));
 }
 
-export function useProjectTitle(id: unknown): string {
+function useProjectTitle(id: unknown): string {
   return useProjects().find((p) => p.id === id)?.title ?? "";
+}
+
+/** The Project Card's instance title: its Project's. */
+export function useProjectCardTitle(s: CardSettings): string {
+  return useProjectTitle(s.project);
+}
+
+/** The Project board Card's instance title: "<Project> · Board". */
+export function useBoardCardTitle(s: CardSettings): string {
+  const t = useProjectTitle(s.project);
+  return t ? `${t} · Board` : "";
 }
 
 /** Every Active Project: progress, Deadline and next Task — the morning glance. */

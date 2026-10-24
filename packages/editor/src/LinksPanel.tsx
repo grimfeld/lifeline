@@ -154,7 +154,7 @@ export function UnlinkedNamesSection({ docId, index }: Omit<SectionProps, "onOpe
   if (hits.length === 0) return null;
   async function linkHere(list: MentionHit[]) {
     await patchDocument(docId, { body: linkMentions(bodyIn(index, docId), list) });
-    toast.success(list.length === 1 ? `Linked ${list[0].canonical}` : `Linked ${list.length} mentions`);
+    toast.success(list.length === 1 ? `Linked ${list[0]!.canonical}` : `Linked ${list.length} mentions`);
   }
   return (
     <section className="min-w-0">

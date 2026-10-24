@@ -149,7 +149,7 @@ export function comparedBy(obs: readonly Observation[], products: readonly (Pick
  */
 export function unitPriceOn(o: Observation, product: Pick<Product, "id" | "dimension"> & SecondaryMeasure, basis?: Basis): number | null {
   const [read] = comparedBy([o], [product], basisOf(product, basis));
-  return countsPerUnit(read) ? unitPrice(read.line) : null;
+  return read && countsPerUnit(read) ? unitPrice(read.line) : null;
 }
 
 /**
@@ -264,7 +264,7 @@ export function historiesByProduct(obs: readonly Observation[]): Map<string, Map
 
 /** The latest non-promo point — the "usual price"; a promo-only history yields nothing. */
 export function latestUsual(points: readonly PricePoint[]): PricePoint | undefined {
-  for (let i = points.length - 1; i >= 0; i--) if (!points[i].promo) return points[i];
+  for (let i = points.length - 1; i >= 0; i--) if (!points[i]!.promo) return points[i];
   return undefined;
 }
 
@@ -301,10 +301,9 @@ export function changesIn(history: ReadonlyMap<string, PricePoint[]>, from: Date
   const out: ShopChange[] = [];
   for (const [shopId, points] of history) {
     const usual = points.filter((p) => !p.promo && p.date >= from && p.date <= to);
-    if (usual.length < 2) continue;
     const first = usual[0];
-    const last = usual[usual.length - 1];
-    if (first.unit <= 0) continue;
+    const last = usual.at(-1);
+    if (usual.length < 2 || !first || !last || first.unit <= 0) continue;
     out.push({ shopId, first, last, pct: ((last.unit - first.unit) / first.unit) * 100 });
   }
   return out;
@@ -314,7 +313,8 @@ export function median(nums: readonly number[]): number | null {
   if (nums.length === 0) return null;
   const s = [...nums].sort((a, b) => a - b);
   const mid = Math.floor(s.length / 2);
-  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  // mid and mid - 1 are in range: s has at least one element, two when even.
+  return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
 }
 
 /** The all-Products figure: the median of every per-Shop change over the span, and how many went in. */

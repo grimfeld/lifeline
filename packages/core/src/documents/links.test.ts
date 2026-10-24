@@ -50,7 +50,7 @@ describe("buildLinkIndex", () => {
     expect(idx.backlinksTo("p1").map((b) => b.sourceId)).toEqual(["d1", "d2", "tpl"]);
     expect(idx.backlinksTo("m1").map((b) => [b.sourceId, b.field])).toEqual([["d1", undefined], ["d2", undefined], ["r1", "source"]]);
     expect(idx.backlinksTo("tpl")).toEqual([]);
-    expect(idx.backlinksTo("p1")[0].context).toContain("[[Yas]]");
+    expect(idx.backlinksTo("p1")[0]!.context).toContain("[[Yas]]");
   });
   it("collects unresolved names and tags", () => {
     expect(idx.unresolved.get("nobody")).toEqual(["d1"]);

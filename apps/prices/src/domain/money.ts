@@ -24,8 +24,7 @@ export function parseAmount(text: string): number | null {
   const lastDot = s.lastIndexOf(".");
   const lastComma = s.lastIndexOf(",");
   if (lastDot >= 0 && lastComma >= 0) {
-    const dec = Math.max(lastDot, lastComma);
-    const decCh = s[dec];
+    const decCh = lastDot > lastComma ? "." : ",";
     s = s.replaceAll(decCh === "." ? "," : ".", "");
     s = s.replace(decCh, ".");
   } else if (lastComma >= 0) {

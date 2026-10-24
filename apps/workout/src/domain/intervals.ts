@@ -106,8 +106,8 @@ export function expandBlock(b: Block, blockIndex: number): Interval[] {
 /** The whole Workout as intervals, with a get-ready prep in front. */
 export function expandWorkout(w: Pick<Workout, "blocks">, prepSeconds = PREP_SECONDS): Interval[] {
   const out: Interval[] = [];
-  if (prepSeconds > 0 && w.blocks.length > 0) {
-    const first = w.blocks[0];
+  const first = w.blocks[0];
+  if (prepSeconds > 0 && first) {
     out.push({ blockIndex: 0, blockId: first.id, mode: first.mode, round: 0, rounds: first.rounds, kind: "prep", seconds: prepSeconds, open: false, label: "Get ready" });
   }
   w.blocks.forEach((b, i) => out.push(...expandBlock(b, i)));
@@ -127,7 +127,7 @@ export interface Position {
 export function positionAt(intervals: Interval[], elapsed: number): Position {
   let t = Math.max(0, elapsed);
   for (let i = 0; i < intervals.length; i++) {
-    const s = intervals[i].seconds;
+    const s = intervals[i]!.seconds;
     if (t < s) return { index: i, into: t, remaining: s - t, done: false };
     t -= s;
   }
@@ -138,7 +138,7 @@ export function positionAt(intervals: Interval[], elapsed: number): Position {
 /** Seconds from the start of the sequence to the start of interval `index`. */
 export function offsetOf(intervals: Interval[], index: number): number {
   let t = 0;
-  for (let i = 0; i < index && i < intervals.length; i++) t += intervals[i].seconds;
+  for (let i = 0; i < index && i < intervals.length; i++) t += intervals[i]!.seconds;
   return t;
 }
 

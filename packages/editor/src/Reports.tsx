@@ -58,7 +58,8 @@ export function RankingReport({
   empty?: string | null;
 }) {
   const today = todayStr();
-  const rows = useMemo(() => rankingRows(index, typeId, setting, window, today), [index, typeId, setting, window.from, window.to, today]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the window is keyed by its dates: callers pass a new object each render
+  const rows = useMemo(() => rankingRows(index, typeId, setting, window, today), [index, typeId, setting, window.from, window.to, today]);
   if (rows.length === 0 && empty === null) return null;
   return (
     <section className="min-w-0">
@@ -165,7 +166,7 @@ export function ReportsEditor({ value, onChange }: { value: ReportSetting[]; onC
   const move = (i: number, by: number) => {
     const next = [...value];
     const [x] = next.splice(i, 1);
-    next.splice(i + by, 0, x);
+    if (x) next.splice(i + by, 0, x);
     onChange(next);
   };
   const patch = (i: number, p: Partial<ReportSetting>) => onChange(value.map((r, j) => (j === i ? { ...r, ...p } : r)));

@@ -203,7 +203,7 @@ async function seedLedger(c: LifeClock, groceries: { shop: string; date: DateStr
   // The rent goes out the day after payday, with the standing order.
   for (const d of lastMonthly(c.today, 26, 3)) await spend(current, "Rent", "Ballintemple Lettings", 1_350, d);
   const power = [84.12, 79.6, 91.35];
-  for (const [i, d] of lastMonthly(c.today, 14, 3).entries()) await spend(current, "Utilities", "Lee Valley Energy", power[i], d);
+  for (const [i, d] of lastMonthly(c.today, 14, power.length).entries()) await spend(current, "Utilities", "Lee Valley Energy", power[i]!, d);
   for (const d of lastMonthly(c.today, 8, 3)) await spend(current, "Phone & internet", "Wavelink Mobile", 25, d);
   for (const d of lastMonthly(c.today, 18, 3)) await spend(current, "Phone & internet", "Rebel City Fibre", 45, d);
   for (const d of lastMonthly(c.today, 5, 3)) await spend(current, "Climbing & sport", PLACES.crag.name, 55, d, "Monthly membership");
@@ -215,7 +215,7 @@ async function seedLedger(c: LifeClock, groceries: { shop: string; date: DateStr
     await addTransaction({ kind: "transfer", date: d, amount: 400_00, fromAccountId: current, toAccountId: savings, note: "Standing order" });
   // Last month's card bill, cleared from the current account.
   const [, payoff] = lastMonthly(c.today, 20, 2);
-  await addTransaction({ kind: "transfer", date: payoff, amount: 312_40, fromAccountId: current, toAccountId: card, note: "Card bill" });
+  if (payoff) await addTransaction({ kind: "transfer", date: payoff, amount: 312_40, fromAccountId: current, toAccountId: card, note: "Card bill" });
 
   // The weekly shop, on the card — the same Receipts the Prices App holds.
   for (const g of groceries) await spend(card, "Groceries", g.shop, g.cents / 100, g.date);

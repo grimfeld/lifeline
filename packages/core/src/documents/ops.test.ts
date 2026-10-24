@@ -81,7 +81,7 @@ describe("planFolderRename (CR-02)", () => {
   it("leaves a body-less Document's body alone", () => {
     const rows = planFolderRename([doc("A", "f")], "f", "g");
     expect(rows).toHaveLength(1);
-    expect(rows[0].folder).toBe("g");
-    expect(rows[0].body).toBeUndefined();
+    expect(rows[0]!.folder).toBe("g");
+    expect(rows[0]!.body).toBeUndefined();
   });
 });

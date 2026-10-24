@@ -160,12 +160,12 @@ export function MobileNav() {
             const Icon = SURFACE_ICONS[s.id];
             return (
               <button type="button" key={s.id} className={slot(location.pathname === s.path)} onClick={() => navigate(s.path)}>
-                <Icon className="size-5" /> {s.title}
+                {Icon && <Icon className="size-5" />} {s.title}
               </button>
             );
           })}
 
-          {slotCell(slots[BAR_LEFT_SLOT], BAR_LEFT_SLOT)}
+          {slotCell(slots[BAR_LEFT_SLOT] ?? null, BAR_LEFT_SLOT)}
 
           <button type="button" className={slot(false)} onClick={() => setCaptureOpen(true)}>
             <Plus className="size-5" /> Capture

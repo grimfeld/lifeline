@@ -58,14 +58,16 @@ export function useVaultTabMemory(): VaultTab | undefined {
   const id = /^\/vault\/d\/([^/?]+)/.exec(location.pathname)?.[1];
   const doc = useDocument(id);
   const tab = tabOfFolder(doc?.folder);
+  const docId = doc?.id;
+  const tabId = tab?.id;
   useEffect(() => {
-    if (!doc || !tab) return;
+    if (!docId || !tabId) return;
     try {
-      localStorage.setItem(LAST_KEY(tab.id), doc.id);
+      localStorage.setItem(LAST_KEY(tabId), docId);
     } catch {
       /* private mode: the tab falls back to the folder's newest Document */
     }
-  }, [doc?.id, tab?.id]);
+  }, [docId, tabId]);
   return tab;
 }
 

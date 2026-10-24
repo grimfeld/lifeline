@@ -3,7 +3,6 @@ import { ItemMark, missed } from "./marks";
 import { DndContext, DragOverlay, MouseSensor, TouchSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragMoveEvent, type DragStartEvent } from "@dnd-kit/core";
 import { Button, cn, toast, Tooltip, TooltipContent, TooltipTrigger } from "@lifeline/ui";
 import {
-  BLOCK_DEFAULT_MIN,
   canPush,
   addDays,
   canRescheduleTimed,
@@ -42,39 +41,14 @@ import { CalendarClock, Check, ChevronDown, Inbox, LayoutTemplate, Plus, Trash2,
 import { usePush } from "./push";
 import { HoursEditor, type HoursEditing, type HoursTarget } from "./HoursEditor";
 import { AddAtHour, type AddingAt } from "./AddAtHour";
-import { SNAP_MIN, snap, sweptRange, toClock } from "./hours";
+import { snap, sweptRange, toClock } from "./hours";
+import { DEFAULT_MIN, HOUR_PX, addHours, bandsOn, durationOf, entriesByDay as groupEntries, hourLabel, landingHours, lengthOf, resizedEnd, slotHours, stripOn, templateLength, weekdayName, type Band, type Entry, type Ghost, type Lifted, type WorkItem } from "./scheduleGrid";
 import type { CalendarCtx } from "./CalendarSurface";
 
 const NO_ENTRIES: Entry[] = [];
-const HOUR_PX = 56;
 /** Long enough that a flick to scroll never lifts a block; short enough to feel like a press. */
 const LONG_PRESS_MS = 350;
-const DEFAULT_MIN = BLOCK_DEFAULT_MIN;
 const POOL = "pool";
-const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-type WorkItem = (SurfaceItem | (PoolItem & { displayDate?: undefined; placementId?: undefined; start?: undefined; end?: undefined })) & { color?: string };
-type Entry = { kind: "block"; item: SurfaceItem; start: string; end: string } | { kind: "timed"; item: SurfaceTimedItem; start: string; end: string };
-/** Where a lifted item will land: drawn in the grid while the drag hovers a day. */
-type Ghost = { date: DateStr; startH: number; lenH: number };
-/** A Time blocker's band on one day (ADR 0027): painted behind everything. A weekly rule's band is fixed; a one-off's (ADR 0029) drags and resizes. */
-type Band = { key: string; title: string; start: string; end: string; color?: string; fixed: boolean; item: SurfaceTimedItem };
-
-/** The hour gutter's label: "1:00 PM" with room, bare "1 PM" on a phone. */
-function hourLabel(hour: number, compact: boolean): string {
-  return new Date(Date.UTC(2000, 0, 1, hour, 0)).toLocaleTimeString(undefined, {
-    hour: "numeric",
-    ...(compact ? {} : { minute: "2-digit" }),
-    timeZone: "UTC",
-  });
-}
-
-function durationOf(start: string, end: string | null | undefined, fallbackMin = DEFAULT_MIN): number {
-  return end ? Math.max(SNAP_MIN / 60, toHours(end) - toHours(start)) : fallbackMin / 60;
-}
-function addHours(start: string, h: number): string {
-  return toClock(Math.min(24, toHours(start) + h));
-}
 
 /** Push (ADR 0054) on a chip or block: a small icon that must not start a drag. Nothing where Push is not offered. */
 function PushIcon({ item, className }: { item: WorkItem; className?: string }) {
@@ -239,14 +213,12 @@ function Block({ entry, from, cols, col, touch, onResize, onComplete, onRemove, 
         }}
         onPointerMove={(ev) => {
           if (!resizing.current) return;
-          const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
-          const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
+          const next = resizedEnd(s, resizing.current.startEnd, ev.clientY - resizing.current.startY);
           (ev.currentTarget.parentElement as HTMLElement).style.height = `${Math.max(18, (next - s) * HOUR_PX - 2)}px`;
         }}
         onPointerUp={(ev) => {
           if (!resizing.current) return;
-          const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
-          const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
+          const next = resizedEnd(s, resizing.current.startEnd, ev.clientY - resizing.current.startY);
           resizing.current = null;
           if (next !== e) onResize(next);
         }}
@@ -338,14 +310,12 @@ function OneOffBand({ band, s, e, style, title, touch, onResize, onOpen }: { ban
             }}
             onPointerMove={(ev) => {
               if (!resizing.current) return;
-              const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
-              const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
+              const next = resizedEnd(s, resizing.current.startEnd, ev.clientY - resizing.current.startY);
               (ev.currentTarget.parentElement as HTMLElement).style.height = `${(next - s) * HOUR_PX}px`;
             }}
             onPointerUp={(ev) => {
               if (!resizing.current) return;
-              const dh = (ev.clientY - resizing.current.startY) / HOUR_PX;
-              const next = Math.max(s + SNAP_MIN / 60, snap(resizing.current.startEnd + dh));
+              const next = resizedEnd(s, resizing.current.startEnd, ev.clientY - resizing.current.startY);
               resizing.current = null;
               if (next !== e) onResize(next);
             }}
@@ -448,7 +418,7 @@ function DayColumn({
             {...{
               [touch ? "onClick" : "onDoubleClick"]: (e: React.MouseEvent<HTMLDivElement>) => {
                 const rect = e.currentTarget.getBoundingClientRect();
-                const hours = Math.min(to - SNAP_MIN / 60, snap(from + i + (e.clientY - rect.top) / HOUR_PX - SNAP_MIN / 120));
+                const hours = slotHours(from, to, i, e.clientY - rect.top);
                 onSlotClick(date, hours, { x: e.clientX, y: e.clientY });
               },
             }}
@@ -510,7 +480,7 @@ function TemplateChip({ template, onAdd }: { template: TimedTemplate; onAdd: () 
     >
       <span className="truncate">{template.title}</span>
       <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">
-        {template.durationMin === null ? "all day" : template.durationMin >= 60 ? `${Math.round((template.durationMin / 60) * 10) / 10}h` : `${template.durationMin}m`}
+        {templateLength(template.durationMin)}
       </span>
       {!template.background && (
       <button
@@ -617,7 +587,7 @@ function DayStrip({ anchor, today, onPick }: { anchor: DateStr; today: DateStr; 
               active ? "bg-primary text-primary-foreground border-primary" : d === today ? "text-primary" : "text-muted-foreground",
             )}
           >
-            {DAY_NAMES[(new Date(d + "T12:00:00").getDay() + 6) % 7]}
+            {weekdayName(d)}
             <span className="text-sm font-medium tabular-nums">{parts(d).day}</span>
           </button>
         );
@@ -636,8 +606,8 @@ function DayStrip({ anchor, today, onPick }: { anchor: DateStr; today: DateStr; 
  */
 export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
   const { view, anchor, today, days, tags, isMobile, go } = ctx;
-  const first = days[0];
-  const last = days[days.length - 1];
+  const first = days[0] ?? anchor;
+  const last = days.at(-1) ?? first;
   const items = useSurfaceItems({ start: first, end: last }, { tags });
   const pool = usePoolItems({ tags });
   const allTimed = useTimedItems({ start: first, end: last }, { tags });
@@ -660,26 +630,10 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
   const blocks = useMemo(() => items.filter((i) => i.start), [items]);
   const { from, to } = useMemo(() => hourWindow([...timedIn, ...blocks.map((b) => ({ start: b.start!, end: b.end ?? null }))], 7, 23), [timedIn, blocks]);
 
-  const entriesByDay = useMemo(() => {
-    const out = new Map<DateStr, Entry[]>();
-    const add = (d: DateStr, e: Entry) => {
-      const list = out.get(d);
-      if (list) list.push(e);
-      else out.set(d, [e]);
-    };
-    for (const b of blocks) add(b.displayDate, { kind: "block", item: b, start: b.start!, end: b.end ?? addHours(b.start!, DEFAULT_MIN / 60) });
-    for (const t of timedIn) add(t.date, { kind: "timed", item: t, start: t.start!, end: t.end ?? addHours(t.start!, 1) });
-    return out;
-  }, [blocks, timedIn]);
+  const entriesByDay = useMemo(() => groupEntries(blocks, timedIn), [blocks, timedIn]);
   const entriesFor = (d: DateStr): Entry[] => entriesByDay.get(d) ?? NO_ENTRIES;
-  const bandsFor = (d: DateStr): Band[] =>
-    bandItems
-      .filter((b) => b.date === d)
-      .map((b) => ({ key: b.key, title: b.title, start: b.start!, end: b.end ?? "24:00", color: b.color, fixed: !!b.fixed, item: b }));
-  const stripFor = (d: DateStr) => ({
-    work: items.filter((i) => i.displayDate === d && !i.start) as WorkItem[],
-    allDay: timed.filter((t) => t.date === d && !t.start),
-  });
+  const bandsFor = (d: DateStr): Band[] => bandsOn(bandItems, d);
+  const stripFor = (d: DateStr) => stripOn(items, timed, d);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
@@ -740,18 +694,11 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
     const colEl = document.querySelector<HTMLElement>(`[data-col="${date}"]`);
     const colTop = colEl ? colEl.getBoundingClientRect().top : e.over!.rect.top;
     const top = pointer.current.y - (isBlockDrag ? pointer.current.grab : 8) - colTop;
-    return { date, startH: Math.max(from, Math.min(to - SNAP_MIN / 60, snap(from + top / HOUR_PX))) };
-  }
-  /** How long the lifted thing lasts, in hours; null when it lands as all-day. */
-  function lengthOf(d: { item?: WorkItem; timed?: SurfaceTimedItem; template?: TimedTemplate }): number | null {
-    if (d.template) return d.template.durationMin === null ? null : d.template.durationMin / 60;
-    if (d.item) return d.item.start ? durationOf(d.item.start, d.item.end) : DEFAULT_MIN / 60;
-    if (d.timed) return d.timed.start ? durationOf(d.timed.start, d.timed.end, 60) : 1;
-    return null;
+    return { date, startH: landingHours(top, from, to) };
   }
   function onDragMove(e: DragMoveEvent) {
     const at = landing(e);
-    const lenH = at && lengthOf(e.active.data.current as Parameters<typeof lengthOf>[0]);
+    const lenH = at && lengthOf(e.active.data.current as Lifted);
     const next = at && lenH ? { ...at, lenH } : null;
     setGhost((g) => (g?.date === next?.date && g?.startH === next?.startH && g?.lenH === next?.lenH ? g : next));
   }
@@ -858,7 +805,7 @@ export function ScheduleView({ ctx }: { ctx: CalendarCtx }) {
                   onClick={() => view !== "day" && ctx.openDay(d)}
                   title={view !== "day" ? `Open ${formatHuman(d)}` : undefined}
                 >
-                  {DAY_NAMES[(new Date(d + "T12:00:00").getDay() + 6) % 7]}{" "}
+                  {weekdayName(d)}{" "}
                   <span className="text-muted-foreground max-md:block">{parts(d).day}</span>
                 </button>
               ))}

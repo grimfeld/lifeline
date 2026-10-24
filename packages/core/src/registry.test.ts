@@ -67,7 +67,7 @@ describe("navSectionsOf", () => {
   });
 
   it("treats an App naming an unknown Module as loose", () => {
-    expect(sections[0].screens.map((s) => s.id)).toEqual(["hub", "odd"]);
+    expect(sections[0]!.screens.map((s) => s.id)).toEqual(["hub", "odd"]);
   });
 
   it("leaves out hidden screens, and Modules left empty by them", () => {
@@ -82,7 +82,7 @@ describe("navSectionsOf", () => {
   it("restricts shelves to a Workspace's Modules, but never the loose screens", () => {
     const only = navSectionsOf(DASHBOARD_FRAME, ["culture"]);
     expect(only.map((s) => s.group?.id)).toEqual([undefined, "culture"]);
-    expect(only[0].screens.map((s) => s.id)).toEqual(["hub", "odd"]);
+    expect(only[0]!.screens.map((s) => s.id)).toEqual(["hub", "odd"]);
   });
 });
 

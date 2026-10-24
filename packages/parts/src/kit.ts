@@ -11,6 +11,7 @@ import {
   type DateStr,
   type DaylogItem,
   type Document,
+  type DocumentInput,
   type DocumentTypeDef,
 } from "@lifeline/core";
 import { ListOrdered, Layers } from "lucide-react";
@@ -166,8 +167,8 @@ export function createPartsKit<W extends PartsWork>(cfg: PartsKitConfig<W>) {
   /** The Part at a position: upserted with the patch, or deleted once it has nothing to say. */
   async function writePart(work: W, medium: PartsMedium, parts: Part[], pos: Pos, patch: PartPatch): Promise<void> {
     const cur = parts.find((p) => samePos(posOf(p), pos));
-    const next: Part = {
-      ...(cur ?? { id: undefined as unknown as string, type: partType, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, work: work.id, group: pos.group, number: pos.number, name: "", readOn: "", liked: false, rating: 0, workspace: work.workspace }),
+    const next: DocumentInput<Part> = {
+      ...(cur ?? { type: partType, work: work.id, group: pos.group, number: pos.number, name: "", readOn: "", liked: false, rating: 0, workspace: work.workspace }),
       ...patch,
       title: `${work.title} · ${partName(medium, pos)}`,
     };
@@ -175,13 +176,13 @@ export function createPartsKit<W extends PartsWork>(cfg: PartsKitConfig<W>) {
       if (cur) await removeDocument(cur.id);
       return;
     }
-    await putDocument<Part>(cur ? next : { ...next, id: undefined });
+    await putDocument<Part>(next);
   }
 
   async function writeGroup(work: W, medium: PartsMedium, groups: Group[], number: number, patch: GroupPatch): Promise<void> {
     const cur = groups.find((g) => g.number === number);
-    const next: Group = {
-      ...(cur ?? { id: undefined as unknown as string, type: groupType, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, work: work.id, number, name: "", size: 0, firstPart: 0, liked: false, rating: 0, workspace: work.workspace }),
+    const next: DocumentInput<Group> = {
+      ...(cur ?? { type: groupType, work: work.id, number, name: "", size: 0, firstPart: 0, liked: false, rating: 0, workspace: work.workspace }),
       ...patch,
       title: `${work.title} · ${groupName(medium, number)}`,
     };
@@ -189,7 +190,7 @@ export function createPartsKit<W extends PartsWork>(cfg: PartsKitConfig<W>) {
       if (cur) await removeDocument(cur.id);
       return;
     }
-    await putDocument<Group>(cur ? next : { ...next, id: undefined });
+    await putDocument<Group>(next);
   }
 
   /**

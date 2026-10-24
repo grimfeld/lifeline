@@ -91,6 +91,7 @@ export const tasksSchedulable: SchedulableProvider = {
     const { start, end } = range;
     // Surfaces call this on every render: derive again only when an input
     // moves — today included, which itemsOf reads for urgency and lapsing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `today` is read inside itemsOf (through the clock), so a new day must derive again
     return useMemo(() => itemsOf(tasks, overrides, marks, { start, end }), [tasks, overrides, marks, start, end, today]);
   },
 

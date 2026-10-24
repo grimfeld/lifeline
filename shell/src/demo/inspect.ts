@@ -28,7 +28,7 @@ export async function appPages(): Promise<AppPage[]> {
         const title = displayTitle(d, t);
         // How a page may show it: whole, by its name before " · " (Pocket's
         // "Coffee · W43 2026"), or a dated one by its human date (a Mood Day).
-        titles.push(title, title.split(" · ")[0]);
+        titles.push(title, title.split(" · ")[0] ?? title);
         if (/^\d{4}-\d{2}-\d{2}$/.test(title))
           titles.push(new Date(`${title}T12:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" }));
       }

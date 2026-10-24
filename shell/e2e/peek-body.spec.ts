@@ -29,7 +29,7 @@ async function peekNoteOverDay(page: Page, notes: { title: string; body: string 
     },
     { coreUrl: CORE_URL, notes, templates, type },
   );
-  const peek = page.getByRole("dialog", { name: notes[0].title });
+  const peek = page.getByRole("dialog", { name: notes[0]!.title });
   await expect(peek).toBeVisible();
   return peek;
 }

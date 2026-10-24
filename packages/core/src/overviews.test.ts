@@ -17,7 +17,7 @@ describe("defaultOverview", () => {
       { instanceId: "default-2", x: 0, y: 6, w: 6 },
       { instanceId: "default-3", x: 0, y: 12, w: 12 },
     ]);
-    expect(items[0].title).toBe("A");
+    expect(items[0]!.title).toBe("A");
     expect(items[1]).not.toHaveProperty("title");
   });
 });

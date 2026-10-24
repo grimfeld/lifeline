@@ -7,7 +7,7 @@ import { PlaylistPeek, WorkPeek } from "./components/DiscothequePeeks";
 import { cascadeWorkDelete } from "./data/repo";
 import { discothequeParts } from "./parts";
 
-const ENG_LABELS: Record<string, string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
+const ENG_LABELS: Record<(typeof ENGAGEMENT)[number], string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
 
 /**
  * The music type (ADR 0024, type id unchanged from Media — no data

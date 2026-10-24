@@ -24,7 +24,7 @@ export function confettiBurst(origin: { x: number; y: number } = { x: 0.5, y: 0.
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       size: 4 + Math.random() * 4,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      color: COLORS[Math.floor(Math.random() * COLORS.length)] ?? "#ffffff",
       spin: Math.random() * Math.PI,
       spinV: (Math.random() - 0.5) * 0.3,
       life: 1,

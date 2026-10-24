@@ -666,7 +666,7 @@ async function expectLinksResolve(page: Page): Promise<void> {
 async function expectJournalDay(page: Page, day: string): Promise<void> {
   await expect(page).toHaveURL(new RegExp(`[?&]d=${day}`));
   const name = await page.evaluate((d) => {
-    const [y, m, n] = d.split("-").map(Number);
+    const [y = 0, m = 1, n = 1] = d.split("-").map(Number);
     const opts = { weekday: "short", day: "numeric", month: "short", year: "numeric" } as const;
     return new Intl.DateTimeFormat(undefined, opts).format(new Date(y, m - 1, n)).replace(/,/g, "");
   }, day);

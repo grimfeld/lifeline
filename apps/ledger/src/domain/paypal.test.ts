@@ -44,8 +44,8 @@ describe("parsePaypalCsv", () => {
       ["Conversion de devise standard", "USD", 1232],
       ["www.steampowered.com", "EUR", -1232],
     ]);
-    expect(rows[0].date).toBe("2026-01-09");
-    expect(rows[1].refId).toBe("5LA35124KN7349003");
+    expect(rows[0]!.date).toBe("2026-01-09");
+    expect(rows[1]!.refId).toBe("5LA35124KN7349003");
 
     const idx = paypalIndex(rows);
     // The euro conversion line borrows the dollar payment's merchant…
@@ -87,7 +87,7 @@ describe("looksLikePaypal", () => {
 
 describe("payeeOf", () => {
   it("borrows the merchant from the payment a funding row references", () => {
-    expect(payeeOf(entries[1], index)).toBe("Spotify AB");
+    expect(payeeOf(entries[1]!, index)).toBe("Spotify AB");
   });
 });
 

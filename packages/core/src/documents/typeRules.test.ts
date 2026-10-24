@@ -102,7 +102,7 @@ describe("ownKeyProblems", () => {
   it("only warns about a saved Field that already collides, so it still saves", () => {
     const [p] = ownKeyProblems([f("folder", "Folder")], [f("folder", "Shelf")]);
     expect(p).toMatchObject({ key: "folder", label: "Shelf", refused: false });
-    expect(p.message).toContain("every Document already has a Folder");
+    expect(p?.message).toContain("every Document already has a Folder");
   });
 
   it("gives the store's refusal only for a new Field keyed with a Document's own key", () => {

@@ -31,7 +31,7 @@ const DAY_MIN = 24 * 60;
 
 function toMin(t: TimeStr): number {
   const [h, m] = t.split(":").map(Number);
-  return h * 60 + (m || 0);
+  return (h ?? 0) * 60 + (m || 0);
 }
 
 function fromMin(n: number): TimeStr {

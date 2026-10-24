@@ -1,3 +1,6 @@
+// The shell and the MCP server compile this file under their own tsconfig, which does not
+// include raw.d.ts: the reference carries the `?raw` declaration to them.
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference -- an import cannot load a .d.ts
 /// <reference path="./raw.d.ts" />
 import index from "../pages/index.md?raw";
 import guide from "../pages/guide.md?raw";
@@ -91,7 +94,7 @@ const ENTRIES: Entry[] = [
 
 /** A page's title: its first `# ` heading. */
 function titleOf(body: string, slug: string): string {
-  return /^# (.+)$/m.exec(body)?.[1].trim() ?? slug;
+  return /^# (.+)$/m.exec(body)?.[1]?.trim() ?? slug;
 }
 
 /** Every page, in the order the Guide's home lists them. */

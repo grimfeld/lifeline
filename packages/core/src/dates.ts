@@ -11,7 +11,7 @@ export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
  */
 
 export function parts(d: DateStr): { y: number; m: number; day: number } {
-  const [y, m, day] = d.split("-").map(Number);
+  const [y = NaN, m = NaN, day = NaN] = d.split("-").map(Number);
   return { y, m, day };
 }
 
