@@ -2,6 +2,7 @@ import type { AppManifest, Document, DocumentTypeDef } from "@lifeline/core";
 import { Brain, Grid3x3, History, Layers, MessageCircleQuestion, Shapes, TextCursorInput, WholeWord } from "lucide-react";
 import { KnowledgeScreen } from "./screens/KnowledgeScreen";
 import { DueCard } from "./cards/DueCard";
+import { PuzzlesCard } from "./cards/PuzzlesCard";
 import { ItemPeek } from "./components/ItemPeek";
 import { WordIntakeDialog } from "./components/WordDialog";
 import { SentenceIntakeDialog } from "./components/SentenceDialog";
@@ -32,6 +33,7 @@ const topicType: DocumentTypeDef = {
     { key: "name", label: "Name", kind: "text", required: true, column: true },
     { key: "newCap", label: "New per day", kind: "number", column: true },
     { key: "archived", label: "Archived", kind: "boolean", guarded: true, column: true },
+    { key: "enyeOwn", label: "ñ is its own letter", kind: "boolean" },
     { key: "tallies", label: "Tallies", kind: "json", guarded: true },
   ],
   href: () => KNOWLEDGE_HREF,
@@ -211,6 +213,14 @@ export const knowledgeApp: AppManifest = {
       component: DueCard,
       defaultSize: { w: 3, h: 4 },
       minSize: { w: 2, h: 3 },
+    },
+    {
+      id: "languages.puzzles",
+      title: "Today's Puzzles",
+      description: "Each topic's daily puzzles and how they stand, one tap to play",
+      component: PuzzlesCard,
+      defaultSize: { w: 3, h: 3 },
+      minSize: { w: 2, h: 2 },
     },
   ],
   commands: knowledgeCommands,
