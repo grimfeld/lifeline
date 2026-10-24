@@ -34,7 +34,8 @@ export function ConnectionsPlayer({ puzzle, topicName, onBack, onPractise }: { p
 
   async function submit() {
     try {
-      await guessPuzzle(puzzle.id, picked);
+      const r = await guessPuzzle(puzzle.id, picked);
+      if (r.tallyError) toast.error(r.tallyError);
       setPicked([]);
       setError("");
     } catch (err) {
@@ -53,7 +54,8 @@ export function ConnectionsPlayer({ puzzle, topicName, onBack, onPractise }: { p
 
   async function giveUp() {
     try {
-      await giveUpPuzzle(puzzle.id);
+      const r = await giveUpPuzzle(puzzle.id);
+      if (r.tallyError) toast.error(r.tallyError);
     } catch (err) {
       toast.error(`Couldn't give up: ${(err as Error).message}`);
     }

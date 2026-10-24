@@ -23,7 +23,8 @@ Topic to a set you choose.
   - **Name**;
   - **New per day** — at most this many new prompts enter practice each day, always after what
     is due (10 unless you change it);
-  - **Tallies** — count a day you practised towards something you track elsewhere;
+  - **Tallies** — count a day you practised, or a daily Puzzle you finished, towards something you
+    track elsewhere (each Tally picks which one it counts);
   - **Archive** — out of the switcher and out of practice, everything kept. Archived Topics are
     listed at the foot; tap one to bring it back. A Topic that holds nothing can be deleted
     instead.
@@ -88,6 +89,10 @@ Topic to a set you choose.
 - The end shows what it drew in full — each Word's meaning or Fact's question, notes, where you met
   it, and in Connections every group under its Deck — and **Practise now** starts a practice of the
   Topic.
+- Finishing a daily Puzzle (solved, failed out or given up) counts once for any Topic Tally set to
+  **daily Puzzle finished**, whether you solved it or not, so it can log a Habit. A replay, or a
+  Puzzle that ran out at midnight, counts for nothing; a Tally set to **day practised** is not
+  touched. If the Tally cannot log, the Puzzle still ends as it did and an error appears.
 - **Replay** (the circular arrow on a Topic's row) starts another puzzle of the same format as often as you like, drawn
   afresh and avoiding what today's daily drew where it can. A replay doesn't end at midnight and never counts toward
   anything: only the daily does.

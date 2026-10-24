@@ -1,14 +1,40 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { documentsOf, initApps, putDocument, removeDocument, type DocumentTypeDef } from "@lifeline/core";
-import { DECK, FACT, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Puzzle, type Recall, type Topic } from "../domain/types";
+import { documentsOf, getDocument, initApps, putDocument, removeDocument, type DocumentTypeDef } from "@lifeline/core";
+import { DECK, FACT, OCCURRENCE_PRACTISED, OCCURRENCE_PUZZLE, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Puzzle, type Recall, type Topic } from "../domain/types";
 import { addFact, addWord, setPaused } from "./repo";
 import { connectionsState } from "../domain/connections";
 import { getPuzzle, giveUpPuzzle, guessPuzzle, openDailyPuzzle, openReplayPuzzle, todaysPuzzles } from "./puzzles";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId", "itemId"], builtIn: true }) as unknown as DocumentTypeDef;
-initApps([{ id: "languages", title: "Knowledge", types: [TOPIC, WORD, SENTENCE, FACT, RECALL, DECK, PUZZLE].map(bare), screens: [], cards: [], commands: [] }]);
+const logged: string[] = [];
+initApps([
+  {
+    id: "languages",
+    title: "Knowledge",
+    types: [TOPIC, WORD, SENTENCE, FACT, RECALL, DECK, PUZZLE].map(bare),
+    screens: [],
+    cards: [],
+    commands: [],
+    tallying: [{ typeId: TOPIC, occurrence: OCCURRENCE_PRACTISED, occurrences: [{ id: OCCURRENCE_PRACTISED, label: "day practised" }, { id: OCCURRENCE_PUZZLE, label: "daily Puzzle finished" }] }],
+  },
+  {
+    id: "habits",
+    title: "Habits",
+    types: [],
+    screens: [],
+    cards: [],
+    commands: [],
+    loggable: {
+      appId: "habits",
+      useTargets: () => [],
+      async log(id: string) {
+        logged.push(id);
+      },
+    },
+  },
+] as never);
 
 /** Mid-morning, local: every test plays "today" at this hour. */
 const NOW = new Date(2026, 9, 24, 10, 0);
@@ -231,5 +257,38 @@ describe("what a Connections may draw", () => {
     const red = groups(read).get(`red${t}`)!;
     const after = await guessPuzzle(p.id, red, NOW);
     expect(connectionsState(after).found.map((g) => g.deck)).toEqual([`red${t}`]);
+  });
+});
+
+describe("finishing a daily Connections is a Topic occurrence", () => {
+  const tallies = [
+    { target: "habits/play", value: "one", occurrence: OCCURRENCE_PUZZLE },
+    { target: "habits/practise", value: "one" },
+  ];
+
+  it("solved, four mistakes or given up each log once to a puzzle Tally, never to a day-practised one", async () => {
+    for (const finish of ["solve", "fail", "giveup"] as const) {
+      logged.length = 0;
+      const { t, p } = await fourDecks();
+      await putDocument({ ...(await getDocument<Topic>(t))!, tallies });
+      const mid = await guessPuzzle(p.id, mixed(p, 0), NOW);
+      expect(mid.tallyError).toBeUndefined();
+      expect(logged).toEqual([]);
+      if (finish === "solve") for (const ids of groups(p).values()) await guessPuzzle(p.id, ids, NOW);
+      else if (finish === "giveup") await giveUpPuzzle(p.id, NOW);
+      else for (let i = 1; i < 4; i++) await guessPuzzle(p.id, mixed(p, i), NOW);
+      expect((await getPuzzle(p.id, NOW))!.outcome).toBe(finish === "solve" ? "solved" : "unsolved");
+      expect(logged).toEqual(["play"]);
+    }
+  });
+
+  it("a replay never tallies", async () => {
+    logged.length = 0;
+    const { t } = await fourDecks();
+    await putDocument({ ...(await getDocument<Topic>(t))!, tallies });
+    const r = (await openReplayPuzzle(t, "connections", { now: NOW }))!;
+    for (const ids of groups(r).values()) await guessPuzzle(r.id, ids, NOW);
+    expect((await getPuzzle(r.id, NOW))!.outcome).toBe("solved");
+    expect(logged).toEqual([]);
   });
 });
