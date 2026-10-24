@@ -2,6 +2,7 @@ import * as React from "react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { cn } from "../../lib/utils"
+import { useReturnFocus } from "../../lib/useReturnFocus"
 
 /** Off-canvas panel (phone drawer, capture sheet). Radix Dialog under the hood, like dialog.tsx. */
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
@@ -27,8 +28,11 @@ function SheetContent({
   className,
   children,
   side = "left",
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & { side?: keyof typeof sides }) {
+  const returnFocus = useReturnFocus({ onOpenAutoFocus, onCloseAutoFocus })
   return (
     <SheetPrimitive.Portal data-slot="sheet-portal">
       <SheetPrimitive.Overlay
@@ -43,6 +47,7 @@ function SheetContent({
           className,
         )}
         {...props}
+        {...returnFocus}
       >
         {children}
       </SheetPrimitive.Content>

@@ -7,6 +7,16 @@ import { HoursEditor, type HoursEditing } from "./HoursEditor";
 
 const HOUR_PX = 48;
 
+/**
+ * An item's chip, tinted like the Upcoming view's rows: its colour on the left
+ * edge and mixed into an opaque background (it covers the hour lines), with the
+ * foreground for text. White on a slot colour fell below 4.5:1 (WCAG 1.4.3).
+ */
+function chipStyle(color: string | undefined) {
+  const c = color ?? "var(--muted-foreground)";
+  return { borderLeftColor: c, background: `color-mix(in oklab, ${c} 25%, var(--card))` };
+}
+
 function useNow(): Date {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -65,8 +75,8 @@ export function AgendaCard({ settings }: CardProps) {
           {allDay.map((t) => (
             <span
               key={t.key}
-              className="truncate rounded px-1.5 py-0.5 text-xs text-white"
-              style={{ background: t.color ?? "var(--muted-foreground)" }}
+              className="truncate rounded border-l-[3px] px-1.5 py-0.5 text-xs"
+              style={chipStyle(t.color)}
               title={appById(t.appId)?.title}
             >
               {t.title}
@@ -110,7 +120,7 @@ export function AgendaCard({ settings }: CardProps) {
               return (
                 <div
                   key={item.key}
-                  className="absolute cursor-pointer overflow-hidden rounded-sm px-1.5 py-0.5 text-xs text-white"
+                  className="absolute cursor-pointer overflow-hidden rounded-sm border-l-[3px] px-1.5 py-0.5 text-xs"
                   onClick={(ev) => {
                     if (item.block) open({ kind: "work", item: item.block }, ev.currentTarget);
                     else if (item.timed) open({ kind: "timed", item: item.timed }, ev.currentTarget);
@@ -120,14 +130,14 @@ export function AgendaCard({ settings }: CardProps) {
                     height: (e - s) * HOUR_PX - 2,
                     left: `${(col / cols) * 100}%`,
                     width: `calc(${100 / cols}% - 2px)`,
-                    background: item.color ?? "var(--muted-foreground)",
+                    ...chipStyle(item.color),
                   }}
                   title={`${formatTime(item.start)}${item.end ? `–${formatTime(item.end)}` : ""} ${item.title}`}
                 >
                   {/* A Time block tall enough for a tap target offers Push (ADR 0054). */}
                   {item.block && (e - s) * HOUR_PX >= 28 && (
                     <span onClick={(ev) => ev.stopPropagation()}>
-                      <PushButton item={item.block} className="absolute top-0 right-0 size-5 text-white/80 hover:bg-white/20 hover:text-white" />
+                      <PushButton item={item.block} className="absolute top-0 right-0" />
                     </span>
                   )}
                   <div className="truncate font-medium">{item.title}</div>
