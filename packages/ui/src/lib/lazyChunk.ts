@@ -9,6 +9,7 @@ const loaders = new Set<() => Promise<unknown>>();
  * working offline: with no service worker, a chunk never fetched could not
  * load once the network is gone.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- React.lazy's own bound: a component of any props
 export function lazyChunk<T extends ComponentType<any>>(load: () => Promise<{ default: T }>) {
   loaders.add(load);
   return lazy(load);
