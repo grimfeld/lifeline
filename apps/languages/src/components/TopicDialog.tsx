@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TallyEditor, toast } from "@lifeline/ui";
 import { useLoggableTargets, type Tally } from "@lifeline/core";
-import { DEFAULT_NEW_CAP, type Topic } from "../domain/types";
+import { DEFAULT_NEW_CAP, OCCURRENCE_PRACTISED, OCCURRENCE_PUZZLE, type Topic } from "../domain/types";
 import { addTopic, deleteTopic, setActiveTopic, setTopicArchived, updateTopic } from "../data/repo";
 
 /**
@@ -81,7 +81,7 @@ export function TopicDialog({ open, onOpenChange, topic, holds = 0 }: { open: bo
           <p className="text-muted-foreground -mt-2 text-xs">At most this many new prompts enter practice each day, always after what is due.</p>
           <div className="grid gap-2">
             <Label>Tallies</Label>
-            <TallyEditor tallies={tallies} onChange={setTallies} targets={targets} occurrence="day practised" />
+            <TallyEditor tallies={tallies} onChange={setTallies} targets={targets} occurrence={OCCURRENCE_PRACTISED} occurrences={[{ id: OCCURRENCE_PRACTISED, label: "day practised" }, { id: OCCURRENCE_PUZZLE, label: "daily Puzzle finished" }]} />
           </div>
         </div>
         <DialogFooter className="gap-2 sm:justify-between">

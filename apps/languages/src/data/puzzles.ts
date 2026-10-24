@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { addDays, documentsOf, documentsWhere, getDocument, putDocument, todayStr, useDocuments, type DateStr } from "@lifeline/core";
+import { addDays, documentsOf, fireTallies, documentsWhere, getDocument, putDocument, todayStr, useDocuments, type DateStr } from "@lifeline/core";
 import { lettersOf, MAX_GUESSES, isAnswer, outcomeAt, pickTowardDue, wordleCandidates, wordleDraw } from "../domain/puzzle";
-import { PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Puzzle, type PuzzleDraw, type PuzzleFormat, type Recall, type Sentence, type Topic, type Word } from "../domain/types";
+import { OCCURRENCE_PUZZLE, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Puzzle, type PuzzleDraw, type PuzzleFormat, type Recall, type Sentence, type Topic, type Word } from "../domain/types";
 
 /**
  * Puzzles' data (CONTEXT.md "Puzzle", ADR 0106). Nothing here writes a
@@ -145,11 +145,31 @@ async function playing(id: string, now: Date): Promise<Puzzle> {
   return p;
 }
 
+/** A Puzzle just written, with the error of a Tally that failed to fire for it. */
+export type Played = Puzzle & { tallyError?: string };
+
+/**
+ * A daily Puzzle's finishing is its Topic's second occurrence (ADR 0106),
+ * once, keyed by the Puzzle. A failing Tally never loses the outcome. A
+ * replay never tallies, and an expired daily is refused before it gets here.
+ */
+async function finished(before: Puzzle, after: Puzzle): Promise<Played> {
+  if (before.outcome !== "playing" || after.outcome === "playing" || after.kind !== "daily") return after;
+  const topic = await getDocument<Topic>(after.languageId);
+  if (!topic || topic.type !== TOPIC || topic.archived) return after;
+  try {
+    await fireTallies(topic, { key: after.id, at: after.finishedAt, occurrence: OCCURRENCE_PUZZLE, note: `Finished the ${topic.title} puzzle` });
+    return after;
+  } catch (err) {
+    return { ...after, tallyError: (err as Error).message };
+  }
+}
+
 /**
  * One guess at a Wordle-like: any word of the answer's length, no dictionary.
  * Appended, then the outcome settled — solved, or unsolved on the sixth miss.
  */
-export function guessPuzzle(id: string, guess: string, now: Date = new Date()): Promise<Puzzle> {
+export function guessPuzzle(id: string, guess: string, now: Date = new Date()): Promise<Played> {
   return serially(`play|${id}`, async () => {
     const p = await playing(id, now);
     const answer = p.drawn[0]!.answer;
@@ -159,15 +179,15 @@ export function guessPuzzle(id: string, guess: string, now: Date = new Date()): 
     const guesses = [...p.guesses, typed];
     const outcome = isAnswer(answer, typed) ? "solved" : guesses.length >= MAX_GUESSES ? "unsolved" : "playing";
     const row = await putDocument<Puzzle>({ ...p, guesses, outcome, finishedAt: outcome === "playing" ? "" : now.toISOString() });
-    return normalizePuzzle(row, now);
+    return finished(p, normalizePuzzle(row, now));
   });
 }
 
 /** Giving up ends it unsolved, the answer shown. */
-export function giveUpPuzzle(id: string, now: Date = new Date()): Promise<Puzzle> {
+export function giveUpPuzzle(id: string, now: Date = new Date()): Promise<Played> {
   return serially(`play|${id}`, async () => {
     const p = await playing(id, now);
     const row = await putDocument<Puzzle>({ ...p, outcome: "unsolved", finishedAt: now.toISOString() });
-    return normalizePuzzle(row, now);
+    return finished(p, normalizePuzzle(row, now));
   });
 }

@@ -1,14 +1,42 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { documentsOf, initApps, putDocument, removeDocument, type DocumentTypeDef } from "@lifeline/core";
-import { DECK, FACT, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Grade, type Recall, type Topic } from "../domain/types";
+import { documentsOf, getDocument, initApps, putDocument, removeDocument, type DocumentTypeDef } from "@lifeline/core";
+import { DECK, FACT, OCCURRENCE_PRACTISED, OCCURRENCE_PUZZLE, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, type Grade, type Recall, type Topic } from "../domain/types";
 import { wordleRows } from "../domain/puzzle";
-import { addSentence, addWord, setPaused, setTopicArchived } from "./repo";
+import { addSentence, addWord, recordRecall, setPaused, setTopicArchived } from "./repo";
 import { getPuzzle, giveUpPuzzle, guessPuzzle, openDailyPuzzle, todaysPuzzles } from "./puzzles";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId", "itemId"], builtIn: true }) as unknown as DocumentTypeDef;
-initApps([{ id: "languages", title: "Knowledge", types: [TOPIC, WORD, SENTENCE, FACT, RECALL, DECK, PUZZLE].map(bare), screens: [], cards: [], commands: [] }]);
+const logged: { id: string; note?: string }[] = [];
+let failLogs = false;
+initApps([
+  {
+    id: "languages",
+    title: "Knowledge",
+    types: [TOPIC, WORD, SENTENCE, FACT, RECALL, DECK, PUZZLE].map(bare),
+    screens: [],
+    cards: [],
+    commands: [],
+    tallying: [{ typeId: TOPIC, occurrence: OCCURRENCE_PRACTISED, occurrences: [{ id: OCCURRENCE_PRACTISED, label: "day practised" }, { id: OCCURRENCE_PUZZLE, label: "daily Puzzle finished" }] }],
+  },
+  {
+    id: "habits",
+    title: "Habits",
+    types: [],
+    screens: [],
+    cards: [],
+    commands: [],
+    loggable: {
+      appId: "habits",
+      useTargets: () => [],
+      async log(id: string, p: { note?: string }) {
+        if (failLogs) throw new Error("The Habit is gone");
+        logged.push({ id, note: p.note });
+      },
+    },
+  },
+] as never);
 
 /** Mid-morning, local: every test plays "today" at this hour. */
 const NOW = new Date(2026, 9, 24, 10, 0);
@@ -205,5 +233,63 @@ describe("today's Puzzles", () => {
     const p = (await openDailyPuzzle(t, "wordle", { now: NOW }))!;
     const after = (await todaysPuzzles(NOW)).find((x) => x.topic.id === t);
     expect(after?.puzzle?.id).toBe(p.id);
+  });
+});
+
+describe("finishing a daily Puzzle is a Topic occurrence", () => {
+  const tallied = async (tallies: { target: string; value: string; occurrence?: string }[]) => {
+    const t = await topic();
+    await putDocument({ ...(await getDocument<Topic>(t))!, tallies });
+    return t;
+  };
+  const puzzleTally = { target: "habits/play", value: "one", occurrence: OCCURRENCE_PUZZLE };
+  const practisedTally = { target: "habits/practise", value: "one" };
+  const ids = () => logged.map((l) => l.id);
+
+  it("solved, failed out or given up each log once to a puzzle Tally, never to a day-practised one", async () => {
+    for (const finish of ["solve", "fail", "giveup"] as const) {
+      logged.length = 0;
+      const t = await tallied([puzzleTally, practisedTally]);
+      await practised(t, "fuego");
+      const p = (await openDailyPuzzle(t, "wordle", { now: NOW }))!;
+      const mid = await guessPuzzle(p.id, "aaaaa", NOW);
+      expect(ids()).toEqual([]);
+      expect(mid.tallyError).toBeUndefined();
+      if (finish === "solve") await guessPuzzle(p.id, "fuego", NOW);
+      else if (finish === "giveup") await giveUpPuzzle(p.id, NOW);
+      else for (let i = 0; i < 5; i++) await guessPuzzle(p.id, "aaaaa", NOW);
+      expect(ids()).toEqual(["play"]);
+    }
+  });
+
+  it("practising fires only the day-practised Tally", async () => {
+    logged.length = 0;
+    const t = await tallied([puzzleTally, practisedTally]);
+    const w = await addWord({ languageId: t, term: "pared", meaning: "wall" });
+    const item = { id: w, type: WORD, title: "pared", topicId: t };
+    await recordRecall(item as never, "forward", "pass");
+    expect(ids()).toEqual(["practise"]);
+  });
+
+  it("an expired Puzzle never tallies", async () => {
+    logged.length = 0;
+    const t = await tallied([puzzleTally]);
+    await practised(t, "viento");
+    const p = (await openDailyPuzzle(t, "wordle", { now: NOW }))!;
+    await expect(giveUpPuzzle(p.id, TOMORROW)).rejects.toThrow();
+    expect(ids()).toEqual([]);
+  });
+
+  it("a failing Tally keeps the outcome and reports the error", async () => {
+    logged.length = 0;
+    const t = await tallied([puzzleTally]);
+    await practised(t, "ladrón");
+    const p = (await openDailyPuzzle(t, "wordle", { now: NOW }))!;
+    failLogs = true;
+    const done = await giveUpPuzzle(p.id, NOW);
+    failLogs = false;
+    expect(done.outcome).toBe("unsolved");
+    expect(done.tallyError).toMatch(/gone/);
+    expect((await getPuzzle(p.id, NOW))!.outcome).toBe("unsolved");
   });
 });
