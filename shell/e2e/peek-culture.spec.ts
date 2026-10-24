@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
 
 /**
  * The Culture Apps' editable Peeks (ADR 0085): a work, an Author, a Playlist
@@ -10,17 +10,6 @@ import { CORE_URL } from "./support/seed";
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
-}
-
-/** Runs in the page against the app's own Core module. */
-async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
-  return page.evaluate(
-    async ({ coreUrl, src, arg }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
-    },
-    { coreUrl: CORE_URL, src: fn.toString(), arg },
-  );
 }
 
 /** A fresh Document of `type`, peeked over the Vault. */
@@ -37,7 +26,7 @@ async function peekNew(page: Page, type: string, fields: Record<string, unknown>
   return { id, dialog: page.getByRole("dialog") };
 }
 
-const fieldOf = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))[a.key], { id, key });
+const fieldOf = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))![a.key], { id, key });
 
 test("Library: a book's Year is edited in its Peek, and its Shelf moves only through the Library's operations", async ({ page }) => {
   const { id, dialog } = await peekNew(page, "book", { engagement: "UNSTARTED", acquisition: "WANTED" });

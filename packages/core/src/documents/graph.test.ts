@@ -34,7 +34,7 @@ describe("buildGraph", () => {
     const g = graph();
     const ab = g.edges.filter((e) => [e.source, e.target].sort().join() === "d:a,d:b");
     expect(ab).toHaveLength(1);
-    expect(ab[0].weight).toBe(3); // Alpha→Beta ×2 and Beta→Alpha
+    expect(ab[0]!.weight).toBe(3); // Alpha→Beta ×2 and Beta→Alpha
   });
 
   it("includes Link-field edges", () => {
@@ -51,9 +51,9 @@ describe("buildGraph", () => {
 
   it("hides orphans by default, shows them on request", () => {
     expect(graph().nodes.some((n) => n.id === "d:c")).toBe(true); // linked via field
-    const noField = buildGraph(buildLinkIndex([fixture()[0], fixture()[1], fixture()[2]], types), types, {});
+    const noField = buildGraph(buildLinkIndex([fixture()[0]!, fixture()[1]!, fixture()[2]!], types), types, {});
     expect(noField.nodes.some((n) => n.id === "d:c")).toBe(false);
-    const withOrphans = buildGraph(buildLinkIndex([fixture()[0], fixture()[1], fixture()[2]], types), types, { orphans: true });
+    const withOrphans = buildGraph(buildLinkIndex([fixture()[0]!, fixture()[1]!, fixture()[2]!], types), types, { orphans: true });
     expect(withOrphans.nodes.some((n) => n.id === "d:c")).toBe(true);
   });
 

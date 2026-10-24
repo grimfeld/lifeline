@@ -6,7 +6,7 @@ import type { Work } from "../domain/types";
 import { acquire, finish, start } from "../domain/rules";
 import { Cover } from "./Cover";
 import { ACQ_LABEL } from "./AddWorkDialog";
-import { useAct, WorkActionsMenu } from "./WorkActions";
+import { actOn, WorkActionsMenu } from "./WorkActions";
 import { useLookupSettings } from "../data/repo";
 import { lookupFor } from "../data/lookup";
 import { refreshFromSource } from "../data/enrichActions";
@@ -63,7 +63,7 @@ export function WorkDetailDialog({ item, all: _all, onClose, onEdit }: { item: W
   const def = workType(item.type);
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
-  const act = useAct(item);
+  const act = actOn(item);
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>

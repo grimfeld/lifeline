@@ -49,7 +49,7 @@ export async function noteFromThought(id: string, source: string): Promise<Note>
   const folder = doc.folder === "Thoughts" || doc.folder.startsWith("Thoughts/") ? NOTES_FOLDER + doc.folder.slice("Thoughts".length) : doc.folder;
   const { kind: _kind, ...rest } = doc as Document & { kind?: string };
   const title = await freeNoteTitle(doc.title, folder);
-  return putDocument<Note>({ ...rest, type: NOTE, title, folder, source, locator: "" } as unknown as Parameters<typeof putDocument<Note>>[0]);
+  return putDocument<Note>({ ...rest, type: NOTE, title, folder, body: rest.body ?? "", source, locator: "" });
 }
 
 /** The reverse: a Note whose Source is taken away is a Thought again, the same Document. */

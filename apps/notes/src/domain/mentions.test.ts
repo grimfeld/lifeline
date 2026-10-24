@@ -30,7 +30,7 @@ describe("rankMentions", () => {
   it("ignores non-daily sources and can span all types", () => {
     const r = rankMentions(idx, notes, { since: "2026-01-01" });
     expect(r.map((m) => m.noteId)).toEqual(["p2", "p1", "p3"]);
-    expect(r[0].count).toBe(3); // x1 (note) is not counted
+    expect(r[0]?.count).toBe(3); // x1 (note) is not counted
   });
 });
 
@@ -38,7 +38,7 @@ describe("mentionsOf", () => {
   it("lists newest first with context, mixing daily dates and edit dates", () => {
     const m = mentionsOf(idx, "p2");
     expect(m.map((x) => x.noteId)).toEqual(["d1", "x1", "d2", "d3"]);
-    expect(m[0].context).toContain("[[Bob]]");
+    expect(m[0]?.context).toContain("[[Bob]]");
   });
 });
 

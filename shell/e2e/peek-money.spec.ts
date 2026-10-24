@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
 
 /**
  * Ledger, Pocket, Prices, Knowledge and Projects edit in their own Peek
@@ -13,19 +13,9 @@ async function workLocally(page: Page) {
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
 }
 
-/** Runs in the page against the app's own Core module. */
-async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
-  return page.evaluate(
-    async ({ coreUrl, src, arg }) => {
-      const core = await import(/* @vite-ignore */ coreUrl);
-      return new Function("core", "arg", `return (${src})(core, arg);`)(core, arg);
-    },
-    { coreUrl: CORE_URL, src: fn.toString(), arg },
-  );
-}
-
 /** Store the Documents in order (each may name the ids before it as `$0`, `$1`…) and return their ids. */
-async function make(page: Page, docs: Record<string, unknown>[]): Promise<string[]> {
+/** One id per Document put, so `ids[2]` of three is a string. */
+async function make<const T extends Record<string, unknown>[]>(page: Page, docs: T): Promise<{ [K in keyof T]: string }> {
   await page.goto("/");
   await workLocally(page);
   return inCore(
@@ -34,12 +24,12 @@ async function make(page: Page, docs: Record<string, unknown>[]): Promise<string
       const ids: string[] = [];
       for (const d of list) {
         const filled = Object.fromEntries(Object.entries(d).map(([k, v]) => [k, typeof v === "string" && /^\$\d+$/.test(v) ? ids[Number(v.slice(1))] : v]));
-        ids.push((await core.putDocument({ folder: "", tags: [], ...filled })).id);
+        ids.push((await core.putDocument({ folder: "", tags: [], ...filled } as unknown as { type: string })).id);
       }
       return ids;
     },
     docs,
-  );
+  ) as Promise<{ [K in keyof T]: string }>;
 }
 
 async function peek(page: Page, id: string) {
@@ -47,7 +37,7 @@ async function peek(page: Page, id: string) {
   return page.getByRole("dialog");
 }
 
-const field = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))[a.key], { id, key });
+const field = (page: Page, id: string, key: string) => inCore(page, async (core, a: { id: string; key: string }) => (await core.getDocument(a.id))![a.key], { id, key });
 
 test("Ledger: a Transaction's payee is edited in its Peek", async ({ page }) => {
   const stamp = Date.now();

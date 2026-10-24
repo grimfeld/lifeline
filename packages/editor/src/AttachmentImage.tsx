@@ -30,8 +30,7 @@ export function AttachmentImage({ name }: { name: string }) {
     return () => {
       alive = false;
     };
-    // The URL depends on the record's identity and on whether its bytes have reached the server.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the URL depends on the record's identity and on whether its bytes have reached the server
   }, [attId, attFile]);
 
   if (!att) {

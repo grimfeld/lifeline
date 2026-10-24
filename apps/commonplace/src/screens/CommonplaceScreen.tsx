@@ -45,7 +45,7 @@ function shuffled<T>(xs: T[]): T[] {
   const a = [...xs];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [a[i], a[j]] = [a[j]!, a[i]!];
   }
   return a;
 }
@@ -92,13 +92,13 @@ export function CommonplaceScreen() {
     const out: { item: SourceItem | undefined; id: string; quotes: Quote[] }[] = [];
     const idx = new Map<string, number>();
     for (const x of filtered) {
-      let i = idx.get(x.source);
-      if (i === undefined) {
-        i = out.length;
-        idx.set(x.source, i);
-        out.push({ item: byId.get(x.source), id: x.source, quotes: [] });
+      let group = out[idx.get(x.source) ?? -1];
+      if (!group) {
+        idx.set(x.source, out.length);
+        group = { item: byId.get(x.source), id: x.source, quotes: [] };
+        out.push(group);
       }
-      out[i].quotes.push(x);
+      group.quotes.push(x);
     }
     return out;
   }, [filtered, byId]);

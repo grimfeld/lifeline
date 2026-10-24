@@ -11,7 +11,7 @@ import { byDate, cheapest, comparedBy, countsAsSpent, countsPerUnit, historyOf, 
 
 /** First day of a span ending today: N months back, same day of month (clamped by the calendar). */
 function spanStart(months: number, today: DateStr): DateStr {
-  const [y, m, d] = today.split("-").map(Number);
+  const [y = 0, m = 1, d = 1] = today.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1 - months, 1));
   const last = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
   date.setUTCDate(Math.min(d, last));
@@ -85,8 +85,9 @@ export function rhythmOf(productId: string, obs: readonly Observation[], span: S
   const occasions = new Map<string, DateStr>();
   for (const o of bought) occasions.set(o.line.receiptId, o.date);
   const days = [...occasions.values()].sort();
-  const first = days[0];
-  const last = days[days.length - 1];
+  // bought is not empty, so neither is days.
+  const first = days[0]!;
+  const last = days[days.length - 1]!;
   const amount = bought.filter(countsPerUnit).reduce((s, o) => s + (o.line.amount > 0 ? o.line.amount : 0), 0);
   const months = (diffDays(span.from || first, span.to) + 1) / DAYS_PER_MONTH;
   return {
@@ -140,7 +141,7 @@ export function spreadOf(productId: string, obs: readonly Observation[], span: S
 
 /** The latest usual (non-promo) point on or before a day — what a promo that day is measured against. */
 export function usualOn(points: readonly PricePoint[], day: DateStr): PricePoint | undefined {
-  for (let i = points.length - 1; i >= 0; i--) if (!points[i].promo && points[i].date <= day) return points[i];
+  for (let i = points.length - 1; i >= 0; i--) if (!points[i]!.promo && points[i]!.date <= day) return points[i];
   return undefined;
 }
 

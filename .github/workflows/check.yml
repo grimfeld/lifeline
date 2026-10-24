@@ -22,6 +22,8 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # About three minutes; a hung test must not hold the runner (and the deploy) for six hours.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -31,7 +33,7 @@ jobs:
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # The scripts' own tests (check-ui's rules among them).
@@ -49,6 +51,10 @@ jobs:
         env:
           MIGRATIONS_BASE: origin/${{ github.base_ref || 'master' }}
       - run: pnpm -r typecheck
+      # No unused dependency, file or export (knip.jsonc).
+      - run: pnpm knip
+      # Lint: typescript-eslint and the React hooks rules (eslint.config.mjs).
+      - run: pnpm lint
       - run: pnpm -r test
       # Again on a French desk west of UTC: no test may lean on the runner's
       # English locale or UTC clock. The full e2e suite is too slow for here: it runs
@@ -67,6 +73,7 @@ jobs:
   e2e-plan:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       run: ${{ steps.plan.outputs.run }}
       files: ${{ steps.plan.outputs.files }}
@@ -113,7 +120,7 @@ jobs:
       - if: steps.specs.outputs.none != 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
       - if: steps.specs.outputs.none != 'true'
         run: pnpm install --frozen-lockfile
@@ -158,9 +165,17 @@ jobs:
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Chromium keyed on the Playwright version, so a run downloads it only after a bump.
+      - id: playwright
+        run: echo "version=$(node -p "require('./shell/package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # Still run on a cache hit: --with-deps installs the system libraries.
       - run: pnpm --filter @lifeline/shell exec playwright install --with-deps chromium
       # Each shard runs the setup projects (seed, demo-setup) its cases depend on.
       - working-directory: shell

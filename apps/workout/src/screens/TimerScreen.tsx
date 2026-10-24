@@ -81,10 +81,10 @@ export function TimerScreen() {
     if (pos.index !== lastIndex.current) {
       lastIndex.current = pos.index;
       lastTick.current = -1;
-      if (current.kind === "rest") {
+      if (current?.kind === "rest") {
         beepRest();
         say("Rest");
-      } else if (current.kind === "work") {
+      } else if (current?.kind === "work") {
         beepGo();
         const name = current.movement ? exById.get(current.movement.exerciseId)?.title : undefined;
         say(name ? `${name}` : current.open ? `${MODE_LABEL[current.mode]}, ${formatClock(current.seconds)}` : "Go");
@@ -95,7 +95,7 @@ export function TimerScreen() {
       lastTick.current = left;
       beepCount();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per change of the shown state (step, whole second, done); everything else is read as it is then
   }, [pos.index, Math.ceil(pos.remaining), pos.done, clock, finished]);
 
   function start() {
@@ -207,7 +207,7 @@ export function TimerScreen() {
               {dose && <div className="text-muted-foreground text-sm">{dose}</div>}
               {current.open && current.mode === "amrap" && (
                 <div className="text-muted-foreground text-sm">
-                  {workout.blocks[current.blockIndex].movements.map((m) => `${m.reps ?? ""} ${exById.get(m.exerciseId)?.title ?? "?"}`.trim()).join(" · ")}
+                  {workout.blocks[current.blockIndex]?.movements.map((m) => `${m.reps ?? ""} ${exById.get(m.exerciseId)?.title ?? "?"}`.trim()).join(" · ")}
                 </div>
               )}
             </div>

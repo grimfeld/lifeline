@@ -109,8 +109,12 @@ export function effectiveTags(explicit: readonly string[] | undefined, body: str
   return normalizeTags([...(explicit ?? []), ...(body ? extractProseTags(body) : [])]);
 }
 
-export type DocumentInput<T extends Document = Document> = Omit<T, "id" | "updatedAt" | "deleted" | "tags" | "folder" | "createdAt" | "title"> &
-  Partial<Pick<T, "id" | "tags" | "folder" | "createdAt" | "title">> & { type: string };
+/** `Omit` that keeps a Document type's own fields: the built-in one maps over `keyof T`, which the index signature widens to `string`, dropping them. */
+type OmitKnown<T, K extends PropertyKey> = { [P in keyof T as P extends K ? never : P]: T[P] };
+
+/** What `putDocument` takes: the type's fields, typed; the common keys it fills itself optional. */
+export type DocumentInput<T extends Document = Document> = OmitKnown<T, "id" | "updatedAt" | "deleted" | "tags" | "folder" | "createdAt" | "title"> &
+  Partial<Pick<T, "id" | "tags" | "folder" | "createdAt" | "title">>;
 
 /**
  * Write a Document: fills common keys (id, createdAt, folder, derived title),
@@ -136,7 +140,7 @@ export async function putDocument<T extends Document = Document>(input: Document
     tags: effectiveTags(input.tags, body),
     title: input.title ?? "",
     workspace: input.workspace ?? (await workspaceScope()),
-  } as unknown as T;
+  } as T;
   if (body === undefined) delete (row as Document).body;
   else (row as Document).body = body;
   if (!row.title && def?.titleOf) row.title = def.titleOf(row);

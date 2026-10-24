@@ -23,9 +23,17 @@ jobs:
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Chromium keyed on the Playwright version, so a run downloads it only after a bump.
+      - id: playwright
+        run: echo "version=$(node -p "require('./shell/package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # Still run on a cache hit: --with-deps installs the system libraries.
       - run: pnpm --filter @lifeline/shell exec playwright install --with-deps chromium
       - run: pnpm --filter @lifeline/shell test:e2e --shard=${{ matrix.shard }}/${{ strategy.job-total }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

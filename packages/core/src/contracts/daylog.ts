@@ -44,7 +44,6 @@ export function useDaylog(date: DateStr, apps?: string[], opts?: { tags?: TagFil
   // Hook order is stable: the provider list is fixed at compile time (ADR 0003).
   const per = providers.map((p) => ({
     provider: p,
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     items: p.useItems(date),
   }));
   const out: SurfaceDaylogItem[] = [];

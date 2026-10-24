@@ -78,7 +78,7 @@ export function ReportCard({ settings, configure }: CardProps) {
 export function useReportTitle(settings: CardProps["settings"]): string {
   const types = useDocumentTypes();
   const docs = useAllDocuments();
-  const kind = REPORT_KINDS.find((k) => k.kind === settings.kind) ?? REPORT_KINDS[0];
+  const kind = REPORT_KINDS.find((k) => k.kind === settings.kind) ?? reportKind("top");
   if (kind.family === "document") {
     const d = docs.find((x) => x.id === settings.doc);
     return d ? `${d.title} · ${kind.label}` : kind.label;

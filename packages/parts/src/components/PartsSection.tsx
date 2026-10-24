@@ -42,7 +42,7 @@ function shownOf(medium: PartsMedium, sections: RunSection[]): Shown[] {
   const out: Shown[] = [];
   for (const s of sections) {
     if (s.group > 0 || sections.length > 1) {
-      out.push({ key: `g${s.group}-${s.first}`, section: s, first: s.first, last: s.last, heading: s.group > 0 ? groupName(medium, s.group) : `${medium.parts[0].toUpperCase()}${medium.parts.slice(1)} ${s.first}–${s.last}` });
+      out.push({ key: `g${s.group}-${s.first}`, section: s, first: s.first, last: s.last, heading: s.group > 0 ? groupName(medium, s.group) : `${medium.parts.charAt(0).toUpperCase()}${medium.parts.slice(1)} ${s.first}–${s.last}` });
       continue;
     }
     if (s.last - s.first + 1 <= BLOCK) {

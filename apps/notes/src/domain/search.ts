@@ -27,7 +27,7 @@ export function tagSnippet(body: string, tag: string, radius = 60): string {
   const re = new RegExp(`(^|[^\\w#/])#${escapeRe(tag)}(?![\\w/-])`, "i");
   const m = re.exec(text);
   if (!m) return excerpt(body, radius * 2);
-  const from = m.index + m[1].length;
+  const from = m.index + (m[1] ?? "").length;
   return snippetAround(text, from, from + tag.length + 1, radius);
 }
 

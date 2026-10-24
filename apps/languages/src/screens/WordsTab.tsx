@@ -33,6 +33,7 @@ export function WordsTab({ items, others = [], decks, recalls }: { items: Item[]
   const [addingFact, setAddingFact] = useState(false);
   const [editing, setEditing] = useState<Item | undefined>();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read the clock whenever a Recall lands
   const now = useMemo(() => new Date(), [recalls]);
   const dues = useMemo(() => {
     const m = new Map<string, (Date | null)[]>();

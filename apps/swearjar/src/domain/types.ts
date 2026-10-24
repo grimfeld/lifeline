@@ -60,7 +60,8 @@ export function faceColor(o: Pick<Offence, "color">): string {
 export function firstGrapheme(s: string): string {
   const t = s.trim();
   if (!t) return "";
-  const Seg = (Intl as unknown as { Segmenter?: new (l?: string, o?: { granularity: string }) => { segment(s: string): Iterable<{ segment: string }> } }).Segmenter;
+  // Older engines (Firefox before 125) have no Segmenter, whatever the lib's types say.
+  const Seg = typeof Intl.Segmenter === "function" ? Intl.Segmenter : undefined;
   if (Seg) {
     for (const g of new Seg(undefined, { granularity: "grapheme" }).segment(t)) return g.segment;
   }

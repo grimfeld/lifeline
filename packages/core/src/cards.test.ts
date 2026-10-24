@@ -22,7 +22,7 @@ describe("resolveSettings", () => {
 describe("required fields", () => {
   it("detects required entity fields", () => {
     expect(hasRequiredFields(schema)).toBe(true);
-    expect(hasRequiredFields({ n: schema.n })).toBe(false);
+    expect(hasRequiredFields({ n: schema.n! })).toBe(false);
     expect(hasRequiredFields(undefined)).toBe(false);
   });
   it("isConfigured needs every required field", () => {

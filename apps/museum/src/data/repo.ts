@@ -57,11 +57,6 @@ export function useArtworks(): Artwork[] {
   return useMemo(() => rows.map(normalizeArtwork), [rows]);
 }
 
-export function useArtwork(id: string | undefined): Artwork | undefined {
-  const row = useDocument<Artwork>(id);
-  return useMemo(() => (row ? normalizeArtwork(row) : undefined), [row]);
-}
-
 export async function addArtwork(input: {
   form: ArtFormId;
   title: string;

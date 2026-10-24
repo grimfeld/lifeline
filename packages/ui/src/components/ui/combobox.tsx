@@ -128,8 +128,7 @@ function Combobox<T extends ComboboxOption>({
       clearTimeout(t)
       ctl.abort()
     }
-    // `search` is usually an inline closure; the query drives the lookup.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `search` is usually an inline closure; the query drives the lookup
   }, [typed, searchDelay])
 
   const rows = React.useMemo(() => {

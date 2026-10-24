@@ -85,8 +85,10 @@ export function TypeEditor({
   const [body, setBody] = useState<BodyPolicy>(record?.body ?? base?.body ?? "optional");
   const [linkable, setLinkable] = useState(record?.linkable ?? (base ? !!base.linkable : true));
   // A built-in's own Fields stay its App's (CONTEXT.md "Field"): the form holds only the ones the user adds beside them.
-  const ownKeys = new Set((base?.fields ?? []).map((f) => f.key));
-  const savedFields = useMemo(() => (record?.fields ?? []).filter((f) => !ownKeys.has(f.key)), [record, base]);
+  const savedFields = useMemo(() => {
+    const ownKeys = new Set((base?.fields ?? []).map((f) => f.key));
+    return (record?.fields ?? []).filter((f) => !ownKeys.has(f.key));
+  }, [record, base]);
   const [rows, setRows] = useState<Row[]>(
     record || base ? toRows(savedFields) : [withUid(newKnownFieldDraft(knownField("aliases")))],
   );
@@ -143,8 +145,8 @@ export function TypeEditor({
   async function save() {
     if (!label.trim() || !typeId) return;
     if (idTaken) return void toast.error(`A type with id “${typeId}” already exists`);
-    if (problems.length) return void toast.error(problems[0]);
-    if (keyClashesRefused.length) return void toast.error(keyClashesRefused[0].message);
+    if (problems.length) return void toast.error(problems[0]!);
+    if (keyClashesRefused.length) return void toast.error(keyClashesRefused[0]!.message);
     setBusy(true);
     try {
       await saveDocumentType({
@@ -237,7 +239,7 @@ export function TypeEditor({
               <label className="flex min-h-8 items-center gap-2 text-sm">
                 <Checkbox checked={linkable} onCheckedChange={(c) => setLinkable(c === true)} /> Linkable — [[link]] to it by name or alias
               </label>
-              {geoRows.length > 0 && <span className="text-muted-foreground text-xs">Locatable via “{geoRows.find((r) => r.key === locatableField)?.label ?? geoRows[0].label}”</span>}
+              {geoRows.length > 0 && <span className="text-muted-foreground text-xs">Locatable via “{geoRows.find((r) => r.key === locatableField)?.label ?? geoRows[0]!.label}”</span>}
             </div>
           </div>
         )}
@@ -262,7 +264,7 @@ export function TypeEditor({
                   {(handle) => (
                     <FieldRow
                       row={r}
-                      reading={readings[i]}
+                      reading={readings[i]!} // one reading per row
                       handle={handle}
                       open={open.has(r.uid)}
                       focus={r.uid === added}

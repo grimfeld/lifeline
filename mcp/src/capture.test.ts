@@ -11,7 +11,7 @@ describe("notes_capture", () => {
   it("is a write tool that takes the line to capture", () => {
     const tool = TOOLS.find((t) => t.name === "notes_capture");
     expect(tool?.write).toBe(true);
-    expect(tool!.input.text.safeParse("the plumber came").success).toBe(true);
+    expect(tool!.input.text!.safeParse("the plumber came").success).toBe(true);
   });
 
   it("appends the line to today's Day, stamped with the time", async () => {

@@ -20,7 +20,7 @@ export async function resolveInProject<T extends ScopedDoc = ScopedDoc>(kind: Sc
   if (byId) return byId;
   const wanted = value.trim().toLowerCase();
   const hits = own.filter((d) => d.title.trim().toLowerCase() === wanted);
-  if (hits.length === 1) return hits[0];
+  if (hits.length === 1) return hits[0]!;
   const project = (await getDocument(projectId))?.title ?? projectId;
   if (hits.length === 0) {
     const list = own.length ? `; ${project} has: ${own.map((d) => `“${d.title}” (${d.id})`).join(", ")}` : `; ${project} has none`;

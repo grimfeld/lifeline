@@ -76,7 +76,7 @@ describe("completedInRange", () => {
       sourceDate: "2026-08-10",
       recurring: true,
     });
-    expect(entries[0].recurring).toBe(false);
+    expect(entries[0]?.recurring).toBe(false);
   });
 
   it("carries the task's tags on entries; occurrences inherit the definition's, untagged reads as []", () => {

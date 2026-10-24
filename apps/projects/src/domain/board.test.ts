@@ -85,17 +85,17 @@ describe("the Board", () => {
 
   it("stands a ticked Task in the done Lane whatever its own Lane says", () => {
     const cols = boardOf(LANES, [task("a", { lane: "doing", completedOn: "2026-02-01" })], "p");
-    expect(cols[2].tasks.map((t) => t.id)).toEqual(["a"]);
+    expect(cols[2]!.tasks.map((t) => t.id)).toEqual(["a"]);
   });
 
   it("returns an unticked Task in the done Lane to the first Lane", () => {
     const cols = boardOf(LANES, [task("a", { lane: "done" })], "p");
-    expect(cols[0].tasks.map((t) => t.id)).toEqual(["a"]);
+    expect(cols[0]!.tasks.map((t) => t.id)).toEqual(["a"]);
   });
 
   it("orders each Lane by hand rank, unranked last", () => {
     const cols = boardOf(LANES, [task("a"), task("b", { rank: 2000 }), task("c", { rank: 1000 })], "p");
-    expect(cols[0].tasks.map((t) => t.id)).toEqual(["c", "b", "a"]);
+    expect(cols[0]!.tasks.map((t) => t.id)).toEqual(["c", "b", "a"]);
   });
 
   it("leaves recurring Tasks and other Projects' Lanes off", () => {

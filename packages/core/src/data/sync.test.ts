@@ -86,7 +86,7 @@ vi.mock("./pb", () => ({
           if (ids.length) {
             rows = rows.filter((r) => ids.includes(r.id));
           } else {
-            const u = params.u ?? params.c;
+            const u = (params.u ?? params.c)!;
             const id = params.id;
             rows = rows.filter((r) => r.updated > u || (id !== undefined && r.updated === u && r.id > id));
           }
@@ -169,7 +169,7 @@ describe("pull", () => {
     fake.state.afterList = (name, call) => {
       if (call !== 1) return;
       const rows = fake.state.server.get(name)!;
-      rows[0] = { ...rows[0], updated: stamp(5000), updatedAt: stamp(5000) };
+      rows[0] = { ...rows[0]!, updated: stamp(5000), updatedAt: stamp(5000) };
     };
     await syncNow();
     const local = fake.table("things");

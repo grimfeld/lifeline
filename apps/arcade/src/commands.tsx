@@ -37,11 +37,11 @@ export const arcadeCommands: CommandDef[] = [
     args: [
       { key: "title", label: "Title", kind: "text", required: true },
       { key: "creator", label: "Creator", kind: "text", hint: "Developer." },
-      { key: "type", label: "Kind", kind: "select", options: WORK_TYPES.map((t) => ({ value: t.id, label: t.label })), hint: `Defaults to ${WORK_TYPES[0].id}.` },
+      { key: "type", label: "Kind", kind: "select", options: WORK_TYPES.map((t) => ({ value: t.id, label: t.label })), hint: `Defaults to ${WORK_TYPES[0]!.id}.` },
     ],
     returnsDocument: true,
     async invoke(a) {
-      const medium = ((a.type as WorkTypeId | undefined) ?? WORK_TYPES[0].id) as WorkTypeId;
+      const medium = ((a.type as WorkTypeId | undefined) ?? WORK_TYPES[0]!.id) as WorkTypeId;
       const title = (a.title as string).trim();
       const { id, twin } = await quickAddWork({ medium, title, creator: a.creator as string | undefined });
       if (twin) throw new Error(`“${twin.title}” is already on the shelf; tell the user — nothing was changed`);

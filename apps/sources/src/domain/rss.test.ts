@@ -15,10 +15,10 @@ describe("parseFeed", () => {
     const f = parseFeed(RSS);
     expect(f.title).toBe("Blog");
     expect(f.items.map((i) => i.title)).toEqual(["Second", "First"]);
-    expect(f.items[0].id).toBe("2");
-    expect(f.items[0].summary).toBe("Hi there");
-    expect(f.items[1].id).toBe("https://b/1");
-    expect(f.items[0].published).toBe("2026-08-18T10:00:00.000Z");
+    expect(f.items[0]?.id).toBe("2");
+    expect(f.items[0]?.summary).toBe("Hi there");
+    expect(f.items[1]?.id).toBe("https://b/1");
+    expect(f.items[0]?.published).toBe("2026-08-18T10:00:00.000Z");
   });
   it("atom", () => {
     const f = parseFeed(ATOM);
@@ -30,11 +30,11 @@ describe("parseFeed", () => {
   });
   it("sort + new", () => {
     const f = parseFeed(RSS);
-    const sorted = sortFeedItems([f.items[1], f.items[0]]);
-    expect(sorted[0].title).toBe("Second");
-    expect(isNewItem(sorted[0], "2026-08-17T12:00:00.000Z")).toBe(true);
-    expect(isNewItem(sorted[1], "2026-08-17T12:00:00.000Z")).toBe(false);
-    expect(isNewItem(sorted[1], null)).toBe(true);
+    const sorted = sortFeedItems([f.items[1]!, f.items[0]!]);
+    expect(sorted[0]?.title).toBe("Second");
+    expect(isNewItem(sorted[0]!, "2026-08-17T12:00:00.000Z")).toBe(true);
+    expect(isNewItem(sorted[1]!, "2026-08-17T12:00:00.000Z")).toBe(false);
+    expect(isNewItem(sorted[1]!, null)).toBe(true);
   });
   it("seen up to now covers a future-dated item, so marking seen settles", () => {
     const item = (published: string | null) => ({ id: published ?? "x", title: "t", link: null, summary: "", published }) as FeedItem;

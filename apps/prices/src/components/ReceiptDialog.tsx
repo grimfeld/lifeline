@@ -103,8 +103,7 @@ export function ReceiptDialog({ open, onOpenChange, receipt, initial }: { open: 
     }
     setPhoto(null);
     setErrors(new Map());
-    // Re-initialising on the existing Lines' arrival is wanted: they load async after the dialog opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-initialising on the existing Lines' arrival is wanted: they load async after the dialog opens
   }, [open, receipt, existingLines.length, products.length, initial]);
 
   // Each untyped second amount follows the Shop: that Product's last pack there.

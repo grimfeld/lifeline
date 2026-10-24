@@ -144,7 +144,7 @@ export function movePin(pins: string[], key: string, by: -1 | 1): string[] {
   const j = i + by;
   if (i < 0 || j < 0 || j >= pins.length) return pins;
   const next = [...pins];
-  [next[i], next[j]] = [next[j], next[i]];
+  [next[i], next[j]] = [next[j]!, next[i]!];
   return next;
 }
 

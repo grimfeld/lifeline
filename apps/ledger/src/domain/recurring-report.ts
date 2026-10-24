@@ -43,10 +43,10 @@ export function fixedSplit(transactions: Transaction[], series: Series[], months
     if (t.kind !== "expense") continue;
     const i = index.get(monthOf(t.date));
     if (i === undefined) continue;
-    if (keys.has(seriesKey(t.payee, "expense"))) fixed[i] += t.amount;
-    else variable[i] += t.amount;
+    if (keys.has(seriesKey(t.payee, "expense"))) fixed[i]! += t.amount;
+    else variable[i]! += t.amount;
   }
-  return months.map((month, i) => ({ month, label: month.slice(2), fixed: fixed[i], variable: variable[i] }));
+  return months.map((month, i) => ({ month, label: month.slice(2), fixed: fixed[i]!, variable: variable[i]! }));
 }
 
 /** One Recurring series over the window: the series itself plus what the filtered slice shows of it. */
@@ -81,7 +81,7 @@ export function seriesReport(transactions: Transaction[], series: Series[], mont
     const i = index.get(monthOf(t.date));
     if (i === undefined) continue;
     const row = sums.get(key) ?? (new Array(months.length).fill(0) as number[]);
-    row[i] += t.amount;
+    row[i]! += t.amount;
     sums.set(key, row);
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }

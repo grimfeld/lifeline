@@ -109,10 +109,11 @@ export function inferDateFormat(cells: string[]): "YMD" | "DMY" | "MDY" {
   let mdy = false;
   for (const cell of cells) {
     const nums = cell.trim().split(/[^\d]+/).filter(Boolean).map(Number);
+    const [first = 0, second = 0] = nums;
     if (nums.length !== 3) continue;
-    if (nums[0] > 31) return "YMD";
-    if (nums[0] > 12) dmy = true;
-    if (nums[1] > 12) mdy = true;
+    if (first > 31) return "YMD";
+    if (first > 12) dmy = true;
+    if (second > 12) mdy = true;
   }
   if (dmy && !mdy) return "DMY";
   if (mdy && !dmy) return "MDY";
@@ -130,12 +131,13 @@ export class PaypalFormatError extends Error {}
  */
 export function parsePaypalCsv(text: string): PaypalEntry[] {
   const rows = parseCsv(text);
-  if (rows.length < 2) throw new PaypalFormatError("That file has no rows.");
-  const col = findColumns(rows[0]);
+  const [header] = rows;
+  if (!header || rows.length < 2) throw new PaypalFormatError("That file has no rows.");
+  const col = findColumns(header);
   const amountCol = col.gross >= 0 ? col.gross : col.net;
   const missing = [col.date < 0 && "Date", amountCol < 0 && "Gross", col.name < 0 && col.subject < 0 && "Name"].filter(Boolean);
   if (missing.length > 0) {
-    throw new PaypalFormatError(`Not a PayPal activity CSV — no ${missing.join(", ")} column. Found: ${rows[0].filter(Boolean).slice(0, 12).join(", ")}`);
+    throw new PaypalFormatError(`Not a PayPal activity CSV — no ${missing.join(", ")} column. Found: ${header.filter(Boolean).slice(0, 12).join(", ")}`);
   }
   const body = rows.slice(1);
   const format = inferDateFormat(body.map((r) => (r[col.date] ?? "").trim()));
@@ -272,10 +274,11 @@ export function matchPaypal(row: PaypalQuery, index: PaypalIndex): PaypalMatch {
     const refs = [entry.id, entry.refId].filter((r) => r.length >= MIN_REFERENCE);
     return refs.some((r) => haystack.includes(r.toUpperCase().replace(/[^A-Z0-9]/g, "")));
   });
-  if (quoted.length > 0) {
+  const [firstQuoted] = quoted;
+  if (firstQuoted) {
     // Several rows share a reference (a payment and its funding); the one whose amount matches is the payment.
     const byAmount = quoted.filter((c) => inLedgerCurrency(c.entry) && Math.abs(c.entry.amount) === Math.abs(row.amount));
-    return { status: "exact", pick: byAmount[0] ?? quoted[0], candidates: quoted };
+    return { status: "exact", pick: byAmount[0] ?? firstQuoted, candidates: quoted };
   }
 
   const fits = named
@@ -289,6 +292,6 @@ export function matchPaypal(row: PaypalQuery, index: PaypalIndex): PaypalMatch {
   const distinct = new Map<string, PaypalCandidate>();
   for (const c of fits) if (!distinct.has(c.payee.toLowerCase())) distinct.set(c.payee.toLowerCase(), { entry: c.entry, payee: c.payee });
   const candidates = Array.from(distinct.values());
-  if (candidates.length === 1) return { status: "confident", pick: candidates[0], candidates };
+  if (candidates.length === 1 && candidates[0]) return { status: "confident", pick: candidates[0], candidates };
   return { status: "ambiguous", pick: null, candidates };
 }

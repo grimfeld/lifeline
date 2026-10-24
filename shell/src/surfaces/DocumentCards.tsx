@@ -86,10 +86,6 @@ export function ViewCard({ settings, configure }: CardProps) {
   );
 }
 
-export function viewCardTitle(settings: { view?: unknown }): string {
-  return String(settings.view ?? "");
-}
-
 export function useDocumentOptions(): CardOption[] {
   const docs = useAllDocuments();
   const types = useDocumentTypes();

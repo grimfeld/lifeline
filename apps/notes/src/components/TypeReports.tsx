@@ -32,7 +32,10 @@ export function TypeReports({ type, index }: { type: DocumentTypeDef; index: Lin
   if (chosen.length === 0) return null;
   const set = (patch: Record<string, string>) => {
     const next = new URLSearchParams(params);
-    for (const [k, v] of Object.entries(patch)) (v ? next.set(k, v) : next.delete(k));
+    for (const [k, v] of Object.entries(patch)) {
+      if (v) next.set(k, v);
+      else next.delete(k);
+    }
     setParams(next, { replace: true });
   };
   const ranksOverWindow = chosen.some((r) => r.kind === "top");

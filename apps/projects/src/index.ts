@@ -2,7 +2,7 @@ import type { AppManifest } from "@lifeline/core";
 import { ChartGantt, FolderKanban } from "lucide-react";
 import { ProjectScreen } from "./screens/ProjectScreen";
 import { TimelineScreen } from "./screens/TimelineScreen";
-import { ActiveProjectsCard, BoardCard, ProjectCard, useProjectOptions, useProjectTitle } from "./cards/ProjectCards";
+import { ActiveProjectsCard, BoardCard, ProjectCard, useBoardCardTitle, useProjectCardTitle, useProjectOptions } from "./cards/ProjectCards";
 import { projectCommands } from "./commands";
 import { projectsTimed } from "./timed";
 import { projectsDaylog } from "./daylog";
@@ -46,7 +46,7 @@ export const projectsApp: AppManifest = {
       defaultSize: { w: 4, h: 5 },
       minSize: { w: 3, h: 3 },
       settings: { project: { kind: "entity", label: "Project", required: true, useOptions: useProjectOptions } },
-      instanceTitle: (s) => useProjectTitle(s.project),
+      instanceTitle: useProjectCardTitle,
     },
     {
       id: "projects.board",
@@ -56,10 +56,7 @@ export const projectsApp: AppManifest = {
       defaultSize: { w: 8, h: 6 },
       minSize: { w: 4, h: 4 },
       settings: { project: { kind: "entity", label: "Project", required: true, useOptions: useProjectOptions } },
-      instanceTitle: (s) => {
-        const t = useProjectTitle(s.project);
-        return t ? `${t} · Board` : "";
-      },
+      instanceTitle: useBoardCardTitle,
     },
   ],
   commands: projectCommands,

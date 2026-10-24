@@ -1,30 +1,8 @@
 import { useState } from "react";
 import { Button, DatePicker, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { COMMON_COLUMNS, type DocumentTypeDef, type FieldDef, type ViewFilter, type ViewFilterOp } from "@lifeline/core";
+import type { DocumentTypeDef, ViewFilter, ViewFilterOp } from "@lifeline/core";
 import { Plus, X } from "lucide-react";
-
-const OPS: { value: ViewFilterOp; label: string; needsValue: boolean }[] = [
-  { value: "eq", label: "is", needsValue: true },
-  { value: "neq", label: "is not", needsValue: true },
-  { value: "contains", label: "contains", needsValue: true },
-  { value: "anyOf", label: "any of", needsValue: true },
-  { value: "gt", label: ">", needsValue: true },
-  { value: "lt", label: "<", needsValue: true },
-  { value: "empty", label: "is empty", needsValue: false },
-  { value: "notEmpty", label: "is set", needsValue: false },
-];
-
-function filterableFields(def: DocumentTypeDef | undefined): FieldDef[] {
-  return [...COMMON_COLUMNS.filter((c) => c.key !== "updatedAt"), ...(def?.fields ?? []).filter((f) => !f.hidden && f.kind !== "json")];
-}
-
-function describe(f: ViewFilter, def: DocumentTypeDef | undefined): string {
-  const field = filterableFields(def).find((x) => x.key === f.field);
-  const op = OPS.find((o) => o.value === f.op);
-  const v = Array.isArray(f.value) ? f.value.join(", ") : f.value === undefined ? "" : String(f.value);
-  const opt = field?.options?.find((o) => o.value === v);
-  return `${field?.label ?? f.field} ${op?.label ?? f.op}${op?.needsValue ? ` ${opt?.label ?? v}` : ""}`;
-}
+import { OPS, describeFilter, draftFilter, filterableFields } from "./filters";
 
 /** Filter chips + an inline "add filter" row (field · op · value). */
 export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | undefined; filters: ViewFilter[]; onChange: (next: ViewFilter[]) => void }) {
@@ -35,12 +13,9 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
   const op = OPS.find((o) => o.value === draft.op)!;
   /** Add the filter being built; `picked` is a value chosen just now (a date), not yet in the draft. */
   function commit(picked?: ViewFilter["value"]) {
-    let value = picked ?? draft.value;
-    if (op.needsValue && (value === "" || value === undefined)) return;
-    if (draft.op === "anyOf" && typeof value === "string") value = value.split(",").map((s) => s.trim()).filter(Boolean);
-    if (field?.kind === "number" && typeof value === "string") value = Number(value);
-    if (field?.kind === "boolean") value = value === "true" || value === true;
-    onChange([...filters, { ...draft, value }]);
+    const next = draftFilter(draft, field, picked);
+    if (!next) return;
+    onChange([...filters, next]);
     setAdding(false);
     setDraft({ field: "title", op: "contains", value: "" });
   }
@@ -48,7 +23,7 @@ export function FilterBar({ def, filters, onChange }: { def: DocumentTypeDef | u
     <div className="flex flex-wrap items-center gap-1">
       {filters.map((f, i) => (
         <span key={i} className="bg-muted inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs">
-          {describe(f, def)}
+          {describeFilter(f, def)}
           <button type="button" className="hover:text-destructive" onClick={() => onChange(filters.filter((_, j) => j !== i))} aria-label="Remove filter">
             <X className="size-3" />
           </button>

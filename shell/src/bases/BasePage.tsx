@@ -37,7 +37,6 @@ import {
   applyView,
   availableLayouts,
   COMMON_COLUMNS,
-  defaultColumns,
   deleteView,
   layoutFieldCandidates,
   layoutFieldOf,
@@ -49,48 +48,17 @@ import {
   useDocumentType,
   useDocuments,
   useViews,
-  type DocumentTypeDef,
-  type ViewFilter,
   type ViewLayout,
-  type ViewRecord,
   singularOf,
 } from "@lifeline/core";
 import { CalendarDays, ChevronDown, Columns3, Images, LayoutGrid, List, MapPin, MoreHorizontal, Plus, Save, Search, Settings2, SquareKanban, Table2, Tag, Trash2 , FolderInput } from "lucide-react";
 import { LayoutView } from "./LayoutView";
 import { removeEach, refusalSummary } from "./removeEach";
 import { FilterBar } from "./FilterBar";
+import { sortedBy, stateOf, withColumnToggled, type ViewState } from "./viewState";
 import { NewDocumentDialog } from "../vault/NewDocumentDialog";
 import { TagPicker } from "../components/TagPicker";
 import { MoveToWorkspaceDialog } from "../components/MoveToWorkspace";
-
-interface ViewState {
-  filters: ViewFilter[];
-  search: string;
-  sortBy: string;
-  sortDir: "asc" | "desc";
-  columns: string[];
-  layout: ViewLayout;
-  /** Field picks for layouts that read one (ADR 0020). */
-  imageField?: string;
-  geoField?: string;
-  groupField?: string;
-  dateField?: string;
-}
-
-function stateOf(v: ViewRecord | undefined, def: DocumentTypeDef | undefined): ViewState {
-  return {
-    filters: v?.filters ?? [],
-    search: v?.search ?? "",
-    sortBy: v?.sortBy ?? "updatedAt",
-    sortDir: v?.sortDir ?? "desc",
-    columns: v?.columns ?? defaultColumns(def),
-    layout: v?.layout ?? "table",
-    imageField: v?.imageField,
-    geoField: v?.geoField,
-    groupField: v?.groupField,
-    dateField: v?.dateField,
-  };
-}
 
 const LAYOUT_META: Record<ViewLayout, { icon: typeof Table2; label: string }> = {
   table: { icon: Table2, label: "Table" },
@@ -132,7 +100,7 @@ export function BasePage() {
   useEffect(() => {
     setState(stateOf(view, def));
     setSelected(new Set());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-seed only when the View or type changes: `view` and `def` are new objects on each read
   }, [viewId, type, view?.updatedAt, def?.id]);
 
   const rows = useMemo(() => applyView(docs, state, def), [docs, state, def]);
@@ -185,10 +153,10 @@ export function BasePage() {
     selectView(ALL_VIEW_ID);
   }
   function toggleSort(key: string) {
-    setState((s) => (s.sortBy === key ? { ...s, sortDir: s.sortDir === "asc" ? "desc" : "asc" } : { ...s, sortBy: key, sortDir: "asc" }));
+    setState((s) => sortedBy(s, key));
   }
   function toggleColumn(key: string) {
-    setState((s) => ({ ...s, columns: s.columns.includes(key) ? s.columns.filter((c) => c !== key) : [...s.columns, key] }));
+    setState((s) => withColumnToggled(s, key));
   }
   const select = (id: string, on: boolean) =>
     setSelected((s) => {

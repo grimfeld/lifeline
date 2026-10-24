@@ -71,7 +71,7 @@ describe("Known fields a type may still add (ADR 0078)", () => {
   it("offers Aliases on a user type that isn't Linkable, saying picking it turns Linkable on", () => {
     const [aliases] = knownFieldsToAdd([], { builtIn: false, linkable: false });
     expect(aliases).toMatchObject({ id: "aliases", makesLinkable: true });
-    expect(knownFieldsToAdd([], userType)[0].makesLinkable).toBeFalsy();
+    expect(knownFieldsToAdd([], userType)[0]!.makesLinkable).toBeFalsy();
   });
 
   it("doesn't offer what the type already has: an `aliases` key of any kind, or any geo Field", () => {

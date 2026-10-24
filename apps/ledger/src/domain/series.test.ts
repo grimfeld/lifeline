@@ -35,7 +35,7 @@ const TODAY = "2026-03-10";
 describe("detectSeries", () => {
   it("reads a monthly bill off three payments of the same size", () => {
     const rows = [tx("2026-01-01", "Landlord", 90_000), tx("2026-02-01", "Landlord", 90_000), tx("2026-03-01", "Landlord", 90_000)];
-    const [s] = detectSeries(rows, [], TODAY);
+    const s = detectSeries(rows, [], TODAY)[0]!;
     expect(s.payee).toBe("Landlord");
     expect(s.cadence).toBe("monthly");
     expect(s.amount).toBe(90_000);
@@ -52,7 +52,7 @@ describe("detectSeries", () => {
   it("the bank's noise around one payee collapses into one series", () => {
     // Case, punctuation and the row's own digits are noise; the words are the payee.
     const rows = [tx("2026-01-05", "NETFLIX.COM 1234", 1_399), tx("2026-02-05", "netflix com 5678", 1_399), tx("2026-03-05", "Netflix.com", 1_399)];
-    const [s] = detectSeries(rows, [], TODAY);
+    const s = detectSeries(rows, [], TODAY)[0]!;
     expect(s.key).toBe(seriesKey("netflix com", "expense"));
     expect(s.occurrences).toHaveLength(3);
     // The newest spelling wins.
@@ -66,7 +66,7 @@ describe("detectSeries", () => {
 
   it("a steady weekly payment is a series", () => {
     const rows = [tx("2026-02-17", "Cleaner", 4_000), tx("2026-02-24", "Cleaner", 4_000), tx("2026-03-03", "Cleaner", 4_500)];
-    const [s] = detectSeries(rows, [], TODAY);
+    const s = detectSeries(rows, [], TODAY)[0]!;
     expect(s.cadence).toBe("weekly");
     expect(s.amount).toBe(4_000);
     expect(s.spread).toBeCloseTo(0.125);
@@ -89,7 +89,7 @@ describe("detectSeries", () => {
       tx("2026-02-05", "Gym", 3_000),
       tx("2026-03-05", "Gym", 3_000),
     ];
-    const [s] = detectSeries(rows, [], TODAY);
+    const s = detectSeries(rows, [], TODAY)[0]!;
     expect(s.cadence).toBe("monthly");
     expect(s.occurrences).toHaveLength(3);
     expect(s.firstDate).toBe("2026-01-05");
@@ -97,22 +97,22 @@ describe("detectSeries", () => {
 
   it("a monthly bill on the 31st keeps the 31st as its anchor through February", () => {
     const rows = [tx("2025-12-31", "Loan", 20_000), tx("2026-01-31", "Loan", 20_000), tx("2026-02-28", "Loan", 20_000)];
-    const [s] = detectSeries(rows, [], TODAY);
+    const s = detectSeries(rows, [], TODAY)[0]!;
     expect(s.anchorDay).toBe(31);
     expect(nextOccurrence(s, s.lastDate)).toBe("2026-03-31");
   });
 
   it("income recurs too, and nothing for two periods marks a series over", () => {
     const salary = [tx("2026-01-25", "Acme Payroll", 250_000, { kind: "income", categoryId: "salary" }), tx("2026-02-25", "Acme Payroll", 250_000, { kind: "income", categoryId: "salary" }), tx("2026-03-25", "Acme Payroll", 250_000, { kind: "income", categoryId: "salary" })];
-    const [s] = detectSeries(salary, [], "2026-03-26");
+    const s = detectSeries(salary, [], "2026-03-26")[0]!;
     expect(s.kind).toBe("income");
     expect(s.dormant).toBe(false);
-    expect(detectSeries(salary, [], "2026-06-30")[0].dormant).toBe(true);
+    expect(detectSeries(salary, [], "2026-06-30")[0]!.dormant).toBe(true);
   });
 
   it("an override lays the user's word over the derived facts", () => {
     const rows = [tx("2026-01-01", "Landlord", 90_000), tx("2026-02-01", "Landlord", 90_000), tx("2026-03-01", "Landlord", 90_000)];
-    const [s] = detectSeries(rows, [override(seriesKey("Landlord", "expense"), { muted: true, skipped: ["2026-04-01"] })], TODAY);
+    const s = detectSeries(rows, [override(seriesKey("Landlord", "expense"), { muted: true, skipped: ["2026-04-01"] })], TODAY)[0]!;
     expect(s.muted).toBe(true);
     expect(s.skipped).toEqual(["2026-04-01"]);
     expect(s.overrideId).toBe(`o-${seriesKey("Landlord", "expense")}`);

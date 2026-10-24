@@ -49,11 +49,6 @@ export async function allWorks(): Promise<Work[]> {
   return (await Promise.all(WORK_TYPE_IDS.map((t) => documentsOf<Work>(t)))).flat().map(normalize);
 }
 
-export function useMediaItem(id: string | undefined): Work | undefined {
-  const row = useDocument<Work>(id);
-  return useMemo(() => (row ? normalize(row) : undefined), [row]);
-}
-
 export async function addWork(input: {
   medium: WorkTypeId;
   title: string;
@@ -165,7 +160,8 @@ export async function quickAddWork(input: { medium: WorkTypeId; title: string; a
 export function parseQuickTitle(raw: string): { title: string; author: string } {
   const t = raw.trim();
   const m = /^(.*?)\s+(?:—|–|-|by)\s+(.+)$/.exec(t);
-  if (m && m[1].trim() && m[2].trim()) return { title: m[1].trim(), author: m[2].trim() };
+  const [, title = "", author = ""] = m ?? [];
+  if (title.trim() && author.trim()) return { title: title.trim(), author: author.trim() };
   return { title: t, author: "" };
 }
 

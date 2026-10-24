@@ -28,8 +28,7 @@ export function parseAmount(text: string): number | null {
   const lastComma = s.lastIndexOf(",");
   if (lastDot >= 0 && lastComma >= 0) {
     // Both present: the later one is the decimal separator, the other thousands.
-    const dec = Math.max(lastDot, lastComma);
-    const decCh = s[dec];
+    const decCh = lastDot > lastComma ? "." : ",";
     s = s.replaceAll(decCh === "." ? "," : ".", "");
     s = s.replace(decCh, ".");
   } else if (lastComma >= 0) {

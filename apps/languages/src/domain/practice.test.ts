@@ -39,7 +39,7 @@ describe("practiceQueue", () => {
     expect(q.due).toBe(2);
     expect(q.queue.slice(0, 2).every((p) => p.itemId === "old")).toBe(false); // spaced apart…
     expect(q.queue.filter((p) => p.itemId === "old")).toHaveLength(2); // …but both there
-    expect(q.queue[0].itemId).toBe("old");
+    expect(q.queue[0]?.itemId).toBe("old");
   });
 
   it("brings a failed Prompt back within the same sitting", () => {
@@ -76,7 +76,7 @@ describe("practiceQueue across Topics", () => {
   it("holds each Topic to its own daily new cap", () => {
     const items = [inTopic(word("a1", 1), "A"), inTopic(word("a2", 2), "A"), inTopic(word("b1", 3), "B"), inTopic(word("b2", 4), "B")];
     const caps: Record<string, number> = { A: 1, B: 3 };
-    const q = practiceQueue(items, [], { now: new Date(at(10)), newCap: (t) => caps[t] });
+    const q = practiceQueue(items, [], { now: new Date(at(10)), newCap: (t) => caps[t] ?? 0 });
     const byTopic = (t: string) => q.queue.filter((p) => p.topicId === t).length;
     expect(byTopic("A")).toBe(1);
     expect(byTopic("B")).toBe(3);

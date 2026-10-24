@@ -94,11 +94,11 @@ describe("a Product's Measure", () => {
     const eggs = await addProduct({ title: "Eggs", dimension: "count", unit: "pc" });
     await addPrice({ productId: eggs, shopId: shop, amount: 12, price: 360, promo: false }, await allShops(), await allProducts());
     await updateProduct(await product(eggs), { title: "Eggs", dimension: "mass", unit: "g" });
-    const [waiting] = await allLines();
+    const waiting = (await allLines())[0]!;
 
     await setLineAmount(waiting, 720, await product(eggs));
 
-    const [l] = await allLines();
+    const l = (await allLines())[0]!;
     expect([l.amount, l.needsAmount]).toEqual([0.72, false]);
     await expect(setLineAmount(l, 0, await product(eggs))).rejects.toThrow(/above zero/);
   });
@@ -108,8 +108,8 @@ describe("a Product's Measure", () => {
     const eggs = await addProduct({ title: "Eggs", dimension: "count", unit: "pc" });
     const rid = await saveReceipt({ shopId: shop, date: "2026-10-01", total: 0, lines: [{ productId: eggs, label: "OEUFS", amount: 12, price: 360, promo: false }, { productId: eggs, label: "OEUFS BIO", amount: 6, price: 250, promo: false }] }, await allShops(), await allProducts());
     await updateProduct(await product(eggs), { title: "Eggs", dimension: "mass", unit: "kg" });
-    const [receipt] = (await allReceipts()).filter((r) => r.id === rid);
-    const [a, b] = (await allLines()).sort((x, y) => x.label.localeCompare(y.label));
+    const receipt = (await allReceipts()).filter((r) => r.id === rid)[0]!;
+    const [a, b] = (await allLines()).sort((x, y) => x.label.localeCompare(y.label)) as [Line, Line];
 
     await saveReceipt({ shopId: shop, date: "2026-10-01", total: 0, lines: [{ ...a, retyped: true, amount: 0.72 }, { ...b }] }, await allShops(), await allProducts(), { receipt, lines: [a, b] });
 
@@ -133,7 +133,7 @@ describe("a Product's Measure", () => {
     const b = await addProduct({ title: "Black pepper", dimension: "mass", unit: "kg" });
     await addPrice({ productId: a, shopId: shop, amount: 0.05, price: 189, promo: false }, await allShops(), await allProducts());
     await mergeProduct(await product(a), await product(b));
-    const [l] = await documentsOf<Line>(LINE);
+    const l = (await documentsOf<Line>(LINE))[0]!;
     expect([l.productId, l.amount]).toEqual([b, 0.05]);
   });
 
@@ -207,12 +207,12 @@ describe("an unmatched Line's amount", () => {
     const shop = await addShop({ title: "Lidl" });
     const cumin = await addProduct({ title: "Cumin", dimension: "mass", unit: "g" });
     await run("prices.receipt", { shop, lines: [{ label: "EPICE", price: 1.89, amount: 420 }] });
-    const [line] = await allLines();
-    const [receipt] = await allReceipts();
+    const line = (await allLines())[0]!;
+    const receipt = (await allReceipts())[0]!;
 
     await matchLine(line, await product(cumin), receipt);
 
-    const [l] = await allLines();
+    const l = (await allLines())[0]!;
     expect([l.productId, l.amount]).toEqual([cumin, 0.42]);
   });
 });

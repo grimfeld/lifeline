@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocuments, type DateStr } from "@lifeline/core";
+import { documentsOf, normalizeTags, putDocument, removeDocument, removeDocumentsWhere, todayStr, useDocuments, type DateStr } from "@lifeline/core";
 import { isColorSlot } from "@lifeline/ui";
 import { ALLOWANCE, SPEND, firstGrapheme, type Allowance, type PeriodKind, type Spend } from "../domain/types";
 import { allowanceTitle, endOf, nextFrom, normalizeFrom } from "../domain/period";
@@ -119,11 +119,6 @@ export async function updateSpend(s: Spend, input: SpendInput): Promise<void> {
 
 export async function deleteSpend(id: string): Promise<void> {
   await removeDocument(id);
-}
-
-/** Move a Spend to another Allowance — a mis-tap fixed in one step. */
-export async function reassignSpend(id: string, allowanceId: string): Promise<void> {
-  await patchDocument(id, { allowanceId });
 }
 
 export { todayStr };

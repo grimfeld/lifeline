@@ -33,7 +33,7 @@ describe("layoutColumns", () => {
   it("skips all-day items and enforces a 30-minute minimum", () => {
     const out = layoutColumns([{ start: null, end: null }, { start: "12:00", end: null }]);
     expect(out).toHaveLength(1);
-    expect(out[0].end - out[0].start).toBe(0.5);
+    expect(out[0]!.end - out[0]!.start).toBe(0.5);
   });
   it("toHours parses minutes", () => {
     expect(toHours("13:30")).toBe(13.5);

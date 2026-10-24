@@ -26,7 +26,7 @@ import { ACQUISITION, type Acquisition, type Work } from "../domain/types";
 import { acquire, finish, freeSlotsOf, isBuySignal, isStale, promote, release, slotAge, start } from "../domain/rules";
 import { patchWork } from "../data/repo";
 import { Cover } from "./Cover";
-import { WorkActionsMenu, useAct } from "./WorkActions";
+import { WorkActionsMenu, actOn } from "./WorkActions";
 import { ACQ_LABEL } from "./AddWorkDialog";
 import { displayTitle, docHref, normalizeTag, useLinkIndex, useTagVocabulary } from "@lifeline/core";
 import { AuthorNames } from "./AuthorNames";
@@ -176,7 +176,7 @@ export function WorkRow({ item, all, onEdit, compact = false }: { item: Work; al
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
 
-  const act = useAct(item);
+  const act = actOn(item);
 
   return (
     <div className={cn("bg-card flex items-center gap-3 rounded-lg border px-3 py-2", compact && "px-2 py-1.5")}>
@@ -230,7 +230,7 @@ export function WorkRow({ item, all, onEdit, compact = false }: { item: Work; al
         </div>
       )}
       {!compact && !slotted && !done && (
-        <Button size="sm" variant="outline" className="shrink-0" disabled={free.length === 0} title={free.length === 0 ? `The ${def.plural.toLowerCase()} nightstand is full` : ""} onClick={act(`Slot ${free[0]} taken`, promote(free[0]))}>
+        <Button size="sm" variant="outline" className="shrink-0" disabled={free.length === 0} title={free.length === 0 ? `The ${def.plural.toLowerCase()} nightstand is full` : ""} onClick={act(`Slot ${free[0]} taken`, promote(free[0]!))}>
           <ArrowDownToLine /> Slot it
         </Button>
       )}

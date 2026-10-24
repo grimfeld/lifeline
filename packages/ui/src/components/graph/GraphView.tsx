@@ -321,14 +321,13 @@ export function GraphView({ nodes, edges, onSelect, storageKey, highlight, class
     for (const sn of simNodes) posRef.current.set(sn.id, { x: sn.x, y: sn.y, f: sn.fx != null });
     if (!viewRef.current.interacted) viewRef.current.fitted = false;
     wake();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `wake` is a new function each render and reads only refs
   }, [nodes, edges, storageKey]);
 
   // Redraw on spotlight change; no relayout.
   useEffect(() => {
     highlightRef.current = highlight;
     draw();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlight]);
 
   // Resize, wheel-zoom (native: needs passive: false), teardown.
@@ -361,7 +360,7 @@ export function GraphView({ nodes, edges, onSelect, storageKey, highlight, class
       simRef.current?.stop();
       simRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- set up once per mount; the teardown's last save uses the storageKey it mounted with
   }, []);
 
   const toWorld = (e: React.PointerEvent<HTMLCanvasElement>) => {

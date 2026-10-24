@@ -102,6 +102,7 @@ export function ImportDialog({ open, onOpenChange, account }: { open: boolean; o
       if (s) out.set(r.index, s);
     }
     return { suggestions: out, vetoed: never };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `payeeOfRow` is a new function each render; what it reads (paypalMatches, pickedPayees) is listed instead
   }, [preview, catIndex, rules, paypalMatches, pickedPayees]);
 
   const categoryOf = (r: ImportRow) => pickedCategories.get(r.index) ?? suggestions.get(r.index)?.categoryId ?? "";

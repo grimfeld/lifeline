@@ -31,17 +31,17 @@ describe("tool catalogue", () => {
   it("hands an agent the receipt's Lines as rows, and the Products and Shops it may be missing (ADR 0075)", () => {
     const receipt = TOOLS.find((t) => t.name === "prices_receipt")!;
     expect(receipt.write).toBe(true);
-    const lines = receipt.input.lines.safeParse([{ label: "LAIT 1/2 ECR", price: 1.09, amount: 6, promo: false }]);
+    const lines = receipt.input.lines!.safeParse([{ label: "LAIT 1/2 ECR", price: 1.09, amount: 6, promo: false }]);
     expect(lines.success).toBe(true);
-    expect(receipt.input.lines.safeParse([{ label: "LAIT" }]).success).toBe(false);
+    expect(receipt.input.lines!.safeParse([{ label: "LAIT" }]).success).toBe(false);
     // A pack counted and weighed (ADR 0084): the second amount rides on the row, and on prices_add.
-    expect(receipt.input.lines.safeParse([{ label: "CROISSANTS X4", price: 2.4, amount: 4, second_amount: 240, second_unit: "g" }]).success).toBe(true);
+    expect(receipt.input.lines!.safeParse([{ label: "CROISSANTS X4", price: 2.4, amount: 4, second_amount: 240, second_unit: "g" }]).success).toBe(true);
     expect(Object.keys(TOOLS.find((t) => t.name === "prices_add")!.input)).toEqual(expect.arrayContaining(["second_amount", "second_unit", "bought"]));
     expect(Object.keys(TOOLS.find((t) => t.name === "prices_product_add")!.input)).toEqual(expect.arrayContaining(["secondary_dimension", "secondary_unit", "compare_by"]));
     // The older measure arg still makes a Product: an agent written before ADR 0084 keeps working.
     const productAdd = TOOLS.find((t) => t.name === "prices_product_add")!;
-    expect(productAdd.input.measure.safeParse("kg").success).toBe(true);
-    expect(productAdd.input.dimension.safeParse(undefined).success).toBe(true);
+    expect(productAdd.input.measure!.safeParse("kg").success).toBe(true);
+    expect(productAdd.input.dimension!.safeParse(undefined).success).toBe(true);
     expect(TOOLS.map((t) => t.name)).toEqual(expect.arrayContaining(["prices_product_add", "prices_shop_add"]));
   });
 
@@ -89,11 +89,11 @@ describe("Macro tools", () => {
   it("lists a headless Macro as a write tool whose arguments are its asked ones", () => {
     const [tool] = macroTools([macro("m1", "Plan a call", [{ command: "tasks/add", args: { title: { from: "asked" }, date: { from: "fixed", value: "2026-10-22" } } }])], [add]);
     expect(tool).toMatchObject({ name: "macro_plan_a_call", title: "Plan a call", macro: "m1" });
-    const spec = macroToolSpec(tool);
+    const spec = macroToolSpec(tool!);
     expect(Object.keys(spec.input)).toEqual(["workspace", "s1_title"]);
     expect(spec).toMatchObject({ name: "macro_plan_a_call", macro: "m1", write: true });
-    expect(spec.input.s1_title.safeParse("call mum").success).toBe(true);
-    expect(spec.input.s1_title.safeParse(undefined).success).toBe(false);
+    expect(spec.input.s1_title!.safeParse("call mum").success).toBe(true);
+    expect(spec.input.s1_title!.safeParse(undefined).success).toBe(false);
     expect(spec.description).toContain("Add task");
   });
 
@@ -118,7 +118,7 @@ describe("Macro tools", () => {
     expect(by("create_macro")?.write).toBe(true);
     expect(by("update_macro")?.write).toBe(true);
     expect(by("delete_macro")).toBeUndefined();
-    expect(by("create_macro")!.input.steps.safeParse([{ command: "tasks/add", args: { title: { from: "asked" }, date: { from: "step", step: 0 } }, skipIfRefused: true }]).success).toBe(true);
-    expect(by("create_macro")!.input.steps.safeParse([{ command: "tasks/add", args: { title: { from: "guess" } } }]).success).toBe(false);
+    expect(by("create_macro")!.input.steps!.safeParse([{ command: "tasks/add", args: { title: { from: "asked" }, date: { from: "step", step: 0 } }, skipIfRefused: true }]).success).toBe(true);
+    expect(by("create_macro")!.input.steps!.safeParse([{ command: "tasks/add", args: { title: { from: "guess" } } }]).success).toBe(false);
   });
 });

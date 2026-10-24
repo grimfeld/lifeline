@@ -20,7 +20,7 @@ export function parseCloze(text: string): ClozePart[] {
   for (const m of text.matchAll(BLANK)) {
     const at = m.index ?? 0;
     if (at > last) parts.push({ kind: "text", text: text.slice(last, at) });
-    const inner = m[1].trim();
+    const inner = (m[1] ?? "").trim();
     const norm = normalizeBlank(inner);
     if (norm) {
       const n = (seen.get(norm) ?? 0) + 1;

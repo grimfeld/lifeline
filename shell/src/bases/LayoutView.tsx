@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Button, cn, MapView, TagChips, toast, type MapPin } from "@lifeline/ui";
 import {
-  addDays,
   appById,
   displayTitle,
   docHref,
@@ -10,7 +9,6 @@ import {
   layoutFieldOf,
   parts,
   requestFieldChange,
-  startOfWeek,
   todayStr,
   type Document,
   type DocumentTypeDef,
@@ -19,6 +17,7 @@ import {
 } from "@lifeline/core";
 import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
 import { DocList, type Layout as FlatLayout } from "./DocList";
+import { boardColumns, byDayOf, geoOf, monthGrid } from "./layouts";
 
 /**
  * Render a View's Documents in its layout (ADR 0020). The three flat
@@ -129,9 +128,9 @@ function MapLayout({ docs, def, picks }: { docs: Document[]; def: DocumentTypeDe
     const pins: MapPin[] = [];
     const omitted: Document[] = [];
     for (const d of docs) {
-      const v = field ? d[field.key] : undefined;
-      const [lat, lon] = Array.isArray(v) ? (v as [number, number]) : [NaN, NaN];
-      if (typeof lat === "number" && typeof lon === "number" && Number.isFinite(lat) && Number.isFinite(lon)) {
+      const at = geoOf(d, field);
+      if (at) {
+        const [lat, lon] = at;
         pins.push({ key: d.id, name: displayTitle(d, def), lat, lon, href: docHref(d, def), color: appById(def?.appId ?? "")?.color });
       } else omitted.push(d);
     }
@@ -155,15 +154,7 @@ function Board({ docs, def, picks, compact, editable }: { docs: Document[]; def:
   // ADR 0020: a plain select drags freely; a guarded one only when the owning App answers requests.
   const draggable = !!editable && !!field && (!field.guarded || !!(def?.appId && appById(def.appId)?.requestFieldChange));
   if (!field) return <div className="text-muted-foreground px-3 py-6 text-center text-sm">Board needs a select field.</div>;
-  const options = field.options ?? [];
-  const known = new Set(options.map((o) => o.value));
-  const byValue = new Map<string, Document[]>();
-  for (const d of docs) {
-    const v = String(d[field.key] ?? "");
-    const key = known.has(v) ? v : "";
-    byValue.set(key, [...(byValue.get(key) ?? []), d]);
-  }
-  const columns = [...options.map((o) => ({ value: o.value, label: o.label })), ...(byValue.has("") ? [{ value: "", label: "—" }] : [])];
+  const { columns, byValue } = boardColumns(docs, field);
 
   async function drop(value: string) {
     if (!dragging || !field) return;
@@ -224,25 +215,10 @@ function CalendarGrid({ docs, def, picks, compact }: { docs: Document[]; def: Do
   const field = layoutFieldOf(picks, def, "calendar");
   const today = todayStr();
   const [month, setMonth] = useState(() => today.slice(0, 7)); // "YYYY-MM"
-  const { byDay, omitted, placed } = useMemo(() => {
-    const byDay = new Map<string, Document[]>();
-    const omitted: Document[] = [];
-    let placed = 0;
-    for (const d of docs) {
-      const day = String((field ? d[field.key] : "") ?? "").slice(0, 10);
-      if (/^\d{4}-\d{2}-\d{2}$/.test(day)) {
-        byDay.set(day, [...(byDay.get(day) ?? []), d]);
-        placed++;
-      } else omitted.push(d);
-    }
-    return { byDay, omitted, placed };
-  }, [docs, field]);
+  const { byDay, omitted, placed } = useMemo(() => byDayOf(docs, field), [docs, field]);
 
-  const [y, m] = month.split("-").map(Number);
-  const gridStart = startOfWeek(fromParts(y, m, 1));
-  const days = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
-    // Drop the 6th row when it lies wholly in the next month.
-    .filter((_, i) => i < 35 || parts(addDays(gridStart, 35)).m === m);
+  const [y = 0, m = 1] = month.split("-").map(Number);
+  const days = monthGrid(y, m);
   const shift = (n: number) => setMonth(fromParts(y, m + n, 1).slice(0, 7));
   const monthName = new Date(y, m - 1, 1).toLocaleString(undefined, { month: "long", year: "numeric" });
   const max = compact ? 2 : 4;

@@ -27,10 +27,10 @@ export function useCommitDraft<T>(
   latest.current = { ...latest.current, value, commit, equals };
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const hold = (next: { value: T } | null) => {
+  const hold = useCallback((next: { value: T } | null) => {
     latest.current.held = next;
     setHeld(next);
-  };
+  }, []);
 
   const flush = useCallback(async () => {
     if (timer.current) clearTimeout(timer.current);
@@ -52,7 +52,7 @@ export function useCommitDraft<T>(
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, []);
+  }, [hold]);
 
   const change = useCallback(
     (next: T) => {
@@ -61,7 +61,7 @@ export function useCommitDraft<T>(
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => void flush(), delay);
     },
-    [delay, flush],
+    [delay, flush, hold],
   );
 
   const revert = useCallback(() => {
@@ -69,7 +69,7 @@ export function useCommitDraft<T>(
     timer.current = null;
     hold(null);
     setError("");
-  }, []);
+  }, [hold]);
 
   // Closed mid-edit: what was typed is still written.
   useEffect(() => () => void flush(), [flush]);

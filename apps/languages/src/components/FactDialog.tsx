@@ -46,8 +46,7 @@ export function FactDialog({ open, onOpenChange, fact, prefill, initial, onSaved
     setTags(fact?.tags ?? initialList(initial, "tags"));
     setConfirmDelete(false);
     kept.current = "";
-    // `active` settles after the first render; a Fact's own Topic never moves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `active` settles after the first render; a Fact's own Topic never moves
   }, [open, fact, prefill, initial]);
 
   useEffect(() => {

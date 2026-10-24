@@ -8,7 +8,7 @@ import type { Work } from "../domain/types";
 import { setReview, start } from "../domain/rules";
 import { playlistsWith } from "../domain/playlist";
 import { Cover } from "./Cover";
-import { useAct, WorkActionsMenu } from "./WorkActions";
+import { actOn, WorkActionsMenu } from "./WorkActions";
 import { MarksRow } from "./Marks";
 import { AddToPlaylistDialog } from "./AddToPlaylistDialog";
 import { patchWork, useLookupSettings, usePlaylists } from "../data/repo";
@@ -128,7 +128,7 @@ export function WorkDetailDialog({ item, all: _all, onClose, onEdit }: { item: W
   const def = workType(item.type);
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
-  const act = useAct(item);
+  const act = actOn(item);
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>

@@ -23,7 +23,7 @@ describe("sessionItems", () => {
     // Saved before the clamp: the end is the next day's clock.
     const late = { ...session("d", "2026-10-01", "w1"), start: "23:30", end: "00:20" } as Session;
     const [item] = sessionItems([late], [], { start: "2026-10-01", end: "2026-10-01" });
-    expect([item.start, item.end]).toEqual(["23:30", "24:00"]);
+    expect([item?.start, item?.end]).toEqual(["23:30", "24:00"]);
   });
 });
 

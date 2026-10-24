@@ -19,7 +19,7 @@ describe("manifest", () => {
 
   it("sends on Alt+Shift+L through the toolbar button's command", () => {
     for (const m of [chrome, firefox]) {
-      expect(m.commands._execute_action.suggested_key.default).toBe("Alt+Shift+L");
+      expect(m.commands._execute_action?.suggested_key.default).toBe("Alt+Shift+L");
       expect(m.action).toBeDefined();
     }
   });

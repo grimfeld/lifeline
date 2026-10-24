@@ -35,10 +35,6 @@ export function useLiveValues(): LiveValue[] {
 export function useSource(id: string | undefined): Source | undefined {
   return useSources().find((e) => e.id === id);
 }
-export function useEmbed(id: string | undefined): Embed | undefined {
-  const s = useSource(id);
-  return s?.kind === "embed" ? s : undefined;
-}
 
 /** Fields every kind shares in its dialog. */
 export interface SourceInputBase {

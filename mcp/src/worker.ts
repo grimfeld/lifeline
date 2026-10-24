@@ -46,7 +46,7 @@ pb.autoCancellation(false);
 let lastPull = 0;
 let pulledOnce = false;
 
-function useAuth(auth: DeviceAuth): void {
+function adoptAuth(auth: DeviceAuth): void {
   if (pb.authStore.token !== auth.token) pb.authStore.save(auth.token, auth.record as never);
 }
 
@@ -63,7 +63,7 @@ async function sync(): Promise<void> {
 async function handle(req: DeviceRequest): Promise<DeviceResponse> {
   const pending = async () => db()._outbox.count();
   try {
-    useAuth(req.auth);
+    adoptAuth(req.auth);
     if (req.kind === "flush") {
       await pushNow();
       return { id: req.id, ok: true, result: null, pending: await pending() };

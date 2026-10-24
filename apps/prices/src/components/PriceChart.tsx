@@ -11,19 +11,19 @@ const GRID = { stroke: "var(--chart-grid)", vertical: false };
 /** One stable colour per Shop, by its position in the sorted Shop list. */
 export function shopColor(shopId: string, shops: readonly Shop[]): string {
   const i = Math.max(0, shops.findIndex((s) => s.id === shopId));
-  return colorVar(COLOR_SLOTS[i % COLOR_SLOTS.length]);
+  return colorVar(COLOR_SLOTS[i % COLOR_SLOTS.length]!);
 }
 
 type Row = { ts: number; date: string } & Record<string, number | string | boolean | undefined>;
 
 function tsOf(date: string): number {
-  const [y, m, d] = date.split("-").map(Number);
+  const [y = 0, m = 1, d = 1] = date.split("-").map(Number);
   return Date.UTC(y, m - 1, d);
 }
 
 function ChartTooltip({ active, payload, shops, measure }: { active?: boolean; payload?: { dataKey?: string | number; value?: number | string; payload?: Row }[]; shops: readonly Shop[]; measure: Measure }) {
+  const row = payload?.[0]?.payload;
   if (!active || !payload?.length) return null;
-  const row = payload[0].payload;
   return (
     <div className="bg-popover text-popover-foreground rounded-md border px-2 py-1 text-xs shadow-md">
       <div className="text-muted-foreground">{row?.date}</div>

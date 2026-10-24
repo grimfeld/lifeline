@@ -28,15 +28,15 @@ export function parseOfxDate(raw: string): DateStr | null {
 /** First <TAG>value of a block — SGML leaves tags unclosed, XML closes them; both stop at "<". */
 function tagValue(block: string, tag: string): string {
   const m = block.match(new RegExp(`<${tag}>([^<\\r\\n]*)`, "i"));
-  return m ? decodeEntities(m[1].trim()) : "";
+  return m?.[1] !== undefined ? decodeEntities(m[1].trim()) : "";
 }
 
 const NAMED_ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 
 /** One pass, so "&amp;lt;" reads as the text "&lt;", not as "<". */
 function decodeEntities(s: string): string {
-  return s.replace(/&(?:(amp|lt|gt|quot|apos)|#(\d+));/g, (_m, name: string | undefined, code: string | undefined) =>
-    name ? NAMED_ENTITIES[name] : String.fromCharCode(Number(code)),
+  return s.replace(/&(?:(amp|lt|gt|quot|apos)|#(\d+));/g, (m, name: string | undefined, code: string | undefined) =>
+    name ? (NAMED_ENTITIES[name] ?? m) : String.fromCharCode(Number(code)),
   );
 }
 
@@ -51,7 +51,7 @@ export function parseOfx(text: string): ImportRow[] {
   const blocks = text
     .split(/<STMTTRN>/i)
     .slice(1)
-    .map((part) => part.split(/<\/STMTTRN>/i)[0]);
+    .map((part) => part.split(/<\/STMTTRN>/i)[0] ?? part);
   return blocks.map((block, index) => {
     const date = parseOfxDate(tagValue(block, "DTPOSTED"));
     const amount = parseAmount(tagValue(block, "TRNAMT"));

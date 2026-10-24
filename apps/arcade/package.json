@@ -13,16 +13,15 @@
     "@lifeline/core": "workspace:*",
     "@lifeline/parts": "workspace:*",
     "@lifeline/ui": "workspace:*",
-    "lucide-react": "^1.58.0",
-    "react-router": "^7.18.4"
+    "lucide-react": "catalog:"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "catalog:"
   },
   "devDependencies": {
-    "@types/react": "^19.3.0",
-    "fake-indexeddb": "^6.2.6",
-    "typescript": "~5.9.3",
-    "vitest": "^5.0.5"
+    "@types/react": "catalog:",
+    "fake-indexeddb": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

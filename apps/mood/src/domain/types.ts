@@ -38,7 +38,7 @@ export function moodOptions(): FieldOption[] {
   return MOOD_STEPS.map((s) => ({ value: s.label.toLowerCase(), label: `${s.emoji} ${s.label}`, keywords: SYNONYMS[s.level] }));
 }
 
-export const stepOf = (level: MoodLevel): MoodStep => MOOD_STEPS[level - 1];
+export const stepOf = (level: MoodLevel): MoodStep => MOOD_STEPS[level - 1]!;
 
 /** "😄 Great" — how a mood reads in a tooltip, the Daylog or a card. */
 export const moodLabel = (level: MoodLevel): string => `${stepOf(level).emoji} ${stepOf(level).label}`;

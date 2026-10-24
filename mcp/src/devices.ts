@@ -87,7 +87,8 @@ export class DevicePool {
     const cached = this.tokens.get(userId);
     if (cached && cached.expires - Date.now() > 10 * 60_000) return cached.auth;
     const client = await this.admin.collection("users").impersonate(userId, TOKEN_SECONDS);
-    const r = client.authStore.record as unknown as DeviceAuth["record"];
+    const r = client.authStore.record;
+    if (!r) throw new Error("Impersonation returned no Account");
     const auth: DeviceAuth = { token: client.authStore.token, record: { id: r.id, email: r.email, collectionId: r.collectionId, collectionName: r.collectionName } };
     this.tokens.set(userId, { auth, expires: Date.now() + TOKEN_SECONDS * 1000 });
     return auth;

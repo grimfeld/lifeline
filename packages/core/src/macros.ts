@@ -86,9 +86,9 @@ export function macroArgs(macro: MacroShape, commands: readonly OwnedCommand[]):
  */
 export function moveStep<S extends Pick<MacroStep, "args">>(steps: readonly S[], i: number, by: -1 | 1): S[] {
   const j = i + by;
-  if (j < 0 || j >= steps.length) return [...steps];
+  if (i < 0 || i >= steps.length || j < 0 || j >= steps.length) return [...steps];
   const next = [...steps];
-  [next[i], next[j]] = [next[j], next[i]];
+  [next[i], next[j]] = [next[j]!, next[i]!];
   return renumber(next, (n) => (n === i ? j : n === j ? i : n));
 }
 

@@ -21,7 +21,7 @@ function parentOf(key: string): string | undefined {
   const next: Partial<Record<PeriodKind, PeriodKind>> = { week: "month", month: "quarter", quarter: "year" };
   const up = next[kind];
   if (!up) return undefined;
-  const anchor = kind === "week" ? daysOf(key)[3] : r.from;
+  const anchor = kind === "week" ? (daysOf(key)[3] ?? r.from) : r.from;
   return periodKey(up, anchor);
 }
 
@@ -70,7 +70,7 @@ export function PeriodScreen() {
     if (!kind || doc || creating || !isCurrent) return;
     setCreating(true);
     void ensurePeriod(key).finally(() => setCreating(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the period and its note's id (kind and isCurrent derive from the key); `creating` only guards a second create
   }, [key, doc?.id]);
   const days = useMemo(() => new Map(notes.filter((n) => n.type === DAILY).map((n) => [n.title, n])), [notes]);
   useJournalPaging(notes, key, (k) => navigate(periodHref(k)));
