@@ -56,7 +56,7 @@ test("a Topic tallies each finished daily Puzzle to a Habit", async ({ page }) =
   await page.goto("/app/languages?tab=puzzles");
   await workLocally(page);
   const row = page.getByText(topic, { exact: true }).locator("xpath=ancestor::div[contains(@class,'rounded-lg')]");
-  await row.getByRole("button", { name: "Play" }).click();
+  await row.getByRole("button", { name: "Play", exact: true }).click();
   expect(await completions()).toBe(0);
   const guess = page.getByLabel("Guess 1 of 6");
   await guess.fill("palabra");
