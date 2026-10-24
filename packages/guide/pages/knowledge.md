@@ -23,7 +23,8 @@ Topic to a set you choose.
   - **Name**;
   - **New per day** — at most this many new prompts enter practice each day, always after what
     is due (10 unless you change it);
-  - **Tallies** — count a day you practised towards something you track elsewhere;
+  - **Tallies** — count a day you practised, or a daily Puzzle you finished, towards something you
+    track elsewhere (each Tally picks which one it counts);
   - **Archive** — out of the switcher and out of practice, everything kept. Archived Topics are
     listed at the foot; tap one to bring it back. A Topic that holds nothing can be deleted
     instead.
@@ -55,6 +56,33 @@ Topic to a set you choose.
 - A Deck is a set you choose inside one Topic ("Kitchen", "Work emails"), to practise on its own.
 - Name it and tick what it holds. Deleting a Deck keeps its words.
 
+### Puzzles
+
+- **Puzzles** tab — a daily word puzzle per Topic and format, only from what you kept and practised;
+  **Play**, **Resume** or **See** each. Lifeline brings in no words of its own, not even a dictionary.
+- **Wordle-like** — guess a Word from its meaning (and a Sentence's translation) in six tries;
+  letters turn green (right place), amber (wrong place) or grey. Type, or tap the on-screen letters.
+- Any word of the right length is a guess; case and accents don't count, and ñ is n unless you
+  tick **ñ is its own letter** on the Topic. A Puzzle keeps the setting it was opened with.
+- The Wordle-like draws Words practised meaning → word, not paused, one word of 4 to 10 letters,
+  those due back soonest most often.
+- **Crossword** — 5 to 8 crossing answers: Words (clue: the meaning), Facts (the question) and
+  Sentence blanks (the Sentence, and its translation), each one word of 3 to 12 letters, practised.
+- Tap a cell (again to turn across/down) or a clue, then type; Enter goes to the next clue. It is
+  solved when every cell is right; **Give up** shows the answers, wrong cells in red.
+- **Connections** — 16 tiles to sort into 4 of the Topic's Decks, four mistakes allowed ("One
+  away…" when three of four belong together); **Shuffle** and **Deselect** help.
+- Connections needs 4 Decks of at least 4 practised Words or Facts; anything in two of them, or
+  tiles that read the same without accents, is left out, so each group has one answer.
+- A daily is fixed when first opened, guesses kept all day, and ends unsolved at midnight. It
+  avoids what the last 7 days' dailies drew, where anything else is left.
+- **Replay** (the circular arrow) — another puzzle of that format, never counted, not ended at
+  midnight; it avoids what today's daily and replays drew until nothing else is left.
+- The end shows each answer in its own spelling with its material in full; **Practise now**
+  practises what the puzzle drew (the whole Topic once none of it is kept).
+- A finished daily (solved, failed or given up) counts once for a Topic Tally set to **daily Puzzle
+  finished**. Playing never changes when anything comes back: no score, no streak.
+
 ### Commands
 
 - **Add word…** — a term and its meaning in a Topic. Where: the Capture sheet, the palette
@@ -74,6 +102,7 @@ it came from; for a Fact, the selection stays beside you while you write the que
 ### Cards
 
 - **Due today** — everything due, by Topic; one tap into practising everything.
+- **Today's Puzzles** — each Topic's daily puzzles and how they stand; **Play** opens one.
 
 ## Capture
 
@@ -90,7 +119,7 @@ answer for you.
   `knowledge_sentence`.
 - "Keep a fact in History: When was the Peace of Westphalia? 1648" — `knowledge_fact`.
 - Adding the same thing twice is refused, not duplicated.
-- Practising is yours: Claude does not grade recalls.
+- Practising is yours: Claude does not grade recalls, and does not play or start Puzzles.
 
 ## Tips
 
@@ -101,4 +130,5 @@ answer for you.
 ## Related
 
 - [Notes](notes.md) — Quotes you can keep, and the Sources practice can be narrowed to.
-- [Journal](journal.md) — each day you practise shows in its Daylog.
+- [Journal](journal.md) — each day you practise, and each daily Puzzle you finish, shows in its
+  Daylog.

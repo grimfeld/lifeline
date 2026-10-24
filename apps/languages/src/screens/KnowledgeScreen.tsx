@@ -9,17 +9,18 @@ import { TopicSelect } from "../components/TopicSelect";
 import { PracticeTab } from "./PracticeTab";
 import { WordsTab } from "./WordsTab";
 import { DecksTab } from "./DecksTab";
+import { PuzzlesTab } from "./PuzzlesTab";
 
 /** Knowledge's own Recallable types; everything else kept in a Topic belongs to another App. */
 const OWN_TYPES = new Set<string>([WORD, SENTENCE, FACT]);
 
-const TABS = ["practice", "words", "decks"] as const;
+const TABS = ["practice", "words", "decks", "puzzles"] as const;
 type Tab = (typeof TABS)[number];
 
 /**
  * The Knowledge Module (CONTEXT.md "Knowledge"): one active Topic at a
  * time, switched in the header, its settings a dialog off the switcher — and
- * three tabs: Practice, Kept, Decks.
+ * four tabs: Practice, Kept, Decks, and Puzzles across every active Topic.
  */
 export function KnowledgeScreen() {
   const topics = useTopics();
@@ -74,6 +75,7 @@ export function KnowledgeScreen() {
               <TabsTrigger value="practice">Practice</TabsTrigger>
               <TabsTrigger value="words">Kept ({items.length + others.length})</TabsTrigger>
               <TabsTrigger value="decks">Decks ({decks.length})</TabsTrigger>
+              <TabsTrigger value="puzzles">Puzzles</TabsTrigger>
             </TabsList>
           </PhoneDock>
           <TabsContent value="practice" className="pt-3">
@@ -84,6 +86,9 @@ export function KnowledgeScreen() {
           </TabsContent>
           <TabsContent value="decks" className="pt-3">
             <DecksTab topic={active} decks={decks} items={items} />
+          </TabsContent>
+          <TabsContent value="puzzles" className="pt-3">
+            <PuzzlesTab />
           </TabsContent>
         </Tabs>
       )}
