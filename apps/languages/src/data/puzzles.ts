@@ -131,7 +131,7 @@ export function openDailyPuzzle(topicId: string, format: PuzzleFormat, opts: { n
     const avoid = new Set(mine.filter((p) => p.format === format && p.kind === "daily" && p.day >= since).flatMap((p) => p.drawn.map((d) => d.itemId)));
     const word = pickTowardDue(wordleCandidates(topicId, words.map((w) => ({ ...w, paused: !!w.paused })), recalls), recalls, { random: opts.random ?? Math.random, avoid });
     if (!word) return null;
-    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · Wordle-like · ${day}`, languageId: topicId, format, kind: "daily", day, drawn: [wordleDraw(word, sentences)], guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
+    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · Wordle-like · ${day}`, languageId: topicId, format, kind: "daily", day, drawn: [wordleDraw(word, sentences, !!topic.enyeOwn)], guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
     return normalizePuzzle(row, now);
   });
 }
@@ -154,10 +154,11 @@ export function guessPuzzle(id: string, guess: string, now: Date = new Date()): 
     const p = await playing(id, now);
     const answer = p.drawn[0]!.answer;
     const want = lettersOf(answer)?.length ?? 0;
+    const enye = !!(await getDocument<Topic>(p.languageId))?.enyeOwn;
     const typed = guess.trim();
     if (lettersOf(typed)?.length !== want) throw new Error(`Guess a word of ${want} letters`);
     const guesses = [...p.guesses, typed];
-    const outcome = isAnswer(answer, typed) ? "solved" : guesses.length >= MAX_GUESSES ? "unsolved" : "playing";
+    const outcome = isAnswer(answer, typed, enye) ? "solved" : guesses.length >= MAX_GUESSES ? "unsolved" : "playing";
     const row = await putDocument<Puzzle>({ ...p, guesses, outcome, finishedAt: outcome === "playing" ? "" : now.toISOString() });
     return normalizePuzzle(row, now);
   });

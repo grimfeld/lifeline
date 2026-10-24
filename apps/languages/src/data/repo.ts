@@ -12,7 +12,7 @@ import { DECK, DEFAULT_NEW_CAP, FACT, TOPIC, RECALL, SENTENCE, WORD, type Deck, 
 
 function normalizeTopic(l: Topic): Topic {
   const cap = Number(l.newCap);
-  return { ...l, name: l.name || l.title || "", newCap: Number.isFinite(cap) && cap >= 0 ? Math.round(cap) : DEFAULT_NEW_CAP, archived: !!l.archived, tallies: talliesOf(l), tags: l.tags ?? [] };
+  return { ...l, name: l.name || l.title || "", newCap: Number.isFinite(cap) && cap >= 0 ? Math.round(cap) : DEFAULT_NEW_CAP, archived: !!l.archived, enyeOwn: !!l.enyeOwn, tallies: talliesOf(l), tags: l.tags ?? [] };
 }
 
 function normalizeWord(w: Word): Word {
@@ -177,6 +177,8 @@ export interface TopicInput {
   name: string;
   newCap: number;
   tallies: Tally[];
+  /** Left out, an edit keeps the Topic's setting. */
+  enyeOwn?: boolean;
 }
 
 function topicRowOf(input: TopicInput) {
@@ -184,7 +186,7 @@ function topicRowOf(input: TopicInput) {
   if (!name) throw new Error("Give the topic a name");
   const newCap = Math.max(0, Math.round(input.newCap));
   if (!Number.isFinite(newCap)) throw new Error("The daily new cap must be a number");
-  return { type: TOPIC, title: name, name, newCap, tallies: input.tallies, folder: "" } as const;
+  return { type: TOPIC, title: name, name, newCap, tallies: input.tallies, folder: "", ...(input.enyeOwn === undefined ? {} : { enyeOwn: input.enyeOwn }) } as const;
 }
 
 export async function addTopic(input: TopicInput): Promise<string> {

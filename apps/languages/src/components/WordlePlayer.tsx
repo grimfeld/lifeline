@@ -1,25 +1,18 @@
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { Button, Card, CardContent, Field, Input, cn, toast } from "@lifeline/ui";
 import { useDocument } from "@lifeline/core";
 import { Flag, Play } from "lucide-react";
-import { lettersOf, MAX_GUESSES, wordleRows, type Mark } from "../domain/puzzle";
+import { keyboardLetters, letterMarks, lettersOf, MAX_GUESSES, wordleRows } from "../domain/puzzle";
 import { WORD, type Puzzle, type Word } from "../domain/types";
 import { FORMAT_LABEL, giveUpPuzzle, guessPuzzle } from "../data/puzzles";
+import { useTopics, useWords } from "../data/repo";
+import { LetterKeyboard, MARK_CLASS, MARK_LABEL } from "./LetterKeyboard";
 import { OriginLine } from "./OriginLine";
-
-const MARK_CLASS: Record<Mark, string> = {
-  right: "bg-success text-success-foreground border-success",
-  present: "bg-warning text-warning-foreground border-warning",
-  absent: "bg-muted text-muted-foreground",
-};
-
-/** What a screen reader hears for each mark. */
-const MARK_LABEL: Record<Mark, string> = { right: "right place", present: "wrong place", absent: "not in the word" };
 
 /**
  * A Wordle-like Puzzle (CONTEXT.md "Puzzle", ADR 0106): shown a Word's
- * meaning, guess its term in six. Typed on the device's own keyboard, any
- * word of the right length; matched without case or accents. Ends on the
+ * meaning, guess its term in six. Typed on the device's own keyboard or the
+ * on-screen one (letters of the Topic's kept terms), any word of the right length; matched without case or accents. Ends on the
  * Word in full and a way to practise. Never writes a Recall.
  */
 export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle: Puzzle; topicName: string; onBack: () => void; onPractise: () => void }) {
@@ -27,11 +20,20 @@ export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle
   const [error, setError] = useState("");
   const draw = puzzle.drawn[0];
   const answer = lettersOf(draw?.answer ?? "") ?? [];
-  const rows = wordleRows(puzzle);
+  const topic = useTopics().find((t) => t.id === puzzle.languageId);
+  const enye = !!topic?.enyeOwn;
+  const words = useWords();
+  const rows = wordleRows(puzzle, enye);
+  const keys = useMemo(
+    () => keyboardLetters(words.filter((w) => w.languageId === puzzle.languageId).map((w) => w.term), enye, [draw?.answer ?? "", ...puzzle.guesses]),
+    [words, puzzle.languageId, puzzle.guesses, draw?.answer, enye],
+  );
+  const marks = useMemo(() => letterMarks(draw?.answer ?? "", puzzle.guesses, enye), [draw?.answer, puzzle.guesses, enye]);
   const over = puzzle.outcome !== "playing";
 
-  async function guess(e: FormEvent) {
-    e.preventDefault();
+  async function guess(e?: FormEvent) {
+    e?.preventDefault();
+    if (!draft.trim()) return;
     try {
       await guessPuzzle(puzzle.id, draft);
       setDraft("");
@@ -50,6 +52,8 @@ export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle
   }
 
   const typed = Array.from(draft.trim()).slice(0, answer.length);
+  const press = (letter: string) => setDraft((d) => (Array.from(d.trim()).length < answer.length ? d.trim() + letter : d));
+  const erase = () => setDraft((d) => Array.from(d.trim()).slice(0, -1).join(""));
   const blankRows = Math.max(0, MAX_GUESSES - rows.length - (over ? 0 : 1));
 
   return (
@@ -107,8 +111,9 @@ export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle
       ) : (
         <form className="grid gap-3" onSubmit={(e) => void guess(e)}>
           <Field label={`Guess ${rows.length + 1} of ${MAX_GUESSES}`} error={error}>
-            <Input value={draft} onChange={(e) => setDraft(e.target.value)} autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} enterKeyHint="go" autoFocus />
+            <Input value={draft} onChange={(e) => setDraft(e.target.value)} autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} enterKeyHint="go" inputMode="none" autoFocus />
           </Field>
+          <LetterKeyboard letters={keys} marks={marks} onLetter={press} onDelete={erase} onEnter={() => void guess()} />
           <div className="flex flex-wrap gap-2">
             <Button type="submit" className="flex-1" disabled={!draft.trim()}>
               <Play /> Guess
