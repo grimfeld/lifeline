@@ -10,7 +10,7 @@ import { DECK, FACT, OCCURRENCE_PUZZLE, PUZZLE, RECALL, SENTENCE, TOPIC, WORD, t
  * Recall, or calls anything that does: playing never moves the schedule.
  */
 
-/** The formats built so far. */
+/** Every format, in the order today's Puzzles list them. */
 export const PUZZLE_FORMATS = ["wordle", "crossword", "connections"] as const satisfies readonly PuzzleFormat[];
 
 /** A recent daily's Word is drawn again only when nothing else is left. */
@@ -41,7 +41,7 @@ export function normalizePuzzle(p: Puzzle, now: Date = new Date()): Puzzle {
   const drawn = Array.isArray(p.drawn) ? p.drawn.map(normalizeDraw).filter((d): d is PuzzleDraw => d !== null) : [];
   const guesses = Array.isArray(p.guesses) ? p.guesses.filter((g): g is string => typeof g === "string") : [];
   const outcome = p.outcome === "solved" || p.outcome === "unsolved" ? p.outcome : "playing";
-  const read: Puzzle = { ...p, languageId: p.languageId ?? "", format: p.format || "wordle", kind: p.kind === "replay" ? "replay" : "daily", day: p.day || "", drawn, guesses, outcome, finishedAt: p.finishedAt || "", tags: p.tags ?? [] };
+  const read: Puzzle = { ...p, languageId: p.languageId ?? "", format: p.format || "wordle", kind: p.kind === "replay" ? "replay" : "daily", day: p.day || "", drawn, guesses, outcome, finishedAt: p.finishedAt || "", enyeOwn: p.enyeOwn === true, tags: p.tags ?? [] };
   const layout = normalizeLayout(p.layout);
   if (layout) read.layout = layout;
   return { ...read, outcome: outcomeAt(read, now) };
@@ -169,7 +169,7 @@ export function openDailyPuzzle(topicId: string, format: PuzzleFormat, opts: { n
     const avoid = drawnBy(mine.filter((p) => p.format === format && p.kind === "daily" && p.day >= since));
     const built = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
     if (!built?.drawn.length) return null;
-    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · ${day}`, languageId: topicId, format, kind: "daily", day, ...built, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
+    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · ${day}`, languageId: topicId, format, kind: "daily", day, ...built, enyeOwn: !!topic.enyeOwn, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
     return normalizePuzzle(row, now);
   });
 }
@@ -241,7 +241,7 @@ export type CellEntry = { row: number; col: number; letter: string };
 export function guessPuzzle(id: string, guess: string | readonly string[] | readonly CellEntry[], now: Date = new Date()): Promise<Played> {
   return serially(`play|${id}`, async () => {
     const p = await playing(id, now);
-    const enye = p.format !== "connections" && !!(await getDocument<Topic>(p.languageId))?.enyeOwn;
+    const enye = !!p.enyeOwn;
     const { guesses, outcome } = p.format === "connections" ? settleConnections(p, asGroup(guess)) : p.format === "crossword" ? settleCrossword(p, asCells(guess), enye) : settleWordle(p, asWord(guess), enye);
     const row = await putDocument<Puzzle>({ ...p, guesses, outcome, finishedAt: outcome === "playing" ? "" : now.toISOString() });
     return finished(p, normalizePuzzle(row, now));
@@ -316,7 +316,7 @@ export function openReplayPuzzle(topicId: string, format: PuzzleFormat, opts: { 
     const avoid = drawnBy(mine.filter((p) => p.format === format && p.day === day));
     const built = await drawFor(topic, format, { random: opts.random ?? Math.random, avoid });
     if (!built?.drawn.length) return null;
-    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · replay`, languageId: topicId, format, kind: "replay", day, ...built, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
+    const row = await putDocument<Puzzle>({ type: PUZZLE, title: `${topic.title} · ${FORMAT_LABEL[format]} · replay`, languageId: topicId, format, kind: "replay", day, ...built, enyeOwn: !!topic.enyeOwn, guesses: [], outcome: "playing", finishedAt: "", folder: "", tags: [] });
     return normalizePuzzle(row, now);
   });
 }

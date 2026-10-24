@@ -161,7 +161,7 @@ const recallType: DocumentTypeDef = {
 };
 
 /**
- * A Puzzle (CONTEXT.md "Puzzle", ADR 0106, internal): one word game over one
+ * A Puzzle (CONTEXT.md "Puzzle", ADR 0106, internal): one word puzzle over one
  * Topic's kept material, kept as a fact. Not Linkable, not Recallable, no body,
  * and every field the App's: what it drew is fixed when first opened.
  */
@@ -186,6 +186,7 @@ const puzzleType: DocumentTypeDef = {
     { key: "outcome", label: "Outcome", kind: "select", options: [{ value: "playing", label: "In progress" }, { value: "solved", label: "Solved" }, { value: "unsolved", label: "Unsolved" }], guarded: true, column: true },
     { key: "finishedAt", label: "Finished", kind: "datetime", guarded: true },
     { key: "layout", label: "Grid", kind: "json", guarded: true },
+    { key: "enyeOwn", label: "ñ is its own letter", kind: "boolean", guarded: true },
   ],
   indexes: ["languageId"],
   href: () => `${KNOWLEDGE_HREF}?tab=puzzles`,

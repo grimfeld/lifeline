@@ -136,7 +136,7 @@ export interface Material {
   originId: string;
 }
 
-/** A Puzzle's format (CONTEXT.md "Puzzle"): a field, not a term. Only the Wordle-like is built so far. */
+/** A Puzzle's format (CONTEXT.md "Puzzle"): a field, not a term. */
 export type PuzzleFormat = "wordle" | "crossword" | "connections";
 
 /** One per format per Topic per day, or as many replays as wanted. */
@@ -166,10 +166,10 @@ export interface PuzzleDraw {
 }
 
 /**
- * A Puzzle (CONTEXT.md "Puzzle", ADR 0106, internal): one word game over one
+ * A Puzzle (CONTEXT.md "Puzzle", ADR 0106, internal): one word puzzle over one
  * Topic's kept material, kept as a fact — what it drew is fixed when first
  * opened. Never writes a Recall. A crossword keeps its grid layout beside
- * these; a Connections will add its groups.
+ * these.
  */
 export interface Puzzle extends Document {
   type: typeof PUZZLE;
@@ -179,7 +179,7 @@ export interface Puzzle extends Document {
   /** The local day it belongs to. */
   day: DateStr;
   drawn: PuzzleDraw[];
-  /** Each guess in order, as typed: a Wordle-like's word. Later formats write theirs as a string too. */
+  /** Each guess in order, as a string: a Wordle-like's word, a Connections' four item ids, a crossword's cell entry. */
   guesses: string[];
   /** As stored: a daily still "playing" from an earlier day reads as unsolved. */
   outcome: PuzzleOutcome;
@@ -187,4 +187,6 @@ export interface Puzzle extends Document {
   finishedAt: string;
   /** A crossword's grid: where each drawn answer sits, side by side with `drawn`. Absent for other formats. */
   layout?: Placement[];
+  /** The Topic's "ñ is its own letter" as it was when first opened: every check reads this, never the Topic. Absent = folded. */
+  enyeOwn?: boolean;
 }

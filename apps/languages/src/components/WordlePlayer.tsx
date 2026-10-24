@@ -5,7 +5,7 @@ import { Flag, Play } from "lucide-react";
 import { keyboardLetters, letterMarks, lettersOf, MAX_GUESSES, wordleRows } from "../domain/puzzle";
 import { WORD, type Puzzle, type Word } from "../domain/types";
 import { FORMAT_LABEL, giveUpPuzzle, guessPuzzle } from "../data/puzzles";
-import { useTopics, useWords } from "../data/repo";
+import { useWords } from "../data/repo";
 import { LetterKeyboard, MARK_CLASS, MARK_LABEL } from "./LetterKeyboard";
 import { OriginLine } from "./OriginLine";
 
@@ -20,8 +20,8 @@ export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle
   const [error, setError] = useState("");
   const draw = puzzle.drawn[0];
   const answer = lettersOf(draw?.answer ?? "") ?? [];
-  const topic = useTopics().find((t) => t.id === puzzle.languageId);
-  const enye = !!topic?.enyeOwn;
+  // As the Topic set it when the Puzzle was first opened, never the setting now.
+  const enye = !!puzzle.enyeOwn;
   const words = useWords();
   const rows = wordleRows(puzzle, enye);
   const keys = useMemo(

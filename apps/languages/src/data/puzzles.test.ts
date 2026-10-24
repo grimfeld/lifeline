@@ -163,6 +163,24 @@ describe("today's daily Wordle-like", () => {
     await expect(guessPuzzle(p.id, "nino", NOW)).rejects.toThrow();
   });
 
+  it("keeps ñ as the Topic set it when first opened: changing the setting mid-game changes nothing", async () => {
+    const t = await topic();
+    await putDocument({ ...(await getDocument<Topic>(t))!, enyeOwn: true });
+    await practised(t, "niño");
+    const p = (await openDailyPuzzle(t, "wordle", { now: NOW }))!;
+    await putDocument({ ...(await getDocument<Topic>(t))!, enyeOwn: false });
+    const missed = await guessPuzzle(p.id, "nino", NOW);
+    expect(missed.outcome).toBe("playing");
+    expect(wordleRows(missed, missed.enyeOwn)[0]!.map((c) => c.mark)).toEqual(["right", "right", "absent", "right"]);
+    expect((await guessPuzzle(p.id, "niño", NOW)).outcome).toBe("solved");
+
+    const folded = await topic();
+    await practised(folded, "baño");
+    const q = (await openDailyPuzzle(folded, "wordle", { now: NOW }))!;
+    await putDocument({ ...(await getDocument<Topic>(folded))!, enyeOwn: true });
+    expect((await guessPuzzle(q.id, "bano", NOW)).outcome).toBe("solved");
+  });
+
   it("is unsolved after six wrong guesses, and takes no seventh", async () => {
     const t = await topic();
     await practised(t, "verde");

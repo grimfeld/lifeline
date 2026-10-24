@@ -5,7 +5,7 @@ import { crosswordCells, crosswordClues, type CrosswordClue, type Direction } fr
 import { fold, keyboardLetters, lettersOf, type Mark } from "../domain/puzzle";
 import type { Puzzle } from "../domain/types";
 import { FORMAT_LABEL, giveUpPuzzle, guessPuzzle, type Played } from "../data/puzzles";
-import { useTopics, useWords } from "../data/repo";
+import { useWords } from "../data/repo";
 import { LetterKeyboard } from "./LetterKeyboard";
 import { PuzzleMaterial } from "./PuzzleMaterial";
 
@@ -25,8 +25,8 @@ const at = (r: number, c: number) => `${r},${c}`;
  * right. Ends on the material in full. Never writes a Recall.
  */
 export function CrosswordPlayer({ puzzle, topicName, onBack, onPractise }: { puzzle: Puzzle; topicName: string; onBack: () => void; onPractise: () => void }) {
-  const topic = useTopics().find((t) => t.id === puzzle.languageId);
-  const enye = !!topic?.enyeOwn;
+  // As the Topic set it when the Puzzle was first opened, never the setting now.
+  const enye = !!puzzle.enyeOwn;
   const words = useWords();
   const over = puzzle.outcome !== "playing";
   const clues = useMemo(() => crosswordClues(puzzle), [puzzle]);
