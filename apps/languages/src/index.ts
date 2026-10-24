@@ -1,5 +1,5 @@
 import type { AppManifest, Document, DocumentTypeDef } from "@lifeline/core";
-import { Brain, History, Layers, MessageCircleQuestion, Shapes, TextCursorInput, WholeWord } from "lucide-react";
+import { Brain, Grid3x3, History, Layers, MessageCircleQuestion, Shapes, TextCursorInput, WholeWord } from "lucide-react";
 import { KnowledgeScreen } from "./screens/KnowledgeScreen";
 import { DueCard } from "./cards/DueCard";
 import { ItemPeek } from "./components/ItemPeek";
@@ -11,7 +11,7 @@ import { knowledgeRecallable } from "./recallable";
 import { knowledgeDaylog } from "./daylog";
 import { plainSentence } from "./domain/cloze";
 import { refuseDeletingUsedTopic, removeItemRecalls } from "./data/repo";
-import { APP_ID, DECK, FACT, TOPIC, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Fact, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
+import { APP_ID, DECK, FACT, PUZZLE, TOPIC, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Fact, type Puzzle, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
 
 const WORDS_HREF = `${KNOWLEDGE_HREF}?tab=words`;
 
@@ -159,6 +159,38 @@ const recallType: DocumentTypeDef = {
 };
 
 /**
+ * A Puzzle (CONTEXT.md "Puzzle", ADR 0106, internal): one word game over one
+ * Topic's kept material, kept as a fact. Not Linkable, not Recallable, no body,
+ * and every field the App's: what it drew is fixed when first opened.
+ */
+const puzzleType: DocumentTypeDef = {
+  id: PUZZLE,
+  label: "Puzzles",
+  icon: Grid3x3,
+  internal: true,
+  titleRule: "derived",
+  titleOf: (d: Document) => {
+    const p = d as Puzzle;
+    return `${p.format ?? ""} · ${p.kind ?? ""} · ${p.day ?? ""}`;
+  },
+  body: "none",
+  fields: [
+    { key: "languageId", label: "Topic", kind: "link", linkType: TOPIC, guarded: true, required: true, column: true },
+    { key: "format", label: "Format", kind: "select", options: [{ value: "wordle", label: "Wordle-like" }, { value: "crossword", label: "Crossword" }, { value: "connections", label: "Connections" }], guarded: true, column: true },
+    { key: "kind", label: "Kind", kind: "select", options: [{ value: "daily", label: "Daily" }, { value: "replay", label: "Replay" }], guarded: true, column: true },
+    { key: "day", label: "Day", kind: "date", guarded: true, column: true },
+    { key: "drawn", label: "Drew", kind: "json", guarded: true },
+    { key: "guesses", label: "Guesses", kind: "json", guarded: true },
+    { key: "outcome", label: "Outcome", kind: "select", options: [{ value: "playing", label: "In progress" }, { value: "solved", label: "Solved" }, { value: "unsolved", label: "Unsolved" }], guarded: true, column: true },
+    { key: "finishedAt", label: "Finished", kind: "datetime", guarded: true },
+  ],
+  indexes: ["languageId"],
+  href: () => `${KNOWLEDGE_HREF}?tab=puzzles`,
+  order: 99,
+  builtIn: true,
+};
+
+/**
  * Knowledge App (ADR 0073, once Languages — ADR 0058): what the user chose to
  * keep, from any Recallable type, practised by spaced repetition in Topics.
  * It owns every Recall and Practice; Word and Sentence are its own types.
@@ -169,7 +201,7 @@ export const knowledgeApp: AppManifest = {
   title: "Knowledge",
   icon: Brain,
   color: "var(--chart-teal)",
-  types: [topicType, wordType, sentenceType, factType, deckType, recallType],
+  types: [topicType, wordType, sentenceType, factType, deckType, recallType, puzzleType],
   screens: [{ id: "languages.home", title: "Knowledge", path: "languages", icon: Brain, component: KnowledgeScreen }],
   cards: [
     {
@@ -194,5 +226,5 @@ export const knowledgeApp: AppManifest = {
   ],
 };
 
-export { TOPIC, WORD, SENTENCE, FACT, DECK, RECALL };
-export type { Topic, Word, Sentence, Fact, Deck, Recall };
+export { TOPIC, WORD, SENTENCE, FACT, DECK, RECALL, PUZZLE };
+export type { Topic, Word, Sentence, Fact, Deck, Recall, Puzzle };
