@@ -35,7 +35,8 @@ export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle
     e?.preventDefault();
     if (!draft.trim()) return;
     try {
-      await guessPuzzle(puzzle.id, draft);
+      const r = await guessPuzzle(puzzle.id, draft);
+      if (r.tallyError) toast.error(r.tallyError);
       setDraft("");
       setError("");
     } catch (err) {
@@ -45,7 +46,8 @@ export function WordlePlayer({ puzzle, topicName, onBack, onPractise }: { puzzle
 
   async function giveUp() {
     try {
-      await giveUpPuzzle(puzzle.id);
+      const r = await giveUpPuzzle(puzzle.id);
+      if (r.tallyError) toast.error(r.tallyError);
     } catch (err) {
       toast.error(`Couldn't give up: ${(err as Error).message}`);
     }

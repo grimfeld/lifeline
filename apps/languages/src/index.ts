@@ -12,7 +12,7 @@ import { knowledgeRecallable } from "./recallable";
 import { knowledgeDaylog } from "./daylog";
 import { plainSentence } from "./domain/cloze";
 import { refuseDeletingUsedTopic, removeItemRecalls } from "./data/repo";
-import { APP_ID, DECK, FACT, PUZZLE, TOPIC, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Fact, type Puzzle, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
+import { APP_ID, DECK, FACT, OCCURRENCE_PRACTISED, OCCURRENCE_PUZZLE, PUZZLE, TOPIC, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Fact, type Puzzle, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
 
 const WORDS_HREF = `${KNOWLEDGE_HREF}?tab=words`;
 
@@ -225,7 +225,7 @@ export const knowledgeApp: AppManifest = {
   ],
   commands: knowledgeCommands,
   daylog: knowledgeDaylog,
-  tallying: [{ typeId: TOPIC, occurrence: "day practised" }],
+  tallying: [{ typeId: TOPIC, occurrence: OCCURRENCE_PRACTISED, occurrences: [{ id: OCCURRENCE_PRACTISED, label: "day practised" }, { id: OCCURRENCE_PUZZLE, label: "daily Puzzle finished" }] }],
   recallable: knowledgeRecallable,
   // Every Recallable Document's Recalls go when it is deleted — Knowledge's own types and any other App's (ADR 0073).
   forgetRecallable: removeItemRecalls,
