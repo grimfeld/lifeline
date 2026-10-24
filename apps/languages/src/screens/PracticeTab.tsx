@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button, Card, CardContent, cn } from "@lifeline/ui";
-import { formatHuman, todayStr } from "@lifeline/core";
+import { formatHuman, todayStr, useLiveQuery } from "@lifeline/core";
 import { BookOpen, Layers, Play, Shapes } from "lucide-react";
 import { dueAheadOfHeld, heldPrompts, introducedByTopic, queueOfHeld, retention, type NewCap, type PracticeQueue } from "../domain/practice";
 import type { Deck, Topic, Recall } from "../domain/types";
 import { useAllMaterial, useRecalls, useSourceChains, useTopics, type MaterialDoc } from "../data/repo";
+import { FORMAT_LABEL, getPuzzle } from "../data/puzzles";
 import { PracticeRun } from "../components/PracticeRun";
 
 /** What a Deck holds that still exists — a deleted Word simply leaves every Deck. */
@@ -14,17 +15,23 @@ export function deckItems<T extends { id: string }>(deck: Deck, items: T[]): T[]
   return items.filter((i) => ids.has(i.id));
 }
 
-/** A Practice opened by link — the Due Card's "everything", or one Source's. */
+/** A Practice opened by link — the Due Card's "everything", one Source's, or one Puzzle's ("Practise now"). */
 const PRACTICE_PARAM = "practice";
+
+/** The link into a Practice of what a Puzzle drew, for its Topic made active first. */
+export function practisePuzzle(puzzleId: string): Record<string, string> {
+  return { [PRACTICE_PARAM]: `puzzle:${puzzleId}` };
+}
 
 /** How many Sources are listed before "show all". */
 const SOURCES_SHOWN = 6;
 
-type Run = { kind: "topic" } | { kind: "deck"; deck: Deck } | { kind: "all" } | { kind: "source"; id: string };
+type Run = { kind: "topic" } | { kind: "deck"; deck: Deck } | { kind: "all" } | { kind: "source"; id: string } | { kind: "puzzle"; id: string };
 
 function runOf(param: string | null): Run | null {
   if (param === "all") return { kind: "all" };
   if (param?.startsWith("source:")) return { kind: "source", id: param.slice("source:".length) };
+  if (param?.startsWith("puzzle:")) return { kind: "puzzle", id: param.slice("puzzle:".length) };
   return null;
 }
 
@@ -108,6 +115,7 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
       const from = everything.filter((m) => chains.get(m.id)?.includes(running.id));
       return <PracticeRun label={`From ${titleOf(running.id)}`} items={from} recalls={allRecalls} newCap={capOf} onDone={stop} />;
     }
+    if (running.kind === "puzzle") return <PuzzlePractice id={running.id} topic={topic} items={items} recalls={recalls} onDone={stop} />;
     const scope = running.kind === "deck" ? deckItems(running.deck, items) : items;
     return <PracticeRun label={running.kind === "deck" ? `${topic.name} · ${running.deck.name}` : topic.name} items={scope} recalls={recalls} newCap={topic.newCap} onDone={stop} />;
   }
@@ -212,4 +220,19 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
       </div>
     </div>
   );
+}
+
+/**
+ * A Practice of what one Puzzle drew (its "Practise now"), as a Deck's run is
+ * of the Deck: only those items, as kept now. The whole Topic once none of
+ * them is kept any more.
+ */
+function PuzzlePractice({ id, topic, items, recalls, onDone }: { id: string; topic: Topic; items: MaterialDoc[]; recalls: Recall[]; onDone: () => void }) {
+  // Undefined while it loads, null once known gone.
+  const puzzle = useLiveQuery(async () => (await getPuzzle(id)) ?? null, [id]);
+  const drawn = useMemo(() => new Set(puzzle?.drawn.map((d) => d.itemId)), [puzzle]);
+  if (puzzle === undefined) return null;
+  const kept = items.filter((i) => drawn.has(i.id));
+  if (!puzzle || !kept.length) return <PracticeRun label={topic.name} items={items} recalls={recalls} newCap={topic.newCap} onDone={onDone} />;
+  return <PracticeRun label={`${topic.name} · ${FORMAT_LABEL[puzzle.format]}`} items={kept} recalls={recalls} newCap={topic.newCap} onDone={onDone} />;
 }

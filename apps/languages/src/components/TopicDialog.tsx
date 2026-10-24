@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TallyEditor, toast } from "@lifeline/ui";
+import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TallyEditor, toast } from "@lifeline/ui";
 import { useLoggableTargets, type Tally } from "@lifeline/core";
-import { DEFAULT_NEW_CAP, type Topic } from "../domain/types";
+import { DEFAULT_NEW_CAP, TOPIC_OCCURRENCES, type Topic } from "../domain/types";
 import { addTopic, deleteTopic, setActiveTopic, setTopicArchived, updateTopic } from "../data/repo";
 
 /**
@@ -14,6 +14,7 @@ export function TopicDialog({ open, onOpenChange, topic, holds = 0 }: { open: bo
   const [name, setName] = useState("");
   const [cap, setCap] = useState(String(DEFAULT_NEW_CAP));
   const [tallies, setTallies] = useState<Tally[]>([]);
+  const [enyeOwn, setEnyeOwn] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export function TopicDialog({ open, onOpenChange, topic, holds = 0 }: { open: bo
     setName(topic?.name ?? "");
     setCap(String(topic?.newCap ?? DEFAULT_NEW_CAP));
     setTallies(topic?.tallies as Tally[] | undefined ?? []);
+    setEnyeOwn(!!topic?.enyeOwn);
     setConfirmDelete(false);
   }, [open, topic]);
 
@@ -29,10 +31,10 @@ export function TopicDialog({ open, onOpenChange, topic, holds = 0 }: { open: bo
     if (!Number.isFinite(newCap) || newCap < 0) return void toast.error("The daily new cap must be 0 or more");
     try {
       if (topic) {
-        await updateTopic(topic, { name, newCap, tallies });
+        await updateTopic(topic, { name, newCap, tallies, enyeOwn });
         toast.success("Topic updated");
       } else {
-        const id = await addTopic({ name, newCap, tallies });
+        const id = await addTopic({ name, newCap, tallies, enyeOwn });
         setActiveTopic(id);
         toast.success(`${name.trim()} added`);
       }
@@ -79,9 +81,16 @@ export function TopicDialog({ open, onOpenChange, topic, holds = 0 }: { open: bo
             </div>
           </div>
           <p className="text-muted-foreground -mt-2 text-xs">At most this many new prompts enter practice each day, always after what is due.</p>
+          <div className="flex items-start gap-2">
+            <Checkbox id="lg-enye" checked={enyeOwn} onCheckedChange={(v) => setEnyeOwn(v === true)} className="mt-0.5" />
+            <div className="grid min-w-0 gap-0.5">
+              <Label htmlFor="lg-enye">ñ is its own letter</Label>
+              <p className="text-muted-foreground text-xs">In puzzles, off lets n stand for ñ (niño is nino); on keeps them apart and adds ñ to the keyboard.</p>
+            </div>
+          </div>
           <div className="grid gap-2">
             <Label>Tallies</Label>
-            <TallyEditor tallies={tallies} onChange={setTallies} targets={targets} occurrence="day practised" />
+            <TallyEditor tallies={tallies} onChange={setTallies} targets={targets} occurrences={TOPIC_OCCURRENCES} />
           </div>
         </div>
         <DialogFooter className="gap-2 sm:justify-between">

@@ -1,4 +1,5 @@
-import type { Document } from "@lifeline/core";
+import type { DateStr, Document, TallyOccurrenceDef } from "@lifeline/core";
+import type { Placement } from "./crossword";
 
 /** Stored ids keep the retired Languages name (ADR 0073): App, Module, URL, the `language` type and every `languageId`. */
 export const APP_ID = "languages";
@@ -12,6 +13,14 @@ export const DECK = "language_deck";
 export const RECALL = "language_recall";
 /** New with Knowledge (ADR 0073), so it carries Knowledge's name. */
 export const FACT = "knowledge_fact";
+/** New with Knowledge too (ADR 0106), so `knowledge_` like the Fact. */
+export const PUZZLE = "knowledge_puzzle";
+
+/** The Topic's Tally occurrences (ADR 0106); the first is the default. */
+export const OCCURRENCE_PRACTISED = "day practised";
+export const OCCURRENCE_PUZZLE = "daily Puzzle finished";
+/** Both, in the Tally editor's words: the Tallying entry and the Topic dialog read this one list. */
+export const TOPIC_OCCURRENCES: TallyOccurrenceDef[] = [{ id: OCCURRENCE_PRACTISED, label: "day practised" }, { id: OCCURRENCE_PUZZLE, label: "daily Puzzle finished" }];
 
 /** The daily new cap a Topic starts with (CONTEXT.md "Prompt"). */
 export const DEFAULT_NEW_CAP = 10;
@@ -28,6 +37,8 @@ export interface Topic extends Document {
   /** How many new Prompts enter practice per day at most. */
   newCap: number;
   archived: boolean;
+  /** "ñ is its own letter" (Puzzles, ADR 0106): off (the default) folds ñ to n when a guess is matched. */
+  enyeOwn?: boolean;
 }
 
 /** A Word (CONTEXT.md "Word"): a term met in the wild, its meaning in the user's own words. Yields forward and reverse. */
@@ -125,4 +136,59 @@ export interface Material {
   slots: string[];
   /** The Document it was taken from — followed to its Source, never copied. Empty for none. */
   originId: string;
+}
+
+/** A Puzzle's format (CONTEXT.md "Puzzle"): a field, not a term. */
+export type PuzzleFormat = "wordle" | "crossword" | "connections";
+
+/** One per format per Topic per day, or as many replays as wanted. */
+export type PuzzleKind = "daily" | "replay";
+
+/** Given up and expired at midnight both count as unsolved. */
+export type PuzzleOutcome = "playing" | "solved" | "unsolved";
+
+/**
+ * One piece of material a Puzzle drew, as it was when drawn: the item and the
+ * Prompt it plays, plus a snapshot of its answer and clue — so the Puzzle
+ * stays readable after the item is edited or deleted.
+ */
+export interface PuzzleDraw {
+  itemId: string;
+  /** The Prompt it plays: a Word's "reverse", a Fact's "forward", a Sentence's "blank:<text>". */
+  slot: string;
+  /** In the stored spelling, accents and all: what the grid and the reveal show. */
+  answer: string;
+  /** A Word's meaning, a Fact's question, a Sentence with its blank. */
+  clue: string;
+  /** A second clue, empty for none: a Sentence's translation. */
+  hint: string;
+  /** In a Connections, the Deck it was drawn from, id and name as drawn — so its group survives the Deck being edited. */
+  deckId?: string;
+  deck?: string;
+}
+
+/**
+ * A Puzzle (CONTEXT.md "Puzzle", ADR 0106, internal): one word puzzle over one
+ * Topic's kept material, kept as a fact — what it drew is fixed when first
+ * opened. Never writes a Recall. A crossword keeps its grid layout beside
+ * these.
+ */
+export interface Puzzle extends Document {
+  type: typeof PUZZLE;
+  languageId: string;
+  format: PuzzleFormat;
+  kind: PuzzleKind;
+  /** The local day it belongs to. */
+  day: DateStr;
+  drawn: PuzzleDraw[];
+  /** Each guess in order, as a string: a Wordle-like's word, a Connections' four item ids, a crossword's cell entry. */
+  guesses: string[];
+  /** As stored: a daily still "playing" from an earlier day reads as unsolved. */
+  outcome: PuzzleOutcome;
+  /** ISO instant it was solved or given up; empty while playing (and for one left to expire). */
+  finishedAt: string;
+  /** A crossword's grid: where each drawn answer sits, side by side with `drawn`. Absent for other formats. */
+  layout?: Placement[];
+  /** The Topic's "ñ is its own letter" as it was when first opened: every check reads this, never the Topic. Absent = folded. */
+  enyeOwn?: boolean;
 }

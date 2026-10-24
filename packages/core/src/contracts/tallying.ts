@@ -14,6 +14,15 @@ export interface Tally {
   target: string;
   /** Which of the type's offered values to send — "one" always exists. */
   value: string;
+  /** Which of the type's occurrences it counts (its id); absent = the type's first. */
+  occurrence?: string;
+}
+
+/** One occurrence a type offers: an id a Tally records, and the editor's words for it. */
+export interface TallyOccurrenceDef {
+  id: string;
+  /** "day practised", "puzzle solved". */
+  label: string;
 }
 
 /** One value a Tallying type offers: "one" (a tick), or a number it measures ("duration", in minutes). */
@@ -30,8 +39,10 @@ export interface TallyValueDef {
  */
 export interface TallyingDef {
   typeId: string;
-  /** The occurrence in the editor's words: "session", "day practised". */
+  /** The first (default) occurrence in the editor's words: "session", "day practised". */
   occurrence: string;
+  /** Every occurrence the type offers, the first being the default; absent = just `occurrence`. */
+  occurrences?: TallyOccurrenceDef[];
   /** Values beyond "one". */
   values?: TallyValueDef[];
 }
@@ -44,6 +55,13 @@ export interface Occurrence {
   /** Measured values by id; "one" is always 1 and need not be given. */
   values?: Record<string, number>;
   note?: string;
+  /** Which occurrence this is (an id); absent = the type's first. */
+  occurrence?: string;
+}
+
+/** The occurrences a type offers, first = default. A bare `occurrence` is its own id and label. */
+export function occurrencesOf(def: TallyingDef): TallyOccurrenceDef[] {
+  return def.occurrences?.length ? def.occurrences : [{ id: def.occurrence, label: def.occurrence }];
 }
 
 /** The field every Tallying Document keeps its Tallies in. */
@@ -53,7 +71,7 @@ export const TALLIES_FIELD = "tallies";
 export function talliesOf(doc: Record<string, unknown> | undefined): Tally[] {
   const raw = doc?.[TALLIES_FIELD];
   if (!Array.isArray(raw)) return [];
-  return raw.filter((t): t is Tally => !!t && typeof t.target === "string" && t.target !== "").map((t) => ({ target: t.target, value: typeof t.value === "string" && t.value ? t.value : "one" }));
+  return raw.filter((t): t is Tally => !!t && typeof t.target === "string" && t.target !== "").map((t) => ({ target: t.target, value: typeof t.value === "string" && t.value ? t.value : "one", ...(typeof t.occurrence === "string" && t.occurrence ? { occurrence: t.occurrence } : {}) }));
 }
 
 /** The mark that says one Tally already fired for one occurrence. */
@@ -72,9 +90,11 @@ export interface PlannedFire {
  * marked fired for this occurrence. A Tally asking for a value the occurrence
  * did not measure sends one — a tally never goes silent over a missing number.
  */
-export function planFires(docId: string, tallies: Tally[], occ: Occurrence, fired: ReadonlySet<string>): PlannedFire[] {
+export function planFires(docId: string, tallies: Tally[], occ: Occurrence, fired: ReadonlySet<string>, first?: string): PlannedFire[] {
   const out: PlannedFire[] = [];
+  const reported = occ.occurrence ?? first;
   for (const t of tallies) {
+    if ((t.occurrence ?? first) !== reported) continue;
     const markId = fireMarkId(docId, t.target, occ.key);
     if (fired.has(markId)) continue;
     const measured = t.value === "one" ? 1 : occ.values?.[t.value];
@@ -99,12 +119,14 @@ interface FireMark {
 export async function fireTallies(doc: Document, occ: Occurrence): Promise<void> {
   const tallies = talliesOf(doc);
   if (!tallies.length) return;
+  const def = tallyingOf(doc.type);
+  const first = def ? occurrencesOf(def)[0]!.id : undefined;
   const table = db().table<FireMark, string>(TALLY_FIRES);
   const ids = tallies.map((t) => fireMarkId(doc.id, t.target, occ.key));
   const existing = await table.bulkGet(ids);
   const fired = new Set(existing.filter((m): m is FireMark => !!m).map((m) => m.id));
   const errors: string[] = [];
-  for (const f of planFires(doc.id, tallies, occ, fired)) {
+  for (const f of planFires(doc.id, tallies, occ, fired, first)) {
     try {
       await logTo(f.target, f.payload);
       await table.put({ id: f.markId, firedAt: new Date().toISOString() });
