@@ -1,7 +1,6 @@
 import type { AppManifest, DocumentTypeDef } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { Dumbbell, History, Timer } from "lucide-react";
-import { WorkoutScreen } from "./screens/WorkoutScreen";
-import { TimerScreen } from "./screens/TimerScreen";
 import { RecentSessionsCard, StartWorkoutCard } from "./cards/WorkoutCards";
 import { workoutCommands } from "./commands";
 import { SessionPeek } from "./components/SessionPeek";
@@ -10,6 +9,10 @@ import { workoutDaylog } from "./daylog";
 import { workoutTallying } from "./tallying";
 import { describeWorkout } from "./domain/intervals";
 import { APP_ID, CATEGORIES, EXERCISE, MEASURE_LABEL, MEASURES, SESSION, WORKOUT, WORKOUT_HREF, type Exercise, type Session, type Workout } from "./domain/types";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const WorkoutScreen = lazyChunk(() => import("./screens/WorkoutScreen").then((m) => ({ default: m.WorkoutScreen })));
+const TimerScreen = lazyChunk(() => import("./screens/TimerScreen").then((m) => ({ default: m.TimerScreen })));
 
 /** The `workout` Document type (ADR 0030): a plan of Blocks. Blocks and Tallies are the App's — guarded structured fields. */
 const workoutType: DocumentTypeDef = {

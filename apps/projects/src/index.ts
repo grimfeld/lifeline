@@ -1,7 +1,6 @@
 import type { AppManifest } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { ChartGantt, FolderKanban } from "lucide-react";
-import { ProjectScreen } from "./screens/ProjectScreen";
-import { TimelineScreen } from "./screens/TimelineScreen";
 import { ActiveProjectsCard, BoardCard, ProjectCard, useBoardCardTitle, useProjectCardTitle, useProjectOptions } from "./cards/ProjectCards";
 import { projectCommands } from "./commands";
 import { projectsTimed } from "./timed";
@@ -10,6 +9,10 @@ import { useOfferFinish } from "./background";
 import { APP_ID, PROJECT, PROJECT_LANE, PROJECT_MILESTONE, PROJECTS_HOME } from "./domain/types";
 import { laneType, milestoneType, projectType } from "./types";
 import { ProjectPeek } from "./components/ProjectPeek";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const ProjectScreen = lazyChunk(() => import("./screens/ProjectScreen").then((m) => ({ default: m.ProjectScreen })));
+const TimelineScreen = lazyChunk(() => import("./screens/TimelineScreen").then((m) => ({ default: m.TimelineScreen })));
 
 /**
  * The Projects App (ADR 0060): Projects, their Milestones and the Lanes of
@@ -66,4 +69,5 @@ export const projectsApp: AppManifest = {
 };
 
 export { PROJECT, PROJECT_MILESTONE, PROJECT_LANE, PROJECTS_HOME };
-export { ProjectsHome } from "./screens/ProjectsHome";
+/** The Projects Module's home, a page of its own (shell/src/modules/projects): lazy like the screens. */
+export const ProjectsHome = lazyChunk(() => import("./screens/ProjectsHome").then((m) => ({ default: m.ProjectsHome })));

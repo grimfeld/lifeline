@@ -4,7 +4,7 @@ import { formatHuman, settingsTags, matchesTagFilter, type CardProps } from "@li
 import { Play } from "lucide-react";
 import { describeWorkout } from "../domain/intervals";
 import { useSessions, useWorkouts } from "../data/repo";
-import { runHref } from "../screens/WorkoutScreen";
+import { runHref } from "../domain/types";
 
 /** "Start workout": every Workout one tap from the timer — the phone home's way in (ADR 0021 amendment). */
 export function StartWorkoutCard({ settings }: CardProps) {

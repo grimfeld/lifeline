@@ -1,12 +1,15 @@
 import type { AppManifest } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { Lightbulb } from "lucide-react";
-import { ThoughtsScreen } from "./screens/ThoughtsScreen";
-import { ThoughtScreen } from "./screens/ThoughtScreen";
 import { RecentThoughtsCard } from "./cards/RecentThoughtsCard";
 import { thoughtsCommands } from "./commands";
 import { thoughtTypeDef } from "./types";
 import { ThoughtPeek } from "./components/ThoughtPeek";
 import { THOUGHT_KINDS, kindLabel } from "./domain/types";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const ThoughtsScreen = lazyChunk(() => import("./screens/ThoughtsScreen").then((m) => ({ default: m.ThoughtsScreen })));
+const ThoughtScreen = lazyChunk(() => import("./screens/ThoughtScreen").then((m) => ({ default: m.ThoughtScreen })));
 
 /** Thoughts App (ADR 0068): what comes straight out of my head, kept as a stream. The Thoughts Module's only App. */
 export const thoughtsApp: AppManifest = {

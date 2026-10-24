@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { Suspense, useEffect, type ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation, useParams, useSearchParams } from "react-router";
-import { Toaster, useDocumentTitle } from "@lifeline/ui";
+import { lazyChunk, preloadLazyChunks, ScreenLoading, Toaster, useDocumentTitle } from "@lifeline/ui";
 import { HANDOFF_DONE_PATH, HANDOFF_PATH } from "@lifeline/handoff";
 import {
   MODULES,
@@ -15,6 +15,7 @@ import {
   useCurrentWorkspaceId,
   useSyncState,
   type AppManifest,
+  type AppScreenDef,
   type FrameDef,
 } from "@lifeline/core";
 import { Rail } from "./components/Rail";
@@ -34,7 +35,6 @@ import { MacrosPage } from "./settings/MacrosPage";
 import { MacroHost } from "./macros/MacroHost";
 import { KeysPage } from "./settings/KeysPage";
 import { KeyBindingHost } from "./keys/KeyBindingHost";
-import { GuidePage } from "./guide/GuidePage";
 import { ModulePage } from "./modules/ModulePage";
 import { FrameLayout, ModuleLayout } from "./modules/ModuleLayout";
 import { FALLBACK_PLACE, lastPlace, useResume } from "./nav/resume";
@@ -46,8 +46,10 @@ import { DemoBanner, DemoFilling } from "./demo/DemoBanner";
 import { RouteBoundary } from "./components/ErrorBoundary";
 
 // The heavier Surfaces load when first visited, not with the shell (CR-23).
-const MapPage = lazy(() => import("./surfaces/MapPage").then((m) => ({ default: m.MapPage })));
-const GraphPage = lazy(() => import("./surfaces/GraphPage").then((m) => ({ default: m.GraphPage })));
+const MapPage = lazyChunk(() => import("./surfaces/MapPage").then((m) => ({ default: m.MapPage })));
+const GraphPage = lazyChunk(() => import("./surfaces/GraphPage").then((m) => ({ default: m.GraphPage })));
+// The Guide's pages are ~180 KB of Markdown: they come with the Guide, not the shell.
+const GuidePage = lazyChunk(() => import("./guide/GuidePage").then((m) => ({ default: m.GuidePage })));
 
 /** `/` resumes the last place this device stood in this Workspace (ADR 0057). */
 function ResumeRedirect() {
@@ -88,9 +90,19 @@ function CorePage({ children }: { children: ReactNode }) {
   return (
     <main className="min-w-0 flex-1 overflow-y-auto">
       <RouteBoundary>
-        <Suspense fallback={null}>{children}</Suspense>
+        <Suspense fallback={<ScreenLoading />}>{children}</Suspense>
       </RouteBoundary>
     </main>
+  );
+}
+
+/** An App screen, which loads on first visit (ADR 0099): a delayed spinner holds its place meanwhile. */
+function AppScreen({ screen }: { screen: AppScreenDef }) {
+  const Component = screen.component;
+  return (
+    <Suspense fallback={<ScreenLoading />}>
+      <Component />
+    </Suspense>
   );
 }
 
@@ -99,10 +111,9 @@ function FrameRoutes({ frame }: { frame: FrameDef }) {
   return (
     <Routes>
       {frame.home && <Route index element={<Navigate to={frame.home} replace />} />}
-      {screensOf(frame.id).map((s) => {
-        const Component = s.component;
-        return <Route key={s.id} path={s.path || "/"} element={<Component />} />;
-      })}
+      {screensOf(frame.id).map((s) => (
+        <Route key={s.id} path={s.path || "/"} element={<AppScreen screen={s} />} />
+      ))}
       <Route path="*" element={<Navigate to={frame.home || "."} replace />} />
     </Routes>
   );
@@ -137,14 +148,13 @@ function Places() {
       <Route path="/vault/journal" element={<LegacyJournalRedirect />} />
       <Route path="/module/:id/*" element={<RouteBoundary><ModulePage /></RouteBoundary>} />
       {screensOf().map((s) => {
-        const Component = s.component;
         const moduleId = appById(s.appId)?.module;
         const known = moduleId && MODULES.some((m) => m.id === moduleId);
         return (
           <Route
             key={s.id}
             path={`/app/${s.path}`}
-            element={known ? <ModuleLayout moduleId={moduleId}><RouteBoundary><Component /></RouteBoundary></ModuleLayout> : <CorePage><Component /></CorePage>}
+            element={known ? <ModuleLayout moduleId={moduleId}><RouteBoundary><AppScreen screen={s} /></RouteBoundary></ModuleLayout> : <CorePage><AppScreen screen={s} /></CorePage>}
           />
         );
       })}
@@ -179,6 +189,23 @@ function Places() {
   );
 }
 
+/**
+ * Once the first page has painted and the browser is idle, fetch every lazy
+ * chunk (ADR 0099), so a loaded app keeps working offline. `data-chunks` on
+ * <html> says when they are all in (the Demo's offline e2e case waits on it).
+ */
+function usePreloadChunks() {
+  useEffect(() => {
+    const start = () => void preloadLazyChunks().then(() => (document.documentElement.dataset.chunks = "loaded"));
+    if ("requestIdleCallback" in window) {
+      const id = requestIdleCallback(start, { timeout: 5000 });
+      return () => cancelIdleCallback(id);
+    }
+    const t = setTimeout(start, 2000);
+    return () => clearTimeout(t);
+  }, []);
+}
+
 /** One component per App with a background hook, so each hook runs under React's rules (ADR 0032). */
 function AppBackground({ app }: { app: AppManifest }) {
   app.useBackground!();
@@ -189,6 +216,7 @@ export default function App() {
   useResume();
   // The tab names the place; a page's PageHeader names it more closely (WCAG 2.4.2).
   useDocumentTitle(placeTitle(useLocation().pathname), { fallback: true });
+  usePreloadChunks();
   // A genuinely empty account makes its one Workspace here; an existing one was
   // given it by the server (PocketBase migration 1757400000), and this waits
   // for the first full pull rather than racing it into a second "Personal"

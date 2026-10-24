@@ -1,6 +1,7 @@
 export * from "./lib/utils";
 export * from "./lib/useDocumentTitle";
 export { useCommitDraft } from "./lib/useCommitDraft";
+export { lazyChunk, preloadLater, preloadLazyChunks } from "./lib/lazyChunk";
 export * from "./components/ui/alert-dialog";
 export * from "./components/ui/badge";
 export * from "./components/ui/button";
@@ -30,6 +31,7 @@ export * from "./components/ui/time-field";
 export * from "./components/ui/tooltip";
 export { toast } from "sonner";
 export * from "./components/ui/card-unavailable";
+export * from "./components/ui/screen-loading";
 export * from "./components/map/MapView";
 export * from "./components/graph/GraphView";
 export * from "./components/map/GeoField";

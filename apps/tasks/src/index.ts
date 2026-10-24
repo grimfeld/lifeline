@@ -1,7 +1,7 @@
 import type { AppManifest } from "@lifeline/core";
+import { lazyChunk } from "@lifeline/ui";
 import { TaskDialog } from "./components/TaskDialog";
 import { ListTodo } from "lucide-react";
-import { TasksScreen } from "./screens/TasksScreen";
 import { TodayTasksCard } from "./cards/TodayTasksCard";
 import { UnassignedCard } from "./cards/UnassignedCard";
 import { CompletedCard } from "./cards/CompletedCard";
@@ -11,6 +11,9 @@ import { tasksSchedulable, APP_ID } from "./schedulable";
 import { tasksDaylog } from "./daylog";
 import { occurrenceType, taskType } from "./types";
 import { TaskPeek } from "./components/TaskPeek";
+
+// Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
+const TasksScreen = lazyChunk(() => import("./screens/TasksScreen").then((m) => ({ default: m.TasksScreen })));
 
 export const tasksApp: AppManifest = {
   id: APP_ID,
