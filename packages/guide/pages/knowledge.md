@@ -78,6 +78,9 @@ Topic to a set you choose.
   At midnight an unfinished one ends unsolved. **Give up** ends it too, unsolved, and shows the word.
 - The end shows the Word in full — meaning, notes, where you met it — and **Practise now** starts a
   practice of the Topic.
+- **Replay** (the circular arrow on a Topic's row) starts another puzzle of the same format as often as you like, drawn
+  afresh and avoiding today's daily word where it can. A replay doesn't end at midnight and never counts toward
+  anything: only the daily does.
 - Playing never changes when anything comes back: only a practice, graded by you, does. No score,
   no streak.
 
@@ -100,6 +103,7 @@ it came from; for a Fact, the selection stays beside you while you write the que
 ### Cards
 
 - **Due today** — everything due, by Topic; one tap into practising everything.
+- **Today's Puzzles** — each Topic's daily puzzles and how they stand (not started, in progress, solved, unsolved); one tap opens it.
 
 ## Capture
 

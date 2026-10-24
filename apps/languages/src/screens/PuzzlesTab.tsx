@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button, EmptyState, toast } from "@lifeline/ui";
-import { Grid3x3, Play } from "lucide-react";
+import { Grid3x3, Play, RotateCw } from "lucide-react";
 import { setActiveTopic, useRecalls, useTopics, useWords } from "../data/repo";
-import { FORMAT_LABEL, openDailyPuzzle, puzzleLine, todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
+import { FORMAT_LABEL, openDailyPuzzle, openReplayPuzzle, puzzleLine, todayOf, usePuzzles, type TodaysPuzzle } from "../data/puzzles";
 import { WordlePlayer } from "../components/WordlePlayer";
 
 /** The Puzzle being played, by id: a link back to it survives a reload. */
@@ -41,6 +41,19 @@ export function PuzzlesTab() {
       else toast.error(`${row.topic.name} has nothing to build a puzzle from today.`);
     } catch (e) {
       toast.error(`Couldn't open the puzzle: ${(e as Error).message}`);
+    } finally {
+      setOpening("");
+    }
+  }
+
+  async function replay(row: TodaysPuzzle) {
+    setOpening(row.topic.id);
+    try {
+      const p = await openReplayPuzzle(row.topic.id, row.format);
+      if (p) setParams({ tab: "puzzles", [PUZZLE_PARAM]: p.id });
+      else toast.error(`${row.topic.name} has nothing to build a puzzle from.`);
+    } catch (e) {
+      toast.error(`Couldn't open the replay: ${(e as Error).message}`);
     } finally {
       setOpening("");
     }
@@ -85,6 +98,9 @@ export function PuzzlesTab() {
             ) : (
               "See"
             )}
+          </Button>
+          <Button size="sm" variant="ghost" className="shrink-0" aria-label={`Replay ${FORMAT_LABEL[row.format]} on ${row.topic.name}`} title="Replay: a new puzzle, not counted" onClick={() => void replay(row)} disabled={opening === row.topic.id}>
+            <RotateCw />
           </Button>
         </div>
       ))}

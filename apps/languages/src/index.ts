@@ -2,6 +2,7 @@ import type { AppManifest, Document, DocumentTypeDef } from "@lifeline/core";
 import { Brain, Grid3x3, History, Layers, MessageCircleQuestion, Shapes, TextCursorInput, WholeWord } from "lucide-react";
 import { KnowledgeScreen } from "./screens/KnowledgeScreen";
 import { DueCard } from "./cards/DueCard";
+import { PuzzlesCard } from "./cards/PuzzlesCard";
 import { ItemPeek } from "./components/ItemPeek";
 import { WordIntakeDialog } from "./components/WordDialog";
 import { SentenceIntakeDialog } from "./components/SentenceDialog";
@@ -212,6 +213,14 @@ export const knowledgeApp: AppManifest = {
       component: DueCard,
       defaultSize: { w: 3, h: 4 },
       minSize: { w: 2, h: 3 },
+    },
+    {
+      id: "languages.puzzles",
+      title: "Today's Puzzles",
+      description: "Each topic's daily puzzles and how they stand, one tap to play",
+      component: PuzzlesCard,
+      defaultSize: { w: 3, h: 3 },
+      minSize: { w: 2, h: 2 },
     },
   ],
   commands: knowledgeCommands,
