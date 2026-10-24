@@ -28,12 +28,12 @@ export const choresSchedulable: SchedulableProvider = {
     const completions = useCompletions();
     const today = todayStr();
     const { start, end } = range;
-    // Surfaces call this on every render: derive again only when an input moves — today included, which itemsOf reads.
-    return useMemo(() => itemsOf(chores, completions, { start, end }), [chores, completions, start, end, today]);
+    // Surfaces call this on every render: derive again only when an input moves — today included.
+    return useMemo(() => itemsOf(chores, completions, { start, end }, today), [chores, completions, start, end, today]);
   },
 
   async itemsIn(range) {
-    return itemsOf(await allChores(), await allCompletions(), range);
+    return itemsOf(await allChores(), await allCompletions(), range, todayStr());
   },
 
   async complete(itemId, on) {
@@ -42,8 +42,7 @@ export const choresSchedulable: SchedulableProvider = {
 };
 
 /** Active chores on their due day, and completions in range as done history — what `useItems` and `itemsIn` both report. */
-function itemsOf(chores: Chore[], completions: Completion[], range: { start: DateStr; end: DateStr }): SchedulableItem[] {
-  const today = todayStr();
+function itemsOf(chores: Chore[], completions: Completion[], range: { start: DateStr; end: DateStr }, today: DateStr): SchedulableItem[] {
   const last = lastDoneMap(completions);
   const byId = new Map(chores.map((c) => [c.id, c]));
 

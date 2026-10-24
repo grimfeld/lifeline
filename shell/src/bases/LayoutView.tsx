@@ -210,7 +210,7 @@ function Board({ docs, def, picks, compact, editable }: { docs: Document[]; def:
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel className="text-muted-foreground text-xs font-normal">Move to</DropdownMenuLabel>
-                          {options.map((o) => (
+                          {columns.filter((o) => o.value !== "").map((o) => (
                             <DropdownMenuItem key={o.value} disabled={o.value === c.value} onClick={() => void move(d, o.value)}>
                               <ArrowRight /> {o.label}
                             </DropdownMenuItem>

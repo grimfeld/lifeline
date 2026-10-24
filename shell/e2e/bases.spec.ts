@@ -13,6 +13,7 @@ async function workLocally(page: Page) {
 }
 
 /** Runs in the page against the app's own Core module. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the page's Core module is untyped here; each caller names what it reads
 async function inCore<A, R>(page: Page, fn: (core: any, arg: A) => Promise<R>, arg: A): Promise<R> {
   return page.evaluate(
     async ({ coreUrl, src, arg }) => {
