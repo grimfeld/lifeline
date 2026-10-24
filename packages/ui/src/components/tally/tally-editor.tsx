@@ -17,6 +17,14 @@ export interface TallyTargetOption {
 export interface TallyValue {
   target: string;
   value: string;
+  /** Which occurrence it counts; absent = the type's first. */
+  occurrence?: string;
+}
+
+/** An occurrence the Document's type offers ("puzzle solved"); the first is the default. */
+export interface TallyOccurrenceOption {
+  id: string;
+  label: string;
 }
 
 /** A value the Document's type offers beyond "one" ("+ duration (min)"). */
@@ -25,7 +33,7 @@ export interface TallyValueOption {
   label: string;
 }
 
-function TallyRow({ t, targets, values, onChange, onRemove }: { t: TallyValue; targets: TallyTargetOption[]; values: TallyValueOption[]; onChange: (t: TallyValue) => void; onRemove: () => void }) {
+function TallyRow({ t, targets, values, occurrences, onChange, onRemove }: { t: TallyValue; targets: TallyTargetOption[]; values: TallyValueOption[]; occurrences: TallyOccurrenceOption[]; onChange: (t: TallyValue) => void; onRemove: () => void }) {
   const target = targets.find((x) => x.key === t.target);
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border p-2 text-sm">
@@ -49,6 +57,26 @@ function TallyRow({ t, targets, values, onChange, onRemove }: { t: TallyValue; t
       ) : (
         <span className="text-muted-foreground text-xs">{target?.wants === "number" ? `+1${target.unit ? ` ${target.unit}` : ""}` : "one completion"}</span>
       )}
+      {occurrences.length > 1 && (
+        <Select
+          value={t.occurrence ?? occurrences[0]!.id}
+          onValueChange={(id) => {
+            const { occurrence: _drop, ...rest } = t;
+            onChange(id === occurrences[0]!.id ? rest : { ...rest, occurrence: id });
+          }}
+        >
+          <SelectTrigger aria-label="Occurrence to count" className="h-8 w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {occurrences.map((o) => (
+              <SelectItem key={o.id} value={o.id}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
       <Button size="icon" variant="ghost" className="ml-auto size-8" onClick={onRemove} aria-label="Remove tally">
         <Trash2 className="size-3.5" />
       </Button>
@@ -60,15 +88,16 @@ function TallyRow({ t, targets, values, onChange, onRemove }: { t: TallyValue; t
  * Core's one "tallies to…" editor (ADR 0059): a Document's Tallies over every
  * Loggable target. The owning App drops it into its own form and saves the
  * list back into the Document's `tallies` field; the occurrence noun ("each
- * session", "each day practised") is the type's.
+ * session", "each day practised") is the type's. A type offering several
+ * occurrences passes them all (first = default) and each Tally gets a picker.
  */
-export function TallyEditor({ tallies, onChange, targets, values = [], occurrence }: { tallies: TallyValue[]; onChange: (next: TallyValue[]) => void; targets: TallyTargetOption[]; values?: TallyValueOption[]; occurrence: string }) {
+export function TallyEditor({ tallies, onChange, targets, values = [], occurrence, occurrences = [] }: { tallies: TallyValue[]; onChange: (next: TallyValue[]) => void; targets: TallyTargetOption[]; values?: TallyValueOption[]; occurrence: string; occurrences?: TallyOccurrenceOption[] }) {
   const [adding, setAdding] = useState("");
   const available = targets.filter((t) => !tallies.some((x) => x.target === t.key));
   return (
     <div className="grid gap-2">
       {tallies.map((t, i) => (
-        <TallyRow key={t.target} t={t} targets={targets} values={values} onChange={(nt) => onChange(tallies.map((x, j) => (j === i ? nt : x)))} onRemove={() => onChange(tallies.filter((_, j) => j !== i))} />
+        <TallyRow key={t.target} t={t} targets={targets} values={values} occurrences={occurrences} onChange={(nt) => onChange(tallies.map((x, j) => (j === i ? nt : x)))} onRemove={() => onChange(tallies.filter((_, j) => j !== i))} />
       ))}
       {available.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
