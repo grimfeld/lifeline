@@ -65,7 +65,7 @@ function TallyRow({ t, targets, values, occurrences, onChange, onRemove }: { t: 
             onChange(id === occurrences[0]!.id ? rest : { ...rest, occurrence: id });
           }}
         >
-          <SelectTrigger aria-label="Occurrence to count" className="h-8 w-44">
+          <SelectTrigger aria-label="Occurrence to count" size="sm" className="w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -89,9 +89,12 @@ function TallyRow({ t, targets, values, occurrences, onChange, onRemove }: { t: 
  * Loggable target. The owning App drops it into its own form and saves the
  * list back into the Document's `tallies` field; the occurrence noun ("each
  * session", "each day practised") is the type's. A type offering several
- * occurrences passes them all (first = default) and each Tally gets a picker.
+ * occurrences passes them all instead (first = default, its label the noun),
+ * and each Tally gets a picker.
  */
-export function TallyEditor({ tallies, onChange, targets, values = [], occurrence, occurrences = [] }: { tallies: TallyValue[]; onChange: (next: TallyValue[]) => void; targets: TallyTargetOption[]; values?: TallyValueOption[]; occurrence: string; occurrences?: TallyOccurrenceOption[] }) {
+export function TallyEditor({ tallies, onChange, targets, values = [], ...of }: { tallies: TallyValue[]; onChange: (next: TallyValue[]) => void; targets: TallyTargetOption[]; values?: TallyValueOption[] } & ({ occurrence: string } | { occurrences: TallyOccurrenceOption[] })) {
+  const occurrences = "occurrences" in of ? of.occurrences : [];
+  const occurrence = "occurrences" in of ? (of.occurrences[0]?.label ?? "") : of.occurrence;
   const [adding, setAdding] = useState("");
   const available = targets.filter((t) => !tallies.some((x) => x.target === t.key));
   return (

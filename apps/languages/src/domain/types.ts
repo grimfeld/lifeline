@@ -1,4 +1,4 @@
-import type { DateStr, Document } from "@lifeline/core";
+import type { DateStr, Document, TallyOccurrenceDef } from "@lifeline/core";
 import type { Placement } from "./crossword";
 
 /** Stored ids keep the retired Languages name (ADR 0073): App, Module, URL, the `language` type and every `languageId`. */
@@ -19,6 +19,8 @@ export const PUZZLE = "knowledge_puzzle";
 /** The Topic's Tally occurrences (ADR 0106); the first is the default. */
 export const OCCURRENCE_PRACTISED = "day practised";
 export const OCCURRENCE_PUZZLE = "daily Puzzle finished";
+/** Both, in the Tally editor's words: the Tallying entry and the Topic dialog read this one list. */
+export const TOPIC_OCCURRENCES: TallyOccurrenceDef[] = [{ id: OCCURRENCE_PRACTISED, label: "day practised" }, { id: OCCURRENCE_PUZZLE, label: "daily Puzzle finished" }];
 
 /** The daily new cap a Topic starts with (CONTEXT.md "Prompt"). */
 export const DEFAULT_NEW_CAP = 10;
