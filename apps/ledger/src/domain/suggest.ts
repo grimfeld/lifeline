@@ -153,7 +153,7 @@ export interface RuleChange {
 }
 
 /**
- * Apply to history (ADR 0040, superseded in part): the Transactions this
+ * Apply to history (ADR 0107, which narrows ADR 0040): the Transactions this
  * rule decides — precedence applied over all rules — whose Category differs
  * from the rule's, newest first. Inbox rows count (from ""). History plays
  * no part: read against already-categorized rows it would be circular. A
@@ -177,7 +177,7 @@ export function ruleHistoryChanges(transactions: Transaction[], rules: Categoriz
  * size of the Apply to history preview, with the saved rule standing in for
  * its stored version (or added, when new).
  */
-export function ruleSaveOffer(transactions: Transaction[], rules: CategorizeRule[], saved: CategorizeRule): number {
+export function ruleSaveMatchCount(transactions: Transaction[], rules: CategorizeRule[], saved: CategorizeRule): number {
   const all = [...rules.filter((r) => r.id !== saved.id), saved];
   return ruleHistoryChanges(transactions, all, saved).length;
 }

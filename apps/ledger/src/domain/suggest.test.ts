@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CategorizeRule, Transaction } from "./types";
-import { matchRule, normalizePayee, payeeCategoryIndex, ruleCoverage, ruleHistoryChanges, ruleSaveOffer, suggestCategory } from "./suggest";
+import { matchRule, normalizePayee, payeeCategoryIndex, ruleCoverage, ruleHistoryChanges, ruleSaveMatchCount, suggestCategory } from "./suggest";
 
 function tx(partial: Partial<Transaction>): Transaction {
   return { id: Math.random().toString(36).slice(2), kind: "expense", date: "2026-03-10", amount: 1000, categoryId: "", payee: "", accountId: "a", ...partial } as unknown as Transaction;
@@ -184,18 +184,18 @@ describe("ruleHistoryChanges", () => {
   });
 });
 
-describe("ruleSaveOffer", () => {
+describe("ruleSaveMatchCount", () => {
   const uber = rule({ id: "r-uber", match: "uber", categoryId: "uber", kind: "expense" });
   const rows = [tx({ id: "a", payee: "Uber 1", categoryId: "taxi" }), tx({ id: "b", payee: "Uber 2", categoryId: "taxi" })];
   it("counts what a just-saved rule would change, though it is not in the stored rules yet", () => {
-    expect(ruleSaveOffer(rows, [], uber)).toBe(2);
+    expect(ruleSaveMatchCount(rows, [], uber)).toBe(2);
   });
   it("reads an edited rule in place of its stored version", () => {
     const old = { ...uber, categoryId: "taxi" };
-    expect(ruleSaveOffer(rows, [old], uber)).toBe(2);
+    expect(ruleSaveMatchCount(rows, [old], uber)).toBe(2);
   });
   it("is 0 when nothing differs, and for a never rule", () => {
-    expect(ruleSaveOffer([tx({ id: "c", payee: "Uber", categoryId: "uber" })], [], uber)).toBe(0);
-    expect(ruleSaveOffer(rows, [], rule({ id: "n", match: "uber", never: true }))).toBe(0);
+    expect(ruleSaveMatchCount([tx({ id: "c", payee: "Uber", categoryId: "uber" })], [], uber)).toBe(0);
+    expect(ruleSaveMatchCount(rows, [], rule({ id: "n", match: "uber", never: true }))).toBe(0);
   });
 });

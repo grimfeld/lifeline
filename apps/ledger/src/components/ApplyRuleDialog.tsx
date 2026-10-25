@@ -1,17 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import type { CategorizeRule, LedgerCategory } from "../domain/types";
-import { ruleHistoryChanges } from "../domain/suggest";
-import { applyRuleChanges, undoRuleChanges } from "../domain/applyChanges";
+import { ruleHistoryChanges, type RuleChange } from "../domain/suggest";
+import { applyRuleChanges, undoRuleChanges, WriteStoppedError } from "../domain/applyChanges";
+import { plural } from "../domain/plural";
+import { categoryLabelById } from "./reportChrome";
 import { formatCents } from "../domain/money";
 import { categorizeTransaction, useAccounts, useCategories, useCategorizeRules, useTransactions } from "../data/repo";
 
-function categoryName(categories: LedgerCategory[], id: string): string {
-  if (!id) return "—";
-  const c = categories.find((x) => x.id === id);
-  return c ? c.title : "Unknown category";
-}
+/** A Category as the preview names it; "—" for uncategorized. */
+const categoryName = (categories: LedgerCategory[], id: string) => (id ? categoryLabelById(categories, id) : "—");
 
 /**
  * Apply to history: every Transaction this Categorize rule decides whose
@@ -23,57 +22,63 @@ export function ApplyRuleDialog({ rule, onOpenChange }: { rule: CategorizeRule |
   const rules = useCategorizeRules();
   const categories = useCategories();
   const accounts = useAccounts();
-  const [ticked, setTicked] = useState<Set<string>>(new Set());
-  const [applying, setApplying] = useState(false);
+  // Rows start ticked: the user's exceptions are what is kept, so fresh rows need no reset.
+  const [unticked, setUnticked] = useState<Set<string>>(new Set());
+  const [writing, setWriting] = useState(false);
 
   const changes = useMemo(() => (rule ? ruleHistoryChanges(transactions, rules, rule) : []), [transactions, rules, rule]);
-  // A fresh rule (or fresh set of rows) starts all ticked.
-  const key = changes.map((c) => c.transaction.id).join(",");
-  useEffect(() => {
-    setTicked(new Set(changes.map((c) => c.transaction.id)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, rule?.id]);
-
-  const chosen = changes.filter((c) => ticked.has(c.transaction.id));
+  const chosen = changes.filter((c) => !unticked.has(c.transaction.id));
   const months = new Set(chosen.map((c) => c.transaction.date.slice(0, 7))).size;
   const allTicked = changes.length > 0 && chosen.length === changes.length;
 
+  function close(open: boolean) {
+    if (!open) setUnticked(new Set());
+    onOpenChange(open);
+  }
+
   function toggle(id: string) {
-    const next = new Set(ticked);
+    const next = new Set(unticked);
     if (next.has(id)) next.delete(id);
     else next.add(id);
-    setTicked(next);
+    setUnticked(next);
+  }
+
+  function offerUndo(done: RuleChange[], show: typeof toast.success, message: string) {
+    show(message, {
+      duration: 10_000,
+      action: {
+        label: "Undo",
+        onClick: () =>
+          void undoRuleChanges(done, categorizeTransaction).then(
+            () => toast.success(`Restored ${plural(done.length, "transaction")}`),
+            (e: unknown) => toast.error((e as Error).message),
+          ),
+      },
+    });
   }
 
   async function apply() {
-    setApplying(true);
+    setWriting(true);
     try {
       const done = await applyRuleChanges(chosen, categorizeTransaction);
-      toast.success(`Recategorized ${done.length} transaction${done.length === 1 ? "" : "s"}`, {
-        action: {
-          label: "Undo",
-          onClick: () =>
-            void undoRuleChanges(done, categorizeTransaction).then(
-              () => toast.success(`Restored ${done.length} transaction${done.length === 1 ? "" : "s"}`),
-              (e: unknown) => toast.error((e as Error).message),
-            ),
-        },
-      });
-      onOpenChange(false);
+      offerUndo(done, toast.success, `Recategorized ${plural(done.length, "transaction")}`);
+      close(false);
     } catch (e) {
-      toast.error((e as Error).message);
+      // Rows already written stay written: say so, and keep Undo for them.
+      if (e instanceof WriteStoppedError && e.done.length > 0) offerUndo(e.done, toast.error, e.message);
+      else toast.error((e as Error).message);
     } finally {
-      setApplying(false);
+      setWriting(false);
     }
   }
 
   return (
-    <Dialog open={!!rule} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+    <Dialog open={!!rule} onOpenChange={close}>
+      <DialogContent className="sm:max-w-lg md:max-h-[90vh] md:overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="break-words">Apply “{rule?.match}” to history</DialogTitle>
           <DialogDescription>
-            {rule ? `→ ${categoryName(categories, rule.categoryId)} · ` : ""}Changes spending in {months} past month{months === 1 ? "" : "s"}.
+            {rule ? `→ ${categoryName(categories, rule.categoryId)} · ` : ""}Changes spending in {plural(months, "past month")}.
           </DialogDescription>
         </DialogHeader>
         {changes.length === 0 ? (
@@ -81,19 +86,19 @@ export function ApplyRuleDialog({ rule, onOpenChange }: { rule: CategorizeRule |
         ) : (
           <div className="grid gap-2">
             <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={allTicked} onCheckedChange={() => setTicked(allTicked ? new Set() : new Set(changes.map((c) => c.transaction.id)))} aria-label="Select all" />
+              <Checkbox checked={allTicked} onCheckedChange={() => setUnticked(allTicked ? new Set(changes.map((c) => c.transaction.id)) : new Set())} aria-label="Select all" />
               Select all ({chosen.length} of {changes.length})
             </label>
-            <ul className="max-h-96 divide-y overflow-y-auto rounded-md border">
+            <ul className="divide-y rounded-lg border">
               {changes.map((c) => {
                 const t = c.transaction;
                 return (
                   <li key={t.id} className="flex items-start gap-2 px-2 py-1.5 text-sm">
-                    <Checkbox className="mt-0.5" checked={ticked.has(t.id)} onCheckedChange={() => toggle(t.id)} aria-label={`Recategorize ${t.payee}`} />
+                    <Checkbox className="mt-0.5" checked={!unticked.has(t.id)} onCheckedChange={() => toggle(t.id)} aria-label={`Recategorize ${t.payee}`} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
-                        <span className="min-w-0 break-words">{t.payee}</span>
-                        <span className="whitespace-nowrap tabular-nums">
+                        <span className="min-w-0 flex-1 break-words">{t.payee}</span>
+                        <span className="shrink-0 whitespace-nowrap tabular-nums">
                           {t.kind === "expense" ? "−" : "+"}
                           {formatCents(t.amount)}
                         </span>
@@ -109,10 +114,10 @@ export function ApplyRuleDialog({ rule, onOpenChange }: { rule: CategorizeRule |
           </div>
         )}
         <DialogFooter className="max-md:flex-col">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => close(false)}>
             Cancel
           </Button>
-          <Button disabled={chosen.length === 0 || applying} onClick={() => void apply()}>
+          <Button disabled={chosen.length === 0 || writing} onClick={() => void apply()}>
             Recategorize {chosen.length}
           </Button>
         </DialogFooter>

@@ -2,6 +2,16 @@ import type { RuleChange } from "./suggest";
 
 type Write = (id: string, categoryId: string) => Promise<void>;
 
+/** A run that stopped part-way: the message says how far, `done` holds the rows already written. */
+export class WriteStoppedError extends Error {
+  constructor(
+    message: string,
+    readonly done: RuleChange[],
+  ) {
+    super(message);
+  }
+}
+
 async function writeAll(changes: RuleChange[], pick: (c: RuleChange) => string, write: Write, label: string): Promise<RuleChange[]> {
   const done: RuleChange[] = [];
   try {
@@ -10,12 +20,12 @@ async function writeAll(changes: RuleChange[], pick: (c: RuleChange) => string, 
       done.push(c);
     }
   } catch (e) {
-    throw new Error(`${label} after ${done.length} of ${changes.length}: ${e instanceof Error ? e.message : String(e)}`);
+    throw new WriteStoppedError(`${label} after ${done.length} of ${changes.length}: ${e instanceof Error ? e.message : String(e)}`, done);
   }
   return done;
 }
 
-/** Write each change's `to` in turn; on failure stop and say how far it got. Returns the changes written, so a caller can offer to put `from` back. */
+/** Write each change's `to` in turn; on failure stop and say how far it got. Returns the changes written (on failure, a `WriteStoppedError` carries them), so a caller can offer to put `from` back. */
 export const applyRuleChanges = (changes: RuleChange[], write: Write) => writeAll(changes, (c) => c.to, write, "Stopped");
 
 /** Put each change's exact previous Category (`from`, "" = uncategorized) back; on failure stop and say how far it got. */
