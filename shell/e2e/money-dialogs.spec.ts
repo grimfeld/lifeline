@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
 import { openCalendar, pickDate } from "./support/date-picker";
+import { inCore } from "./support/core";
 
 /**
  * The Money Module's dialogs pick their days from the kit's Date picker
@@ -95,4 +96,58 @@ test("Prices: Add price and Receipt pick their day from the calendar", async ({ 
   await expect(dialog.locator('input[type="date"]')).toHaveCount(0);
   await pickDate(page, dialog.getByLabel("Day"), "2026-07-02");
   await expect(dialog.getByLabel("Day")).toContainText("2026");
+});
+
+/** Letters only: a payee's digits are normalized away, so a digit stamp would not tell two runs apart. */
+const lettersStamp = () => Date.now().toString().replace(/\d/g, (d) => "abcdefghij".charAt(Number(d)));
+
+test("Ledger: Apply to history recategorizes the ticked rows only, and a never rule has no action", async ({ page }) => {
+  const word = `rides${lettersStamp()}`;
+  const tx = (n: number, payee: string, categoryId: string, date: string) => ({
+    type: "ledger_transaction", title: "", kind: "expense", date, amount: 1000 + n, accountId: "$0", fromAccountId: "", toAccountId: "", categoryId, payee, note: "", importId: "", paypalId: "", bankPayee: "", folder: "", tags: [],
+  });
+  await page.goto("/");
+  await workLocally(page);
+  const ids = await inCore(
+    page,
+    async (core, a: { word: string }) => {
+      const put = async (d: Record<string, unknown>) => (await core.putDocument({ folder: "", tags: [], ...d } as unknown as { type: string })).id as string;
+      const acc = await put({ type: "ledger_account", title: `Checking ${a.word}`, flavor: "checking", openingBalance: 0, archived: false, importMapping: null });
+      const taxi = await put({ type: "ledger_category", title: `Taxi ${a.word}`, kind: "expense", group: "", target: 0, accumulating: false });
+      const target = await put({ type: "ledger_category", title: `Cab ${a.word}`, kind: "expense", group: "", target: 0, accumulating: false });
+      await put({ type: "ledger_rule", title: a.word, match: a.word, mode: "contains", kind: "expense", categoryId: target, never: false });
+      await put({ type: "ledger_rule", title: `${a.word}never`, match: `${a.word}never`, mode: "contains", kind: "both", categoryId: "", never: true });
+      return { acc, taxi, target };
+    },
+    { word },
+  );
+  const rows = [
+    ["1", `${word} one`, ids.taxi, "2026-03-01"],
+    ["2", `${word} two`, ids.taxi, "2026-02-01"],
+    ["3", `${word} inbox`, "", "2026-01-01"],
+  ] as const;
+  const made: string[] = [];
+  for (const [n, payee, cat, date] of rows) {
+    made.push(await inCore(page, async (core, d: Record<string, unknown>) => (await core.putDocument(d as unknown as { type: string })).id as string, { ...tx(Number(n), payee, cat, date), accountId: ids.acc }));
+  }
+
+  await open(page, "/app/ledger?tab=rules");
+  await page.getByLabel("Search rules").fill(word);
+  // Two rules match the search (the Category rule and the never rule); only the Category rule has the action.
+  await expect(page.getByRole("button", { name: "Edit this rule" })).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Apply to history" })).toHaveCount(1);
+  await page.getByRole("button", { name: "Apply to history" }).click();
+  const dialog = page.getByRole("dialog", { name: new RegExp(`Apply “${word}”`) });
+  await expect(dialog.getByRole("button", { name: "Recategorize 3" })).toBeVisible();
+  await expect(dialog).toContainText("Changes spending in 3 past months");
+  await dialog.getByRole("checkbox", { name: `Recategorize ${word} two` }).click();
+  await expect(dialog.getByRole("button", { name: "Recategorize 2" })).toBeVisible();
+  await expect(dialog).toContainText("Changes spending in 2 past months");
+  await dialog.getByRole("button", { name: "Recategorize 2" }).click();
+  await expect(dialog).toBeHidden();
+
+  const cat = (id: string) => inCore(page, async (core, i: string) => (await core.getDocument(i))!.categoryId, id);
+  await expect.poll(() => cat(made[0]!)).toBe(ids.target);
+  await expect.poll(() => cat(made[2]!)).toBe(ids.target);
+  expect(await cat(made[1]!)).toBe(ids.taxi);
 });

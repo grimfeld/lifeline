@@ -144,3 +144,30 @@ export function ruleCoverage(transactions: Transaction[], rules: CategorizeRule[
   }
   return out;
 }
+
+/** One Transaction a rule would recategorize: its current Category ("" = uncategorized) and the rule's. */
+export interface RuleChange {
+  transaction: Transaction;
+  from: string;
+  to: string;
+}
+
+/**
+ * Apply to history (ADR 0040, superseded in part): the Transactions this
+ * rule decides — precedence applied over all rules — whose Category differs
+ * from the rule's, newest first. Inbox rows count (from ""). History plays
+ * no part: read against already-categorized rows it would be circular. A
+ * never rule changes nothing. Pure; the caller writes only what the user
+ * ticks, and keeps `from` to be able to put it back.
+ */
+export function ruleHistoryChanges(transactions: Transaction[], rules: CategorizeRule[], rule: CategorizeRule): RuleChange[] {
+  if (rule.never) return [];
+  const out: RuleChange[] = [];
+  for (const t of transactions) {
+    if (t.kind !== "expense" && t.kind !== "income") continue;
+    if (t.categoryId === rule.categoryId) continue;
+    if (matchRule(t.payee, t.kind, rules)?.id !== rule.id) continue;
+    out.push({ transaction: t, from: t.categoryId, to: rule.categoryId });
+  }
+  return out.sort((a, b) => (a.transaction.date < b.transaction.date ? 1 : a.transaction.date > b.transaction.date ? -1 : 0));
+}

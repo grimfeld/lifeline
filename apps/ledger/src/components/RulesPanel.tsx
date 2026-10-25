@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { Badge, Button, Card, CardContent, Input, toast, Tip } from "@lifeline/ui";
-import { Ban, Pencil, Pin, Plus, Wand2 } from "lucide-react";
+import { Ban, History, Pencil, Pin, Plus, Wand2 } from "lucide-react";
 import type { CategorizeRule, LedgerCategory, Transaction } from "../domain/types";
 import { matchRule, normalizePayee, payeeCategoryIndex, ruleCoverage } from "../domain/suggest";
 import { neverRule, pinRule, useCategories, useCategorizeRules, useTransactions } from "../data/repo";
 import { RuleEditorDialog } from "./RuleEditorDialog";
+import { ApplyRuleDialog } from "./ApplyRuleDialog";
 
 const PAGE = 40;
 
@@ -47,8 +48,9 @@ function categoryLabel(categories: LedgerCategory[], id: string): string {
  * happens and where nothing needed maintaining before. A derived line can be
  * pinned into a rule (it then stops moving with the ledger) or vetoed with
  * never; a rule can be edited or deleted back to the reading underneath.
- * Rules never touch the ledger by themselves — they only shape what the
- * import preview and the Auto-categorize sweep suggest.
+ * Rules never touch the ledger by themselves — they shape what the
+ * import preview and the Auto-categorize sweep suggest, and rewrite history
+ * only through Apply to history, a preview the user confirms.
  */
 export function RulesPanel() {
   const transactions = useTransactions();
@@ -59,6 +61,7 @@ export function RulesPanel() {
   const [addOpen, setAddOpen] = useState(false);
   const [addNever, setAddNever] = useState(false);
   const [editing, setEditing] = useState<CategorizeRule | undefined>();
+  const [applying, setApplying] = useState<CategorizeRule | undefined>();
 
   const coverage = useMemo(() => ruleCoverage(transactions, rules), [transactions, rules]);
   const history = useMemo(() => historyLines(transactions), [transactions]);
@@ -100,7 +103,7 @@ export function RulesPanel() {
       </div>
       <p className="text-muted-foreground text-xs">
         Auto-categorization reads the ledger itself: the category you last gave a payee is what the import preview and the <Wand2 className="inline size-3" /> sweep suggest for it next time. Rules sit over that reading — a payee that always means one
-        category, or a payee that should never be guessed at all (Amazon: one name, twenty categories). Nothing here writes to the ledger on its own; suggestions still land in front of you.
+        category, or a payee that should never be guessed at all (Amazon: one name, twenty categories). Nothing here writes to the ledger on its own; suggestions still land in front of you, and a rule's History action previews what it would change before anything is rewritten.
       </p>
       <Input aria-label="Search rules" placeholder="Search payee or category…" value={search} onChange={(e) => setSearch(e.target.value)} />
 
@@ -133,6 +136,13 @@ export function RulesPanel() {
                 {coverage.get(r.id) ?? 0} payee{(coverage.get(r.id) ?? 0) === 1 ? "" : "s"} in the ledger
               </div>
             </div>
+            {!r.never && (
+              <Tip label="Apply to history">
+                <Button size="icon" variant="ghost" onClick={() => setApplying(r)}>
+                  <History />
+                </Button>
+              </Tip>
+            )}
             <Tip label="Edit this rule">
               <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
                 <Pencil />
@@ -194,6 +204,7 @@ export function RulesPanel() {
       {history.length === 0 && <p className="text-muted-foreground text-sm">Nothing to read yet — categorize a few transactions and this fills itself in.</p>}
 
       <RuleEditorDialog open={addOpen} onOpenChange={setAddOpen} initialNever={addNever} initialMatch={search.trim()} />
+      <ApplyRuleDialog rule={applying} onOpenChange={(o) => !o && setApplying(undefined)} />
       <RuleEditorDialog open={!!editing} onOpenChange={(o) => !o && setEditing(undefined)} rule={editing} />
     </div>
   );

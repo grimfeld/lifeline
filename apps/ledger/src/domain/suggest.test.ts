@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CategorizeRule, Transaction } from "./types";
-import { matchRule, normalizePayee, payeeCategoryIndex, ruleCoverage, suggestCategory } from "./suggest";
+import { matchRule, normalizePayee, payeeCategoryIndex, ruleCoverage, ruleHistoryChanges, suggestCategory } from "./suggest";
 
 function tx(partial: Partial<Transaction>): Transaction {
   return { id: Math.random().toString(36).slice(2), kind: "expense", date: "2026-03-10", amount: 1000, categoryId: "", payee: "", accountId: "a", ...partial } as unknown as Transaction;
@@ -135,5 +135,51 @@ describe("ruleCoverage", () => {
     expect(coverage.get("r-prime")).toBe(0);
     expect(coverage.get("r-ah")).toBe(1);
     expect(coverage.get("r-none")).toBe(0);
+  });
+});
+
+describe("ruleHistoryChanges", () => {
+  const uber = rule({ id: "r-uber", match: "uber", categoryId: "uber", kind: "expense" });
+  const ids = (ts: Transaction[], rules: CategorizeRule[], r: CategorizeRule) => ruleHistoryChanges(ts, rules, r).map((c) => c.transaction.id);
+
+  it("includes a row filed under another Category, with old and new", () => {
+    const t = tx({ id: "t1", payee: "Uber Trip 1234", categoryId: "taxi" });
+    expect(ruleHistoryChanges([t], [uber], uber)).toEqual([{ transaction: t, from: "taxi", to: "uber" }]);
+  });
+  it("includes an uncategorized row with no old Category", () => {
+    const t = tx({ id: "t1", payee: "UBER *TRIP", categoryId: "" });
+    expect(ruleHistoryChanges([t], [uber], uber)[0]).toMatchObject({ from: "", to: "uber" });
+  });
+  it("excludes a row already in the rule's Category", () => {
+    expect(ids([tx({ id: "t1", payee: "Uber", categoryId: "uber" })], [uber], uber)).toEqual([]);
+  });
+  it("excludes rows another rule decides: exact, longer contains, never", () => {
+    const rows = [tx({ id: "a", payee: "Uber Eats", categoryId: "taxi" })];
+    for (const other of [
+      rule({ match: "uber eats", mode: "exact", categoryId: "food", kind: "expense" }),
+      rule({ match: "uber eat", categoryId: "food", kind: "expense" }),
+      rule({ match: "uber", never: true }),
+    ]) {
+      expect(ids(rows, [uber, other], uber)).toEqual([]);
+    }
+  });
+  it("excludes the other kind, transfers and adjustments", () => {
+    const rows = [
+      tx({ id: "inc", kind: "income", payee: "Uber refund", categoryId: "salary" }),
+      tx({ id: "trf", kind: "transfer", payee: "Uber", categoryId: "" }),
+      tx({ id: "adj", kind: "adjustment", payee: "Uber", categoryId: "" }),
+    ];
+    expect(ids(rows, [uber], uber)).toEqual([]);
+  });
+  it("matches the normalized payee and lists newest first", () => {
+    const rows = [
+      tx({ id: "old", payee: "uber 99", date: "2026-01-01", categoryId: "taxi" }),
+      tx({ id: "new", payee: "UBER   BV", date: "2026-03-01", categoryId: "taxi" }),
+    ];
+    expect(ids(rows, [uber], uber)).toEqual(["new", "old"]);
+  });
+  it("yields nothing for a never rule", () => {
+    const never = rule({ match: "uber", never: true });
+    expect(ids([tx({ id: "t", payee: "Uber", categoryId: "taxi" })], [never], never)).toEqual([]);
   });
 });

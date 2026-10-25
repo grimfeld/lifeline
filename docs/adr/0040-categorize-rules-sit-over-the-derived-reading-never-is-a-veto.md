@@ -13,7 +13,7 @@ The rules also get the one place they were missing: a **Rules** tab in the Regis
 - **A rule kind ("applies to expenses / income / both") on the form** — rejected as an input: a category rule's Category already knows its kind, so asking again invites the two to disagree. The field is stored (the matcher reads it) but stamped by the write path and guarded, never typed.
 - **Symmetric contains, as the history matcher uses** — rejected for rules: history compares two payees, where either may be the noisier spelling, so symmetry is right there. A rule is a fragment the user wrote; letting a shorter payee match a longer rule would make rules quietly wider than they read.
 - **Rules that also rewrite payees, set tags, or split amounts** — rejected: that is an import scripting language, and every one of those is a different feature with its own witness problem. A rule answers one question — which Category, or none.
-- **Applying rules retroactively over the whole ledger on save** — rejected: a rule is about what gets *suggested*, not a bulk edit that silently rewrites facts. The Auto-categorize sweep already exists for the inbox, obeys rules, and shows what it did; recategorizing history is the Base's job, in front of the user.
+- **Applying rules retroactively over the whole ledger on save** — rejected (superseded in part by ADR 0107: a rule may recategorize history, but only through a preview the user confirms; never silently on save): a rule is about what gets *suggested*, not a bulk edit that silently rewrites facts. The Auto-categorize sweep already exists for the inbox, obeys rules, and shows what it did; recategorizing history is the Base's job, in front of the user.
 
 ## Consequences
 
