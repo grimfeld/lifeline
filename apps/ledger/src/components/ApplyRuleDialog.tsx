@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
 import { formatHuman } from "@lifeline/core";
 import type { CategorizeRule, LedgerCategory } from "../domain/types";
-import { ruleHistoryChanges, type RuleChange } from "../domain/suggest";
+import { ruleHistoryChanges } from "../domain/suggest";
+import { applyRuleChanges, undoRuleChanges } from "../domain/applyChanges";
 import { formatCents } from "../domain/money";
 import { categorizeTransaction, useAccounts, useCategories, useCategorizeRules, useTransactions } from "../data/repo";
 
@@ -10,20 +11,6 @@ function categoryName(categories: LedgerCategory[], id: string): string {
   if (!id) return "—";
   const c = categories.find((x) => x.id === id);
   return c ? c.title : "Unknown category";
-}
-
-/** Write each change's `to` in turn; on failure stop and say how far it got. Returns the changes written, so a caller can offer to put `from` back. */
-async function applyRuleChanges(changes: RuleChange[], write: (id: string, categoryId: string) => Promise<void> = categorizeTransaction): Promise<RuleChange[]> {
-  const done: RuleChange[] = [];
-  try {
-    for (const c of changes) {
-      await write(c.transaction.id, c.to);
-      done.push(c);
-    }
-  } catch (e) {
-    throw new Error(`Stopped after ${done.length} of ${changes.length}: ${e instanceof Error ? e.message : String(e)}`);
-  }
-  return done;
 }
 
 /**
@@ -61,8 +48,17 @@ export function ApplyRuleDialog({ rule, onOpenChange }: { rule: CategorizeRule |
   async function apply() {
     setApplying(true);
     try {
-      await applyRuleChanges(chosen);
-      toast.success(`Recategorized ${chosen.length} transaction${chosen.length === 1 ? "" : "s"}`);
+      const done = await applyRuleChanges(chosen, categorizeTransaction);
+      toast.success(`Recategorized ${done.length} transaction${done.length === 1 ? "" : "s"}`, {
+        action: {
+          label: "Undo",
+          onClick: () =>
+            void undoRuleChanges(done, categorizeTransaction).then(
+              () => toast.success(`Restored ${done.length} transaction${done.length === 1 ? "" : "s"}`),
+              (e: unknown) => toast.error((e as Error).message),
+            ),
+        },
+      });
       onOpenChange(false);
     } catch (e) {
       toast.error((e as Error).message);
