@@ -171,3 +171,13 @@ export function ruleHistoryChanges(transactions: Transaction[], rules: Categoriz
   }
   return out.sort((a, b) => (a.transaction.date < b.transaction.date ? 1 : a.transaction.date > b.transaction.date ? -1 : 0));
 }
+
+/**
+ * How many existing Transactions a rule just saved would recategorize: the
+ * size of the Apply to history preview, with the saved rule standing in for
+ * its stored version (or added, when new).
+ */
+export function ruleSaveOffer(transactions: Transaction[], rules: CategorizeRule[], saved: CategorizeRule): number {
+  const all = [...rules.filter((r) => r.id !== saved.id), saved];
+  return ruleHistoryChanges(transactions, all, saved).length;
+}

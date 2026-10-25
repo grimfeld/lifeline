@@ -151,3 +151,37 @@ test("Ledger: Apply to history recategorizes the ticked rows only, and a never r
   await expect.poll(() => cat(made[2]!)).toBe(ids.target);
   expect(await cat(made[1]!)).toBe(ids.taxi);
 });
+
+test("Ledger: saving a Category rule offers Apply to history with the count, and a rule matching nothing stays quiet", async ({ page }) => {
+  const word = `cabs${lettersStamp()}`;
+  await page.goto("/");
+  await workLocally(page);
+  const ids = await inCore(
+    page,
+    async (core, a: { word: string }) => {
+      const put = async (d: Record<string, unknown>) => (await core.putDocument({ folder: "", tags: [], ...d } as unknown as { type: string })).id as string;
+      const acc = await put({ type: "ledger_account", title: `Checking ${a.word}`, flavor: "checking", openingBalance: 0, archived: false, importMapping: null });
+      const taxi = await put({ type: "ledger_category", title: `Taxi ${a.word}`, kind: "expense", group: "", target: 0, accumulating: false });
+      const target = await put({ type: "ledger_category", title: `Cab ${a.word}`, kind: "expense", group: "", target: 0, accumulating: false });
+      for (const [i, payee] of [`${a.word} one`, `${a.word} two`].entries()) {
+        await put({ type: "ledger_transaction", title: "", kind: "expense", date: `2026-0${i + 1}-01`, amount: 1000 + i, accountId: acc, fromAccountId: "", toAccountId: "", categoryId: taxi, payee, note: "", importId: "", paypalId: "", bankPayee: "", folder: "", tags: [] });
+      }
+      return { taxi, target };
+    },
+    { word },
+  );
+  void ids;
+  await open(page, "/app/ledger?tab=rules");
+  await page.getByRole("button", { name: /New rule|Add rule/ }).first().click();
+  const editor = page.getByRole("dialog", { name: "New rule" });
+  await editor.getByLabel("Payee text").fill(word);
+  await editor.getByRole("combobox", { name: "Category" }).click();
+  await page.getByRole("option", { name: new RegExp(`Cab ${word}`) }).click();
+  await editor.getByRole("button", { name: "Add rule" }).click();
+  await expect(page.getByText("Rule added · 2 existing transactions match")).toBeVisible();
+  await page.getByRole("button", { name: "Review" }).click();
+  const preview = page.getByRole("dialog", { name: new RegExp(`Apply “${word}”`) });
+  await expect(preview.getByRole("button", { name: "Recategorize 2" })).toBeVisible();
+  await expect(preview).toContainText(`${word} one`);
+  await expect(preview).toContainText(`${word} two`);
+});

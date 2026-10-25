@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
 import type { CategorizeRule, RuleMode, Transaction } from "../domain/types";
-import { matchRule, normalizePayee } from "../domain/suggest";
+import { matchRule, normalizePayee, ruleSaveOffer } from "../domain/suggest";
+import { ApplyRuleDialog } from "./ApplyRuleDialog";
 import { addRule, deleteRule, updateRule, useCategorizeRules, useCategories, useTransactions } from "../data/repo";
 
 /** Payees the rule as typed would decide, newest first — the preview under the form. */
@@ -35,6 +36,7 @@ export function RuleEditorDialog({ open, onOpenChange, rule, initialMatch, initi
   const [categoryId, setCategoryId] = useState("");
   const [never, setNever] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reviewing, setReviewing] = useState<CategorizeRule | undefined>();
 
   useEffect(() => {
     if (!open) return;
@@ -62,13 +64,15 @@ export function RuleEditorDialog({ open, onOpenChange, rule, initialMatch, initi
     setSaving(true);
     try {
       const input = { match, mode, categoryId, never };
-      if (rule) {
-        await updateRule(rule, input);
-        toast.success("Rule updated");
-      } else {
-        await addRule(input);
-        toast.success(never ? `“${match.trim()}” is never auto-categorized` : "Rule added");
-      }
+      let id = rule?.id ?? "";
+      if (rule) await updateRule(rule, input);
+      else id = await addRule(input);
+      // Apply to history is offered for a Category rule only, and only when something would change.
+      const saved = { ...draft, id, match: match.trim() };
+      const n = never ? 0 : ruleSaveOffer(transactions, rules, saved);
+      const lead = rule ? "Rule updated" : never ? `“${match.trim()}” is never auto-categorized` : "Rule added";
+      if (n > 0) toast.success(`${lead} · ${n} existing transaction${n === 1 ? " matches" : "s match"}`, { action: { label: "Review", onClick: () => setReviewing(saved) } });
+      else toast.success(lead);
       onOpenChange(false);
     } catch (err) {
       toast.error((err as Error).message);
@@ -85,6 +89,7 @@ export function RuleEditorDialog({ open, onOpenChange, rule, initialMatch, initi
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -159,5 +164,7 @@ export function RuleEditorDialog({ open, onOpenChange, rule, initialMatch, initi
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <ApplyRuleDialog rule={reviewing} onOpenChange={(o) => !o && setReviewing(undefined)} />
+    </>
   );
 }
