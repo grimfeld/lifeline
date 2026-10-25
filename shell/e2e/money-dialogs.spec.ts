@@ -150,6 +150,12 @@ test("Ledger: Apply to history recategorizes the ticked rows only, and a never r
   await expect.poll(() => cat(made[0]!)).toBe(ids.target);
   await expect.poll(() => cat(made[2]!)).toBe(ids.target);
   expect(await cat(made[1]!)).toBe(ids.taxi);
+
+  // Undo on the result toast puts every applied row's previous Category back, the inbox row included.
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect.poll(() => cat(made[0]!)).toBe(ids.taxi);
+  await expect.poll(() => cat(made[2]!)).toBe("");
+  expect(await cat(made[1]!)).toBe(ids.taxi);
 });
 
 test("Ledger: saving a Category rule offers Apply to history with the count, and a rule matching nothing stays quiet", async ({ page }) => {

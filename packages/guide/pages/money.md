@@ -27,7 +27,8 @@ On the **Transactions** page (four tabs):
   always waits for you (Amazon, say). A rule never rewrites your past by itself: **Apply to history**
   (the clock button on a rule with a Category) previews every Transaction it decides whose Category
   differs, past ones and the uncategorized inbox included. Untick any you want to keep, check the
-  "Changes spending in N past months" note, then **Recategorize**.
+  "Changes spending in N past months" note, then **Recategorize**. The result toast offers **Undo**, which puts each
+  Transaction back in the Category it had (the inbox included) for as long as the toast stays up.
   Saving a new Category rule (or editing one) offers it for you: a toast reads "Rule added · N existing
   transactions match" with a **Review** button that opens the same preview. No toast when nothing
   would change, and never rules don't offer it.
