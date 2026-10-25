@@ -24,7 +24,14 @@ On the **Transactions** page (four tabs):
   exported from your bank — Lifeline never fetches it); the pencil edits or archives it.
 - **Rules** — how payees get a Category when you import. Your own rules sit on top, and below
   them the guesses from your history. Pin a guess as a rule, or mark a payee **never** so it
-  always waits for you (Amazon, say).
+  always waits for you (Amazon, say). A rule never rewrites your past by itself: **Apply to history**
+  (the clock button on a rule with a Category) previews every Transaction it decides whose Category
+  differs, past ones and the uncategorized inbox included. Untick any you want to keep, check the
+  "Changes spending in N past months" note, then **Recategorize**. The result toast offers **Undo**, which puts each
+  Transaction back in the Category it had (the inbox included) for as long as the toast stays up.
+  Saving a new Category rule (or editing one) offers it for you: a toast reads "Rule added · N existing
+  transactions match" with a **Review** button that opens the same preview. No toast when nothing
+  would change, and never rules don't offer it.
 - **Recurring** — rent, salary, subscriptions, found by themselves after three regular payments
   to one payee. The next due day of each is listed; **Skip** waves one day off, and you can mute
   a series that isn't a bill.

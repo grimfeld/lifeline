@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Checkbox, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@lifeline/ui";
 import type { CategorizeRule, RuleMode, Transaction } from "../domain/types";
-import { matchRule, normalizePayee } from "../domain/suggest";
+import { matchRule, normalizePayee, ruleSaveMatchCount } from "../domain/suggest";
+import { ApplyRuleDialog } from "./ApplyRuleDialog";
+import { plural } from "../domain/plural";
 import { addRule, deleteRule, updateRule, useCategorizeRules, useCategories, useTransactions } from "../data/repo";
 
 /** Payees the rule as typed would decide, newest first — the preview under the form. */
@@ -35,6 +37,7 @@ export function RuleEditorDialog({ open, onOpenChange, rule, initialMatch, initi
   const [categoryId, setCategoryId] = useState("");
   const [never, setNever] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reviewing, setReviewing] = useState<CategorizeRule | undefined>();
 
   useEffect(() => {
     if (!open) return;
@@ -62,13 +65,15 @@ export function RuleEditorDialog({ open, onOpenChange, rule, initialMatch, initi
     setSaving(true);
     try {
       const input = { match, mode, categoryId, never };
-      if (rule) {
-        await updateRule(rule, input);
-        toast.success("Rule updated");
-      } else {
-        await addRule(input);
-        toast.success(never ? `“${match.trim()}” is never auto-categorized` : "Rule added");
-      }
+      let id = rule?.id ?? "";
+      if (rule) await updateRule(rule, input);
+      else id = await addRule(input);
+      // Apply to history is offered for a Category rule only, and only when something would change.
+      const saved = { ...draft, id, match: match.trim() };
+      const n = never ? 0 : ruleSaveMatchCount(transactions, rules, saved);
+      const lead = rule ? "Rule updated" : never ? `“${match.trim()}” is never auto-categorized` : "Rule added";
+      if (n > 0) toast.success(`${lead} · ${plural(n, "existing transaction")} ${n === 1 ? "matches" : "match"}`, { action: { label: "Review", onClick: () => setReviewing(saved) } });
+      else toast.success(lead);
       onOpenChange(false);
     } catch (err) {
       toast.error((err as Error).message);
@@ -85,79 +90,82 @@ export function RuleEditorDialog({ open, onOpenChange, rule, initialMatch, initi
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{rule ? "Edit rule" : never ? "Never auto-categorize" : "New rule"}</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="rule-match">Payee text</Label>
-            <Input id="rule-match" value={match} onChange={(e) => setMatch(e.target.value)} placeholder="Albert Heijn" autoFocus onKeyDown={(e) => e.key === "Enter" && void submit()} />
-            <p className="text-muted-foreground text-xs">Casing, digits and punctuation are ignored — “AMAZON EU S.A.R.L. 1234” and “Amazon” are the same text here.</p>
-          </div>
-          <div className="grid gap-2">
-            <Label>Match</Label>
-            <Select value={mode} onValueChange={(v) => setMode(v as RuleMode)}>
-              <SelectTrigger aria-label="Match">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="contains">Contains — the text anywhere in the bank's payee</SelectItem>
-                <SelectItem value="exact">Exact — the whole payee, nothing more</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <label className="flex items-start gap-2 text-sm">
-            <Checkbox className="mt-0.5" checked={never} onCheckedChange={(v) => setNever(v === true)} />
-            <span>
-              Never auto-categorize
-              <span className="text-muted-foreground block text-xs">One payee, many categories (Amazon): matching rows land uncategorized in the inbox and history never guesses for them again.</span>
-            </span>
-          </label>
-          {!never && (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{rule ? "Edit rule" : never ? "Never auto-categorize" : "New rule"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4">
             <div className="grid gap-2">
-              <Label>Category</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger aria-label="Category">
-                  <SelectValue placeholder="Pick the category this payee always means" />
+              <Label htmlFor="rule-match">Payee text</Label>
+              <Input id="rule-match" value={match} onChange={(e) => setMatch(e.target.value)} placeholder="Albert Heijn" autoFocus onKeyDown={(e) => e.key === "Enter" && void submit()} />
+              <p className="text-muted-foreground text-xs">Casing, digits and punctuation are ignored — “AMAZON EU S.A.R.L. 1234” and “Amazon” are the same text here.</p>
+            </div>
+            <div className="grid gap-2">
+              <Label>Match</Label>
+              <Select value={mode} onValueChange={(v) => setMode(v as RuleMode)}>
+                <SelectTrigger aria-label="Match">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.group ? `${c.group} · ${c.title}` : c.title} · {c.kind}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="contains">Contains — the text anywhere in the bank's payee</SelectItem>
+                  <SelectItem value="exact">Exact — the whole payee, nothing more</SelectItem>
                 </SelectContent>
               </Select>
-              {categoryId && <p className="text-muted-foreground text-xs">The rule applies to {categories.find((c) => c.id === categoryId)?.kind === "income" ? "income" : "expense"} rows — a category's own kind decides, so there is nothing else to set.</p>}
             </div>
-          )}
-          {normalizePayee(match) !== "" && (
-            <div className="text-muted-foreground grid gap-1 rounded-md border px-3 py-2 text-xs">
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox className="mt-0.5" checked={never} onCheckedChange={(v) => setNever(v === true)} />
               <span>
-                {hits.length === 0 ? "No payee in the ledger matches this yet — it will still catch future imports." : `Matches ${hits.length} payee${hits.length === 1 ? "" : "s"} in the ledger: `}
-                {hits.slice(0, 6).join(" · ")}
-                {hits.length > 6 ? ` … and ${hits.length - 6} more` : ""}
+                Never auto-categorize
+                <span className="text-muted-foreground block text-xs">One payee, many categories (Amazon): matching rows land uncategorized in the inbox and history never guesses for them again.</span>
               </span>
-              {shadowed.length > 0 && <span className="text-amber-600">Some of those already answer to: {shadowed.join(" · ")} — the narrower rule wins, a never rule wins over both.</span>}
-            </div>
-          )}
-        </div>
-        <DialogFooter>
-          {rule && (
-            <Button variant="ghost" className="text-destructive mr-auto" onClick={() => void remove()}>
-              Delete
+            </label>
+            {!never && (
+              <div className="grid gap-2">
+                <Label>Category</Label>
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger aria-label="Category">
+                    <SelectValue placeholder="Pick the category this payee always means" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.group ? `${c.group} · ${c.title}` : c.title} · {c.kind}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {categoryId && <p className="text-muted-foreground text-xs">The rule applies to {categories.find((c) => c.id === categoryId)?.kind === "income" ? "income" : "expense"} rows — a category's own kind decides, so there is nothing else to set.</p>}
+              </div>
+            )}
+            {normalizePayee(match) !== "" && (
+              <div className="text-muted-foreground grid gap-1 rounded-md border px-3 py-2 text-xs">
+                <span>
+                  {hits.length === 0 ? "No payee in the ledger matches this yet — it will still catch future imports." : `Matches ${hits.length} payee${hits.length === 1 ? "" : "s"} in the ledger: `}
+                  {hits.slice(0, 6).join(" · ")}
+                  {hits.length > 6 ? ` … and ${hits.length - 6} more` : ""}
+                </span>
+                {shadowed.length > 0 && <span className="text-warning">Some of those already answer to: {shadowed.join(" · ")} — the narrower rule wins, a never rule wins over both.</span>}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            {rule && (
+              <Button variant="ghost" className="text-destructive mr-auto" onClick={() => void remove()}>
+                Delete
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
             </Button>
-          )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button disabled={saving} onClick={() => void submit()}>
-            {rule ? "Save" : "Add rule"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <Button disabled={saving} onClick={() => void submit()}>
+              {rule ? "Save" : "Add rule"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <ApplyRuleDialog rule={reviewing} onOpenChange={(o) => !o && setReviewing(undefined)} />
+    </>
   );
 }

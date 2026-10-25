@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
 import { Badge, Button, Card, CardContent, Input, toast, Tip } from "@lifeline/ui";
-import { Ban, Pencil, Pin, Plus, Wand2 } from "lucide-react";
-import type { CategorizeRule, LedgerCategory, Transaction } from "../domain/types";
+import { Ban, History, Pencil, Pin, Plus, Wand2 } from "lucide-react";
+import type { CategorizeRule, Transaction } from "../domain/types";
 import { matchRule, normalizePayee, payeeCategoryIndex, ruleCoverage } from "../domain/suggest";
 import { neverRule, pinRule, useCategories, useCategorizeRules, useTransactions } from "../data/repo";
 import { RuleEditorDialog } from "./RuleEditorDialog";
+import { ApplyRuleDialog } from "./ApplyRuleDialog";
+import { categoryLabelById } from "./reportChrome";
+import { plural } from "../domain/plural";
 
 const PAGE = 40;
 
@@ -34,12 +37,6 @@ function historyLines(transactions: Transaction[]): HistoryLine[] {
     .sort((a, b) => b.count - a.count || a.payee.localeCompare(b.payee));
 }
 
-function categoryLabel(categories: LedgerCategory[], id: string): string {
-  const c = categories.find((x) => x.id === id);
-  if (!c) return "Unknown category";
-  return c.group ? `${c.group} · ${c.title}` : c.title;
-}
-
 /**
  * The Rules panel (ADR 0040): every auto-categorization the ledger would
  * make, in one place — the hand-made Categorize rules on top, and below them
@@ -47,8 +44,9 @@ function categoryLabel(categories: LedgerCategory[], id: string): string {
  * happens and where nothing needed maintaining before. A derived line can be
  * pinned into a rule (it then stops moving with the ledger) or vetoed with
  * never; a rule can be edited or deleted back to the reading underneath.
- * Rules never touch the ledger by themselves — they only shape what the
- * import preview and the Auto-categorize sweep suggest.
+ * Rules never touch the ledger by themselves — they shape what the
+ * import preview and the Auto-categorize sweep suggest, and rewrite history
+ * only through Apply to history, a preview the user confirms.
  */
 export function RulesPanel() {
   const transactions = useTransactions();
@@ -59,13 +57,14 @@ export function RulesPanel() {
   const [addOpen, setAddOpen] = useState(false);
   const [addNever, setAddNever] = useState(false);
   const [editing, setEditing] = useState<CategorizeRule | undefined>();
+  const [historyRule, setHistoryRule] = useState<CategorizeRule | undefined>();
 
   const coverage = useMemo(() => ruleCoverage(transactions, rules), [transactions, rules]);
   const history = useMemo(() => historyLines(transactions), [transactions]);
 
   const q = search.trim().toLowerCase();
-  const shownRules = useMemo(() => rules.filter((r) => !q || `${r.match} ${categoryLabel(categories, r.categoryId)}`.toLowerCase().includes(q)), [rules, categories, q]);
-  const shownHistory = useMemo(() => history.filter((h) => !q || `${h.payee} ${categoryLabel(categories, h.categoryId)}`.toLowerCase().includes(q)), [history, categories, q]);
+  const shownRules = useMemo(() => rules.filter((r) => !q || `${r.match} ${categoryLabelById(categories, r.categoryId)}`.toLowerCase().includes(q)), [rules, categories, q]);
+  const shownHistory = useMemo(() => history.filter((h) => !q || `${h.payee} ${categoryLabelById(categories, h.categoryId)}`.toLowerCase().includes(q)), [history, categories, q]);
 
   async function run(action: Promise<unknown>, ok: string) {
     try {
@@ -100,7 +99,7 @@ export function RulesPanel() {
       </div>
       <p className="text-muted-foreground text-xs">
         Auto-categorization reads the ledger itself: the category you last gave a payee is what the import preview and the <Wand2 className="inline size-3" /> sweep suggest for it next time. Rules sit over that reading — a payee that always means one
-        category, or a payee that should never be guessed at all (Amazon: one name, twenty categories). Nothing here writes to the ledger on its own; suggestions still land in front of you.
+        category, or a payee that should never be guessed at all (Amazon: one name, twenty categories). Nothing here writes to the ledger on its own; suggestions still land in front of you, and a rule's Apply to history previews what it would change before anything is rewritten.
       </p>
       <Input aria-label="Search rules" placeholder="Search payee or category…" value={search} onChange={(e) => setSearch(e.target.value)} />
 
@@ -128,11 +127,18 @@ export function RulesPanel() {
                 )}
               </div>
               <div className="text-muted-foreground text-xs">
-                {r.never ? "Never auto-categorized — matching rows land in the inbox" : `→ ${categoryLabel(categories, r.categoryId)}`}
+                {r.never ? "Never auto-categorized — matching rows land in the inbox" : `→ ${categoryLabelById(categories, r.categoryId)}`}
                 {" · "}
-                {coverage.get(r.id) ?? 0} payee{(coverage.get(r.id) ?? 0) === 1 ? "" : "s"} in the ledger
+                {plural(coverage.get(r.id) ?? 0, "payee")} in the ledger
               </div>
             </div>
+            {!r.never && (
+              <Tip label="Apply to history">
+                <Button size="icon" variant="ghost" onClick={() => setHistoryRule(r)}>
+                  <History />
+                </Button>
+              </Tip>
+            )}
             <Tip label="Edit this rule">
               <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
                 <Pencil />
@@ -167,12 +173,12 @@ export function RulesPanel() {
                   )}
                 </div>
                 <div className="text-muted-foreground text-xs">
-                  → {categoryLabel(categories, h.categoryId)} · {h.count} transaction{h.count === 1 ? "" : "s"}
+                  → {categoryLabelById(categories, h.categoryId)} · {h.count} transaction{h.count === 1 ? "" : "s"}
                 </div>
               </div>
               {!ruled && (
                 <>
-                  <Button size="sm" variant="ghost" title="Pin this reading as a rule — it stops moving with the ledger" onClick={() => void run(pinRule(h.payee, h.categoryId), `“${h.payee}” pinned to ${categoryLabel(categories, h.categoryId)}`)}>
+                  <Button size="sm" variant="ghost" title="Pin this reading as a rule — it stops moving with the ledger" onClick={() => void run(pinRule(h.payee, h.categoryId), `“${h.payee}” pinned to ${categoryLabelById(categories, h.categoryId)}`)}>
                     <Pin /> Pin
                   </Button>
                   <Button size="sm" variant="ghost" className="text-amber-600" title="Never auto-categorize this payee" onClick={() => void run(neverRule(h.payee), `“${h.payee}” is never auto-categorized`)}>
@@ -194,6 +200,7 @@ export function RulesPanel() {
       {history.length === 0 && <p className="text-muted-foreground text-sm">Nothing to read yet — categorize a few transactions and this fills itself in.</p>}
 
       <RuleEditorDialog open={addOpen} onOpenChange={setAddOpen} initialNever={addNever} initialMatch={search.trim()} />
+      <ApplyRuleDialog rule={historyRule} onOpenChange={(o) => !o && setHistoryRule(undefined)} />
       <RuleEditorDialog open={!!editing} onOpenChange={(o) => !o && setEditing(undefined)} rule={editing} />
     </div>
   );

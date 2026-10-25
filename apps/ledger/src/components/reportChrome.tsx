@@ -64,6 +64,12 @@ export function categoryLabel(c: { group?: string; title: string }): string {
   return c.group ? `${c.group} · ${c.title}` : c.title;
 }
 
+/** A Category by id as it reads on one line; "Unknown category" when it is gone. */
+export function categoryLabelById(categories: { id: string; group?: string; title: string }[], id: string): string {
+  const c = categories.find((x) => x.id === id);
+  return c ? categoryLabel(c) : "Unknown category";
+}
+
 export function ChartCard({ title, hint, right, children }: { title: string; hint?: string; right?: ReactNode; children: ReactNode }) {
   return (
     <Card>
