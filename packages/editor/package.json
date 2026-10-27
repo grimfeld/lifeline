@@ -21,9 +21,10 @@
     "@lifeline/core": "workspace:*",
     "@lifeline/ui": "workspace:*",
     "lucide-react": "catalog:",
-    "react-router": "catalog:",
     "react-markdown": "^10.1.0",
-    "remark-gfm": "catalog:"
+    "react-router": "catalog:",
+    "remark-gfm": "catalog:",
+    "turndown": "^7.2.0"
   },
   "peerDependencies": {
     "react": "catalog:",
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/turndown": "^5.0.5",
     "react": "catalog:",
     "react-dom": "catalog:",
     "typescript": "catalog:",

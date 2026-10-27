@@ -6,7 +6,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import { completionKeymap } from "@codemirror/autocomplete";
-import { useAttachments, useKeyboardInset, type LinkIndex } from "@lifeline/core";
+import { useAttachments, useKeyboardInset, usePhoneNavHeight, type LinkIndex } from "@lifeline/core";
 import { cn, usePhone } from "@lifeline/ui";
 import {
   attachmentsField,
@@ -33,12 +33,19 @@ import { ACCESSORY_BAR_HEIGHT, EditorAccessoryBar } from "./EditorAccessoryBar";
 import { textChange } from "./textDiff";
 import { provideEditorFinder, SELECTION_EVENT } from "./selection";
 import "./editor.css";
+// PROTOTYPE for #372 — throwaway, never merged: live preview, smart typing, the variant switcher.
+import { livePreview } from "./livePreview.prototype";
+import { smartTyping } from "./smartTyping.prototype";
+import { getVariant, pillEnabled, subscribeVariant, syncVariantFromUrl, variantFacet } from "./variant.prototype";
+import { PILL_ROOM, VariantPill } from "./VariantPill.prototype";
 
 // The body selection reader (selection.ts) reaches editors through this chunk.
 provideEditorFinder((dom) => EditorView.findFromDOM(dom));
 
 /** The caret's scroll margins and the document's tail — both sized from the editor's box. */
 const room = new Compartment();
+/** PROTOTYPE #372: the live-preview reveal variant. */
+const variantRoom = new Compartment();
 
 /** A value pushed in from outside (the stored Document changed): not the user's edit. */
 const external = Annotation.define<boolean>();
@@ -118,6 +125,7 @@ export function MarkdownEditor({
    */
   const boxChangedAt = useRef(-Infinity);
   const attachments = useAttachments();
+  const navHeight = usePhoneNavHeight();
 
   useEffect(() => {
     if (!host.current) return;
@@ -129,6 +137,9 @@ export function MarkdownEditor({
         highlightActiveLine(),
         EditorView.lineWrapping,
         markdown({ base: markdownLanguage }),
+        variantRoom.of(variantFacet.of(getVariant())),
+        livePreview(),
+        smartTyping(),
         syntaxHighlighting(mdHighlight),
         indexField.init(() => index),
         contextField.init(() => context),
@@ -166,6 +177,9 @@ export function MarkdownEditor({
     });
     const view = new EditorView({ state, parent: host.current });
     viewRef.current = view;
+    syncVariantFromUrl();
+    const unsubscribeVariant = subscribeVariant(() => view.dispatch({ effects: variantRoom.reconfigure(variantFacet.of(getVariant())) }));
+    if (view.state.facet(variantFacet) !== getVariant()) view.dispatch({ effects: variantRoom.reconfigure(variantFacet.of(getVariant())) });
     setView(view);
     // The editor loads lazily, so it can come up after the person has opened a popover or
     // dialog (the Journal's Jump to date on a Day just created): taking focus then would
@@ -183,6 +197,7 @@ export function MarkdownEditor({
       setFocused(true);
     }
     return () => {
+      unsubscribeVariant();
       view.destroy();
       viewRef.current = null;
       setView(null);
@@ -276,7 +291,7 @@ export function MarkdownEditor({
   // beyond that, and the tail is the blank space that lets the note's last lines
   // reach the same place instead of sitting under the bar unreachable.
   useEffect(() => {
-    const covered = isMobile && focused ? ACCESSORY_BAR_HEIGHT : 0;
+    const covered = (isMobile && focused ? ACCESSORY_BAR_HEIGHT : 0) + (pillEnabled() ? PILL_ROOM : 0);
     const { top, bottom, tail } = caretRoom(boxHeight, covered);
     // New margins re-lay the caret out, which scrolls: the same settling window
     // the box gets, or the bar appearing on focus would read as the user asking
@@ -294,6 +309,8 @@ export function MarkdownEditor({
     <>
       <div ref={host} className={cn("ll-editor min-h-0 flex-1", className)} />
       {isMobile && focused && view && <EditorAccessoryBar view={view} inset={inset} />}
+      {/* PROTOTYPE #372: above the accessory bar (and the phone nav) when they show. */}
+      <VariantPill bottom={isMobile ? (focused ? inset + ACCESSORY_BAR_HEIGHT : 0) + navHeight + 8 : 16} />
     </>
   );
 }

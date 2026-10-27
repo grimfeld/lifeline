@@ -1155,6 +1155,9 @@ importers:
       remark-gfm:
         specifier: 'catalog:'
         version: 4.0.1
+      turndown:
+        specifier: ^7.2.0
+        version: 7.2.4
     devDependencies:
       '@types/react':
         specifier: 'catalog:'
@@ -1162,6 +1165,9 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
+      '@types/turndown':
+        specifier: ^5.0.5
+        version: 5.0.6
       react:
         specifier: 'catalog:'
         version: 19.3.1
