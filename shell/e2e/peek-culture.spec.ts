@@ -32,6 +32,13 @@ test("Library: a book's Year is edited in its Peek, and its Shelf moves only thr
   const { id, dialog } = await peekNew(page, "book", { engagement: "UNSTARTED", acquisition: "WANTED" });
   await dialog.getByLabel("Year").fill("1969");
   await expect.poll(() => fieldOf(page, id, "year")).toBe(1969);
+  // Its descriptive Fields are plain: series, with a decimal number, and the synopsis.
+  await dialog.getByLabel("Series", { exact: true }).fill("Dune Chronicles");
+  await dialog.getByLabel("Number", { exact: true }).fill("1.5");
+  await dialog.getByLabel("Synopsis").fill("A desert planet.");
+  await expect.poll(() => fieldOf(page, id, "series")).toBe("Dune Chronicles");
+  await expect.poll(() => fieldOf(page, id, "seriesNumber")).toBe(1.5);
+  await expect.poll(() => fieldOf(page, id, "synopsis")).toBe("A desert planet.");
   // The guarded Shelf has no raw control, only the Library's own transitions.
   await expect(dialog.getByRole("combobox", { name: "Shelf" })).toHaveCount(0);
   await dialog.getByRole("button", { name: "Shelf" }).click();

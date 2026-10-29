@@ -32,6 +32,11 @@ function item(p: Partial<Work>): Work {
     caughtUpGroup: 0,
     caughtUpPart: 0,
     partCount: 0,
+    synopsis: "",
+    series: "",
+    seriesNumber: 0,
+    originalTitle: "",
+    originalLanguage: "",
     ...p,
   };
 }

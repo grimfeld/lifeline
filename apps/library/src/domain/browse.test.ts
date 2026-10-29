@@ -32,6 +32,11 @@ function item(p: Partial<Work>): Work {
     caughtUpGroup: 0,
     caughtUpPart: 0,
     partCount: 0,
+    synopsis: "",
+    series: "",
+    seriesNumber: 0,
+    originalTitle: "",
+    originalLanguage: "",
     ...p,
   };
 }
@@ -46,6 +51,11 @@ describe("matchesSearch", () => {
     expect(matchesSearch(m, "HERB")).toBe(false);
     expect(matchesSearch(m, "sam")).toBe(true);
     expect(matchesSearch(m, "zzz")).toBe(false);
+  });
+  it("finds a work by its series", () => {
+    const m = item({ title: "Dune", series: "Dune Chronicles" });
+    expect(matchesSearch(m, "chronicles")).toBe(true);
+    expect(matchesSearch(item({ title: "Dune" }), "chronicles")).toBe(false);
   });
   it("matches tags, with or without a leading #; # restricts to tags", () => {
     const m = item({ title: "Dune", tags: ["garden", "sci-fi"] });

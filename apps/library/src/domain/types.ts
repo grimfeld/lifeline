@@ -47,6 +47,14 @@ export interface Work extends Document {
   caughtUpGroup: number;
   caughtUpPart: number;
   partCount: number;
+  /** Plain, unguarded descriptive fields; lookup fills them only when empty. Series is text, not a Document. */
+  synopsis: string;
+  series: string;
+  /** Decimals allowed (1.5); 0 = none. */
+  seriesNumber: number;
+  originalTitle: string;
+  /** A language name such as "Japanese", not a code. */
+  originalLanguage: string;
 }
 
 export { WORK_TYPE_IDS } from "./workTypes";

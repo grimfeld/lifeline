@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapOlAuthor, mapOlAuthorDoc, mapOlDoc, mapOlWorkEntry, olAuthorId, olAuthorKey, openLibrarySearchUrl } from "./openlibrary";
+import { mapOlAuthor, mapOlAuthorDoc, mapOlDoc, mapOlWorkDetail, mapOlWorkEntry, olAuthorId, olAuthorKey, openLibrarySearchUrl } from "./openlibrary";
 
 describe("open library search url", () => {
   const params = (u: URL) => Object.fromEntries(u.searchParams.entries());
@@ -15,7 +15,9 @@ describe("open library search url", () => {
 
 describe("open library mapping", () => {
   it("maps a work with its authors' keys", () => {
-    expect(mapOlDoc({ key: "/works/OL893415W", title: "Dune", author_name: ["Frank Herbert", "Someone"], author_key: ["OL79034A"], first_publish_year: 1965, number_of_pages_median: 604, cover_i: 12 })).toEqual({
+    const { resolve, ...hit } = mapOlDoc({ key: "/works/OL893415W", title: "Dune", author_name: ["Frank Herbert", "Someone"], author_key: ["OL79034A"], first_publish_year: 1965, number_of_pages_median: 604, cover_i: 12 });
+    expect(resolve).toBeTypeOf("function");
+    expect(hit).toEqual({
       externalKey: "openlibrary:/works/OL893415W",
       title: "Dune",
       authors: [{ name: "Frank Herbert", externalKey: "openlibrary:/authors/OL79034A" }, { name: "Someone" }],
@@ -39,5 +41,13 @@ describe("open library mapping", () => {
   it("maps a works entry, reading the year out of any date form", () => {
     expect(mapOlWorkEntry({ key: "/works/OL1W", title: "Dune", covers: [-1, 5], first_publish_date: "August 1, 1965" })).toEqual({ externalKey: "openlibrary:/works/OL1W", title: "Dune", year: 1965, coverUrl: "https://covers.openlibrary.org/b/id/5-M.jpg" });
     expect(mapOlWorkEntry({ key: "/works/OL2W", title: "X" })).toEqual({ externalKey: "openlibrary:/works/OL2W", title: "X", year: 0, coverUrl: "" });
+  });
+});
+
+describe("open library work detail (lazy on pick)", () => {
+  it("reads the description, plain or as { value }", () => {
+    expect(mapOlWorkDetail({ description: "A desert planet." })).toEqual({ synopsis: "A desert planet." });
+    expect(mapOlWorkDetail({ description: { type: "/type/text", value: "Spice." } })).toEqual({ synopsis: "Spice." });
+    expect(mapOlWorkDetail({})).toEqual({});
   });
 });

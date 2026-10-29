@@ -16,6 +16,22 @@ beforeEach(async () => {
   await documentsTable().clear();
 });
 
+describe("the Work's descriptive fields", () => {
+  it("read as empty / 0 on an old work, and keep what is written", async () => {
+    const id = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "" });
+    const old = await work(id);
+    expect([old.synopsis, old.series, old.seriesNumber, old.originalTitle, old.originalLanguage]).toEqual(["", "", 0, "", ""]);
+    await patchWork(old, { synopsis: "Spice.", series: "Dune", seriesNumber: 1.5, originalTitle: "Duna", originalLanguage: "Polish" });
+    const now = await work(id);
+    expect([now.synopsis, now.series, now.seriesNumber, now.originalTitle, now.originalLanguage]).toEqual(["Spice.", "Dune", 1.5, "Duna", "Polish"]);
+  });
+  it("addWork stores them when given", async () => {
+    const id = await addWork({ medium: "manga", title: "Berserk", acquisition: "OWNED", reason: "", series: "Berserk", seriesNumber: 2, originalLanguage: "Japanese" });
+    const w = await work(id);
+    expect([w.series, w.seriesNumber, w.originalLanguage]).toEqual(["Berserk", 2, "Japanese"]);
+  });
+});
+
 describe("patchWork", () => {
   it("writes only the patched fields, never reverting what changed since the copy was read (CR-51)", async () => {
     const id = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "" });

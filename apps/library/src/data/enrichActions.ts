@@ -6,7 +6,7 @@ import type { WorkHit } from "./openlibrary";
 import { ensureAuthorRefs, patchWork } from "./repo";
 
 /** What a lookup fills when empty: Authors are filled apart (Documents to find-or-create, ADR 0052). */
-const FILLED = ["year", "size", "coverUrl"] as const;
+const FILLED = ["year", "size", "coverUrl", "synopsis", "series", "seriesNumber", "originalTitle", "originalLanguage"] as const;
 const REFRESHED = ["coverUrl", "size", "year"] as const;
 
 /** Lookup-driven writes: find candidates for an item, apply a pick, refresh, enrich all. */
@@ -24,7 +24,7 @@ export async function findCandidates(item: Work, settings: LookupKeys, signal?: 
  */
 export async function applyPick(item: Work, hit: WorkHit): Promise<Patch> {
   const full = await resolveHit(hit);
-  const patch = applyHit(item, full, FILLED);
+  const patch = applyHit(item, { ...full, synopsis: full.synopsis ?? "", series: full.series ?? "", seriesNumber: full.seriesNumber ?? 0, originalTitle: full.originalTitle ?? "", originalLanguage: full.originalLanguage ?? "" }, FILLED);
   if ((item.authors ?? []).length === 0 && full.authors.length > 0) {
     const authors = await ensureAuthorRefs(full.authors);
     if (authors.length) patch.authors = authors;

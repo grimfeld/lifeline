@@ -55,6 +55,11 @@ Books, comics and manga.
   Finishing or dropping a work frees its slot.
 - Each tile has quick toggles: **Read**, **Bought** (Wanted ⇄ Owned) and the heart.
   **Gone (sold / returned / given away)** is in the ⋯ menu.
+- A book, comic or manga also has a **synopsis**, a **series** with its **number** (1.5 is fine),
+  an **original title** and an **original language**. Edit them in its Peek or in
+  **Add book with details** (under *More details*). Lookup fills them only where they are empty,
+  and **Refresh from source** never overwrites them. The gallery search finds a work by its
+  series. Genres stay as tags.
 - **Authors** have their own page, reached from a byline: your works by them, and their
   **Bibliography** from Open Library, where you can tick works and add them to *To read* in one
   go. From an Author's page you can find them on Open Library, edit their name and aliases,
