@@ -55,6 +55,10 @@ Books, comics and manga.
   Finishing or dropping a work frees its slot.
 - Each tile has quick toggles: **Read**, **Bought** (Wanted ⇄ Owned) and the heart.
   **Gone (sold / returned / given away)** is in the ⋯ menu.
+- **Search by ISBN**: type or paste an ISBN (10 or 13 digits, hyphens and spaces allowed) into the Add dialog's
+  search or **Find metadata**, and the book, comic or manga it belongs to is found, from Open Library, then Google
+  Books. It finds the work, not the edition, and the ISBN is not kept. A number with a bad check digit is searched
+  as ordinary text.
 - **Authors** have their own page, reached from a byline: your works by them, and their
   **Bibliography** from Open Library, where you can tick works and add them to *To read* in one
   go. From an Author's page you can find them on Open Library, edit their name and aliases,
