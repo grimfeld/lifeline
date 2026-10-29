@@ -15,6 +15,12 @@ export interface WorkHit {
   year: number;
   size: number;
   coverUrl: string;
+  /** Where the provider offers them; applied only to empty fields. */
+  synopsis?: string;
+  series?: string;
+  seriesNumber?: number;
+  originalTitle?: string;
+  originalLanguage?: string;
   /**
    * Lazy "on pick" enrichment for providers whose search results lack a field
    * (TMDB director/runtime, RAWG developers): one more request, merged into
@@ -72,7 +78,23 @@ export function mapOlDoc(d: OLDoc): WorkHit {
     year: d.first_publish_year ?? 0,
     size: d.number_of_pages_median ?? 0,
     coverUrl: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : "",
+    // A search result lacks the description: fetched lazily when the hit is picked.
+    resolve: async (signal) => {
+      const res = await fetch(`https://openlibrary.org${d.key}.json`, { signal });
+      if (!res.ok) return {};
+      return mapOlWorkDetail((await res.json()) as OLWorkDetail);
+    },
   };
+}
+
+interface OLWorkDetail {
+  description?: string | { type?: string; value?: string };
+}
+
+/** What an Open Library work record adds to a hit: its description (a string, or { value }). */
+export function mapOlWorkDetail(d: OLWorkDetail): Partial<WorkHit> {
+  const text = typeof d.description === "string" ? d.description : (d.description?.value ?? "");
+  return text.trim() ? { synopsis: text.trim() } : {};
 }
 
 /** The search URL for a query: `q` for free text, `title`/`author` apart otherwise; an author key beats a name. */

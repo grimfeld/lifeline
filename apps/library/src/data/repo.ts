@@ -30,6 +30,11 @@ export function normalize(m: Work): Work {
     caughtUpGroup: m.caughtUpGroup || 0,
     caughtUpPart: m.caughtUpPart || 0,
     partCount: m.partCount || 0,
+    synopsis: m.synopsis ?? "",
+    series: m.series ?? "",
+    seriesNumber: m.seriesNumber || 0,
+    originalTitle: m.originalTitle ?? "",
+    originalLanguage: m.originalLanguage ?? "",
     tags: m.tags ?? [],
   };
 }
@@ -61,6 +66,11 @@ export async function addWork(input: {
   acquisition: Acquisition;
   reason: string;
   tags?: string[];
+  synopsis?: string;
+  series?: string;
+  seriesNumber?: number;
+  originalTitle?: string;
+  originalLanguage?: string;
 }): Promise<string> {
   const today = todayStr();
   const row = await putDocument<Work>({
@@ -86,6 +96,11 @@ export async function addWork(input: {
     caughtUpGroup: 0,
     caughtUpPart: 0,
     partCount: 0,
+    synopsis: input.synopsis?.trim() ?? "",
+    series: input.series?.trim() ?? "",
+    seriesNumber: input.seriesNumber || 0,
+    originalTitle: input.originalTitle?.trim() ?? "",
+    originalLanguage: input.originalLanguage?.trim() ?? "",
     tags: normalizeTags(input.tags),
   });
   return row.id;

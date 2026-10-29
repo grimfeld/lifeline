@@ -40,6 +40,17 @@ export function WorkPeek({ doc }: PeekProps) {
         onPatch={(patch) => patchWork(item, patch)}
         sizeUnit={def.sizeUnit}
         marks
+        extra={
+          <>
+            <CommitField label="Synopsis" multiline rows={4} delay={PEEK_WRITE_DELAY} value={item.synopsis} onCommit={(synopsis) => patchWork(item, { synopsis })} />
+            <div className="grid grid-cols-[1fr_6rem] gap-2">
+              <CommitField label="Series" delay={PEEK_WRITE_DELAY} value={item.series} onCommit={(series) => patchWork(item, { series })} />
+              <CommitField label="Number" type="number" delay={PEEK_WRITE_DELAY} value={item.seriesNumber ? String(item.seriesNumber) : ""} onCommit={(s) => patchWork(item, { seriesNumber: Number(s) || 0 })} />
+            </div>
+            <CommitField label="Original title" delay={PEEK_WRITE_DELAY} value={item.originalTitle} onCommit={(originalTitle) => patchWork(item, { originalTitle })} />
+            <CommitField label="Original language" delay={PEEK_WRITE_DELAY} placeholder="Japanese" value={item.originalLanguage} onCommit={(originalLanguage) => patchWork(item, { originalLanguage })} />
+          </>
+        }
         creator={
           <Field label={def.creatorLabel}>
             <AuthorPicker value={item.authors} onChange={(authors) => void patchWork(item, { authors })} online={false} placeholder="Add an author…" />

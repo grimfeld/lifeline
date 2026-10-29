@@ -11,6 +11,7 @@ export interface GbVolume {
     authors?: string[];
     publishedDate?: string;
     pageCount?: number;
+    description?: string;
     imageLinks?: { thumbnail?: string; smallThumbnail?: string };
   };
 }
@@ -25,6 +26,7 @@ export function mapGbVolume(v: GbVolume): WorkHit {
     year: Number((info.publishedDate ?? "").slice(0, 4)) || 0,
     size: info.pageCount ?? 0,
     coverUrl: thumb.replace(/^http:\/\//, "https://"),
+    ...(info.description?.trim() ? { synopsis: info.description.trim() } : {}),
   };
 }
 

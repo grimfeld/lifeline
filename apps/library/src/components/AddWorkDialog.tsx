@@ -56,6 +56,11 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
   const [year, setYear] = useState("");
   const [size, setSize] = useState("");
   const [reason, setReason] = useState("");
+  const [synopsis, setSynopsis] = useState("");
+  const [series, setSeries] = useState("");
+  const [seriesNumber, setSeriesNumber] = useState("");
+  const [originalTitle, setOriginalTitle] = useState("");
+  const [originalLanguage, setOriginalLanguage] = useState("");
   const [acq, setAcq] = useState<Acquisition>("WANTED");
   const [tags, setTags] = useState<string[]>([]);
   const tagSuggestions = useTagVocabulary().map((v) => v.tag);
@@ -78,6 +83,11 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
     setYear("");
     setSize("");
     setReason("");
+    setSynopsis("");
+    setSeries("");
+    setSeriesNumber("");
+    setOriginalTitle("");
+    setOriginalLanguage("");
     setAcq("WANTED");
     setTags([]);
   }, [open, defaultType]);
@@ -164,6 +174,11 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
     setHitAuthors(h.authors);
     setYear(h.year ? String(h.year) : "");
     setSize(h.size ? String(h.size) : "");
+    setSynopsis(h.synopsis ?? "");
+    setSeries(h.series ?? "");
+    setSeriesNumber(h.seriesNumber ? String(h.seriesNumber) : "");
+    setOriginalTitle(h.originalTitle ?? "");
+    setOriginalLanguage(h.originalLanguage ?? "");
   }
 
   const step2 = pick !== null || manual || !search;
@@ -191,6 +206,11 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
         acquisition: acq,
         reason: reason.trim(),
         tags,
+        synopsis,
+        series,
+        seriesNumber: Number(seriesNumber) || 0,
+        originalTitle,
+        originalLanguage,
       });
       toast.success(`${title.trim()} added to ${def.wantLabel}`);
       onOpenChange(false);
@@ -360,6 +380,24 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
                 <summary className="text-muted-foreground cursor-pointer text-xs">
                   More details{acq !== "WANTED" ? ` · ${ACQ_LABEL[acq]}` : ""}
                 </summary>
+                <div className="grid gap-2 pt-2">
+                  <Label htmlFor="media-synopsis">Synopsis</Label>
+                  <Textarea id="media-synopsis" value={synopsis} rows={3} onChange={(e) => setSynopsis(e.target.value)} />
+                  <div className="grid grid-cols-[1fr_6rem] gap-2">
+                    <div className="grid min-w-0 gap-2">
+                      <Label htmlFor="media-series">Series</Label>
+                      <Input id="media-series" value={series} onChange={(e) => setSeries(e.target.value)} />
+                    </div>
+                    <div className="grid min-w-0 gap-2">
+                      <Label htmlFor="media-series-number" className="truncate">Number</Label>
+                      <Input id="media-series-number" type="number" step="any" min="0" value={seriesNumber} onChange={(e) => setSeriesNumber(e.target.value)} />
+                    </div>
+                  </div>
+                  <Label htmlFor="media-original-title">Original title</Label>
+                  <Input id="media-original-title" value={originalTitle} onChange={(e) => setOriginalTitle(e.target.value)} />
+                  <Label htmlFor="media-original-language">Original language</Label>
+                  <Input id="media-original-language" value={originalLanguage} placeholder="Japanese" onChange={(e) => setOriginalLanguage(e.target.value)} />
+                </div>
                 <div className="grid gap-2 pt-2">
                   <Label>Owned?</Label>
                   <Select value={acq} onValueChange={(v) => setAcq(v as Acquisition)}>

@@ -381,7 +381,7 @@ One logged incident of an Offence, an internal Document owned by the Swear Jar A
 _Avoid_: entry (a Stat's), Completion (Life Level's), Spend (Pocket's), transaction (a Ledger fact), penalty, coin
 
 ### Media item
-_Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics, manga), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus the `commonplace` App, now **Notes**, which owns Source, Note and Quote. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry a creator (in the Library, **Authors** — Documents of their own since ADR 0052; a string elsewhere), year, size, cover by URL and an optional **Reason** (who sent me here — offered at add, never required). The old "Studied" mark is gone.
+_Retired_ — the one Media App split into four family Apps (ADR 0024): **Library** (books, comics, manga), **Cinema** (movies, series), **Discotheque** (albums), **Arcade** (games), plus the `commonplace` App, now **Notes**, which owns Source, Note and Quote. A work is simply a Document of its type — book, comic, movie, series, music, game — owned by its family App; the type ids never changed. Works are still not editions, and still carry a creator (in the Library, **Authors** — Documents of their own since ADR 0052; a string elsewhere), year, size, cover by URL and an optional **Reason** (who sent me here — offered at add, never required). The old "Studied" mark is gone. A book, comic or manga also carries plain, unguarded descriptive fields: a **synopsis**, its **Series** with a number in it (decimals allowed), an **original title** and an **original language** (a name such as "Japanese"). Lookup fills them only when empty; "Refresh from source" never touches them. Subjects and genres are not fields: they stay Tags.
 _Avoid_: media (as a type id or an App — neither exists), title, copy, edition, studied
 
 ### Author
@@ -391,6 +391,10 @@ _Avoid_: creator (the old field, gone), writer, artist (say Author for both), pe
 ### Bibliography
 What the world says an Author wrote: their works as Open Library lists them, fetched when you open the Author in the Library and never stored. Each row says whether it is already on your shelf and where; the rest can be ticked and added to *To read* in one go, Wanted and with no Reason. Duplicate titles are folded and year-less rows sink, with the noise one toggle away. Offline there is no Bibliography, only the Author's own backlinks. Not a Playlist (nothing is curated), not a View (nothing is a Document until added).
 _Avoid_: works list, catalogue, discography (the Discotheque's word, if it ever has one)
+
+### Series
+The plain text on a Library work naming the series it belongs to, with its **number in the series** (decimals allowed, so 1.5 fits; 0 = none). It is not a Document: no aliases, no merging, no page. Two works are of the same series when their texts match ignoring case and punctuation. The Gallery search finds a work by it.
+_Avoid_: collection, saga, universe
 
 ### Shelf
 Where a work stands with me, in its family's own verbs: **To read / watch / listen / play** (not started), **In progress**, **Done**, **Dropped**. One shelf per work; every family App's Gallery is browsed by shelf. In the Cinema, the Discotheque and the Library, **Done** is one click from any shelf — a film watched, an album heard, a book read — and clicking again undoes it; Marks and the Review survive either way, and in the Library finishing frees the Nightstand Slot, which undoing never takes back (re-slotting is deliberate).
