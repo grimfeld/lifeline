@@ -66,6 +66,14 @@ Commands (Ctrl+K):
 - **Read next part…**: pick a book, comic or manga; its next chapter or issue is read today. Also
   in the Capture sheet.
 - **Add book with details**: the full form.
+- **Move on the shelf**: put a book, comic or manga on *To read*, *In progress*, *Done* (with an
+  optional finished date) or *Dropped*. Done and Dropped free its Nightstand slot. For Claude.
+- **Set acquisition**: *Wanted*, *Owned*, *Borrowed* or *Gone*. For Claude.
+- **Nightstand on or off**: slot a work or free its slot. Refused when the medium's slots are full,
+  naming the works that hold them. For Claude.
+- **Catch up to a part**: mark everything up to a chapter or issue as read, with no days; 0 clears
+  it. For Claude.
+- **Show a work**: its fields, Authors, Shelf, Acquisition, slot and Parts progress. For Claude.
 - **Go to Library**: opens the Library.
 - **Resolve authors…**: matches your Authors to Open Library. A single exact-name match is applied
   for you; you pick the rest.
