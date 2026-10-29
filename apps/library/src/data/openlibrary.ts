@@ -44,13 +44,15 @@ export interface LookupQuery {
   title?: string;
   author?: string;
   authorKey?: string;
+  /** A validated ISBN (see `isbnOf`): finds the work its edition belongs to. Never stored. */
+  isbn?: string;
   page?: number;
   provider?: string;
 }
 
 export const PAGE_SIZE = 20;
 
-export const isEmptyQuery = (q: LookupQuery) => !(q.text?.trim() || q.title?.trim() || q.author?.trim() || q.authorKey);
+export const isEmptyQuery = (q: LookupQuery) => !(q.isbn || q.text?.trim() || q.title?.trim() || q.author?.trim() || q.authorKey);
 
 interface OLDoc {
   key: string;
@@ -111,9 +113,35 @@ export function openLibrarySearchUrl(q: LookupQuery): URL {
   return url;
 }
 
+/** The edition record for an ISBN. */
+export const olIsbnUrl = (isbn: string) => new URL(`https://openlibrary.org/isbn/${isbn}.json`);
+
+/** The work an edition record belongs to ("/works/OL…W"), or "". */
+export const olIsbnWorkKey = (edition: { works?: { key: string }[] }) => edition.works?.[0]?.key ?? "";
+
+/** Search narrowed to one work, so it maps exactly like any other work hit. */
+export function openLibraryWorkUrl(workKey: string): URL {
+  const url = openLibrarySearchUrl({ text: `key:${workKey}` });
+  url.searchParams.set("limit", "1");
+  return url;
+}
+
+/** Open Library ISBN lookup: edition → its work. Empty when Open Library does not know the ISBN. */
+async function searchOpenLibraryIsbn(isbn: string, signal?: AbortSignal): Promise<WorkHit[]> {
+  const res = await fetch(olIsbnUrl(isbn), { signal });
+  if (res.status === 404) return [];
+  if (!res.ok) throw new Error(`Open Library ${res.status}`);
+  const workKey = olIsbnWorkKey((await res.json()) as { works?: { key: string }[] });
+  if (!workKey) return [];
+  const wres = await fetch(openLibraryWorkUrl(workKey), { signal });
+  if (!wres.ok) throw new Error(`Open Library ${wres.status}`);
+  return ((await wres.json()) as { docs: OLDoc[] }).docs.map(mapOlDoc);
+}
+
 /** Open Library work search — the first lookup source for books and comics. */
 export async function searchOpenLibrary(q: LookupQuery, signal?: AbortSignal): Promise<WorkHit[]> {
   if (isEmptyQuery(q)) return [];
+  if (q.isbn) return (q.page ?? 1) > 1 ? [] : searchOpenLibraryIsbn(q.isbn, signal);
   const res = await fetch(openLibrarySearchUrl(q), { signal });
   if (!res.ok) throw new Error(`Open Library ${res.status}`);
   const data = (await res.json()) as { docs: OLDoc[] };
