@@ -13,6 +13,7 @@ import { libraryParts } from "./parts";
 import { matchesSearch } from "./domain/browse";
 import { Cover } from "./components/Cover";
 import type { Work } from "./domain/types";
+import { libraryStateCommands } from "./stateCommands";
 
 /** One-line quick add in a small dialog; closes as soon as something is added. */
 function QuickAddCommandDialog({ open, onOpenChange, initial }: CommandDialogProps) {
@@ -94,6 +95,7 @@ export const libraryCommands: CommandDef[] = [
     },
   },
   { id: "library.add", title: "Add book with details", keywords: ["book", "comic", "manga", "read", "details", "library"], icon: SlidersHorizontal, dialog: AddWorkDialog },
+  ...libraryStateCommands,
   { id: "library.open", title: "Go to Library", keywords: ["library", "books", "comics", "manga", "reading", "nightstand", "shelf"], icon: LibraryIcon, run: ({ navigate }) => navigate(APP_HREF) },
   { id: "library.resolve-authors", title: "Resolve authors…", keywords: ["library", "author", "authors", "open library", "resolve", "bibliography"], icon: UserPen, dialog: ResolveAuthorsDialog },
   { id: "library.lookup-settings", title: "Library lookup settings…", keywords: ["library", "lookup", "metadata", "api", "key", "comicvine", "google books", "enrich", "covers"], icon: Settings2, dialog: LookupSettingsDialog },
