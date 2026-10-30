@@ -79,6 +79,9 @@ Commands (Ctrl+K):
 - **Read next part…**: pick a book, comic or manga; its next chapter or issue is read today. Also
   in the Capture sheet.
 - **Add book with details**: the full form.
+- **Look up a book…**: ask the lookup (an ISBN or free text, optionally a title and author) what books, comics
+  or manga it finds, without adding anything. Candidates already on your shelf come back marked with
+  their Shelf. For Claude.
 - **Move on the shelf**: put a book, comic or manga on *To read*, *In progress*, *Done* (with an
   optional finished date) or *Dropped*. Done and Dropped free its Nightstand slot. For Claude.
 - **Set acquisition**: *Wanted*, *Owned*, *Borrowed* or *Gone*. For Claude.
