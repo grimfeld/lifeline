@@ -331,6 +331,12 @@ async function seedFromMediaSettings(): Promise<void> {
   await putDocument<LookupSettings>({ ...EMPTY_SETTINGS, id: newId(), comicvineKey: legacy.comicvineKey ?? "", googleBooksKey: legacy.googleBooksKey ?? "" });
 }
 
+/** The lookup settings (empty keys until saved), for callers outside React. */
+export async function lookupSettings(): Promise<LookupSettings> {
+  await seedFromMediaSettings();
+  return normalizeSettings(await settingsRow());
+}
+
 /** The lookup settings record (empty keys until saved). */
 export function useLookupSettings(): LookupSettings {
   const row = useLiveQuery(async () => {
