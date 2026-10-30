@@ -1,18 +1,17 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { Button, Card, CardContent, cn, Input, PhoneDock, PhoneFilters, usePhone, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
 import { ShelfControl } from "@lifeline/parts";
 import { Heart, Plus, SlidersHorizontal, Sparkles } from "lucide-react";
-import type { Work } from "../domain/types";
 import { useWorks } from "../data/repo";
 import { GALLERY_SORTS, isLiked, matchesSearch, onShelf, SHELVES, shelfLabel, sortGallery, type GallerySort, type Shelf } from "../domain/browse";
 import { PlaylistsTab } from "../components/PlaylistsTab";
 import { usePlaylists } from "../data/repo";
 import { AddWorkDialog } from "../components/AddWorkDialog";
 import { WorkTile } from "../components/WorkTile";
-import { WorkDetailDialog } from "../components/WorkDetailDialog";
-import { EditWorkDialog } from "../components/WorkRow";
 import { QuickAdd } from "../components/QuickAdd";
 import { EnrichDialog } from "../components/EnrichDialog";
+import { workHref } from "../constants";
 
 /** The ♥ chip (ADR 0035): only what I liked. */
 function LikedChip({ value, onChange, count }: { value: boolean; onChange: (v: boolean) => void; count: number }) {
@@ -51,8 +50,7 @@ export function DiscothequeScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const phone = usePhone();
   const [lookupOpen, setLookupOpen] = useState(false);
-  const [editing, setEditing] = useState<Work | null>(null);
-  const [viewingId, setViewingId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [shelf, setShelf] = useState<Shelf>("ALL");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<GallerySort>("ADDED");
@@ -65,8 +63,6 @@ export function DiscothequeScreen() {
     () => sortGallery(items.filter((m) => onShelf(m, shelf) && (!likedOnly || isLiked(m)) && matchesSearch(m, q)), sort),
     [items, shelf, likedOnly, q, sort],
   );
-  // Resolve by id so the dialog re-renders with the live record after each transition.
-  const viewing = viewingId ? (items.find((m) => m.id === viewingId) ?? null) : null;
 
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-5 p-6">
@@ -134,20 +130,18 @@ export function DiscothequeScreen() {
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-3 gap-y-4">
               {gallery.map((m) => (
-                <WorkTile key={m.id} item={m} onOpen={(it) => setViewingId(it.id)} onEdit={setEditing} />
+                <WorkTile key={m.id} item={m} onOpen={(it) => navigate(workHref(it.id))} />
               ))}
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="playlists" className="pt-2">
-          <PlaylistsTab items={items} onOpenWork={(w) => setViewingId(w.id)} />
+          <PlaylistsTab items={items} onOpenWork={(w) => navigate(workHref(w.id))} />
         </TabsContent>
       </Tabs>
 
-      <WorkDetailDialog item={viewing} onClose={() => setViewingId(null)} onEdit={setEditing} />
       <AddWorkDialog open={addOpen} onOpenChange={setAddOpen} />
-      <EditWorkDialog item={editing} onClose={() => setEditing(null)} />
       <EnrichDialog open={lookupOpen} onOpenChange={setLookupOpen} />
     </div>
   );
