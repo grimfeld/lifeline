@@ -798,6 +798,7 @@ const SCREENS: ScreenCase[] = [
   },
   { name: "Cinema", path: "/app/cinema", afterOpen: openShelf },
   // No TMDB key in the seed: the list holds the "Add …" row alone.
+  { name: "Cinema · Work", path: "/app/cinema/works/:id", type: "movie" },
   { name: "Cinema · Quick add", path: "/app/cinema", afterOpen: openQuickAdd },
   { name: "Discotheque", path: "/app/discotheque", afterOpen: openShelf },
   {
