@@ -20,7 +20,7 @@ const answer = (route: (url: string) => Response) => {
   fetchMock = vi.fn(async (u: URL | string) => route(String(u)));
   vi.stubGlobal("fetch", fetchMock);
 };
-const run = async (args: Record<string, unknown>) => JSON.parse((await invokeCommand(libraryLookupCommand, args)).message) as { candidates: Record<string, any>[] };
+const run = async (args: Record<string, unknown>) => JSON.parse((await invokeCommand(libraryLookupCommand, args)).message) as { candidates: Record<string, unknown>[] };
 
 beforeEach(async () => {
   await documentsTable().clear();
