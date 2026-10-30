@@ -397,7 +397,7 @@ The plain text on a Library work naming the series it belongs to, with its **num
 _Avoid_: collection, saga, universe
 
 ### Work page
-A Library or Arcade work's own page (a book, comic or manga; a game): its cover and byline, where it stands, every plain Field edited in place as its Peek edits them, its Parts, Marks and Review, its history (added, acquired, slotted, started, finished), the other works of its **Series** on the shelf in series order, and what mentions it. Guarded Fields move only through the Library's transitions. It replaces the detail and edit dialogs (ADR 0110); a Gallery tile opens it, and a link or chip elsewhere still opens the Peek, which leads to it. Its frame is the Parts kit's, for the other family Apps to adopt.
+A Library, Cinema, Discotheque or Arcade work's own page (a book, comic or manga; a film or series; an album; a game): its cover and byline, where it stands, every plain Field edited in place as its Peek edits them, its Parts, Marks and Review, its history (added, acquired, slotted, started, finished), the other works of its **Series** on the shelf in series order, and what mentions it. Guarded Fields move only through the Library's transitions. It replaces the detail and edit dialogs (ADR 0110); a Gallery tile opens it, and a link or chip elsewhere still opens the Peek, which leads to it. Its frame is the Parts kit's, which the four family Apps all draw from.
 _Avoid_: detail, detail dialog, edit dialog, work view
 
 ### Shelf

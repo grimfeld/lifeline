@@ -19,6 +19,7 @@ import { playlistTypeDef, settingsTypeDef, workTypeDefs } from "./types";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
 const CinemaScreen = lazyChunk(() => import("./screens/CinemaScreen").then((m) => ({ default: m.CinemaScreen })));
+const WorkScreen = lazyChunk(() => import("./screens/WorkScreen").then((m) => ({ default: m.WorkScreen })));
 
 /** Cinema App (ADR 0024): movies and series — streamed, never owned. */
 export const cinemaApp: AppManifest = {
@@ -28,7 +29,10 @@ export const cinemaApp: AppManifest = {
   icon: Clapperboard,
   color: "var(--chart-red)",
   types: [...workTypeDefs, ...cinemaParts.typeDefs, playlistTypeDef, settingsTypeDef],
-  screens: [{ id: "cinema.main", title: "Cinema", path: "cinema", icon: Clapperboard, component: CinemaScreen }],
+  screens: [{ id: "cinema.main", title: "Cinema", path: "cinema", icon: Clapperboard, component: CinemaScreen },
+    // The Work page: routed, never listed — reached from a Gallery tile, a Playlist or the work's Peek.
+    { id: "cinema.work", title: "Work", path: "cinema/works/:id", component: WorkScreen, hidden: true },
+  ],
   cards: [
     {
       id: "cinema.in-progress",

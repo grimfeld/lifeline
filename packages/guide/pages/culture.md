@@ -29,7 +29,7 @@ Library, Cinema, Discotheque and Arcade work the same way. A book, film, album o
   cover and details too. The toast lets you **Undo**. A work you already have is not added twice,
   and the toast offers to **Open** it.
 - **Add with details…** opens the full form.
-- Tap a cover to open the work's detail (in the Library, Discotheque and Arcade, its own page). There you can start it,
+- Tap a cover to open the work's detail (in the Library, Cinema, Discotheque and Arcade, its own page). There you can start it,
   finish it, drop it, edit it, find metadata, refresh it from its source, or delete it. In the
   Library, Cinema and Discotheque you also write your **Review** there. The **⋯** menu on the tile
   offers the same moves.
@@ -125,6 +125,14 @@ Cards you can place:
 
 Movies and series, streamed rather than owned.
 
+- **Every film and series has its own page**: tap its poster in the Gallery, or a work in a
+  Playlist. It shows the poster and director, where it stands, and every field, edited in place:
+  title, director, year, minutes, the heart and stars, reason, cover and tags. **Shelf** moves it
+  (start, finish, drop, delete, add to a playlist) and **Find metadata** / **Refresh from source**
+  look it up. Below are its Seasons and Episodes, your **Review**, when you added, started and
+  finished it, the Playlists it is in, and the notes and quotes that mention it (tap one to peek
+  it). Shelf and the dates change only through the Shelf button. A film opened from anywhere else
+  (a Card, a link) opens in a Peek; its **Open** button leads to the page.
 - **Playlists** tab: your own ordered lists ("Films for a rainy Sunday"), with an optional blurb
   and an option to show them ranked. Add a work from its ⋯ menu. A Gallery filter shows only the
   works you've Liked.
