@@ -30,11 +30,11 @@ export function LookupActions({ item }: { item: Work }) {
 
   return (
     <div className="flex flex-wrap gap-1">
-      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setFinding(true)}>
+      <Button size="sm" variant="ghost" onClick={() => setFinding(true)}>
         <Search className="size-3" /> Find metadata
       </Button>
       {item.externalKey && (
-        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={refreshing} onClick={() => void refresh()}>
+        <Button size="sm" variant="ghost" disabled={refreshing} onClick={() => void refresh()}>
           <RefreshCw className={cn("size-3", refreshing && "animate-spin")} /> Refresh from source
         </Button>
       )}

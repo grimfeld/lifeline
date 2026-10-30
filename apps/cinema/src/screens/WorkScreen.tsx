@@ -30,7 +30,7 @@ function Playlists({ item }: { item: Work }) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
       {inLists.length > 0 && <span className="text-muted-foreground min-w-0 break-words">In {inLists.map((p) => p.title).join(", ")}</span>}
-      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setOpen(true)}>
+      <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>
         <ListPlus className="size-3" /> Add to playlist…
       </Button>
       <AddToPlaylistDialog item={item} open={open} onOpenChange={setOpen} />
