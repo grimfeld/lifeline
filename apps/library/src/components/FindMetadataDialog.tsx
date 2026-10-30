@@ -7,6 +7,7 @@ import { describeLookup } from "../data/lookup";
 import { applyPick, findCandidates } from "../data/enrichActions";
 import { useLookupSettings } from "../data/repo";
 import { Cover } from "./Cover";
+import { BarcodeScan } from "./BarcodeScan";
 
 /** One candidate row: cover, title, creator · year · size. */
 export function HitRow({ hit, type, onPick, disabled }: { hit: WorkHit; type: Work["type"]; onPick: () => void; disabled?: boolean }) {
@@ -31,19 +32,21 @@ export function FindMetadataDialog({ item, onClose }: { item: Work | null; onClo
   const [hits, setHits] = useState<WorkHit[] | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  /** A scanned ISBN searches by it instead of the title. */
+  const [isbn, setIsbn] = useState("");
 
   useEffect(() => {
     if (!item) return;
     setHits(null);
     setError("");
     const ctl = new AbortController();
-    findCandidates(item, settings, ctl.signal)
+    findCandidates(item, settings, ctl.signal, isbn || undefined)
       .then(setHits)
       .catch((e: Error) => {
         if (e.name !== "AbortError") setError(e.message || "Lookup failed");
       });
     return () => ctl.abort();
-  }, [item, settings]);
+  }, [item, settings, isbn]);
 
   if (!item) return null;
 
@@ -69,8 +72,9 @@ export function FindMetadataDialog({ item, onClose }: { item: Work | null; onClo
           <DialogTitle>Find metadata</DialogTitle>
         </DialogHeader>
         <p className="text-muted-foreground text-xs">
-          {item.title} · {describeLookup(item.type, settings)}
+          {isbn ? `ISBN ${isbn}` : item.title} · {describeLookup(item.type, settings)}
         </p>
+        <BarcodeScan onIsbn={setIsbn} />
         {error && <p className="text-destructive text-sm">{error}</p>}
         {!error && hits === null && <p className="text-muted-foreground text-sm">Searching…</p>}
         {hits && hits.length === 0 && <p className="text-muted-foreground text-sm">No candidates found.</p>}
