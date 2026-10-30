@@ -2,7 +2,7 @@ import type { DocumentTypeDef, FieldDef } from "@lifeline/core";
 import { ListMusic, Music } from "lucide-react";
 import { ENGAGEMENT, PLAYLIST, type Work } from "./domain/types";
 import { WORK_TYPES } from "./domain/workTypes";
-import { APP_HREF } from "./constants";
+import { APP_HREF, workHref } from "./constants";
 import { PlaylistPeek, WorkPeek } from "./components/DiscothequePeeks";
 import { cascadeWorkDelete } from "./data/repo";
 import { discothequeParts } from "./parts";
@@ -42,7 +42,8 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t) => ({
   titleRule: "name",
   body: "optional",
   linkable: { subtitle: (d) => { const m = d as Work; return `${t.label}${m.creator ? " · " + m.creator : ""}`; } },
-  href: () => APP_HREF,
+  // Opens on its own page (the Work page); its Peek's "Open" leads there.
+  href: (d) => workHref(d.id),
   indexes: ["externalKey"],
   order: 44,
   builtIn: true,

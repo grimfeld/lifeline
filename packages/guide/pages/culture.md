@@ -29,14 +29,14 @@ Library, Cinema, Discotheque and Arcade work the same way. A book, film, album o
   cover and details too. The toast lets you **Undo**. A work you already have is not added twice,
   and the toast offers to **Open** it.
 - **Add with details…** opens the full form.
-- Tap a cover to open the work's detail (in the Library, its own page). There you can start it,
+- Tap a cover to open the work's detail (in the Library and Discotheque, its own page). There you can start it,
   finish it, drop it, edit it, find metadata, refresh it from its source, or delete it. In the
   Library, Cinema and Discotheque you also write your **Review** there. The **⋯** menu on the tile
   offers the same moves.
 - **Marks** (Library, Cinema, Discotheque): a heart for **Liked**, and one to five stars. Neither
   moves the shelf.
 - **Parts**: track the chapters, issues, episodes or tracks of a work (not films or games) in the
-  detail (a book's page).
+  detail (a book's or album's page).
   - Tap a number to mark it read (watched, heard), or switch to **Tap opens** to give a Part its
     own title, Marks and Review.
   - **Caught up to…** marks everything up to a number as done before Lifeline: no days, nothing
@@ -150,6 +150,14 @@ Cards you can place:
 Albums, streamed rather than owned. Lookup comes from MusicBrainz and needs no key.
 
 - **Playlists** tab: works as in the Cinema, for albums.
+- **Every album has its own page**: tap its cover in the Gallery, or an album in a Playlist. It
+  shows the cover and artist, where it stands, and every field, edited in place: title, artist,
+  year, tracks, the heart and stars, reason, cover and tags. **Shelf** moves it (start, mark
+  listened, drop, add to a playlist, delete), and **Find metadata** / **Refresh from source** look
+  it up on MusicBrainz. Below are its Tracks and Discs, the Playlists it sits in, your **Review**,
+  when you added, started and finished it, and the notes and quotes that mention it (tap one to
+  peek it). The Shelf changes only through its menu. An album opened from anywhere else (a Card, a
+  link) opens in a Peek; its **Open** button leads to the page.
 
 Commands (Ctrl+K):
 

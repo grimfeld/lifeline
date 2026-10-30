@@ -800,6 +800,7 @@ const SCREENS: ScreenCase[] = [
   // No TMDB key in the seed: the list holds the "Add …" row alone.
   { name: "Cinema · Quick add", path: "/app/cinema", afterOpen: openQuickAdd },
   { name: "Discotheque", path: "/app/discotheque", afterOpen: openShelf },
+  { name: "Discotheque · Work", path: "/app/discotheque/works/:id", type: "music" },
   {
     // A stubbed MusicBrainz hit under the "Add …" row.
     name: "Discotheque · Quick add",
