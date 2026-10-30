@@ -1,5 +1,5 @@
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Tip, toast } from "@lifeline/ui";
-import { BookOpenCheck, Check, MoreHorizontal, Pencil, Play, ShoppingCart, Trash2, X } from "lucide-react";
+import { BookOpenCheck, Check, MoreHorizontal, Play, ShoppingCart, Trash2, X } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
 import { abandon, acquire, finish, release, start, type Patch } from "../domain/rules";
@@ -14,10 +14,10 @@ export function actOn(item: Work) {
 }
 
 /**
- * The full transition set for one item, as a dropdown. Shared by the detail
- * dialog and the cards so both offer exactly the same actions.
+ * The full transition set for one item, as a dropdown. Shared by the page
+ * and the Peek so both offer exactly the same actions.
  */
-export function WorkActionsMenu({ item, onEdit, onDeleted, trigger }: { item: Work; /** Absent where the work is already being edited (its Peek). */ onEdit?: (m: Work) => void; onDeleted?: () => void; trigger?: React.ReactNode }) {
+export function WorkActionsMenu({ item, onDeleted, trigger }: { item: Work; onDeleted?: () => void; trigger?: React.ReactNode }) {
   const def = workType(item.type);
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
@@ -66,11 +66,6 @@ export function WorkActionsMenu({ item, onEdit, onDeleted, trigger }: { item: Wo
         {item.acquisition !== "GONE" && (
           <DropdownMenuItem onClick={act("Gone", release())}>
             <X /> Gone (sold / returned / given away)
-          </DropdownMenuItem>
-        )}
-        {onEdit && (
-          <DropdownMenuItem onClick={() => onEdit(item)}>
-            <Pencil /> Edit
           </DropdownMenuItem>
         )}
         <DropdownMenuItem

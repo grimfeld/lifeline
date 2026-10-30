@@ -24,4 +24,4 @@ So **every work of the Library has a page**, a hidden route beside the Author's 
 
 - `/app/library/works/:id` is a hidden screen with a `SCREENS` row; the Guide places it on the Culture page through its Module.
 - `EditWorkDialog`, `WorkDetailDialog` and the actions menu's "Edit" are removed from the Library. The Library's Cards peek a work instead of opening the edit dialog.
-- Cinema, Discotheque and Arcade keep their dialogs until they adopt `WorkPage` (#383–#385).
+- Cinema and Discotheque keep their dialogs until they adopt `WorkPage` (#383, #384). The Arcade has adopted it (#385): its page (`/app/arcade/works/:id`) shows no Parts, Marks or Review, because games keep none, so `WorkPage` takes `review={false}`.

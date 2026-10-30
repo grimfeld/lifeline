@@ -29,7 +29,7 @@ Library, Cinema, Discotheque and Arcade work the same way. A book, film, album o
   cover and details too. The toast lets you **Undo**. A work you already have is not added twice,
   and the toast offers to **Open** it.
 - **Add with details…** opens the full form.
-- Tap a cover to open the work's detail (in the Library, its own page). There you can start it,
+- Tap a cover to open the work's detail (in the Library and Arcade, its own page). There you can start it,
   finish it, drop it, edit it, find metadata, refresh it from its source, or delete it. In the
   Library, Cinema and Discotheque you also write your **Review** there. The **⋯** menu on the tile
   offers the same moves.
@@ -176,6 +176,13 @@ Cards you can place:
 Games: bought, played, finished. There is no Nightstand, no Parts and no Marks.
 
 - A game can be Wanted or Owned. Use **Got it (owned)** or **Gone** in its ⋯ menu.
+- **Every game has its own page**: tap its cover in the Gallery. It shows the cover and developer,
+  where it stands, and every field, edited in place: title, developer, year, hours, reason, cover
+  and tags. **Shelf** moves it (start, finish, drop, delete), **Owned** sets *Wanted*, *Owned*,
+  *Borrowed* or *Gone*, and **Find metadata** / **Refresh from source** look it up. Below are when
+  you added, acquired, started and finished it, and the notes and quotes that mention it (tap one
+  to peek it). Shelf and Owned change only through those buttons. A game opened from anywhere else
+  (a Card, a link) opens in a Peek; its **Open** button leads to the page.
 
 Commands (Ctrl+K):
 

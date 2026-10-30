@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { onShelf, shelfLabel } from "./browse";
 import { parseQuickTitle } from "../data/repo";
 import type { Work } from "./types";
-import { abandon, finish, shelfOfShame, wantedList, start } from "./rules";
+import { abandon, acquire, finish, shelfOfShame, unacquire, wantedList, start } from "./rules";
 
 function item(p: Partial<Work>): Work {
   return {
@@ -17,6 +17,11 @@ describe("transitions", () => {
     expect(start("2026-08-16")).toEqual({ engagement: "IN_PROGRESS", startedOn: "2026-08-16" });
     expect(finish("2026-08-16")).toEqual({ engagement: "DONE", finishedOn: "2026-08-16" });
     expect(abandon()).toEqual({ engagement: "ABANDONED" });
+  });
+
+  it("unacquire puts a game back to Wanted and clears the acquired day", () => {
+    expect(acquire("OWNED", "2026-08-16")).toEqual({ acquisition: "OWNED", acquiredOn: "2026-08-16" });
+    expect(unacquire()).toEqual({ acquisition: "WANTED", acquiredOn: "" });
   });
 });
 
