@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogFooter,
   DialogHeader,
+  DatePicker,
   DialogTitle,
   Input,
   Label,
@@ -20,14 +21,14 @@ import {
 import { normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { X } from "lucide-react";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
-import { ACQUISITION, type Acquisition } from "../domain/types";
+import { ACQ_LABEL, ACQUISITION, ENGAGEMENT, type Acquisition, type Engagement } from "../domain/types";
 import { addWork, ensureAuthorRefs, findByExternalKey, useAuthorIndex, useWorks, useLookupSettings } from "../data/repo";
 import { hitByline, PAGE_SIZE, type AuthorRef, type LookupQuery, type WorkHit } from "../data/openlibrary";
 import { describeLookup, lookupFor, providerOf, resolveHit } from "../data/lookup";
 import { Cover } from "./Cover";
 import { AuthorPicker } from "./AuthorPicker";
+import { BarcodeScan } from "./BarcodeScan";
 
-const ACQ_LABEL: Record<Acquisition, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 
 /**
  * Two steps: find (lookup for books/comics, otherwise manual), then the
@@ -56,7 +57,14 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
   const [year, setYear] = useState("");
   const [size, setSize] = useState("");
   const [reason, setReason] = useState("");
+  const [synopsis, setSynopsis] = useState("");
+  const [series, setSeries] = useState("");
+  const [seriesNumber, setSeriesNumber] = useState("");
+  const [originalTitle, setOriginalTitle] = useState("");
+  const [originalLanguage, setOriginalLanguage] = useState("");
   const [acq, setAcq] = useState<Acquisition>("WANTED");
+  const [shelf, setShelf] = useState<Engagement>("UNSTARTED");
+  const [finishedOn, setFinishedOn] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const tagSuggestions = useTagVocabulary().map((v) => v.tag);
   const settings = useLookupSettings();
@@ -78,7 +86,14 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
     setYear("");
     setSize("");
     setReason("");
+    setSynopsis("");
+    setSeries("");
+    setSeriesNumber("");
+    setOriginalTitle("");
+    setOriginalLanguage("");
     setAcq("WANTED");
+    setShelf("UNSTARTED");
+    setFinishedOn("");
     setTags([]);
   }, [open, defaultType]);
 
@@ -164,6 +179,11 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
     setHitAuthors(h.authors);
     setYear(h.year ? String(h.year) : "");
     setSize(h.size ? String(h.size) : "");
+    setSynopsis(h.synopsis ?? "");
+    setSeries(h.series ?? "");
+    setSeriesNumber(h.seriesNumber ? String(h.seriesNumber) : "");
+    setOriginalTitle(h.originalTitle ?? "");
+    setOriginalLanguage(h.originalLanguage ?? "");
   }
 
   const step2 = pick !== null || manual || !search;
@@ -189,10 +209,17 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
         year: Number(year) || 0,
         size: Number(size) || 0,
         acquisition: acq,
+        engagement: shelf,
+        finishedOn: shelf === "DONE" ? finishedOn : "",
         reason: reason.trim(),
         tags,
+        synopsis,
+        series,
+        seriesNumber: Number(seriesNumber) || 0,
+        originalTitle,
+        originalLanguage,
       });
-      toast.success(`${title.trim()} added to ${def.wantLabel}`);
+      toast.success(`${title.trim()} added to ${shelf === "UNSTARTED" ? def.wantLabel : def.engagement[shelf]}`);
       onOpenChange(false);
     } catch (e) {
       toast.error((e as Error).message || "Could not add it");
@@ -259,11 +286,18 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
 
           {!step2 && (
             <div className="grid gap-2">
-              <p className="text-muted-foreground text-xs">Search {describeLookup(type, settings)} — title, author, or both.</p>
+              <p className="text-muted-foreground text-xs">Search {describeLookup(type, settings)} — title, author, or both, or an ISBN.</p>
               <div className="grid gap-2">
                 <Label htmlFor="media-title-search">Title</Label>
                 <Input id="media-title-search" value={title} autoFocus placeholder="Title (3+ letters)" onChange={(e) => setTitle(e.target.value)} />
               </div>
+              <BarcodeScan
+                onIsbn={(isbn) => {
+                  setTitle(isbn);
+                  setAuthorIds([]);
+                  setAuthorText("");
+                }}
+              />
               <div className="grid gap-2">
                 <Label htmlFor="media-author-search">{def.creatorLabel}</Label>
                 <AuthorPicker id="media-author-search" value={authorIds} onChange={setAuthorIds} text={authorText} onTextChange={setAuthorText} placeholder="Author — yours first, then Open Library" />
@@ -358,8 +392,26 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
               </div>
               <details className="grid gap-2">
                 <summary className="text-muted-foreground cursor-pointer text-xs">
-                  More details{acq !== "WANTED" ? ` · ${ACQ_LABEL[acq]}` : ""}
+                  More details{acq !== "WANTED" ? ` · ${ACQ_LABEL[acq]}` : ""}{shelf !== "UNSTARTED" ? ` · ${def.engagement[shelf]}` : ""}
                 </summary>
+                <div className="grid gap-2 pt-2">
+                  <Label htmlFor="media-synopsis">Synopsis</Label>
+                  <Textarea id="media-synopsis" value={synopsis} rows={3} onChange={(e) => setSynopsis(e.target.value)} />
+                  <div className="grid grid-cols-[1fr_6rem] gap-2">
+                    <div className="grid min-w-0 gap-2">
+                      <Label htmlFor="media-series">Series</Label>
+                      <Input id="media-series" value={series} onChange={(e) => setSeries(e.target.value)} />
+                    </div>
+                    <div className="grid min-w-0 gap-2">
+                      <Label htmlFor="media-series-number" className="truncate">Number</Label>
+                      <Input id="media-series-number" type="number" step="any" min="0" value={seriesNumber} onChange={(e) => setSeriesNumber(e.target.value)} />
+                    </div>
+                  </div>
+                  <Label htmlFor="media-original-title">Original title</Label>
+                  <Input id="media-original-title" value={originalTitle} onChange={(e) => setOriginalTitle(e.target.value)} />
+                  <Label htmlFor="media-original-language">Original language</Label>
+                  <Input id="media-original-language" value={originalLanguage} placeholder="Japanese" onChange={(e) => setOriginalLanguage(e.target.value)} />
+                </div>
                 <div className="grid gap-2 pt-2">
                   <Label>Owned?</Label>
                   <Select value={acq} onValueChange={(v) => setAcq(v as Acquisition)}>
@@ -374,6 +426,25 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
                       ))}
                     </SelectContent>
                   </Select>
+                  <Label>Shelf</Label>
+                  <Select value={shelf} onValueChange={(v) => setShelf(v as Engagement)}>
+                    <SelectTrigger aria-label="Shelf">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ENGAGEMENT.map((e) => (
+                        <SelectItem key={e} value={e}>
+                          {def.engagement[e]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {shelf === "DONE" && (
+                    <>
+                      <Label htmlFor="media-finished-on">Finished on <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                      <DatePicker id="media-finished-on" value={finishedOn} onChange={setFinishedOn} />
+                    </>
+                  )}
                 </div>
               </details>
             </>
@@ -394,4 +465,3 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
   );
 }
 
-export { ACQ_LABEL };

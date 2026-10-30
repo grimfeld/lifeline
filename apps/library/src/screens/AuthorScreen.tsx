@@ -11,10 +11,10 @@ import { addFromBibliography, fetchBibliography, refreshAuthor } from "../data/a
 import { olAuthorId } from "../data/openlibrary";
 import { APP_HREF } from "../constants";
 import { Cover } from "../components/Cover";
-import { WorkRow, EditWorkDialog } from "../components/WorkRow";
+import { WorkRow } from "../components/WorkRow";
 import { AuthorCandidatesDialog } from "../components/AuthorCandidatesDialog";
 import { MergeAuthorDialog } from "../components/MergeAuthorDialog";
-import { ACQ_LABEL } from "../components/AddWorkDialog";
+import { ACQ_LABEL } from "../domain/types";
 
 const SHELF_ORDER: Work["engagement"][] = ["IN_PROGRESS", "UNSTARTED", "DONE", "ABANDONED"];
 const SHELF_LABEL: Record<Work["engagement"], string> = { IN_PROGRESS: "Reading", UNSTARTED: "To read", DONE: "Read", ABANDONED: "Dropped" };
@@ -218,7 +218,6 @@ export function AuthorScreen() {
   const [finding, setFinding] = useState(false);
   const [merging, setMerging] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editingWork, setEditingWork] = useState<Work | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   if (!author) {
@@ -337,7 +336,7 @@ export function AuthorScreen() {
           <div key={g.shelf} className="grid gap-1.5">
             <h3 className="text-muted-foreground text-xs uppercase tracking-wide">{SHELF_LABEL[g.shelf]}</h3>
             {g.rows.map((w) => (
-              <WorkRow key={w.id} item={w} all={works} onEdit={setEditingWork} compact />
+              <WorkRow key={w.id} item={w} all={works} compact />
             ))}
           </div>
         ))}
@@ -358,7 +357,6 @@ export function AuthorScreen() {
         }}
       />
       <EditAuthorDialog author={editing ? author : null} onClose={() => setEditing(false)} />
-      <EditWorkDialog item={editingWork} onClose={() => setEditingWork(null)} />
     </div>
   );
 }

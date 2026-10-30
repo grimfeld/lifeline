@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { type DocumentInput, documentsOf, documentsWithRole, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
-import { AUTHOR, SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Author, type Work, type LookupSettings } from "../domain/types";
+import { AUTHOR, SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Author, type Engagement, type Work, type LookupSettings } from "../domain/types";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
 import { answersTo, mergePlan, relinkAuthors, splitAuthorNames, type AuthorPatch } from "../domain/authors";
@@ -20,6 +20,7 @@ export function normalize(m: Work): Work {
     year: m.year || 0,
     reason: m.reason ?? "",
     slot: m.slot || 0,
+    addedOn: m.addedOn ?? "",
     acquiredOn: m.acquiredOn ?? "",
     slottedOn: m.slottedOn ?? "",
     startedOn: m.startedOn ?? "",
@@ -30,6 +31,11 @@ export function normalize(m: Work): Work {
     caughtUpGroup: m.caughtUpGroup || 0,
     caughtUpPart: m.caughtUpPart || 0,
     partCount: m.partCount || 0,
+    synopsis: m.synopsis ?? "",
+    series: m.series ?? "",
+    seriesNumber: m.seriesNumber || 0,
+    originalTitle: m.originalTitle ?? "",
+    originalLanguage: m.originalLanguage ?? "",
     tags: m.tags ?? [],
   };
 }
@@ -60,9 +66,20 @@ export async function addWork(input: {
   year?: number;
   acquisition: Acquisition;
   reason: string;
+  /** Where the Work arrives on the shelf: To read unless said (a work may come with its history). */
+  engagement?: Engagement;
+  /** Only with Done; Done without one is finished today. Started and slotted days are never backdated. */
+  finishedOn?: string;
   tags?: string[];
+  synopsis?: string;
+  series?: string;
+  seriesNumber?: number;
+  originalTitle?: string;
+  originalLanguage?: string;
 }): Promise<string> {
   const today = todayStr();
+  const engagement = input.engagement ?? "UNSTARTED";
+  if (input.finishedOn && engagement !== "DONE") throw new Error("A finished date goes with the Done shelf only");
   const row = await putDocument<Work>({
     type: input.medium,
     title: input.title.trim(),
@@ -72,20 +89,25 @@ export async function addWork(input: {
     size: input.size || 0,
     year: input.year || 0,
     acquisition: input.acquisition,
-    engagement: "UNSTARTED",
+    engagement,
     reason: input.reason.trim(),
     slot: 0,
     addedOn: today,
     acquiredOn: input.acquisition === "OWNED" || input.acquisition === "BORROWED" ? today : "",
     slottedOn: "",
-    startedOn: "",
-    finishedOn: "",
+    startedOn: engagement === "IN_PROGRESS" ? today : "",
+    finishedOn: engagement === "DONE" ? input.finishedOn || today : "",
     liked: false,
     rating: 0,
     partsTracked: false,
     caughtUpGroup: 0,
     caughtUpPart: 0,
     partCount: 0,
+    synopsis: input.synopsis?.trim() ?? "",
+    series: input.series?.trim() ?? "",
+    seriesNumber: input.seriesNumber || 0,
+    originalTitle: input.originalTitle?.trim() ?? "",
+    originalLanguage: input.originalLanguage?.trim() ?? "",
     tags: normalizeTags(input.tags),
   });
   return row.id;
@@ -314,6 +336,12 @@ async function seedFromMediaSettings(): Promise<void> {
   const legacy = old?.type === "media_settings" ? old : undefined;
   if (!legacy?.comicvineKey && !legacy?.googleBooksKey) return;
   await putDocument<LookupSettings>({ ...EMPTY_SETTINGS, id: newId(), comicvineKey: legacy.comicvineKey ?? "", googleBooksKey: legacy.googleBooksKey ?? "" });
+}
+
+/** The lookup settings (empty keys until saved), for callers outside React. */
+export async function lookupSettings(): Promise<LookupSettings> {
+  await seedFromMediaSettings();
+  return normalizeSettings(await settingsRow());
 }
 
 /** The lookup settings record (empty keys until saved). */

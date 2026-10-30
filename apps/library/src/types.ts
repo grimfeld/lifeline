@@ -1,13 +1,12 @@
 import type { DocumentTypeDef, FieldDef, RoleDef } from "@lifeline/core";
 import { Book, BookOpen, UserPen } from "lucide-react";
-import { ACQUISITION, AUTHOR, ENGAGEMENT, SETTINGS_TYPE } from "./domain/types";
+import { ACQ_LABEL, ACQUISITION, AUTHOR, ENGAGEMENT, SETTINGS_TYPE } from "./domain/types";
 import { WORK_TYPES, type WorkTypeId } from "./domain/workTypes";
-import { APP_HREF } from "./constants";
+import { workHref } from "./constants";
 import { cascadeWorkDelete } from "./data/repo";
 import { libraryParts } from "./parts";
 import { AuthorPeek, WorkPeek } from "./components/LibraryPeeks";
 
-const ACQ_LABELS: Record<(typeof ACQUISITION)[number], string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 const ENG_LABELS: Record<(typeof ENGAGEMENT)[number], string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
 
 /**
@@ -21,12 +20,17 @@ const WORK_FIELDS: FieldDef[] = [
   { key: "authors", label: "Authors", kind: "links", linkRole: AUTHOR, column: true },
   { key: "year", label: "Year", kind: "number", column: true },
   { key: "size", label: "Size", kind: "number" },
-  { key: "acquisition", label: "Owned", kind: "select", options: ACQUISITION.map((v) => ({ value: v, label: ACQ_LABELS[v] })), guarded: true, column: true },
+  { key: "acquisition", label: "Owned", kind: "select", options: ACQUISITION.map((v) => ({ value: v, label: ACQ_LABEL[v] })), guarded: true, column: true },
   { key: "engagement", label: "Shelf", kind: "select", options: ENGAGEMENT.map((v) => ({ value: v, label: ENG_LABELS[v] })), guarded: true, column: true },
   { key: "liked", label: "Liked", kind: "boolean", column: true },
   { key: "rating", label: "Rating", kind: "number", column: true },
   { key: "reason", label: "Reason", kind: "longtext" },
   { key: "slot", label: "Nightstand slot", kind: "number", guarded: true },
+  { key: "synopsis", label: "Synopsis", kind: "longtext" },
+  { key: "series", label: "Series", kind: "text", column: true },
+  { key: "seriesNumber", label: "Number in series", kind: "number" },
+  { key: "originalTitle", label: "Original title", kind: "text" },
+  { key: "originalLanguage", label: "Original language", kind: "text" },
   { key: "coverUrl", label: "Cover URL", kind: "url" },
   { key: "externalKey", label: "External key", kind: "text", hidden: true },
   { key: "addedOn", label: "Added on", kind: "date", guarded: true },
@@ -57,7 +61,8 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t, i) => ({
   titleRule: "name",
   body: "optional",
   linkable: { subtitle: () => t.label },
-  href: () => APP_HREF,
+  // Opens on its own page (the Work page); its Peek's "Open" leads there.
+  href: (d) => workHref(d.id),
   indexes: ["slot", "externalKey"],
   order: 40 + i,
   builtIn: true,

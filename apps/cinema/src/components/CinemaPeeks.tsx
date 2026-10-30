@@ -1,6 +1,6 @@
 import { useId } from "react";
-import { Button, Checkbox, Label, CommitField } from "@lifeline/ui";
-import { useOpenPeek, type PeekProps } from "@lifeline/core";
+import { Button, Checkbox, Label, CommitField, Field, TagInput } from "@lifeline/ui";
+import { normalizeTag, useOpenPeek, useTagVocabulary, type PeekProps } from "@lifeline/core";
 import { PEEK_WRITE_DELAY, WorkPeekFields } from "@lifeline/parts";
 import { ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
@@ -32,14 +32,34 @@ export function WorkPeek({ doc }: PeekProps) {
           }
         />
       </div>
-      <WorkPeekFields
-        work={item}
-        onPatch={(patch) => patchWork(item, patch)}
-        sizeUnit={def.sizeUnit}
-        marks
-        creator={<CommitField label={def.creatorLabel} delay={PEEK_WRITE_DELAY} value={item.creator} onCommit={(creator) => patchWork(item, { creator })} />}
-      />
+      <CinemaWorkFields item={item} />
     </div>
+  );
+}
+
+/**
+ * A film's or series' plain Fields, edited in place — in its Peek and on its
+ * page alike: who made it, Year, size, the Marks, Reason, cover and, on the
+ * page, its Tags.
+ */
+export function CinemaWorkFields({ item, tags }: { item: Work; tags?: boolean }) {
+  const def = workType(item.type);
+  const tagSuggestions = useTagVocabulary().map((v) => v.tag);
+  return (
+    <WorkPeekFields
+      work={item}
+      onPatch={(patch) => patchWork(item, patch)}
+      sizeUnit={def.sizeUnit}
+      marks
+      extra={
+        tags ? (
+          <Field label="Tags">
+            <TagInput value={item.tags ?? []} onChange={(t) => void patchWork(item, { tags: t })} suggestions={tagSuggestions} normalize={normalizeTag} placeholder="Add tag…" />
+          </Field>
+        ) : undefined
+      }
+      creator={<CommitField label={def.creatorLabel} delay={PEEK_WRITE_DELAY} value={item.creator} onCommit={(creator) => patchWork(item, { creator })} />}
+    />
   );
 }
 

@@ -14,7 +14,7 @@ import { WorkActionsMenu } from "./WorkActions";
  * one-click strip along the cover's foot: Listened, Liked, ⋯. The strip
  * appears on hover where there is a pointer and is always there on touch.
  */
-export function WorkTile({ item, onOpen, onEdit }: { item: Work; onOpen: (m: Work) => void; onEdit?: (m: Work) => void }) {
+export function WorkTile({ item, onOpen }: { item: Work; onOpen: (m: Work) => void }) {
   const def = workType(item.type);
   const abandoned = item.engagement === "ABANDONED";
   const reading = item.engagement === "IN_PROGRESS";
@@ -49,7 +49,6 @@ export function WorkTile({ item, onOpen, onEdit }: { item: Work; onOpen: (m: Wor
           <LikeToggle item={item} />
           <WorkActionsMenu
             item={item}
-            onEdit={(m) => onEdit?.(m)}
             onOpenChange={setMenuOpen}
             trigger={
               <button type="button" className="flex items-center justify-center rounded-full text-white/80 hover:text-white" aria-label="More">

@@ -4,6 +4,7 @@ import type { WorkTypeId } from "./workTypes";
 /** Whether and how I have access to a copy. Independent of the Shelf — games are bought, unlike streamed media. */
 export const ACQUISITION = ["WANTED", "OWNED", "BORROWED", "GONE"] as const;
 export type Acquisition = (typeof ACQUISITION)[number];
+export const ACQ_LABEL: Record<Acquisition, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 
 /** The Shelf (CONTEXT.md): how far I have got through it. */
 export const ENGAGEMENT = ["UNSTARTED", "IN_PROGRESS", "DONE", "ABANDONED"] as const;

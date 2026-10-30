@@ -1,16 +1,15 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { Button, Card, CardContent, Input, PhoneDock, PhoneFilters, usePhone, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { ShelfControl } from "@lifeline/parts";
 import { Plus, Settings2, SlidersHorizontal } from "lucide-react";
-import type { Work } from "../domain/types";
 import { useWorks } from "../data/repo";
 import { GALLERY_SORTS, matchesSearch, onShelf, SHELVES, shelfLabel, sortGallery, type GallerySort, type Shelf } from "../domain/browse";
 import { AddWorkDialog } from "../components/AddWorkDialog";
 import { WorkTile } from "../components/WorkTile";
-import { WorkDetailDialog } from "../components/WorkDetailDialog";
-import { EditWorkDialog } from "../components/WorkRow";
 import { QuickAdd } from "../components/QuickAdd";
 import { LookupSettingsDialog } from "../components/LookupSettingsDialog";
+import { workHref } from "../constants";
 
 function emptyMessage(shelf: Shelf): string {
   switch (shelf) {
@@ -33,16 +32,13 @@ export function ArcadeScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const phone = usePhone();
   const [lookupOpen, setLookupOpen] = useState(false);
-  const [editing, setEditing] = useState<Work | null>(null);
-  const [viewingId, setViewingId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [shelf, setShelf] = useState<Shelf>("ALL");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<GallerySort>("ADDED");
 
   const shelfCounts = useMemo(() => new Map<Shelf, number>(SHELVES.map((s) => [s, items.filter((m) => onShelf(m, s)).length])), [items]);
   const gallery = useMemo(() => sortGallery(items.filter((m) => onShelf(m, shelf)).filter((m) => matchesSearch(m, q)), sort), [items, shelf, q, sort]);
-  // Resolve by id so the dialog re-renders with the live record after each transition.
-  const viewing = viewingId ? (items.find((m) => m.id === viewingId) ?? null) : null;
 
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-5 p-6">
@@ -96,14 +92,12 @@ export function ArcadeScreen() {
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-3 gap-y-4">
           {gallery.map((m) => (
-            <WorkTile key={m.id} item={m} onOpen={(it) => setViewingId(it.id)} />
+            <WorkTile key={m.id} item={m} onOpen={(it) => navigate(workHref(it.id))} />
           ))}
         </div>
       )}
 
-      <WorkDetailDialog item={viewing} onClose={() => setViewingId(null)} onEdit={setEditing} />
       <AddWorkDialog open={addOpen} onOpenChange={setAddOpen} defaultType="game" />
-      <EditWorkDialog item={editing} onClose={() => setEditing(null)} />
       <LookupSettingsDialog open={lookupOpen} onOpenChange={setLookupOpen} />
     </div>
   );

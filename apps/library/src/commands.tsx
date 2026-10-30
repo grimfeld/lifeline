@@ -1,18 +1,20 @@
 import { initialText, pickLinked, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { NextPartDialog, partName, quickAddFromLine } from "@lifeline/parts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@lifeline/ui";
-import { Library as LibraryIcon, Plus, Settings2, SlidersHorizontal, StepForward, UserPen } from "lucide-react";
+import { Library as LibraryIcon, Plus, Settings2, StepForward, UserPen } from "lucide-react";
 import { ResolveAuthorsDialog } from "./components/ResolveAuthorsDialog";
-import { AddWorkDialog } from "./components/AddWorkDialog";
 import { QuickAdd } from "./components/QuickAdd";
 import { LookupSettingsDialog } from "./components/LookupSettingsDialog";
 import { APP_HREF } from "./constants";
 import { WORK_TYPES, workType, type WorkTypeId } from "./domain/workTypes";
 import { allWorks, quickAddWork, useAuthorIndex, useWorks } from "./data/repo";
 import { libraryParts } from "./parts";
+import { libraryLookupCommand } from "./lookupCommand";
+import { libraryAddCommand } from "./addCommand";
 import { matchesSearch } from "./domain/browse";
 import { Cover } from "./components/Cover";
 import type { Work } from "./domain/types";
+import { libraryStateCommands } from "./stateCommands";
 
 /** One-line quick add in a small dialog; closes as soon as something is added. */
 function QuickAddCommandDialog({ open, onOpenChange, initial }: CommandDialogProps) {
@@ -93,7 +95,9 @@ export const libraryCommands: CommandDef[] = [
       return { id, message: `${work.title}: ${partName(medium, outcome.pos)} read${outcome.started ? " · started" : ""}${outcome.complete ? " · that was the last one — offer to mark it done" : ""}` };
     },
   },
-  { id: "library.add", title: "Add book with details", keywords: ["book", "comic", "manga", "read", "details", "library"], icon: SlidersHorizontal, dialog: AddWorkDialog },
+  libraryAddCommand,
+  ...libraryStateCommands,
+  libraryLookupCommand,
   { id: "library.open", title: "Go to Library", keywords: ["library", "books", "comics", "manga", "reading", "nightstand", "shelf"], icon: LibraryIcon, run: ({ navigate }) => navigate(APP_HREF) },
   { id: "library.resolve-authors", title: "Resolve authors…", keywords: ["library", "author", "authors", "open library", "resolve", "bibliography"], icon: UserPen, dialog: ResolveAuthorsDialog },
   { id: "library.lookup-settings", title: "Library lookup settings…", keywords: ["library", "lookup", "metadata", "api", "key", "comicvine", "google books", "enrich", "covers"], icon: Settings2, dialog: LookupSettingsDialog },

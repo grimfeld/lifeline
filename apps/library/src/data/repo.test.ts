@@ -6,6 +6,7 @@ import { documentsOf, documentsTable, getDocument, initApps, patchDocument, putD
 import { workTypeDefs, authorRole, authorTypeDef } from "../types";
 import { libraryParts } from "../parts";
 import type { Work } from "../domain/types";
+import { sortGallery } from "../domain/browse";
 import { addWork, allAuthors, allWorks, deleteAuthor, ensureAuthor, normalize, patchWork, quickAddWork, restoreAuthor } from "./repo";
 
 initApps([{ id: "library", title: "Library", types: [...workTypeDefs, authorTypeDef, ...libraryParts.typeDefs], roles: [authorRole], screens: [], cards: [], commands: [] }]);
@@ -14,6 +15,22 @@ const work = async (id: string) => normalize((await getDocument<Work>(id))!);
 
 beforeEach(async () => {
   await documentsTable().clear();
+});
+
+describe("the Work's descriptive fields", () => {
+  it("read as empty / 0 on an old work, and keep what is written", async () => {
+    const id = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "" });
+    const old = await work(id);
+    expect([old.synopsis, old.series, old.seriesNumber, old.originalTitle, old.originalLanguage]).toEqual(["", "", 0, "", ""]);
+    await patchWork(old, { synopsis: "Spice.", series: "Dune", seriesNumber: 1.5, originalTitle: "Duna", originalLanguage: "Polish" });
+    const now = await work(id);
+    expect([now.synopsis, now.series, now.seriesNumber, now.originalTitle, now.originalLanguage]).toEqual(["Spice.", "Dune", 1.5, "Duna", "Polish"]);
+  });
+  it("addWork stores them when given", async () => {
+    const id = await addWork({ medium: "manga", title: "Berserk", acquisition: "OWNED", reason: "", series: "Berserk", seriesNumber: 2, originalLanguage: "Japanese" });
+    const w = await work(id);
+    expect([w.series, w.seriesNumber, w.originalLanguage]).toEqual(["Berserk", 2, "Japanese"]);
+  });
 });
 
 describe("patchWork", () => {
@@ -114,3 +131,14 @@ describe("deleteAuthor and restoreAuthor", () => {
     expect((await work(emma)).authors).toEqual([other.id]);
   });
 });
+
+describe("a work written without an added day", () => {
+  it("reads as never added and sorts last by Recently added, without breaking the Gallery", async () => {
+    const dated = await addWork({ medium: "book", title: "Dated", acquisition: "WANTED", reason: "" });
+    const bare = (await putDocument({ type: "book", title: "Bare", body: "", engagement: "UNSTARTED", acquisition: "WANTED" })).id;
+    const works = await allWorks();
+    expect(works.find((w) => w.id === bare)!.addedOn).toBe("");
+    expect(sortGallery(works, "ADDED").map((w) => w.id)).toEqual([dated, bare]);
+  });
+});
+

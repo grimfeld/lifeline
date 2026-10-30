@@ -11,6 +11,7 @@ export interface GbVolume {
     authors?: string[];
     publishedDate?: string;
     pageCount?: number;
+    description?: string;
     imageLinks?: { thumbnail?: string; smallThumbnail?: string };
   };
 }
@@ -25,11 +26,13 @@ export function mapGbVolume(v: GbVolume): WorkHit {
     year: Number((info.publishedDate ?? "").slice(0, 4)) || 0,
     size: info.pageCount ?? 0,
     coverUrl: thumb.replace(/^http:\/\//, "https://"),
+    ...(info.description?.trim() ? { synopsis: info.description.trim() } : {}),
   };
 }
 
 /** Google's query string: free text, then `intitle:` / `inauthor:` for the split fields (an author key means nothing here — the name is used). */
 export function googleBooksQuery(q: LookupQuery): string {
+  if (q.isbn) return `isbn:${q.isbn}`;
   const parts: string[] = [];
   if (q.text?.trim()) parts.push(q.text.trim());
   if (q.title?.trim()) parts.push(`intitle:"${q.title.trim().replace(/"/g, "")}"`);

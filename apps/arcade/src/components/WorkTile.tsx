@@ -20,6 +20,7 @@ export function WorkTile({ item, onOpen }: { item: Work; onOpen: (m: Work) => vo
       type="button"
       onClick={() => onOpen(item)}
       className="group focus-visible:ring-ring flex w-full flex-col gap-1.5 rounded-lg text-left focus-visible:ring-2 focus-visible:outline-none"
+      aria-label={`Open ${item.title}`}
       title={status ? `${item.title} — ${status}` : item.title}
     >
       <div className={cn("relative w-full overflow-hidden rounded-md border shadow-sm transition-shadow group-hover:shadow-md", abandoned && "opacity-50")}>

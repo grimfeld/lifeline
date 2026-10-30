@@ -1,10 +1,7 @@
-import { useState } from "react";
-import { matchesTagFilter, useTagFilter, type CardProps } from "@lifeline/core";
+import { matchesTagFilter, useTagFilter, type CardProps, useOpenPeek } from "@lifeline/core";
 import { finishedIn, mediumBreakdown } from "../domain/cardQueries";
 import { useWorks } from "../data/repo";
 import { Cover } from "../components/Cover";
-import { EditWorkDialog } from "../components/WorkRow";
-import type { Work } from "../domain/types";
 import { mediumOf } from "./shared";
 
 /** Card: how much I finished in a year, with the latest covers. */
@@ -13,7 +10,8 @@ export function FinishedCard({ settings }: CardProps) {
   const items = useWorks().filter((m) => matchesTagFilter(m.tags, filter));
   const medium = mediumOf(settings);
   const year = typeof settings.year === "number" ? settings.year : new Date().getFullYear();
-  const [editing, setEditing] = useState<Work | null>(null);
+  // A game is peeked from a Card (ADR 0057); its Peek links through to its page.
+  const peek = useOpenPeek();
   const done = finishedIn(items, year, medium);
   const breakdown = medium ? "" : mediumBreakdown(done);
   return (
@@ -30,7 +28,7 @@ export function FinishedCard({ settings }: CardProps) {
       ) : (
         <ul className="grid min-h-0 flex-1 content-start gap-1.5 overflow-y-auto" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(48px, 1fr))" }}>
           {done.map((m) => (
-            <li key={m.id} className="flex cursor-pointer justify-center" title={`${m.title}${m.creator ? ` — ${m.creator}` : ""} · ${m.finishedOn}`} onClick={() => setEditing(m)}>
+            <li key={m.id} className="flex cursor-pointer justify-center" title={`${m.title}${m.creator ? ` — ${m.creator}` : ""} · ${m.finishedOn}`} onClick={() => peek(m.id)}>
               {/* The row opens on a click anywhere; this button is its face for the keyboard (Enter bubbles to the row). */}
               <button type="button" aria-label={`${m.title}${m.creator ? ` — ${m.creator}` : ""} · ${m.finishedOn}`} className="focus-visible:ring-ring rounded-md focus-visible:ring-2 focus-visible:outline-none flex flex-col items-center gap-0.5">
                 <Cover item={m} className="h-16 w-12" />
@@ -39,7 +37,6 @@ export function FinishedCard({ settings }: CardProps) {
           ))}
         </ul>
       )}
-      <EditWorkDialog item={editing} onClose={() => setEditing(null)} />
     </div>
   );
 }
