@@ -58,6 +58,14 @@ describe("library.lookup", () => {
     expect(await allWorks()).toHaveLength(1);
   });
 
+  it("a twin is the same external key: another key under the same title is another work; a keyless side falls back to the title", async () => {
+    const keyed = await addWork({ medium: "book", title: "Dune", externalKey: "openlibrary:/works/OL9W", acquisition: "WANTED", reason: "" });
+    answer(() => json({ docs: [olDoc] }));
+    expect((await run({ query: "dune" })).candidates[0]!.onShelf).toBeUndefined();
+    await patchWork((await allWorks()).find((w) => w.id === keyed)!, { externalKey: "" });
+    expect((await run({ query: "dune" })).candidates[0]!.onShelf).toEqual({ id: keyed, shelf: "To read" });
+  });
+
   it("refuses an empty lookup, and reports unreachable providers without failing", async () => {
     await expect(invokeCommand(libraryLookupCommand, {})).rejects.toThrow(/query|title|author/i);
     answer(() => json({}, 500));

@@ -6,6 +6,7 @@ import { documentsOf, documentsTable, getDocument, initApps, patchDocument, putD
 import { workTypeDefs, authorRole, authorTypeDef } from "../types";
 import { libraryParts } from "../parts";
 import type { Work } from "../domain/types";
+import { sortGallery } from "../domain/browse";
 import { addWork, allAuthors, allWorks, deleteAuthor, ensureAuthor, normalize, patchWork, quickAddWork, restoreAuthor } from "./repo";
 
 initApps([{ id: "library", title: "Library", types: [...workTypeDefs, authorTypeDef, ...libraryParts.typeDefs], roles: [authorRole], screens: [], cards: [], commands: [] }]);
@@ -130,3 +131,14 @@ describe("deleteAuthor and restoreAuthor", () => {
     expect((await work(emma)).authors).toEqual([other.id]);
   });
 });
+
+describe("a work written without an added day", () => {
+  it("reads as never added and sorts last by Recently added, without breaking the Gallery", async () => {
+    const dated = await addWork({ medium: "book", title: "Dated", acquisition: "WANTED", reason: "" });
+    const bare = (await putDocument({ type: "book", title: "Bare", body: "", engagement: "UNSTARTED", acquisition: "WANTED" })).id;
+    const works = await allWorks();
+    expect(works.find((w) => w.id === bare)!.addedOn).toBe("");
+    expect(sortGallery(works, "ADDED").map((w) => w.id)).toEqual([dated, bare]);
+  });
+});
+

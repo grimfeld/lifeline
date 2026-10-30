@@ -2,9 +2,10 @@ import { pickLinked, type CommandDef } from "@lifeline/core";
 import { caughtUpOf, nextPart, partName, progressOf } from "@lifeline/parts";
 import { allAuthors, allWorks, patchWork } from "./data/repo";
 import { libraryParts } from "./parts";
-import { abandon, acquire, evict, finish, freeSlots, nightstand, promote, release, start, unacquire, type Patch } from "./domain/rules";
-import { workType } from "./domain/workTypes";
-import type { Work } from "./domain/types";
+import { acquisitionPatch, evict, freeSlots, nightstand, promote, shelfMove } from "./domain/rules";
+import { WORK_TYPES, workType, type WorkTypeId } from "./domain/workTypes";
+import { shelfLabel } from "./domain/cardQueries";
+import { ACQ_LABEL, ACQUISITION, ENGAGEMENT, type Acquisition, type Engagement, type Work } from "./domain/types";
 
 const WORK_ARG = { key: "work", label: "Work", kind: "text", required: true, hint: "Id or exact title of a book, comic or manga already on the shelf." } as const;
 
@@ -15,31 +16,9 @@ async function pickWork(raw: unknown): Promise<Work> {
   return works.find((w) => w.id === id)!;
 }
 
-const SHELVES = [
-  { value: "UNSTARTED", label: "To read" },
-  { value: "IN_PROGRESS", label: "In progress" },
-  { value: "DONE", label: "Done" },
-  { value: "ABANDONED", label: "Dropped" },
-];
-const ACQUISITIONS = [
-  { value: "WANTED", label: "Wanted" },
-  { value: "OWNED", label: "Owned" },
-  { value: "BORROWED", label: "Borrowed" },
-  { value: "GONE", label: "Gone" },
-];
-
-function shelfPatch(w: Work, shelf: string, finishedOn: string | undefined): Patch {
-  switch (shelf) {
-    case "IN_PROGRESS":
-      return w.engagement === "DONE" ? { engagement: "IN_PROGRESS", finishedOn: "" } : { ...start(), ...(w.startedOn ? { startedOn: w.startedOn } : {}) };
-    case "DONE":
-      return { ...finish(), ...(finishedOn ? { finishedOn } : {}) };
-    case "ABANDONED":
-      return abandon();
-    default:
-      return { engagement: "UNSTARTED", finishedOn: "" };
-  }
-}
+/** The Shelves and Acquisitions as Command options, in the Library's own words (shared with `library.add`). */
+export const SHELF_OPTIONS = ENGAGEMENT.map((v) => ({ value: v, label: shelfLabel(v, WORK_TYPES[0]!.id) }));
+export const ACQUISITION_OPTIONS = ACQUISITION.map((v) => ({ value: v, label: ACQ_LABEL[v] }));
 
 export const libraryStateCommands: CommandDef[] = [
   {
@@ -48,34 +27,35 @@ export const libraryStateCommands: CommandDef[] = [
     keywords: ["shelf", "start", "finish", "done", "drop", "abandon", "to read", "reading", "library"],
     args: [
       WORK_ARG,
-      { key: "shelf", label: "Shelf", kind: "select", required: true, options: SHELVES, hint: "To read, In progress, Done or Dropped. Done and Dropped free the Nightstand slot." },
+      { key: "shelf", label: "Shelf", kind: "select", required: true, options: SHELF_OPTIONS, hint: "To read, In progress, Done or Dropped. Done and Dropped free the Nightstand slot." },
       { key: "finishedOn", label: "Finished on", kind: "date", hint: "Only for Done; defaults to today." },
     ],
     returnsDocument: true,
     async invoke(a) {
       const w = await pickWork(a.work);
-      const shelf = String(a.shelf);
-      if (!SHELVES.some((s) => s.value === shelf)) throw new Error("Shelf: To read, In progress, Done or Dropped");
+      const shelf = String(a.shelf) as Engagement;
+      if (!ENGAGEMENT.includes(shelf)) throw new Error("Shelf: To read, In progress, Done or Dropped");
       if (a.finishedOn && shelf !== "DONE") throw new Error("Finished on: only with the Done shelf");
-      if (w.engagement === shelf) throw new Error(`“${w.title}” is already ${SHELVES.find((s) => s.value === shelf)!.label}; nothing was changed`);
-      await patchWork(w, shelfPatch(w, shelf, a.finishedOn as string | undefined));
+      const label = shelfLabel(shelf, w.type as WorkTypeId);
+      if (w.engagement === shelf) throw new Error(`“${w.title}” is already ${label}; nothing was changed`);
+      await patchWork(w, shelfMove(w, shelf, undefined, a.finishedOn as string | undefined));
       const freed = w.slot > 0 && (shelf === "DONE" || shelf === "ABANDONED");
-      return { id: w.id, message: `${w.title}: ${SHELVES.find((s) => s.value === shelf)!.label}${freed ? " · Nightstand slot freed" : ""}` };
+      return { id: w.id, message: `${w.title}: ${label}${freed ? " · Nightstand slot freed" : ""}` };
     },
   },
   {
     id: "library.acquisition",
     title: "Set acquisition",
     keywords: ["acquisition", "wanted", "owned", "borrowed", "gone", "bought", "sold", "library"],
-    args: [WORK_ARG, { key: "acquisition", label: "Acquisition", kind: "select", required: true, options: ACQUISITIONS, hint: "Wanted, Owned, Borrowed or Gone (sold, returned, given away)." }],
+    args: [WORK_ARG, { key: "acquisition", label: "Acquisition", kind: "select", required: true, options: ACQUISITION_OPTIONS, hint: "Wanted, Owned, Borrowed or Gone (sold, returned, given away)." }],
     returnsDocument: true,
     async invoke(a) {
       const w = await pickWork(a.work);
-      const to = String(a.acquisition);
-      const label = ACQUISITIONS.find((o) => o.value === to)?.label;
-      if (!label) throw new Error("Acquisition: Wanted, Owned, Borrowed or Gone");
+      const to = String(a.acquisition) as Acquisition;
+      if (!ACQUISITION.includes(to)) throw new Error("Acquisition: Wanted, Owned, Borrowed or Gone");
+      const label = ACQ_LABEL[to];
       if (w.acquisition === to) throw new Error(`“${w.title}” is already ${label}; nothing was changed`);
-      await patchWork(w, to === "WANTED" ? unacquire() : to === "GONE" ? release() : acquire(to as "OWNED" | "BORROWED"));
+      await patchWork(w, acquisitionPatch(to));
       return { id: w.id, message: `${w.title}: ${label}` };
     },
   },
@@ -147,8 +127,8 @@ export const libraryStateCommands: CommandDef[] = [
       const lines = [
         `${w.title} (${type.label.toLowerCase()}) id ${w.id}`,
         ...line("Authors", w.authors.map((id) => names.get(id)).filter(Boolean).join(", ")),
-        `Shelf: ${SHELVES.find((s) => s.value === w.engagement)?.label ?? w.engagement}`,
-        `Acquisition: ${ACQUISITIONS.find((s) => s.value === w.acquisition)?.label ?? w.acquisition}`,
+        `Shelf: ${shelfLabel(w.engagement, w.type as WorkTypeId)}`,
+        `Acquisition: ${ACQ_LABEL[w.acquisition] ?? w.acquisition}`,
         `Nightstand: ${w.slot > 0 ? `slot ${w.slot}` : "off"}`,
         ...line("Year", w.year),
         ...line(`Size (${type.sizeUnit})`, w.size),
@@ -160,6 +140,12 @@ export const libraryStateCommands: CommandDef[] = [
         ...line("Liked", w.liked),
         ...line("Rating", w.rating),
         ...line("Tags", w.tags.join(", ")),
+        ...line("Series", w.series ? `${w.series}${w.seriesNumber ? ` #${w.seriesNumber}` : ""}` : ""),
+        ...line("Original title", w.originalTitle),
+        ...line("Original language", w.originalLanguage),
+        ...line("Cover", w.coverUrl),
+        ...line("External key", w.externalKey),
+        ...line("Synopsis", w.synopsis),
         `Progress: ${read}${total ? ` of ${total}` : ""} ${type.parts.parts} read${caught.number ? ` (caught up to ${partName(type.parts, caught)})` : ""}${next ? `; next ${partName(type.parts, next)}` : ""}`,
       ];
       return { id: w.id, message: lines.join("\n") };

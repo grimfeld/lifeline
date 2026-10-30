@@ -29,14 +29,14 @@ Library, Cinema, Discotheque and Arcade work the same way. A book, film, album o
   cover and details too. The toast lets you **Undo**. A work you already have is not added twice,
   and the toast offers to **Open** it.
 - **Add with details…** opens the full form.
-- Tap a cover to open the work's detail (in the Library, Cinema, Discotheque and Arcade, its own page). There you can start it,
+- Tap a cover to open the work's **Work page**. There you can start it,
   finish it, drop it, edit it, find metadata, refresh it from its source, or delete it. In the
   Library, Cinema and Discotheque you also write your **Review** there. The **⋯** menu on the tile
   offers the same moves.
 - **Marks** (Library, Cinema, Discotheque): a heart for **Liked**, and one to five stars. Neither
   moves the shelf.
-- **Parts**: track the chapters, issues, episodes or tracks of a work (not films or games) in the
-  detail (a book's or album's page).
+- **Parts**: track the chapters, issues, episodes or tracks of a work (not films or games) on its
+  Work page.
   - Tap a number to mark it read (watched, heard), or switch to **Tap opens** to give a Part its
     own title, Marks and Review.
   - **Caught up to…** marks everything up to a number as done before Lifeline: no days, nothing
@@ -61,7 +61,7 @@ Books, comics and manga.
   and **Refresh from source** never overwrites them. The gallery search finds a work by its
   series. Genres stay as tags.
 - **Search by ISBN**: type or paste an ISBN (10 or 13 digits, hyphens and spaces allowed) into the Add dialog's
-  search or **Find metadata**, and the book, comic or manga it belongs to is found, from Open Library, then Google
+  search or **Find metadata**'s (it starts from the title; change it and press **Search**), and the book, comic or manga it belongs to is found, from Open Library, then Google
   Books. It finds the work, not the edition, and the ISBN is not kept. A number with a bad check digit is searched
   as ordinary text.
 - **Scan barcode** (phone only): in the Add dialog or **Find metadata**, point the back camera at the barcode on
@@ -281,7 +281,7 @@ Holdings), it tells you and changes nothing.
 
 ## Tips
 
-- Track Parts in the work's detail first. **+1** and "Next part of…" offer only works whose Parts
+- Track Parts on the work's Work page first. **+1** and "Next part of…" offer only works whose Parts
   you track, or that are in progress.
 - **Done** is one click from any shelf, and clicking again undoes it. Undoing never takes back a
   freed Nightstand slot, so re-slot it yourself.

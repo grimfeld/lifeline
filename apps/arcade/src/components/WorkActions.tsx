@@ -2,7 +2,7 @@ import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMe
 import { BookOpenCheck, Check, MoreHorizontal, Play, ShoppingCart, Trash2, X } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
-import { abandon, acquire, finish, release, start, type Patch } from "../domain/rules";
+import { abandon, acquire, finish, release, reshelve, start, type Patch } from "../domain/rules";
 import { deleteWork, patchWork } from "../data/repo";
 
 /** Applies a transition patch to an item and toasts. A plain function, not a hook: the detail dialog calls it after its early return. */
@@ -58,7 +58,7 @@ export function WorkActionsMenu({ item, onDeleted, trigger }: { item: Work; onDe
           </DropdownMenuItem>
         )}
         {done && (
-          <DropdownMenuItem onClick={act("Back to unstarted", { engagement: "UNSTARTED", finishedOn: "", startedOn: "" })}>
+          <DropdownMenuItem onClick={act("Back to unstarted", reshelve())}>
             <BookOpenCheck /> Mark {def.engagement.UNSTARTED.toLowerCase()} again
           </DropdownMenuItem>
         )}

@@ -13,6 +13,15 @@ export const acquire = (how: Extract<Acquisition, "OWNED" | "BORROWED">, today =
 export const release = (): Patch => ({ acquisition: "GONE" });
 /** Back to Wanted, the acquired day cleared. */
 export const unacquire = (): Patch => ({ acquisition: "WANTED", acquiredOn: "" });
+/** Back to unstarted: every playing day cleared. */
+export const reshelve = (): Patch => ({ engagement: "UNSTARTED", startedOn: "", finishedOn: "" });
+
+/** Owned moves through the Arcade's own transitions (ADR 0019): acquiring stamps the day, Wanted clears it. */
+export function acquisitionPatch(to: Acquisition, today = todayStr()): Patch {
+  if (to === "OWNED" || to === "BORROWED") return acquire(to, today);
+  if (to === "GONE") return release();
+  return unacquire();
+}
 
 // --- derived views ---------------------------------------------------------
 

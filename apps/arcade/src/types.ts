@@ -1,12 +1,11 @@
 import type { DocumentTypeDef, FieldDef } from "@lifeline/core";
 import { Gamepad2 } from "lucide-react";
-import { ACQUISITION, ENGAGEMENT, SETTINGS_TYPE, type Work } from "./domain/types";
+import { ACQ_LABEL, ACQUISITION, ENGAGEMENT, SETTINGS_TYPE, type Work } from "./domain/types";
 import { WORK_TYPES } from "./domain/workTypes";
 import { workHref } from "./constants";
 import { WorkPeek } from "./components/ArcadePeeks";
 import { cascadeWorkDelete } from "./data/repo";
 
-const ACQ_LABELS: Record<(typeof ACQUISITION)[number], string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 const ENG_LABELS: Record<(typeof ENGAGEMENT)[number], string> = { UNSTARTED: "Not started", IN_PROGRESS: "In progress", DONE: "Done", ABANDONED: "Dropped" };
 
 /**
@@ -18,7 +17,7 @@ const WORK_FIELDS: FieldDef[] = [
   { key: "creator", label: "Creator", kind: "text", column: true },
   { key: "year", label: "Year", kind: "number", column: true },
   { key: "size", label: "Size", kind: "number" },
-  { key: "acquisition", label: "Owned", kind: "select", options: ACQUISITION.map((v) => ({ value: v, label: ACQ_LABELS[v] })), guarded: true, column: true },
+  { key: "acquisition", label: "Owned", kind: "select", options: ACQUISITION.map((v) => ({ value: v, label: ACQ_LABEL[v] })), guarded: true, column: true },
   { key: "engagement", label: "Shelf", kind: "select", options: ENGAGEMENT.map((v) => ({ value: v, label: ENG_LABELS[v] })), guarded: true, column: true },
   { key: "reason", label: "Reason", kind: "longtext" },
   { key: "coverUrl", label: "Cover URL", kind: "url" },

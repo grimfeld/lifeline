@@ -15,3 +15,5 @@ export * from "./quickAdd";
 export * from "./components/QuickAdd";
 export * from "./components/WorkPeekFields";
 export * from "./components/WorkPage";
+export * from "./components/LookupActions";
+export * from "./components/PlaylistsSection";

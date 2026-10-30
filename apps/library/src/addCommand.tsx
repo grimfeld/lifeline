@@ -2,25 +2,18 @@ import { type CommandDef } from "@lifeline/core";
 import { SlidersHorizontal } from "lucide-react";
 import { AddWorkDialog } from "./components/AddWorkDialog";
 import { WORK_TYPES, workType, type WorkTypeId } from "./domain/workTypes";
-import { ACQUISITION, ENGAGEMENT, type Acquisition, type Engagement } from "./domain/types";
+import { ACQ_LABEL, ACQUISITION, ENGAGEMENT, type Acquisition, type Engagement } from "./domain/types";
 import { shelfLabel } from "./domain/cardQueries";
 import { splitAuthorNames } from "./domain/authors";
 import { addWork, allWorks, ensureAuthorNames, ensureAuthorRefs, findByExternalKey, lookupSettings } from "./data/repo";
 import { resolveHit } from "./data/lookup";
+import { ACQUISITION_OPTIONS, SHELF_OPTIONS } from "./stateCommands";
 import { fetchHitByKey, shelfTwinOf } from "./data/lookupCandidates";
 import type { WorkHit } from "./data/openlibrary";
 
 /** A source that hangs ends the add as unavailable, as it ends a lookup. */
 const FETCH_TIMEOUT_MS = 15000;
 const SOURCES = ["openlibrary", "googlebooks", "comicvine"];
-
-const SHELVES: { value: Engagement; label: string }[] = [
-  { value: "UNSTARTED", label: "To read" },
-  { value: "IN_PROGRESS", label: "In progress" },
-  { value: "DONE", label: "Done" },
-  { value: "ABANDONED", label: "Dropped" },
-];
-const ACQUISITIONS = ACQUISITION.map((a) => ({ value: a, label: a[0] + a.slice(1).toLowerCase() }));
 
 /** A passed value wins over the source's; blank counts as not passed. */
 const given = <T,>(passed: T | undefined, fromHit: T | undefined): T | undefined => (passed === undefined || passed === "" ? fromHit : passed);
@@ -51,8 +44,8 @@ export const libraryAddCommand: CommandDef = {
     { key: "originalTitle", label: "Original title", kind: "text" },
     { key: "originalLanguage", label: "Original language", kind: "text", hint: "A name such as Japanese." },
     { key: "reason", label: "Reason", kind: "text", hint: "Who recommended it, or what made you want it." },
-    { key: "acquisition", label: "Acquisition", kind: "select", options: ACQUISITIONS, hint: "Defaults to Wanted. Owned and Borrowed are acquired today." },
-    { key: "shelf", label: "Shelf", kind: "select", options: SHELVES, hint: "Defaults to To read. In progress starts it today; Done finishes it. The Nightstand is never set here." },
+    { key: "acquisition", label: "Acquisition", kind: "select", options: ACQUISITION_OPTIONS, hint: "Defaults to Wanted. Owned and Borrowed are acquired today." },
+    { key: "shelf", label: "Shelf", kind: "select", options: SHELF_OPTIONS, hint: "Defaults to To read. In progress starts it today; Done finishes it. The Nightstand is never set here." },
     { key: "finishedOn", label: "Finished on", kind: "date", hint: "Only with the Done shelf; Done without it is finished today." },
     { key: "tags", label: "Tags", kind: "list" },
   ],
@@ -110,6 +103,6 @@ export const libraryAddCommand: CommandDef = {
       finishedOn,
       tags: a.tags as string[] | undefined,
     });
-    return { id, message: `${title} added (${workType(medium).engagement[shelf]}, ${acquisition.toLowerCase()})` };
+    return { id, message: `${title} added (${workType(medium).engagement[shelf]}, ${ACQ_LABEL[acquisition].toLowerCase()})` };
   },
 };
