@@ -20,6 +20,7 @@ export function normalize(m: Work): Work {
     year: m.year || 0,
     reason: m.reason ?? "",
     slot: m.slot || 0,
+    addedOn: m.addedOn ?? "",
     acquiredOn: m.acquiredOn ?? "",
     slottedOn: m.slottedOn ?? "",
     startedOn: m.startedOn ?? "",
