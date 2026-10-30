@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { type DocumentInput, documentsOf, documentsWithRole, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
-import { AUTHOR, SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Author, type Work, type LookupSettings } from "../domain/types";
+import { AUTHOR, SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Author, type Engagement, type Work, type LookupSettings } from "../domain/types";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
 import { answersTo, mergePlan, relinkAuthors, splitAuthorNames, type AuthorPatch } from "../domain/authors";
@@ -65,6 +65,10 @@ export async function addWork(input: {
   year?: number;
   acquisition: Acquisition;
   reason: string;
+  /** Where the Work arrives on the shelf: To read unless said (a work may come with its history). */
+  engagement?: Engagement;
+  /** Only with Done; Done without one is finished today. Started and slotted days are never backdated. */
+  finishedOn?: string;
   tags?: string[];
   synopsis?: string;
   series?: string;
@@ -73,6 +77,8 @@ export async function addWork(input: {
   originalLanguage?: string;
 }): Promise<string> {
   const today = todayStr();
+  const engagement = input.engagement ?? "UNSTARTED";
+  if (input.finishedOn && engagement !== "DONE") throw new Error("A finished date goes with the Done shelf only");
   const row = await putDocument<Work>({
     type: input.medium,
     title: input.title.trim(),
@@ -82,14 +88,14 @@ export async function addWork(input: {
     size: input.size || 0,
     year: input.year || 0,
     acquisition: input.acquisition,
-    engagement: "UNSTARTED",
+    engagement,
     reason: input.reason.trim(),
     slot: 0,
     addedOn: today,
     acquiredOn: input.acquisition === "OWNED" || input.acquisition === "BORROWED" ? today : "",
     slottedOn: "",
-    startedOn: "",
-    finishedOn: "",
+    startedOn: engagement === "IN_PROGRESS" ? today : "",
+    finishedOn: engagement === "DONE" ? input.finishedOn || today : "",
     liked: false,
     rating: 0,
     partsTracked: false,
