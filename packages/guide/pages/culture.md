@@ -74,7 +74,12 @@ Commands (Ctrl+K):
 - **Add book…**: one line (title, author, kind) onto *To read*. Also in the Capture sheet.
 - **Read next part…**: pick a book, comic or manga; its next chapter or issue is read today. Also
   in the Capture sheet.
-- **Add book with details**: the full form.
+- **Add book with details**: the full form, including its history: *Shelf* (To read, In progress or
+  Done, with a *Finished on* date) and *Acquisition* (under *More details*). A work can arrive already
+  Done or Owned; its started and slotted days are never backdated. For Claude too: give it an
+  external key from **Look up a book…** and the source's fields are fetched, and anything else you
+  pass wins; leave the key out for a work no source knows. A finished date without Done is refused,
+  and a work already on the shelf is reported, never overwritten.
 - **Look up a book…**: ask the lookup (an ISBN or free text, optionally a title and author) what books, comics
   or manga it finds, without adding anything. Candidates already on your shelf come back marked with
   their Shelf. For Claude.

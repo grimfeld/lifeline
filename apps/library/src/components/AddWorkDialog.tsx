@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogFooter,
   DialogHeader,
+  DatePicker,
   DialogTitle,
   Input,
   Label,
@@ -20,7 +21,7 @@ import {
 import { normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { X } from "lucide-react";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
-import { ACQUISITION, type Acquisition } from "../domain/types";
+import { ACQUISITION, ENGAGEMENT, type Acquisition, type Engagement } from "../domain/types";
 import { addWork, ensureAuthorRefs, findByExternalKey, useAuthorIndex, useWorks, useLookupSettings } from "../data/repo";
 import { hitByline, PAGE_SIZE, type AuthorRef, type LookupQuery, type WorkHit } from "../data/openlibrary";
 import { describeLookup, lookupFor, providerOf, resolveHit } from "../data/lookup";
@@ -62,6 +63,8 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
   const [originalTitle, setOriginalTitle] = useState("");
   const [originalLanguage, setOriginalLanguage] = useState("");
   const [acq, setAcq] = useState<Acquisition>("WANTED");
+  const [shelf, setShelf] = useState<Engagement>("UNSTARTED");
+  const [finishedOn, setFinishedOn] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const tagSuggestions = useTagVocabulary().map((v) => v.tag);
   const settings = useLookupSettings();
@@ -89,6 +92,8 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
     setOriginalTitle("");
     setOriginalLanguage("");
     setAcq("WANTED");
+    setShelf("UNSTARTED");
+    setFinishedOn("");
     setTags([]);
   }, [open, defaultType]);
 
@@ -204,6 +209,8 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
         year: Number(year) || 0,
         size: Number(size) || 0,
         acquisition: acq,
+        engagement: shelf,
+        finishedOn: shelf === "DONE" ? finishedOn : "",
         reason: reason.trim(),
         tags,
         synopsis,
@@ -212,7 +219,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
         originalTitle,
         originalLanguage,
       });
-      toast.success(`${title.trim()} added to ${def.wantLabel}`);
+      toast.success(`${title.trim()} added to ${shelf === "UNSTARTED" ? def.wantLabel : def.engagement[shelf]}`);
       onOpenChange(false);
     } catch (e) {
       toast.error((e as Error).message || "Could not add it");
@@ -378,7 +385,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
               </div>
               <details className="grid gap-2">
                 <summary className="text-muted-foreground cursor-pointer text-xs">
-                  More details{acq !== "WANTED" ? ` · ${ACQ_LABEL[acq]}` : ""}
+                  More details{acq !== "WANTED" ? ` · ${ACQ_LABEL[acq]}` : ""}{shelf !== "UNSTARTED" ? ` · ${def.engagement[shelf]}` : ""}
                 </summary>
                 <div className="grid gap-2 pt-2">
                   <Label htmlFor="media-synopsis">Synopsis</Label>
@@ -412,6 +419,25 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
                       ))}
                     </SelectContent>
                   </Select>
+                  <Label>Shelf</Label>
+                  <Select value={shelf} onValueChange={(v) => setShelf(v as Engagement)}>
+                    <SelectTrigger aria-label="Shelf">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ENGAGEMENT.map((e) => (
+                        <SelectItem key={e} value={e}>
+                          {def.engagement[e]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {shelf === "DONE" && (
+                    <>
+                      <Label htmlFor="media-finished-on">Finished on <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                      <DatePicker id="media-finished-on" value={finishedOn} onChange={setFinishedOn} />
+                    </>
+                  )}
                 </div>
               </details>
             </>
