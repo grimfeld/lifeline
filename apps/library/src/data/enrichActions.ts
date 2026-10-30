@@ -11,10 +11,11 @@ const REFRESHED = ["coverUrl", "size", "year"] as const;
 
 /** Lookup-driven writes: find candidates for an item, apply a pick, refresh, enrich all. */
 
-export async function findCandidates(item: Work, settings: LookupKeys, signal?: AbortSignal): Promise<WorkHit[]> {
+/** Candidates for an item: by its title, or by an ISBN when one is given (a scanned barcode, ADR 0108). */
+export async function findCandidates(item: Work, settings: LookupKeys, signal?: AbortSignal, isbn?: string): Promise<WorkHit[]> {
   const search = lookupFor(item.type, settings);
   if (!search) return [];
-  return search({ title: item.title }, signal);
+  return search(isbn ? { isbn } : { title: item.title }, signal);
 }
 
 /**

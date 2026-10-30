@@ -64,6 +64,10 @@ Books, comics and manga.
   search or **Find metadata**, and the book, comic or manga it belongs to is found, from Open Library, then Google
   Books. It finds the work, not the edition, and the ISBN is not kept. A number with a bad check digit is searched
   as ordinary text.
+- **Scan barcode** (phone only): in the Add dialog or **Find metadata**, point the back camera at the barcode on
+  the book, and its ISBN is searched as if you had typed it. A barcode that is not an ISBN (a shop's product code,
+  the small price code beside it) is named and not searched; keep scanning. The button shows only where the phone
+  has a camera and its browser can read barcodes (Chrome on Android); elsewhere, type the ISBN.
 - **Authors** have their own page, reached from a byline: your works by them, and their
   **Bibliography** from Open Library, where you can tick works and add them to *To read* in one
   go. From an Author's page you can find them on Open Library, edit their name and aliases,
