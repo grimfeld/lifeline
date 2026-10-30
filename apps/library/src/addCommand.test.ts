@@ -98,4 +98,13 @@ describe("library.add", () => {
     expect((await work(id)).reason).toBe("keep");
     expect(await allAuthors()).toHaveLength(0);
   });
+
+  it("a twin is the same external key: the same title under another key is added; a keyless work on the shelf is a twin by title", async () => {
+    answer((url) => json({ docs: [{ ...olDoc, key: `/works/${/OL\dW/.exec(decodeURIComponent(url))![0]}` }] }));
+    await addWork({ medium: "book", title: "Dune", externalKey: "openlibrary:/works/OL1W", acquisition: "WANTED", reason: "" });
+    await add({ externalKey: "openlibrary:/works/OL2W", title: "Dune" });
+    expect(await allWorks()).toHaveLength(2);
+    await addWork({ medium: "comic", title: "Watchmen", acquisition: "WANTED", reason: "" });
+    await expect(add({ type: "comic", externalKey: "openlibrary:/works/OL3W", title: "Watchmen" })).rejects.toThrow(/“Watchmen” is already on the shelf/);
+  });
 });
