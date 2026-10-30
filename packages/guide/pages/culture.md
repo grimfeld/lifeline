@@ -61,7 +61,7 @@ Books, comics and manga.
   and **Refresh from source** never overwrites them. The gallery search finds a work by its
   series. Genres stay as tags.
 - **Search by ISBN**: type or paste an ISBN (10 or 13 digits, hyphens and spaces allowed) into the Add dialog's
-  search or **Find metadata**, and the book, comic or manga it belongs to is found, from Open Library, then Google
+  search or **Find metadata**'s (it starts from the title; change it and press **Search**), and the book, comic or manga it belongs to is found, from Open Library, then Google
   Books. It finds the work, not the edition, and the ISBN is not kept. A number with a bad check digit is searched
   as ordinary text.
 - **Scan barcode** (phone only): in the Add dialog or **Find metadata**, point the back camera at the barcode on

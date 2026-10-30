@@ -7,7 +7,7 @@ import { libraryParts } from "../parts";
 import type { Work } from "../domain/types";
 import type { WorkHit } from "./openlibrary";
 import { addWork, normalize, patchWork } from "./repo";
-import { applyPick, refreshFromSource } from "./enrichActions";
+import { applyPick, findCandidates, refreshFromSource } from "./enrichActions";
 
 initApps([{ id: "library", title: "Library", types: [...workTypeDefs, authorTypeDef, ...libraryParts.typeDefs], roles: [authorRole], screens: [], cards: [], commands: [] }]);
 
@@ -48,3 +48,19 @@ describe("applying a hit to the new fields", () => {
     expect([w.synopsis, w.series, w.seriesNumber]).toEqual(["", "", 0]);
   });
 });
+
+describe("Find metadata's search", () => {
+  it("searches the title by default, and a typed ISBN by the ISBN", async () => {
+    const id = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "" });
+    const fetchMock = vi.fn(async (u: URL | string) => ({ ok: true, json: async () => (String(u).includes("/isbn/") ? { works: [{ key: "/works/OL1W" }] } : { docs: [{ key: "/works/OL1W", title: "Dune" }] }) }));
+    vi.stubGlobal("fetch", fetchMock);
+    await findCandidates(await work(id), {});
+    expect(new URL(String(fetchMock.mock.calls[0]![0])).searchParams.get("title")).toBe("Dune");
+    fetchMock.mockClear();
+    const hits = await findCandidates(await work(id), {}, undefined, "978-0-441-17271-9");
+    vi.unstubAllGlobals();
+    expect(String(fetchMock.mock.calls[0]![0])).toBe("https://openlibrary.org/isbn/9780441172719.json");
+    expect(hits.map((h) => h.externalKey)).toEqual(["openlibrary:/works/OL1W"]);
+  });
+});
+

@@ -64,3 +64,30 @@ test("Library: a work's Peek links through to its page", async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`/app/library/works/${id}$`));
   await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
 });
+
+test("Library: Find metadata searches an ISBN typed in place of the title", async ({ page }) => {
+  await page.route(/^https:\/\/(?!localhost)/, (route) => {
+    const url = route.request().url();
+    if (url === "https://openlibrary.org/isbn/9780441172719.json") return route.fulfill({ json: { works: [{ key: "/works/OL893415W" }] } });
+    if (url.startsWith("https://openlibrary.org/search.json") && url.includes("OL893415W"))
+      return route.fulfill({ json: { docs: [{ key: "/works/OL893415W", title: "Dune", author_name: ["Frank Herbert"], first_publish_year: 1965 }] } });
+    if (url.startsWith("https://openlibrary.org/search.json")) return route.fulfill({ json: { docs: [] } });
+    return route.abort();
+  });
+  await page.goto("/app/library");
+  await workLocally(page);
+  const title = `My copy ${Date.now()}`;
+  const id = await putBook(page, title);
+  await page.goto(`/app/library/works/${id}`);
+  await workLocally(page);
+
+  await page.getByRole("button", { name: "Find metadata" }).click();
+  const dialog = page.getByRole("dialog");
+  const search = dialog.getByRole("textbox", { name: "Search" });
+  await expect(search).toHaveValue(title);
+
+  await search.fill("978-0-441-17271-9");
+  await search.press("Enter");
+  await dialog.getByRole("button", { name: /^Dune/ }).click();
+  await expect.poll(() => fieldOf(page, id, "year")).toBe(1965);
+});
