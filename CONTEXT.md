@@ -137,7 +137,7 @@ Where a Document opens when it is opened all the way: its type's owning App's Mo
 _Avoid_: home (the phone has none), owner (the App, not the Module), home Folder (where a new Document lands)
 
 ### Peek
-The owning App's small view of one Document, opened **where the user is** — over the Vault, a general Surface, another Module — with its fields and main operations, and a way through to its Home Module. How a link, a backlink, a search result or a Surface chip opens by default: interconnection should not throw the user out of what they were doing. Ownership is whole, because the Peek is the owner's. A Peek **edits**: every App draws how its own Documents' Fields are edited there, Core draws the user's own Fields beneath — an App never draws a Field it did not define — and Core draws the whole Peek of a user-defined type's Document; its body is written there, with the Vault's own editor, once the user asks to write it — read until then, so a Peek opened to look changes nothing. It stays beside the page it was opened from, so that page is still in view. Following a link inside a Peek replaces what it shows, with a way back; a Peek never opens over another Peek. A Library or Arcade work's Peek leads through to its **Work page**.
+The owning App's small view of one Document, opened **where the user is** — over the Vault, a general Surface, another Module — with its fields and main operations, and a way through to its Home Module. How a link, a backlink, a search result or a Surface chip opens by default: interconnection should not throw the user out of what they were doing. Ownership is whole, because the Peek is the owner's. A Peek **edits**: every App draws how its own Documents' Fields are edited there, Core draws the user's own Fields beneath — an App never draws a Field it did not define — and Core draws the whole Peek of a user-defined type's Document; its body is written there, with the Vault's own editor, once the user asks to write it — read until then, so a Peek opened to look changes nothing. It stays beside the page it was opened from, so that page is still in view. Following a link inside a Peek replaces what it shows, with a way back; a Peek never opens over another Peek. A Library, Cinema, Discotheque or Arcade work's Peek leads through to its **Work page**.
 _Avoid_: preview (read-only; a Peek operates), popup, modal, quick view, hover card
 
 ### Command
@@ -397,7 +397,7 @@ The plain text on a Library work naming the series it belongs to, with its **num
 _Avoid_: collection, saga, universe
 
 ### Work page
-A Library, Cinema, Discotheque or Arcade work's own page (a book, comic or manga; a film or series; an album; a game): its cover and byline, where it stands, every plain Field edited in place as its Peek edits them, its Parts, Marks and Review, its history (added, acquired, slotted, started, finished), the other works of its **Series** on the shelf in series order, and what mentions it. Guarded Fields move only through the Library's transitions. It replaces the detail and edit dialogs (ADR 0110); a Gallery tile opens it, and a link or chip elsewhere still opens the Peek, which leads to it. Its frame is the Parts kit's, which the four family Apps all draw from.
+A Library, Cinema, Discotheque or Arcade work's own page (a book, comic or manga; a film or series; an album; a game): its cover and byline, where it stands, every plain Field edited in place as its Peek edits them, its Parts, Marks and Review, its history (added, acquired, slotted, started, finished), the other works of its **Series** on the shelf in series order, and what mentions it. Guarded Fields move only through the owning App's transitions. It replaces the detail and edit dialogs (ADR 0110); a Gallery tile opens it, and a link or chip elsewhere still opens the Peek, which leads to it. Its frame is the Parts kit's, which the four family Apps all draw from.
 _Avoid_: detail, detail dialog, edit dialog, work view
 
 ### Shelf
@@ -425,11 +425,11 @@ Every Wanted work of a family that still has **Acquisition** — Library and Arc
 _Avoid_: wishlist (that word hides the buy-now head of the list), cart, shopping list (the Shopping list App's own list)
 
 ### Marks
-Cinema, the Discotheque and the Library: what I make of a work, beside where it stands on the Shelf. **Liked** (a heart, on or off) and a **Rating** (one to five whole stars; unrated is its own state, not zero stars). Each is one click on the Gallery tile or the detail; neither implies the other, neither moves the Shelf, and a Shelf move never touches them. Marks are facts about the work, not events: nothing lands in the Daylog, nothing feeds Life Level.
+Cinema, the Discotheque and the Library: what I make of a work, beside where it stands on the Shelf. **Liked** (a heart, on or off) and a **Rating** (one to five whole stars; unrated is its own state, not zero stars). Each is one click on the Gallery tile or the **Work page**; neither implies the other, neither moves the Shelf, and a Shelf move never touches them. Marks are facts about the work, not events: nothing lands in the Daylog, nothing feeds Life Level.
 _Avoid_: score, favourite (say Liked), half-star, vote
 
 ### Review
-Cinema, the Discotheque and the Library: my own words about a work — its Document body. One per work, written from the detail, and everything a body gives for free follows: opened as text with the fields as frontmatter, wikilinks, `#tags` counted, Backlinks. Not a Note (a Note is about one thing the work said; a Review is about the work), not a Quote (a passage is the work's words).
+Cinema, the Discotheque and the Library: my own words about a work — its Document body. One per work, written on its **Work page**, and everything a body gives for free follows: opened as text with the fields as frontmatter, wikilinks, `#tags` counted, Backlinks. Not a Note (a Note is about one thing the work said; a Review is about the work), not a Quote (a passage is the work's words).
 _Avoid_: comment, notes (a Note is a Document), diary entry (there is no diary — one Shelf, one Review per work)
 
 ### Playlist
