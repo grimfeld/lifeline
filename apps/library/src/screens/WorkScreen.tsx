@@ -5,15 +5,14 @@ import { Button, cn, Page, Select, SelectContent, SelectItem, SelectTrigger, Sel
 import { PartsSection, WorkPage } from "@lifeline/parts";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
-import { ACQUISITION, WORK_TYPE_IDS, type Acquisition, type Work } from "../domain/types";
-import { acquire, release, slotAge, unacquire, type Patch } from "../domain/rules";
+import { ACQ_LABEL, ACQUISITION, WORK_TYPE_IDS, type Acquisition, type Work } from "../domain/types";
+import { acquisitionPatch, slotAge } from "../domain/rules";
 import { sameSeries } from "../domain/browse";
 import { normalize, patchWork, useWorks } from "../data/repo";
 import { APP_HREF, workHref } from "../constants";
 import { libraryParts } from "../parts";
 import { Cover } from "../components/Cover";
 import { AuthorNames } from "../components/AuthorNames";
-import { ACQ_LABEL } from "../components/AddWorkDialog";
 import { WorkActionsMenu } from "../components/WorkActions";
 import { LookupActions } from "../components/LookupActions";
 import { LibraryWorkFields } from "../components/LibraryPeeks";
@@ -23,13 +22,6 @@ const back = (
     <ArrowLeft className="size-4" /> Library
   </Link>
 );
-
-/** Acquisition moves through the Library's own transitions (ADR 0019): acquiring stamps the day, Wanted clears it. */
-function acquisitionPatch(to: Acquisition): Patch {
-  if (to === "OWNED" || to === "BORROWED") return acquire(to);
-  if (to === "GONE") return release();
-  return unacquire();
-}
 
 /** The other works of its series on the shelf, in series order, itself among them. */
 function SeriesList({ work, all }: { work: Work; all: Work[] }) {

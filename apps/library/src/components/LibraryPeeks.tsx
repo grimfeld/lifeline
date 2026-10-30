@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Author, Work } from "../domain/types";
 import { normalize, normalizeAuthor, patchAuthor, patchWork, useWorks } from "../data/repo";
-import { ACQ_LABEL } from "./AddWorkDialog";
+import { ACQ_LABEL } from "../domain/types";
 import { AuthorPicker } from "./AuthorPicker";
 import { WorkActionsMenu } from "./WorkActions";
 

@@ -7,7 +7,7 @@ import { acquire, finish, freeSlotsOf, isBuySignal, isStale, promote, slotAge, s
 import { workHref } from "../constants";
 import { Cover } from "./Cover";
 import { WorkActionsMenu, actOn } from "./WorkActions";
-import { ACQ_LABEL } from "./AddWorkDialog";
+import { ACQ_LABEL } from "../domain/types";
 import { AuthorNames } from "./AuthorNames";
 
 /** One media item — on a slot or in the backlog — with its transitions. */

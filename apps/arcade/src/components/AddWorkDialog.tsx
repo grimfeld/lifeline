@@ -20,13 +20,12 @@ import {
 import { normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { Search } from "lucide-react";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
-import { ACQUISITION, type Acquisition } from "../domain/types";
+import { ACQ_LABEL, ACQUISITION, type Acquisition } from "../domain/types";
 import { addWork, findByExternalKey, useWorks, useLookupSettings } from "../data/repo";
 import type { WorkHit } from "../data/lookup";
 import { describeLookup, lookupFor, resolveHit } from "../data/lookup";
 import { Cover } from "./Cover";
 
-const ACQ_LABEL: Record<Acquisition, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 
 /**
  * Two steps: find (lookup for books/comics, otherwise manual), then the
@@ -287,4 +286,3 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "game" }: { op
   );
 }
 
-export { ACQ_LABEL };

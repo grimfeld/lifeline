@@ -5,12 +5,11 @@ import { Button, Page, Select, SelectContent, SelectItem, SelectTrigger, SelectV
 import { WorkPage } from "@lifeline/parts";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
-import { ACQUISITION, WORK_TYPE_IDS, type Acquisition, type Work } from "../domain/types";
-import { acquire, release, unacquire, type Patch } from "../domain/rules";
+import { ACQ_LABEL, ACQUISITION, WORK_TYPE_IDS, type Acquisition, type Work } from "../domain/types";
+import { acquisitionPatch } from "../domain/rules";
 import { normalize, patchWork } from "../data/repo";
 import { APP_HREF } from "../constants";
 import { Cover } from "../components/Cover";
-import { ACQ_LABEL } from "../components/AddWorkDialog";
 import { WorkActionsMenu } from "../components/WorkActions";
 import { LookupActions } from "../components/LookupActions";
 import { ArcadeWorkFields } from "../components/ArcadePeeks";
@@ -20,13 +19,6 @@ const back = (
     <ArrowLeft className="size-4" /> Arcade
   </Link>
 );
-
-/** Owned moves through the Arcade's own transitions (ADR 0019): acquiring stamps the day, Wanted clears it. */
-function acquisitionPatch(to: Acquisition): Patch {
-  if (to === "OWNED" || to === "BORROWED") return acquire(to);
-  if (to === "GONE") return release();
-  return unacquire();
-}
 
 /**
  * The Work page (CONTEXT.md) of a game — the shared frame from the Parts kit

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { onShelf, shelfLabel } from "./browse";
 import { parseQuickTitle } from "../data/repo";
 import type { Work } from "./types";
-import { abandon, acquire, finish, shelfOfShame, unacquire, wantedList, start } from "./rules";
+import { abandon, acquire, acquisitionPatch, finish, reshelve, shelfOfShame, unacquire, wantedList, start } from "./rules";
 
 function item(p: Partial<Work>): Work {
   return {
@@ -54,5 +54,16 @@ describe("shelf", () => {
   it("parses quick titles", () => {
     expect(parseQuickTitle("Hades — Supergiant")).toEqual({ title: "Hades", creator: "Supergiant" });
     expect(parseQuickTitle("Spider-Man")).toEqual({ title: "Spider-Man", creator: "" });
+  });
+});
+
+describe("the Owned and Shelf moves the Work page and the menu share", () => {
+  it("acquiring stamps the day, Wanted clears it, Gone keeps it", () => {
+    expect(acquisitionPatch("OWNED", "2026-08-16")).toEqual({ acquisition: "OWNED", acquiredOn: "2026-08-16" });
+    expect(acquisitionPatch("WANTED")).toEqual({ acquisition: "WANTED", acquiredOn: "" });
+    expect(acquisitionPatch("GONE")).toEqual({ acquisition: "GONE" });
+  });
+  it("back to unstarted clears the started and finished days", () => {
+    expect(reshelve()).toEqual({ engagement: "UNSTARTED", startedOn: "", finishedOn: "" });
   });
 });

@@ -14,7 +14,7 @@ import { Cover } from "../components/Cover";
 import { WorkRow } from "../components/WorkRow";
 import { AuthorCandidatesDialog } from "../components/AuthorCandidatesDialog";
 import { MergeAuthorDialog } from "../components/MergeAuthorDialog";
-import { ACQ_LABEL } from "../components/AddWorkDialog";
+import { ACQ_LABEL } from "../domain/types";
 
 const SHELF_ORDER: Work["engagement"][] = ["IN_PROGRESS", "UNSTARTED", "DONE", "ABANDONED"];
 const SHELF_LABEL: Record<Work["engagement"], string> = { IN_PROGRESS: "Reading", UNSTARTED: "To read", DONE: "Read", ABANDONED: "Dropped" };

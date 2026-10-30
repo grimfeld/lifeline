@@ -21,7 +21,7 @@ import {
 import { normalizeTag, useTagVocabulary } from "@lifeline/core";
 import { X } from "lucide-react";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
-import { ACQUISITION, ENGAGEMENT, type Acquisition, type Engagement } from "../domain/types";
+import { ACQ_LABEL, ACQUISITION, ENGAGEMENT, type Acquisition, type Engagement } from "../domain/types";
 import { addWork, ensureAuthorRefs, findByExternalKey, useAuthorIndex, useWorks, useLookupSettings } from "../data/repo";
 import { hitByline, PAGE_SIZE, type AuthorRef, type LookupQuery, type WorkHit } from "../data/openlibrary";
 import { describeLookup, lookupFor, providerOf, resolveHit } from "../data/lookup";
@@ -29,7 +29,6 @@ import { Cover } from "./Cover";
 import { AuthorPicker } from "./AuthorPicker";
 import { BarcodeScan } from "./BarcodeScan";
 
-const ACQ_LABEL: Record<Acquisition, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 
 /**
  * Two steps: find (lookup for books/comics, otherwise manual), then the
@@ -466,4 +465,3 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
   );
 }
 
-export { ACQ_LABEL };
