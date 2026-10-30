@@ -1,13 +1,10 @@
-import { useState } from "react";
-import { matchesTagFilter, useTagFilter, type CardProps } from "@lifeline/core";
+import { matchesTagFilter, useTagFilter, type CardProps, useOpenPeek } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 import { AlertTriangle, ShoppingCart } from "lucide-react";
 import { workType, SLOTTED_TYPES } from "../domain/workTypes";
 import { isBuySignal, isStale, nightstand, slotAge } from "../domain/rules";
 import { useWorks } from "../data/repo";
 import { Cover } from "../components/Cover";
-import { EditWorkDialog } from "../components/WorkRow";
-import type { Work } from "../domain/types";
 import { mediumOf } from "./shared";
 import { NextPartButton } from "@lifeline/parts";
 import { libraryParts } from "../parts";
@@ -17,7 +14,8 @@ export function NightstandCard({ settings }: CardProps) {
   const filter = useTagFilter();
   const items = useWorks().filter((m) => matchesTagFilter(m.tags, filter));
   const medium = mediumOf(settings);
-  const [editing, setEditing] = useState<Work | null>(null);
+  // A work is peeked from a Card (ADR 0057); its Peek links through to its page.
+  const peek = useOpenPeek();
   const { parts, groups } = libraryParts.useAllParts();
   const rows = SLOTTED_TYPES.filter((t) => !medium || t === medium).flatMap((t) => nightstand(items, t));
   if (rows.length === 0) {
@@ -29,7 +27,7 @@ export function NightstandCard({ settings }: CardProps) {
         {rows.map((m) => {
           const stale = isStale(m);
           return (
-            <li key={m.id} className="hover:bg-accent/50 flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5" onClick={() => setEditing(m)}>
+            <li key={m.id} className="hover:bg-accent/50 flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5" onClick={() => peek(m.id)}>
               {/* The row opens on a click anywhere; this button is its face for the keyboard (Enter bubbles to the row). */}
               <button type="button" className="focus-visible:ring-ring rounded-md focus-visible:ring-2 focus-visible:outline-none flex min-w-0 flex-1 items-center gap-2 text-left">
                 <Cover item={m} className="h-8 w-6" />
@@ -50,7 +48,6 @@ export function NightstandCard({ settings }: CardProps) {
           );
         })}
       </ul>
-      <EditWorkDialog item={editing} onClose={() => setEditing(null)} />
     </>
   );
 }

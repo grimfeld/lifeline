@@ -1,6 +1,5 @@
-import { Button, cn, toast } from "@lifeline/ui";
+import { cn, toast } from "@lifeline/ui";
 import { BookOpenCheck, Heart, ShoppingCart } from "lucide-react";
-import { LikeButton, Stars } from "@lifeline/parts";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
 import { toggleDone, toggleOwned } from "../domain/rules";
@@ -8,8 +7,7 @@ import { patchWork } from "../data/repo";
 
 /**
  * The Library's one-click gestures (CONTEXT.md: Shelf, Wanted list), shared
- * by the Gallery tile overlay and the detail dialog so every place offers
- * exactly the same gestures. Read toggles the Shelf — finishing frees the
+ * by the Gallery tile overlay. Read toggles the Shelf — finishing frees the
  * Nightstand slot, undoing never takes it back. Bought toggles Wanted ⇄ Owned
  * and hides for Borrowed / Gone (those stay deliberate menu moves). Liked and
  * the stars are Marks (ADR 0074, as the Cinema's): neither moves the Shelf.
@@ -74,43 +72,5 @@ export function BoughtToggle({ item, size = "sm", className }: { item: Work; siz
     >
       <ShoppingCart className={cn(ICON[size])} />
     </button>
-  );
-}
-
-/** The detail dialog's row: Read / Bought / Liked / stars — the same gestures as the tile, at reading size. */
-export function QuickActionsRow({ item }: { item: Work }) {
-  const def = workType(item.type);
-  const done = item.engagement === "DONE";
-  const owned = item.acquisition === "OWNED";
-  const buyable = item.acquisition === "WANTED" || item.acquisition === "OWNED";
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button
-        size="sm"
-        variant={done ? "default" : "outline"}
-        className="h-7 gap-1.5 px-2 text-xs"
-        aria-pressed={done}
-        onClick={() => {
-          void patchWork(item, toggleDone(item));
-        }}
-      >
-        <BookOpenCheck className="size-3.5" /> {done ? def.engagement.DONE : `Mark ${def.engagement.DONE.toLowerCase()}`}
-      </Button>
-      {buyable && (
-        <Button
-          size="sm"
-          variant={owned ? "default" : "outline"}
-          className={cn("h-7 gap-1.5 px-2 text-xs", owned && "bg-amber-500 hover:bg-amber-500/90")}
-          aria-pressed={owned}
-          onClick={() => {
-            void patchWork(item, toggleOwned(item));
-          }}
-        >
-          <ShoppingCart className="size-3.5" /> {owned ? "Owned" : "Bought it"}
-        </Button>
-      )}
-      <LikeButton liked={item.liked} onToggle={() => void patchWork(item, { liked: !item.liked })} />
-      <Stars rating={item.rating} onRate={(rating) => void patchWork(item, { rating })} />
-    </div>
   );
 }

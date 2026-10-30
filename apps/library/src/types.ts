@@ -2,7 +2,7 @@ import type { DocumentTypeDef, FieldDef, RoleDef } from "@lifeline/core";
 import { Book, BookOpen, UserPen } from "lucide-react";
 import { ACQUISITION, AUTHOR, ENGAGEMENT, SETTINGS_TYPE } from "./domain/types";
 import { WORK_TYPES, type WorkTypeId } from "./domain/workTypes";
-import { APP_HREF } from "./constants";
+import { workHref } from "./constants";
 import { cascadeWorkDelete } from "./data/repo";
 import { libraryParts } from "./parts";
 import { AuthorPeek, WorkPeek } from "./components/LibraryPeeks";
@@ -62,7 +62,8 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t, i) => ({
   titleRule: "name",
   body: "optional",
   linkable: { subtitle: () => t.label },
-  href: () => APP_HREF,
+  // Opens on its own page (the Work page); its Peek's "Open" leads there.
+  href: (d) => workHref(d.id),
   indexes: ["slot", "externalKey"],
   order: 40 + i,
   builtIn: true,

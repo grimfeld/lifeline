@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Work } from "./types";
-import { matchesSearch, sortGallery } from "./browse";
+import { matchesSearch, sameSeries, sortGallery } from "./browse";
 
 function item(p: Partial<Work>): Work {
   return {
@@ -90,5 +90,28 @@ describe("sortGallery", () => {
   });
   it("YEAR is newest release first, unknown year last", () => {
     expect(ids(sortGallery([a, b, c], "YEAR"))).toEqual(["a", "c", "b"]);
+  });
+});
+
+describe("sameSeries", () => {
+  it("lists the works of a series on the shelf in series order, unnumbered last", () => {
+    const dune = item({ id: "1", title: "Dune", series: "Dune Chronicles", seriesNumber: 1 });
+    const all = [
+      item({ id: "3", title: "Children of Dune", series: "Dune Chronicles", seriesNumber: 3 }),
+      item({ id: "x", title: "Hyperion", series: "Hyperion Cantos", seriesNumber: 1 }),
+      item({ id: "0", title: "Tales", series: "Dune Chronicles" }),
+      dune,
+      item({ id: "2", title: "Dune Messiah", series: "Dune Chronicles", seriesNumber: 2 }),
+      item({ id: "15", title: "A novella", series: "Dune Chronicles", seriesNumber: 1.5 }),
+    ];
+    expect(sameSeries(dune, all).map((w) => w.id)).toEqual(["1", "15", "2", "3", "0"]);
+  });
+  it("matches the series text whatever its case and punctuation, in any script", () => {
+    const op = item({ id: "a", series: "ワンピース", seriesNumber: 1 });
+    expect(sameSeries(item({ id: "b", series: "dune  chronicles!" }), [item({ id: "c", series: "Dune: Chronicles" })]).map((w) => w.id)).toEqual(["c"]);
+    expect(sameSeries(op, [op, item({ id: "d", series: "ワンピース", seriesNumber: 2 }), item({ id: "e", series: "ナルト" })]).map((w) => w.id)).toEqual(["a", "d"]);
+  });
+  it("is empty for a work outside any series", () => {
+    expect(sameSeries(item({ id: "a" }), [item({ id: "b" })])).toEqual([]);
   });
 });

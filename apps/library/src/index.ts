@@ -23,6 +23,7 @@ import { libraryParts } from "./parts";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
 const LibraryScreen = lazyChunk(() => import("./screens/LibraryScreen").then((m) => ({ default: m.LibraryScreen })));
+const WorkScreen = lazyChunk(() => import("./screens/WorkScreen").then((m) => ({ default: m.WorkScreen })));
 const AuthorScreen = lazyChunk(() => import("./screens/AuthorScreen").then((m) => ({ default: m.AuthorScreen })));
 
 /** Library App (ADR 0024, 0074): the reading family — books, comics and manga, Nightstand, Parts and all. */
@@ -38,6 +39,8 @@ export const libraryApp: AppManifest = {
     { id: "library.main", title: "Library", path: "library", icon: LibraryIcon, component: LibraryScreen },
     // The Author's page (ADR 0052): routed, never listed — reached from a byline, the Vault or a Base.
     { id: "library.author", title: "Author", path: "library/authors/:id", component: AuthorScreen, hidden: true },
+    // The Work page: routed, never listed — reached from a Gallery tile, an Author's page or the work's Peek.
+    { id: "library.work", title: "Work", path: "library/works/:id", component: WorkScreen, hidden: true },
   ],
   documentPanels: [{ id: "library.author", component: AuthorPanel }],
   cards: [
