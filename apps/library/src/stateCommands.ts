@@ -140,6 +140,12 @@ export const libraryStateCommands: CommandDef[] = [
         ...line("Liked", w.liked),
         ...line("Rating", w.rating),
         ...line("Tags", w.tags.join(", ")),
+        ...line("Series", w.series ? `${w.series}${w.seriesNumber ? ` #${w.seriesNumber}` : ""}` : ""),
+        ...line("Original title", w.originalTitle),
+        ...line("Original language", w.originalLanguage),
+        ...line("Cover", w.coverUrl),
+        ...line("External key", w.externalKey),
+        ...line("Synopsis", w.synopsis),
         `Progress: ${read}${total ? ` of ${total}` : ""} ${type.parts.parts} read${caught.number ? ` (caught up to ${partName(type.parts, caught)})` : ""}${next ? `; next ${partName(type.parts, next)}` : ""}`,
       ];
       return { id: w.id, message: lines.join("\n") };

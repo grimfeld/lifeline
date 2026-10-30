@@ -96,3 +96,12 @@ describe("library.catch-up and library.get", () => {
     expect((await get(id)).caughtUpPart).toBe(0);
   });
 });
+
+describe("library.get", () => {
+  it("shows the synopsis, the series and its number, the original title and language, the cover and the external key", async () => {
+    const id = await addWork({ medium: "manga", title: "Akira", acquisition: "WANTED", reason: "", externalKey: "openlibrary:/works/OL9W", coverUrl: "https://c/akira.jpg", synopsis: "Neo-Tokyo burns.", series: "Akira", seriesNumber: 2, originalTitle: "アキラ", originalLanguage: "Japanese" });
+    const { message } = await run("library.get", { work: id });
+    for (const line of ["Synopsis: Neo-Tokyo burns.", "Series: Akira #2", "Original title: アキラ", "Original language: Japanese", "Cover: https://c/akira.jpg", "External key: openlibrary:/works/OL9W"]) expect(message).toContain(line);
+  });
+});
+
