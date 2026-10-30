@@ -2,7 +2,7 @@ import type { DocumentTypeDef, FieldDef } from "@lifeline/core";
 import { Gamepad2 } from "lucide-react";
 import { ACQUISITION, ENGAGEMENT, SETTINGS_TYPE, type Work } from "./domain/types";
 import { WORK_TYPES } from "./domain/workTypes";
-import { APP_HREF } from "./constants";
+import { workHref } from "./constants";
 import { WorkPeek } from "./components/ArcadePeeks";
 import { cascadeWorkDelete } from "./data/repo";
 
@@ -38,7 +38,8 @@ export const workTypeDefs: DocumentTypeDef[] = WORK_TYPES.map((t) => ({
   titleRule: "name",
   body: "none",
   linkable: { subtitle: (d) => { const m = d as Work; return `${t.label}${m.creator ? " · " + m.creator : ""}`; } },
-  href: () => APP_HREF,
+  // Opens on its own page (the Work page); its Peek's "Open" leads there.
+  href: (d) => workHref(d.id),
   indexes: ["externalKey"],
   order: 45,
   builtIn: true,

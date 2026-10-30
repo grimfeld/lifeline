@@ -11,6 +11,8 @@ export const finish = (today = todayStr()): Patch => ({ engagement: "DONE", fini
 export const abandon = (): Patch => ({ engagement: "ABANDONED" });
 export const acquire = (how: Extract<Acquisition, "OWNED" | "BORROWED">, today = todayStr()): Patch => ({ acquisition: how, acquiredOn: today });
 export const release = (): Patch => ({ acquisition: "GONE" });
+/** Back to Wanted, the acquired day cleared. */
+export const unacquire = (): Patch => ({ acquisition: "WANTED", acquiredOn: "" });
 
 // --- derived views ---------------------------------------------------------
 

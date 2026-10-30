@@ -57,6 +57,7 @@ export function WorkPage({
   fields,
   parts,
   dates,
+  review = true,
   children,
 }: {
   work: { id: string; title: string; body?: string };
@@ -76,6 +77,8 @@ export function WorkPage({
   parts?: ReactNode;
   /** Its history, read-only: the days the App stamped ("" = not yet, left out). */
   dates: { label: string; value: string }[];
+  /** The Review, for an App whose works carry one (false for the Arcade's games: no body). */
+  review?: boolean;
   /** The App's own sections, after the Parts. */
   children?: ReactNode;
 }) {
@@ -110,7 +113,7 @@ export function WorkPage({
       {parts}
       {children}
 
-      <ReviewEditor body={work.body ?? ""} onSave={async (body) => void (await onPatch({ body }))} />
+      {review && <ReviewEditor body={work.body ?? ""} onSave={async (body) => void (await onPatch({ body }))} />}
 
       {history.length > 0 && (
         <Section title="History">

@@ -812,6 +812,7 @@ const SCREENS: ScreenCase[] = [
   },
   { name: "Arcade", path: "/app/arcade", afterOpen: openShelf },
   // No RAWG key in the seed: the list holds the "Add …" row alone.
+  { name: "Arcade · Work", path: "/app/arcade/works/:id", type: "game" },
   { name: "Arcade · Quick add", path: "/app/arcade", afterOpen: openQuickAdd },
   { name: "Quotes", path: "/app/quotes" },
   { name: "Museum", path: "/app/museum" },
