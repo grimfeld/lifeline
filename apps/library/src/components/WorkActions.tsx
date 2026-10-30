@@ -1,11 +1,11 @@
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Tip, toast } from "@lifeline/ui";
-import { ArrowDownToLine, BookOpenCheck, Check, MoreHorizontal, Pencil, Play, ShoppingCart, Square, Trash2, X } from "lucide-react";
+import { ArrowDownToLine, BookOpenCheck, Check, MoreHorizontal, Play, ShoppingCart, Square, Trash2, X } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
 import { abandon, acquire, evict, finish, freeSlotsOf, isBuySignal, promote, release, start, type Patch } from "../domain/rules";
 import { deleteWork, patchWork } from "../data/repo";
 
-/** Applies a transition patch to an item and toasts. A plain function, not a hook: the detail dialog calls it after its early return. */
+/** Applies a transition patch to an item and toasts. A plain function, not a hook. */
 export function actOn(item: Work) {
   return (label: string, patch: Patch) => () => {
     void patchWork(item, patch);
@@ -14,10 +14,10 @@ export function actOn(item: Work) {
 }
 
 /**
- * The full transition set for one item, as a dropdown. Shared by the list row
- * and the detail dialog so both offer exactly the same actions.
+ * The full transition set for one item, as a dropdown. Shared by the list row,
+ * the tile, the Peek and the Work page so all offer exactly the same actions.
  */
-export function WorkActionsMenu({ item, all, onEdit, onDeleted, onOpenChange, trigger }: { item: Work; all: Work[]; /** Absent where the work is already being edited (its Peek). */ onEdit?: (m: Work) => void; onDeleted?: () => void; onOpenChange?: (open: boolean) => void; trigger?: React.ReactNode }) {
+export function WorkActionsMenu({ item, all, onDeleted, onOpenChange, trigger }: { item: Work; all: Work[]; onDeleted?: () => void; onOpenChange?: (open: boolean) => void; trigger?: React.ReactNode }) {
   const def = workType(item.type);
   const slotted = item.slot > 0;
   const free = freeSlotsOf(all, item.type);
@@ -85,11 +85,6 @@ export function WorkActionsMenu({ item, all, onEdit, onDeleted, onOpenChange, tr
         {item.acquisition !== "GONE" && (
           <DropdownMenuItem onClick={act("Gone", release())}>
             <X /> Gone (sold / returned / given away)
-          </DropdownMenuItem>
-        )}
-        {onEdit && (
-          <DropdownMenuItem onClick={() => onEdit(item)}>
-            <Pencil /> Edit
           </DropdownMenuItem>
         )}
         <DropdownMenuItem

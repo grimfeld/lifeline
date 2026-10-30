@@ -1,6 +1,7 @@
 ---
 status: accepted
 amends: ADR 0057 (the Peek), ADR 0068 (in part — bodies written in the Vault)
+amended-by: ADR 0110 (in part — a work's Peek leads to its page)
 ---
 
 # A Peek edits, and every App draws its own

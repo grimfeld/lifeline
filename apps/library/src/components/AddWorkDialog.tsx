@@ -27,6 +27,7 @@ import { hitByline, PAGE_SIZE, type AuthorRef, type LookupQuery, type WorkHit } 
 import { describeLookup, lookupFor, providerOf, resolveHit } from "../data/lookup";
 import { Cover } from "./Cover";
 import { AuthorPicker } from "./AuthorPicker";
+import { BarcodeScan } from "./BarcodeScan";
 
 const ACQ_LABEL: Record<Acquisition, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 
@@ -286,11 +287,18 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
 
           {!step2 && (
             <div className="grid gap-2">
-              <p className="text-muted-foreground text-xs">Search {describeLookup(type, settings)} — title, author, or both.</p>
+              <p className="text-muted-foreground text-xs">Search {describeLookup(type, settings)} — title, author, or both, or an ISBN.</p>
               <div className="grid gap-2">
                 <Label htmlFor="media-title-search">Title</Label>
                 <Input id="media-title-search" value={title} autoFocus placeholder="Title (3+ letters)" onChange={(e) => setTitle(e.target.value)} />
               </div>
+              <BarcodeScan
+                onIsbn={(isbn) => {
+                  setTitle(isbn);
+                  setAuthorIds([]);
+                  setAuthorText("");
+                }}
+              />
               <div className="grid gap-2">
                 <Label htmlFor="media-author-search">{def.creatorLabel}</Label>
                 <AuthorPicker id="media-author-search" value={authorIds} onChange={setAuthorIds} text={authorText} onTextChange={setAuthorText} placeholder="Author — yours first, then Open Library" />

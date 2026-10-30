@@ -775,6 +775,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Habit", path: "/app/lifelevel/:id", type: "habit" },
   { name: "Library", path: "/app/library", afterOpen: openShelf },
   { name: "Author", path: "/app/library/authors/:id", type: "author" },
+  { name: "Library · Work", path: "/app/library/works/:id", type: "book" },
   {
     // The Add dialog's Author Combobox, its list open over the seeded long-named Author (two letters: no Open Library lookup).
     name: "Library · Add · Author picker",

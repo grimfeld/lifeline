@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { Button, Card, CardContent, cn, Input, PhoneDock, PhoneFilters, usePhone, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tabs, TabsContent, TabsList, TabsTrigger } from "@lifeline/ui";
 import { ShelfControl } from "@lifeline/parts";
 import { Plus, Settings2, SlidersHorizontal } from "lucide-react";
@@ -9,11 +10,11 @@ import { useWorks } from "../data/repo";
 import { GALLERY_SORTS, matchesSearch, onShelf, SHELVES, shelfLabel, sortGallery, type GallerySort, type Shelf } from "../domain/browse";
 import { AddWorkDialog } from "../components/AddWorkDialog";
 import { WorkTile } from "../components/WorkTile";
-import { WorkDetailDialog } from "../components/WorkDetailDialog";
-import { EditWorkDialog, WorkRow } from "../components/WorkRow";
+import { WorkRow } from "../components/WorkRow";
 import { QuickAdd } from "../components/QuickAdd";
 import { LookupSettingsDialog } from "../components/LookupSettingsDialog";
 import { useAuthorNames } from "../components/AuthorNames";
+import { workHref } from "../constants";
 
 export type Medium = WorkTypeId | "all";
 
@@ -37,7 +38,7 @@ function TypeChips({ value, onChange, counts }: { value: Medium; onChange: (v: M
 }
 
 /** The Nightstand tab: one section per slotted medium — the slotted rows, then the empty slots. */
-function NightstandTab({ items, onEdit }: { items: Work[]; onEdit: (w: Work) => void }) {
+function NightstandTab({ items }: { items: Work[] }) {
   return (
     <div className="grid gap-4">
       {SLOTTED_TYPES.map((t) => {
@@ -52,7 +53,7 @@ function NightstandTab({ items, onEdit }: { items: Work[]; onEdit: (w: Work) => 
             {slotted.length === 0 && <p className="text-muted-foreground text-sm">No {def.plural.toLowerCase()} slotted — pick something from the gallery.</p>}
             <div className="grid gap-2">
               {slotted.map((m) => (
-                <WorkRow key={m.id} item={m} all={items} onEdit={onEdit} />
+                <WorkRow key={m.id} item={m} all={items} />
               ))}
             </div>
             {free.length > 0 && slotted.length > 0 && (
@@ -89,8 +90,7 @@ export function LibraryScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const phone = usePhone();
   const [lookupOpen, setLookupOpen] = useState(false);
-  const [editing, setEditing] = useState<Work | null>(null);
-  const [viewingId, setViewingId] = useState<string | null>(null);
+  const navigate = useNavigate();
   const [type, setType] = useState<Medium>("all");
   const [shelf, setShelf] = useState<Shelf>("ALL");
   const [q, setQ] = useState("");
@@ -106,8 +106,6 @@ export function LibraryScreen() {
   const ofMedium = useMemo(() => items.filter((m) => type === "all" || m.type === type), [items, type]);
   const shelfCounts = useMemo(() => new Map<Shelf, number>(SHELVES.map((s) => [s, ofMedium.filter((m) => onShelf(m, s)).length])), [ofMedium]);
   const gallery = useMemo(() => sortGallery(ofMedium.filter((m) => onShelf(m, shelf)).filter((m) => matchesSearch(m, q, authorNames)), sort), [ofMedium, shelf, q, sort, authorNames]);
-  // Resolve by id so the dialog re-renders with the live record after each transition.
-  const viewing = viewingId ? (items.find((m) => m.id === viewingId) ?? null) : null;
   const slottedCount = items.filter((m) => m.slot > 0).length;
 
   return (
@@ -175,20 +173,18 @@ export function LibraryScreen() {
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-3 gap-y-4">
               {gallery.map((m) => (
-                <WorkTile key={m.id} item={m} all={items} onOpen={(it) => setViewingId(it.id)} onEdit={setEditing} />
+                <WorkTile key={m.id} item={m} all={items} onOpen={(it) => navigate(workHref(it.id))} />
               ))}
             </div>
           )}
         </TabsContent>
 
         <TabsContent value="nightstand" className="pt-2">
-          <NightstandTab items={items} onEdit={setEditing} />
+          <NightstandTab items={items} />
         </TabsContent>
       </Tabs>
 
-      <WorkDetailDialog item={viewing} all={items} onClose={() => setViewingId(null)} onEdit={setEditing} />
       <AddWorkDialog open={addOpen} onOpenChange={setAddOpen} defaultType={type === "all" ? "book" : type} />
-      <EditWorkDialog item={editing} onClose={() => setEditing(null)} />
       <LookupSettingsDialog open={lookupOpen} onOpenChange={setLookupOpen} />
     </div>
   );
