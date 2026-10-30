@@ -2,19 +2,21 @@ import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useDocument } from "@lifeline/core";
 import { Button, cn, Page, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { PartsSection, WorkPage } from "@lifeline/parts";
+import { LookupActions, PartsSection, Section, WorkPage } from "@lifeline/parts";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import { ACQ_LABEL, ACQUISITION, WORK_TYPE_IDS, type Acquisition, type Work } from "../domain/types";
 import { acquisitionPatch, slotAge } from "../domain/rules";
 import { sameSeries } from "../domain/browse";
-import { normalize, patchWork, useWorks } from "../data/repo";
+import { normalize, patchWork, useWorks, useLookupSettings } from "../data/repo";
 import { APP_HREF, workHref } from "../constants";
 import { libraryParts } from "../parts";
 import { Cover } from "../components/Cover";
 import { AuthorNames } from "../components/AuthorNames";
 import { WorkActionsMenu } from "../components/WorkActions";
-import { LookupActions } from "../components/LookupActions";
+import { lookupFor } from "../data/lookup";
+import { refreshFromSource } from "../data/enrichActions";
+import { FindMetadataDialog } from "../components/FindMetadataDialog";
 import { LibraryWorkFields } from "../components/LibraryPeeks";
 
 const back = (
@@ -28,8 +30,7 @@ function SeriesList({ work, all }: { work: Work; all: Work[] }) {
   const series = useMemo(() => sameSeries(work, all), [work, all]);
   if (series.length < 2) return null;
   return (
-    <section className="grid min-w-0 gap-2" aria-label="Series">
-      <h2 className="text-muted-foreground text-sm font-medium">{work.series}</h2>
+    <Section title={work.series} label="Series">
       <ol className="grid gap-1">
         {series.map((w) => {
           const here = w.id === work.id;
@@ -51,7 +52,7 @@ function SeriesList({ work, all }: { work: Work; all: Work[] }) {
           );
         })}
       </ol>
-    </section>
+    </Section>
   );
 }
 
@@ -64,6 +65,7 @@ export function WorkScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const row = useDocument<Work>(id);
+  const settings = useLookupSettings();
   const all = useWorks();
   const item = useMemo(() => (row && !row.deleted && WORK_TYPE_IDS.includes(row.type) ? normalize(row) : undefined), [row]);
 
@@ -118,7 +120,12 @@ export function WorkScreen() {
               ))}
             </SelectContent>
           </Select>
-          <LookupActions item={item} />
+          <LookupActions
+            available={lookupFor(item.type, settings) !== null}
+            canRefresh={!!item.externalKey}
+            refresh={() => refreshFromSource(item, settings)}
+            findDialog={(onClose) => <FindMetadataDialog item={item} onClose={onClose} />}
+          />
         </>
       }
       fields={<LibraryWorkFields item={item} tags />}

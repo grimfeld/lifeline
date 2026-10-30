@@ -1,19 +1,21 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useDocument } from "@lifeline/core";
-import { Badge, Button, Page } from "@lifeline/ui";
-import { PartsSection, WorkPage } from "@lifeline/parts";
-import { ArrowLeft, ChevronDown, ListPlus } from "lucide-react";
+import { Button, Page } from "@lifeline/ui";
+import { LookupActions, PartsSection, PlaylistsSection, WorkPage } from "@lifeline/parts";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import { WORK_TYPE_IDS, type Work } from "../domain/types";
 import { setReview } from "../domain/rules";
 import { playlistsWith } from "../domain/playlist";
-import { normalize, patchWork, usePlaylists } from "../data/repo";
+import { normalize, patchWork, usePlaylists, useLookupSettings } from "../data/repo";
 import { APP_HREF } from "../constants";
 import { cinemaParts } from "../parts";
 import { Cover } from "../components/Cover";
 import { WorkActionsMenu } from "../components/WorkActions";
-import { LookupActions } from "../components/LookupActions";
+import { lookupFor } from "../data/lookup";
+import { refreshFromSource } from "../data/enrichActions";
+import { FindMetadataDialog } from "../components/FindMetadataDialog";
 import { CinemaWorkFields } from "../components/CinemaPeeks";
 import { AddToPlaylistDialog } from "../components/AddToPlaylistDialog";
 
@@ -22,21 +24,6 @@ const back = (
     <ArrowLeft className="size-4" /> Cinema
   </Link>
 );
-
-/** "In playlists: …" with the way to add more. */
-function Playlists({ item }: { item: Work }) {
-  const inLists = playlistsWith(usePlaylists(), item.id);
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-      {inLists.length > 0 && <span className="text-muted-foreground min-w-0 break-words">In {inLists.map((p) => p.title).join(", ")}</span>}
-      <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>
-        <ListPlus className="size-3" /> Add to playlist…
-      </Button>
-      <AddToPlaylistDialog item={item} open={open} onOpenChange={setOpen} />
-    </div>
-  );
-}
 
 /**
  * The Work page (CONTEXT.md): one film or series in full — the shared frame
@@ -47,6 +34,8 @@ export function WorkScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const row = useDocument<Work>(id);
+  const playlists = usePlaylists();
+  const settings = useLookupSettings();
   const item = useMemo(() => (row && !row.deleted && WORK_TYPE_IDS.includes(row.type) ? normalize(row) : undefined), [row]);
 
   if (!item) {
@@ -59,6 +48,7 @@ export function WorkScreen() {
   }
 
   const def = workType(item.type);
+  const inLists = playlistsWith(playlists, item.id);
   return (
     <WorkPage
       work={item}
@@ -72,11 +62,7 @@ export function WorkScreen() {
           {item.size ? ` · ${item.size} ${def.sizeUnit}` : ""}
         </>
       }
-      status={
-        <Badge variant={item.engagement === "IN_PROGRESS" ? "default" : "secondary"}>
-          {def.label} · {def.engagement[item.engagement]}
-        </Badge>
-      }
+      status={`${def.label} · ${def.engagement[item.engagement]}`}
       actions={
         <>
           <WorkActionsMenu
@@ -88,7 +74,12 @@ export function WorkScreen() {
               </Button>
             }
           />
-          <LookupActions item={item} />
+          <LookupActions
+            available={lookupFor(item.type, settings) !== null}
+            canRefresh={!!item.externalKey}
+            refresh={() => refreshFromSource(item, settings)}
+            findDialog={(onClose) => <FindMetadataDialog item={item} onClose={onClose} />}
+          />
         </>
       }
       fields={<CinemaWorkFields item={item} tags />}
@@ -99,7 +90,7 @@ export function WorkScreen() {
         { label: "Finished", value: item.finishedOn },
       ]}
     >
-      <Playlists item={item} />
+      <PlaylistsSection titles={inLists.map((p) => p.title)} addDialog={(open, onOpenChange) => <AddToPlaylistDialog item={item} open={open} onOpenChange={onOpenChange} />} />
     </WorkPage>
   );
 }

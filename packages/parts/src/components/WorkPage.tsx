@@ -4,10 +4,10 @@ import { CommitField, Page, PageHeader } from "@lifeline/ui";
 import { ReviewEditor } from "./Marks";
 import { PEEK_WRITE_DELAY } from "./WorkPeekFields";
 
-/** A section of the Work page: a sentence-case heading over its content, named for assistive tech by the heading. */
-function Section({ title, children }: { title: string; children: ReactNode }) {
+/** A section of the Work page: a sentence-case heading over its content, named for assistive tech by the heading (or `label`). */
+export function Section({ title, label = title, children }: { title: string; label?: string; children: ReactNode }) {
   return (
-    <section className="grid min-w-0 gap-2" aria-label={title}>
+    <section className="grid min-w-0 gap-2" aria-label={label}>
       <h2 className="text-muted-foreground text-sm font-medium">{title}</h2>
       {children}
     </section>

@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useDocument } from "@lifeline/core";
 import { Button, Page } from "@lifeline/ui";
-import { PartsSection, WorkPage } from "@lifeline/parts";
-import { ArrowLeft, ChevronDown, ListPlus } from "lucide-react";
+import { LookupActions, PartsSection, PlaylistsSection, WorkPage } from "@lifeline/parts";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import { WORK_TYPE_IDS, type Work } from "../domain/types";
 import { playlistsWith } from "../domain/playlist";
@@ -12,33 +12,20 @@ import { APP_HREF } from "../constants";
 import { discothequeParts } from "../parts";
 import { Cover } from "../components/Cover";
 import { WorkActionsMenu } from "../components/WorkActions";
-import { LookupActions } from "../components/LookupActions";
+import { lookupFor } from "../data/lookup";
+import { refreshFromSource } from "../data/enrichActions";
+import { FindMetadataDialog } from "../components/FindMetadataDialog";
 import { AddToPlaylistDialog } from "../components/AddToPlaylistDialog";
 import { DiscothequeWorkFields } from "../components/DiscothequePeeks";
+
+/** MusicBrainz is keyless — one stable empty-keys object. */
+const NO_KEYS = {};
 
 const back = (
   <Link to={APP_HREF} className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline">
     <ArrowLeft className="size-4" /> Discotheque
   </Link>
 );
-
-/** "In playlists: …" with the way to add more. */
-function Playlists({ item }: { item: Work }) {
-  const inLists = playlistsWith(usePlaylists(), item.id);
-  const [open, setOpen] = useState(false);
-  return (
-    <section className="grid min-w-0 gap-2" aria-label="Playlists">
-      <h2 className="text-muted-foreground text-sm font-medium">Playlists</h2>
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-        {inLists.length > 0 ? <span className="min-w-0 break-words">In {inLists.map((p) => p.title).join(", ")}</span> : <span className="text-muted-foreground">In no playlist yet.</span>}
-        <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>
-          <ListPlus /> Add to playlist…
-        </Button>
-      </div>
-      <AddToPlaylistDialog item={item} open={open} onOpenChange={setOpen} />
-    </section>
-  );
-}
 
 /**
  * The Work page (CONTEXT.md): one album in full — the shared frame from the
@@ -49,6 +36,7 @@ export function WorkScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const row = useDocument<Work>(id);
+  const playlists = usePlaylists();
   const item = useMemo(() => (row && !row.deleted && WORK_TYPE_IDS.includes(row.type) ? normalize(row) : undefined), [row]);
 
   if (!item) {
@@ -61,6 +49,7 @@ export function WorkScreen() {
   }
 
   const def = workType(item.type);
+  const inLists = playlistsWith(playlists, item.id);
 
   return (
     <WorkPage
@@ -87,7 +76,12 @@ export function WorkScreen() {
               </Button>
             }
           />
-          <LookupActions item={item} />
+          <LookupActions
+            available={lookupFor(item.type, NO_KEYS) !== null}
+            canRefresh={!!item.externalKey}
+            refresh={() => refreshFromSource(item, NO_KEYS)}
+            findDialog={(onClose) => <FindMetadataDialog item={item} onClose={onClose} />}
+          />
         </>
       }
       fields={<DiscothequeWorkFields item={item} tags />}
@@ -98,7 +92,7 @@ export function WorkScreen() {
         { label: "Finished", value: item.finishedOn },
       ]}
     >
-      <Playlists item={item} />
+      <PlaylistsSection titles={inLists.map((p) => p.title)} addDialog={(open, onOpenChange) => <AddToPlaylistDialog item={item} open={open} onOpenChange={onOpenChange} />} />
     </WorkPage>
   );
 }

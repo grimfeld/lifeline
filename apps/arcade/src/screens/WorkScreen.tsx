@@ -2,16 +2,18 @@ import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useDocument } from "@lifeline/core";
 import { Button, Page, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { WorkPage } from "@lifeline/parts";
+import { LookupActions, WorkPage } from "@lifeline/parts";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import { ACQ_LABEL, ACQUISITION, WORK_TYPE_IDS, type Acquisition, type Work } from "../domain/types";
 import { acquisitionPatch } from "../domain/rules";
-import { normalize, patchWork } from "../data/repo";
+import { normalize, patchWork, useLookupSettings } from "../data/repo";
 import { APP_HREF } from "../constants";
 import { Cover } from "../components/Cover";
 import { WorkActionsMenu } from "../components/WorkActions";
-import { LookupActions } from "../components/LookupActions";
+import { lookupFor } from "../data/lookup";
+import { refreshFromSource } from "../data/enrichActions";
+import { FindMetadataDialog } from "../components/FindMetadataDialog";
 import { ArcadeWorkFields } from "../components/ArcadePeeks";
 
 const back = (
@@ -29,6 +31,7 @@ export function WorkScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const row = useDocument<Work>(id);
+  const settings = useLookupSettings();
   const item = useMemo(() => (row && !row.deleted && WORK_TYPE_IDS.includes(row.type) ? normalize(row) : undefined), [row]);
 
   if (!item) {
@@ -81,7 +84,12 @@ export function WorkScreen() {
               ))}
             </SelectContent>
           </Select>
-          <LookupActions item={item} />
+          <LookupActions
+            available={lookupFor(item.type, settings) !== null}
+            canRefresh={!!item.externalKey}
+            refresh={() => refreshFromSource(item, settings)}
+            findDialog={(onClose) => <FindMetadataDialog item={item} onClose={onClose} />}
+          />
         </>
       }
       fields={<ArcadeWorkFields item={item} tags />}
