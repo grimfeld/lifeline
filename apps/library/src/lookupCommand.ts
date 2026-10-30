@@ -4,6 +4,9 @@ import { WORK_TYPES, type WorkTypeId } from "./domain/workTypes";
 import { allWorks, lookupSettings } from "./data/repo";
 import { candidateOf, lookupHits } from "./data/lookupCandidates";
 
+/** The whole chain gets this long; a provider that hangs ends the lookup as unavailable. */
+const LOOKUP_TIMEOUT_MS = 15000;
+
 /** "Look up a book…" for Claude: what the lookup chain says about a book, comic or manga, an ISBN included (ADR 0108). It only reads. */
 export const libraryLookupCommand: CommandDef = {
   id: "library.lookup",
@@ -24,7 +27,7 @@ export const libraryLookupCommand: CommandDef = {
     if (!text && !title && !author) throw new Error("Give a query (an ISBN or free text), a title or an author to look up");
     let hits;
     try {
-      hits = await lookupHits(medium, { ...(text ? { text } : {}), ...(title ? { title } : {}), ...(author ? { author } : {}) }, await lookupSettings());
+      hits = await lookupHits(medium, { ...(text ? { text } : {}), ...(title ? { title } : {}), ...(author ? { author } : {}) }, await lookupSettings(), AbortSignal.timeout(LOOKUP_TIMEOUT_MS));
     } catch (e) {
       return { message: `Lookup unavailable: ${(e as Error).message}. Nothing was found; try again later.` };
     }
