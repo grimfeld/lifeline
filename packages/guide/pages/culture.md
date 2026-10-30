@@ -29,14 +29,14 @@ Library, Cinema, Discotheque and Arcade work the same way. A book, film, album o
   cover and details too. The toast lets you **Undo**. A work you already have is not added twice,
   and the toast offers to **Open** it.
 - **Add with details…** opens the full form.
-- Tap a cover to open the work's detail. There you can start it, finish it, drop it, edit it,
-  find metadata, refresh it from its source, or delete it. In the Library, Cinema and
-  Discotheque you also write your **Review** there. The **⋯** menu on the tile offers the same
-  moves.
+- Tap a cover to open the work's detail (in the Library, its own page). There you can start it,
+  finish it, drop it, edit it, find metadata, refresh it from its source, or delete it. In the
+  Library, Cinema and Discotheque you also write your **Review** there. The **⋯** menu on the tile
+  offers the same moves.
 - **Marks** (Library, Cinema, Discotheque): a heart for **Liked**, and one to five stars. Neither
   moves the shelf.
 - **Parts**: track the chapters, issues, episodes or tracks of a work (not films or games) in the
-  detail.
+  detail (a book's page).
   - Tap a number to mark it read (watched, heard), or switch to **Tap opens** to give a Part its
     own title, Marks and Review.
   - **Caught up to…** marks everything up to a number as done before Lifeline: no days, nothing
@@ -51,12 +51,12 @@ Library, Cinema, Discotheque and Arcade work the same way. A book, film, album o
 Books, comics and manga.
 
 - **Nightstand** tab: the few things claiming your attention now, in progress or next up. It has
-  5 slots for books, 3 for comics and 3 for manga. **Slot it** from a work's detail or ⋯ menu.
+  5 slots for books, 3 for comics and 3 for manga. **Slot it** from a work's page or ⋯ menu.
   Finishing or dropping a work frees its slot.
 - Each tile has quick toggles: **Read**, **Bought** (Wanted ⇄ Owned) and the heart.
   **Gone (sold / returned / given away)** is in the ⋯ menu.
 - A book, comic or manga also has a **synopsis**, a **series** with its **number** (1.5 is fine),
-  an **original title** and an **original language**. Edit them in its Peek or in
+  an **original title** and an **original language**. Edit them on its page, in its Peek or in
   **Add book with details** (under *More details*). Lookup fills them only where they are empty,
   and **Refresh from source** never overwrites them. The gallery search finds a work by its
   series. Genres stay as tags.
@@ -64,6 +64,16 @@ Books, comics and manga.
   search or **Find metadata**, and the book, comic or manga it belongs to is found, from Open Library, then Google
   Books. It finds the work, not the edition, and the ISBN is not kept. A number with a bad check digit is searched
   as ordinary text.
+- **Every book, comic and manga has its own page**: tap its cover in the Gallery, or its title on
+  the Nightstand tab or an Author's page. It shows the cover and Authors (each a link to their
+  page), where it stands, and every field, edited in place: title, Authors, year, pages, the heart
+  and stars, synopsis, series, original title and language, reason, cover and tags. **Shelf**
+  moves it (start, finish, drop, slot it on the Nightstand, delete), **Acquisition** sets *Wanted*,
+  *Owned*, *Borrowed* or *Gone*, and **Find metadata** / **Refresh from source** look it up. Below
+  are its Parts, the other works of its **series** on your shelf in order, your **Review**, when
+  you added, acquired, slotted, started and finished it, and the notes and quotes that mention it
+  (tap one to peek it). Shelf, Acquisition and the slot change only through those buttons. A work
+  opened from anywhere else (a Card, a link) opens in a Peek; its **Open** button leads to the page.
 - **Authors** have their own page, reached from a byline: your works by them, and their
   **Bibliography** from Open Library, where you can tick works and add them to *To read* in one
   go. From an Author's page you can find them on Open Library, edit their name and aliases,

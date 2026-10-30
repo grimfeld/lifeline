@@ -1,156 +1,17 @@
-import { useEffect, useState } from "react";
-import {
-  Badge,
-  Button,
-  cn,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  TagChips,
-  TagInput,
-  Textarea,
-  toast, Field } from "@lifeline/ui";
+import { Link } from "react-router";
+import { Badge, Button, cn, TagChips } from "@lifeline/ui";
 import { AlertTriangle, ArrowDownToLine, Check, Play, ShoppingCart } from "lucide-react";
 import { workType } from "../domain/workTypes";
-import { ACQUISITION, type Acquisition, type Work } from "../domain/types";
-import { acquire, finish, freeSlotsOf, isBuySignal, isStale, promote, release, slotAge, start } from "../domain/rules";
-import { patchWork } from "../data/repo";
+import type { Work } from "../domain/types";
+import { acquire, finish, freeSlotsOf, isBuySignal, isStale, promote, slotAge, start } from "../domain/rules";
+import { workHref } from "../constants";
 import { Cover } from "./Cover";
 import { WorkActionsMenu, actOn } from "./WorkActions";
 import { ACQ_LABEL } from "./AddWorkDialog";
-import { displayTitle, docHref, normalizeTag, useLinkIndex, useTagVocabulary } from "@lifeline/core";
 import { AuthorNames } from "./AuthorNames";
-import { AuthorPicker } from "./AuthorPicker";
-
-/** Documents mentioning this item via [[wikilink]] (ADR 0018). Muted, read-only. */
-function MentionedIn({ itemId }: { itemId: string }) {
-  const index = useLinkIndex();
-  const links = index.backlinksTo(itemId);
-  if (links.length === 0) return null;
-  return (
-    <div className="text-muted-foreground grid gap-1 text-xs">
-      <span>
-        Mentioned in {links.length} {links.length === 1 ? "document" : "documents"}
-      </span>
-      <ul className="grid gap-0.5">
-        {links.map((l) => {
-          const src = index.byId.get(l.sourceId);
-          if (!src) return null;
-          return (
-            <li key={`${l.sourceId}/${l.field ?? ""}`}>
-              <a href={docHref(src)} className="underline-offset-2 hover:underline">
-                {displayTitle(src)}
-              </a>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-export function EditWorkDialog({ item, onClose }: { item: Work | null; onClose: () => void }) {
-  const [title, setTitle] = useState("");
-  const [authors, setAuthors] = useState<string[]>([]);
-  const [year, setYear] = useState("");
-  const [size, setSize] = useState("");
-  const [reason, setReason] = useState("");
-  const [acq, setAcq] = useState<Acquisition>("WANTED");
-  const [coverUrl, setCoverUrl] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const tagSuggestions = useTagVocabulary().map((v) => v.tag);
-  useEffect(() => {
-    if (!item) return;
-    setTitle(item.title);
-    setAuthors(item.authors);
-    setYear(item.year ? String(item.year) : "");
-    setSize(item.size ? String(item.size) : "");
-    setReason(item.reason);
-    setAcq(item.acquisition);
-    setCoverUrl(item.coverUrl);
-    setTags(item.tags ?? []);
-  }, [item]);
-  if (!item) return null;
-  const def = workType(item.type);
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit {def.label.toLowerCase()}</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-3">
-          <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
-          <div className="grid gap-2">
-            <Label>{def.creatorLabel}</Label>
-            <AuthorPicker value={authors} onChange={setAuthors} placeholder="Add an author…" />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Year"><Input type="number" value={year} onChange={(e) => setYear(e.target.value)} /></Field>
-            <Field label={def.sizeUnit}><Input type="number" value={size} onChange={(e) => setSize(e.target.value)} /></Field>
-          </div>
-          <Field label="Cover URL"><Input value={coverUrl} placeholder="https://…" onChange={(e) => setCoverUrl(e.target.value)} /></Field>
-          <Field label={<>Reason <span className="text-muted-foreground font-normal">(optional)</span></>}><Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
-          <div className="grid gap-2">
-            <Label htmlFor="media-edit-tags">Tags</Label>
-            <TagInput id="media-edit-tags" value={tags} onChange={setTags} suggestions={tagSuggestions} normalize={normalizeTag} placeholder="Add tag…" />
-          </div>
-          <div className="grid gap-2">
-            <Label>Acquisition</Label>
-            <Select value={acq} onValueChange={(v) => setAcq(v as Acquisition)}>
-              <SelectTrigger aria-label="Acquisition">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ACQUISITION.map((a) => (
-                  <SelectItem key={a} value={a}>
-                    {ACQ_LABEL[a]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <MentionedIn itemId={item.id} />
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() => {
-              if (!title.trim()) return void toast.error("Title required");
-              void patchWork(item, {
-                title: title.trim(),
-                authors,
-                year: Number(year) || 0,
-                size: Number(size) || 0,
-                reason: reason.trim(),
-                coverUrl: coverUrl.trim(),
-                tags,
-                ...(acq !== item.acquisition ? (acq === "OWNED" || acq === "BORROWED" ? acquire(acq) : acq === "GONE" ? release() : { acquisition: acq }) : {}),
-              });
-              toast.success("Saved");
-              onClose();
-            }}
-          >
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 /** One media item — on a slot or in the backlog — with its transitions. */
-export function WorkRow({ item, all, onEdit, compact = false }: { item: Work; all: Work[]; onEdit: (m: Work) => void; compact?: boolean }) {
+export function WorkRow({ item, all, compact = false }: { item: Work; all: Work[]; compact?: boolean }) {
   const def = workType(item.type);
   const slotted = item.slot > 0;
   const age = slotAge(item);
@@ -167,7 +28,9 @@ export function WorkRow({ item, all, onEdit, compact = false }: { item: Work; al
       <Cover item={item} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-sm font-medium">{item.title}</span>
+          <Link to={workHref(item.id)} className="truncate text-sm font-medium underline-offset-2 hover:underline">
+            {item.title}
+          </Link>
           {slotted && <span className="text-muted-foreground shrink-0 text-xs">#{item.slot}</span>}
         </div>
         <div className="text-muted-foreground truncate text-xs">
@@ -219,7 +82,7 @@ export function WorkRow({ item, all, onEdit, compact = false }: { item: Work; al
         </Button>
       )}
 
-      <WorkActionsMenu item={item} all={all} onEdit={onEdit} />
+      <WorkActionsMenu item={item} all={all} />
     </div>
   );
 }
