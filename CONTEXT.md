@@ -536,6 +536,10 @@ _Avoid_: connections panel, related items
 An unresolved wikilink name drawn on a Graph: a hole in the vault. Clicking it creates a Thought, exactly like clicking the unresolved link itself.
 _Avoid_: phantom, placeholder, unresolved node (fine in prose)
 
+### Possession
+Core Contract (behaviour — code only): a Document type whose Documents can be held, and say whether each one is held and how much — Supplies and Pantry by their quantity, Wardrobe and the durables App by Acquisition (Owned is held; Wanted and Gone are not). Its one consumer is the Kit, which reads it to say what is missing; a Possession type never knows which Kits name it.
+_Avoid_: ownable, inventory item, asset (the Ledger's sense), stock
+
 ### Locatable
 Core Contract: a Document type whose Documents sit at a geographic point, so any map Surface can draw them. Declarable by data (a user-defined type with a geo field). Coordinates are the owning App's data (resolved when the entity is edited, never looked up at render time); an entity with an address but no coordinates is not Locatable yet.
 _Avoid_: mappable, geolocated, placed (Placement is a calendar concept)
@@ -721,7 +725,7 @@ The App for what I wear — clothes, shoes, accessories: one Document per piece 
 _Avoid_: closet, clothing, inventory (fine in prose)
 
 ### Kit
-A situation's list of what it calls for — "Sac de survie", "Camping weekend", "Hospital bag" — each line satisfied by something I own or else missing. What is missing is read from the Kit, never a list kept by hand. Not a Shopping list (that is what to buy next, a Kit is what a situation needs) and not a Playlist (a Kit's lines are requirements, not a curated order).
+A situation's list of what it calls for — "Sac de survie", "Camping weekend", "Hospital bag" — each line a Link to a Possession Document, or plain text for something not recorded yet, and covered when that Document is held. Owned by the durables App. What is missing is read from the Kit, never a list kept by hand. Not a Shopping list (that is what to buy next, a Kit is what a situation needs) and not a Playlist (a Kit's lines are requirements, not a curated order).
 _Avoid_: checklist (fine in prose), loadout, pack, bag (one kind of Kit), set, Need (the Shopping list's)
 
 ### Mail
