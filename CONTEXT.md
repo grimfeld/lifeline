@@ -712,6 +712,18 @@ _Avoid_: item (Media item is taken), entry (a Stat's), errand, task, grocery
 A loose, user-defined heading the Shopping list is grouped under — "Supermarket", "Pharmacy", "Online", whatever is handy. Aisles are put in my own order — the order I walk them — and a Need sits under at most one; one without an Aisle is buyable anywhere and heads the list. A grouping for reading the list, nothing more: it says nothing about which Shop, and nothing is refused for being in the wrong one. Deleting an Aisle is never blocked: its Needs simply become buyable anywhere.
 _Avoid_: section (the sidebar's and the Bible's), shop (Prices' chain), Storage (Pantry's), category (the Ledger's)
 
+### Supplies
+The App for household consumables that are not food — soap, cleaning products, batteries, medicine, light bulbs: what is held, how much, and what is running low. Pantry's sibling, kept apart because Pantry is food only; a thing used up and bought again, never one particular object.
+_Avoid_: inventory (fine in prose, for the three belongings Apps together), consumables (fine in prose), stock, Pantry (food only)
+
+### Wardrobe
+The App for what I wear — clothes, shoes, accessories: one Document per piece I own or want, never a count. Kept apart from other belongings because a coat beside a drill makes no sense to read.
+_Avoid_: closet, clothing, inventory (fine in prose)
+
+### Kit
+A situation's list of what it calls for — "Sac de survie", "Camping weekend", "Hospital bag" — each line satisfied by something I own or else missing. What is missing is read from the Kit, never a list kept by hand. Not a Shopping list (that is what to buy next, a Kit is what a situation needs) and not a Playlist (a Kit's lines are requirements, not a curated order).
+_Avoid_: checklist (fine in prose), loadout, pack, bag (one kind of Kit), set, Need (the Shopping list's)
+
 ### Mail
 _Retired_ (ADR 0080) — the Gmail window, with its Mailbox, Thread, Message, Label and Triage. An email worth keeping reaches an Intake as any web page does: Send to Lifeline from the Lifeline extension, or the phone's share sheet.
 
