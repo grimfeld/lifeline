@@ -537,7 +537,7 @@ An unresolved wikilink name drawn on a Graph: a hole in the vault. Clicking it c
 _Avoid_: phantom, placeholder, unresolved node (fine in prose)
 
 ### Possession
-Core Contract (behaviour — code only): a Document type whose Documents can be held, and say whether each one is held and how much — Supplies and Pantry by their quantity, Wardrobe and the durables App by Acquisition (Owned is held; Wanted and Gone are not). Its one consumer is the Kit, which reads it to say what is missing; a Possession type never knows which Kits name it.
+Core Contract (behaviour — code only): a Document type whose Documents can be held, and say whether each one is held and how much — Supplies and Pantry by their quantity, Wardrobe and the Garage by Acquisition (Owned is held; Wanted and Gone are not). Its one consumer is the Kit, which reads it to say what is missing; a Possession type never knows which Kits name it.
 _Avoid_: ownable, inventory item, asset (the Ledger's sense), stock
 
 ### Locatable
@@ -724,8 +724,12 @@ _Avoid_: inventory (fine in prose, for the three belongings Apps together), cons
 The App for what I wear — clothes, shoes, accessories: one Document per piece I own or want, never a count. Kept apart from other belongings because a coat beside a drill makes no sense to read.
 _Avoid_: closet, clothing, inventory (fine in prose)
 
+### Garage
+The App for every durable thing I own or want that I don't wear — tools, hardware, garden equipment, electronics, appliances, outdoor and survival gear, furniture, keepsakes: one Document per object, never a count. Owns Kits. Paper documents (a passport, a deed) are not belongings — their worth is a number and a date, kept in a Note; a warranty is a fact about the thing it covers.
+_Avoid_: toolshed, gear (fine in prose), inventory (fine in prose, for the three belongings Apps together), belongings (the three together), storage (Pantry's Storage)
+
 ### Kit
-A situation's list of what it calls for — "Sac de survie", "Camping weekend", "Hospital bag" — each line a Link to a Possession Document, or plain text for something not recorded yet, and covered when that Document is held. Owned by the durables App. What is missing is read from the Kit, never a list kept by hand. Not a Shopping list (that is what to buy next, a Kit is what a situation needs) and not a Playlist (a Kit's lines are requirements, not a curated order).
+A situation's list of what it calls for — "Sac de survie", "Camping weekend", "Hospital bag" — each line a Link to a Possession Document, or plain text for something not recorded yet, and covered when that Document is held. Owned by the Garage. What is missing is read from the Kit, never a list kept by hand. Not a Shopping list (that is what to buy next, a Kit is what a situation needs) and not a Playlist (a Kit's lines are requirements, not a curated order).
 _Avoid_: checklist (fine in prose), loadout, pack, bag (one kind of Kit), set, Need (the Shopping list's)
 
 ### Mail
