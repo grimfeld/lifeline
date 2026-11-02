@@ -718,15 +718,19 @@ _Avoid_: section (the sidebar's and the Bible's), shop (Prices' chain), Storage 
 
 ### Supplies
 The App for household consumables that are not food — soap, cleaning products, batteries, medicine, light bulbs: what is held, how much, and what is running low. Pantry's sibling, kept apart because Pantry is food only; a thing used up and bought again, never one particular object.
-_Avoid_: inventory (fine in prose, for the three belongings Apps together), consumables (fine in prose), stock, Pantry (food only)
+_Avoid_: inventory (fine in prose, for Supplies, Wardrobe and the Garage together), consumables (fine in prose), stock, Pantry (food only)
 
 ### Wardrobe
 The App for what I wear — clothes, shoes, accessories: one Document per piece I own or want, never a count. Kept apart from other belongings because a coat beside a drill makes no sense to read.
-_Avoid_: closet, clothing, inventory (fine in prose)
+_Avoid_: closet, clothing, inventory (fine in prose, for Supplies, Wardrobe and the Garage together)
 
 ### Garage
 The App for every durable thing I own or want that I don't wear — tools, hardware, garden equipment, electronics, appliances, outdoor and survival gear, furniture, keepsakes: one Document per object, never a count. Owns Kits. Paper documents (a passport, a deed) are not belongings — their worth is a number and a date, kept in a Note; a warranty is a fact about the thing it covers.
-_Avoid_: toolshed, gear (fine in prose), inventory (fine in prose, for the three belongings Apps together), belongings (the three together), storage (Pantry's Storage)
+_Avoid_: toolshed, gear (fine in prose), inventory (fine in prose, for Supplies, Wardrobe and the Garage together), storage (Pantry's Storage)
+
+### Belonging
+One thing owned by the Garage, as I'd name it out loud — "Bosch drill", "Dining chairs", "Grandad's watch". A set bought, lent or lost as a whole is one Belonging (the drill with its batteries and charger, a 32-piece screwdriver set); it may carry a **count** that describes it ("6") and never goes down with use. A part becomes its own Belonging only once it leads a life of its own — lent alone, packed alone in a Kit. Anything used up and bought again is not a Belonging but Supplies', wherever it is kept: screws, sandpaper, fuel.
+_Avoid_: item (Media item is taken), object, possession (the Contract), asset, thing (fine in prose)
 
 ### Kit
 A situation's list of what it calls for — "Sac de survie", "Camping weekend", "Hospital bag" — each line a Link to a Possession Document, or plain text for something not recorded yet, and covered when that Document is held. Owned by the Garage. What is missing is read from the Kit, never a list kept by hand. Not a Shopping list (that is what to buy next, a Kit is what a situation needs) and not a Playlist (a Kit's lines are requirements, not a curated order).
