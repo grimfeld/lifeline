@@ -413,7 +413,7 @@ Library only, for books, comics and manga: the small capped set of items current
 _Avoid_: queue, TBR, wishlist, priority
 
 ### Wanted list
-Every Wanted work of a family that still has **Acquisition** — Library and Arcade only (streamed media are never owned, so Cinema and the Discotheque have no Acquisition at all): Nightstand ones first (next up — buy now), then the rest, oldest first. Marking one as acquired takes it off the list; in the Library, **Bought** is one click on the work itself — Wanted ⇄ Owned, clicking again un-buys — while Borrowed and Gone stay deliberate menu moves. The Shelf never moves the list: a book read but still Wanted stays on it. A Card per App, never furniture on the Gallery.
+Every Wanted thing of an App that has **Acquisition** — Library, Arcade and the Garage (the Garage's are Belongings, a Replace among them) (streamed media are never owned, so Cinema and the Discotheque have no Acquisition at all): Nightstand ones first (next up — buy now), then the rest, oldest first. Marking one as acquired takes it off the list; in the Library, **Bought** is one click on the work itself — Wanted ⇄ Owned, clicking again un-buys — while Borrowed and Gone stay deliberate menu moves. The Shelf never moves the list: a book read but still Wanted stays on it. A Card per App, never furniture on the Gallery.
 _Avoid_: wishlist (that word hides the buy-now head of the list), cart, shopping list (the Shopping list App's own list)
 
 ### Marks
@@ -537,7 +537,7 @@ An unresolved wikilink name drawn on a Graph: a hole in the vault. Clicking it c
 _Avoid_: phantom, placeholder, unresolved node (fine in prose)
 
 ### Possession
-Core Contract (behaviour — code only): a Document type whose Documents can be held, and say whether each one is held and how much — Supplies and Pantry by their quantity, Wardrobe and the Garage by Acquisition (Owned is held; Wanted and Gone are not). Its one consumer is the Kit, which reads it to say what is missing; a Possession type never knows which Kits name it.
+Core Contract (behaviour — code only): a Document type whose Documents can be held, and say whether each one is held and how much — Supplies and Pantry by their quantity, Wardrobe and the Garage by Acquisition (Owned is held; Wanted and Gone are not; a Lent Belonging is not held). Its one consumer is the Kit, which reads it to say what is missing; a Possession type never knows which Kits name it.
 _Avoid_: ownable, inventory item, asset (the Ledger's sense), stock
 
 ### Locatable
@@ -731,6 +731,18 @@ _Avoid_: toolshed, gear (fine in prose), inventory (fine in prose, for Supplies,
 ### Belonging
 One thing owned by the Garage, as I'd name it out loud — "Bosch drill", "Dining chairs", "Grandad's watch". A set bought, lent or lost as a whole is one Belonging (the drill with its batteries and charger, a 32-piece screwdriver set); it may carry a **count** that describes it ("6") and never goes down with use. A part becomes its own Belonging only once it leads a life of its own — lent alone, packed alone in a Kit. Anything used up and bought again is not a Belonging but Supplies', wherever it is kept: screws, sandpaper, fuel.
 _Avoid_: item (Media item is taken), object, possession (the Contract), asset, thing (fine in prose)
+
+### Acquisition (Garage)
+Where a Belonging stands with me: **Wanted** (not yet mine), **Owned**, or **Gone** — with a short reason, sold, given, broken or lost — the record kept so "what did I do with the tent?" has an answer. Library's word and Library's Wanted ⇄ Owned, without Borrowed: a thing borrowed is not mine to record.
+_Avoid_: status, ownership, borrowed (Library's, not the Garage's)
+
+### Lent
+Of an Owned Belonging: in someone else's hands — to whom (a person, by name or Link) and since when. Not an Acquisition state: a lent ladder is still mine. A Kit counts a lent Belonging as missing, since what is at the neighbour's can't be packed; "what have I lent out" is a reading over Belongings.
+_Avoid_: loaned, borrowed (the other side of it), checked out
+
+### Condition
+How a Belonging is wearing: **good**, **worn** or **broken**. Worn or broken offers **Replace**: a new Wanted Belonging that names the one it replaces, and once it is Owned the old one goes Gone in one step. "Replace soon" is that Wanted replacement, never a flag on the old Belonging.
+_Avoid_: state, quality, health
 
 ### Kit
 A situation's list of what it calls for — "Sac de survie", "Camping weekend", "Hospital bag" — each line a Link to a Possession Document, or plain text for something not recorded yet, and covered when that Document is held. Owned by the Garage. What is missing is read from the Kit, never a list kept by hand. Not a Shopping list (that is what to buy next, a Kit is what a situation needs) and not a Playlist (a Kit's lines are requirements, not a curated order).
