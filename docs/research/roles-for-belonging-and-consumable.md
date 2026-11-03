@@ -91,7 +91,7 @@ guarded fields**. Source lends nothing, and Author is not played by any other ty
 | **Base**: columns, filters, cells, board drags | **Missing.** `BasePage` builds columns from `def.fields` (`shell/src/bases/BasePage.tsx:108`). So do `filterableFields` (`shell/src/bases/filters.ts:15-17`), `fieldByKey`/`defaultColumns` (`packages/core/src/documents/views.ts:28-37`) and `requestFieldChange` (`views.ts:176`). | Only if the type itself declares them (§1) |
 | **Base of a Role** ("all my Belongings") | **Missing.** Bases are per type (`/base/:type`, `shell/src/App.tsx:167`). Nothing lists a Role across types. | same |
 | **Peek**, user-defined wearer | Read-only list (`shell/src/peek/PeekContent.tsx:121-145`) | n/a |
-| **Peek**, built-in wearer with an App part (every work type: `peekEdit: WorkPeek`, `apps/library/src/types.ts:70`) | **Missing.** Only the App's part and the user's own fields are drawn (`PeekContent.tsx:47-50`). | Only via the type's App's own part |
+| **Peek**, built-in wearer with an App part (every work type: `peekEdit: WorkPeek`, `apps/library/src/types.ts:71`) | **Missing.** Only the App's part and the user's own fields are drawn (`PeekContent.tsx:47-50`). | Only via the type's App's own part |
 | **Peek**, built-in wearer without a part | Read-only (`PeekContent.tsx:160-170`) | n/a |
 | **Vault page** (`DocumentEditor`) | **Works**: edited beside the type's own, put on and taken off with undo (`DocumentEditor.tsx:180-203,423-457`) | no |
 | **Work page** (Library, Cinema, Discotheque, Arcade) | **Missing.** `WorkPage` and `WorkPeekFields` never read Roles (`packages/parts/src/components/`). | n/a |
