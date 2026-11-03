@@ -19,7 +19,7 @@ Read-only: nothing here designs the shared package.
 ## Headline
 
 - 15,020 source lines across the four Apps. About **4,800 lines** sit in a core common to every copy of a
-  same-name file; about **5,100** once the Cinema/Discotheque/Arcade core that Library does not share is
+  same-name file; about **5,200** once the Cinema/Discotheque/Arcade core that Library does not share is
   added. Add about 190 for two pairs with different names (below). **Rough total: 5,000 to 5,400 lines,
   about a third of all four Apps, and about 80% of what Cin/Dis/Arc would lose** (they total 8,394).
 - Cinema and Discotheque are the same App with names swapped nearly everywhere (pair diffs of 0 to 6 lines
