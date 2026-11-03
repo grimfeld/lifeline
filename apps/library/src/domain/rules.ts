@@ -1,6 +1,6 @@
 import { diffDays, todayStr, type DateStr } from "@lifeline/core";
 import { workType, type WorkTypeId } from "./workTypes";
-import type { Acquisition, Work } from "./types";
+import type { Acquisition, Engagement, Work } from "./types";
 
 /** A partial change to an item. Transitions return patches, never whole records. */
 export type Patch = Partial<Omit<Work, "id" | "updatedAt" | "deleted">>;
@@ -69,14 +69,43 @@ export const unacquire = (): Patch => ({ acquisition: "WANTED", acquiredOn: "" }
 export const toggleOwned = (item: Work, today = todayStr()): Patch =>
   item.acquisition === "OWNED" ? unacquire() : acquire("OWNED", today);
 
+/** Acquisition moves through the Library's own transitions (ADR 0019): acquiring stamps the day, Wanted clears it. */
+export function acquisitionPatch(to: Acquisition, today = todayStr()): Patch {
+  if (to === "OWNED" || to === "BORROWED") return acquire(to, today);
+  if (to === "GONE") return release();
+  return unacquire();
+}
+
 /**
  * Undo Done (CONTEXT.md, Shelf): back to Reading when it had been started,
  * else to the To read shelf. Only the finished day is cleared — the slot the
  * finish freed is never taken back; re-slotting is deliberate.
  */
 export const unfinish = (): Patch => ({ engagement: "UNSTARTED", finishedOn: "" });
-export const toggleDone = (item: Work, today = todayStr()): Patch =>
-  item.engagement === "DONE" ? (item.startedOn ? { engagement: "IN_PROGRESS", finishedOn: "" } : unfinish()) : finish(today);
+/** Reading again after Done: the started day kept, the finished day cleared. */
+export const resume = (): Patch => ({ engagement: "IN_PROGRESS", finishedOn: "" });
+/** "Mark … again": back on the To read shelf, every reading day cleared. */
+export const reshelve = (): Patch => ({ engagement: "UNSTARTED", startedOn: "", finishedOn: "" });
+export const toggleDone = (item: Work, today = todayStr()): Patch => (item.engagement === "DONE" ? (item.startedOn ? resume() : unfinish()) : finish(today));
+
+/**
+ * A move to a Shelf by name (the `library.shelf` Command), through the same
+ * transitions the buttons run: In progress resumes a work already started
+ * (else starts it today), Done finishes it on `finishedOn` (else today), To
+ * read is "Mark … again".
+ */
+export function shelfMove(item: Work, to: Engagement, today = todayStr(), finishedOn?: string): Patch {
+  switch (to) {
+    case "IN_PROGRESS":
+      return item.startedOn ? resume() : start(today);
+    case "DONE":
+      return finish(finishedOn || today);
+    case "ABANDONED":
+      return abandon();
+    case "UNSTARTED":
+      return reshelve();
+  }
+}
 
 // --- derived views ---------------------------------------------------------
 

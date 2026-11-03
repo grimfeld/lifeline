@@ -28,7 +28,5 @@ export const rate = (item: Work, stars: number): Patch => {
   return { rating: n === item.rating || n < 1 || n > RATING_MAX ? 0 : n };
 };
 
-export const setReview = (body: string): Patch => ({ body: body.trim() });
-
 /** The star row is offered once the work is not merely To listen — or as soon as it carries a rating. */
 export const showsRating = (item: Work): boolean => item.rating > 0 || item.engagement !== "UNSTARTED";

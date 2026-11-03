@@ -9,6 +9,10 @@ describe("google books mapping", () => {
     ).toEqual({ externalKey: "googlebooks:abc", title: "Dune", authors: [{ name: "Frank Herbert" }, { name: "X" }], year: 1965, size: 412, coverUrl: "https://books.google.com/thumb?id=abc" });
     expect(mapGbVolume({ id: "z" })).toMatchObject({ title: "", authors: [], year: 0, size: 0, coverUrl: "" });
   });
+  it("carries the description as the synopsis when the volume has one", () => {
+    expect(mapGbVolume({ id: "abc", volumeInfo: { title: "Dune", description: "A desert planet." } })).toMatchObject({ synopsis: "A desert planet." });
+    expect(mapGbVolume({ id: "abc", volumeInfo: { title: "Dune" } })).not.toHaveProperty("synopsis");
+  });
   it("builds intitle/inauthor queries from the split fields", () => {
     expect(googleBooksQuery({ text: "dune herbert" })).toBe("dune herbert");
     expect(googleBooksQuery({ title: "Dune", author: 'Frank "F" Herbert' })).toBe('intitle:"Dune" inauthor:"Frank F Herbert"');

@@ -1,5 +1,6 @@
 import type { WorkTypeId } from "../domain/workTypes";
 import type { LookupSettings } from "../domain/types";
+import { isbnOf } from "./isbn";
 import { isEmptyQuery, searchOpenLibrary, type LookupQuery, type WorkHit } from "./openlibrary";
 import { googleBooksSearch } from "./providers/googlebooks";
 import { comicVineSearch } from "./providers/comicvine";
@@ -18,13 +19,24 @@ export type LookupKeys = Partial<Pick<LookupSettings, "comicvineKey" | "googleBo
 /** The provider a hit came from: the prefix of its external key ("openlibrary", "googlebooks", "comicvine"). */
 export const providerOf = (hit: Pick<WorkHit, "externalKey">) => hit.externalKey.split(":")[0] ?? "";
 
+/** A query whose free text (or lone title) is a valid ISBN becomes an ISBN query; any other stays as typed. */
+export function withIsbn(q: LookupQuery): LookupQuery {
+  if (q.isbn) return q;
+  const only = q.text?.trim() && !q.title?.trim() && !q.author?.trim() ? q.text : !q.text?.trim() && q.title?.trim() && !q.author?.trim() ? q.title : "";
+  const isbn = only ? isbnOf(only) : null;
+  if (!isbn) return q;
+  const { text: _t, title: _ti, ...rest } = q;
+  return { ...rest, isbn };
+}
+
 /**
  * Run providers in order; the first one that returns anything wins. Errors in
  * one fall through to the next. A query that names a `provider` (a "More"
  * page) runs that one alone — the chain never restarts on page two.
  */
 function chain(...providers: Provider[]): SearchFn {
-  return async (q, signal) => {
+  return async (raw, signal) => {
+    const q = withIsbn(raw);
     if (isEmptyQuery(q)) return [];
     const run = q.provider ? providers.filter((p) => p.id === q.provider) : providers;
     let lastErr: unknown = null;

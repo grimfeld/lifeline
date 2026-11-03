@@ -16,7 +16,7 @@ import { useByline } from "./AuthorNames";
  * strip appears on hover where there is a pointer and is always there on touch.
  * The heart is there too (Marks, ADR 0074).
  */
-export function WorkTile({ item, all, onOpen, onEdit }: { item: Work; all: Work[]; onOpen: (m: Work) => void; onEdit?: (m: Work) => void }) {
+export function WorkTile({ item, all, onOpen }: { item: Work; all: Work[]; onOpen: (m: Work) => void }) {
   const def = workType(item.type);
   const who = useByline(item);
   const abandoned = item.engagement === "ABANDONED";
@@ -55,7 +55,6 @@ export function WorkTile({ item, all, onOpen, onEdit }: { item: Work; all: Work[
           <WorkActionsMenu
             item={item}
             all={all}
-            onEdit={(m) => onEdit?.(m)}
             onOpenChange={setMenuOpen}
             trigger={
               <button type="button" className="flex items-center justify-center rounded-full text-white/80 hover:text-white" aria-label="More">

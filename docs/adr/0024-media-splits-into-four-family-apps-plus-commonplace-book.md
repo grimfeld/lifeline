@@ -2,7 +2,7 @@
 status: accepted
 supersedes: ADR 0006
 superseded-by: ADR 0070 (in part — the Commonplace book's Quote limited to works)
-amended-by: ADR 0074 (in part — the Library gains manga)
+amended-by: ADR 0074 (in part — the Library gains manga), ADR 0108 (in part — an ISBN finds a work and is never stored)
 ---
 
 # The Media App splits into four family Apps plus a Commonplace book; duplicated logic over shared abstractions

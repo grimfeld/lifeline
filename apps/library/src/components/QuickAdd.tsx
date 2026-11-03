@@ -4,7 +4,7 @@ import { deleteWork, parseQuickTitle, quickAddWork, useLookupSettings } from "..
 import { lookupFor, resolveHit } from "../data/lookup";
 import { hitByline, type WorkHit } from "../data/openlibrary";
 import { Cover } from "./Cover";
-import { ACQ_LABEL } from "./AddWorkDialog";
+import { ACQ_LABEL } from "../domain/types";
 
 /** What QuickAdd shows for an add: the Work you already have is handed back, with where it stands. */
 function shown({ id, twin }: Awaited<ReturnType<typeof quickAddWork>>, title: string) {

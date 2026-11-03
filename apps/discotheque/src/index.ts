@@ -17,6 +17,7 @@ import { playlistTypeDef, workTypeDefs } from "./types";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
 const DiscothequeScreen = lazyChunk(() => import("./screens/DiscothequeScreen").then((m) => ({ default: m.DiscothequeScreen })));
+const WorkScreen = lazyChunk(() => import("./screens/WorkScreen").then((m) => ({ default: m.WorkScreen })));
 
 /** Discotheque App (ADR 0024): albums — streamed, keyless lookup, no settings. */
 export const discothequeApp: AppManifest = {
@@ -26,7 +27,11 @@ export const discothequeApp: AppManifest = {
   icon: Disc3,
   color: "var(--chart-violet)",
   types: [...workTypeDefs, ...discothequeParts.typeDefs, playlistTypeDef],
-  screens: [{ id: "discotheque.main", title: "Discotheque", path: "discotheque", icon: Disc3, component: DiscothequeScreen }],
+  screens: [
+    { id: "discotheque.main", title: "Discotheque", path: "discotheque", icon: Disc3, component: DiscothequeScreen },
+    // The Work page: routed, never listed — reached from a Gallery tile, a Playlist or the album's Peek.
+    { id: "discotheque.work", title: "Album", path: "discotheque/works/:id", component: WorkScreen, hidden: true },
+  ],
   cards: [
     {
       id: "discotheque.in-progress",

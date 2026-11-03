@@ -1,5 +1,6 @@
 ---
 status: accepted
+amended-by: ADR 0109 (in part — the camera is allowed to Lifeline's own origin, for scanning a book's barcode)
 ---
 
 # The web and desktop apps run under one Content Security Policy that names every origin they fetch directly

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Button, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Tip, toast } from "@lifeline/ui";
-import { BookOpenCheck, Check, Eye, ListPlus, MoreHorizontal, Pencil, Play, Trash2, X } from "lucide-react";
+import { BookOpenCheck, Check, Eye, ListPlus, MoreHorizontal, Play, Trash2, X } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
 import { abandon, finish, start, unfinish, type Patch } from "../domain/rules";
 import { deleteWork, patchWork } from "../data/repo";
 import { AddToPlaylistDialog } from "./AddToPlaylistDialog";
 
-/** Applies a transition patch to an item and toasts. A plain function, not a hook: the detail dialog calls it after its early return. */
+/** Applies a transition patch to an item and toasts. A plain function, not a hook: . */
 export function actOn(item: Work) {
   return (label: string, patch: Patch) => () => {
     void patchWork(item, patch);
@@ -16,10 +16,10 @@ export function actOn(item: Work) {
 }
 
 /**
- * The full transition set for one item, as a dropdown. Shared by the detail
- * dialog and the cards so both offer exactly the same actions.
+ * The full transition set for one item, as a dropdown. Shared by the tile,
+ * the Peek and the Work page so all offer exactly the same actions.
  */
-export function WorkActionsMenu({ item, onEdit, onDeleted, onOpenChange, trigger }: { item: Work; /** Absent where the work is already being edited (its Peek). */ onEdit?: (m: Work) => void; onDeleted?: () => void; onOpenChange?: (open: boolean) => void; trigger?: React.ReactNode }) {
+export function WorkActionsMenu({ item, onDeleted, onOpenChange, trigger }: { item: Work; onDeleted?: () => void; onOpenChange?: (open: boolean) => void; trigger?: React.ReactNode }) {
   const def = workType(item.type);
   const reading = item.engagement === "IN_PROGRESS";
   const done = item.engagement === "DONE" || item.engagement === "ABANDONED";
@@ -70,11 +70,6 @@ export function WorkActionsMenu({ item, onEdit, onDeleted, onOpenChange, trigger
         <DropdownMenuItem onClick={() => setPlaylistOpen(true)}>
           <ListPlus /> Add to playlist…
         </DropdownMenuItem>
-        {onEdit && (
-          <DropdownMenuItem onClick={() => onEdit(item)}>
-            <Pencil /> Edit
-          </DropdownMenuItem>
-        )}
         <DropdownMenuItem
           variant="destructive"
           onClick={() => {

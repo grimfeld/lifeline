@@ -17,6 +17,7 @@ import { settingsTypeDef, workTypeDefs } from "./types";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
 const ArcadeScreen = lazyChunk(() => import("./screens/ArcadeScreen").then((m) => ({ default: m.ArcadeScreen })));
+const WorkScreen = lazyChunk(() => import("./screens/WorkScreen").then((m) => ({ default: m.WorkScreen })));
 
 /** Arcade App (ADR 0024): games — bought, played, finished. No slots, no medium knob. */
 export const arcadeApp: AppManifest = {
@@ -26,7 +27,10 @@ export const arcadeApp: AppManifest = {
   icon: Gamepad2,
   color: "var(--chart-green)",
   types: [...workTypeDefs, settingsTypeDef],
-  screens: [{ id: "arcade.main", title: "Arcade", path: "arcade", icon: Gamepad2, component: ArcadeScreen }],
+  screens: [{ id: "arcade.main", title: "Arcade", path: "arcade", icon: Gamepad2, component: ArcadeScreen },
+    // The Work page: routed, never listed — reached from a Gallery tile or the game's Peek.
+    { id: "arcade.work", title: "Game", path: "arcade/works/:id", component: WorkScreen, hidden: true },
+  ],
   cards: [
     {
       id: "arcade.shopping",

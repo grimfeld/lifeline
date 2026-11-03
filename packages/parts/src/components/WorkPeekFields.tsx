@@ -33,6 +33,7 @@ export function WorkPeekFields({
   creator,
   sizeUnit,
   marks,
+  extra,
 }: {
   work: PeekWork;
   /** The App's write; a refusal (throw) shows under the field. */
@@ -43,6 +44,8 @@ export function WorkPeekFields({
   sizeUnit: string;
   /** The heart and the stars, for an App that keeps the Marks on its works. */
   marks?: boolean;
+  /** The App's own plain Fields, placed after the Marks (the Library's synopsis and series). */
+  extra?: ReactNode;
 }) {
   return (
     <div className="grid gap-3">
@@ -58,6 +61,7 @@ export function WorkPeekFields({
         />
       </div>
       {marks && <MarksControls liked={!!work.liked} rating={work.rating ?? 0} onChange={(p) => void onPatch(p)} />}
+      {extra}
       <CommitField
         label="Reason"
         multiline

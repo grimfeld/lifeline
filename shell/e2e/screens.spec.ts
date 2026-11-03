@@ -362,6 +362,28 @@ function peekOf(type: string, userField?: boolean, write?: boolean) {
 }
 
 /**
+ * The first book given the longest synopsis, series and original title a
+ * person could type (the seed's `library.add` keeps only its title), then —
+ * with `peek` — its Peek opened over the page, as a phone sees it.
+ */
+function longBook(peek: boolean) {
+  return async (page: Page) => {
+    await workLocally(page);
+    await page.evaluate(
+      async ({ coreUrl, peek, long, word }) => {
+        const core = await import(/* @vite-ignore */ coreUrl);
+        const [doc] = await core.documentsOf("book");
+        await core.patchDocument(doc.id, { synopsis: `${long}\n\n${word}${word} ${long}`, series: long, seriesNumber: 12.5, originalTitle: long, originalLanguage: word });
+        if (peek) core.openPeek(doc.id);
+      },
+      { coreUrl: CORE_URL, peek, long: longText("A synopsis"), word: LONG_WORD },
+    );
+    if (peek) await page.getByRole("dialog").waitFor();
+    else await expect(page.getByLabel("Synopsis")).toHaveValue(new RegExp(`^${longText("A synopsis")}`));
+  };
+}
+
+/**
  * A Provision's Peek with its "Expires" Date picker open (ADR 0087): the
  * calendar sits inside the viewport and nothing scrolls sideways, at phone
  * width too; the layout check then covers the popover itself.
@@ -775,6 +797,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Habit", path: "/app/lifelevel/:id", type: "habit" },
   { name: "Library", path: "/app/library", afterOpen: openShelf },
   { name: "Author", path: "/app/library/authors/:id", type: "author" },
+  { name: "Library · Work", path: "/app/library/works/:id", type: "book", afterOpen: longBook(false) },
+  { name: "Library · Peek of a book with a long synopsis and series", path: "/app/library", afterOpen: longBook(true) },
   {
     // The Add dialog's Author Combobox, its list open over the seeded long-named Author (two letters: no Open Library lookup).
     name: "Library · Add · Author picker",
@@ -797,8 +821,10 @@ const SCREENS: ScreenCase[] = [
   },
   { name: "Cinema", path: "/app/cinema", afterOpen: openShelf },
   // No TMDB key in the seed: the list holds the "Add …" row alone.
+  { name: "Cinema · Work", path: "/app/cinema/works/:id", type: "movie" },
   { name: "Cinema · Quick add", path: "/app/cinema", afterOpen: openQuickAdd },
   { name: "Discotheque", path: "/app/discotheque", afterOpen: openShelf },
+  { name: "Discotheque · Work", path: "/app/discotheque/works/:id", type: "music" },
   {
     // A stubbed MusicBrainz hit under the "Add …" row.
     name: "Discotheque · Quick add",
@@ -810,6 +836,7 @@ const SCREENS: ScreenCase[] = [
   },
   { name: "Arcade", path: "/app/arcade", afterOpen: openShelf },
   // No RAWG key in the seed: the list holds the "Add …" row alone.
+  { name: "Arcade · Work", path: "/app/arcade/works/:id", type: "game" },
   { name: "Arcade · Quick add", path: "/app/arcade", afterOpen: openQuickAdd },
   { name: "Quotes", path: "/app/quotes" },
   { name: "Museum", path: "/app/museum" },

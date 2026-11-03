@@ -3,7 +3,7 @@ import { onShelf, shelfLabel } from "./browse";
 import { hasSlots, SLOTTED_TYPES } from "./workTypes";
 import { parseQuickTitle } from "../data/repo";
 import type { Work } from "./types";
-import { abandon, finish, freeSlots, freeSlotsOf, isBuySignal, isFull, isStale, nightstand, promote, shelfOfShame, wantedList, slotAge, toggleDone, toggleOwned } from "./rules";
+import { abandon, finish, freeSlots, freeSlotsOf, isBuySignal, isFull, isStale, nightstand, promote, shelfOfShame, wantedList, slotAge, toggleDone, toggleOwned, shelfMove, acquisitionPatch } from "./rules";
 
 function item(p: Partial<Work>): Work {
   return {
@@ -35,6 +35,11 @@ function item(p: Partial<Work>): Work {
     caughtUpGroup: 0,
     caughtUpPart: 0,
     partCount: 0,
+    synopsis: "",
+    series: "",
+    seriesNumber: 0,
+    originalTitle: "",
+    originalLanguage: "",
     ...p,
   };
 }
@@ -75,6 +80,27 @@ describe("transitions", () => {
   it("one-click Bought: Wanted ⇄ Owned, the acquired day stamped then cleared", () => {
     expect(toggleOwned(item({}), "2026-08-16")).toEqual({ acquisition: "OWNED", acquiredOn: "2026-08-16" });
     expect(toggleOwned(item({ acquisition: "OWNED", acquiredOn: "2026-08-16" }))).toEqual({ acquisition: "WANTED", acquiredOn: "" });
+  });
+});
+
+describe("shelf and acquisition moves, shared by the buttons and the Commands", () => {
+  it("To read again clears every reading day", () => {
+    expect(shelfMove(item({ engagement: "DONE", startedOn: "2026-08-01", finishedOn: "2026-08-09" }), "UNSTARTED")).toEqual({ engagement: "UNSTARTED", startedOn: "", finishedOn: "" });
+  });
+  it("Done to In progress keeps the started day and clears the finished one", () => {
+    expect(shelfMove(item({ engagement: "DONE", startedOn: "2026-08-01", finishedOn: "2026-08-09" }), "IN_PROGRESS", "2026-08-16")).toEqual({ engagement: "IN_PROGRESS", finishedOn: "" });
+  });
+  it("starting a work never started stamps today", () => {
+    expect(shelfMove(item({}), "IN_PROGRESS", "2026-08-16")).toEqual({ engagement: "IN_PROGRESS", startedOn: "2026-08-16" });
+  });
+  it("Done on a given day frees the slot; Dropped frees it too", () => {
+    expect(shelfMove(item({ slot: 1 }), "DONE", "2026-08-16", "2026-08-02")).toEqual({ engagement: "DONE", finishedOn: "2026-08-02", slot: 0, slottedOn: "" });
+    expect(shelfMove(item({ slot: 1 }), "ABANDONED")).toEqual({ engagement: "ABANDONED", slot: 0, slottedOn: "" });
+  });
+  it("acquiring stamps the day, Wanted clears it, Gone keeps it", () => {
+    expect(acquisitionPatch("BORROWED", "2026-08-16")).toEqual({ acquisition: "BORROWED", acquiredOn: "2026-08-16" });
+    expect(acquisitionPatch("WANTED")).toEqual({ acquisition: "WANTED", acquiredOn: "" });
+    expect(acquisitionPatch("GONE")).toEqual({ acquisition: "GONE" });
   });
 });
 

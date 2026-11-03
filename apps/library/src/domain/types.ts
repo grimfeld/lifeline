@@ -4,6 +4,7 @@ import type { WorkTypeId } from "./workTypes";
 /** Whether and how I have access to a copy. Independent of the Shelf. */
 export const ACQUISITION = ["WANTED", "OWNED", "BORROWED", "GONE"] as const;
 export type Acquisition = (typeof ACQUISITION)[number];
+export const ACQ_LABEL: Record<Acquisition, string> = { WANTED: "Wanted", OWNED: "Owned", BORROWED: "Borrowed", GONE: "Gone" };
 
 /** The Shelf (CONTEXT.md): how far I have got through it. */
 export const ENGAGEMENT = ["UNSTARTED", "IN_PROGRESS", "DONE", "ABANDONED"] as const;
@@ -47,6 +48,14 @@ export interface Work extends Document {
   caughtUpGroup: number;
   caughtUpPart: number;
   partCount: number;
+  /** Plain, unguarded descriptive fields; lookup fills them only when empty. Series is text, not a Document. */
+  synopsis: string;
+  series: string;
+  /** Decimals allowed (1.5); 0 = none. */
+  seriesNumber: number;
+  originalTitle: string;
+  /** A language name such as "Japanese", not a code. */
+  originalLanguage: string;
 }
 
 export { WORK_TYPE_IDS } from "./workTypes";

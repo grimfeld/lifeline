@@ -1,4 +1,4 @@
-import { Button, cn, toast, Tip } from "@lifeline/ui";
+import { cn, toast, Tip } from "@lifeline/ui";
 import { Eye, Heart, Star } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Work } from "../domain/types";
@@ -97,22 +97,5 @@ export function MarksGlance({ item, className }: { item: Work; className?: strin
       )}
       {item.liked && <Heart className="size-3 fill-current text-rose-500" aria-label="Liked" />}
     </span>
-  );
-}
-
-/** The detail dialog's row: Listened / Liked / stars — the same gestures as the tile, at reading size. */
-export function MarksRow({ item }: { item: Work }) {
-  const def = workType(item.type);
-  const done = item.engagement === "DONE";
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant={done ? "default" : "outline"} className="h-7 gap-1.5 px-2 text-xs" aria-pressed={done} onClick={() => { void patchWork(item, toggleDone(item)); }}>
-        <Eye className={cn("size-3.5", done && "fill-current")} /> {done ? def.engagement.DONE : `Mark ${def.engagement.DONE.toLowerCase()}`}
-      </Button>
-      <Button size="sm" variant={item.liked ? "default" : "outline"} className={cn("h-7 gap-1.5 px-2 text-xs", item.liked && "bg-rose-500 hover:bg-rose-500/90")} aria-pressed={item.liked} onClick={() => { void patchWork(item, toggleLiked(item)); }}>
-        <Heart className={cn("size-3.5", item.liked && "fill-current")} /> {item.liked ? "Liked" : "Like"}
-      </Button>
-      <StarRating item={item} />
-    </div>
   );
 }

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { matchesTagFilter, useTagFilter, type CardProps } from "@lifeline/core";
+import { matchesTagFilter, useTagFilter, type CardProps, useOpenPeek } from "@lifeline/core";
 import { Badge, Button } from "@lifeline/ui";
 import { Play } from "lucide-react";
 import { workType } from "../domain/workTypes";
@@ -7,8 +6,6 @@ import { start } from "../domain/rules";
 import { byMedium } from "../domain/cardQueries";
 import { patchWork, useWorks } from "../data/repo";
 import { Cover } from "../components/Cover";
-import { EditWorkDialog } from "../components/WorkRow";
-import type { Work } from "../domain/types";
 import { mediumOf } from "./shared";
 import { AuthorNames } from "../components/AuthorNames";
 
@@ -19,7 +16,8 @@ export function WantCard({ settings }: CardProps) {
   const medium = mediumOf(settings);
   const count = typeof settings.count === "number" && settings.count > 0 ? settings.count : 10;
   const sort = settings.sort === "title" ? "title" : "added";
-  const [editing, setEditing] = useState<Work | null>(null);
+  // A work is peeked from a Card (ADR 0057); its Peek links through to its page.
+  const peek = useOpenPeek();
   const rows = byMedium(items, medium)
     .filter((m) => m.engagement === "UNSTARTED")
     .sort((a, b) => (sort === "title" ? a.title.localeCompare(b.title) : b.addedOn.localeCompare(a.addedOn) || a.title.localeCompare(b.title)))
@@ -33,7 +31,7 @@ export function WantCard({ settings }: CardProps) {
         {rows.map((m) => {
           const def = workType(m.type);
           return (
-            <li key={m.id} className="hover:bg-accent/50 flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5" onClick={() => setEditing(m)}>
+            <li key={m.id} className="hover:bg-accent/50 flex cursor-pointer items-center gap-2 rounded-md px-1 py-0.5" onClick={() => peek(m.id)}>
               {/* The row opens on a click anywhere; this button is its face for the keyboard (Enter bubbles to the row). */}
               <button type="button" className="focus-visible:ring-ring rounded-md focus-visible:ring-2 focus-visible:outline-none flex min-w-0 flex-1 items-center gap-2 text-left">
                 <Cover item={m} className="h-8 w-6" />
@@ -64,7 +62,6 @@ export function WantCard({ settings }: CardProps) {
           );
         })}
       </ul>
-      <EditWorkDialog item={editing} onClose={() => setEditing(null)} />
     </>
   );
 }

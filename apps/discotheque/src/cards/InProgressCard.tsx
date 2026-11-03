@@ -1,12 +1,9 @@
-import { useState } from "react";
-import { diffDays, matchesTagFilter, todayStr, useTagFilter, type CardProps } from "@lifeline/core";
+import { diffDays, matchesTagFilter, todayStr, useTagFilter, type CardProps, useOpenPeek } from "@lifeline/core";
 import { Badge } from "@lifeline/ui";
 import { workType } from "../domain/workTypes";
 import { inProgress } from "../domain/cardQueries";
 import { useWorks } from "../data/repo";
 import { Cover } from "../components/Cover";
-import { EditWorkDialog } from "../components/WorkRow";
-import type { Work } from "../domain/types";
 import { mediumOf } from "./shared";
 import { NextPartButton } from "@lifeline/parts";
 import { discothequeParts } from "../parts";
@@ -21,7 +18,8 @@ export function InProgressCard({ settings }: CardProps) {
   const filter = useTagFilter();
   const items = useWorks().filter((m) => matchesTagFilter(m.tags, filter));
   const medium = mediumOf(settings);
-  const [editing, setEditing] = useState<Work | null>(null);
+  // An album is peeked from a Card (ADR 0057); its Peek links through to its page.
+  const peek = useOpenPeek();
   const { parts, groups } = discothequeParts.useAllParts();
   const rows = inProgress(items, medium);
   const today = todayStr();
@@ -32,7 +30,7 @@ export function InProgressCard({ settings }: CardProps) {
     <>
       <ul className="grid content-start gap-3 overflow-y-auto" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))" }}>
         {rows.map((m) => (
-          <li key={m.id} className="hover:bg-accent/50 flex min-w-0 cursor-pointer flex-col items-center gap-1 rounded-md p-1 text-center" onClick={() => setEditing(m)}>
+          <li key={m.id} className="hover:bg-accent/50 flex min-w-0 cursor-pointer flex-col items-center gap-1 rounded-md p-1 text-center" onClick={() => peek(m.id)}>
             {/* The row opens on a click anywhere; this button is its face for the keyboard (Enter bubbles to the row). */}
             <button type="button" className="focus-visible:ring-ring rounded-md focus-visible:ring-2 focus-visible:outline-none flex w-full min-w-0 flex-col items-center gap-1">
               <Cover item={m} className={workType(m.type).cover === "square" ? "size-24 text-xs" : "h-32 w-24 text-xs"} />
@@ -48,7 +46,6 @@ export function InProgressCard({ settings }: CardProps) {
           </li>
         ))}
       </ul>
-      <EditWorkDialog item={editing} onClose={() => setEditing(null)} />
     </>
   );
 }

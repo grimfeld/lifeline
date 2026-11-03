@@ -29,14 +29,14 @@ Library, Cinema, Discotheque and Arcade work the same way. A book, film, album o
   cover and details too. The toast lets you **Undo**. A work you already have is not added twice,
   and the toast offers to **Open** it.
 - **Add with details…** opens the full form.
-- Tap a cover to open the work's detail. There you can start it, finish it, drop it, edit it,
-  find metadata, refresh it from its source, or delete it. In the Library, Cinema and
-  Discotheque you also write your **Review** there. The **⋯** menu on the tile offers the same
-  moves.
+- Tap a cover to open the work's **Work page**. There you can start it,
+  finish it, drop it, edit it, find metadata, refresh it from its source, or delete it. In the
+  Library, Cinema and Discotheque you also write your **Review** there. The **⋯** menu on the tile
+  offers the same moves.
 - **Marks** (Library, Cinema, Discotheque): a heart for **Liked**, and one to five stars. Neither
   moves the shelf.
-- **Parts**: track the chapters, issues, episodes or tracks of a work (not films or games) in the
-  detail.
+- **Parts**: track the chapters, issues, episodes or tracks of a work (not films or games) on its
+  Work page.
   - Tap a number to mark it read (watched, heard), or switch to **Tap opens** to give a Part its
     own title, Marks and Review.
   - **Caught up to…** marks everything up to a number as done before Lifeline: no days, nothing
@@ -51,10 +51,33 @@ Library, Cinema, Discotheque and Arcade work the same way. A book, film, album o
 Books, comics and manga.
 
 - **Nightstand** tab: the few things claiming your attention now, in progress or next up. It has
-  5 slots for books, 3 for comics and 3 for manga. **Slot it** from a work's detail or ⋯ menu.
+  5 slots for books, 3 for comics and 3 for manga. **Slot it** from a work's page or ⋯ menu.
   Finishing or dropping a work frees its slot.
 - Each tile has quick toggles: **Read**, **Bought** (Wanted ⇄ Owned) and the heart.
   **Gone (sold / returned / given away)** is in the ⋯ menu.
+- A book, comic or manga also has a **synopsis**, a **series** with its **number** (1.5 is fine),
+  an **original title** and an **original language**. Edit them on its page, in its Peek or in
+  **Add book with details** (under *More details*). Lookup fills them only where they are empty,
+  and **Refresh from source** never overwrites them. The gallery search finds a work by its
+  series. Genres stay as tags.
+- **Search by ISBN**: type or paste an ISBN (10 or 13 digits, hyphens and spaces allowed) into the Add dialog's
+  search or **Find metadata**'s (it starts from the title; change it and press **Search**), and the book, comic or manga it belongs to is found, from Open Library, then Google
+  Books. It finds the work, not the edition, and the ISBN is not kept. A number with a bad check digit is searched
+  as ordinary text.
+- **Scan barcode** (phone only): in the Add dialog or **Find metadata**, point the back camera at the barcode on
+  the book, and its ISBN is searched as if you had typed it. A barcode that is not an ISBN (a shop's product code,
+  the small price code beside it) is named and not searched; keep scanning. The button shows only where the phone
+  has a camera and its browser can read barcodes (Chrome on Android); elsewhere, type the ISBN.
+- **Every book, comic and manga has its own page**: tap its cover in the Gallery, or its title on
+  the Nightstand tab or an Author's page. It shows the cover and Authors (each a link to their
+  page), where it stands, and every field, edited in place: title, Authors, year, pages, the heart
+  and stars, synopsis, series, original title and language, reason, cover and tags. **Shelf**
+  moves it (start, finish, drop, slot it on the Nightstand, delete), **Acquisition** sets *Wanted*,
+  *Owned*, *Borrowed* or *Gone*, and **Find metadata** / **Refresh from source** look it up. Below
+  are its Parts, the other works of its **series** on your shelf in order, your **Review**, when
+  you added, acquired, slotted, started and finished it, and the notes and quotes that mention it
+  (tap one to peek it). Shelf, Acquisition and the slot change only through those buttons. A work
+  opened from anywhere else (a Card, a link) opens in a Peek; its **Open** button leads to the page.
 - **Authors** have their own page, reached from a byline: your works by them, and their
   **Bibliography** from Open Library, where you can tick works and add them to *To read* in one
   go. From an Author's page you can find them on Open Library, edit their name and aliases,
@@ -65,7 +88,23 @@ Commands (Ctrl+K):
 - **Add book…**: one line (title, author, kind) onto *To read*. Also in the Capture sheet.
 - **Read next part…**: pick a book, comic or manga; its next chapter or issue is read today. Also
   in the Capture sheet.
-- **Add book with details**: the full form.
+- **Add book with details**: the full form, including its history: *Shelf* (To read, In progress or
+  Done, with a *Finished on* date) and *Acquisition* (under *More details*). A work can arrive already
+  Done or Owned; its started and slotted days are never backdated. For Claude too: give it an
+  external key from **Look up a book…** and the source's fields are fetched, and anything else you
+  pass wins; leave the key out for a work no source knows. A finished date without Done is refused,
+  and a work already on the shelf is reported, never overwritten.
+- **Look up a book…**: ask the lookup (an ISBN or free text, optionally a title and author) what books, comics
+  or manga it finds, without adding anything. Candidates already on your shelf come back marked with
+  their Shelf. For Claude.
+- **Move on the shelf**: put a book, comic or manga on *To read*, *In progress*, *Done* (with an
+  optional finished date) or *Dropped*. Done and Dropped free its Nightstand slot. For Claude.
+- **Set acquisition**: *Wanted*, *Owned*, *Borrowed* or *Gone*. For Claude.
+- **Nightstand on or off**: slot a work or free its slot. Refused when the medium's slots are full,
+  naming the works that hold them. For Claude.
+- **Catch up to a part**: mark everything up to a chapter or issue as read, with no days; 0 clears
+  it. For Claude.
+- **Show a work**: its fields, Authors, Shelf, Acquisition, slot and Parts progress. For Claude.
 - **Go to Library**: opens the Library.
 - **Resolve authors…**: matches your Authors to Open Library. A single exact-name match is applied
   for you; you pick the rest.
@@ -86,6 +125,14 @@ Cards you can place:
 
 Movies and series, streamed rather than owned.
 
+- **Every film and series has its own page**: tap its poster in the Gallery, or a work in a
+  Playlist. It shows the poster and director, where it stands, and every field, edited in place:
+  title, director, year, minutes, the heart and stars, reason, cover and tags. **Shelf** moves it
+  (start, finish, drop, delete, add to a playlist) and **Find metadata** / **Refresh from source**
+  look it up. Below are its Seasons and Episodes, your **Review**, when you added, started and
+  finished it, the Playlists it is in, and the notes and quotes that mention it (tap one to peek
+  it). Shelf and the dates change only through the Shelf button. A film opened from anywhere else
+  (a Card, a link) opens in a Peek; its **Open** button leads to the page.
 - **Playlists** tab: your own ordered lists ("Films for a rainy Sunday"), with an optional blurb
   and an option to show them ranked. Add a work from its ⋯ menu. A Gallery filter shows only the
   works you've Liked.
@@ -116,6 +163,14 @@ Cards you can place:
 Albums, streamed rather than owned. Lookup comes from MusicBrainz and needs no key.
 
 - **Playlists** tab: works as in the Cinema, for albums.
+- **Every album has its own page**: tap its cover in the Gallery, or an album in a Playlist. It
+  shows the cover and artist, where it stands, and every field, edited in place: title, artist,
+  year, tracks, the heart and stars, reason, cover and tags. **Shelf** moves it (start, mark
+  listened, drop, add to a playlist, delete), and **Find metadata** / **Refresh from source** look
+  it up on MusicBrainz. Below are its Tracks and Discs, the Playlists it sits in, your **Review**,
+  when you added, started and finished it, and the notes and quotes that mention it (tap one to
+  peek it). The Shelf changes only through its menu. An album opened from anywhere else (a Card, a
+  link) opens in a Peek; its **Open** button leads to the page.
 
 Commands (Ctrl+K):
 
@@ -142,6 +197,13 @@ Cards you can place:
 Games: bought, played, finished. There is no Nightstand, no Parts and no Marks.
 
 - A game can be Wanted or Owned. Use **Got it (owned)** or **Gone** in its ⋯ menu.
+- **Every game has its own page**: tap its cover in the Gallery. It shows the cover and developer,
+  where it stands, and every field, edited in place: title, developer, year, hours, reason, cover
+  and tags. **Shelf** moves it (start, finish, drop, delete), **Owned** sets *Wanted*, *Owned*,
+  *Borrowed* or *Gone*, and **Find metadata** / **Refresh from source** look it up. Below are when
+  you added, acquired, started and finished it, and the notes and quotes that mention it (tap one
+  to peek it). Shelf and Owned change only through those buttons. A game opened from anywhere else
+  (a Card, a link) opens in a Peek; its **Open** button leads to the page.
 
 Commands (Ctrl+K):
 
@@ -219,7 +281,7 @@ Holdings), it tells you and changes nothing.
 
 ## Tips
 
-- Track Parts in the work's detail first. **+1** and "Next part of…" offer only works whose Parts
+- Track Parts on the work's Work page first. **+1** and "Next part of…" offer only works whose Parts
   you track, or that are in progress.
 - **Done** is one click from any shelf, and clicking again undoes it. Undoing never takes back a
   freed Nightstand slot, so re-slot it yourself.
