@@ -18,9 +18,9 @@ Read-only: nothing here designs the shared package.
 
 ## Headline
 
-- 15,020 source lines across the four Apps. About **4,700 lines** sit in a core common to every copy of a
+- 15,020 source lines across the four Apps. About **4,800 lines** sit in a core common to every copy of a
   same-name file; about **5,100** once the Cinema/Discotheque/Arcade core that Library does not share is
-  added. Add about 190 for two pairs with different names (below). **Rough total: 5,000 to 5,300 lines,
+  added. Add about 190 for two pairs with different names (below). **Rough total: 5,000 to 5,400 lines,
   about a third of all four Apps, and about 80% of what Cin/Dis/Arc would lose** (they total 8,394).
 - Cinema and Discotheque are the same App with names swapped nearly everywhere (pair diffs of 0 to 6 lines
   on most files). Arcade differs from them in a few places. Library diverges the most, from Authors,
@@ -77,7 +77,7 @@ Differences are changed lines between copies. "All" means every App that has the
 | `components/LookupSettingsDialog.tsx` | Lib, Cin, Arc | Cin/Arc names swapped (5: key field, label, href, title); Lib real (14) | 5 / 14 | Lib has two keys (ComicVine, Google Books) and a `ResolveAuthorsSection` (lookup providers, Authors). Dis has none: its lookup needs no key |
 | `components/QuickAdd.tsx` | All | Names swapped | Cin/Dis 6; Arc 6 to 8; Lib 15 to 18 | Config object per App; Arc adds the Acquisition label to the duplicate message; Lib uses `author` |
 | `components/WorkActions.tsx` | All | Cin = Dis names swapped (2); Arc and Lib real | Cin/Arc 29; Lib 49 to 67 | Cin/Dis add "Mark watched/listened" and "Add to playlist" (Playlists, Marks). Arc has Acquisition items ("Got it", "Gone") but no playlist. Lib has Nightstand items (slot it, evict, free) plus Acquisition |
-| `components/WorkTile.tsx` | All | Cin = Dis names swapped (1); Lib close to Cin; Arc real | Cin/Arc 52; Lib/Cin 19 | Cin/Dis/Lib tiles carry hover strip with `WatchedToggle`, `LikeToggle`, menu (Marks); Arc's tile is a plain button without them |
+| `components/WorkTile.tsx` | All | Cin = Dis names swapped (1); Lib close to Cin; Arc real | Cin/Arc 52; Lib/Cin 19 | Cin/Dis tiles carry a hover strip with `WatchedToggle`, `LikeToggle`, menu (Marks); Arc's tile is a plain button without them |
 | `components/AddWorkDialog.tsx` | All | Cin = Dis names swapped (6); Arc mostly (28); Lib real | Cin/Arc 28; Lib 231 to 257 | Dis: no settings object (keyless). Arc: an "Owned?" select (Acquisition). Lib: Authors picker, series, ISBN/barcode, Nightstand slot, three providers (467 lines, the biggest file) |
 | `components/{Library,Cinema,Discotheque,Arcade}Peeks.tsx` | one each | Cin/Dis names swapped (11); Arc and Lib real | Cin/Arc 44; Cin/Lib 57 | Arc: Acquisition field, no Marks. Lib: Authors, series, Nightstand |
 | `components/WorkRow.tsx` | Lib | Library-only (88) | | Nightstand slot age, stale flag, buy-now cart (Nightstand, Acquisition). No copy elsewhere |
@@ -136,7 +136,7 @@ Differences are changed lines between copies. "All" means every App that has the
 2. **Authors** (Documents, picker, merge, resolve, byline in search, cards, enrich): Library only.
 3. **Acquisition** (Wanted, Owned, Borrowed, Gone, acquire/release/reshelve, Wanted list): Library and Arcade, with the same state set and different surrounding rules (Library ties it to the Nightstand's buy-now).
 4. **Playlists**: Cinema and Discotheque only, near-identical in every file (component, repo, domain, types). Library and Arcade have none.
-5. **Marks** (rating, liked, review, glance, toggles): Cinema, Discotheque and (via `MarksGlance`/Parts) Library; not Arcade (`review={false}`).
+5. **Marks** (rating, liked, review, glance, toggles): Cinema and Discotheque; not Arcade (`review={false}`). Library's use of Marks was not traced.
 6. **Lookup providers**: four different APIs (TMDB, MusicBrainz, RAWG, Open Library with ComicVine and Google Books). The App-side files wrapping them (`lookup.ts`, `LookupSettingsDialog`, `FindMetadataDialog`, `enrichActions`, settings type and repo) share one shape. Settings keys and key count differ (0, 1 or 2).
 7. **Parts**: Library, Cinema, Discotheque only (Arc has none). Logic is in `@lifeline/parts`; each App's `parts.ts` is config.
 8. **Single-type versus multi-type**: Arc (one type) and Dis (one type) drop the medium knob; Cin has two types; Lib has three.
@@ -152,11 +152,11 @@ Common core of each same-name file, after swapping app and medium words, counted
 | `AddWorkDialog` | about 680 |
 | Playlists and Marks (Cin and Dis only): dialogs, tab, `playlist.ts`, tests, `Marks.tsx` | about 485 |
 | `enrichActions`, `lookup`, `repo` (+ tests) | about 760 |
-| `commands`, `index`, `types`, `parts`, `daylog`, `constants`, `WorkScreen` | about 840 |
-| `domain/*` (`rules`, `types`, `workTypes`, `browse`, `cardQueries`) and tests | about 470 |
-| **Total (strict, common core of every copy)** | **about 4,700** |
+| `commands`, `index`, `types`, `parts`, `daylog`, `constants`, `WorkScreen` | about 780 |
+| `domain/*` (`rules`, `types`, `workTypes`, `browse`, `cardQueries`) and tests | about 390 |
+| **Total (strict, common core of every copy)** | **about 4,800** |
 
-Counting the Cinema/Discotheque/Arcade core that Library does not share raises it to about 5,100, and the
+Counting the Cinema/Discotheque/Arcade core that Library does not share raises it to about 5,200, and the
 two pairs with different file names (`MarkWatchedDialog`/`MarkListenedDialog`, 110 lines, and
 `CinemaPeeks`/`DiscothequePeeks`, 85 lines) add about 190. Tests are about 330 of this.
 Figures are approximate: they depend on how names and verbs are normalised, and they say what is
