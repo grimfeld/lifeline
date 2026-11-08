@@ -16,6 +16,11 @@ them, the palette, or the People Base.
 - **Header** — their name, what they are to you, and their aliases.
 - **Details** — change their name (every `[[link]]` to them follows), their **Aliases**, their
   **Relationship** and their **Tags**, edited in place.
+- **Reports** — **Last seen** (the last day of an Event that links to them) and **Last
+  mentioned** (the last Day that links to them), side by side and never added together. Seen
+  counts an Event once per day it is on, every day of a trip, and nothing in the future; Tasks
+  and Occasions never count. A type can also choose **Seen count**, a **Seen heatmap**, **Top seen**
+  and **Not seen lately** in its editor, and each can be placed as a Report Card.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
 - **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.

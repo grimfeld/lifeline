@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router";
-import { reportsIn, reportsOf, todayStr, useDocumentTypes, useTopMentioned, type DocumentTypeDef, type LinkIndex, type LinkRef, type ReportSetting, type ReportWindow } from "@lifeline/core";
+import { reportKind, reportsIn, reportsOf, todayStr, useDocumentTypes, useTopMentioned, type DocumentTypeDef, type LinkIndex, type LinkRef, type ReportSetting, type ReportWindow } from "@lifeline/core";
 import { RankingReport, useOpenLinkRef } from "@lifeline/editor";
 import { DatePicker, Label, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { periodRange } from "../domain/periods";
@@ -38,7 +38,7 @@ export function TypeReports({ type, index }: { type: DocumentTypeDef; index: Lin
     }
     setParams(next, { replace: true });
   };
-  const ranksOverWindow = chosen.some((r) => r.kind === "top");
+  const ranksOverWindow = chosen.some((r) => reportKind(r.kind).shape === "top");
   return (
     <section className="grid min-w-0 gap-3">
       {ranksOverWindow && (

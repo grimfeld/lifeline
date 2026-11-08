@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { addDays, diffDays, type DateStr } from "../dates";
 import { mentionable, type LinkIndex } from "./links";
-import type { DocumentTypeDef, ReportKind, ReportSetting } from "./types";
+import type { Document, DocumentTypeDef, ReportKind, ReportSetting } from "./types";
 
 /**
  * Reports (CONTEXT.md, ADR 0076): read-only figures about the Documents of one
@@ -14,12 +14,25 @@ import type { DocumentTypeDef, ReportKind, ReportSetting } from "./types";
 /** The Day's type: its Documents are titled by their date. */
 export const DAY_TYPE = "daily";
 
+/**
+ * The Event's type id. Core may not import Apps, so — like `DAY_TYPE` — the one
+ * type the Seen family reads is named here. Seen reads only what any dated
+ * Document has: a `date` and an optional `endDate` (ADR 0112).
+ */
+export const EVENT_TYPE = "event";
+
 export type ReportFamily = "ranking" | "document";
+/** What a Report counts (ADR 0112): Days that link (Mentioned) or Events that link (Seen). */
+export type ReportSource = "mentioned" | "seen";
+/** What a kind shows, whatever it counts. */
+export type ReportShape = "top" | "quiet" | "last" | "count" | "heatmap";
 
 export interface ReportKindDef {
   kind: ReportKind;
   label: string;
   family: ReportFamily;
+  source: ReportSource;
+  shape: ReportShape;
   description: string;
   /** The parameters the kind takes, with their defaults. */
   params: { n?: number; days?: number };
@@ -27,11 +40,16 @@ export interface ReportKindDef {
 
 /** The fixed catalogue, in the order the type editor offers it. */
 export const REPORT_KINDS: ReportKindDef[] = [
-  { kind: "top", label: "Top mentioned", family: "ranking", description: "Who comes up on the most Days", params: { n: 5 } },
-  { kind: "quiet", label: "Not mentioned lately", family: "ranking", description: "Mentioned before, but on no Day for a while", params: { n: 5, days: 90 } },
-  { kind: "last", label: "Last mentioned", family: "document", description: "The last Day that links to it", params: {} },
-  { kind: "count", label: "Mention count", family: "document", description: "Days that link to it, this year and in all", params: {} },
-  { kind: "heatmap", label: "Heatmap", family: "document", description: "The Days that link to it over the last 12 months", params: {} },
+  { kind: "top", label: "Top mentioned", family: "ranking", source: "mentioned", shape: "top", description: "Who comes up on the most Days", params: { n: 5 } },
+  { kind: "quiet", label: "Not mentioned lately", family: "ranking", source: "mentioned", shape: "quiet", description: "Mentioned before, but on no Day for a while", params: { n: 5, days: 90 } },
+  { kind: "last", label: "Last mentioned", family: "document", source: "mentioned", shape: "last", description: "The last Day that links to it", params: {} },
+  { kind: "count", label: "Mention count", family: "document", source: "mentioned", shape: "count", description: "Days that link to it, this year and in all", params: {} },
+  { kind: "heatmap", label: "Heatmap", family: "document", source: "mentioned", shape: "heatmap", description: "The Days that link to it over the last 12 months", params: {} },
+  { kind: "topSeen", label: "Top seen", family: "ranking", source: "seen", shape: "top", description: "Who is on the most days of Events that link to them", params: { n: 5 } },
+  { kind: "quietSeen", label: "Not seen lately", family: "ranking", source: "seen", shape: "quiet", description: "Seen before, but on no Event's day for a while", params: { n: 5, days: 90 } },
+  { kind: "lastSeen", label: "Last seen", family: "document", source: "seen", shape: "last", description: "The last day of an Event that links to it", params: {} },
+  { kind: "seenCount", label: "Seen count", family: "document", source: "seen", shape: "count", description: "Days of Events that link to it, this year and in all", params: {} },
+  { kind: "seenHeatmap", label: "Seen heatmap", family: "document", source: "seen", shape: "heatmap", description: "The days of Events that link to it over the last 12 months", params: {} },
 ];
 
 export function reportKind(kind: ReportKind): ReportKindDef {
@@ -82,6 +100,32 @@ export function mentionDays(index: LinkIndex, docId: string): DateStr[] {
  */
 export type DaysSource = (index: LinkIndex, docId: string) => DateStr[];
 
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** An Event spanning more days than this is not counted past it (a typo's endDate must not spin). */
+const MAX_SPAN = 3660;
+
+/**
+ * The distinct days (oldest first, none after `today`) on which Events that
+ * link to one Document are on: once per day however many Events, each day of a
+ * multi-day Event, nothing in the future. Markers and Tasks are not Events.
+ */
+export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateStr[] {
+  const days = new Set<DateStr>();
+  for (const b of index.backlinksTo(docId)) {
+    const src = index.byId.get(b.sourceId) as (Document & { date?: unknown; endDate?: unknown }) | undefined;
+    if (src?.type !== EVENT_TYPE || typeof src.date !== "string" || !DATE.test(src.date)) continue;
+    const end = typeof src.endDate === "string" && DATE.test(src.endDate) && src.endDate > src.date ? src.endDate : src.date;
+    const last = end < today ? end : today;
+    for (let d = src.date, i = 0; d <= last && i < MAX_SPAN; d = addDays(d, 1), i++) days.add(d);
+  }
+  return [...days].sort();
+}
+
+/** The days source of a Report family, as of `today`. */
+export function sourceOf(source: ReportSource, today: DateStr): DaysSource {
+  return source === "seen" ? (index, docId) => seenDays(index, docId, today) : mentionDays;
+}
+
 export interface RankRow {
   docId: string;
   /** Days in the window that link to it. */
@@ -117,10 +161,10 @@ export function notMentionedSince(index: LinkIndex, typeId: string, days: number
 }
 
 /** A ranking Report's rows, cut to its N. */
-export function rankingRows(index: LinkIndex, typeId: string, setting: ReportSetting, window: ReportWindow, today: DateStr, source: DaysSource = mentionDays): RankRow[] {
+export function rankingRows(index: LinkIndex, typeId: string, setting: ReportSetting, window: ReportWindow, today: DateStr, source: DaysSource = sourceOf(reportKind(setting.kind).source, today)): RankRow[] {
   const def = reportKind(setting.kind);
   const n = setting.n ?? def.params.n ?? 5;
-  if (setting.kind === "quiet") return notMentionedSince(index, typeId, setting.days ?? def.params.days ?? 90, today, source).slice(0, n);
+  if (def.shape === "quiet") return notMentionedSince(index, typeId, setting.days ?? def.params.days ?? 90, today, source).slice(0, n);
   return topMentioned(index, typeId, window, source).slice(0, n);
 }
 
