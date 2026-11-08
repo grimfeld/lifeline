@@ -31,14 +31,19 @@ export function drifting(index: LinkIndex, people: readonly Person[], { source =
   const daysOf = sourceOf(source, today);
   const cutoff = addDays(today, -DRIFTING_DAYS);
   return people
-    .filter((p) => p.relationship?.trim() && !p.excludedFromDrifting)
-    .flatMap((person): Drifter[] => {
-      const last = daysOf(index, person.id).at(-1) ?? null;
-      if (last && last > cutoff) return [];
-      return [{ person, last, daysSince: last ? diffDays(last, today) : null }];
-    })
-    .sort((a, b) => (a.last ?? "").localeCompare(b.last ?? "") || a.person.title.localeCompare(b.person.title));
+    .filter(followed)
+    .map((person) => drifterOf(person, daysOf(index, person.id).at(-1) ?? null, today))
+    .filter((d) => d.last === null || d.last <= cutoff)
+    .sort(longestUnseenFirst);
 }
+
+/** Drifting looks only at People with a Relationship who were not left out of it. */
+const followed = (p: Person) => p.relationship.trim() !== "" && !p.excludedFromDrifting;
+
+const drifterOf = (person: Person, last: DateStr | null, today: DateStr): Drifter => ({ person, last, daysSince: last === null ? null : diffDays(last, today) });
+
+/** The never seen first (by name), then the rest longest unseen first. */
+const longestUnseenFirst = (a: Drifter, b: Drifter) => (a.last ?? "").localeCompare(b.last ?? "") || a.person.title.localeCompare(b.person.title);
 
 export interface RelationshipGroup {
   relationship: string;
@@ -49,12 +54,9 @@ export interface RelationshipGroup {
 
 /** "Group by Relationship": the People under each Relationship label, labels in order; People with none are left out. */
 export function groupByRelationship(people: readonly Person[]): RelationshipGroup[] {
-  const groups = new Map<string, Person[]>();
-  for (const p of people) {
-    const label = p.relationship?.trim();
-    if (label) groups.set(label, [...(groups.get(label) ?? []), p]);
-  }
-  return [...groups]
-    .map(([relationship, ps]) => ({ relationship, count: ps.length, people: ps.sort((a, b) => a.title.localeCompare(b.title)) }))
-    .sort((a, b) => a.relationship.localeCompare(b.relationship));
+  const labels = [...new Set(people.map((p) => p.relationship.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  return labels.map((relationship) => {
+    const ps = people.filter((p) => p.relationship.trim() === relationship).sort((a, b) => a.title.localeCompare(b.title));
+    return { relationship, count: ps.length, people: ps };
+  });
 }

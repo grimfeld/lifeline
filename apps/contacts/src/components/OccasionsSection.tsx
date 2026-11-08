@@ -2,17 +2,10 @@ import { useState } from "react";
 import { Button, Checkbox, ChoiceField, DatePicker, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input } from "@lifeline/ui";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { Occasion, Person } from "../domain/types";
-import { isBirthday } from "../domain/occasions";
+import { describeDay, isBirthday } from "../domain/occasions";
 import { addOccasion, editOccasion, removePart, restorePart } from "../data/repo";
 import { removeWithUndo } from "./writes";
 import { Section } from "./Section";
-
-/** "03-04" reads as "4 March", "1961-03-04" as "4 March 1961", in the reader's own order. A yearless day is read in 2000, a leap year, so 29 February reads too. */
-export function describeDay(day: string): string {
-  const [a, b, c] = day.split("-").map(Number);
-  const [y, m, d] = c === undefined ? [null, a, b] : [a, b, c];
-  return new Date(Date.UTC(y ?? 2000, (m ?? 1) - 1, d ?? 1)).toLocaleDateString(undefined, { day: "numeric", month: "long", year: y === null ? undefined : "numeric", timeZone: "UTC" });
-}
 
 /**
  * A Person's Occasions (#404 stories 22-31), added, edited and removed here:

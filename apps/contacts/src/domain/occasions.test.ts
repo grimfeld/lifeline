@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Occasion } from "./types";
-import { ageOf, normalizeOccasions, occasionDateIn, occasionMarkersIn, occasionProblem, upcomingOccasions, type PersonOccasions } from "./occasions";
+import { ageOf, describeDay, normalizeOccasions, occasionDateIn, occasionMarkersIn, occasionProblem, personOfMarker, upcomingOccasions, whenOf, type PersonOccasions } from "./occasions";
 
 const anne = (...occasions: Occasion[]): PersonOccasions => ({ id: "p1", title: "Anne", tags: ["family"], occasions });
 const bday = (day: string): Occasion => ({ id: "o1", label: "Birthday", day, yearly: true });
@@ -143,5 +143,69 @@ describe("markers carry the age a Birthday reaches", () => {
     ];
     const items = occasionMarkersIn(people, { start: "2026-11-12", end: "2026-11-12" });
     expect(items.map((i) => [i.itemId, i.age])).toEqual(expect.arrayContaining([["p:a@2026-11-12", 65], ["p:b@2026-11-12", undefined]]));
+  });
+});
+
+describe("what is a real day", () => {
+  it("refuses a month or a day out of its bounds, with or without a year", () => {
+    for (const day of ["00-10", "13-01", "03-00", "04-31", "2026-00-10", "2026-13-01", "2026-03-00", "2026-04-31", "3-4", "2026-3-04", "x2026-03-04", "2026-03-04x"]) {
+      expect(occasionProblem({ label: "x", day, yearly: true }), day).toBe("Pick a real day");
+    }
+  });
+  it("takes the last day of each month and 29 February only in a leap year or with no year", () => {
+    for (const day of ["01-31", "12-31", "12-01", "02-29", "2024-02-29", "2026-04-30"]) expect(occasionProblem({ label: "x", day, yearly: true }), day).toBeNull();
+    expect(occasionProblem({ label: "x", day: "2026-02-29", yearly: true })).toBe("Pick a real day");
+  });
+  it("puts a day that is no day on no date", () => {
+    expect(occasionDateIn("13-01", 2026)).toBe("");
+  });
+});
+
+describe("an Occasion's day in words", () => {
+  it("reads with its year, or without one when it is unknown", () => {
+    expect(describeDay("1961-03-04", "en-GB")).toBe("4 March 1961");
+    expect(describeDay("03-04", "en-GB")).toBe("4 March");
+    expect(describeDay("12-31", "en-GB")).toBe("31 December");
+  });
+  it("reads 29 February with no year, and text that is no day as it is", () => {
+    expect(describeDay("02-29", "en-GB")).toBe("29 February");
+    expect(describeDay("someday", "en-GB")).toBe("someday");
+  });
+});
+
+describe("how soon an Upcoming Occasion is", () => {
+  it("says today, tomorrow, or in how many days", () => {
+    expect([0, 1, 2, 30].map(whenOf)).toEqual(["today", "tomorrow", "in 2 days", "in 30 days"]);
+  });
+});
+
+describe("ages and years from damaged or unusual rows", () => {
+  it("passes over a Birthday whose day is no day, to the next one", () => {
+    expect(ageOf([bday("someday"), bday("1961-03-04")], "2026-03-04")).toBe(65);
+  });
+  it("passes over a Birthday with no year to one with a year", () => {
+    expect(ageOf([bday("03-04"), bday("1961-03-04")], "2026-03-04")).toBe(65);
+  });
+  it("shows a yearly Occasion in the very year it began, with age 0", () => {
+    expect(upcomingOccasions([anne(bday("2026-03-04"))], "2026-03-01", 10)).toMatchObject([{ date: "2026-03-04", age: 0 }]);
+  });
+  it("shows a yearly Occasion every year of a range several years long", () => {
+    expect(lines([anne(bday("2020-03-04"))], range("2024-01-01", "2026-12-31")).map(([d]) => d)).toEqual(["2024-03-04", "2025-03-04", "2026-03-04"]);
+  });
+  it("skips an Occasion with no label, and a once one with no year", () => {
+    const people = [anne({ id: "a", label: " ", day: "03-04", yearly: true }, { id: "b", label: "Met", day: "03-05", yearly: false })];
+    expect(lines(people, range("2026-03-01", "2026-03-31"))).toEqual([]);
+  });
+  it("is 0 in the year after birth until the day comes round", () => {
+    expect(ageOf([bday("2025-06-01")], "2026-03-04")).toBe(0);
+  });
+  it("puts Occasions on the same day by name, then by label", () => {
+    const zoe: PersonOccasions = { id: "z", title: "Zoe", occasions: [{ id: "w", label: "Wedding", day: "05-01", yearly: true }, { id: "m", label: "Met", day: "05-01", yearly: true }] };
+    const ann: PersonOccasions = { id: "a", title: "Ann", occasions: [{ id: "w", label: "Wedding", day: "05-01", yearly: true }] };
+    expect(upcomingOccasions([zoe, ann], "2026-05-01", 0).map((u) => `${u.name} ${u.label}`)).toEqual(["Ann Wedding", "Zoe Met", "Zoe Wedding"]);
+  });
+  it("finds the Person of a marker", () => {
+    expect(personOfMarker("p1:o1@2026-03-04")).toBe("p1");
+    expect(personOfMarker("")).toBe("");
   });
 });

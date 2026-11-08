@@ -15,8 +15,8 @@ export function everyone(people: readonly Person[], { query = "", relationship =
   const q = fold(query);
   return people
     .filter((p) => !relationship || p.relationship === relationship)
-    .filter((p) => !tag || (p.tags ?? []).includes(tag))
-    .filter((p) => !q || [p.title, ...(p.aliases ?? [])].some((n) => fold(n).includes(q)))
+    .filter((p) => !tag || p.tags.includes(tag))
+    .filter((p) => !q || [p.title, ...p.aliases].some((n) => fold(n).includes(q)))
     .sort((a, b) => a.title.localeCompare(b.title));
 }
 
@@ -26,4 +26,4 @@ const distinct = (xs: string[]) => [...new Set(xs)].sort((a, b) => a.localeCompa
 export const relationshipsOf = (people: readonly Person[]) => distinct(people.map((p) => p.relationship).filter(Boolean));
 
 /** The Tags in use, once each, sorted. */
-export const tagsOf = (people: readonly Person[]) => distinct(people.flatMap((p) => p.tags ?? []));
+export const tagsOf = (people: readonly Person[]) => distinct(people.flatMap((p) => p.tags));

@@ -14,19 +14,33 @@ export interface PersonOccasions {
 /** The one label the App understands: it gives an age. */
 export const isBirthday = (o: Pick<Occasion, "label">) => o.label.trim().toLowerCase() === "birthday";
 
-const FULL = /^(\d{4})-(\d{2})-(\d{2})$/;
-const SHORT = /^(\d{2})-(\d{2})$/;
+/** "YYYY-MM-DD", or "MM-DD" for a day whose year is unknown. */
+const DAY = /^(?:(\d{4})-)?(\d{2})-(\d{2})$/;
 
 /** The year, month and day of an Occasion's `day`; year null when unknown; null for text that is no day. */
 function split(day: string): { year: number | null; month: number; dom: number } | null {
-  const full = FULL.exec(day);
-  const short = full ? null : SHORT.exec(day);
-  if (!full && !short) return null;
-  const [year, month, dom] = full ? [Number(full[1]), Number(full[2]), Number(full[3])] : [null, Number(short![1]), Number(short![2])];
-  if (!(month >= 1 && month <= 12) || !(dom >= 1)) return null;
+  const m = DAY.exec(day);
+  if (!m) return null;
+  const year = m[1] === undefined ? null : Number(m[1]);
+  const [month, dom] = [Number(m[2]), Number(m[3])];
   // Without a year, February 29 is allowed (a yearly day).
-  if (dom > daysInMonth(year ?? 2000, month)) return null;
+  if (month < 1 || month > 12 || dom < 1 || dom > daysInMonth(year ?? 2000, month)) return null;
   return { year, month, dom };
+}
+
+/** The year an Occasion's day names; null when unknown, or when the text is no day. */
+const yearOf = (day: string): number | null => split(day)?.year ?? null;
+
+/**
+ * An Occasion's day in words, in the reader's own order: "03-04" reads as "4
+ * March", "1961-03-04" as "4 March 1961". A yearless day is read in 2000, a
+ * leap year, so 29 February reads too. Text that is no day reads as it is.
+ */
+export function describeDay(day: string, locale?: string): string {
+  const d = split(day);
+  if (!d) return day;
+  const when = new Date(Date.UTC(d.year ?? 2000, d.month - 1, d.dom));
+  return when.toLocaleDateString(locale, { day: "numeric", month: "long", year: d.year === null ? undefined : "numeric", timeZone: "UTC" });
 }
 
 /**
@@ -59,8 +73,8 @@ export function normalizeOccasions(raw: unknown): Occasion[] {
 
 /** The age a Birthday reaches in a year; null with no birth year (or a year not yet reached). */
 function ageIn(o: Occasion, year: number): number | null {
-  const born = split(o.day)?.year;
-  return born == null || year < born ? null : year - born;
+  const born = yearOf(o.day);
+  return born === null || year < born ? null : year - born;
 }
 
 /**
@@ -93,25 +107,29 @@ interface Occurrence {
   age: number | null;
 }
 
+/** The years from `from` through `to`, both included; none when `to` is earlier (a negative length is none). */
+const yearsBetween = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+
+/**
+ * Where one Occasion may fall between two years: a once one on its own day, a
+ * yearly one on its day each year from the year it began (when known). Nothing
+ * for an Occasion that may not be saved.
+ */
+function occurrencesOf(person: PersonOccasions, o: Occasion, y0: number, y1: number): Occurrence[] {
+  if (occasionProblem(o)) return [];
+  if (!o.yearly) return [{ person, occasion: o, date: o.day, age: null }];
+  const born = yearOf(o.day);
+  const birthday = isBirthday(o);
+  return yearsBetween(Math.max(y0, born ?? y0), y1).map((y) => ({ person, occasion: o, date: occasionDateIn(o.day, y), age: birthday ? ageIn(o, y) : null }));
+}
+
 /** Every Occasion falling in a range, a yearly one on its day each year (from the year it began), a once one on its own day. */
 function occurrencesIn(people: readonly PersonOccasions[], range: { start: DateStr; end: DateStr }): Occurrence[] {
-  const out: Occurrence[] = [];
   const [y0, y1] = [Number(range.start.slice(0, 4)), Number(range.end.slice(0, 4))];
-  for (const person of people) {
-    // Whatever is stored: a Base or an old row may hold anything under the key.
-    for (const o of normalizeOccasions(person.occasions)) {
-      if (occasionProblem(o)) continue;
-      const born = split(o.day)?.year ?? null;
-      const years = o.yearly ? Array.from({ length: Math.max(0, y1 - y0 + 1) }, (_, i) => y0 + i) : born === null ? [] : [born];
-      for (const y of years) {
-        if (o.yearly && born !== null && y < born) continue;
-        const date = o.yearly ? occasionDateIn(o.day, y) : o.day;
-        if (date < range.start || date > range.end) continue;
-        out.push({ person, occasion: o, date, age: isBirthday(o) && o.yearly ? ageIn(o, y) : null });
-      }
-    }
-  }
-  return out;
+  // Whatever is stored: a Base or an old row may hold anything under the key.
+  return people
+    .flatMap((person) => normalizeOccasions(person.occasions).flatMap((o) => occurrencesOf(person, o, y0, y1)))
+    .filter(({ date }) => date >= range.start && date <= range.end);
 }
 
 /**
@@ -175,6 +193,9 @@ export function upcomingOccasions(people: readonly PersonOccasions[], from: Date
     }))
     .sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name) || a.label.localeCompare(b.label));
 }
+
+/** How soon an Upcoming Occasion is: "today", "tomorrow", "in 5 days". */
+export const whenOf = (inDays: number) => (inDays === 0 ? "today" : inDays === 1 ? "tomorrow" : `in ${inDays} days`);
 
 /** The Person id inside a marker's item id. */
 export const personOfMarker = (itemId: string) => itemId.split(":")[0] ?? "";
