@@ -1,7 +1,7 @@
 import { allDocuments, documentsOf, getDocument } from "./documents/store";
 import { documentsWithRole, hasRole } from "./documents/roles";
 import type { Document } from "./documents/types";
-import type { CommandArg, CommandDef, CommandResult } from "./manifest";
+import type { CommandArg, CommandDef, CommandResult, InvokeContext } from "./manifest";
 
 /**
  * Headless Commands (ADR 0062): a Command that declares an argument
@@ -230,9 +230,9 @@ export async function argProblems(args: CommandArg[], raw: Record<string, unknow
 }
 
 /** Run a Command headless: arguments checked against its signature, then the App's `invoke`. */
-export async function invokeCommand(def: CommandDef, raw: Record<string, unknown>): Promise<CommandResult> {
+export async function invokeCommand(def: CommandDef, raw: Record<string, unknown>, ctx?: InvokeContext): Promise<CommandResult> {
   if (!isInvocable(def)) throw new Error(`“${def.title}” cannot be run without its dialog`);
-  return def.invoke(await readCommandArgs(def.args, raw));
+  return def.invoke(await readCommandArgs(def.args, raw), ctx);
 }
 
 // ── A dialog's initial values (CommandDialogProps.initial) ────────────────

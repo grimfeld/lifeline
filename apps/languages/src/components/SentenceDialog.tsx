@@ -4,7 +4,7 @@ import { initialList, initialText, useTagVocabulary, type IntakeDialogProps } fr
 import { Brackets } from "lucide-react";
 import { parseCloze } from "../domain/cloze";
 import type { Sentence } from "../domain/types";
-import { addSentence, deleteItem, updateSentence, useActiveTopic, useTopics } from "../data/repo";
+import { acceptDraft, addSentence, deleteItem, updateSentence, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
 import { originOf, type ItemDialogProps } from "./WordDialog";
 import { OriginLine } from "./OriginLine";
@@ -76,13 +76,14 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
     });
   }
 
-  async function save() {
+  async function save(accept = false) {
     const input = { languageId, text, translation, origin, originId, tags };
     let made = "";
     try {
       if (sentence) {
         await updateSentence(sentence, input);
-        toast.success("Sentence updated");
+        if (accept) await acceptDraft(sentence.id);
+        toast.success(accept ? "Sentence accepted" : "Sentence updated");
       } else {
         made = await addSentence(input);
         toast.success(`Sentence added · ${blanks.length} prompt${blanks.length === 1 ? "" : "s"}`);
@@ -166,9 +167,16 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
           ) : (
             <span />
           )}
-          <Button onClick={() => void save()} disabled={noTopic}>
-            {sentence ? "Save" : "Add"}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {sentence?.draft && (
+              <Button variant="outline" onClick={() => void save(true)}>
+                Save & accept
+              </Button>
+            )}
+            <Button onClick={() => void save()} disabled={noTopic}>
+              {sentence ? "Save" : "Add"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

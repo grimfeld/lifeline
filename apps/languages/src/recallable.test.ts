@@ -33,6 +33,13 @@ describe("Word and Sentence through the Recallable Contract", () => {
     expect(promptsOf(materialOf(defOf(FACT), fact as unknown as Document)).map((p) => p.key)).toEqual(["f|forward"]);
   });
 
+  it("keeps a draft out of practice, as paused material is, and an accepted one in", () => {
+    const draft = { ...word, draft: true } as unknown as Document;
+    expect(materialOf(defOf(WORD), draft).live).toBe(false);
+    expect(materialOf(defOf(WORD), { ...word, draft: false } as unknown as Document).live).toBe(true);
+    expect(materialOf(defOf(WORD), draft).slots).toEqual(["forward", "reverse"]);
+  });
+
   it("reads absent fields the way PocketBase returns them", () => {
     const bare = { ...base, id: "b", type: SENTENCE, title: "" } as unknown as Document;
     expect(plain(materialOf(defOf(SENTENCE), bare))).toEqual({ id: "b", type: SENTENCE, title: "", topicId: "", addedAt: base.createdAt, live: true, slots: [], originId: "" });

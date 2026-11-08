@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
 import { initialList, initialText, useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import type { Word } from "../domain/types";
-import { addWord, deleteItem, updateWord, useActiveTopic, useTopics } from "../data/repo";
+import { acceptDraft, addWord, deleteItem, updateWord, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
 import { OriginLine } from "./OriginLine";
 
@@ -59,12 +59,13 @@ export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved
     if (open && !word && !languageId && active) setLanguageId(active.id);
   }, [open, word, languageId, active]);
 
-  async function save(another = false) {
+  async function save(another = false, accept = false) {
     const input = { languageId, term, meaning, notes, origin, originId, tags };
     try {
       if (word) {
         await updateWord(word, input);
-        toast.success("Word updated");
+        if (accept) await acceptDraft(word.id);
+        toast.success(accept ? "Word accepted" : "Word updated");
       } else {
         kept.current = await addWord(input);
         toast.success(`${term.trim()} added`);
@@ -148,9 +149,16 @@ export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved
               Save & add another
             </Button>
           )}
-          <Button onClick={() => void save()} disabled={noTopic}>
-            {word ? "Save" : "Add"}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {word?.draft && (
+              <Button variant="outline" onClick={() => void save(false, true)}>
+                Save & accept
+              </Button>
+            )}
+            <Button onClick={() => void save()} disabled={noTopic}>
+              {word ? "Save" : "Add"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

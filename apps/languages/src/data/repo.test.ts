@@ -2,10 +2,10 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
 import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item } from "../domain/types";
-import { addDeck, setMembership } from "./repo";
+import { acceptDraft, addDeck, addWord, deckNamed, deleteItem, setMembership } from "./repo";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
-const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], builtIn: true }) as unknown as DocumentTypeDef;
+const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId"], builtIn: true }) as unknown as DocumentTypeDef;
 initApps([{ id: "languages", title: "Knowledge", types: [TOPIC, WORD, SENTENCE, RECALL, DECK].map(bare), screens: [], cards: [], commands: [] }]);
 
 const word = (id: string) => ({ id, type: WORD, languageId: "es" }) as Item;
@@ -18,5 +18,33 @@ describe("setMembership", () => {
     expect((await getDocument<Deck>(id))!.members.sort()).toEqual(["w1", "w2", "w3"]);
     await setMembership(stale, word("w2"), false);
     expect((await getDocument<Deck>(id))!.members.sort()).toEqual(["w1", "w3"]);
+  });
+});
+
+describe("acceptDraft", () => {
+  it("clears the draft and adds the item from that moment, keeping its origin", async () => {
+    const id = await addWord({ languageId: "es", term: "playa", meaning: "beach", origin: "Agent draft · Lesson 1", draft: true });
+    const before = (await getDocument<Item & { draft?: boolean; addedAt: string; origin: string }>(id))!;
+    expect(before.draft).toBe(true);
+    await new Promise((r) => setTimeout(r, 5));
+    await acceptDraft(id);
+    const after = (await getDocument<Item & { draft?: boolean; addedAt: string; origin: string }>(id))!;
+    expect(after.draft).toBe(false);
+    expect(after.addedAt > before.addedAt).toBe(true);
+    expect(after.origin).toBe("Agent draft · Lesson 1");
+  });
+
+  it("a deleted draft is simply gone", async () => {
+    const id = await addWord({ languageId: "es", term: "mar", meaning: "sea", draft: true });
+    await deleteItem(id);
+    expect(await getDocument(id)).toBeUndefined();
+  });
+});
+
+describe("deckNamed", () => {
+  it("finds a Deck by name in its Topic, case ignored, else makes it there", async () => {
+    const a = await deckNamed("fr", "Lesson 1");
+    expect((await deckNamed("fr", "lesson 1")).id).toBe(a.id);
+    expect((await deckNamed("es", "Lesson 1")).id).not.toBe(a.id);
   });
 });

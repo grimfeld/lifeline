@@ -277,6 +277,11 @@ export interface InlineOffer {
   run: (ctx: CommandCtx) => void | Promise<void>;
 }
 
+/** Who runs a headless Command (ADR 0115): `agent` when an outside agent calls it through MCP, so an App may treat what it makes as proposed, not chosen. */
+export interface InvokeContext {
+  agent?: boolean;
+}
+
 /**
  * What a Command's dialog receives. `initial` holds the raw argument values
  * (keyed like the Command's `args`, the shapes `readCommandArgs` reads: text,
@@ -329,7 +334,7 @@ export interface CommandDef {
    * no UI, no navigation — the App's own operation, so its invariants hold
    * whoever calls. Throws with a readable message on bad input.
    */
-  invoke?: (args: Record<string, unknown>) => Promise<CommandResult>;
+  invoke?: (args: Record<string, unknown>, ctx?: InvokeContext) => Promise<CommandResult>;
   /**
    * `invoke` returns the id of the Document it made or changed (`CommandResult.id`),
    * so a later step of a Macro may take it as a link (ADR 0092). Declared, not
