@@ -22,10 +22,20 @@ export function promptKey(itemId: string, slot: string): string {
   return `${itemId}|${slot}`;
 }
 
-/** The slots of Knowledge's own types: a Word's forward and reverse, one per blank of a Sentence, a Fact's one forward. */
+/** The listening Prompt's slot (ADR 0116): the same whichever clip, so a re-recording keeps its schedule. */
+export const LISTEN = "listen";
+
+/**
+ * The slots of Knowledge's own types: a Word's forward and reverse, one per
+ * blank of a Sentence, a Fact's one forward — and `listen` last, only while a
+ * Word or Sentence carries a clip. Without the clip its Recalls stay, counting
+ * for nothing.
+ */
 export function itemSlots(item: Item): string[] {
   if (item.type === FACT) return ["forward"];
-  return item.type === WORD ? ["forward", "reverse"] : item.type === SENTENCE ? blankSlots(item.text ?? "") : [];
+  const listen = (item as { clip?: string }).clip ? [LISTEN] : [];
+  if (item.type === WORD) return ["forward", "reverse", ...listen];
+  return item.type === SENTENCE ? [...blankSlots(item.text ?? ""), ...listen] : [];
 }
 
 /** A Word or Sentence read as Material — the same reading its Recallable declaration gives. */
@@ -47,9 +57,9 @@ export function itemLines(item: Item): { main: string; sub: string } {
 
 /**
  * Where the user may type an attempt before revealing (ADR 0116): a Word's
- * reverse and a Sentence's blank — answers short and exact. A forward Word and
+ * reverse, a Sentence's blank and either's listening Prompt — answers short and exact. A forward Word and
  * a Fact are paraphrases, reveal-only.
  */
 export function isTypeable(type: string, slot: string): boolean {
-  return (type === WORD && slot === "reverse") || (type === SENTENCE && slot.startsWith("blank:"));
+  return ((type === WORD || type === SENTENCE) && slot === LISTEN) || (type === WORD && slot === "reverse") || (type === SENTENCE && slot.startsWith("blank:"));
 }

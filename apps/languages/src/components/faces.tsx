@@ -1,5 +1,6 @@
 import type { RecallFaceProps } from "@lifeline/core";
-import { parseCloze } from "../domain/cloze";
+import { parseCloze, plainSentence } from "../domain/cloze";
+import { LISTEN } from "../domain/prompts";
 import type { Fact, Sentence, Word } from "../domain/types";
 import { OriginLine } from "./OriginLine";
 import { ClipPlayer } from "./ClipPlayer";
@@ -15,6 +16,25 @@ import { ClipPlayer } from "./ClipPlayer";
  */
 export function WordFace({ doc, slot, revealed }: RecallFaceProps) {
   const w = doc as Word;
+  if (slot === LISTEN) {
+    return (
+      <div className="grid justify-items-center gap-4 text-center">
+        <span className="text-muted-foreground text-xs tracking-wide uppercase">What did you hear?</span>
+        {/* One player for the Prompt, shown or revealed: it plays as the Prompt appears, and is never restarted by the reveal. */}
+        <ClipPlayer clipId={w.clip} />
+        <div className="min-h-16 max-w-full">
+          {revealed && (
+            <div className="grid gap-2">
+              <span className="max-w-full text-3xl font-semibold break-words">{w.term || w.title}</span>
+              <span className="text-primary text-2xl break-words">{w.meaning}</span>
+              {w.notes && <span className="text-muted-foreground text-sm whitespace-pre-wrap">{w.notes}</span>}
+              <OriginLine originId={w.originId} />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
   const forward = slot === "forward";
   const question = forward ? w.term || w.title : w.meaning;
   const answer = forward ? w.meaning : w.term || w.title;
@@ -40,6 +60,22 @@ export function WordFace({ doc, slot, revealed }: RecallFaceProps) {
 export function SentenceFace({ doc, slot, revealed }: RecallFaceProps) {
   const sentence = doc as Sentence;
   const parts = parseCloze(sentence.text ?? "");
+  if (slot === LISTEN) {
+    return (
+      <div className="grid justify-items-center gap-4 text-center">
+        <span className="text-muted-foreground text-xs tracking-wide uppercase">What did you hear?</span>
+        <ClipPlayer clipId={sentence.clip} />
+        {revealed && (
+          <>
+            <p className="text-primary max-w-full text-2xl leading-relaxed break-words">{plainSentence(sentence.text ?? "")}</p>
+            {sentence.translation && <span className="text-muted-foreground max-w-full text-sm break-words italic">{sentence.translation}</span>}
+            {sentence.notes && <span className="text-muted-foreground max-w-full text-sm break-words whitespace-pre-wrap">{sentence.notes}</span>}
+            <OriginLine originId={sentence.originId} className="max-w-full" />
+          </>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="grid justify-items-center gap-4 text-center">
       <span className="text-muted-foreground text-xs tracking-wide uppercase">Fill the blank</span>

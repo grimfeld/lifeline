@@ -160,3 +160,29 @@ describe("practising several Decks together", () => {
     for (let i = 1; i < ids.length; i++) expect(ids[i]).not.toBe(ids[i - 1]);
   });
 });
+
+describe("a listening Prompt (ADR 0116)", () => {
+  const clipped = (id: string, clip: string): Material =>
+    itemMaterial({ id, type: WORD, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", term: id, meaning: "", notes: "", origin: "", originId: "", clip, paused: false, addedAt: at(1) } as Word);
+
+  it("counts against the daily new cap like any other new Prompt", () => {
+    const q = practiceQueue([clipped("a", "c1")], [], { now: new Date(at(10)), newCap: 3 });
+    expect(q.newWaiting).toBe(3);
+    expect(q.queue.map((p) => p.slot)).toEqual(["forward", "reverse", "listen"].slice(0, 3));
+    expect(practiceQueue([clipped("a", "c1")], [], { now: new Date(at(10)), newCap: 2 }).queue.map((p) => p.slot)).not.toContain("listen");
+  });
+
+  it("is spaced from its siblings", () => {
+    const q = practiceQueue([clipped("a", "c1"), clipped("b", "c2")], [], { now: new Date(at(10)), newCap: 6 });
+    expect(q.queue.slice(0, 5).some((p, i) => i > 0 && p.itemId === q.queue[i - 1]!.itemId)).toBe(false);
+  });
+
+  it("keeps its schedule through a new clip, and resumes after a removed one", () => {
+    const rs = [recall("a", "listen", "pass", at(5))];
+    const slots = (m: Material) => heldPrompts([m], rs).find((p) => p.slot === "listen")?.held.state;
+    expect(slots(clipped("a", "c1"))).not.toBe("new");
+    expect(slots(clipped("a", "c2"))).toBe(slots(clipped("a", "c1")));
+    expect(heldPrompts([clipped("a", "")], rs).map((p) => p.slot)).toEqual(["forward", "reverse"]);
+    expect(slots(clipped("a", "c3"))).toBe(slots(clipped("a", "c1")));
+  });
+});

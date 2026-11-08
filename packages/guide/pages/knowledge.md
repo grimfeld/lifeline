@@ -31,6 +31,13 @@ Topic to a set you choose.
   recorded and then closed the form on is thrown away.
 - When you reveal any of the item's prompts, the clip plays once, with a **Replay** button under
   the answer. An item without a clip reveals exactly as before.
+- **Listening prompt** — while a Word or a Sentence has a clip it gains one more prompt: the clip
+  plays as soon as the prompt appears (with **Replay**), and you recall the term and meaning of a
+  Word, or the whole text of a Sentence. You may type what you heard before revealing, like on a
+  blank; you still grade yourself, and the recall keeps what you typed. It counts against the
+  topic's daily new cap like any new prompt and never comes straight after its item's other
+  prompts. Replacing the clip keeps its schedule; removing the clip takes the prompt out of
+  Practice, and its history is kept for when a clip is back. Puzzles never use it.
 - Deleting the item deletes its clip. Claude cannot add clips.
 
 ### Topics
@@ -57,7 +64,7 @@ Topic to a set you choose.
 - In a practice: try to recall the answer, **Show answer**, then grade yourself **Pass** or
   **Fail**. Keys: Space reveals, 1 or F fails, 2 or J passes. **Undo** a mis-tap. **Stop** any
   time — nothing is lost.
-- **Typing an answer** — on a Word's reverse prompt and a Sentence's blank, a field offers to take
+- **Typing an answer** — on a Word's reverse prompt, a Sentence's blank and a listening prompt, a field offers to take
   what you think the answer is before you reveal (press Enter, or **Show answer**; leaving it empty
   works as always). The reveal puts **You typed** beside **Answer**; Lifeline never checks it, so a
   typo or an equally right answer is yours to grade. The recall keeps what you typed, unchanged, and
