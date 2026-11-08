@@ -15,6 +15,8 @@ export interface Event extends Document {
   /** null = all day. */
   start: TimeStr | null;
   end: TimeStr | null;
+  /** With: the People who were there (ids), a People field. Absent on an Event made before it. */
+  with?: string[];
 }
 
 /** Document type id. */

@@ -1,4 +1,4 @@
-import type { Document } from "@lifeline/core";
+import { PERSON_TYPE, type Document } from "@lifeline/core";
 
 /**
  * The Person (CONTEXT.md, ADR 0113): someone I know, or knew. The Contacts
@@ -29,7 +29,7 @@ import type { Document } from "@lifeline/core";
  * from either end, so it is a Document of its own — an internal `contacts_tie`
  * type holding both ids and a label for each end (#412).
  */
-export const PERSON = "contacts_person";
+export const PERSON = PERSON_TYPE;
 
 /** Where a new Person lands (a home, never a rule). */
 export const PEOPLE_FOLDER = "People";
@@ -85,7 +85,37 @@ export interface Person extends Document {
   relationship: string;
   /** What I know of them: my own words. */
   body?: string;
+  /** Named days in their life (App-owned, guarded). */
+  occasions?: Occasion[];
   /** Absent until the first is added. */
   addresses?: Address[];
   contactDetails?: ContactDetail[];
+}
+
+/**
+ * An Occasion (CONTEXT.md): a named day in a Person's life, held on that Person
+ * under `occasions`. `day` is "YYYY-MM-DD", or "MM-DD" when the year is not
+ * known; a once Occasion always has its year.
+ */
+export interface Occasion {
+  id: string;
+  label: string;
+  day: string;
+  yearly: boolean;
+}
+
+/** The internal type of a Tie (#412): stored once, read from either Person. */
+export const TIE = "contacts_tie";
+
+/**
+ * A **Tie** (CONTEXT.md): how two People stand to each other, stored once.
+ * `labelA` is what `a` is to `b` ("mother"), `labelB` what `b` is to `a`
+ * ("daughter"). Free words. It never involves the user.
+ */
+export interface Tie extends Document {
+  type: typeof TIE;
+  a: string;
+  b: string;
+  labelA: string;
+  labelB: string;
 }

@@ -1,11 +1,12 @@
 import { useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router";
-import { documentType, patchDocument, useDocument, useLinkIndex, useOpenPeek, type Document } from "@lifeline/core";
-import { BacklinksSection, DocumentEditor } from "@lifeline/editor";
+import { documentType, patchDocument, todayStr, useDocument, useLinkIndex, useOpenPeek, type Document } from "@lifeline/core";
+import { BacklinksSection, DocumentEditor, FieldLinksSection } from "@lifeline/editor";
 import { CommitField, Page, PageHeader } from "@lifeline/ui";
 import { ArrowLeft } from "lucide-react";
 import { PEOPLE_HREF } from "../constants";
 import { PERSON, type Person } from "../domain/types";
+import { ageOf } from "../domain/occasions";
 import { normalizePerson, patchPerson } from "../data/repo";
 import { PersonFields } from "../components/PersonFields";
 import { orderedSections, PERSON_SECTIONS, Section } from "./sections";
@@ -40,7 +41,8 @@ export function PersonScreen() {
     );
   }
 
-  const known = [person.relationship, person.aliases.length ? `also ${person.aliases.join(", ")}` : ""].filter(Boolean).join(" · ");
+  const age = ageOf(person.occasions ?? [], todayStr());
+  const known = [age === null ? "" : `${age} years old`, person.relationship, person.aliases.length ? `also ${person.aliases.join(", ")}` : ""].filter(Boolean).join(" · ");
   return (
     <Page>
       <div className="min-w-0">{back}</div>
@@ -64,7 +66,9 @@ export function PersonScreen() {
         </div>
       </Section>
 
-      <BacklinksSection docId={person.id} index={index} onOpen={(ref) => ref.kind === "doc" && openPeek(ref.id)} />
+      <BacklinksSection docId={person.id} index={index} wikilinksOnly onOpen={(ref) => ref.kind === "doc" && openPeek(ref.id)} />
+      {/* What links in through People fields (an Event's With, a Task's For…), grouped by what they are. */}
+      <FieldLinksSection docId={person.id} index={index} onOpen={(ref) => ref.kind === "doc" && openPeek(ref.id)} />
     </Page>
   );
 }

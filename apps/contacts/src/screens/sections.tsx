@@ -1,6 +1,9 @@
 import type { ComponentType, ReactNode } from "react";
 import type { Person } from "../domain/types";
 import { ContactDetailsSection } from "../components/ContactDetailsSection";
+import { OccasionsSection } from "../components/OccasionsSection";
+import { TiesSection } from "./TiesSection";
+import { ReportsSection } from "./ReportsSection";
 
 /**
  * The Person page's sections between its header and its body, in the page's
@@ -19,7 +22,12 @@ export interface PersonSection {
 }
 
 /** The sections built so far. */
-export const PERSON_SECTIONS: PersonSection[] = [{ slot: "contactDetails", component: ContactDetailsSection }];
+export const PERSON_SECTIONS: PersonSection[] = [
+  { slot: "occasions", component: OccasionsSection },
+  { slot: "contactDetails", component: ContactDetailsSection },
+  { slot: "ties", component: TiesSection },
+  { slot: "reports", component: ReportsSection },
+];
 
 /** The sections in the page's order. */
 export function orderedSections(sections: readonly PersonSection[]): PersonSection[] {

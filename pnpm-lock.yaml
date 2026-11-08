@@ -126,6 +126,9 @@ importers:
       '@lifeline/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@lifeline/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@lifeline/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -1297,6 +1300,9 @@ importers:
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
+      fake-indexeddb:
+        specifier: 'catalog:'
+        version: 6.2.6
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

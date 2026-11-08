@@ -82,6 +82,8 @@ Books, comics and manga.
   **Bibliography** from Open Library, where you can tick works and add them to *To read* in one
   go. From an Author's page you can find them on Open Library, edit their name and aliases,
   **Merge…** two Authors who are one person, or open them in the Vault.
+  **Turn into a Person…** (after a confirmation) is for an Author you have come to know: they
+  become one of your [People](people.md) and stay an Author, so their works still name them.
 
 Commands (Ctrl+K):
 
@@ -238,6 +240,9 @@ drawings, photographs, sculptures and architecture.
 - **Add artwork** takes the art form, title, artist, year, location, materials and dimensions, an
   image URL, *Why it's in my museum* and tags. Search Wikidata from the title. A building can
   have coordinates.
+- An **Artist** is made from an artwork's artist, and has a page in the Vault. **Turn into a
+  Person…** there (after a confirmation) is for an Artist you have come to know: they become one of
+  your [People](people.md) and stay an Artist, so their artworks still name them.
 
 Commands (Ctrl+K):
 

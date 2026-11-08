@@ -14,6 +14,7 @@ function normalize(e: Event): Event {
     start: e.start || null,
     end: e.end || null,
     tags: e.tags ?? [],
+    with: e.with ?? [],
   });
 }
 
@@ -34,6 +35,7 @@ export async function addEvent(input: {
   start?: string | null;
   end?: string | null;
   tags?: string[];
+  with?: string[];
 }): Promise<string> {
   const start = input.start || null;
   const row = await putDocument<Event>(midnightNextDay({
@@ -46,6 +48,7 @@ export async function addEvent(input: {
     start,
     end: start ? (input.end || null) : null,
     tags: normalizeTags(input.tags ?? []),
+    with: input.with ?? [],
   }));
   return row.id;
 }

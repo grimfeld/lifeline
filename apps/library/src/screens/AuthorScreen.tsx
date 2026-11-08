@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { docHref } from "@lifeline/core";
 import { Button, Checkbox, cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, toast } from "@lifeline/ui";
-import { ArrowLeft, ExternalLink, FileText, GitMerge, MoreHorizontal, Pencil, RefreshCw, Search, Trash2 } from "lucide-react";
+import { canTurnIntoPerson, TurnIntoPersonDialog } from "@lifeline/parts";
+import { ArrowLeft, ExternalLink, FileText, GitMerge, MoreHorizontal, Pencil, RefreshCw, Search, Trash2, UserRound } from "lucide-react";
 import { foldBibliography, ownedByKey, type BibliographyRow } from "../domain/authors";
-import type { Author, Work } from "../domain/types";
+import { AUTHOR, type Author, type Work } from "../domain/types";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import { deleteAuthor, patchAuthor, restoreAuthor, useAuthor, useWorks } from "../data/repo";
 import { addFromBibliography, fetchBibliography, refreshAuthor } from "../data/authorActions";
@@ -217,6 +218,7 @@ export function AuthorScreen() {
   const works = useWorks();
   const [finding, setFinding] = useState(false);
   const [merging, setMerging] = useState(false);
+  const [turning, setTurning] = useState(false);
   const [editing, setEditing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -319,6 +321,11 @@ export function AuthorScreen() {
             <DropdownMenuItem onClick={() => setMerging(true)}>
               <GitMerge /> Merge…
             </DropdownMenuItem>
+            {canTurnIntoPerson(author, AUTHOR) && (
+              <DropdownMenuItem onClick={() => setTurning(true)}>
+                <UserRound /> Turn into a Person…
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive" onClick={() => void remove()}>
               <Trash2 /> Delete author
@@ -356,6 +363,7 @@ export function AuthorScreen() {
           if (survivorId !== author.id) navigate(`${APP_HREF}/authors/${survivorId}`, { replace: true });
         }}
       />
+      <TurnIntoPersonDialog doc={turning ? author : null} roleId={AUTHOR} onClose={() => setTurning(false)} />
       <EditAuthorDialog author={editing ? author : null} onClose={() => setEditing(false)} />
     </div>
   );

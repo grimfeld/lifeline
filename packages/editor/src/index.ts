@@ -4,6 +4,7 @@ export * from "./PlainMarkdownView";
 export * from "./FieldsForm";
 export * from "./PeekControls";
 export * from "./LinksPanel";
+export * from "./PeopleField";
 export * from "./Reports";
 export * from "./LocalGraphPanel";
 export * from "./DaylogBlock";
