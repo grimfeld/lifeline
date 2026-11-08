@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { addDays, diffDays, type DateStr } from "../dates";
+import { addDays, diffDays, formatHuman, type DateStr } from "../dates";
 import { mentionable, type LinkIndex } from "./links";
 import type { Document, DocumentTypeDef, ReportKind, ReportSetting } from "./types";
 
@@ -135,6 +135,34 @@ function eventSpan(src: Document | undefined): { from: DateStr; to: DateStr } | 
 /** The days source of a Report family, as of `today`. */
 export function sourceOf(source: ReportSource, today: DateStr): DaysSource {
   return source === "seen" ? (index, docId) => seenDays(index, docId, today) : mentionDays;
+}
+
+/** The words a Report of one source uses: what its count is of, what its heatmap counts, and what links. */
+export interface ReportWords {
+  count: string;
+  heatmap: string;
+  linker: string;
+}
+
+const WORDS: Record<ReportSource, ReportWords> = {
+  mentioned: { count: "Days", heatmap: "Days", linker: "Day" },
+  seen: { count: "Seen", heatmap: "days seen", linker: "Event" },
+};
+
+export function reportWords(source: ReportSource): ReportWords {
+  return WORDS[source];
+}
+
+/** How long ago, said in days. */
+export function agoText(days: number): string {
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
+}
+
+/** A "Last …" Report's value: the last day and how long ago, or never. */
+export function lastText(f: Pick<DocumentFigures, "last" | "sinceLast">): string {
+  return f.last ? `${formatHuman(f.last)} · ${agoText(f.sinceLast ?? 0)}` : "never";
 }
 
 export interface RankRow {

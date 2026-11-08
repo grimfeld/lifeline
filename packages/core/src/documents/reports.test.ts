@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { formatHuman } from "../dates";
 import { buildLinkIndex } from "./links";
-import { DEFAULT_REPORTS, documentFigures, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, reportsIn, reportsOf, topMentioned } from "./reports";
+import { DEFAULT_REPORTS, agoText, documentFigures, lastText, reportWords, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, reportsIn, reportsOf, topMentioned } from "./reports";
 import type { Document, DocumentTypeDef } from "./types";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
@@ -167,5 +168,21 @@ describe("Seen (ADR 0112)", () => {
   });
   it("offers a Person Last seen and Last mentioned by default", () => {
     expect(reportsOf(T("person", { reports: [{ kind: "lastSeen" }, { kind: "last" }] })).map((r) => r.kind)).toEqual(["lastSeen", "last"]);
+  });
+});
+
+describe("a Report's words", () => {
+  it("counts Days for Mentioned and days seen for Seen, and names what links", () => {
+    expect([reportWords("mentioned"), reportWords("seen")]).toEqual([
+      { count: "Days", heatmap: "Days", linker: "Day" },
+      { count: "Seen", heatmap: "days seen", linker: "Event" },
+    ]);
+  });
+  it("says how long ago in days", () => {
+    expect([agoText(-1), agoText(0), agoText(1), agoText(12)]).toEqual(["today", "today", "yesterday", "12 days ago"]);
+  });
+  it("says the last day and how long ago, or never", () => {
+    const f = documentFigures(idx, "ola", "2026-10-18", () => ["2026-10-15"]);
+    expect([lastText(f), lastText(documentFigures(idx, "ola", "2026-10-18", () => []))]).toEqual([`${formatHuman("2026-10-15")} · 3 days ago`, "never"]);
   });
 });
