@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createDocument, documentType, documentsTable, getDocument, initApps, saveDocumentType } from "@lifeline/core";
 import { personTypeDef } from "../types";
-import { addPerson, patchPerson } from "./repo";
+import { addOccasion, addPerson, editOccasion, patchPerson, removeOccasion } from "./repo";
 
 initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personTypeDef], screens: [], cards: [], commands: [] }]);
 
@@ -48,5 +48,25 @@ describe("an existing user-defined type for people (ADR 0113)", () => {
     const mine = await addPerson({ name: "Ursula" });
     expect((await getDocument(theirs.id))?.type).toBe("person");
     expect(mine.type).not.toBe("person");
+  });
+});
+
+describe("a Person's Occasions", () => {
+  it("are added, edited and removed", async () => {
+    const p = await addPerson({ name: "Anne Dupont" });
+    const o = await addOccasion(p.id, { label: " Birthday ", day: "1961-03-04", yearly: true });
+    await addOccasion(p.id, { label: "Surgery", day: "2026-05-12", yearly: false });
+    expect(((await getDocument(p.id)) as never as { occasions: unknown[] }).occasions).toMatchObject([{ label: "Birthday", day: "1961-03-04", yearly: true }, { label: "Surgery", yearly: false }]);
+    await editOccasion(p.id, o.id, { label: "Birthday", day: "03-04", yearly: true });
+    expect(((await getDocument(p.id)) as never as { occasions: { day: string }[] }).occasions[0]?.day).toBe("03-04");
+    await removeOccasion(p.id, o.id);
+    expect(((await getDocument(p.id)) as never as { occasions: unknown[] }).occasions).toHaveLength(1);
+  });
+
+  it("refuse what is not an Occasion, writing nothing", async () => {
+    const p = await addPerson({ name: "Anne Dupont" });
+    await expect(addOccasion(p.id, { label: "Surgery", day: "05-12", yearly: false })).rejects.toThrow("A once Occasion needs its year");
+    await expect(addOccasion(p.id, { label: "", day: "05-12", yearly: true })).rejects.toThrow("An Occasion needs a label");
+    expect(((await getDocument(p.id)) as never as { occasions?: unknown[] }).occasions ?? []).toEqual([]);
   });
 });

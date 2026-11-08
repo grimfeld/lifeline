@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import type { Person } from "../domain/types";
+import { OccasionsSection } from "../components/OccasionsSection";
 import { ReportsSection } from "./ReportsSection";
 
 /**
@@ -19,7 +20,10 @@ export interface PersonSection {
 }
 
 /** The sections built so far; none with #408. */
-export const PERSON_SECTIONS: PersonSection[] = [{ slot: "reports", component: ReportsSection }];
+export const PERSON_SECTIONS: PersonSection[] = [
+  { slot: "occasions", component: OccasionsSection },
+  { slot: "reports", component: ReportsSection },
+];
 
 /** The sections in the page's order. */
 export function orderedSections(sections: readonly PersonSection[]): PersonSection[] {

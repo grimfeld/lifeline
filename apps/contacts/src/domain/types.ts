@@ -85,7 +85,21 @@ export interface Person extends Document {
   relationship: string;
   /** What I know of them: my own words. */
   body?: string;
+  /** Named days in their life (App-owned, guarded). */
+  occasions?: Occasion[];
   /** Absent until the first is added. */
   addresses?: Address[];
   contactDetails?: ContactDetail[];
+}
+
+/**
+ * An Occasion (CONTEXT.md): a named day in a Person's life, held on that Person
+ * under `occasions`. `day` is "YYYY-MM-DD", or "MM-DD" when the year is not
+ * known; a once Occasion always has its year.
+ */
+export interface Occasion {
+  id: string;
+  label: string;
+  day: string;
+  yearly: boolean;
 }

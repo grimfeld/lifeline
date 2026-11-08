@@ -12,6 +12,6 @@ export function ItemMark({ mark }: { mark?: SchedulableItem["mark"] }) {
 }
 
 /** A Deadline marker whose day has passed (ADR 0061): drawn red where it stands. */
-export function missed(item: Pick<TimedItem, "marker" | "date">): boolean {
+export function missed(item: Pick<TimedItem, "marker" | "occasion" | "date">): boolean {
   return isMissedMarker(item, todayStr());
 }

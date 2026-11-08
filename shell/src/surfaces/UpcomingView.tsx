@@ -13,6 +13,7 @@ import {
   type DateStr,
   type SurfaceItem,
   type SurfaceTimedItem,
+  allDayLead,
 } from "@lifeline/core";
 import { Check, ChevronUp } from "lucide-react";
 import { ItemMark, missed } from "./marks";
@@ -230,7 +231,7 @@ export function UpcomingView({ ctx }: { ctx: CalendarCtx }) {
                   <div className="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
                     {!busy(d) && <div className="text-muted-foreground py-2 text-sm">Nothing on</div>}
                     {r.allDay.map((t) => (
-                      <Row key={t.key} color={t.color} lead={t.marker ? "Deadline" : "All day"} late={missed(t)} onOpen={(el) => edit({ kind: "timed", item: t }, el)}>
+                      <Row key={t.key} color={t.color} lead={allDayLead(t)} late={missed(t)} onOpen={(el) => edit({ kind: "timed", item: t }, el)}>
                         <span className="truncate font-medium">{t.title}</span>
                       </Row>
                     ))}
