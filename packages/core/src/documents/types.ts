@@ -175,6 +175,12 @@ export interface DocumentTypeDef {
    * still wikilink targets, never offered from plain prose.
    */
   linkable?: boolean | { aliasesField?: string; subtitle?: (doc: Document) => string | undefined; expand?: (name: string) => string[] | null; mentions?: boolean };
+  /**
+   * Text Fields whose wikilinks the link index reads as links, for a type with
+   * no body that keeps its prose in a Field (an Event's Notes). They make
+   * Backlinks only: no Ghost, no tag, no Unlinked mention. Declared in code.
+   */
+  linkingText?: string[];
   /** Locatable (data-declarable Contract): the geo field holding `[lat, lon]`, or a reader. */
   locatable?: string | ((doc: Document) => { lat: number; lon: number } | null);
   /**

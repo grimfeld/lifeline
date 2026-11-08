@@ -88,11 +88,13 @@ describe("a days source", () => {
 });
 
 describe("Seen (ADR 0112)", () => {
-  const ev = (id: string, title: string, date: string, body: string, endDate: string | null = null): Document =>
-    ({ ...doc(id, "event", title, body), date, endDate }) as unknown as Document;
+  // Real Events: no body, their wikilinks in Notes (a linking text Field).
+  const ev = (id: string, title: string, date: string, notes: string, endDate: string | null = null): Document =>
+    ({ ...doc(id, "event", title), body: undefined, notes, date, endDate }) as unknown as Document;
+  const eventType = T("event", { body: "none", linkingText: ["notes"], fields: [{ key: "notes", label: "Notes", kind: "longtext" }] });
   const task = { ...doc("t1", "task", "Call Marc", "[[Marc]]"), date: "2026-10-02" } as unknown as Document;
   const marker = { ...doc("o1", "occasion", "Birthday", "[[Marc]]"), date: "2026-10-03" } as unknown as Document;
-  const seenTypes = [T("person"), T("event"), T("task"), T("occasion"), T("daily", { titleRule: "date", linkable: { mentions: false } })];
+  const seenTypes = [T("person"), eventType, T("task"), T("occasion"), T("daily", { titleRule: "date", linkable: { mentions: false } })];
   const seenDocs = [
     doc("marc", "person", "Marc"),
     doc("jo", "person", "Jo"),

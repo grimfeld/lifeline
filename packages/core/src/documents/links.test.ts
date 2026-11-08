@@ -98,3 +98,22 @@ describe("folders in resolution (ADR 0013)", () => {
     expect(names).not.toContain("Alex");
   });
 });
+
+describe("a type's linking text Fields", () => {
+  // An Event in miniature: no body, its text in a Notes Field that names its wikilinks as links.
+  const evType = T("ev", { body: "none", linkingText: ["notes"], fields: [{ key: "notes", label: "Notes", kind: "longtext" }, { key: "other", label: "Other", kind: "longtext" }] });
+  const people = [doc("marc", "person", "Marc"), doc("jo", "person", "Jo")];
+  const ev = doc("e1", "ev", "Dinner", "", "", { notes: "Dinner with [[Marc]] and [[Nobody]] #food", other: "[[Jo]]" });
+  const idx = buildLinkIndex([...people, ev], [...types, evType]);
+
+  it("reads the declared Field's wikilinks as backlinks, with their context", () => {
+    expect(idx.backlinksTo("marc")).toEqual([{ sourceId: "e1", context: "Dinner with [[Marc]] and [[Nobody]] #food" }]);
+  });
+  it("reads no other Field", () => {
+    expect(idx.backlinksTo("jo")).toEqual([]);
+  });
+  it("makes no Ghost and no tag of it", () => {
+    expect(idx.unresolved.has("nobody")).toBe(false);
+    expect(idx.tags.has("food")).toBe(false);
+  });
+});

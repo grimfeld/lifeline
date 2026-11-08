@@ -257,6 +257,18 @@ function contributionOf(d: Document, t: Targets): Contribution {
     }
   }
   out.unresolved = [...unresolved];
+  // Linking text Fields (an Event's Notes): their wikilinks are Backlinks, and nothing more.
+  for (const key of def?.linkingText ?? []) {
+    const text = d[key];
+    if (typeof text !== "string" || !text) continue;
+    for (const link of extractLinks(text)) {
+      if (isImageEmbed(link)) continue;
+      const context = contextAround(text, link.from, link.to);
+      for (const r of t.resolveAll(link.name)) {
+        if (r.kind === "doc" && r.id !== d.id) out.backlinks.push({ to: r.id, backlink: { sourceId: d.id, context } });
+      }
+    }
+  }
   // Link fields (ADR 0019): a stored id is a reference too — one or several (ADR 0052).
   for (const f of fieldsOfDocument(d, def)) {
     if (!isLinkKind(f.kind)) continue;

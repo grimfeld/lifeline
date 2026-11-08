@@ -7,11 +7,12 @@ import type { Person } from "./types";
 const base = { folder: "", tags: [], createdAt: "2026-01-01", updatedAt: "", deleted: 0 as const };
 const P = (title: string, more: Partial<Person> = {}): Person =>
   ({ ...base, id: title, type: "contacts_person", title, body: "", aliases: [], relationship: "friend", ...more }) as unknown as Person;
-const ev = (id: string, date: string, body: string, endDate?: string): Document => ({ ...base, id, type: "event", title: id, body, date, endDate }) as unknown as Document;
+// A real Event: no body, its wikilinks in Notes.
+const ev = (id: string, date: string, notes: string, endDate?: string): Document => ({ ...base, id, type: "event", title: id, notes, date, endDate }) as unknown as Document;
 const day = (date: string, body: string): Document => ({ ...base, id: `d${date}`, type: "daily", title: date, body });
 const types: DocumentTypeDef[] = [
   personTypeDef,
-  { id: "event", label: "Events", titleRule: "name", body: "optional", fields: [], builtIn: true },
+  { id: "event", label: "Events", titleRule: "name", body: "none", fields: [{ key: "notes", label: "Notes", kind: "longtext" }], linkingText: ["notes"], builtIn: true },
   { id: "daily", label: "Days", titleRule: "date", body: "optional", fields: [], builtIn: true, linkable: { mentions: false } },
 ];
 
