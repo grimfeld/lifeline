@@ -1,5 +1,6 @@
 ---
 status: accepted
+amended-by: ADR 0113 (in part — Person is a built-in type)
 ---
 
 # One type, many Roles

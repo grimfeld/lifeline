@@ -510,7 +510,7 @@ The Module for living day to day in writing: Days and their Weeks, Months, Quart
 _Avoid_: diary, vault (the raw editor), collections (for its Types — a Collection is a Stat kind)
 
 ### Person
-Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **People** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Not a contact: a Person need not be reachable — the dead, someone met once.
+Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **People** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Only people in my life are People: an Author or Artist I have never met stays that App's own; one I come to know is **turned into a Person**, keeping the Role, the links, the aliases and the body. Not a contact: a Person need not be reachable — the dead, someone met once.
 _Avoid_: contact, friend, acquaintance, relation (a kind of Tie, not the Person)
 
 ### Tie
@@ -553,7 +553,7 @@ A read-only figure or table derived from the Documents of one type and the links
 _Avoid_: stat, statistic, insight, summary, analytics
 
 ### Role
-A built-in type's fields and behaviour lent to a Document of another type, so one Document can be two things: my user-defined Person `Ursula Le Guin` wears the **Author** Role, and her books link to her. A Document still has exactly **one type** — which decides its owner, title, body and Home Module — and any number of Roles. A Role's fields belong to the App that defines the Role; taking a Role off keeps the Document and drops only that Role's fields. Every Role comes with a **home type** for Documents that are that and nothing else (Library's Author, the Notes App's Source). **Source** and **Author** are Roles; my own words (Note, Quote, Thought, Day, Essay, Chapter) never wear Source.
+A built-in type's fields and behaviour lent to a Document of another type, so one Document can be two things: my Person `Clara` wears the **Author** Role, and her books link to her. A Document still has exactly **one type** — which decides its owner, title, body and Home Module — and any number of Roles. A Role's fields belong to the App that defines the Role; taking a Role off keeps the Document and drops only that Role's fields. Every Role comes with a **home type** for Documents that are that and nothing else (Library's Author, the Notes App's Source). **Source** and **Author** are Roles; my own words (Note, Quote, Thought, Day, Essay, Chapter) never wear Source.
 _Avoid_: type (a Document has one), tag, trait, mixin, subtype
 
 ### Graph
