@@ -118,6 +118,31 @@ describe("Seen (ADR 0112)", () => {
   it("leaves Tasks and markers out", () => {
     expect(seenDays(buildLinkIndex([doc("marc", "person", "Marc"), task, marker], seenTypes), "marc", today)).toEqual([]);
   });
+  it("leaves the People fields (a Task's For, a Transaction's For, a Work's Recommended by) out", () => {
+    const peopleField = (key: string) => ({ key, label: key, kind: "links" as const, linkType: "person" });
+    const fieldTypes = [
+      T("person"),
+      T("task", { fields: [peopleField("for")] }),
+      T("ledger_transaction", { fields: [peopleField("for")] }),
+      T("book", { fields: [peopleField("recommendedBy")] }),
+      T("event", { fields: [peopleField("with")] }),
+    ];
+    const dated = (id: string, type: string, key: string, date: string) => ({ ...doc(id, type, id), [key]: ["marc"], date }) as unknown as Document;
+    const people = [
+      doc("marc", "person", "Marc"),
+      dated("t2", "task", "for", "2026-10-02"),
+      dated("x1", "ledger_transaction", "for", "2026-10-04"),
+      dated("b1", "book", "recommendedBy", "2026-10-06"),
+    ];
+    const fidx = buildLinkIndex(people, fieldTypes);
+    // The links exist (they feed the index and the Person page)…
+    expect(fidx.backlinksTo("marc").map((b) => [b.sourceId, b.field]).sort()).toEqual([["b1", "recommendedBy"], ["t2", "for"], ["x1", "for"]]);
+    // …but none counts as Seen, and an Event's With still does.
+    expect(seenDays(fidx, "marc", today)).toEqual([]);
+    expect(rankingRows(fidx, "person", { kind: "topSeen", n: 5 }, {}, today)).toEqual([]);
+    const withEvent = buildLinkIndex([...people, { ...doc("e9", "event", "Dinner"), date: "2026-10-07", endDate: null, with: ["marc"] } as unknown as Document], fieldTypes);
+    expect(seenDays(withEvent, "marc", today)).toEqual(["2026-10-07"]);
+  });
   it("ranks Top seen and Not seen in N days over a window", () => {
     const top = rankingRows(sidx, "person", { kind: "topSeen", n: 5 }, {}, today);
     expect(top.map((r) => [r.docId, r.count, r.last])).toEqual([["marc", 4, "2026-10-12"], ["jo", 3, "2026-10-12"]]);

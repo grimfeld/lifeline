@@ -364,6 +364,9 @@ importers:
       '@lifeline/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@lifeline/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@lifeline/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -398,6 +401,9 @@ importers:
       '@lifeline/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@lifeline/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@lifeline/parts':
         specifier: workspace:*
         version: link:../../packages/parts
@@ -865,6 +871,9 @@ importers:
       '@lifeline/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@lifeline/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@lifeline/ui':
         specifier: workspace:*
         version: link:../../packages/ui

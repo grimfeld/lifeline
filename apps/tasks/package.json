@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@lifeline/core": "workspace:*",
+    "@lifeline/editor": "workspace:*",
     "@lifeline/ui": "workspace:*",
     "lucide-react": "catalog:"
   },
