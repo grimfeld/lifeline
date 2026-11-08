@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Document } from "@lifeline/core";
-import { addAddress, addressPinsOf, editAddress, normalizeAddresses, sortedAddresses } from "./addresses";
+import { addAddress, addressPinsOf, coordsOf, editAddress, isUnplaced, normalizeAddresses, sortedAddresses } from "./addresses";
 import type { Address } from "./types";
 
 const A = (id: string, extra: Partial<Address> = {}): Address => ({ id, label: id, text: `${id} street`, former: false, ...extra });
@@ -23,6 +23,20 @@ describe("a Person's Addresses on the map", () => {
   it("is none for a Person with no Addresses, or a row that holds something else", () => {
     expect(addressPinsOf(person(undefined))).toEqual([]);
     expect(addressPinsOf(person("nope"))).toEqual([]);
+  });
+});
+
+describe("an Address's place", () => {
+  it("is its coordinates when it has both, and none otherwise", () => {
+    expect(coordsOf(A("Home", { lat: 0, lon: 0 }))).toEqual({ lat: 0, lon: 0 });
+    expect(coordsOf(A("Lost"))).toBeNull();
+    expect(coordsOf(A("Half", { lat: 1 }))).toBeNull();
+    expect(coordsOf(A("Half", { lon: 1 }))).toBeNull();
+  });
+  it("is offered again only for a current Address with none", () => {
+    expect(isUnplaced(A("Lost"))).toBe(true);
+    expect(isUnplaced(A("Old", { former: true }))).toBe(false);
+    expect(isUnplaced(A("Home", { lat: 1, lon: 2 }))).toBe(false);
   });
 });
 

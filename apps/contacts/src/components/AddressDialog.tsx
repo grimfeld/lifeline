@@ -1,22 +1,11 @@
 import { useEffect, useState } from "react";
-import { geocode } from "@lifeline/core";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, Textarea, toast } from "@lifeline/ui";
-import { addAddress, coordsOf, editAddress } from "../domain/addresses";
-import { updateAddresses } from "../data/repo";
+import { saveAddress } from "../data/addresses";
+import { message } from "./writes";
 import type { Address } from "../domain/types";
 
-/** Look the text up: the first hit's coordinates, or none when nothing is found or the lookup fails. */
-export async function locate(text: string): Promise<{ lat: number; lon: number } | null> {
-  try {
-    const hit = (await geocode(text, 1))[0];
-    return hit ? { lat: hit.lat, lon: hit.lon } : null;
-  } catch {
-    return null;
-  }
-}
-
 /**
- * Add or change an Address (#418). The lookup runs here, in the save handler
+ * Add or change an Address (#418). The lookup runs on save (`saveAddress`)
  * and nowhere else: not on render, not in the store. When it finds nothing or
  * fails, the Address is saved all the same, with no coordinates, and the page
  * offers the lookup again.
@@ -35,17 +24,13 @@ export function AddressDialog({ personId, address, open, onOpenChange }: { perso
   }, [open, address]);
 
   async function save() {
-    if (!text.trim()) return setError("An Address needs its text.");
     setBusy(true);
     try {
-      // Unchanged text keeps the coordinates it already has, found or not found.
-      const found = address && address.text === text.trim() ? coordsOf(address) : await locate(text);
-      if (address) await updateAddresses(personId, (list) => editAddress(list, address.id, { label, text, lat: found?.lat, lon: found?.lon }));
-      else await updateAddresses(personId, (list) => addAddress(list, { label, text, ...found }, () => crypto.randomUUID()));
-      if (!found) toast.success("Address saved. No place was found for it yet: try the lookup again from the Address.");
+      const placed = await saveAddress(personId, address, { label, text });
+      if (!placed) toast.success("Address saved. No place was found for it yet: try the lookup again from the Address.");
       onOpenChange(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(message(e));
     } finally {
       setBusy(false);
     }

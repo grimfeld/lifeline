@@ -1,23 +1,22 @@
 import { useState } from "react";
 import { Button, Tip, toast } from "@lifeline/ui";
 import { MapPin, Pencil, Plus, Trash2 } from "lucide-react";
-import { coordsOf, editAddress, sortedAddresses } from "../domain/addresses";
+import { editAddress, isUnplaced, sortedAddresses } from "../domain/addresses";
 import { removePart, restorePart, updateAddresses } from "../data/repo";
-import { removeWithUndo } from "./writes";
+import { relocateAddress } from "../data/addresses";
+import { removeWithUndo, writeOrSay } from "./writes";
 import type { Address, Person } from "../domain/types";
 import { Section } from "./Section";
-import { AddressDialog, locate } from "./AddressDialog";
+import { AddressDialog } from "./AddressDialog";
 
 function AddressRow({ person, address, onEdit }: { person: Person; address: Address; onEdit: () => void }) {
-  const placed = coordsOf(address) !== null;
-  const run = (change: Parameters<typeof updateAddresses>[1]) => updateAddresses(person.id, change).catch((e) => toast.error("The Address could not be changed.", { description: e instanceof Error ? e.message : String(e) }));
+  const change = (write: () => Promise<unknown>) => writeOrSay("The Address could not be changed.", write);
 
   // The retry: an explicit click, so the lookup may run (Core's geocode is never called on render).
-  async function retry() {
-    const found = await locate(address.text);
-    if (!found) return void toast.error("Still no place found for this Address. Check its text, or try again later.");
-    await run((list) => editAddress(list, address.id, { lat: found.lat, lon: found.lon }));
-  }
+  const retry = () =>
+    change(async () => {
+      if (!(await relocateAddress(person.id, address))) toast.error("Still no place found for this Address. Check its text, or try again later.");
+    });
 
   return (
     <li className="grid min-w-0 gap-1 rounded-lg border p-2" data-testid="address" data-former={address.former || undefined}>
@@ -43,15 +42,15 @@ function AddressRow({ person, address, onEdit }: { person: Person; address: Addr
         </div>
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        {!address.former && !placed && (
+        {isUnplaced(address) && (
           <>
             <span className="text-muted-foreground text-xs">Not on the map: no place found.</span>
-            <Button variant="outline" size="sm" onClick={() => void retry()}>
+            <Button variant="outline" size="sm" onClick={retry}>
               <MapPin /> Try again
             </Button>
           </>
         )}
-        <Button variant="ghost" size="sm" onClick={() => void run((list) => editAddress(list, address.id, { former: !address.former }))}>
+        <Button variant="ghost" size="sm" onClick={() => change(() => updateAddresses(person.id, (list) => editAddress(list, address.id, { former: !address.former })))}>
           {address.former ? "Mark as current" : "Mark as former"}
         </Button>
       </div>
