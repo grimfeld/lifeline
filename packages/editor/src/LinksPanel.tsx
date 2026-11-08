@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { displayTitle, documentType, excerpt, fieldLinksTo, fieldsOfDocument, getDocument, linkMentions, patchDocument, planLinkAll, singularOf, unambiguousHits, useUnlinkedIn, useUnlinkedMentionsOf, type Document, type LinkIndex, type LinkRef, type MentionHit } from "@lifeline/core";
+import { backlinkContext, backlinksShown, displayTitle, documentType, fieldLinksTo, getDocument, linkFieldLabel, linkMentions, patchDocument, planLinkAll, singularOf, unambiguousHits, useUnlinkedIn, useUnlinkedMentionsOf, type LinkIndex, type LinkRef, type MentionHit } from "@lifeline/core";
 import { Button, cn, toast } from "@lifeline/ui";
 
 type OnOpen = (ref: LinkRef, name: string) => void;
@@ -38,10 +38,9 @@ function SourceRow({ index, sourceId, context, onOpen }: { index: LinkIndex; sou
 }
 
 /** Backlinks: the Documents that link here, by wikilink or Link field. */
-export function BacklinksSection({ docId, index, onOpen, emptyHint = true, wikilinksOnly = false }: SectionProps & { emptyHint?: boolean; wikilinksOnly?: boolean }) {
+export function BacklinksSection({ docId, index, onOpen, wikilinksOnly = false }: SectionProps & { wikilinksOnly?: boolean }) {
   // `wikilinksOnly`: what links through a Link field is shown apart, by `FieldLinksSection`.
-  const backlinks = index.backlinksTo(docId).filter((b) => !wikilinksOnly || !b.field);
-  if (backlinks.length === 0 && !emptyHint) return null;
+  const backlinks = backlinksShown(index, docId, wikilinksOnly);
   return (
     <section className="min-w-0">
       <h3 className={HEADING}>Backlinks · {backlinks.length}</h3>
@@ -49,14 +48,11 @@ export function BacklinksSection({ docId, index, onOpen, emptyHint = true, wikil
         <p className="text-muted-foreground text-xs">Nothing links here yet.</p>
       ) : (
         <ul className="grid min-w-0 gap-1.5">
-          {backlinks.map((b, i) => {
-            const src = index.byId.get(b.sourceId);
-            return (
-              <li key={`${b.sourceId}-${i}`} className="min-w-0">
-                <SourceRow index={index} sourceId={b.sourceId} onOpen={onOpen} context={b.field ? `via ${b.field}` : b.context || excerpt(typeof src?.body === "string" ? src.body : "", 100)} />
-              </li>
-            );
-          })}
+          {backlinks.map((b, i) => (
+            <li key={`${b.sourceId}-${i}`} className="min-w-0">
+              <SourceRow index={index} sourceId={b.sourceId} onOpen={onOpen} context={backlinkContext(b, index.byId.get(b.sourceId))} />
+            </li>
+          ))}
         </ul>
       )}
     </section>
@@ -248,16 +244,16 @@ export function FieldLinksSection({ docId, index, onOpen }: SectionProps) {
   return (
     <>
       {groups.map((g) => {
-        const def = documentType(g.type);
+        const label = documentType(g.type)?.label ?? g.type;
         return (
-          <section key={g.type} className="min-w-0" aria-label={def?.label ?? g.type}>
+          <section key={g.type} className="min-w-0" aria-label={label}>
             <h3 className={HEADING}>
-              {def?.label ?? g.type} · {g.rows.length}
+              {label} · {g.rows.length}
             </h3>
             <ul className="grid min-w-0 gap-1.5">
               {g.rows.map((r) => (
                 <li key={`${r.sourceId}-${r.field}`} className="min-w-0">
-                  <SourceRow index={index} sourceId={r.sourceId} onOpen={onOpen} context={`via ${fieldLabel(index.byId.get(r.sourceId), r.field)}`} />
+                  <SourceRow index={index} sourceId={r.sourceId} onOpen={onOpen} context={`via ${fieldLabelIn(index, r.sourceId, r.field)}`} />
                 </li>
               ))}
             </ul>
@@ -269,7 +265,7 @@ export function FieldLinksSection({ docId, index, onOpen }: SectionProps) {
 }
 
 /** A Link field's label on the Document that holds it ("With"), or its key. */
-function fieldLabel(d: Document | undefined, key: string): string {
-  const f = d ? fieldsOfDocument(d, documentType(d.type)).find((x) => x.key === key) : undefined;
-  return f?.label ?? key;
+function fieldLabelIn(index: LinkIndex, sourceId: string, key: string): string {
+  const d = index.byId.get(sourceId);
+  return linkFieldLabel(d, d && documentType(d.type), key);
 }
