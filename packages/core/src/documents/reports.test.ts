@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex } from "./links";
-import { DEFAULT_REPORTS, documentFigures, mentionDays, notMentionedSince, rankingRows, reportsIn, reportsOf, topMentioned } from "./reports";
+import { DEFAULT_REPORTS, documentFigures, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, reportsIn, reportsOf, topMentioned } from "./reports";
 import type { Document, DocumentTypeDef } from "./types";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
@@ -84,5 +84,52 @@ describe("a days source", () => {
     expect(notMentionedSince(idx, "person", 30, "2026-10-18", other).map((r) => r.docId)).toEqual(["ola"]);
     expect(rankingRows(idx, "person", { kind: "top", n: 5 }, {}, "2026-10-18", other).map((r) => r.docId)).toEqual(["ola"]);
     expect(documentFigures(idx, "ola", "2026-10-18", other)).toMatchObject({ last: "2026-09-02", allTime: 2, thisYear: 2 });
+  });
+});
+
+describe("Seen (ADR 0112)", () => {
+  const ev = (id: string, title: string, date: string, body: string, endDate: string | null = null): Document =>
+    ({ ...doc(id, "event", title, body), date, endDate }) as unknown as Document;
+  const task = { ...doc("t1", "task", "Call Marc", "[[Marc]]"), date: "2026-10-02" } as unknown as Document;
+  const marker = { ...doc("o1", "occasion", "Birthday", "[[Marc]]"), date: "2026-10-03" } as unknown as Document;
+  const seenTypes = [T("person"), T("event"), T("task"), T("occasion"), T("daily", { titleRule: "date", linkable: { mentions: false } })];
+  const seenDocs = [
+    doc("marc", "person", "Marc"),
+    doc("jo", "person", "Jo"),
+    ev("e1", "Lunch", "2026-10-01", "with [[Marc]]"),
+    ev("e2", "Dinner", "2026-10-01", "[[Marc]] again"),
+    ev("e3", "Trip", "2026-10-10", "[[Marc]] and [[Jo]]", "2026-10-12"),
+    ev("e4", "Tomorrow", "2026-10-19", "[[Marc]]"),
+    doc("d1", "daily", "2026-10-01", "[[Marc]]"),
+    task,
+    marker,
+  ];
+  const sidx = buildLinkIndex(seenDocs, seenTypes);
+  const today = "2026-10-18";
+
+  it("counts a day once however many Events link, each day of a span, and nothing in the future", () => {
+    expect(seenDays(sidx, "marc", today)).toEqual(["2026-10-01", "2026-10-10", "2026-10-11", "2026-10-12"]);
+    expect(seenDays(sidx, "marc", "2026-10-11")).toEqual(["2026-10-01", "2026-10-10", "2026-10-11"]);
+  });
+  it("keeps Seen and Mentioned apart, and counts a group Event for each Person", () => {
+    expect(mentionDays(sidx, "marc")).toEqual(["2026-10-01"]);
+    expect(seenDays(sidx, "jo", today)).toEqual(["2026-10-10", "2026-10-11", "2026-10-12"]);
+  });
+  it("leaves Tasks and markers out", () => {
+    expect(seenDays(buildLinkIndex([doc("marc", "person", "Marc"), task, marker], seenTypes), "marc", today)).toEqual([]);
+  });
+  it("ranks Top seen and Not seen in N days over a window", () => {
+    const top = rankingRows(sidx, "person", { kind: "topSeen", n: 5 }, {}, today);
+    expect(top.map((r) => [r.docId, r.count, r.last])).toEqual([["marc", 4, "2026-10-12"], ["jo", 3, "2026-10-12"]]);
+    expect(rankingRows(sidx, "person", { kind: "topSeen" }, { to: "2026-10-05" }, today).map((r) => [r.docId, r.count])).toEqual([["marc", 1]]);
+    expect(rankingRows(sidx, "person", { kind: "quietSeen", days: 5 }, {}, today).map((r) => r.docId).sort()).toEqual(["jo", "marc"]);
+    expect(rankingRows(sidx, "person", { kind: "quietSeen", days: 7 }, {}, today).map((r) => r.docId)).toEqual([]);
+  });
+  it("gives the per-Document figures", () => {
+    const f = documentFigures(sidx, "marc", today, sourceOf("seen", today));
+    expect([f.last, f.sinceLast, f.thisYear, f.allTime]).toEqual(["2026-10-12", 6, 4, 4]);
+  });
+  it("offers a Person Last seen and Last mentioned by default", () => {
+    expect(reportsOf(T("person", { reports: [{ kind: "lastSeen" }, { kind: "last" }] })).map((r) => r.kind)).toEqual(["lastSeen", "last"]);
   });
 });

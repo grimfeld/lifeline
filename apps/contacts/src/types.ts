@@ -18,6 +18,8 @@ export const personTypeDef: DocumentTypeDef = {
   linkable: { subtitle: (d) => ((d as Person).relationship?.trim() ? `Person · ${(d as Person).relationship.trim()}` : "Person") },
   // Opens on its own page; its Peek's "Open" leads there (ADR 0110's pattern).
   href: (d) => personHref(d.id),
+  // Seen and Mentioned side by side, never added together (ADR 0112).
+  reports: [{ kind: "lastSeen" }, { kind: "last" }],
   order: 30,
   builtIn: true,
   fields: [
