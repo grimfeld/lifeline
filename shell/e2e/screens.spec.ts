@@ -163,6 +163,37 @@ async function mixingDecks(page: Page) {
  * from (ADR 0106): the longest Deck names, and Words and Facts with the
  * longest terms, answers, meanings, questions, notes and origins.
  */
+/**
+ * Knowledge → Decks over a Deck of agent drafts (ADR 0115), its review opened:
+ * a Word, a Sentence and a Fact with the longest terms, notes and origin a person could type.
+ */
+async function withDraftReview(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date().toISOString();
+      const common = { languageId: topic.id, notes: `${long} ${word}`, origin: `${long} ${word}`, originId: "", paused: false, draft: true, addedAt: at, tags: [] };
+      const members = [
+        (await core.putDocument({ type: "language_word", term: `${word} ${long}`, meaning: `${long} ${word}`, ...common })).id,
+        (await core.putDocument({ type: "language_sentence", text: `${long} {{${word}}}`, translation: `${long} ${word}`, ...common })).id,
+        (await core.putDocument({ type: "knowledge_fact", title: `${long} ${word}`, question: `${long} ${word}`, answer: `${word} ${long}`, ...common })).id,
+      ];
+      await core.putDocument({ type: "language_deck", title: long, name: long, languageId: topic.id, members, tags: [] });
+      localStorage.setItem("lifeline.languages.active", topic.id);
+    },
+    [CORE_URL, longText("Draft deck"), LONG_WORD] as const,
+  );
+}
+
+/** …and the Deck's drafts reviewed. */
+async function reviewingDrafts(page: Page) {
+  await withDraftReview(page);
+  await page.getByRole("button", { name: /^Review \d+ drafts?$/ }).first().click();
+  await expect(page.getByRole("dialog").getByText("Draft 1 of 3")).toBeVisible();
+}
+
 async function withConnections(page: Page) {
   await workLocally(page);
   await page.evaluate(
@@ -887,6 +918,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Mood", path: "/app/mood" },
   { name: "Swear Jar", path: "/app/swearjar" },
   { name: "Knowledge", path: "/app/languages" },
+  { name: "Knowledge · Decks with drafts", path: "/app/languages?tab=decks", afterOpen: withDraftReview },
+  { name: "Knowledge · Deck review", path: "/app/languages?tab=decks", afterOpen: reviewingDrafts },
   { name: "Knowledge · Mixing decks", path: "/app/languages", afterOpen: mixingDecks },
   { name: "Knowledge · Puzzles", path: "/app/languages?tab=puzzles", afterOpen: withPuzzleWord },
   { name: "Knowledge · Puzzle player", path: "/app/languages?tab=puzzles", afterOpen: playPuzzle },

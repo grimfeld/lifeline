@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accepted, isDraft, kept } from "./draft";
+import { accepted, acceptAllReady, isDraft, kept } from "./draft";
 import { practiceQueue, retention } from "./practice";
 import { itemMaterial } from "./prompts";
 import { RECALL, WORD, type Recall, type Word } from "./types";
@@ -43,5 +43,20 @@ describe("a draft", () => {
 
   it("does not skew Retention: it has no Recalls", () => {
     expect(retention([], new Date(at(10)))).toBeNull();
+  });
+});
+
+describe("accepting a whole Deck", () => {
+  const pending = [{ id: "a" }, { id: "b" }, { id: "c" }];
+
+  it("is unavailable until every pending draft has been shown", () => {
+    expect(acceptAllReady(pending, new Set())).toBe(false);
+    expect(acceptAllReady(pending, new Set(["a", "b"]))).toBe(false);
+    expect(acceptAllReady(pending, new Set(["a", "b", "c"]))).toBe(true);
+  });
+
+  it("asks only about the drafts still pending: a deleted or accepted one needs no showing, and nothing pending is nothing to accept", () => {
+    expect(acceptAllReady(pending.slice(1), new Set(["b", "c"]))).toBe(true);
+    expect(acceptAllReady([], new Set(["a"]))).toBe(false);
   });
 });

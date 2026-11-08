@@ -29,3 +29,11 @@ export function proposedChanges(item: Item): { key: keyof Proposal; current: str
   const own = item as unknown as Record<string, string>;
   return REWRITABLE[item.type].flatMap((key) => (p[key] !== undefined && p[key] !== own[key] ? [{ key, current: own[key] ?? "", proposed: p[key]! }] : []));
 }
+
+/**
+ * "Accept all" in a Deck's review (ADR 0115): offered only once every draft still
+ * pending has been shown, so a 30-item lesson is accepted in one go yet each item was seen.
+ */
+export function acceptAllReady(pending: readonly { id: string }[], shown: ReadonlySet<string>): boolean {
+  return pending.length > 0 && pending.every((d) => shown.has(d.id));
+}
