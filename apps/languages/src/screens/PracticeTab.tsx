@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router";
 import { Button, Card, CardContent, cn } from "@lifeline/ui";
 import { formatHuman, todayStr, useLiveQuery } from "@lifeline/core";
 import { BookOpen, Layers, Play, Shapes } from "lucide-react";
-import { dueAheadOfHeld, heldPrompts, introducedByTopic, queueOfHeld, retention, type NewCap, type PracticeQueue } from "../domain/practice";
+import { dueAheadOfHeld, heldPrompts, introducedByTopic, queueOfHeld, recallsOfLive, retention, type NewCap, type PracticeQueue } from "../domain/practice";
 import type { Deck, Topic, Recall } from "../domain/types";
 import { useAllMaterial, useRecalls, useSourceChains, useTopics, type MaterialDoc } from "../data/repo";
 import { FORMAT_LABEL, getPuzzle } from "../data/puzzles";
@@ -81,8 +81,8 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
     }
     return out;
   }, [decks, held, introduced, now, topic.newCap]);
-  const ret = useMemo(() => retention(recalls, now), [recalls, now]);
-  const retAll = useMemo(() => (liveTopics.length > 1 ? retention(allRecalls, now) : null), [liveTopics.length, allRecalls, now]);
+  const ret = useMemo(() => retention(recallsOfLive(live, recalls), now), [live, recalls, now]);
+  const retAll = useMemo(() => (liveTopics.length > 1 ? retention(recallsOfLive(liveAll, allRecalls), now) : null), [liveTopics.length, liveAll, allRecalls, now]);
   const week = useMemo(() => dueAheadOfHeld(held, now), [held, now]);
   const peak = Math.max(1, ...week.map((d) => d.count));
 

@@ -79,6 +79,18 @@ const GENERIC: ToolSpec[] = [
     local: readGuide,
   },
   {
+    name: "knowledge_report",
+    title: "Knowledge practice report",
+    description:
+      "How the user's practice of a Knowledge Topic is going, read-only: Retention (the share of the last 30 days' Recalls passed, as the app shows it), what is due now, how many new Prompts are waiting, and the Prompts failed most over the last 30 days, each with its question, answer, slot and latest Recalls (grade and moment). Optionally narrowed to some of the Topic's Decks (lessons). Drafts and paused material are left out. Use it to choose what to teach next instead of asking for a score.",
+    input: {
+      topic: z.string().describe("The Topic's id or exact name, e.g. Italian."),
+      decks: z.array(z.string()).optional().describe("Deck (lesson) ids or names of that Topic; omit for the whole Topic."),
+      workspace,
+    },
+    write: false,
+  },
+  {
     name: "list_workspaces",
     title: "List Workspaces",
     description: "The Account's Workspaces. Documents live in the shared content or inside one separated Workspace; every other tool reads and writes one Workspace at a time.",

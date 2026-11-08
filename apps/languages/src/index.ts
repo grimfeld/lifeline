@@ -245,5 +245,6 @@ export const knowledgeApp: AppManifest = {
   ],
 };
 
+export { knowledgeReport, type KnowledgeReport } from "./report";
 export { TOPIC, WORD, SENTENCE, FACT, DECK, RECALL, PUZZLE };
 export type { Topic, Word, Sentence, Fact, Deck, Recall, Puzzle };
