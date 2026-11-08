@@ -513,6 +513,10 @@ _Avoid_: diary, vault (the raw editor), collections (for its Types — a Collect
 Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **People** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Only people in my life are People: an Author or Artist I have never met stays that App's own; one I come to know is **turned into a Person**, keeping the Role, the links, the aliases and the body. Not a contact: a Person need not be reachable — the dead, someone met once.
 _Avoid_: contact, friend, acquaintance, relation (a kind of Tie, not the Person)
 
+### People field
+A built-in Links field to People that another App's type carries, so a Person is linked from where things happen and not only from bodies: an Event's **With** (who was there — what Seen counts), a Task's **For**, a Transaction's **For** (a gift, a shared bill), a work's **Recommended by** (beside its Reason, which stays free text). Offered in the owning App's own dialog with name completion; a source of Backlinks like any Link. The owning App keeps the field; Contacts only owns the Person it points to. The user may add Person-linked Fields of their own to any other type.
+_Avoid_: attendees, participants, mention (a wikilink's), tag
+
 ### Tie
 How two People stand to each other — Anne and Léa, *mother* / *daughter*; Anne and Marc, *partner* / *partner* — entered once, from either Person's page, with a label for each end, and shown on both pages read from that Person's side ("daughter: Léa" on Anne's, "mother: Anne" on Léa's). Labels are the user's own words, never a fixed family vocabulary. Never involves me: I am no Person. Not a wikilink (that says one Document mentions another, not how they are related), not a Link field (one-way).
 _Avoid_: relation, relationship (mine to a Person), link, connection
