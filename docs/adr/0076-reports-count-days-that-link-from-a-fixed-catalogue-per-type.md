@@ -1,4 +1,5 @@
 ---
+status: accepted
 amended-by: ADR 0112 (in part — Events that link count, as Seen)
 ---
 

@@ -26,6 +26,7 @@ Only people in my life are People. An Author (Library) or Artist (Museum) I have
 ## Consequences
 
 - `people` joins Core's Module list after `journal`; Workspaces may take it.
+- The built-in type's id is `contacts_person`, not `person`. A user-defined type made for people before this is most likely `person` (the Type editor slugs "Person"), and a user record sharing a built-in's id becomes that built-in's override in Core's registry: its Documents would silently turn into Contacts People. The App-prefixed id keeps a user's `person` type untouched (#404 story 85). Core names it `PERSON_TYPE`, so other Apps' People fields reach it without importing Contacts.
 - ADR 0069's decision stands; only its example changes. A Person wears the Author Role exactly as the user-defined Person was meant to.
 - An account that already made a user-defined type for people keeps it: a Document never loses its type (CONTEXT.md "Document type"). Moving its Documents into Person is a later, explicit step.
 - Seen and Mentioned Reports (ADR 0112) are People's first stats; the Upcoming and group-by-Relationship kinds follow.
