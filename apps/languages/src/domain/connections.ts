@@ -1,5 +1,5 @@
 import { kept } from "./draft";
-import { promptKey } from "./prompts";
+import { LISTEN, promptKey } from "./prompts";
 import { recallsByPrompt } from "./practice";
 import { replay } from "./schedule";
 import { fold, leastRecentFirst, type Avoid } from "./puzzle";
@@ -33,7 +33,7 @@ export interface ConnectionsItem {
  * paused, with at least one Recall on any of their Prompts, pass or fail.
  */
 export function connectionsItems(topicId: string, words: Word[], facts: Fact[], recalls: Recall[]): Map<string, ConnectionsItem> {
-  const met = new Set(recalls.filter((r) => r.languageId === topicId).map((r) => r.itemId));
+  const met = new Set(recalls.filter((r) => r.languageId === topicId && r.slot !== LISTEN).map((r) => r.itemId));
   const out = new Map<string, ConnectionsItem>();
   for (const w of words) if (w.languageId === topicId && kept(w) && met.has(w.id) && w.term?.trim()) out.set(w.id, { id: w.id, answer: w.term.trim(), clue: w.meaning ?? "" });
   for (const f of facts) if (f.languageId === topicId && kept(f) && met.has(f.id) && f.answer?.trim()) out.set(f.id, { id: f.id, answer: f.answer.trim(), clue: f.question ?? "" });
@@ -112,7 +112,7 @@ export function connectionsDraw(topicId: string, decks: Deck[], items: Map<strin
     if (kept.some((m) => m.length < GROUP_SIZE)) continue;
     const by = recallsByPrompt(recalls);
     const slots = new Map<string, Set<string>>();
-    for (const r of recalls) slots.set(r.itemId, (slots.get(r.itemId) ?? new Set()).add(r.slot));
+    for (const r of recalls.filter((x) => x.slot !== LISTEN)) slots.set(r.itemId, (slots.get(r.itemId) ?? new Set()).add(r.slot));
     const dueOf = (id: string) => Math.min(...[...(slots.get(id) ?? [])].map((s) => replay(by.get(promptKey(id, s)) ?? []).due?.getTime() ?? Number.POSITIVE_INFINITY), Number.POSITIVE_INFINITY);
     const drawn = chosen.flatMap(({ deck }, g) =>
       drawTowardDue(kept[g]!, GROUP_SIZE, dueOf, opts.random, opts.avoid ?? new Map()).map((m): PuzzleDraw => ({ itemId: m.id, slot: "", answer: m.answer, clue: m.clue, hint: "", deckId: deck.id, deck: deck.name })),

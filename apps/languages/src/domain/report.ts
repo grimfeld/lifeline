@@ -1,8 +1,9 @@
 import { addDays, todayStr } from "@lifeline/core";
-import { parseCloze } from "./cloze";
+import { parseCloze, plainSentence } from "./cloze";
 import type { MaterialDoc } from "./material";
 import { leeches as readLeeches } from "./leech";
 import { dayOf, heldPrompts, introducedByTopic, queueOfHeld, recallsByPrompt, recallsOfLive, retention } from "./practice";
+import { LISTEN } from "./prompts";
 import { FACT, SENTENCE, WORD, type Fact, type Grade, type Recall, type Sentence, type Word } from "./types";
 
 /** Policy, in one place: how many failed Prompts the report lists, and how many Recalls it shows with each. */
@@ -69,6 +70,7 @@ export function promptText(m: MaterialDoc, slot: string): { question: string; an
   if (m.type === WORD) {
     const w = m.doc as unknown as Word;
     const term = w.term || w.title;
+    if (slot === LISTEN) return { question: "(listen)", answer: term };
     return slot === "forward" ? { question: term, answer: w.meaning } : { question: w.meaning, answer: term };
   }
   if (m.type === FACT) {
@@ -77,6 +79,7 @@ export function promptText(m: MaterialDoc, slot: string): { question: string; an
   }
   if (m.type === SENTENCE) {
     const s = m.doc as unknown as Sentence;
+    if (slot === LISTEN) return { question: "(listen)", answer: plainSentence(s.text ?? "") };
     let answer = "";
     const question = parseCloze(s.text ?? "")
       .map((p) => {

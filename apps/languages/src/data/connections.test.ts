@@ -200,6 +200,19 @@ describe("what a Connections may draw", () => {
     expect(await openDailyPuzzle(t, "connections", { now: NOW })).not.toBeNull();
   });
 
+  it("never counts a listening Recall: a Word met only by ear is not drawn", async () => {
+    const t = await topic();
+    for (const name of ["w1", "w2", "w3"]) await deckOf(t, name);
+    const ids: string[] = [];
+    for (const term of ["e1", "e2", "e3", "e4"]) {
+      const id = await addWord({ languageId: t, term, meaning: `the meaning of ${term}` });
+      await recall(t, id, "listen");
+      ids.push(id);
+    }
+    await deck(t, "ear", ids);
+    expect(await openDailyPuzzle(t, "connections", { now: NOW })).toBeNull();
+  });
+
   it("draws Fact answers as well as Word terms, met on any Prompt", async () => {
     const t = await topic();
     for (const name of ["w1", "w2", "w3"]) await deckOf(t, name);

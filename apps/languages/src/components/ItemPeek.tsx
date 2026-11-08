@@ -20,6 +20,7 @@ const HISTORY_SHOWN = 10;
 function slotLabel(slot: string): string {
   if (slot === "forward") return "Forward";
   if (slot === "reverse") return "Reverse";
+  if (slot === "listen") return "Listening";
   return `Blank · ${slot.replace(/^blank:/, "")}`;
 }
 
