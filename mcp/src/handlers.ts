@@ -49,6 +49,7 @@ import {
   type OwnedCommand,
   type Placement,
 } from "@lifeline/core";
+import { AGENT_WALLED_KEYS, PERSON } from "@lifeline/app-contacts/src/domain/types";
 import { macroTools, TOOLS, type MacroTool } from "./tools";
 
 /**
@@ -57,8 +58,11 @@ import { macroTools, TOOLS, type MacroTool } from "./tools";
  * owning App — the same paths a device's UI takes — so the agent can do
  * nothing a person at the app could not.
  *
- * One rule is the server's own: the Private folder is never shown to or
- * written by an agent, whether or not the user has set a password for it.
+ * Two rules are the server's own: the Private folder is never shown to or
+ * written by an agent, whether or not the user has set a password for it; and
+ * a Person's Addresses and Contact details are never shown to or written by
+ * one either (the agent wall, ADR 0114). A Person's Pins are not offered: no
+ * tool reads the map.
  */
 
 type Args = Record<string, unknown>;
@@ -88,6 +92,30 @@ function isAgentVisible(doc: Pick<Document, "folder" | "type">): boolean {
   return !documentTypeSync(doc.type)?.internal;
 }
 
+/**
+ * The agent wall (ADR 0114): the keys of a type's Documents an agent never
+ * reads or writes — a Person's Addresses and Contact details, current and
+ * former. A rule about the type, whatever Fields it declares.
+ */
+const WALLED: ReadonlyMap<string, readonly string[]> = new Map([[PERSON, AGENT_WALLED_KEYS]]);
+const CONTACTS_APP = "contacts";
+
+function walledKeys(typeId: string): readonly string[] {
+  return WALLED.get(typeId) ?? [];
+}
+
+/** The Document as an agent may see it: the stored one, less its walled keys. Never written back. */
+function agentView(doc: Document): Document {
+  const walled = walledKeys(doc.type);
+  if (!walled.some((k) => k in doc)) return doc;
+  return Object.fromEntries(Object.entries(doc).filter(([k]) => !walled.includes(k))) as Document;
+}
+
+function refuseWalled(typeId: string, keys: readonly string[]): void {
+  const hit = walledKeys(typeId).find((k) => keys.includes(k));
+  if (hit) throw new ToolError(`A Person's ${hit === "addresses" ? "Addresses are" : "Contact details are"} never written by an agent: the user types them in Lifeline`);
+}
+
 /** Fields an agent may set directly: what a Base lets a person edit (ADR 0020). */
 function isWritableField(f: FieldDef): boolean {
   return !f.guarded && !f.hidden && f.kind !== "json";
@@ -106,6 +134,7 @@ function fieldArg(f: FieldDef): CommandArg {
 
 /** Check type fields the way a Base would accept them; null clears a field. Throws on guarded or unknown keys. */
 async function readFields(def: DocumentTypeDef, raw: Args): Promise<Args> {
+  refuseWalled(def.id, Object.keys(raw));
   const byKey = new Map(def.fields.map((f) => [f.key, f]));
   for (const key of Object.keys(raw)) {
     const f = byKey.get(key);
@@ -132,7 +161,8 @@ function summary(doc: Document, query?: string) {
   return { id: doc.id, type: doc.type, title: doc.title, folder: doc.folder || undefined, tags: doc.tags.length ? doc.tags : undefined, updatedAt: doc.updatedAt, snippet };
 }
 
-function full(doc: Document) {
+function full(stored: Document) {
+  const doc = agentView(stored);
   const def = documentTypeSync(doc.type);
   const hidden = new Set(fieldsOfDocument(doc, def).filter((f) => f.hidden).map((f) => f.key));
   const roles = rolesOf(doc).map((r) => r.label);
@@ -151,7 +181,8 @@ function full(doc: Document) {
   };
 }
 
-function haystack(doc: Document): string {
+function haystack(stored: Document): string {
+  const doc = agentView(stored);
   const parts = [doc.title, typeof doc.body === "string" ? doc.body : ""];
   for (const v of Object.values(typeFieldsOf(doc))) if (typeof v === "string") parts.push(v);
   return parts.join("\n").toLowerCase();
@@ -215,11 +246,17 @@ export async function listMacroTools(): Promise<MacroTool[]> {
   return macroTools(macros, await registry(macros));
 }
 
+/** A Macro step handing a walled part to a Contacts Command is refused, written or run by an agent (ADR 0114). */
+function assertMacroOutsideWall(macro: MacroShape): void {
+  for (const step of macro.steps ?? []) if (step.command?.startsWith(`${CONTACTS_APP}/`)) refuseWalled(PERSON, Object.keys(step.args ?? {}));
+}
+
 /**
  * Check a Macro an agent wrote exactly as the app's editor does, with fixed
  * links looked up in the Workspace the call is in.
  */
 async function assertFine(macro: MacroShape): Promise<void> {
+  assertMacroOutsideWall(macro);
   const check = await checkMacro(macro, await registry());
   if (!check.ok) throw new ToolError(`“${macro.name}” would be broken: ${check.reasons.join("; ")}`);
 }
@@ -229,6 +266,7 @@ async function runMacroTool(tool: MacroTool, args: Args): Promise<unknown> {
   const macros = await allMacros();
   const macro = macros.find((m) => m.id === tool.macro);
   if (!macro) throw new ToolError(`Macro ${tool.name} is gone`);
+  assertMacroOutsideWall(macro);
   try {
     const report = await runMacroHeadless(macro, await registry(macros), args);
     return { message: reportMessage(report), report: { name: report.name, steps: report.steps } };
@@ -297,8 +335,8 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
       creatable: isCreatable(t) || undefined,
       body: t.body,
       fields: one
-        ? t.fields.filter((f) => !f.hidden).map((f) => ({ key: f.key, label: f.label, kind: f.kind, options: f.options?.map((o) => o.value), guarded: f.guarded || undefined, required: f.required || undefined }))
-        : t.fields.filter((f) => !f.hidden).map((f) => f.key + (f.guarded ? " (guarded)" : "")),
+        ? t.fields.filter((f) => !f.hidden && !walledKeys(t.id).includes(f.key)).map((f) => ({ key: f.key, label: f.label, kind: f.kind, options: f.options?.map((o) => o.value), guarded: f.guarded || undefined, required: f.required || undefined }))
+        : t.fields.filter((f) => !f.hidden && !walledKeys(t.id).includes(f.key)).map((f) => f.key + (f.guarded ? " (guarded)" : "")),
     }));
   },
 
@@ -324,7 +362,7 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
   async get_document(a) {
     const doc = await describedDocument(a.id);
     const def = documentTypeSync(doc.type);
-    return def?.describe ? { ...full(doc), detail: await def.describe(doc) } : full(doc);
+    return def?.describe ? { ...full(doc), detail: await def.describe(agentView(doc)) } : full(doc);
   },
 
   async agenda(a) {
@@ -491,6 +529,8 @@ export async function runTool(name: string, args: Args): Promise<unknown> {
   if (spec.command) {
     const def = allCommands().find((c) => c.id === spec.command);
     if (!def) throw new ToolError(`Command ${spec.command} is gone`);
+    // The Contacts App's own tools never take a walled part, whatever their signature grows (ADR 0114).
+    if (def.appId === CONTACTS_APP) refuseWalled(PERSON, Object.keys(rest));
     return invokeCommand(def, rest).catch((e: Error) => {
       throw new ToolError(e.message);
     });
