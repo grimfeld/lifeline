@@ -510,7 +510,7 @@ The Module for living day to day in writing: Days and their Weeks, Months, Quart
 _Avoid_: diary, vault (the raw editor), collections (for its Types — a Collection is a Stat kind)
 
 ### Person
-Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **People** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Only people in my life are People: an Author or Artist I have never met stays that App's own; one I come to know is **turned into a Person**, keeping the Role, the links, the aliases and the body. Not a contact: a Person need not be reachable — the dead, someone met once.
+Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **People** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Only people in my life are People: an Author or Artist I have never met stays that App's own; one I come to know is **turned into a Person**, keeping the Role, the links, the aliases and the body. Like every Document, a Person is held by one Workspace, or shared: someone in both my work and my life is two People, one in each. Not a contact: a Person need not be reachable — the dead, someone met once.
 _Avoid_: contact, friend, acquaintance, relation (a kind of Tie, not the Person)
 
 ### People field
