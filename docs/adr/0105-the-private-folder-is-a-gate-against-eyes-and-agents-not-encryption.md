@@ -1,5 +1,6 @@
 ---
 status: accepted
+amended-by: ADR 0114 (in part — a Person's Addresses and Contact details are also held back)
 ---
 
 # The Private folder is a gate against eyes and agents, not encryption
