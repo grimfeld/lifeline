@@ -14,3 +14,11 @@ export const kept = (x: { paused?: boolean; draft?: boolean }): boolean => !x.pa
 export function accepted<T extends Item>(item: T, at: string): T {
   return { ...item, draft: false, addedAt: at };
 }
+
+/**
+ * "Accept all" in a Deck's review (ADR 0115): offered only once every draft still
+ * pending has been shown, so a 30-item lesson is accepted in one go yet each item was seen.
+ */
+export function acceptAllReady(pending: readonly { id: string }[], shown: ReadonlySet<string>): boolean {
+  return pending.length > 0 && pending.every((d) => shown.has(d.id));
+}

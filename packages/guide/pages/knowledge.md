@@ -66,6 +66,12 @@ Topic to a set you choose.
 
 - A Deck is a set you choose inside one Topic ("Kitchen", "Work emails"), to practise on its own.
 - Name it and tick what it holds. Deleting a Deck keeps its words.
+- A Deck holding drafts (a lesson Claude drafted) shows **Review N drafts** on its row. The review
+  steps through the drafts one at a time: **Accept**, **Edit** (then **Save & accept**) or **Delete**
+  each, with **Previous** and **Next** to move about. **Accept all** stays unavailable until every
+  draft still waiting has been shown, so a long lesson is accepted in one go yet you saw each item;
+  it accepts only the drafts still waiting. Accepting here is exactly accepting one draft: each
+  counts as new from that moment.
 
 ### Puzzles
 

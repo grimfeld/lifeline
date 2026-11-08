@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
 import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item, type Sentence } from "../domain/types";
-import { acceptDraft, addDeck, addSentence, addWord, deckNamed, deleteItem, setMembership, updateSentence } from "./repo";
+import { acceptDraft, acceptDrafts, addDeck, addSentence, addWord, deckNamed, deleteItem, setMembership, updateSentence } from "./repo";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId"], builtIn: true }) as unknown as DocumentTypeDef;
@@ -38,6 +38,22 @@ describe("acceptDraft", () => {
     const id = await addWord({ languageId: "es", term: "mar", meaning: "sea", draft: true });
     await deleteItem(id);
     expect(await getDocument(id)).toBeUndefined();
+  });
+});
+
+describe("acceptDrafts", () => {
+  it("accepts only the drafts still pending, each as acceptDraft does", async () => {
+    const a = await addWord({ languageId: "es", term: "uno", meaning: "one", draft: true });
+    const b = await addWord({ languageId: "es", term: "dos", meaning: "two", draft: true });
+    const own = await addWord({ languageId: "es", term: "tres", meaning: "three" });
+    const ownBefore = (await getDocument<Item & { addedAt: string }>(own))!;
+    await new Promise((r) => setTimeout(r, 5));
+    await deleteItem(b);
+    await acceptDrafts([a, b, own]);
+    const done = (await getDocument<Item & { draft?: boolean; addedAt: string }>(a))!;
+    expect(done.draft).toBe(false);
+    expect(await getDocument(b)).toBeUndefined();
+    expect((await getDocument<Item & { addedAt: string }>(own))!.addedAt).toBe(ownBefore.addedAt);
   });
 });
 
