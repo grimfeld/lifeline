@@ -54,7 +54,9 @@ export interface Word extends Document {
   /** Where it was met, as a link to the Document it came from (a Note, a Quote) — followed, never copied. Empty for none. */
   originId: string;
   paused: boolean;
-  /** ISO instant it was added — what "oldest added first" orders new Prompts by. */
+  /** An agent's draft, not yet accepted (ADR 0115): listed and editable, out of every Practice. Absent = accepted. */
+  draft?: boolean;
+  /** ISO instant it was added — what "oldest added first" orders new Prompts by. Set again when a draft is accepted. */
   addedAt: string;
 }
 
@@ -71,6 +73,8 @@ export interface Sentence extends Document {
   origin: string;
   originId: string;
   paused: boolean;
+  /** An agent's draft, not yet accepted (ADR 0115). Absent = accepted. */
+  draft?: boolean;
   addedAt: string;
 }
 
@@ -117,6 +121,8 @@ export interface Fact extends Document {
   origin: string;
   originId: string;
   paused: boolean;
+  /** An agent's draft, not yet accepted (ADR 0115). Absent = accepted. */
+  draft?: boolean;
   addedAt: string;
 }
 

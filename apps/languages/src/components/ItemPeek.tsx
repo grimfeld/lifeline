@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { Button, CommitField, cn, toast } from "@lifeline/ui";
 import type { Document } from "@lifeline/core";
-import { Pause, Pencil, Play } from "lucide-react";
+import { Check, Pause, Pencil, Play } from "lucide-react";
 import { heldPrompts } from "../domain/practice";
 import { itemMaterial } from "../domain/prompts";
 import { FACT, SENTENCE, WORD, type Fact, type Item, type Sentence, type Word } from "../domain/types";
-import { setMembership, setPaused, updateFact, updateSentence, updateWord, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
+import { acceptDraft, setMembership, setPaused, updateFact, updateSentence, updateWord, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
 import { WordDialog } from "./WordDialog";
 import { SentenceDialog } from "./SentenceDialog";
 import { FactDialog } from "./FactDialog";
@@ -87,7 +87,7 @@ export function ItemPeek({ doc }: { doc: Document }) {
             <li key={p.key} className="flex justify-between gap-3 border-b py-1 last:border-0">
               <span className="min-w-0 flex-1 truncate">{slotLabel(p.slot)}</span>
               <span className="text-muted-foreground text-xs">
-                {item.paused ? "paused" : dueLabel(p.held.due, now)}
+                {item.draft ? "draft" : item.paused ? "paused" : dueLabel(p.held.due, now)}
                 {p.held.lapses ? ` · ${p.held.lapses} lapse${p.held.lapses === 1 ? "" : "s"}` : ""}
               </span>
             </li>
@@ -118,9 +118,15 @@ export function ItemPeek({ doc }: { doc: Document }) {
         <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
           <Pencil /> Edit
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => void setPaused(item.id, !item.paused)}>
-          {item.paused ? <Play /> : <Pause />} {item.paused ? "Resume" : "Pause"}
-        </Button>
+        {item.draft ? (
+          <Button size="sm" variant="ghost" onClick={() => void acceptDraft(item.id)}>
+            <Check /> Accept
+          </Button>
+        ) : (
+          <Button size="sm" variant="ghost" onClick={() => void setPaused(item.id, !item.paused)}>
+            {item.paused ? <Play /> : <Pause />} {item.paused ? "Resume" : "Pause"}
+          </Button>
+        )}
       </div>
       {item.type === SENTENCE && <SentenceDialog open={editing} onOpenChange={setEditing} sentence={item as Sentence} />}
       {item.type === WORD && <WordDialog open={editing} onOpenChange={setEditing} word={item as Word} />}

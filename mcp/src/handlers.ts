@@ -491,7 +491,7 @@ export async function runTool(name: string, args: Args): Promise<unknown> {
   if (spec.command) {
     const def = allCommands().find((c) => c.id === spec.command);
     if (!def) throw new ToolError(`Command ${spec.command} is gone`);
-    return invokeCommand(def, rest).catch((e: Error) => {
+    return invokeCommand(def, rest, { agent: true }).catch((e: Error) => {
       throw new ToolError(e.message);
     });
   }

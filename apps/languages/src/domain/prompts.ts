@@ -1,4 +1,5 @@
 import { blankSlots, plainSentence } from "./cloze";
+import { kept } from "./draft";
 import { FACT, SENTENCE, WORD, type Item, type Material } from "./types";
 
 /**
@@ -29,7 +30,7 @@ export function itemSlots(item: Item): string[] {
 
 /** A Word or Sentence read as Material — the same reading its Recallable declaration gives. */
 export function itemMaterial(item: Item): Material {
-  return { id: item.id, type: item.type, title: item.title, topicId: item.languageId, addedAt: item.addedAt, live: !item.paused, slots: itemSlots(item), originId: item.originId ?? "" };
+  return { id: item.id, type: item.type, title: item.title, topicId: item.languageId, addedAt: item.addedAt, live: kept(item), slots: itemSlots(item), originId: item.originId ?? "" };
 }
 
 /** Every Prompt a piece of Material yields. */

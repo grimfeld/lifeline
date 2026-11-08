@@ -1,4 +1,5 @@
 import type { Document, RecallableDef } from "@lifeline/core";
+import { kept } from "./draft";
 import { itemSlots } from "./prompts";
 import { FACT, SENTENCE, WORD, type Item, type Word } from "./types";
 
@@ -9,7 +10,7 @@ export type RecallableReading = Omit<RecallableDef, "face">;
 const shared = {
   slots: (d: Document) => itemSlots(d as Item),
   topicOf: (d: Document) => String((d as Word).languageId ?? ""),
-  inPractice: (d: Document) => !(d as Word).paused,
+  inPractice: (d: Document) => kept(d as Word),
   addedAt: (d: Document) => (d as Word).addedAt || d.createdAt || "",
   originOf: (d: Document) => String((d as Word).originId ?? ""),
 };

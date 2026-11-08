@@ -16,15 +16,15 @@ function normalizeTopic(l: Topic): Topic {
 }
 
 function normalizeWord(w: Word): Word {
-  return { ...w, languageId: w.languageId ?? "", term: w.term || w.title || "", meaning: w.meaning ?? "", notes: w.notes ?? "", origin: w.origin ?? "", originId: w.originId ?? "", paused: !!w.paused, addedAt: w.addedAt || w.createdAt || "", tags: w.tags ?? [] };
+  return { ...w, languageId: w.languageId ?? "", term: w.term || w.title || "", meaning: w.meaning ?? "", notes: w.notes ?? "", origin: w.origin ?? "", originId: w.originId ?? "", paused: !!w.paused, draft: !!w.draft, addedAt: w.addedAt || w.createdAt || "", tags: w.tags ?? [] };
 }
 
 function normalizeSentence(s: Sentence): Sentence {
-  return { ...s, languageId: s.languageId ?? "", text: s.text ?? "", translation: s.translation ?? "", notes: s.notes ?? "", origin: s.origin ?? "", originId: s.originId ?? "", paused: !!s.paused, addedAt: s.addedAt || s.createdAt || "", tags: s.tags ?? [] };
+  return { ...s, languageId: s.languageId ?? "", text: s.text ?? "", translation: s.translation ?? "", notes: s.notes ?? "", origin: s.origin ?? "", originId: s.originId ?? "", paused: !!s.paused, draft: !!s.draft, addedAt: s.addedAt || s.createdAt || "", tags: s.tags ?? [] };
 }
 
 function normalizeFact(f: Fact): Fact {
-  return { ...f, languageId: f.languageId ?? "", question: f.question || f.title || "", answer: f.answer ?? "", notes: f.notes ?? "", origin: f.origin ?? "", originId: f.originId ?? "", paused: !!f.paused, addedAt: f.addedAt || f.createdAt || "", tags: f.tags ?? [] };
+  return { ...f, languageId: f.languageId ?? "", question: f.question || f.title || "", answer: f.answer ?? "", notes: f.notes ?? "", origin: f.origin ?? "", originId: f.originId ?? "", paused: !!f.paused, draft: !!f.draft, addedAt: f.addedAt || f.createdAt || "", tags: f.tags ?? [] };
 }
 
 function normalizeDeck(d: Deck): Deck {
@@ -232,6 +232,8 @@ export interface WordInput {
   origin?: string;
   originId?: string;
   tags?: string[];
+  /** Made as an agent's draft (ADR 0115): never set by the app's own dialogs. */
+  draft?: boolean;
 }
 
 function wordRowOf(input: WordInput) {
@@ -256,7 +258,7 @@ export async function allSentences(): Promise<Sentence[]> {
 }
 
 export async function addWord(input: WordInput): Promise<string> {
-  const row = await putDocument<Word>({ ...wordRowOf(input), paused: false, addedAt: new Date().toISOString() });
+  const row = await putDocument<Word>({ ...wordRowOf(input), paused: false, ...(input.draft ? { draft: true } : {}), addedAt: new Date().toISOString() });
   return row.id;
 }
 
@@ -273,6 +275,8 @@ export interface SentenceInput {
   origin?: string;
   originId?: string;
   tags?: string[];
+  /** Made as an agent's draft (ADR 0115): never set by the app's own dialogs. */
+  draft?: boolean;
 }
 
 function sentenceRowOf(input: SentenceInput) {
@@ -283,7 +287,7 @@ function sentenceRowOf(input: SentenceInput) {
 }
 
 export async function addSentence(input: SentenceInput): Promise<string> {
-  const row = await putDocument<Sentence>({ ...sentenceRowOf(input), paused: false, addedAt: new Date().toISOString() });
+  const row = await putDocument<Sentence>({ ...sentenceRowOf(input), paused: false, ...(input.draft ? { draft: true } : {}), addedAt: new Date().toISOString() });
   return row.id;
 }
 
@@ -300,9 +304,11 @@ export interface FactInput {
   origin?: string;
   originId?: string;
   tags?: string[];
+  /** Made as an agent's draft (ADR 0115): never set by the app's own dialogs. */
+  draft?: boolean;
 }
 
-/** Both sides are the user's own words (CONTEXT.md "Knowledge"): nothing here is ever drafted for them. */
+/** Both sides are the user's own words (CONTEXT.md "Knowledge"): Lifeline drafts nothing; an agent's draft is the user's to accept (ADR 0115). */
 function factRowOf(input: FactInput) {
   const question = input.question.trim();
   if (!input.languageId) throw new Error("Pick a topic");
@@ -316,13 +322,21 @@ export async function allFacts(): Promise<Fact[]> {
 }
 
 export async function addFact(input: FactInput): Promise<string> {
-  const row = await putDocument<Fact>({ ...factRowOf(input), paused: false, addedAt: new Date().toISOString() });
+  const row = await putDocument<Fact>({ ...factRowOf(input), paused: false, ...(input.draft ? { draft: true } : {}), addedAt: new Date().toISOString() });
   return row.id;
 }
 
 /** Editing never resets a Fact: its one Prompt stays the same Prompt. */
 export async function updateFact(f: Fact, input: FactInput): Promise<void> {
   await putDocument<Fact>({ ...f, ...factRowOf(input) });
+}
+
+/**
+ * Accept a draft (ADR 0115): out of draft, added from this moment — so it enters
+ * practice as new now, and the daily new cap counts it today. Its origin stays.
+ */
+export async function acceptDraft(id: string): Promise<void> {
+  await patchDocument(id, { draft: false, addedAt: new Date().toISOString() });
 }
 
 /** Paused: listed, Recalls kept, out of every Practice until unpaused. */
@@ -362,7 +376,7 @@ const membershipWrites = new Map<string, Promise<void>>();
  * of the Deck's Topic go in. The Deck is re-read under a per-Deck queue,
  * so quick clicks made against the same (stale) Deck each keep their change.
  */
-export function setMembership(deck: Deck, item: Item, member: boolean): Promise<void> {
+export function setMembership(deck: Deck, item: Pick<Item, "id" | "languageId">, member: boolean): Promise<void> {
   if (item.languageId !== deck.languageId) return Promise.reject(new Error("A deck holds one topic only"));
   const write = async () => {
     const current = await getDocument<Deck>(deck.id);
@@ -377,6 +391,14 @@ export function setMembership(deck: Deck, item: Item, member: boolean): Promise<
     if (membershipWrites.get(deck.id) === next) membershipWrites.delete(deck.id);
   }).catch(() => undefined);
   return next;
+}
+
+/** The Deck of that name in the Topic (case ignored), made when absent — how an agent files a lesson (ADR 0115). */
+export async function deckNamed(languageId: string, name: string): Promise<Deck> {
+  const n = name.trim();
+  const found = (await documentsWhere<Deck>(DECK, "languageId", languageId)).map(normalizeDeck).find((d) => d.name.trim().toLowerCase() === n.toLowerCase());
+  if (found) return found;
+  return normalizeDeck((await getDocument<Deck>(await addDeck(languageId, n)))!);
 }
 
 export async function deleteDeck(id: string): Promise<void> {

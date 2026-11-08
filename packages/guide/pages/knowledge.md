@@ -2,7 +2,7 @@
 
 Keeping what you chose to keep from being forgotten: words, sentences, facts and quotes,
 practised a little each day by recalling them. Knowledge never picks what you learn: each thing
-here is one you added, in your own words.
+here is one you added, in your own words, or one Claude drafted and you accepted.
 
 ## Knowledge
 
@@ -51,6 +51,13 @@ Topic to a set you choose.
 - Each shows when it is next due. **Pause** takes it out of practice and keeps its history;
   **Resume** puts it back.
 - **+** adds a Word, a Sentence or a Fact.
+- **Drafts** — what Claude drafted for you (see *Ask Claude*) is listed here marked **draft**, and a
+  **Drafts** filter shows up while there are any. A draft is not practised, not drawn by a Puzzle
+  and not counted in what is due or in Retention until you **accept** it. Tap the check on its row
+  (or **Accept** when you open it) to accept it; open it to edit first and choose **Save & accept**;
+  or **Delete** it. An accepted draft counts as new from the moment you accept it, so the Topic's
+  **New per day** counts it that day. Its *Where it was met* still says who drafted it, and for which
+  lesson (Deck), after you accept it.
 - **Also kept here** — Quotes kept in this Topic from Notes.
 - Open one to edit it, see its prompts, and put it in or out of Decks. Editing never resets its
   practice.
@@ -115,13 +122,16 @@ it came from; for a Fact, the selection stays beside you while you write the que
 
 ## Ask Claude
 
-Claude adds only what you dictate, word for word — it never words a meaning, a question or an
-answer for you.
+Claude can **draft** what it teaches you, but only you decide what enters your practice.
 
-- "Add to Spanish: *tener ganas de* — to feel like" — `knowledge_word`.
+- "Add to Italian, in the Deck Lesson 2: *la stazione* — the station" — `knowledge_word`.
 - "Add the sentence *Tengo {{ganas}} de comer*, meaning *I feel like eating*" —
   `knowledge_sentence`, which also takes notes, and hints in the text (`{{nel|in}}`).
 - "Keep a fact in History: When was the Peace of Westphalia? 1648" — `knowledge_fact`.
+- Whatever Claude adds is a **draft**, always. The tools take an optional **Deck** name (a lesson;
+  the Deck is made in the Topic when it is not there yet) and a note for *Where it was met*, which
+  Lifeline writes after "Agent draft" and the Deck's name.
+- Claude cannot accept, pause, unpause or delete anything, and cannot change what you have accepted.
 - Adding the same thing twice is refused, not duplicated.
 - Practising is yours: Claude does not grade recalls, and does not play or start Puzzles.
 
