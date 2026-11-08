@@ -30,7 +30,37 @@ describe("parseCloze", () => {
   });
 });
 
+describe("blank hints", () => {
+  it("reads answer|hint, the blank's text being the answer alone", () => {
+    expect(parseCloze("Vado {{nel|in}} centro")).toEqual([
+      { kind: "text", text: "Vado " },
+      { kind: "blank", text: "nel", hint: "in", slot: "blank:nel" },
+      { kind: "text", text: " centro" },
+    ]);
+  });
+
+  it("adding, changing or removing a hint leaves the slot where it was", () => {
+    const slots = (t: string) => blankSlots(t);
+    expect(slots("Vado {{nel}} centro")).toEqual(["blank:nel"]);
+    expect(slots("Vado {{nel|in}} centro")).toEqual(["blank:nel"]);
+    expect(slots("Vado {{nel|dans le}} centro")).toEqual(["blank:nel"]);
+  });
+
+  it("keeps the numbering of a repeated answer whatever the hints", () => {
+    expect(blankSlots("{{che|that}} sì, {{che}} no")).toEqual(["blank:che", "blank:che#2"]);
+  });
+
+  it("an empty hint is no hint; a blank with no answer stays text", () => {
+    expect(parseCloze("{{nel|}}")).toEqual([{ kind: "blank", text: "nel", slot: "blank:nel" }]);
+    expect(blankSlots("a {{|in}} b")).toEqual([]);
+  });
+});
+
 describe("plainSentence", () => {
+  it("never carries a hint", () => {
+    expect(plainSentence("Vado {{nel|in}} centro")).toBe("Vado nel centro");
+  });
+
   it("drops the markup", () => {
     expect(plainSentence("Tengo {{ganas}} de comer")).toBe("Tengo ganas de comer");
   });

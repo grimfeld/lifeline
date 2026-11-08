@@ -31,7 +31,7 @@ function dueLabel(d: Date | null, now: Date): string {
 function saveItem(item: Item, patch: Record<string, string>): Promise<void> {
   const base = { languageId: item.languageId, origin: item.origin, originId: item.originId, tags: item.tags };
   if (item.type === WORD) return updateWord(item, { ...base, term: item.term, meaning: item.meaning, notes: item.notes, ...patch });
-  if (item.type === SENTENCE) return updateSentence(item, { ...base, text: item.text, translation: item.translation, ...patch });
+  if (item.type === SENTENCE) return updateSentence(item, { ...base, text: item.text, translation: item.translation, notes: item.notes, ...patch });
   return updateFact(item, { ...base, question: item.question, answer: item.answer, notes: item.notes, ...patch });
 }
 
@@ -43,7 +43,7 @@ function ItemFields({ item }: { item: Item }) {
   return (
     <div className="grid gap-3">
       {item.type === WORD && [field("term", "Word", item.term), field("meaning", "Meaning", item.meaning)]}
-      {item.type === SENTENCE && [field("text", "Sentence", item.text, { hint: "Mark each blank with {{ }}" }), field("translation", "Translation", item.translation)]}
+      {item.type === SENTENCE && [field("text", "Sentence", item.text, { hint: "Mark each blank with {{ }}" }), field("translation", "Translation", item.translation), field("notes", "Notes", item.notes, { multiline: true })]}
       {item.type === FACT && [field("question", "Question", item.question), field("answer", "Answer", item.answer, { multiline: true })]}
       {!item.originId && field("origin", "Where you met it", item.origin)}
       {item.type !== SENTENCE && field("notes", "Notes", item.notes, { multiline: true })}
