@@ -511,7 +511,15 @@ _Avoid_: diary, vault (the raw editor), collections (for its Types — a Collect
 
 ### Person
 Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **People** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Not a contact: a Person need not be reachable — the dead, someone met once.
-_Avoid_: contact, friend, acquaintance, relation (a kind of tie, not the person)
+_Avoid_: contact, friend, acquaintance, relation (a kind of Tie, not the Person)
+
+### Tie
+How two People stand to each other — Anne and Léa, *mother* / *daughter*; Anne and Marc, *partner* / *partner* — entered once, from either Person's page, with a label for each end, and shown on both pages read from that Person's side ("daughter: Léa" on Anne's, "mother: Anne" on Léa's). Labels are the user's own words, never a fixed family vocabulary. Never involves me: I am no Person. Not a wikilink (that says one Document mentions another, not how they are related), not a Link field (one-way).
+_Avoid_: relation, relationship (mine to a Person), link, connection
+
+### Relationship
+What a Person is to me — *my aunt*, *colleague*, *childhood friend* — a label of my own on that Person. Not a Tie: a Tie is between two People, and I am not one.
+_Avoid_: role (a built-in type's fields lent to a Document), tag (Tags group, a Relationship names), tie
 
 ### Address
 A place a Person lives or can be found, held on that Person under a label of the user's own ("Home", "Work", "Holiday house"): postal text and the coordinates found for it when it is saved. Each current Address is a Pin of its own ("Marc · Work"); a Person with several stands on the map several times. A shared home is held by each Person who lives there. When someone moves, the old Address is marked **former** rather than removed: it leaves the map and stays on their page as history. Not a Place (a user-defined type of the Journal's, a Document with links of its own); an Address is only ever part of its Person.
