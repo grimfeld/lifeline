@@ -100,13 +100,3 @@ export async function updateAddresses(id: string, change: (list: Address[]) => A
   if (!doc) throw new Error("No such Person");
   await patchDocument(id, { addresses: change(normalizeAddresses(doc.addresses)) });
 }
-
-/**
- * Change a Person's Addresses: `change` is given the stored list and returns the
- * new one, so two quick edits never overwrite each other with a stale copy.
- */
-export async function updateAddresses(id: string, change: (list: Address[]) => Address[]): Promise<void> {
-  const doc = await getDocument(id);
-  if (!doc) throw new Error("No such Person");
-  await patchDocument(id, { addresses: change(normalizeAddresses(doc.addresses)) });
-}
