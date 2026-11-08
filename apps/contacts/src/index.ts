@@ -1,8 +1,8 @@
 import type { AppManifest } from "@lifeline/core";
 import { lazyChunk } from "@lifeline/ui";
-import { User, Users } from "lucide-react";
+import { Link2, User, Users } from "lucide-react";
 import { contactsCommands } from "./commands";
-import { personTypeDef } from "./types";
+import { personTypeDef, tieTypeDef } from "./types";
 import { PersonPeek } from "./components/PersonFields";
 import { AddPersonDialog } from "./components/AddPersonDialog";
 
@@ -22,7 +22,7 @@ export const contactsApp: AppManifest = {
   title: "Contacts",
   icon: Users,
   color: "var(--chart-aqua)",
-  types: [{ ...personTypeDef, icon: User, peekEdit: PersonPeek }],
+  types: [{ ...personTypeDef, icon: User, peekEdit: PersonPeek }, { ...tieTypeDef, icon: Link2 }],
   screens: [
     { id: "contacts.people", title: "People", path: "people", icon: Users, component: PeopleScreen },
     // The Person page: routed, never listed — reached from the Peek's "Open", a Base or the Vault.
@@ -34,4 +34,4 @@ export const contactsApp: AppManifest = {
   intakes: [{ id: "person", title: "Person", icon: User, dialog: AddPersonDialog, links: true }],
 };
 
-export { PERSON, type Person } from "./domain/types";
+export { PERSON, TIE, type Person, type Tie } from "./domain/types";

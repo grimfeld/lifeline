@@ -1,5 +1,6 @@
-import type { DocumentTypeDef } from "@lifeline/core";
-import { PEOPLE_FOLDER, PERSON, type Person } from "./domain/types";
+import { getDocument, type DocumentTypeDef } from "@lifeline/core";
+import { PEOPLE_FOLDER, PERSON, TIE, type Person } from "./domain/types";
+import { removeTiesOf, tieIdsOf } from "./data/ties";
 import { personHref } from "./constants";
 
 /**
@@ -20,8 +21,35 @@ export const personTypeDef: DocumentTypeDef = {
   href: (d) => personHref(d.id),
   order: 30,
   builtIn: true,
+  // Their Ties go with them, and move with them between Workspaces (#412).
+  onDelete: (doc) => removeTiesOf(doc.id),
+  followers: (doc) => tieIdsOf(doc.id),
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "relationship", label: "Relationship", kind: "text", column: true },
   ],
+};
+
+/**
+ * The Tie (#412): internal, so it is no link target and counts for no
+ * Backlink or Report (its two ids are Links Fields the index skips for an
+ * internal type). It holds both Person ids and a word for each end; guarded,
+ * since the Person page is the only way to change one.
+ */
+export const tieTypeDef: DocumentTypeDef = {
+  id: TIE,
+  label: "Ties",
+  iconName: "link",
+  internal: true,
+  titleRule: "name",
+  body: "none",
+  builtIn: true,
+  fields: [
+    { key: "a", label: "Person", kind: "link", linkType: PERSON, guarded: true },
+    { key: "b", label: "Other person", kind: "link", linkType: PERSON, guarded: true },
+    { key: "labelA", label: "What the first is to the second", kind: "text", guarded: true },
+    { key: "labelB", label: "What the second is to the first", kind: "text", guarded: true },
+  ],
+  // Either Person speaks for it.
+  owner: async (doc) => (typeof doc.a === "string" ? getDocument(doc.a) : undefined),
 };

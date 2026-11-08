@@ -16,9 +16,21 @@ them, the palette, or the People Base.
 - **Header** — their name, what they are to you, and their aliases.
 - **Details** — change their name (every `[[link]]` to them follows), their **Aliases**, their
   **Relationship** and their **Tags**, edited in place.
+- **Ties** — how they stand to other People, each read from their side: "daughter: Léa" on
+  Anne's page, "mother: Anne" on Léa's. See Ties below.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
 - **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.
+
+### Ties
+
+A **Tie** says how two People stand to each other. Press **Add tie** on either Person's page,
+find the other Person by name, and give a word for each end ("mother" and "daughter"). It is
+stored once and shows on both pages, each read from its own side, with the other Person as a
+link. The words are yours: "godmother", "ex" and "best friend's brother" all fit. **Edit** or
+**Remove** it from either page and both change. A Tie is never to you, only between two People.
+Deleting a Person removes their Ties; the other Person's page is untouched. A Tie is not a link
+in a body, so it adds no Backlink and counts for no Report.
 
 ### Linking to a Person
 
