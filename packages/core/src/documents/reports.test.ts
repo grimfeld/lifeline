@@ -75,3 +75,14 @@ describe("reportsOf", () => {
     expect(reportsIn(T("person"), "document")).toEqual([{ kind: "last" }]);
   });
 });
+
+describe("a days source", () => {
+  // A stand-in for a second family: Ola is on two days, nobody else on any.
+  const other = (_i: unknown, docId: string) => (docId === "ola" ? ["2026-09-01", "2026-09-02"] : []);
+  it("feeds the same kinds in place of the Days that link", () => {
+    expect(topMentioned(idx, "person", {}, other).map((r) => [r.docId, r.count, r.last])).toEqual([["ola", 2, "2026-09-02"]]);
+    expect(notMentionedSince(idx, "person", 30, "2026-10-18", other).map((r) => r.docId)).toEqual(["ola"]);
+    expect(rankingRows(idx, "person", { kind: "top", n: 5 }, {}, "2026-10-18", other).map((r) => r.docId)).toEqual(["ola"]);
+    expect(documentFigures(idx, "ola", "2026-10-18", other)).toMatchObject({ last: "2026-09-02", allTime: 2, thisYear: 2 });
+  });
+});

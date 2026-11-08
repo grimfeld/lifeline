@@ -75,6 +75,13 @@ export function mentionDays(index: LinkIndex, docId: string): DateStr[] {
   return [...days].sort();
 }
 
+/**
+ * Where a Report's dates come from: the distinct dates (oldest first) on which
+ * one Document counts. The kinds below only rank and summarise these dates, so
+ * a new family is a new source beside `mentionDays`, not new kind code.
+ */
+export type DaysSource = (index: LinkIndex, docId: string) => DateStr[];
+
 export interface RankRow {
   docId: string;
   /** Days in the window that link to it. */
@@ -84,11 +91,11 @@ export interface RankRow {
 }
 
 /** "Top mentioned": a type's Documents by the Days in the window that link to them; none-mentioned left out. */
-export function topMentioned(index: LinkIndex, typeId: string, window: ReportWindow = {}): RankRow[] {
+export function topMentioned(index: LinkIndex, typeId: string, window: ReportWindow = {}, source: DaysSource = mentionDays): RankRow[] {
   const rows: RankRow[] = [];
   for (const d of index.docs) {
     if (d.type !== typeId) continue;
-    const days = mentionDays(index, d.id).filter((x) => inWindow(x, window));
+    const days = source(index, d.id).filter((x) => inWindow(x, window));
     const last = days.at(-1);
     if (last) rows.push({ docId: d.id, count: days.length, last });
   }
@@ -97,12 +104,12 @@ export function topMentioned(index: LinkIndex, typeId: string, window: ReportWin
 }
 
 /** "Not mentioned lately": a type's Documents some Day linked to, but none in the last `days` days — longest silence first. */
-export function notMentionedSince(index: LinkIndex, typeId: string, days: number, today: DateStr): RankRow[] {
+export function notMentionedSince(index: LinkIndex, typeId: string, days: number, today: DateStr, source: DaysSource = mentionDays): RankRow[] {
   const cutoff = addDays(today, -days);
   const rows: RankRow[] = [];
   for (const d of index.docs) {
     if (d.type !== typeId) continue;
-    const all = mentionDays(index, d.id);
+    const all = source(index, d.id);
     const last = all[all.length - 1];
     if (last && last <= cutoff) rows.push({ docId: d.id, count: all.length, last });
   }
@@ -110,11 +117,11 @@ export function notMentionedSince(index: LinkIndex, typeId: string, days: number
 }
 
 /** A ranking Report's rows, cut to its N. */
-export function rankingRows(index: LinkIndex, typeId: string, setting: ReportSetting, window: ReportWindow, today: DateStr): RankRow[] {
+export function rankingRows(index: LinkIndex, typeId: string, setting: ReportSetting, window: ReportWindow, today: DateStr, source: DaysSource = mentionDays): RankRow[] {
   const def = reportKind(setting.kind);
   const n = setting.n ?? def.params.n ?? 5;
-  if (setting.kind === "quiet") return notMentionedSince(index, typeId, setting.days ?? def.params.days ?? 90, today).slice(0, n);
-  return topMentioned(index, typeId, window).slice(0, n);
+  if (setting.kind === "quiet") return notMentionedSince(index, typeId, setting.days ?? def.params.days ?? 90, today, source).slice(0, n);
+  return topMentioned(index, typeId, window, source).slice(0, n);
 }
 
 export interface DocumentFigures {
@@ -129,8 +136,8 @@ export interface DocumentFigures {
 }
 
 /** The per-Document figures: last mentioned, counts, and the Days for a heatmap. */
-export function documentFigures(index: LinkIndex, docId: string, today: DateStr): DocumentFigures {
-  const all = mentionDays(index, docId);
+export function documentFigures(index: LinkIndex, docId: string, today: DateStr, source: DaysSource = mentionDays): DocumentFigures {
+  const all = source(index, docId);
   const last = all[all.length - 1];
   const year = today.slice(0, 4);
   return {
