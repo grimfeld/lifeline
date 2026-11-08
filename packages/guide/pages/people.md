@@ -18,12 +18,24 @@ Workspace, by name, each with what they are to you and when you last saw them. C
   they are under **Filters**.
 - With no one yet, the home offers **Add person**.
 
+### Drifting
+
+**Drifting** sits above Everyone and answers "who have I lost touch with?". It lists the People
+who have a **Relationship** and whom you have **not seen in 90 days**, the longest unseen first,
+each with how many days it has been. Switch it to **Not mentioned** to count the Days that link
+to them instead of the Events. Someone who has never been seen is not listed, and neither is
+anyone without a Relationship. It is only a list: Lifeline never reminds you.
+
+**Leave out** on a row, or **Excluded from Drifting** on a Person's page (and in their Peek),
+takes them out of Drifting, for someone you don't mean to see again. Untick it on their page to
+bring them back.
+
 ### A Person's page
 
 - **Header** — their name, their age (when their Birthday has a year), what they are to you, and
   their aliases.
 - **Details** — change their name (every `[[link]]` to them follows), their **Aliases**, their
-  **Relationship** and their **Tags**, edited in place.
+  **Relationship**, their **Tags** and **Excluded from Drifting**, edited in place.
 - **Occasions** — the named days in their life: see below.
 - **Ties** — how they stand to other People, each read from their side: "daughter: Léa" on
   Anne's page, "mother: Anne" on Léa's. See Ties below.
@@ -73,6 +85,12 @@ in a body, so it adds no Backlink and counts for no Report.
   Relationship and Tags and write in their body. **Open** goes to their page.
 - Select a name in a Day (or any body) and pick **Person** under **People** in the Selection
   menu: the Person is made, and the name becomes a link to them.
+
+### Cards
+
+- **People by Relationship** — your People grouped under each Relationship, with how many there
+  are under it; each name opens their page. People with no Relationship are left out. Where: a
+  Card you can place on any Screen.
 
 ### Commands
 

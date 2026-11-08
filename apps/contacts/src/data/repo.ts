@@ -4,7 +4,7 @@ import { normalizeOccasions, occasionProblem } from "../domain/occasions";
 
 /** A Person as stored, with the App's keys filled in for a row written before they existed. */
 export function normalizePerson(doc: Person): Person {
-  return { ...doc, aliases: Array.isArray(doc.aliases) ? doc.aliases : [], relationship: typeof doc.relationship === "string" ? doc.relationship : "", occasions: normalizeOccasions(doc.occasions) };
+  return { ...doc, aliases: Array.isArray(doc.aliases) ? doc.aliases : [], relationship: typeof doc.relationship === "string" ? doc.relationship : "", excludedFromDrifting: doc.excludedFromDrifting === true, occasions: normalizeOccasions(doc.occasions) };
 }
 
 /** Every Person in the Workspace, live. */
@@ -70,6 +70,7 @@ export interface PersonPatch {
   aliases?: string[];
   relationship?: string;
   tags?: string[];
+  excludedFromDrifting?: boolean;
 }
 
 /**
@@ -86,6 +87,7 @@ export async function patchPerson(id: string, patch: PersonPatch): Promise<void>
   const fields: Record<string, unknown> = {};
   if (rest.aliases) fields.aliases = cleanAliases(rest.aliases);
   if (rest.relationship !== undefined) fields.relationship = rest.relationship.trim();
+  if (rest.excludedFromDrifting !== undefined) fields.excludedFromDrifting = rest.excludedFromDrifting;
   if (rest.tags) fields.tags = normalizeTags(rest.tags);
   if (Object.keys(fields).length) await patchDocument(id, fields);
 }

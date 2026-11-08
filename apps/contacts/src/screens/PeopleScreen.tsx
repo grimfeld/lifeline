@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { seenDays, todayStr, useDocuments, useLinkIndex, type DateStr } from "@lifeline/core";
 import { Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { UserPlus } from "lucide-react";
+import { DriftingSection } from "../components/DriftingSection";
 import { AddPersonDialog } from "../components/AddPersonDialog";
 import { personHref } from "../constants";
 import { everyone, relationshipsOf, tagsOf } from "../domain/everyone";
@@ -61,6 +62,7 @@ export function PeopleScreen() {
       {/* UPCOMING (#416): the Occasions in the next days. Goes here, above Drifting. */}
 
       {/* DRIFTING (#420): who I have not seen for a while. Goes here, between Upcoming and Everyone. */}
+      {people.length > 0 && <DriftingSection people={people} />}
 
       <section className="grid min-w-0 gap-2" aria-label="Everyone">
         <h2 className="text-muted-foreground text-sm font-medium">Everyone</h2>

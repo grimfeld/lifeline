@@ -90,6 +90,8 @@ export interface Person extends Document {
   /** Absent until the first is added. */
   addresses?: Address[];
   contactDetails?: ContactDetail[];
+  /** Left out of Drifting by choice (#420). Absent means in. */
+  excludedFromDrifting?: boolean;
 }
 
 /**
