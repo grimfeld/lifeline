@@ -23,5 +23,9 @@ export const personTypeDef: DocumentTypeDef = {
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "relationship", label: "Relationship", kind: "text", column: true },
+    // The App's own parts, declared so a Field of the user's can never take their keys (`merge` keeps the
+    // built-in's): guarded, hidden and json, so no Base, form or agent writes them (ADR 0114).
+    { key: "addresses", label: "Addresses", kind: "json", guarded: true, hidden: true },
+    { key: "contactDetails", label: "Contact details", kind: "json", guarded: true, hidden: true },
   ],
 };
