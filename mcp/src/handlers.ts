@@ -5,10 +5,7 @@ import {
   allWorkspaces,
   allCommands,
   allMacros,
-  buildLinkIndex,
   checkMacro,
-  documentFigures,
-  seenDays,
   commandNavigates,
   isInvocable,
   reportMessage,
@@ -51,9 +48,9 @@ import {
   type MacroShape,
   type OwnedCommand,
   type Placement,
+  type TimedItem,
+  singularOf,
 } from "@lifeline/core";
-import { AGENT_WALLED_KEYS, PERSON } from "@lifeline/app-contacts/src/domain/types";
-import { upcomingOccasions } from "@lifeline/app-contacts/src/domain/occasions";
 import { macroTools, TOOLS, type MacroTool } from "./tools";
 
 /**
@@ -99,13 +96,30 @@ function isAgentVisible(doc: Pick<Document, "folder" | "type">): boolean {
 /**
  * The agent wall (ADR 0114): the keys of a type's Documents an agent never
  * reads or writes — a Person's Addresses and Contact details, current and
- * former. A rule about the type, whatever Fields it declares.
+ * former — as the type declares them (`agentWalled`), whatever Fields it has.
  */
-const WALLED: ReadonlyMap<string, readonly string[]> = new Map([[PERSON, AGENT_WALLED_KEYS]]);
-const CONTACTS_APP = "contacts";
-
 function walledKeys(typeId: string): readonly string[] {
-  return WALLED.get(typeId) ?? [];
+  return documentTypeSync(typeId)?.agentWalled ?? [];
+}
+
+/**
+ * Every Timed provider's items in a range, less those an agent may not see:
+ * an item that is part of a Document (a Person's Occasion) shows only when
+ * that Document does.
+ */
+async function agentTimedItems(range: { start: string; end: string }): Promise<TimedItem[]> {
+  const out: TimedItem[] = [];
+  for (const p of timedProviders()) {
+    if (!p.itemsIn) continue;
+    for (const it of await p.itemsIn(range)) {
+      if (it.docId) {
+        const doc = await getDocument(it.docId);
+        if (!doc || !isAgentVisible(doc)) continue;
+      }
+      out.push(it);
+    }
+  }
+  return out;
 }
 
 /** The Document as an agent may see it: the stored one, less its walled keys. Never written back. */
@@ -115,9 +129,18 @@ function agentView(doc: Document): Document {
   return Object.fromEntries(Object.entries(doc).filter(([k]) => !walled.includes(k))) as Document;
 }
 
-function refuseWalled(typeId: string, keys: readonly string[]): void {
-  const hit = walledKeys(typeId).find((k) => keys.includes(k));
-  if (hit) throw new ToolError(`A Person's ${hit === "addresses" ? "Addresses are" : "Contact details are"} never written by an agent: the user types them in Lifeline`);
+/**
+ * Refuse a write that names a walled key of any type: a Field, a Command's or
+ * a Macro step's argument. One check for every way in, so a tool or Command
+ * added later is behind the wall without knowing it is there.
+ */
+function refuseWalled(keys: readonly string[]): void {
+  for (const t of allDocumentTypes()) {
+    const hit = t.agentWalled?.find((k) => keys.includes(k));
+    if (!hit) continue;
+    const label = t.fields.find((f) => f.key === hit)?.label ?? hit;
+    throw new ToolError(`A ${singularOf(t)}'s ${label} are never written by an agent: the user types them in Lifeline`);
+  }
 }
 
 /** Fields an agent may set directly: what a Base lets a person edit (ADR 0020). */
@@ -138,7 +161,7 @@ function fieldArg(f: FieldDef): CommandArg {
 
 /** Check type fields the way a Base would accept them; null clears a field. Throws on guarded or unknown keys. */
 async function readFields(def: DocumentTypeDef, raw: Args): Promise<Args> {
-  refuseWalled(def.id, Object.keys(raw));
+  refuseWalled(Object.keys(raw));
   const byKey = new Map(def.fields.map((f) => [f.key, f]));
   for (const key of Object.keys(raw)) {
     const f = byKey.get(key);
@@ -182,24 +205,6 @@ function full(stored: Document) {
     roles: roles.length ? roles : undefined,
     fields,
     body: def?.body === "none" || !doc.body ? undefined : doc.body,
-  };
-}
-
-/**
- * A Person's Last seen and Last mentioned (ADR 0112), as the Person page's
- * Reports figure them — from the Documents an agent may see only, so a Day or
- * Event in the Private folder is no more counted here than read.
- */
-async function personReports(person: Document): Promise<Record<string, unknown>> {
-  const today = todayStr();
-  const visible = (await allDocuments()).filter(isAgentVisible);
-  const index = buildLinkIndex(visible, allDocumentTypes());
-  const figure = (f: ReturnType<typeof documentFigures>) => ({ last: f.last, daysAgo: f.sinceLast, thisYear: f.thisYear, allTime: f.allTime });
-  return {
-    reports: {
-      lastSeen: figure(documentFigures(index, person.id, today, (i, id) => seenDays(i, id, today))),
-      lastMentioned: figure(documentFigures(index, person.id, today)),
-    },
   };
 }
 
@@ -268,9 +273,9 @@ export async function listMacroTools(): Promise<MacroTool[]> {
   return macroTools(macros, await registry(macros));
 }
 
-/** A Macro step handing a walled part to a Contacts Command is refused, written or run by an agent (ADR 0114). */
+/** A Macro step handing a walled part to a Command is refused, written or run by an agent (ADR 0114). */
 function assertMacroOutsideWall(macro: MacroShape): void {
-  for (const step of macro.steps ?? []) if (step.command?.startsWith(`${CONTACTS_APP}/`)) refuseWalled(PERSON, Object.keys(step.args ?? {}));
+  for (const step of macro.steps ?? []) refuseWalled(Object.keys(step.args ?? {}));
 }
 
 /**
@@ -384,15 +389,19 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
   async get_document(a) {
     const doc = await describedDocument(a.id);
     const def = documentTypeSync(doc.type);
-    const answer = def?.describe ? { ...full(doc), detail: await def.describe(agentView(doc)) } : full(doc);
-    return doc.type === PERSON ? { ...answer, ...(await personReports(doc)) } : answer;
+    return def?.describe ? { ...full(doc), detail: await def.describe(agentView(doc)) } : full(doc);
   },
 
   async people_upcoming(a) {
     const from = (a.from as string | undefined) ?? todayStr();
-    const days = Number(a.days ?? 30);
-    const people = (await allDocuments()).filter((d) => d.type === PERSON && isAgentVisible(d));
-    return { from, days, occasions: upcomingOccasions(people as unknown as Parameters<typeof upcomingOccasions>[0], from, days) };
+    const days = Math.max(0, Math.floor(Number(a.days ?? 30)));
+    const occasions = [];
+    for (const it of await agentTimedItems({ start: from, end: addDays(from, days) })) {
+      if (!it.occasion) continue;
+      const person = it.docId ? await getDocument(it.docId) : undefined;
+      occasions.push({ personId: it.docId, name: person?.title, title: it.title, date: it.date, inDays: diffDays(from, it.date), age: it.age ?? null });
+    }
+    return { from, days, occasions };
   },
 
   async agenda(a) {
@@ -403,12 +412,9 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     const range = { start, end };
     const { items, pool } = await surfaceItemsIn(range);
     const timedItems = [];
-    for (const p of timedProviders()) {
-      if (!p.itemsIn) continue;
-      for (const it of await p.itemsIn(range)) {
-        if (it.background && !a.blocks) continue;
-        timedItems.push({ kind: it.background ? "block" : it.marker ? (it.occasion ? "occasion" : "deadline") : "event", appId: it.appId, itemId: it.itemId, title: it.title, date: it.date, start: it.start ?? undefined, end: it.end ?? undefined, subtitle: it.subtitle, age: it.occasion ? it.age : undefined, tags: it.tags?.length ? it.tags : undefined });
-      }
+    for (const it of await agentTimedItems(range)) {
+      if (it.background && !a.blocks) continue;
+      timedItems.push({ kind: it.background ? "block" : it.marker ? (it.occasion ? "occasion" : "deadline") : "event", appId: it.appId, itemId: it.itemId, title: it.title, date: it.date, start: it.start ?? undefined, end: it.end ?? undefined, subtitle: it.subtitle, age: it.occasion ? it.age : undefined, tags: it.tags?.length ? it.tags : undefined });
     }
     const work = items.map((it) => ({
       kind: it.start ? "time-block" : "item",
@@ -559,8 +565,8 @@ export async function runTool(name: string, args: Args): Promise<unknown> {
   if (spec.command) {
     const def = allCommands().find((c) => c.id === spec.command);
     if (!def) throw new ToolError(`Command ${spec.command} is gone`);
-    // The Contacts App's own tools never take a walled part, whatever their signature grows (ADR 0114).
-    if (def.appId === CONTACTS_APP) refuseWalled(PERSON, Object.keys(rest));
+    // No Command takes a walled part, whatever its signature grows (ADR 0114).
+    refuseWalled(Object.keys(rest));
     return invokeCommand(def, rest).catch((e: Error) => {
       throw new ToolError(e.message);
     });

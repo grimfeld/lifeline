@@ -1,11 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Document, DocumentTypeDef, OwnedCommand, TimedProvider } from "@lifeline/core";
 import { pinsOf } from "@lifeline/core";
-import { personTypeDef } from "@lifeline/app-contacts/src/types";
-import { contactsCommands } from "@lifeline/app-contacts/src/commands";
-import { contactsTimed } from "@lifeline/app-contacts/src/timed";
-import type { Address, ContactDetail } from "@lifeline/app-contacts/src/domain/types";
-import { markFormer, saveDetail, type DetailInput } from "@lifeline/app-contacts/src/domain/contactDetails";
+import { contactsApp, PERSON } from "@lifeline/app-contacts";
 
 /**
  * The agent wall (ADR 0114): no tool answer ever carries a Person's Addresses
@@ -51,24 +47,22 @@ vi.mock("@lifeline/core", async (importOriginal) => {
 
 const { runTool } = await import("./handlers");
 
-const PERSON = personTypeDef.id;
+// Through the manifest only, as the server takes it (apps.ts).
+const personTypeDef = contactsApp.types.find((t) => t.id === PERSON)!;
+const contactsTimed = contactsApp.timed!;
 
 // Every value is one no answer may hold: distinctive, so a hit is a leak, not a coincidence.
-const addresses: Address[] = [
+const addresses = [
   { id: "a1", label: "Zanzibar house", text: "12 Rue Quillardet, 75019 Paris", lat: 48.871234, lon: 2.381234, former: false },
   { id: "a2", label: "Old flat Brixtonia", text: "4 Coldharbour Lane, London", lat: 51.461987, lon: -0.113456, former: true },
 ];
-// Made as the Person page's dialog makes them (saveDetail, markFormer), so the wall is checked against what is really stored.
-const contactDetails: ContactDetail[] = (() => {
-  let ids = 0;
-  const add = (list: ContactDetail[], input: DetailInput) => saveDetail(list, input, () => `c${++ids}`);
-  let list: ContactDetail[] = [];
-  list = add(list, { label: " Mobile Qwz ", kind: "phone", value: "+33 6 12 34 56 78" });
-  list = add(list, { label: "Mail Qwz", kind: "email", value: "anne.qwz@example.org" });
-  list = add(list, { label: "Insta Qwz", kind: "handle", value: "@anne_qwz_paints" });
-  list = add(list, { label: "Dead landline Qwz", kind: "phone", value: "+33 1 98 76 54 32" });
-  return markFormer(markFormer(list, "c3", true), "c4", true);
-})();
+// As the Person page's dialog stores them: current and former.
+const contactDetails = [
+  { id: "c1", label: "Mobile Qwz", kind: "phone", value: "+33 6 12 34 56 78", former: false },
+  { id: "c2", label: "Mail Qwz", kind: "email", value: "anne.qwz@example.org", former: false },
+  { id: "c3", label: "Insta Qwz", kind: "handle", value: "@anne_qwz_paints", former: true },
+  { id: "c4", label: "Dead landline Qwz", kind: "phone", value: "+33 1 98 76 54 32", former: true },
+];
 const WALLED_VALUES = [
   ...addresses.flatMap((a) => [a.label, a.text, String(a.lat), String(a.lon)]),
   ...contactDetails.flatMap((c) => [c.label, c.value]),
@@ -130,7 +124,7 @@ beforeEach(() => {
   types.set(tieType.id, tieType);
   docs.set("p1", person("p1", "Anne Dupont", "People", { giftIdeas: "a good sable brush", occasions: [{ id: "o1", label: "Birthday", day: "1961-11-12", yearly: true }] }));
   docs.set("t1", { id: "t1", type: tieType.id, title: "Anne – Léa", folder: "", tags: [], createdAt: "", updatedAt: "", deleted: 0 } as unknown as Document);
-  commands.push(...contactsCommands.map((c) => ({ ...c, appId: "contacts" })));
+  commands.push(...contactsApp.commands.map((c) => ({ ...c, appId: "contacts" })));
 });
 
 describe("the agent wall: what an agent reads of a Person (ADR 0114)", () => {

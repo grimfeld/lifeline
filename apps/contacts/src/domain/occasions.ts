@@ -133,6 +133,7 @@ export function occasionMarkersIn(people: readonly PersonOccasions[], range: { s
         tags: normalizeTags(person.tags ?? []),
         marker: true,
         occasion: true,
+        docId: person.id,
         ...(age === null ? {} : { age }),
       };
     })

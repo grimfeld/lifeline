@@ -234,6 +234,11 @@ export interface TimedItem {
   occasion?: boolean;
   /** An Occasion's age: the age a Birthday reaches that day, when the year of birth is known. */
   age?: number;
+  /**
+   * The Document the item is part of, when the item is not one itself (a
+   * Person's Occasion): whoever may not see that Document may not see the item.
+   */
+  docId?: string;
 }
 
 /** Whether a Deadline marker's day has passed (ADR 0061): it stays there, red, and never rolls forward. An Occasion is never missed. */

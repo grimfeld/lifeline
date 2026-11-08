@@ -71,9 +71,10 @@ export interface ContactDetail {
 
 /**
  * The agent wall (ADR 0114): the keys of a Person an agent never reads or
- * writes, current and former alike. The MCP server's handlers strip them from
- * every answer and refuse every write that names them. A part added to Person
- * later that is as private belongs here.
+ * writes, current and former alike. Declared on the Person type
+ * (`agentWalled`), which the MCP server honours for any type: it strips them
+ * from every answer and refuses every write that names them. A part added to
+ * Person later that is as private belongs here.
  */
 export const AGENT_WALLED_KEYS = ["addresses", "contactDetails"] as const;
 

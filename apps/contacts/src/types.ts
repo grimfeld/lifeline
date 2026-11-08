@@ -1,5 +1,6 @@
 import { getDocument, type DocumentTypeDef } from "@lifeline/core";
-import { PEOPLE_FOLDER, PERSON, TIE, type Person } from "./domain/types";
+import { AGENT_WALLED_KEYS, PEOPLE_FOLDER, PERSON, TIE, type Person } from "./domain/types";
+import { describePerson } from "./describe";
 import { removeTiesOf, tieIdsOf } from "./data/ties";
 import { personHref } from "./constants";
 import { addressPinsOf } from "./domain/addresses";
@@ -31,6 +32,9 @@ export const personTypeDef: DocumentTypeDef = {
   followers: (doc) => tieIdsOf(doc.id),
   // Gone from every People field too (an Event's With, a Task's For…): the other Apps never import Contacts.
   unlinkOnDelete: true,
+  // An agent reads their Ties and Reports (#404 story 92), and never their Addresses or Contact details (ADR 0114).
+  describe: describePerson,
+  agentWalled: AGENT_WALLED_KEYS,
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "relationship", label: "Relationship", kind: "text", column: true },

@@ -161,11 +161,13 @@ you can add someone you just met before you forget it.
   from Deadlines, with the same age.
 - "When did I last see Anne?" — `get_document` on a Person adds their Last seen and Last
   mentioned, from what Claude is allowed to read.
+- "Who is Léa to Anne?" — `get_document` on a Person also lists their Ties, read from their side
+  ("daughter: Léa"), leaving out anyone in the Private folder.
 - "What have I written about Anne?" — `search_documents`, `get_document`.
 
 ### What Claude sees of a Person
 
-Claude reads a Person's name, aliases, Relationship, Tags, Occasions, body, and any Field you
+Claude reads a Person's name, aliases, Relationship, Tags, Occasions, Ties, body, and any Field you
 added to Person yourself, and it can change those; it can add an Occasion.
 
 Claude never sees a Person's **Addresses** or **Contact details**, current or former, from any

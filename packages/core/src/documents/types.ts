@@ -250,6 +250,13 @@ export interface DocumentTypeDef {
    */
   describe?: (doc: Document) => Promise<Record<string, unknown>>;
   /**
+   * The agent wall (ADR 0114): keys of this type's Documents an agent never
+   * reads or writes, whatever Fields declare them (a Person's Addresses and
+   * Contact details). The MCP server strips them from every answer and refuses
+   * them in every write, Command and Macro step.
+   */
+  agentWalled?: readonly string[];
+  /**
    * For an internal type (ADR 0098): the Document that speaks for one of its
    * own — a Lane's Project. `get_document` on the internal id answers as if
    * asked for the owner; without one, the id is refused like any internal one.
