@@ -18,8 +18,8 @@ async function word(languageId: string, term: string, meaning: string, extra: Re
   return (await putDocument({ type: "language_word", title: term, languageId, term, meaning, notes: "", origin: "", originId: "", paused: false, addedAt: day(40), folder: "", tags: [], ...extra })).id;
 }
 
-async function recall(languageId: string, itemId: string, slot: string, grade: "pass" | "fail", back: number) {
-  await putDocument({ type: "language_recall", title: `${grade} ${slot}`, languageId, itemId, slot, grade, at: day(back), folder: "", tags: [] });
+async function recall(languageId: string, itemId: string, slot: string, grade: "pass" | "fail", back: number, typed?: string) {
+  await putDocument({ type: "language_recall", title: `${grade} ${slot}`, languageId, itemId, slot, grade, at: day(back), folder: "", tags: [], ...(typed === undefined ? {} : { typed }) });
 }
 
 async function deck(languageId: string, name: string, members: string[]) {
@@ -51,6 +51,15 @@ describe("knowledge_report", () => {
     expect(r.mostFailed[0]!.recalls.map((x) => x.grade)).toEqual(["fail", "fail", "pass"]);
     // Recalls are an internal type: the report gives their grade and moment, not Documents.
     expect(Object.keys(r.mostFailed[0]!.recalls[0]!).sort()).toEqual(["at", "grade"]);
+  });
+
+  it("gives the typed attempt of each Recall that has one", async () => {
+    const t = await topic("Italian typed");
+    const a = await word(t, "stazione", "station");
+    await recall(t, a, "reverse", "fail", 3, "a la stazione");
+    await recall(t, a, "reverse", "fail", 2);
+    const r = (await runTool("knowledge_report", { topic: "Italian typed" })) as Report;
+    expect(r.mostFailed[0]!.recalls.map((x) => (x as { typed?: string }).typed)).toEqual([undefined, "a la stazione"]);
   });
 
   it("leaves drafts, paused material and Recalls of other Topics out", async () => {

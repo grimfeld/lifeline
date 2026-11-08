@@ -57,6 +57,12 @@ Topic to a set you choose.
 - In a practice: try to recall the answer, **Show answer**, then grade yourself **Pass** or
   **Fail**. Keys: Space reveals, 1 or F fails, 2 or J passes. **Undo** a mis-tap. **Stop** any
   time — nothing is lost.
+- **Typing an answer** — on a Word's reverse prompt and a Sentence's blank, a field offers to take
+  what you think the answer is before you reveal (press Enter, or **Show answer**; leaving it empty
+  works as always). The reveal puts **You typed** beside **Answer**; Lifeline never checks it, so a
+  typo or an equally right answer is yours to grade. The recall keeps what you typed, unchanged, and
+  an item's peek lists its latest recalls with it, so you can see the same mistake coming back.
+  Forward Word prompts and Facts are reveal-only. **Undo** takes the typed answer along with the recall.
 - **Retention** — the share of recalls passed over the last 30 days, for this Topic and for all. Paused
   material and drafts are left out.
 - **The week ahead** — how many prompts fall due each day.
@@ -173,8 +179,8 @@ Claude can **draft** what it teaches you, but only you decide what enters your p
 - "How is my Italian going?" — `knowledge_report`, read-only. For a Topic (and optionally some of its
   Decks, a lesson each) it gives **Retention** (the figure the app shows), what is **due** now, how many
   new prompts are waiting, and the prompts **failed most** in the last 30 days (up to ten, most failed
-  first): each with its question, answer, which prompt it is, and its latest recalls (pass or fail, and
-  when). Drafts and paused material are left out; a recall you struck out is gone. Claude reads this to
+  first): each with its question, answer, which prompt it is, and its latest recalls (pass or fail, when, and
+  what you typed, if you did). Drafts and paused material are left out; a recall you struck out is gone. Claude reads this to
   choose the next lesson, never to change anything.
 - Practising is yours: Claude does not grade recalls, and does not play or start Puzzles.
 

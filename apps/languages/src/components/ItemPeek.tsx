@@ -14,6 +14,9 @@ import { FactDialog } from "./FactDialog";
 import { OriginLine } from "./OriginLine";
 import { ProposalNotice } from "./ProposalNotice";
 
+/** How many of an item's latest Recalls its Peek lists. */
+const HISTORY_SHOWN = 10;
+
 function slotLabel(slot: string): string {
   if (slot === "forward") return "Forward";
   if (slot === "reverse") return "Reverse";
@@ -71,6 +74,9 @@ export function ItemPeek({ doc }: { doc: Document }) {
   const now = useMemo(() => new Date(), [recalls]);
   const prompts = useMemo(() => heldPrompts([itemMaterial(item)], recalls), [item, recalls]);
 
+  // Latest first; what was typed (ADR 0116) shows beside each, so recurring errors are seen.
+  const history = useMemo(() => recalls.filter((r) => r.itemId === item.id).sort((a, b) => b.at.localeCompare(a.at)).slice(0, HISTORY_SHOWN), [recalls, item.id]);
+
   const using = useMemo(() => (item.type === WORD ? sentencesUsing(item.term, items.filter((i): i is Sentence => i.type === SENTENCE)) : []), [item, items]);
 
   return (
@@ -100,6 +106,24 @@ export function ItemPeek({ doc }: { doc: Document }) {
           ))}
         </ul>
       </div>
+      {history.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className="text-muted-foreground text-xs font-medium">Recalls</span>
+          <ul className="flex flex-col text-sm">
+            {history.map((r) => (
+              <li key={r.id} className="flex flex-col gap-0.5 border-b py-1 last:border-0">
+                <span className="flex justify-between gap-3">
+                  <span className="min-w-0 flex-1 truncate">
+                    {r.grade === "pass" ? "Passed" : "Failed"} · {slotLabel(r.slot)}
+                  </span>
+                  <span className="text-muted-foreground shrink-0 text-xs">{new Date(r.at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</span>
+                </span>
+                {r.typed && <span className="text-muted-foreground max-w-full text-xs break-words whitespace-pre-wrap">Typed: {r.typed}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {using.length > 0 && (
         <div className="flex flex-col gap-1">
           <span className="text-muted-foreground text-xs font-medium">Sentences</span>

@@ -44,3 +44,12 @@ export function itemLines(item: Item): { main: string; sub: string } {
   if (item.type === FACT) return { main: item.question || item.title, sub: item.answer ?? "" };
   return { main: item.term || item.title, sub: item.meaning ?? "" };
 }
+
+/**
+ * Where the user may type an attempt before revealing (ADR 0116): a Word's
+ * reverse and a Sentence's blank — answers short and exact. A forward Word and
+ * a Fact are paraphrases, reveal-only.
+ */
+export function isTypeable(type: string, slot: string): boolean {
+  return (type === WORD && slot === "reverse") || (type === SENTENCE && slot.startsWith("blank:"));
+}

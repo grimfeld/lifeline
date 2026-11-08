@@ -10,14 +10,16 @@ export const RECENT_RECALLS_SHOWN = 5;
 /** The window the most-failed list reads, in days (as Retention's). */
 export const FAILED_DAYS = 30;
 
-/** One Recall as the report shows it. The place later fields (a typed attempt, ADR 0116) join. */
+/** One Recall as the report shows it. */
 export interface ReportedRecall {
   grade: Grade;
   at: string;
+  /** What was typed before revealing (ADR 0116); absent where nothing was. */
+  typed?: string;
 }
 
 function reportedRecall(r: Recall): ReportedRecall {
-  return { grade: r.grade, at: r.at };
+  return r.typed ? { grade: r.grade, at: r.at, typed: r.typed } : { grade: r.grade, at: r.at };
 }
 
 /** A Prompt as the report lists it. */

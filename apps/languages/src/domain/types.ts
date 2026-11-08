@@ -113,6 +113,8 @@ export interface Recall extends Document {
   grade: Grade;
   /** ISO instant. */
   at: string;
+  /** What the user typed before revealing (ADR 0116): written once with the Recall, never edited, never checked. Absent for none. */
+  typed?: string;
 }
 
 /**

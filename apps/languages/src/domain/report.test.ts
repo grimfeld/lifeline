@@ -15,8 +15,8 @@ const sentence = (id: string, text: string, extra: Partial<Sentence> = {}) => ma
 const fact = (id: string, question: string, answer: string) => materialOfItem({ ...base, id, type: FACT, title: question, question, answer } as Fact);
 
 let n = 0;
-const recall = (itemId: string, slot: string, grade: Grade, when: string): Recall =>
-  ({ id: `r${n++}`, type: RECALL, title: "", tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "it", itemId, slot, grade, at: when }) as Recall;
+const recall = (itemId: string, slot: string, grade: Grade, when: string, typed?: string): Recall =>
+  ({ id: `r${n++}`, type: RECALL, title: "", tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "it", itemId, slot, grade, at: when, ...(typed === undefined ? {} : { typed }) }) as Recall;
 
 const report = (items: ReturnType<typeof word>[], recalls: Recall[], newCap = 10) => practiceReport({ items, recalls, now, newCap });
 
@@ -63,5 +63,12 @@ describe("practiceReport", () => {
     const r = report(items, recalls);
     expect(r.mostFailed).toHaveLength(10);
     expect(r.mostFailed[0]!.recalls).toHaveLength(5);
+  });
+
+  it("shows what was typed on each Recall, and nothing where nothing was", () => {
+    const items = [word("a", "stazione", "station")];
+    const recalls = [recall("a", "reverse", "fail", at(20), "a la stazione"), recall("a", "reverse", "fail", at(21), ""), recall("a", "reverse", "pass", at(22))];
+    const rs = report(items, recalls).mostFailed[0]!.recalls;
+    expect(rs.map((r) => r.typed)).toEqual([undefined, undefined, "a la stazione"]);
   });
 });
