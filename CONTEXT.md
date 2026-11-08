@@ -530,11 +530,11 @@ What a Person is to me — *my aunt*, *colleague*, *childhood friend* — a labe
 _Avoid_: role (a built-in type's fields lent to a Document), tag (Tags group, a Relationship names), tie
 
 ### Address
-A place a Person lives or can be found, held on that Person under a label of the user's own ("Home", "Work", "Holiday house"): postal text and the coordinates found for it when it is saved. Each current Address is a Pin of its own ("Marc · Work"); a Person with several stands on the map several times. A shared home is held by each Person who lives there. When someone moves, the old Address is marked **former** rather than removed: it leaves the map and stays on their page as history. Not a Place (a user-defined type of the Journal's, a Document with links of its own); an Address is only ever part of its Person.
+A place a Person lives or can be found, held on that Person under a label of the user's own ("Home", "Work", "Holiday house"): postal text and the coordinates found for it when it is saved. Each current Address is a Pin of its own ("Marc · Work"); a Person with several stands on the map several times. A shared home is held by each Person who lives there. When someone moves, the old Address is marked **former** rather than removed: it leaves the map and stays on their page as history. Never shown to an agent: an agent reads the Person, never where they live. Not a Place (a user-defined type of the Journal's, a Document with links of its own); an Address is only ever part of its Person.
 _Avoid_: location (the coordinates), place, household
 
 ### Contact detail
-A way to reach a Person, held on that Person under a label — a phone number, an email address, a handle on some service — and acted on by a click: call, write, open. Marked **former** rather than removed when it stops working. Never on the map.
+A way to reach a Person, held on that Person under a label — a phone number, an email address, a handle on some service — and acted on by a click: call, write, open. Marked **former** rather than removed when it stops working. Never on the map. Like an Address, never shown to an agent.
 _Avoid_: channel (a Feed's word), contact (the Person), handle (one kind)
 
 ### Occasion
