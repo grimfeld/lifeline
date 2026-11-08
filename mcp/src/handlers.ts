@@ -49,6 +49,7 @@ import {
   type OwnedCommand,
   type Placement,
 } from "@lifeline/core";
+import { knowledgeReport } from "@lifeline/app-languages";
 import { macroTools, TOOLS, type MacroTool } from "./tools";
 
 /**
@@ -250,6 +251,10 @@ function describeCommand(c: OwnedCommand) {
 // --- the handlers ---
 
 const handlers: Record<string, (a: Args) => Promise<unknown>> = {
+  knowledge_report: async (a) =>
+    knowledgeReport({ topic: String(a.topic ?? ""), decks: Array.isArray(a.decks) ? a.decks.map(String) : undefined }).catch((e: Error) => {
+      throw new ToolError(e.message);
+    }),
   async list_macros(a) {
     const macros = await allMacros();
     const all = await registry(macros);

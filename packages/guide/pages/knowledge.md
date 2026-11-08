@@ -57,7 +57,8 @@ Topic to a set you choose.
 - In a practice: try to recall the answer, **Show answer**, then grade yourself **Pass** or
   **Fail**. Keys: Space reveals, 1 or F fails, 2 or J passes. **Undo** a mis-tap. **Stop** any
   time — nothing is lost.
-- **Retention** — the share of recalls passed over the last 30 days, for this Topic and for all.
+- **Retention** — the share of recalls passed over the last 30 days, for this Topic and for all. Paused
+  material and drafts are left out.
 - **The week ahead** — how many prompts fall due each day.
 
 ### Kept
@@ -154,6 +155,12 @@ Claude can **draft** what it teaches you, but only you decide what enters your p
 - Claude cannot accept, pause, unpause or delete anything, and cannot change what you have accepted.
 - Adding the same thing twice is refused, not duplicated.
 - Claude cannot record or attach clips: those are yours.
+- "How is my Italian going?" — `knowledge_report`, read-only. For a Topic (and optionally some of its
+  Decks, a lesson each) it gives **Retention** (the figure the app shows), what is **due** now, how many
+  new prompts are waiting, and the prompts **failed most** in the last 30 days (up to ten, most failed
+  first): each with its question, answer, which prompt it is, and its latest recalls (pass or fail, and
+  when). Drafts and paused material are left out; a recall you struck out is gone. Claude reads this to
+  choose the next lesson, never to change anything.
 - Practising is yours: Claude does not grade recalls, and does not play or start Puzzles.
 
 ## Tips
