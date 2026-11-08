@@ -513,6 +513,14 @@ _Avoid_: diary, vault (the raw editor), collections (for its Types — a Collect
 Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **People** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Not a contact: a Person need not be reachable — the dead, someone met once.
 _Avoid_: contact, friend, acquaintance, relation (a kind of tie, not the person)
 
+### Address
+A place a Person lives or can be found, held on that Person under a label of the user's own ("Home", "Work", "Holiday house"): postal text and the coordinates found for it when it is saved. Each current Address is a Pin of its own ("Marc · Work"); a Person with several stands on the map several times. A shared home is held by each Person who lives there. When someone moves, the old Address is marked **former** rather than removed: it leaves the map and stays on their page as history. Not a Place (a user-defined type of the Journal's, a Document with links of its own); an Address is only ever part of its Person.
+_Avoid_: location (the coordinates), place, household
+
+### Contact detail
+A way to reach a Person, held on that Person under a label — a phone number, an email address, a handle on some service — and acted on by a click: call, write, open. Marked **former** rather than removed when it stops working. Never on the map.
+_Avoid_: channel (a Feed's word), contact (the Person), handle (one kind)
+
 ### Occasion
 A named day in a Person's life — Birthday, Met, Wedding, Surgery, Graduation — held on that Person: a label, a day whose year may be unknown, and whether it comes back **yearly** or happens **once**. Every Occasion stands on the time Surfaces as an all-day marker on its day ("⚑ Marc · Surgery"); a yearly one stands there every year ("🎂 Anne · 65"), a once one only on its day. **Birthday** is the one label the Contacts App understands — it gives the Person an age and the marker a number; any other label is the user's own. An Occasion two people share (a wedding) is held by each. A heads-up before it comes from the Upcoming Report, never from a reminder. Not an Event (nothing I attend; a visit to Marc after his surgery is my own Event or Task), not a Deadline.
 _Avoid_: important date, date (a Field kind), anniversary (only the yearly ones), milestone (a Project's), occurrence (a Chore's), reminder
