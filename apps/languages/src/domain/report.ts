@@ -1,6 +1,7 @@
 import { addDays, todayStr } from "@lifeline/core";
 import { parseCloze } from "./cloze";
 import type { MaterialDoc } from "./material";
+import { leeches as readLeeches } from "./leech";
 import { dayOf, heldPrompts, introducedByTopic, queueOfHeld, recallsByPrompt, recallsOfLive, retention } from "./practice";
 import { FACT, SENTENCE, WORD, type Fact, type Grade, type Recall, type Sentence, type Word } from "./types";
 
@@ -35,6 +36,17 @@ export interface ReportedPrompt {
   recalls: ReportedRecall[];
 }
 
+/** A Leech as the report lists it (CONTEXT.md "Leech"). */
+export interface ReportedLeech {
+  itemId: string;
+  type: string;
+  slot: string;
+  question: string;
+  answer: string | null;
+  /** Fails among its last 8 Recalls. */
+  fails: number;
+}
+
 export interface PracticeReport {
   /** The app's own Retention figure over the kept material, null when there is nothing to read. */
   retention: { passed: number; total: number; share: number } | null;
@@ -46,6 +58,8 @@ export interface PracticeReport {
   newWaiting: number;
   /** Most failed first. */
   mostFailed: ReportedPrompt[];
+  /** Prompts with 4 or more fails among their last 8 Recalls, most fails first. */
+  leeches: ReportedLeech[];
 }
 
 /** A Prompt's question and answer, as its face shows them (faces.tsx). */
@@ -100,6 +114,7 @@ export function practiceReport({ items, recalls, now, newCap }: ReportInput): Pr
     newToday: q.newToday,
     newWaiting: q.newWaiting,
     mostFailed: mostFailed(live, mine, now),
+    leeches: reportedLeeches(live, mine),
   };
 }
 
@@ -119,4 +134,12 @@ function mostFailed(live: MaterialDoc[], recalls: Recall[], now: Date): Reported
     .sort((a, b) => b.fails - a.fails || b.lastFail.localeCompare(a.lastFail) || a.itemId.localeCompare(b.itemId) || a.slot.localeCompare(b.slot))
     .slice(0, MOST_FAILED_SHOWN)
     .map(({ lastFail: _, ...p }) => p);
+}
+
+function reportedLeeches(live: MaterialDoc[], recalls: Recall[]): ReportedLeech[] {
+  const byId = new Map(live.map((m) => [m.id, m]));
+  return readLeeches(live, recalls).map((l) => {
+    const m = byId.get(l.itemId)!;
+    return { itemId: l.itemId, type: m.type, slot: l.slot, ...promptText(m, l.slot), fails: l.fails };
+  });
 }

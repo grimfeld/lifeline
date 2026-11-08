@@ -158,6 +158,24 @@ async function mixingDecks(page: Page) {
   await expect(page.getByRole("button", { name: /decks together/ })).toBeVisible();
 }
 
+/** Knowledge → Practice with Leeches of the longest questions, fail counts and all (#433). */
+async function withLeeches(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      for (let i = 0; i < 3; i++) {
+        const w = await core.putDocument({ type: "language_word", title: `${word}${i}`, languageId: topic.id, term: `${word}${i}`, meaning: `${long} ${i}`, notes: "", origin: "", originId: "", paused: false, addedAt: at, tags: [] });
+        for (let k = 0; k < 5; k++) await core.putDocument({ type: "language_recall", title: "fail", languageId: topic.id, itemId: w.id, slot: "reverse", grade: "fail", at: new Date(Date.now() - (k + 1) * 3_600_000).toISOString(), tags: [] });
+      }
+    },
+    [CORE_URL, longText("Leech topic"), LONG_WORD] as const,
+  );
+  await expect(page.getByRole("heading", { name: "Leeches" })).toBeVisible();
+}
+
 /**
  * Knowledge → Puzzles over a Topic with four Decks a Connections can draw
  * from (ADR 0106): the longest Deck names, and Words and Facts with the
@@ -888,6 +906,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Swear Jar", path: "/app/swearjar" },
   { name: "Knowledge", path: "/app/languages" },
   { name: "Knowledge · Mixing decks", path: "/app/languages", afterOpen: mixingDecks },
+  { name: "Knowledge · Leeches", path: "/app/languages", afterOpen: withLeeches },
   { name: "Knowledge · Puzzles", path: "/app/languages?tab=puzzles", afterOpen: withPuzzleWord },
   { name: "Knowledge · Puzzle player", path: "/app/languages?tab=puzzles", afterOpen: playPuzzle },
   { name: "Knowledge · Puzzle played", path: "/app/languages?tab=puzzles", afterOpen: givenUpPuzzle },

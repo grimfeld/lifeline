@@ -26,7 +26,7 @@ async function deck(languageId: string, name: string, members: string[]) {
   return (await putDocument({ type: "language_deck", title: name, languageId, name, members, folder: "", tags: [] })).id;
 }
 
-type Report = { topic: string; decks: string[]; retention: { passed: number; total: number; share: number } | null; dueToday: number; newWaiting: number; mostFailed: { itemId: string; slot: string; question: string; answer: string; fails: number; recalls: { grade: string; at: string }[] }[] };
+type Report = { topic: string; decks: string[]; retention: { passed: number; total: number; share: number } | null; dueToday: number; newWaiting: number; leeches: { itemId: string; slot: string; question: string; answer: string; fails: number }[]; mostFailed: { itemId: string; slot: string; question: string; answer: string; fails: number; recalls: { grade: string; at: string }[] }[] };
 
 describe("knowledge_report", () => {
   it("is a read-only tool taking a Topic and optional Decks", () => {
@@ -97,5 +97,17 @@ describe("knowledge_report", () => {
     const before = JSON.stringify(await documentsOf("language_recall"));
     await runTool("knowledge_report", { topic: t });
     expect(JSON.stringify(await documentsOf("language_recall"))).toBe(before);
+  });
+
+  it("lists the Topic's Leeches, and a Deck's narrows them", async () => {
+    const t = await topic("Danish");
+    const a = await word(t, "hund", "dog");
+    const b = await word(t, "kat", "cat");
+    for (const [id, n] of [[a, 4], [b, 3]] as const) for (let k = 0; k < n; k++) await recall(t, id, "forward", "fail", 10 - k);
+    await recall(t, a, "forward", "pass", 1);
+    const r = (await runTool("knowledge_report", { topic: "Danish" })) as Report;
+    expect(r.leeches).toEqual([{ itemId: a, type: "language_word", slot: "forward", question: "hund", answer: "dog", fails: 4 }]);
+    const d = await deck(t, "Pets", [b]);
+    expect(((await runTool("knowledge_report", { topic: "Danish", decks: [d] })) as Report).leeches).toEqual([]);
   });
 });
