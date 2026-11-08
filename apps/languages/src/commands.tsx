@@ -1,6 +1,7 @@
 import type { CommandDef, CommandDialogProps } from "@lifeline/core";
 import { Brain, MessageCircleQuestion, Play, Plus, TextCursorInput } from "lucide-react";
 import { TOPIC, KNOWLEDGE_HREF } from "./domain/types";
+import { blankSlots } from "./domain/cloze";
 import { addFact, addSentence, addWord, allFacts, allTopics, allSentences, allWords } from "./data/repo";
 
 /** A headless add goes into a Topic still in use (not archived): named, never the device’s active one. */
@@ -62,8 +63,9 @@ export const knowledgeCommands: CommandDef[] = [
     capture: true,
     args: [
       { key: "topic", label: "Topic", kind: "link", linkType: TOPIC, required: true, hint: "The Topic it belongs to, e.g. Spanish." },
-      { key: "text", label: "Sentence", kind: "longtext", required: true, hint: "Each blank in double braces: Tengo {{ganas}} de ir." },
+      { key: "text", label: "Sentence", kind: "longtext", required: true, hint: "Each blank in double braces: Tengo {{ganas}} de ir. A hint for the gap after a bar: Vado {{nel|in}} centro." },
       { key: "translation", label: "Translation", kind: "text", hint: "Shown with every Prompt, so each blank has one answer." },
+      { key: "notes", label: "Notes", kind: "longtext", hint: "The rule that settles a blank, or an equally right alternative (also: in centro); shown on every reveal." },
       { key: "origin", label: "Where it was met", kind: "text" },
       { key: "tags", label: "Tags", kind: "list" },
     ],
@@ -73,8 +75,8 @@ export const knowledgeCommands: CommandDef[] = [
       const text = a.text as string;
       const twin = (await allSentences()).find((s) => s.languageId === topic.id && same(s.text, text));
       if (twin) throw new Error(`That sentence is already in ${topic.title}; tell the user — nothing was changed`);
-      const id = await addSentence({ languageId: topic.id, text, translation: a.translation as string | undefined, origin: a.origin as string | undefined, tags: a.tags as string[] | undefined });
-      const blanks = (text.match(/\{\{\s*\S.*?\}\}/g) ?? []).length;
+      const id = await addSentence({ languageId: topic.id, text, translation: a.translation as string | undefined, notes: a.notes as string | undefined, origin: a.origin as string | undefined, tags: a.tags as string[] | undefined });
+      const blanks = blankSlots(text).length;
       return { id, message: `Sentence added to ${topic.title} · ${blanks} prompt${blanks === 1 ? "" : "s"}` };
     },
   },
