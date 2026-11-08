@@ -41,6 +41,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
   const [languageId, setLanguageId] = useState("");
   const [text, setText] = useState("");
   const [translation, setTranslation] = useState("");
+  const [notes, setNotes] = useState("");
   const [origin, setOrigin] = useState("");
   const [originId, setOriginId] = useState("");
   const [tags, setTags] = useState<string[]>([]);
@@ -51,6 +52,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
     setLanguageId(sentence?.languageId ?? (initialText(initial, "topic") || (active?.id ?? "")));
     setText(sentence?.text ?? prefill?.text ?? initialText(initial, "text"));
     setTranslation(sentence?.translation ?? initialText(initial, "translation"));
+    setNotes(sentence?.notes ?? initialText(initial, "notes"));
     setOrigin(sentence?.origin ?? prefill?.origin ?? initialText(initial, "origin"));
     setOriginId(sentence?.originId ?? prefill?.originId ?? "");
     setTags(sentence?.tags ?? initialList(initial, "tags"));
@@ -77,7 +79,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
   }
 
   async function save() {
-    const input = { languageId, text, translation, origin, originId, tags };
+    const input = { languageId, text, translation, notes, origin, originId, tags };
     let made = "";
     try {
       if (sentence) {
@@ -123,6 +125,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
                 </Button>
               </div>
               <Textarea id="st-text" ref={area} rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="Tengo {{ganas}} de comer" autoFocus />
+              <span className="text-muted-foreground text-xs">A hint shows in the gap: {"{{nel|in}}"}.</span>
               <div className="flex min-h-5 flex-wrap items-center gap-1">
                 {blanks.length === 0 ? (
                   <span className="text-muted-foreground text-xs">Select a word and press Blank — each blank is one prompt.</span>
@@ -138,6 +141,10 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
             <div className="grid gap-2">
               <Label htmlFor="st-translation">Translation</Label>
               <Input id="st-translation" value={translation} onChange={(e) => setTranslation(e.target.value)} placeholder="Optional — a translation, or context; shown with every blank" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="st-notes">Notes</Label>
+              <Textarea id="st-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional — the rule, or also: in centro; shown on every reveal" />
             </div>
             {originId ? (
               <div className="flex min-w-0 items-center gap-2">

@@ -66,6 +66,8 @@ export interface Sentence extends Document {
   text: string;
   /** In the user's own words, shown with each Prompt. */
   translation: string;
+  /** The rule that settles a blank, or an equally right alternative; shown on every reveal (ADR 0116). */
+  notes: string;
   origin: string;
   originId: string;
   paused: boolean;
