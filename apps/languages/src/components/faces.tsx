@@ -2,6 +2,7 @@ import type { RecallFaceProps } from "@lifeline/core";
 import { parseCloze } from "../domain/cloze";
 import type { Fact, Sentence, Word } from "../domain/types";
 import { OriginLine } from "./OriginLine";
+import { ClipPlayer } from "./ClipPlayer";
 
 /*
  * Every line is held to the card's width (`max-w-full`): centred grid items
@@ -25,6 +26,7 @@ export function WordFace({ doc, slot, revealed }: RecallFaceProps) {
         {revealed && (
           <div className="grid gap-2">
             <span className="text-primary text-2xl break-words">{answer}</span>
+            <ClipPlayer clipId={w.clip} />
             {w.notes && <span className="text-muted-foreground text-sm whitespace-pre-wrap">{w.notes}</span>}
             <OriginLine originId={w.originId} />
           </div>
@@ -62,6 +64,7 @@ export function SentenceFace({ doc, slot, revealed }: RecallFaceProps) {
       </p>
       {sentence.translation && <span className="text-muted-foreground max-w-full text-sm break-words italic">{sentence.translation}</span>}
       {revealed && sentence.notes && <span className="text-muted-foreground max-w-full text-sm break-words whitespace-pre-wrap">{sentence.notes}</span>}
+      {revealed && <ClipPlayer clipId={sentence.clip} />}
       {revealed && <OriginLine originId={sentence.originId} className="max-w-full" />}
     </div>
   );

@@ -1,8 +1,8 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
-import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item, type Sentence } from "../domain/types";
-import { acceptDraft, addDeck, addSentence, addWord, deckNamed, deleteItem, setMembership, updateSentence } from "./repo";
+import { addAudioAttachment, allAttachments, getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
+import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item, type Sentence, type Word } from "../domain/types";
+import { acceptDraft, addDeck, addSentence, addWord, deckNamed, deleteItem, removeItemRecalls, setMembership, updateSentence, updateWord } from "./repo";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId"], builtIn: true }) as unknown as DocumentTypeDef;
@@ -46,6 +46,49 @@ describe("deckNamed", () => {
     const a = await deckNamed("fr", "Lesson 1");
     expect((await deckNamed("fr", "lesson 1")).id).toBe(a.id);
     expect((await deckNamed("es", "Lesson 1")).id).not.toBe(a.id);
+  });
+});
+
+const audio = () => new Blob(["x"], { type: "audio/webm;codecs=opus" });
+const clipsKept = async () => (await allAttachments()).map((a) => a.id).sort();
+
+describe("a clip (ADR 0116)", () => {
+  it("is kept with the Word, and an edit that leaves it out keeps it", async () => {
+    const clip = (await addAudioAttachment(audio())).id;
+    const id = await addWord({ languageId: "es", term: "nono", meaning: "grandfather", clip });
+    const w = (await getDocument<Word>(id))!;
+    expect(w.clip).toBe(clip);
+    await updateWord(w, { languageId: "es", term: "nono", meaning: "grandpa" });
+    expect((await getDocument<Word>(id))!.clip).toBe(clip);
+    expect(await clipsKept()).toContain(clip);
+  });
+
+  it("replacing it removes the old Attachment", async () => {
+    const first = (await addAudioAttachment(audio())).id;
+    const second = (await addAudioAttachment(audio())).id;
+    const id = await addWord({ languageId: "es", term: "nonno", meaning: "year", clip: first });
+    await updateWord((await getDocument<Word>(id))!, { languageId: "es", term: "nonno", meaning: "year", clip: second });
+    expect((await getDocument<Word>(id))!.clip).toBe(second);
+    const kept = await clipsKept();
+    expect(kept).toContain(second);
+    expect(kept).not.toContain(first);
+  });
+
+  it("removing it from a Sentence leaves the Sentence, its blanks and no Attachment", async () => {
+    const clip = (await addAudioAttachment(audio())).id;
+    const id = await addSentence({ languageId: "es", text: "Tengo {{ganas}} de comer", clip });
+    await updateSentence((await getDocument<Sentence>(id))!, { languageId: "es", text: "Tengo {{ganas}} de comer", clip: "" });
+    expect(((await getDocument<Sentence>(id))!).clip).toBe("");
+    expect(await clipsKept()).not.toContain(clip);
+  });
+
+  it("deleting the item takes its clip along", async () => {
+    const clip = (await addAudioAttachment(audio())).id;
+    const id = await addWord({ languageId: "es", term: "ciao", meaning: "hi", clip });
+    const doc = (await getDocument<Word>(id))!;
+    await removeItemRecalls(doc);
+    await deleteItem(id);
+    expect(await clipsKept()).not.toContain(clip);
   });
 });
 

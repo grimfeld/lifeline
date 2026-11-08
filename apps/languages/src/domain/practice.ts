@@ -174,3 +174,9 @@ export function dueAheadOfHeld(held: HeldPrompt[], now: Date, days = 7): { day: 
   }
   return out;
 }
+
+/** What several Decks hold together (a Practice narrowed to more than one): the union, an item in two Decks once, in the items' own order. */
+export function inDecks<T extends { id: string }>(decks: { members: string[] }[], items: T[]): T[] {
+  const ids = new Set(decks.flatMap((d) => d.members));
+  return items.filter((i) => ids.has(i.id));
+}

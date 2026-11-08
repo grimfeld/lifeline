@@ -19,6 +19,19 @@ Topic to a set you choose.
   blank, or an equally right alternative (*also: in centro*), and appear on every reveal, pass or fail.
 - **Fact** — a question and its answer, both in your words; practised one way.
 - Each can note where you met it: a link to the page it came from, a URL or a few words.
+- A Word or a Sentence can carry an **audio clip** — see below.
+
+### Audio clips
+
+- In a Word's or a Sentence's form, **Record** a clip with the microphone (the phone or the
+  browser asks for it only when you press Record, never when the form opens), or **Attach a file**
+  instead: a line from a film, a native speaker. Audio files up to 20 MB.
+- You can hear the clip in the form before saving. **Re-record** or **Replace with a file** swaps
+  it; **Remove** takes it away. Nothing changes on the item until you save, and a clip you
+  recorded and then closed the form on is thrown away.
+- When you reveal any of the item's prompts, the clip plays once, with a **Replay** button under
+  the answer. An item without a clip reveals exactly as before.
+- Deleting the item deletes its clip. Claude cannot add clips.
 
 ### Topics
 
@@ -38,6 +51,9 @@ Topic to a set you choose.
 - How much is ready: due today, new today, and how many more new are waiting.
 - **Practise** the open Topic, one of its **Decks**, **Everything** across all Topics, or what
   you kept **From a source** — a book, a podcast, with its episodes.
+- **Mix decks** (once a Topic has two Decks) — tick several Decks, then **Practise N decks
+  together**: lessons mix in one practice. An item in two of them comes up once, and the Topic's
+  daily new cap and the spacing of sibling prompts hold as for one Deck.
 - In a practice: try to recall the answer, **Show answer**, then grade yourself **Pass** or
   **Fail**. Keys: Space reveals, 1 or F fails, 2 or J passes. **Undo** a mis-tap. **Stop** any
   time — nothing is lost.
@@ -62,6 +78,10 @@ Topic to a set you choose.
 - **Also kept here** — Quotes kept in this Topic from Notes.
 - Open one to edit it, see its prompts, and put it in or out of Decks. Editing never resets its
   practice.
+- A Word's peek also lists the **Sentences** of its Topic that use it, each opening its own peek
+  (paused ones are marked). A Sentence uses a Word when its text, blanks filled, holds the term as
+  a whole word or phrase: capitals ignored, accents kept (*è* is not *e*), no stemming (*tavolo*
+  does not find *tavoli*). Nothing is stored or linked; it is read fresh each time.
 
 ### Decks
 
@@ -134,6 +154,7 @@ Claude can **draft** what it teaches you, but only you decide what enters your p
   Lifeline writes after "Agent draft" and the Deck's name.
 - Claude cannot accept, pause, unpause or delete anything, and cannot change what you have accepted.
 - Adding the same thing twice is refused, not duplicated.
+- Claude cannot record or attach clips: those are yours.
 - "How is my Italian going?" — `knowledge_report`, read-only. For a Topic (and optionally some of its
   Decks, a lesson each) it gives **Retention** (the figure the app shows), what is **due** now, how many
   new prompts are waiting, and the prompts **failed most** in the last 30 days (up to ten, most failed
