@@ -240,47 +240,70 @@ function buildTargets(docs: Document[], types: DocumentTypeDef[], locked: Privat
 function contributionOf(d: Document, t: Targets): Contribution {
   const def = t.defs.get(d.type);
   const resolved = writtenLinks(d).map((w) => ({ ...w, refs: t.resolveAll(w.link.name) }));
-  const out: Contribution = { links: resolved.flatMap((w) => w.refs.map((r) => ({ link: w.link, ref: r }))), backlinks: [], unresolved: [], tags: [] };
+  const links = resolved.flatMap((w) => w.refs.map((r) => ({ link: w.link, ref: r })));
   // Resolved for the Document's own panel — a Version's snapshot still renders
-  // its wikilinks — but nothing below this line, which is what others see.
-  if (!originatesLinks(def)) return out;
+  // its wikilinks — but nothing else, which is what others see.
+  if (!originatesLinks(def)) return { links, backlinks: [], unresolved: [], tags: [] };
+  const body = bodyRelations(d, resolved);
+  return {
+    links,
+    backlinks: [...body.backlinks, ...linkingTextBacklinks(d, def, t), ...linkFieldBacklinks(d, def, t)],
+    unresolved: body.unresolved,
+    tags: d.tags ?? [],
+  };
+}
+
+/** What a body's resolved wikilinks give others: a Backlink to each Document named (not itself), a Ghost for each name that is none. */
+function bodyRelations(d: Document, resolved: { context: string; refs: LinkRef[] }[]): Pick<Contribution, "backlinks" | "unresolved"> {
+  const backlinks: Contribution["backlinks"] = [];
   const unresolved = new Set<string>();
   for (const { context, refs } of resolved) {
     for (const r of refs) {
       if (r.kind === "locked") continue; // behind the gate: no backlink, no Ghost
-      if (r.kind === "unresolved") {
-        unresolved.add(normalizeName(r.name));
-        continue;
-      }
-      if (r.id === d.id) continue; // self-link
-      out.backlinks.push({ to: r.id, backlink: { sourceId: d.id, context } });
+      if (r.kind === "unresolved") unresolved.add(normalizeName(r.name));
+      else if (r.id !== d.id) backlinks.push({ to: r.id, backlink: { sourceId: d.id, context } });
     }
   }
-  out.unresolved = [...unresolved];
-  // Linking text Fields (an Event's Notes): their wikilinks are Backlinks, and nothing more.
-  for (const key of def?.linkingText ?? []) {
+  return { backlinks, unresolved: [...unresolved] };
+}
+
+/** Linking text Fields (an Event's Notes): their wikilinks are Backlinks, and nothing more. */
+function linkingTextBacklinks(d: Document, def: DocumentTypeDef | undefined, t: Targets): Contribution["backlinks"] {
+  return (def?.linkingText ?? []).flatMap((key) => {
     const text = d[key];
-    if (typeof text !== "string" || !text) continue;
-    for (const link of extractLinks(text)) {
-      if (isImageEmbed(link)) continue;
-      const context = contextAround(text, link.from, link.to);
-      for (const r of t.resolveAll(link.name)) {
-        if (r.kind === "doc" && r.id !== d.id) out.backlinks.push({ to: r.id, backlink: { sourceId: d.id, context } });
-      }
+    return typeof text === "string" ? textBacklinks(d.id, text, t) : [];
+  });
+}
+
+/** A Backlink from `sourceId` to each Document a text's wikilinks name, but itself; an image embed names none. */
+function textBacklinks(sourceId: string, text: string, t: Targets): Contribution["backlinks"] {
+  const out: Contribution["backlinks"] = [];
+  for (const link of extractLinks(text)) {
+    if (isImageEmbed(link)) continue;
+    const context = contextAround(text, link.from, link.to);
+    for (const r of t.resolveAll(link.name)) {
+      if (r.kind === "doc" && r.id !== sourceId) out.push({ to: r.id, backlink: { sourceId, context } });
     }
   }
-  // Link fields (ADR 0019): a stored id is a reference too — one or several (ADR 0052).
+  return out;
+}
+
+/** Link fields (ADR 0019): a stored id is a reference too — one or several (ADR 0052). */
+function linkFieldBacklinks(d: Document, def: DocumentTypeDef | undefined, t: Targets): Contribution["backlinks"] {
+  const out: Contribution["backlinks"] = [];
   for (const f of fieldsOfDocument(d, def)) {
     if (!isLinkKind(f.kind)) continue;
-    const v = d[f.key];
-    const ids = Array.isArray(v) ? v : typeof v === "string" && v ? [v] : [];
-    for (const id of ids) {
-      if (typeof id !== "string" || id === d.id || !t.byId.has(id)) continue;
-      out.backlinks.push({ to: id, backlink: { sourceId: d.id, context: "", field: f.key } });
+    for (const id of idsIn(d[f.key])) {
+      if (id !== d.id && t.byId.has(id)) out.push({ to: id, backlink: { sourceId: d.id, context: "", field: f.key } });
     }
   }
-  out.tags = d.tags ?? [];
   return out;
+}
+
+/** The ids a Link field holds: one (`link`) or several (`links`). */
+function idsIn(v: unknown): string[] {
+  if (typeof v === "string") return v ? [v] : [];
+  return Array.isArray(v) ? v.filter((id): id is string => typeof id === "string") : [];
 }
 
 /** The index over `docs`, from their Targets and each one's Contribution: no body is read here. */
