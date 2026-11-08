@@ -12,6 +12,7 @@ import { WordDialog } from "./WordDialog";
 import { SentenceDialog } from "./SentenceDialog";
 import { FactDialog } from "./FactDialog";
 import { OriginLine } from "./OriginLine";
+import { ProposalNotice } from "./ProposalNotice";
 
 function slotLabel(slot: string): string {
   if (slot === "forward") return "Forward";
@@ -83,6 +84,7 @@ export function ItemPeek({ doc }: { doc: Document }) {
           </>
         )}
       </span>
+      <ProposalNotice item={item} />
       <ItemFields key={item.id} item={item} />
       <div className="flex flex-col gap-1">
         <span className="text-muted-foreground text-xs font-medium">Prompts</span>

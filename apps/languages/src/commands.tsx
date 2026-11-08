@@ -1,9 +1,10 @@
 import type { CommandDef, CommandDialogProps } from "@lifeline/core";
-import { Brain, MessageCircleQuestion, Play, Plus, TextCursorInput } from "lucide-react";
-import { TOPIC, KNOWLEDGE_HREF } from "./domain/types";
+import { Brain, MessageCircleQuestion, PencilLine, Play, Plus, TextCursorInput } from "lucide-react";
+import { TOPIC, KNOWLEDGE_HREF, WORD, SENTENCE, FACT, type Proposal } from "./domain/types";
+import { REWRITABLE } from "./domain/draft";
 import type { InvokeContext } from "@lifeline/core";
 import { blankSlots } from "./domain/cloze";
-import { addFact, addSentence, addWord, allFacts, allTopics, allSentences, allWords, deckNamed, setMembership } from "./data/repo";
+import { addFact, addSentence, addWord, allFacts, allTopics, allSentences, allWords, deckNamed, proposeChange, setMembership, updateFact, updateSentence, updateWord } from "./data/repo";
 
 /** A headless add goes into a Topic still in use (not archived): named, never the device’s active one. */
 async function openTopic(id: string) {
@@ -131,6 +132,43 @@ export const knowledgeCommands: CommandDef[] = [
       const id = await addFact({ languageId: topic.id, question, answer: a.answer as string, notes: a.notes as string | undefined, ...drafting(ctx, a), tags: a.tags as string[] | undefined });
       await fileInDeck(topic.id, id, a.deck);
       return { id, message: ctx?.agent ? `Fact drafted in ${topic.title}` : `Fact kept in ${topic.title}` };
+    },
+  },
+  {
+    // Headless only. An agent never edits accepted material (ADR 0115): it proposes, the user accepts or discards.
+    id: "knowledge.propose",
+    title: "Propose a rewrite…",
+    keywords: ["knowledge", "propose", "rewrite", "change", "fix", "word", "sentence", "fact"],
+    icon: PencilLine,
+    args: [
+      { key: "id", label: "Item", kind: "link", linkType: [WORD, SENTENCE, FACT], required: true, hint: "The Word, Sentence or Fact to rewrite. It is never changed: the user sees your values beside its own and accepts or discards them. A newer proposal replaces an older one. A draft is simply updated." },
+      { key: "term", label: "Term", kind: "text", hint: "Word only." },
+      { key: "meaning", label: "Meaning", kind: "text", hint: "Word only." },
+      { key: "text", label: "Sentence", kind: "longtext", hint: "Sentence only; keep or change its blanks." },
+      { key: "translation", label: "Translation", kind: "text", hint: "Sentence only." },
+      { key: "question", label: "Question", kind: "text", hint: "Fact only." },
+      { key: "answer", label: "Answer", kind: "longtext", hint: "Fact only." },
+      { key: "notes", label: "Notes", kind: "longtext", hint: "Word, Sentence or Fact." },
+    ],
+    returnsDocument: true,
+    async invoke(a) {
+      const item = [...(await allWords()), ...(await allSentences()), ...(await allFacts())].find((i) => i.id === a.id);
+      if (!item) throw new Error("That is no Word, Sentence or Fact");
+      const kind = item.type === WORD ? "Word" : item.type === SENTENCE ? "Sentence" : "Fact";
+      const wrong = (["term", "meaning", "text", "translation", "question", "answer", "notes"] as const).filter((k) => a[k] !== undefined && !REWRITABLE[item.type].includes(k));
+      if (wrong.length) throw new Error(`${wrong.join(", ")} ${wrong.length === 1 ? "is" : "are"} not a field of a ${kind}; nothing was proposed`);
+      const given: Proposal = {};
+      for (const k of REWRITABLE[item.type]) if (typeof a[k] === "string" && a[k].trim() !== ((item as unknown as Record<string, string>)[k] ?? "")) given[k] = a[k];
+      if (!Object.keys(given).length) throw new Error("There is nothing to propose: no field differs from the item’s own; nothing was proposed");
+      if (item.draft) {
+        const own = { ...item, ...given } as typeof item;
+        if (own.type === WORD) await updateWord(own, own);
+        else if (own.type === SENTENCE) await updateSentence(own, own);
+        else await updateFact(own, own);
+        return { id: item.id, message: `${kind} draft updated` };
+      }
+      await proposeChange(item, given);
+      return { id: item.id, message: `Rewrite of the ${kind.toLowerCase()} proposed — the user accepts or discards it` };
     },
   },
   { id: "knowledge.practise", title: "Practise everything", keywords: ["knowledge", "practice", "practise", "review", "recall", "due", "flashcards"], icon: Play, run: ({ navigate }) => navigate(`${KNOWLEDGE_HREF}?practice=all`) },
