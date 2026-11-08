@@ -22,22 +22,14 @@ export function TurnIntoPersonButton({ doc, roleId }: { doc: Document; roleId: s
  * done: an Author or Artist the user has come to know becomes a Person that
  * still wears the Role. Nothing is lost; People then lists it.
  */
-export function TurnIntoPersonDialog({ doc, roleId, onClose, onDone }: { doc: Document | null; roleId: string; onClose: () => void; onDone?: (person: Document) => void }) {
+export function TurnIntoPersonDialog({ doc, roleId, onClose }: { doc: Document | null; roleId: string; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const role = roleDef(roleId)?.label ?? "Author";
-  async function run() {
-    if (!doc) return;
+  async function run(asked: Document) {
     setBusy(true);
-    try {
-      const person = await turnIntoPerson(doc.id, roleId);
-      toast.success(`${doc.title} is now a Person`);
-      onDone?.(person);
-    } catch (e) {
-      toast.error(`${doc.title} could not be turned into a Person.`, { description: e instanceof Error ? e.message : undefined });
-    } finally {
-      setBusy(false);
-      onClose();
-    }
+    await turnAndTell(asked, roleId);
+    setBusy(false);
+    onClose();
   }
   return (
     <AlertDialog open={!!doc} onOpenChange={(o) => !o && onClose()}>
@@ -50,11 +42,21 @@ export function TurnIntoPersonDialog({ doc, roleId, onClose, onDone }: { doc: Do
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction disabled={busy} onClick={() => void run()}>
+          <AlertDialogAction disabled={busy} onClick={() => doc && void run(doc)}>
             Turn into a Person
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
+}
+
+/** Turn it into a Person, and say so — or say why not. Never throws. */
+async function turnAndTell(doc: Document, roleId: string): Promise<void> {
+  try {
+    await turnIntoPerson(doc.id, roleId);
+    toast.success(`${doc.title} is now a Person`);
+  } catch (e) {
+    toast.error(`${doc.title} could not be turned into a Person.`, { description: e instanceof Error ? e.message : undefined });
+  }
 }
