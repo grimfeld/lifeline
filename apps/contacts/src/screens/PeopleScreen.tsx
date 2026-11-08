@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { useDocuments } from "@lifeline/core";
+import { seenDays, todayStr, useDocuments, useLinkIndex, type DateStr } from "@lifeline/core";
 import { Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { UserPlus } from "lucide-react";
 import { AddPersonDialog } from "../components/AddPersonDialog";
@@ -12,7 +12,7 @@ import { normalizePerson } from "../data/repo";
 const ANY = "__any__";
 
 /** One Person in Everyone: their name and what they are to me, a link to their page. */
-function PersonRow({ person }: { person: Person }) {
+function PersonRow({ person, lastSeen }: { person: Person; lastSeen?: DateStr }) {
   return (
     <li>
       <Link
@@ -21,6 +21,7 @@ function PersonRow({ person }: { person: Person }) {
       >
         <span className="min-w-0 flex-1 truncate font-medium">{person.title}</span>
         {person.relationship && <span className="text-muted-foreground min-w-0 max-w-[50%] shrink truncate text-sm">{person.relationship}</span>}
+        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{lastSeen ? `Last seen ${lastSeen}` : "Not seen"}</span>
       </Link>
     </li>
   );
@@ -39,6 +40,9 @@ export function PeopleScreen() {
   const rows = useDocuments<Person>(PERSON);
   const people = useMemo(() => rows.map(normalizePerson), [rows]);
   const shown = useMemo(() => everyone(people, { query, relationship, tag }), [people, query, relationship, tag]);
+  const index = useLinkIndex();
+  const today = todayStr();
+  const lastSeenOf = (id: string) => seenDays(index, id, today).at(-1);
   const relationships = useMemo(() => relationshipsOf(people), [people]);
   const tags = useMemo(() => tagsOf(people), [people]);
   // A filter whose value no one carries any more (the last of them was changed) is no filter.
@@ -102,7 +106,7 @@ export function PeopleScreen() {
             ) : (
               <ul className="grid min-w-0 gap-2">
                 {shown.map((p) => (
-                  <PersonRow key={p.id} person={p} />
+                  <PersonRow key={p.id} person={p} lastSeen={lastSeenOf(p.id)} />
                 ))}
               </ul>
             )}

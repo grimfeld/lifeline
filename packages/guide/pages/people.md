@@ -11,7 +11,7 @@ are to you (their **Relationship**), Tags, and a page of your own words about th
 ### The People home
 
 The People Module lands on its home, which lists **Everyone**: every Person in the current
-Workspace, by name, each with what they are to you. Click one to open their page.
+Workspace, by name, each with what they are to you and when you last saw them. Click one to open their page.
 
 - **Search** matches a name or any alias, ignoring case and accents.
 - **Relationship** and **Tag** narrow the list, and together they narrow it further. On a phone

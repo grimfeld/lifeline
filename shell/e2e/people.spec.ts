@@ -132,7 +132,7 @@ test("the People home lists Everyone, searched by name and alias and filtered by
   );
 
   await expect(everyone.getByRole("link")).toHaveCount(before + 3);
-  await expect(everyone.getByRole("link", { name: /Anne Dupont\s*kin-x/ })).toBeVisible();
+  await expect(everyone.getByRole("link", { name: /Anne Dupont\s*kin-x/ })).toContainText("Not seen");
 
   await page.getByLabel("Search people").fill("mum-x");
   await expect(everyone.getByRole("link")).toHaveCount(1);
