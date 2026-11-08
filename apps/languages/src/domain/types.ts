@@ -60,6 +60,8 @@ export interface Word extends Document {
   draft?: boolean;
   /** ISO instant it was added — what "oldest added first" orders new Prompts by. Set again when a draft is accepted. */
   addedAt: string;
+  /** The id of its audio clip, an Attachment (ADR 0116); empty or absent for none. Played on every reveal. */
+  clip?: string;
 }
 
 /** A Sentence (CONTEXT.md "Sentence"): text with `{{blanks}}`, one Prompt per blank. */
@@ -80,6 +82,8 @@ export interface Sentence extends Document {
   /** An agent's draft, not yet accepted (ADR 0115). Absent = accepted. */
   draft?: boolean;
   addedAt: string;
+  /** The id of its audio clip, an Attachment (ADR 0116); empty or absent for none. Played on every reveal. */
+  clip?: string;
 }
 
 /** A Deck (CONTEXT.md "Deck"): a chosen set of Words and Sentences inside one Topic. Membership is the Deck's. */

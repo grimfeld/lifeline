@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button, Card, CardContent, cn } from "@lifeline/ui";
 import { formatHuman, todayStr, useLiveQuery } from "@lifeline/core";
-import { BookOpen, Layers, Play, Shapes } from "lucide-react";
-import { dueAheadOfHeld, heldPrompts, introducedByTopic, queueOfHeld, retention, type NewCap, type PracticeQueue } from "../domain/practice";
+import { BookOpen, Check, Layers, Play, Shapes } from "lucide-react";
+import { dueAheadOfHeld, heldPrompts, inDecks, introducedByTopic, queueOfHeld, retention, type NewCap, type PracticeQueue } from "../domain/practice";
 import type { Deck, Topic, Recall } from "../domain/types";
 import { useAllMaterial, useRecalls, useSourceChains, useTopics, type MaterialDoc } from "../data/repo";
 import { FORMAT_LABEL, getPuzzle } from "../data/puzzles";
@@ -26,7 +26,7 @@ export function practisePuzzle(puzzleId: string): Record<string, string> {
 /** How many Sources are listed before "show all". */
 const SOURCES_SHOWN = 6;
 
-type Run = { kind: "topic" } | { kind: "deck"; deck: Deck } | { kind: "all" } | { kind: "source"; id: string } | { kind: "puzzle"; id: string };
+type Run = { kind: "topic" } | { kind: "deck"; deck: Deck } | { kind: "decks"; decks: Deck[] } | { kind: "all" } | { kind: "source"; id: string } | { kind: "puzzle"; id: string };
 
 function runOf(param: string | null): Run | null {
   if (param === "all") return { kind: "all" };
@@ -47,6 +47,9 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
   const [local, setLocal] = useState<Run | null>(null);
   const running = runOf(params.get(PRACTICE_PARAM)) ?? local;
   const [allSources, setAllSources] = useState(false);
+  // Mixing: Decks ticked to practise together.
+  const [mixing, setMixing] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
 
   // Everything: every live Topic's material, each Topic held to its own cap.
   const topics = useTopics();
@@ -98,6 +101,12 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
       .sort((a, b) => b.q.due + b.q.newToday - (a.q.due + a.q.newToday) || a.title.localeCompare(b.title));
   }, [liveAll, chains, titleOf, heldAll, introduced, now, capOf]);
 
+  const pickedDecks = decks.filter((d) => picked.includes(d.id));
+  const mixQueue = useMemo(() => {
+    const ids = new Set(inDecks(pickedDecks, live).map((i) => i.id));
+    return queueOfHeld(held.filter((p) => ids.has(p.itemId)), introduced, { now, newCap: topic.newCap });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pickedDecks is derived from picked and decks
+  }, [picked, decks, live, held, introduced, now, topic.newCap]);
   function start(run: Run) {
     if (run.kind === "all") setParams({ [PRACTICE_PARAM]: "all" });
     else if (run.kind === "source") setParams({ [PRACTICE_PARAM]: `source:${run.id}` });
@@ -116,9 +125,18 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
       return <PracticeRun label={`From ${titleOf(running.id)}`} items={from} recalls={allRecalls} newCap={capOf} onDone={stop} />;
     }
     if (running.kind === "puzzle") return <PuzzlePractice id={running.id} topic={topic} items={items} recalls={recalls} onDone={stop} />;
+    if (running.kind === "decks") {
+      const names = running.decks.map((d) => d.name).join(" + ");
+      return <PracticeRun label={`${topic.name} · ${names}`} items={inDecks(running.decks, items)} recalls={recalls} newCap={topic.newCap} onDone={stop} />;
+    }
     const scope = running.kind === "deck" ? deckItems(running.deck, items) : items;
     return <PracticeRun label={running.kind === "deck" ? `${topic.name} · ${running.deck.name}` : topic.name} items={scope} recalls={recalls} newCap={topic.newCap} onDone={stop} />;
   }
+
+  const toggleMix = () => {
+    setMixing(!mixing);
+    setPicked([]);
+  };
 
   const ready = q.due + q.newToday;
   const shownSources = allSources ? sources : sources.slice(0, SOURCES_SHOWN);
@@ -151,14 +169,28 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
 
       {decks.length > 0 && (
         <section className="grid gap-1.5">
-          <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">Decks</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">Decks</h2>
+            {decks.length > 1 && (
+              <Button size="sm" variant="ghost" aria-pressed={mixing} onClick={toggleMix}>
+                {mixing ? "Cancel" : "Mix decks"}
+              </Button>
+            )}
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {decks.map((d) => {
               const di = deckItems(d, live);
               const dq = deckQueues.get(d.id)!;
               return (
-                <button key={d.id} className="hover:bg-accent/50 flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm disabled:opacity-60" onClick={() => start({ kind: "deck", deck: d })} disabled={di.length === 0}>
-                  <Layers className="text-muted-foreground size-4 shrink-0" />
+                <button
+                  type="button"
+                  key={d.id}
+                  className={cn("hover:bg-accent/50 flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm disabled:opacity-60", mixing && picked.includes(d.id) && "bg-accent border-primary")}
+                  aria-pressed={mixing ? picked.includes(d.id) : undefined}
+                  onClick={() => (mixing ? setPicked(picked.includes(d.id) ? picked.filter((x) => x !== d.id) : [...picked, d.id]) : start({ kind: "deck", deck: d }))}
+                  disabled={di.length === 0}
+                >
+                  {mixing && picked.includes(d.id) ? <Check className="size-4 shrink-0" /> : <Layers className="text-muted-foreground size-4 shrink-0" />}
                   <span className="min-w-0 flex-1 truncate font-medium">{d.name}</span>
                   <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
                     {dq.due} due{dq.newToday ? ` · ${dq.newToday} new` : ""}
@@ -167,6 +199,14 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
               );
             })}
           </div>
+          {mixing && (
+            <Button size="lg" className="mt-1 max-w-full" disabled={pickedDecks.length < 2} onClick={() => start({ kind: "decks", decks: pickedDecks })}>
+              <Play /> <span className="truncate">Practise {pickedDecks.length} decks together</span>
+              <span className="text-xs tabular-nums opacity-80">
+                {mixQueue.due} due · {mixQueue.newToday} new
+              </span>
+            </Button>
+          )}
         </section>
       )}
 

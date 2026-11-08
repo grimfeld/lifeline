@@ -9,6 +9,7 @@ import { TopicSelect } from "./TopicSelect";
 import { originOf, type ItemDialogProps } from "./WordDialog";
 import { OriginLine } from "./OriginLine";
 import { ProposalNotice } from "./ProposalNotice";
+import { ClipField, useClipDraft } from "./ClipField";
 
 export interface SentencePrefill {
   text?: string;
@@ -47,6 +48,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
   const [originId, setOriginId] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const draft = useClipDraft(open, sentence?.clip);
 
   useEffect(() => {
     if (!open) return;
@@ -80,7 +82,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
   }
 
   async function save(accept = false) {
-    const input = { languageId, text, translation, notes, origin, originId, tags };
+    const input = { languageId, text, translation, notes, origin, originId, tags, clip: draft.clip };
     let made = "";
     try {
       if (sentence) {
@@ -94,8 +96,14 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
     } catch (err) {
       return void toast.error((err as Error).message);
     }
+    await draft.settle(draft.clip);
     if (made) onSaved?.(made);
     onOpenChange(false);
+  }
+
+  function closing(o: boolean) {
+    if (!o) void draft.settle("");
+    onOpenChange(o);
   }
 
   async function remove() {
@@ -109,7 +117,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
   const noTopic = topics.filter((l) => !l.archived).length === 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closing}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{sentence ? "Edit sentence" : "New sentence"}</DialogTitle>
@@ -145,6 +153,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
               <Label htmlFor="st-translation">Translation</Label>
               <Input id="st-translation" value={translation} onChange={(e) => setTranslation(e.target.value)} placeholder="Optional — a translation, or context; shown with every blank" />
             </div>
+            <ClipField idPrefix="st" clip={draft.clip} onPut={draft.put} onRemove={draft.remove} />
             <div className="grid gap-2">
               <Label htmlFor="st-notes">Notes</Label>
               <Textarea id="st-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional — the rule, or also: in centro; shown on every reveal" />

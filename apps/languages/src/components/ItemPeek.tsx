@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { Button, CommitField, cn, toast } from "@lifeline/ui";
-import type { Document } from "@lifeline/core";
+import { openPeek, type Document } from "@lifeline/core";
 import { Check, Pause, Pencil, Play } from "lucide-react";
 import { heldPrompts } from "../domain/practice";
 import { itemMaterial } from "../domain/prompts";
+import { plainSentence } from "../domain/cloze";
+import { sentencesUsing } from "../domain/wordSentences";
 import { FACT, SENTENCE, WORD, type Fact, type Item, type Sentence, type Word } from "../domain/types";
 import { acceptDraft, setMembership, setPaused, updateFact, updateSentence, updateWord, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
 import { WordDialog } from "./WordDialog";
@@ -69,6 +71,8 @@ export function ItemPeek({ doc }: { doc: Document }) {
   const now = useMemo(() => new Date(), [recalls]);
   const prompts = useMemo(() => heldPrompts([itemMaterial(item)], recalls), [item, recalls]);
 
+  const using = useMemo(() => (item.type === WORD ? sentencesUsing(item.term, items.filter((i): i is Sentence => i.type === SENTENCE)) : []), [item, items]);
+
   return (
     <div className="flex flex-col gap-4">
       <span className="text-muted-foreground flex flex-wrap gap-x-1 text-xs">
@@ -96,6 +100,21 @@ export function ItemPeek({ doc }: { doc: Document }) {
           ))}
         </ul>
       </div>
+      {using.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className="text-muted-foreground text-xs font-medium">Sentences</span>
+          <ul className="flex flex-col text-sm">
+            {using.map((s) => (
+              <li key={s.id} className="border-b last:border-0">
+                <button type="button" onClick={() => openPeek(s.id)} className="hover:bg-accent/50 focus-visible:ring-ring flex w-full min-w-0 items-center justify-between gap-3 rounded-sm py-1.5 text-left focus-visible:ring-2 focus-visible:outline-none">
+                  <span className="min-w-0 flex-1 truncate">{plainSentence(s.text)}</span>
+                  {(s.draft || s.paused) && <span className="text-muted-foreground text-xs">{s.draft ? "draft" : "paused"}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {decks.length > 0 && (
         <div className="flex flex-col gap-1">
           <span className="text-muted-foreground text-xs font-medium">Decks</span>
