@@ -89,6 +89,14 @@ type Pane = { kind: "menu" } | { kind: "search" } | { kind: "alias"; target: Lin
  * On the desk the trigger floats just above the selection; on a phone it sits
  * in the dock (ADR 0064), clear of the system's own selection menu.
  */
+/** The name a link to this Document is written with, as it now stands: a title shared with another Document is written with its Folder. */
+async function canonicalOf(id: string, title: string): Promise<string> {
+  const name = buildLinkIndex(await allDocuments(), allDocumentTypes())
+    .names()
+    .find((n) => n.ref.kind === "doc" && n.ref.id === id);
+  return name?.canonical ?? title;
+}
+
 export function SelectionMenu() {
   const phone = usePhone();
   const { pathname } = useLocation();
@@ -96,7 +104,7 @@ export function SelectionMenu() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [pane, setPane] = useState<Pane>({ kind: "menu" });
-  const [handing, setHanding] = useState<{ intake: Intake; handoff: Handoff } | null>(null);
+  const [handing, setHanding] = useState<{ intake: Intake; handoff: Handoff; selection: BodySelection } | null>(null);
   // The last selection seen: opening the menu (or a tap on its trigger) may clear the live one.
   const last = useRef<BodySelection | null>(null);
   const shown = sel ?? (open ? last.current : null);
@@ -255,14 +263,7 @@ export function SelectionMenu() {
       toast.error(`Couldn’t make the ${entry.title}`, { description: err instanceof Error ? err.message : String(err) });
       return;
     }
-    let unlink: (() => Promise<boolean>) | null = null;
-    if (entry.linkable) {
-      // The canonical name as it now stands: a title shared with another Document is written with its Folder.
-      const name = buildLinkIndex(await allDocuments(), allDocumentTypes())
-        .names()
-        .find((n) => n.ref.kind === "doc" && n.ref.id === made.id);
-      unlink = await writeLinkAt(s, name?.canonical ?? made.title);
-    }
+    const unlink = entry.linkable ? await writeLinkAt(s, await canonicalOf(made.id, made.title)) : null;
     openPeek(made.id);
     const id = made.id;
     toast.success(`Made ${entry.title} ${made.title}`, {
@@ -280,6 +281,19 @@ export function SelectionMenu() {
           })(),
       },
     });
+  }
+
+  /**
+   * An Intake whose Document is what the words name (`IntakeDef.links`): once
+   * its dialog saves, the selection becomes a link to what it made, undone from
+   * the toast while the link stands as written. The Document stays.
+   */
+  async function linkMade(s: BodySelection, id: string) {
+    const made = await getDocument(id);
+    if (!made) return;
+    const unlink = await writeLinkAt(s, await canonicalOf(id, made.title));
+    if (!unlink) return;
+    toast.success(`Linked to ${made.title}`, { action: { label: "Undo", onClick: () => void unlink().then((ok) => !ok && toast.error(UNDO_MOVED)) } });
   }
 
   /** A Document picked from "Link to…": linked at once, unless the words could become its alias — then that is offered first. */
@@ -311,7 +325,7 @@ export function SelectionMenu() {
       setOpen(true);
       return;
     }
-    setHanding({ intake: entry.intake, handoff: { title: origin?.title || s.text.slice(0, 80), text: s.text, originId: s.originId } });
+    setHanding({ intake: entry.intake, handoff: { title: origin?.title || s.text.slice(0, 80), text: s.text, originId: s.originId }, selection: s });
   }
 
   // Keep the selection while pressing the trigger: its focus stays where it was.
@@ -386,7 +400,14 @@ export function SelectionMenu() {
   return (
     <>
       {offer && (phone ? <PhoneDock>{offer}</PhoneDock> : <div className="fixed z-50" style={{ top, left }}>{offer}</div>)}
-      {handing && <handing.intake.dialog open onOpenChange={(o) => !o && setHanding(null)} handoff={handing.handoff} />}
+      {handing && (
+        <handing.intake.dialog
+          open
+          onOpenChange={(o) => !o && setHanding(null)}
+          handoff={handing.handoff}
+          onSaved={handing.intake.links ? (id) => void linkMade(handing.selection, id) : undefined}
+        />
+      )}
     </>
   );
 }

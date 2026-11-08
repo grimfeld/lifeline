@@ -33,6 +33,7 @@ const ENTRIES: Entry[] = [
   { slug: "culture", title: "Culture", kind: "module", module: "culture", apps: ["library", "cinema", "discotheque", "arcade", "museum"] },
   { slug: "money", title: "Money", kind: "module", module: "money", apps: ["ledger", "pocket", "prices"] },
   { slug: "journal", title: "Journal", kind: "module", module: "journal", apps: ["notes"] },
+  { slug: "people", title: "People", kind: "module", module: "people", apps: ["contacts"] },
   { slug: "notes", title: "Notes", kind: "module", module: "notes", apps: ["commonplace", "sources"] },
   { slug: "research", title: "Research", kind: "module", module: "research", apps: ["writer"] },
   { slug: "manuscript", title: "Manuscript", kind: "module", module: "manuscript", apps: ["manuscript"] },
