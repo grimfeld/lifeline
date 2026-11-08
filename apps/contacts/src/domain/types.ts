@@ -12,8 +12,8 @@ import { PERSON_TYPE, type Document } from "@lifeline/core";
  *
  * - `occasions`: `{ id, label, day: "MM-DD" | "YYYY-MM-DD", yearly }[]` — a
  *   day whose year may be unknown (#410).
- * - `addresses`: `{ id, label, text, lat?, lon?, former }[]` (#411).
- * - `contactDetails`: `{ id, label, kind: "phone" | "email" | "handle", value, former }[]` (#411).
+ * - `addresses`: `Address[]` (below).
+ * - `contactDetails`: `ContactDetail[]` (below).
  * - `excludedFromDrifting`: boolean (#413).
  *
  * Keeping Addresses and Contact details as two keys on the Person is what
@@ -34,6 +34,49 @@ export const PERSON = PERSON_TYPE;
 /** Where a new Person lands (a home, never a rule). */
 export const PEOPLE_FOLDER = "People";
 
+/**
+ * A place a Person lives or can be found (CONTEXT.md "Address"). Only ever
+ * part of its Person; never shown to or written by an agent (ADR 0114).
+ */
+export interface Address {
+  id: string;
+  /** The user's own label: "Home", "Work", "Holiday house". */
+  label: string;
+  /** The postal text, as typed. */
+  text: string;
+  /** Found for `text` when it is saved; absent when the lookup failed. Only a current Address with both is a Pin. */
+  lat?: number;
+  lon?: number;
+  /** They moved: off the map, kept on their page as history. */
+  former: boolean;
+}
+
+export type ContactKind = "phone" | "email" | "handle";
+
+/**
+ * A way to reach a Person (CONTEXT.md "Contact detail"), acted on by a click
+ * that follows its kind. Never a Pin; never shown to or written by an agent
+ * (ADR 0114).
+ */
+export interface ContactDetail {
+  id: string;
+  /** The user's own label: "Mobile", "Work", "Instagram". */
+  label: string;
+  kind: ContactKind;
+  /** The number, the address or the handle, as typed. */
+  value: string;
+  /** It stopped working: kept as history, no longer offered as a way to reach them. */
+  former: boolean;
+}
+
+/**
+ * The agent wall (ADR 0114): the keys of a Person an agent never reads or
+ * writes, current and former alike. The MCP server's handlers strip them from
+ * every answer and refuse every write that names them. A part added to Person
+ * later that is as private belongs here.
+ */
+export const AGENT_WALLED_KEYS = ["addresses", "contactDetails"] as const;
+
 export interface Person extends Document {
   type: typeof PERSON;
   /** Other names they go by: `[[Mum]]` lands on Anne Dupont. */
@@ -42,4 +85,7 @@ export interface Person extends Document {
   relationship: string;
   /** What I know of them: my own words. */
   body?: string;
+  /** Absent until the first is added. */
+  addresses?: Address[];
+  contactDetails?: ContactDetail[];
 }
