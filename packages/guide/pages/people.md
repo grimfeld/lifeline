@@ -111,7 +111,11 @@ Two things the wall doesn't cover:
 - Someone in both your work and your life is two People, one in each Workspace, so each
   Workspace stays whole.
 - An Author in the Library or an Artist in the Museum you have never met stays there; People is
-  for people in your life.
+  for people in your life. When you come to know one, choose **Turn into a Person…** on the
+  Author's page (the **…** menu) or on the Artist's page in the Vault, and confirm. The same
+  Document becomes a Person: its links, aliases and notes carry over, it joins People, and it
+  stays an Author or Artist, so the Library and the Museum still show it and its works still
+  name it.
 - A type of your own you already made for people keeps its Documents as they are.
 
 ## Related
