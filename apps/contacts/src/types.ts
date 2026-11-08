@@ -29,6 +29,8 @@ export const personTypeDef: DocumentTypeDef = {
   // Their Ties go with them, and move with them between Workspaces (#412).
   onDelete: (doc) => removeTiesOf(doc.id),
   followers: (doc) => tieIdsOf(doc.id),
+  // Gone from every People field too (an Event's With, a Task's For…): the other Apps never import Contacts.
+  unlinkOnDelete: true,
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "relationship", label: "Relationship", kind: "text", column: true },

@@ -59,6 +59,10 @@ bring them back.
   them in its notes ("Dinner with [[Marc]]").
 - **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.
 
+Deleting a Person takes them out of every People field that held them (an Event's **With**, a
+Task's **For**…); the Events, Tasks and the rest stay. A `[[link]]` to them in a body becomes an
+unresolved link, as for any deleted page.
+
 ### Contact details
 
 Add one with **Add contact detail** on the Person's page: a **label**, a **kind** (Phone, Email or

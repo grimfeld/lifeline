@@ -1,10 +1,17 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createDocument, documentType, documentsTable, getDocument, initApps, saveDocumentType } from "@lifeline/core";
+import { PERSON_TYPE, createDocument, documentType, documentsTable, getDocument, initApps, putDocument, removeDocument, saveDocumentType, type DocumentTypeDef, type FieldDef } from "@lifeline/core";
 import { personTypeDef } from "../types";
 import { addOccasion, addOccasionByName, addPerson, editOccasion, patchPerson, removeOccasion } from "./repo";
 
-initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personTypeDef], screens: [], cards: [], commands: [] }]);
+// Stand-ins for the other Apps' People fields (Contacts imports none of them): an Event's With, a Task's
+// and a Transaction's For, a work's Recommended by.
+const peopleField = (key: string): FieldDef => ({ key, label: key, kind: "links", linkType: PERSON_TYPE });
+const standIn = (id: string, key: string): DocumentTypeDef => ({ id, label: id, titleRule: "name", body: "none", builtIn: true, fields: [peopleField(key)] });
+initApps([
+  { id: "contacts", title: "Contacts", module: "people", types: [personTypeDef], screens: [], cards: [], commands: [] },
+  { id: "others", title: "Others", types: [standIn("event", "with"), standIn("task", "for"), standIn("ledger_transaction", "for"), standIn("book", "recommendedBy")], screens: [], cards: [], commands: [] },
+]);
 
 beforeEach(async () => {
   await documentsTable().clear();
@@ -91,5 +98,21 @@ describe("adding an Occasion by name", () => {
     await addPerson({ name: "Anna", aliases: ["Mum"] });
     await expect(addOccasionByName("Bob", { label: "Birthday", day: "01-01", yearly: true })).rejects.toThrow(/No Person called/);
     await expect(addOccasionByName("Mum", { label: "Birthday", day: "01-01", yearly: true })).rejects.toThrow(/ambiguous/);
+  });
+});
+
+describe("deleting a Person", () => {
+  it("unlinks them from every People field, and keeps what linked them", async () => {
+    const marc = await addPerson({ name: "Marc" });
+    const jo = await addPerson({ name: "Jo" });
+    const linking = [
+      { id: "e1", type: "event", key: "with" },
+      { id: "t1", type: "task", key: "for" },
+      { id: "x1", type: "ledger_transaction", key: "for" },
+      { id: "b1", type: "book", key: "recommendedBy" },
+    ];
+    for (const l of linking) await putDocument({ id: l.id, type: l.type, title: l.id, [l.key]: [marc.id, jo.id] });
+    await removeDocument(marc.id);
+    for (const l of linking) expect((await getDocument(l.id))?.[l.key]).toEqual([jo.id]);
   });
 });

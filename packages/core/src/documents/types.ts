@@ -229,6 +229,13 @@ export interface DocumentTypeDef {
    */
   onDelete?: (doc: Document) => Promise<void>;
   /**
+   * When one of its Documents is deleted, Core takes its id out of every Link
+   * field that holds it, on Documents of any type (a Person's: an Event's With,
+   * a Task's For). For a type other Apps link to without knowing it; the links
+   * are dropped, the linking Documents kept.
+   */
+  unlinkOnDelete?: boolean;
+  /**
    * What goes with a Document when it moves to another Workspace (ADR 0048):
    * the ids of the Documents that exist in its service and would otherwise be
    * left pointing into a sealed box — a Project's Milestones, Lanes and Tasks
