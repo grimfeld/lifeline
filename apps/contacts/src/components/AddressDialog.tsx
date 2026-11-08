@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { geocode } from "@lifeline/core";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, Textarea, toast } from "@lifeline/ui";
-import { addAddress, editAddress } from "../domain/addresses";
+import { addAddress, coordsOf, editAddress } from "../domain/addresses";
 import { updateAddresses } from "../data/repo";
 import type { Address } from "../domain/types";
 
@@ -39,11 +39,9 @@ export function AddressDialog({ personId, address, open, onOpenChange }: { perso
     setBusy(true);
     try {
       // Unchanged text keeps the coordinates it already has, found or not found.
-      const same = address && address.text === text.trim();
-      const found = same ? (address.lat !== undefined && address.lon !== undefined ? { lat: address.lat, lon: address.lon } : null) : await locate(text);
-      const coords = found ?? {};
+      const found = address && address.text === text.trim() ? coordsOf(address) : await locate(text);
       if (address) await updateAddresses(personId, (list) => editAddress(list, address.id, { label, text, lat: found?.lat, lon: found?.lon }));
-      else await updateAddresses(personId, (list) => addAddress(list, { label, text, ...coords }, () => crypto.randomUUID()));
+      else await updateAddresses(personId, (list) => addAddress(list, { label, text, ...found }, () => crypto.randomUUID()));
       if (!found) toast.success("Address saved. No place was found for it yet: try the lookup again from the Address.");
       onOpenChange(false);
     } catch (e) {

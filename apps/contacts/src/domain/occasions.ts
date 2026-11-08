@@ -19,10 +19,10 @@ const SHORT = /^(\d{2})-(\d{2})$/;
 
 /** The year, month and day of an Occasion's `day`; year null when unknown; null for text that is no day. */
 function split(day: string): { year: number | null; month: number; dom: number } | null {
-  const f = FULL.exec(day);
-  const s = f ? null : SHORT.exec(day);
-  const [year, month, dom] = f ? [Number(f[1]), Number(f[2]), Number(f[3])] : s ? [null, Number(s[1]), Number(s[2])] : [null, NaN, NaN];
-  if (!f && !s) return null;
+  const full = FULL.exec(day);
+  const short = full ? null : SHORT.exec(day);
+  if (!full && !short) return null;
+  const [year, month, dom] = full ? [Number(full[1]), Number(full[2]), Number(full[3])] : [null, Number(short![1]), Number(short![2])];
   if (!(month >= 1 && month <= 12) || !(dom >= 1)) return null;
   // Without a year, February 29 is allowed (a yearly day).
   if (dom > daysInMonth(year ?? 2000, month)) return null;
@@ -39,7 +39,6 @@ export function occasionDateIn(day: string, year: number): DateStr {
   if (!d) return "";
   return fromParts(year, d.month, Math.min(d.dom, daysInMonth(year, d.month)));
 }
-
 
 /** Why an Occasion may not be saved, in words; null when it may. */
 export function occasionProblem(o: Pick<Occasion, "label" | "day" | "yearly">): string | null {
@@ -74,7 +73,8 @@ export function ageOf(occasions: readonly Occasion[], today: DateStr): number | 
     if (!isBirthday(o) || !o.yearly) continue;
     const reached = ageIn(o, y);
     if (reached === null) continue;
-    return occasionDateIn(o.day, y) <= today ? reached : reached - 1 >= 0 ? reached - 1 : null;
+    if (occasionDateIn(o.day, y) <= today) return reached;
+    return reached > 0 ? reached - 1 : null;
   }
   return null;
 }
@@ -174,6 +174,3 @@ export function upcomingOccasions(people: readonly PersonOccasions[], from: Date
 
 /** The Person id inside a marker's item id. */
 export const personOfMarker = (itemId: string) => itemId.split(":")[0] ?? "";
-
-
-

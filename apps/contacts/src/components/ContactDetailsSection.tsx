@@ -24,23 +24,23 @@ export function ContactDetailsSection({ person }: { person: Person }) {
     toast.success(`Removed ${c.label}`, { action: { label: "Undo", onClick: () => void write(details) } });
   }
 
+  const row = (c: ContactDetail) => (
+    <DetailRow key={c.id} detail={c} onEdit={() => setEditing(c)} onFormer={() => void write(markFormer(details, c.id, !c.former))} onRemove={() => void remove(c)} />
+  );
+
   return (
     <Section title="Contact details">
       {details.length === 0 && <p className="text-muted-foreground text-sm">No phone number, email or handle yet.</p>}
       {current.length > 0 && (
         <ul className="grid min-w-0 gap-2">
-          {current.map((c) => (
-            <DetailRow key={c.id} detail={c} onEdit={() => setEditing(c)} onFormer={() => void write(markFormer(details, c.id, true))} onRemove={() => void remove(c)} />
-          ))}
+          {current.map(row)}
         </ul>
       )}
       {former.length > 0 && (
         <div className="grid min-w-0 gap-2">
           <h3 className="text-muted-foreground text-sm font-medium">Former</h3>
           <ul className="grid min-w-0 gap-2">
-            {former.map((c) => (
-              <DetailRow key={c.id} detail={c} onEdit={() => setEditing(c)} onFormer={() => void write(markFormer(details, c.id, false))} onRemove={() => void remove(c)} />
-            ))}
+            {former.map(row)}
           </ul>
         </div>
       )}

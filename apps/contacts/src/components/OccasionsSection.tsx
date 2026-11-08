@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast } from "@lifeline/ui";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { Occasion, Person } from "../domain/types";
-import { isBirthday, occasionProblem } from "../domain/occasions";
+import { isBirthday } from "../domain/occasions";
 import { addOccasion, editOccasion, removeOccasion } from "../data/repo";
 import { Section } from "./Section";
 
@@ -71,8 +71,7 @@ function OccasionForm({ personId, editing, onClose }: { personId: string; editin
 
   async function save() {
     const input = { label, day, yearly };
-    const problem = occasionProblem({ label: label.trim(), day: day.trim(), yearly });
-    if (problem) return setError(problem);
+    // The repo checks the Occasion before saving and throws its problem, shown below.
     try {
       if (from) await editOccasion(personId, from.id, input);
       else await addOccasion(personId, input);

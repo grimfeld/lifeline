@@ -57,10 +57,13 @@ export interface DetailInput {
   value: string;
 }
 
+/** What a kind's value is called: "Give the number." */
+const VALUE_NOUNS: Record<ContactKind, string> = { phone: "number", email: "address", handle: "handle" };
+
 /** The sentence to show when the input can't be saved; null when it can. */
 export function validateDetail(input: Pick<DetailInput, "label" | "kind" | "value">): string | null {
   if (!input.label.trim()) return "Give it a label.";
-  if (!input.value.trim()) return `Give the ${input.kind === "phone" ? "number" : input.kind === "email" ? "address" : "handle"}.`;
+  if (!input.value.trim()) return `Give the ${VALUE_NOUNS[input.kind]}.`;
   return null;
 }
 

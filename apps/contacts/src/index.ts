@@ -16,8 +16,8 @@ const PersonScreen = lazyChunk(() => import("./screens/PersonScreen").then((m) =
 /**
  * Contacts App (ADR 0113): the people in my life, as the built-in Person. The
  * People Module's one App. Its domain is `src/domain` (the Person and where
- * its parts are kept), its writes `src/data/repo.ts`, and the Person page's
- * section slots `src/screens/sections.tsx`.
+ * its parts are kept), its writes `src/data/repo.ts`, and the Person page
+ * `src/screens/PersonScreen.tsx`.
  */
 export const contactsApp: AppManifest = {
   id: "contacts",

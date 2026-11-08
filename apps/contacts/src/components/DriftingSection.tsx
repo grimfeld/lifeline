@@ -18,7 +18,6 @@ export function DriftingSection({ people }: { people: readonly Person[] }) {
   const index = useLinkIndex();
   const today = todayStr();
   const rows = useMemo(() => drifting(index, people, { source, today }), [index, people, source, today]);
-  const what = source === "seen" ? "seen" : "mentioned";
 
   const toggle = (
     <ToggleGroup value={source} onValueChange={(v) => setSource(v as DriftSource)} aria-label="Drifting by">
@@ -34,7 +33,7 @@ export function DriftingSection({ people }: { people: readonly Person[] }) {
   return (
     <Section title="Drifting" actions={toggle}>
       {rows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No one with a Relationship has gone {DRIFTING_DAYS} days without being {what}.</p>
+        <p className="text-muted-foreground text-sm">No one with a Relationship has gone {DRIFTING_DAYS} days without being {source}.</p>
       ) : (
         <ul className="grid min-w-0 gap-2">
           {rows.map(({ person, last, daysSince }) => (
@@ -43,9 +42,9 @@ export function DriftingSection({ people }: { people: readonly Person[] }) {
                 <span className="min-w-0 flex-1 truncate font-medium">{person.title}</span>
                 <RelationshipLabel>{person.relationship}</RelationshipLabel>
                 {last === null ? (
-                  <span className="text-muted-foreground shrink-0 text-xs">Never {what}</span>
+                  <span className="text-muted-foreground shrink-0 text-xs">Never {source}</span>
                 ) : (
-                  <Tip label={`Last ${what} ${last}`}>
+                  <Tip label={`Last ${source} ${last}`}>
                     <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{daysSince} days</span>
                   </Tip>
                 )}

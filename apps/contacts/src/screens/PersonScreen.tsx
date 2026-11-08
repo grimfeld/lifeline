@@ -9,8 +9,12 @@ import { type Person } from "../domain/types";
 import { ageOf } from "../domain/occasions";
 import { normalizePerson, patchPerson } from "../data/repo";
 import { PersonFields } from "../components/PersonFields";
-import { orderedSections, PERSON_SECTIONS } from "./sections";
 import { Section } from "../components/Section";
+import { OccasionsSection } from "../components/OccasionsSection";
+import { AddressesSection } from "../components/AddressesSection";
+import { ContactDetailsSection } from "../components/ContactDetailsSection";
+import { TiesSection } from "./TiesSection";
+import { ReportsSection } from "./ReportsSection";
 
 const back = (
   <Link to={PEOPLE_HREF} className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline">
@@ -21,8 +25,8 @@ const back = (
 /**
  * The Person page (#404 story 69): a hidden route, as a Library work's page
  * is (ADR 0110), and the Peek's "Open". The header — name, aliases,
- * Relationship — then the sections later tickets fill (`sections.tsx`), the
- * body, and the backlinks, each peeked where the user is.
+ * Relationship — then its Occasions, Addresses, Contact details, Ties and
+ * Reports, the body, and the backlinks, each peeked where the user is.
  */
 export function PersonScreen() {
   const { id } = useParams<{ id: string }>();
@@ -57,9 +61,11 @@ export function PersonScreen() {
         <PersonFields person={person} />
       </Section>
 
-      {orderedSections(PERSON_SECTIONS).map(({ slot, component: S }) => (
-        <S key={slot} person={person} />
-      ))}
+      <OccasionsSection person={person} />
+      <AddressesSection person={person} />
+      <ContactDetailsSection person={person} />
+      <TiesSection person={person} />
+      <ReportsSection person={person} />
 
       <Section title="About them">
         <div className="min-h-40 min-w-0 rounded-lg border p-2">

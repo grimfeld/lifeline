@@ -17,7 +17,13 @@ export const allPeople = () => documentsOf<Person>(PERSON_TYPE);
 
 export type OccasionInput = Pick<Occasion, "label" | "day" | "yearly">;
 
-const cleaned = (o: OccasionInput): OccasionInput => ({ label: o.label.trim(), day: o.day.trim(), yearly: o.yearly });
+/** The input trimmed; throws in words when it is no Occasion (an empty label, no real day, a once one with no year). */
+function validOccasion(input: OccasionInput): OccasionInput {
+  const o = { label: input.label.trim(), day: input.day.trim(), yearly: input.yearly };
+  const problem = occasionProblem(o);
+  if (problem) throw new Error(problem);
+  return o;
+}
 
 async function occasionsOf(personId: string): Promise<Occasion[]> {
   const doc = await getDocument(personId);
@@ -27,9 +33,7 @@ async function occasionsOf(personId: string): Promise<Occasion[]> {
 
 /** Add an Occasion to a Person; throws in words when it is not one (an empty label, no real day, a once one with no year). */
 export async function addOccasion(personId: string, input: OccasionInput): Promise<Occasion> {
-  const o = cleaned(input);
-  const problem = occasionProblem(o);
-  if (problem) throw new Error(problem);
+  const o = validOccasion(input);
   const occasion = { id: newId(), ...o };
   await patchDocument(personId, { occasions: [...(await occasionsOf(personId)), occasion] });
   return occasion;
@@ -47,9 +51,7 @@ export async function addOccasionByName(name: string, input: OccasionInput): Pro
 
 /** Change an Occasion on a Person. */
 export async function editOccasion(personId: string, id: string, input: OccasionInput): Promise<void> {
-  const o = cleaned(input);
-  const problem = occasionProblem(o);
-  if (problem) throw new Error(problem);
+  const o = validOccasion(input);
   const all = await occasionsOf(personId);
   if (!all.some((x) => x.id === id)) throw new Error("No such occasion");
   await patchDocument(personId, { occasions: all.map((x) => (x.id === id ? { id, ...o } : x)) });

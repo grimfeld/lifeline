@@ -20,6 +20,11 @@ export function normalizeAddresses(raw: unknown): Address[] {
   return out;
 }
 
+/** An Address's coordinates; null when its lookup found nothing (or never ran). */
+export function coordsOf(a: Pick<Address, "lat" | "lon">): { lat: number; lon: number } | null {
+  return a.lat !== undefined && a.lon !== undefined ? { lat: a.lat, lon: a.lon } : null;
+}
+
 /**
  * The Pins of a Person (#418): one for each current Address with coordinates,
  * titled "Person · label". A former Address, or one whose lookup found

@@ -1,4 +1,4 @@
-import { allDocumentTypes, allDocuments, buildLinkIndex, documentFigures, inPrivateFolder, seenDays, todayStr, type Document, type DocumentFigures } from "@lifeline/core";
+import { allDocumentTypes, allDocuments, buildLinkIndex, documentFigures, inPrivateFolder, sourceOf, todayStr, type Document, type DocumentFigures } from "@lifeline/core";
 import { tiesSeenFrom } from "./domain/ties";
 import { allPeople } from "./data/repo";
 import { tiesOf } from "./data/ties";
@@ -24,8 +24,8 @@ export async function describePerson(person: Document): Promise<Record<string, u
   return {
     ties,
     reports: {
-      lastSeen: figure(documentFigures(index, person.id, today, (i, id) => seenDays(i, id, today))),
-      lastMentioned: figure(documentFigures(index, person.id, today)),
+      lastSeen: figure(documentFigures(index, person.id, today, sourceOf("seen", today))),
+      lastMentioned: figure(documentFigures(index, person.id, today, sourceOf("mentioned", today))),
     },
   };
 }

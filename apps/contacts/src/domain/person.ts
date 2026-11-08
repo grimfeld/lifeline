@@ -11,7 +11,8 @@ export function nameFromHandoff(handoff: Handoff): string {
   return handoff.title.trim();
 }
 
-const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
+/** A name as compared: case and accents aside. */
+export const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 
 /**
  * The one Person a name or alias points to (case and accents aside), else a

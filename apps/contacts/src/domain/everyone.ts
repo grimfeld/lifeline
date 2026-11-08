@@ -1,6 +1,5 @@
+import { fold } from "./person";
 import type { Person } from "./types";
-
-const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 
 export interface EveryoneFilter {
   /** Matches the name or any alias. */

@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Button, Tip, toast } from "@lifeline/ui";
 import { MapPin, Pencil, Plus, Trash2 } from "lucide-react";
-import { editAddress, removeAddress, sortedAddresses } from "../domain/addresses";
+import { coordsOf, editAddress, removeAddress, sortedAddresses } from "../domain/addresses";
 import { updateAddresses } from "../data/repo";
 import type { Address, Person } from "../domain/types";
 import { Section } from "./Section";
 import { AddressDialog, locate } from "./AddressDialog";
 
 function AddressRow({ person, address, onEdit }: { person: Person; address: Address; onEdit: () => void }) {
-  const placed = address.lat !== undefined && address.lon !== undefined;
+  const placed = coordsOf(address) !== null;
   const run = (change: Parameters<typeof updateAddresses>[1]) => updateAddresses(person.id, change).catch((e) => toast.error("The Address could not be changed.", { description: e instanceof Error ? e.message : String(e) }));
 
   // The retry: an explicit click, so the lookup may run (Core's geocode is never called on render).

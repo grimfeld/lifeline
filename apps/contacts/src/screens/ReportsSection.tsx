@@ -1,7 +1,6 @@
 import { PERSON_TYPE, documentType, reportsIn, useLinkIndex } from "@lifeline/core";
 import { DocumentReports } from "@lifeline/editor";
 import type { Person } from "../domain/types";
-
 import { Section } from "../components/Section";
 
 /**

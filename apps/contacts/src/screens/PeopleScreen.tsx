@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { PERSON_TYPE, seenDays, todayStr, useDocuments, useLinkIndex, type DateStr } from "@lifeline/core";
+import { seenDays, todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
 import { Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { UserPlus } from "lucide-react";
 import { UpcomingReport } from "../components/UpcomingReport";
@@ -9,7 +9,7 @@ import { PersonRowLink, RelationshipLabel } from "../components/PersonRow";
 import { Section } from "../components/Section";
 import { everyone, relationshipsOf, tagsOf } from "../domain/everyone";
 import { type Person } from "../domain/types";
-import { normalizePerson } from "../data/repo";
+import { normalizePerson, usePeople } from "../data/repo";
 
 const ANY = "__any__";
 
@@ -36,7 +36,7 @@ export function PeopleScreen() {
   const [query, setQuery] = useState("");
   const [relationship, setRelationship] = useState("");
   const [tag, setTag] = useState("");
-  const rows = useDocuments<Person>(PERSON_TYPE);
+  const rows = usePeople();
   const people = useMemo(() => rows.map(normalizePerson), [rows]);
   const shown = useMemo(() => everyone(people, { query, relationship, tag }), [people, query, relationship, tag]);
   const index = useLinkIndex();

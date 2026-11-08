@@ -26,8 +26,6 @@ export async function tieIdsOf(personId: string): Promise<string[]> {
   return (await tiesOf(personId)).map((t) => t.id);
 }
 
-const word = (s: string) => s.trim();
-
 /**
  * Tie two People, once (#412). `label` is what `from` is to `to` ("mother"),
  * `toLabel` what `to` is to `from` ("daughter"): free words, both needed.
@@ -37,8 +35,8 @@ export async function addTie(input: { from: string; to: string; label: string; t
   for (const id of [input.from, input.to]) {
     if ((await getDocument(id))?.type !== PERSON_TYPE) throw new Error("A Tie is between two People");
   }
-  const labelA = word(input.label);
-  const labelB = word(input.toLabel);
+  const labelA = input.label.trim();
+  const labelB = input.toLabel.trim();
   if (!labelA || !labelB) throw new Error("A Tie needs a word for each end");
   return putDocument<Tie>({ type: TIE, title: "", a: input.from, b: input.to, labelA, labelB });
 }
@@ -50,8 +48,8 @@ export async function addTie(input: { from: string; to: string; label: string; t
 export async function updateTie(id: string, personId: string, words: { label: string; ownLabel: string }): Promise<void> {
   const tie = await getDocument<Tie>(id);
   if (!tie) return;
-  const label = word(words.label);
-  const ownLabel = word(words.ownLabel);
+  const label = words.label.trim();
+  const ownLabel = words.ownLabel.trim();
   if (!label || !ownLabel) throw new Error("A Tie needs a word for each end");
   const fromA = tie.a === personId;
   await putDocument<Tie>({ ...tie, labelA: fromA ? ownLabel : label, labelB: fromA ? label : ownLabel });
