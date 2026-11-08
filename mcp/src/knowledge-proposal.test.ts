@@ -81,4 +81,36 @@ describe("Knowledge: an agent proposes a rewrite (ADR 0115)", () => {
     const id = await acceptedWord(t, "Haus", "house");
     await expect(runTool("update_document", { id, fields: { proposal: { meaning: "x" } } })).rejects.toThrow();
   });
+
+  it("refuses update_document on accepted material, pointing to the draft change, and leaves it as it was", async () => {
+    const t = await topic("Dutch");
+    const w = await acceptedWord(t, "huis", "house");
+    const s = (await runTool("knowledge_sentence", { topic: t, text: "Ik {{ben}} thuis" })) as { id: string };
+    const f = (await runTool("knowledge_fact", { topic: t, question: "Capital?", answer: "Amsterdam" })) as { id: string };
+    await patchDocument(s.id, { draft: false });
+    await patchDocument(f.id, { draft: false });
+    for (const [id, fields] of [
+      [w, { meaning: "home" }],
+      [w, { term: "het huis" }],
+      [w, { notes: "neuter" }],
+      [w, { origin: "elsewhere" }],
+      [s.id, { text: "Ik {{ben}} hier" }],
+      [s.id, { translation: "I am home" }],
+      [f.id, { question: "Capital city?" }],
+      [f.id, { answer: "Amsterdam (official)" }],
+    ] as const) {
+      await expect(runTool("update_document", { id, fields })).rejects.toThrow(/knowledge_draft_change/);
+    }
+    await expect(runTool("update_document", { id: w, tags: ["x"] })).rejects.toThrow(/knowledge_draft_change/);
+    expect(await getDocument(w)).toMatchObject({ term: "huis", meaning: "house", notes: "", tags: [] });
+    expect(await getDocument(s.id)).toMatchObject({ text: "Ik {{ben}} thuis" });
+    expect(await getDocument(f.id)).toMatchObject({ answer: "Amsterdam" });
+  });
+
+  it("lets update_document edit a draft: the user reviews it anyway", async () => {
+    const t = await topic("Danish");
+    const { id } = (await runTool("knowledge_word", { topic: t, term: "hus", meaning: "house" })) as { id: string };
+    await runTool("update_document", { id, fields: { meaning: "house, home" } });
+    expect(await getDocument(id)).toMatchObject({ meaning: "house, home", draft: true });
+  });
 });

@@ -7,6 +7,16 @@ export const isDraft = (x: { draft?: boolean }): boolean => !!x.draft;
 export const kept = (x: { paused?: boolean; draft?: boolean }): boolean => !x.paused && !x.draft;
 
 /**
+ * Why an outside agent may not edit this item directly, or nothing for a draft (ADR 0115):
+ * accepted material changes only through a draft change the user accepts. The user's own
+ * edits are never asked.
+ */
+export function agentEditRefusal(item: { draft?: boolean }): string | undefined {
+  if (isDraft(item)) return undefined;
+  return "This is accepted material, which an agent never edits: draft a change with knowledge_draft_change instead, and the user accepts or discards it";
+}
+
+/**
  * A draft accepted at `at`: no longer a draft, and added from that moment — so
  * it enters practice as new then, the daily new cap's "oldest added first" and
  * its day's introductions both reading it. Its origin stays (ADR 0115).

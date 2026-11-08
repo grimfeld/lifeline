@@ -231,7 +231,7 @@ async function runMacroTool(tool: MacroTool, args: Args): Promise<unknown> {
   const macro = macros.find((m) => m.id === tool.macro);
   if (!macro) throw new ToolError(`Macro ${tool.name} is gone`);
   try {
-    const report = await runMacroHeadless(macro, await registry(macros), args);
+    const report = await runMacroHeadless(macro, await registry(macros), args, { agent: true });
     return { message: reportMessage(report), report: { name: report.name, steps: report.steps } };
   } catch (e) {
     throw new ToolError((e as Error).message);
@@ -442,6 +442,8 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     let doc = await visibleDocument(a.id);
     const def = documentTypeSync(doc.type);
     if (!def) throw new ToolError(`Unknown type “${doc.type}”`);
+    const refused = def.agentEditRefusal?.(doc);
+    if (refused) throw new ToolError(refused);
     // Check everything first, so a refused field never leaves a half-applied move or rename behind.
     const move = a.folder !== undefined && normalizeFolder(String(a.folder)) !== doc.folder;
     if (move) assertNotPrivate(String(a.folder));

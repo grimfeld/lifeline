@@ -3,7 +3,7 @@ import { parseCloze, plainSentence } from "./cloze";
 import type { MaterialDoc } from "./material";
 import { leeches as readLeeches } from "./leech";
 import { dayOf, heldPrompts, introducedByTopic, queueOfHeld, recallsByPrompt, recallsOfLive, retention } from "./practice";
-import { LISTEN } from "./prompts";
+import { LISTEN, promptsOf } from "./prompts";
 import { FACT, SENTENCE, WORD, type Fact, type Grade, type Recall, type Sentence, type Word } from "./types";
 
 /** Policy, in one place: how many failed Prompts the report lists, and how many Recalls it shows with each. */
@@ -24,8 +24,8 @@ function reportedRecall(r: Recall): ReportedRecall {
   return r.typed ? { grade: r.grade, at: r.at, typed: r.typed } : { grade: r.grade, at: r.at };
 }
 
-/** A Prompt as the report lists it. */
-export interface ReportedPrompt {
+/** One Prompt as the report names it, whichever list it is in. */
+interface PromptLine {
   itemId: string;
   /** The Document's type, so an agent can tell a Word from a Fact. */
   type: string;
@@ -33,6 +33,10 @@ export interface ReportedPrompt {
   question: string;
   /** Null where this App cannot phrase it: another App's Recallable material (read by its title). */
   answer: string | null;
+}
+
+/** A Prompt among the most failed. */
+export interface ReportedPrompt extends PromptLine {
   /** Fails among the last 30 days' Recalls. */
   fails: number;
   /** Latest first. */
@@ -40,12 +44,7 @@ export interface ReportedPrompt {
 }
 
 /** A Leech as the report lists it (CONTEXT.md "Leech"). */
-export interface ReportedLeech {
-  itemId: string;
-  type: string;
-  slot: string;
-  question: string;
-  answer: string | null;
+export interface ReportedLeech extends PromptLine {
   /** Fails among its last 8 Recalls. */
   fails: number;
 }
@@ -123,17 +122,18 @@ export function practiceReport({ items, recalls, now, newCap }: ReportInput): Pr
   };
 }
 
+/** The Prompts failed most lately, among those the material still yields (as Leeches read them): a rewritten blank or a removed clip leaves its old fails behind. */
 function mostFailed(live: MaterialDoc[], recalls: Recall[], now: Date): ReportedPrompt[] {
   const from = addDays(todayStr(now), -(FAILED_DAYS - 1));
-  const byId = new Map(live.map((m) => [m.id, m]));
+  const by = recallsByPrompt(recalls);
   const out: (ReportedPrompt & { lastFail: string })[] = [];
-  for (const list of recallsByPrompt(recalls).values()) {
-    const newest = [...list].sort((a, b) => b.at.localeCompare(a.at));
-    const fails = newest.filter((r) => r.grade === "fail" && dayOf(r.at) >= from);
-    const m = byId.get(newest[0]!.itemId);
-    if (!fails.length || !m) continue;
-    const { question, answer } = promptText(m, newest[0]!.slot);
-    out.push({ itemId: m.id, type: m.type, slot: newest[0]!.slot, question, answer, fails: fails.length, recalls: newest.slice(0, RECENT_RECALLS_SHOWN).map(reportedRecall), lastFail: fails[0]!.at });
+  for (const m of live) {
+    for (const p of promptsOf(m)) {
+      const newest = [...(by.get(p.key) ?? [])].sort((a, b) => b.at.localeCompare(a.at));
+      const fails = newest.filter((r) => r.grade === "fail" && dayOf(r.at) >= from);
+      if (!fails.length) continue;
+      out.push({ itemId: m.id, type: m.type, slot: p.slot, ...promptText(m, p.slot), fails: fails.length, recalls: newest.slice(0, RECENT_RECALLS_SHOWN).map(reportedRecall), lastFail: fails[0]!.at });
+    }
   }
   return out
     .sort((a, b) => b.fails - a.fails || b.lastFail.localeCompare(a.lastFail) || a.itemId.localeCompare(b.itemId) || a.slot.localeCompare(b.slot))

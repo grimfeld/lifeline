@@ -11,6 +11,7 @@ import { knowledgeCommands } from "./commands";
 import { knowledgeRecallable } from "./recallable";
 import { knowledgeDaylog } from "./daylog";
 import { plainSentence } from "./domain/cloze";
+import { agentEditRefusal } from "./domain/draft";
 import { refuseDeletingUsedTopic, removeItemRecalls } from "./data/repo";
 import { APP_ID, DECK, FACT, OCCURRENCE_PRACTISED, PUZZLE, TOPIC, TOPIC_OCCURRENCES, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Fact, type Puzzle, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
 
@@ -69,6 +70,7 @@ const wordType: DocumentTypeDef = {
   indexes: ["languageId"],
   href: () => WORDS_HREF,
   peekEdit: ItemPeek,
+  agentEditRefusal,
   order: 94,
   builtIn: true,
 };
@@ -97,6 +99,7 @@ const sentenceType: DocumentTypeDef = {
   indexes: ["languageId"],
   href: () => WORDS_HREF,
   peekEdit: ItemPeek,
+  agentEditRefusal,
   order: 95,
   builtIn: true,
 };
@@ -124,6 +127,7 @@ const factType: DocumentTypeDef = {
   indexes: ["languageId"],
   href: () => WORDS_HREF,
   peekEdit: ItemPeek,
+  agentEditRefusal,
   order: 96,
   builtIn: true,
 };
