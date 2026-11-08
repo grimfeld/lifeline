@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex } from "./documents/links";
 import type { Document, DocumentTypeDef } from "./documents/types";
-import { aliasWrite, buildSelectionMenu, linkTargets, writeLink, type SelectionMenuInput } from "./selectionMenu";
+import { aliasWrite, buildSelectionMenu, canonicalName, linkTargets, writeLink, type SelectionMenuInput } from "./selectionMenu";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
   id, label: id + "s", titleRule: "name", body: "optional", fields: [], linkable: true, builtIn: true, ...extra,
@@ -306,5 +306,13 @@ describe("writeLink", () => {
       expect(writeLink("Marie", { text: "Marie", occurrence: 1, count: 2 }, "Marie")).toBeNull();
       expect(writeLink("No one", { text: "Marie", occurrence: 0, count: 1 }, "Marie")).toBeNull();
     });
+  });
+});
+
+describe("the name a link to a Document is written with", () => {
+  it("is its title, its path when another Document shares the title, and nothing for a Document not there", () => {
+    const shared = [doc("a", "note", "Paris", { folder: "Trips" }), doc("b", "note", "Paris", { folder: "Cities" }), doc("c", "note", "Lyon")];
+    const index = buildLinkIndex(shared, types);
+    expect([canonicalName(index, "c"), canonicalName(index, "a"), canonicalName(index, "gone")]).toEqual(["Lyon", "Trips/Paris", undefined]);
   });
 });

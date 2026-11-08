@@ -127,11 +127,16 @@ function filterMenu<I extends MenuIntake>(groups: SelectionGroup<I>[], query: st
 function linkEntry<I extends MenuIntake>({ text, originId, body, placement, index, typeLabel }: SelectionMenuInput<I>): SelectionEntry<I> | null {
   const ref = index.resolve(text);
   if (ref.kind !== "doc" || ref.id === originId) return null;
-  const name = index.names().find((n) => n.ref.kind === "doc" && n.ref.id === ref.id);
-  if (!name || !placement || !writeLink(body, placement, name.canonical)) return null;
-  const title = index.byId.get(ref.id)?.title || name.canonical;
+  const canonical = canonicalName(index, ref.id);
+  if (!canonical || !placement || !writeLink(body, placement, canonical)) return null;
+  const title = index.byId.get(ref.id)?.title || canonical;
   const label = typeLabel(ref.type);
-  return { kind: "link", key: `link:${ref.id}`, title: `Link to ${title}${label ? ` (${label})` : ""}`, targetId: ref.id, canonical: name.canonical, target: title };
+  return { kind: "link", key: `link:${ref.id}`, title: `Link to ${title}${label ? ` (${label})` : ""}`, targetId: ref.id, canonical, target: title };
+}
+
+/** The name a link to a Document is written with, as the index now stands: its title, or `Folder/Title` when another shares it. */
+export function canonicalName(index: LinkIndex, id: string): string | undefined {
+  return index.names().find((n) => n.ref.kind === "doc" && n.ref.id === id)?.canonical;
 }
 
 /** "Link to…": offered wherever a link could be written — the text naming nothing, or naming the wrong thing. */
