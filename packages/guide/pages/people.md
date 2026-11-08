@@ -24,6 +24,8 @@ Workspace, by name, each with what they are to you and when you last saw them. C
   their aliases.
 - **Details** — change their name (every `[[link]]` to them follows), their **Aliases**, their
   **Relationship** and their **Tags**, edited in place.
+- **Contact details** — the ways to reach them, each under a label of your own ("Mobile", "Work",
+  "Instagram"). See below.
 - **Occasions** — the named days in their life: see below.
 - **Addresses** — where they live or can be found, each under a label of your own ("Home",
   "Work", "Holiday house"). See below.
@@ -39,6 +41,22 @@ Workspace, by name, each with what they are to you and when you last saw them. C
 - **Events, Tasks and the rest** — what links to them through a People field (an Event's **With**), grouped by what it is.
 - **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.
 
+### Contact details
+
+Add one with **Add contact detail** on the Person's page: a **label**, a **kind** (Phone, Email or
+Handle) and the number, address or handle as you'd type it. Pencil edits it, the cross-person
+button marks it former, the bin removes it (with Undo).
+
+- **Phone** — a click calls (`tel:`); on a computer, whatever handles calls there answers.
+- **Email** — a click opens a new mail to them.
+- **Handle** — a click opens the service in a new tab, when Lifeline can tell which: a web
+  address you typed (`instagram.com/anne`), a Fediverse address (`@anne@mastodon.social`), or a
+  `@name` whose label names the service (Instagram, X or Twitter, GitHub, Telegram, TikTok,
+  LinkedIn). Any other handle stays plain text.
+- **Former** — a number that stopped working, an account they closed. It moves under **Former**,
+  struck through, with no action, as history; the same button makes it current again.
+
+Contact details are never on the map, and Claude never sees them (below).
 ### Occasions
 
 An **Occasion** is a named day in someone's life: a label (**Birthday**, **Met**, **Wedding**, or any

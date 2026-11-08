@@ -1,5 +1,5 @@
 import { createDocument, documentsOf, getDocument, newId, normalizeTags, patchDocument, renameDocument, useDocuments } from "@lifeline/core";
-import { PERSON, type Address, type Occasion, type Person } from "../domain/types";
+import { PERSON, type Address, type ContactDetail, type Occasion, type Person } from "../domain/types";
 import { normalizeAddresses } from "../domain/addresses";
 import { normalizeOccasions, occasionProblem } from "../domain/occasions";
 
@@ -71,6 +71,7 @@ export interface PersonPatch {
   aliases?: string[];
   relationship?: string;
   tags?: string[];
+  contactDetails?: ContactDetail[];
 }
 
 /**
@@ -88,6 +89,7 @@ export async function patchPerson(id: string, patch: PersonPatch): Promise<void>
   if (rest.aliases) fields.aliases = cleanAliases(rest.aliases);
   if (rest.relationship !== undefined) fields.relationship = rest.relationship.trim();
   if (rest.tags) fields.tags = normalizeTags(rest.tags);
+  if (rest.contactDetails) fields.contactDetails = rest.contactDetails;
   if (Object.keys(fields).length) await patchDocument(id, fields);
 }
 

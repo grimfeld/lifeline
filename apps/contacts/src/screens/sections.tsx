@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { Person } from "../domain/types";
 import { AddressesSection } from "../components/AddressesSection";
+import { ContactDetailsSection } from "../components/ContactDetailsSection";
 import { OccasionsSection } from "../components/OccasionsSection";
 import { TiesSection } from "./TiesSection";
 import { ReportsSection } from "./ReportsSection";
@@ -21,10 +22,11 @@ export interface PersonSection {
   component: ComponentType<{ person: Person }>;
 }
 
-/** The sections built so far; none with #408. */
+/** The sections built so far. */
 export const PERSON_SECTIONS: PersonSection[] = [
   { slot: "occasions", component: OccasionsSection },
   { slot: "addresses", component: AddressesSection },
+  { slot: "contactDetails", component: ContactDetailsSection },
   { slot: "ties", component: TiesSection },
   { slot: "reports", component: ReportsSection },
 ];

@@ -4,6 +4,7 @@ import { pinsOf } from "@lifeline/core";
 import { personTypeDef } from "@lifeline/app-contacts/src/types";
 import { contactsCommands } from "@lifeline/app-contacts/src/commands";
 import type { Address, ContactDetail } from "@lifeline/app-contacts/src/domain/types";
+import { markFormer, saveDetail, type DetailInput } from "@lifeline/app-contacts/src/domain/contactDetails";
 
 /**
  * The agent wall (ADR 0114): no tool answer ever carries a Person's Addresses
@@ -55,12 +56,17 @@ const addresses: Address[] = [
   { id: "a1", label: "Zanzibar house", text: "12 Rue Quillardet, 75019 Paris", lat: 48.871234, lon: 2.381234, former: false },
   { id: "a2", label: "Old flat Brixtonia", text: "4 Coldharbour Lane, London", lat: 51.461987, lon: -0.113456, former: true },
 ];
-const contactDetails: ContactDetail[] = [
-  { id: "c1", label: "Mobile Qwz", kind: "phone", value: "+33 6 12 34 56 78", former: false },
-  { id: "c2", label: "Mail Qwz", kind: "email", value: "anne.qwz@example.org", former: false },
-  { id: "c3", label: "Insta Qwz", kind: "handle", value: "@anne_qwz_paints", former: true },
-  { id: "c4", label: "Dead landline Qwz", kind: "phone", value: "+33 1 98 76 54 32", former: true },
-];
+// Made as the Person page's dialog makes them (saveDetail, markFormer), so the wall is checked against what is really stored.
+const contactDetails: ContactDetail[] = (() => {
+  let ids = 0;
+  const add = (list: ContactDetail[], input: DetailInput) => saveDetail(list, input, () => `c${++ids}`);
+  let list: ContactDetail[] = [];
+  list = add(list, { label: " Mobile Qwz ", kind: "phone", value: "+33 6 12 34 56 78" });
+  list = add(list, { label: "Mail Qwz", kind: "email", value: "anne.qwz@example.org" });
+  list = add(list, { label: "Insta Qwz", kind: "handle", value: "@anne_qwz_paints" });
+  list = add(list, { label: "Dead landline Qwz", kind: "phone", value: "+33 1 98 76 54 32" });
+  return markFormer(markFormer(list, "c3", true), "c4", true);
+})();
 const WALLED_VALUES = [
   ...addresses.flatMap((a) => [a.label, a.text, String(a.lat), String(a.lon)]),
   ...contactDetails.flatMap((c) => [c.label, c.value]),
