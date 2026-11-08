@@ -1,3 +1,7 @@
+---
+amended-by: ADR 0112 (in part — Events that link count, as Seen)
+---
+
 # Reports count Days that link, from a fixed catalogue chosen per type
 
 The Journal is where people, places and the other things a life is about get written down, but nothing showed what that writing adds up to: who came up most this month, which place has not been mentioned in a year. A **Report** answers that: a read-only figure or table about the Documents of one type, derived from the link index and never stored. A Report counts **Days that link** to a Document, once per Day however often the name appears, and nothing else. Each type picks its Reports from a **fixed catalogue of hand-built kinds** and sets their order and parameters.

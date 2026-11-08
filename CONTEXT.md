@@ -549,7 +549,7 @@ _Avoid_: unlinked reference, suggestion, candidate, "unlinked here" (old label f
 Core Contract: a Document type whose Documents are wikilink targets by title and alias, and receive backlinks. Declarable by data (a user-defined type just says so).
 
 ### Report
-A read-only figure or table derived from the Documents of one type and the links to them — who was mentioned most this month, when a place was last mentioned, how often a person comes up over time. Each type chooses its own Reports. Derived, never logged, never stored. Shown on a Journal period, on one Document, on the type's own page, and placeable as a Card. Not a Stat (a Stat is a series the user logs).
+A read-only figure or table derived from the Documents of one type and the links to them — who was mentioned most this month, when a place was last mentioned, how often a person comes up over time. Two families never added together: **Mentioned** counts Days that link to a Document, **Seen** counts Events that link to it, each once per day. Each type chooses its own Reports. Derived, never logged, never stored. Shown on a Journal period, on one Document, on the type's own page, and placeable as a Card. Not a Stat (a Stat is a series the user logs).
 _Avoid_: stat, statistic, insight, summary, analytics
 
 ### Role
