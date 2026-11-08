@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { seenDays, todayStr, useDocuments, useLinkIndex, type DateStr } from "@lifeline/core";
 import { Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { UserPlus } from "lucide-react";
+import { UpcomingReport } from "../components/UpcomingReport";
 import { AddPersonDialog } from "../components/AddPersonDialog";
 import { personHref } from "../constants";
 import { everyone, relationshipsOf, tagsOf } from "../domain/everyone";
@@ -59,6 +60,7 @@ export function PeopleScreen() {
       <PageHeader title="People">{people.length > 0 ? add : null}</PageHeader>
 
       {/* UPCOMING (#416): the Occasions in the next days. Goes here, above Drifting. */}
+      <UpcomingReport />
 
       {/* DRIFTING (#420): who I have not seen for a while. Goes here, between Upcoming and Everyone. */}
 

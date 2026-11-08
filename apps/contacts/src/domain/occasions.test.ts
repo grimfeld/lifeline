@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Occasion } from "./types";
-import { ageOf, normalizeOccasions, occasionDateIn, occasionMarkersIn, occasionProblem, type PersonOccasions } from "./occasions";
+import { ageOf, normalizeOccasions, occasionDateIn, occasionMarkersIn, occasionProblem, upcomingOccasions, type PersonOccasions } from "./occasions";
 
 const anne = (...occasions: Occasion[]): PersonOccasions => ({ id: "p1", title: "Anne", tags: ["family"], occasions });
 const bday = (day: string): Occasion => ({ id: "o1", label: "Birthday", day, yearly: true });
@@ -89,5 +89,36 @@ describe("Occasion rules", () => {
   it("normalizes stored junk away", () => {
     expect(normalizeOccasions(undefined)).toEqual([]);
     expect(normalizeOccasions([{ id: "a", label: "A", day: "03-04", yearly: true }, { nope: 1 }, null])).toEqual([{ id: "a", label: "A", day: "03-04", yearly: true }]);
+  });
+});
+
+describe("Upcoming", () => {
+  const marc: PersonOccasions = { id: "p2", title: "Marc", occasions: [{ id: "s", label: "Surgery", day: "2027-01-03", yearly: false }, { id: "w", label: "Wedding", day: "1990-12-30", yearly: true }] };
+  const people = [anne(bday("1961-01-02")), marc];
+
+  it("crosses a year end, soonest first, with the ages reached", () => {
+    expect(upcomingOccasions(people, "2026-12-28", 10)).toEqual([
+      { personId: "p2", name: "Marc", label: "Wedding", date: "2026-12-30", inDays: 2, age: null },
+      { personId: "p1", name: "Anne", label: "Birthday", date: "2027-01-02", inDays: 5, age: 66 },
+      { personId: "p2", name: "Marc", label: "Surgery", date: "2027-01-03", inDays: 6, age: null },
+    ]);
+  });
+
+  it("includes both ends of the window", () => {
+    expect(upcomingOccasions(people, "2026-12-30", 0).map((u) => u.label)).toEqual(["Wedding"]);
+    expect(upcomingOccasions(people, "2026-12-29", 4).map((u) => u.label)).toEqual(["Wedding", "Birthday"]);
+  });
+
+  it("gives a Birthday with no year no age", () => {
+    expect(upcomingOccasions([anne(bday("01-02"))], "2026-12-28", 10)).toMatchObject([{ date: "2027-01-02", age: null }]);
+  });
+
+  it("is empty when nothing falls in the window", () => {
+    expect(upcomingOccasions(people, "2026-06-01", 30)).toEqual([]);
+    expect(upcomingOccasions([], "2026-06-01", 30)).toEqual([]);
+  });
+
+  it("shows February 29 on February 28 in a year that is not a leap year", () => {
+    expect(upcomingOccasions([anne(bday("2000-02-29"))], "2027-02-20", 14)).toMatchObject([{ date: "2027-02-28", age: 27 }]);
   });
 });

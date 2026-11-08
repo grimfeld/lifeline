@@ -10,9 +10,13 @@ are to you (their **Relationship**), Tags, and a page of your own words about th
 
 ### The People home
 
-The People Module lands on its home, which lists **Everyone**: every Person in the current
+The People Module lands on its home, which opens on **Upcoming** and then lists **Everyone**: every Person in the current
 Workspace, by name, each with what they are to you and when you last saw them. Click one to open their page.
 
+- **Upcoming** — the Occasions in the next 30 days, soonest first: who, which Occasion, the day and
+  how far off, and for a Birthday with a known year the age they will turn. Each row opens the Person.
+  It is a heads-up, never a reminder. It can also be placed as a **Upcoming** Card on any Screen, with
+  its own number of days ahead.
 - **Search** matches a name or any alias, ignoring case and accents.
 - **Relationship** and **Tag** narrow the list, and together they narrow it further. On a phone
   they are under **Filters**.

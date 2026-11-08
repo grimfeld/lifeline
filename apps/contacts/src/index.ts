@@ -5,6 +5,7 @@ import { contactsCommands } from "./commands";
 import { personTypeDef, tieTypeDef } from "./types";
 import { PersonPeek } from "./components/PersonFields";
 import { AddPersonDialog } from "./components/AddPersonDialog";
+import { UpcomingCard } from "./components/UpcomingReport";
 import { contactsTimed } from "./timed";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
@@ -29,7 +30,17 @@ export const contactsApp: AppManifest = {
     // The Person page: routed, never listed — reached from the Peek's "Open", a Base or the Vault.
     { id: "contacts.person", title: "Person", path: "people/person/:id", component: PersonScreen, hidden: true },
   ],
-  cards: [],
+  cards: [
+    {
+      id: "contacts.upcoming",
+      title: "Upcoming",
+      description: "The Occasions in the next days: birthdays with the age they reach, soonest first",
+      component: UpcomingCard,
+      defaultSize: { w: 4, h: 5 },
+      minSize: { w: 3, h: 3 },
+      settings: { days: { kind: "number", label: "Days ahead", default: 30, min: 1, max: 365 } },
+    },
+  ],
   commands: contactsCommands,
   timed: contactsTimed,
   // From the Selection menu, the selected name becomes a link to the Person made.
