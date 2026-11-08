@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router";
 import { documentType, patchDocument, useDocument, useLinkIndex, useOpenPeek, type Document } from "@lifeline/core";
-import { BacklinksSection, DocumentEditor } from "@lifeline/editor";
+import { BacklinksSection, DocumentEditor, FieldLinksSection } from "@lifeline/editor";
 import { CommitField, Page, PageHeader } from "@lifeline/ui";
 import { ArrowLeft } from "lucide-react";
 import { PEOPLE_HREF } from "../constants";
@@ -64,7 +64,9 @@ export function PersonScreen() {
         </div>
       </Section>
 
-      <BacklinksSection docId={person.id} index={index} onOpen={(ref) => ref.kind === "doc" && openPeek(ref.id)} />
+      <BacklinksSection docId={person.id} index={index} wikilinksOnly onOpen={(ref) => ref.kind === "doc" && openPeek(ref.id)} />
+      {/* What links in through People fields (an Event's With, a Task's For…), grouped by what they are. */}
+      <FieldLinksSection docId={person.id} index={index} onOpen={(ref) => ref.kind === "doc" && openPeek(ref.id)} />
     </Page>
   );
 }
