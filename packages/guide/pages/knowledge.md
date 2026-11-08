@@ -51,6 +51,9 @@ Topic to a set you choose.
 - How much is ready: due today, new today, and how many more new are waiting.
 - **Practise** the open Topic, one of its **Decks**, **Everything** across all Topics, or what
   you kept **From a source** — a book, a podcast, with its episodes.
+- **Mix decks** (once a Topic has two Decks) — tick several Decks, then **Practise N decks
+  together**: lessons mix in one practice. An item in two of them comes up once, and the Topic's
+  daily new cap and the spacing of sibling prompts hold as for one Deck.
 - In a practice: try to recall the answer, **Show answer**, then grade yourself **Pass** or
   **Fail**. Keys: Space reveals, 1 or F fails, 2 or J passes. **Undo** a mis-tap. **Stop** any
   time — nothing is lost.
