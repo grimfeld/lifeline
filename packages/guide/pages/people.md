@@ -37,6 +37,8 @@ bring them back.
 - **Details** — change their name (every `[[link]]` to them follows), their **Aliases**, their
   **Relationship**, their **Tags** and **Excluded from Drifting**, edited in place.
 - **Occasions** — the named days in their life: see below.
+- **Addresses** — where they live or can be found, each under a label of your own ("Home",
+  "Work", "Holiday house"). See below.
 - **Ties** — how they stand to other People, each read from their side: "daughter: Léa" on
   Anne's page, "mother: Anne" on Léa's. See Ties below.
 - **Reports** — **Last seen** (the last day of an Event that links to them) and **Last
@@ -67,6 +69,19 @@ when you don't know the year (a once Occasion always needs its year).
 - A yearly Occasion on **29 February** stands on 29 February in a leap year and on **28 February**
   in the other years, so it is never skipped.
 - An Occasion two people share, such as a wedding, is added to each of them.
+
+### Addresses
+
+- **Add address** takes a label and the postal text. When you save it, Lifeline looks the place
+  up (OpenStreetMap's Nominatim) and puts a **Pin** on the Map, labelled "Marc · Work". A
+  Person with two current Addresses stands on the Map twice.
+- When someone moves, **Mark as former**: the Address leaves the Map and stays on their page, below
+  the current ones, as history. **Mark as current** brings it back.
+- If the lookup finds nothing, or fails, the Address is still saved and shown, marked "Not on
+  the map", with **Try again**. Changing an Address's text looks it up afresh.
+- A shared home is held by each Person who lives there: add it to each.
+- Claude never sees a Person's Addresses or their Pins (see below).
+
 ### Ties
 
 A **Tie** says how two People stand to each other. Press **Add tie** on either Person's page,

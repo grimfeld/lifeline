@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Document, DocumentTypeDef, OwnedCommand, TimedProvider } from "@lifeline/core";
+import { pinsOf } from "@lifeline/core";
 import { personTypeDef } from "@lifeline/app-contacts/src/types";
 import { contactsCommands } from "@lifeline/app-contacts/src/commands";
 import type { Address, ContactDetail } from "@lifeline/app-contacts/src/domain/types";
@@ -151,6 +152,19 @@ describe("the agent wall: what an agent reads of a Person (ADR 0114)", () => {
     docs.set("p2", person("p2", "Secret friend", "Private/People"));
     expect(await runTool("search_documents", { query: "secret" })).toMatchObject({ total: 0 });
     await expect(runTool("get_document", { id: "p2" })).rejects.toThrow(/No Document p2/);
+  });
+});
+
+describe("the agent wall: a Person's Pins (#418)", () => {
+  it("stands on the map for its current Address, yet no tool answer holds that Pin", async () => {
+    const pins = pinsOf([docs.get("p1")!], [withGiftIdeas], undefined, null as never);
+    expect(pins.map((p) => p.name)).toEqual(["Anne Dupont · Zanzibar house"]);
+    const pinWords = [...pins.flatMap((p) => [p.name, p.key]), "locatablePins"];
+    for (const { name, args } of PERSON_TOOLS) {
+      const answer = JSON.stringify(await runTool(name, args));
+      for (const word of pinWords) expect(answer, `${name} leaked the Pin “${word}”`).not.toContain(word);
+    }
+    for (const t of ["search_documents", "list_types"]) expect(JSON.stringify(await runTool(t, {}))).not.toMatch(/"lat"|"lon"/);
   });
 });
 
