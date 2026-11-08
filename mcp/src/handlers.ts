@@ -339,7 +339,7 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
       if (!p.itemsIn) continue;
       for (const it of await p.itemsIn(range)) {
         if (it.background && !a.blocks) continue;
-        timedItems.push({ kind: it.background ? "block" : it.marker ? "deadline" : "event", appId: it.appId, itemId: it.itemId, title: it.title, date: it.date, start: it.start ?? undefined, end: it.end ?? undefined, subtitle: it.subtitle, tags: it.tags?.length ? it.tags : undefined });
+        timedItems.push({ kind: it.background ? "block" : it.marker ? (it.occasion ? "occasion" : "deadline") : "event", appId: it.appId, itemId: it.itemId, title: it.title, date: it.date, start: it.start ?? undefined, end: it.end ?? undefined, subtitle: it.subtitle, tags: it.tags?.length ? it.tags : undefined });
       }
     }
     const work = items.map((it) => ({

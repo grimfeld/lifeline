@@ -1,0 +1,93 @@
+import { describe, expect, it } from "vitest";
+import type { Occasion } from "./types";
+import { ageOf, normalizeOccasions, occasionDateIn, occasionMarkersIn, occasionProblem, type PersonOccasions } from "./occasions";
+
+const anne = (...occasions: Occasion[]): PersonOccasions => ({ id: "p1", title: "Anne", tags: ["family"], occasions });
+const bday = (day: string): Occasion => ({ id: "o1", label: "Birthday", day, yearly: true });
+const range = (start: string, end: string) => ({ start, end });
+const lines = (people: PersonOccasions[], r: { start: string; end: string }) => occasionMarkersIn(people, r).map((m) => [m.date, m.title]);
+
+describe("Occasion markers in a range", () => {
+  it("shows a Birthday with the age reached, every year", () => {
+    const people = [anne(bday("1961-03-04"))];
+    expect(lines(people, range("2026-03-01", "2026-03-31"))).toEqual([["2026-03-04", "🎂 Anne · 65"]]);
+    expect(lines(people, range("2027-03-01", "2027-03-31"))).toEqual([["2027-03-04", "🎂 Anne · 66"]]);
+  });
+
+  it("shows a Birthday with no known year without an age", () => {
+    expect(lines([anne(bday("03-04"))], range("2026-03-01", "2026-03-31"))).toEqual([["2026-03-04", "🎂 Anne"]]);
+  });
+
+  it("matches Birthday however it is cased, and keeps other yearly labels age-free", () => {
+    const people = [anne({ id: "a", label: " birthday ", day: "1961-03-04", yearly: true }, { id: "b", label: "Wedding", day: "1990-06-02", yearly: true })];
+    expect(lines(people, range("2026-03-01", "2026-06-30"))).toEqual([["2026-03-04", "🎂 Anne · 65"], ["2026-06-02", "⚑ Anne · Wedding"]]);
+  });
+
+  it("stands a once Occasion only on its own day", () => {
+    const people = [{ ...anne({ id: "s", label: "Surgery", day: "2026-05-12", yearly: false }), title: "Marc" }];
+    expect(lines(people, range("2026-05-01", "2026-05-31"))).toEqual([["2026-05-12", "⚑ Marc · Surgery"]]);
+    expect(lines(people, range("2027-05-01", "2027-05-31"))).toEqual([]);
+  });
+
+  it("does not show a yearly Occasion before the year it began", () => {
+    expect(lines([anne(bday("1961-03-04"))], range("1950-03-01", "1950-03-31"))).toEqual([]);
+  });
+
+  it("shows February 29 on February 28 in a year that is not a leap year, and on the 29th in one that is", () => {
+    const people = [anne(bday("2000-02-29"))];
+    expect(lines(people, range("2026-02-01", "2026-03-31"))).toEqual([["2026-02-28", "🎂 Anne · 26"]]);
+    expect(lines(people, range("2028-02-01", "2028-03-31"))).toEqual([["2028-02-29", "🎂 Anne · 28"]]);
+  });
+
+  it("covers a range across a year end", () => {
+    const people = [anne({ id: "n", label: "Name day", day: "01-01", yearly: true }), anne({ id: "m", label: "Met", day: "12-31", yearly: true })];
+    expect(lines(people, range("2026-12-30", "2027-01-02"))).toEqual([["2026-12-31", "⚑ Anne · Met"], ["2027-01-01", "⚑ Anne · Name day"]]);
+  });
+
+  it("makes read-only all-day occasion markers carrying the Person's Tags, unique per occurrence", () => {
+    const [m] = occasionMarkersIn([anne(bday("1961-03-04"))], range("2026-03-01", "2026-03-31"));
+    expect(m).toMatchObject({ appId: "contacts", itemId: "p1:o1@2026-03-04", start: null, end: null, marker: true, occasion: true, tags: ["family"] });
+    expect(m?.key).toBe("contacts/p1:o1@2026-03-04");
+  });
+});
+
+describe("a Person's age", () => {
+  it("is the years since a known Birthday year, until the day comes round", () => {
+    const occasions = [bday("1961-03-04")];
+    expect(ageOf(occasions, "2026-03-03")).toBe(64);
+    expect(ageOf(occasions, "2026-03-04")).toBe(65);
+  });
+  it("is null with no Birthday or no known year", () => {
+    expect(ageOf([bday("03-04")], "2026-03-04")).toBeNull();
+    expect(ageOf([], "2026-03-04")).toBeNull();
+  });
+  it("counts a February 29 Birthday as reached on February 28 in a common year", () => {
+    expect(ageOf([bday("2000-02-29")], "2026-02-27")).toBe(25);
+    expect(ageOf([bday("2000-02-29")], "2026-02-28")).toBe(26);
+  });
+  it("is null for a Birthday in the future", () => {
+    expect(ageOf([bday("2030-01-01")], "2026-03-04")).toBeNull();
+  });
+});
+
+describe("the day an Occasion falls on", () => {
+  it("clamps February 29", () => {
+    expect(occasionDateIn("02-29", 2026)).toBe("2026-02-28");
+    expect(occasionDateIn("02-29", 2024)).toBe("2024-02-29");
+  });
+});
+
+describe("Occasion rules", () => {
+  it("refuses an empty label, a bad day, and a once Occasion with no year", () => {
+    expect(occasionProblem({ label: " ", day: "03-04", yearly: true })).toBe("An Occasion needs a label");
+    expect(occasionProblem({ label: "x", day: "13-40", yearly: true })).toBe("Pick a real day");
+    expect(occasionProblem({ label: "x", day: "03-04", yearly: false })).toBe("A once Occasion needs its year");
+    expect(occasionProblem({ label: "x", day: "2026-02-30", yearly: false })).toBe("Pick a real day");
+    expect(occasionProblem({ label: "x", day: "02-29", yearly: true })).toBeNull();
+    expect(occasionProblem({ label: "x", day: "2026-05-12", yearly: false })).toBeNull();
+  });
+  it("normalizes stored junk away", () => {
+    expect(normalizeOccasions(undefined)).toEqual([]);
+    expect(normalizeOccasions([{ id: "a", label: "A", day: "03-04", yearly: true }, { nope: 1 }, null])).toEqual([{ id: "a", label: "A", day: "03-04", yearly: true }]);
+  });
+});

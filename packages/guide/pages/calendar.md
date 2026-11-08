@@ -118,6 +118,9 @@ Editing or deleting a template never changes the Events it made.
 
 - **Deadlines** — a Project's or Milestone's Deadline, as an all-day flag. Drag it to move the
   Deadline. A missed one stays red on its day.
+- **Occasions** — a Person's Birthday or other named day, as an all-day flag ("🎂 Anne · 65"). It
+  can't be dragged, is not an Event and is never red. Click it to open the Person; see
+  [People](people.md).
 - **Calendar subscriptions** — events from an iCal link, in its colour, read-only.
 - **In a Module** — House shows a Calendar of its Chores only, in Month and Upcoming. A Module's
   Calendar keeps its own view and day.

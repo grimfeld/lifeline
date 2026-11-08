@@ -226,11 +226,17 @@ export interface TimedItem {
    * flag rather than an Event, and red once its day has passed.
    */
   marker?: boolean;
+  /**
+   * A marker that is no Deadline: a Person's Occasion (a Birthday, a
+   * Surgery). Drawn as a flag like any marker, but never red once past, and
+   * never led as a "Deadline". Set only together with `marker`.
+   */
+  occasion?: boolean;
 }
 
-/** Whether a marker's day has passed (ADR 0061): it stays there, red, and never rolls forward. */
-export function isMissedMarker(item: Pick<TimedItem, "marker" | "date">, today: DateStr): boolean {
-  return !!item.marker && item.date < today;
+/** Whether a Deadline marker's day has passed (ADR 0061): it stays there, red, and never rolls forward. An Occasion is never missed. */
+export function isMissedMarker(item: Pick<TimedItem, "marker" | "occasion" | "date">, today: DateStr): boolean {
+  return !!item.marker && !item.occasion && item.date < today;
 }
 
 /**
@@ -503,4 +509,9 @@ export function pieceLead(piece: Pick<TimedItem, "date" | "span">): string | nul
   if (!span || !crossesDays(span)) return null;
   if (piece.date <= span.date) return describeSpan(span);
   return `→ ${endReadOn(span, piece.date)}`;
+}
+
+/** What a day-granular view leads an all-day item with: a marker is a "Deadline", unless it is an Occasion. */
+export function allDayLead(item: Pick<TimedItem, "marker" | "occasion">): string {
+  return item.marker ? (item.occasion ? "Occasion" : "Deadline") : "All day";
 }

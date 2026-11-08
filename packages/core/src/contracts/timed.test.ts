@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clockMinutes, clockOf, lastDayCovered, momentAfter, spanLength, cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
+import { allDayLead, isMissedMarker, clockMinutes, clockOf, lastDayCovered, momentAfter, spanLength, cutEdges, describeSpan, formatTime, minutesUntil, pieceLead, spanEndingAt, spanIsValid, spanWithEnd, spanLasting, spanMovedTo, startDayMovedTo } from "./timed";
 
 describe("formatTime", () => {
   it("reads a clock time in the locale's style", () => {
@@ -161,5 +161,16 @@ describe("clock and moment helpers", () => {
   it("takes a span ending at 00:00 to cover the day before only", () => {
     expect(lastDayCovered({ date: "2026-08-10", endDate: "2026-08-11", end: "00:00" })).toBe("2026-08-10");
     expect(lastDayCovered({ date: "2026-08-10", endDate: "2026-08-11", end: "06:00" })).toBe("2026-08-11");
+  });
+});
+
+describe("markers", () => {
+  it("a Deadline whose day passed is missed; an Occasion never is", () => {
+    expect(isMissedMarker({ marker: true, date: "2026-03-03" }, "2026-03-04")).toBe(true);
+    expect(isMissedMarker({ marker: true, occasion: true, date: "2026-03-03" }, "2026-03-04")).toBe(false);
+    expect(isMissedMarker({ marker: true, date: "2026-03-04" }, "2026-03-04")).toBe(false);
+  });
+  it("leads an all-day item as All day, a Deadline or an Occasion", () => {
+    expect([allDayLead({}), allDayLead({ marker: true }), allDayLead({ marker: true, occasion: true })]).toEqual(["All day", "Deadline", "Occasion"]);
   });
 });

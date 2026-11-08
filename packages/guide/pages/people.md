@@ -13,12 +13,33 @@ them, the palette, or the People Base.
 
 ### A Person's page
 
-- **Header** — their name, what they are to you, and their aliases.
+- **Header** — their name, their age (when their Birthday has a year), what they are to you, and
+  their aliases.
 - **Details** — change their name (every `[[link]]` to them follows), their **Aliases**, their
   **Relationship** and their **Tags**, edited in place.
+- **Occasions** — the named days in their life: see below.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
 - **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.
+
+### Occasions
+
+An **Occasion** is a named day in someone's life: a label (**Birthday**, **Met**, **Wedding**, or any
+word you choose), a day, and whether it comes back **every year** or happens **once**. Add, edit
+and remove them in **Occasions** on the Person's page. Give the day as `YYYY-MM-DD`, or `MM-DD`
+when you don't know the year (a once Occasion always needs its year).
+
+- Every Occasion stands on the Calendar's Month, Schedule and Upcoming views and on Today as an
+  all-day flag, taking no hours: "🎂 Anne · 65", "⚑ Marc · Surgery". A yearly one comes back every
+  year; a once one stands only on its day. It is not an Event, so it can't be dragged and doesn't
+  count as seeing someone. It is not a Deadline either: it is never drawn red once its day has
+  passed. Click it to open the Person.
+- **Birthday** is the one label Lifeline understands. With the birth year known, the marker carries
+  the age they reach ("🎂 Anne · 65") and their page shows how old they are now. With no year
+  there is no age: Lifeline never makes up a number.
+- A yearly Occasion on **29 February** stands on 29 February in a leap year and on **28 February**
+  in the other years, so it is never skipped.
+- An Occasion two people share, such as a wedding, is added to each of them.
 
 ### Linking to a Person
 
@@ -44,6 +65,8 @@ you can add someone you just met before you forget it.
 
 - "Add my aunt Anne Dupont, I call her Mum" — `people_add`, with a name, aliases and a
   Relationship.
+- "Whose birthday is coming up?" — `agenda` lists Occasions as `occasion` entries, apart from
+  Deadlines.
 - "What have I written about Anne?" — `search_documents`, `get_document`.
 
 ## Tips

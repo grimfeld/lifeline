@@ -5,6 +5,7 @@ import { contactsCommands } from "./commands";
 import { personTypeDef } from "./types";
 import { PersonPeek } from "./components/PersonFields";
 import { AddPersonDialog } from "./components/AddPersonDialog";
+import { contactsTimed } from "./timed";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
 const PeopleScreen = lazyChunk(() => import("./screens/PeopleScreen").then((m) => ({ default: m.PeopleScreen })));
@@ -30,6 +31,7 @@ export const contactsApp: AppManifest = {
   ],
   cards: [],
   commands: contactsCommands,
+  timed: contactsTimed,
   // From the Selection menu, the selected name becomes a link to the Person made.
   intakes: [{ id: "person", title: "Person", icon: User, dialog: AddPersonDialog, links: true }],
 };
