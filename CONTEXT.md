@@ -513,6 +513,10 @@ _Avoid_: diary, vault (the raw editor), collections (for its Types — a Collect
 Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **People** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Only people in my life are People: an Author or Artist I have never met stays that App's own; one I come to know is **turned into a Person**, keeping the Role, the links, the aliases and the body. Like every Document, a Person is held by one Workspace, or shared: someone in both my work and my life is two People, one in each. Not a contact: a Person need not be reachable — the dead, someone met once.
 _Avoid_: contact, friend, acquaintance, relation (a kind of Tie, not the Person)
 
+### Drifting
+The People I have not seen in a while: a ranking of Seen (Not seen in N days, 90 by default; Not mentioned as the alternative) over the People who have a Relationship, minus any I have chosen to leave out. Where the People Module asks "who have I lost touch with?". Derived, like every Report; never a reminder.
+_Avoid_: neglected, overdue, stale, reminder
+
 ### People field
 A built-in Links field to People that another App's type carries, so a Person is linked from where things happen and not only from bodies: an Event's **With** (who was there — what Seen counts), a Task's **For**, a Transaction's **For** (a gift, a shared bill), a work's **Recommended by** (beside its Reason, which stays free text). Offered in the owning App's own dialog with name completion; a source of Backlinks like any Link. The owning App keeps the field; Contacts only owns the Person it points to. The user may add Person-linked Fields of their own to any other type.
 _Avoid_: attendees, participants, mention (a wikilink's), tag
