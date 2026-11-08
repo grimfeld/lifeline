@@ -37,14 +37,14 @@ export function LeechList({ items, recalls }: { items: MaterialDoc[]; recalls: R
               <span className="min-w-0 flex-1 truncate font-medium">{r.question}</span>
               <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{r.fails} fails</span>
               {OWN.has(r.m.type) && (
-                <Tip label="Pause — keep its history, stop practising it">
-                  <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label={`Pause ${r.question}`} onClick={() => void setPaused(r.itemId, true)}>
+                <Tip label={`Pause ${r.question}`}>
+                  <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => void setPaused(r.itemId, true)}>
                     <Pause />
                   </Button>
                 </Tip>
               )}
-              <Tip label="Edit">
-                <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label={`Edit ${r.question}`} onClick={() => edit(r.m)}>
+              <Tip label={`Edit ${r.question}`}>
+                <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => edit(r.m)}>
                   <Pencil />
                 </Button>
               </Tip>
