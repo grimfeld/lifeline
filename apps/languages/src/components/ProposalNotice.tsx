@@ -27,7 +27,7 @@ export function ProposalNotice({ item, onDone }: { item: Item; onDone?: () => vo
   }
 
   return (
-    <section aria-label="Proposed change" className="bg-accent/40 grid gap-2 rounded-md border p-3 text-sm">
+    <section aria-label="Proposed change" className="bg-accent/40 grid gap-2 rounded-lg border p-3 text-sm">
       <span className="text-xs font-medium">Proposed change</span>
       <dl className="grid gap-2">
         {changes.map((c) => (
