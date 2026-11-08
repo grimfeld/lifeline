@@ -1,4 +1,4 @@
-import { daysInMonth, fromParts, normalizeTags, type DateStr, type TimedItem } from "@lifeline/core";
+import { addDays, diffDays, daysInMonth, fromParts, normalizeTags, type DateStr, type TimedItem } from "@lifeline/core";
 import type { Occasion } from "./types";
 
 export const APP_ID = "contacts";
@@ -85,13 +85,17 @@ function titleOf(person: PersonOccasions, o: Occasion, age: number | null): stri
   return `⚑ ${person.title} · ${o.label.trim()}`;
 }
 
-/**
- * Occasions as all-day markers in a range: a yearly one on its day each year
- * (from the year it began, when that is known), a once one on its own day.
- * Birthdays carry the age they reach. Not Events, and not Deadlines.
- */
-export function occasionMarkersIn(people: readonly PersonOccasions[], range: { start: DateStr; end: DateStr }): TimedItem[] {
-  const out: TimedItem[] = [];
+interface Occurrence {
+  person: PersonOccasions;
+  occasion: Occasion;
+  date: DateStr;
+  /** The age a yearly Birthday reaches on `date`; null otherwise or with no birth year. */
+  age: number | null;
+}
+
+/** Every Occasion falling in a range, a yearly one on its day each year (from the year it began), a once one on its own day. */
+function occurrencesIn(people: readonly PersonOccasions[], range: { start: DateStr; end: DateStr }): Occurrence[] {
+  const out: Occurrence[] = [];
   const [y0, y1] = [Number(range.start.slice(0, 4)), Number(range.end.slice(0, 4))];
   for (const person of people) {
     for (const o of person.occasions ?? []) {
@@ -102,23 +106,68 @@ export function occasionMarkersIn(people: readonly PersonOccasions[], range: { s
         if (o.yearly && born !== null && y < born) continue;
         const date = o.yearly ? occasionDateIn(o.day, y) : o.day;
         if (date < range.start || date > range.end) continue;
-        const id = `${person.id}:${o.id}@${date}`;
-        out.push({
-          key: `${APP_ID}/${id}`,
-          appId: APP_ID,
-          itemId: id,
-          title: titleOf(person, o, isBirthday(o) && o.yearly ? ageIn(o, y) : null),
-          date,
-          start: null,
-          end: null,
-          tags: normalizeTags(person.tags ?? []),
-          marker: true,
-          occasion: true,
-        });
+        out.push({ person, occasion: o, date, age: isBirthday(o) && o.yearly ? ageIn(o, y) : null });
       }
     }
   }
-  return out.sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
+  return out;
+}
+
+/**
+ * Occasions as all-day markers in a range: a yearly one on its day each year
+ * (from the year it began, when that is known), a once one on its own day.
+ * Birthdays carry the age they reach. Not Events, and not Deadlines.
+ */
+export function occasionMarkersIn(people: readonly PersonOccasions[], range: { start: DateStr; end: DateStr }): TimedItem[] {
+  return occurrencesIn(people, range)
+    .map(({ person, occasion: o, date, age }): TimedItem => {
+      const id = `${person.id}:${o.id}@${date}`;
+      return {
+        key: `${APP_ID}/${id}`,
+        appId: APP_ID,
+        itemId: id,
+        title: titleOf(person, o, age),
+        date,
+        start: null,
+        end: null,
+        tags: normalizeTags(person.tags ?? []),
+        marker: true,
+        occasion: true,
+      };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
+}
+
+/** One line of Upcoming: an Occasion coming up. */
+export interface UpcomingOccasion {
+  personId: string;
+  name: string;
+  label: string;
+  date: DateStr;
+  /** Whole days from the start of the window; 0 is that day itself. */
+  inDays: number;
+  /** The age a Birthday reaches that day; null for any other Occasion or a Birthday with no year. */
+  age: number | null;
+}
+
+/**
+ * The Upcoming Report: the Occasions from `from` through `days` days later
+ * (both ends included), soonest first, ties by name then label. Pure, so the
+ * MCP `people_upcoming` tool can reuse it.
+ */
+export function upcomingOccasions(people: readonly PersonOccasions[], from: DateStr, days: number): UpcomingOccasion[] {
+  if (!(days >= 0)) return [];
+  const end = addDays(from, Math.floor(days));
+  return occurrencesIn(people, { start: from, end })
+    .map(({ person, occasion, date, age }) => ({
+      personId: person.id,
+      name: person.title,
+      label: occasion.label.trim(),
+      date,
+      inDays: diffDays(from, date),
+      age,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name) || a.label.localeCompare(b.label));
 }
 
 /** The Person id inside a marker's item id. */
