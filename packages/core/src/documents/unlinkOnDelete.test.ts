@@ -13,6 +13,10 @@ const types = [
   T("job", { fields: [{ key: "for", label: "For", kind: "link" }] }),
   T("book", { fields: [{ key: "authors", label: "Authors", kind: "links", linkType: "thing" }, { key: "by", label: "Recommended by", kind: "links", linkType: ["who", "thing"] }] }),
   T("note", { fields: [{ key: "about", label: "About", kind: "text" }] }),
+  // Unlinked on delete, but no Role's Field may hold one.
+  T("pet", { unlinkOnDelete: true }),
+  // Unlinked on delete, and may hold one of its own kind.
+  T("step", { unlinkOnDelete: true, fields: [{ key: "next", label: "Next", kind: "link", linkType: "step" }] }),
 ];
 // A Role any Document may wear, with a Link field of its own.
 const sponsor: RoleDef = { id: "sponsor", label: "Sponsor", homeType: "job", fields: [{ key: "backer", label: "Backer", kind: "link", linkType: "who" }] } as RoleDef;
@@ -50,6 +54,26 @@ describe("a type that unlinks its Documents on delete", () => {
   });
 });
 
+describe("deleting what no Role may hold, or what holds itself", () => {
+  it("unlinks a type no Role's Field may hold from the types' Fields that may", async () => {
+    await putDocument({ id: "rex", type: "pet", title: "Rex" });
+    await putDocument({ id: "e1", type: "ev", title: "Walk", with: ["rex"] });
+    await removeDocument("rex");
+    expect((await getDocument("e1"))?.with).toEqual([]);
+  });
+  it("leaves the deleted Document's own Fields as they were, and unlinks the others", async () => {
+    await putDocument({ id: "s1", type: "step", title: "Again", next: "s1" });
+    await putDocument({ id: "s0", type: "step", title: "First", next: "s1" });
+    await removeDocument("s1");
+    expect([(await documentsTable().get("s1"))?.next, (await getDocument("s0"))?.next]).toEqual(["s1", ""]);
+  });
+  it("still deletes a Document whose type is no longer installed", async () => {
+    await putDocument({ id: "old", type: "gone", title: "Old" });
+    await removeDocument("old");
+    expect(await getDocument("old")).toBeUndefined();
+  });
+});
+
 describe("where a link to a type can be stored", () => {
   it("counts a Field restricted to a Role's players, whatever type it names", () => {
     const gig = T("gig", { fields: [{ key: "host", label: "Host", kind: "link", linkType: "thing", linkRole: "sponsor" }] });
@@ -58,5 +82,6 @@ describe("where a link to a type can be stored", () => {
   it("is the types and Roles with a Link field that may hold it, never one restricted to another type", () => {
     expect(linkHolders("who", types, [sponsor])).toEqual({ types: ["ev", "job", "book"], roles: ["sponsor"] });
     expect(linkHolders("thing", types, [sponsor])).toEqual({ types: ["ev", "job", "book"], roles: [] });
+    expect(linkHolders("step", types, [sponsor])).toEqual({ types: ["ev", "job", "step"], roles: [] });
   });
 });
