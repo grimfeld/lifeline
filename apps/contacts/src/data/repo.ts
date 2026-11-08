@@ -1,5 +1,5 @@
-import { createDocument, documentsOf, getDocument, newId, normalizeTags, patchDocument, renameDocument, useDocuments } from "@lifeline/core";
-import { PERSON, type Address, type ContactDetail, type Occasion, type Person } from "../domain/types";
+import { PERSON_TYPE, createDocument, documentsOf, getDocument, newId, normalizeTags, patchDocument, renameDocument, useDocuments } from "@lifeline/core";
+import { type Address, type ContactDetail, type Occasion, type Person } from "../domain/types";
 import { normalizeAddresses } from "../domain/addresses";
 import { normalizeOccasions, occasionProblem } from "../domain/occasions";
 import { findPerson } from "../domain/person";
@@ -10,10 +10,10 @@ export function normalizePerson(doc: Person): Person {
 }
 
 /** Every Person in the Workspace, live. */
-export const usePeople = () => useDocuments<Person>(PERSON);
+export const usePeople = () => useDocuments<Person>(PERSON_TYPE);
 
 /** Every Person in the Workspace, read once. */
-export const allPeople = () => documentsOf<Person>(PERSON);
+export const allPeople = () => documentsOf<Person>(PERSON_TYPE);
 
 export type OccasionInput = Pick<Occasion, "label" | "day" | "yearly">;
 
@@ -21,7 +21,7 @@ const cleaned = (o: OccasionInput): OccasionInput => ({ label: o.label.trim(), d
 
 async function occasionsOf(personId: string): Promise<Occasion[]> {
   const doc = await getDocument(personId);
-  if (!doc || doc.type !== PERSON) throw new Error("No such person");
+  if (!doc || doc.type !== PERSON_TYPE) throw new Error("No such person");
   return normalizeOccasions((doc as Person).occasions);
 }
 
@@ -71,7 +71,7 @@ export async function addPerson(input: { name: string; aliases?: string[]; relat
   const name = input.name.trim();
   if (!name) throw new Error("A Person needs a name");
   return (await createDocument({
-    type: PERSON,
+    type: PERSON_TYPE,
     title: name,
     fields: { aliases: cleanAliases(input.aliases), relationship: input.relationship?.trim() ?? "", tags: normalizeTags(input.tags ?? []) },
   })) as Person;

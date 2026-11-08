@@ -1,15 +1,16 @@
+import { PERSON_TYPE } from "@lifeline/core";
 import { useMemo } from "react";
 import { Link } from "react-router";
 import type { CardProps } from "@lifeline/core";
 import { useDocuments } from "@lifeline/core";
 import { personHref } from "../constants";
 import { groupByRelationship } from "../domain/drifting";
-import { PERSON, type Person } from "../domain/types";
+import { type Person } from "../domain/types";
 import { normalizePerson } from "../data/repo";
 
 /** Group by Relationship, as a Card (#404): the People under each Relationship I gave them, with a count. */
 export function RelationshipsCard(_props: CardProps) {
-  const rows = useDocuments<Person>(PERSON);
+  const rows = useDocuments<Person>(PERSON_TYPE);
   const groups = useMemo(() => groupByRelationship(rows.map(normalizePerson)), [rows]);
   if (groups.length === 0) return <p className="text-muted-foreground p-3 text-sm">No one has a Relationship yet.</p>;
   return (

@@ -1,7 +1,7 @@
-import { documentType, reportsIn, useLinkIndex } from "@lifeline/core";
+import { PERSON_TYPE, documentType, reportsIn, useLinkIndex } from "@lifeline/core";
 import { DocumentReports } from "@lifeline/editor";
 import type { Person } from "../domain/types";
-import { PERSON } from "../domain/types";
+
 import { Section } from "./sections";
 
 /**
@@ -10,7 +10,7 @@ import { Section } from "./sections";
  */
 export function ReportsSection({ person }: { person: Person }) {
   const index = useLinkIndex();
-  const def = documentType(PERSON);
+  const def = documentType(PERSON_TYPE);
   if (reportsIn(def, "document").length === 0) return null;
   return (
     <Section title="Reports">

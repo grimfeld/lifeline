@@ -29,7 +29,6 @@ import { PERSON_TYPE, type Document } from "@lifeline/core";
  * from either end, so it is a Document of its own — an internal `contacts_tie`
  * type holding both ids and a label for each end (#412).
  */
-export const PERSON = PERSON_TYPE;
 
 /** Where a new Person lands (a home, never a rule). */
 export const PEOPLE_FOLDER = "People";
@@ -79,7 +78,7 @@ export interface ContactDetail {
 export const AGENT_WALLED_KEYS = ["addresses", "contactDetails"] as const;
 
 export interface Person extends Document {
-  type: typeof PERSON;
+  type: typeof PERSON_TYPE;
   /** Other names they go by: `[[Mum]]` lands on Anne Dupont. */
   aliases: string[];
   /** What they are to me, in my own words ("my aunt"); "" when not said. Not a Tie, not a Tag. */

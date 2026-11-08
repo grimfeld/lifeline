@@ -1,5 +1,5 @@
-import { getDocument, type DocumentTypeDef } from "@lifeline/core";
-import { AGENT_WALLED_KEYS, PEOPLE_FOLDER, PERSON, TIE, type Person } from "./domain/types";
+import { PERSON_TYPE, getDocument, type DocumentTypeDef } from "@lifeline/core";
+import { AGENT_WALLED_KEYS, PEOPLE_FOLDER, TIE, type Person } from "./domain/types";
 import { describePerson } from "./describe";
 import { removeTiesOf, tieIdsOf } from "./data/ties";
 import { personHref } from "./constants";
@@ -11,7 +11,7 @@ import { addressPinsOf } from "./domain/addresses";
  * Field; aliases are the Known Field the Linkable Contract reads.
  */
 export const personTypeDef: DocumentTypeDef = {
-  id: PERSON,
+  id: PERSON_TYPE,
   label: "People",
   singular: "Person",
   iconName: "user",
@@ -62,8 +62,8 @@ export const tieTypeDef: DocumentTypeDef = {
   body: "none",
   builtIn: true,
   fields: [
-    { key: "a", label: "Person", kind: "link", linkType: PERSON, guarded: true },
-    { key: "b", label: "Other person", kind: "link", linkType: PERSON, guarded: true },
+    { key: "a", label: "Person", kind: "link", linkType: PERSON_TYPE, guarded: true },
+    { key: "b", label: "Other person", kind: "link", linkType: PERSON_TYPE, guarded: true },
     { key: "labelA", label: "What the first is to the second", kind: "text", guarded: true },
     { key: "labelB", label: "What the second is to the first", kind: "text", guarded: true },
   ],

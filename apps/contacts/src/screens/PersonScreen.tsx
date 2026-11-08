@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router";
-import { documentType, patchDocument, todayStr, useDocument, useLinkIndex, useOpenPeek, type Document } from "@lifeline/core";
+import { PERSON_TYPE, documentType, patchDocument, todayStr, useDocument, useLinkIndex, useOpenPeek, type Document } from "@lifeline/core";
 import { BacklinksSection, DocumentEditor, FieldLinksSection } from "@lifeline/editor";
 import { CommitField, Page, PageHeader } from "@lifeline/ui";
 import { ArrowLeft } from "lucide-react";
 import { PEOPLE_HREF } from "../constants";
-import { PERSON, type Person } from "../domain/types";
+import { type Person } from "../domain/types";
 import { ageOf } from "../domain/occasions";
 import { normalizePerson, patchPerson } from "../data/repo";
 import { PersonFields } from "../components/PersonFields";
@@ -26,7 +26,7 @@ const back = (
 export function PersonScreen() {
   const { id } = useParams<{ id: string }>();
   const row = useDocument<Person>(id);
-  const person = useMemo(() => (row && !row.deleted && row.type === PERSON ? normalizePerson(row) : undefined), [row]);
+  const person = useMemo(() => (row && !row.deleted && row.type === PERSON_TYPE ? normalizePerson(row) : undefined), [row]);
   const index = useLinkIndex();
   const openPeek = useOpenPeek();
   // Only the body and its Tags are written from the editor, so a Field changed above is never sent back as it was.
@@ -62,7 +62,7 @@ export function PersonScreen() {
 
       <Section title="About them">
         <div className="min-h-40 min-w-0 rounded-lg border p-2">
-          <DocumentEditor key={person.id} doc={person} def={documentType(PERSON)} index={index} bodyOnly save={saveBody} />
+          <DocumentEditor key={person.id} doc={person} def={documentType(PERSON_TYPE)} index={index} bodyOnly save={saveBody} />
         </div>
       </Section>
 

@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { useDocuments } from "@lifeline/core";
+import { PERSON_TYPE, useDocuments } from "@lifeline/core";
 import { Button, Combobox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast, type ComboboxOption } from "@lifeline/ui";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { personHref } from "../constants";
-import { PERSON, type Person } from "../domain/types";
+import { type Person } from "../domain/types";
 import { tiesSeenFrom, type TieRow } from "../domain/ties";
 import { addTie, removeTie, updateTie, useTies } from "../data/ties";
 import { Section } from "./sections";
@@ -18,7 +18,7 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
  * am to them.
  */
 function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow; onOpenChange: (open: boolean) => void }) {
-  const people = useDocuments<Person>(PERSON);
+  const people = useDocuments<Person>(PERSON_TYPE);
   const [otherId, setOtherId] = useState(row?.otherId ?? "");
   const [query, setQuery] = useState("");
   const [label, setLabel] = useState(row?.label ?? "");
@@ -91,7 +91,7 @@ function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow
 /** The Person page's Ties section (#404 story 69): each Tie read from this side, the other Person a link. */
 export function TiesSection({ person }: { person: Person }) {
   const ties = useTies();
-  const people = useDocuments<Person>(PERSON);
+  const people = useDocuments<Person>(PERSON_TYPE);
   const rows = useMemo(() => tiesSeenFrom(person.id, ties, people), [person.id, ties, people]);
   const [editing, setEditing] = useState<TieRow | "new" | null>(null);
 

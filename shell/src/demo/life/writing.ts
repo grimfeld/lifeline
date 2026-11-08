@@ -1,4 +1,5 @@
 import {
+  PERSON_TYPE,
   createDocument,
   documentType,
   getDocument,
@@ -8,7 +9,6 @@ import {
   writeGeo,
   type DocumentTypeRecord,
 } from "@lifeline/core";
-import { PERSON } from "@lifeline/app-contacts";
 import { snapshot } from "@lifeline/app-writer";
 import { newEssay, setPinned, setStatus } from "@lifeline/app-writer/src/data";
 import { addQuote } from "@lifeline/app-commonplace/src/data/quotes";
@@ -78,7 +78,7 @@ async function seedPeopleAndPlaces(): Promise<void> {
 
   for (const p of Object.values(PEOPLE)) {
     // The Contacts App's People (ADR 0113): what they are to Iris is their Relationship.
-    await createDocument({ type: PERSON, title: p.name, body: `${p.note}\n`, fields: { relationship: p.role, aliases: [first(p.name)] } });
+    await createDocument({ type: PERSON_TYPE, title: p.name, body: `${p.note}\n`, fields: { relationship: p.role, aliases: [first(p.name)] } });
   }
   for (const p of Object.values(PLACES)) {
     await createDocument({ type: "place", title: p.name, body: `${p.note}\n`, fields: { kind: p.kind, where: writeGeo({ lat: p.lat, lon: p.lng }), aliases: [] } });

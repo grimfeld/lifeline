@@ -1,5 +1,5 @@
-import { documentsOf, getDocument, putDocument, removeDocument, removeDocumentsWhere, useDocuments } from "@lifeline/core";
-import { PERSON, TIE, type Tie } from "../domain/types";
+import { PERSON_TYPE, documentsOf, getDocument, putDocument, removeDocument, removeDocumentsWhere, useDocuments } from "@lifeline/core";
+import { TIE, type Tie } from "../domain/types";
 
 /** A Tie as stored, with its keys filled in for a row that lacks them. */
 const normalizeTie = (t: Tie): Tie => ({ ...t, a: t.a ?? "", b: t.b ?? "", labelA: t.labelA ?? "", labelB: t.labelB ?? "" });
@@ -35,7 +35,7 @@ const word = (s: string) => s.trim();
 export async function addTie(input: { from: string; to: string; label: string; toLabel: string }): Promise<Tie> {
   if (input.from === input.to) throw new Error("A Person can't be tied to themselves");
   for (const id of [input.from, input.to]) {
-    if ((await getDocument(id))?.type !== PERSON) throw new Error("A Tie is between two People");
+    if ((await getDocument(id))?.type !== PERSON_TYPE) throw new Error("A Tie is between two People");
   }
   const labelA = word(input.label);
   const labelB = word(input.toLabel);

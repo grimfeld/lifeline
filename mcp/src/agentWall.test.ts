@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PERSON_TYPE } from "@lifeline/core";
 import type { Document, DocumentTypeDef, OwnedCommand, TimedProvider } from "@lifeline/core";
 import { pinsOf } from "@lifeline/core";
-import { contactsApp, PERSON } from "@lifeline/app-contacts";
+import { contactsApp } from "@lifeline/app-contacts";
 
 /**
  * The agent wall (ADR 0114): no tool answer ever carries a Person's Addresses
@@ -48,7 +49,7 @@ vi.mock("@lifeline/core", async (importOriginal) => {
 const { runTool } = await import("./handlers");
 
 // Through the manifest only, as the server takes it (apps.ts).
-const personTypeDef = contactsApp.types.find((t) => t.id === PERSON)!;
+const personTypeDef = contactsApp.types.find((t) => t.id === PERSON_TYPE)!;
 const contactsTimed = contactsApp.timed!;
 
 // Every value is one no answer may hold: distinctive, so a hit is a leak, not a coincidence.
@@ -73,7 +74,7 @@ const WALLED_VALUES = [
 const person = (id: string, title: string, folder = "People", extra: Record<string, unknown> = {}) =>
   ({
     id,
-    type: PERSON,
+    type: PERSON_TYPE,
     title,
     folder,
     tags: ["family"],
@@ -101,12 +102,12 @@ const tieType: DocumentTypeDef = { id: "contacts_tie", label: "Ties", titleRule:
 const PERSON_TOOLS: { name: string; args: Record<string, unknown> }[] = [
   { name: "search_documents", args: {} },
   { name: "search_documents", args: { query: "anne" } },
-  { name: "search_documents", args: { type: PERSON } },
+  { name: "search_documents", args: { type: PERSON_TYPE } },
   { name: "get_document", args: { id: "p1" } },
   { name: "get_document", args: { id: "t1" } },
   { name: "agenda", args: { start: "2026-11-01", end: "2026-11-30" } },
   { name: "list_types", args: {} },
-  { name: "list_types", args: { type: PERSON } },
+  { name: "list_types", args: { type: PERSON_TYPE } },
   { name: "people_add", args: { name: "Anne Dupont", aliases: ["Mum"], relationship: "my mother", tags: ["family"] } },
   { name: "people_occasion_add", args: { person: "Anne Dupont", label: "Birthday", day: "1961-11-12" } },
   { name: "people_upcoming", args: { from: "2026-11-01", days: 60 } },
@@ -120,7 +121,7 @@ beforeEach(() => {
   timed.push(contactsTimed);
   for (const fn of Object.values(core)) fn.mockReset().mockResolvedValue(undefined);
   core.createDocument.mockImplementation(async (input: { type: string; title: string }) => ({ ...person("new", input.title), ...input }));
-  types.set(PERSON, withGiftIdeas);
+  types.set(PERSON_TYPE, withGiftIdeas);
   types.set(tieType.id, tieType);
   docs.set("p1", person("p1", "Anne Dupont", "People", { giftIdeas: "a good sable brush", occasions: [{ id: "o1", label: "Birthday", day: "1961-11-12", yearly: true }] }));
   docs.set("t1", { id: "t1", type: tieType.id, title: "Anne – Léa", folder: "", tags: [], createdAt: "", updatedAt: "", deleted: 0 } as unknown as Document);
@@ -134,7 +135,7 @@ describe("the agent wall: what an agent reads of a Person (ADR 0114)", () => {
   });
 
   it("holds as a rule about the Person type, not by the Fields it declares", async () => {
-    types.set(PERSON, { ...withGiftIdeas, fields: withGiftIdeas.fields.filter((f) => f.key !== "addresses" && f.key !== "contactDetails") });
+    types.set(PERSON_TYPE, { ...withGiftIdeas, fields: withGiftIdeas.fields.filter((f) => f.key !== "addresses" && f.key !== "contactDetails") });
     for (const { name, args } of PERSON_TOOLS) {
       const answer = JSON.stringify(await runTool(name, args));
       for (const value of WALLED_VALUES) expect(answer, `${name} leaked “${value}”`).not.toContain(value);
@@ -187,7 +188,7 @@ describe("the agent wall: what an agent writes of a Person (ADR 0114)", () => {
   });
 
   it("refuses them through create_document", async () => {
-    await expect(runTool("create_document", { type: PERSON, title: "Léa", fields: { contactDetails: [] } })).rejects.toThrow();
+    await expect(runTool("create_document", { type: PERSON_TYPE, title: "Léa", fields: { contactDetails: [] } })).rejects.toThrow();
     expect(core.createDocument).not.toHaveBeenCalled();
   });
 

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PERSON_TYPE } from "@lifeline/core";
 import type { Document, DocumentTypeDef, OwnedCommand, TimedProvider } from "@lifeline/core";
-import { contactsApp, PERSON, TIE } from "@lifeline/app-contacts";
+import { contactsApp, TIE } from "@lifeline/app-contacts";
 
 // The People tools (ADR 0114): core's store is stood in for, as in handlers.test.ts.
 const types = new Map<string, DocumentTypeDef>();
@@ -31,12 +32,12 @@ vi.mock("@lifeline/core", async (importOriginal) => {
 
 const { runTool } = await import("./handlers");
 // Through the manifest only, as the server takes it (apps.ts).
-const personTypeDef = contactsApp.types.find((t) => t.id === PERSON)!;
+const personTypeDef = contactsApp.types.find((t) => t.id === PERSON_TYPE)!;
 const tieTypeDef = contactsApp.types.find((t) => t.id === TIE)!;
 const contactsTimed = contactsApp.timed!;
 
 const person = (id: string, title: string, extra: Record<string, unknown> = {}, folder = "People") =>
-  ({ id, type: PERSON, title, folder, tags: [], createdAt: "2026-01-01", updatedAt: "2026-11-01", deleted: 0, aliases: [], relationship: "", ...extra }) as unknown as Document;
+  ({ id, type: PERSON_TYPE, title, folder, tags: [], createdAt: "2026-01-01", updatedAt: "2026-11-01", deleted: 0, aliases: [], relationship: "", ...extra }) as unknown as Document;
 
 beforeEach(() => {
   types.clear();
@@ -46,7 +47,7 @@ beforeEach(() => {
   timed.push(contactsTimed);
   for (const fn of Object.values(core)) fn.mockReset().mockResolvedValue(undefined);
   core.createDocument.mockImplementation(async (input: { type: string; title: string; fields: Record<string, unknown> }) => ({ ...person("new", input.title), ...input.fields }));
-  types.set(PERSON, personTypeDef);
+  types.set(PERSON_TYPE, personTypeDef);
   types.set(TIE, tieTypeDef);
   commands.push(...contactsApp.commands.map((c) => ({ ...c, appId: "contacts" })));
   docs.set("p1", person("p1", "Anne Dupont", { aliases: ["Mum"], occasions: [{ id: "o1", label: "Birthday", day: "1961-11-12", yearly: true }, { id: "o2", label: "Surgery", day: "2026-11-09", yearly: false }] }));
@@ -57,7 +58,7 @@ beforeEach(() => {
 describe("people_add", () => {
   it("adds a Person with aliases, a Relationship and Tags", async () => {
     await runTool("people_add", { name: "Léa", aliases: ["Lele"], relationship: "my friend", tags: ["friends"] });
-    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ type: PERSON, title: "Léa", fields: expect.objectContaining({ aliases: ["Lele"], relationship: "my friend", tags: ["friends"] }) }));
+    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ type: PERSON_TYPE, title: "Léa", fields: expect.objectContaining({ aliases: ["Lele"], relationship: "my friend", tags: ["friends"] }) }));
   });
   it("refuses an empty name", async () => {
     await expect(runTool("people_add", { name: " " })).rejects.toThrow(/Name is required/);
