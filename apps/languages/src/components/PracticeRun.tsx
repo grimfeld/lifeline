@@ -134,11 +134,11 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
           </Card>
           {answer !== null && (
             <div className="grid grid-cols-2 gap-3 text-center" data-testid="attempt-vs-answer">
-              <div className="grid min-w-0 content-start gap-1 rounded-md border p-3">
+              <div className="grid min-w-0 content-start gap-1 rounded-lg border p-3">
                 <span className="text-muted-foreground text-xs">You typed</span>
                 <span className="text-lg break-words whitespace-pre-wrap">{attempt}</span>
               </div>
-              <div className="grid min-w-0 content-start gap-1 rounded-md border p-3">
+              <div className="grid min-w-0 content-start gap-1 rounded-lg border p-3">
                 <span className="text-muted-foreground text-xs">Answer</span>
                 <span className="text-primary text-lg break-words whitespace-pre-wrap">{answer}</span>
               </div>
@@ -160,7 +160,6 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
               autoCorrect="off"
               spellCheck={false}
               enterKeyHint="go"
-              className="h-12 text-base"
             />
           )}
           {revealed ? (

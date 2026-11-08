@@ -54,6 +54,8 @@ export interface Word extends Document {
   /** Where it was met, as a link to the Document it came from (a Note, a Quote) — followed, never copied. Empty for none. */
   originId: string;
   paused: boolean;
+  /** An agent's proposed rewrite of this accepted item (ADR 0115): the fields it would change, pending the user's accept or discard. */
+  proposal?: Proposal | null;
   /** An agent's draft, not yet accepted (ADR 0115): listed and editable, out of every Practice. Absent = accepted. */
   draft?: boolean;
   /** ISO instant it was added — what "oldest added first" orders new Prompts by. Set again when a draft is accepted. */
@@ -75,6 +77,8 @@ export interface Sentence extends Document {
   origin: string;
   originId: string;
   paused: boolean;
+  /** An agent's proposed rewrite of this accepted item (ADR 0115): the fields it would change, pending the user's accept or discard. */
+  proposal?: Proposal | null;
   /** An agent's draft, not yet accepted (ADR 0115). Absent = accepted. */
   draft?: boolean;
   addedAt: string;
@@ -127,6 +131,8 @@ export interface Fact extends Document {
   origin: string;
   originId: string;
   paused: boolean;
+  /** An agent's proposed rewrite of this accepted item (ADR 0115): the fields it would change, pending the user's accept or discard. */
+  proposal?: Proposal | null;
   /** An agent's draft, not yet accepted (ADR 0115). Absent = accepted. */
   draft?: boolean;
   addedAt: string;
@@ -134,6 +140,9 @@ export interface Fact extends Document {
 
 /** A Word, a Sentence or a Fact — Knowledge's own Recallable types. */
 export type Item = Word | Sentence | Fact;
+
+/** The fields of an item an agent may propose to rewrite, each as the text it would become. */
+export type Proposal = Partial<Record<"term" | "meaning" | "text" | "translation" | "question" | "answer" | "notes", string>>;
 
 /**
  * One Recallable Document as Practice reads it, through the Contract

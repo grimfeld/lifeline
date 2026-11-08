@@ -12,6 +12,7 @@ import { WordDialog } from "./WordDialog";
 import { SentenceDialog } from "./SentenceDialog";
 import { FactDialog } from "./FactDialog";
 import { OriginLine } from "./OriginLine";
+import { ProposalNotice } from "./ProposalNotice";
 
 /** How many of an item's latest Recalls its Peek lists. */
 const HISTORY_SHOWN = 10;
@@ -89,6 +90,7 @@ export function ItemPeek({ doc }: { doc: Document }) {
           </>
         )}
       </span>
+      <ProposalNotice item={item} />
       <ItemFields key={item.id} item={item} />
       <div className="flex flex-col gap-1">
         <span className="text-muted-foreground text-xs font-medium">Prompts</span>
