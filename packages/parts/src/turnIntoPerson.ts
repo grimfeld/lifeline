@@ -20,9 +20,20 @@ export async function turnIntoPerson(id: string, roleId: string): Promise<Docume
   if (!doc || !role) throw new Error("Not found");
   if (doc.type !== role.homeType) throw new Error(`Only an ${role.label} can be turned into a Person`);
   if (!documentTypeSync(PERSON_TYPE)) throw new Error("People is not available");
-  const key = doc.title.trim().toLowerCase();
-  const taken = (await allDocuments()).some((d) => d.type === PERSON_TYPE && !d.deleted && d.folder === doc.folder && d.title.trim().toLowerCase() === key);
-  if (taken) throw new Error(`A Person named “${doc.title}” already exists in ${doc.folder || "the root"}`);
+  if (await personNamed(doc)) throw new Error(`A Person named “${doc.title}” already exists in ${doc.folder || "the root"}`);
+  return putDocument({ ...doc, type: PERSON_TYPE, [ROLES_KEY]: wearing(doc, roleId) } as DocumentInput);
+}
+
+/** Whether a live Person in the Document's folder already has its name (whatever its case or surrounding spaces). */
+async function personNamed(doc: Document): Promise<boolean> {
+  const key = nameKey(doc.title);
+  return (await allDocuments()).some((d) => d.type === PERSON_TYPE && !d.deleted && d.folder === doc.folder && nameKey(d.title) === key);
+}
+
+const nameKey = (title: string): string => title.trim().toLowerCase();
+
+/** The Roles a Document wears, `roleId` among them once. */
+function wearing(doc: Document, roleId: string): string[] {
   const worn = Array.isArray(doc[ROLES_KEY]) ? (doc[ROLES_KEY] as string[]) : [];
-  return putDocument({ ...doc, type: PERSON_TYPE, [ROLES_KEY]: worn.includes(roleId) ? worn : [...worn, roleId] } as DocumentInput);
+  return worn.includes(roleId) ? worn : [...worn, roleId];
 }

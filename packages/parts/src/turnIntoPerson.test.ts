@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildLinkIndex, documentsTable, documentTypeSync, getDocument, hasRole, initApps, isLinkTarget, putDocument, type DocumentTypeDef, type RoleDef } from "@lifeline/core";
 import { canTurnIntoPerson, turnIntoPerson } from "./turnIntoPerson";
 
@@ -64,9 +64,48 @@ describe("turning an Author into a Person", () => {
     expect(documentTypeSync("author")).toBeTruthy();
   });
 
+  it("offers it for an Author while Contacts is in the build, never for a Role that does not exist", () => {
+    expect(canTurnIntoPerson({ type: "author" }, "author")).toBe(true);
+    expect(canTurnIntoPerson({ type: "author" }, "painter")).toBe(false);
+  });
+
+  it("refuses what is not there: a Document gone, or a Role that does not exist", async () => {
+    const u = await putDocument({ type: "author", title: "A" });
+    await expect(turnIntoPerson("gone", "author")).rejects.toThrow("Not found");
+    await expect(turnIntoPerson(u.id, "painter")).rejects.toThrow("Not found");
+  });
+
+  it("names the folder a Person of that name is already in, or the root", async () => {
+    await putDocument({ type: "contacts_person", title: "Ursula Le Guin", folder: "Writers" });
+    await putDocument({ type: "contacts_person", title: "Ursula Le Guin", folder: "" });
+    const inFolder = await putDocument({ type: "author", title: "ursula le guin ", folder: "Writers" });
+    const atRoot = await putDocument({ type: "author", title: "Ursula Le Guin", folder: "" });
+    await expect(turnIntoPerson(inFolder.id, "author")).rejects.toThrow("already exists in Writers");
+    await expect(turnIntoPerson(atRoot.id, "author")).rejects.toThrow("already exists in the root");
+  });
+
+  it("keeps the Roles it already wore, and wears the Role once", async () => {
+    const both = await putDocument({ type: "author", title: "A", roles: ["artist"] });
+    const already = await putDocument({ type: "author", title: "B", roles: ["author"] });
+    expect((await turnIntoPerson(both.id, "author")).roles).toEqual(["artist", "author"]);
+    expect((await turnIntoPerson(already.id, "author")).roles).toEqual(["author"]);
+  });
+
   it("leaves a Person alone", async () => {
     const u = await putDocument({ type: "author", title: "A" });
     await turnIntoPerson(u.id, "author");
     expect(canTurnIntoPerson((await getDocument(u.id))!, "author")).toBe(false);
+  });
+});
+
+describe("without Contacts in the build", () => {
+  beforeAll(() => {
+    initApps([{ id: "library", title: "Library", types: [author, book], roles: [authorRole], screens: [], cards: [], commands: [] }]);
+  });
+
+  it("neither offers nor does it", async () => {
+    const u = await putDocument({ type: "author", title: "A" });
+    expect(canTurnIntoPerson(u, "author")).toBe(false);
+    await expect(turnIntoPerson(u.id, "author")).rejects.toThrow("People is not available");
   });
 });
