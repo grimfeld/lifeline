@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { displayTitle, documentType, excerpt, getDocument, linkMentions, patchDocument, planLinkAll, singularOf, unambiguousHits, useUnlinkedIn, useUnlinkedMentionsOf, type LinkIndex, type LinkRef, type MentionHit } from "@lifeline/core";
+import { displayTitle, documentType, excerpt, fieldLinksTo, fieldsOfDocument, getDocument, linkMentions, patchDocument, planLinkAll, singularOf, unambiguousHits, useUnlinkedIn, useUnlinkedMentionsOf, type Document, type LinkIndex, type LinkRef, type MentionHit } from "@lifeline/core";
 import { Button, cn, toast } from "@lifeline/ui";
 
 type OnOpen = (ref: LinkRef, name: string) => void;
@@ -37,8 +37,9 @@ function SourceRow({ index, sourceId, context, onOpen }: { index: LinkIndex; sou
 }
 
 /** Backlinks: the Documents that link here, by wikilink or Link field. */
-export function BacklinksSection({ docId, index, onOpen, emptyHint = true }: SectionProps & { emptyHint?: boolean }) {
-  const backlinks = index.backlinksTo(docId);
+export function BacklinksSection({ docId, index, onOpen, emptyHint = true, wikilinksOnly = false }: SectionProps & { emptyHint?: boolean; wikilinksOnly?: boolean }) {
+  // `wikilinksOnly`: what links through a Link field is shown apart, by `FieldLinksSection`.
+  const backlinks = index.backlinksTo(docId).filter((b) => !wikilinksOnly || !b.field);
   if (backlinks.length === 0 && !emptyHint) return null;
   return (
     <section className="min-w-0">
@@ -232,4 +233,42 @@ export function LinksPanel({ docId, index, onOpen }: SectionProps) {
       <OutgoingLinksSection docId={docId} index={index} onOpen={onOpen} />
     </div>
   );
+}
+
+/**
+ * What links here through a Link field — an Event's With, a Task's For, any
+ * People field — grouped by what the linking Documents are ("Events · 2").
+ * Generic over fields: a new Link field shows up with no extra work. Wikilinks
+ * stay in the plain Backlinks.
+ */
+export function FieldLinksSection({ docId, index, onOpen }: SectionProps) {
+  const groups = fieldLinksTo(index, docId);
+  if (groups.length === 0) return null;
+  return (
+    <>
+      {groups.map((g) => {
+        const def = documentType(g.type);
+        return (
+          <section key={g.type} className="min-w-0" aria-label={def?.label ?? g.type}>
+            <h3 className={HEADING}>
+              {def?.label ?? g.type} · {g.rows.length}
+            </h3>
+            <ul className="grid min-w-0 gap-1.5">
+              {g.rows.map((r) => (
+                <li key={`${r.sourceId}-${r.field}`} className="min-w-0">
+                  <SourceRow index={index} sourceId={r.sourceId} onOpen={onOpen} context={`via ${fieldLabel(index.byId.get(r.sourceId), r.field)}`} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+    </>
+  );
+}
+
+/** A Link field's label on the Document that holds it ("With"), or its key. */
+function fieldLabel(d: Document | undefined, key: string): string {
+  const f = d ? fieldsOfDocument(d, documentType(d.type)).find((x) => x.key === key) : undefined;
+  return f?.label ?? key;
 }

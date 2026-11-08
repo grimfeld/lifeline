@@ -1,4 +1,4 @@
-import type { Document } from "@lifeline/core";
+import { PERSON_TYPE, type Document } from "@lifeline/core";
 
 /**
  * The Person (CONTEXT.md, ADR 0113): someone I know, or knew. The Contacts
@@ -29,7 +29,7 @@ import type { Document } from "@lifeline/core";
  * from either end, so it is a Document of its own — an internal `contacts_tie`
  * type holding both ids and a label for each end (#412).
  */
-export const PERSON = "contacts_person";
+export const PERSON = PERSON_TYPE;
 
 /** Where a new Person lands (a home, never a rule). */
 export const PEOPLE_FOLDER = "People";

@@ -18,6 +18,7 @@ them, the palette, or the People Base.
   **Relationship** and their **Tags**, edited in place.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
+- **Events, Tasks and the rest** — what links to them through a People field (an Event's **With**), grouped by what it is.
 - **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.
 
 ### Linking to a Person
