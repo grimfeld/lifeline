@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router";
 import { seenDays, todayStr, useDocuments, useLinkIndex, type DateStr } from "@lifeline/core";
 import { Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { UserPlus } from "lucide-react";
 import { UpcomingReport } from "../components/UpcomingReport";
 import { DriftingSection } from "../components/DriftingSection";
 import { AddPersonDialog } from "../components/AddPersonDialog";
-import { personHref } from "../constants";
+import { PersonRowLink, RelationshipLabel } from "../components/PersonRow";
+import { Section } from "../components/Section";
 import { everyone, relationshipsOf, tagsOf } from "../domain/everyone";
 import { PERSON, type Person } from "../domain/types";
 import { normalizePerson } from "../data/repo";
@@ -17,14 +17,11 @@ const ANY = "__any__";
 function PersonRow({ person, lastSeen }: { person: Person; lastSeen?: DateStr }) {
   return (
     <li>
-      <Link
-        to={personHref(person.id)}
-        className="hover:bg-accent focus-visible:ring-ring flex min-w-0 items-baseline justify-between gap-3 rounded-lg border p-3 focus-visible:ring-2 focus-visible:outline-none"
-      >
+      <PersonRowLink personId={person.id}>
         <span className="min-w-0 flex-1 truncate font-medium">{person.title}</span>
-        {person.relationship && <span className="text-muted-foreground min-w-0 max-w-[50%] shrink truncate text-sm">{person.relationship}</span>}
+        {person.relationship && <RelationshipLabel>{person.relationship}</RelationshipLabel>}
         <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{lastSeen ? `Last seen ${lastSeen}` : "Not seen"}</span>
-      </Link>
+      </PersonRowLink>
     </li>
   );
 }
@@ -66,8 +63,7 @@ export function PeopleScreen() {
       {/* DRIFTING (#420): who I have not seen for a while. Goes here, between Upcoming and Everyone. */}
       {people.length > 0 && <DriftingSection people={people} />}
 
-      <section className="grid min-w-0 gap-2" aria-label="Everyone">
-        <h2 className="text-muted-foreground text-sm font-medium">Everyone</h2>
+      <Section title="Everyone">
         {people.length === 0 ? (
           <EmptyState action={add}>The people in your life. Add someone, then link them from any page with [[their name]].</EmptyState>
         ) : (
@@ -116,7 +112,7 @@ export function PeopleScreen() {
             )}
           </>
         )}
-      </section>
+      </Section>
       <AddPersonDialog open={adding} onOpenChange={setAdding} />
     </Page>
   );

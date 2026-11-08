@@ -55,11 +55,16 @@ describe("Drifting", () => {
   });
   it("switches to Not mentioned over the Mentioned days", () => {
     const rows = drifting(idx, people, { today, source: "mentioned" });
-    expect(rows.map((r) => [r.person.title, r.last, r.daysSince])).toEqual([["Bob", "2026-03-01", 252], ["Fresh", "2026-03-01", 252]]);
-    expect(names(drifting(idx, people, { today, source: "mentioned", days: 30 }))).toEqual(["Bob", "Fresh", "Cy"]);
+    // Anne is on an Event but on no Day: never mentioned, so she drifts first.
+    expect(rows.map((r) => [r.person.title, r.last, r.daysSince])).toEqual([["Anne", null, null], ["Bob", "2026-03-01", 252], ["Fresh", "2026-03-01", 252]]);
+    expect(names(drifting(idx, people, { today, source: "mentioned", days: 30 }))).toEqual(["Anne", "Bob", "Fresh", "Cy"]);
   });
-  it("leaves out a Person never seen at all", () => {
-    expect(names(drifting(idx, [P("New")], { today }))).toEqual([]);
+  it("counts a Person never seen at all as drifting, before everyone seen, by name", () => {
+    const rows = drifting(idx, [...people, P("Zoe"), P("New")], { today });
+    expect(rows.map((r) => [r.person.title, r.last, r.daysSince])).toEqual([["New", null, null], ["Zoe", null, null], ["Anne", "2026-05-01", 191], ["Bob", "2026-07-01", 130]]);
+  });
+  it("still leaves out a never-seen Person with no Relationship or excluded", () => {
+    expect(names(drifting(idx, [P("Nobody", { relationship: "" }), P("Left", { excludedFromDrifting: true })], { today }))).toEqual([]);
   });
 });
 
