@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import type { Person } from "../domain/types";
+import { ContactDetailsSection } from "../components/ContactDetailsSection";
 
 /**
  * The Person page's sections between its header and its body, in the page's
@@ -17,8 +18,8 @@ export interface PersonSection {
   component: ComponentType<{ person: Person }>;
 }
 
-/** The sections built so far; none with #408. */
-export const PERSON_SECTIONS: PersonSection[] = [];
+/** The sections built so far. */
+export const PERSON_SECTIONS: PersonSection[] = [{ slot: "contactDetails", component: ContactDetailsSection }];
 
 /** The sections in the page's order. */
 export function orderedSections(sections: readonly PersonSection[]): PersonSection[] {

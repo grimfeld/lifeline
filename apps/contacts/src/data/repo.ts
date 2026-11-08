@@ -1,5 +1,5 @@
 import { createDocument, getDocument, normalizeTags, patchDocument, renameDocument } from "@lifeline/core";
-import { PERSON, type Person } from "../domain/types";
+import { PERSON, type ContactDetail, type Person } from "../domain/types";
 
 /** A Person as stored, with the App's keys filled in for a row written before they existed. */
 export function normalizePerson(doc: Person): Person {
@@ -28,6 +28,7 @@ export interface PersonPatch {
   aliases?: string[];
   relationship?: string;
   tags?: string[];
+  contactDetails?: ContactDetail[];
 }
 
 /**
@@ -45,5 +46,6 @@ export async function patchPerson(id: string, patch: PersonPatch): Promise<void>
   if (rest.aliases) fields.aliases = cleanAliases(rest.aliases);
   if (rest.relationship !== undefined) fields.relationship = rest.relationship.trim();
   if (rest.tags) fields.tags = normalizeTags(rest.tags);
+  if (rest.contactDetails) fields.contactDetails = rest.contactDetails;
   if (Object.keys(fields).length) await patchDocument(id, fields);
 }

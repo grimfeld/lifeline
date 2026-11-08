@@ -16,9 +16,28 @@ them, the palette, or the People Base.
 - **Header** — their name, what they are to you, and their aliases.
 - **Details** — change their name (every `[[link]]` to them follows), their **Aliases**, their
   **Relationship** and their **Tags**, edited in place.
+- **Contact details** — the ways to reach them, each under a label of your own ("Mobile", "Work",
+  "Instagram"). See below.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
 - **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.
+
+### Contact details
+
+Add one with **Add contact detail** on the Person's page: a **label**, a **kind** (Phone, Email or
+Handle) and the number, address or handle as you'd type it. Pencil edits it, the cross-person
+button marks it former, the bin removes it (with Undo).
+
+- **Phone** — a click calls (`tel:`); on a computer, whatever handles calls there answers.
+- **Email** — a click opens a new mail to them.
+- **Handle** — a click opens the service in a new tab, when Lifeline can tell which: a web
+  address you typed (`instagram.com/anne`), a Fediverse address (`@anne@mastodon.social`), or a
+  `@name` whose label names the service (Instagram, X or Twitter, GitHub, Telegram, TikTok,
+  LinkedIn). Any other handle stays plain text.
+- **Former** — a number that stopped working, an account they closed. It moves under **Former**,
+  struck through, with no action, as history; the same button makes it current again.
+
+Contact details are never on the map, and Claude never sees them (below).
 
 ### Linking to a Person
 

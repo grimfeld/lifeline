@@ -33,6 +33,15 @@ describe("changing a Person", () => {
     expect(await getDocument(p.id)).toMatchObject({ aliases: ["Mum"], relationship: "my mother", tags: ["family"] });
   });
 
+  it("writes their Contact details, and leaves everything else as it was", async () => {
+    const p = await addPerson({ name: "Anne Dupont", relationship: "my mother" });
+    const contactDetails = [{ id: "c1", label: "Mobile", kind: "phone" as const, value: "+33 6 12 34 56 78", former: false }];
+    await patchPerson(p.id, { contactDetails });
+    expect(await getDocument(p.id)).toMatchObject({ contactDetails, relationship: "my mother" });
+    await patchPerson(p.id, { contactDetails: [] });
+    expect(await getDocument(p.id)).toMatchObject({ contactDetails: [] });
+  });
+
   it("refuses an empty name", async () => {
     const p = await addPerson({ name: "Anne Dupont" });
     await expect(patchPerson(p.id, { title: " " })).rejects.toThrow("A Person needs a name");

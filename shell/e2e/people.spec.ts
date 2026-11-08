@@ -111,3 +111,44 @@ test("the phone's capture sheet offers Add person under People", async ({ page, 
   await dialog.getByRole("button", { name: "Add" }).click();
   await expect.poll(() => personNamed(page, "Marc Petit")).toMatchObject({ type: PERSON });
 });
+
+test("a Person's Contact details are added through the dialog, act by kind, and go quiet when marked former", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  const id = await inCore(page, async (core, type: string) => (await core.createDocument({ type, title: "Anne Dupont" })).id as string, PERSON);
+  await page.goto(`/app/people/person/${id}`);
+  await workLocally(page);
+  const section = page.getByRole("region", { name: "Contact details" });
+
+  async function add(label: string, kind: "Phone" | "Email" | "Handle", value: string) {
+    await section.getByRole("button", { name: "Add contact detail" }).click();
+    const dialog = page.getByRole("dialog", { name: "Add a contact detail" });
+    await dialog.getByLabel("Label").fill(label);
+    await dialog.getByLabel("Kind").click();
+    await page.getByRole("option", { name: kind }).click();
+    await dialog.getByLabel("Value").fill(value);
+    await dialog.getByRole("button", { name: "Save" }).click();
+    await expect(dialog).toBeHidden();
+  }
+  await add("Mobile", "Phone", "+33 6 12 34 56 78");
+  await add("Work", "Email", "anne@example.org");
+  await add("Instagram", "Handle", "@anne_p");
+
+  await expect(section.getByRole("link", { name: "+33 6 12 34 56 78" })).toHaveAttribute("href", "tel:+33612345678");
+  await expect(section.getByRole("link", { name: "anne@example.org" })).toHaveAttribute("href", "mailto:anne@example.org");
+  await expect(section.getByRole("link", { name: "@anne_p" })).toHaveAttribute("href", "https://instagram.com/anne_p");
+
+  // Marked former: kept as history, no action.
+  await section.getByRole("button", { name: "Mark Mobile former" }).click();
+  await expect(section.getByRole("link", { name: "+33 6 12 34 56 78" })).toHaveCount(0);
+  await expect(section.getByText("+33 6 12 34 56 78")).toBeVisible();
+  await expect(section.getByText("Former", { exact: true }).first()).toBeVisible();
+
+  // Edited, then removed.
+  await section.getByRole("button", { name: "Edit Work" }).click();
+  await page.getByLabel("Value").fill("anne@work.example.org");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(section.getByRole("link", { name: "anne@work.example.org" })).toBeVisible();
+  await section.getByRole("button", { name: "Remove Instagram" }).click();
+  await expect.poll(async () => ((await inCore(page, async (core, i: string) => (await core.getDocument(i)) as never, id)) as { contactDetails?: { label: string; former: boolean }[] }).contactDetails?.map((c) => `${c.label}:${c.former}`)).toEqual(["Mobile:true", "Work:false"]);
+});

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
+import { inCore } from "./support/core";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
 import { selectText } from "./support/selection";
 import { datePickerLabelled, dayFromToday, openCalendar, showPhoneFilters } from "./support/date-picker";
@@ -843,7 +844,31 @@ const SCREENS: ScreenCase[] = [
   { name: "Museum", path: "/app/museum" },
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
   { name: "People", path: "/app/people" },
-  { name: "Person", path: "/app/people/person/:id", type: "contacts_person" },
+  {
+    name: "Person",
+    path: "/app/people/person/:id",
+    type: "contacts_person",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      const id = new URL(page.url()).pathname.split("/").pop()!;
+      const long = LONG_WORD;
+      await inCore(
+        page,
+        async (core, a: { id: string; long: string }) => {
+          await core.patchDocument(a.id, {
+            contactDetails: [
+              { id: "c1", label: a.long, kind: "phone", value: `+33 ${"6 12 34 56 78 ".repeat(12)}`, former: false },
+              { id: "c2", label: `Email ${a.long}`, kind: "email", value: `${a.long}@${a.long}.example.org`, former: false },
+              { id: "c3", label: a.long, kind: "handle", value: `https://instagram.com/${a.long}`, former: false },
+              { id: "c4", label: a.long, kind: "handle", value: `@${a.long}`, former: true },
+            ],
+          });
+        },
+        { id, long },
+      );
+      await expect(page.getByText(`Email ${long}`)).toBeVisible();
+    },
+  },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },
