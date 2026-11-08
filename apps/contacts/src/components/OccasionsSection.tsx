@@ -4,7 +4,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { Occasion, Person } from "../domain/types";
 import { isBirthday, occasionProblem } from "../domain/occasions";
 import { addOccasion, editOccasion, removeOccasion } from "../data/repo";
-import { Section } from "../screens/sections";
+import { Section } from "./Section";
 
 /** "03-04" reads as "4 March", "1961-03-04" as "4 March 1961". */
 export function describeDay(day: string): string {
@@ -37,7 +37,7 @@ export function OccasionsSection({ person }: { person: Person }) {
               variant="ghost"
               size="icon"
               aria-label={`Remove ${o.label}`}
-              onClick={() => removeOccasion(person.id, o.id).catch((e) => toast.error(e instanceof Error ? e.message : String(e)))}
+              onClick={() => removeOccasion(person.id, o.id).catch((e) => toast.error(`${o.label} could not be removed.`, { description: e instanceof Error ? e.message : String(e) }))}
             >
               <Trash2 />
             </Button>
@@ -101,9 +101,10 @@ function OccasionForm({ personId, editing, onClose }: { personId: string; editin
         <Field label="Day" hint="YYYY-MM-DD, or MM-DD when you don't know the year." error={error || undefined}>
           <Input value={day} onChange={(e) => setDay(e.target.value)} placeholder="1961-03-04" inputMode="numeric" />
         </Field>
-        <label className="flex items-center gap-2 text-sm">
-          <Checkbox checked={yearly} onCheckedChange={(c) => setYearly(c === true)} /> Every year
-        </label>
+        {/* The box before its words, as a checkbox reads. */}
+        <Field label="Every year" className="flex flex-row-reverse items-center justify-end gap-2">
+          <Checkbox checked={yearly} onCheckedChange={(c) => setYearly(c === true)} />
+        </Field>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel

@@ -25,10 +25,10 @@ Workspace, by name, each with what they are to you and when you last saw them. C
 ### Drifting
 
 **Drifting** sits above Everyone and answers "who have I lost touch with?". It lists the People
-who have a **Relationship** and whom you have **not seen in 90 days**, the longest unseen first,
-each with how many days it has been. Switch it to **Not mentioned** to count the Days that link
-to them instead of the Events. Someone who has never been seen is not listed, and neither is
-anyone without a Relationship. It is only a list: Lifeline never reminds you.
+who have a **Relationship** and whom you have **not seen in 90 days**: first anyone you have
+never seen ("Never seen"), then the longest unseen, each with how many days it has been. Switch
+it to **Not mentioned** to count the Days that link to them instead of the Events. Anyone
+without a Relationship is not listed. It is only a list: Lifeline never reminds you.
 
 **Leave out** on a row, or **Excluded from Drifting** on a Person's page (and in their Peek),
 takes them out of Drifting, for someone you don't mean to see again. Untick it on their page to
@@ -47,15 +47,21 @@ bring them back.
   "Work", "Holiday house"). See below.
 - **Ties** — how they stand to other People, each read from their side: "daughter: Léa" on
   Anne's page, "mother: Anne" on Léa's. See Ties below.
-- **Reports** — **Last seen** (the last day of an Event that links to them) and **Last
+- **Reports** — **Last seen** (the last day of an Event that links to them, through its **With**
+  or a `[[link]]` in its notes) and **Last
   mentioned** (the last Day that links to them), side by side and never added together. Seen
   counts an Event once per day it is on, every day of a trip, and nothing in the future; Tasks
   and Occasions never count. A type can also choose **Seen count**, a **Seen heatmap**, **Top seen**
   and **Not seen lately** in its editor, and each can be placed as a Report Card.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
-- **Events, Tasks and the rest** — what links to them through a People field (an Event's **With**, a Task's or a Transaction's **For**, a book's **Recommended by**), grouped by what it is. Only an Event's **With** counts as having seen them.
+- **Events, Tasks and the rest** — what links to them through a People field (an Event's **With**, a Task's or a Transaction's **For**, a book's **Recommended by**), grouped by what it is. Only an Event counts as having seen them: its **With**, or a `[[link]]` to
+  them in its notes ("Dinner with [[Marc]]").
 - **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.
+
+Deleting a Person takes them out of every People field that held them (an Event's **With**, a
+Task's **For**…); the Events, Tasks and the rest stay. A `[[link]]` to them in a body becomes an
+unresolved link, as for any deleted page.
 
 ### Contact details
 
@@ -155,11 +161,13 @@ you can add someone you just met before you forget it.
   from Deadlines, with the same age.
 - "When did I last see Anne?" — `get_document` on a Person adds their Last seen and Last
   mentioned, from what Claude is allowed to read.
+- "Who is Léa to Anne?" — `get_document` on a Person also lists their Ties, read from their side
+  ("daughter: Léa"), leaving out anyone in the Private folder.
 - "What have I written about Anne?" — `search_documents`, `get_document`.
 
 ### What Claude sees of a Person
 
-Claude reads a Person's name, aliases, Relationship, Tags, Occasions, body, and any Field you
+Claude reads a Person's name, aliases, Relationship, Tags, Occasions, Ties, body, and any Field you
 added to Person yourself, and it can change those; it can add an Occasion.
 
 Claude never sees a Person's **Addresses** or **Contact details**, current or former, from any

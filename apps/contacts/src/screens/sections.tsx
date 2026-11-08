@@ -36,4 +36,3 @@ export function orderedSections(sections: readonly PersonSection[]): PersonSecti
   return [...sections].sort((a, b) => SECTION_SLOTS.indexOf(a.slot) - SECTION_SLOTS.indexOf(b.slot));
 }
 
-export { Section } from "../components/Section";

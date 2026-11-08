@@ -13,7 +13,8 @@ import { documentTypeSync } from "./registry";
 import { recallableDefs, registeredApps } from "../registry";
 import { inPrivateFolder, privateGate, visibleUnder } from "../private";
 import { onWorkspaceChange, useCurrentWorkspaceId, workspaceScope } from "../workspaces";
-import type { Document } from "./types";
+import { isLinkKind, type Document } from "./types";
+import { fieldsOfDocument } from "./roles";
 
 /**
  * The Document store (ADR 0018): one Dexie table, one PocketBase collection.
@@ -164,8 +165,29 @@ export async function removeDocument(id: string): Promise<void> {
     await documentTypeSync(doc.type)?.onDelete?.(doc);
     // A Recallable Document's practice goes with it, whatever App owns it and whichever keeps the practice (ADR 0073).
     if (recallableDefs().some((d) => d.typeId === doc.type)) for (const a of registeredApps()) await a.forgetRecallable?.(doc);
+    if (documentTypeSync(doc.type)?.unlinkOnDelete) await unlinkEverywhere(id);
   }
   await remove(DOCUMENTS, id);
+}
+
+/**
+ * Take `id` out of every Link field that holds it, on every live Document of
+ * every Workspace (`unlinkOnDelete`). A `links` Field loses the one id; a
+ * `link` Field is emptied.
+ */
+async function unlinkEverywhere(id: string): Promise<void> {
+  const rows = await documentsTable().where("deleted").equals(0).toArray();
+  for (const row of rows) {
+    if (row.id === id) continue;
+    const patch: Record<string, unknown> = {};
+    for (const f of fieldsOfDocument(row, documentTypeSync(row.type))) {
+      if (!isLinkKind(f.kind)) continue;
+      const v = row[f.key];
+      if (Array.isArray(v) && v.includes(id)) patch[f.key] = v.filter((x) => x !== id);
+      else if (v === id) patch[f.key] = "";
+    }
+    if (Object.keys(patch).length) await putDocument({ ...row, ...patch } as DocumentInput);
+  }
 }
 
 /** Tombstone every live Document of a type matching a predicate (cascades: a Task's overrides, a Writing's Versions). */

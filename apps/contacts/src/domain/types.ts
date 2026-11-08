@@ -29,7 +29,6 @@ import { PERSON_TYPE, type Document } from "@lifeline/core";
  * from either end, so it is a Document of its own — an internal `contacts_tie`
  * type holding both ids and a label for each end (#412).
  */
-export const PERSON = PERSON_TYPE;
 
 /** Where a new Person lands (a home, never a rule). */
 export const PEOPLE_FOLDER = "People";
@@ -71,14 +70,15 @@ export interface ContactDetail {
 
 /**
  * The agent wall (ADR 0114): the keys of a Person an agent never reads or
- * writes, current and former alike. The MCP server's handlers strip them from
- * every answer and refuse every write that names them. A part added to Person
- * later that is as private belongs here.
+ * writes, current and former alike. Declared on the Person type
+ * (`agentWalled`), which the MCP server honours for any type: it strips them
+ * from every answer and refuses every write that names them. A part added to
+ * Person later that is as private belongs here.
  */
 export const AGENT_WALLED_KEYS = ["addresses", "contactDetails"] as const;
 
 export interface Person extends Document {
-  type: typeof PERSON;
+  type: typeof PERSON_TYPE;
   /** Other names they go by: `[[Mum]]` lands on Anne Dupont. */
   aliases: string[];
   /** What they are to me, in my own words ("my aunt"); "" when not said. Not a Tie, not a Tag. */

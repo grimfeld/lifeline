@@ -29,7 +29,8 @@ function SourceRow({ index, sourceId, context, onOpen }: { index: LinkIndex; sou
     <button type="button" className="hover:bg-accent w-full min-w-0 flex-1 rounded-md px-2 py-1 text-left" onClick={() => onOpen({ kind: "doc", id: sourceId, type: src?.type ?? "" }, title)}>
       <div className="flex min-w-0 items-baseline gap-2">
         <span className="min-w-0 truncate font-medium">{title}</span>
-        {def && <span className="text-muted-foreground shrink-0 text-2xs uppercase">{singularOf(def)}</span>}
+        {/* A user type's name may be as long as a title: it gives way too, never pushes the row wide (ADR 0065). */}
+        {def && <span className="text-muted-foreground min-w-0 truncate text-2xs uppercase">{singularOf(def)}</span>}
       </div>
       <div className="text-muted-foreground line-clamp-2 text-xs break-words">{context}</div>
     </button>

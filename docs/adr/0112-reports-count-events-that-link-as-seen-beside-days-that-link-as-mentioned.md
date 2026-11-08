@@ -25,6 +25,7 @@ The Seen kinds mirror the mention ones: **Not seen in N days** and **Top seen** 
 
 ## Consequences
 
+- An Event links through its **With** or through a wikilink in its Notes: an Event has no body, so its type names Notes as a text Field whose wikilinks the link index reads (`linkingText`). Those make Backlinks only, never a Ghost or an Unlinked mention.
 - Only Events count, never markers: an Occasion on Marc's birthday is not seeing him.
 - Tasks stay out, even dated ones: a Task is work given a day, not a moment with someone. If a "seen" Task is ever wanted, it becomes an Event.
 - A shared Event linking several People counts once for each of them.

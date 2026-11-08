@@ -253,10 +253,12 @@ export function AuthorScreen() {
   async function remove() {
     if (!author) return;
     const gone = author;
-    const unlinked = await deleteAuthor(gone.id);
-    toast.success(`Deleted “${gone.title}”`, {
-      description: unlinked.length ? `Their ${unlinked.length} work${unlinked.length === 1 ? "" : "s"} stay, unlinked.` : undefined,
-      action: { label: "Undo", onClick: () => void restoreAuthor(gone, unlinked) },
+    const deleted = await deleteAuthor(gone.id);
+    const n = deleted.unlinked.length;
+    // A Person wearing the Role is never deleted from here: only the Role comes off.
+    toast.success(deleted.kept ? `“${gone.title}” is no longer an Author` : `Deleted “${gone.title}”`, {
+      description: n ? `Their ${n} work${n === 1 ? "" : "s"} stay, unlinked.` : undefined,
+      action: { label: "Undo", onClick: () => void restoreAuthor(gone, deleted) },
     });
     navigate(APP_HREF);
   }

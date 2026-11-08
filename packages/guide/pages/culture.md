@@ -84,6 +84,8 @@ Books, comics and manga.
   **Merge…** two Authors who are one person, or open them in the Vault.
   **Turn into a Person…** (after a confirmation) is for an Author you have come to know: they
   become one of your [People](people.md) and stay an Author, so their works still name them.
+  **Delete author** deletes an Author and leaves their works, unlinked. On one of your People
+  who is also an Author it only takes the Author off: the Person stays.
 
 Commands (Ctrl+K):
 

@@ -1,9 +1,9 @@
 import { useMemo } from "react";
-import { Link } from "react-router";
 import { formatHuman, todayStr, type CardProps } from "@lifeline/core";
-import { personHref } from "../constants";
 import { normalizePerson, usePeople } from "../data/repo";
 import { upcomingOccasions, type UpcomingOccasion } from "../domain/occasions";
+import { PersonRowLink } from "./PersonRow";
+import { Section } from "./Section";
 
 export const UPCOMING_DAYS = 30;
 
@@ -13,10 +13,7 @@ const whenOf = (inDays: number) => (inDays === 0 ? "today" : inDays === 1 ? "tom
 function Row({ u }: { u: UpcomingOccasion }) {
   return (
     <li>
-      <Link
-        to={personHref(u.personId)}
-        className="hover:bg-accent focus-visible:ring-ring flex min-w-0 items-baseline justify-between gap-3 rounded-lg border p-3 focus-visible:ring-2 focus-visible:outline-none"
-      >
+      <PersonRowLink personId={u.personId}>
         <span className="min-w-0 flex-1 truncate">
           <span className="font-medium">{u.name}</span>
           <span className="text-muted-foreground"> · {u.label}</span>
@@ -25,7 +22,7 @@ function Row({ u }: { u: UpcomingOccasion }) {
         <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
           {formatHuman(u.date)} · {whenOf(u.inDays)}
         </span>
-      </Link>
+      </PersonRowLink>
     </li>
   );
 }
@@ -39,8 +36,7 @@ export function UpcomingReport({ days = UPCOMING_DAYS }: { days?: number }) {
   const today = todayStr();
   const items = useMemo(() => upcomingOccasions(rows.map(normalizePerson), today, days), [rows, today, days]);
   return (
-    <section className="grid min-w-0 gap-2" aria-label="Upcoming">
-      <h2 className="text-muted-foreground text-sm font-medium">Upcoming</h2>
+    <Section title="Upcoming">
       {items.length === 0 ? (
         <p className="text-muted-foreground text-sm">Nothing in the next {days} days.</p>
       ) : (
@@ -50,7 +46,7 @@ export function UpcomingReport({ days = UPCOMING_DAYS }: { days?: number }) {
           ))}
         </ul>
       )}
-    </section>
+    </Section>
   );
 }
 

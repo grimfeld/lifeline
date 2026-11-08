@@ -1,11 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PERSON_TYPE } from "@lifeline/core";
 import type { Document, DocumentTypeDef, OwnedCommand, TimedProvider } from "@lifeline/core";
 import { pinsOf } from "@lifeline/core";
-import { personTypeDef } from "@lifeline/app-contacts/src/types";
-import { contactsCommands } from "@lifeline/app-contacts/src/commands";
-import { contactsTimed } from "@lifeline/app-contacts/src/timed";
-import type { Address, ContactDetail } from "@lifeline/app-contacts/src/domain/types";
-import { markFormer, saveDetail, type DetailInput } from "@lifeline/app-contacts/src/domain/contactDetails";
+import { contactsApp } from "@lifeline/app-contacts";
 
 /**
  * The agent wall (ADR 0114): no tool answer ever carries a Person's Addresses
@@ -51,24 +48,22 @@ vi.mock("@lifeline/core", async (importOriginal) => {
 
 const { runTool } = await import("./handlers");
 
-const PERSON = personTypeDef.id;
+// Through the manifest only, as the server takes it (apps.ts).
+const personTypeDef = contactsApp.types.find((t) => t.id === PERSON_TYPE)!;
+const contactsTimed = contactsApp.timed!;
 
 // Every value is one no answer may hold: distinctive, so a hit is a leak, not a coincidence.
-const addresses: Address[] = [
+const addresses = [
   { id: "a1", label: "Zanzibar house", text: "12 Rue Quillardet, 75019 Paris", lat: 48.871234, lon: 2.381234, former: false },
   { id: "a2", label: "Old flat Brixtonia", text: "4 Coldharbour Lane, London", lat: 51.461987, lon: -0.113456, former: true },
 ];
-// Made as the Person page's dialog makes them (saveDetail, markFormer), so the wall is checked against what is really stored.
-const contactDetails: ContactDetail[] = (() => {
-  let ids = 0;
-  const add = (list: ContactDetail[], input: DetailInput) => saveDetail(list, input, () => `c${++ids}`);
-  let list: ContactDetail[] = [];
-  list = add(list, { label: " Mobile Qwz ", kind: "phone", value: "+33 6 12 34 56 78" });
-  list = add(list, { label: "Mail Qwz", kind: "email", value: "anne.qwz@example.org" });
-  list = add(list, { label: "Insta Qwz", kind: "handle", value: "@anne_qwz_paints" });
-  list = add(list, { label: "Dead landline Qwz", kind: "phone", value: "+33 1 98 76 54 32" });
-  return markFormer(markFormer(list, "c3", true), "c4", true);
-})();
+// As the Person page's dialog stores them: current and former.
+const contactDetails = [
+  { id: "c1", label: "Mobile Qwz", kind: "phone", value: "+33 6 12 34 56 78", former: false },
+  { id: "c2", label: "Mail Qwz", kind: "email", value: "anne.qwz@example.org", former: false },
+  { id: "c3", label: "Insta Qwz", kind: "handle", value: "@anne_qwz_paints", former: true },
+  { id: "c4", label: "Dead landline Qwz", kind: "phone", value: "+33 1 98 76 54 32", former: true },
+];
 const WALLED_VALUES = [
   ...addresses.flatMap((a) => [a.label, a.text, String(a.lat), String(a.lon)]),
   ...contactDetails.flatMap((c) => [c.label, c.value]),
@@ -79,7 +74,7 @@ const WALLED_VALUES = [
 const person = (id: string, title: string, folder = "People", extra: Record<string, unknown> = {}) =>
   ({
     id,
-    type: PERSON,
+    type: PERSON_TYPE,
     title,
     folder,
     tags: ["family"],
@@ -107,12 +102,12 @@ const tieType: DocumentTypeDef = { id: "contacts_tie", label: "Ties", titleRule:
 const PERSON_TOOLS: { name: string; args: Record<string, unknown> }[] = [
   { name: "search_documents", args: {} },
   { name: "search_documents", args: { query: "anne" } },
-  { name: "search_documents", args: { type: PERSON } },
+  { name: "search_documents", args: { type: PERSON_TYPE } },
   { name: "get_document", args: { id: "p1" } },
   { name: "get_document", args: { id: "t1" } },
   { name: "agenda", args: { start: "2026-11-01", end: "2026-11-30" } },
   { name: "list_types", args: {} },
-  { name: "list_types", args: { type: PERSON } },
+  { name: "list_types", args: { type: PERSON_TYPE } },
   { name: "people_add", args: { name: "Anne Dupont", aliases: ["Mum"], relationship: "my mother", tags: ["family"] } },
   { name: "people_occasion_add", args: { person: "Anne Dupont", label: "Birthday", day: "1961-11-12" } },
   { name: "people_upcoming", args: { from: "2026-11-01", days: 60 } },
@@ -126,11 +121,11 @@ beforeEach(() => {
   timed.push(contactsTimed);
   for (const fn of Object.values(core)) fn.mockReset().mockResolvedValue(undefined);
   core.createDocument.mockImplementation(async (input: { type: string; title: string }) => ({ ...person("new", input.title), ...input }));
-  types.set(PERSON, withGiftIdeas);
+  types.set(PERSON_TYPE, withGiftIdeas);
   types.set(tieType.id, tieType);
   docs.set("p1", person("p1", "Anne Dupont", "People", { giftIdeas: "a good sable brush", occasions: [{ id: "o1", label: "Birthday", day: "1961-11-12", yearly: true }] }));
   docs.set("t1", { id: "t1", type: tieType.id, title: "Anne – Léa", folder: "", tags: [], createdAt: "", updatedAt: "", deleted: 0 } as unknown as Document);
-  commands.push(...contactsCommands.map((c) => ({ ...c, appId: "contacts" })));
+  commands.push(...contactsApp.commands.map((c) => ({ ...c, appId: "contacts" })));
 });
 
 describe("the agent wall: what an agent reads of a Person (ADR 0114)", () => {
@@ -140,7 +135,7 @@ describe("the agent wall: what an agent reads of a Person (ADR 0114)", () => {
   });
 
   it("holds as a rule about the Person type, not by the Fields it declares", async () => {
-    types.set(PERSON, { ...withGiftIdeas, fields: withGiftIdeas.fields.filter((f) => f.key !== "addresses" && f.key !== "contactDetails") });
+    types.set(PERSON_TYPE, { ...withGiftIdeas, fields: withGiftIdeas.fields.filter((f) => f.key !== "addresses" && f.key !== "contactDetails") });
     for (const { name, args } of PERSON_TOOLS) {
       const answer = JSON.stringify(await runTool(name, args));
       for (const value of WALLED_VALUES) expect(answer, `${name} leaked “${value}”`).not.toContain(value);
@@ -193,7 +188,7 @@ describe("the agent wall: what an agent writes of a Person (ADR 0114)", () => {
   });
 
   it("refuses them through create_document", async () => {
-    await expect(runTool("create_document", { type: PERSON, title: "Léa", fields: { contactDetails: [] } })).rejects.toThrow();
+    await expect(runTool("create_document", { type: PERSON_TYPE, title: "Léa", fields: { contactDetails: [] } })).rejects.toThrow();
     expect(core.createDocument).not.toHaveBeenCalled();
   });
 

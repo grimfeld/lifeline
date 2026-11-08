@@ -46,6 +46,8 @@ const eventType: DocumentTypeDef = {
     { key: "with", label: "With", kind: "links", linkType: PERSON_TYPE },
   ],
   indexes: ["date"],
+  // "Dinner with [[Marc]]" in its Notes links Marc (ADR 0112): the Event counts as Seen.
+  linkingText: ["notes"],
   linkable: { subtitle: (d) => formatHuman((d as Event).date) },
   href: () => EVENTS_HREF,
   order: 30,

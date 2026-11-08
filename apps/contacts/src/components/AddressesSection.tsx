@@ -9,12 +9,12 @@ import { AddressDialog, locate } from "./AddressDialog";
 
 function AddressRow({ person, address, onEdit }: { person: Person; address: Address; onEdit: () => void }) {
   const placed = address.lat !== undefined && address.lon !== undefined;
-  const run = (change: Parameters<typeof updateAddresses>[1]) => updateAddresses(person.id, change).catch((e) => toast.error(e instanceof Error ? e.message : String(e)));
+  const run = (change: Parameters<typeof updateAddresses>[1]) => updateAddresses(person.id, change).catch((e) => toast.error("The Address could not be changed.", { description: e instanceof Error ? e.message : String(e) }));
 
   // The retry: an explicit click, so the lookup may run (Core's geocode is never called on render).
   async function retry() {
     const found = await locate(address.text);
-    if (!found) return void toast.warning("Still no place found for this address.");
+    if (!found) return void toast.error("Still no place found for this Address. Check its text, or try again later.");
     await run((list) => editAddress(list, address.id, { lat: found.lat, lon: found.lon }));
   }
 

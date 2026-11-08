@@ -56,4 +56,4 @@ export const contactsApp: AppManifest = {
   intakes: [{ id: "person", title: "Person", icon: User, dialog: AddPersonDialog, links: true }],
 };
 
-export { PERSON, TIE, type Person, type Tie } from "./domain/types";
+export { TIE, type Person, type Tie } from "./domain/types";

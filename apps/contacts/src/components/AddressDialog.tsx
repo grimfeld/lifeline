@@ -44,7 +44,7 @@ export function AddressDialog({ personId, address, open, onOpenChange }: { perso
       const coords = found ?? {};
       if (address) await updateAddresses(personId, (list) => editAddress(list, address.id, { label, text, lat: found?.lat, lon: found?.lon }));
       else await updateAddresses(personId, (list) => addAddress(list, { label, text, ...coords }, () => crypto.randomUUID()));
-      if (!found) toast.warning("Saved, but no place was found for it. Try the lookup again from the Address.");
+      if (!found) toast.success("Address saved. No place was found for it yet: try the lookup again from the Address.");
       onOpenChange(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

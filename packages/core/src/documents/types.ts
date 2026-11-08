@@ -175,6 +175,12 @@ export interface DocumentTypeDef {
    * still wikilink targets, never offered from plain prose.
    */
   linkable?: boolean | { aliasesField?: string; subtitle?: (doc: Document) => string | undefined; expand?: (name: string) => string[] | null; mentions?: boolean };
+  /**
+   * Text Fields whose wikilinks the link index reads as links, for a type with
+   * no body that keeps its prose in a Field (an Event's Notes). They make
+   * Backlinks only: no Ghost, no tag, no Unlinked mention. Declared in code.
+   */
+  linkingText?: string[];
   /** Locatable (data-declarable Contract): the geo field holding `[lat, lon]`, or a reader. */
   locatable?: string | ((doc: Document) => { lat: number; lon: number } | null);
   /**
@@ -223,6 +229,13 @@ export interface DocumentTypeDef {
    */
   onDelete?: (doc: Document) => Promise<void>;
   /**
+   * When one of its Documents is deleted, Core takes its id out of every Link
+   * field that holds it, on Documents of any type (a Person's: an Event's With,
+   * a Task's For). For a type other Apps link to without knowing it; the links
+   * are dropped, the linking Documents kept.
+   */
+  unlinkOnDelete?: boolean;
+  /**
    * What goes with a Document when it moves to another Workspace (ADR 0048):
    * the ids of the Documents that exist in its service and would otherwise be
    * left pointing into a sealed box — a Project's Milestones, Lanes and Tasks
@@ -236,6 +249,13 @@ export interface DocumentTypeDef {
    * reads it.
    */
   describe?: (doc: Document) => Promise<Record<string, unknown>>;
+  /**
+   * The agent wall (ADR 0114): keys of this type's Documents an agent never
+   * reads or writes, whatever Fields declare them (a Person's Addresses and
+   * Contact details). The MCP server strips them from every answer and refuses
+   * them in every write, Command and Macro step.
+   */
+  agentWalled?: readonly string[];
   /**
    * For an internal type (ADR 0098): the Document that speaks for one of its
    * own — a Lane's Project. `get_document` on the internal id answers as if
