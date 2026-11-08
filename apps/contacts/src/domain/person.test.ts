@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { findPerson, nameFromHandoff } from "./person";
+import { QUICK_MAKE_MAX } from "@lifeline/core";
+import { findPerson, initialName, knownLine, nameFromHandoff } from "./person";
 
 describe("the name a Person is made with from a Handoff", () => {
   it("is the selected words when they are a name", () => {
@@ -31,5 +32,30 @@ describe("findPerson", () => {
   });
   it("refuses an ambiguous name, naming those it could be", () => {
     expect(findPerson(people, "Mum")).toEqual({ problem: expect.stringMatching(/ambiguous: Anne Dupont, Anna/) });
+  });
+});
+
+describe("a name exactly as long as a quick make allows", () => {
+  it("is still a name; one letter more is not", () => {
+    const name = "A".repeat(QUICK_MAKE_MAX);
+    expect(nameFromHandoff({ title: "Page", text: name, originId: "d1" })).toBe(name);
+    expect(nameFromHandoff({ title: "Page", text: `${name}A`, originId: "d1" })).toBe("Page");
+  });
+});
+
+describe("the name the Add person dialog opens with", () => {
+  it("comes from a Handoff when there is one, else from the initial values", () => {
+    expect(initialName({ title: "Page", text: "Anne Dupont", originId: "d1" }, { name: "Ignored" })).toBe("Anne Dupont");
+    expect(initialName(undefined, { name: "Léa" })).toBe("Léa");
+    expect(initialName(undefined, undefined)).toBe("");
+  });
+});
+
+describe("the line under a Person's name", () => {
+  it("gives the age, the Relationship and the aliases, leaving out what is not known", () => {
+    expect(knownLine({ relationship: "my mother", aliases: ["Mum", "Maman"] }, 65)).toBe("65 years old · my mother · also Mum, Maman");
+    expect(knownLine({ relationship: "", aliases: ["Mum"] }, null)).toBe("also Mum");
+    expect(knownLine({ relationship: "colleague", aliases: [] }, 0)).toBe("0 years old · colleague");
+    expect(knownLine({ relationship: "", aliases: [] }, null)).toBe("");
   });
 });

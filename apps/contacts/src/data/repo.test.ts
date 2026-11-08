@@ -2,7 +2,8 @@ import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { PERSON_TYPE, createDocument, documentType, documentsTable, getDocument, initApps, putDocument, removeDocument, saveDocumentType, type DocumentTypeDef, type FieldDef } from "@lifeline/core";
 import { personTypeDef } from "../types";
-import { addOccasion, addOccasionByName, addPerson, editOccasion, patchPerson, removePart, restorePart, updateContactDetails } from "./repo";
+import { addOccasion, addOccasionByName, addPerson, editOccasion, livePerson, normalizePerson, patchPerson, removePart, restorePart, updateContactDetails } from "./repo";
+import type { Person } from "../domain/types";
 
 // Stand-ins for the other Apps' People fields (Contacts imports none of them): an Event's With, a Task's
 // and a Transaction's For, a work's Recommended by.
@@ -56,6 +57,68 @@ describe("changing a Person", () => {
     const p = await addPerson({ name: "Anne Dupont" });
     await expect(patchPerson(p.id, { title: " " })).rejects.toThrow("A Person needs a name");
   });
+
+  it("renames them, rewriting the links to the old name, and leaves their other fields", async () => {
+    const p = await addPerson({ name: "Anne Dupont", relationship: "my mother" });
+    const note = await createDocument({ type: "note", title: "Lunch", body: "With [[Anne Dupont]]." });
+    await patchPerson(p.id, { title: "Anne Martin" });
+    expect(await getDocument(p.id)).toMatchObject({ title: "Anne Martin", relationship: "my mother" });
+    expect((await getDocument(note.id))?.body).toContain("[[Anne Martin]]");
+  });
+
+  it("cleans what it writes: aliases trimmed, the Relationship trimmed or cleared, Tags normalised", async () => {
+    const p = await addPerson({ name: "Anne Dupont", relationship: "my mother", tags: ["family"] });
+    await patchPerson(p.id, { aliases: [" Mum ", " "], relationship: " my aunt ", tags: ["Climbing"] });
+    expect(await getDocument(p.id)).toMatchObject({ aliases: ["Mum"], relationship: "my aunt", tags: ["climbing"] });
+    await patchPerson(p.id, { relationship: "" });
+    expect(await getDocument(p.id)).toMatchObject({ aliases: ["Mum"], relationship: "", tags: ["climbing"] });
+  });
+
+  it("leaves them out of Drifting, and puts them back", async () => {
+    const p = await addPerson({ name: "Anne Dupont" });
+    await patchPerson(p.id, { excludedFromDrifting: true });
+    expect(await getDocument(p.id)).toMatchObject({ excludedFromDrifting: true });
+    await patchPerson(p.id, { excludedFromDrifting: false });
+    expect(await getDocument(p.id)).toMatchObject({ excludedFromDrifting: false });
+  });
+
+  it("writes nothing for a Person who is not there", async () => {
+    await patchPerson("nobody", { title: "Anne", relationship: "x" });
+    expect(await getDocument("nobody")).toBeUndefined();
+  });
+
+  it("refuses to change the parts of what is no Person", async () => {
+    const note = await createDocument({ type: "note", title: "Lunch" });
+    await expect(updateContactDetails(note.id, (l) => l)).rejects.toThrow("No such Person");
+    await expect(updateContactDetails("nobody", (l) => l)).rejects.toThrow("No such Person");
+  });
+});
+
+describe("reading a Person", () => {
+  const row = (more: Record<string, unknown>) => ({ id: "p", type: "contacts_person", title: "Anne", tags: [], folder: "People", createdAt: "2026-01-01", updatedAt: "", deleted: 0, ...more }) as unknown as Person;
+
+  it("fills in the App's keys a row lacks or holds damaged", () => {
+    expect(normalizePerson(row({ aliases: "Mum", relationship: 3, excludedFromDrifting: "yes", occasions: "x", addresses: 4 }))).toMatchObject({ aliases: [], relationship: "", excludedFromDrifting: false, occasions: [], addresses: [] });
+  });
+
+  it("keeps the App's keys a row holds well-formed", () => {
+    const occasion = { id: "o", label: "Birthday", day: "03-04", yearly: true };
+    const address = { id: "a", label: "Home", text: "1 Rue X", former: false };
+    expect(normalizePerson(row({ aliases: ["Mum"], relationship: "my mother", excludedFromDrifting: true, occasions: [occasion], addresses: [address] }))).toMatchObject({
+      aliases: ["Mum"],
+      relationship: "my mother",
+      excludedFromDrifting: true,
+      occasions: [occasion],
+      addresses: [address],
+    });
+  });
+
+  it("is shown on its page only while it is a live Person", () => {
+    expect(livePerson(row({}))).toMatchObject({ id: "p", aliases: [] });
+    expect(livePerson(undefined)).toBeUndefined();
+    expect(livePerson(row({ deleted: 1 }))).toBeUndefined();
+    expect(livePerson(row({ type: "note" }))).toBeUndefined();
+  });
 });
 
 describe("an existing user-defined type for people (ADR 0113)", () => {
@@ -84,6 +147,15 @@ describe("a Person's Occasions", () => {
     await addOccasion(p.id, { label: "Met", day: "1990-06-01", yearly: true });
     await restorePart(p.id, "occasions", removed);
     expect(((await getDocument(p.id)) as never as { occasions: { label: string }[] }).occasions.map((x) => x.label)).toEqual(["Birthday", "Surgery", "Met"]);
+  });
+
+  it("refuse to edit an Occasion that is not there, and edit only the one named", async () => {
+    const p = await addPerson({ name: "Anne Dupont" });
+    const a = await addOccasion(p.id, { label: "Birthday", day: "1961-03-04", yearly: true });
+    const b = await addOccasion(p.id, { label: "Met", day: "1990-06-01", yearly: true });
+    await expect(editOccasion(p.id, "nope", { label: "X", day: "01-01", yearly: true })).rejects.toThrow("No such occasion");
+    await editOccasion(p.id, b.id, { label: "Wedding", day: "1990-06-02", yearly: true });
+    expect(((await getDocument(p.id)) as never as { occasions: unknown[] }).occasions).toEqual([a, { id: b.id, label: "Wedding", day: "1990-06-02", yearly: true }]);
   });
 
   it("refuse what is not an Occasion, writing nothing", async () => {

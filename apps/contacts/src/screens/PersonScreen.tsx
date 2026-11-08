@@ -1,13 +1,14 @@
 import { useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router";
-import { PERSON_TYPE, documentType, patchDocument, todayStr, useDocument, useLinkIndex, useOpenPeek, type Document } from "@lifeline/core";
+import { PERSON_TYPE, documentType, patchDocument, todayStr, useDocument, useLinkIndex, useOpenPeek, type Document, type LinkRef } from "@lifeline/core";
 import { BacklinksSection, DocumentEditor, FieldLinksSection } from "@lifeline/editor";
 import { CommitField, Page, PageHeader } from "@lifeline/ui";
 import { ArrowLeft } from "lucide-react";
 import { PEOPLE_HREF } from "../constants";
 import { type Person } from "../domain/types";
 import { ageOf } from "../domain/occasions";
-import { normalizePerson, patchPerson } from "../data/repo";
+import { knownLine } from "../domain/person";
+import { livePerson, patchPerson } from "../data/repo";
 import { PersonFields } from "../components/PersonFields";
 import { Section } from "../components/Section";
 import { OccasionsSection } from "../components/OccasionsSection";
@@ -31,11 +32,12 @@ const back = (
 export function PersonScreen() {
   const { id } = useParams<{ id: string }>();
   const row = useDocument<Person>(id);
-  const person = useMemo(() => (row && !row.deleted && row.type === PERSON_TYPE ? normalizePerson(row) : undefined), [row]);
+  const person = useMemo(() => livePerson(row), [row]);
   const index = useLinkIndex();
   const openPeek = useOpenPeek();
   // Only the body and its Tags are written from the editor, so a Field changed above is never sent back as it was.
   const saveBody = useCallback((next: Document) => patchDocument(next.id, { body: next.body, tags: next.tags }), []);
+  const openRef = (ref: LinkRef) => void (ref.kind === "doc" && openPeek(ref.id));
 
   if (!person) {
     return (
@@ -46,8 +48,7 @@ export function PersonScreen() {
     );
   }
 
-  const age = ageOf(person.occasions ?? [], todayStr());
-  const known = [age === null ? "" : `${age} years old`, person.relationship, person.aliases.length ? `also ${person.aliases.join(", ")}` : ""].filter(Boolean).join(" · ");
+  const known = knownLine(person, ageOf(person.occasions ?? [], todayStr()));
   return (
     <Page>
       <div className="min-w-0">{back}</div>
@@ -73,9 +74,9 @@ export function PersonScreen() {
         </div>
       </Section>
 
-      <BacklinksSection docId={person.id} index={index} wikilinksOnly onOpen={(ref) => ref.kind === "doc" && openPeek(ref.id)} />
+      <BacklinksSection docId={person.id} index={index} wikilinksOnly onOpen={openRef} />
       {/* What links in through People fields (an Event's With, a Task's For…), grouped by what they are. */}
-      <FieldLinksSection docId={person.id} index={index} onOpen={(ref) => ref.kind === "doc" && openPeek(ref.id)} />
+      <FieldLinksSection docId={person.id} index={index} onOpen={openRef} />
     </Page>
   );
 }

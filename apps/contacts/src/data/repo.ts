@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { PERSON_TYPE, createDocument, documentsOf, getDocument, newId, normalizeTags, patchDocument, renameDocument, useDocuments } from "@lifeline/core";
+import { PERSON_TYPE, createDocument, documentsOf, getDocument, newId, normalizeTags, patchDocument, renameDocument, useDocuments, type Document } from "@lifeline/core";
 import { type Address, type ContactDetail, type Occasion, type Person } from "../domain/types";
 import { normalizeAddresses } from "../domain/addresses";
 import { contactDetailsOf } from "../domain/contactDetails";
@@ -11,6 +11,9 @@ import { findPerson } from "../domain/person";
 export function normalizePerson(doc: Person): Person {
   return { ...doc, aliases: Array.isArray(doc.aliases) ? doc.aliases : [], relationship: typeof doc.relationship === "string" ? doc.relationship : "", excludedFromDrifting: doc.excludedFromDrifting === true, occasions: normalizeOccasions(doc.occasions), addresses: normalizeAddresses(doc.addresses) };
 }
+
+/** A row as the Person page shows it: none when it is missing, deleted, or no Person. */
+export const livePerson = (row: Document | undefined): Person | undefined => (row && !row.deleted && row.type === PERSON_TYPE ? normalizePerson(row as Person) : undefined);
 
 /** Every Person in the Workspace, live, with the App's keys well-formed whatever a Base wrote. */
 export function usePeople(): Person[] {
@@ -130,12 +133,18 @@ export async function patchPerson(id: string, patch: PersonPatch): Promise<void>
     const doc = await getDocument(id);
     if (doc) await renameDocument(doc, title);
   }
-  const fields: Record<string, unknown> = {};
-  if (rest.aliases) fields.aliases = cleanAliases(rest.aliases);
-  if (rest.relationship !== undefined) fields.relationship = rest.relationship.trim();
-  if (rest.excludedFromDrifting !== undefined) fields.excludedFromDrifting = rest.excludedFromDrifting;
-  if (rest.tags) fields.tags = normalizeTags(rest.tags);
+  const fields = personFields(rest);
   if (Object.keys(fields).length) await patchDocument(id, fields);
+}
+
+/** The stored fields a patch writes, each cleaned as `addPerson` cleans it; only the keys given. */
+function personFields(patch: Omit<PersonPatch, "title">): Record<string, unknown> {
+  const fields: Record<string, unknown> = {};
+  if (patch.aliases) fields.aliases = cleanAliases(patch.aliases);
+  if (patch.relationship !== undefined) fields.relationship = patch.relationship.trim();
+  if (patch.excludedFromDrifting !== undefined) fields.excludedFromDrifting = patch.excludedFromDrifting;
+  if (patch.tags) fields.tags = normalizeTags(patch.tags);
+  return fields;
 }
 
 /**

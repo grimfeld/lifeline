@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { initialText, useOpenPeek, type Handoff } from "@lifeline/core";
+import { useOpenPeek, type Handoff } from "@lifeline/core";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast } from "@lifeline/ui";
 import { addPerson } from "../data/repo";
-import { nameFromHandoff } from "../domain/person";
+import { initialName } from "../domain/person";
+import { message } from "./writes";
 
 /**
  * Add a Person (#404 stories 1, 2, 5): a name and nothing else — aliases, a
@@ -20,7 +21,7 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
 
   useEffect(() => {
     if (!open) return;
-    setName(handoff ? nameFromHandoff(handoff) : initialText(initial, "name"));
+    setName(initialName(handoff, initial));
     setError("");
   }, [open, handoff, initial]);
 
@@ -34,7 +35,7 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
       onOpenChange(false);
       if (!handoff) openPeek(p.id);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(message(e));
     } finally {
       setBusy(false);
     }
