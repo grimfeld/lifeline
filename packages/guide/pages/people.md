@@ -34,7 +34,7 @@ Workspace, by name, each with what they are to you and when you last saw them. C
   and **Not seen lately** in its editor, and each can be placed as a Report Card.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
-- **Events, Tasks and the rest** — what links to them through a People field (an Event's **With**), grouped by what it is.
+- **Events, Tasks and the rest** — what links to them through a People field (an Event's **With**, a Task's or a Transaction's **For**, a book's **Recommended by**), grouped by what it is. Only an Event's **With** counts as having seen them.
 - **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.
 
 ### Occasions

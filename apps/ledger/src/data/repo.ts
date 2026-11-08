@@ -39,6 +39,7 @@ function normalizeTransaction(t: Transaction): Transaction {
     categoryId: t.categoryId ?? "",
     payee: t.payee ?? "",
     note: t.note ?? "",
+    for: Array.isArray(t.for) ? t.for.map(String).filter(Boolean) : [],
     importId: t.importId ?? "",
     paypalId: t.paypalId ?? "",
     bankPayee: t.bankPayee ?? "",
@@ -137,6 +138,8 @@ export interface TransactionInput {
   payee?: string;
   note?: string;
   tags?: string[];
+  /** The People it was for (ids). Left as stored when absent. */
+  for?: string[];
   importId?: string;
   paypalId?: string;
   bankPayee?: string;
@@ -171,6 +174,7 @@ function rowOf(input: TransactionInput): Omit<Transaction, "id" | "updatedAt" | 
     bankPayee: input.bankPayee ?? "",
     folder: "",
     tags: normalizeTags(input.tags ?? []),
+    ...(input.for !== undefined ? { for: [...new Set(input.for)] } : { for: [] }),
   };
 }
 
@@ -200,7 +204,7 @@ export async function updateTransaction(t: Transaction, input: TransactionInput)
  */
 export async function editTransaction(t: Transaction, patch: Partial<Pick<TransactionInput, "date" | "amount" | "accountId" | "fromAccountId" | "toAccountId" | "categoryId" | "payee" | "note">>): Promise<void> {
   const n = normalizeTransaction(t);
-  await updateTransaction(n, { kind: n.kind, date: n.date, amount: n.amount, accountId: n.accountId, fromAccountId: n.fromAccountId, toAccountId: n.toAccountId, categoryId: n.categoryId, payee: n.payee, note: n.note, tags: n.tags, ...patch });
+  await updateTransaction(n, { kind: n.kind, date: n.date, amount: n.amount, accountId: n.accountId, fromAccountId: n.fromAccountId, toAccountId: n.toAccountId, categoryId: n.categoryId, payee: n.payee, note: n.note, tags: n.tags, for: n.for, ...patch });
 }
 
 export async function deleteTransaction(id: string): Promise<void> {

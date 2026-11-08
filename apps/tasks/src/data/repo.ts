@@ -29,6 +29,7 @@ export function normalizeTask(t: Task): Task {
   return {
     ...t,
     notes: t.notes ?? "",
+    for: Array.isArray(t.for) ? t.for.map(String).filter(Boolean) : [],
     date: t.date || null,
     completedOn: t.completedOn || null,
     recurrence: t.recurrence || null,
@@ -71,6 +72,7 @@ export async function addTask(input: {
   project?: string | null;
   milestone?: string | null;
   lane?: string | null;
+  for?: string[];
 }): Promise<string> {
   const id = newId();
   await putDocument<Task>({
@@ -78,6 +80,7 @@ export async function addTask(input: {
     type: TASK,
     title: input.title,
     notes: input.notes ?? "",
+    for: [...new Set(input.for ?? [])],
     status: "active",
     date: input.recurrence ? null : (input.date ?? null),
     completedOn: null,

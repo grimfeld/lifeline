@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, Tabs, TabsList, TabsTrigger, Textarea, toast } from "@lifeline/ui";
 import { initialList, initialNumber, initialText, normalizeTag, todayStr, useTagVocabulary } from "@lifeline/core";
+import { PeopleField } from "@lifeline/editor";
 import { KIND_LABEL, type LedgerAccount, type Transaction, type TransactionKind } from "../domain/types";
 import { payeeIndex, transferCounterparts } from "../domain/derive";
 import { editAmount, formatCents, parseAmount } from "../domain/money";
@@ -45,6 +46,7 @@ export function TransactionEditorDialog({
   const [payee, setPayee] = useState("");
   const [note, setNote] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [forIds, setForIds] = useState<string[]>([]);
   const [mergeCounterpartId, setMergeCounterpartId] = useState("");
 
   useEffect(() => {
@@ -65,6 +67,7 @@ export function TransactionEditorDialog({
     setPayee(transaction?.payee ?? initialText(initial, "payee"));
     setNote(transaction?.note ?? initialText(initial, "note"));
     setTags(transaction?.tags ?? initialList(initial, "tags"));
+    setForIds(transaction?.for ?? []);
     setMergeCounterpartId("");
     // eslint-disable-next-line react-hooks/exhaustive-deps -- seeds the form when it opens or its subject changes; the live lists re-seed only on their first arrival, so a re-read does not wipe what was typed
   }, [open, transaction, initialKind, initial, categories.length === 0]);
@@ -106,6 +109,7 @@ export function TransactionEditorDialog({
       payee,
       note,
       tags,
+      for: forIds,
     };
     try {
       if (transaction) {
@@ -231,6 +235,10 @@ export function TransactionEditorDialog({
           <div className="grid gap-2">
             <Label htmlFor="tx-note">Note</Label>
             <Textarea id="tx-note" rows={1} value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="tx-for">For</Label>
+            <PeopleField id="tx-for" value={forIds} onChange={setForIds} label="People" placeholder="Add a person…" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="tx-tags">Tags</Label>

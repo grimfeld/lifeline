@@ -23,6 +23,8 @@ export type TaskStatus = "active" | "archived";
 export interface Task extends Document {
   type: typeof TASK;
   notes: string;
+  /** For: the People it is for (ids), a People field. Absent on a Task made before it. */
+  for?: string[];
   status: TaskStatus;
   /** One-time only: the day it is assigned to. null = Unassigned pool. */
   date: DateStr | null;

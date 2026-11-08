@@ -1,4 +1,4 @@
-import type { AppManifest, DocumentTypeDef } from "@lifeline/core";
+import { PERSON_TYPE, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
 import { lazyChunk } from "@lifeline/ui";
 import { ChartLine, Landmark, PiggyBank, Repeat, Tags, Wallet, Wand2 } from "lucide-react";
 import { BalancesCard, BudgetMonthCard, DuesCard, QuickAddCard } from "./cards/LedgerCards";
@@ -60,6 +60,8 @@ const transactionType: DocumentTypeDef = {
     { key: "categoryId", label: "Category", kind: "link", linkType: CATEGORY, column: true },
     { key: "payee", label: "Payee", kind: "text", column: true },
     { key: "note", label: "Note", kind: "longtext" },
+    // A People field (CONTEXT.md): linked through Core's Person type, so the Ledger never imports Contacts.
+    { key: "for", label: "For", kind: "links", linkType: PERSON_TYPE },
     { key: "importId", label: "Import id", kind: "text", guarded: true, hidden: true },
     { key: "paypalId", label: "PayPal id", kind: "text", guarded: true, hidden: true },
     { key: "bankPayee", label: "Bank payee", kind: "text", guarded: true, hidden: true },

@@ -1,4 +1,4 @@
-import type { DocumentTypeDef, FieldDef, RoleDef } from "@lifeline/core";
+import { PERSON_TYPE, type DocumentTypeDef, type FieldDef, type RoleDef } from "@lifeline/core";
 import { Book, BookOpen, UserPen } from "lucide-react";
 import { ACQ_LABEL, ACQUISITION, AUTHOR, ENGAGEMENT, SETTINGS_TYPE } from "./domain/types";
 import { WORK_TYPES, type WorkTypeId } from "./domain/workTypes";
@@ -25,6 +25,8 @@ const WORK_FIELDS: FieldDef[] = [
   { key: "liked", label: "Liked", kind: "boolean", column: true },
   { key: "rating", label: "Rating", kind: "number", column: true },
   { key: "reason", label: "Reason", kind: "longtext" },
+  // A People field (CONTEXT.md), beside the free-text Reason: linked through Core's Person type.
+  { key: "recommendedBy", label: "Recommended by", kind: "links", linkType: PERSON_TYPE },
   { key: "slot", label: "Nightstand slot", kind: "number", guarded: true },
   { key: "synopsis", label: "Synopsis", kind: "longtext" },
   { key: "series", label: "Series", kind: "text", column: true },

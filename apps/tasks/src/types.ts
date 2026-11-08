@@ -1,4 +1,4 @@
-import type { DocumentTypeDef } from "@lifeline/core";
+import { PERSON_TYPE, type DocumentTypeDef } from "@lifeline/core";
 import { ListTodo } from "lucide-react";
 import { PROJECT, TASK, TASK_OCCURRENCE, TASKS_HREF, type Recurrence } from "./domain/types";
 import { describeRecurrence } from "./domain/occurrences";
@@ -25,6 +25,8 @@ export const taskType: DocumentTypeDef = {
     { key: "recurrence", label: "Recurrence", kind: "text", guarded: true, hidden: true },
     { key: "estimate", label: "Estimate (min)", kind: "number", column: true },
     { key: "notes", label: "Notes", kind: "longtext" },
+    // A People field (CONTEXT.md): who the Task is for ("buy Anne's present"), linked through Core's Person type.
+    { key: "for", label: "For", kind: "links", linkType: PERSON_TYPE },
     // ADR 0060: where the Task stands in a Project. Moved through the App's
     // intents only — changing Project must clear the Milestone and the Lane.
     { key: "project", label: "Project", kind: "link", linkType: PROJECT, guarded: true, column: true },

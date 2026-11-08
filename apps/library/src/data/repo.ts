@@ -19,6 +19,7 @@ export function normalize(m: Work): Work {
     size: m.size || 0,
     year: m.year || 0,
     reason: m.reason ?? "",
+    recommendedBy: Array.isArray(m.recommendedBy) ? m.recommendedBy.map(String).filter(Boolean) : [],
     slot: m.slot || 0,
     addedOn: m.addedOn ?? "",
     acquiredOn: m.acquiredOn ?? "",
@@ -66,6 +67,8 @@ export async function addWork(input: {
   year?: number;
   acquisition: Acquisition;
   reason: string;
+  /** The People who recommended it (ids). */
+  recommendedBy?: string[];
   /** Where the Work arrives on the shelf: To read unless said (a work may come with its history). */
   engagement?: Engagement;
   /** Only with Done; Done without one is finished today. Started and slotted days are never backdated. */
@@ -91,6 +94,7 @@ export async function addWork(input: {
     acquisition: input.acquisition,
     engagement,
     reason: input.reason.trim(),
+    recommendedBy: [...new Set(input.recommendedBy ?? [])],
     slot: 0,
     addedOn: today,
     acquiredOn: input.acquisition === "OWNED" || input.acquisition === "BORROWED" ? today : "",
