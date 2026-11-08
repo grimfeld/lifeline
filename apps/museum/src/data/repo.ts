@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, todayStr, useDocument, useDocuments, useLiveQuery } from "@lifeline/core";
+import { documentsOf, documentsWithRole, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, todayStr, useDocument, useDocuments, useLiveQuery, sharedLiveQuery } from "@lifeline/core";
 import { ART_FORM_IDS, type ArtFormId } from "../domain/artForms";
 import { ARTIST, EXHIBITION, ROOM, type Artist, type Artwork, type Exhibition, type Room } from "../domain/types";
 import { addToRoom, canHang, canReopen, canTakeDown, hang, nextRoomOrder, reopen, takeDown, type Patch } from "../domain/rules";
@@ -44,8 +44,11 @@ export async function allArtworks(): Promise<Artwork[]> {
 }
 
 export async function allArtists(): Promise<Artist[]> {
-  return (await documentsOf<Artist>(ARTIST)).map(normalizeArtist);
+  // Every Document playing the Artist Role: Artists, and whoever else wears it.
+  return (await documentsWithRole<Artist>(ARTIST)).map(normalizeArtist);
 }
+
+const artistsLive = sharedLiveQuery(() => allArtists(), [] as Artist[]);
 
 /** Every Artwork, across all five form types (one query per type, flattened). */
 export function useArtworks(): Artwork[] {
@@ -106,8 +109,7 @@ export async function deleteArtwork(id: string): Promise<void> {
 // --- artists ----------------------------------------------------------------
 
 export function useArtists(): Artist[] {
-  const rows = useDocuments<Artist>(ARTIST);
-  return useMemo(() => rows.map(normalizeArtist), [rows]);
+  return artistsLive.use();
 }
 
 /**
@@ -119,7 +121,7 @@ export function useArtists(): Artist[] {
 export async function ensureArtist(input: { name: string; externalKey?: string }): Promise<string> {
   const name = input.name.trim();
   if (!name) return "";
-  const all = (await documentsOf<Artist>(ARTIST)).map(normalizeArtist);
+  const all = await allArtists();
   const key = input.externalKey ?? "";
   const byKey = key ? all.find((a) => a.externalKey === key) : undefined;
   if (byKey) return byKey.id;
