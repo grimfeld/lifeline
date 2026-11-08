@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { todayStr, useLinkIndex } from "@lifeline/core";
+import { formatHuman, todayStr, useLinkIndex } from "@lifeline/core";
 import { Button, Tip, ToggleGroup, ToggleGroupItem } from "@lifeline/ui";
 import { DRIFTING_DAYS, drifting, type DriftSource } from "../domain/drifting";
 import type { Person } from "../domain/types";
 import { patchPerson } from "../data/repo";
 import { PersonRowLink, RelationshipLabel } from "./PersonRow";
+import { writeOrSay } from "./writes";
 import { Section } from "./Section";
 
 /**
@@ -44,12 +45,12 @@ export function DriftingSection({ people }: { people: readonly Person[] }) {
                 {last === null ? (
                   <span className="text-muted-foreground shrink-0 text-xs">Never {source}</span>
                 ) : (
-                  <Tip label={`Last ${source} ${last}`}>
+                  <Tip label={`Last ${source} ${formatHuman(last)}`}>
                     <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{daysSince} days</span>
                   </Tip>
                 )}
               </PersonRowLink>
-              <Button variant="ghost" size="sm" className="shrink-0" aria-label={`Leave out ${person.title}`} onClick={() => void patchPerson(person.id, { excludedFromDrifting: true })}>
+              <Button variant="ghost" size="sm" className="shrink-0" aria-label={`Leave out ${person.title}`} onClick={() => writeOrSay(`${person.title} could not be left out.`, () => patchPerson(person.id, { excludedFromDrifting: true }))}>
                 Leave out
               </Button>
             </li>

@@ -43,21 +43,21 @@ describe("Drifting", () => {
     expect(drifting(idx, people, { today })[0]).toMatchObject({ last: "2026-05-01", daysSince: 191 });
   });
   it("never drifts a Person with no Relationship", () => {
-    expect(names(drifting(idx, people, { today, days: 10 }))).not.toContain("Stranger");
+    expect(names(drifting(idx, people, { today }))).not.toContain("Stranger");
     expect(names(drifting(idx, [P("Stranger", { relationship: "  " })], { today }))).toEqual([]);
   });
   it("never drifts a Person excluded from Drifting", () => {
-    expect(names(drifting(idx, people, { today, days: 10 }))).not.toContain("Gone");
+    expect(names(drifting(idx, people, { today }))).not.toContain("Gone");
   });
-  it("takes a custom N", () => {
-    expect(names(drifting(idx, people, { today, days: 60 }))).toEqual(["Anne", "Bob", "Cy"]);
-    expect(names(drifting(idx, people, { today, days: 150 }))).toEqual(["Anne"]);
+  it("drifts someone last seen exactly 90 days ago, and not 89", () => {
+    const edge = [P("Ninety"), P("EightyNine")];
+    const at = buildLinkIndex([...(edge as unknown as Document[]), ev("n", "2026-08-10", "[[Ninety]]"), ev("m", "2026-08-11", "[[EightyNine]]")], types);
+    expect(drifting(at, edge, { today }).map((r) => [r.person.title, r.daysSince])).toEqual([["Ninety", 90]]);
   });
   it("switches to Not mentioned over the Mentioned days", () => {
     const rows = drifting(idx, people, { today, source: "mentioned" });
     // Anne is on an Event but on no Day: never mentioned, so she drifts first.
     expect(rows.map((r) => [r.person.title, r.last, r.daysSince])).toEqual([["Anne", null, null], ["Bob", "2026-03-01", 252], ["Fresh", "2026-03-01", 252]]);
-    expect(names(drifting(idx, people, { today, source: "mentioned", days: 30 }))).toEqual(["Anne", "Bob", "Fresh", "Cy"]);
   });
   it("counts a Person never seen at all as drifting, before everyone seen, by name", () => {
     const rows = drifting(idx, [...people, P("Zoe"), P("New")], { today });

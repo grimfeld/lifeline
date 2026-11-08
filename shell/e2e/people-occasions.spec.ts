@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
+import { datePickerLabelled, pickDate } from "./support/date-picker";
 
 /**
  * Occasions (#404 stories 22-31): added on a Person's page, they stand on the
@@ -29,7 +30,7 @@ test("a Birthday added on a Person's page shows their age there and stands on th
   await page.getByRole("button", { name: "Add occasion" }).click();
   const dialog = page.getByRole("dialog", { name: "Add an occasion" });
   await dialog.getByLabel("Label").fill("Birthday");
-  await dialog.getByLabel("Day").fill(`1961-${month}-${dom}`);
+  await pickDate(page, datePickerLabelled(dialog, "Day"), `1961-${month}-${dom}`);
   await dialog.getByRole("button", { name: "Save" }).click();
 
   const occasions = page.getByRole("region", { name: "Occasions" });
@@ -58,4 +59,26 @@ test("an Occasion can be edited and removed", async ({ page }) => {
   await expect(occasions).toContainText("Operation");
   await occasions.getByRole("button", { name: "Remove Operation" }).click();
   await expect(occasions).not.toContainText("Operation");
+});
+
+test("a Birthday whose year I don't know is given as a month and a day, and carries no age", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  const id = await inCore(page, async (core, type: string) => (await core.createDocument({ type, title: "Léa", fields: { aliases: [], relationship: "friend" } })).id as string, PERSON);
+  await page.goto(`/app/people/person/${id}`);
+  await workLocally(page);
+
+  await page.getByRole("button", { name: "Add occasion" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add an occasion" });
+  await dialog.getByLabel("Label").fill("Birthday");
+  await dialog.getByLabel("I don't know the year").check();
+  await dialog.getByRole("combobox", { name: "Month" }).click();
+  await page.getByRole("option", { name: "February" }).click();
+  await dialog.getByRole("combobox", { name: "Day" }).click();
+  await page.getByRole("option", { name: "29", exact: true }).click();
+  await dialog.getByRole("button", { name: "Save" }).click();
+
+  const occasions = page.getByRole("region", { name: "Occasions" });
+  await expect(occasions).toContainText("29 February · every year");
+  await expect(page.getByText(/years old/)).toHaveCount(0);
 });

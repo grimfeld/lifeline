@@ -94,7 +94,7 @@ Commands (Ctrl+K):
   in the Capture sheet.
 - **Add book with details**: the full form, with a **Recommended by** field beside the free-text
   reason: type a name or an alias from People and pick it, and the book shows on that Person's page
-  under its kind. It also takes its history: *Shelf* (To read, In progress or
+  under its kind. Set or change it later in the work's Peek or on its page, under **Recommended by**. It also takes its history: *Shelf* (To read, In progress or
   Done, with a *Finished on* date) and *Acquisition* (under *More details*). A work can arrive already
   Done or Owned; its started and slotted days are never backdated. For Claude too: give it an
   external key from **Look up a book…** and the source's fields are fetched, and anything else you

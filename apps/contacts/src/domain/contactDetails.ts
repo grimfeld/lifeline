@@ -86,4 +86,3 @@ export function saveDetail(list: readonly ContactDetail[], input: DetailInput, n
 }
 
 export const markFormer = (list: readonly ContactDetail[], id: string, former: boolean): ContactDetail[] => list.map((c) => (c.id === id ? { ...c, former } : c));
-export const removeDetail = (list: readonly ContactDetail[], id: string): ContactDetail[] => list.filter((c) => c.id !== id);

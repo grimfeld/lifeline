@@ -26,3 +26,5 @@ So **an agent sees a Person without their Addresses and Contact details**, and c
 - The gate lives where ADR 0105's does, in the MCP server's handlers, as a rule about the Person type's own Fields, not a flag a user sets.
 - A Field the user adds to Person is an ordinary Field and crosses. Only the Contacts App's Addresses and Contact details are held back.
 - The Guide's People page and its agents section say exactly what an agent sees.
+- The walled keys are declared on the type (`agentWalled`). A write to a Document is checked against its own type's wall, so a type of the user's with its own `addresses` Field is written like any other. A Command's arguments and a Macro step's name no type, so they are checked against every type's wall: no Command may take an argument called `addresses` or `contactDetails`.
+- Occasions are part of the Person that the App keeps, declared like the walled parts so that no Field of the user's can take the key. That also hides them from the Fields an agent reads. They reach agents through the Person's `describe`, `people_upcoming` and the agenda instead.

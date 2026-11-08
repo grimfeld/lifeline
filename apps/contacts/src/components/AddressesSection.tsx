@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Button, Tip, toast } from "@lifeline/ui";
 import { MapPin, Pencil, Plus, Trash2 } from "lucide-react";
-import { coordsOf, editAddress, removeAddress, sortedAddresses } from "../domain/addresses";
-import { updateAddresses } from "../data/repo";
+import { coordsOf, editAddress, sortedAddresses } from "../domain/addresses";
+import { removePart, restorePart, updateAddresses } from "../data/repo";
+import { removeWithUndo } from "./writes";
 import type { Address, Person } from "../domain/types";
 import { Section } from "./Section";
 import { AddressDialog, locate } from "./AddressDialog";
@@ -35,7 +36,7 @@ function AddressRow({ person, address, onEdit }: { person: Person; address: Addr
             </Button>
           </Tip>
           <Tip label={`Remove ${address.label}`}>
-            <Button variant="ghost" size="icon" onClick={() => void run((list) => removeAddress(list, address.id))}>
+            <Button variant="ghost" size="icon" onClick={() => void removeWithUndo(address.label, () => removePart(person.id, "addresses", address.id), (r) => restorePart(person.id, "addresses", r))}>
               <Trash2 />
             </Button>
           </Tip>

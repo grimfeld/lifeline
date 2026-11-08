@@ -94,3 +94,21 @@ test("a book added Recommended by someone shows on their Person page, and Reason
   await workLocally(page);
   await expect(page.getByRole("region", { name: "Books" })).toContainText(title);
 });
+
+test("a book's Recommended by is set on its page after it was added", async ({ page }) => {
+  await page.route(/^https:\/\/(?!localhost)/, (route) => route.abort());
+  await page.goto("/app/library");
+  await workLocally(page);
+  const jo = await newPerson(page, "Jo Peeters", "Joey");
+  const title = `Hyperion ${Date.now()}`;
+  await expect.poll(() => inCore(page, async (core, t: string) => !!core.documentType(t), "book")).toBe(true);
+  const id = await inCore(page, async (core, t: string) => (await core.putDocument({ type: "book", title: t, body: "", engagement: "UNSTARTED", acquisition: "WANTED", addedOn: "2026-01-01" })).id as string, title);
+
+  await page.goto(`/app/library/works/${id}`);
+  await workLocally(page);
+  await pickPerson(page, page.locator("main"), "Recommended by", "Joey", "Jo Peeters");
+
+  await page.goto(`/app/people/person/${jo}`);
+  await workLocally(page);
+  await expect(page.getByRole("region", { name: "Books" })).toContainText(title);
+});

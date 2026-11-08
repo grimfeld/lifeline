@@ -199,6 +199,3 @@ export function useTopMentioned(index: LinkIndex, typeId: string, window: Report
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the window is keyed by its dates: callers pass a new object each render
   return useMemo(() => topMentioned(index, typeId, window), [index, typeId, window.from, window.to]);
 }
-export function useDocumentFigures(index: LinkIndex, docId: string, today: DateStr): DocumentFigures {
-  return useMemo(() => documentFigures(index, docId, today), [index, docId, today]);
-}

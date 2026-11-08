@@ -44,6 +44,12 @@ describe("Occasion markers in a range", () => {
     expect(lines(people, range("2026-12-30", "2027-01-02"))).toEqual([["2026-12-31", "⚑ Anne · Met"], ["2027-01-01", "⚑ Anne · Name day"]]);
   });
 
+  it("skips whatever is stored under the key that is no Occasion (a Base's text, a damaged row)", () => {
+    const junk = { id: "p2", title: "Marc", tags: [], occasions: "Birthday on the 4th" as never };
+    const mixed = { id: "p3", title: "Léa", tags: [], occasions: [null, { label: 3 }, bday("1990-03-10")] as never };
+    expect(lines([junk, mixed], range("2026-03-01", "2026-03-31"))).toEqual([["2026-03-10", "🎂 Léa · 36"]]);
+  });
+
   it("makes read-only all-day occasion markers carrying the Person's Tags, unique per occurrence", () => {
     const [m] = occasionMarkersIn([anne(bday("1961-03-04"))], range("2026-03-01", "2026-03-31"));
     expect(m).toMatchObject({ appId: "contacts", itemId: "p1:o1@2026-03-04", start: null, end: null, marker: true, occasion: true, tags: ["family"] });
@@ -67,6 +73,13 @@ describe("a Person's age", () => {
   });
   it("is null for a Birthday in the future", () => {
     expect(ageOf([bday("2030-01-01")], "2026-03-04")).toBeNull();
+  });
+  it("is null when they were born this year and the day has not come yet", () => {
+    expect(ageOf([bday("2026-06-01")], "2026-03-04")).toBeNull();
+    expect(ageOf([bday("2026-06-01")], "2026-06-01")).toBe(0);
+  });
+  it("is never read from a once Occasion, even one called Birthday", () => {
+    expect(ageOf([{ id: "o1", label: "Birthday", day: "1961-03-04", yearly: false }], "2026-03-04")).toBeNull();
   });
 });
 
@@ -98,9 +111,9 @@ describe("Upcoming", () => {
 
   it("crosses a year end, soonest first, with the ages reached", () => {
     expect(upcomingOccasions(people, "2026-12-28", 10)).toEqual([
-      { personId: "p2", name: "Marc", label: "Wedding", date: "2026-12-30", inDays: 2, age: null },
-      { personId: "p1", name: "Anne", label: "Birthday", date: "2027-01-02", inDays: 5, age: 66 },
-      { personId: "p2", name: "Marc", label: "Surgery", date: "2027-01-03", inDays: 6, age: null },
+      { personId: "p2", occasionId: "w", name: "Marc", label: "Wedding", date: "2026-12-30", inDays: 2, age: null },
+      { personId: "p1", occasionId: "o1", name: "Anne", label: "Birthday", date: "2027-01-02", inDays: 5, age: 66 },
+      { personId: "p2", occasionId: "s", name: "Marc", label: "Surgery", date: "2027-01-03", inDays: 6, age: null },
     ]);
   });
 

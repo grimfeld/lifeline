@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Badge, Button, ChoiceField, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, Tip, toast } from "@lifeline/ui";
+import { Badge, Button, ChoiceField, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, Tip } from "@lifeline/ui";
 import { AtSign, Mail, Pencil, Phone, Plus, Trash2, Undo2, UserX } from "lucide-react";
-import { patchPerson } from "../data/repo";
-import { CONTACT_KINDS, KIND_LABELS, contactAction, contactDetailsOf, markFormer, removeDetail, saveDetail, validateDetail, type DetailInput } from "../domain/contactDetails";
+import { removePart, restorePart, updateContactDetails } from "../data/repo";
+import { CONTACT_KINDS, KIND_LABELS, contactAction, contactDetailsOf, markFormer, saveDetail, validateDetail, type DetailInput } from "../domain/contactDetails";
+import { removeWithUndo, writeOrSay } from "./writes";
 import type { ContactDetail, ContactKind, Person } from "../domain/types";
 import { Section } from "./Section";
 
@@ -17,15 +18,17 @@ export function ContactDetailsSection({ person }: { person: Person }) {
   const current = details.filter((c) => !c.former);
   const former = details.filter((c) => c.former);
 
-  const write = (next: ContactDetail[]) => patchPerson(person.id, { contactDetails: next });
-
-  async function remove(c: ContactDetail) {
-    await write(removeDetail(details, c.id));
-    toast.success(`Removed ${c.label}`, { action: { label: "Undo", onClick: () => void write(details) } });
-  }
+  // Every change starts from the stored list, never from this render's copy: two quick ones keep each other.
+  const update = (change: (list: ContactDetail[]) => ContactDetail[]) => updateContactDetails(person.id, change);
 
   const row = (c: ContactDetail) => (
-    <DetailRow key={c.id} detail={c} onEdit={() => setEditing(c)} onFormer={() => void write(markFormer(details, c.id, !c.former))} onRemove={() => void remove(c)} />
+    <DetailRow
+      key={c.id}
+      detail={c}
+      onEdit={() => setEditing(c)}
+      onFormer={() => writeOrSay(`${c.label} could not be changed.`, () => update((list) => markFormer(list, c.id, !c.former)))}
+      onRemove={() => void removeWithUndo(c.label, () => removePart(person.id, "contactDetails", c.id), (r) => restorePart(person.id, "contactDetails", r))}
+    />
   );
 
   return (
@@ -53,7 +56,7 @@ export function ContactDetailsSection({ person }: { person: Person }) {
         input={editing}
         onClose={() => setEditing(null)}
         onSave={async (input) => {
-          await write(saveDetail(details, input));
+          await update((list) => saveDetail(list, input));
           setEditing(null);
         }}
       />

@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { Button, Checkbox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast } from "@lifeline/ui";
+import { Button, Checkbox, ChoiceField, DatePicker, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input } from "@lifeline/ui";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { Occasion, Person } from "../domain/types";
 import { isBirthday } from "../domain/occasions";
-import { addOccasion, editOccasion, removeOccasion } from "../data/repo";
+import { addOccasion, editOccasion, removePart, restorePart } from "../data/repo";
+import { removeWithUndo } from "./writes";
 import { Section } from "./Section";
 
-/** "03-04" reads as "4 March", "1961-03-04" as "4 March 1961". */
+/** "03-04" reads as "4 March", "1961-03-04" as "4 March 1961", in the reader's own order. A yearless day is read in 2000, a leap year, so 29 February reads too. */
 export function describeDay(day: string): string {
   const [a, b, c] = day.split("-").map(Number);
   const [y, m, d] = c === undefined ? [null, a, b] : [a, b, c];
-  const month = new Date(Date.UTC(2000, (m ?? 1) - 1, 1)).toLocaleString(undefined, { month: "long", timeZone: "UTC" });
-  return `${d} ${month}${y ? ` ${y}` : ""}`;
+  return new Date(Date.UTC(y ?? 2000, (m ?? 1) - 1, d ?? 1)).toLocaleDateString(undefined, { day: "numeric", month: "long", year: y === null ? undefined : "numeric", timeZone: "UTC" });
 }
 
 /**
@@ -37,7 +37,7 @@ export function OccasionsSection({ person }: { person: Person }) {
               variant="ghost"
               size="icon"
               aria-label={`Remove ${o.label}`}
-              onClick={() => removeOccasion(person.id, o.id).catch((e) => toast.error(`${o.label} could not be removed.`, { description: e instanceof Error ? e.message : String(e) }))}
+              onClick={() => void removeWithUndo(o.label, () => removePart(person.id, "occasions", o.id), (r) => restorePart(person.id, "occasions", r))}
             >
               <Trash2 />
             </Button>
@@ -67,10 +67,12 @@ function OccasionForm({ personId, editing, onClose }: { personId: string; editin
   const [label, setLabel] = useState(from?.label ?? "");
   const [day, setDay] = useState(from?.day ?? "");
   const [yearly, setYearly] = useState(from?.yearly ?? true);
+  // "03-04": a day whose year I don't know. Only a yearly Occasion may lack one.
+  const [noYear, setNoYear] = useState(from?.day.length === 5);
   const [error, setError] = useState("");
 
   async function save() {
-    const input = { label, day, yearly };
+    const input = { label, day: yearly && noYear ? day.slice(-5) : day, yearly };
     // The repo checks the Occasion before saving and throws its problem, shown below.
     try {
       if (from) await editOccasion(personId, from.id, input);
@@ -97,13 +99,29 @@ function OccasionForm({ personId, editing, onClose }: { personId: string; editin
         <Field label="Label" hint="Birthday, Met, Wedding… any word.">
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Birthday" autoFocus />
         </Field>
-        <Field label="Day" hint="YYYY-MM-DD, or MM-DD when you don't know the year." error={error || undefined}>
-          <Input value={day} onChange={(e) => setDay(e.target.value)} placeholder="1961-03-04" inputMode="numeric" />
-        </Field>
-        {/* The box before its words, as a checkbox reads. */}
+        {/* The boxes before their words, as a checkbox reads. */}
         <Field label="Every year" className="flex flex-row-reverse items-center justify-end gap-2">
           <Checkbox checked={yearly} onCheckedChange={(c) => setYearly(c === true)} />
         </Field>
+        {yearly && (
+          <Field label="I don't know the year" className="flex flex-row-reverse items-center justify-end gap-2">
+            <Checkbox
+              checked={noYear}
+              onCheckedChange={(c) => {
+                setNoYear(c === true);
+                // Without a year, keep the month and day; with one again, the year is to pick.
+                setDay(c === true ? day.slice(-5) : "");
+              }}
+            />
+          </Field>
+        )}
+        {yearly && noYear ? (
+          <MonthDayField value={day.slice(-5)} onChange={setDay} error={error} />
+        ) : (
+          <Field label="Day" error={error || undefined}>
+            <DatePicker value={day.length === 10 ? day : ""} onChange={setDay} required aria-label="Day" />
+          </Field>
+        )}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
@@ -112,5 +130,30 @@ function OccasionForm({ personId, editing, onClose }: { personId: string; editin
         </DialogFooter>
       </form>
     </>
+  );
+}
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => ({
+  value: String(i + 1).padStart(2, "0"),
+  label: new Date(Date.UTC(2000, i, 1)).toLocaleDateString(undefined, { month: "long", timeZone: "UTC" }),
+}));
+
+/** How many days a month has at most: 29 for February, so 29 February can be given. */
+const daysIn = (month: string) => (month ? new Date(Date.UTC(2000, Number(month), 0)).getUTCDate() : 31);
+
+/** A day of the year with no year ("03-04"): a month, then a day of it, 29 February included. */
+function MonthDayField({ value, onChange, error }: { value: string; onChange: (day: string) => void; error: string }) {
+  const [month = "", dayOfMonth = ""] = value.split("-");
+  const dayOptions = Array.from({ length: daysIn(month) }, (_, i) => ({ value: String(i + 1).padStart(2, "0"), label: String(i + 1) }));
+  // A day past the new month's end (31, then April) becomes its last day.
+  const set = (m: string, d: string) => onChange(`${m}-${d && Number(d) > daysIn(m) ? String(daysIn(m)) : d}`);
+  return (
+    <div className="grid min-w-0 gap-1.5">
+      <div className="grid min-w-0 grid-cols-2 gap-3">
+        <ChoiceField label="Month" value={month} options={MONTHS} onCommit={(m) => set(m, dayOfMonth)} />
+        <ChoiceField label="Day" value={dayOfMonth} options={dayOptions} onCommit={(d) => set(month, d)} />
+      </div>
+      {error && <p data-slot="field-error" className="text-destructive text-xs">{error}</p>}
+    </div>
   );
 }

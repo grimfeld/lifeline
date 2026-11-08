@@ -98,7 +98,8 @@ function occurrencesIn(people: readonly PersonOccasions[], range: { start: DateS
   const out: Occurrence[] = [];
   const [y0, y1] = [Number(range.start.slice(0, 4)), Number(range.end.slice(0, 4))];
   for (const person of people) {
-    for (const o of person.occasions ?? []) {
+    // Whatever is stored: a Base or an old row may hold anything under the key.
+    for (const o of normalizeOccasions(person.occasions)) {
       if (occasionProblem(o)) continue;
       const born = split(o.day)?.year ?? null;
       const years = o.yearly ? Array.from({ length: Math.max(0, y1 - y0 + 1) }, (_, i) => y0 + i) : born === null ? [] : [born];
@@ -143,6 +144,8 @@ export function occasionMarkersIn(people: readonly PersonOccasions[], range: { s
 /** One line of Upcoming: an Occasion coming up. */
 export interface UpcomingOccasion {
   personId: string;
+  /** The Occasion's id on its Person: with `personId` and `date`, one row's key. */
+  occasionId: string;
   name: string;
   label: string;
   date: DateStr;
@@ -163,6 +166,7 @@ export function upcomingOccasions(people: readonly PersonOccasions[], from: Date
   return occurrencesIn(people, { start: from, end })
     .map(({ person, occasion, date, age }) => ({
       personId: person.id,
+      occasionId: occasion.id,
       name: person.title,
       label: occasion.label.trim(),
       date,

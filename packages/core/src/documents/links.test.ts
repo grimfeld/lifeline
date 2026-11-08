@@ -116,4 +116,8 @@ describe("a type's linking text Fields", () => {
     expect(idx.unresolved.has("nobody")).toBe(false);
     expect(idx.tags.has("food")).toBe(false);
   });
+  it("makes no backlink of a Document naming itself in its own Field", () => {
+    const self = doc("e2", "ev", "Gala", "", "", { notes: "See [[Gala]] again" });
+    expect(buildLinkIndex([self], [...types, evType]).backlinksTo("e2")).toEqual([]);
+  });
 });

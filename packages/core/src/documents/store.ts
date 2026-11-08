@@ -9,12 +9,12 @@ import { todayStr } from "../dates";
 import { normalizeTags } from "../tags";
 import { extractLinks, extractProseTags, isImageEmbed, normalizeName } from "../markdown";
 import { normalizeFolder } from "../folders";
-import { documentTypeSync } from "./registry";
+import { allDocumentTypes, documentTypeSync } from "./registry";
 import { recallableDefs, registeredApps } from "../registry";
 import { inPrivateFolder, privateGate, visibleUnder } from "../private";
 import { onWorkspaceChange, useCurrentWorkspaceId, workspaceScope } from "../workspaces";
-import { isLinkKind, type Document } from "./types";
-import { fieldsOfDocument } from "./roles";
+import { isLinkKind, type Document, type DocumentTypeDef, type FieldDef } from "./types";
+import { allRoles, fieldsOfDocument, type RoleDef } from "./roles";
 
 /**
  * The Document store (ADR 0018): one Dexie table, one PocketBase collection.
@@ -165,19 +165,44 @@ export async function removeDocument(id: string): Promise<void> {
     await documentTypeSync(doc.type)?.onDelete?.(doc);
     // A Recallable Document's practice goes with it, whatever App owns it and whichever keeps the practice (ADR 0073).
     if (recallableDefs().some((d) => d.typeId === doc.type)) for (const a of registeredApps()) await a.forgetRecallable?.(doc);
-    if (documentTypeSync(doc.type)?.unlinkOnDelete) await unlinkEverywhere(id);
+    if (documentTypeSync(doc.type)?.unlinkOnDelete) await unlinkEverywhere(id, doc.type);
   }
   await remove(DOCUMENTS, id);
+}
+
+/** Whether a Link field may hold a Document of `type`: one restricted to another type may not. A Role-restricted one may. */
+function mayHold(f: FieldDef, type: string): boolean {
+  if (!isLinkKind(f.kind)) return false;
+  if (f.linkRole || !f.linkType) return true;
+  return (Array.isArray(f.linkType) ? f.linkType : [f.linkType]).includes(type);
+}
+
+/**
+ * Where a link to a Document of `type` can be stored: the types whose own
+ * Fields may hold it, and the Roles whose Fields may (worn by a Document of
+ * any type). Every other Document can't, and is never read.
+ */
+export function linkHolders(type: string, types: readonly DocumentTypeDef[] = allDocumentTypes(), roles: readonly RoleDef[] = allRoles()): { types: string[]; roles: string[] } {
+  return {
+    types: types.filter((t) => t.fields.some((f) => mayHold(f, type))).map((t) => t.id),
+    roles: roles.filter((r) => r.fields.some((f) => mayHold(f, type))).map((r) => r.id),
+  };
 }
 
 /**
  * Take `id` out of every Link field that holds it, on every live Document of
  * every Workspace (`unlinkOnDelete`). A `links` Field loses the one id; a
- * `link` Field is emptied.
+ * `link` Field is emptied. Only the Documents that could hold it are read
+ * (`linkHolders`, through the type and Role indexes), not the whole store.
  */
-async function unlinkEverywhere(id: string): Promise<void> {
-  const rows = await documentsTable().where("deleted").equals(0).toArray();
-  for (const row of rows) {
+async function unlinkEverywhere(id: string, type: string): Promise<void> {
+  const holders = linkHolders(type);
+  const [byType, byRole] = await Promise.all([
+    holders.types.length ? documentsTable().where("[type+deleted]").anyOf(holders.types.map((t) => [t, 0])).toArray() : [],
+    holders.roles.length ? documentsTable().where("roles").anyOf(holders.roles).toArray() : [],
+  ]);
+  const rows = new Map([...byType, ...byRole].filter((r) => !r.deleted).map((r) => [r.id, r]));
+  for (const row of rows.values()) {
     if (row.id === id) continue;
     const patch: Record<string, unknown> = {};
     for (const f of fieldsOfDocument(row, documentTypeSync(row.type))) {

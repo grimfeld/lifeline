@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { formatHuman, todayStr, type CardProps } from "@lifeline/core";
-import { normalizePerson, usePeople } from "../data/repo";
+import { usePeople } from "../data/repo";
 import { upcomingOccasions, type UpcomingOccasion } from "../domain/occasions";
 import { PersonRowLink } from "./PersonRow";
 import { Section } from "./Section";
@@ -34,7 +34,7 @@ function Row({ u }: { u: UpcomingOccasion }) {
 export function UpcomingReport({ days = UPCOMING_DAYS }: { days?: number }) {
   const rows = usePeople();
   const today = todayStr();
-  const items = useMemo(() => upcomingOccasions(rows.map(normalizePerson), today, days), [rows, today, days]);
+  const items = useMemo(() => upcomingOccasions(rows, today, days), [rows, today, days]);
   return (
     <Section title="Upcoming">
       {items.length === 0 ? (
@@ -42,7 +42,7 @@ export function UpcomingReport({ days = UPCOMING_DAYS }: { days?: number }) {
       ) : (
         <ul className="grid min-w-0 gap-2">
           {items.map((u) => (
-            <Row key={`${u.personId}:${u.label}:${u.date}`} u={u} />
+            <Row key={`${u.personId}:${u.occasionId}@${u.date}`} u={u} />
           ))}
         </ul>
       )}

@@ -137,12 +137,15 @@ function agentView(doc: Document): Document {
 }
 
 /**
- * Refuse a write that names a walled key of any type: a Field, a Command's or
- * a Macro step's argument. One check for every way in, so a tool or Command
- * added later is behind the wall without knowing it is there.
+ * Refuse a write that names a walled key: a Field, a Command's or a Macro
+ * step's argument. One check for every way in, so a tool or Command added
+ * later is behind the wall without knowing it is there. A Command or a Macro
+ * step names no type, so its arguments are checked against every type's wall;
+ * a Document's Fields only against its own type's (`types`), so another type
+ * may have a Field called "addresses" of its own.
  */
-function refuseWalled(keys: readonly string[]): void {
-  for (const t of allDocumentTypes()) {
+function refuseWalled(keys: readonly string[], types: readonly DocumentTypeDef[] = allDocumentTypes()): void {
+  for (const t of types) {
     const hit = t.agentWalled?.find((k) => keys.includes(k));
     if (!hit) continue;
     const label = t.fields.find((f) => f.key === hit)?.label ?? hit;
@@ -168,7 +171,7 @@ function fieldArg(f: FieldDef): CommandArg {
 
 /** Check type fields the way a Base would accept them; null clears a field. Throws on guarded or unknown keys. */
 async function readFields(def: DocumentTypeDef, raw: Args): Promise<Args> {
-  refuseWalled(Object.keys(raw));
+  refuseWalled(Object.keys(raw), [def]);
   const byKey = new Map(def.fields.map((f) => [f.key, f]));
   for (const key of Object.keys(raw)) {
     const f = byKey.get(key);

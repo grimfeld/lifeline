@@ -55,6 +55,15 @@ export async function updateTie(id: string, personId: string, words: { label: st
   await putDocument<Tie>({ ...tie, labelA: fromA ? ownLabel : label, labelB: fromA ? label : ownLabel });
 }
 
-export async function removeTie(id: string): Promise<void> {
+/** Remove a Tie, handing back the Tie as it was, for Undo (`restoreTie`). */
+export async function removeTie(id: string): Promise<Tie> {
+  const tie = await getDocument<Tie>(id);
+  if (!tie) throw new Error("It is already gone");
   await removeDocument(id);
+  return tie;
+}
+
+/** Undo `removeTie`: the same Tie, live again on both Persons' pages. */
+export async function restoreTie(tie: Tie): Promise<void> {
+  await putDocument<Tie>({ ...tie, deleted: 0 } as Tie);
 }

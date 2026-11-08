@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Button, Combobox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, toast, type ComboboxOption } from "@lifeline/ui";
+import { Button, Combobox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, type ComboboxOption } from "@lifeline/ui";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { personHref } from "../constants";
 import { type Person } from "../domain/types";
 import { tiesSeenFrom, type TieRow } from "../domain/ties";
-import { addTie, removeTie, updateTie, useTies } from "../data/ties";
+import { addTie, removeTie, restoreTie, updateTie, useTies } from "../data/ties";
+import { removeWithUndo } from "../components/writes";
 import { usePeople } from "../data/repo";
 import { Section } from "../components/Section";
 
@@ -114,7 +115,7 @@ export function TiesSection({ person }: { person: Person }) {
               size="icon-xs"
               variant="ghost"
               aria-label={`Remove tie with ${r.otherName}`}
-              onClick={() => void removeTie(r.id).catch((e) => toast.error(`The Tie to ${r.otherName} could not be removed.`, { description: message(e) }))}
+              onClick={() => void removeWithUndo(`the Tie to ${r.otherName}`, () => removeTie(r.id), restoreTie)}
             >
               <Trash2 />
             </Button>

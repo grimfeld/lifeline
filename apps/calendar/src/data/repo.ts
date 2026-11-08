@@ -14,7 +14,7 @@ function normalize(e: Event): Event {
     start: e.start || null,
     end: e.end || null,
     tags: e.tags ?? [],
-    with: e.with ?? [],
+    with: Array.isArray(e.with) ? e.with.map(String).filter(Boolean) : [],
   });
 }
 

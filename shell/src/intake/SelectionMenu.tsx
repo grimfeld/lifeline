@@ -69,6 +69,14 @@ type AliasWrite = { key: string; value: string[] };
  */
 type Pane = { kind: "menu" } | { kind: "search" } | { kind: "alias"; target: LinkCandidate; alias: AliasWrite; add: boolean };
 
+/** The name a link to this Document is written with, as it now stands: a title shared with another Document is written with its Folder. */
+async function canonicalOf(id: string, title: string): Promise<string> {
+  const name = buildLinkIndex(await allDocuments(), allDocumentTypes())
+    .names()
+    .find((n) => n.ref.kind === "doc" && n.ref.id === id);
+  return name?.canonical ?? title;
+}
+
 /**
  * The **Selection menu** (CONTEXT.md, ADR 0086): selecting text in any
  * Document's body offers to link it to the Document it names, to make a
@@ -89,14 +97,6 @@ type Pane = { kind: "menu" } | { kind: "search" } | { kind: "alias"; target: Lin
  * On the desk the trigger floats just above the selection; on a phone it sits
  * in the dock (ADR 0064), clear of the system's own selection menu.
  */
-/** The name a link to this Document is written with, as it now stands: a title shared with another Document is written with its Folder. */
-async function canonicalOf(id: string, title: string): Promise<string> {
-  const name = buildLinkIndex(await allDocuments(), allDocumentTypes())
-    .names()
-    .find((n) => n.ref.kind === "doc" && n.ref.id === id);
-  return name?.canonical ?? title;
-}
-
 export function SelectionMenu() {
   const phone = usePhone();
   const { pathname } = useLocation();

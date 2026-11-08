@@ -15,7 +15,7 @@ Workspace, by name, each with what they are to you and when you last saw them. C
 
 - **Upcoming** — the Occasions in the next 30 days, soonest first: who, which Occasion, the day and
   how far off, and for a Birthday with a known year the age they will turn. Each row opens the Person.
-  It is a heads-up, never a reminder. It can also be placed as a **Upcoming** Card on any Screen, with
+  It is a heads-up, never a reminder. It can also be placed as an **Upcoming** Card on any Screen, with
   its own number of days ahead.
 - **Search** matches a name or any alias, ignoring case and accents.
 - **Relationship** and **Tag** narrow the list, and together they narrow it further. On a phone
@@ -25,7 +25,7 @@ Workspace, by name, each with what they are to you and when you last saw them. C
 ### Drifting
 
 **Drifting** sits above Everyone and answers "who have I lost touch with?". It lists the People
-who have a **Relationship** and whom you have **not seen in 90 days**: first anyone you have
+who have a **Relationship** and whom you have **not seen in 90 days** (a fixed window, with no setting): first anyone you have
 never seen ("Never seen"), then the longest unseen, each with how many days it has been. Switch
 it to **Not mentioned** to count the Days that link to them instead of the Events. Anyone
 without a Relationship is not listed. It is only a list: Lifeline never reminds you.
@@ -83,8 +83,9 @@ Contact details are never on the map, and Claude never sees them (below).
 
 An **Occasion** is a named day in someone's life: a label (**Birthday**, **Met**, **Wedding**, or any
 word you choose), a day, and whether it comes back **every year** or happens **once**. Add, edit
-and remove them in **Occasions** on the Person's page. Give the day as `YYYY-MM-DD`, or `MM-DD`
-when you don't know the year (a once Occasion always needs its year).
+and remove them in **Occasions** on the Person's page. Pick the day in the date picker; for a
+yearly one whose year you don't know, tick **I don't know the year** and choose a month and a
+day instead (29 February included). A once Occasion always needs its year.
 
 - Every Occasion stands on the Calendar's Month, Schedule and Upcoming views and on Today as an
   all-day flag, taking no hours: "🎂 Anne · 65", "⚑ Marc · Surgery". A yearly one comes back every
@@ -100,7 +101,7 @@ when you don't know the year (a once Occasion always needs its year).
 
 ### Addresses
 
-- **Add address** takes a label and the postal text. When you save it, Lifeline looks the place
+- **Add address** takes a label and the postal text. The bin removes one, with Undo. When you save it, Lifeline looks the place
   up (OpenStreetMap's Nominatim) and puts a **Pin** on the Map, labelled "Marc · Work". A
   Person with two current Addresses stands on the Map twice.
 - When someone moves, **Mark as former**: the Address leaves the Map and stays on their page, below
@@ -116,9 +117,13 @@ A **Tie** says how two People stand to each other. Press **Add tie** on either P
 find the other Person by name, and give a word for each end ("mother" and "daughter"). It is
 stored once and shows on both pages, each read from its own side, with the other Person as a
 link. The words are yours: "godmother", "ex" and "best friend's brother" all fit. **Edit** or
-**Remove** it from either page and both change. A Tie is never to you, only between two People.
+**Remove** it from either page (with Undo) and both change. A Tie is never to you, only between two People.
 Deleting a Person removes their Ties; the other Person's page is untouched. A Tie is not a link
 in a body, so it adds no Backlink and counts for no Report.
+
+Removing anything from a Person's page (an Occasion, an Address, a Contact detail or a Tie)
+happens at once, with **Undo** on the message that follows: it puts back just that one, even
+if you have added something since.
 
 ### Linking to a Person
 

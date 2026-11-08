@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { seenDays, todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
+import { formatHuman, seenDays, todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
 import { Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { UserPlus } from "lucide-react";
 import { UpcomingReport } from "../components/UpcomingReport";
@@ -9,7 +9,7 @@ import { PersonRowLink, RelationshipLabel } from "../components/PersonRow";
 import { Section } from "../components/Section";
 import { everyone, relationshipsOf, tagsOf } from "../domain/everyone";
 import { type Person } from "../domain/types";
-import { normalizePerson, usePeople } from "../data/repo";
+import { usePeople } from "../data/repo";
 
 const ANY = "__any__";
 
@@ -20,7 +20,7 @@ function PersonRow({ person, lastSeen }: { person: Person; lastSeen?: DateStr })
       <PersonRowLink personId={person.id}>
         <span className="min-w-0 flex-1 truncate font-medium">{person.title}</span>
         {person.relationship && <RelationshipLabel>{person.relationship}</RelationshipLabel>}
-        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{lastSeen ? `Last seen ${lastSeen}` : "Not seen"}</span>
+        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{lastSeen ? `Last seen ${formatHuman(lastSeen)}` : "Not seen"}</span>
       </PersonRowLink>
     </li>
   );
@@ -36,8 +36,7 @@ export function PeopleScreen() {
   const [query, setQuery] = useState("");
   const [relationship, setRelationship] = useState("");
   const [tag, setTag] = useState("");
-  const rows = usePeople();
-  const people = useMemo(() => rows.map(normalizePerson), [rows]);
+  const people = usePeople();
   const shown = useMemo(() => everyone(people, { query, relationship, tag }), [people, query, relationship, tag]);
   const index = useLinkIndex();
   const today = todayStr();

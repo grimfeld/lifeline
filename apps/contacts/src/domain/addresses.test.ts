@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Document } from "@lifeline/core";
-import { addAddress, addressPinsOf, editAddress, normalizeAddresses, removeAddress, sortedAddresses } from "./addresses";
+import { addAddress, addressPinsOf, editAddress, normalizeAddresses, sortedAddresses } from "./addresses";
 import type { Address } from "./types";
 
 const A = (id: string, extra: Partial<Address> = {}): Address => ({ id, label: id, text: `${id} street`, former: false, ...extra });
@@ -38,7 +38,6 @@ describe("keeping a Person's Addresses", () => {
     expect(two[1]).toEqual({ id: "n2", label: "Work", text: "2 Rue Y", former: false });
     expect(editAddress(two, "n2", { former: true })[1]!.former).toBe(true);
     expect(editAddress(two, "n1", { label: "Home 2" })[0]!.label).toBe("Home 2");
-    expect(removeAddress(two, "n1").map((a) => a.id)).toEqual(["n2"]);
   });
 
   it("refuses an Address with no text, and gives a blank label a name", () => {

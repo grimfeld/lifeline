@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ContactDetail } from "./types";
-import { contactAction, contactDetailsOf, markFormer, removeDetail, saveDetail, validateDetail } from "./contactDetails";
+import { contactAction, contactDetailsOf, markFormer, saveDetail, validateDetail } from "./contactDetails";
 
 const d = (over: Partial<ContactDetail>): ContactDetail => ({ id: "c1", label: "Mobile", kind: "phone", value: "", former: false, ...over });
 
@@ -72,10 +72,9 @@ describe("the list", () => {
     expect(next).toEqual([d({ id: "c1", label: "Old", value: "9", former: true }), list[1]]);
   });
 
-  it("marks one former, or current again, and removes one", () => {
+  it("marks one former, or current again", () => {
     const list = [d({ id: "c1" }), d({ id: "c2" })];
     expect(markFormer(list, "c2", true)[1]?.former).toBe(true);
     expect(markFormer(markFormer(list, "c2", true), "c2", false)[1]?.former).toBe(false);
-    expect(removeDetail(list, "c1")).toEqual([list[1]]);
   });
 });

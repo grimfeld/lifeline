@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PERSON_TYPE } from "@lifeline/core";
-import type { Document, DocumentTypeDef, OwnedCommand, TimedProvider } from "@lifeline/core";
+import type { Document, DocumentTypeDef, MacroRecord, OwnedCommand, TimedProvider } from "@lifeline/core";
 import { pinsOf } from "@lifeline/core";
 import { contactsApp } from "@lifeline/app-contacts";
 
@@ -19,6 +19,7 @@ const types = new Map<string, DocumentTypeDef>();
 const docs = new Map<string, Document>();
 const commands: OwnedCommand[] = [];
 const timed: TimedProvider[] = [];
+const macros: MacroRecord[] = [];
 const core = vi.hoisted(() => ({
   createDocument: vi.fn(),
   moveDocument: vi.fn(),
@@ -39,7 +40,7 @@ vi.mock("@lifeline/core", async (importOriginal) => {
     allDocumentTypes: () => [...types.values()],
     getDocument: async (id: string) => docs.get(id),
     allDocuments: async () => [...docs.values()],
-    allMacros: async () => [],
+    allMacros: async () => macros,
     allCommands: () => commands,
     timedProviders: () => timed,
     surfaceItemsIn: async () => ({ items: [], pool: [] }),
@@ -118,6 +119,7 @@ beforeEach(() => {
   docs.clear();
   commands.length = 0;
   timed.length = 0;
+  macros.length = 0;
   timed.push(contactsTimed);
   for (const fn of Object.values(core)) fn.mockReset().mockResolvedValue(undefined);
   core.createDocument.mockImplementation(async (input: { type: string; title: string }) => ({ ...person("new", input.title), ...input }));
@@ -150,9 +152,19 @@ describe("the agent wall: what an agent reads of a Person (ADR 0114)", () => {
   });
 
   it("answers with the rest of the Person: name, aliases, Relationship, Tags, body and the user's own Fields", async () => {
-    const got = (await runTool("get_document", { id: "p1" })) as { title: string; tags: string[]; body: string; fields: Record<string, unknown> };
+    const got = (await runTool("get_document", { id: "p1" })) as { title: string; tags: string[]; body: string; fields: Record<string, unknown>; detail: Record<string, unknown> };
     expect(got).toMatchObject({ title: "Anne Dupont", tags: ["family"], body: "Loves watercolours. See [[Léa]]." });
-    expect(got.fields).toEqual({ aliases: ["Mum"], relationship: "my mother", giftIdeas: "a good sable brush", occasions: [{ id: "o1", label: "Birthday", day: "1961-11-12", yearly: true }] });
+    expect(got.fields).toEqual({ aliases: ["Mum"], relationship: "my mother", giftIdeas: "a good sable brush" });
+    expect(got.detail.occasions).toEqual([{ label: "Birthday", day: "1961-11-12", yearly: true }]);
+  });
+
+  it("hands a type's `describe` the Person already behind the wall", async () => {
+    const seen: Document[] = [];
+    types.set(PERSON_TYPE, { ...withGiftIdeas, describe: async (d) => (seen.push(d), { echo: d }) });
+    const answer = JSON.stringify(await runTool("get_document", { id: "p1" }));
+    for (const value of WALLED_VALUES) expect(answer, `describe leaked “${value}”`).not.toContain(value);
+    expect(seen[0]).not.toHaveProperty("addresses");
+    expect(seen[0]).not.toHaveProperty("contactDetails");
   });
 
   it("still hides a Person in the Private folder as a whole", async () => {
@@ -201,6 +213,19 @@ describe("the agent wall: what an agent writes of a Person (ADR 0114)", () => {
   it("refuses a Macro step that would hand them to a Contacts Command", async () => {
     await expect(runTool("create_macro", { name: "Sneak", steps: [{ command: "contacts/people.add", args: { name: { from: "asked" }, addresses: { from: "fixed", value: [] } } }] })).rejects.toThrow(/never written by an agent/);
     expect(core.saveMacro).not.toHaveBeenCalled();
+  });
+
+  it("refuses to run a stored Macro whose step hands them to a Command, running nothing", async () => {
+    macros.push({ id: "m1", name: "Sneak", sort: 0, updatedAt: "", deleted: 0, steps: [{ command: "contacts/people.add", args: { name: { from: "asked" }, contactDetails: { from: "fixed", value: [] } } }] });
+    await expect(runTool("macro_sneak", { s1_name: "Léa" })).rejects.toThrow(/never written by an agent/);
+    expect(core.createDocument).not.toHaveBeenCalled();
+  });
+
+  it("walls only the Person's keys on a Document: another type's own \"addresses\" Field is written", async () => {
+    types.set("venue", { id: "venue", label: "Venues", titleRule: "name", body: "optional", builtIn: false, fields: [{ key: "addresses", label: "Addresses", kind: "text" }] });
+    docs.set("v1", { id: "v1", type: "venue", title: "Hall", folder: "", tags: [], createdAt: "", updatedAt: "", deleted: 0 } as unknown as Document);
+    await runTool("update_document", { id: "v1", fields: { addresses: "1 Main St" } });
+    expect(core.patchDocument).toHaveBeenCalledWith("v1", { addresses: "1 Main St" });
   });
 
   it("writes a Field the user added to Person like any other", async () => {

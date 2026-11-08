@@ -76,7 +76,5 @@ export function editAddress(list: readonly Address[], id: string, patch: Partial
   });
 }
 
-export const removeAddress = (list: readonly Address[], id: string): Address[] => list.filter((a) => a.id !== id);
-
 /** Current Addresses first, then former ones, each in the order added. */
 export const sortedAddresses = (list: readonly Address[]): Address[] => [...list.filter((a) => !a.former), ...list.filter((a) => a.former)];

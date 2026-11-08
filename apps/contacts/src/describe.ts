@@ -1,5 +1,6 @@
 import { allDocumentTypes, allDocuments, buildLinkIndex, documentFigures, inPrivateFolder, sourceOf, todayStr, type Document, type DocumentFigures } from "@lifeline/core";
 import { tiesSeenFrom } from "./domain/ties";
+import { normalizeOccasions } from "./domain/occasions";
 import { allPeople } from "./data/repo";
 import { tiesOf } from "./data/ties";
 
@@ -10,8 +11,9 @@ const figure = (f: DocumentFigures) => ({ last: f.last, daysAgo: f.sinceLast, th
 
 /**
  * A Person as an agent reads it beyond its Fields (`describe`, ADR 0098): their
- * Ties, read from their side, and their Last seen and Last mentioned (ADR
- * 0112), as their page shows them. Ties to People in the Private folder are
+ * Occasions (an App-owned part, so no Field shows it), their Ties, read from
+ * their side, and their Last seen and Last mentioned (ADR 0112), as their page
+ * shows them. Ties to People in the Private folder are
  * left out, and nothing there is counted. The agent wall (ADR 0114) is the
  * server's: nothing here reads Addresses or Contact details.
  */
@@ -22,6 +24,7 @@ export async function describePerson(person: Document): Promise<Record<string, u
   const people = (await allPeople()).filter(agentMaySee);
   const ties = tiesSeenFrom(person.id, await tiesOf(person.id), people).map((t) => ({ label: t.label, id: t.otherId, title: t.otherName }));
   return {
+    occasions: normalizeOccasions(person.occasions).map(({ label, day, yearly }) => ({ label, day, yearly })),
     ties,
     reports: {
       lastSeen: figure(documentFigures(index, person.id, today, sourceOf("seen", today))),

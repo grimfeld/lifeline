@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { buildLinkIndex, documentsOf, documentsTable, getDocument, moveDocumentsToWorkspace, removeDocument, initApps } from "@lifeline/core";
 import { personTypeDef, tieTypeDef } from "../types";
 import { addPerson } from "./repo";
-import { addTie, tiesOf, updateTie, removeTie } from "./ties";
+import { addTie, tiesOf, updateTie, removeTie, restoreTie } from "./ties";
 
 initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personTypeDef, tieTypeDef], screens: [], cards: [], commands: [] }]);
 
@@ -34,8 +34,11 @@ describe("Ties (#412)", () => {
     expect(await getDocument(t.id)).toMatchObject({ labelA: "mum", labelB: "girl" });
     await updateTie(t.id, anne.id, { label: "daughter", ownLabel: "mother" });
     expect(await getDocument(t.id)).toMatchObject({ labelA: "mother", labelB: "daughter" });
-    await removeTie(t.id);
+    const gone = await removeTie(t.id);
     expect(await tiesOf(anne.id)).toEqual([]);
+    // Undo: the same Tie, on both pages again.
+    await restoreTie(gone);
+    expect((await tiesOf(lea.id)).map((x) => x.id)).toEqual([t.id]);
   });
 
   it("refuses a Tie to oneself, to a non-Person, or with no word", async () => {

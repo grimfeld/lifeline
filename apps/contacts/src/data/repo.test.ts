@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { PERSON_TYPE, createDocument, documentType, documentsTable, getDocument, initApps, putDocument, removeDocument, saveDocumentType, type DocumentTypeDef, type FieldDef } from "@lifeline/core";
 import { personTypeDef } from "../types";
-import { addOccasion, addOccasionByName, addPerson, editOccasion, patchPerson, removeOccasion } from "./repo";
+import { addOccasion, addOccasionByName, addPerson, editOccasion, patchPerson, removePart, restorePart, updateContactDetails } from "./repo";
 
 // Stand-ins for the other Apps' People fields (Contacts imports none of them): an Event's With, a Task's
 // and a Transaction's For, a work's Recommended by.
@@ -40,13 +40,16 @@ describe("changing a Person", () => {
     expect(await getDocument(p.id)).toMatchObject({ aliases: ["Mum"], relationship: "my mother", tags: ["family"] });
   });
 
-  it("writes their Contact details, and leaves everything else as it was", async () => {
+  it("writes their Contact details onto the stored list, and leaves everything else as it was", async () => {
     const p = await addPerson({ name: "Anne Dupont", relationship: "my mother" });
-    const contactDetails = [{ id: "c1", label: "Mobile", kind: "phone" as const, value: "+33 6 12 34 56 78", former: false }];
-    await patchPerson(p.id, { contactDetails });
-    expect(await getDocument(p.id)).toMatchObject({ contactDetails, relationship: "my mother" });
-    await patchPerson(p.id, { contactDetails: [] });
-    expect(await getDocument(p.id)).toMatchObject({ contactDetails: [] });
+    const mobile = { id: "c1", label: "Mobile", kind: "phone" as const, value: "+33 6 12 34 56 78", former: false };
+    const work = { id: "c2", label: "Work", kind: "email" as const, value: "anne@example.org", former: false };
+    await updateContactDetails(p.id, () => [mobile]);
+    expect(await getDocument(p.id)).toMatchObject({ contactDetails: [mobile], relationship: "my mother" });
+    // Each change starts from what is stored, not from a copy the screen held.
+    await updateContactDetails(p.id, (l) => [...l, work]);
+    await updateContactDetails(p.id, (l) => l.map((c) => (c.id === "c1" ? { ...c, former: true } : c)));
+    expect(await getDocument(p.id)).toMatchObject({ contactDetails: [{ ...mobile, former: true }, work] });
   });
 
   it("refuses an empty name", async () => {
@@ -75,8 +78,12 @@ describe("a Person's Occasions", () => {
     expect(((await getDocument(p.id)) as never as { occasions: unknown[] }).occasions).toMatchObject([{ label: "Birthday", day: "1961-03-04", yearly: true }, { label: "Surgery", yearly: false }]);
     await editOccasion(p.id, o.id, { label: "Birthday", day: "03-04", yearly: true });
     expect(((await getDocument(p.id)) as never as { occasions: { day: string }[] }).occasions[0]?.day).toBe("03-04");
-    await removeOccasion(p.id, o.id);
+    const removed = await removePart(p.id, "occasions", o.id);
     expect(((await getDocument(p.id)) as never as { occasions: unknown[] }).occasions).toHaveLength(1);
+    // Undo puts back that one, where it stood, keeping one added since.
+    await addOccasion(p.id, { label: "Met", day: "1990-06-01", yearly: true });
+    await restorePart(p.id, "occasions", removed);
+    expect(((await getDocument(p.id)) as never as { occasions: { label: string }[] }).occasions.map((x) => x.label)).toEqual(["Birthday", "Surgery", "Met"]);
   });
 
   it("refuse what is not an Occasion, writing nothing", async () => {

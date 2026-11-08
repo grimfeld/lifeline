@@ -42,6 +42,7 @@ export const personTypeDef: DocumentTypeDef = {
     { key: "excludedFromDrifting", label: "Excluded from Drifting", kind: "boolean" },
     // The App's own parts, declared so a Field of the user's can never take their keys (`merge` keeps the
     // built-in's): guarded, hidden and json, so no Base, form or agent writes them (ADR 0114).
+    { key: "occasions", label: "Occasions", kind: "json", guarded: true, hidden: true },
     { key: "addresses", label: "Addresses", kind: "json", guarded: true, hidden: true },
     { key: "contactDetails", label: "Contact details", kind: "json", guarded: true, hidden: true },
   ],

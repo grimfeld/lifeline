@@ -514,7 +514,7 @@ Someone I know, or knew: a Linkable Document of its own built-in type, owned by 
 _Avoid_: contact, friend, acquaintance, relation (a kind of Tie, not the Person)
 
 ### Drifting
-The People I have not seen in a while: a ranking of Seen (Not seen in N days, 90 by default; Not mentioned as the alternative) over the People who have a Relationship, minus any I have chosen to leave out. Someone I have never seen at all is drifting too, ahead of everyone seen. Where the People Module asks "who have I lost touch with?". Derived, like every Report; never a reminder.
+The People I have not seen in a while: a ranking of Seen (Not seen in 90 days, a fixed window; Not mentioned as the alternative) over the People who have a Relationship, minus any I have chosen to leave out. Someone I have never seen at all is drifting too, ahead of everyone seen. Where the People Module asks "who have I lost touch with?". Derived, like every Report; never a reminder.
 _Avoid_: neglected, overdue, stale, reminder
 
 ### People field

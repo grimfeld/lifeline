@@ -1,6 +1,9 @@
+import { useMemo } from "react";
 import { PERSON_TYPE, createDocument, documentsOf, getDocument, newId, normalizeTags, patchDocument, renameDocument, useDocuments } from "@lifeline/core";
 import { type Address, type ContactDetail, type Occasion, type Person } from "../domain/types";
 import { normalizeAddresses } from "../domain/addresses";
+import { contactDetailsOf } from "../domain/contactDetails";
+import { putBack, takeOut } from "../domain/parts";
 import { normalizeOccasions, occasionProblem } from "../domain/occasions";
 import { findPerson } from "../domain/person";
 
@@ -9,11 +12,14 @@ export function normalizePerson(doc: Person): Person {
   return { ...doc, aliases: Array.isArray(doc.aliases) ? doc.aliases : [], relationship: typeof doc.relationship === "string" ? doc.relationship : "", excludedFromDrifting: doc.excludedFromDrifting === true, occasions: normalizeOccasions(doc.occasions), addresses: normalizeAddresses(doc.addresses) };
 }
 
-/** Every Person in the Workspace, live. */
-export const usePeople = () => useDocuments<Person>(PERSON_TYPE);
+/** Every Person in the Workspace, live, with the App's keys well-formed whatever a Base wrote. */
+export function usePeople(): Person[] {
+  const docs = useDocuments<Person>(PERSON_TYPE);
+  return useMemo(() => docs.map(normalizePerson), [docs]);
+}
 
-/** Every Person in the Workspace, read once. */
-export const allPeople = () => documentsOf<Person>(PERSON_TYPE);
+/** Every Person in the Workspace, read once, normalised like `usePeople`. */
+export const allPeople = async () => (await documentsOf<Person>(PERSON_TYPE)).map(normalizePerson);
 
 export type OccasionInput = Pick<Occasion, "label" | "day" | "yearly">;
 
@@ -25,17 +31,11 @@ function validOccasion(input: OccasionInput): OccasionInput {
   return o;
 }
 
-async function occasionsOf(personId: string): Promise<Occasion[]> {
-  const doc = await getDocument(personId);
-  if (!doc || doc.type !== PERSON_TYPE) throw new Error("No such person");
-  return normalizeOccasions((doc as Person).occasions);
-}
-
 /** Add an Occasion to a Person; throws in words when it is not one (an empty label, no real day, a once one with no year). */
 export async function addOccasion(personId: string, input: OccasionInput): Promise<Occasion> {
   const o = validOccasion(input);
   const occasion = { id: newId(), ...o };
-  await patchDocument(personId, { occasions: [...(await occasionsOf(personId)), occasion] });
+  await updateParts(personId, "occasions", (list) => [...list, occasion]);
   return occasion;
 }
 
@@ -52,14 +52,46 @@ export async function addOccasionByName(name: string, input: OccasionInput): Pro
 /** Change an Occasion on a Person. */
 export async function editOccasion(personId: string, id: string, input: OccasionInput): Promise<void> {
   const o = validOccasion(input);
-  const all = await occasionsOf(personId);
-  if (!all.some((x) => x.id === id)) throw new Error("No such occasion");
-  await patchDocument(personId, { occasions: all.map((x) => (x.id === id ? { id, ...o } : x)) });
+  await updateParts(personId, "occasions", (list) => {
+    if (!list.some((x) => x.id === id)) throw new Error("No such occasion");
+    return list.map((x) => (x.id === id ? { id, ...o } : x));
+  });
 }
 
-/** Remove an Occasion from a Person. */
-export async function removeOccasion(personId: string, id: string): Promise<void> {
-  await patchDocument(personId, { occasions: (await occasionsOf(personId)).filter((x) => x.id !== id) });
+/** A part taken off a Person, and where it stood: what its Undo puts back. */
+export interface Removed<T> {
+  entry: T;
+  index: number;
+}
+
+/** A Person's parts by key, each read from the stored row the way the App reads it. */
+const PARTS = { occasions: normalizeOccasions, addresses: normalizeAddresses, contactDetails: (raw: unknown) => contactDetailsOf({ contactDetails: raw }) } as const;
+type PartKey = keyof typeof PARTS;
+type PartOf<K extends PartKey> = ReturnType<(typeof PARTS)[K]>[number];
+
+async function partsOf<K extends PartKey>(personId: string, key: K): Promise<PartOf<K>[]> {
+  const doc = await getDocument(personId);
+  if (!doc || doc.type !== PERSON_TYPE) throw new Error("No such Person");
+  return PARTS[key](doc[key]) as PartOf<K>[];
+}
+
+/** Change one of a Person's lists of parts: `change` is given the stored list, so two quick edits never overwrite each other. */
+async function updateParts<K extends PartKey>(personId: string, key: K, change: (list: PartOf<K>[]) => PartOf<K>[]): Promise<void> {
+  await patchDocument(personId, { [key]: change(await partsOf(personId, key)) });
+}
+
+/** Take one part off a Person (an Occasion, an Address, a Contact detail), handing back what Undo needs. */
+export async function removePart<K extends PartKey>(personId: string, key: K, id: string): Promise<Removed<PartOf<K>>> {
+  const all = await partsOf(personId, key);
+  const { list, index } = takeOut(all, id);
+  if (index < 0) throw new Error("It is already gone");
+  await patchDocument(personId, { [key]: list });
+  return { entry: all[index]!, index };
+}
+
+/** Undo `removePart`: that one part back where it stood, onto the list as it is now. */
+export async function restorePart<K extends PartKey>(personId: string, key: K, removed: Removed<PartOf<K>>): Promise<void> {
+  await updateParts(personId, key, (list) => putBack(list, removed.entry, removed.index));
 }
 
 const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);
@@ -84,7 +116,6 @@ export interface PersonPatch {
   aliases?: string[];
   relationship?: string;
   tags?: string[];
-  contactDetails?: ContactDetail[];
   excludedFromDrifting?: boolean;
 }
 
@@ -104,7 +135,6 @@ export async function patchPerson(id: string, patch: PersonPatch): Promise<void>
   if (rest.relationship !== undefined) fields.relationship = rest.relationship.trim();
   if (rest.excludedFromDrifting !== undefined) fields.excludedFromDrifting = rest.excludedFromDrifting;
   if (rest.tags) fields.tags = normalizeTags(rest.tags);
-  if (rest.contactDetails) fields.contactDetails = rest.contactDetails;
   if (Object.keys(fields).length) await patchDocument(id, fields);
 }
 
@@ -112,8 +142,7 @@ export async function patchPerson(id: string, patch: PersonPatch): Promise<void>
  * Change a Person's Addresses: `change` is given the stored list and returns the
  * new one, so two quick edits never overwrite each other with a stale copy.
  */
-export async function updateAddresses(id: string, change: (list: Address[]) => Address[]): Promise<void> {
-  const doc = await getDocument(id);
-  if (!doc) throw new Error("No such Person");
-  await patchDocument(id, { addresses: change(normalizeAddresses(doc.addresses)) });
-}
+export const updateAddresses = (id: string, change: (list: Address[]) => Address[]) => updateParts(id, "addresses", change);
+
+/** Change a Person's Contact details the same way: `change` is given the stored list. */
+export const updateContactDetails = (id: string, change: (list: ContactDetail[]) => ContactDetail[]) => updateParts(id, "contactDetails", change);

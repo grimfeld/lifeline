@@ -7,7 +7,8 @@ import type { Person } from "./types";
  * a Relationship and "excluded" are Person-only, and Core may not know them.
  * It is Core's "Not seen lately" (or "Not mentioned lately") ranking, kept to
  * the People who have a Relationship and have not been left out, plus those
- * never seen at all. Derived, never stored, never a reminder.
+ * never seen at all. Not seen in 90 days, fixed: no setting changes it.
+ * Derived, never stored, never a reminder.
  */
 export const DRIFTING_DAYS = 90;
 
@@ -23,12 +24,12 @@ export interface Drifter {
 
 /**
  * The People to show: those with a Relationship, not excluded, who were seen on
- * no day in the last `days` days. The never seen come first (by name), then the
+ * no day in the last `DRIFTING_DAYS` days. The never seen come first (by name), then the
  * rest longest unseen first.
  */
-export function drifting(index: LinkIndex, people: readonly Person[], { days = DRIFTING_DAYS, source = "seen", today }: { days?: number; source?: DriftSource; today: DateStr }): Drifter[] {
+export function drifting(index: LinkIndex, people: readonly Person[], { source = "seen", today }: { source?: DriftSource; today: DateStr }): Drifter[] {
   const daysOf = sourceOf(source, today);
-  const cutoff = addDays(today, -days);
+  const cutoff = addDays(today, -DRIFTING_DAYS);
   return people
     .filter((p) => p.relationship?.trim() && !p.excludedFromDrifting)
     .flatMap((person): Drifter[] => {
