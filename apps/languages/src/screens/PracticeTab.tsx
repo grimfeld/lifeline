@@ -7,6 +7,7 @@ import { dueAheadOfHeld, heldPrompts, inDecks, introducedByTopic, queueOfHeld, r
 import type { Deck, Topic, Recall } from "../domain/types";
 import { useAllMaterial, useRecalls, useSourceChains, useTopics, type MaterialDoc } from "../data/repo";
 import { FORMAT_LABEL, getPuzzle } from "../data/puzzles";
+import { LeechList } from "../components/LeechList";
 import { PracticeRun } from "../components/PracticeRun";
 
 /** What a Deck holds that still exists — a deleted Word simply leaves every Deck. */
@@ -231,6 +232,8 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
           )}
         </section>
       )}
+
+      <LeechList items={live} recalls={recalls} />
 
       <div className="grid gap-4 sm:grid-cols-[12rem_1fr]">
         <section className="grid content-start gap-1.5">

@@ -71,4 +71,11 @@ describe("practiceReport", () => {
     const rs = report(items, recalls).mostFailed[0]!.recalls;
     expect(rs.map((r) => r.typed)).toEqual([undefined, undefined, "a la stazione"]);
   });
+
+  it("lists the Leeches: 4 fails among the last 8 Recalls, with question and answer, never drafts or paused", () => {
+    const items = [word("a", "stazione", "station"), word("p", "pausa", "pause", { paused: true }), word("d", "bozza", "draft", { draft: true })];
+    const fails = (id: string) => [1, 2, 3, 4].map((k) => recall(id, "reverse", "fail", at(10 + k)));
+    const r = report(items, [...fails("a"), ...fails("p"), ...fails("d"), recall("a", "forward", "fail", at(20))]);
+    expect(r.leeches).toEqual([{ itemId: "a", type: WORD, slot: "reverse", question: "station", answer: "stazione", fails: 4 }]);
+  });
 });

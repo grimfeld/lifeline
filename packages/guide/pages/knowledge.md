@@ -66,6 +66,12 @@ Topic to a set you choose.
 - **Retention** — the share of recalls passed over the last 30 days, for this Topic and for all. Paused
   material and drafts are left out.
 - **The week ahead** — how many prompts fall due each day.
+- **Leeches** — prompts you keep failing: 4 fails or more among a prompt's last 8 recalls (a
+  recall you struck out does not count). The list shows each one's question and how many fails
+  it has, with **Pause** (keeps its history, stops practising it) and **Edit** (rewrite it).
+  Nothing is stored: a prompt leaves the list on its own once its recent recalls pass. Drafts and
+  paused material are never listed, and the list is absent while there are none. It says only that
+  you keep failing it, not that anything else is learnt.
 
 ### Kept
 
@@ -178,7 +184,7 @@ Claude can **draft** what it teaches you, but only you decide what enters your p
 - Claude cannot record or attach clips: those are yours.
 - "How is my Italian going?" — `knowledge_report`, read-only. For a Topic (and optionally some of its
   Decks, a lesson each) it gives **Retention** (the figure the app shows), what is **due** now, how many
-  new prompts are waiting, and the prompts **failed most** in the last 30 days (up to ten, most failed
+  new prompts are waiting, your **leeches** (as the app lists them, each with its question, answer and fails), and the prompts **failed most** in the last 30 days (up to ten, most failed
   first): each with its question, answer, which prompt it is, and its latest recalls (pass or fail, when, and
   what you typed, if you did). Drafts and paused material are left out; a recall you struck out is gone. Claude reads this to
   choose the next lesson, never to change anything.
