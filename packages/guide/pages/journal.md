@@ -68,7 +68,7 @@ and the Templates every kind of page starts from.
 ### Templates
 
 - Every kind of page has its own Templates: the starting text for a new Day, Week, Note,
-  Chapter, Person…
+  Chapter, Person, Place…
 - Type a name and press **Template** to add one. The first one, named after the type, is the
   default; pick another when you make a page.
 - A built-in kind with no Template of yours uses its own default.
@@ -78,9 +78,9 @@ and the Templates every kind of page starts from.
 - **Open today** — today's Day. Where: the palette (Ctrl+K), or the sidebar's **Today**.
 - **Go to date…** — keeps the palette open for a date or a period to type (`2023-03-14`,
   `2023-Q1`…); the row at the top opens it. Future dates open too, and nothing is made.
-- **New note…** — pick a kind of page (Person, Place, Essay…), give it a title and, if you like,
+- **New note…** — pick a kind of page (Place, Essay…), give it a title and, if you like,
   a Template; it opens straight away. Where: the palette.
-- **New …** — one command per kind of page, such as **New person…**, for when you already know
+- **New …** — one command per kind of page, such as **New place…**, for when you already know
   the kind. Where: the palette.
 - **Quick capture** — one line appended to today's Day with the time. Where: the Capture sheet,
   the palette. Ctrl+Enter (⌘+Enter) saves.
@@ -135,11 +135,12 @@ for today's Day, stamped with the time.
 - "What did I write last Tuesday?" — `search_documents`, `get_document`.
 - "Add a paragraph to today's journal" — `update_document` (it replaces the whole text, so
   Claude reads it first).
-- "Make a page for my friend Ana" — `create_document`, for your own types such as Person.
+- "Make a page for the café on the corner" — `create_document`, for your own types such as Place.
+  People are [People](people.md)'s: "Add my friend Ana" is `people_add`.
 
 ## Tips
 
-- Select words in a Day to link them, or to make a Person or Place from them in one go.
+- Select words in a Day to link them, or to make a Place (or a [Person](people.md)) from them in one go.
 - A quote can go straight into today's Day: **Insert into today's note** on any quote in Notes.
 - The Day page stays light on a phone: links, Reviews and On this day are a tap away rather
   than on screen.

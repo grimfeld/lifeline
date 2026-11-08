@@ -200,7 +200,8 @@ test("a user-defined type is not offered for a long selection", async ({ page })
   await selectText(page.locator(".cm-content"), long);
   await page.getByRole("button", { name: "Selection menu" }).click();
   await expect(menu(page).getByRole("group", { name: "Projects" })).toBeVisible();
-  await expect(menu(page).getByRole("option", { name: "Person", exact: true })).toHaveCount(0);
+  // The Journal's own user-defined Person (the Contacts App's Person under People is an Intake, offered whatever the length).
+  await expect(menu(page).getByRole("group", { name: "Journal" })).toHaveCount(0);
 });
 
 for (const addAlias of [false, true]) {

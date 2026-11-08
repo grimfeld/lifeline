@@ -50,6 +50,13 @@ export interface IntakeDef {
   title: string;
   icon?: React.ComponentType<{ className?: string }>;
   dialog: React.ComponentType<IntakeDialogProps>;
+  /**
+   * What it makes is what the words name — a Person from a name — so made from
+   * the Selection menu, the selection becomes a Wikilink to it once the dialog
+   * saves (CONTEXT.md "Selection menu": making a Document of a Linkable type
+   * links it). Left out, the selection stays as it is (a Quote, a Task).
+   */
+  links?: boolean;
 }
 
 /** Read side: every App's Intakes, in registry order, each stamped with its App. */

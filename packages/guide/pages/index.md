@@ -57,6 +57,7 @@ More in [Using Lifeline on a phone](phone.md).
 - [Culture](culture.md)
 - [Money](money.md)
 - [Journal](journal.md)
+- [People](people.md)
 - [Notes](notes.md)
 - [Research](research.md)
 - [Manuscript](manuscript.md)

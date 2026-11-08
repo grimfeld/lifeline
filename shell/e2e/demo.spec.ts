@@ -644,11 +644,6 @@ for (const w of WIDTHS) {
 
 // ---- Demo life: writing and the Journal (#111) ----------------------------
 
-/** On a phone the Document panel (Reports, Backlinks) is a sheet behind a button. */
-async function openDocPanel(page: Page, isMobile: boolean): Promise<void> {
-  if (isMobile) await page.getByRole("button", { name: "Toggle links panel" }).click();
-}
-
 /** The Journal page on screen has links, and every one of them finds its page. */
 async function expectLinksResolve(page: Page): Promise<void> {
   await expect(page.locator(".cm-wikilink").first()).toBeVisible();
@@ -697,14 +692,13 @@ for (const w of WIDTHS) {
       }
     });
 
-    test("a person's page shows backlinks and Reports from Journal Days", async ({ page }) => {
-      await open(page, "/app/journal/t/person");
-      await expect(page.getByText("Top mentioned")).toBeVisible();
-      await page.getByRole("link", { name: /^Aoife Brennan/ }).click();
-      await openDocPanel(page, w.isMobile);
-      await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
-      await expect(page.getByText("Last mentioned")).toBeVisible();
-      await expect(page.getByText(/\d+ this year · \d+ in all/)).toBeVisible();
+    test("a Person's page shows the Journal Days that link to them", async ({ page }) => {
+      await open(page, "/base/contacts_person");
+      await page.getByRole("link", { name: /^Aoife Brennan/ }).first().click();
+      // A row peeks the Person; the Peek's way through is their page.
+      await page.getByRole("dialog", { name: "Aoife Brennan" }).getByRole("button", { name: "Open in People" }).click();
+      await expect(page).toHaveURL(/\/app\/people\/person\//);
+      await expect(page.getByText("Best friend · also Aoife")).toBeVisible();
       const backlinks = page.getByRole("heading", { name: /^Backlinks · \d+$/ });
       await expect(backlinks).toBeVisible();
       expect(Number((await backlinks.textContent())!.split("·")[1]), "Days linking to Aoife").toBeGreaterThanOrEqual(4);

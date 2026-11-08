@@ -16,6 +16,7 @@
     "@lifeline/app-chores": "workspace:*",
     "@lifeline/app-cinema": "workspace:*",
     "@lifeline/app-commonplace": "workspace:*",
+    "@lifeline/app-contacts": "workspace:*",
     "@lifeline/app-discotheque": "workspace:*",
     "@lifeline/app-languages": "workspace:*",
     "@lifeline/app-ledger": "workspace:*",

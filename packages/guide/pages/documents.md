@@ -17,12 +17,13 @@ book. This page covers what every Document has, whatever its type.
 
 - **Built-in types** — Task, Event, Chore, Note, Transaction and the rest. Each belongs to one App
   inside a Module, which alone decides how it behaves.
-- **Your own types** — Person, Place, Recipe, whatever you need. Make one in [Bases](bases.md)
+- **Your own types** — Place, Recipe, whatever you need (People have their own Module:
+  [People](people.md)). Make one in [Bases](bases.md)
   with **New type**, or in the Journal under its Types.
 - When you make or edit a type you choose:
   - **Name** and **Icon**.
   - **Default folder** — where new ones land.
-  - **Home Module** — where its Documents open (People and Places in the Journal), or none, and
+  - **Home Module** — where its Documents open (Places in the Journal), or none, and
     they open in their Base.
   - **Writing** — always (each one is a page to write), optional, or none (fields only).
   - **Linkable** — whether `[[links]]` can point at it. See [Links](links.md).
