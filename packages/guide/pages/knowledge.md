@@ -94,11 +94,11 @@ Topic to a set you choose.
   or **Delete** it. An accepted draft counts as new from the moment you accept it, so the Topic's
   **New per day** counts it that day. Its *Where it was met* still says who drafted it, and for which
   lesson (Deck), after you accept it.
-- **Proposed rewrites** — when Claude wants to fix an item you already accepted, it never edits it:
-  the item shows a **rewrite** mark, and opening it shows a **Proposed change** with each field's
-  current text struck above the proposed one. **Accept change** applies it like an edit you made
+- **Draft changes** — when Claude wants to fix an item you already accepted, it never edits it:
+  the item shows a **draft change** mark, and opening it shows the **Draft change** with each field's
+  current text struck above Claude's. **Accept change** applies it like an edit you made
   yourself: a Word keeps its Prompts, and a Sentence keeps the blanks whose text is unchanged (a
-  blank that changed starts fresh). **Discard** drops it. A newer proposal replaces an older one.
+  blank that changed starts fresh). **Discard** drops it. A newer draft change replaces an older one.
 - **Also kept here** — Quotes kept in this Topic from Notes.
 - Open one to edit it, see its prompts, and put it in or out of Decks. Editing never resets its
   practice.
@@ -113,9 +113,9 @@ Topic to a set you choose.
 - Name it and tick what it holds. Deleting a Deck keeps its words.
 - A Deck holding drafts (a lesson Claude drafted) shows **Review N drafts** on its row. The review
   steps through the drafts one at a time: **Accept**, **Edit** (then **Save & accept**) or **Delete**
-  each, with **Previous** and **Next** to move about. **Accept all** stays unavailable until every
-  draft still waiting has been shown, so a long lesson is accepted in one go yet you saw each item;
-  it accepts only the drafts still waiting. Accepting here is exactly accepting one draft: each
+  each (deleted at once, with **Undo** in the message), with **Previous** and **Next** to move about.
+  **Accept all** stays unavailable until every draft left has been shown, so a long lesson is
+  accepted in one go yet you saw each item; it accepts only what is still a draft. Accepting here is exactly accepting one draft: each
   counts as new from that moment.
 
 ### Puzzles
@@ -183,10 +183,11 @@ Claude can **draft** what it teaches you, but only you decide what enters your p
   the Deck is made in the Topic when it is not there yet) and a note for *Where it was met*, which
   Lifeline writes after "Agent draft" and the Deck's name.
 - Claude cannot accept, pause, unpause or delete anything, and cannot change what you have accepted.
-  To fix an accepted Word, Sentence or Fact it uses **Propose a rewrite…** (`knowledge_propose`),
-  giving the item and the fields it would change: you see the proposal beside the current values
-  and accept or discard it. Each item holds one proposal at a time. On a draft it simply updates
-  the draft.
+  To fix an accepted Word, Sentence or Fact it uses **Draft a change…** (`knowledge_draft_change`),
+  giving the item and the fields it would change: you see the draft change beside the current values
+  and accept or discard it. Each item holds one draft change at a time; editing accepted material any
+  other way (`update_document`) is refused. On a draft it simply updates the draft, and a Macro Claude
+  runs drafts what it adds, as Claude's own capture does.
 - Adding the same thing twice is refused, not duplicated.
 - Claude cannot record or attach clips: those are yours.
 - "How is my Italian going?" — `knowledge_report`, read-only. For a Topic (and optionally some of its

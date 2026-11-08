@@ -1,13 +1,13 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { deleteAttachment, documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
-import { REWRITABLE } from "../domain/draft";
+import { REWRITABLE, type DraftChange } from "../domain/draft";
 import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
 import { sourceChain, type SourceReading } from "../domain/sources";
 
 export type { MaterialDoc };
-import { DECK, DEFAULT_NEW_CAP, FACT, TOPIC, RECALL, SENTENCE, WORD, type Deck, type Fact, type Grade, type Item, type Material, type Proposal, type Topic, type Recall, type Sentence, type Word } from "../domain/types";
+import { DECK, DEFAULT_NEW_CAP, FACT, TOPIC, RECALL, SENTENCE, WORD, type Deck, type Fact, type Grade, type Item, type Material, type Topic, type Recall, type Sentence, type Word } from "../domain/types";
 
 // ---- Shapes on read: PocketBase returns absent fields as "" / undefined ----
 
@@ -354,39 +354,52 @@ export async function acceptDraft(id: string): Promise<void> {
   await patchDocument(id, { draft: false, addedAt: new Date().toISOString() });
 }
 
-/**
- * An agent's proposed rewrite of an accepted item (ADR 0115), stored beside it as the one pending
- * change — a newer proposal replaces it — and never applied. The item must be able to hold it,
- * checked as an edit is. A draft is not proposed to: the caller updates it directly.
- */
-export async function proposeChange(item: Item, fields: Proposal): Promise<void> {
-  const changes = REWRITABLE[item.type];
-  const proposal: Proposal = {};
-  for (const key of changes) if (fields[key] !== undefined) proposal[key] = fields[key]!.trim();
-  applyProposal(item, proposal); // throws when the result is not a valid item
-  await patchDocument(item.id, { proposal });
+/** Each kind's own edit, so whatever edits an item of unknown kind goes through the same checks and Prompt rules (ADR 0058). */
+const UPDATE: Record<Item["type"], (item: Item, input: Item) => Promise<void>> = {
+  [WORD]: (w, input) => updateWord(w as Word, input as Word),
+  [SENTENCE]: (s, input) => updateSentence(s as Sentence, input as Sentence),
+  [FACT]: (f, input) => updateFact(f as Fact, input as Fact),
+};
+
+/** Edit a Word, Sentence or Fact as its own update does: `input` is the item as it should read. */
+export async function updateItem(item: Item, input: Item): Promise<void> {
+  await UPDATE[item.type](item, input);
 }
 
-/** The item read with `fields` over it, as an edit's input — validated by the same row builders an edit goes through. */
-function applyProposal(item: Item, p: Proposal): Item {
-  const own = { ...item, ...p } as Item;
-  if (own.type === WORD) wordRowOf(own);
-  else if (own.type === SENTENCE) sentenceRowOf(own);
-  else factRowOf(own);
+/** Each kind's row check: throws as its edit would when the item could not be saved so. */
+const CHECK: Record<Item["type"], (item: Item) => unknown> = {
+  [WORD]: (w) => wordRowOf(w as Word),
+  [SENTENCE]: (s) => sentenceRowOf(s as Sentence),
+  [FACT]: (f) => factRowOf(f as Fact),
+};
+
+/** The item read with the change over it — checked as an edit is, so a change that could not be saved is refused before it is stored. */
+function withChange(item: Item, change: DraftChange): Item {
+  const own = { ...item, ...change } as Item;
+  CHECK[own.type](own);
   return own;
 }
 
-/** Accept the pending change: applied as an ordinary edit, so Prompt identity and Recalls follow ADR 0058. */
-export async function acceptProposal(item: Item): Promise<void> {
-  if (!item.proposal) return;
-  const next = applyProposal(item, item.proposal);
-  if (next.type === WORD) await putDocument<Word>({ ...item, ...wordRowOf(next), proposal: null } as Word);
-  else if (next.type === SENTENCE) await putDocument<Sentence>({ ...item, ...sentenceRowOf(next), proposal: null } as Sentence);
-  else await putDocument<Fact>({ ...item, ...factRowOf(next), proposal: null } as Fact);
+/**
+ * An agent's draft change to an accepted item (ADR 0115), stored beside it as its one draft
+ * change — a newer one replaces it — and never applied until the user accepts it. A draft
+ * itself takes no draft change: the caller edits it directly.
+ */
+export async function saveDraftChange(item: Item, fields: DraftChange): Promise<void> {
+  const change: DraftChange = {};
+  for (const key of REWRITABLE[item.type]) if (fields[key] !== undefined) change[key] = fields[key]!.trim();
+  withChange(item, change); // throws when the result is not a valid item
+  await patchDocument(item.id, { draftChange: change });
 }
 
-export async function discardProposal(id: string): Promise<void> {
-  await patchDocument(id, { proposal: null });
+/** Accept the draft change: applied as an ordinary edit, so Prompt identity and Recalls follow ADR 0058. */
+export async function acceptDraftChange(item: Item): Promise<void> {
+  if (!item.draftChange) return;
+  await updateItem({ ...item, draftChange: null }, withChange(item, item.draftChange));
+}
+
+export async function discardDraftChange(id: string): Promise<void> {
+  await patchDocument(id, { draftChange: null });
 }
 
 /** Accept a Deck's drafts at once: each exactly as `acceptDraft`, and only those still drafts — one deleted or accepted meanwhile is left alone. */
@@ -404,6 +417,15 @@ export async function setPaused(id: string, paused: boolean): Promise<void> {
 
 export async function deleteItem(id: string): Promise<void> {
   await removeDocument(id);
+}
+
+/**
+ * Bring a deleted item back, for Undo: under its own id, so every Deck lists it again.
+ * Its clip went with it (its bytes are dropped), so it comes back without one.
+ */
+export async function restoreItem(item: Item): Promise<void> {
+  const { clip: _gone, ...rest } = item as Word;
+  await putDocument(rest);
 }
 
 /** The cascade, for any Recallable Document: its Recalls mean nothing without its Prompts, nor its clip (ADR 0116) without it. Decks simply stop listing it on read. */

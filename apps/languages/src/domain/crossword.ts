@@ -1,4 +1,4 @@
-import { kept } from "./draft";
+import { inPractice } from "./draft";
 import { parseCloze } from "./cloze";
 import { recallsByPrompt } from "./practice";
 import { promptKey } from "./prompts";
@@ -187,7 +187,7 @@ function blankClue(text: string, slot: string): string {
 export function crosswordDraws(topicId: string, items: { words: Word[]; sentences: Sentence[]; facts: Fact[] }, recalls: Recall[], enye = false): PuzzleDraw[] {
   const met = new Set(recalls.filter((r) => r.languageId === topicId).map((r) => promptKey(r.itemId, r.slot)));
   const live = <T extends { languageId: string; paused: boolean; draft?: boolean; addedAt?: string; id: string }>(xs: T[]) =>
-    xs.filter((x) => x.languageId === topicId && kept(x)).sort((a, b) => (a.addedAt ?? "").localeCompare(b.addedAt ?? "") || a.id.localeCompare(b.id));
+    xs.filter((x) => x.languageId === topicId && inPractice(x)).sort((a, b) => (a.addedAt ?? "").localeCompare(b.addedAt ?? "") || a.id.localeCompare(b.id));
   const out: PuzzleDraw[] = [];
   for (const w of live(items.words)) if (w.type === WORD) out.push({ itemId: w.id, slot: "reverse", answer: (w.term ?? "").trim(), clue: w.meaning, hint: "" });
   for (const f of live(items.facts)) if (f.type === FACT) out.push({ itemId: f.id, slot: "forward", answer: (f.answer ?? "").trim(), clue: f.question, hint: "" });

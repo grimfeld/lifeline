@@ -7,12 +7,12 @@ import { itemMaterial } from "../domain/prompts";
 import { plainSentence } from "../domain/cloze";
 import { sentencesUsing } from "../domain/wordSentences";
 import { FACT, SENTENCE, WORD, type Fact, type Item, type Sentence, type Word } from "../domain/types";
-import { acceptDraft, setMembership, setPaused, updateFact, updateSentence, updateWord, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
+import { acceptDraft, setMembership, setPaused, updateItem, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
 import { WordDialog } from "./WordDialog";
 import { SentenceDialog } from "./SentenceDialog";
 import { FactDialog } from "./FactDialog";
 import { OriginLine } from "./OriginLine";
-import { ProposalNotice } from "./ProposalNotice";
+import { DraftChangeNotice } from "./DraftChangeNotice";
 
 /** How many of an item's latest Recalls its Peek lists. */
 const HISTORY_SHOWN = 10;
@@ -36,10 +36,7 @@ function dueLabel(d: Date | null, now: Date): string {
  * meaning) and keeps its Prompts (ADR 0058). The Topic is guarded and stays.
  */
 function saveItem(item: Item, patch: Record<string, string>): Promise<void> {
-  const base = { languageId: item.languageId, origin: item.origin, originId: item.originId, tags: item.tags };
-  if (item.type === WORD) return updateWord(item, { ...base, term: item.term, meaning: item.meaning, notes: item.notes, ...patch });
-  if (item.type === SENTENCE) return updateSentence(item, { ...base, text: item.text, translation: item.translation, notes: item.notes, ...patch });
-  return updateFact(item, { ...base, question: item.question, answer: item.answer, notes: item.notes, ...patch });
+  return updateItem(item, { ...item, ...patch } as Item);
 }
 
 /** The item's own Fields, edited in place: what is learned, its other side, notes, and where it was met unless that is a link. */
@@ -91,7 +88,7 @@ export function ItemPeek({ doc }: { doc: Document }) {
           </>
         )}
       </span>
-      <ProposalNotice item={item} />
+      <DraftChangeNotice item={item} />
       <ItemFields key={item.id} item={item} />
       <div className="flex flex-col gap-1">
         <span className="text-muted-foreground text-xs font-medium">Prompts</span>
@@ -127,7 +124,7 @@ export function ItemPeek({ doc }: { doc: Document }) {
       )}
       {using.length > 0 && (
         <div className="flex flex-col gap-1">
-          <span className="text-muted-foreground text-xs font-medium">Sentences</span>
+          <span className="text-muted-foreground shrink-0 text-xs font-medium">Sentences</span>
           <ul className="flex flex-col text-sm">
             {using.map((s) => (
               <li key={s.id} className="border-b last:border-0">

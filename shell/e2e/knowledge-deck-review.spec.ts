@@ -3,7 +3,7 @@ import { inCore } from "./support/core";
 
 /**
  * A Deck of an agent's drafts (ADR 0115): reviewed one by one, and accepted
- * together only once every draft still pending has been shown.
+ * together only once every draft left has been shown.
  */
 
 async function workLocally(page: Page) {
@@ -43,12 +43,17 @@ test("review a Deck, delete one draft, accept the rest with accept all", async (
   await dialog.getByRole("button", { name: "Next" }).click();
   await expect(dialog.getByText("beta")).toBeVisible();
   await dialog.getByRole("button", { name: "Delete" }).click();
-  await dialog.getByRole("button", { name: "Really delete" }).click();
+  await expect(dialog.getByText("Draft 2 of 3")).toBeVisible();
+  // Deleted at once, with Undo; undone, it is back in the Deck, then thrown away for good.
+  await dialog.getByRole("button", { name: "Undo" }).click();
+  await expect(dialog.getByText("Draft 2 of 4")).toBeVisible();
+  await expect(dialog.getByText("beta")).toBeVisible();
+  await dialog.getByRole("button", { name: "Delete" }).click();
   await expect(dialog.getByText("Draft 2 of 3")).toBeVisible();
   await expect(dialog.getByText("gamma")).toBeVisible();
   await expect(dialog.getByRole("button", { name: /Accept all/ })).toBeDisabled();
 
-  // Once the last has been shown, every pending draft has been seen.
+  // Once the last has been shown, every draft left has been seen.
   await dialog.getByRole("button", { name: "Next" }).click();
   await expect(dialog.getByText("delta")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Accept all (3)" })).toBeEnabled();

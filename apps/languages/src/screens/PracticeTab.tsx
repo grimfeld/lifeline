@@ -145,7 +145,7 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
   return (
     <div className="grid gap-4">
       {liveTopics.length > 1 && (
-        <button className="hover:bg-accent/50 flex items-center gap-3 rounded-md border px-3 py-2.5 text-left text-sm disabled:opacity-60" onClick={() => start({ kind: "all" })} disabled={liveAll.length === 0}>
+        <button type="button" className="hover:bg-accent/50 focus-visible:ring-ring flex items-center gap-3 rounded-md border px-3 py-2.5 text-left text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-60" onClick={() => start({ kind: "all" })} disabled={liveAll.length === 0}>
           <Shapes className="text-muted-foreground size-4 shrink-0" />
           <span className="min-w-0 flex-1 truncate font-medium">Everything</span>
           <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
@@ -171,7 +171,7 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
       {decks.length > 0 && (
         <section className="grid gap-1.5">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">Decks</h2>
+            <h2 className="text-muted-foreground text-sm font-medium">Decks</h2>
             {decks.length > 1 && (
               <Button size="sm" variant="ghost" aria-pressed={mixing} onClick={toggleMix}>
                 {mixing ? "Cancel" : "Mix decks"}
@@ -186,7 +186,7 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
                 <button
                   type="button"
                   key={d.id}
-                  className={cn("hover:bg-accent/50 flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm disabled:opacity-60", mixing && picked.includes(d.id) && "bg-accent border-primary")}
+                  className={cn("hover:bg-accent/50 focus-visible:ring-ring flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-60", mixing && picked.includes(d.id) && "bg-accent border-primary")}
                   aria-pressed={mixing ? picked.includes(d.id) : undefined}
                   onClick={() => (mixing ? setPicked(picked.includes(d.id) ? picked.filter((x) => x !== d.id) : [...picked, d.id]) : start({ kind: "deck", deck: d }))}
                   disabled={di.length === 0}
@@ -213,10 +213,10 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
 
       {sources.length > 0 && (
         <section className="grid gap-1.5">
-          <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">From a source</h2>
+          <h2 className="text-muted-foreground text-sm font-medium">From a source</h2>
           <div className="grid gap-2 sm:grid-cols-2">
             {shownSources.map((s) => (
-              <button key={s.id} className="hover:bg-accent/50 flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm" onClick={() => start({ kind: "source", id: s.id })}>
+              <button type="button" key={s.id} className="hover:bg-accent/50 focus-visible:ring-ring flex items-center gap-3 rounded-md border px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:outline-none" onClick={() => start({ kind: "source", id: s.id })}>
                 <BookOpen className="text-muted-foreground size-4 shrink-0" />
                 <span className="min-w-0 flex-1 truncate font-medium">{s.title}</span>
                 <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
@@ -237,7 +237,7 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
 
       <div className="grid gap-4 sm:grid-cols-[12rem_1fr]">
         <section className="grid content-start gap-1.5">
-          <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">Retention</h2>
+          <h2 className="text-muted-foreground text-sm font-medium">Retention</h2>
           <Card className="py-0">
             <CardContent className="grid gap-0.5 px-4 py-3">
               <span className="text-2xl font-semibold tabular-nums">{ret ? `${Math.round(ret.share * 100)}%` : "—"}</span>
@@ -247,7 +247,7 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
           </Card>
         </section>
         <section className="grid content-start gap-1.5">
-          <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">The week ahead</h2>
+          <h2 className="text-muted-foreground text-sm font-medium">The week ahead</h2>
           <Card className="py-0">
             <CardContent className="grid grid-cols-7 items-end gap-1.5 px-3 py-3">
               {week.map((d, i) => (

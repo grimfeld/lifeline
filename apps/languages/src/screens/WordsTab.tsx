@@ -124,7 +124,7 @@ export function WordsTab({ items, others = [], decks, recalls }: { items: Item[]
                     <span className="truncate font-medium">{main}</span>
                     {sub && <span className="text-muted-foreground truncate text-xs">{sub}</span>}
                   </button>
-                  {i.proposal && <Badge variant="outline">rewrite</Badge>}
+                  {i.draftChange && <Badge variant="outline">draft change</Badge>}
                   {i.type !== WORD && <Badge variant="outline">{i.type === SENTENCE ? "sentence" : "fact"}</Badge>}
                   <span className="text-muted-foreground w-16 shrink-0 text-right text-xs">{i.draft ? "draft" : i.paused ? "paused" : nextHint(dues.get(i.id) ?? [], now)}</span>
                   {i.draft ? (
@@ -149,7 +149,7 @@ export function WordsTab({ items, others = [], decks, recalls }: { items: Item[]
 
       {others.length > 0 && (
         <section className="grid gap-1.5">
-          <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">Also kept here</h2>
+          <h2 className="text-muted-foreground text-sm font-medium">Also kept here</h2>
           <Card className="py-0">
             <CardContent className="grid gap-0.5 px-2 py-2">
               {others.map((m) => (

@@ -29,7 +29,7 @@ export function LeechList({ items, recalls }: { items: MaterialDoc[]; recalls: R
   const edit = (m: MaterialDoc) => (OWN.has(m.type) ? setEditing(m) : openPeek(m.id));
   return (
     <section className="grid gap-1.5">
-      <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">Leeches</h2>
+      <h2 className="text-muted-foreground text-sm font-medium">Leeches</h2>
       <Card className="py-0">
         <CardContent className="grid gap-0.5 px-2 py-2">
           {rows.map((r) => (

@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { addAudioAttachment, allAttachments, documentsOf, getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
 import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item, type Recall, type Sentence, type Word } from "../domain/types";
-import { acceptDraft, acceptDrafts, acceptProposal, addDeck, addSentence, addWord, deckNamed, deleteItem, discardProposal, proposeChange, recordRecall, removeItemRecalls, setMembership, strikeRecall, updateSentence, updateWord } from "./repo";
+import { acceptDraft, acceptDrafts, acceptDraftChange, addDeck, addSentence, addWord, deckNamed, deleteItem, discardDraftChange, restoreItem, saveDraftChange, recordRecall, removeItemRecalls, setMembership, strikeRecall, updateSentence, updateWord } from "./repo";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId"], builtIn: true }) as unknown as DocumentTypeDef;
@@ -39,10 +39,21 @@ describe("acceptDraft", () => {
     await deleteItem(id);
     expect(await getDocument(id)).toBeUndefined();
   });
+
+  it("comes back with Undo under its own id, still a draft, so its Deck lists it again", async () => {
+    const id = await addWord({ languageId: "es", term: "sol", meaning: "sun", draft: true });
+    const deck = await addDeck("es", "Lesson 3");
+    await setMembership((await getDocument<Deck>(deck))!, { id, languageId: "es" }, true);
+    const gone = (await getDocument<Item>(id))!;
+    await deleteItem(id);
+    await restoreItem(gone);
+    expect(await getDocument(id)).toMatchObject({ term: "sol", draft: true });
+    expect((await getDocument<Deck>(deck))!.members).toContain(id);
+  });
 });
 
 describe("acceptDrafts", () => {
-  it("accepts only the drafts still pending, each as acceptDraft does", async () => {
+  it("accepts only what is still a draft, each as acceptDraft does", async () => {
     const a = await addWord({ languageId: "es", term: "uno", meaning: "one", draft: true });
     const b = await addWord({ languageId: "es", term: "dos", meaning: "two", draft: true });
     const own = await addWord({ languageId: "es", term: "tres", meaning: "three" });
@@ -138,35 +149,35 @@ describe("a typed attempt", () => {
   });
 });
 
-describe("a proposed change (ADR 0115)", () => {
+describe("a draft change (ADR 0115)", () => {
   const read = async <T,>(id: string) => (await getDocument<Item & T>(id))!;
 
   it("is stored beside the item, which keeps its values; a newer one replaces it", async () => {
     const id = await addWord({ languageId: "es", term: "casa", meaning: "house" });
-    await proposeChange(await read(id), { meaning: "home" });
-    await proposeChange(await read(id), { notes: "feminine" });
-    expect(await read<{ meaning: string; proposal: object }>(id)).toMatchObject({ meaning: "house", proposal: { notes: "feminine" } });
+    await saveDraftChange(await read(id), { meaning: "home" });
+    await saveDraftChange(await read(id), { notes: "feminine" });
+    expect(await read<{ meaning: string; draftChange: object }>(id)).toMatchObject({ meaning: "house", draftChange: { notes: "feminine" } });
   });
 
   it("accepted, applies as an ordinary edit and is gone; discarded, drops it and changes nothing", async () => {
     const id = await addWord({ languageId: "es", term: "casa", meaning: "house" });
-    await proposeChange(await read(id), { meaning: "home" });
-    await discardProposal(id);
-    expect(await read<{ meaning: string; proposal?: object | null }>(id)).toMatchObject({ meaning: "house", proposal: null });
-    await proposeChange(await read(id), { term: "la casa", meaning: "the home" });
-    await acceptProposal(await read(id));
-    expect(await read<{ term: string; meaning: string; title: string; proposal?: object | null }>(id)).toMatchObject({ term: "la casa", meaning: "the home", title: "la casa", proposal: null });
+    await saveDraftChange(await read(id), { meaning: "home" });
+    await discardDraftChange(id);
+    expect(await read<{ meaning: string; draftChange?: object | null }>(id)).toMatchObject({ meaning: "house", draftChange: null });
+    await saveDraftChange(await read(id), { term: "la casa", meaning: "the home" });
+    await acceptDraftChange(await read(id));
+    expect(await read<{ term: string; meaning: string; title: string; draftChange?: object | null }>(id)).toMatchObject({ term: "la casa", meaning: "the home", title: "la casa", draftChange: null });
   });
 
   it("accepting a Sentence rewrite keeps the blanks it still has", async () => {
     const id = await addSentence({ languageId: "es", text: "Tengo {{ganas}} de {{comer}}" });
-    await proposeChange(await read(id), { text: "Tengo {{ganas}} de {{beber}}" });
-    await acceptProposal(await read(id));
+    await saveDraftChange(await read(id), { text: "Tengo {{ganas}} de {{beber}}" });
+    await acceptDraftChange(await read(id));
     expect(await read<Sentence>(id)).toMatchObject({ text: "Tengo {{ganas}} de {{beber}}" });
   });
 
   it("refuses a rewrite the item could not hold", async () => {
     const id = await addSentence({ languageId: "es", text: "Tengo {{ganas}}" });
-    await expect(proposeChange(await read(id), { text: "Tengo ganas" })).rejects.toThrow(/blank/);
+    await expect(saveDraftChange(await read(id), { text: "Tengo ganas" })).rejects.toThrow(/blank/);
   });
 });
