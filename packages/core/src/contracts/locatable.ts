@@ -94,7 +94,7 @@ export function useLocatablePins(apps?: string[], opts?: { tags?: TagFilter }): 
 /** Document types that declare Locatable, for pickers. */
 export function useLocatableTypes(): { value: string; label: string }[] {
   const types = useDocumentTypes();
-  return types.filter((t) => isLocatableDef(t)).map((t) => ({ value: t.id, label: t.label }));
+  return types.filter(isLocatableDef).map((t) => ({ value: t.id, label: t.label }));
 }
 
 /** True when the pair is a plausible WGS84 coordinate. */

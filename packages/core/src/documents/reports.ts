@@ -161,8 +161,9 @@ export function notMentionedSince(index: LinkIndex, typeId: string, days: number
 }
 
 /** A ranking Report's rows, cut to its N. */
-export function rankingRows(index: LinkIndex, typeId: string, setting: ReportSetting, window: ReportWindow, today: DateStr, source: DaysSource = sourceOf(reportKind(setting.kind).source, today)): RankRow[] {
+export function rankingRows(index: LinkIndex, typeId: string, setting: ReportSetting, window: ReportWindow, today: DateStr, source?: DaysSource): RankRow[] {
   const def = reportKind(setting.kind);
+  source ??= sourceOf(def.source, today);
   const n = setting.n ?? def.params.n ?? 5;
   if (def.shape === "quiet") return notMentionedSince(index, typeId, setting.days ?? def.params.days ?? 90, today, source).slice(0, n);
   return topMentioned(index, typeId, window, source).slice(0, n);

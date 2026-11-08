@@ -122,6 +122,13 @@ async function agentTimedItems(range: { start: string; end: string }): Promise<T
   return out;
 }
 
+/** What the agenda calls a Timed item. */
+function agendaKind(it: TimedItem): "block" | "occasion" | "deadline" | "event" {
+  if (it.background) return "block";
+  if (it.marker) return it.occasion ? "occasion" : "deadline";
+  return "event";
+}
+
 /** The Document as an agent may see it: the stored one, less its walled keys. Never written back. */
 function agentView(doc: Document): Document {
   const walled = walledKeys(doc.type);
@@ -355,16 +362,20 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     const types = allDocumentTypes().filter((t) => !t.internal);
     const one = a.type ? types.find((t) => t.id === a.type) : undefined;
     if (a.type && !one) throw new ToolError(`No type “${a.type}”. Known: ${types.map((t) => t.id).join(", ")}`);
-    return (one ? [one] : types).map((t) => ({
-      id: t.id,
-      label: t.label,
-      app: t.appId,
-      creatable: isCreatable(t) || undefined,
-      body: t.body,
-      fields: one
-        ? t.fields.filter((f) => !f.hidden && !walledKeys(t.id).includes(f.key)).map((f) => ({ key: f.key, label: f.label, kind: f.kind, options: f.options?.map((o) => o.value), guarded: f.guarded || undefined, required: f.required || undefined }))
-        : t.fields.filter((f) => !f.hidden && !walledKeys(t.id).includes(f.key)).map((f) => f.key + (f.guarded ? " (guarded)" : "")),
-    }));
+    return (one ? [one] : types).map((t) => {
+      const walled = walledKeys(t.id);
+      const fields = t.fields.filter((f) => !f.hidden && !walled.includes(f.key));
+      return {
+        id: t.id,
+        label: t.label,
+        app: t.appId,
+        creatable: isCreatable(t) || undefined,
+        body: t.body,
+        fields: one
+          ? fields.map((f) => ({ key: f.key, label: f.label, kind: f.kind, options: f.options?.map((o) => o.value), guarded: f.guarded || undefined, required: f.required || undefined }))
+          : fields.map((f) => f.key + (f.guarded ? " (guarded)" : "")),
+      };
+    });
   },
 
   async search_documents(a) {
@@ -414,7 +425,7 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     const timedItems = [];
     for (const it of await agentTimedItems(range)) {
       if (it.background && !a.blocks) continue;
-      timedItems.push({ kind: it.background ? "block" : it.marker ? (it.occasion ? "occasion" : "deadline") : "event", appId: it.appId, itemId: it.itemId, title: it.title, date: it.date, start: it.start ?? undefined, end: it.end ?? undefined, subtitle: it.subtitle, age: it.occasion ? it.age : undefined, tags: it.tags?.length ? it.tags : undefined });
+      timedItems.push({ kind: agendaKind(it), appId: it.appId, itemId: it.itemId, title: it.title, date: it.date, start: it.start ?? undefined, end: it.end ?? undefined, subtitle: it.subtitle, age: it.occasion ? it.age : undefined, tags: it.tags?.length ? it.tags : undefined });
     }
     const work = items.map((it) => ({
       kind: it.start ? "time-block" : "item",
