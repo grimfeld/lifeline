@@ -63,7 +63,8 @@ test("a draft waits in Kept; accepting it, editing then accepting it, or deletin
     page,
     async (core, name: string) => {
       const t = (await core.documentsOf("language")).find((d) => (d as { name?: string }).name === name) as { id: string };
-      return (await core.documentsOf("language_word")).filter((w) => (w as { languageId?: string }).languageId === t.id).map((w) => [(w as { term: string }).term, (w as { draft?: boolean }).draft, (w as { origin: string }).origin]);
+      return (await core.documentsOf("language_word")).filter((w) => (w as { languageId?: string }).languageId === t.id).map((w) => w as unknown as { term: string; draft?: boolean; origin: string })
+        .map((w) => [w.term, w.draft, w.origin]);
     },
     topic,
   );
