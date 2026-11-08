@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, Textarea, toast } from "@lifeline/ui";
 import { saveAddress } from "../data/addresses";
+import { addressDraft } from "../domain/addresses";
 import { message } from "./writes";
 import type { Address } from "../domain/types";
 
@@ -18,8 +19,9 @@ export function AddressDialog({ personId, address, open, onOpenChange }: { perso
 
   useEffect(() => {
     if (!open) return;
-    setLabel(address?.label ?? "");
-    setText(address?.text ?? "");
+    const draft = addressDraft(address);
+    setLabel(draft.label);
+    setText(draft.text);
     setError("");
   }, [open, address]);
 

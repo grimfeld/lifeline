@@ -4,7 +4,7 @@ import { Button, Combobox, Dialog, DialogContent, DialogDescription, DialogFoote
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { personHref } from "../constants";
 import { type Person } from "../domain/types";
-import { tieCandidates, tieQuestions, tiesSeenFrom, type TieRow } from "../domain/ties";
+import { otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom, type TieDraft, type TieRow } from "../domain/ties";
 import { removeTie, restoreTie, saveTieFrom, useTies } from "../data/ties";
 import { message, removeWithUndo } from "../components/writes";
 import { usePeople } from "../data/repo";
@@ -18,18 +18,17 @@ import { Section } from "../components/Section";
  */
 function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow; onOpenChange: (open: boolean) => void }) {
   const people = usePeople();
-  const [otherId, setOtherId] = useState(row?.otherId ?? "");
+  const [draft, setDraft] = useState(() => tieDraft(row));
   const [query, setQuery] = useState("");
-  const [label, setLabel] = useState(row?.label ?? "");
-  const [ownLabel, setOwnLabel] = useState(row?.ownLabel ?? "");
   const [error, setError] = useState("");
+  const set = (patch: Partial<TieDraft>) => setDraft((d) => ({ ...d, ...patch }));
   const options = useMemo(() => tieCandidates(person.id, people), [people, person.id]);
-  const otherName = people.find((p) => p.id === otherId)?.title ?? row?.otherName ?? "";
+  const otherName = otherNameOf(people, draft.otherId, row);
   const questions = tieQuestions(otherName);
 
   async function save() {
     try {
-      await saveTieFrom(person.id, row, { otherId, label, ownLabel });
+      await saveTieFrom(person.id, row, draft);
       onOpenChange(false);
     } catch (e) {
       setError(message(e));
@@ -50,13 +49,13 @@ function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow
           }}
         >
           <Field label="Other person">
-            <OtherPerson name={otherName} picked={otherId !== ""} fixed={row !== undefined} query={query} onQueryChange={setQuery} options={options} onPick={setOtherId} />
+            <OtherPerson name={otherName} picked={draft.otherId !== ""} fixed={row !== undefined} query={query} onQueryChange={setQuery} options={options} onPick={(otherId) => set({ otherId })} />
           </Field>
           <Field label={questions.label} error={error || undefined}>
-            <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="daughter" autoComplete="off" />
+            <Input value={draft.label} onChange={(e) => set({ label: e.target.value })} placeholder="daughter" autoComplete="off" />
           </Field>
           <Field label={questions.ownLabel}>
-            <Input value={ownLabel} onChange={(e) => setOwnLabel(e.target.value)} placeholder="mother" autoComplete="off" />
+            <Input value={draft.ownLabel} onChange={(e) => set({ ownLabel: e.target.value })} placeholder="mother" autoComplete="off" />
           </Field>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

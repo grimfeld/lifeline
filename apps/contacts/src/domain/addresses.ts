@@ -39,6 +39,9 @@ export function addressPinsOf(person: Document): { id: string; name: string; lat
   );
 }
 
+/** The Address dialog as it opens: blank, or the Address's label and text. */
+export const addressDraft = (a: Pick<Address, "label" | "text"> | undefined) => ({ label: a ? a.label : "", text: a ? a.text : "" });
+
 export interface AddressInput {
   label: string;
   text: string;

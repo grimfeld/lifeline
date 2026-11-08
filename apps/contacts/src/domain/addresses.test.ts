@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Document } from "@lifeline/core";
-import { addAddress, addressPinsOf, coordsOf, editAddress, isUnplaced, normalizeAddresses, sortedAddresses } from "./addresses";
+import { addAddress, addressDraft, addressPinsOf, coordsOf, editAddress, isUnplaced, normalizeAddresses, sortedAddresses } from "./addresses";
 import type { Address } from "./types";
 
 const A = (id: string, extra: Partial<Address> = {}): Address => ({ id, label: id, text: `${id} street`, former: false, ...extra });
@@ -23,6 +23,13 @@ describe("a Person's Addresses on the map", () => {
   it("is none for a Person with no Addresses, or a row that holds something else", () => {
     expect(addressPinsOf(person(undefined))).toEqual([]);
     expect(addressPinsOf(person("nope"))).toEqual([]);
+  });
+});
+
+describe("the Address dialog", () => {
+  it("opens blank, or on the Address's label and text", () => {
+    expect(addressDraft(undefined)).toEqual({ label: "", text: "" });
+    expect(addressDraft(A("Home"))).toEqual({ label: "Home", text: "Home street" });
   });
 });
 

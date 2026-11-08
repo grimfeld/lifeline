@@ -49,3 +49,18 @@ export function tieQuestions(otherName: string): { label: string; ownLabel: stri
   if (!otherName) return { label: "They are my…", ownLabel: "I am their…" };
   return { label: `${otherName} is my…`, ownLabel: `I am ${otherName}'s…` };
 }
+
+/** What the Tie dialog holds: the other Person's id ("" until picked) and the two words, as this page reads them. */
+export interface TieDraft {
+  otherId: string;
+  label: string;
+  ownLabel: string;
+}
+
+/** The Tie dialog as it opens: blank for a new Tie, else the row's other Person and words. */
+export const tieDraft = (row: TieRow | undefined): TieDraft => (row ? { otherId: row.otherId, label: row.label, ownLabel: row.ownLabel } : { otherId: "", label: "", ownLabel: "" });
+
+/** The other Person's name in the dialog: the one picked, else the row's (when they are not among `people`), else none yet. */
+export function otherNameOf(people: readonly Pick<Person, "id" | "title">[], otherId: string, row: Pick<TieRow, "otherName"> | undefined): string {
+  return people.find((p) => p.id === otherId)?.title ?? row?.otherName ?? "";
+}

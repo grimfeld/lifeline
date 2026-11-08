@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Person, Tie } from "./types";
-import { tieCandidates, tieQuestions, tiesSeenFrom } from "./ties";
+import { otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom } from "./ties";
 
 const person = (id: string, title: string) => ({ id, title }) as Person;
 const anne = person("p1", "Anne");
@@ -44,6 +44,16 @@ describe("the Tie dialog", () => {
       { value: "p2", label: "Léa", keywords: [] },
       { value: "p3", label: "Marc", keywords: ["M"], description: "colleague" },
     ]);
+  });
+  it("opens blank for a new Tie, and on the row's other Person and words for an edit", () => {
+    expect(tieDraft(undefined)).toEqual({ otherId: "", label: "", ownLabel: "" });
+    expect(tieDraft({ id: "t1", otherId: "p2", otherName: "Léa", label: "daughter", ownLabel: "mother" })).toEqual({ otherId: "p2", label: "daughter", ownLabel: "mother" });
+  });
+  it("names the other Person picked, else the row's, else nobody yet", () => {
+    expect(otherNameOf([anne, lea], "p2", undefined)).toBe("Léa");
+    expect(otherNameOf([anne, lea], "p2", { otherName: "Old name" })).toBe("Léa");
+    expect(otherNameOf([anne], "p2", { otherName: "Léa" })).toBe("Léa");
+    expect(otherNameOf([anne, lea], "", undefined)).toBe("");
   });
   it("asks about the other Person by name once they are known", () => {
     expect(tieQuestions("Léa")).toEqual({ label: "Léa is my…", ownLabel: "I am Léa's…" });
