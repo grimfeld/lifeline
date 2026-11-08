@@ -77,6 +77,10 @@ Topic to a set you choose.
 - **Also kept here** — Quotes kept in this Topic from Notes.
 - Open one to edit it, see its prompts, and put it in or out of Decks. Editing never resets its
   practice.
+- A Word's peek also lists the **Sentences** of its Topic that use it, each opening its own peek
+  (paused ones are marked). A Sentence uses a Word when its text, blanks filled, holds the term as
+  a whole word or phrase: capitals ignored, accents kept (*è* is not *e*), no stemming (*tavolo*
+  does not find *tavoli*). Nothing is stored or linked; it is read fresh each time.
 
 ### Decks
 
