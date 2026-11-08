@@ -124,7 +124,7 @@ export function DecksTab({ topic, decks, items }: { topic: Topic; decks: Deck[];
               const drafts = pendingDrafts(d, items).length;
               return (
                 <div key={d.id} className="hover:bg-accent/50 flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
-                  <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => setOpenId(d.id)}>
+                  <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => setOpenId(d.id)}>
                     <Layers className="text-muted-foreground size-4 shrink-0" />
                     <span className="min-w-0 flex-1 truncate font-medium">{d.name}</span>
                     <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{deckItems(d, items).length}</span>

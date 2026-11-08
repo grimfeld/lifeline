@@ -140,6 +140,24 @@ async function givenUpPuzzle(page: Page) {
   await expect(page.getByRole("button", { name: "Practise now" })).toBeVisible();
 }
 
+/** Knowledge → Practice with many Decks of the longest names, "Mix decks" on and all of them ticked (#430). */
+async function mixingDecks(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      const w = await core.putDocument({ type: "language_word", languageId: topic.id, term: word, meaning: long, notes: "", origin: "", originId: "", paused: false, addedAt: at, tags: [] });
+      for (let d = 0; d < 8; d++) await core.putDocument({ type: "language_deck", title: `${long} ${d}`, name: `${long} ${d}`, languageId: topic.id, members: [w.id], tags: [] });
+    },
+    [CORE_URL, longText("Mix topic"), LONG_WORD] as const,
+  );
+  await page.getByRole("button", { name: "Mix decks" }).click();
+  for (let d = 0; d < 8; d++) await page.getByRole("button", { pressed: false }).filter({ hasText: longText("Mix topic") }).filter({ hasText: " due" }).first().click();
+  await expect(page.getByRole("button", { name: /decks together/ })).toBeVisible();
+}
+
 /**
  * Knowledge → Puzzles over a Topic with four Decks a Connections can draw
  * from (ADR 0106): the longest Deck names, and Words and Facts with the
@@ -902,6 +920,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Knowledge", path: "/app/languages" },
   { name: "Knowledge · Decks with drafts", path: "/app/languages?tab=decks", afterOpen: withDraftReview },
   { name: "Knowledge · Deck review", path: "/app/languages?tab=decks", afterOpen: reviewingDrafts },
+  { name: "Knowledge · Mixing decks", path: "/app/languages", afterOpen: mixingDecks },
   { name: "Knowledge · Puzzles", path: "/app/languages?tab=puzzles", afterOpen: withPuzzleWord },
   { name: "Knowledge · Puzzle player", path: "/app/languages?tab=puzzles", afterOpen: playPuzzle },
   { name: "Knowledge · Puzzle played", path: "/app/languages?tab=puzzles", afterOpen: givenUpPuzzle },

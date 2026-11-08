@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attachmentName, embeddedNames, orphanedAmong, resolveAttachment, sanitizeAttachmentName, type Attachment } from "./attachments";
+import { attachmentName, embeddedNames, extensionFor, isAudioMime, orphanedAmong, resolveAttachment, sanitizeAttachmentName, type Attachment } from "./attachments";
 import { isImageEmbed, isImageName } from "./markdown";
 import { buildLinkIndex } from "./documents/links";
 import type { Document, DocumentTypeDef } from "./documents/types";
@@ -70,5 +70,29 @@ describe("link index and image embeds", () => {
     expect(idx.unresolved.has("shot.png")).toBe(false);
     expect(idx.unresolved.has("missing note")).toBe(true);
     expect(idx.linksFrom("1").map((l) => l.link.name)).toEqual(["Missing Note", "B"]);
+  });
+});
+
+describe("audio Attachments (Knowledge clips)", () => {
+  it("knows an audio mime, parameters aside", () => {
+    expect(isAudioMime("audio/webm;codecs=opus")).toBe(true);
+    expect(isAudioMime("audio/mp4")).toBe(true);
+    expect(isAudioMime("image/png")).toBe(false);
+    expect(isAudioMime("")).toBe(false);
+  });
+  it("gives each audio type its extension", () => {
+    expect(extensionFor("audio/webm;codecs=opus")).toBe("webm");
+    expect(extensionFor("audio/mp4")).toBe("m4a");
+    expect(extensionFor("audio/mpeg")).toBe("mp3");
+    expect(extensionFor("audio/ogg")).toBe("ogg");
+    expect(extensionFor("audio/wav")).toBe("wav");
+  });
+  it("a clip is named by its stem, or stamped as a clip", () => {
+    expect(attachmentName(undefined, "webm", () => false, new Date(2026, 7, 30, 14, 30, 5), "Clip")).toBe("Clip 20260830143005.webm");
+    expect(attachmentName("film line.mp3", "mp3", () => false)).toBe("film line.mp3");
+  });
+  it("an audio Attachment is its owner's to delete, never reported as orphaned", () => {
+    const clip = { ...att("c", "Clip 1.webm"), mime: "audio/webm" };
+    expect(orphanedAmong([clip, att("i", "unused.png")], [{ body: "" }]).map((a) => a.id)).toEqual(["i"]);
   });
 });

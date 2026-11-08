@@ -97,6 +97,7 @@ export function DeckReview({ deck, items, open, onOpenChange }: { deck: Deck; it
               <span className="text-muted-foreground text-xs">{unseen > 0 ? `${unseen} not shown yet` : "All shown"}</span>
             </div>
           )}
+          {/* ui-allow: sm-breakpoint — a dialog footer, as DeckDialog */}
           <DialogFooter className="gap-2 sm:justify-between">
             {current ? (
               <Button variant={confirmDelete ? "destructive" : "ghost"} onClick={() => void remove()}>
