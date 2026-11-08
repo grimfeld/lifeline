@@ -384,6 +384,24 @@ function longBook(peek: boolean) {
 }
 
 /**
+ * A Person page with Addresses as long as a person could type (#418): a long
+ * label and text, one current with no place found and one former.
+ */
+async function longAddresses(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, long, word }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const [doc] = await core.documentsOf("contacts_person");
+      const at = (id: string, former: boolean, lat?: number) => ({ id, label: `${long} ${word}`, text: `${long}\n${word}${word} ${long}`, former, ...(lat === undefined ? {} : { lat, lon: 2 }) });
+      await core.patchDocument(doc.id, { addresses: [at("a1", false, 48.8), at("a2", false), at("a3", true, 1)] });
+    },
+    { coreUrl: CORE_URL, long: longText("An address"), word: LONG_WORD },
+  );
+  await expect(page.getByTestId("address")).toHaveCount(3);
+}
+
+/**
  * A Provision's Peek with its "Expires" Date picker open (ADR 0087): the
  * calendar sits inside the viewport and nothing scrolls sideways, at phone
  * width too; the layout check then covers the popover itself.
@@ -843,7 +861,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Museum", path: "/app/museum" },
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
   { name: "People", path: "/app/people" },
-  { name: "Person", path: "/app/people/person/:id", type: "contacts_person" },
+  { name: "Person", path: "/app/people/person/:id", type: "contacts_person", afterOpen: longAddresses },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },

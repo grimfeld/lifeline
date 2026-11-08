@@ -16,9 +16,23 @@ them, the palette, or the People Base.
 - **Header** — their name, what they are to you, and their aliases.
 - **Details** — change their name (every `[[link]]` to them follows), their **Aliases**, their
   **Relationship** and their **Tags**, edited in place.
+- **Addresses** — where they live or can be found, each under a label of your own ("Home",
+  "Work", "Holiday house"). See below.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
 - **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.
+
+### Addresses
+
+- **Add address** takes a label and the postal text. When you save it, Lifeline looks the place
+  up (OpenStreetMap's Nominatim) and puts a **Pin** on the Map, labelled "Marc · Work". A
+  Person with two current Addresses stands on the Map twice.
+- When someone moves, **Mark as former**: the Address leaves the Map and stays on their page, below
+  the current ones, as history. **Mark as current** brings it back.
+- If the lookup finds nothing, or fails, the Address is still saved and shown, marked "Not on
+  the map", with **Try again**. Changing an Address's text looks it up afresh.
+- A shared home is held by each Person who lives there: add it to each.
+- Claude never sees a Person's Addresses or their Pins (see below).
 
 ### Linking to a Person
 

@@ -4,7 +4,7 @@ import { matchesTagFilter, type TagFilter } from "../tags";
 import { useTagFilter } from "./tagfilter";
 import { useAllDocuments } from "../documents/store";
 import { useDocumentTypes } from "../documents/registry";
-import { displayTitle, geoOf, singularOf } from "../documents/types";
+import { displayTitle, geoOf, singularOf, type Document, type DocumentTypeDef } from "../documents/types";
 import { docHref } from "../documents/href";
 
 /**
@@ -36,45 +36,65 @@ export interface SurfacePin extends Pin {
 
 export const VAULT_APP_ID = "vault";
 
+/** Whether a type puts its Documents on the map, by one place or several. */
+export const isLocatableDef = (def: Pick<DocumentTypeDef, "locatable" | "locatablePins" | "internal"> | undefined): boolean =>
+  !!def && !def.internal && !!(def.locatable || def.locatablePins);
+
+/**
+ * The Pins of some Documents, pure: one per Locatable Document, or one per
+ * place for a type that reads several (`locatablePins`). A several-place Pin's
+ * key is `${type}/${id}#${placeId}`, so each is its own on the map.
+ */
+export function pinsOf(
+  docs: readonly Document[],
+  types: readonly DocumentTypeDef[],
+  apps: string[] | undefined,
+  filter: TagFilter,
+): SurfacePin[] {
+  const defs = new Map(types.map((t) => [t.id, t]));
+  const out: SurfacePin[] = [];
+  for (const d of docs) {
+    const def = defs.get(d.type);
+    if (!def || !isLocatableDef(def)) continue;
+    const appId = def.appId ?? VAULT_APP_ID;
+    if (apps && apps.length > 0 && !apps.includes(appId) && !apps.includes(d.type)) continue;
+    if (!matchesTagFilter(d.tags, filter)) continue;
+    const base = {
+      appId,
+      itemId: d.id,
+      type: d.type,
+      subtitle: singularOf(def),
+      href: docHref(d, def),
+      tags: d.tags,
+      color: def.appId ? appById(def.appId)?.color : undefined,
+    };
+    if (def.locatablePins) {
+      for (const p of def.locatablePins(d)) {
+        if (!isValidCoord(p.lat, p.lon)) continue;
+        out.push({ ...base, key: `${d.type}/${d.id}#${p.id}`, name: p.name, lat: p.lat, lon: p.lon });
+      }
+      continue;
+    }
+    const c = geoOf(d, def);
+    if (!c) continue;
+    out.push({ ...base, key: `${d.type}/${d.id}`, name: displayTitle(d, def), lat: c.lat, lon: c.lon });
+  }
+  return out;
+}
+
 /** Read side: every Locatable Document as a pin, coloured per owning App; optionally only some Apps / types. */
 export function useLocatablePins(apps?: string[], opts?: { tags?: TagFilter }): SurfacePin[] {
   const ambient = useTagFilter();
   const filter = opts?.tags ?? ambient;
   const docs = useAllDocuments();
   const types = useDocumentTypes();
-  return useMemo(() => {
-    const defs = new Map(types.map((t) => [t.id, t]));
-    const out: SurfacePin[] = [];
-    for (const d of docs) {
-      const def = defs.get(d.type);
-      if (!def?.locatable || def.internal) continue;
-      const appId = def.appId ?? VAULT_APP_ID;
-      if (apps && apps.length > 0 && !apps.includes(appId) && !apps.includes(d.type)) continue;
-      const c = geoOf(d, def);
-      if (!c) continue;
-      if (!matchesTagFilter(d.tags, filter)) continue;
-      out.push({
-        key: `${d.type}/${d.id}`,
-        appId,
-        itemId: d.id,
-        type: d.type,
-        name: displayTitle(d, def),
-        subtitle: singularOf(def),
-        lat: c.lat,
-        lon: c.lon,
-        href: docHref(d, def),
-        tags: d.tags,
-        color: def.appId ? appById(def.appId)?.color : undefined,
-      });
-    }
-    return out;
-  }, [docs, types, apps, filter]);
+  return useMemo(() => pinsOf(docs, types, apps, filter), [docs, types, apps, filter]);
 }
 
 /** Document types that declare Locatable, for pickers. */
 export function useLocatableTypes(): { value: string; label: string }[] {
   const types = useDocumentTypes();
-  return types.filter((t) => t.locatable && !t.internal).map((t) => ({ value: t.id, label: t.label }));
+  return types.filter((t) => isLocatableDef(t)).map((t) => ({ value: t.id, label: t.label }));
 }
 
 /** True when the pair is a plausible WGS84 coordinate. */

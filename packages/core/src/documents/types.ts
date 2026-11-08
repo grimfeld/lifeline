@@ -178,6 +178,13 @@ export interface DocumentTypeDef {
   /** Locatable (data-declarable Contract): the geo field holding `[lat, lon]`, or a reader. */
   locatable?: string | ((doc: Document) => { lat: number; lon: number } | null);
   /**
+   * Locatable, several places to a Document: a Pin for each place the reader
+   * returns (a Person's Addresses). `id` is unique within the Document and
+   * `name` replaces its title on the Pin. Declared in code only, by the
+   * owning App; `locatable` is left unset on such a type.
+   */
+  locatablePins?: (doc: Document) => { id: string; name: string; lat: number; lon: number }[];
+  /**
    * Reading mode offers a stopwatch. For types whose Documents are *performed*
    * from the page rather than consulted — a Writing given aloud (CONTEXT.md's
    * Talk) — where the thing worth knowing while reading is how long you have

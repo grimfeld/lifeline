@@ -1,9 +1,10 @@
 import { createDocument, getDocument, normalizeTags, patchDocument, renameDocument } from "@lifeline/core";
-import { PERSON, type Person } from "../domain/types";
+import { PERSON, type Address, type Person } from "../domain/types";
+import { normalizeAddresses } from "../domain/addresses";
 
 /** A Person as stored, with the App's keys filled in for a row written before they existed. */
 export function normalizePerson(doc: Person): Person {
-  return { ...doc, aliases: Array.isArray(doc.aliases) ? doc.aliases : [], relationship: typeof doc.relationship === "string" ? doc.relationship : "" };
+  return { ...doc, addresses: normalizeAddresses(doc.addresses), aliases: Array.isArray(doc.aliases) ? doc.aliases : [], relationship: typeof doc.relationship === "string" ? doc.relationship : "" };
 }
 
 const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);
@@ -46,4 +47,14 @@ export async function patchPerson(id: string, patch: PersonPatch): Promise<void>
   if (rest.relationship !== undefined) fields.relationship = rest.relationship.trim();
   if (rest.tags) fields.tags = normalizeTags(rest.tags);
   if (Object.keys(fields).length) await patchDocument(id, fields);
+}
+
+/**
+ * Change a Person's Addresses: `change` is given the stored list and returns the
+ * new one, so two quick edits never overwrite each other with a stale copy.
+ */
+export async function updateAddresses(id: string, change: (list: Address[]) => Address[]): Promise<void> {
+  const doc = await getDocument(id);
+  if (!doc) throw new Error("No such Person");
+  await patchDocument(id, { addresses: change(normalizeAddresses(doc.addresses)) });
 }
