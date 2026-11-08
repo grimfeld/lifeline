@@ -52,6 +52,12 @@ describe("tool catalogue", () => {
     expect(Object.keys(TOOLS.find((t) => t.name === "knowledge_word")!.input)).toEqual(expect.arrayContaining(["topic", "term", "meaning"]));
   });
 
+  it("tells an agent the report carries Leeches and the typed attempts on Recalls (ADR 0115, 0116)", () => {
+    const report = TOOLS.find((t) => t.name === "knowledge_report")!;
+    expect(report.description).toMatch(/Leeches/);
+    expect(report.description).toMatch(/typed/);
+  });
+
   it("lets an agent hand a Sentence its notes, and hint a blank in the text (ADR 0116)", () => {
     const sentence = TOOLS.find((t) => t.name === "knowledge_sentence")!;
     expect(Object.keys(sentence.input)).toEqual(expect.arrayContaining(["topic", "text", "translation", "notes"]));

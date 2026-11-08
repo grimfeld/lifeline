@@ -11,6 +11,7 @@ import { knowledgeCommands } from "./commands";
 import { knowledgeRecallable } from "./recallable";
 import { knowledgeDaylog } from "./daylog";
 import { plainSentence } from "./domain/cloze";
+import { agentEditRefusal } from "./domain/draft";
 import { refuseDeletingUsedTopic, removeItemRecalls } from "./data/repo";
 import { APP_ID, DECK, FACT, OCCURRENCE_PRACTISED, PUZZLE, TOPIC, TOPIC_OCCURRENCES, KNOWLEDGE_HREF, RECALL, SENTENCE, WORD, type Deck, type Fact, type Puzzle, type Topic, type Recall, type Sentence, type Word } from "./domain/types";
 
@@ -63,12 +64,13 @@ const wordType: DocumentTypeDef = {
     { key: "clip", label: "Clip", kind: "text", guarded: true, hidden: true },
     { key: "paused", label: "Paused", kind: "boolean", guarded: true, column: true },
     { key: "draft", label: "Draft", kind: "boolean", guarded: true, column: true },
-    { key: "proposal", label: "Proposed change", kind: "json", guarded: true, hidden: true },
+    { key: "draftChange", label: "Draft change", kind: "json", guarded: true, hidden: true },
     { key: "addedAt", label: "Added", kind: "datetime", guarded: true, hidden: true },
   ],
   indexes: ["languageId"],
   href: () => WORDS_HREF,
   peekEdit: ItemPeek,
+  agentEditRefusal,
   order: 94,
   builtIn: true,
 };
@@ -91,12 +93,13 @@ const sentenceType: DocumentTypeDef = {
     { key: "clip", label: "Clip", kind: "text", guarded: true, hidden: true },
     { key: "paused", label: "Paused", kind: "boolean", guarded: true, column: true },
     { key: "draft", label: "Draft", kind: "boolean", guarded: true, column: true },
-    { key: "proposal", label: "Proposed change", kind: "json", guarded: true, hidden: true },
+    { key: "draftChange", label: "Draft change", kind: "json", guarded: true, hidden: true },
     { key: "addedAt", label: "Added", kind: "datetime", guarded: true, hidden: true },
   ],
   indexes: ["languageId"],
   href: () => WORDS_HREF,
   peekEdit: ItemPeek,
+  agentEditRefusal,
   order: 95,
   builtIn: true,
 };
@@ -118,12 +121,13 @@ const factType: DocumentTypeDef = {
     { key: "originId", label: "Met in", kind: "link" },
     { key: "paused", label: "Paused", kind: "boolean", guarded: true, column: true },
     { key: "draft", label: "Draft", kind: "boolean", guarded: true, column: true },
-    { key: "proposal", label: "Proposed change", kind: "json", guarded: true, hidden: true },
+    { key: "draftChange", label: "Draft change", kind: "json", guarded: true, hidden: true },
     { key: "addedAt", label: "Added", kind: "datetime", guarded: true, hidden: true },
   ],
   indexes: ["languageId"],
   href: () => WORDS_HREF,
   peekEdit: ItemPeek,
+  agentEditRefusal,
   order: 96,
   builtIn: true,
 };

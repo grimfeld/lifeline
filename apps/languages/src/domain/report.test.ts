@@ -57,6 +57,12 @@ describe("practiceReport", () => {
     expect(r.mostFailed[2]).toMatchObject({ question: "Vado ____ (a) stazione", answer: "alla" });
   });
 
+  it("lists only Prompts the item still yields: a rewritten blank or a removed clip leaves its fails behind", () => {
+    const items = [sentence("s", "Vado {{alla}} stazione"), word("w", "treno", "train")];
+    const recalls = [recall("s", "blank:a la", "fail", at(20)), recall("s", "blank:alla", "fail", at(21)), recall("w", "listen", "fail", at(22))];
+    expect(report(items, recalls).mostFailed.map((p) => [p.itemId, p.slot])).toEqual([["s", "blank:alla"]]);
+  });
+
   it("bounds the list and the Recalls shown with each", () => {
     const items = Array.from({ length: 15 }, (_, i) => word(`w${i}`, `t${i}`, `m${i}`));
     const recalls = items.flatMap((m) => Array.from({ length: 8 }, (_, k) => recall(m.id, "forward", "fail", at(10 + k))));

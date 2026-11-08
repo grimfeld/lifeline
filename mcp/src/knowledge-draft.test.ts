@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { documentsOf as docsOf, getDocument, initApps, putDocument, type Document } from "@lifeline/core";
+import { documentsOf as docsOf, getDocument, initApps, putDocument, saveMacro, type Document } from "@lifeline/core";
 
 /** Documents of a type, read with the extra fields the test looks at. */
 const documentsOf = <T extends object>(type: string) => docsOf<Document & T>(type);
@@ -24,6 +24,14 @@ describe("Knowledge captures through MCP are drafts", () => {
     expect(w.origin).toBe("Agent draft · Lesson 2 · ep. 4");
     const decks = await documentsOf<{ name: string; languageId: string; members: string[] }>("language_deck");
     expect(decks.filter((d) => d.languageId === t).map((d) => [d.name, d.members])).toEqual([["Lesson 2", [res.id]]]);
+  });
+
+  it("drafts through a Macro run as a tool too: the agent is still the one capturing", async () => {
+    const t = await topic("Portuguese");
+    await saveMacro({ name: "Keep obrigado", steps: [{ command: "languages/knowledge.word", args: { topic: { from: "fixed", value: t }, term: { from: "fixed", value: "obrigado" }, meaning: { from: "fixed", value: "thanks" } } }] });
+    await runTool("macro_keep_obrigado", {});
+    const words = (await documentsOf<{ languageId: string; draft: boolean; origin: string }>("language_word")).filter((w) => w.languageId === t);
+    expect(words).toMatchObject([{ draft: true, origin: "Agent draft" }]);
   });
 
   it("has no way to say otherwise: a draft or paused argument is refused and nothing is made", async () => {

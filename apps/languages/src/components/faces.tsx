@@ -19,7 +19,7 @@ export function WordFace({ doc, slot, revealed }: RecallFaceProps) {
   if (slot === LISTEN) {
     return (
       <div className="grid justify-items-center gap-4 text-center">
-        <span className="text-muted-foreground text-xs tracking-wide uppercase">What did you hear?</span>
+        <span className="text-muted-foreground text-xs">What did you hear?</span>
         {/* One player for the Prompt, shown or revealed: it plays as the Prompt appears, and is never restarted by the reveal. */}
         <ClipPlayer clipId={w.clip} />
         <div className="min-h-16 max-w-full">
@@ -40,7 +40,7 @@ export function WordFace({ doc, slot, revealed }: RecallFaceProps) {
   const answer = forward ? w.meaning : w.term || w.title;
   return (
     <div className="grid justify-items-center gap-4 text-center">
-      <span className="text-muted-foreground text-xs tracking-wide uppercase">{forward ? "What does it mean?" : "How do you say it?"}</span>
+      <span className="text-muted-foreground text-xs">{forward ? "What does it mean?" : "How do you say it?"}</span>
       <span className="max-w-full text-3xl font-semibold break-words">{question}</span>
       <div className="min-h-16 max-w-full">
         {revealed && (
@@ -63,7 +63,7 @@ export function SentenceFace({ doc, slot, revealed }: RecallFaceProps) {
   if (slot === LISTEN) {
     return (
       <div className="grid justify-items-center gap-4 text-center">
-        <span className="text-muted-foreground text-xs tracking-wide uppercase">What did you hear?</span>
+        <span className="text-muted-foreground text-xs">What did you hear?</span>
         <ClipPlayer clipId={sentence.clip} />
         {revealed && (
           <>
@@ -78,7 +78,7 @@ export function SentenceFace({ doc, slot, revealed }: RecallFaceProps) {
   }
   return (
     <div className="grid justify-items-center gap-4 text-center">
-      <span className="text-muted-foreground text-xs tracking-wide uppercase">Fill the blank</span>
+      <span className="text-muted-foreground text-xs">Fill the blank</span>
       <p className="max-w-full text-2xl leading-relaxed break-words">
         {parts.map((p, i) =>
           p.kind === "text" ? (
@@ -111,7 +111,7 @@ export function FactFace({ doc, revealed }: RecallFaceProps) {
   const f = doc as Fact;
   return (
     <div className="grid justify-items-center gap-4 text-center">
-      <span className="text-muted-foreground text-xs tracking-wide uppercase">Recall</span>
+      <span className="text-muted-foreground text-xs">Recall</span>
       <span className="max-w-full text-2xl font-semibold break-words">{f.question || f.title}</span>
       <div className="min-h-16 max-w-full">
         {revealed && (

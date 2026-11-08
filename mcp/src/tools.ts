@@ -82,7 +82,7 @@ const GENERIC: ToolSpec[] = [
     name: "knowledge_report",
     title: "Knowledge practice report",
     description:
-      "How the user's practice of a Knowledge Topic is going, read-only: Retention (the share of the last 30 days' Recalls passed, as the app shows it), what is due now, how many new Prompts are waiting, the Leeches (Prompts with 4 or more fails among their last 8 Recalls, with question, answer and fail count), and the Prompts failed most over the last 30 days, each with its question, answer, slot and latest Recalls (grade and moment). Optionally narrowed to some of the Topic's Decks (lessons). Drafts and paused material are left out. Use it to choose what to teach next instead of asking for a score.",
+      "How the user's practice of a Knowledge Topic is going, read-only: Retention (the share of the last 30 days' Recalls passed, as the app shows it), what is due now, how many new Prompts are waiting, the Leeches (Prompts with 4 or more fails among their last 8 Recalls, with question, answer and fail count), and the Prompts failed most over the last 30 days, each with its question, answer, slot and latest Recalls (grade, moment, and `typed`: what the user typed before revealing, where they typed an attempt — read these to see what went wrong). Optionally narrowed to some of the Topic's Decks (lessons). Drafts and paused material are left out. Use it to choose what to teach next instead of asking for a score.",
     input: {
       topic: z.string().describe("The Topic's id or exact name, e.g. Italian."),
       decks: z.array(z.string()).optional().describe("Deck (lesson) ids or names of that Topic; omit for the whole Topic."),

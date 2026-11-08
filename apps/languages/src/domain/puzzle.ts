@@ -1,4 +1,4 @@
-import { kept } from "./draft";
+import { inPractice } from "./draft";
 import { todayStr } from "@lifeline/core";
 import { parseCloze } from "./cloze";
 import { promptKey } from "./prompts";
@@ -48,7 +48,7 @@ export function wordleLetters(term: string): string[] | null {
  */
 export function wordleCandidates(topicId: string, words: Word[], recalls: Recall[]): Word[] {
   const met = new Set(recalls.filter((r) => r.languageId === topicId && r.slot === "reverse").map((r) => r.itemId));
-  return words.filter((w) => w.languageId === topicId && kept(w) && met.has(w.id) && wordleLetters(w.term) !== null);
+  return words.filter((w) => w.languageId === topicId && inPractice(w) && met.has(w.id) && wordleLetters(w.term) !== null);
 }
 
 /**
@@ -96,7 +96,7 @@ export function pickTowardDue(candidates: Word[], recalls: Recall[], opts: { ran
 export function wordleDraw(word: Word, sentences: Sentence[], enye = false): PuzzleDraw {
   const term = fold(word.term.trim(), enye);
   const sentence = sentences
-    .filter((s) => s.type === SENTENCE && s.languageId === word.languageId && kept(s) && s.translation?.trim())
+    .filter((s) => s.type === SENTENCE && s.languageId === word.languageId && inPractice(s) && s.translation?.trim())
     .sort((a, b) => (a.addedAt ?? "").localeCompare(b.addedAt ?? "") || a.id.localeCompare(b.id))
     .find((s) => parseCloze(s.text ?? "").some((p) => p.kind === "blank" && fold(p.text, enye) === term));
   return { itemId: word.id, slot: "reverse", answer: word.term.trim(), clue: word.meaning, hint: sentence?.translation.trim() ?? "" };

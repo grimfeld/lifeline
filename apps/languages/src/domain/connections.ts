@@ -1,4 +1,4 @@
-import { kept } from "./draft";
+import { inPractice } from "./draft";
 import { LISTEN, promptKey } from "./prompts";
 import { recallsByPrompt } from "./practice";
 import { replay } from "./schedule";
@@ -35,8 +35,8 @@ export interface ConnectionsItem {
 export function connectionsItems(topicId: string, words: Word[], facts: Fact[], recalls: Recall[]): Map<string, ConnectionsItem> {
   const met = new Set(recalls.filter((r) => r.languageId === topicId && r.slot !== LISTEN).map((r) => r.itemId));
   const out = new Map<string, ConnectionsItem>();
-  for (const w of words) if (w.languageId === topicId && kept(w) && met.has(w.id) && w.term?.trim()) out.set(w.id, { id: w.id, answer: w.term.trim(), clue: w.meaning ?? "" });
-  for (const f of facts) if (f.languageId === topicId && kept(f) && met.has(f.id) && f.answer?.trim()) out.set(f.id, { id: f.id, answer: f.answer.trim(), clue: f.question ?? "" });
+  for (const w of words) if (w.languageId === topicId && inPractice(w) && met.has(w.id) && w.term?.trim()) out.set(w.id, { id: w.id, answer: w.term.trim(), clue: w.meaning ?? "" });
+  for (const f of facts) if (f.languageId === topicId && inPractice(f) && met.has(f.id) && f.answer?.trim()) out.set(f.id, { id: f.id, answer: f.answer.trim(), clue: f.question ?? "" });
   return out;
 }
 

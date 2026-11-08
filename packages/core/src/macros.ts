@@ -4,7 +4,7 @@ import { db, MACROS, type SyncedRecord } from "./data/db";
 import { put, remove } from "./data/repo";
 import { newId } from "./ids";
 import { checkMacro, type DocumentLookup } from "./macroCheck";
-import type { CommandArg, CommandCtx } from "./manifest";
+import type { CommandArg, CommandCtx, InvokeContext } from "./manifest";
 
 /**
  * Macros (CONTEXT.md "Macro", ADR 0092): a user-made Command whose steps are
@@ -131,6 +131,8 @@ export interface RunOptions {
   openDialog?: (def: OwnedCommand) => Promise<boolean>;
   /** Where the check looks up fixed links; the local store by default. */
   lookup?: DocumentLookup;
+  /** Who runs it, handed to every headless step (ADR 0115): an agent's Macro captures as the agent. */
+  invoke?: InvokeContext;
 }
 
 /** The report of a Macro that did not start: every step not reached, and why it is broken. */
@@ -159,7 +161,7 @@ class Broken extends Error {}
 async function runStep(def: OwnedCommand, step: MacroStep, index: number, opts: RunOptions, done: (StepOutcome | undefined)[]): Promise<StepOutcome> {
   switch (commandRun(def)) {
     case "headless": {
-      const result = await invokeCommand(def, stepValues(step, index, opts.asked ?? {}, done));
+      const result = await invokeCommand(def, stepValues(step, index, opts.asked ?? {}, done), opts.invoke);
       return { status: "done", message: result.message, ...(result.id ? { id: result.id } : {}) };
     }
     case "dialog":
@@ -296,19 +298,19 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
     },
   };
   if (!isMacroHeadless(macro, commands)) return def;
-  return { ...def, args, invoke: async (asked) => ({ message: reportMessage(report(await runMacroHeadless(macro, commands, asked))) }) };
+  return { ...def, args, invoke: async (asked, who) => ({ message: reportMessage(report(await runMacroHeadless(macro, commands, asked, who))) }) };
 }
 
 /**
  * Run a headless Macro with its asked arguments, as an agent does, and hand
  * back its report: the arguments checked against its signature (`macroArgs`)
  * first. A Macro that is not headless, or broken, is refused with why — then
- * nothing ran.
+ * nothing ran. `who` reaches every step, as it would a Command run alone.
  */
-export async function runMacroHeadless(macro: MacroShape, commands: readonly OwnedCommand[], raw: Record<string, unknown>): Promise<MacroReport> {
+export async function runMacroHeadless(macro: MacroShape, commands: readonly OwnedCommand[], raw: Record<string, unknown>, who?: InvokeContext): Promise<MacroReport> {
   if (!isMacroHeadless(macro, commands)) throw new Error(`“${macro.name}” cannot be run without a dialog`);
   const asked = await readCommandArgs(macroArgs(macro, commands), raw);
-  const r = await runMacro(macro, commands, { asked });
+  const r = await runMacro(macro, commands, { asked, invoke: who });
   if (r.broken) throw new Error(`“${macro.name}” is broken: ${r.broken.join("; ")}`);
   return r;
 }

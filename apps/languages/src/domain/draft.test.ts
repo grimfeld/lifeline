@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accepted, acceptAllReady, isDraft, kept } from "./draft";
+import { accepted, acceptAllReady, inPractice, isDraft } from "./draft";
 import { practiceQueue, retention } from "./practice";
 import { itemMaterial } from "./prompts";
 import { RECALL, WORD, type Recall, type Word } from "./types";
@@ -15,7 +15,7 @@ describe("a draft", () => {
     expect(itemMaterial(word("p", 1, { paused: true })).live).toBe(false);
     expect(itemMaterial(word("a", 1)).live).toBe(true);
     expect(itemMaterial(word("a", 1, { draft: false })).live).toBe(true);
-    expect(kept(word("d", 1, { draft: true }))).toBe(false);
+    expect(inPractice(word("d", 1, { draft: true }))).toBe(false);
     expect(isDraft(word("a", 1))).toBe(false);
   });
 
@@ -47,16 +47,16 @@ describe("a draft", () => {
 });
 
 describe("accepting a whole Deck", () => {
-  const pending = [{ id: "a" }, { id: "b" }, { id: "c" }];
+  const drafts = [{ id: "a" }, { id: "b" }, { id: "c" }];
 
-  it("is unavailable until every pending draft has been shown", () => {
-    expect(acceptAllReady(pending, new Set())).toBe(false);
-    expect(acceptAllReady(pending, new Set(["a", "b"]))).toBe(false);
-    expect(acceptAllReady(pending, new Set(["a", "b", "c"]))).toBe(true);
+  it("is unavailable until every draft has been shown", () => {
+    expect(acceptAllReady(drafts, new Set())).toBe(false);
+    expect(acceptAllReady(drafts, new Set(["a", "b"]))).toBe(false);
+    expect(acceptAllReady(drafts, new Set(["a", "b", "c"]))).toBe(true);
   });
 
-  it("asks only about the drafts still pending: a deleted or accepted one needs no showing, and nothing pending is nothing to accept", () => {
-    expect(acceptAllReady(pending.slice(1), new Set(["b", "c"]))).toBe(true);
+  it("asks only about the drafts left: a deleted or accepted one needs no showing, and no draft left is nothing to accept", () => {
+    expect(acceptAllReady(drafts.slice(1), new Set(["b", "c"]))).toBe(true);
     expect(acceptAllReady([], new Set(["a"]))).toBe(false);
   });
 });

@@ -5,7 +5,8 @@ import { itemLines } from "../domain/prompts";
 import type { Deck, Item, Topic } from "../domain/types";
 import { addDeck, deleteDeck, renameDeck, setMembership } from "../data/repo";
 import { deckItems } from "./PracticeTab";
-import { DeckReview, pendingDrafts } from "../components/DeckReview";
+import { DeckReview } from "../components/DeckReview";
+import { deckDrafts } from "../domain/draft";
 
 function labelOf(i: Item): string {
   return itemLines(i).main;
@@ -121,10 +122,10 @@ export function DecksTab({ topic, decks, items }: { topic: Topic; decks: Deck[];
         <Card className="py-0">
           <CardContent className="grid gap-0.5 px-2 py-2">
             {decks.map((d) => {
-              const drafts = pendingDrafts(d, items).length;
+              const drafts = deckDrafts(d, items).length;
               return (
                 <div key={d.id} className="hover:bg-accent/50 flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
-                  <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => setOpenId(d.id)}>
+                  <button type="button" className="focus-visible:ring-ring flex min-w-0 flex-1 items-center gap-3 rounded-sm text-left focus-visible:ring-2 focus-visible:outline-none" onClick={() => setOpenId(d.id)}>
                     <Layers className="text-muted-foreground size-4 shrink-0" />
                     <span className="min-w-0 flex-1 truncate font-medium">{d.name}</span>
                     <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{deckItems(d, items).length}</span>

@@ -5,7 +5,7 @@ import type { Fact } from "../domain/types";
 import { acceptDraft, addFact, deleteItem, updateFact, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
 import { OriginLine } from "./OriginLine";
-import { ProposalNotice } from "./ProposalNotice";
+import { DraftChangeNotice } from "./DraftChangeNotice";
 import { originOf, type ItemDialogProps } from "./WordDialog";
 
 export interface FactPrefill {
@@ -103,7 +103,7 @@ export function FactDialog({ open, onOpenChange, fact, prefill, initial, onSaved
           <p className="text-muted-foreground text-sm">Add a topic first, in Knowledge.</p>
         ) : (
           <div className="grid gap-4">
-            {fact && <ProposalNotice item={fact} onDone={() => onOpenChange(false)} />}
+            {fact && <DraftChangeNotice item={fact} onDone={() => onOpenChange(false)} />}
             {context && (
               <blockquote className="text-muted-foreground max-h-40 overflow-y-auto border-l-2 pl-3 text-sm whitespace-pre-wrap [overflow-wrap:anywhere]" aria-label="The passage you selected">
                 {context}

@@ -8,7 +8,7 @@ import { acceptDraft, addSentence, deleteItem, updateSentence, useActiveTopic, u
 import { TopicSelect } from "./TopicSelect";
 import { originOf, type ItemDialogProps } from "./WordDialog";
 import { OriginLine } from "./OriginLine";
-import { ProposalNotice } from "./ProposalNotice";
+import { DraftChangeNotice } from "./DraftChangeNotice";
 import { ClipField, useClipDraft } from "./ClipField";
 
 export interface SentencePrefill {
@@ -126,7 +126,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
           <p className="text-muted-foreground text-sm">Add a topic first, in Knowledge.</p>
         ) : (
           <div className="grid gap-4">
-            {sentence && <ProposalNotice item={sentence} onDone={() => onOpenChange(false)} />}
+            {sentence && <DraftChangeNotice item={sentence} onDone={() => onOpenChange(false)} />}
             {!sentence && <TopicSelect topics={topics} value={languageId} onChange={setLanguageId} />}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
