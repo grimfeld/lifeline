@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { REPORT_KINDS, displayTitle, mentionable, reportKind, singularOf, todayStr, useAllDocuments, useDocumentFigures, useDocumentType, useDocumentTypes, useLinkIndex, type CardOption, type CardProps, type ReportKind, type ReportWindow } from "@lifeline/core";
+import { REPORT_KINDS, displayTitle, mentionable, reportKind, singularOf, todayStr, useAllDocuments, sourceOf, documentFigures, useDocumentType, useDocumentTypes, useLinkIndex, type CardOption, type CardProps, type ReportKind, type ReportWindow } from "@lifeline/core";
 import { DocumentReports, RankingReport, useOpenLinkRef } from "@lifeline/editor";
 
 /**
@@ -50,7 +50,7 @@ export function ReportCard({ settings, configure }: CardProps) {
   const doc = docId ? index.byId.get(docId) : undefined;
   const docDef = useDocumentType(doc?.type);
   const window = useMemo(() => windowOf(String(settings.window ?? "month"), today), [settings.window, today]);
-  const figures = useDocumentFigures(index, docId, today);
+  const figures = useMemo(() => documentFigures(index, docId, today, sourceOf(reportKind(kind).source, today)), [index, docId, today, kind]);
   const choose = (what: string) => (
     <button type="button" className="text-muted-foreground flex h-full w-full items-center justify-center text-xs underline" onClick={configure}>
       Choose {what}…
@@ -62,7 +62,7 @@ export function ReportCard({ settings, configure }: CardProps) {
       <div className="h-full min-w-0 overflow-y-auto p-1">
         <div className="mb-1 truncate text-sm font-medium">{displayTitle(doc, docDef)}</div>
         <DocumentReports index={index} def={docDef ? { ...docDef, reports: [{ kind }] } : undefined} docId={docId} />
-        {figures.allTime === 0 && <p className="text-muted-foreground text-xs">No Day links to it yet.</p>}
+        {figures.allTime === 0 && <p className="text-muted-foreground text-xs">{reportKind(kind).source === "seen" ? "No Event links to it yet." : "No Day links to it yet."}</p>}
       </div>
     );
   }

@@ -6,12 +6,13 @@ import {
   displayTitle,
   documentType,
   formatHuman,
+  documentFigures,
   rankingRows,
   reportKind,
   reportsIn,
+  sourceOf,
   startOfWeek,
   todayStr,
-  useDocumentFigures,
   type DateStr,
   type DocumentTypeDef,
   type LinkIndex,
@@ -64,7 +65,7 @@ export function RankingReport({
   return (
     <section className="min-w-0">
       <h3 className={HEADING}>{title ?? reportKind(setting.kind).label}</h3>
-      {rows.length === 0 ? <p className="text-muted-foreground text-xs">{empty ?? "No Day links to any yet."}</p> : <RankList index={index} rows={rows} quiet={setting.kind === "quiet"} onOpen={onOpen} />}
+      {rows.length === 0 ? <p className="text-muted-foreground text-xs">{empty ?? (reportKind(setting.kind).source === "seen" ? "No Event links to any yet." : "No Day links to any yet.")}</p> : <RankList index={index} rows={rows} quiet={reportKind(setting.kind).shape === "quiet"} onOpen={onOpen} />}
     </section>
   );
 }
@@ -97,29 +98,32 @@ function RankList({ index, rows, quiet, onOpen }: { index: LinkIndex; rows: Rank
 export function DocumentReports({ index, def, docId }: { index: LinkIndex; def: DocumentTypeDef | undefined; docId: string }) {
   const today = todayStr();
   const chosen = reportsIn(def, "document");
-  const f = useDocumentFigures(index, docId, today);
+  const mentioned = useMemo(() => documentFigures(index, docId, today, sourceOf("mentioned", today)), [index, docId, today]);
+  const seen = useMemo(() => documentFigures(index, docId, today, sourceOf("seen", today)), [index, docId, today]);
   if (chosen.length === 0) return null;
   return (
     <section className="grid min-w-0 gap-2 text-sm">
       <h3 className={cn(HEADING, "mb-0")}>Reports</h3>
       {chosen.map((r) => {
-        if (r.kind === "last")
+        const k = reportKind(r.kind);
+        const f = k.source === "seen" ? seen : mentioned;
+        if (k.shape === "last")
           return (
             <div key={r.kind} className="flex min-w-0 items-baseline gap-2">
-              <span className="text-muted-foreground shrink-0 text-xs">Last mentioned</span>
+              <span className="text-muted-foreground shrink-0 text-xs">{k.label}</span>
               <span className="min-w-0 flex-1 truncate text-right">{f.last ? `${formatHuman(f.last)} · ${ago(f.sinceLast ?? 0)}` : "never"}</span>
             </div>
           );
-        if (r.kind === "count")
+        if (k.shape === "count")
           return (
             <div key={r.kind} className="flex min-w-0 items-baseline gap-2">
-              <span className="text-muted-foreground shrink-0 text-xs">Days</span>
+              <span className="text-muted-foreground shrink-0 text-xs">{k.source === "seen" ? "Seen" : "Days"}</span>
               <span className="min-w-0 flex-1 truncate text-right tabular-nums">
                 {f.thisYear} this year · {f.allTime} in all
               </span>
             </div>
           );
-        if (r.kind === "heatmap") return <MentionHeatmap key={r.kind} days={f.days} today={today} />;
+        if (k.shape === "heatmap") return <MentionHeatmap key={r.kind} days={f.days} today={today} unit={k.source === "seen" ? "days seen" : "Days"} />;
         return null;
       })}
     </section>
@@ -129,7 +133,7 @@ export function DocumentReports({ index, def, docId }: { index: LinkIndex; def: 
 const MONTHS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
 
 /** The last 12 months as week columns of seven days, a linking Day filled. */
-export function MentionHeatmap({ days, today }: { days: Set<DateStr>; today: DateStr }) {
+export function MentionHeatmap({ days, today, unit = "Days" }: { days: Set<DateStr>; today: DateStr; unit?: string }) {
   const weeks = useMemo(() => {
     const first = startOfWeek(addDays(today, -364));
     const cols: DateStr[][] = [];
@@ -141,7 +145,7 @@ export function MentionHeatmap({ days, today }: { days: Set<DateStr>; today: Dat
     <div className="grid min-w-0 gap-1">
       {/* A year of weeks is wider than a narrow column: it scrolls rather than squeezing the days unreadable. */}
       <div className="overflow-x-auto" data-scroll-x>
-        <div className="flex w-max gap-[2px]" role="img" aria-label={`${inYear} Days in the last 12 months`}>
+        <div className="flex w-max gap-[2px]" role="img" aria-label={`${inYear} ${unit} in the last 12 months`}>
           {weeks.map((col) => (
             <div key={col[0]} className="grid gap-[2px]">
               <span className="text-muted-foreground h-3 text-2xs leading-3">{col.some((d) => d.endsWith("-01")) ? MONTHS[Number(col.find((d) => d.endsWith("-01"))!.slice(5, 7)) - 1] : ""}</span>
@@ -152,7 +156,7 @@ export function MentionHeatmap({ days, today }: { days: Set<DateStr>; today: Dat
           ))}
         </div>
       </div>
-      <span className="text-muted-foreground text-2xs">{inYear} Days in the last 12 months</span>
+      <span className="text-muted-foreground text-2xs">{inYear} {unit} in the last 12 months</span>
     </div>
   );
 }

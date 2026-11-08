@@ -17,3 +17,5 @@ export * from "./components/WorkPeekFields";
 export * from "./components/WorkPage";
 export * from "./components/LookupActions";
 export * from "./components/PlaylistsSection";
+export * from "./turnIntoPerson";
+export * from "./components/TurnIntoPerson";

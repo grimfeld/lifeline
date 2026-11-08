@@ -3,7 +3,8 @@ import { lazyChunk } from "@lifeline/ui";
 import { Landmark } from "lucide-react";
 import { OnDisplayCard, useHangingExhibitionOptions, useOnDisplayTitle } from "./cards/OnDisplayCard";
 import { museumCommands } from "./commands";
-import { museumTypeDefs } from "./types";
+import { ArtistPanel } from "./components/ArtistPanel";
+import { artistRole, museumTypeDefs } from "./types";
 import { EXHIBITION, type Exhibition } from "./domain/types";
 import { hangExhibition, reopenExhibition, takeDownExhibition } from "./data/repo";
 
@@ -19,6 +20,8 @@ export const museumApp: AppManifest = {
   icon: Landmark,
   color: "var(--chart-yellow)",
   types: museumTypeDefs,
+  roles: [artistRole],
+  documentPanels: [{ id: "museum.artist", component: ArtistPanel }],
   screens: [
     { id: "museum.main", title: "Museum", path: "museum", icon: Landmark, component: MuseumScreen },
     { id: "museum.exhibition", title: "Exhibition", path: "museum/e/:id", component: ExhibitionScreen, hidden: true },

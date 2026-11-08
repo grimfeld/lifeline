@@ -77,7 +77,9 @@ These work everywhere, on any type:
   [Graph](graph.md).
 - **Count** — how many Documents a View holds, as one big number.
 - **Report** — a Report on a type or one Document: who comes up on the most Days, when it was
-  last mentioned, a year as a heatmap. Over this month, this year or all time.
+  last mentioned, a year as a heatmap. Over this month, this year or all time. **Mentioned**
+  counts the Days that link to it; **Seen** (Top seen, Not seen lately, Last seen, Seen count,
+  Seen heatmap) counts the days of the Events that link to it, up to today. The two are never added.
 
 ## Lifeline's own Commands
 

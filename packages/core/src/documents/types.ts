@@ -119,7 +119,7 @@ export type TitleRule = "name" | "date" | "derived";
  * rows of Core's `document_types` collection. Both land in one registry.
  */
 /** The Report kinds a type may choose (ADR 0076): ranking kinds rank a type's Documents, the others describe one Document. */
-export type ReportKind = "top" | "quiet" | "last" | "count" | "heatmap";
+export type ReportKind = "top" | "quiet" | "last" | "count" | "heatmap" | "topSeen" | "quietSeen" | "lastSeen" | "seenCount" | "seenHeatmap";
 /** One chosen Report on a type, in the type's order, with its parameters. */
 export interface ReportSetting {
   kind: ReportKind;

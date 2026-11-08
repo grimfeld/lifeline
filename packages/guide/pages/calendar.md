@@ -83,7 +83,9 @@ page is reached from **Events** on the Calendar.
 The **Events** page has three tabs:
 
 - **Events** — Today, Upcoming and the past 30 days. **New event** adds one: title, day, start
-  and end, or **All day** (with an optional last day for several days), notes and Tags.
+  and end, or **All day** (with an optional last day for several days), notes, **With** and Tags.
+  **With** is who was there: type a name or an alias from People and pick it. The Event then
+  shows on each Person's page under Events, and counts as having seen them.
 - **Templates** — **Event templates** (title, length or all day, usual start, notes, Tags), each
   with **Add today**; and **Blocker templates** (title, length, colour).
 - **Blockers** — your Time blockers. A weekly one has a title, weekdays (or Every day / Weekdays /
@@ -118,6 +120,9 @@ Editing or deleting a template never changes the Events it made.
 
 - **Deadlines** — a Project's or Milestone's Deadline, as an all-day flag. Drag it to move the
   Deadline. A missed one stays red on its day.
+- **Occasions** — a Person's Birthday or other named day, as an all-day flag ("🎂 Anne · 65"). It
+  can't be dragged, is not an Event and is never red. Click it to open the Person; see
+  [People](people.md).
 - **Calendar subscriptions** — events from an iCal link, in its colour, read-only.
 - **In a Module** — House shows a Calendar of its Chores only, in Month and Upcoming. A Module's
   Calendar keeps its own view and day.
