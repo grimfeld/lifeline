@@ -54,7 +54,7 @@ export function SentenceFace({ doc, slot, revealed }: RecallFaceProps) {
               </span>
             ) : (
               <span key={i} className="border-muted-foreground inline-block min-w-16 border-b-2 align-baseline">
-                &nbsp;
+                {p.hint ? <span className="text-muted-foreground px-1 text-base italic">{p.hint}</span> : <>&nbsp;</>}
               </span>
             )
           ) : (
@@ -63,6 +63,7 @@ export function SentenceFace({ doc, slot, revealed }: RecallFaceProps) {
         )}
       </p>
       {sentence.translation && <span className="text-muted-foreground max-w-full text-sm break-words italic">{sentence.translation}</span>}
+      {revealed && sentence.notes && <span className="text-muted-foreground max-w-full text-sm break-words whitespace-pre-wrap">{sentence.notes}</span>}
       {revealed && <ClipPlayer clipId={sentence.clip} />}
       {revealed && <OriginLine originId={sentence.originId} className="max-w-full" />}
     </div>

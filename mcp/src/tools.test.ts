@@ -51,6 +51,13 @@ describe("tool catalogue", () => {
     expect(names.filter((n) => n.startsWith("languages_"))).toEqual([]);
     expect(Object.keys(TOOLS.find((t) => t.name === "knowledge_word")!.input)).toEqual(expect.arrayContaining(["topic", "term", "meaning"]));
   });
+
+  it("lets an agent hand a Sentence its notes, and hint a blank in the text (ADR 0116)", () => {
+    const sentence = TOOLS.find((t) => t.name === "knowledge_sentence")!;
+    expect(Object.keys(sentence.input)).toEqual(expect.arrayContaining(["topic", "text", "translation", "notes"]));
+    expect(sentence.input.notes!.safeParse("also: in centro").success).toBe(true);
+    expect(sentence.input.text!.description).toContain("{{nel|in}}");
+  });
 });
 
 describe("the guide tool", () => {

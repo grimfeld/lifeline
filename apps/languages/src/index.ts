@@ -83,6 +83,7 @@ const sentenceType: DocumentTypeDef = {
     { key: "languageId", label: "Topic", kind: "link", linkType: TOPIC, guarded: true, required: true, column: true },
     { key: "text", label: "Sentence", kind: "text", required: true, column: true },
     { key: "translation", label: "Translation", kind: "text", column: true },
+    { key: "notes", label: "Notes", kind: "longtext" },
     { key: "origin", label: "Where met", kind: "text" },
     { key: "originId", label: "Met in", kind: "link" },
     { key: "clip", label: "Clip", kind: "text", guarded: true, hidden: true },

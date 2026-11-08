@@ -63,3 +63,13 @@ describe("a clip (ADR 0116)", () => {
     expect(await clipsKept()).not.toContain(clip);
   });
 });
+
+describe("a Sentence's notes", () => {
+  it("are kept with the Sentence, and edited without touching its text", async () => {
+    const id = await addSentence({ languageId: "it", text: "Vado {{nel|in}} centro", notes: "  also: in centro  " });
+    const made = (await getDocument<Sentence>(id))!;
+    expect(made.notes).toBe("also: in centro");
+    await updateSentence(made, { languageId: "it", text: made.text, notes: "nel = in + il" });
+    expect((await getDocument<Sentence>(id))!).toMatchObject({ notes: "nel = in + il", text: "Vado {{nel|in}} centro", title: "Vado nel centro" });
+  });
+});

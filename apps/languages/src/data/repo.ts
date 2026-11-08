@@ -20,7 +20,7 @@ function normalizeWord(w: Word): Word {
 }
 
 function normalizeSentence(s: Sentence): Sentence {
-  return { ...s, languageId: s.languageId ?? "", text: s.text ?? "", translation: s.translation ?? "", origin: s.origin ?? "", originId: s.originId ?? "", clip: s.clip ?? "", paused: !!s.paused, addedAt: s.addedAt || s.createdAt || "", tags: s.tags ?? [] };
+  return { ...s, languageId: s.languageId ?? "", text: s.text ?? "", translation: s.translation ?? "", notes: s.notes ?? "", origin: s.origin ?? "", originId: s.originId ?? "", clip: s.clip ?? "", paused: !!s.paused, addedAt: s.addedAt || s.createdAt || "", tags: s.tags ?? [] };
 }
 
 function normalizeFact(f: Fact): Fact {
@@ -280,6 +280,7 @@ export interface SentenceInput {
   languageId: string;
   text: string;
   translation?: string;
+  notes?: string;
   origin?: string;
   originId?: string;
   /** The id of its clip Attachment; "" removes it, left out keeps it (ADR 0116). */
@@ -291,7 +292,7 @@ function sentenceRowOf(input: SentenceInput) {
   const text = input.text.trim();
   if (!input.languageId) throw new Error("Pick a topic");
   if (!/\{\{\s*\S.*?\}\}/.test(text)) throw new Error("Mark at least one blank with {{ }}");
-  return { type: SENTENCE, title: plainSentence(text), languageId: input.languageId, text, translation: input.translation?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", ...clipOf(input), tags: normalizeTags(input.tags ?? []), folder: "" } as const;
+  return { type: SENTENCE, title: plainSentence(text), languageId: input.languageId, text, translation: input.translation?.trim() ?? "", notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", ...clipOf(input), tags: normalizeTags(input.tags ?? []), folder: "" } as const;
 }
 
 export async function addSentence(input: SentenceInput): Promise<string> {
