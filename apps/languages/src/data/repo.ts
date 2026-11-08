@@ -1,12 +1,13 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
+import { REWRITABLE } from "../domain/draft";
 import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
 import { sourceChain, type SourceReading } from "../domain/sources";
 
 export type { MaterialDoc };
-import { DECK, DEFAULT_NEW_CAP, FACT, TOPIC, RECALL, SENTENCE, WORD, type Deck, type Fact, type Grade, type Item, type Material, type Topic, type Recall, type Sentence, type Word } from "../domain/types";
+import { DECK, DEFAULT_NEW_CAP, FACT, TOPIC, RECALL, SENTENCE, WORD, type Deck, type Fact, type Grade, type Item, type Material, type Proposal, type Topic, type Recall, type Sentence, type Word } from "../domain/types";
 
 // ---- Shapes on read: PocketBase returns absent fields as "" / undefined ----
 
@@ -337,6 +338,41 @@ export async function updateFact(f: Fact, input: FactInput): Promise<void> {
  */
 export async function acceptDraft(id: string): Promise<void> {
   await patchDocument(id, { draft: false, addedAt: new Date().toISOString() });
+}
+
+/**
+ * An agent's proposed rewrite of an accepted item (ADR 0115), stored beside it as the one pending
+ * change — a newer proposal replaces it — and never applied. The item must be able to hold it,
+ * checked as an edit is. A draft is not proposed to: the caller updates it directly.
+ */
+export async function proposeChange(item: Item, fields: Proposal): Promise<void> {
+  const changes = REWRITABLE[item.type];
+  const proposal: Proposal = {};
+  for (const key of changes) if (fields[key] !== undefined) proposal[key] = fields[key]!.trim();
+  applyProposal(item, proposal); // throws when the result is not a valid item
+  await patchDocument(item.id, { proposal });
+}
+
+/** The item read with `fields` over it, as an edit's input — validated by the same row builders an edit goes through. */
+function applyProposal(item: Item, p: Proposal): Item {
+  const own = { ...item, ...p } as Item;
+  if (own.type === WORD) wordRowOf(own);
+  else if (own.type === SENTENCE) sentenceRowOf(own);
+  else factRowOf(own);
+  return own;
+}
+
+/** Accept the pending change: applied as an ordinary edit, so Prompt identity and Recalls follow ADR 0058. */
+export async function acceptProposal(item: Item): Promise<void> {
+  if (!item.proposal) return;
+  const next = applyProposal(item, item.proposal);
+  if (next.type === WORD) await putDocument<Word>({ ...item, ...wordRowOf(next), proposal: null } as Word);
+  else if (next.type === SENTENCE) await putDocument<Sentence>({ ...item, ...sentenceRowOf(next), proposal: null } as Sentence);
+  else await putDocument<Fact>({ ...item, ...factRowOf(next), proposal: null } as Fact);
+}
+
+export async function discardProposal(id: string): Promise<void> {
+  await patchDocument(id, { proposal: null });
 }
 
 /** Paused: listed, Recalls kept, out of every Practice until unpaused. */

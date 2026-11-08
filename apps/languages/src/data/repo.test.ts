@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
 import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item, type Sentence } from "../domain/types";
-import { acceptDraft, addDeck, addSentence, addWord, deckNamed, deleteItem, setMembership, updateSentence } from "./repo";
+import { acceptDraft, acceptProposal, addDeck, addSentence, addWord, deckNamed, deleteItem, discardProposal, proposeChange, setMembership, updateSentence } from "./repo";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId"], builtIn: true }) as unknown as DocumentTypeDef;
@@ -56,5 +56,38 @@ describe("a Sentence's notes", () => {
     expect(made.notes).toBe("also: in centro");
     await updateSentence(made, { languageId: "it", text: made.text, notes: "nel = in + il" });
     expect((await getDocument<Sentence>(id))!).toMatchObject({ notes: "nel = in + il", text: "Vado {{nel|in}} centro", title: "Vado nel centro" });
+  });
+});
+
+describe("a proposed change (ADR 0115)", () => {
+  const read = async <T,>(id: string) => (await getDocument<Item & T>(id))!;
+
+  it("is stored beside the item, which keeps its values; a newer one replaces it", async () => {
+    const id = await addWord({ languageId: "es", term: "casa", meaning: "house" });
+    await proposeChange(await read(id), { meaning: "home" });
+    await proposeChange(await read(id), { notes: "feminine" });
+    expect(await read<{ meaning: string; proposal: object }>(id)).toMatchObject({ meaning: "house", proposal: { notes: "feminine" } });
+  });
+
+  it("accepted, applies as an ordinary edit and is gone; discarded, drops it and changes nothing", async () => {
+    const id = await addWord({ languageId: "es", term: "casa", meaning: "house" });
+    await proposeChange(await read(id), { meaning: "home" });
+    await discardProposal(id);
+    expect(await read<{ meaning: string; proposal?: object | null }>(id)).toMatchObject({ meaning: "house", proposal: null });
+    await proposeChange(await read(id), { term: "la casa", meaning: "the home" });
+    await acceptProposal(await read(id));
+    expect(await read<{ term: string; meaning: string; title: string; proposal?: object | null }>(id)).toMatchObject({ term: "la casa", meaning: "the home", title: "la casa", proposal: null });
+  });
+
+  it("accepting a Sentence rewrite keeps the blanks it still has", async () => {
+    const id = await addSentence({ languageId: "es", text: "Tengo {{ganas}} de {{comer}}" });
+    await proposeChange(await read(id), { text: "Tengo {{ganas}} de {{beber}}" });
+    await acceptProposal(await read(id));
+    expect(await read<Sentence>(id)).toMatchObject({ text: "Tengo {{ganas}} de {{beber}}" });
+  });
+
+  it("refuses a rewrite the item could not hold", async () => {
+    const id = await addSentence({ languageId: "es", text: "Tengo {{ganas}}" });
+    await expect(proposeChange(await read(id), { text: "Tengo ganas" })).rejects.toThrow(/blank/);
   });
 });

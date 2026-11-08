@@ -5,6 +5,7 @@ import type { Word } from "../domain/types";
 import { acceptDraft, addWord, deleteItem, updateWord, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
 import { OriginLine } from "./OriginLine";
+import { ProposalNotice } from "./ProposalNotice";
 
 /**
  * A Word, Sentence or Fact dialog: an Intake's dialog without the Handoff, so
@@ -107,6 +108,7 @@ export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved
           <p className="text-muted-foreground text-sm">Add a topic first, in Knowledge.</p>
         ) : (
           <div className="grid gap-4">
+            {word && <ProposalNotice item={word} onDone={() => onOpenChange(false)} />}
             {!word && <TopicSelect topics={topics} value={languageId} onChange={setLanguageId} />}
             <div className="grid gap-2">
               <Label htmlFor="wd-term">Word</Label>

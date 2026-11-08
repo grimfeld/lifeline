@@ -1,4 +1,4 @@
-import type { Item } from "./types";
+import { FACT, SENTENCE, WORD, type Item, type Proposal } from "./types";
 
 /** An agent's draft, not yet accepted (CONTEXT.md "Draft", ADR 0115). */
 export const isDraft = (x: { draft?: boolean }): boolean => !!x.draft;
@@ -13,4 +13,19 @@ export const kept = (x: { paused?: boolean; draft?: boolean }): boolean => !x.pa
  */
 export function accepted<T extends Item>(item: T, at: string): T {
   return { ...item, draft: false, addedAt: at };
+}
+
+/** The fields an agent may propose to rewrite, per kind of item (ADR 0115). Where it was met stays the drafter's mark. */
+export const REWRITABLE: Record<Item["type"], readonly (keyof Proposal)[]> = {
+  [WORD]: ["term", "meaning", "notes"],
+  [SENTENCE]: ["text", "translation", "notes"],
+  [FACT]: ["question", "answer", "notes"],
+};
+
+/** What the item would read after its pending change: only the fields that really differ, so a proposal beside current values shows just the change. */
+export function proposedChanges(item: Item): { key: keyof Proposal; current: string; proposed: string }[] {
+  const p = item.proposal;
+  if (!p) return [];
+  const own = item as unknown as Record<string, string>;
+  return REWRITABLE[item.type].flatMap((key) => (p[key] !== undefined && p[key] !== own[key] ? [{ key, current: own[key] ?? "", proposed: p[key]! }] : []));
 }
