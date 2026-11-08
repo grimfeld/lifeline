@@ -1,7 +1,21 @@
 import { useState } from "react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, toast } from "@lifeline/ui";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, Button, toast } from "@lifeline/ui";
 import { roleDef, type Document } from "@lifeline/core";
+import { UserRound } from "lucide-react";
 import { turnIntoPerson } from "../turnIntoPerson";
+
+/** On a bare Author's or Artist's Vault page (when `canTurnIntoPerson`): the button that asks to turn them into a Person. */
+export function TurnIntoPersonButton({ doc, roleId }: { doc: Document; roleId: string }) {
+  const [asking, setAsking] = useState(false);
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setAsking(true)}>
+        <UserRound /> Turn into a Person…
+      </Button>
+      <TurnIntoPersonDialog doc={asking ? doc : null} roleId={roleId} onClose={() => setAsking(false)} />
+    </>
+  );
+}
 
 /**
  * "Turn into a Person" (CONTEXT.md "Person", ADR 0113), asked before it is

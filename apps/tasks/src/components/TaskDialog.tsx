@@ -379,7 +379,7 @@ export function TaskDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="task-for">For</Label>
-              <PeopleField id="task-for" value={forIds} onChange={setForIds} label="People" placeholder="Add a person…" />
+              <PeopleField id="task-for" value={forIds} onChange={setForIds} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="task-tags">Tags</Label>

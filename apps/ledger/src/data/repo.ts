@@ -138,7 +138,7 @@ export interface TransactionInput {
   payee?: string;
   note?: string;
   tags?: string[];
-  /** The People it was for (ids). Left as stored when absent. */
+  /** The People it was for (ids); none when absent, so an update passes them on. */
   for?: string[];
   importId?: string;
   paypalId?: string;
@@ -174,7 +174,7 @@ function rowOf(input: TransactionInput): Omit<Transaction, "id" | "updatedAt" | 
     bankPayee: input.bankPayee ?? "",
     folder: "",
     tags: normalizeTags(input.tags ?? []),
-    ...(input.for !== undefined ? { for: [...new Set(input.for)] } : { for: [] }),
+    for: [...new Set(input.for ?? [])],
   };
 }
 

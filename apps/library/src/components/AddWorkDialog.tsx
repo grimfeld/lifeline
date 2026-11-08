@@ -392,7 +392,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="media-recommended-by">Recommended by</Label>
-                <PeopleField id="media-recommended-by" value={recommendedBy} onChange={setRecommendedBy} label="People" placeholder="Add a person…" />
+                <PeopleField id="media-recommended-by" value={recommendedBy} onChange={setRecommendedBy} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="media-tags">Tags</Label>

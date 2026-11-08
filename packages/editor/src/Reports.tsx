@@ -62,10 +62,11 @@ export function RankingReport({
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the window is keyed by its dates: callers pass a new object each render
   const rows = useMemo(() => rankingRows(index, typeId, setting, window, today), [index, typeId, setting, window.from, window.to, today]);
   if (rows.length === 0 && empty === null) return null;
+  const kind = reportKind(setting.kind);
   return (
     <section className="min-w-0">
-      <h3 className={HEADING}>{title ?? reportKind(setting.kind).label}</h3>
-      {rows.length === 0 ? <p className="text-muted-foreground text-xs">{empty ?? (reportKind(setting.kind).source === "seen" ? "No Event links to any yet." : "No Day links to any yet.")}</p> : <RankList index={index} rows={rows} quiet={reportKind(setting.kind).shape === "quiet"} onOpen={onOpen} />}
+      <h3 className={HEADING}>{title ?? kind.label}</h3>
+      {rows.length === 0 ? <p className="text-muted-foreground text-xs">{empty ?? (kind.source === "seen" ? "No Event links to any yet." : "No Day links to any yet.")}</p> : <RankList index={index} rows={rows} quiet={kind.shape === "quiet"} onOpen={onOpen} />}
     </section>
   );
 }

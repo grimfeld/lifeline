@@ -238,7 +238,7 @@ export function TransactionEditorDialog({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="tx-for">For</Label>
-            <PeopleField id="tx-for" value={forIds} onChange={setForIds} label="People" placeholder="Add a person…" />
+            <PeopleField id="tx-for" value={forIds} onChange={setForIds} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="tx-tags">Tags</Label>
