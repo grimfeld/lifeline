@@ -133,6 +133,9 @@ in a body, so it adds no Backlink and counts for no Report.
 
 - **Add person…** — a new Person, from their name alone. Where: the Capture sheet, the palette
   (Ctrl+K).
+- **Add occasion…** — a birthday, anniversary or other Occasion for a Person found by name or
+  alias; it has no screen, and is how Claude adds Occasions (`people_occasion_add`). Where: Claude
+  only.
 - **Go to People** — the People home. Where: the palette.
 
 ## Capture
@@ -142,16 +145,22 @@ you can add someone you just met before you forget it.
 
 ## Ask Claude
 
-- "Add my aunt Anne Dupont, I call her Mum" — `people_add`, with a name, aliases and a
-  Relationship.
-- "Whose birthday is coming up?" — `agenda` lists Occasions as `occasion` entries, apart from
-  Deadlines.
+- "Add my aunt Anne Dupont, I call her Mum" — `people_add`, with a name, aliases, a
+  Relationship and Tags.
+- "Anne's birthday is 12 November 1961" — `people_occasion_add`, for the Person found by name or
+  alias, with a label, a day (the year optional) and yearly or once. An unknown name, or one
+  that two People share, is refused and Claude asks which.
+- "Whose birthday is coming up?" — `people_upcoming` is the Upcoming Report for the next days,
+  with the age each Birthday reaches; `agenda` lists Occasions too, as `occasion` entries apart
+  from Deadlines, with the same age.
+- "When did I last see Anne?" — `get_document` on a Person adds their Last seen and Last
+  mentioned, from what Claude is allowed to read.
 - "What have I written about Anne?" — `search_documents`, `get_document`.
 
 ### What Claude sees of a Person
 
-Claude reads a Person's name, aliases, Relationship, Tags, body, and any Field you added to
-Person yourself, and it can change those.
+Claude reads a Person's name, aliases, Relationship, Tags, Occasions, body, and any Field you
+added to Person yourself, and it can change those; it can add an Occasion.
 
 Claude never sees a Person's **Addresses** or **Contact details**, current or former, from any
 tool: searching for words of an address or a phone number finds nobody, and a Person's Pins on the

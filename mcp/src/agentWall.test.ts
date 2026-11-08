@@ -3,6 +3,7 @@ import type { Document, DocumentTypeDef, OwnedCommand, TimedProvider } from "@li
 import { pinsOf } from "@lifeline/core";
 import { personTypeDef } from "@lifeline/app-contacts/src/types";
 import { contactsCommands } from "@lifeline/app-contacts/src/commands";
+import { contactsTimed } from "@lifeline/app-contacts/src/timed";
 import type { Address, ContactDetail } from "@lifeline/app-contacts/src/domain/types";
 import { markFormer, saveDetail, type DetailInput } from "@lifeline/app-contacts/src/domain/contactDetails";
 
@@ -36,6 +37,7 @@ vi.mock("@lifeline/core", async (importOriginal) => {
     ...core,
     allWorkspaces: async () => [],
     setCurrentWorkspace: () => undefined,
+    documentsOf: async (type: string) => [...docs.values()].filter((d) => d.type === type),
     documentTypeSync: (id: string) => types.get(id),
     allDocumentTypes: () => [...types.values()],
     getDocument: async (id: string) => docs.get(id),
@@ -111,18 +113,22 @@ const PERSON_TOOLS: { name: string; args: Record<string, unknown> }[] = [
   { name: "agenda", args: { start: "2026-11-01", end: "2026-11-30" } },
   { name: "list_types", args: {} },
   { name: "list_types", args: { type: PERSON } },
-  { name: "people_add", args: { name: "Anne Dupont", aliases: ["Mum"], relationship: "my mother" } },
+  { name: "people_add", args: { name: "Anne Dupont", aliases: ["Mum"], relationship: "my mother", tags: ["family"] } },
+  { name: "people_occasion_add", args: { person: "Anne Dupont", label: "Birthday", day: "1961-11-12" } },
+  { name: "people_upcoming", args: { from: "2026-11-01", days: 60 } },
 ];
 
 beforeEach(() => {
   types.clear();
   docs.clear();
   commands.length = 0;
+  timed.length = 0;
+  timed.push(contactsTimed);
   for (const fn of Object.values(core)) fn.mockReset().mockResolvedValue(undefined);
   core.createDocument.mockImplementation(async (input: { type: string; title: string }) => ({ ...person("new", input.title), ...input }));
   types.set(PERSON, withGiftIdeas);
   types.set(tieType.id, tieType);
-  docs.set("p1", person("p1", "Anne Dupont", "People", { giftIdeas: "a good sable brush" }));
+  docs.set("p1", person("p1", "Anne Dupont", "People", { giftIdeas: "a good sable brush", occasions: [{ id: "o1", label: "Birthday", day: "1961-11-12", yearly: true }] }));
   docs.set("t1", { id: "t1", type: tieType.id, title: "Anne – Léa", folder: "", tags: [], createdAt: "", updatedAt: "", deleted: 0 } as unknown as Document);
   commands.push(...contactsCommands.map((c) => ({ ...c, appId: "contacts" })));
 });
@@ -151,7 +157,7 @@ describe("the agent wall: what an agent reads of a Person (ADR 0114)", () => {
   it("answers with the rest of the Person: name, aliases, Relationship, Tags, body and the user's own Fields", async () => {
     const got = (await runTool("get_document", { id: "p1" })) as { title: string; tags: string[]; body: string; fields: Record<string, unknown> };
     expect(got).toMatchObject({ title: "Anne Dupont", tags: ["family"], body: "Loves watercolours. See [[Léa]]." });
-    expect(got.fields).toEqual({ aliases: ["Mum"], relationship: "my mother", giftIdeas: "a good sable brush" });
+    expect(got.fields).toEqual({ aliases: ["Mum"], relationship: "my mother", giftIdeas: "a good sable brush", occasions: [{ id: "o1", label: "Birthday", day: "1961-11-12", yearly: true }] });
   });
 
   it("still hides a Person in the Private folder as a whole", async () => {

@@ -5,7 +5,10 @@ import {
   allWorkspaces,
   allCommands,
   allMacros,
+  buildLinkIndex,
   checkMacro,
+  documentFigures,
+  seenDays,
   commandNavigates,
   isInvocable,
   reportMessage,
@@ -50,6 +53,7 @@ import {
   type Placement,
 } from "@lifeline/core";
 import { AGENT_WALLED_KEYS, PERSON } from "@lifeline/app-contacts/src/domain/types";
+import { upcomingOccasions } from "@lifeline/app-contacts/src/domain/occasions";
 import { macroTools, TOOLS, type MacroTool } from "./tools";
 
 /**
@@ -178,6 +182,24 @@ function full(stored: Document) {
     roles: roles.length ? roles : undefined,
     fields,
     body: def?.body === "none" || !doc.body ? undefined : doc.body,
+  };
+}
+
+/**
+ * A Person's Last seen and Last mentioned (ADR 0112), as the Person page's
+ * Reports figure them — from the Documents an agent may see only, so a Day or
+ * Event in the Private folder is no more counted here than read.
+ */
+async function personReports(person: Document): Promise<Record<string, unknown>> {
+  const today = todayStr();
+  const visible = (await allDocuments()).filter(isAgentVisible);
+  const index = buildLinkIndex(visible, allDocumentTypes());
+  const figure = (f: ReturnType<typeof documentFigures>) => ({ last: f.last, daysAgo: f.sinceLast, thisYear: f.thisYear, allTime: f.allTime });
+  return {
+    reports: {
+      lastSeen: figure(documentFigures(index, person.id, today, (i, id) => seenDays(i, id, today))),
+      lastMentioned: figure(documentFigures(index, person.id, today)),
+    },
   };
 }
 
@@ -362,7 +384,15 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
   async get_document(a) {
     const doc = await describedDocument(a.id);
     const def = documentTypeSync(doc.type);
-    return def?.describe ? { ...full(doc), detail: await def.describe(agentView(doc)) } : full(doc);
+    const answer = def?.describe ? { ...full(doc), detail: await def.describe(agentView(doc)) } : full(doc);
+    return doc.type === PERSON ? { ...answer, ...(await personReports(doc)) } : answer;
+  },
+
+  async people_upcoming(a) {
+    const from = (a.from as string | undefined) ?? todayStr();
+    const days = Number(a.days ?? 30);
+    const people = (await allDocuments()).filter((d) => d.type === PERSON && isAgentVisible(d));
+    return { from, days, occasions: upcomingOccasions(people as unknown as Parameters<typeof upcomingOccasions>[0], from, days) };
   },
 
   async agenda(a) {
@@ -377,7 +407,7 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
       if (!p.itemsIn) continue;
       for (const it of await p.itemsIn(range)) {
         if (it.background && !a.blocks) continue;
-        timedItems.push({ kind: it.background ? "block" : it.marker ? (it.occasion ? "occasion" : "deadline") : "event", appId: it.appId, itemId: it.itemId, title: it.title, date: it.date, start: it.start ?? undefined, end: it.end ?? undefined, subtitle: it.subtitle, tags: it.tags?.length ? it.tags : undefined });
+        timedItems.push({ kind: it.background ? "block" : it.marker ? (it.occasion ? "occasion" : "deadline") : "event", appId: it.appId, itemId: it.itemId, title: it.title, date: it.date, start: it.start ?? undefined, end: it.end ?? undefined, subtitle: it.subtitle, age: it.occasion ? it.age : undefined, tags: it.tags?.length ? it.tags : undefined });
       }
     }
     const work = items.map((it) => ({

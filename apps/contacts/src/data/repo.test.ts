@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createDocument, documentType, documentsTable, getDocument, initApps, saveDocumentType } from "@lifeline/core";
 import { personTypeDef } from "../types";
-import { addOccasion, addPerson, editOccasion, patchPerson, removeOccasion } from "./repo";
+import { addOccasion, addOccasionByName, addPerson, editOccasion, patchPerson, removeOccasion } from "./repo";
 
 initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personTypeDef], screens: [], cards: [], commands: [] }]);
 
@@ -77,5 +77,19 @@ describe("a Person's Occasions", () => {
     await expect(addOccasion(p.id, { label: "Surgery", day: "05-12", yearly: false })).rejects.toThrow("A once Occasion needs its year");
     await expect(addOccasion(p.id, { label: "", day: "05-12", yearly: true })).rejects.toThrow("An Occasion needs a label");
     expect(((await getDocument(p.id)) as never as { occasions?: unknown[] }).occasions ?? []).toEqual([]);
+  });
+});
+
+describe("adding an Occasion by name", () => {
+  it("finds the Person by an alias", async () => {
+    const p = await addPerson({ name: "Anne Dupont", aliases: ["Mum"] });
+    const { occasion } = await addOccasionByName("mum", { label: "Birthday", day: "1961-11-12", yearly: true });
+    expect(((await getDocument(p.id)) as unknown as { occasions: unknown[] }).occasions).toEqual([occasion]);
+  });
+  it("refuses an unknown name and an ambiguous one", async () => {
+    await addPerson({ name: "Anne", aliases: ["Mum"] });
+    await addPerson({ name: "Anna", aliases: ["Mum"] });
+    await expect(addOccasionByName("Bob", { label: "Birthday", day: "01-01", yearly: true })).rejects.toThrow(/No Person called/);
+    await expect(addOccasionByName("Mum", { label: "Birthday", day: "01-01", yearly: true })).rejects.toThrow(/ambiguous/);
   });
 });

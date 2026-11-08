@@ -128,6 +128,18 @@ const GENERIC: ToolSpec[] = [
     write: false,
   },
   {
+    name: "people_upcoming",
+    title: "Upcoming Occasions",
+    description:
+      "The People's Upcoming Report: the Occasions (birthdays, anniversaries…) from a day through the next N days, soonest first, each with the Person, its label, the day, days away and, for a Birthday with a known year, the age they reach. Use it for \"whose birthday is coming up?\".",
+    input: {
+      days: z.number().int().min(0).max(366).optional().describe("How many days ahead, counting from `from`. Default 30."),
+      from: date().optional().describe("First day, YYYY-MM-DD. Default: today."),
+      workspace,
+    },
+    write: false,
+  },
+  {
     name: "complete_item",
     title: "Complete an item",
     description: "Tick off a Schedulable item from the agenda (a task, a chore occurrence…). The owning App decides what completing means.",

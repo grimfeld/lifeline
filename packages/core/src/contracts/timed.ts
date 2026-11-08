@@ -232,6 +232,8 @@ export interface TimedItem {
    * never led as a "Deadline". Set only together with `marker`.
    */
   occasion?: boolean;
+  /** An Occasion's age: the age a Birthday reaches that day, when the year of birth is known. */
+  age?: number;
 }
 
 /** Whether a Deadline marker's day has passed (ADR 0061): it stays there, red, and never rolls forward. An Occasion is never missed. */
