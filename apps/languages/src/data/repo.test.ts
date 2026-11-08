@@ -1,8 +1,8 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { addAudioAttachment, allAttachments, getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
-import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item, type Sentence, type Word } from "../domain/types";
-import { acceptDraft, addDeck, addSentence, addWord, deckNamed, deleteItem, removeItemRecalls, setMembership, updateSentence, updateWord } from "./repo";
+import { addAudioAttachment, allAttachments, documentsOf, getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
+import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item, type Recall, type Sentence, type Word } from "../domain/types";
+import { acceptDraft, addDeck, addSentence, addWord, deckNamed, deleteItem, recordRecall, removeItemRecalls, setMembership, strikeRecall, updateSentence, updateWord } from "./repo";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId"], builtIn: true }) as unknown as DocumentTypeDef;
@@ -99,5 +99,25 @@ describe("a Sentence's notes", () => {
     expect(made.notes).toBe("also: in centro");
     await updateSentence(made, { languageId: "it", text: made.text, notes: "nel = in + il" });
     expect((await getDocument<Sentence>(id))!).toMatchObject({ notes: "nel = in + il", text: "Vado {{nel|in}} centro", title: "Vado nel centro" });
+  });
+});
+
+describe("a typed attempt", () => {
+  const material = (id: string) => ({ id, type: WORD, title: "stazione", topicId: "it", addedAt: "", live: true, slots: ["reverse"], originId: "" });
+
+  it("is kept with the Recall, trimmed, and an empty one is not kept at all", async () => {
+    const a = await recordRecall(material("w1"), "reverse", "fail", "  a la stazione ");
+    const b = await recordRecall(material("w1"), "reverse", "pass", "   ");
+    const c = await recordRecall(material("w1"), "reverse", "pass");
+    const rows = await documentsOf<Recall>(RECALL);
+    expect(rows.find((r) => r.id === a.id)!.typed).toBe("a la stazione");
+    expect(rows.find((r) => r.id === b.id)!.typed).toBeUndefined();
+    expect(rows.find((r) => r.id === c.id)!.typed).toBeUndefined();
+  });
+
+  it("goes when its Recall is struck out", async () => {
+    const a = await recordRecall(material("w2"), "reverse", "fail", "i amici");
+    await strikeRecall(a.id);
+    expect((await documentsOf<Recall>(RECALL)).some((r) => r.id === a.id)).toBe(false);
   });
 });

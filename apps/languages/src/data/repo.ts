@@ -32,7 +32,7 @@ function normalizeDeck(d: Deck): Deck {
 }
 
 function normalizeRecall(r: Recall): Recall {
-  return { ...r, languageId: r.languageId ?? "", itemId: r.itemId ?? "", slot: r.slot ?? "", grade: r.grade === "pass" ? "pass" : "fail", at: r.at || "" };
+  return { ...r, languageId: r.languageId ?? "", itemId: r.itemId ?? "", slot: r.slot ?? "", grade: r.grade === "pass" ? "pass" : "fail", at: r.at || "", ...(r.typed ? { typed: String(r.typed) } : {}) };
 }
 
 // ---- Reads ----
@@ -427,13 +427,14 @@ export async function deleteDeck(id: string): Promise<void> {
  * Record one Recall (ADR 0058) on a Prompt of any Recallable Material — and,
  * when it is the Topic's first of the day, report the day as the Topic's
  * occurrence (ADR 0059), so its Tallies fire. A failing Tally never loses the
- * Recall.
+ * Recall. A typed attempt (ADR 0116) is kept with it, trimmed; an empty one is not.
  */
-export async function recordRecall(item: Material, slot: string, grade: Grade): Promise<{ id: string; tallyError?: string }> {
+export async function recordRecall(item: Material, slot: string, grade: Grade, typed?: string): Promise<{ id: string; tallyError?: string }> {
   const at = new Date().toISOString();
   const day = dayOf(at);
   const earlier = (await documentsWhere<Recall>(RECALL, "languageId", item.topicId)).some((r) => r.at && dayOf(r.at) === day);
-  const row = await putDocument<Recall>({ type: RECALL, title: `${grade === "pass" ? "✓" : "✗"} ${item.title} · ${day}`, languageId: item.topicId, itemId: item.id, slot, grade, at, folder: "", tags: [] });
+  const attempt = typed?.trim();
+  const row = await putDocument<Recall>({ type: RECALL, title: `${grade === "pass" ? "✓" : "✗"} ${item.title} · ${day}`, languageId: item.topicId, itemId: item.id, slot, grade, at, ...(attempt ? { typed: attempt } : {}), folder: "", tags: [] });
   if (earlier) return { id: row.id };
   const topic = await getDocument<Topic>(item.topicId);
   if (!topic || topic.archived) return { id: row.id };
