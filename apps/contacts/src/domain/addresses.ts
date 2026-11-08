@@ -25,6 +25,9 @@ export function coordsOf(a: Pick<Address, "lat" | "lon">): { lat: number; lon: n
   return a.lat !== undefined && a.lon !== undefined ? { lat: a.lat, lon: a.lon } : null;
 }
 
+/** A current Address whose lookup found no place: the page offers the lookup again. A former one is history, never looked up. */
+export const isUnplaced = (a: Pick<Address, "lat" | "lon" | "former">) => !a.former && coordsOf(a) === null;
+
 /**
  * The Pins of a Person (#418): one for each current Address with coordinates,
  * titled "Person · label". A former Address, or one whose lookup found
@@ -35,6 +38,9 @@ export function addressPinsOf(person: Document): { id: string; name: string; lat
     !a.former && a.lat !== undefined && a.lon !== undefined ? [{ id: a.id, name: `${person.title} · ${a.label}`, lat: a.lat, lon: a.lon }] : [],
   );
 }
+
+/** The Address dialog as it opens: blank, or the Address's label and text. */
+export const addressDraft = (a: Pick<Address, "label" | "text"> | undefined) => ({ label: a ? a.label : "", text: a ? a.text : "" });
 
 export interface AddressInput {
   label: string;

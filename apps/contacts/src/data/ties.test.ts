@@ -1,9 +1,9 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { buildLinkIndex, documentsOf, documentsTable, getDocument, moveDocumentsToWorkspace, removeDocument, initApps } from "@lifeline/core";
+import { buildLinkIndex, documentsOf, documentsTable, getDocument, moveDocumentsToWorkspace, putDocument, removeDocument, initApps } from "@lifeline/core";
 import { personTypeDef, tieTypeDef } from "../types";
 import { addPerson } from "./repo";
-import { addTie, tiesOf, updateTie, removeTie, restoreTie } from "./ties";
+import { addTie, saveTieFrom, tiesOf, updateTie, removeTie, restoreTie } from "./ties";
 
 initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personTypeDef, tieTypeDef], screens: [], cards: [], commands: [] }]);
 
@@ -46,6 +46,36 @@ describe("Ties (#412)", () => {
     await expect(addTie({ from: anne.id, to: anne.id, label: "x", toLabel: "y" })).rejects.toThrow("themselves");
     await expect(addTie({ from: anne.id, to: "nobody", label: "x", toLabel: "y" })).rejects.toThrow("two People");
     await expect(addTie({ from: anne.id, to: lea.id, label: " ", toLabel: "y" })).rejects.toThrow("word");
+  });
+
+  it("refuses an edit that leaves either word empty, writing nothing", async () => {
+    const { anne, lea } = await pair();
+    const t = await addTie({ from: anne.id, to: lea.id, label: "mother", toLabel: "daughter" });
+    await expect(updateTie(t.id, anne.id, { label: "daughter", ownLabel: " " })).rejects.toThrow("word");
+    await expect(updateTie(t.id, anne.id, { label: " ", ownLabel: "mother" })).rejects.toThrow("word");
+    expect(await getDocument(t.id)).toMatchObject({ labelA: "mother", labelB: "daughter" });
+  });
+
+  it("reads a stored Tie missing its keys as empty, not as missing", async () => {
+    const { anne } = await pair();
+    await putDocument({ type: "contacts_tie", title: "", a: anne.id } as never);
+    expect(await tiesOf(anne.id)).toMatchObject([{ a: anne.id, b: "", labelA: "", labelB: "" }]);
+  });
+
+  it("is saved from the dialog: a new one from this page's side, or new words for one", async () => {
+    const { anne, lea } = await pair();
+    // On Anne's page: Léa is her "daughter", she is Léa's "mother".
+    await saveTieFrom(anne.id, undefined, { otherId: lea.id, label: "daughter", ownLabel: "mother" });
+    const [t] = await tiesOf(anne.id);
+    expect(t).toMatchObject({ a: anne.id, b: lea.id, labelA: "mother", labelB: "daughter" });
+    await saveTieFrom(lea.id, t, { otherId: "", label: "mum", ownLabel: "girl" });
+    expect(await getDocument(t!.id)).toMatchObject({ labelA: "mum", labelB: "girl" });
+  });
+
+  it("is not saved from the dialog before the other Person is picked", async () => {
+    const { anne } = await pair();
+    await expect(saveTieFrom(anne.id, undefined, { otherId: "", label: "daughter", ownLabel: "mother" })).rejects.toThrow("Pick the other person.");
+    expect(await tiesOf(anne.id)).toEqual([]);
   });
 
   it("goes when either Person is deleted, leaving the other's page whole", async () => {

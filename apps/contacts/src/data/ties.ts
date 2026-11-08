@@ -1,5 +1,6 @@
 import { PERSON_TYPE, documentsOf, getDocument, putDocument, removeDocument, removeDocumentsWhere, useDocuments } from "@lifeline/core";
 import { TIE, type Tie } from "../domain/types";
+import type { TieRow } from "../domain/ties";
 
 /** A Tie as stored, with its keys filled in for a row that lacks them. */
 const normalizeTie = (t: Tie): Tie => ({ ...t, a: t.a ?? "", b: t.b ?? "", labelA: t.labelA ?? "", labelB: t.labelB ?? "" });
@@ -53,6 +54,17 @@ export async function updateTie(id: string, personId: string, words: { label: st
   if (!label || !ownLabel) throw new Error("A Tie needs a word for each end");
   const fromA = tie.a === personId;
   await putDocument<Tie>({ ...tie, labelA: fromA ? ownLabel : label, labelB: fromA ? label : ownLabel });
+}
+
+/**
+ * Save the Tie dialog from `personId`'s page: change the words of `row`, or
+ * tie them to `otherId`. `label` is what the other Person is to them,
+ * `ownLabel` what they are to the other, as the page reads.
+ */
+export async function saveTieFrom(personId: string, row: Pick<TieRow, "id"> | undefined, input: { otherId: string; label: string; ownLabel: string }): Promise<void> {
+  if (row) return updateTie(row.id, personId, input);
+  if (!input.otherId) throw new Error("Pick the other person.");
+  await addTie({ from: personId, to: input.otherId, label: input.ownLabel, toLabel: input.label });
 }
 
 /** Remove a Tie, handing back the Tie as it was, for Undo (`restoreTie`). */

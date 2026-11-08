@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { formatHuman, seenDays, todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
+import { seenDays, todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
 import { Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { UserPlus } from "lucide-react";
 import { UpcomingReport } from "../components/UpcomingReport";
@@ -7,7 +7,7 @@ import { DriftingSection } from "../components/DriftingSection";
 import { AddPersonDialog } from "../components/AddPersonDialog";
 import { PersonRowLink, RelationshipLabel } from "../components/PersonRow";
 import { Section } from "../components/Section";
-import { everyone, relationshipsOf, tagsOf } from "../domain/everyone";
+import { activeFilter, everyone, lastSeenLabel, relationshipsOf, tagsOf } from "../domain/everyone";
 import { type Person } from "../domain/types";
 import { usePeople } from "../data/repo";
 
@@ -20,9 +20,28 @@ function PersonRow({ person, lastSeen }: { person: Person; lastSeen?: DateStr })
       <PersonRowLink personId={person.id}>
         <span className="min-w-0 flex-1 truncate font-medium">{person.title}</span>
         {person.relationship && <RelationshipLabel>{person.relationship}</RelationshipLabel>}
-        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{lastSeen ? `Last seen ${formatHuman(lastSeen)}` : "Not seen"}</span>
+        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{lastSeenLabel(lastSeen)}</span>
       </PersonRowLink>
     </li>
+  );
+}
+
+/** One of Everyone's filters: its values in use, or any ("" when none is picked). */
+function FilterSelect({ label, anyLabel, value, options, onChange }: { label: string; anyLabel: string; value: string; options: readonly string[]; onChange: (value: string) => void }) {
+  return (
+    <Select value={value || ANY} onValueChange={(v) => onChange(v === ANY ? "" : v)}>
+      <SelectTrigger className="w-full min-w-0 md:w-48" aria-label={label}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={ANY}>{anyLabel}</SelectItem>
+        {options.map((o) => (
+          <SelectItem key={o} value={o}>
+            {o}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -44,8 +63,8 @@ export function PeopleScreen() {
   const relationships = useMemo(() => relationshipsOf(people), [people]);
   const tags = useMemo(() => tagsOf(people), [people]);
   // A filter whose value no one carries any more (the last of them was changed) is no filter.
-  const activeRelationship = relationships.includes(relationship) ? relationship : "";
-  const activeTag = tags.includes(tag) ? tag : "";
+  const activeRelationship = activeFilter(relationships, relationship);
+  const activeTag = activeFilter(tags, tag);
   const add = (
     <Button onClick={() => setAdding(true)}>
       <UserPlus /> Add person
@@ -71,32 +90,8 @@ export function PeopleScreen() {
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 max-md:contents">
                 <Input aria-label="Search people" className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search name or alias…" value={query} onChange={(e) => setQuery(e.target.value)} />
                 <PhoneFilters active={+(activeRelationship !== "") + +(activeTag !== "")}>
-                  <Select value={activeRelationship || ANY} onValueChange={(v) => setRelationship(v === ANY ? "" : v)}>
-                    <SelectTrigger className="w-full min-w-0 md:w-48" aria-label="Relationship">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ANY}>Any relationship</SelectItem>
-                      {relationships.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          {r}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={activeTag || ANY} onValueChange={(v) => setTag(v === ANY ? "" : v)}>
-                    <SelectTrigger className="w-full min-w-0 md:w-48" aria-label="Tag">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={ANY}>Any tag</SelectItem>
-                      {tags.map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {t}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FilterSelect label="Relationship" anyLabel="Any relationship" value={activeRelationship} options={relationships} onChange={setRelationship} />
+                  <FilterSelect label="Tag" anyLabel="Any tag" value={activeTag} options={tags} onChange={setTag} />
                 </PhoneFilters>
               </div>
             </PhoneDock>

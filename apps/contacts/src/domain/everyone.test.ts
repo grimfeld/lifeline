@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Person } from "./types";
-import { everyone, relationshipsOf, tagsOf } from "./everyone";
+import { formatHuman } from "@lifeline/core";
+import { activeFilter, everyone, lastSeenLabel, relationshipsOf, tagsOf } from "./everyone";
 
 const P = (title: string, more: Partial<Person> = {}): Person =>
   ({ id: title, type: "contacts_person", title, aliases: [], relationship: "", tags: [], ...more }) as unknown as Person;
@@ -34,5 +35,18 @@ describe("Everyone", () => {
   it("offers the Relationships and Tags in use, once each, sorted", () => {
     expect(relationshipsOf(all)).toEqual(["colleague", "my mother"]);
     expect(tagsOf(all)).toEqual(["climbing", "family", "work"]);
+  });
+});
+
+describe("Everyone's filters and rows", () => {
+  it("keeps a filter only while someone carries its value", () => {
+    expect(activeFilter(["colleague", "my mother"], "colleague")).toBe("colleague");
+    expect(activeFilter(["my mother"], "colleague")).toBe("");
+    expect(activeFilter([], "")).toBe("");
+  });
+  it("says when a Person was last seen, or that they never were", () => {
+    expect(lastSeenLabel("2026-03-04")).toBe(`Last seen ${formatHuman("2026-03-04")}`);
+    expect(lastSeenLabel("2026-03-04")).not.toBe("Last seen ");
+    expect(lastSeenLabel(undefined)).toBe("Not seen");
   });
 });

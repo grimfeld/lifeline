@@ -1,6 +1,7 @@
 import { toast } from "@lifeline/ui";
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+/** What went wrong, in words: an Error's message, or whatever was thrown. */
+export const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
  * How every part of a Person is removed (an Occasion, an Address, a Contact

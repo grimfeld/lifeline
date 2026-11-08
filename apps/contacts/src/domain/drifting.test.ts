@@ -54,6 +54,11 @@ describe("Drifting", () => {
     const at = buildLinkIndex([...(edge as unknown as Document[]), ev("n", "2026-08-10", "[[Ninety]]"), ev("m", "2026-08-11", "[[EightyNine]]")], types);
     expect(drifting(at, edge, { today }).map((r) => [r.person.title, r.daysSince])).toEqual([["Ninety", 90]]);
   });
+  it("counts from the last day they were seen, not the first", () => {
+    const twice = [P("Twice")];
+    const at = buildLinkIndex([...(twice as unknown as Document[]), ev("a", "2026-01-10", "[[Twice]]"), ev("b", "2026-06-01", "[[Twice]]")], types);
+    expect(drifting(at, twice, { today })).toMatchObject([{ last: "2026-06-01", daysSince: 160 }]);
+  });
   it("switches to Not mentioned over the Mentioned days", () => {
     const rows = drifting(idx, people, { today, source: "mentioned" });
     // Anne is on an Event but on no Day: never mentioned, so she drifts first.

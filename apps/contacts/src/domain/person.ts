@@ -1,4 +1,4 @@
-import { QUICK_MAKE_MAX, type Handoff } from "@lifeline/core";
+import { QUICK_MAKE_MAX, initialText, type Handoff } from "@lifeline/core";
 
 /**
  * The name a Person is made with from a Handoff: the selected words when they
@@ -10,6 +10,15 @@ export function nameFromHandoff(handoff: Handoff): string {
   if (text && text.length <= QUICK_MAKE_MAX && !/[\r\n]/.test(text)) return text;
   return handoff.title.trim();
 }
+
+/** The line under a Person's name: "65 years old · my mother · also Mum, Maman", leaving out what is not known. */
+export function knownLine(person: { relationship: string; aliases: readonly string[] }, age: number | null): string {
+  const parts = [age === null ? "" : `${age} years old`, person.relationship, person.aliases.length ? `also ${person.aliases.join(", ")}` : ""];
+  return parts.filter(Boolean).join(" · ");
+}
+
+/** The name an Add person dialog opens with: from a Handoff when it has one, else from the caller's initial values. */
+export const initialName = (handoff: Handoff | undefined, initial: Record<string, unknown> | undefined) => (handoff ? nameFromHandoff(handoff) : initialText(initial, "name"));
 
 /** A name as compared: case and accents aside. */
 export const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();

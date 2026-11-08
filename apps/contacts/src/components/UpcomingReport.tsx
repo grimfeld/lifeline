@@ -1,14 +1,11 @@
 import { useMemo } from "react";
 import { formatHuman, todayStr, type CardProps } from "@lifeline/core";
 import { usePeople } from "../data/repo";
-import { upcomingOccasions, type UpcomingOccasion } from "../domain/occasions";
+import { upcomingOccasions, whenOf, type UpcomingOccasion } from "../domain/occasions";
 import { PersonRowLink } from "./PersonRow";
 import { Section } from "./Section";
 
 export const UPCOMING_DAYS = 30;
-
-/** "today", "tomorrow", "in 5 days". */
-const whenOf = (inDays: number) => (inDays === 0 ? "today" : inDays === 1 ? "tomorrow" : `in ${inDays} days`);
 
 function Row({ u }: { u: UpcomingOccasion }) {
   return (
