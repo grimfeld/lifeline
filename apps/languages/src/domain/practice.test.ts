@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { dueAhead, dueAheadOfHeld, heldPrompts, introducedByTopic, introducedOn, practiceQueue, queueOfHeld, retention, spaceSiblings } from "./practice";
+import { inDecks, dueAhead, dueAheadOfHeld, heldPrompts, introducedByTopic, introducedOn, practiceQueue, queueOfHeld, retention, spaceSiblings } from "./practice";
 import { itemMaterial } from "./prompts";
-import { RECALL, SENTENCE, WORD, type Grade, type Material, type Recall, type Sentence, type Word } from "./types";
+import { RECALL, SENTENCE, WORD, type Deck, type Grade, type Material, type Recall, type Sentence, type Word } from "./types";
 
 /** Local wall-clock instants, so day boundaries are the test machine's own. */
 const at = (day: number, h = 9, m = 0) => new Date(2026, 8, day, h, m).toISOString();
@@ -130,5 +130,33 @@ describe("dueAhead", () => {
     expect(week).toHaveLength(7);
     expect(week[0]).toEqual({ day: "2026-09-28", count: 2 });
     expect(week.slice(1).every((d) => d.count === 0)).toBe(true);
+  });
+});
+
+describe("practising several Decks together", () => {
+  const deck = (id: string, members: string[]) => ({ id, members }) as Deck;
+  const items = [word("a", 1), word("b", 2), word("c", 3), word("d", 4)];
+  const now = new Date(at(10, 12));
+
+  it("draws the union of the Decks' items, an item in two Decks once", () => {
+    const scope = inDecks([deck("x", ["a", "b"]), deck("y", ["b", "c"])], items);
+    expect(scope.map((i) => i.id)).toEqual(["a", "b", "c"]);
+    const q = practiceQueue(scope, [], { now, newCap: 99 });
+    expect(q.queue.filter((p) => p.key === "b|forward")).toHaveLength(1);
+  });
+
+  it("keeps the Topic's daily new cap across the picked Decks", () => {
+    const scope = inDecks([deck("x", ["a"]), deck("y", ["c", "d"])], items);
+    const recalls = [recall("b", "forward", "pass", at(10, 8))]; // one introduced today elsewhere in the Topic
+    const q = practiceQueue(scope, recalls, { now, newCap: 3 });
+    expect(q.newToday).toBe(2);
+    expect(q.newWaiting).toBe(6);
+  });
+
+  it("spaces sibling Prompts apart across the picked Decks", () => {
+    const scope = inDecks([deck("x", ["a"]), deck("y", ["b"])], items);
+    const ids = practiceQueue(scope, [], { now, newCap: 4 }).queue.map((p) => p.itemId);
+    expect(ids).toHaveLength(4);
+    for (let i = 1; i < ids.length; i++) expect(ids[i]).not.toBe(ids[i - 1]);
   });
 });
