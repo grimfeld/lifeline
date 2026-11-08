@@ -18,10 +18,16 @@ export const personTypeDef: DocumentTypeDef = {
   linkable: { subtitle: (d) => ((d as Person).relationship?.trim() ? `Person · ${(d as Person).relationship.trim()}` : "Person") },
   // Opens on its own page; its Peek's "Open" leads there (ADR 0110's pattern).
   href: (d) => personHref(d.id),
+  // Seen and Mentioned side by side, never added together (ADR 0112).
+  reports: [{ kind: "lastSeen" }, { kind: "last" }],
   order: 30,
   builtIn: true,
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "relationship", label: "Relationship", kind: "text", column: true },
+    // The App's own parts, declared so a Field of the user's can never take their keys (`merge` keeps the
+    // built-in's): guarded, hidden and json, so no Base, form or agent writes them (ADR 0114).
+    { key: "addresses", label: "Addresses", kind: "json", guarded: true, hidden: true },
+    { key: "contactDetails", label: "Contact details", kind: "json", guarded: true, hidden: true },
   ],
 };

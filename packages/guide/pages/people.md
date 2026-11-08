@@ -23,6 +23,11 @@ Workspace, by name, each with what they are to you. Click one to open their page
 - **Header** — their name, what they are to you, and their aliases.
 - **Details** — change their name (every `[[link]]` to them follows), their **Aliases**, their
   **Relationship** and their **Tags**, edited in place.
+- **Reports** — **Last seen** (the last day of an Event that links to them) and **Last
+  mentioned** (the last Day that links to them), side by side and never added together. Seen
+  counts an Event once per day it is on, every day of a trip, and nothing in the future; Tasks
+  and Occasions never count. A type can also choose **Seen count**, a **Seen heatmap**, **Top seen**
+  and **Not seen lately** in its editor, and each can be placed as a Report Card.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
 - **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.
@@ -52,6 +57,24 @@ you can add someone you just met before you forget it.
 - "Add my aunt Anne Dupont, I call her Mum" — `people_add`, with a name, aliases and a
   Relationship.
 - "What have I written about Anne?" — `search_documents`, `get_document`.
+
+### What Claude sees of a Person
+
+Claude reads a Person's name, aliases, Relationship, Tags, body, and any Field you added to
+Person yourself, and it can change those.
+
+Claude never sees a Person's **Addresses** or **Contact details**, current or former, from any
+tool: searching for words of an address or a phone number finds nobody, and a Person's Pins on the
+map are not offered to it either. Claude can't add, change or mark former an Address or a Contact
+detail: you type those in Lifeline yourself, so a hidden instruction can never swap a friend's
+number for someone else's.
+
+Two things the wall doesn't cover:
+
+- **The body is yours.** A street or a number you write in a Person's body is read like any
+  body. Lifeline doesn't look for addresses in what you write; keep them in the Person's Addresses
+  and Contact details instead.
+- **The Private folder** still hides a whole Person from Claude, name and all.
 
 ## Tips
 
