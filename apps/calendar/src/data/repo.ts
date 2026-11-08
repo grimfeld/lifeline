@@ -48,7 +48,7 @@ export async function addEvent(input: {
     start,
     end: start ? (input.end || null) : null,
     tags: normalizeTags(input.tags ?? []),
-    with: [...new Set(input.with ?? [])],
+    with: [...new Set(input.with)],
   }));
   return row.id;
 }
