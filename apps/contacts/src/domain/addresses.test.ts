@@ -49,7 +49,7 @@ describe("an Address's place", () => {
 
 describe("keeping a Person's Addresses", () => {
   it("reads only well-formed entries", () => {
-    expect(normalizeAddresses([A("a"), { id: 1 }, null, { id: "b", label: "B", text: "t" }])).toEqual([A("a"), { id: "b", label: "B", text: "t", former: false }]);
+    expect(normalizeAddresses([A("a"), { id: 1 }, { id: "notext" }, "x", null, { id: "b", label: "B", text: "t" }])).toEqual([A("a"), { id: "b", label: "B", text: "t", former: false }]);
   });
 
   it("adds, edits and removes one, leaving the others", () => {

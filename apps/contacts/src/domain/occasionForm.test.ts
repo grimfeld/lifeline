@@ -17,12 +17,14 @@ describe("the Occasion dialog", () => {
   it("saves only the month and day of a yearly Occasion with no year, and the whole day otherwise", () => {
     expect(occasionInput({ label: "Met", day: "2026-03-04", yearly: true, noYear: true })).toEqual({ label: "Met", day: "03-04", yearly: true });
     expect(occasionInput({ label: "Met", day: "2026-03-04", yearly: true, noYear: false })).toEqual({ label: "Met", day: "2026-03-04", yearly: true });
+    expect(occasionInput({ label: "Met", day: "03-04", yearly: true, noYear: true })).toEqual({ label: "Met", day: "03-04", yearly: true });
     // Once again, the year is needed: what was typed goes to the repo, which refuses a yearless once day.
     expect(occasionInput({ label: "Met", day: "03-04", yearly: false, noYear: true })).toEqual({ label: "Met", day: "03-04", yearly: false });
   });
   it("keeps the month and day when the year is dropped, and empties the day when it is wanted again", () => {
     expect(dayWhenNoYear("1961-03-04", true)).toBe("03-04");
     expect(dayWhenNoYear("03-04", false)).toBe("");
+    expect(dayWhenNoYear("03-04", true)).toBe("03-04");
   });
   it("gives the date picker only a full day", () => {
     expect(pickerDay("1961-03-04")).toBe("1961-03-04");

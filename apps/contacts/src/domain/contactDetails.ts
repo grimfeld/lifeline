@@ -25,9 +25,8 @@ const NAME = /^[\w.-]+$/;
 
 function handleAction(label: string, raw: string): ContactAction | null {
   const value = raw.trim();
-  // A typed web address opens as it is; any other scheme (javascript:, ftp:…) never does.
+  // A typed web address opens as it is; any other scheme (javascript:, ftp:…) matches none of the shapes below, so never does.
   if (/^https?:\/\/\S+$/i.test(value)) return { href: value, external: true };
-  if (/^[a-z][a-z0-9+.-]*:/i.test(value) && !/^[\w-]+\.[\w.-]+(:\d+)?\//.test(value)) return null;
   if (/^(www\.)?[\w-]+(\.[\w-]+)+\/\S*$/i.test(value)) return { href: `https://${value}`, external: true };
   // @user@host is a Fediverse address: the server is the host.
   const fedi = /^@?([\w.-]+)@([\w-]+(?:\.[\w-]+)+)$/.exec(value);
