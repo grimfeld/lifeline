@@ -15,7 +15,7 @@ async function workLocally(page: Page) {
 /** The Vault's links panel is a sheet on a phone: open it when the button is not already there. */
 async function turnButton(page: Page) {
   const button = page.getByRole("button", { name: /Turn into a Person/ });
-  if (!(await button.isVisible())) await page.getByRole("button", { name: "Toggle links panel" }).click();
+  if (!(await button.waitFor({ timeout: 5000 }).then(() => true, () => false))) await page.getByRole("button", { name: "Toggle links panel" }).click();
   return button;
 }
 
