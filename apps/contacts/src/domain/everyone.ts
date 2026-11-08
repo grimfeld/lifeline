@@ -1,3 +1,4 @@
+import { formatHuman, type DateStr } from "@lifeline/core";
 import { fold } from "./person";
 import type { Person } from "./types";
 
@@ -27,3 +28,9 @@ export const relationshipsOf = (people: readonly Person[]) => distinct(people.ma
 
 /** The Tags in use, once each, sorted. */
 export const tagsOf = (people: readonly Person[]) => distinct(people.flatMap((p) => p.tags));
+
+/** A filter's value while someone still carries it; none once the last of them changed. */
+export const activeFilter = (inUse: readonly string[], value: string) => (inUse.includes(value) ? value : "");
+
+/** When a Person was last seen, as their row says it. */
+export const lastSeenLabel = (lastSeen: DateStr | undefined) => (lastSeen ? `Last seen ${formatHuman(lastSeen)}` : "Not seen");
