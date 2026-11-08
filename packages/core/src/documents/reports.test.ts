@@ -113,6 +113,15 @@ describe("Seen (ADR 0112)", () => {
     expect(seenDays(sidx, "marc", today)).toEqual(["2026-10-01", "2026-10-10", "2026-10-11", "2026-10-12"]);
     expect(seenDays(sidx, "marc", "2026-10-11")).toEqual(["2026-10-01", "2026-10-10", "2026-10-11"]);
   });
+  it("reads an Event whose end is before its start as on its start day", () => {
+    const backwards = buildLinkIndex([doc("marc", "person", "Marc"), ev("e1", "Typo", "2026-10-05", "[[Marc]]", "2026-10-02")], seenTypes);
+    expect(seenDays(backwards, "marc", today)).toEqual(["2026-10-05"]);
+  });
+  it("stops counting a runaway Event after ten years of days", () => {
+    const runaway = buildLinkIndex([doc("marc", "person", "Marc"), ev("e1", "Typo", "2000-01-01", "[[Marc]]", "2099-01-01")], seenTypes);
+    const days = seenDays(runaway, "marc", today);
+    expect([days.length, days[0], days.at(-1)]).toEqual([3660, "2000-01-01", "2010-01-07"]);
+  });
   it("keeps Seen and Mentioned apart, and counts a group Event for each Person", () => {
     expect(mentionDays(sidx, "marc")).toEqual(["2026-10-01"]);
     expect(seenDays(sidx, "jo", today)).toEqual(["2026-10-10", "2026-10-11", "2026-10-12"]);
