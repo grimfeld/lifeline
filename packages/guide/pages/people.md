@@ -58,6 +58,24 @@ you can add someone you just met before you forget it.
   Relationship.
 - "What have I written about Anne?" — `search_documents`, `get_document`.
 
+### What Claude sees of a Person
+
+Claude reads a Person's name, aliases, Relationship, Tags, body, and any Field you added to
+Person yourself, and it can change those.
+
+Claude never sees a Person's **Addresses** or **Contact details**, current or former, from any
+tool: searching for words of an address or a phone number finds nobody, and a Person's Pins on the
+map are not offered to it either. Claude can't add, change or mark former an Address or a Contact
+detail: you type those in Lifeline yourself, so a hidden instruction can never swap a friend's
+number for someone else's.
+
+Two things the wall doesn't cover:
+
+- **The body is yours.** A street or a number you write in a Person's body is read like any
+  body. Lifeline doesn't look for addresses in what you write; keep them in the Person's Addresses
+  and Contact details instead.
+- **The Private folder** still hides a whole Person from Claude, name and all.
+
 ## Tips
 
 - A Relationship is your own words ("my aunt", "climbing partner"), not a fixed list. Tags are
