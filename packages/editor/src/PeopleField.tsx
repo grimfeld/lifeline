@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
-import { PERSON_TYPE, useDocuments, type Document } from "@lifeline/core";
-import { Button, Combobox, type ComboboxOption } from "@lifeline/ui";
+import { PERSON_TYPE, useDocuments } from "@lifeline/core";
+import { Button, Combobox } from "@lifeline/ui";
 import { Search, X } from "lucide-react";
-
-const aliasesOf = (d: Document): string[] => (Array.isArray(d.aliases) ? d.aliases.filter((a): a is string => typeof a === "string" && a !== "") : []);
+import { afterKey, personOptions, withPerson } from "./peopleChoice";
 
 /**
  * A People field (CONTEXT.md): the chosen People as removable chips, and a
@@ -31,13 +30,8 @@ export function PeopleField({
   const people = useDocuments(PERSON_TYPE);
   const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
   const [query, setQuery] = useState("");
-  const options = useMemo<ComboboxOption[]>(
-    () =>
-      people
-        .filter((p) => !value.includes(p.id))
-        .map((p) => ({ value: p.id, label: p.title, keywords: aliasesOf(p), description: aliasesOf(p).length ? `also ${aliasesOf(p).join(", ")}` : undefined })),
-    [people, value],
-  );
+  const options = useMemo(() => personOptions(people, value), [people, value]);
+  const nameOf = (pid: string) => byId.get(pid)?.title;
 
   return (
     <div className="grid min-w-0 gap-1">
@@ -45,8 +39,8 @@ export function PeopleField({
         <div className="flex flex-wrap gap-1">
           {value.map((pid) => (
             <span key={pid} className="bg-muted inline-flex max-w-full min-w-0 items-center gap-0.5 rounded-md pl-1.5 text-xs">
-              <span className="min-w-0 truncate">{byId.get(pid)?.title ?? "…"}</span>
-              <Button size="icon-xs" variant="ghost" className="text-muted-foreground" aria-label={`Remove ${byId.get(pid)?.title ?? "person"}`} onClick={() => onChange(value.filter((x) => x !== pid))}>
+              <span className="min-w-0 truncate">{nameOf(pid) ?? "…"}</span>
+              <Button size="icon-xs" variant="ghost" className="text-muted-foreground" aria-label={`Remove ${nameOf(pid) ?? "person"}`} onClick={() => onChange(value.filter((x) => x !== pid))}>
                 <X />
               </Button>
             </span>
@@ -58,17 +52,20 @@ export function PeopleField({
         query={query}
         onQueryChange={setQuery}
         options={options}
-        onValueChange={(pid) => !value.includes(pid) && onChange([...value, pid])}
+        onValueChange={(pid) => {
+          const next = withPerson(value, pid);
+          if (next) onChange(next);
+        }}
         limit={6}
         listLabel={label}
         leading={<Search />}
         placeholder={placeholder}
         autoFocus={autoFocus}
         onKeyDown={(e) => {
-          if (e.key === "Backspace" && !query && value.length) {
-            e.preventDefault();
-            onChange(value.slice(0, -1));
-          }
+          const next = afterKey(e.key, query, value);
+          if (!next) return;
+          e.preventDefault();
+          onChange(next);
         }}
       />
     </div>
