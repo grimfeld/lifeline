@@ -18,6 +18,8 @@ them, the palette, or the People Base.
 - **Details** — change their name (every `[[link]]` to them follows), their **Aliases**, their
   **Relationship** and their **Tags**, edited in place.
 - **Occasions** — the named days in their life: see below.
+- **Ties** — how they stand to other People, each read from their side: "daughter: Léa" on
+  Anne's page, "mother: Anne" on Léa's. See Ties below.
 - **Reports** — **Last seen** (the last day of an Event that links to them) and **Last
   mentioned** (the last Day that links to them), side by side and never added together. Seen
   counts an Event once per day it is on, every day of a trip, and nothing in the future; Tasks
@@ -46,6 +48,15 @@ when you don't know the year (a once Occasion always needs its year).
 - A yearly Occasion on **29 February** stands on 29 February in a leap year and on **28 February**
   in the other years, so it is never skipped.
 - An Occasion two people share, such as a wedding, is added to each of them.
+### Ties
+
+A **Tie** says how two People stand to each other. Press **Add tie** on either Person's page,
+find the other Person by name, and give a word for each end ("mother" and "daughter"). It is
+stored once and shows on both pages, each read from its own side, with the other Person as a
+link. The words are yours: "godmother", "ex" and "best friend's brother" all fit. **Edit** or
+**Remove** it from either page and both change. A Tie is never to you, only between two People.
+Deleting a Person removes their Ties; the other Person's page is untouched. A Tie is not a link
+in a body, so it adds no Backlink and counts for no Report.
 
 ### Linking to a Person
 

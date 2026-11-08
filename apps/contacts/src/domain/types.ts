@@ -103,3 +103,19 @@ export interface Occasion {
   day: string;
   yearly: boolean;
 }
+
+/** The internal type of a Tie (#412): stored once, read from either Person. */
+export const TIE = "contacts_tie";
+
+/**
+ * A **Tie** (CONTEXT.md): how two People stand to each other, stored once.
+ * `labelA` is what `a` is to `b` ("mother"), `labelB` what `b` is to `a`
+ * ("daughter"). Free words. It never involves the user.
+ */
+export interface Tie extends Document {
+  type: typeof TIE;
+  a: string;
+  b: string;
+  labelA: string;
+  labelB: string;
+}
