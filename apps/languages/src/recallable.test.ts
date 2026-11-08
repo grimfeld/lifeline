@@ -29,6 +29,12 @@ describe("Word and Sentence through the Recallable Contract", () => {
     expect(promptsOf(materialOf(defOf(SENTENCE), sentence as unknown as Document)).map((p) => p.key)).toEqual(["s|blank:ganas", "s|blank:comer"]);
   });
 
+  it("a clip adds no Prompt and moves none (the listening Prompt is a later ticket)", () => {
+    const keys = (d: object) => promptsOf(materialOf(defOf((d as { type: string }).type), d as unknown as Document)).map((p) => p.key);
+    expect(keys({ ...word, clip: "att1" })).toEqual(keys(word));
+    expect(keys({ ...sentence, clip: "att1" })).toEqual(keys(sentence));
+  });
+
   it("gives a Fact one forward Prompt — its answer is no cue for its question", () => {
     expect(promptsOf(materialOf(defOf(FACT), fact as unknown as Document)).map((p) => p.key)).toEqual(["f|forward"]);
   });

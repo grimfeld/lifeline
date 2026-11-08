@@ -15,6 +15,19 @@ Topic to a set you choose.
   optional translation; each blank is practised on its own.
 - **Fact** — a question and its answer, both in your words; practised one way.
 - Each can note where you met it: a link to the page it came from, a URL or a few words.
+- A Word or a Sentence can carry an **audio clip** — see below.
+
+### Audio clips
+
+- In a Word's or a Sentence's form, **Record** a clip with the microphone (the phone or the
+  browser asks for it only when you press Record, never when the form opens), or **Attach a file**
+  instead: a line from a film, a native speaker. Audio files up to 20 MB.
+- You can hear the clip in the form before saving. **Re-record** or **Replace with a file** swaps
+  it; **Remove** takes it away. Nothing changes on the item until you save, and a clip you
+  recorded and then closed the form on is thrown away.
+- When you reveal any of the item's prompts, the clip plays once, with a **Replay** button under
+  the answer. An item without a clip reveals exactly as before.
+- Deleting the item deletes its clip. Claude cannot add clips.
 
 ### Topics
 
@@ -119,6 +132,7 @@ answer for you.
   `knowledge_sentence`.
 - "Keep a fact in History: When was the Peace of Westphalia? 1648" — `knowledge_fact`.
 - Adding the same thing twice is refused, not duplicated.
+- Claude cannot record or attach clips: those are yours.
 - Practising is yours: Claude does not grade recalls, and does not play or start Puzzles.
 
 ## Tips

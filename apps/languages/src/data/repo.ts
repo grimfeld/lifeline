@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
+import { deleteAttachment, documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
 import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
@@ -16,11 +16,11 @@ function normalizeTopic(l: Topic): Topic {
 }
 
 function normalizeWord(w: Word): Word {
-  return { ...w, languageId: w.languageId ?? "", term: w.term || w.title || "", meaning: w.meaning ?? "", notes: w.notes ?? "", origin: w.origin ?? "", originId: w.originId ?? "", paused: !!w.paused, addedAt: w.addedAt || w.createdAt || "", tags: w.tags ?? [] };
+  return { ...w, languageId: w.languageId ?? "", term: w.term || w.title || "", meaning: w.meaning ?? "", notes: w.notes ?? "", origin: w.origin ?? "", originId: w.originId ?? "", clip: w.clip ?? "", paused: !!w.paused, addedAt: w.addedAt || w.createdAt || "", tags: w.tags ?? [] };
 }
 
 function normalizeSentence(s: Sentence): Sentence {
-  return { ...s, languageId: s.languageId ?? "", text: s.text ?? "", translation: s.translation ?? "", origin: s.origin ?? "", originId: s.originId ?? "", paused: !!s.paused, addedAt: s.addedAt || s.createdAt || "", tags: s.tags ?? [] };
+  return { ...s, languageId: s.languageId ?? "", text: s.text ?? "", translation: s.translation ?? "", origin: s.origin ?? "", originId: s.originId ?? "", clip: s.clip ?? "", paused: !!s.paused, addedAt: s.addedAt || s.createdAt || "", tags: s.tags ?? [] };
 }
 
 function normalizeFact(f: Fact): Fact {
@@ -231,7 +231,17 @@ export interface WordInput {
   notes?: string;
   origin?: string;
   originId?: string;
+  /** The id of its clip Attachment; "" removes it, left out keeps it (ADR 0116). */
+  clip?: string;
   tags?: string[];
+}
+
+/** The `clip` an edit writes: only when the input says. */
+const clipOf = (input: { clip?: string }) => (input.clip === undefined ? {} : { clip: input.clip });
+
+/** A replaced or removed clip's Attachment goes with it: the clip is nobody else's. */
+async function dropReplacedClip(before: string | undefined, input: { clip?: string }): Promise<void> {
+  if (before && input.clip !== undefined && input.clip !== before) await deleteAttachment(before);
 }
 
 function wordRowOf(input: WordInput) {
@@ -239,7 +249,7 @@ function wordRowOf(input: WordInput) {
   if (!input.languageId) throw new Error("Pick a topic");
   if (!term) throw new Error("The word needs its term");
   if (!input.meaning.trim()) throw new Error("Write what it means");
-  return { type: WORD, title: term, languageId: input.languageId, term, meaning: input.meaning.trim(), notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
+  return { type: WORD, title: term, languageId: input.languageId, term, meaning: input.meaning.trim(), notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", ...clipOf(input), tags: normalizeTags(input.tags ?? []), folder: "" } as const;
 }
 
 /** Every Topic, Word, Sentence and Fact, read once — what headless adds check against. */
@@ -263,6 +273,7 @@ export async function addWord(input: WordInput): Promise<string> {
 /** Editing never resets a Word: its forward and reverse stay the same Prompts (ADR 0058). */
 export async function updateWord(w: Word, input: WordInput): Promise<void> {
   await putDocument<Word>({ ...w, ...wordRowOf(input) });
+  await dropReplacedClip(w.clip, input);
 }
 
 export interface SentenceInput {
@@ -271,6 +282,8 @@ export interface SentenceInput {
   translation?: string;
   origin?: string;
   originId?: string;
+  /** The id of its clip Attachment; "" removes it, left out keeps it (ADR 0116). */
+  clip?: string;
   tags?: string[];
 }
 
@@ -278,7 +291,7 @@ function sentenceRowOf(input: SentenceInput) {
   const text = input.text.trim();
   if (!input.languageId) throw new Error("Pick a topic");
   if (!/\{\{\s*\S.*?\}\}/.test(text)) throw new Error("Mark at least one blank with {{ }}");
-  return { type: SENTENCE, title: plainSentence(text), languageId: input.languageId, text, translation: input.translation?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
+  return { type: SENTENCE, title: plainSentence(text), languageId: input.languageId, text, translation: input.translation?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", ...clipOf(input), tags: normalizeTags(input.tags ?? []), folder: "" } as const;
 }
 
 export async function addSentence(input: SentenceInput): Promise<string> {
@@ -289,6 +302,7 @@ export async function addSentence(input: SentenceInput): Promise<string> {
 /** A blank whose text changed becomes a new Prompt; the others keep their Recalls (ADR 0058). */
 export async function updateSentence(s: Sentence, input: SentenceInput): Promise<void> {
   await putDocument<Sentence>({ ...s, ...sentenceRowOf(input) });
+  await dropReplacedClip(s.clip, input);
 }
 
 export interface FactInput {
@@ -333,9 +347,11 @@ export async function deleteItem(id: string): Promise<void> {
   await removeDocument(id);
 }
 
-/** The cascade, for any Recallable Document: its Recalls mean nothing without its Prompts. Decks simply stop listing it on read. */
+/** The cascade, for any Recallable Document: its Recalls mean nothing without its Prompts, nor its clip (ADR 0116) without it. Decks simply stop listing it on read. */
 export async function removeItemRecalls(doc: Document): Promise<void> {
   await removeDocumentsWhere(RECALL, (r) => r.itemId === doc.id);
+  const clip = (doc as Word).clip;
+  if (clip) await deleteAttachment(clip);
 }
 
 // ---- Decks ----
