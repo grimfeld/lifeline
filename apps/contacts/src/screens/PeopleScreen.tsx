@@ -4,6 +4,7 @@ import { seenDays, todayStr, useDocuments, useLinkIndex, type DateStr } from "@l
 import { Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
 import { UserPlus } from "lucide-react";
 import { UpcomingReport } from "../components/UpcomingReport";
+import { DriftingSection } from "../components/DriftingSection";
 import { AddPersonDialog } from "../components/AddPersonDialog";
 import { personHref } from "../constants";
 import { everyone, relationshipsOf, tagsOf } from "../domain/everyone";
@@ -63,6 +64,7 @@ export function PeopleScreen() {
       <UpcomingReport />
 
       {/* DRIFTING (#420): who I have not seen for a while. Goes here, between Upcoming and Everyone. */}
+      {people.length > 0 && <DriftingSection people={people} />}
 
       <section className="grid min-w-0 gap-2" aria-label="Everyone">
         <h2 className="text-muted-foreground text-sm font-medium">Everyone</h2>

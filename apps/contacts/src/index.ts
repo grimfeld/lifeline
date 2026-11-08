@@ -6,6 +6,7 @@ import { personTypeDef, tieTypeDef } from "./types";
 import { PersonPeek } from "./components/PersonFields";
 import { AddPersonDialog } from "./components/AddPersonDialog";
 import { UpcomingCard } from "./components/UpcomingReport";
+import { RelationshipsCard } from "./cards/RelationshipsCard";
 import { contactsTimed } from "./timed";
 
 // Screens load on first visit (ADR 0099); the rest of the manifest stays eager.
@@ -39,6 +40,14 @@ export const contactsApp: AppManifest = {
       defaultSize: { w: 4, h: 5 },
       minSize: { w: 3, h: 3 },
       settings: { days: { kind: "number", label: "Days ahead", default: 30, min: 1, max: 365 } },
+    },
+    {
+      id: "contacts.by-relationship",
+      title: "People by Relationship",
+      description: "Your People grouped under each Relationship, with a count",
+      component: RelationshipsCard,
+      defaultSize: { w: 3, h: 7 },
+      minSize: { w: 2, h: 4 },
     },
   ],
   commands: contactsCommands,

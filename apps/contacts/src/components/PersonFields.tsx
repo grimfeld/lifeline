@@ -1,5 +1,5 @@
 import { normalizeTag, useTagVocabulary, type PeekProps } from "@lifeline/core";
-import { CommitField, Field, TagInput } from "@lifeline/ui";
+import { Checkbox, CommitField, Field, TagInput } from "@lifeline/ui";
 import type { Person } from "../domain/types";
 import { normalizePerson, patchPerson } from "../data/repo";
 
@@ -29,6 +29,10 @@ export function PersonFields({ person }: { person: Person }) {
         placeholder="my aunt"
         onCommit={(relationship) => patchPerson(person.id, { relationship })}
       />
+      <label className="flex min-w-0 items-center gap-2 text-sm">
+        <Checkbox checked={person.excludedFromDrifting === true} onCheckedChange={(v) => void patchPerson(person.id, { excludedFromDrifting: v === true })} />
+        Excluded from Drifting
+      </label>
       <Field label="Tags">
         <TagInput value={person.tags ?? []} onChange={(tags) => void patchPerson(person.id, { tags })} suggestions={suggestions} normalize={normalizeTag} placeholder="Add tag…" />
       </Field>
