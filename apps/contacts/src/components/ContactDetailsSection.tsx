@@ -3,7 +3,7 @@ import { Badge, Button, ChoiceField, Dialog, DialogContent, DialogDescription, D
 import { AtSign, Mail, Pencil, Phone, Plus, Trash2, Undo2, UserX } from "lucide-react";
 import { removePart, restorePart, updateContactDetails } from "../data/repo";
 import { CONTACT_KINDS, KIND_LABELS, contactAction, contactDetailsOf, markFormer, saveDetail, validateDetail, type DetailInput } from "../domain/contactDetails";
-import { removeWithUndo, writeOrSay } from "./writes";
+import { message, removeWithUndo, writeOrSay } from "./writes";
 import type { ContactDetail, ContactKind, Person } from "../domain/types";
 import { Section } from "./Section";
 
@@ -66,14 +66,6 @@ export function ContactDetailsSection({ person }: { person: Person }) {
 
 function DetailRow({ detail, onEdit, onFormer, onRemove }: { detail: ContactDetail; onEdit: () => void; onFormer: () => void; onRemove: () => void }) {
   const Icon = KIND_ICON[detail.kind];
-  const action = contactAction(detail);
-  const value = action ? (
-    <a href={action.href} {...(action.external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="min-w-0 text-sm underline-offset-2 hover:underline">
-      {detail.value}
-    </a>
-  ) : (
-    <span className={detail.former ? "text-muted-foreground min-w-0 text-sm line-through" : "min-w-0 text-sm"}>{detail.value}</span>
-  );
   return (
     <li className="flex min-w-0 items-center gap-2 rounded-lg border p-2" data-former={detail.former || undefined}>
       <Icon className="text-muted-foreground size-4 shrink-0" aria-hidden />
@@ -82,7 +74,7 @@ function DetailRow({ detail, onEdit, onFormer, onRemove }: { detail: ContactDeta
           {detail.label}
           {detail.former && " · former"}
         </span>
-        {value}
+        <DetailValue detail={detail} />
       </div>
       {detail.former && <Badge variant="outline" className="shrink-0">Former</Badge>}
       <div className="flex shrink-0 items-center">
@@ -91,11 +83,7 @@ function DetailRow({ detail, onEdit, onFormer, onRemove }: { detail: ContactDeta
             <Pencil />
           </Button>
         </Tip>
-        <Tip label={detail.former ? `Make ${detail.label} current` : `Mark ${detail.label} former`}>
-          <Button variant="ghost" size="icon-xs" onClick={onFormer}>
-            {detail.former ? <Undo2 /> : <UserX />}
-          </Button>
-        </Tip>
+        <FormerButton detail={detail} onClick={onFormer} />
         <Tip label={`Remove ${detail.label}`}>
           <Button variant="ghost" size="icon-xs" onClick={onRemove}>
             <Trash2 />
@@ -103,6 +91,28 @@ function DetailRow({ detail, onEdit, onFormer, onRemove }: { detail: ContactDeta
         </Tip>
       </div>
     </li>
+  );
+}
+
+/** The value: a link that calls, mails or opens the service when it can, else plain (struck through when former). */
+function DetailValue({ detail }: { detail: ContactDetail }) {
+  const action = contactAction(detail);
+  if (!action) return <span className={detail.former ? "text-muted-foreground min-w-0 text-sm line-through" : "min-w-0 text-sm"}>{detail.value}</span>;
+  return (
+    <a href={action.href} {...(action.external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="min-w-0 text-sm underline-offset-2 hover:underline">
+      {detail.value}
+    </a>
+  );
+}
+
+/** Mark a current detail former, or make a former one current again. */
+function FormerButton({ detail, onClick }: { detail: ContactDetail; onClick: () => void }) {
+  return (
+    <Tip label={detail.former ? `Make ${detail.label} current` : `Mark ${detail.label} former`}>
+      <Button variant="ghost" size="icon-xs" onClick={onClick}>
+        {detail.former ? <Undo2 /> : <UserX />}
+      </Button>
+    </Tip>
   );
 }
 
@@ -124,7 +134,7 @@ function DetailDialog({ input, onClose, onSave }: { input: DetailInput | null; o
     try {
       await onSave(draft);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(message(e));
     } finally {
       setBusy(false);
     }
