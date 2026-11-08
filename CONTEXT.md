@@ -513,6 +513,10 @@ _Avoid_: diary, vault (the raw editor), collections (for its Types — a Collect
 Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **People** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Not a contact: a Person need not be reachable — the dead, someone met once.
 _Avoid_: contact, friend, acquaintance, relation (a kind of tie, not the person)
 
+### Occasion
+A named day in a Person's life — Birthday, Met, Wedding, Surgery, Graduation — held on that Person: a label, a day whose year may be unknown, and whether it comes back **yearly** or happens **once**. Every Occasion stands on the time Surfaces as an all-day marker on its day ("⚑ Marc · Surgery"); a yearly one stands there every year ("🎂 Anne · 65"), a once one only on its day. **Birthday** is the one label the Contacts App understands — it gives the Person an age and the marker a number; any other label is the user's own. An Occasion two people share (a wedding) is held by each. A heads-up before it comes from the Upcoming Report, never from a reminder. Not an Event (nothing I attend; a visit to Marc after his surgery is my own Event or Task), not a Deadline.
+_Avoid_: important date, date (a Field kind), anniversary (only the yearly ones), milestone (a Project's), occurrence (a Chore's), reminder
+
 ### Wikilink
 `[[Name]]` in any Document's body. Resolves by name — case- and accent-insensitive, spaces collapsed — across every Linkable Document type — exact title first, then alias — with an optional type prefix (`[[book:Dune]]`) to disambiguate; once resolved, the link remembers its target so later collisions don't move it. Unresolved links stay unresolved (click to create a Thought). The editor's completer shows the type of each candidate.
 _Avoid_: reference, mention (a mention is what the *target* sees)
