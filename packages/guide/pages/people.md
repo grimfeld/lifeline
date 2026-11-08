@@ -8,8 +8,15 @@ died. Each one is a **Person** you can link to from anywhere, with a page of the
 What you keep here: People, each with a name, the other names they go by (aliases), what they
 are to you (their **Relationship**), Tags, and a page of your own words about them.
 
-The People home is a placeholder for now: it offers **Add person**. Reach someone from a link to
-them, the palette, or the People Base.
+### The People home
+
+The People Module lands on its home, which lists **Everyone**: every Person in the current
+Workspace, by name, each with what they are to you. Click one to open their page.
+
+- **Search** matches a name or any alias, ignoring case and accents.
+- **Relationship** and **Tag** narrow the list, and together they narrow it further. On a phone
+  they are under **Filters**.
+- With no one yet, the home offers **Add person**.
 
 ### A Person's page
 

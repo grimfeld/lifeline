@@ -111,3 +111,50 @@ test("the phone's capture sheet offers Add person under People", async ({ page, 
   await dialog.getByRole("button", { name: "Add" }).click();
   await expect.poll(() => personNamed(page, "Marc Petit")).toMatchObject({ type: PERSON });
 });
+
+test("the People home lists Everyone, searched by name and alias and filtered by Relationship and Tag", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  // The seeded store already holds a Person or two; the home lists them with the three made here.
+  const everyone = page.getByRole("region", { name: "Everyone" });
+  await expect(everyone.getByRole("link").first()).toBeVisible();
+  const before = await everyone.getByRole("link").count();
+
+  await inCore(
+    page,
+    async (core, type: string) => {
+      const mk = (title: string, fields: Record<string, unknown>) => core.createDocument({ type, title, fields });
+      await mk("Anne Dupont", { aliases: ["Mum-x"], relationship: "kin-x", tags: ["family-x"] });
+      await mk("Léa Martin", { relationship: "kin-x", tags: ["family-x", "climbing-x"] });
+      await mk("Marc Petit", { relationship: "colleague-x", tags: ["climbing-x"] });
+    },
+    PERSON,
+  );
+
+  await expect(everyone.getByRole("link")).toHaveCount(before + 3);
+  await expect(everyone.getByRole("link", { name: /Anne Dupont\s*kin-x/ })).toBeVisible();
+
+  await page.getByLabel("Search people").fill("mum-x");
+  await expect(everyone.getByRole("link")).toHaveCount(1);
+  await expect(everyone.getByRole("link", { name: /Anne Dupont/ })).toBeVisible();
+  await page.getByLabel("Search people").fill("");
+
+  // On a phone the filters are under Filters.
+  const pick = async (label: string, option: string) => {
+    const filters = page.getByRole("button", { name: /^Filters/ });
+    const phone = await filters.isVisible();
+    if (phone) await filters.click();
+    await page.getByRole("combobox", { name: label }).click();
+    await page.getByRole("option", { name: option, exact: true }).click();
+    if (phone) await page.keyboard.press("Escape");
+  };
+  await pick("Relationship", "kin-x");
+  await expect(everyone.getByRole("link")).toHaveCount(2);
+  await pick("Tag", "climbing-x");
+  await expect(everyone.getByRole("link")).toHaveCount(1);
+  await expect(everyone.getByRole("link", { name: /Léa Martin/ })).toBeVisible();
+
+  await everyone.getByRole("link", { name: /Léa Martin/ }).click();
+  await expect(page).toHaveURL(/\/app\/people\/person\//);
+  await expect(page.getByRole("heading", { level: 1, name: "Léa Martin" })).toBeVisible();
+});
