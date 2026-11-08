@@ -1,5 +1,6 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType } from "react";
 import type { Person } from "../domain/types";
+import { AddressesSection } from "../components/AddressesSection";
 import { OccasionsSection } from "../components/OccasionsSection";
 import { TiesSection } from "./TiesSection";
 import { ReportsSection } from "./ReportsSection";
@@ -23,6 +24,7 @@ export interface PersonSection {
 /** The sections built so far; none with #408. */
 export const PERSON_SECTIONS: PersonSection[] = [
   { slot: "occasions", component: OccasionsSection },
+  { slot: "addresses", component: AddressesSection },
   { slot: "ties", component: TiesSection },
   { slot: "reports", component: ReportsSection },
 ];
@@ -32,12 +34,4 @@ export function orderedSections(sections: readonly PersonSection[]): PersonSecti
   return [...sections].sort((a, b) => SECTION_SLOTS.indexOf(a.slot) - SECTION_SLOTS.indexOf(b.slot));
 }
 
-/** One section of the Person page: a sentence-case heading over its content, named by it for assistive tech. */
-export function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="grid min-w-0 gap-2" aria-label={title}>
-      <h2 className="text-muted-foreground text-sm font-medium">{title}</h2>
-      {children}
-    </section>
-  );
-}
+export { Section } from "../components/Section";
