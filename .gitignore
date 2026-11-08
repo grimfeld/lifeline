@@ -5,7 +5,8 @@ dist/
 pocketbase/pb_data/
 shell/src-tauri/target/
 shell/src-tauri/gen/
-.claude/
+.claude/*
+!.claude/settings.json
 pocketbase/pocketbase
 pocketbase/pocketbase.exe
 package-lock.json
