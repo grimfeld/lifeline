@@ -4,7 +4,7 @@ import { AtSign, Mail, Pencil, Phone, Plus, Trash2, Undo2, UserX } from "lucide-
 import { patchPerson } from "../data/repo";
 import { CONTACT_KINDS, KIND_LABELS, contactAction, contactDetailsOf, markFormer, removeDetail, saveDetail, validateDetail, type DetailInput } from "../domain/contactDetails";
 import type { ContactDetail, ContactKind, Person } from "../domain/types";
-import { Section } from "../screens/sections";
+import { Section } from "./Section";
 
 const KIND_ICON = { phone: Phone, email: Mail, handle: AtSign } as const;
 const PLACEHOLDER: Record<ContactKind, string> = { phone: "+33 6 12 34 56 78", email: "anne@example.org", handle: "@anne or instagram.com/anne" };
@@ -36,7 +36,7 @@ export function ContactDetailsSection({ person }: { person: Person }) {
       )}
       {former.length > 0 && (
         <div className="grid min-w-0 gap-2">
-          <h3 className="text-muted-foreground text-xs">Former</h3>
+          <h3 className="text-muted-foreground text-sm font-medium">Former</h3>
           <ul className="grid min-w-0 gap-2">
             {former.map((c) => (
               <DetailRow key={c.id} detail={c} onEdit={() => setEditing(c)} onFormer={() => void write(markFormer(details, c.id, false))} onRemove={() => void remove(c)} />

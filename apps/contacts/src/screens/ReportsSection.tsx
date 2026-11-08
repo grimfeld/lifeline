@@ -2,7 +2,7 @@ import { PERSON_TYPE, documentType, reportsIn, useLinkIndex } from "@lifeline/co
 import { DocumentReports } from "@lifeline/editor";
 import type { Person } from "../domain/types";
 
-import { Section } from "./sections";
+import { Section } from "../components/Section";
 
 /**
  * The Person page's Reports (ADR 0112): Last seen and Last mentioned by

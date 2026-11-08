@@ -7,7 +7,7 @@ import { personHref } from "../constants";
 import { type Person } from "../domain/types";
 import { tiesSeenFrom, type TieRow } from "../domain/ties";
 import { addTie, removeTie, updateTie, useTies } from "../data/ties";
-import { Section } from "./sections";
+import { Section } from "../components/Section";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -114,7 +114,7 @@ export function TiesSection({ person }: { person: Person }) {
               size="icon-xs"
               variant="ghost"
               aria-label={`Remove tie with ${r.otherName}`}
-              onClick={() => void removeTie(r.id).catch((e) => toast.error(message(e)))}
+              onClick={() => void removeTie(r.id).catch((e) => toast.error(`The Tie to ${r.otherName} could not be removed.`, { description: message(e) }))}
             >
               <Trash2 />
             </Button>

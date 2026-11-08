@@ -9,7 +9,8 @@ import { type Person } from "../domain/types";
 import { ageOf } from "../domain/occasions";
 import { normalizePerson, patchPerson } from "../data/repo";
 import { PersonFields } from "../components/PersonFields";
-import { orderedSections, PERSON_SECTIONS, Section } from "./sections";
+import { orderedSections, PERSON_SECTIONS } from "./sections";
+import { Section } from "../components/Section";
 
 const back = (
   <Link to={PEOPLE_HREF} className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline">

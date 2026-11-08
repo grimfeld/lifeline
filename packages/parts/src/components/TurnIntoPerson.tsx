@@ -19,7 +19,7 @@ export function TurnIntoPersonDialog({ doc, roleId, onClose, onDone }: { doc: Do
       toast.success(`${doc.title} is now a Person`);
       onDone?.(person);
     } catch (e) {
-      toast.error((e as Error).message || "Could not turn into a Person");
+      toast.error(`${doc.title} could not be turned into a Person.`, { description: e instanceof Error ? e.message : undefined });
     } finally {
       setBusy(false);
       onClose();
