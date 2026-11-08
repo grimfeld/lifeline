@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Person, Tie } from "./types";
-import { tiesSeenFrom } from "./ties";
+import { tieCandidates, tieQuestions, tiesSeenFrom } from "./ties";
 
 const person = (id: string, title: string) => ({ id, title }) as Person;
 const anne = person("p1", "Anne");
@@ -30,5 +30,23 @@ describe("a Tie read from either end", () => {
   it("lists several Ties between People in name order", () => {
     const ties = [tie("t2", "p1", "p3", "friend", "friend"), motherDaughter];
     expect(tiesSeenFrom("p1", ties, [anne, lea, marc]).map((r) => r.otherName)).toEqual(["Léa", "Marc"]);
+  });
+});
+
+describe("the Tie dialog", () => {
+  it("offers everyone but this Person, by name and alias, with their Relationship when they have one", () => {
+    const people = [
+      { id: "p1", title: "Anne", aliases: ["Mum"], relationship: "my mother" },
+      { id: "p2", title: "Léa", aliases: [], relationship: "" },
+      { id: "p3", title: "Marc", aliases: ["M"], relationship: "colleague" },
+    ];
+    expect(tieCandidates("p1", people)).toEqual([
+      { value: "p2", label: "Léa", keywords: [] },
+      { value: "p3", label: "Marc", keywords: ["M"], description: "colleague" },
+    ]);
+  });
+  it("asks about the other Person by name once they are known", () => {
+    expect(tieQuestions("Léa")).toEqual({ label: "Léa is my…", ownLabel: "I am Léa's…" });
+    expect(tieQuestions("")).toEqual({ label: "They are my…", ownLabel: "I am their…" });
   });
 });

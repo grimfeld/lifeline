@@ -4,13 +4,11 @@ import { Button, Combobox, Dialog, DialogContent, DialogDescription, DialogFoote
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { personHref } from "../constants";
 import { type Person } from "../domain/types";
-import { tiesSeenFrom, type TieRow } from "../domain/ties";
-import { addTie, removeTie, restoreTie, updateTie, useTies } from "../data/ties";
-import { removeWithUndo } from "../components/writes";
+import { tieCandidates, tieQuestions, tiesSeenFrom, type TieRow } from "../domain/ties";
+import { removeTie, restoreTie, saveTieFrom, useTies } from "../data/ties";
+import { message, removeWithUndo } from "../components/writes";
 import { usePeople } from "../data/repo";
 import { Section } from "../components/Section";
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /**
  * Add or edit a Tie from `person`'s page (#404 stories 17-20): the other
@@ -25,19 +23,13 @@ function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow
   const [label, setLabel] = useState(row?.label ?? "");
   const [ownLabel, setOwnLabel] = useState(row?.ownLabel ?? "");
   const [error, setError] = useState("");
-  const options = useMemo<ComboboxOption[]>(
-    () => people.filter((p) => p.id !== person.id).map((p) => ({ value: p.id, label: p.title, keywords: p.aliases ?? [], description: p.relationship || undefined })),
-    [people, person.id],
-  );
+  const options = useMemo(() => tieCandidates(person.id, people), [people, person.id]);
   const otherName = people.find((p) => p.id === otherId)?.title ?? row?.otherName ?? "";
+  const questions = tieQuestions(otherName);
 
   async function save() {
     try {
-      if (row) await updateTie(row.id, person.id, { label, ownLabel });
-      else {
-        if (!otherId) return setError("Pick the other person.");
-        await addTie({ from: person.id, to: otherId, label: ownLabel, toLabel: label });
-      }
+      await saveTieFrom(person.id, row, { otherId, label, ownLabel });
       onOpenChange(false);
     } catch (e) {
       setError(message(e));
@@ -58,23 +50,12 @@ function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow
           }}
         >
           <Field label="Other person">
-            {row || otherId ? (
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="min-w-0 truncate text-sm">{otherName}</span>
-                {!row && (
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setOtherId("")}>
-                    Change
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <Combobox query={query} onQueryChange={setQuery} options={options} onValueChange={(v) => setOtherId(v)} limit={6} listLabel="People" leading={<Search />} placeholder="Name…" autoFocus />
-            )}
+            <OtherPerson name={otherName} picked={otherId !== ""} fixed={row !== undefined} query={query} onQueryChange={setQuery} options={options} onPick={setOtherId} />
           </Field>
-          <Field label={otherName ? `${otherName} is my…` : "They are my…"} error={error || undefined}>
+          <Field label={questions.label} error={error || undefined}>
             <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="daughter" autoComplete="off" />
           </Field>
-          <Field label={otherName ? `I am ${otherName}'s…` : "I am their…"}>
+          <Field label={questions.ownLabel}>
             <Input value={ownLabel} onChange={(e) => setOwnLabel(e.target.value)} placeholder="mother" autoComplete="off" />
           </Field>
           <DialogFooter>
@@ -86,6 +67,24 @@ function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** The Tie's other end: a name completion until one is picked, then the name (with Change, unless the Tie is being edited). */
+function OtherPerson(props: { name: string; picked: boolean; fixed: boolean; query: string; onQueryChange: (q: string) => void; options: ComboboxOption[]; onPick: (id: string) => void }) {
+  const { name, picked, fixed, query, onQueryChange, options, onPick } = props;
+  if (!fixed && !picked) {
+    return <Combobox query={query} onQueryChange={onQueryChange} options={options} onValueChange={onPick} limit={6} listLabel="People" leading={<Search />} placeholder="Name…" autoFocus />;
+  }
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="min-w-0 truncate text-sm">{name}</span>
+      {!fixed && (
+        <Button type="button" size="sm" variant="ghost" onClick={() => onPick("")}>
+          Change
+        </Button>
+      )}
+    </div>
   );
 }
 

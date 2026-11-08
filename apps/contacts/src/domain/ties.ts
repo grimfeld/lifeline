@@ -29,3 +29,23 @@ export function tiesSeenFrom(personId: string, ties: readonly Tie[], people: rea
   }
   return rows.sort((x, y) => x.otherName.localeCompare(y.otherName));
 }
+
+/** A Person the Tie dialog can offer as the other end: anyone but this Person, found by name or alias. */
+export interface TieCandidate {
+  value: string;
+  label: string;
+  keywords: string[];
+  /** Their Relationship, when they have one. */
+  description?: string;
+}
+
+/** Who a Tie from `personId`'s page can go to: everyone else. */
+export function tieCandidates(personId: string, people: readonly Pick<Person, "id" | "title" | "aliases" | "relationship">[]): TieCandidate[] {
+  return people.filter((p) => p.id !== personId).map((p) => ({ value: p.id, label: p.title, keywords: p.aliases, ...(p.relationship ? { description: p.relationship } : {}) }));
+}
+
+/** The Tie dialog's two questions, naming the other Person once they are known. */
+export function tieQuestions(otherName: string): { label: string; ownLabel: string } {
+  if (!otherName) return { label: "They are my…", ownLabel: "I am their…" };
+  return { label: `${otherName} is my…`, ownLabel: `I am ${otherName}'s…` };
+}
