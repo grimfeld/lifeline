@@ -122,3 +122,13 @@ describe("Upcoming", () => {
     expect(upcomingOccasions([anne(bday("2000-02-29"))], "2027-02-20", 14)).toMatchObject([{ date: "2027-02-28", age: 27 }]);
   });
 });
+
+describe("markers carry the age a Birthday reaches", () => {
+  it("sets age on a Birthday with a year, and on nothing else", () => {
+    const people: PersonOccasions[] = [
+      { id: "p", title: "Anne", occasions: [{ id: "a", label: "Birthday", day: "1961-11-12", yearly: true }, { id: "b", label: "Surgery", day: "2026-11-12", yearly: false }, { id: "c", label: "Birthday", day: "03-20", yearly: true }] },
+    ];
+    const items = occasionMarkersIn(people, { start: "2026-11-12", end: "2026-11-12" });
+    expect(items.map((i) => [i.itemId, i.age])).toEqual(expect.arrayContaining([["p:a@2026-11-12", 65], ["p:b@2026-11-12", undefined]]));
+  });
+});

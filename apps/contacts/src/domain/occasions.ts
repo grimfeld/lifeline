@@ -133,6 +133,7 @@ export function occasionMarkersIn(people: readonly PersonOccasions[], range: { s
         tags: normalizeTags(person.tags ?? []),
         marker: true,
         occasion: true,
+        ...(age === null ? {} : { age }),
       };
     })
     .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
