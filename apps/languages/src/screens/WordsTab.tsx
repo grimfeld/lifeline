@@ -124,6 +124,7 @@ export function WordsTab({ items, others = [], decks, recalls }: { items: Item[]
                     <span className="truncate font-medium">{main}</span>
                     {sub && <span className="text-muted-foreground truncate text-xs">{sub}</span>}
                   </button>
+                  {i.proposal && <Badge variant="outline">rewrite</Badge>}
                   {i.type !== WORD && <Badge variant="outline">{i.type === SENTENCE ? "sentence" : "fact"}</Badge>}
                   <span className="text-muted-foreground w-16 shrink-0 text-right text-xs">{i.draft ? "draft" : i.paused ? "paused" : nextHint(dues.get(i.id) ?? [], now)}</span>
                   {i.draft ? (
