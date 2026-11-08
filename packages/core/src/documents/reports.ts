@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { addDays, diffDays, type DateStr } from "../dates";
+import { addDays, diffDays, formatHuman, type DateStr } from "../dates";
 import { mentionable, type LinkIndex } from "./links";
 import type { Document, DocumentTypeDef, ReportKind, ReportSetting } from "./types";
 
@@ -112,18 +112,57 @@ const MAX_SPAN = 3660;
 export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateStr[] {
   const days = new Set<DateStr>();
   for (const b of index.backlinksTo(docId)) {
-    const src = index.byId.get(b.sourceId) as (Document & { date?: unknown; endDate?: unknown }) | undefined;
-    if (src?.type !== EVENT_TYPE || typeof src.date !== "string" || !DATE.test(src.date)) continue;
-    const end = typeof src.endDate === "string" && DATE.test(src.endDate) && src.endDate > src.date ? src.endDate : src.date;
-    const last = end < today ? end : today;
-    for (let d = src.date, i = 0; d <= last && i < MAX_SPAN; d = addDays(d, 1), i++) days.add(d);
+    const span = eventSpan(index.byId.get(b.sourceId));
+    if (!span) continue;
+    const last = span.to < today ? span.to : today;
+    for (let d = span.from, i = 0; d <= last && i < MAX_SPAN; d = addDays(d, 1), i++) days.add(d);
   }
   return [...days].sort();
+}
+
+/** A field read as a date, when it is one. */
+const dateIn = (v: unknown): DateStr | undefined => (typeof v === "string" && DATE.test(v) ? v : undefined);
+
+/** The days an Event is on, first to last (an `endDate` before its `date` is ignored); nothing for any other Document or an undated Event. */
+function eventSpan(src: Document | undefined): { from: DateStr; to: DateStr } | undefined {
+  if (src?.type !== EVENT_TYPE) return undefined;
+  const from = dateIn(src.date);
+  if (!from) return undefined;
+  const end = dateIn(src.endDate);
+  return { from, to: end && end > from ? end : from };
 }
 
 /** The days source of a Report family, as of `today`. */
 export function sourceOf(source: ReportSource, today: DateStr): DaysSource {
   return source === "seen" ? (index, docId) => seenDays(index, docId, today) : mentionDays;
+}
+
+/** The words a Report of one source uses: what its count is of, what its heatmap counts, and what links. */
+export interface ReportWords {
+  count: string;
+  heatmap: string;
+  linker: string;
+}
+
+const WORDS: Record<ReportSource, ReportWords> = {
+  mentioned: { count: "Days", heatmap: "Days", linker: "Day" },
+  seen: { count: "Seen", heatmap: "days seen", linker: "Event" },
+};
+
+export function reportWords(source: ReportSource): ReportWords {
+  return WORDS[source];
+}
+
+/** How long ago, said in days. */
+export function agoText(days: number): string {
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  return `${days} days ago`;
+}
+
+/** A "Last …" Report's value: the last day and how long ago, or never. */
+export function lastText(f: Pick<DocumentFigures, "last" | "sinceLast">): string {
+  return f.last ? `${formatHuman(f.last)} · ${agoText(f.sinceLast ?? 0)}` : "never";
 }
 
 export interface RankRow {

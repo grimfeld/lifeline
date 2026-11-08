@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex } from "./links";
-import { fieldLinksTo } from "./fieldLinks";
+import { backlinkContext, backlinksShown, fieldLinksTo, linkFieldLabel } from "./fieldLinks";
 import type { Document, DocumentTypeDef, FieldDef } from "./types";
 
 const T = (id: string, fields: FieldDef[] = []): DocumentTypeDef => ({ id, label: id + "s", titleRule: "name", body: "optional", fields, linkable: true, builtIn: true });
@@ -37,5 +37,27 @@ describe("fieldLinksTo", () => {
 
   it("is empty when nothing links through a field", () => {
     expect(fieldLinksTo(idx, "e1")).toEqual([]);
+  });
+});
+
+describe("the Backlinks a page lists", () => {
+  it("is every Backlink, or only the wikilinks when Link fields are listed apart", () => {
+    expect(backlinksShown(idx, "marc", false).map((b) => b.sourceId)).toEqual(["e1", "e2", "t1", "n1"]);
+    expect(backlinksShown(idx, "marc", true).map((b) => b.sourceId)).toEqual(["n1"]);
+  });
+  it("says a Backlink by the field it came through, the words around it, or the start of the linking body", () => {
+    const n2 = doc("n2", "note", "Old", { body: "# Long ago\n\nWe met **once**." });
+    expect([
+      backlinkContext({ sourceId: "e1", context: "", field: "with" }, docs[1]),
+      backlinkContext({ sourceId: "n1", context: "[[Marc]] said hi" }, docs[4]),
+      backlinkContext({ sourceId: "n2", context: "" }, n2),
+      backlinkContext({ sourceId: "gone", context: "" }, undefined),
+    ]).toEqual(["via with", "[[Marc]] said hi", "Long ago We met once.", ""]);
+  });
+});
+
+describe("a Link field's label", () => {
+  it("is the label the linking Document's type gives the field, or else its key", () => {
+    expect([linkFieldLabel(docs[1], types[1], "with"), linkFieldLabel(docs[1], types[1], "gone"), linkFieldLabel(undefined, undefined, "with")]).toEqual(["With", "gone", "with"]);
   });
 });

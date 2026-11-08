@@ -52,40 +52,41 @@ export function pinsOf(
   filter: TagFilter,
 ): SurfacePin[] {
   const defs = new Map(types.map((t) => [t.id, t]));
-  const out: SurfacePin[] = [];
-  for (const d of docs) {
+  return docs.flatMap((d) => {
     const def = defs.get(d.type);
-    if (!def || !isLocatableDef(def)) continue;
+    if (!def || !isLocatableDef(def)) return [];
     const appId = def.appId ?? VAULT_APP_ID;
-    if (apps && apps.length > 0 && !apps.includes(appId) && !apps.includes(d.type)) continue;
-    if (!matchesTagFilter(d.tags, filter)) continue;
-    const base = {
-      appId,
-      itemId: d.id,
-      type: d.type,
-      subtitle: singularOf(def),
-      href: docHref(d, def),
-      tags: d.tags,
-      color: def.appId ? appById(def.appId)?.color : undefined,
-    };
-    if (def.locatablePins) {
-      for (const p of def.locatablePins(d)) {
-        if (!isValidCoord(p.lat, p.lon)) continue;
-        out.push({ ...base, key: `${d.type}/${d.id}#${p.id}`, name: p.name, lat: p.lat, lon: p.lon });
-      }
-      continue;
-    }
-    const c = geoOf(d, def);
-    if (!c) continue;
-    out.push({ ...base, key: `${d.type}/${d.id}`, name: displayTitle(d, def), lat: c.lat, lon: c.lon });
-  }
-  return out;
+    if (!inApps(apps, appId, d.type) || !matchesTagFilter(d.tags, filter)) return [];
+    return pinsOfDocument(d, def, appId);
+  });
 }
 
-/** Read side: every Locatable Document as a pin, coloured per owning App; optionally only some Apps / types. */
-export function useLocatablePins(apps?: string[], opts?: { tags?: TagFilter }): SurfacePin[] {
-  const ambient = useTagFilter();
-  const filter = opts?.tags ?? ambient;
+/** Whether Pins of this App and type are wanted: every one when no App or type is named. */
+const inApps = (apps: string[] | undefined, appId: string, type: string): boolean => !apps?.length || apps.includes(appId) || apps.includes(type);
+
+/** One Locatable Document's Pins: one, at its place, or one per valid place for a type that reads several. */
+function pinsOfDocument(d: Document, def: DocumentTypeDef, appId: string): SurfacePin[] {
+  const base = {
+    appId,
+    itemId: d.id,
+    type: d.type,
+    subtitle: singularOf(def),
+    href: docHref(d, def),
+    tags: d.tags,
+    color: def.appId ? appById(def.appId)?.color : undefined,
+  };
+  if (def.locatablePins) {
+    return def.locatablePins(d)
+      .filter((p) => isValidCoord(p.lat, p.lon))
+      .map((p) => ({ ...base, key: `${d.type}/${d.id}#${p.id}`, name: p.name, lat: p.lat, lon: p.lon }));
+  }
+  const c = geoOf(d, def);
+  return c ? [{ ...base, key: `${d.type}/${d.id}`, name: displayTitle(d, def), lat: c.lat, lon: c.lon }] : [];
+}
+
+/** Read side: every Locatable Document under the ambient tag filter as a pin, coloured per owning App; optionally only some Apps / types. */
+export function useLocatablePins(apps?: string[]): SurfacePin[] {
+  const filter = useTagFilter();
   const docs = useAllDocuments();
   const types = useDocumentTypes();
   return useMemo(() => pinsOf(docs, types, apps, filter), [docs, types, apps, filter]);

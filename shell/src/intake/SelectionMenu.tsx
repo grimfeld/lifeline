@@ -7,6 +7,7 @@ import {
   allIntakes,
   appById,
   buildLinkIndex,
+  canonicalName,
   buildSelectionMenu,
   documentTypeSync,
   getDocument,
@@ -71,10 +72,7 @@ type Pane = { kind: "menu" } | { kind: "search" } | { kind: "alias"; target: Lin
 
 /** The name a link to this Document is written with, as it now stands: a title shared with another Document is written with its Folder. */
 async function canonicalOf(id: string, title: string): Promise<string> {
-  const name = buildLinkIndex(await allDocuments(), allDocumentTypes())
-    .names()
-    .find((n) => n.ref.kind === "doc" && n.ref.id === id);
-  return name?.canonical ?? title;
+  return canonicalName(buildLinkIndex(await allDocuments(), allDocumentTypes()), id) ?? title;
 }
 
 /**

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { formatHuman } from "../dates";
 import { buildLinkIndex } from "./links";
-import { DEFAULT_REPORTS, documentFigures, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, reportsIn, reportsOf, topMentioned } from "./reports";
+import { DEFAULT_REPORTS, agoText, documentFigures, lastText, reportWords, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, reportsIn, reportsOf, topMentioned } from "./reports";
 import type { Document, DocumentTypeDef } from "./types";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
@@ -113,6 +114,15 @@ describe("Seen (ADR 0112)", () => {
     expect(seenDays(sidx, "marc", today)).toEqual(["2026-10-01", "2026-10-10", "2026-10-11", "2026-10-12"]);
     expect(seenDays(sidx, "marc", "2026-10-11")).toEqual(["2026-10-01", "2026-10-10", "2026-10-11"]);
   });
+  it("reads an Event whose end is before its start as on its start day", () => {
+    const backwards = buildLinkIndex([doc("marc", "person", "Marc"), ev("e1", "Typo", "2026-10-05", "[[Marc]]", "2026-10-02")], seenTypes);
+    expect(seenDays(backwards, "marc", today)).toEqual(["2026-10-05"]);
+  });
+  it("stops counting a runaway Event after ten years of days", () => {
+    const runaway = buildLinkIndex([doc("marc", "person", "Marc"), ev("e1", "Typo", "2000-01-01", "[[Marc]]", "2099-01-01")], seenTypes);
+    const days = seenDays(runaway, "marc", today);
+    expect([days.length, days[0], days.at(-1)]).toEqual([3660, "2000-01-01", "2010-01-07"]);
+  });
   it("keeps Seen and Mentioned apart, and counts a group Event for each Person", () => {
     expect(mentionDays(sidx, "marc")).toEqual(["2026-10-01"]);
     expect(seenDays(sidx, "jo", today)).toEqual(["2026-10-10", "2026-10-11", "2026-10-12"]);
@@ -158,5 +168,21 @@ describe("Seen (ADR 0112)", () => {
   });
   it("offers a Person Last seen and Last mentioned by default", () => {
     expect(reportsOf(T("person", { reports: [{ kind: "lastSeen" }, { kind: "last" }] })).map((r) => r.kind)).toEqual(["lastSeen", "last"]);
+  });
+});
+
+describe("a Report's words", () => {
+  it("counts Days for Mentioned and days seen for Seen, and names what links", () => {
+    expect([reportWords("mentioned"), reportWords("seen")]).toEqual([
+      { count: "Days", heatmap: "Days", linker: "Day" },
+      { count: "Seen", heatmap: "days seen", linker: "Event" },
+    ]);
+  });
+  it("says how long ago in days", () => {
+    expect([agoText(-1), agoText(0), agoText(1), agoText(12)]).toEqual(["today", "today", "yesterday", "12 days ago"]);
+  });
+  it("says the last day and how long ago, or never", () => {
+    const f = documentFigures(idx, "ola", "2026-10-18", () => ["2026-10-15"]);
+    expect([lastText(f), lastText(documentFigures(idx, "ola", "2026-10-18", () => []))]).toEqual([`${formatHuman("2026-10-15")} · 3 days ago`, "never"]);
   });
 });

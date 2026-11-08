@@ -52,6 +52,11 @@ describe("buildLinkIndex", () => {
     expect(idx.backlinksTo("tpl")).toEqual([]);
     expect(idx.backlinksTo("p1")[0]!.context).toContain("[[Yas]]");
   });
+  it("makes no backlink of a Link field holding its own Document, or a Document that is not there", () => {
+    const odd = [doc("m1", "media", "Dune"), doc("r2", "recipe", "Loop", "", "", { source: "r2" }), doc("r3", "recipe", "Lost", "", "", { source: "gone" })];
+    const li = buildLinkIndex(odd, types);
+    expect([li.backlinksTo("r2"), li.backlinksTo("gone")]).toEqual([[], []]);
+  });
   it("collects unresolved names and tags", () => {
     expect(idx.unresolved.get("nobody")).toEqual(["d1"]);
     expect(idx.tags.get("quote")).toEqual(["d1", "pl"]);
@@ -115,6 +120,16 @@ describe("a type's linking text Fields", () => {
   it("makes no Ghost and no tag of it", () => {
     expect(idx.unresolved.has("nobody")).toBe(false);
     expect(idx.tags.has("food")).toBe(false);
+  });
+  it("reads an Event with no Notes, or Notes that only embed an image, as linking nothing", () => {
+    const bare = doc("e3", "ev", "Walk");
+    const photo = doc("e4", "ev", "Beach", "", "", { notes: "![[Marc.png]]" });
+    const marcPng = doc("img", "person", "Marc.png");
+    expect(buildLinkIndex([...people, marcPng, bare, photo], [...types, evType]).backlinksTo("img")).toEqual([]);
+  });
+  it("still reads the body of a Document whose type is not installed", () => {
+    const stray = doc("s1", "gone", "Stray", "Met [[Marc]]");
+    expect(buildLinkIndex([...people, stray], types).backlinksTo("marc")).toEqual([{ sourceId: "s1", context: "Met [[Marc]]" }]);
   });
   it("makes no backlink of a Document naming itself in its own Field", () => {
     const self = doc("e2", "ev", "Gala", "", "", { notes: "See [[Gala]] again" });

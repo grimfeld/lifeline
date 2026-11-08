@@ -2,13 +2,16 @@ import { useMemo } from "react";
 import {
   REPORT_KINDS,
   addDays,
+  agoText,
   diffDays,
   displayTitle,
   documentType,
   formatHuman,
   documentFigures,
+  lastText,
   rankingRows,
   reportKind,
+  reportWords,
   reportsIn,
   sourceOf,
   startOfWeek,
@@ -31,12 +34,6 @@ import { ArrowDown, ArrowUp } from "lucide-react";
  */
 
 const HEADING = "text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase";
-
-function ago(days: number): string {
-  if (days <= 0) return "today";
-  if (days === 1) return "yesterday";
-  return `${days} days ago`;
-}
 
 /** A ranking Report: a type's Documents with the Days that link to them. */
 export function RankingReport({
@@ -66,7 +63,7 @@ export function RankingReport({
   return (
     <section className="min-w-0">
       <h3 className={HEADING}>{title ?? kind.label}</h3>
-      {rows.length === 0 ? <p className="text-muted-foreground text-xs">{empty ?? (kind.source === "seen" ? "No Event links to any yet." : "No Day links to any yet.")}</p> : <RankList index={index} rows={rows} quiet={kind.shape === "quiet"} onOpen={onOpen} />}
+      {rows.length === 0 ? <p className="text-muted-foreground text-xs">{empty ?? `No ${reportWords(kind.source).linker} links to any yet.`}</p> : <RankList index={index} rows={rows} quiet={kind.shape === "quiet"} onOpen={onOpen} />}
     </section>
   );
 }
@@ -85,7 +82,7 @@ function RankList({ index, rows, quiet, onOpen }: { index: LinkIndex; rows: Rank
               {!quiet && <span aria-hidden className="bg-primary/10 absolute inset-y-0 left-0" style={{ width: `${(r.count / max) * 100}%` }} />}
               <span className="relative min-w-0 flex-1 truncate">{name}</span>
               <span className="text-muted-foreground relative shrink-0 text-xs tabular-nums" title={`Last: ${formatHuman(r.last)}`}>
-                {quiet ? ago(diffDays(r.last, today)) : `×${r.count}`}
+                {quiet ? agoText(diffDays(r.last, today)) : `×${r.count}`}
               </span>
             </button>
           </li>
@@ -108,26 +105,21 @@ export function DocumentReports({ index, def, docId }: { index: LinkIndex; def: 
       {chosen.map((r) => {
         const k = reportKind(r.kind);
         const f = k.source === "seen" ? seen : mentioned;
-        if (k.shape === "last")
-          return (
-            <div key={r.kind} className="flex min-w-0 items-baseline gap-2">
-              <span className="text-muted-foreground shrink-0 text-xs">{k.label}</span>
-              <span className="min-w-0 flex-1 truncate text-right">{f.last ? `${formatHuman(f.last)} · ${ago(f.sinceLast ?? 0)}` : "never"}</span>
-            </div>
-          );
-        if (k.shape === "count")
-          return (
-            <div key={r.kind} className="flex min-w-0 items-baseline gap-2">
-              <span className="text-muted-foreground shrink-0 text-xs">{k.source === "seen" ? "Seen" : "Days"}</span>
-              <span className="min-w-0 flex-1 truncate text-right tabular-nums">
-                {f.thisYear} this year · {f.allTime} in all
-              </span>
-            </div>
-          );
-        if (k.shape === "heatmap") return <MentionHeatmap key={r.kind} days={f.days} today={today} unit={k.source === "seen" ? "days seen" : "Days"} />;
-        return null;
+        if (k.shape === "heatmap") return <MentionHeatmap key={r.kind} days={f.days} today={today} unit={reportWords(k.source).heatmap} />;
+        if (k.shape === "last") return <FigureLine key={r.kind} label={k.label} value={lastText(f)} />;
+        return <FigureLine key={r.kind} label={reportWords(k.source).count} value={`${f.thisYear} this year · ${f.allTime} in all`} numeric />;
       })}
     </section>
+  );
+}
+
+/** One figure of a Document's Reports, its label left and its value right. */
+function FigureLine({ label, value, numeric = false }: { label: string; value: string; numeric?: boolean }) {
+  return (
+    <div className="flex min-w-0 items-baseline gap-2">
+      <span className="text-muted-foreground shrink-0 text-xs">{label}</span>
+      <span className={cn("min-w-0 flex-1 truncate text-right", numeric && "tabular-nums")}>{value}</span>
+    </div>
   );
 }
 
