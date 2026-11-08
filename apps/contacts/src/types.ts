@@ -2,6 +2,7 @@ import { getDocument, type DocumentTypeDef } from "@lifeline/core";
 import { PEOPLE_FOLDER, PERSON, TIE, type Person } from "./domain/types";
 import { removeTiesOf, tieIdsOf } from "./data/ties";
 import { personHref } from "./constants";
+import { addressPinsOf } from "./domain/addresses";
 
 /**
  * The Person type (ADR 0113), UI-free: the icon and the Peek are attached in
@@ -19,6 +20,8 @@ export const personTypeDef: DocumentTypeDef = {
   linkable: { subtitle: (d) => ((d as Person).relationship?.trim() ? `Person · ${(d as Person).relationship.trim()}` : "Person") },
   // Opens on its own page; its Peek's "Open" leads there (ADR 0110's pattern).
   href: (d) => personHref(d.id),
+  // A Pin for each current Address with coordinates, through the App's code and no geo Field (#418).
+  locatablePins: addressPinsOf,
   // Seen and Mentioned side by side, never added together (ADR 0112).
   reports: [{ kind: "lastSeen" }, { kind: "last" }],
   order: 30,
