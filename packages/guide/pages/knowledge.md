@@ -11,8 +11,12 @@ What you keep here: **Topics** (Spanish, History, Philosophy…), and in each on
 Topic to a set you choose.
 
 - **Word** — a term and its meaning; practised both ways (term → meaning, meaning → term).
-- **Sentence** — a sentence with blanks in double braces, `Tengo {{ganas}} de comer`, and an
-  optional translation; each blank is practised on its own.
+- **Sentence** — a sentence with blanks in double braces, `Tengo {{ganas}} de comer`, an
+  optional translation and optional **notes**; each blank is practised on its own. A blank may carry
+  a **hint** after a bar, `Vado {{nel|in}} centro`: the hint shows in the gap while the blank is
+  hidden (the answer is only `nel`). Adding, changing or removing a hint never resets the blank's
+  history, and the plain Sentence and Puzzles never show it. Notes hold the rule that settles a
+  blank, or an equally right alternative (*also: in centro*), and appear on every reveal, pass or fail.
 - **Fact** — a question and its answer, both in your words; practised one way.
 - Each can note where you met it: a link to the page it came from, a URL or a few words.
 
@@ -116,7 +120,7 @@ answer for you.
 
 - "Add to Spanish: *tener ganas de* — to feel like" — `knowledge_word`.
 - "Add the sentence *Tengo {{ganas}} de comer*, meaning *I feel like eating*" —
-  `knowledge_sentence`.
+  `knowledge_sentence`, which also takes notes, and hints in the text (`{{nel|in}}`).
 - "Keep a fact in History: When was the Peace of Westphalia? 1648" — `knowledge_fact`.
 - Adding the same thing twice is refused, not duplicated.
 - Practising is yours: Claude does not grade recalls, and does not play or start Puzzles.
