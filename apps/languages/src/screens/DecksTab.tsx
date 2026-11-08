@@ -5,6 +5,7 @@ import { itemLines } from "../domain/prompts";
 import type { Deck, Item, Topic } from "../domain/types";
 import { addDeck, deleteDeck, renameDeck, setMembership } from "../data/repo";
 import { deckItems } from "./PracticeTab";
+import { DeckReview, pendingDrafts } from "../components/DeckReview";
 
 function labelOf(i: Item): string {
   return itemLines(i).main;
@@ -100,7 +101,9 @@ function DeckDialog({ open, onOpenChange, deck, topic, items }: { open: boolean;
 export function DecksTab({ topic, decks, items }: { topic: Topic; decks: Deck[]; items: Item[] }) {
   const [adding, setAdding] = useState(false);
   const [openId, setOpenId] = useState<string | undefined>();
+  const [reviewId, setReviewId] = useState<string | undefined>();
   const open = decks.find((d) => d.id === openId);
+  const reviewing = decks.find((d) => d.id === reviewId);
 
   return (
     <div className="grid gap-3">
@@ -117,17 +120,28 @@ export function DecksTab({ topic, decks, items }: { topic: Topic; decks: Deck[];
       ) : (
         <Card className="py-0">
           <CardContent className="grid gap-0.5 px-2 py-2">
-            {decks.map((d) => (
-              <button key={d.id} className="hover:bg-accent/50 flex items-center gap-3 rounded-sm px-2 py-1.5 text-left text-sm" onClick={() => setOpenId(d.id)}>
-                <Layers className="text-muted-foreground size-4" />
-                <span className="min-w-0 flex-1 truncate font-medium">{d.name}</span>
-                <span className="text-muted-foreground text-xs tabular-nums">{deckItems(d, items).length}</span>
-              </button>
-            ))}
+            {decks.map((d) => {
+              const drafts = pendingDrafts(d, items).length;
+              return (
+                <div key={d.id} className="hover:bg-accent/50 flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
+                  <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => setOpenId(d.id)}>
+                    <Layers className="text-muted-foreground size-4 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate font-medium">{d.name}</span>
+                    <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{deckItems(d, items).length}</span>
+                  </button>
+                  {drafts > 0 && (
+                    <Button size="sm" variant="outline" className="shrink-0" onClick={() => setReviewId(d.id)}>
+                      Review {drafts} {drafts === 1 ? "draft" : "drafts"}
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       )}
       <DeckDialog open={adding} onOpenChange={setAdding} topic={topic} items={items} />
+      {reviewing && <DeckReview deck={reviewing} items={items} open onOpenChange={(o) => !o && setReviewId(undefined)} />}
       <DeckDialog open={!!open} onOpenChange={(o) => !o && setOpenId(undefined)} deck={open} topic={topic} items={items} />
     </div>
   );

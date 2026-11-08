@@ -389,6 +389,14 @@ export async function discardProposal(id: string): Promise<void> {
   await patchDocument(id, { proposal: null });
 }
 
+/** Accept a Deck's drafts at once: each exactly as `acceptDraft`, and only those still drafts — one deleted or accepted meanwhile is left alone. */
+export async function acceptDrafts(ids: string[]): Promise<void> {
+  for (const id of ids) {
+    const doc = await getDocument<Item>(id);
+    if (doc?.draft) await acceptDraft(id);
+  }
+}
+
 /** Paused: listed, Recalls kept, out of every Practice until unpaused. */
 export async function setPaused(id: string, paused: boolean): Promise<void> {
   await patchDocument(id, { paused });
