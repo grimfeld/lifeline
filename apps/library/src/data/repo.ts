@@ -6,6 +6,11 @@ import type { Patch } from "../domain/rules";
 import { answersTo, mergePlan, relinkAuthors, splitAuthorNames, type AuthorPatch } from "../domain/authors";
 import type { AuthorRef } from "./openlibrary";
 
+/** A stored list of ids (or names) as strings, blanks skipped; none from anything that is not a list. */
+function idsOf(v: unknown): string[] {
+  return Array.isArray(v) ? v.map(String).filter(Boolean) : [];
+}
+
 /**
  * PocketBase stores absent text/number fields as ""/0 and hands them back
  * that way, so every read re-establishes the domain's defaults.
@@ -13,13 +18,13 @@ import type { AuthorRef } from "./openlibrary";
 export function normalize(m: Work): Work {
   return {
     ...m,
-    authors: Array.isArray(m.authors) ? m.authors.map(String).filter(Boolean) : [],
+    authors: idsOf(m.authors),
     externalKey: m.externalKey ?? "",
     coverUrl: m.coverUrl ?? "",
     size: m.size || 0,
     year: m.year || 0,
     reason: m.reason ?? "",
-    recommendedBy: Array.isArray(m.recommendedBy) ? m.recommendedBy.map(String).filter(Boolean) : [],
+    recommendedBy: idsOf(m.recommendedBy),
     slot: m.slot || 0,
     addedOn: m.addedOn ?? "",
     acquiredOn: m.acquiredOn ?? "",
@@ -94,7 +99,7 @@ export async function addWork(input: {
     acquisition: input.acquisition,
     engagement,
     reason: input.reason.trim(),
-    recommendedBy: [...new Set(input.recommendedBy ?? [])],
+    recommendedBy: [...new Set(input.recommendedBy)],
     slot: 0,
     addedOn: today,
     acquiredOn: input.acquisition === "OWNED" || input.acquisition === "BORROWED" ? today : "",
@@ -196,7 +201,7 @@ export function parseQuickTitle(raw: string): { title: string; author: string } 
 export function normalizeAuthor(a: Author): Author {
   return {
     ...a,
-    aliases: Array.isArray(a.aliases) ? a.aliases.map(String).filter(Boolean) : [],
+    aliases: idsOf(a.aliases),
     externalKey: a.externalKey ?? "",
     photoUrl: a.photoUrl ?? "",
     born: a.born ?? "",

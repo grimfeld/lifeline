@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Author, Work } from "./types";
-import { answersTo, applyIdentity, confidentAuthorMatch, foldBibliography, mergeAliases, mergePlan, normalizeAuthorName, ownedByKey, relinkAuthors, splitAuthorNames, type AuthorHit } from "./authors";
+import { answersTo, applyIdentity, confidentAuthorMatch, deletedAuthorMessage, foldBibliography, mergeAliases, mergePlan, normalizeAuthorName, ownedByKey, relinkAuthors, splitAuthorNames, type AuthorHit } from "./authors";
 
 const author = (p: Partial<Author>): Author => ({ id: "a", type: "author", title: "Frank Herbert", tags: [], folder: "", createdAt: "2026-01-01", updatedAt: "", deleted: 0, aliases: [], externalKey: "", photoUrl: "", born: "", died: "", ...p });
 
@@ -77,5 +77,18 @@ describe("Bibliography", () => {
     expect(owned.get(row("Dune", 1965, "", "b").externalKey)).toBe(w);
     expect(owned.get(row("Dune", 1965, "", "z").externalKey)).toBeUndefined();
     expect(owned.has("")).toBe(false);
+  });
+});
+
+describe("the toast after deleting an Author", () => {
+  it("says the Author is deleted, and nothing more when no Work was theirs", () => {
+    expect(deletedAuthorMessage("Frank Herbert", { kept: false, unlinked: [] })).toEqual({ title: "Deleted “Frank Herbert”", description: undefined });
+  });
+  it("says a Person is only no longer an Author", () => {
+    expect(deletedAuthorMessage("Ana", { kept: true, unlinked: [] }).title).toBe("“Ana” is no longer an Author");
+  });
+  it("counts the Works that stay, unlinked", () => {
+    expect(deletedAuthorMessage("Ana", { kept: true, unlinked: ["w"] }).description).toBe("Their 1 work stay, unlinked.");
+    expect(deletedAuthorMessage("Ana", { kept: false, unlinked: ["w", "x"] }).description).toBe("Their 2 works stay, unlinked.");
   });
 });

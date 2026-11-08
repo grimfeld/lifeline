@@ -35,6 +35,22 @@ describe("the Work's descriptive fields", () => {
   });
 });
 
+describe("who recommended a Work", () => {
+  it("is stored once each when the Work is added, and nobody when not said", async () => {
+    const id = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "", recommendedBy: ["ana", "ben", "ana"] });
+    const other = await addWork({ medium: "book", title: "Emma", acquisition: "WANTED", reason: "" });
+    expect((await work(id)).recommendedBy).toEqual(["ana", "ben"]);
+    expect((await work(other)).recommendedBy).toEqual([]);
+  });
+
+  it("reads as ids, skipping blanks, and nobody from a value that is not a list", () => {
+    const stored = (recommendedBy: unknown) => normalize({ id: "w", type: "book", title: "Dune", authors: [], recommendedBy } as unknown as Work).recommendedBy;
+    expect(stored(["ana", "", 7])).toEqual(["ana", "7"]);
+    expect(stored("ana")).toEqual([]);
+    expect(stored(undefined)).toEqual([]);
+  });
+});
+
 describe("patchWork", () => {
   it("writes only the patched fields, never reverting what changed since the copy was read (CR-51)", async () => {
     const id = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "" });
