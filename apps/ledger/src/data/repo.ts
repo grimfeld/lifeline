@@ -163,19 +163,32 @@ function rowOf(input: TransactionInput): Omit<Transaction, "id" | "updatedAt" | 
     kind: input.kind,
     date: input.date,
     amount: input.amount,
-    accountId: input.kind === "transfer" ? "" : (input.accountId ?? ""),
-    fromAccountId: input.kind === "transfer" ? (input.fromAccountId ?? "") : "",
-    toAccountId: input.kind === "transfer" ? (input.toAccountId ?? "") : "",
-    categoryId: input.kind === "expense" || input.kind === "income" ? (input.categoryId ?? "") : "",
-    payee: input.payee?.trim() ?? "",
-    note: input.note?.trim() ?? "",
+    ...accountsOf(input),
+    categoryId: categoryOf(input),
+    payee: (input.payee ?? "").trim(),
+    note: (input.note ?? "").trim(),
     importId: input.importId ?? "",
     paypalId: input.paypalId ?? "",
     bankPayee: input.bankPayee ?? "",
     folder: "",
-    tags: normalizeTags(input.tags ?? []),
-    for: [...new Set(input.for ?? [])],
+    tags: normalizeTags(input.tags),
+    for: [...new Set(input.for)],
   };
+}
+
+/** Which Accounts a Transaction is on, by kind: a transfer is between its two and has none of its own; the rest are on one. */
+function accountsOf(input: TransactionInput): Pick<Transaction, "accountId" | "fromAccountId" | "toAccountId"> {
+  const transfer = input.kind === "transfer";
+  return {
+    accountId: (!transfer && input.accountId) || "",
+    fromAccountId: (transfer && input.fromAccountId) || "",
+    toAccountId: (transfer && input.toAccountId) || "",
+  };
+}
+
+/** Only an expense or an income takes a Category. */
+function categoryOf(input: TransactionInput): string {
+  return ((input.kind === "expense" || input.kind === "income") && input.categoryId) || "";
 }
 
 export async function addTransaction(input: TransactionInput): Promise<string> {

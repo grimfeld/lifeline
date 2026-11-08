@@ -4,7 +4,7 @@ import { docHref } from "@lifeline/core";
 import { Button, Checkbox, cn, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, toast } from "@lifeline/ui";
 import { canTurnIntoPerson, TurnIntoPersonDialog } from "@lifeline/parts";
 import { ArrowLeft, ExternalLink, FileText, GitMerge, MoreHorizontal, Pencil, RefreshCw, Search, Trash2, UserRound } from "lucide-react";
-import { foldBibliography, ownedByKey, type BibliographyRow } from "../domain/authors";
+import { deletedAuthorMessage, foldBibliography, ownedByKey, type BibliographyRow } from "../domain/authors";
 import { AUTHOR, type Author, type Work } from "../domain/types";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import { deleteAuthor, patchAuthor, restoreAuthor, useAuthor, useWorks } from "../data/repo";
@@ -254,10 +254,9 @@ export function AuthorScreen() {
     if (!author) return;
     const gone = author;
     const deleted = await deleteAuthor(gone.id);
-    const n = deleted.unlinked.length;
-    // A Person wearing the Role is never deleted from here: only the Role comes off.
-    toast.success(deleted.kept ? `“${gone.title}” is no longer an Author` : `Deleted “${gone.title}”`, {
-      description: n ? `Their ${n} work${n === 1 ? "" : "s"} stay, unlinked.` : undefined,
+    const said = deletedAuthorMessage(gone.title, deleted);
+    toast.success(said.title, {
+      description: said.description,
       action: { label: "Undo", onClick: () => void restoreAuthor(gone, deleted) },
     });
     navigate(APP_HREF);

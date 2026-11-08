@@ -43,14 +43,18 @@ export async function addEvent(input: {
     title: input.title,
     notes: input.notes ?? "",
     date: input.date,
-    // A timed Event keeps the day its end is on (ADR 0090); an all-day one its last day.
-    endDate: input.endDate && input.endDate > input.date && (!start || input.end) ? input.endDate : null,
+    endDate: endDayOf(input, start),
     start,
     end: start ? (input.end || null) : null,
-    tags: normalizeTags(input.tags ?? []),
-    with: input.with ?? [],
+    tags: normalizeTags(input.tags),
+    with: [...new Set(input.with)],
   }));
   return row.id;
+}
+
+/** A timed Event keeps the day its end is on (ADR 0090), an all-day one its last day: a day after the first, and a timed one only with an end time. */
+function endDayOf(input: { date: DateStr; endDate?: DateStr | null; end?: string | null }, start: string | null): DateStr | null {
+  return input.endDate && input.endDate > input.date && (!start || input.end) ? input.endDate : null;
 }
 
 export async function updateEvent(ev: Event): Promise<void> {
