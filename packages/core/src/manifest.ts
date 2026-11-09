@@ -269,6 +269,8 @@ export interface CommandArg {
 export interface CommandResult {
   message: string;
   id?: string;
+  /** What a read-only Command (`CommandDef.readOnly`) answers with, as plain data (ADR 0115). */
+  data?: unknown;
 }
 
 /** What an inline Command offers for the query it read (ADR 0088): the row's label, saying what it understood, and what picking it does. */
@@ -341,6 +343,16 @@ export interface CommandDef {
    * guessed: a Command that leaves no Document (setting a mood) leaves it out.
    */
   returnsDocument?: boolean;
+  /**
+   * `invoke` only reads (ADR 0115): it changes nothing and answers in
+   * `CommandResult.data`. An agent with a read-only grant is still offered it.
+   */
+  readOnly?: boolean;
+  /**
+   * What the headless form does and answers, for a caller with no dialog to
+   * look at — an agent (ADR 0062). Left out, its title says enough.
+   */
+  about?: string;
   /**
    * An inline Command (CONTEXT.md "Command", ADR 0088) reads the palette's
    * whole query as its argument: asked on every change of the query, it offers

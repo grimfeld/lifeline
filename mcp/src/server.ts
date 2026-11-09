@@ -8,7 +8,7 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { loadConfig, SCOPE_READ, SCOPE_WRITE, SCOPES } from "./config";
 import { DevicePool, ExpectedError } from "./devices";
 import { LifelineOAuth, LoginAttempts } from "./oauth";
-import { macroToolSpec, TOOLS, type ToolSpec } from "./tools";
+import { macroToolSpec, offeredTools, TOOLS, type ToolSpec } from "./tools";
 
 /**
  * Lifeline's remote MCP server (ADR 0062): OAuth for the person, then the
@@ -75,8 +75,7 @@ function buildServer(auth: AuthInfo, tools: ToolSpec[]): McpServer {
   const server = new McpServer({ name: "lifeline", version: "0.1.0" }, { instructions: INSTRUCTIONS });
   const userId = String(auth.extra?.userId);
   const canWrite = auth.scopes.includes(SCOPE_WRITE);
-  for (const spec of tools) {
-    if (spec.write && !canWrite) continue;
+  for (const spec of offeredTools(tools, canWrite)) {
     server.registerTool(
       spec.name,
       {
