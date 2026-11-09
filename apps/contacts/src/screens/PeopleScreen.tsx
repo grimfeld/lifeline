@@ -59,7 +59,8 @@ export function PeopleScreen() {
   const shown = useMemo(() => everyone(people, { query, relationship, tag }), [people, query, relationship, tag]);
   const index = useLinkIndex();
   const today = todayStr();
-  const lastSeenOf = (id: string) => seenDays(index, id, today).at(-1);
+  // Seen walks every Event that links to a Person: once per change to the index, never per keystroke in the search.
+  const lastSeen = useMemo(() => new Map(people.map((p) => [p.id, seenDays(index, p.id, today).at(-1)])), [index, people, today]);
   const relationships = useMemo(() => relationshipsOf(people), [people]);
   const tags = useMemo(() => tagsOf(people), [people]);
   // A filter whose value no one carries any more (the last of them was changed) is no filter.
@@ -100,7 +101,7 @@ export function PeopleScreen() {
             ) : (
               <ul className="grid min-w-0 gap-2">
                 {shown.map((p) => (
-                  <PersonRow key={p.id} person={p} lastSeen={lastSeenOf(p.id)} />
+                  <PersonRow key={p.id} person={p} lastSeen={lastSeen.get(p.id)} />
                 ))}
               </ul>
             )}
