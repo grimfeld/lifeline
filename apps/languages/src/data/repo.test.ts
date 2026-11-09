@@ -1,6 +1,9 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
-import { addAudioAttachment, allAttachments, documentsOf, getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
+import { describe, expect, it, vi } from "vitest";
+
+const sync = vi.hoisted(() => ({ pulled: true }));
+vi.mock("@lifeline/core", async (orig) => ({ ...(await orig<typeof import("@lifeline/core")>()), hasPulledOnce: async () => sync.pulled }));
+import { addAudioAttachment, allAttachments, documentsOf, getDocument, putDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
 import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item, type Recall, type Sentence, type Word } from "../domain/types";
 import { acceptDraft, acceptDrafts, acceptDraftChange, addDeck, addSentence, addWord, deckNamed, deleteItem, deleteItemUndoably, discardDraftChange, restoreItem, saveDraftChange, recordRecall, removeItemRecalls, setMembership, strikeRecall, sweepClipOrphans, updateSentence, updateWord } from "./repo";
 
@@ -155,6 +158,28 @@ describe("sweeping clip orphans (ADR 0116)", () => {
     const kept = await clipsKept();
     expect(kept).not.toContain(stray);
     expect(kept).toContain(held);
+  });
+
+  it("waits for the first pull: a Word that has not arrived yet does not make its clip an orphan", async () => {
+    const stray = (await addAudioAttachment(audio())).id;
+    sync.pulled = false;
+    try {
+      await sweepClipOrphans(Date.now() + 2 * 86_400_000);
+      expect(await clipsKept()).toContain(stray);
+    } finally {
+      sync.pulled = true;
+    }
+    await sweepClipOrphans(Date.now() + 2 * 86_400_000);
+    expect(await clipsKept()).not.toContain(stray);
+  });
+
+  it("keeps the clip of a Word in the locked Private folder", async () => {
+    const clip = (await addAudioAttachment(audio())).id;
+    const id = await addWord({ languageId: "es", term: "secreto", meaning: "secret", clip });
+    await putDocument({ ...(await getDocument<Word>(id))!, folder: "Private" });
+    expect(await getDocument(id)).toBeUndefined(); // the gate hides it
+    await sweepClipOrphans(Date.now() + 2 * 86_400_000);
+    expect(await clipsKept()).toContain(clip);
   });
 });
 

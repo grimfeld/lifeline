@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { allAttachments, deleteAttachment, isAudioMime, documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
+import { allAttachments, deleteAttachment, documentsOfUngated, hasPulledOnce, isAudioMime, documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
 import { REWRITABLE, type DraftChange } from "../domain/draft";
 import { dayOf } from "../domain/practice";
@@ -488,8 +488,11 @@ const CLIP_GRACE_MS = 86_400_000;
  * or a lapsed Undo left behind. Orphan cleanup (ADR 0037) skips audio, so this is its owner's.
  */
 export async function sweepClipOrphans(now = Date.now()): Promise<void> {
+  // Until both have been pulled once, a Word may simply not have arrived to claim its clip.
+  if (!(await hasPulledOnce("documents")) || !(await hasPulledOnce("attachments"))) return;
   const held = new Set<string>(heldClips);
-  for (const doc of [...(await allWords()), ...(await allSentences())]) if (doc.clip) held.add(doc.clip);
+  // Ungated: a Word in the locked Private folder, or in another Workspace, still holds its clip.
+  for (const doc of await documentsOfUngated<Word | Sentence>([WORD, SENTENCE])) if (doc.clip) held.add(doc.clip);
   for (const a of await allAttachments()) {
     if (!isAudioMime(a.mime) || held.has(a.id)) continue;
     if (now - Date.parse(a.updatedAt) < CLIP_GRACE_MS) continue;
