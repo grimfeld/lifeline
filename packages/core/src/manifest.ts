@@ -357,7 +357,7 @@ export interface CommandDef {
    * What the headless form does and answers, for a caller with no dialog to
    * look at — an agent (ADR 0062). Left out, its title says enough.
    */
-  about?: string;
+  agentDescription?: string;
   /**
    * An inline Command (CONTEXT.md "Command", ADR 0088) reads the palette's
    * whole query as its argument: asked on every change of the query, it offers
