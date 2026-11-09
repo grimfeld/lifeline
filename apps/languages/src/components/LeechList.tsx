@@ -5,11 +5,9 @@ import { Pause, Pencil } from "lucide-react";
 import { leeches } from "../domain/leech";
 import type { MaterialDoc } from "../domain/material";
 import { promptText } from "../domain/report";
-import { FACT, SENTENCE, WORD, type Fact, type Recall, type Sentence, type Word } from "../domain/types";
+import { FACT, SENTENCE, WORD, type Item, type Recall } from "../domain/types";
 import { setPaused } from "../data/repo";
-import { FactDialog } from "./FactDialog";
-import { SentenceDialog } from "./SentenceDialog";
-import { WordDialog } from "./WordDialog";
+import { ItemDialog } from "./ItemDialog";
 
 const OWN = new Set([WORD, SENTENCE, FACT]);
 
@@ -52,9 +50,7 @@ export function LeechList({ items, recalls }: { items: MaterialDoc[]; recalls: R
           ))}
         </CardContent>
       </Card>
-      <WordDialog open={editing?.type === WORD} onOpenChange={(o) => !o && setEditing(undefined)} word={editing?.type === WORD ? (editing.doc as Word) : undefined} />
-      <SentenceDialog open={editing?.type === SENTENCE} onOpenChange={(o) => !o && setEditing(undefined)} sentence={editing?.type === SENTENCE ? (editing.doc as Sentence) : undefined} />
-      <FactDialog open={editing?.type === FACT} onOpenChange={(o) => !o && setEditing(undefined)} fact={editing?.type === FACT ? (editing.doc as Fact) : undefined} />
+      <ItemDialog item={editing?.doc as Item | undefined} open={!!editing} onOpenChange={(o) => !o && setEditing(undefined)} />
     </section>
   );
 }

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { accepted, acceptAllReady, inPractice, isDraft } from "./draft";
+import { accepted, acceptAllReady, clipOfItem, fieldOf, REWRITABLE, REWRITABLE_KEYS, inPractice, isDraft } from "./draft";
 import { practiceQueue, retention } from "./practice";
 import { itemMaterial } from "./prompts";
-import { RECALL, WORD, type Recall, type Word } from "./types";
+import { FACT, RECALL, WORD, type Item, type Recall, type Word } from "./types";
 
 const at = (day: number, h = 9) => new Date(2026, 8, day, h).toISOString();
 
@@ -58,5 +58,27 @@ describe("accepting a whole Deck", () => {
   it("asks only about the drafts left: a deleted or accepted one needs no showing, and no draft left is nothing to accept", () => {
     expect(acceptAllReady(drafts.slice(1), new Set(["b", "c"]))).toBe(true);
     expect(acceptAllReady([], new Set(["a"]))).toBe(false);
+  });
+});
+
+describe("typed item reads", () => {
+  const word = { id: "w", type: WORD, term: "playa", meaning: "beach", clip: "att1" } as unknown as Item;
+  const fact = { id: "f", type: FACT, question: "Capital?", answer: "Madrid" } as unknown as Item;
+
+  it("REWRITABLE_KEYS lists every rewritable field once", () => {
+    expect([...REWRITABLE_KEYS].sort()).toEqual(["answer", "meaning", "notes", "question", "term", "text", "translation"]);
+  });
+
+  it("fieldOf reads a field the item has, and empty for one its kind lacks", () => {
+    expect(fieldOf(word, "term")).toBe("playa");
+    expect(fieldOf(fact, "answer")).toBe("Madrid");
+    expect(fieldOf(word, "notes")).toBe("");
+    expect(fieldOf(fact, "term")).toBe("");
+    for (const key of REWRITABLE[word.type]) expect(typeof fieldOf(word, key)).toBe("string");
+  });
+
+  it("clipOfItem is the clip's Attachment id, or empty for none and for a kind without clips", () => {
+    expect(clipOfItem(word)).toBe("att1");
+    expect(clipOfItem(fact)).toBe("");
   });
 });

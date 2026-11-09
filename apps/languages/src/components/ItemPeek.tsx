@@ -6,11 +6,9 @@ import { heldPrompts } from "../domain/practice";
 import { itemMaterial } from "../domain/prompts";
 import { plainSentence } from "../domain/cloze";
 import { sentencesUsing } from "../domain/wordSentences";
-import { FACT, SENTENCE, WORD, type Fact, type Item, type Sentence, type Word } from "../domain/types";
+import { FACT, SENTENCE, WORD, type Item, type Sentence } from "../domain/types";
 import { acceptDraft, setMembership, setPaused, updateItem, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
-import { WordDialog } from "./WordDialog";
-import { SentenceDialog } from "./SentenceDialog";
-import { FactDialog } from "./FactDialog";
+import { ItemDialog } from "./ItemDialog";
 import { OriginLine } from "./OriginLine";
 import { DraftChangeNotice } from "./DraftChangeNotice";
 
@@ -171,9 +169,7 @@ export function ItemPeek({ doc }: { doc: Document }) {
           </Button>
         )}
       </div>
-      {item.type === SENTENCE && <SentenceDialog open={editing} onOpenChange={setEditing} sentence={item as Sentence} />}
-      {item.type === WORD && <WordDialog open={editing} onOpenChange={setEditing} word={item as Word} />}
-      {item.type === FACT && <FactDialog open={editing} onOpenChange={setEditing} fact={item as Fact} />}
+      <ItemDialog item={item} open={editing} onOpenChange={setEditing} />
     </div>
   );
 }
