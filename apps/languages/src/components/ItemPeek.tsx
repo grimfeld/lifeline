@@ -3,7 +3,7 @@ import { Button, CommitField, cn, toast } from "@lifeline/ui";
 import { openPeek, type Document } from "@lifeline/core";
 import { Check, Pause, Pencil, Play } from "lucide-react";
 import { heldPrompts } from "../domain/practice";
-import { itemMaterial } from "../domain/prompts";
+import { FORWARD, REVERSE, itemMaterial } from "../domain/prompts";
 import { plainSentence } from "../domain/cloze";
 import { sentencesUsing } from "../domain/wordSentences";
 import { FACT, SENTENCE, WORD, type Item, type Sentence } from "../domain/types";
@@ -16,8 +16,8 @@ import { DraftChangeNotice } from "./DraftChangeNotice";
 const HISTORY_SHOWN = 10;
 
 function slotLabel(slot: string): string {
-  if (slot === "forward") return "Forward";
-  if (slot === "reverse") return "Reverse";
+  if (slot === FORWARD) return "Forward";
+  if (slot === REVERSE) return "Reverse";
   if (slot === "listen") return "Listening";
   return `Blank · ${slot.replace(/^blank:/, "")}`;
 }

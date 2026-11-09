@@ -1,5 +1,6 @@
-import { blankSlots, plainSentence } from "./cloze";
+import { BLANK_PREFIX, blankSlots, parseCloze, plainSentence } from "./cloze";
 import { inPractice } from "./draft";
+import { isTyped, type MaterialDoc } from "./material";
 import { FACT, SENTENCE, WORD, type Item, type Material } from "./types";
 
 /**
@@ -24,6 +25,11 @@ export function promptKey(itemId: string, slot: string): string {
 
 /** The listening Prompt's slot (ADR 0116): the same whichever clip, so a re-recording keeps its schedule. */
 export const LISTEN = "listen";
+/** A Word's two directions, and a Fact's only slot. */
+export const FORWARD = "forward";
+export const REVERSE = "reverse";
+/** Whether a slot is a Sentence's blank (cloze.ts builds them). */
+export const isBlankSlot = (slot: string): boolean => slot.startsWith(BLANK_PREFIX);
 
 /**
  * The slots of Knowledge's own types: a Word's forward and reverse, one per
@@ -32,9 +38,9 @@ export const LISTEN = "listen";
  * for nothing.
  */
 export function itemSlots(item: Item): string[] {
-  if (item.type === FACT) return ["forward"];
+  if (item.type === FACT) return [FORWARD];
   const listen = (item as { clip?: string }).clip ? [LISTEN] : [];
-  if (item.type === WORD) return ["forward", "reverse", ...listen];
+  if (item.type === WORD) return [FORWARD, REVERSE, ...listen];
   return item.type === SENTENCE ? [...blankSlots(item.text ?? ""), ...listen] : [];
 }
 
@@ -61,5 +67,51 @@ export function itemLines(item: Item): { main: string; sub: string } {
  * a Fact are paraphrases, reveal-only.
  */
 export function isTypeable(type: string, slot: string): boolean {
-  return ((type === WORD || type === SENTENCE) && slot === LISTEN) || (type === WORD && slot === "reverse") || (type === SENTENCE && slot.startsWith("blank:"));
+  switch (type) {
+    case WORD:
+      return slot === REVERSE || slot === LISTEN;
+    case SENTENCE:
+      return isBlankSlot(slot) || slot === LISTEN;
+    default:
+      return false;
+  }
+}
+
+/** What a listening Prompt asks, where there is nothing to read. */
+export const LISTEN_QUESTION = "(listen)";
+
+/**
+ * A Prompt's question and answer: the one derivation faces, Practice, the
+ * Leech list and the report all read. A listening Prompt's answer is what was
+ * said — a Word's term, a Sentence whole — and a Word's face adds the meaning
+ * beside it. Another App's Recallable is read by its title, with no answer.
+ */
+export function promptText(m: MaterialDoc, slot: string): { question: string; answer: string | null } {
+  return isTyped(m) ? itemPromptText(m.doc, slot) : { question: m.title, answer: null };
+}
+
+/** `promptText` for a Word, Sentence or Fact read directly (a face has its Document, not the Material). */
+export function itemPromptText(item: Item, slot: string): { question: string; answer: string } {
+  switch (item.type) {
+    case WORD: {
+      const term = item.term || item.title;
+      if (slot === LISTEN) return { question: LISTEN_QUESTION, answer: term };
+      return slot === FORWARD ? { question: term, answer: item.meaning } : { question: item.meaning, answer: term };
+    }
+    case FACT:
+      return { question: item.question || item.title, answer: item.answer };
+    case SENTENCE: {
+      const text = item.text ?? "";
+      if (slot === LISTEN) return { question: LISTEN_QUESTION, answer: plainSentence(text) };
+      let answer = "";
+      const question = parseCloze(text)
+        .map((p) => {
+          if (p.kind === "text" || p.slot !== slot) return p.text;
+          answer = p.text;
+          return p.hint ? `____ (${p.hint})` : "____";
+        })
+        .join("");
+      return { question, answer };
+    }
+  }
 }

@@ -4,7 +4,7 @@ import { Button, Card, CardContent, Tip } from "@lifeline/ui";
 import { Pause, Pencil } from "lucide-react";
 import { leeches } from "../domain/leech";
 import type { MaterialDoc } from "../domain/material";
-import { promptText } from "../domain/report";
+import { promptText } from "../domain/prompts";
 import { FACT, SENTENCE, WORD, type Item, type Recall } from "../domain/types";
 import { setPaused } from "../data/repo";
 import { ItemDialog } from "./ItemDialog";

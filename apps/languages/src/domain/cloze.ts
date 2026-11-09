@@ -8,6 +8,8 @@
  */
 export type ClozePart = { kind: "text"; text: string } | { kind: "blank"; text: string; hint?: string; slot: string };
 
+/** What every blank's slot starts with: `blank:<text>`, `#n` after a repeat. */
+export const BLANK_PREFIX = "blank:";
 const BLANK = /\{\{(.*?)\}\}/g;
 
 /** Case, accents kept (they are part of the word); spaces collapsed, ends trimmed. */
@@ -30,7 +32,7 @@ export function parseCloze(text: string): ClozePart[] {
     if (norm) {
       const n = (seen.get(norm) ?? 0) + 1;
       seen.set(norm, n);
-      parts.push({ kind: "blank", text: inner, ...(hint ? { hint } : {}), slot: `blank:${norm}${n > 1 ? `#${n}` : ""}` });
+      parts.push({ kind: "blank", text: inner, ...(hint ? { hint } : {}), slot: `${BLANK_PREFIX}${norm}${n > 1 ? `#${n}` : ""}` });
     } else {
       parts.push({ kind: "text", text: m[0] });
     }

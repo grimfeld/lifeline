@@ -1,11 +1,10 @@
 import { addDays, todayStr } from "@lifeline/core";
-import { parseCloze, plainSentence } from "./cloze";
 import type { MaterialDoc } from "./material";
 import { leeches as readLeeches } from "./leech";
 import { dayOf, heldPrompts, introducedByTopic, queueOfHeld, recallsByPrompt, recallsOfLive, retention } from "./practice";
-import { LISTEN, promptsOf } from "./prompts";
+import { promptText, promptsOf } from "./prompts";
 import { sameName } from "./names";
-import { FACT, SENTENCE, WORD, type Deck, type Fact, type Grade, type Recall, type Sentence, type Topic, type Word } from "./types";
+import type { Deck, Grade, Recall, Topic } from "./types";
 
 /** Policy, in one place: how many failed Prompts the report lists, and how many Recalls it shows with each. */
 export const MOST_FAILED_SHOWN = 10;
@@ -63,40 +62,6 @@ export interface PracticeReport {
   mostFailed: ReportedPrompt[];
   /** Prompts with 4 or more fails among their last 8 Recalls, most fails first. */
   leeches: ReportedLeech[];
-}
-
-/** Material whose doc is known by its type: the kinds the Knowledge App owns. Any other Recallable (a Quote) stays a plain MaterialDoc. */
-export type TypedMaterial = MaterialDoc & ({ type: typeof WORD; doc: Word } | { type: typeof FACT; doc: Fact } | { type: typeof SENTENCE; doc: Sentence });
-
-const isTyped = (m: MaterialDoc): m is TypedMaterial => m.type === WORD || m.type === FACT || m.type === SENTENCE;
-
-/** A Prompt's question and answer, as its face shows them (faces.tsx). */
-export function promptText(m: MaterialDoc, slot: string): { question: string; answer: string | null } {
-  if (!isTyped(m)) return { question: m.title, answer: null };
-  if (m.type === WORD) {
-    const w = m.doc;
-    const term = w.term || w.title;
-    if (slot === LISTEN) return { question: "(listen)", answer: term };
-    return slot === "forward" ? { question: term, answer: w.meaning } : { question: w.meaning, answer: term };
-  }
-  if (m.type === FACT) {
-    const f = m.doc;
-    return { question: f.question || f.title, answer: f.answer };
-  }
-  if (m.type === SENTENCE) {
-    const s = m.doc;
-    if (slot === LISTEN) return { question: "(listen)", answer: plainSentence(s.text ?? "") };
-    let answer = "";
-    const question = parseCloze(s.text ?? "")
-      .map((p) => {
-        if (p.kind === "text" || p.slot !== slot) return p.text;
-        answer = p.text;
-        return p.hint ? `____ (${p.hint})` : "____";
-      })
-      .join("");
-    return { question, answer };
-  }
-  return { question: m.title, answer: null };
 }
 
 export interface ReportInput {
