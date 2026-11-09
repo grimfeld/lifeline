@@ -4,7 +4,7 @@ import { plainSentence } from "../domain/cloze";
 import { accepted, clipOfItem, draftChangeLines, REWRITABLE, type DraftChange } from "../domain/draft";
 import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
-import { sameName } from "../domain/names";
+import { nameKey, sameName } from "../domain/names";
 import type { ReportReads } from "../domain/report";
 import { sourceChain, type SourceReading } from "../domain/sources";
 
@@ -578,7 +578,7 @@ export function setMembership(deck: Deck, item: Pick<Item, "id" | "languageId">,
 
 /** The Deck of that name in the Topic (case ignored), made when absent — how an agent files a lesson (ADR 0115). */
 export function deckNamed(languageId: string, name: string): Promise<Deck> {
-  const key = `${languageId}\u0000${name.trim().toLowerCase()}`;
+  const key = `${languageId}\u0000${nameKey(name)}`;
   const next = (deckMakes.get(key) ?? Promise.resolve()).catch(() => undefined).then(() => findOrMakeDeck(languageId, name));
   const settled = next.then(() => undefined, () => undefined);
   deckMakes.set(key, settled);

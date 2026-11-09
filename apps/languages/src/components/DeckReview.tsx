@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Tooltip, TooltipContent, TooltipTrigger, toast } from "@lifeline/ui";
 import { acceptAllReady, deckDrafts, KIND_NAME } from "../domain/draft";
 import { itemLines } from "../domain/prompts";
@@ -13,6 +13,7 @@ import { ItemDialog } from "./ItemDialog";
  */
 export function DeckReview({ deck, items, open, onOpenChange }: { deck: Deck; items: Item[]; open: boolean; onOpenChange: (open: boolean) => void }) {
   const drafts = useMemo(() => deckDrafts(deck, items), [deck, items]);
+  const reasonId = useId();
   const [at, setAt] = useState(0);
   const [shown, setShown] = useState<ReadonlySet<string>>(new Set());
   const [editing, setEditing] = useState(false);
@@ -131,7 +132,7 @@ export function DeckReview({ deck, items, open, onOpenChange }: { deck: Deck; it
                     // aria-disabled (not disabled) keeps the Button focusable and hoverable for its tooltip; the click does nothing.
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" aria-disabled="true" aria-describedby="accept-all-reason" className="opacity-50" onClick={(e) => e.preventDefault()}>
+                        <Button variant="outline" aria-disabled="true" aria-describedby={reasonId} className="opacity-50" onClick={(e) => e.preventDefault()}>
                           Accept all ({drafts.length})
                         </Button>
                       </TooltipTrigger>
@@ -139,7 +140,7 @@ export function DeckReview({ deck, items, open, onOpenChange }: { deck: Deck; it
                     </Tooltip>
                   )}
                   {!ready && (
-                    <span id="accept-all-reason" className="sr-only">
+                    <span id={reasonId} className="sr-only">
                       Show every draft first
                     </span>
                   )}

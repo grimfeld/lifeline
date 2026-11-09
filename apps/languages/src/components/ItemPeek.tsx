@@ -3,8 +3,8 @@ import { Button, CommitField, cn, toast } from "@lifeline/ui";
 import { openPeek, type Document } from "@lifeline/core";
 import { Check, Pause, Pencil, Play } from "lucide-react";
 import { heldPrompts } from "../domain/practice";
-import { FORWARD, REVERSE, itemMaterial } from "../domain/prompts";
-import { plainSentence } from "../domain/cloze";
+import { FORWARD, LISTEN, REVERSE, isBlankSlot, itemMaterial } from "../domain/prompts";
+import { BLANK_PREFIX, plainSentence } from "../domain/cloze";
 import { sentencesUsing } from "../domain/wordSentences";
 import { FACT, SENTENCE, WORD, type Item, type Sentence } from "../domain/types";
 import { acceptDraft, setMembership, setPaused, updateItem, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
@@ -18,8 +18,9 @@ const HISTORY_SHOWN = 10;
 function slotLabel(slot: string): string {
   if (slot === FORWARD) return "Forward";
   if (slot === REVERSE) return "Reverse";
-  if (slot === "listen") return "Listening";
-  return `Blank · ${slot.replace(/^blank:/, "")}`;
+  if (slot === LISTEN) return "Listening";
+  if (isBlankSlot(slot)) return `Blank · ${slot.slice(BLANK_PREFIX.length)}`;
+  return slot;
 }
 
 function dueLabel(d: Date | null, now: Date): string {

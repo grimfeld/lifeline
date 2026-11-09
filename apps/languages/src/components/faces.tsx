@@ -10,6 +10,9 @@ import { ClipPlayer } from "./ClipPlayer";
  * otherwise size to their longest word and spill out (ADR 0065).
  */
 
+/** What a Word's Prompt asks, by its slot; its reverse asks the rest. */
+const WORD_ASKS: Record<string, string> = { [LISTEN]: "What did you hear?", [FORWARD]: "What does it mean?" };
+
 /**
  * A Word's Prompt as shown in a Practice: its forward asks for the meaning,
  * its reverse for the term; the notes come with the answer.
@@ -17,11 +20,10 @@ import { ClipPlayer } from "./ClipPlayer";
 export function WordFace({ doc, slot, revealed }: RecallFaceProps) {
   const w = doc as Word;
   const listen = slot === LISTEN;
-  const forward = slot === FORWARD;
   const { question, answer } = itemPromptText(w, slot);
   return (
     <div className="grid justify-items-center gap-4 text-center">
-      <span className="text-muted-foreground text-xs">{listen ? "What did you hear?" : forward ? "What does it mean?" : "How do you say it?"}</span>
+      <span className="text-muted-foreground text-xs">{WORD_ASKS[slot] ?? "How do you say it?"}</span>
       {/* A listening Prompt's one player plays as the Prompt appears and is never restarted by the reveal; otherwise it comes with the answer. */}
       {listen ? <ClipPlayer clipId={w.clip} /> : <span className="max-w-full text-3xl font-semibold break-words">{question}</span>}
       <div className="min-h-16 max-w-full">
@@ -80,7 +82,7 @@ export function SentenceFace({ doc, slot, revealed }: RecallFaceProps) {
         </p>
       )}
       {listen && revealed && <p className="text-primary max-w-full text-2xl leading-relaxed break-words">{answer}</p>}
-      {(listen ? revealed : true) && sentence.translation && <span className="text-muted-foreground max-w-full text-sm break-words italic">{sentence.translation}</span>}
+      {(!listen || revealed) && sentence.translation && <span className="text-muted-foreground max-w-full text-sm break-words italic">{sentence.translation}</span>}
       {revealed && sentence.notes && <span className="text-muted-foreground max-w-full text-sm break-words whitespace-pre-wrap">{sentence.notes}</span>}
       {revealed && !listen && <ClipPlayer clipId={sentence.clip} />}
       {revealed && <OriginLine originId={sentence.originId} className="max-w-full" />}
