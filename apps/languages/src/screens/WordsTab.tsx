@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { draftChangeLines } from "../domain/draft";
 import { openPeek } from "@lifeline/core";
 import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, PhoneDock, PhoneFilters, Tip, cn, usePhone } from "@lifeline/ui";
 import { Check, MessageCircleQuestion, Pause, Play, Plus, Search, TextCursorInput, WholeWord } from "lucide-react";
@@ -124,7 +125,7 @@ export function WordsTab({ items, others = [], decks, recalls }: { items: Item[]
                     <span className="truncate font-medium">{main}</span>
                     {sub && <span className="text-muted-foreground truncate text-xs">{sub}</span>}
                   </button>
-                  {i.draftChange && <Badge variant="outline">draft change</Badge>}
+                  {draftChangeLines(i).length > 0 && <Badge variant="outline">draft change</Badge>}
                   {i.type !== WORD && <Badge variant="outline">{i.type === SENTENCE ? "sentence" : "fact"}</Badge>}
                   <span className="text-muted-foreground w-16 shrink-0 text-right text-xs">{i.draft ? "draft" : i.paused ? "paused" : nextHint(dues.get(i.id) ?? [], now)}</span>
                   {i.draft ? (

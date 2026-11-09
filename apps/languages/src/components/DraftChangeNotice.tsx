@@ -20,7 +20,7 @@ export function DraftChangeNotice({ item, onDone }: { item: Item; onDone?: () =>
       toast.success("Change accepted");
       onDone?.();
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(`Could not accept the change: ${(e as Error).message}`);
     }
   }
 
