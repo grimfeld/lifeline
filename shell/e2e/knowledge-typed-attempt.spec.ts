@@ -31,6 +31,7 @@ test("type into a blank, reveal with Enter, see both, grade, and the Recall keep
   await workLocally(page);
   await page.getByRole("button", { name: `Practise ${topic}` }).click();
   const field = page.getByLabel("Your answer");
+  await expect(field).toBeFocused(); // no click needed before typing
   await field.fill("perche");
   await field.press("Enter");
   const both = page.getByTestId("attempt-vs-answer");

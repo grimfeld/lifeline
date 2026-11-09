@@ -146,6 +146,9 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
           )}
           {typeable && !revealed && (
             <Input
+              // Focused on every Prompt, so typing then Enter needs no click; keyed so a new Prompt refocuses it.
+              key={current.key}
+              autoFocus
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               onKeyDown={(e) => {

@@ -64,7 +64,7 @@ Topic to a set you choose.
 - In a practice: try to recall the answer, **Show answer**, then grade yourself **Pass** or
   **Fail**. Keys: Space reveals, 1 or F fails, 2 or J passes. **Undo** a mis-tap. **Stop** any
   time — nothing is lost.
-- **Typing an answer** — on a Word's reverse prompt, a Sentence's blank and a listening prompt, a field offers to take
+- **Typing an answer** — on a Word's reverse prompt, a Sentence's blank and a listening prompt, a field, already focused, offers to take
   what you think the answer is before you reveal (press Enter, or **Show answer**; leaving it empty
   works as always). The reveal puts **You typed** beside **Answer**; Lifeline never checks it, so a
   typo or an equally right answer is yours to grade. The recall keeps what you typed, unchanged, and
