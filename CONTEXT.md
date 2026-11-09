@@ -755,7 +755,7 @@ One sitting of Recalls, owned by the Knowledge App: due Prompts first, then new 
 _Avoid_: session (a Workout's run), review (Cinema's body), round, lesson, drill
 
 ### Retention
-The share of a Topic's Recalls (or of all of them) passed over the last 30 days, leaving out each Prompt's very first Recall (meeting it is not remembering it). Derived, never stored; the one figure the Knowledge App gives about how practice is going, beside what is due today, what new Prompts are waiting, and the due counts of the week ahead. No streak, no heatmap, no score — Life Level owns those, reached through a Tally.
+The share of a Topic's Recalls (or of all of them) passed over the last 30 days, counting only Recalls on material in practice — paused material and drafts are left out — and leaving out each Prompt's very first Recall (meeting it is not remembering it). Derived, never stored; the one figure the Knowledge App gives about how practice is going, beside what is due today, what new Prompts are waiting, and the due counts of the week ahead. No streak, no heatmap, no score — Life Level owns those, reached through a Tally.
 _Avoid_: accuracy, score, mastery, success rate, known / held (no threshold decides that a Prompt is learnt)
 
 ### Draft

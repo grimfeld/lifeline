@@ -4,6 +4,8 @@ import { plainSentence } from "../domain/cloze";
 import { accepted, clipOfItem, REWRITABLE, type DraftChange } from "../domain/draft";
 import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
+import { sameName } from "../domain/names";
+import type { ReportReads } from "../domain/report";
 import { sourceChain, type SourceReading } from "../domain/sources";
 
 export type { MaterialDoc };
@@ -255,6 +257,19 @@ function wordRowOf(input: WordInput) {
   return { type: WORD, title: term, languageId: input.languageId, term, meaning: input.meaning.trim(), notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", ...clipOf(input), tags: normalizeTags(input.tags ?? []), folder: "" } as const;
 }
 
+/**
+ * The reads a practice report takes (domain/report.ts), normalised as the
+ * screens read them. Decks and Recalls are read by their Topic's key; the
+ * Recallable Contract names no topic field (ADR 0073), so material is read
+ * per type and kept by its declared Topic.
+ */
+export const reportReads: ReportReads = {
+  topics: async () => (await documentsOf<Topic>(TOPIC)).map(normalizeTopic),
+  decksOf: async (topicId) => (await documentsWhere<Deck>(DECK, "languageId", topicId)).map(normalizeDeck),
+  materialOf: async (topicId) => (await Promise.all(recallableDefs().map(async (def) => (await documentsOf(def.typeId)).map((doc) => materialOf(def, doc))))).flat().filter((m) => m.topicId === topicId),
+  recallsOf: async (topicId) => (await documentsWhere<Recall>(RECALL, "languageId", topicId)).map(normalizeRecall),
+};
+
 /** Every Topic, Word, Sentence and Fact, read once — what headless adds check against. */
 export async function allTopics(): Promise<Topic[]> {
   return documentsOf<Topic>(TOPIC);
@@ -481,7 +496,7 @@ export function setMembership(deck: Deck, item: Pick<Item, "id" | "languageId">,
 /** The Deck of that name in the Topic (case ignored), made when absent — how an agent files a lesson (ADR 0115). */
 export async function deckNamed(languageId: string, name: string): Promise<Deck> {
   const n = name.trim();
-  const found = (await documentsWhere<Deck>(DECK, "languageId", languageId)).map(normalizeDeck).find((d) => d.name.trim().toLowerCase() === n.toLowerCase());
+  const found = (await documentsWhere<Deck>(DECK, "languageId", languageId)).map(normalizeDeck).find((d) => sameName(d.name, n));
   if (found) return found;
   return normalizeDeck((await getDocument<Deck>(await addDeck(languageId, n)))!);
 }

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { practiceReport } from "./report";
+import { practiceReport, topicReport, type ReportReads } from "./report";
 import { retention } from "./practice";
 import { itemMaterial } from "./prompts";
 import type { MaterialDoc } from "./material";
-import { FACT, RECALL, SENTENCE, WORD, type Fact, type Grade, type Recall, type Sentence, type Word } from "./types";
+import { DECK, FACT, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Fact, type Grade, type Recall, type Sentence, type Topic, type Word } from "./types";
 
 const at = (day: number, h = 9) => new Date(2026, 8, day, h).toISOString();
 const now = new Date(at(28, 12));
@@ -83,5 +83,39 @@ describe("practiceReport", () => {
     const fails = (id: string) => [1, 2, 3, 4].map((k) => recall(id, "reverse", "fail", at(10 + k)));
     const r = report(items, [...fails("a"), ...fails("p"), ...fails("d"), recall("a", "forward", "fail", at(20))]);
     expect(r.leeches).toEqual([{ itemId: "a", type: WORD, slot: "reverse", question: "station", answer: "stazione", fails: 4 }]);
+  });
+});
+
+describe("topicReport", () => {
+  const doc = { tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0 };
+  const topicDoc = (id: string, name: string): Topic => ({ ...doc, id, type: TOPIC, title: name, name, newCap: 10, archived: false }) as Topic;
+  const deckDoc = (id: string, languageId: string, name: string, members: string[]): Deck => ({ ...doc, id, type: DECK, title: name, languageId, name, members }) as Deck;
+
+  /** Reads over two Topics' data, noting which Topic each keyed read asked for. */
+  function reads() {
+    const asked: string[] = [];
+    const recalls = [recall("a", "forward", "fail", at(20)), { ...recall("x", "forward", "fail", at(20)), languageId: "fr" }];
+    const r: ReportReads = {
+      topics: async () => [topicDoc("it", "Italian"), topicDoc("fr", "French")],
+      decksOf: async (t) => (asked.push(`decks:${t}`), t === "it" ? [deckDoc("d1", "it", "Lesson 1", ["a"])] : []),
+      materialOf: async (t) => (asked.push(`material:${t}`), t === "it" ? [word("a", "stazione", "station")] : [{ ...word("x", "gare", "station"), topicId: "fr" }]),
+      recallsOf: async (t) => (asked.push(`recalls:${t}`), recalls.filter((x) => x.languageId === t)),
+    };
+    return { r, asked };
+  }
+
+  it("reads only the requested Topic's Decks, material and Recalls", async () => {
+    const { r, asked } = reads();
+    const out = await topicReport({ topic: " italian " }, r, now);
+    expect(out.topic).toBe("Italian");
+    expect(asked.sort()).toEqual(["decks:it", "material:it", "recalls:it"]);
+    expect(out.mostFailed.map((p) => p.itemId)).toEqual(["a"]);
+  });
+
+  it("finds Decks by id or name, case ignored, and refuses what is not there, naming what is", async () => {
+    const { r } = reads();
+    expect((await topicReport({ topic: "it", decks: ["LESSON 1"] }, r, now)).decks).toEqual(["Lesson 1"]);
+    await expect(topicReport({ topic: "Klingon" }, r, now)).rejects.toThrow(/No Topic “Klingon”.*Italian, French/);
+    await expect(topicReport({ topic: "it", decks: ["Nope"] }, r, now)).rejects.toThrow(/No Deck “Nope”.*Lesson 1/);
   });
 });

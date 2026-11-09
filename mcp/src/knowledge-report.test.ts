@@ -28,9 +28,17 @@ async function deck(languageId: string, name: string, members: string[]) {
 
 type Report = { topic: string; decks: string[]; retention: { passed: number; total: number; share: number } | null; dueToday: number; newWaiting: number; leeches: { itemId: string; slot: string; question: string; answer: string; fails: number }[]; mostFailed: { itemId: string; slot: string; question: string; answer: string; fails: number; recalls: { grade: string; at: string }[] }[] };
 
+/** Runs the Knowledge App's read-only Command, as an agent's tool call does; the report is its `data`. */
+async function report(args: Record<string, unknown>): Promise<Report> {
+  const r = (await runTool("knowledge_report", args)) as { message: string; data: Report };
+  expect(r.message).toMatch(/^Practice report for /);
+  return r.data;
+}
+
 describe("knowledge_report", () => {
-  it("is a read-only tool taking a Topic and optional Decks", () => {
+  it("is the Knowledge App's read-only Command, taking a Topic and optional Decks", () => {
     const t = TOOLS.find((x) => x.name === "knowledge_report")!;
+    expect(t.command).toBe("knowledge.report");
     expect(t.write).toBe(false);
     expect(t.description).toMatch(/Retention/);
     expect(Object.keys(t.input)).toEqual(expect.arrayContaining(["topic", "decks"]));
@@ -42,7 +50,7 @@ describe("knowledge_report", () => {
     await recall(t, a, "reverse", "pass", 20);
     await recall(t, a, "reverse", "fail", 10);
     await recall(t, a, "reverse", "fail", 5);
-    const r = (await runTool("knowledge_report", { topic: "italian" })) as Report;
+    const r = await report({ topic: "italian" });
     expect(r.topic).toBe("Italian");
     expect(r.retention).toEqual({ passed: 0, total: 2, share: 0 });
     expect(r.dueToday).toBe(1);
@@ -58,7 +66,7 @@ describe("knowledge_report", () => {
     const a = await word(t, "stazione", "station");
     await recall(t, a, "reverse", "fail", 3, "a la stazione");
     await recall(t, a, "reverse", "fail", 2);
-    const r = (await runTool("knowledge_report", { topic: "Italian typed" })) as Report;
+    const r = await report({ topic: "Italian typed" });
     expect(r.mostFailed[0]!.recalls.map((x) => (x as { typed?: string }).typed)).toEqual([undefined, "a la stazione"]);
   });
 
@@ -75,7 +83,7 @@ describe("knowledge_report", () => {
     const stray = await word(other, "aqua", "water");
     await recall(other, stray, "forward", "fail", 2);
     await recall(other, stray, "forward", "fail", 1);
-    const r = (await runTool("knowledge_report", { topic: t })) as Report;
+    const r = await report({ topic: t });
     expect(r.mostFailed.map((p) => p.itemId)).toEqual([own]);
     expect(r.retention).toEqual({ passed: 0, total: 1, share: 0 });
   });
@@ -90,10 +98,10 @@ describe("knowledge_report", () => {
     }
     await deck(t, "Lesson 1", [a]);
     await deck(t, "Lesson 2", [b]);
-    const one = (await runTool("knowledge_report", { topic: t, decks: ["lesson 1"] })) as Report;
+    const one = await report({ topic: t, decks: ["lesson 1"] });
     expect(one.decks).toEqual(["Lesson 1"]);
     expect(one.mostFailed.map((p) => p.itemId)).toEqual([a]);
-    const both = (await runTool("knowledge_report", { topic: t, decks: ["Lesson 1", "Lesson 2"] })) as Report;
+    const both = await report({ topic: t, decks: ["Lesson 1", "Lesson 2"] });
     expect(both.mostFailed).toHaveLength(2);
     await expect(runTool("knowledge_report", { topic: "Klingon" })).rejects.toThrow(/No Topic “Klingon”.*French/);
     await expect(runTool("knowledge_report", { topic: t, decks: ["Nope"] })).rejects.toThrow(/No Deck “Nope”.*Lesson 1/);
@@ -114,9 +122,9 @@ describe("knowledge_report", () => {
     const b = await word(t, "kat", "cat");
     for (const [id, n] of [[a, 4], [b, 3]] as const) for (let k = 0; k < n; k++) await recall(t, id, "forward", "fail", 10 - k);
     await recall(t, a, "forward", "pass", 1);
-    const r = (await runTool("knowledge_report", { topic: "Danish" })) as Report;
+    const r = await report({ topic: "Danish" });
     expect(r.leeches).toEqual([{ itemId: a, type: "language_word", slot: "forward", question: "hund", answer: "dog", fails: 4 }]);
     const d = await deck(t, "Pets", [b]);
-    expect(((await runTool("knowledge_report", { topic: "Danish", decks: [d] })) as Report).leeches).toEqual([]);
+    expect((await report({ topic: "Danish", decks: [d] })).leeches).toEqual([]);
   });
 });

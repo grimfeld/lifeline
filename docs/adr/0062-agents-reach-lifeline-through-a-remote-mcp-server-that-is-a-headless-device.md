@@ -1,3 +1,8 @@
+---
+status: accepted
+amended-by: ADR 0115 (in part — a read-only Command, who invokes a Command, and an App refusing an agent's edit)
+---
+
 # Agents reach Lifeline through a remote MCP server that is a headless device
 
 An AI agent — Claude on the web or the phone, Claude Code, any MCP client — should read the agenda, find Documents, create Tasks and Events and tick things off, from anywhere. We add a **remote MCP server** (`mcp/`, its own Fly app beside PocketBase) and make each Account's calls run in a **headless device**: a worker thread running Core and every App unchanged, over an in-memory IndexedDB that syncs with PocketBase exactly like a phone does — pull before a call, push after a write, last write wins. The agent therefore changes things only through the operations a person's UI uses: Core's gated store, the Contracts' hooks, and the Apps' own operations. Nothing about a Task's invariants is restated on the server.

@@ -190,7 +190,8 @@ Claude can **draft** what it teaches you, but only you decide what enters your p
   runs drafts what it adds, as Claude's own capture does.
 - Adding the same thing twice is refused, not duplicated.
 - Claude cannot record or attach clips: those are yours.
-- "How is my Italian going?" — `knowledge_report`, read-only. For a Topic (and optionally some of its
+- "How is my Italian going?" — **Knowledge practice report** (`knowledge_report`), read-only, so Claude
+  can read it even on a connection you did not allow to make changes. For a Topic (and optionally some of its
   Decks, a lesson each) it gives **Retention** (the figure the app shows), what is **due** now, how many
   new prompts are waiting, your **leeches** (as the app lists them, each with its question, answer and fails), and the prompts **failed most** in the last 30 days (up to ten, most failed
   first): each with its question, answer, which prompt it is, and its latest recalls (pass or fail, when, and
