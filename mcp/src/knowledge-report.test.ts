@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
-import { documentsOf as docsOf, initApps, putDocument, type Document } from "@lifeline/core";
+import { db, DOCUMENTS, documentsOf as docsOf, initApps, putDocument, type Document } from "@lifeline/core";
 import { manifests } from "./apps";
 import { runTool } from "./handlers";
 import { TOOLS } from "./tools";
@@ -126,5 +126,24 @@ describe("knowledge_report", () => {
     expect(r.leeches).toEqual([{ itemId: a, type: "language_word", slot: "forward", question: "hund", answer: "dog", fails: 4 }]);
     const d = await deck(t, "Pets", [b]);
     expect((await report({ topic: "Danish", decks: [d] })).leeches).toEqual([]);
+  });
+
+  it("leaves kept material in the Private folder, and its Recalls, out whether or not a password is set (ADR 0062)", async () => {
+    // A pulled Workspace with no Private password: the gate is open, so only the App-side filter keeps Private out.
+    await db()._meta.put({ key: `cursor:${DOCUMENTS}`, value: "1" });
+    const t = await topic("Portuguese");
+    const open = await word(t, "estação", "station");
+    const quote = async (folder: string, text: string) => (await putDocument({ type: "quote", title: text, text, topic: t, kept: true, keptAt: day(30), folder, tags: [] })).id;
+    const hidden = await quote("Private/Diary", "segredo");
+    const shown = await quote("", "aberto");
+    for (const id of [open, hidden, shown]) {
+      await recall(t, id, id === open ? "reverse" : "passage", "fail", 3, "typed " + id);
+      await recall(t, id, id === open ? "reverse" : "passage", "fail", 2, "typed " + id);
+    }
+    const r = await report({ topic: t });
+    expect(r.mostFailed.map((p) => p.itemId).sort()).toEqual([open, shown].sort());
+    expect(r.retention).toEqual({ passed: 0, total: 2, share: 0 });
+    expect(JSON.stringify(r)).not.toContain("segredo");
+    expect(JSON.stringify(r)).not.toContain("typed " + hidden);
   });
 });
