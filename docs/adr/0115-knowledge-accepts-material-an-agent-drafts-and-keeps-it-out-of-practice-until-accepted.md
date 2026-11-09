@@ -19,7 +19,7 @@ So:
 
 ADR 0062 routes every App operation through a headless Command, and made every Command a write. Three hooks let Knowledge keep to that:
 
-- **A Command may be read-only** (`readOnly`). Its `invoke` changes nothing and answers in `CommandResult.data`; its tool is a read tool, so a read-only grant still offers it, and `about` tells the agent what it answers. The report is one, so the MCP server stays generic and imports no App.
+- **A Command may be read-only** (`readOnly`). Its `invoke` changes nothing and answers in `CommandResult.data`; its tool is a read tool, so a read-only grant still offers it, and nothing else runs it (not the palette, a key or a Macro's step, which would drop its answer), and `about` tells the agent what it answers. The report is one, so the MCP server stays generic and imports no App.
 - **A Command knows who runs it.** `invoke` receives an `InvokeContext`; `agent` is set when an outside agent calls through MCP, with the client's registered name when it has one, and a Macro an agent runs hands it to each step. Knowledge drafts whatever an agent adds.
 - **A type may refuse an agent's edit** (`agentEditRefusal` on its DocumentTypeDef). `update_document` asks it first and returns its reason; the App's own Commands and the user's edits are never asked. Knowledge refuses edits to accepted material, which arrive as a draft change instead.
 

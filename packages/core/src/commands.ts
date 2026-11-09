@@ -30,11 +30,14 @@ export function isInvocable(def: CommandDef): def is CommandDef & { args: Comman
  * How a Command runs when it is picked — the one reading the palette, a
  * Macro's step and a key all share: headless with its arguments (`invoke`), in
  * its dialog, or by its `run`, which either takes the user somewhere or stays
- * (`navigates: false`). "none" when it has none of them (inline only).
+ * (`navigates: false`). "none" when it has none of them (inline only), or when
+ * it is read-only: its answer is data for an agent (ADR 0115), which a palette
+ * row, a key or a Macro's step would drop, so only MCP runs it (`invokeCommand`).
  */
 export type CommandRun = "headless" | "dialog" | "navigates" | "run" | "none";
 
 export function commandRun(def: CommandDef): CommandRun {
+  if (def.readOnly) return "none";
   if (isInvocable(def)) return "headless";
   if (def.dialog) return "dialog";
   if (def.run) return (def.navigates ?? true) ? "navigates" : "run";
