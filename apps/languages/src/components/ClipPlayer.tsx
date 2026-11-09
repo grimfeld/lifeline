@@ -30,6 +30,11 @@ function useClipUrl(clipId: string | undefined): string | null {
  * without one reveals exactly as before.
  */
 export function ClipPlayer({ clipId, autoPlay = true }: { clipId: string | undefined; autoPlay?: boolean }) {
+  // One player per clip: a new clip starts afresh, never on the last one's url or played-state.
+  return <ClipPlayerFor key={clipId} clipId={clipId} autoPlay={autoPlay} />;
+}
+
+function ClipPlayerFor({ clipId, autoPlay }: { clipId: string | undefined; autoPlay: boolean }) {
   const url = useClipUrl(clipId);
   const audio = useRef<HTMLAudioElement>(null);
   const [played, setPlayed] = useState(0);
@@ -61,6 +66,10 @@ export function ClipPlayer({ clipId, autoPlay = true }: { clipId: string | undef
 
 /** The clip's audio element with controls, for the dialogs: hear it before keeping it. */
 export function ClipPreview({ clipId }: { clipId: string }) {
+  return <ClipPreviewFor key={clipId} clipId={clipId} />;
+}
+
+function ClipPreviewFor({ clipId }: { clipId: string }) {
   const url = useClipUrl(clipId);
   if (!url) return <span className="text-muted-foreground text-sm">Loading clip…</span>;
   return <audio src={url} controls preload="metadata" className="h-10 w-full min-w-0" data-testid="clip-preview" />;

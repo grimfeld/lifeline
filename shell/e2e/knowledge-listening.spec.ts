@@ -112,6 +112,46 @@ test("an item with a clip produces a listening Prompt: it plays at once, takes a
   expect(kept).toEqual(["nono"]);
 });
 
+test("two listening Prompts in a row: the second clip plays as it appears too", async ({ page }) => {
+  const name = `Listening twice ${Date.now()}`;
+  await newTopic(page, name);
+  for (const { term, meaning } of [{ term: "nonno", meaning: "grandfather" }, { term: "nonna", meaning: "grandmother" }]) {
+    await openAdd(page, "Word");
+    await page.getByLabel("Word", { exact: true }).fill(term);
+    await page.getByLabel("Meaning").fill(meaning);
+    await attach(page);
+    await page.getByRole("button", { name: "Add", exact: true }).click();
+  }
+  // Meet the written Prompts just now, so the two listening ones are all that is left.
+  await inCore(
+    page,
+    async (core, name: string) => {
+      const t = (await core.documentsOf("language")).find((d) => (d as { name?: string }).name === name) as { id: string };
+      const words = (await core.documentsOf("language_word")).filter((d) => (d as { languageId?: string }).languageId === t.id) as { id: string }[];
+      const at = new Date().toISOString();
+      for (const w of words) for (const slot of ["forward", "reverse"]) await core.putDocument({ type: "language_recall", title: "", languageId: t.id, itemId: w.id, slot, grade: "pass", at, folder: "", tags: [] });
+    },
+    name,
+  );
+  await page.reload();
+  await workLocally(page);
+
+  await practise(page, name);
+  await expect(page.getByText("What did you hear?")).toBeVisible();
+  await played(page);
+  const firstClip = await page.getByTestId("clip-audio").getAttribute("src");
+  const field = page.getByLabel("Your answer");
+  await field.fill("x");
+  await field.press("Enter");
+  await page.getByRole("button", { name: "Pass" }).click();
+
+  // The next Prompt is a fresh one (unrevealed, empty field), and its own clip plays.
+  await expect(page.getByLabel("Your answer")).toHaveValue("");
+  await expect(page.getByTestId("attempt-vs-answer")).toHaveCount(0);
+  await expect(page.getByTestId("clip-audio")).not.toHaveAttribute("src", firstClip ?? "");
+  await played(page);
+});
+
 test("a Sentence with a clip is heard and recalled whole", async ({ page }) => {
   const name = `Listening sentence ${Date.now()}`;
   await newTopic(page, name);
