@@ -122,3 +122,27 @@ test("removing a clip leaves the item revealing without one; items without a cli
   await expect(page.getByRole("button", { name: "Pass" })).toBeVisible();
   await expect(page.getByTestId("clip-replay")).toHaveCount(0);
 });
+
+test("recording announces when it starts and stops, not every second, while the button counts", async ({ page }) => {
+  // A microphone made of silence: the page asks for one only when Record is pressed.
+  await page.addInitScript(() => {
+    navigator.mediaDevices.getUserMedia = async () => {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const out = ctx.createMediaStreamDestination();
+      osc.connect(out);
+      osc.start();
+      return out.stream;
+    };
+  });
+  const name = `Clip record ${Date.now()}`;
+  await newTopic(page, name);
+  await openAdd(page, "Word");
+  await page.getByRole("button", { name: "Record" }).click();
+  const status = page.getByRole("status").filter({ hasText: /^Recording/ });
+  await expect(status).toHaveText("Recording");
+  await expect(page.getByRole("button", { name: "Stop recording" })).toContainText("2s", { timeout: 5000 });
+  await expect(status).toHaveText("Recording");
+  await page.getByRole("button", { name: "Stop recording" }).click();
+  await expect(status).toHaveText("Recording stopped");
+});
