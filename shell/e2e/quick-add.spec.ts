@@ -9,7 +9,14 @@ import { setTime } from "./support/time-field";
  * Event dialog.
  */
 
-const DAY = "2026-11-09"; // a Monday
+// A Monday a year before any run's seed: the seed dates its Events and Blockers
+// around the real today, and a fixed day it reaches gets a full grid (an hour
+// tapped lands on a seeded Event). The clock is pinned to it, so "today" is too.
+const DAY = "2025-11-10"; // a Monday
+
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date(`${DAY}T08:00:00`));
+});
 
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
@@ -57,7 +64,7 @@ test("an hour tapped adds an Event from its Start to its End, an earlier End rol
   await expect(quick.getByText(/· 3h 30m$/)).toBeVisible();
   await add.click();
   await expect(quick).toBeHidden();
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: "2026-11-10", start: "22:00", end: "01:30" });
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: "2025-11-11", start: "22:00", end: "01:30" });
 });
 
 test("an Event added at 23:30 for an hour ends at 00:30 the next day, never at 24:00 (#224)", async ({ page, isMobile }) => {
@@ -68,7 +75,7 @@ test("an Event added at 23:30 for an hour ends at 00:30 the next day, never at 2
   await expect(quick.getByText(/· 1h$/)).toBeVisible();
   await quick.getByRole("button", { name: "Add", exact: true }).click();
   await expect(quick).toBeHidden();
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: "2026-11-10", start: "23:30", end: "00:30" });
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: DAY, endDate: "2025-11-11", start: "23:30", end: "00:30" });
 });
 
 test("moving the Start keeps the length, and Enter in the title adds", async ({ page, isMobile }) => {
@@ -110,7 +117,7 @@ test('"More…" opens the Event dialog with the title, day, start and end alread
  * add opens with that range. An empty day shows from 7:00 (hourWindow's
  * floor), so an hour's y is (hour - 7) × 56px from the column's top.
  */
-const SWEEP_DAY = "2026-11-16"; // a Monday with nothing on it
+const SWEEP_DAY = "2025-11-17"; // a Monday with nothing on it
 const HOUR_PX = 56;
 const FIRST_HOUR = 7;
 

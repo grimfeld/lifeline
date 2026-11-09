@@ -82,7 +82,9 @@ test("a Part is marked read on a day picked before today, and no later day can b
     title,
   );
   await page.getByRole("button", { name: `Open ${title}` }).first().click();
-  const work = page.getByRole("dialog").first();
+  // The work opens on a page of its own, not a dialog.
+  await expect(page).toHaveURL(new RegExp(`/app/library/works/${id}$`));
+  const work = page;
   // A tap opens the Part rather than marking it: a switch on the desk, a Select on a phone (ADR 0064).
   if ((page.viewportSize()?.width ?? 0) < 768) {
     await work.getByRole("combobox", { name: "A tap" }).click();
