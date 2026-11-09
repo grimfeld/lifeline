@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { deleteAttachment, documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, inPrivateFolder, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
+import { allAttachments, deleteAttachment, documentTypeSync, documentsOf, documentsOfUngated, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, hasPulledOnce, inPrivateFolder, isAudioMime, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
 import { accepted, clipOfItem, draftChangeLines, REWRITABLE, type DraftChange } from "../domain/draft";
 import { dayOf } from "../domain/practice";
@@ -456,20 +456,70 @@ export async function deleteItem(id: string): Promise<void> {
   await removeDocument(id);
 }
 
+/** Clips whose item is deleted but may still be undone (ADR 0116): the cascade leaves them be. */
+const heldClips = new Set<string>();
+
+/**
+ * Delete an item whose deletion can be undone (CODING_STANDARDS § Deleting). Its clip is
+ * kept while the Undo window is open: `undo()` brings the item back with it, `commit()`
+ * (the window closed) deletes it.
+ */
+export async function deleteItemUndoably(id: string): Promise<{ undo: () => Promise<void>; commit: () => Promise<void> }> {
+  const item = await getDocument<Item>(id);
+  if (!item) return { undo: async () => undefined, commit: async () => undefined };
+  const clip = clipOfItem(item);
+  if (clip) heldClips.add(clip);
+  await removeDocument(id);
+  let settled = false; // Undo's click also dismisses its toast: whichever comes first decides
+  return {
+    undo: async () => {
+      if (settled) return;
+      settled = true;
+      await restoreItem(item);
+      if (clip) heldClips.delete(clip);
+    },
+    commit: async () => {
+      if (settled) return;
+      settled = true;
+      if (clip && heldClips.delete(clip)) await deleteAttachment(clip);
+    },
+  };
+}
+
 /**
  * Bring a deleted item back, for Undo: under its own id, so every Deck lists it again.
- * Its clip went with it (its bytes are dropped), so it comes back without one.
+ * Its clip comes with it only while the Undo window held it (`deleteItemUndoably`).
  */
 export async function restoreItem(item: Item): Promise<void> {
-  const { clip: _gone, ...rest } = item as Item & { clip?: string };
-  await putDocument(rest);
+  const { clip, ...rest } = item as Item & { clip?: string };
+  await putDocument(clip && heldClips.has(clip) ? { ...rest, clip } : rest);
 }
 
 /** The cascade, for any Recallable Document: its Recalls mean nothing without its Prompts, nor its clip (ADR 0116) without it. Decks simply stop listing it on read. */
 export async function removeItemRecalls(doc: Document): Promise<void> {
   await removeDocumentsWhere(RECALL, (r) => r.itemId === doc.id);
   const clip = clipOfItem(doc as Item);
-  if (clip) await deleteAttachment(clip);
+  if (clip && !heldClips.has(clip)) await deleteAttachment(clip);
+}
+
+/** A clip nobody holds is only an orphan once it is this old: a dialog open since may yet keep it. */
+const CLIP_GRACE_MS = 86_400_000;
+
+/**
+ * Delete the audio Attachments no Word or Sentence holds (ADR 0116): what a closed tab
+ * or a lapsed Undo left behind. Orphan cleanup (ADR 0037) skips audio, so this is its owner's.
+ */
+export async function sweepClipOrphans(now = Date.now()): Promise<void> {
+  // Until both have been pulled once, a Word may simply not have arrived to claim its clip.
+  if (!(await hasPulledOnce("documents")) || !(await hasPulledOnce("attachments"))) return;
+  const held = new Set<string>(heldClips);
+  // Ungated: a Word in the locked Private folder, or in another Workspace, still holds its clip.
+  for (const doc of await documentsOfUngated<Word | Sentence>([WORD, SENTENCE])) if (doc.clip) held.add(doc.clip);
+  for (const a of await allAttachments()) {
+    if (!isAudioMime(a.mime) || held.has(a.id)) continue;
+    if (now - Date.parse(a.updatedAt) < CLIP_GRACE_MS) continue;
+    await deleteAttachment(a.id);
+  }
 }
 
 // ---- Decks ----

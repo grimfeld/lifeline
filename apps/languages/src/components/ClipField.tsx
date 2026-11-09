@@ -18,7 +18,8 @@ function recorderType(): string | undefined {
  * The clip a Word or Sentence dialog is editing (ADR 0116). Recording or
  * attaching stores the audio at once; the dialog's Save is what keeps it on the
  * item, so every Attachment made and not kept is deleted again — replaced
- * mid-edit, or the dialog closed without saving. Replacing or removing a
+ * mid-edit, or the dialog closed without saving (a closed tab leaves it for
+ * `sweepClipOrphans`). Replacing or removing a
  * clip already on the item is the repo's to clean up when Save writes it.
  */
 export function useClipDraft(open: boolean, savedClip: string | undefined) {

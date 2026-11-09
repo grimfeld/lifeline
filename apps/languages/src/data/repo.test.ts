@@ -1,9 +1,12 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it, vi } from "vitest";
-import { addAudioAttachment, allAttachments, documentsOf, getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
+
+const sync = vi.hoisted(() => ({ pulled: true }));
+vi.mock("@lifeline/core", async (orig) => ({ ...(await orig<typeof import("@lifeline/core")>()), hasPulledOnce: async () => sync.pulled }));
+import { addAudioAttachment, allAttachments, documentsOf, getDocument, putDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
 import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item, type Recall, type Sentence, type Word } from "../domain/types";
 import { accepted } from "../domain/draft";
-import { acceptDraft, acceptDrafts, acceptDraftChange, addDeck, addSentence, addWord, deckNamed, deleteItem, discardDraftChange, restoreItem, saveDraftChange, recordRecall, removeItemRecalls, setMembership, strikeRecall, updateSentence, updateWord } from "./repo";
+import { acceptDraft, acceptDrafts, acceptDraftChange, addDeck, addSentence, addWord, deckNamed, deleteItem, deleteItemUndoably, discardDraftChange, restoreItem, saveDraftChange, recordRecall, removeItemRecalls, setMembership, strikeRecall, sweepClipOrphans, updateSentence, updateWord } from "./repo";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId"], builtIn: true }) as unknown as DocumentTypeDef;
@@ -137,6 +140,67 @@ describe("a clip (ADR 0116)", () => {
     await removeItemRecalls(doc);
     await deleteItem(id);
     expect(await clipsKept()).not.toContain(clip);
+  });
+});
+
+describe("a clip and Undo (ADR 0116)", () => {
+  async function draftWithClip() {
+    const clip = (await addAudioAttachment(audio())).id;
+    const id = await addWord({ languageId: "es", term: "luna", meaning: "moon", clip, draft: true });
+    return { clip, id };
+  }
+
+  it("Undo brings the draft back with its clip still attached", async () => {
+    const { clip, id } = await draftWithClip();
+    const del = await deleteItemUndoably(id);
+    expect(await getDocument(id)).toBeUndefined();
+    await del.undo();
+    expect((await getDocument<Word>(id))!.clip).toBe(clip);
+    expect(await clipsKept()).toContain(clip);
+  });
+
+  it("letting the Undo window close removes the clip", async () => {
+    const { clip, id } = await draftWithClip();
+    const del = await deleteItemUndoably(id);
+    expect(await clipsKept()).toContain(clip);
+    await del.commit();
+    expect(await clipsKept()).not.toContain(clip);
+  });
+});
+
+describe("sweeping clip orphans (ADR 0116)", () => {
+  it("removes audio no Word or Sentence holds once it is older than the grace, and nothing else", async () => {
+    const held = (await addAudioAttachment(audio())).id;
+    await addWord({ languageId: "es", term: "sal", meaning: "salt", clip: held });
+    const stray = (await addAudioAttachment(audio())).id;
+    await sweepClipOrphans(Date.now());
+    expect(await clipsKept()).toContain(stray); // too young: a dialog may still be about to keep it
+    await sweepClipOrphans(Date.now() + 2 * 86_400_000);
+    const kept = await clipsKept();
+    expect(kept).not.toContain(stray);
+    expect(kept).toContain(held);
+  });
+
+  it("waits for the first pull: a Word that has not arrived yet does not make its clip an orphan", async () => {
+    const stray = (await addAudioAttachment(audio())).id;
+    sync.pulled = false;
+    try {
+      await sweepClipOrphans(Date.now() + 2 * 86_400_000);
+      expect(await clipsKept()).toContain(stray);
+    } finally {
+      sync.pulled = true;
+    }
+    await sweepClipOrphans(Date.now() + 2 * 86_400_000);
+    expect(await clipsKept()).not.toContain(stray);
+  });
+
+  it("keeps the clip of a Word in the locked Private folder", async () => {
+    const clip = (await addAudioAttachment(audio())).id;
+    const id = await addWord({ languageId: "es", term: "secreto", meaning: "secret", clip });
+    await putDocument({ ...(await getDocument<Word>(id))!, folder: "Private" });
+    expect(await getDocument(id)).toBeUndefined(); // the gate hides it
+    await sweepClipOrphans(Date.now() + 2 * 86_400_000);
+    expect(await clipsKept()).toContain(clip);
   });
 });
 

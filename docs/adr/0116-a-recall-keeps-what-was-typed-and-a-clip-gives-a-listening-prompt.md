@@ -1,6 +1,6 @@
 ---
 status: accepted
-amends: ADR 0058 (in part — a Recall may carry a typed attempt; a clip adds a listening Prompt)
+amends: ADR 0058 (in part — a Recall may carry a typed attempt; a clip adds a listening Prompt); ADR 0037 (in part — a clip's Attachment is deleted by its item, not by the cleanup Command)
 ---
 
 # A Recall keeps what was typed, and a clip gives a listening Prompt
@@ -26,3 +26,7 @@ So:
 - The Recall type gains an optional `typed` text; Word and Sentence gain an optional clip; Sentence gains notes.
 - The listening Prompt is a new slot in each type's Recallable declaration; a Topic's daily new cap counts it like any other.
 - An agent cannot add clips through MCP.
+- **A clip lives exactly as long as its item** and departs from ADR 0037 in that: orphan cleanup skips audio, and the Word or Sentence that holds the clip's id deletes it, not the cleanup Command. Replacing or removing the clip on Save deletes the old Attachment; deleting the item deletes it with the cascade.
+- **Undo keeps the clip.** Deleting a draft in Deck review holds its clip while the Undo toast is open: Undo restores the draft with it, and the clip is deleted only once the toast closes.
+- **A clip stored and never kept is swept.** The dialog stores a recording at once (so it can be heard before Save) and deletes what Save did not keep, but a closed tab skips that. Opening Knowledge therefore deletes any audio Attachment that no Word or Sentence holds and is over a day old (the day leaves an open dialog alone). It waits for the first pull of documents and attachments, and counts clips held by Private or other-Workspace items too, so a Word it cannot see still keeps its clip.
+- **Video containers are for clips only.** The file field accepts `video/webm` and `video/mp4` because PocketBase sniffs an audio-only WebM or MP4 as video; a create hook (`attachments.pb.js`) refuses a video upload whose declared `mime` is not `audio/*`.
