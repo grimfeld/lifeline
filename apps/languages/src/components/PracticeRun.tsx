@@ -111,6 +111,12 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  // The typed field or the Show answer button unmounts on reveal; focus follows to the grade buttons rather than falling to the body.
+  const firstGrade = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (revealed) firstGrade.current?.focus();
+  }, [revealed]);
+
   const done = count.passed + count.failed;
 
   return (
@@ -166,7 +172,8 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
           )}
           {revealed ? (
             <div className="grid grid-cols-2 gap-3">
-              <Button size="lg" variant="outline" className="h-14 text-base" onClick={() => void grade("fail")}>
+              {/* ui-allow: control-size — the grade buttons are the big thumb targets, as before */}
+              <Button ref={firstGrade} size="lg" variant="outline" className="h-14 text-base" onClick={() => void grade("fail")}>
                 <X /> Fail
               </Button>
               <Button size="lg" className="h-14 text-base" onClick={() => void grade("pass")}>

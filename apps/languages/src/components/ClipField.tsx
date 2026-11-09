@@ -108,11 +108,11 @@ export function ClipField({ clip, onPut, onRemove, idPrefix }: { clip: string; o
     r.start();
     setSeconds(0);
     setRecording(true);
+    let elapsed = 0;
     timer.current = setInterval(() => {
-      setSeconds((n) => {
-        if (n + 1 >= MAX_RECORDING_SECONDS) r.stop();
-        return n + 1;
-      });
+      elapsed += 1;
+      setSeconds(elapsed);
+      if (elapsed >= MAX_RECORDING_SECONDS && recorder.current?.state === "recording") recorder.current.stop();
     }, 1000);
   }
 
@@ -128,13 +128,18 @@ export function ClipField({ clip, onPut, onRemove, idPrefix }: { clip: string; o
 
   return (
     <div className="grid gap-2">
-      <Label htmlFor={`${idPrefix}-clip-file`}>Audio clip</Label>
+      <Label id={`${idPrefix}-clip-label`}>Audio clip</Label>
       {clip && <ClipPreview clipId={clip} />}
-      <div className="flex flex-wrap items-center gap-2">
+      <div role="group" aria-labelledby={`${idPrefix}-clip-label`} className="flex flex-wrap items-center gap-2">
         {recording ? (
-          <Button type="button" size="sm" variant="destructive" onClick={stop}>
-            <Square /> Stop · {seconds}s
-          </Button>
+          <>
+            <Button type="button" size="sm" variant="destructive" onClick={stop} aria-label="Stop recording">
+              <Square /> Stop · {seconds}s
+            </Button>
+            <span role="status" className="sr-only">
+              Recording, {seconds} seconds
+            </span>
+          </>
         ) : (
           canRecord && (
             <Button type="button" size="sm" variant="outline" onClick={() => void start()}>
@@ -150,7 +155,7 @@ export function ClipField({ clip, onPut, onRemove, idPrefix }: { clip: string; o
             <Trash2 /> Remove
           </Button>
         )}
-        <input ref={picker} id={`${idPrefix}-clip-file`} type="file" accept="audio/*" className="sr-only" onChange={(e) => attach(e.target.files?.[0])} data-testid="clip-file" />
+        <input ref={picker} type="file" accept="audio/*" className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => attach(e.target.files?.[0])} data-testid="clip-file" />
       </div>
       <span className="text-muted-foreground text-xs">Played whenever you reveal this one. Optional.</span>
     </div>

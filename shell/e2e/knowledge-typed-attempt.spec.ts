@@ -38,6 +38,7 @@ test("type into a blank, reveal with Enter, see both, grade, and the Recall keep
   await expect(both).toContainText("You typed");
   await expect(both).toContainText("perche");
   await expect(both).toContainText("perché");
+  await expect(page.getByRole("button", { name: "Fail" })).toBeFocused(); // focus follows the reveal, not the body
   await page.getByRole("button", { name: "Fail" }).click();
 
   const kept = await inCore(page, async (core, name: string) => {
