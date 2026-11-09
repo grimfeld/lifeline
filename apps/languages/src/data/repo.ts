@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { deleteAttachment, documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
+import { deleteAttachment, documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, inPrivateFolder, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
 import { accepted, clipOfItem, draftChangeLines, REWRITABLE, type DraftChange } from "../domain/draft";
 import { dayOf } from "../domain/practice";
@@ -258,6 +258,16 @@ function wordRowOf(input: WordInput) {
 }
 
 /**
+ * Every Recallable Document, with whether it sits in the Private folder, which is
+ * out of an agent's reach whether or not a password is set (ADR 0062), as
+ * `isAgentVisible` holds for the other MCP reads.
+ */
+async function allMaterial(): Promise<{ m: MaterialDoc; hidden: boolean }[]> {
+  const all = await Promise.all(recallableDefs().map(async (def) => (await documentsOf(def.typeId)).map((doc) => ({ m: materialOf(def, doc), hidden: inPrivateFolder(doc.folder) }))));
+  return all.flat();
+}
+
+/**
  * The reads a practice report takes (domain/report.ts), normalised as the
  * screens read them. Decks and Recalls are read by their Topic's key; the
  * Recallable Contract names no topic field (ADR 0073), so material is read
@@ -266,8 +276,12 @@ function wordRowOf(input: WordInput) {
 export const reportReads: ReportReads = {
   topics: async () => (await documentsOf<Topic>(TOPIC)).map(normalizeTopic),
   decksOf: async (topicId) => (await documentsWhere<Deck>(DECK, "languageId", topicId)).map(normalizeDeck),
-  materialOf: async (topicId) => (await Promise.all(recallableDefs().map(async (def) => (await documentsOf(def.typeId)).map((doc) => materialOf(def, doc))))).flat().filter((m) => m.topicId === topicId),
-  recallsOf: async (topicId) => (await documentsWhere<Recall>(RECALL, "languageId", topicId)).map(normalizeRecall),
+  materialOf: async (topicId) => (await allMaterial()).filter((x) => !x.hidden && x.m.topicId === topicId).map((x) => x.m),
+  recallsOf: async (topicId) => {
+    const hidden = new Set((await allMaterial()).filter((x) => x.hidden).map((x) => x.m.id));
+    // A Recall of Private material goes with it.
+    return (await documentsWhere<Recall>(RECALL, "languageId", topicId)).filter((r) => !hidden.has(r.itemId)).map(normalizeRecall);
+  },
 };
 
 /** Every Topic, Word, Sentence and Fact, read once — what headless adds check against. */
