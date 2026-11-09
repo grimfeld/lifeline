@@ -4,7 +4,8 @@ import type { MaterialDoc } from "./material";
 import { leeches as readLeeches } from "./leech";
 import { dayOf, heldPrompts, introducedByTopic, queueOfHeld, recallsByPrompt, recallsOfLive, retention } from "./practice";
 import { LISTEN, promptsOf } from "./prompts";
-import { FACT, SENTENCE, WORD, type Fact, type Grade, type Recall, type Sentence, type Word } from "./types";
+import { sameName } from "./names";
+import { FACT, SENTENCE, WORD, type Deck, type Fact, type Grade, type Recall, type Sentence, type Topic, type Word } from "./types";
 
 /** Policy, in one place: how many failed Prompts the report lists, and how many Recalls it shows with each. */
 export const MOST_FAILED_SHOWN = 10;
@@ -147,4 +148,47 @@ function reportedLeeches(live: MaterialDoc[], recalls: Recall[]): ReportedLeech[
     const m = byId.get(l.itemId)!;
     return { itemId: l.itemId, type: m.type, slot: l.slot, ...promptText(m, l.slot), fails: l.fails };
   });
+}
+
+/**
+ * The keyed, normalised reads a Topic's report takes (data/repo.ts gives the
+ * real ones): each asks for one Topic, so the report never reads another's.
+ */
+export interface ReportReads {
+  /** Every Topic, archived or not. */
+  topics(): Promise<Topic[]>;
+  decksOf(topicId: string): Promise<Deck[]>;
+  /** The Topic's Recallable material, whichever App owns it (ADR 0073). */
+  materialOf(topicId: string): Promise<MaterialDoc[]>;
+  recallsOf(topicId: string): Promise<Recall[]>;
+}
+
+/** What the `knowledge.report` Command answers: the Topic and Decks it was read for, then the report. */
+export interface TopicReport extends PracticeReport {
+  topic: string;
+  /** Names of the Decks it was narrowed to; empty for the whole Topic. */
+  decks: string[];
+}
+
+/**
+ * The practice report for a Topic (its id or name), optionally narrowed to
+ * some of its Decks (ids or names), read through the Knowledge App so Recalls
+ * stay an internal type (ADR 0115). Read-only. An unknown Topic or Deck throws,
+ * naming what exists.
+ */
+export async function topicReport(input: { topic: string; decks?: string[] }, reads: ReportReads, now = new Date()): Promise<TopicReport> {
+  const topics = (await reads.topics()).filter((t) => !t.archived);
+  const wanted = input.topic.trim();
+  const topic = topics.find((t) => t.id === wanted) ?? topics.find((t) => sameName(t.name, wanted));
+  if (!topic) throw new Error(`No Topic “${input.topic}”. Topics: ${topics.map((t) => t.name).join(", ") || "none"}`);
+
+  const [topicDecks, material, recalls] = await Promise.all([reads.decksOf(topic.id), reads.materialOf(topic.id), reads.recallsOf(topic.id)]);
+  const decks = (input.decks ?? []).map((ref) => {
+    const deck = topicDecks.find((d) => d.id === ref) ?? topicDecks.find((d) => sameName(d.name, ref));
+    if (!deck) throw new Error(`No Deck “${ref}” in ${topic.name}. Decks: ${topicDecks.map((d) => d.name).join(", ") || "none"}`);
+    return deck;
+  });
+  const members = new Set(decks.flatMap((d) => d.members));
+  const items = decks.length ? material.filter((m) => members.has(m.id)) : material;
+  return { topic: topic.name, decks: decks.map((d) => d.name), ...practiceReport({ items, recalls, now, newCap: topic.newCap }) };
 }

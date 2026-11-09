@@ -13,7 +13,8 @@ import { manifests } from "./apps";
  *  - generic tools over Core — Documents, the agenda, the Schedulable and
  *    Timed Contracts — that work for every App at once, and the Guide;
  *  - one tool per headless Command (a Command with `args` and `invoke`),
- *    so creating a Task or a Chore runs the App's own operation.
+ *    so creating a Task or a Chore runs the App's own operation. A read-only
+ *    Command (ADR 0115) is a read tool, like the generic reads.
  *
  * And one kind that is not here: a tool per headless Macro (ADR 0092). Macros
  * are the Account's own data, so `TOOLS` cannot hold them; `macroTools` builds
@@ -77,18 +78,6 @@ const GENERIC: ToolSpec[] = [
     input: { page: z.string().optional().describe("A page from the list: house, money, calendar, capture…") },
     write: false,
     local: readGuide,
-  },
-  {
-    name: "knowledge_report",
-    title: "Knowledge practice report",
-    description:
-      "How the user's practice of a Knowledge Topic is going, read-only: Retention (the share of the last 30 days' Recalls passed, as the app shows it), what is due now, how many new Prompts are waiting, the Leeches (Prompts with 4 or more fails among their last 8 Recalls, with question, answer and fail count), and the Prompts failed most over the last 30 days, each with its question, answer, slot and latest Recalls (grade, moment, and `typed`: what the user typed before revealing, where they typed an attempt — read these to see what went wrong). Optionally narrowed to some of the Topic's Decks (lessons). Drafts and paused material are left out. Use it to choose what to teach next instead of asking for a score.",
-    input: {
-      topic: z.string().describe("The Topic's id or exact name, e.g. Italian."),
-      decks: z.array(z.string()).optional().describe("Deck (lesson) ids or names of that Topic; omit for the whole Topic."),
-      workspace,
-    },
-    write: false,
   },
   {
     name: "list_workspaces",
@@ -273,9 +262,9 @@ function commandTool(def: CommandDef & { appId: string }): ToolSpec | null {
   return {
     name: commandToolName(def.id),
     title: def.title,
-    description: `${def.title} — the ${def.appId} App's own operation, as its "${def.title}" command does.`,
+    description: def.about ?? `${def.title} — the ${def.appId} App's own operation, as its "${def.title}" command does.`,
     input,
-    write: true,
+    write: !def.readOnly,
     command: def.id,
   };
 }
@@ -285,6 +274,11 @@ export const TOOLS: ToolSpec[] = [
   ...GENERIC,
   ...manifests.flatMap((m) => m.commands.map((c) => commandTool({ ...c, appId: m.id }))).filter((t): t is ToolSpec => t !== null),
 ];
+
+/** The tools a connection is offered: a read-only grant (no lifeline:write) sees only the read tools. */
+export function offeredTools(tools: readonly ToolSpec[], canWrite: boolean): ToolSpec[] {
+  return tools.filter((t) => canWrite || !t.write);
+}
 
 /** A headless Macro's tool, as the device describes it: plain data, so it crosses from the worker to the server. */
 export interface MacroTool {
