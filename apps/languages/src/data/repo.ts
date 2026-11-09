@@ -242,6 +242,7 @@ export interface WordInput {
 }
 
 /** The `clip` an edit writes: only when the input says. */
+const draftOf = (input: { draft?: boolean }) => (input.draft ? { draft: true } : {});
 const clipOf = (input: { clip?: string }) => (input.clip === undefined ? {} : { clip: input.clip });
 
 /** A replaced or removed clip's Attachment goes with it: the clip is nobody else's. */
@@ -298,7 +299,7 @@ export async function allSentences(): Promise<Sentence[]> {
 }
 
 export async function addWord(input: WordInput): Promise<string> {
-  const row = await putDocument<Word>({ ...wordRowOf(input), paused: false, ...(input.draft ? { draft: true } : {}), addedAt: new Date().toISOString() });
+  const row = await putDocument<Word>({ ...wordRowOf(input), paused: false, ...draftOf(input), addedAt: new Date().toISOString() });
   return row.id;
 }
 
@@ -335,7 +336,7 @@ function sentenceRowOf(input: SentenceInput) {
 }
 
 export async function addSentence(input: SentenceInput): Promise<string> {
-  const row = await putDocument<Sentence>({ ...sentenceRowOf(input), paused: false, ...(input.draft ? { draft: true } : {}), addedAt: new Date().toISOString() });
+  const row = await putDocument<Sentence>({ ...sentenceRowOf(input), paused: false, ...draftOf(input), addedAt: new Date().toISOString() });
   return row.id;
 }
 
@@ -371,7 +372,7 @@ export async function allFacts(): Promise<Fact[]> {
 }
 
 export async function addFact(input: FactInput): Promise<string> {
-  const row = await putDocument<Fact>({ ...factRowOf(input), paused: false, ...(input.draft ? { draft: true } : {}), addedAt: new Date().toISOString() });
+  const row = await putDocument<Fact>({ ...factRowOf(input), paused: false, ...draftOf(input), addedAt: new Date().toISOString() });
   return row.id;
 }
 

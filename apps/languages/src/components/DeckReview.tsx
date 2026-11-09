@@ -128,17 +128,20 @@ export function DeckReview({ deck, items, open, onOpenChange }: { deck: Deck; it
                       Accept all ({drafts.length})
                     </Button>
                   ) : (
-                    // A disabled Button takes no pointer, so the tooltip sits on a focusable wrapper.
+                    // aria-disabled (not disabled) keeps the Button focusable and hoverable for its tooltip; the click does nothing.
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span tabIndex={0} className="inline-flex">
-                          <Button variant="outline" disabled>
-                            Accept all ({drafts.length})
-                          </Button>
-                        </span>
+                        <Button variant="outline" aria-disabled="true" aria-describedby="accept-all-reason" className="opacity-50" onClick={(e) => e.preventDefault()}>
+                          Accept all ({drafts.length})
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent>Show every draft first</TooltipContent>
                     </Tooltip>
+                  )}
+                  {!ready && (
+                    <span id="accept-all-reason" className="sr-only">
+                      Show every draft first
+                    </span>
                   )}
                   <Button onClick={() => void accept()}>Accept</Button>
                 </>

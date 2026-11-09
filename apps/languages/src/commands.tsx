@@ -1,8 +1,7 @@
-import type { CommandDef, CommandDialogProps } from "@lifeline/core";
+import type { CommandDef, CommandDialogProps, InvokeContext } from "@lifeline/core";
 import { Brain, MessageCircleQuestion, PencilLine, Play, Plus, TextCursorInput } from "lucide-react";
 import { TOPIC, KNOWLEDGE_HREF, WORD, SENTENCE, FACT, type Item } from "./domain/types";
 import { fieldOf, KIND_NAME, kindsWith, REWRITABLE, REWRITABLE_FIELDS, REWRITABLE_KEYS, type DraftChange } from "./domain/draft";
-import type { InvokeContext } from "@lifeline/core";
 import { blankSlots } from "./domain/cloze";
 import { addFact, addSentence, addWord, allFacts, allTopics, allSentences, allWords, deckNamed, reportReads, saveDraftChange, setMembership, updateItem } from "./data/repo";
 import { sameName } from "./domain/names";

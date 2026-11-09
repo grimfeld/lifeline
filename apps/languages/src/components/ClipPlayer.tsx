@@ -72,5 +72,5 @@ export function ClipPreview({ clipId }: { clipId: string }) {
 function ClipPreviewFor({ clipId }: { clipId: string }) {
   const url = useClipUrl(clipId);
   if (!url) return <span className="text-muted-foreground text-sm">Loading clip…</span>;
-  return <audio src={url} controls preload="metadata" className="h-10 w-full min-w-0" data-testid="clip-preview" />;
+  return <audio src={url} controls aria-label="Clip preview" preload="metadata" className="h-10 w-full min-w-0" data-testid="clip-preview" />;
 }
