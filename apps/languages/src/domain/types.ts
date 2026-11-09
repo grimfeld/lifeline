@@ -142,7 +142,6 @@ export interface Fact extends Document {
 /** A Word, a Sentence or a Fact — Knowledge's own Recallable types. */
 export type Item = Word | Sentence | Fact;
 
-
 /**
  * One Recallable Document as Practice reads it, through the Contract
  * (ADR 0073) — whatever App owns it. Practice knows nothing else about it.

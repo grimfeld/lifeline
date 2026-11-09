@@ -173,7 +173,7 @@ export function PracticeTab({ topic, items, decks, recalls }: { topic: Topic; it
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-muted-foreground text-sm font-medium">Decks</h2>
             {decks.length > 1 && (
-              <Button size="sm" variant="ghost" aria-pressed={mixing} onClick={toggleMix}>
+              <Button size="sm" variant="ghost" onClick={toggleMix}>
                 {mixing ? "Cancel" : "Mix decks"}
               </Button>
             )}
