@@ -84,6 +84,12 @@ describe("acceptDrafts", () => {
 });
 
 describe("deckNamed", () => {
+  it("parallel captures into a new Deck name leave one Deck", async () => {
+    const decks = await Promise.all([deckNamed("it", "Lesson 9"), deckNamed("it", "lesson 9 "), deckNamed("it", "Lesson 9")]);
+    expect(new Set(decks.map((d) => d.id)).size).toBe(1);
+    expect((await documentsOf<Deck>(DECK)).filter((d) => d.languageId === "it")).toHaveLength(1);
+  });
+
   it("finds a Deck by name in its Topic, case ignored, else makes it there", async () => {
     const a = await deckNamed("fr", "Lesson 1");
     expect((await deckNamed("fr", "lesson 1")).id).toBe(a.id);
@@ -182,6 +188,22 @@ describe("a draft change (ADR 0115)", () => {
     await saveDraftChange(await read(id), { term: "la casa", meaning: "the home" });
     await acceptDraftChange(await read(id));
     expect(await read<{ term: string; meaning: string; title: string; draftChange?: object | null }>(id)).toMatchObject({ term: "la casa", meaning: "the home", title: "la casa", draftChange: null });
+  });
+
+  it("editing the item to match its draft change clears the change", async () => {
+    const id = await addWord({ languageId: "es", term: "casa", meaning: "house" });
+    await saveDraftChange(await read(id), { meaning: "home" });
+    const w = await read<Word>(id);
+    await updateWord(w, { ...w, meaning: "home" });
+    expect((await read<{ draftChange?: object | null }>(id)).draftChange ?? null).toBeNull();
+  });
+
+  it("an edit that leaves the change still different keeps it", async () => {
+    const id = await addWord({ languageId: "es", term: "casa", meaning: "house" });
+    await saveDraftChange(await read(id), { meaning: "home" });
+    const w = await read<Word>(id);
+    await updateWord(w, { ...w, notes: "feminine" });
+    expect(await read<{ draftChange: object }>(id)).toMatchObject({ draftChange: { meaning: "home" } });
   });
 
   it("accepting a Sentence rewrite keeps the blanks it still has", async () => {
