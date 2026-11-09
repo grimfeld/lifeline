@@ -1,7 +1,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { deleteAttachment, documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
-import { REWRITABLE, type DraftChange } from "../domain/draft";
+import { accepted, clipOfItem, REWRITABLE, type DraftChange } from "../domain/draft";
 import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
 import { sameName } from "../domain/names";
@@ -366,7 +366,10 @@ export async function updateFact(f: Fact, input: FactInput): Promise<void> {
  * practice as new now, and the daily new cap counts it today. Its origin stays.
  */
 export async function acceptDraft(id: string): Promise<void> {
-  await patchDocument(id, { draft: false, addedAt: new Date().toISOString() });
+  const item = await getDocument<Item>(id);
+  if (!item) return;
+  const { draft, addedAt } = accepted(item, new Date().toISOString());
+  await patchDocument(id, { draft, addedAt });
 }
 
 /** Each kind's own edit, so whatever edits an item of unknown kind goes through the same checks and Prompt rules (ADR 0058). */
@@ -439,14 +442,14 @@ export async function deleteItem(id: string): Promise<void> {
  * Its clip went with it (its bytes are dropped), so it comes back without one.
  */
 export async function restoreItem(item: Item): Promise<void> {
-  const { clip: _gone, ...rest } = item as Word;
+  const { clip: _gone, ...rest } = item as Item & { clip?: string };
   await putDocument(rest);
 }
 
 /** The cascade, for any Recallable Document: its Recalls mean nothing without its Prompts, nor its clip (ADR 0116) without it. Decks simply stop listing it on read. */
 export async function removeItemRecalls(doc: Document): Promise<void> {
   await removeDocumentsWhere(RECALL, (r) => r.itemId === doc.id);
-  const clip = (doc as Word).clip;
+  const clip = clipOfItem(doc as Item);
   if (clip) await deleteAttachment(clip);
 }
 

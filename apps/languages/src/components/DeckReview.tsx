@@ -2,11 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Tooltip, TooltipContent, TooltipTrigger, toast } from "@lifeline/ui";
 import { acceptAllReady, deckDrafts, KIND_NAME } from "../domain/draft";
 import { itemLines } from "../domain/prompts";
-import { FACT, SENTENCE, WORD, type Deck, type Fact, type Item, type Sentence, type Word } from "../domain/types";
+import type { Deck, Item } from "../domain/types";
 import { acceptDraft, acceptDrafts, deleteItem, restoreItem } from "../data/repo";
-import { WordDialog } from "./WordDialog";
-import { SentenceDialog } from "./SentenceDialog";
-import { FactDialog } from "./FactDialog";
+import { ItemDialog } from "./ItemDialog";
 
 /**
  * A Deck's drafts, one at a time (ADR 0115): accept, edit then accept, or delete
@@ -146,9 +144,7 @@ export function DeckReview({ deck, items, open, onOpenChange }: { deck: Deck; it
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <WordDialog open={editing && current?.type === WORD} onOpenChange={setEditing} word={current?.type === WORD ? (current as Word) : undefined} />
-      <SentenceDialog open={editing && current?.type === SENTENCE} onOpenChange={setEditing} sentence={current?.type === SENTENCE ? (current as Sentence) : undefined} />
-      <FactDialog open={editing && current?.type === FACT} onOpenChange={setEditing} fact={current?.type === FACT ? (current as Fact) : undefined} />
+      <ItemDialog item={current} open={editing} onOpenChange={setEditing} />
     </>
   );
 }
