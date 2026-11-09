@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ATTACHMENTS, db, DOCUMENTS, type SyncedRecord } from "../data/db";
 import { sharedLiveQuery } from "../data/live";
 import { reuseUnchanged } from "../data/reconcile";
-import { put, remove } from "../data/repo";
+import { put, putAll, remove } from "../data/repo";
 import { newId } from "../ids";
 import { todayStr } from "../dates";
 import { normalizeTags } from "../tags";
@@ -161,16 +161,15 @@ export async function removeDocument(id: string): Promise<void> {
   // `removeDocumentsWhere` below tombstones directly, so a cascade that uses
   // it cannot re-enter this.
   const doc = await documentsTable().get(id);
-  if (doc && !doc.deleted) await cascade(doc);
-  await remove(DOCUMENTS, id);
-}
-
-/** What goes with a live Document when it is deleted: its type's own cascade, its practice, and the links to it its type asks to undo. */
-async function cascade(doc: Document): Promise<void> {
+  if (!doc || doc.deleted) return remove(DOCUMENTS, id);
   const def = documentTypeSync(doc.type);
   await def?.onDelete?.(doc);
   await forgetPractice(doc);
-  if (def?.unlinkOnDelete) await unlinkEverywhere(doc.id, doc.type);
+  // The links its type asks to undo, and the tombstone, in one write: a failure
+  // halfway would leave a live Document already gone from the Fields that held it.
+  const holders = def?.unlinkOnDelete ? await unlinkedHolders(doc.id, doc.type) : [];
+  const current = (await documentsTable().get(id)) ?? doc;
+  await putAll<Document>(DOCUMENTS, [...holders, { ...current, deleted: 1 }]);
 }
 
 /** A Recallable Document's practice goes with it, whatever App owns it and whichever keeps the practice (ADR 0073). */
@@ -199,17 +198,25 @@ export function linkHolders(type: string, types: readonly DocumentTypeDef[] = al
 }
 
 /**
- * Take `id` out of every Link field that holds it, on every live Document of
- * every Workspace (`unlinkOnDelete`). A `links` Field loses the one id; a
- * `link` Field is emptied. Only the Documents that could hold it are read
- * (`linkHolders`, through the type and Role indexes), not the whole store.
+ * Every live Document, of every Workspace, with `id` taken out of the Link
+ * fields that hold it (`unlinkOnDelete`), ready to write: a `links` Field
+ * loses the one id; a `link` Field is emptied. Only the Documents that could
+ * hold it are read (`linkHolders`, through the type and Role indexes), not the
+ * whole store. Each keeps its Workspace, folder and tags (none derives from a
+ * Link field); an untitled one is titled again, as `putDocument` would.
  */
-async function unlinkEverywhere(id: string, type: string): Promise<void> {
+async function unlinkedHolders(id: string, type: string): Promise<Document[]> {
+  const out: Document[] = [];
   for (const row of await liveHolders(type)) {
     if (row.id === id) continue;
     const patch = unlinked(row, id);
-    if (patch) await putDocument({ ...row, ...patch } as DocumentInput);
+    if (!patch) continue;
+    const next = { ...row, ...patch };
+    const titleOf = documentTypeSync(row.type)?.titleOf;
+    if (!next.title && titleOf) next.title = titleOf(next);
+    out.push(next);
   }
+  return out;
 }
 
 /** The live Documents, of any Workspace, that could hold a link to a Document of `type` (`linkHolders`), each once. */

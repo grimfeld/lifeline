@@ -47,7 +47,7 @@ vi.mock("@lifeline/core", async (importOriginal) => {
   };
 });
 
-const { runTool } = await import("./handlers");
+const { runTool, WallRefused } = await import("./handlers");
 
 // Through the manifest only, as the server takes it (apps.ts).
 const personTypeDef = contactsApp.types.find((t) => t.id === PERSON_TYPE)!;
@@ -197,6 +197,12 @@ describe("the agent wall: what an agent writes of a Person (ADR 0114)", () => {
     await expect(runTool("update_document", { id: "p1", title: "Anne D.", fields })).rejects.toThrow(/never written by an agent/);
     expect(core.patchDocument).not.toHaveBeenCalled();
     expect(core.renameDocument).not.toHaveBeenCalled();
+  });
+
+  it("names the type and the key it refused, for the server's log, and no value", async () => {
+    const err = await runTool("people_add", { name: "Léa", contactDetails: [{ value: "+1 555 0100" }] }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(WallRefused);
+    expect((err as InstanceType<typeof WallRefused>).wall).toEqual({ type: PERSON_TYPE, key: "contactDetails" });
   });
 
   it("refuses them through create_document", async () => {

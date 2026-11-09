@@ -9,7 +9,7 @@ import type { Address } from "../domain/types";
  * Add or change an Address (#418). The lookup runs on save (`saveAddress`)
  * and nowhere else: not on render, not in the store. When it finds nothing or
  * fails, the Address is saved all the same, with no coordinates, and the page
- * offers the lookup again.
+ * offers the lookup again; the toast says which of the two it was.
  */
 export function AddressDialog({ personId, address, open, onOpenChange }: { personId: string; address?: Address; open: boolean; onOpenChange: (open: boolean) => void }) {
   const [label, setLabel] = useState("");
@@ -29,7 +29,8 @@ export function AddressDialog({ personId, address, open, onOpenChange }: { perso
     setBusy(true);
     try {
       const placed = await saveAddress(personId, address, { label, text });
-      if (!placed) toast.success("Address saved. No place was found for it yet: try the lookup again from the Address.");
+      if (placed === "none") toast.success("Address saved. No place was found for it: check its text, then try the lookup again from the Address.");
+      if (placed === "failed") toast.success("Address saved. The map lookup could not be reached: try again later from the Address.");
       onOpenChange(false);
     } catch (e) {
       setError(message(e));

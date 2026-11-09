@@ -15,7 +15,9 @@ function AddressRow({ person, address, onEdit }: { person: Person; address: Addr
   // The retry: an explicit click, so the lookup may run (Core's geocode is never called on render).
   const retry = () =>
     change(async () => {
-      if (!(await relocateAddress(person.id, address))) toast.error("Still no place found for this Address. Check its text, or try again later.");
+      const placed = await relocateAddress(person.id, address);
+      if (placed === "none") toast.error("Still no place found for this Address. Check its text.");
+      if (placed === "failed") toast.error("The map lookup could not be reached. Try again later.");
     });
 
   return (

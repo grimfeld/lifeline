@@ -107,7 +107,8 @@ day instead (29 February included). A once Occasion always needs its year.
 - When someone moves, **Mark as former**: the Address leaves the Map and stays on their page, below
   the current ones, as history. **Mark as current** brings it back.
 - If the lookup finds nothing, or fails, the Address is still saved and shown, marked "Not on
-  the map", with **Try again**. Changing an Address's text looks it up afresh.
+  the map", with **Try again**. The message says which: no place found means check the text; the
+  lookup could not be reached means try again later. Changing an Address's text looks it up afresh.
 - A shared home is held by each Person who lives there: add it to each.
 - Claude never sees a Person's Addresses or their Pins (see below).
 

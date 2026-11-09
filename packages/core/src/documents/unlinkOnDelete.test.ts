@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { db } from "../data/db";
 import { initApps } from "../registry";
 import { documentsTable, getDocument, linkHolders, putDocument, removeDocument } from "./store";
 import type { RoleDef } from "./roles";
@@ -37,6 +38,21 @@ describe("a type that unlinks its Documents on delete", () => {
     expect((await getDocument("e1"))?.with).toEqual(["jo"]);
     expect((await getDocument("j1"))?.for).toBe("");
     expect((await getDocument("j2"))?.for).toBe("jo");
+  });
+
+  it("unlinks and deletes as one write: when it fails, the Document and every Field that held it stay as they were", async () => {
+    await putDocument({ id: "marc", type: "who", title: "Marc" });
+    await putDocument({ id: "e1", type: "ev", title: "Dinner", with: ["marc"] });
+    await putDocument({ id: "j1", type: "job", title: "Gift", for: "marc" });
+    const add = vi.spyOn(db()._outbox, "bulkAdd").mockRejectedValueOnce(new Error("disk full"));
+    try {
+      await expect(removeDocument("marc")).rejects.toThrow("disk full");
+    } finally {
+      add.mockRestore();
+    }
+    expect(await getDocument("marc")).toBeDefined();
+    expect((await getDocument("e1"))?.with).toEqual(["marc"]);
+    expect((await getDocument("j1"))?.for).toBe("marc");
   });
 
   it("leaves a type that does not declare it as it was", async () => {

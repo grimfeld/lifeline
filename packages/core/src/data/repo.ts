@@ -37,6 +37,23 @@ export async function put<T extends SyncedRecord>(
   requestSync();
 }
 
+/**
+ * Several writes to one collection as one: every record stored and queued for
+ * push, or none of them (a cascade that must not stop halfway). Stamps one
+ * LWW clock for all.
+ */
+export async function putAll<T extends SyncedRecord>(collection: string, records: readonly (Omit<T, "updatedAt" | "deleted"> & Partial<SyncedRecord>)[]): Promise<void> {
+  if (!records.length) return;
+  const updatedAt = new Date().toISOString();
+  const rows = records.map((r) => ({ deleted: 0, ...r, updatedAt }) as T);
+  await db().transaction("rw", db().collection(collection), db()._outbox, async () => {
+    await db().collection<T>(collection).bulkPut(rows);
+    await db()._outbox.bulkAdd(rows.map((r) => ({ collection, recordId: r.id, queuedAt: updatedAt })));
+  });
+  writes += rows.length;
+  requestSync();
+}
+
 /** Tombstone, never a hard delete — remote devices need to see it die. */
 export async function remove(collection: string, id: string): Promise<void> {
   const existing = await db().collection(collection).get(id);

@@ -70,6 +70,20 @@ type Args = Record<string, unknown>;
 
 export class ToolError extends Error {}
 
+/**
+ * A refusal at the agent wall (ADR 0114): still the agent's mistake to read,
+ * and also a line in the server's log (`logWallRefusal`), naming the type and
+ * the key it tried, never a value.
+ */
+export class WallRefused extends ToolError {
+  constructor(
+    message: string,
+    readonly wall: { type: string; key: string },
+  ) {
+    super(message);
+  }
+}
+
 const AGENDA_MAX_DAYS = 62;
 
 // --- Workspaces ---
@@ -149,7 +163,7 @@ function refuseWalled(keys: readonly string[], types: readonly DocumentTypeDef[]
     const hit = t.agentWalled?.find((k) => keys.includes(k));
     if (!hit) continue;
     const label = t.fields.find((f) => f.key === hit)?.label ?? hit;
-    throw new ToolError(`A ${singularOf(t)}'s ${label} are never written by an agent: the user types them in Lifeline`);
+    throw new WallRefused(`A ${singularOf(t)}'s ${label} are never written by an agent: the user types them in Lifeline`, { type: t.id, key: hit });
   }
 }
 

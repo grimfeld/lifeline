@@ -29,6 +29,21 @@ const DRAIN_MS = 20_000;
 
 export class ExpectedError extends Error {}
 
+/** A refusal at the agent wall (ADR 0114): the type and the key a tool tried to pass. */
+export interface WallHit {
+  type: string;
+  key: string;
+}
+
+/**
+ * The line a refusal at the agent wall leaves in the server's log: which
+ * tool, which Account, which type's key. Never a value: what was refused is
+ * what the wall keeps away from agents, and from this log too.
+ */
+export function logWallRefusal(tool: string, userId: string, wall: WallHit): void {
+  console.warn("[agent-wall] refused", { tool, userId, type: wall.type, key: wall.key });
+}
+
 /**
  * What a write the server has not taken yet is reported as. The queue lives
  * only in the worker's memory — the machine has no volume, and the one store
@@ -179,6 +194,7 @@ export class DevicePool {
     const device = this.deviceFor(userId);
     const res = await this.send(userId, device, { kind: "call", tool, args, write, auth });
     if (res.ok) return res.result;
+    if (res.wall) logWallRefusal(tool, userId, res.wall);
     throw res.expected ? new ExpectedError(res.error) : new Error(res.error);
   }
 

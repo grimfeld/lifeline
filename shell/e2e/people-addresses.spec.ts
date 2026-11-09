@@ -79,6 +79,8 @@ test("a failed lookup keeps the Address with no Pin, and trying again finds it",
   await stubGeocoders(page, state);
   const id = await newPerson(page, "Léa Martin");
   await addAddress(page, "Holiday house", "12 Rue Example, Paris");
+  // An outage is said as one, not as text that matches no place.
+  await expect(page.getByText("The map lookup could not be reached", { exact: false })).toBeVisible();
 
   const row = page.getByTestId("address");
   await expect(row).toContainText("Holiday house");
