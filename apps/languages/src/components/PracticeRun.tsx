@@ -3,8 +3,7 @@ import { Button, Card, CardContent, Input, toast } from "@lifeline/ui";
 import { recallableDef } from "@lifeline/core";
 import { Check, Eye, X } from "lucide-react";
 import { practiceQueue, type HeldPrompt, type NewCap } from "../domain/practice";
-import { isTypeable } from "../domain/prompts";
-import { promptText } from "../domain/report";
+import { isTypeable, promptText } from "../domain/prompts";
 import type { Grade, Recall } from "../domain/types";
 import { recordRecall, strikeRecall, type MaterialDoc } from "../data/repo";
 

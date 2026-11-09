@@ -1,6 +1,6 @@
 import type { RecallFaceProps } from "@lifeline/core";
-import { parseCloze, plainSentence } from "../domain/cloze";
-import { LISTEN } from "../domain/prompts";
+import { parseCloze } from "../domain/cloze";
+import { FORWARD, LISTEN, itemPromptText } from "../domain/prompts";
 import type { Fact, Sentence, Word } from "../domain/types";
 import { OriginLine } from "./OriginLine";
 import { ClipPlayer } from "./ClipPlayer";
@@ -17,9 +17,8 @@ import { ClipPlayer } from "./ClipPlayer";
 export function WordFace({ doc, slot, revealed }: RecallFaceProps) {
   const w = doc as Word;
   const listen = slot === LISTEN;
-  const forward = slot === "forward";
-  const question = forward ? w.term || w.title : w.meaning;
-  const answer = listen ? w.term || w.title : forward ? w.meaning : w.term || w.title;
+  const forward = slot === FORWARD;
+  const { question, answer } = itemPromptText(w, slot);
   return (
     <div className="grid justify-items-center gap-4 text-center">
       <span className="text-muted-foreground text-xs">{listen ? "What did you hear?" : forward ? "What does it mean?" : "How do you say it?"}</span>
@@ -53,6 +52,7 @@ export function SentenceFace({ doc, slot, revealed }: RecallFaceProps) {
   const sentence = doc as Sentence;
   const listen = slot === LISTEN;
   const parts = parseCloze(sentence.text ?? "");
+  const { answer } = itemPromptText(sentence, slot);
   return (
     <div className="grid justify-items-center gap-4 text-center">
       <span className="text-muted-foreground text-xs">{listen ? "What did you hear?" : "Fill the blank"}</span>
@@ -79,7 +79,7 @@ export function SentenceFace({ doc, slot, revealed }: RecallFaceProps) {
           )}
         </p>
       )}
-      {listen && revealed && <p className="text-primary max-w-full text-2xl leading-relaxed break-words">{plainSentence(sentence.text ?? "")}</p>}
+      {listen && revealed && <p className="text-primary max-w-full text-2xl leading-relaxed break-words">{answer}</p>}
       {(listen ? revealed : true) && sentence.translation && <span className="text-muted-foreground max-w-full text-sm break-words italic">{sentence.translation}</span>}
       {revealed && sentence.notes && <span className="text-muted-foreground max-w-full text-sm break-words whitespace-pre-wrap">{sentence.notes}</span>}
       {revealed && !listen && <ClipPlayer clipId={sentence.clip} />}
@@ -91,14 +91,15 @@ export function SentenceFace({ doc, slot, revealed }: RecallFaceProps) {
 /** A Fact's one Prompt: its question, then its answer — with the notes, and where it was kept from. */
 export function FactFace({ doc, revealed }: RecallFaceProps) {
   const f = doc as Fact;
+  const { question, answer } = itemPromptText(f, FORWARD);
   return (
     <div className="grid justify-items-center gap-4 text-center">
       <span className="text-muted-foreground text-xs">Recall</span>
-      <span className="max-w-full text-2xl font-semibold break-words">{f.question || f.title}</span>
+      <span className="max-w-full text-2xl font-semibold break-words">{question}</span>
       <div className="min-h-16 max-w-full">
         {revealed && (
           <div className="grid gap-2">
-            <span className="text-primary text-xl whitespace-pre-wrap break-words">{f.answer}</span>
+            <span className="text-primary text-xl whitespace-pre-wrap break-words">{answer}</span>
             {f.notes && <span className="text-muted-foreground text-sm whitespace-pre-wrap break-words">{f.notes}</span>}
             <OriginLine originId={f.originId} />
           </div>
