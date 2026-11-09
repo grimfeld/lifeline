@@ -58,6 +58,9 @@ export const REWRITABLE_FIELDS: Record<"term" | "meaning" | "text" | "translatio
 
 export type RewritableField = keyof typeof REWRITABLE_FIELDS;
 
+/** Every rewritable field, in declaration order. */
+export const REWRITABLE_KEYS = Object.keys(REWRITABLE_FIELDS) as RewritableField[];
+
 /** An agent's draft change (CONTEXT.md "Draft"): the fields of an accepted item it would rewrite, each as the text it would become. */
 export type DraftChange = Partial<Record<RewritableField, string>>;
 
@@ -71,12 +74,22 @@ export const REWRITABLE: Record<Item["type"], readonly RewritableField[]> = {
 /** The kind of item, as a sentence names it. */
 export const KIND_NAME: Record<Item["type"], string> = { [WORD]: "Word", [SENTENCE]: "Sentence", [FACT]: "Fact" };
 
+/** An item's own text in a rewritable field, or empty for a field its kind lacks. */
+export function fieldOf(item: Item, key: RewritableField): string {
+  const own: Partial<Record<RewritableField, string>> = item;
+  return own[key] ?? "";
+}
+
+/** The id of the item's audio clip (ADR 0116), or empty for none: only Words and Sentences carry one. */
+export function clipOfItem(item: Item): string {
+  return item.type === FACT ? "" : (item.clip ?? "");
+}
+
 /** What the item would read after its draft change: only the fields that really differ, so the change shows beside current values. */
 export function draftChangeLines(item: Item): { key: RewritableField; current: string; drafted: string }[] {
   const change = item.draftChange;
   if (!change) return [];
-  const own = item as unknown as Record<string, string>;
-  return REWRITABLE[item.type].flatMap((key) => (change[key] !== undefined && change[key] !== own[key] ? [{ key, current: own[key] ?? "", drafted: change[key]! }] : []));
+  return REWRITABLE[item.type].flatMap((key) => (change[key] !== undefined && change[key] !== fieldOf(item, key) ? [{ key, current: fieldOf(item, key), drafted: change[key]! }] : []));
 }
 
 /** The kinds that have a field, as a sentence names them: "Word", "Word, Sentence or Fact". */
