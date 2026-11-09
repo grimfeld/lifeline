@@ -3,7 +3,7 @@ import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogH
 import { acceptAllReady, deckDrafts, KIND_NAME } from "../domain/draft";
 import { itemLines } from "../domain/prompts";
 import { FACT, SENTENCE, WORD, type Deck, type Fact, type Item, type Sentence, type Word } from "../domain/types";
-import { acceptDraft, acceptDrafts, deleteItem, restoreItem } from "../data/repo";
+import { acceptDraft, acceptDrafts, deleteItemUndoably } from "../data/repo";
 import { WordDialog } from "./WordDialog";
 import { SentenceDialog } from "./SentenceDialog";
 import { FactDialog } from "./FactDialog";
@@ -19,7 +19,7 @@ export function DeckReview({ deck, items, open, onOpenChange }: { deck: Deck; it
   const [shown, setShown] = useState<ReadonlySet<string>>(new Set());
   const [editing, setEditing] = useState(false);
   // The draft deleted last, for Undo here: the toast's Undo cannot be reached past the open dialog.
-  const [deleted, setDeleted] = useState<Item | null>(null);
+  const [deleted, setDeleted] = useState<{ item: Item; undo: () => Promise<void> } | null>(null);
 
   // A fresh review each time it opens.
   useEffect(() => {
@@ -48,14 +48,19 @@ export function DeckReview({ deck, items, open, onOpenChange }: { deck: Deck; it
   async function remove() {
     if (!current) return;
     const gone = current;
-    await deleteItem(gone.id);
-    setDeleted(gone);
-    toast.success("Draft deleted", { action: { label: "Undo", onClick: () => void undo(gone) } });
+    const del = await deleteItemUndoably(gone.id);
+    setDeleted({ item: gone, undo: del.undo });
+    // The clip goes once the Undo window closes, however it closes (ADR 0116).
+    const close = () => {
+      void del.commit();
+      setDeleted((d) => (d?.item.id === gone.id ? null : d));
+    };
+    toast.success("Draft deleted", { action: { label: "Undo", onClick: () => void undo(gone, del.undo) }, onDismiss: close, onAutoClose: close });
   }
 
-  async function undo(gone: Item) {
-    await restoreItem(gone);
-    setDeleted((d) => (d?.id === gone.id ? null : d));
+  async function undo(gone: Item, restore: () => Promise<void>) {
+    await restore();
+    setDeleted((d) => (d?.item.id === gone.id ? null : d));
   }
 
   async function acceptAll() {
@@ -99,8 +104,8 @@ export function DeckReview({ deck, items, open, onOpenChange }: { deck: Deck; it
           )}
           {deleted && (
             <p className="text-muted-foreground flex min-w-0 items-center gap-1 text-sm">
-              <span className="min-w-0 truncate">Deleted “{itemLines(deleted).main}”</span>
-              <Button variant="link" size="sm" className="shrink-0" onClick={() => void undo(deleted)}>
+              <span className="min-w-0 truncate">Deleted “{itemLines(deleted.item).main}”</span>
+              <Button variant="link" size="sm" className="shrink-0" onClick={() => void undo(deleted.item, deleted.undo)}>
                 Undo
               </Button>
             </p>

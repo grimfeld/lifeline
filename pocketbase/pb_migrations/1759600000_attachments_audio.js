@@ -3,7 +3,8 @@
 // ADR 0116: a Knowledge clip is an Attachment too (recorded or attached audio),
 // so the file field takes audio beside images. The 20 MB ceiling is unchanged.
 // PocketBase checks the type it sniffs from the bytes, and an audio-only WebM or
-// MP4 sniffs as the container's video type: those two are allowed as well.
+// MP4 sniffs as the container's video type: those two are allowed as well, and
+// the attachments create hook (pb_hooks/attachments.pb.js) refuses them for non-audio records.
 
 const AUDIO = ["audio/webm", "audio/ogg", "audio/mp4", "audio/x-m4a", "audio/aac", "audio/mpeg", "audio/wav", "audio/x-wav", "audio/flac", "video/webm", "video/mp4"];
 

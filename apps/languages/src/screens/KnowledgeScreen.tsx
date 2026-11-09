@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button, Card, CardContent, PhoneDock, Tabs, TabsContent, TabsList, TabsTrigger, usePhone } from "@lifeline/ui";
 import { Brain, Plus, Settings2 } from "lucide-react";
-import { setActiveTopic, setTopicArchived, useActiveTopic, useDecks, useItems, useMaterial, useTopicRecalls, useTopics } from "../data/repo";
+import { setActiveTopic, setTopicArchived, sweepClipOrphans, useActiveTopic, useDecks, useItems, useMaterial, useTopicRecalls, useTopics } from "../data/repo";
 import { FACT, SENTENCE, WORD } from "../domain/types";
 import { TopicDialog } from "../components/TopicDialog";
 import { TopicSelect } from "../components/TopicSelect";
@@ -38,6 +38,8 @@ export function KnowledgeScreen() {
   const [editOpen, setEditOpen] = useState(false);
   const archived = topics.filter((l) => l.archived);
   const phone = usePhone();
+  // Clips a closed tab or a lapsed Undo left behind (ADR 0116).
+  useEffect(() => void sweepClipOrphans().catch(() => undefined), []);
 
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 md:p-6">
