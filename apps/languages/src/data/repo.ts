@@ -241,8 +241,9 @@ export interface WordInput {
   draft?: boolean;
 }
 
-/** The `clip` an edit writes: only when the input says. */
+/** The `draft` mark a new item carries: only an agent's (ADR 0115). */
 const draftOf = (input: { draft?: boolean }) => (input.draft ? { draft: true } : {});
+/** The `clip` an edit writes: only when the input says. */
 const clipOf = (input: { clip?: string }) => (input.clip === undefined ? {} : { clip: input.clip });
 
 /** A replaced or removed clip's Attachment goes with it: the clip is nobody else's. */
@@ -503,9 +504,9 @@ export async function deleteItemUndoably(id: string): Promise<{ undo: () => Prom
  * Bring a deleted item back, for Undo: under its own id, so every Deck lists it again.
  * Its clip comes with it only while the Undo window held it (`deleteItemUndoably`).
  */
-export async function restoreItem(item: Item): Promise<void> {
-  const { clip, ...rest } = item as Item & { clip?: string };
-  await putDocument(clip && heldClips.has(clip) ? { ...rest, clip } : rest);
+async function restoreItem(item: Item): Promise<void> {
+  const clip = clipOfItem(item);
+  await putDocument(!clip || heldClips.has(clip) ? item : { ...item, clip: "" });
 }
 
 /** The cascade, for any Recallable Document: its Recalls mean nothing without its Prompts, nor its clip (ADR 0116) without it. Decks simply stop listing it on read. */
