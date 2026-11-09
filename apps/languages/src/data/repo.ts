@@ -263,25 +263,37 @@ function wordRowOf(input: WordInput) {
  * out of an agent's reach whether or not a password is set (ADR 0062), as
  * `isAgentVisible` holds for the other MCP reads.
  */
-async function allMaterial(): Promise<{ m: MaterialDoc; hidden: boolean }[]> {
-  const all = await Promise.all(recallableDefs().map(async (def) => (await documentsOf(def.typeId)).map((doc) => ({ m: materialOf(def, doc), hidden: inPrivateFolder(doc.folder) }))));
+/** Knowledge's own Recallable types, which keep their Topic in `languageId`. */
+const KEYED_BY_TOPIC = new Set<string>([WORD, SENTENCE, FACT]);
+
+/**
+ * One Topic's Recallable material, each marked Private or not. Knowledge's own
+ * types are read by the Topic's key; another App's are read whole, once, and
+ * kept by their declared Topic: the Recallable Contract names no topic field
+ * (ADR 0073).
+ */
+async function materialOfTopic(topicId: string): Promise<{ m: MaterialDoc; hidden: boolean }[]> {
+  const all = await Promise.all(
+    recallableDefs().map(async (def) => {
+      const docs = KEYED_BY_TOPIC.has(def.typeId) ? await documentsWhere(def.typeId, "languageId", topicId) : await documentsOf(def.typeId);
+      return docs.map((doc) => ({ m: materialOf(def, doc), hidden: inPrivateFolder(doc.folder) })).filter((x) => x.m.topicId === topicId);
+    }),
+  );
   return all.flat();
 }
 
 /**
  * The reads a practice report takes (domain/report.ts), normalised as the
- * screens read them. Decks and Recalls are read by their Topic's key; the
- * Recallable Contract names no topic field (ADR 0073), so material is read
- * per type and kept by its declared Topic.
+ * screens read them, each keyed by the Topic where its type allows.
  */
 export const reportReads: ReportReads = {
   topics: async () => (await documentsOf<Topic>(TOPIC)).map(normalizeTopic),
   decksOf: async (topicId) => (await documentsWhere<Deck>(DECK, "languageId", topicId)).map(normalizeDeck),
-  materialOf: async (topicId) => (await allMaterial()).filter((x) => !x.hidden && x.m.topicId === topicId).map((x) => x.m),
-  recallsOf: async (topicId) => {
-    const hidden = new Set((await allMaterial()).filter((x) => x.hidden).map((x) => x.m.id));
+  practiceOf: async (topicId) => {
+    const [material, recalls] = await Promise.all([materialOfTopic(topicId), documentsWhere<Recall>(RECALL, "languageId", topicId)]);
     // A Recall of Private material goes with it.
-    return (await documentsWhere<Recall>(RECALL, "languageId", topicId)).filter((r) => !hidden.has(r.itemId)).map(normalizeRecall);
+    const hidden = new Set(material.filter((x) => x.hidden).map((x) => x.m.id));
+    return { material: material.filter((x) => !x.hidden).map((x) => x.m), recalls: recalls.filter((r) => !hidden.has(r.itemId)).map(normalizeRecall) };
   },
 };
 

@@ -20,7 +20,11 @@ export interface Leech {
  * Recalls count for nothing. Most fails first.
  */
 export function leeches(items: Material[], recalls: Recall[]): Leech[] {
-  const by = recallsByPrompt(recalls.filter((r) => !r.deleted));
+  return leechesBy(items, recallsByPrompt(recalls.filter((r) => !r.deleted)));
+}
+
+/** The Leeches, from Recalls already grouped by Prompt (`recallsByPrompt`, struck-out ones left out): for a reader that groups them once for more than this. */
+export function leechesBy(items: Material[], by: Map<string, Recall[]>): Leech[] {
   const out: Leech[] = [];
   for (const m of items) {
     if (!m.live) continue;

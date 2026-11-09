@@ -1,6 +1,6 @@
 import { addDays, todayStr } from "@lifeline/core";
 import type { MaterialDoc } from "./material";
-import { leeches as readLeeches } from "./leech";
+import { leechesBy } from "./leech";
 import { dayOf, heldPrompts, introducedByTopic, queueOfHeld, recallsByPrompt, recallsOfLive, retention } from "./practice";
 import { promptText, promptsOf } from "./prompts";
 import { sameName } from "./names";
@@ -84,20 +84,21 @@ export function practiceReport({ items, recalls, now, newCap }: ReportInput): Pr
   const mine = recallsOfLive(live, recalls);
   const held = heldPrompts(live, mine);
   const q = queueOfHeld(held, introducedByTopic(recalls, todayStr(now)), { now, newCap });
+  // Grouped once: the most-failed list and the Leeches read the same Recalls by Prompt.
+  const by = recallsByPrompt(mine.filter((r) => !r.deleted));
   return {
     retention: retention(mine, now),
     dueToday: q.due,
     newToday: q.newToday,
     newWaiting: q.newWaiting,
-    mostFailed: mostFailed(live, mine, now),
-    leeches: reportedLeeches(live, mine),
+    mostFailed: mostFailed(live, by, now),
+    leeches: reportedLeeches(live, by),
   };
 }
 
 /** The Prompts failed most lately, among those the material still yields (as Leeches read them): a rewritten blank or a removed clip leaves its old fails behind. */
-function mostFailed(live: MaterialDoc[], recalls: Recall[], now: Date): ReportedPrompt[] {
+function mostFailed(live: MaterialDoc[], by: Map<string, Recall[]>, now: Date): ReportedPrompt[] {
   const from = addDays(todayStr(now), -(FAILED_DAYS - 1));
-  const by = recallsByPrompt(recalls);
   const out: (ReportedPrompt & { lastFail: string })[] = [];
   for (const m of live) {
     for (const p of promptsOf(m)) {
@@ -113,9 +114,9 @@ function mostFailed(live: MaterialDoc[], recalls: Recall[], now: Date): Reported
     .map(({ lastFail: _, ...p }) => p);
 }
 
-function reportedLeeches(live: MaterialDoc[], recalls: Recall[]): ReportedLeech[] {
+function reportedLeeches(live: MaterialDoc[], by: Map<string, Recall[]>): ReportedLeech[] {
   const byId = new Map(live.map((m) => [m.id, m]));
-  return readLeeches(live, recalls).map((l) => {
+  return leechesBy(live, by).map((l) => {
     const m = byId.get(l.itemId)!;
     return { itemId: l.itemId, type: m.type, slot: l.slot, ...promptText(m, l.slot), fails: l.fails };
   });
@@ -129,9 +130,8 @@ export interface ReportReads {
   /** Every Topic, archived or not. */
   topics(): Promise<Topic[]>;
   decksOf(topicId: string): Promise<Deck[]>;
-  /** The Topic's Recallable material, whichever App owns it (ADR 0073). */
-  materialOf(topicId: string): Promise<MaterialDoc[]>;
-  recallsOf(topicId: string): Promise<Recall[]>;
+  /** The Topic's Recallable material, whichever App owns it (ADR 0073), and its Recalls, read together so Private material and its Recalls leave as one. */
+  practiceOf(topicId: string): Promise<{ material: MaterialDoc[]; recalls: Recall[] }>;
 }
 
 /** What the `knowledge.report` Command answers: the Topic and Decks it was read for, then the report. */
@@ -153,7 +153,7 @@ export async function topicReport(input: { topic: string; decks?: string[] }, re
   const topic = topics.find((t) => t.id === wanted) ?? topics.find((t) => sameName(t.name, wanted));
   if (!topic) throw new Error(`No Topic “${input.topic}”. Topics: ${topics.map((t) => t.name).join(", ") || "none"}`);
 
-  const [topicDecks, material, recalls] = await Promise.all([reads.decksOf(topic.id), reads.materialOf(topic.id), reads.recallsOf(topic.id)]);
+  const [topicDecks, { material, recalls }] = await Promise.all([reads.decksOf(topic.id), reads.practiceOf(topic.id)]);
   const decks = (input.decks ?? []).map((ref) => {
     const deck = topicDecks.find((d) => d.id === ref) ?? topicDecks.find((d) => sameName(d.name, ref));
     if (!deck) throw new Error(`No Deck “${ref}” in ${topic.name}. Decks: ${topicDecks.map((d) => d.name).join(", ") || "none"}`);
