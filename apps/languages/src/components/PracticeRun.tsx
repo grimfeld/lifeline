@@ -129,7 +129,7 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
         <>
           <Card className="min-h-72 py-0">
             <CardContent className="grid min-h-72 place-items-center px-6 py-10">
-              <Face doc={item.doc} slot={current.slot} revealed={revealed} />
+              <Face key={current.key} doc={item.doc} slot={current.slot} revealed={revealed} />
             </CardContent>
           </Card>
           {answer !== null && (
