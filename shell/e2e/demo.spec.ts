@@ -617,7 +617,9 @@ for (const w of WIDTHS) {
       // An Author's page looks their bibliography up whenever they carry an external key.
       await open(page, "/app/library");
       await page.getByRole("button", { name: "Open Normal People" }).first().click();
-      await page.getByRole("dialog").getByRole("link", { name: "Sally Rooney" }).first().click();
+      // The work opens on a page of its own, which links to its Author's.
+      await expect(page).toHaveURL(/\/app\/library\/works\//);
+      await page.getByRole("link", { name: "Sally Rooney" }).first().click();
       await expect(page).toHaveURL(/\/app\/library\/authors\//);
       await expect(page.getByText("Sally Rooney").first()).toBeVisible();
       await page.waitForLoadState("networkidle");
@@ -636,7 +638,8 @@ for (const w of WIDTHS) {
         // Started twelve days before the visit, too.
         await open(page, "/app/cinema");
         await page.getByRole("button", { name: "Open Derry Girls" }).first().click();
-        await expect(page.getByRole("dialog").getByText("2027-02-26", { exact: true })).toBeVisible();
+        await expect(page).toHaveURL(/\/app\/cinema\/works\//);
+        await expect(page.getByText("2027-02-26", { exact: true })).toBeVisible();
       });
     });
   });
