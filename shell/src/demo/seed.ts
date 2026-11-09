@@ -1,7 +1,7 @@
 import { db, ensureDefaultWorkspace, eraseDevice, todayStr, type DateStr } from "@lifeline/core";
 import { lifeClock, type LifeClock } from "./persona";
 import { setDemoFilling } from "./filling";
-import { seedAgenda } from "./life/agenda";
+import { seedAgenda, seedWith } from "./life/agenda";
 import { seedTracking } from "./life/tracking";
 import { seedMoney } from "./life/money";
 import { seedWork } from "./life/work";
@@ -35,8 +35,9 @@ async function seedRest(clock: LifeClock): Promise<void> {
   // other's. Each write makes the screen already up read the store again; the
   // more writes land between two of those reads, the fewer reads in all.
   await Promise.all([seedWork(clock), seedMedia(clock), seedTracking(clock), seedWriting(clock), seedMoney(clock), seedWindows(clock)]);
-  // Last: the Overviews name Documents the slices made.
+  // Last: the Overviews and the Events' With name Documents the slices made.
   await seedOverviews(clock);
+  await seedWith();
 }
 
 /** Write the whole Demo life, dated around `visitDay`. */

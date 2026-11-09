@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ContactDetail } from "./types";
-import { contactAction, contactDetailsOf, markFormer, saveDetail, validateDetail } from "./contactDetails";
+import { contactAction, contactDetailsOf, markFormer, saveDetail, detailLabelProblem, detailValueProblem } from "./contactDetails";
 
 const d = (over: Partial<ContactDetail>): ContactDetail => ({ id: "c1", label: "Mobile", kind: "phone", value: "", former: false, ...over });
 
@@ -52,9 +52,11 @@ describe("what a click does", () => {
 
 describe("validating one", () => {
   it("needs a label and a value", () => {
-    expect(validateDetail({ label: " ", kind: "phone", value: "1" })).toMatch(/label/i);
-    expect(validateDetail({ label: "Mobile", kind: "phone", value: " " })).toMatch(/value|number/i);
-    expect(validateDetail({ label: "Mobile", kind: "phone", value: "+1 555" })).toBeNull();
+    expect(detailLabelProblem({ label: " " })).toMatch(/label/i);
+    expect(detailLabelProblem({ label: "Mobile" })).toBeNull();
+    expect(detailValueProblem({ kind: "phone", value: " " })).toMatch(/number/i);
+    expect(detailValueProblem({ kind: "email", value: " " })).toMatch(/address/i);
+    expect(detailValueProblem({ kind: "phone", value: "+1 555" })).toBeNull();
   });
 });
 

@@ -77,6 +77,7 @@ export function MarkdownEditor({
   autoFocus,
   className,
   onQuietChange,
+  label = "Body",
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -92,6 +93,8 @@ export function MarkdownEditor({
    * about the caret, typing and the scroller.
    */
   onQuietChange?: (quiet: boolean) => void;
+  /** The editor's accessible name: what a screen reader calls the text box. */
+  label?: string;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -128,6 +131,7 @@ export function MarkdownEditor({
         drawSelection(),
         highlightActiveLine(),
         EditorView.lineWrapping,
+        EditorView.contentAttributes.of({ "aria-label": label }),
         markdown({ base: markdownLanguage }),
         syntaxHighlighting(mdHighlight),
         indexField.init(() => index),

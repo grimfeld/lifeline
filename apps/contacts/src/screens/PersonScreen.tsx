@@ -70,7 +70,7 @@ export function PersonScreen() {
 
       <Section title="About them">
         <div className="min-h-40 min-w-0 rounded-lg border p-2">
-          <DocumentEditor key={person.id} doc={person} def={documentType(PERSON_TYPE)} index={index} bodyOnly save={saveBody} />
+          <DocumentEditor key={person.id} doc={person} def={documentType(PERSON_TYPE)} index={index} bodyOnly bodyLabel="About them" save={saveBody} />
         </div>
       </Section>
 

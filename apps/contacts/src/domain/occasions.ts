@@ -56,7 +56,16 @@ export function occasionDateIn(day: string, year: number): DateStr {
 
 /** Why an Occasion may not be saved, in words; null when it may. */
 export function occasionProblem(o: Pick<Occasion, "label" | "day" | "yearly">): string | null {
-  if (!o.label.trim()) return "An Occasion needs a label";
+  return occasionLabelProblem(o) ?? occasionDayProblem(o);
+}
+
+/** What is wrong with an Occasion's label, for the form to show under it; null when nothing. */
+export function occasionLabelProblem(o: Pick<Occasion, "label">): string | null {
+  return o.label.trim() ? null : "An Occasion needs a label";
+}
+
+/** What is wrong with an Occasion's day, for the form to show under it; null when nothing. */
+export function occasionDayProblem(o: Pick<Occasion, "day" | "yearly">): string | null {
   const d = split(o.day);
   if (!d) return "Pick a real day";
   if (!o.yearly && d.year === null) return "A once Occasion needs its year";

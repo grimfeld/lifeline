@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button, Checkbox, ChoiceField, DatePicker, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input } from "@lifeline/ui";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import type { Occasion, Person } from "../domain/types";
-import { describeDay, isBirthday } from "../domain/occasions";
+import { describeDay, isBirthday, occasionDayProblem, occasionLabelProblem } from "../domain/occasions";
 import { addOccasion, editOccasion, removePart, restorePart } from "../data/repo";
 import { asksMonthDay, dayWhenNoYear, daysIn, monthDay, occasionDraft, occasionInput, pickerDay, type OccasionDraft } from "../domain/occasionForm";
 import { message, removeWithUndo } from "./writes";
@@ -58,15 +58,26 @@ function OccasionDialog({ personId, editing, onClose }: { personId: string; edit
 
 function OccasionForm({ personId, editing, onClose }: { personId: string; editing: Occasion | "new"; onClose: () => void }) {
   const [draft, setDraft] = useState(() => occasionDraft(editing));
+  const [labelError, setLabelError] = useState("");
   const [error, setError] = useState("");
   const set = (patch: Partial<OccasionDraft>) => setDraft((d) => ({ ...d, ...patch }));
-  const setDay = (day: string) => set({ day });
+  const setDay = (day: string) => {
+    set({ day });
+    setError("");
+  };
 
   async function save() {
-    // The repo checks the Occasion before saving and throws its problem, shown below.
+    // Each problem under the field it is about (CODING_STANDARDS.md § Forms and feedback);
+    // the repo checks again, and what else it refuses shows under the day.
+    const input = occasionInput(draft);
+    const labelProblem = occasionLabelProblem(input) ?? "";
+    const dayProblem = occasionDayProblem(input) ?? "";
+    setLabelError(labelProblem);
+    setError(dayProblem);
+    if (labelProblem || dayProblem) return;
     try {
-      if (editing === "new") await addOccasion(personId, occasionInput(draft));
-      else await editOccasion(personId, editing.id, occasionInput(draft));
+      if (editing === "new") await addOccasion(personId, input);
+      else await editOccasion(personId, editing.id, input);
       onClose();
     } catch (e) {
       setError(message(e));
@@ -86,8 +97,16 @@ function OccasionForm({ personId, editing, onClose }: { personId: string; editin
           void save();
         }}
       >
-        <Field label="Label" hint="Birthday, Met, Wedding… any word.">
-          <Input value={draft.label} onChange={(e) => set({ label: e.target.value })} placeholder="Birthday" autoFocus />
+        <Field label="Label" hint="Birthday, Met, Wedding… any word." error={labelError || undefined}>
+          <Input
+            value={draft.label}
+            onChange={(e) => {
+              set({ label: e.target.value });
+              setLabelError("");
+            }}
+            placeholder="Birthday"
+            autoFocus
+          />
         </Field>
         {/* The boxes before their words, as a checkbox reads. */}
         <Field label="Every year" className="flex flex-row-reverse items-center justify-end gap-2">
@@ -121,17 +140,19 @@ const MONTHS = Array.from({ length: 12 }, (_, i) => ({
   label: new Date(Date.UTC(2000, i, 1)).toLocaleDateString(undefined, { month: "long", timeZone: "UTC" }),
 }));
 
-/** A day of the year with no year ("03-04"): a month, then a day of it, 29 February included. */
+/**
+ * A day of the year with no year ("03-04"): a month, then a day of it, 29 February included.
+ * A problem shows under the one still to pick (the month while it is), marking it invalid and
+ * read with it, as a Field's error is.
+ */
 function MonthDayField({ value, onChange, error }: { value: string; onChange: (day: string) => void; error: string }) {
   const [month = "", dayOfMonth = ""] = value.split("-");
   const dayOptions = Array.from({ length: daysIn(month) }, (_, i) => ({ value: String(i + 1).padStart(2, "0"), label: String(i + 1) }));
+  const onMonth = error && !month ? error : undefined;
   return (
-    <div className="grid min-w-0 gap-1.5">
-      <div className="grid min-w-0 grid-cols-2 gap-3">
-        <ChoiceField label="Month" value={month} options={MONTHS} onCommit={(m) => onChange(monthDay(m, dayOfMonth))} />
-        <ChoiceField label="Day" value={dayOfMonth} options={dayOptions} onCommit={(d) => onChange(monthDay(month, d))} />
-      </div>
-      {error && <p data-slot="field-error" className="text-destructive text-xs">{error}</p>}
+    <div className="grid min-w-0 grid-cols-2 items-start gap-3">
+      <ChoiceField label="Month" value={month} options={MONTHS} error={onMonth} onCommit={(m) => onChange(monthDay(m, dayOfMonth))} />
+      <ChoiceField label="Day" value={dayOfMonth} options={dayOptions} error={onMonth ? undefined : error || undefined} onCommit={(d) => onChange(monthDay(month, d))} />
     </div>
   );
 }

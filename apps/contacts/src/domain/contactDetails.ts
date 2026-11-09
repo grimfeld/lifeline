@@ -59,11 +59,14 @@ export interface DetailInput {
 /** What a kind's value is called: "Give the number." */
 const VALUE_NOUNS: Record<ContactKind, string> = { phone: "number", email: "address", handle: "handle" };
 
-/** The sentence to show when the input can't be saved; null when it can. */
-export function validateDetail(input: Pick<DetailInput, "label" | "kind" | "value">): string | null {
-  if (!input.label.trim()) return "Give it a label.";
-  if (!input.value.trim()) return `Give the ${VALUE_NOUNS[input.kind]}.`;
-  return null;
+/** What is wrong with a Contact detail's label, for the form to show under it; null when nothing. */
+export function detailLabelProblem(input: Pick<DetailInput, "label">): string | null {
+  return input.label.trim() ? null : "Give it a label.";
+}
+
+/** What is wrong with a Contact detail's value, for the form to show under it; null when nothing. */
+export function detailValueProblem(input: Pick<DetailInput, "kind" | "value">): string | null {
+  return input.value.trim() ? null : `Give the ${VALUE_NOUNS[input.kind]}.`;
 }
 
 /** A Person's Contact details as stored, tolerating a row that has none or a damaged entry. */

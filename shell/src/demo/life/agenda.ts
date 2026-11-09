@@ -1,4 +1,5 @@
-import { parts, weekdayOf } from "@lifeline/core";
+import { PERSON_TYPE, parts, weekdayOf } from "@lifeline/core";
+import { allEvents, updateEvent } from "@lifeline/app-calendar/src/data/repo";
 import { PEOPLE, PLACES, type LifeClock } from "../persona";
 import { complete, idOf, madeOn, run } from "./act";
 
@@ -86,4 +87,25 @@ async function seedEvents(c: LifeClock): Promise<void> {
   await event(`Coffee with ${first(priya.name)}`, 1, { start: "10:30", end: "11:15" });
   await event(`${first(helen.name)}'s birthday`, 2);
   await event("Weekend in Kinsale", 5, { endDate: c.day(7), notes: `With ${first(aoife.name)}.` });
+}
+
+/**
+ * Who was at each Event (its With), once the People exist: they are written
+ * with the rest of the life, after the agenda. An Event that links a Person
+ * through With is a day they were seen (ADR 0112), so Last seen and Drifting
+ * read true rather than "Never seen" for everyone.
+ */
+export async function seedWith(): Promise<void> {
+  const withWhom: Record<string, (typeof PEOPLE)[keyof typeof PEOPLE]> = {
+    [`Team huddle with ${first(sam.name)}`]: sam,
+    [`Lunch with ${first(aoife.name)}`]: aoife,
+    [`Climbing with ${first(marcus.name)}`]: marcus,
+    [`Call ${first(helen.name)}`]: helen,
+    [`Coffee with ${first(priya.name)}`]: priya,
+    ["Weekend in Kinsale"]: aoife,
+  };
+  for (const ev of await allEvents()) {
+    const person = withWhom[ev.title];
+    if (person) await updateEvent({ ...ev, with: [await idOf(PERSON_TYPE, person.name)] });
+  }
 }

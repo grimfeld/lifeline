@@ -47,6 +47,6 @@ describe("Everyone's filters and rows", () => {
   it("says when a Person was last seen, or that they never were", () => {
     expect(lastSeenLabel("2026-03-04")).toBe(`Last seen ${formatHuman("2026-03-04")}`);
     expect(lastSeenLabel("2026-03-04")).not.toBe("Last seen ");
-    expect(lastSeenLabel(undefined)).toBe("Not seen");
+    expect(lastSeenLabel(undefined)).toBe("Never seen");
   });
 });

@@ -13,7 +13,7 @@ export function ReportsSection({ person }: { person: Person }) {
   if (reportsIn(def, "document").length === 0) return null;
   return (
     <Section title="Reports">
-      <DocumentReports index={index} def={def} docId={person.id} />
+      <DocumentReports index={index} def={def} docId={person.id} heading={false} />
     </Section>
   );
 }

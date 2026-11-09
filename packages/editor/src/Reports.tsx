@@ -93,7 +93,18 @@ function RankList({ index, rows, quiet, onOpen }: { index: LinkIndex; rows: Rank
 }
 
 /** One Document's own Reports, in its type's order: last mentioned, counts, heatmap. Nothing when the type chose none. */
-export function DocumentReports({ index, def, docId }: { index: LinkIndex; def: DocumentTypeDef | undefined; docId: string }) {
+export function DocumentReports({
+  index,
+  def,
+  docId,
+  heading = true,
+}: {
+  index: LinkIndex;
+  def: DocumentTypeDef | undefined;
+  docId: string;
+  /** Its own "Reports" heading; false where the page already heads it (a Person page's section). */
+  heading?: boolean;
+}) {
   const today = todayStr();
   const chosen = reportsIn(def, "document");
   const mentioned = useMemo(() => documentFigures(index, docId, today, sourceOf("mentioned", today)), [index, docId, today]);
@@ -101,7 +112,7 @@ export function DocumentReports({ index, def, docId }: { index: LinkIndex; def: 
   if (chosen.length === 0) return null;
   return (
     <section className="grid min-w-0 gap-2 text-sm">
-      <h3 className={cn(HEADING, "mb-0")}>Reports</h3>
+      {heading && <h3 className={cn(HEADING, "mb-0")}>Reports</h3>}
       {chosen.map((r) => {
         const k = reportKind(r.kind);
         const f = k.source === "seen" ? seen : mentioned;

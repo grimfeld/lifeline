@@ -8,7 +8,8 @@ const NONE = "__none__"
 /**
  * A single choice among an owner's own options, written as soon as it is
  * picked; "" is none (offered only when `optional`). Beside `CommitField`: when
- * `onCommit` refuses (throws), its message shows under the field.
+ * `onCommit` refuses (throws), its message shows under the field. An owner
+ * checking a whole form passes its own `error` for this field the same way.
  */
 function ChoiceField({
   label,
@@ -17,6 +18,7 @@ function ChoiceField({
   onCommit,
   optional,
   hint,
+  error: ownerError,
   className,
 }: {
   label: string
@@ -25,6 +27,8 @@ function ChoiceField({
   onCommit: (next: string) => unknown
   optional?: boolean
   hint?: React.ReactNode
+  /** The owner's own word on this field (a form checked on submit); a refused commit's message wins. */
+  error?: React.ReactNode
   className?: string
 }) {
   const [error, setError] = React.useState("")
@@ -37,7 +41,7 @@ function ChoiceField({
     }
   }
   return (
-    <Field label={label} hint={hint} error={error} className={className}>
+    <Field label={label} hint={hint} error={error || ownerError} className={className}>
       <ChoiceSelect label={label} value={value} options={options} optional={optional} onPick={(v) => void pick(v)} />
     </Field>
   )

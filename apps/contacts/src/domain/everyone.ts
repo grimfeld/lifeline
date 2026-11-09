@@ -33,4 +33,4 @@ export const tagsOf = (people: readonly Person[]) => distinct(people.flatMap((p)
 export const activeFilter = (inUse: readonly string[], value: string) => (inUse.includes(value) ? value : "");
 
 /** When a Person was last seen, as their row says it. */
-export const lastSeenLabel = (lastSeen: DateStr | undefined) => (lastSeen ? `Last seen ${formatHuman(lastSeen)}` : "Not seen");
+export const lastSeenLabel = (lastSeen: DateStr | undefined) => (lastSeen ? `Last seen ${formatHuman(lastSeen)}` : "Never seen");

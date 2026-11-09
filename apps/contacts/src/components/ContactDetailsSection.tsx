@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Badge, Button, ChoiceField, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, Tip } from "@lifeline/ui";
 import { AtSign, Mail, Pencil, Phone, Plus, Trash2, Undo2, UserX } from "lucide-react";
 import { removePart, restorePart, updateContactDetails } from "../data/repo";
-import { CONTACT_KINDS, KIND_LABELS, contactAction, contactDetailsOf, markFormer, saveDetail, validateDetail, type DetailInput } from "../domain/contactDetails";
+import { CONTACT_KINDS, KIND_LABELS, contactAction, contactDetailsOf, detailLabelProblem, detailValueProblem, markFormer, saveDetail, type DetailInput } from "../domain/contactDetails";
 import { message, removeWithUndo, writeOrSay } from "./writes";
 import type { ContactDetail, ContactKind, Person } from "../domain/types";
 import { Section } from "./Section";
@@ -10,6 +10,8 @@ import { Section } from "./Section";
 const KIND_ICON = { phone: Phone, email: Mail, handle: AtSign } as const;
 const PLACEHOLDER: Record<ContactKind, string> = { phone: "+33 6 12 34 56 78", email: "anne@example.org", handle: "@anne or instagram.com/anne" };
 const BLANK: DetailInput = { label: "", kind: "phone", value: "" };
+/** The keyboard a phone shows for each kind's value: digits for a number, the @ key for an email. A mode, not a type: the browser's own checks stay out of it. */
+const INPUT_MODE: Record<ContactKind, "tel" | "email" | "text"> = { phone: "tel", email: "email", handle: "text" };
 
 /** The Person page's Contact details (#404 story 69, CONTEXT.md "Contact detail"): each under its own label; a click calls, mails or opens the service; a former one is history, with no action. */
 export function ContactDetailsSection({ person }: { person: Person }) {
@@ -118,18 +120,24 @@ function FormerButton({ detail, onClick }: { detail: ContactDetail; onClick: () 
 
 function DetailDialog({ input, onClose, onSave }: { input: DetailInput | null; onClose: () => void; onSave: (input: DetailInput) => Promise<void> }) {
   const [draft, setDraft] = useState<DetailInput>(BLANK);
+  const [labelError, setLabelError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     if (input) {
       setDraft(input);
+      setLabelError("");
       setError("");
     }
   }, [input]);
 
   async function submit() {
-    const problem = validateDetail(draft);
-    if (problem) return setError(problem);
+    // Each problem under the field it is about (CODING_STANDARDS.md § Forms and feedback).
+    const labelProblem = detailLabelProblem(draft) ?? "";
+    const valueProblem = detailValueProblem(draft) ?? "";
+    setLabelError(labelProblem);
+    setError(valueProblem);
+    if (labelProblem || valueProblem) return;
     setBusy(true);
     try {
       await onSave(draft);
@@ -154,8 +162,13 @@ function DetailDialog({ input, onClose, onSave }: { input: DetailInput | null; o
             void submit();
           }}
         >
-          <Field label="Label">
-            <Input value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} placeholder="Mobile, Work, Instagram…" autoComplete="off" autoFocus />
+          <Field label="Label" error={labelError || undefined}>
+            <Input
+              value={draft.label}
+              onChange={(e) => {
+                setDraft({ ...draft, label: e.target.value });
+                setLabelError("");
+              }} placeholder="Mobile, Work, Instagram…" autoComplete="off" autoFocus />
           </Field>
           <ChoiceField label="Kind" value={draft.kind} options={CONTACT_KINDS.map((k) => ({ value: k, label: KIND_LABELS[k] }))} onCommit={(kind) => setDraft({ ...draft, kind: kind as ContactKind })} />
           <Field label="Value" error={error || undefined}>
@@ -165,6 +178,7 @@ function DetailDialog({ input, onClose, onSave }: { input: DetailInput | null; o
                 setDraft({ ...draft, value: e.target.value });
                 setError("");
               }}
+              inputMode={INPUT_MODE[draft.kind]}
               placeholder={PLACEHOLDER[draft.kind]}
               autoComplete="off"
             />
