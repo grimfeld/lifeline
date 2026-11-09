@@ -9,7 +9,7 @@ ADR 0073 kept acquisition out of Lifeline. CONTEXT.md went further: nothing is p
 
 So:
 
-- **An agent may draft.** A Word, Sentence or Fact may be a **draft**: listed, editable, but out of every Practice, Puzzle, Retention and report until the user **accepts** it. Drafting is not adding: a draft says what was drafted and by whom in its origin ("Agent draft": the MCP server is not told which client is calling, so the origin names an agent, not which one), and that mark stays after acceptance, so the user's own material and the agent's stay apart.
+- **An agent may draft.** A Word, Sentence or Fact may be a **draft**: listed, editable, but out of every Practice, Puzzle, Retention and report until the user **accepts** it. Drafting is not adding: a draft says what was drafted and by whom in its origin ("Drafted by Claude": the client's own name, from its OAuth registration, which the MCP server keeps with its grant; "Agent draft" when it registered none), and that mark stays after acceptance, so the user's own material and the agent's stay apart.
 - **Acceptance is the user's.** One at a time (accept, edit then accept, or delete), or a whole Deck at once after every item has been shown. A draft enters practice as new when it is accepted, and the daily new cap counts it from then.
 - **An agent may make and fill Decks.** A lesson is a Deck. An agent never changes accepted material: it proposes a rewrite, which arrives as a draft change the user accepts or discards. It never pauses, unpauses or deletes.
 - **Knowledge reports practice, read-only.** A headless `knowledge.report` Command, which an agent calls as the `knowledge_report` tool, returns, per Topic or Deck: Retention, the Leeches and the Prompts failed most in the last 30 days with their latest Recalls (typed attempts included, ADR 0116), and what is due. Lifeline still decides nothing about what comes next. The agent outside does.
@@ -20,7 +20,7 @@ So:
 ADR 0062 routes every App operation through a headless Command, and made every Command a write. Three hooks let Knowledge keep to that:
 
 - **A Command may be read-only** (`readOnly`). Its `invoke` changes nothing and answers in `CommandResult.data`; its tool is a read tool, so a read-only grant still offers it, and `about` tells the agent what it answers. The report is one, so the MCP server stays generic and imports no App.
-- **A Command knows who runs it.** `invoke` receives an `InvokeContext`; `agent` is set when an outside agent calls through MCP, and a Macro an agent runs hands it to each step. Knowledge drafts whatever an agent adds.
+- **A Command knows who runs it.** `invoke` receives an `InvokeContext`; `agent` is set when an outside agent calls through MCP, with the client's registered name when it has one, and a Macro an agent runs hands it to each step. Knowledge drafts whatever an agent adds.
 - **A type may refuse an agent's edit** (`agentEditRefusal` on its DocumentTypeDef). `update_document` asks it first and returns its reason; the App's own Commands and the user's edits are never asked. Knowledge refuses edits to accepted material, which arrive as a draft change instead.
 
 ## Considered options

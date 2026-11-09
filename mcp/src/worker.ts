@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { parentPort, workerData } from "node:worker_threads";
-import { db, initApps, lastSyncError, pb, pushNow, syncNow } from "@lifeline/core";
+import { db, initApps, lastSyncError, pb, pushNow, syncNow, type InvokeAgent } from "@lifeline/core";
 import { manifests } from "./apps";
 import { unsyncedWrite } from "./devices";
 import { listMacroTools, runTool, ToolError } from "./handlers";
@@ -20,7 +20,8 @@ export interface DeviceAuth {
 }
 
 export type DeviceRequest =
-  | { id: number; kind: "call"; tool: string; args: Record<string, unknown>; write: boolean; auth: DeviceAuth }
+  /** `agent` is the calling client, whose name a draft's origin carries (ADR 0115). */
+  | { id: number; kind: "call"; tool: string; args: Record<string, unknown>; write: boolean; agent: InvokeAgent; auth: DeviceAuth }
   | { id: number; kind: "flush"; auth: DeviceAuth }
   /** The Account's Macro tools (tools.ts `macroTools`), for the server to list beside its own. */
   | { id: number; kind: "macro-tools"; auth: DeviceAuth };
@@ -73,7 +74,7 @@ async function handle(req: DeviceRequest): Promise<DeviceResponse> {
       return { id: req.id, ok: true, result: await listMacroTools(), pending: await pending() };
     }
     if (Date.now() - lastPull > (req.write ? WRITE_FRESH_MS : READ_FRESH_MS)) await sync();
-    const result = await runTool(req.tool, req.args);
+    const result = await runTool(req.tool, req.args, req.agent);
     let unsynced: object | undefined;
     if (req.write) {
       await pushNow();

@@ -279,9 +279,14 @@ export interface InlineOffer {
   run: (ctx: CommandCtx) => void | Promise<void>;
 }
 
+/** An outside agent calling through MCP (ADR 0115): `name` is the client's own, from its registration, when it gave one. */
+export interface InvokeAgent {
+  name?: string;
+}
+
 /** Who runs a headless Command (ADR 0115): `agent` when an outside agent calls it through MCP, so an App may treat what it makes as a draft, not chosen. A Macro run by an agent hands it to every step. */
 export interface InvokeContext {
-  agent?: boolean;
+  agent?: InvokeAgent;
 }
 
 /**

@@ -21,7 +21,8 @@ async function openTopic(id: string) {
 function drafting(ctx: InvokeContext | undefined, a: Record<string, unknown>): { draft?: true; origin: string | undefined } {
   const origin = a.origin as string | undefined;
   if (!ctx?.agent) return { origin };
-  return { draft: true, origin: ["Agent draft", (a.deck as string | undefined)?.trim(), origin?.trim()].filter(Boolean).join(" · ") };
+  const by = ctx.agent.name?.trim() ? `Drafted by ${ctx.agent.name.trim()}` : "Agent draft";
+  return { draft: true, origin: [by, (a.deck as string | undefined)?.trim(), origin?.trim()].filter(Boolean).join(" · ") };
 }
 
 /** File a new item in the Deck named, made in its Topic when absent — a lesson (ADR 0115). */

@@ -26,6 +26,16 @@ describe("Knowledge captures through MCP are drafts", () => {
     expect(decks.filter((d) => d.languageId === t).map((d) => [d.name, d.members])).toEqual([["Lesson 2", [res.id]]]);
   });
 
+  it("names the client that drafted it, when its registration gave a name", async () => {
+    const t = await topic("Romanian");
+    const res = (await runTool("knowledge_word", { topic: t, term: "gară", meaning: "station", deck: "Lesson 3" }, { name: "Claude" })) as { id: string };
+    expect(await getDocument(res.id)).toMatchObject({ draft: true, origin: "Drafted by Claude · Lesson 3" });
+    await saveMacro({ name: "Keep multumesc", steps: [{ command: "languages/knowledge.word", args: { topic: { from: "fixed", value: t }, term: { from: "fixed", value: "multumesc" }, meaning: { from: "fixed", value: "thanks" } } }] });
+    await runTool("macro_keep_multumesc", {}, { name: "Claude" });
+    const words = (await documentsOf<{ languageId: string; term: string; origin: string }>("language_word")).filter((w) => w.languageId === t && w.term === "multumesc");
+    expect(words).toMatchObject([{ origin: "Drafted by Claude" }]);
+  });
+
   it("drafts through a Macro run as a tool too: the agent is still the one capturing", async () => {
     const t = await topic("Portuguese");
     await saveMacro({ name: "Keep obrigado", steps: [{ command: "languages/knowledge.word", args: { topic: { from: "fixed", value: t }, term: { from: "fixed", value: "obrigado" }, meaning: { from: "fixed", value: "thanks" } } }] });

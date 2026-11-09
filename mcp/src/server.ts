@@ -74,6 +74,7 @@ async function toolsFor(auth: AuthInfo, body: unknown): Promise<ToolSpec[]> {
 function buildServer(auth: AuthInfo, tools: ToolSpec[]): McpServer {
   const server = new McpServer({ name: "lifeline", version: "0.1.0" }, { instructions: INSTRUCTIONS });
   const userId = String(auth.extra?.userId);
+  const agent = { name: typeof auth.extra?.clientName === "string" ? auth.extra.clientName : undefined };
   const canWrite = auth.scopes.includes(SCOPE_WRITE);
   for (const spec of offeredTools(tools, canWrite)) {
     server.registerTool(
@@ -86,7 +87,7 @@ function buildServer(auth: AuthInfo, tools: ToolSpec[]): McpServer {
       },
       async (args: Record<string, unknown>) => {
         try {
-          const result = spec.local ? spec.local(args) : await devices.call(userId, spec.name, args, spec.write);
+          const result = spec.local ? spec.local(args) : await devices.call(userId, spec.name, args, spec.write, agent);
           return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
         } catch (err) {
           // The agent's own mistakes are its to read; anything else is logged here and never shown.
