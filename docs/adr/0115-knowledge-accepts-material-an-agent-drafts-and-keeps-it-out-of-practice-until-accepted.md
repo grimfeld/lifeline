@@ -9,7 +9,7 @@ ADR 0073 kept acquisition out of Lifeline. CONTEXT.md went further: nothing is p
 
 So:
 
-- **An agent may draft.** A Word, Sentence or Fact may be a **draft**: listed, editable, but out of every Practice, Puzzle, Retention and report until the user **accepts** it. Drafting is not adding: a draft says what was drafted and by whom in its origin, and that mark stays after acceptance, so the user's own material and the agent's stay apart.
+- **An agent may draft.** A Word, Sentence or Fact may be a **draft**: listed, editable, but out of every Practice, Puzzle, Retention and report until the user **accepts** it. Drafting is not adding: a draft says what was drafted and by whom in its origin ("Agent draft": the MCP server is not told which client is calling, so the origin names an agent, not which one), and that mark stays after acceptance, so the user's own material and the agent's stay apart.
 - **Acceptance is the user's.** One at a time (accept, edit then accept, or delete), or a whole Deck at once after every item has been shown. A draft enters practice as new when it is accepted, and the daily new cap counts it from then.
 - **An agent may make and fill Decks.** A lesson is a Deck. An agent never changes accepted material: it proposes a rewrite, which arrives as a draft change the user accepts or discards. It never pauses, unpauses or deletes.
 - **Knowledge reports practice, read-only.** A headless `knowledge.report` Command, which an agent calls as the `knowledge_report` tool, returns, per Topic or Deck: Retention, the Leeches and the Prompts failed most in the last 30 days with their latest Recalls (typed attempts included, ADR 0116), and what is due. Lifeline still decides nothing about what comes next. The agent outside does.

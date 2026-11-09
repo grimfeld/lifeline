@@ -1,7 +1,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { deleteAttachment, documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
-import { accepted, clipOfItem, REWRITABLE, type DraftChange } from "../domain/draft";
+import { accepted, clipOfItem, draftChangeLines, REWRITABLE, type DraftChange } from "../domain/draft";
 import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
 import { sameName } from "../domain/names";
@@ -288,9 +288,14 @@ export async function addWord(input: WordInput): Promise<string> {
   return row.id;
 }
 
+/** A draft change the item now matches changes nothing, so it goes: no badge with no notice to discard it from. */
+async function settleDraftChange(item: Item): Promise<void> {
+  if (item.draftChange && !draftChangeLines(item).length) await patchDocument(item.id, { draftChange: null });
+}
+
 /** Editing never resets a Word: its forward and reverse stay the same Prompts (ADR 0058). */
 export async function updateWord(w: Word, input: WordInput): Promise<void> {
-  await putDocument<Word>({ ...w, ...wordRowOf(input) });
+  await settleDraftChange(await putDocument<Word>({ ...w, ...wordRowOf(input) }));
   await dropReplacedClip(w.clip, input);
 }
 
@@ -322,7 +327,7 @@ export async function addSentence(input: SentenceInput): Promise<string> {
 
 /** A blank whose text changed becomes a new Prompt; the others keep their Recalls (ADR 0058). */
 export async function updateSentence(s: Sentence, input: SentenceInput): Promise<void> {
-  await putDocument<Sentence>({ ...s, ...sentenceRowOf(input) });
+  await settleDraftChange(await putDocument<Sentence>({ ...s, ...sentenceRowOf(input) }));
   await dropReplacedClip(s.clip, input);
 }
 
@@ -358,7 +363,7 @@ export async function addFact(input: FactInput): Promise<string> {
 
 /** Editing never resets a Fact: its one Prompt stays the same Prompt. */
 export async function updateFact(f: Fact, input: FactInput): Promise<void> {
-  await putDocument<Fact>({ ...f, ...factRowOf(input) });
+  await settleDraftChange(await putDocument<Fact>({ ...f, ...factRowOf(input) }));
 }
 
 /**
@@ -494,7 +499,21 @@ export function setMembership(deck: Deck, item: Pick<Item, "id" | "languageId">,
 }
 
 /** The Deck of that name in the Topic (case ignored), made when absent — how an agent files a lesson (ADR 0115). */
-export async function deckNamed(languageId: string, name: string): Promise<Deck> {
+export function deckNamed(languageId: string, name: string): Promise<Deck> {
+  const key = `${languageId}\u0000${name.trim().toLowerCase()}`;
+  const next = (deckMakes.get(key) ?? Promise.resolve()).catch(() => undefined).then(() => findOrMakeDeck(languageId, name));
+  const settled = next.then(() => undefined, () => undefined);
+  deckMakes.set(key, settled);
+  void settled.then(() => {
+    if (deckMakes.get(key) === settled) deckMakes.delete(key);
+  });
+  return next;
+}
+
+/** Deck makes per Topic and lowercased name, one after another: the second finds the Deck the first made. */
+const deckMakes = new Map<string, Promise<void>>();
+
+async function findOrMakeDeck(languageId: string, name: string): Promise<Deck> {
   const n = name.trim();
   const found = (await documentsWhere<Deck>(DECK, "languageId", languageId)).map(normalizeDeck).find((d) => sameName(d.name, n));
   if (found) return found;
