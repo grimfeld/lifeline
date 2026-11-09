@@ -65,20 +65,26 @@ export interface PracticeReport {
   leeches: ReportedLeech[];
 }
 
+/** Material whose doc is known by its type: the kinds the Knowledge App owns. Any other Recallable (a Quote) stays a plain MaterialDoc. */
+export type TypedMaterial = MaterialDoc & ({ type: typeof WORD; doc: Word } | { type: typeof FACT; doc: Fact } | { type: typeof SENTENCE; doc: Sentence });
+
+const isTyped = (m: MaterialDoc): m is TypedMaterial => m.type === WORD || m.type === FACT || m.type === SENTENCE;
+
 /** A Prompt's question and answer, as its face shows them (faces.tsx). */
 export function promptText(m: MaterialDoc, slot: string): { question: string; answer: string | null } {
+  if (!isTyped(m)) return { question: m.title, answer: null };
   if (m.type === WORD) {
-    const w = m.doc as unknown as Word;
+    const w = m.doc;
     const term = w.term || w.title;
     if (slot === LISTEN) return { question: "(listen)", answer: term };
     return slot === "forward" ? { question: term, answer: w.meaning } : { question: w.meaning, answer: term };
   }
   if (m.type === FACT) {
-    const f = m.doc as unknown as Fact;
+    const f = m.doc;
     return { question: f.question || f.title, answer: f.answer };
   }
   if (m.type === SENTENCE) {
-    const s = m.doc as unknown as Sentence;
+    const s = m.doc;
     if (slot === LISTEN) return { question: "(listen)", answer: plainSentence(s.text ?? "") };
     let answer = "";
     const question = parseCloze(s.text ?? "")

@@ -5,6 +5,7 @@ const sync = vi.hoisted(() => ({ pulled: true }));
 vi.mock("@lifeline/core", async (orig) => ({ ...(await orig<typeof import("@lifeline/core")>()), hasPulledOnce: async () => sync.pulled }));
 import { addAudioAttachment, allAttachments, documentsOf, getDocument, putDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
 import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item, type Recall, type Sentence, type Word } from "../domain/types";
+import { accepted } from "../domain/draft";
 import { acceptDraft, acceptDrafts, acceptDraftChange, addDeck, addSentence, addWord, deckNamed, deleteItem, deleteItemUndoably, discardDraftChange, restoreItem, saveDraftChange, recordRecall, removeItemRecalls, setMembership, strikeRecall, sweepClipOrphans, updateSentence, updateWord } from "./repo";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
@@ -35,6 +36,20 @@ describe("acceptDraft", () => {
     expect(after.draft).toBe(false);
     expect(after.addedAt > before.addedAt).toBe(true);
     expect(after.origin).toBe("Agent draft · Lesson 1");
+  });
+
+  it("leaves the item exactly as accepted() returns it", async () => {
+    const id = await addWord({ languageId: "es", term: "cielo", meaning: "sky", draft: true });
+    const before = (await getDocument<Item>(id))!;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2031-01-02T03:04:05.000Z"));
+      await acceptDraft(id);
+    } finally {
+      vi.useRealTimers();
+    }
+    const after = (await getDocument<Item>(id))!;
+    expect({ ...after, updatedAt: 0 }).toEqual({ ...accepted(before, "2031-01-02T03:04:05.000Z"), updatedAt: 0 });
   });
 
   it("a deleted draft is simply gone", async () => {

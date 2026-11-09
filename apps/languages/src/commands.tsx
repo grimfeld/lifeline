@@ -1,7 +1,7 @@
 import type { CommandDef, CommandDialogProps } from "@lifeline/core";
 import { Brain, MessageCircleQuestion, PencilLine, Play, Plus, TextCursorInput } from "lucide-react";
 import { TOPIC, KNOWLEDGE_HREF, WORD, SENTENCE, FACT, type Item } from "./domain/types";
-import { KIND_NAME, kindsWith, REWRITABLE, REWRITABLE_FIELDS, type DraftChange, type RewritableField } from "./domain/draft";
+import { fieldOf, KIND_NAME, kindsWith, REWRITABLE, REWRITABLE_FIELDS, REWRITABLE_KEYS, type DraftChange } from "./domain/draft";
 import type { InvokeContext } from "@lifeline/core";
 import { blankSlots } from "./domain/cloze";
 import { addFact, addSentence, addWord, allFacts, allTopics, allSentences, allWords, deckNamed, reportReads, saveDraftChange, setMembership, updateItem } from "./data/repo";
@@ -143,17 +143,17 @@ export const knowledgeCommands: CommandDef[] = [
     icon: PencilLine,
     args: [
       { key: "id", label: "Item", kind: "link", linkType: [WORD, SENTENCE, FACT], required: true, hint: "The Word, Sentence or Fact to rewrite. It is never changed: the user sees your values beside its own and accepts or discards them. A newer draft change replaces an older one. A draft is simply updated." },
-      ...(Object.keys(REWRITABLE_FIELDS) as RewritableField[]).map((key) => ({ key, label: REWRITABLE_FIELDS[key].label, kind: REWRITABLE_FIELDS[key].long ? ("longtext" as const) : ("text" as const), hint: [`${kindsWith(key)} only`, REWRITABLE_FIELDS[key].hint].filter(Boolean).join("; ") + "." })),
+      ...REWRITABLE_KEYS.map((key) => ({ key, label: REWRITABLE_FIELDS[key].label, kind: REWRITABLE_FIELDS[key].long ? ("longtext" as const) : ("text" as const), hint: [`${kindsWith(key)} only`, REWRITABLE_FIELDS[key].hint].filter(Boolean).join("; ") + "." })),
     ],
     returnsDocument: true,
     async invoke(a) {
       const item = [...(await allWords()), ...(await allSentences()), ...(await allFacts())].find((i) => i.id === a.id);
       if (!item) throw new Error("That is no Word, Sentence or Fact");
       const kind = KIND_NAME[item.type];
-      const wrong = (Object.keys(REWRITABLE_FIELDS) as RewritableField[]).filter((k) => a[k] !== undefined && !REWRITABLE[item.type].includes(k));
+      const wrong = REWRITABLE_KEYS.filter((k) => a[k] !== undefined && !REWRITABLE[item.type].includes(k));
       if (wrong.length) throw new Error(`${wrong.join(", ")} ${wrong.length === 1 ? "is" : "are"} not a field of a ${kind}; nothing was drafted`);
       const given: DraftChange = {};
-      for (const k of REWRITABLE[item.type]) if (typeof a[k] === "string" && a[k].trim() !== ((item as unknown as Record<string, string>)[k] ?? "")) given[k] = a[k];
+      for (const k of REWRITABLE[item.type]) if (typeof a[k] === "string" && a[k].trim() !== fieldOf(item, k)) given[k] = a[k];
       if (!Object.keys(given).length) throw new Error("There is nothing to change: no field differs from the item’s own; nothing was drafted");
       if (item.draft) {
         await updateItem(item, { ...item, ...given } as Item);

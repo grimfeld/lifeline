@@ -1,7 +1,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { allAttachments, deleteAttachment, documentsOfUngated, hasPulledOnce, isAudioMime, documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
-import { REWRITABLE, type DraftChange } from "../domain/draft";
+import { accepted, clipOfItem, REWRITABLE, type DraftChange } from "../domain/draft";
 import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
 import { sameName } from "../domain/names";
@@ -366,7 +366,10 @@ export async function updateFact(f: Fact, input: FactInput): Promise<void> {
  * practice as new now, and the daily new cap counts it today. Its origin stays.
  */
 export async function acceptDraft(id: string): Promise<void> {
-  await patchDocument(id, { draft: false, addedAt: new Date().toISOString() });
+  const item = await getDocument<Item>(id);
+  if (!item) return;
+  const { draft, addedAt } = accepted(item, new Date().toISOString());
+  await patchDocument(id, { draft, addedAt });
 }
 
 /** Each kind's own edit, so whatever edits an item of unknown kind goes through the same checks and Prompt rules (ADR 0058). */
@@ -445,7 +448,7 @@ const heldClips = new Set<string>();
 export async function deleteItemUndoably(id: string): Promise<{ undo: () => Promise<void>; commit: () => Promise<void> }> {
   const item = await getDocument<Item>(id);
   if (!item) return { undo: async () => undefined, commit: async () => undefined };
-  const clip = (item as Word).clip;
+  const clip = clipOfItem(item);
   if (clip) heldClips.add(clip);
   await removeDocument(id);
   let settled = false; // Undo's click also dismisses its toast: whichever comes first decides
@@ -469,14 +472,14 @@ export async function deleteItemUndoably(id: string): Promise<{ undo: () => Prom
  * Its clip comes with it only while the Undo window held it (`deleteItemUndoably`).
  */
 export async function restoreItem(item: Item): Promise<void> {
-  const { clip, ...rest } = item as Word;
+  const { clip, ...rest } = item as Item & { clip?: string };
   await putDocument(clip && heldClips.has(clip) ? { ...rest, clip } : rest);
 }
 
 /** The cascade, for any Recallable Document: its Recalls mean nothing without its Prompts, nor its clip (ADR 0116) without it. Decks simply stop listing it on read. */
 export async function removeItemRecalls(doc: Document): Promise<void> {
   await removeDocumentsWhere(RECALL, (r) => r.itemId === doc.id);
-  const clip = (doc as Word).clip;
+  const clip = clipOfItem(doc as Item);
   if (clip && !heldClips.has(clip)) await deleteAttachment(clip);
 }
 
