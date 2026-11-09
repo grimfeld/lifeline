@@ -6,7 +6,7 @@ vi.mock("@lifeline/core", async (orig) => ({ ...(await orig<typeof import("@life
 import { addAudioAttachment, allAttachments, documentsOf, getDocument, putDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
 import { DECK, RECALL, SENTENCE, TOPIC, WORD, type Deck, type Item, type Recall, type Sentence, type Word } from "../domain/types";
 import { accepted } from "../domain/draft";
-import { acceptDraft, acceptDrafts, acceptDraftChange, addDeck, addSentence, addWord, deckNamed, deleteItem, deleteItemUndoably, discardDraftChange, restoreItem, saveDraftChange, recordRecall, removeItemRecalls, setMembership, strikeRecall, sweepClipOrphans, updateSentence, updateWord } from "./repo";
+import { acceptDraft, acceptDrafts, acceptDraftChange, addDeck, addSentence, addWord, deckNamed, deleteItem, deleteItemUndoably, discardDraftChange, saveDraftChange, recordRecall, removeItemRecalls, setMembership, strikeRecall, sweepClipOrphans, updateSentence, updateWord } from "./repo";
 
 // The Knowledge types, bare: the App manifest pulls in screens that need a DOM.
 const bare = (id: string) => ({ id, label: id, titleRule: "name", body: "optional", fields: [], indexes: ["languageId"], builtIn: true }) as unknown as DocumentTypeDef;
@@ -62,9 +62,8 @@ describe("acceptDraft", () => {
     const id = await addWord({ languageId: "es", term: "sol", meaning: "sun", draft: true });
     const deck = await addDeck("es", "Lesson 3");
     await setMembership((await getDocument<Deck>(deck))!, { id, languageId: "es" }, true);
-    const gone = (await getDocument<Item>(id))!;
-    await deleteItem(id);
-    await restoreItem(gone);
+    const { undo } = await deleteItemUndoably(id);
+    await undo();
     expect(await getDocument(id)).toMatchObject({ term: "sol", draft: true });
     expect((await getDocument<Deck>(deck))!.members).toContain(id);
   });

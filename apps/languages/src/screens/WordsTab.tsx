@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { draftChangeLines } from "../domain/draft";
 import { openPeek } from "@lifeline/core";
 import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, PhoneDock, PhoneFilters, Tip, cn, usePhone } from "@lifeline/ui";
 import { Check, MessageCircleQuestion, Pause, Play, Plus, Search, TextCursorInput, WholeWord } from "lucide-react";
+import { draftChangeLines } from "../domain/draft";
 import { heldPrompts } from "../domain/practice";
 import { itemLines, itemMaterial } from "../domain/prompts";
 import { FACT, SENTENCE, WORD, type Deck, type Fact, type Item, type Recall, type Sentence, type Word } from "../domain/types";

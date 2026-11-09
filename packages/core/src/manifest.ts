@@ -279,9 +279,14 @@ export interface InlineOffer {
   run: (ctx: CommandCtx) => void | Promise<void>;
 }
 
+/** An outside agent calling through MCP (ADR 0115): `name` is the client's own, from its registration, when it gave one. */
+export interface InvokeAgent {
+  name?: string;
+}
+
 /** Who runs a headless Command (ADR 0115): `agent` when an outside agent calls it through MCP, so an App may treat what it makes as a draft, not chosen. A Macro run by an agent hands it to every step. */
 export interface InvokeContext {
-  agent?: boolean;
+  agent?: InvokeAgent;
 }
 
 /**
@@ -352,7 +357,7 @@ export interface CommandDef {
    * What the headless form does and answers, for a caller with no dialog to
    * look at — an agent (ADR 0062). Left out, its title says enough.
    */
-  about?: string;
+  agentDescription?: string;
   /**
    * An inline Command (CONTEXT.md "Command", ADR 0088) reads the palette's
    * whole query as its argument: asked on every change of the query, it offers

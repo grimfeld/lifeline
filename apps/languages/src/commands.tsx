@@ -21,7 +21,8 @@ async function openTopic(id: string) {
 function drafting(ctx: InvokeContext | undefined, a: Record<string, unknown>): { draft?: true; origin: string | undefined } {
   const origin = a.origin as string | undefined;
   if (!ctx?.agent) return { origin };
-  return { draft: true, origin: ["Agent draft", (a.deck as string | undefined)?.trim(), origin?.trim()].filter(Boolean).join(" · ") };
+  const by = ctx.agent.name?.trim() ? `Drafted by ${ctx.agent.name.trim()}` : "Agent draft";
+  return { draft: true, origin: [by, (a.deck as string | undefined)?.trim(), origin?.trim()].filter(Boolean).join(" · ") };
 }
 
 /** File a new item in the Deck named, made in its Topic when absent — a lesson (ADR 0115). */
@@ -167,7 +168,7 @@ export const knowledgeCommands: CommandDef[] = [
     id: "knowledge.report",
     title: "Knowledge practice report",
     keywords: ["knowledge", "report", "practice", "retention", "leeches"],
-    about:
+    agentDescription:
       "How the user's practice of a Knowledge Topic is going, read-only: Retention (the share of the last 30 days' Recalls passed, as the app shows it), what is due now, how many new Prompts are waiting, the Leeches (Prompts with 4 or more fails among their last 8 Recalls, with question, answer and fail count), and the Prompts failed most over the last 30 days, each with its question, answer, slot and latest Recalls (grade, moment, and `typed`: what the user typed before revealing, where they typed an attempt — read these to see what went wrong). Optionally narrowed to some of the Topic's Decks (lessons). Drafts and paused material are left out. The report is in `data`. Use it to choose what to teach next instead of asking for a score.",
     args: [
       { key: "topic", label: "Topic", kind: "text", required: true, hint: "The Topic's id or exact name, e.g. Italian." },

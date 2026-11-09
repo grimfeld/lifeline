@@ -4,7 +4,7 @@ import { plainSentence } from "../domain/cloze";
 import { accepted, clipOfItem, draftChangeLines, REWRITABLE, type DraftChange } from "../domain/draft";
 import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
-import { sameName } from "../domain/names";
+import { nameKey, sameName } from "../domain/names";
 import type { ReportReads } from "../domain/report";
 import { sourceChain, type SourceReading } from "../domain/sources";
 
@@ -241,8 +241,9 @@ export interface WordInput {
   draft?: boolean;
 }
 
-/** The `clip` an edit writes: only when the input says. */
+/** The `draft` mark a new item carries: only an agent's (ADR 0115). */
 const draftOf = (input: { draft?: boolean }) => (input.draft ? { draft: true } : {});
+/** The `clip` an edit writes: only when the input says. */
 const clipOf = (input: { clip?: string }) => (input.clip === undefined ? {} : { clip: input.clip });
 
 /** A replaced or removed clip's Attachment goes with it: the clip is nobody else's. */
@@ -263,25 +264,37 @@ function wordRowOf(input: WordInput) {
  * out of an agent's reach whether or not a password is set (ADR 0062), as
  * `isAgentVisible` holds for the other MCP reads.
  */
-async function allMaterial(): Promise<{ m: MaterialDoc; hidden: boolean }[]> {
-  const all = await Promise.all(recallableDefs().map(async (def) => (await documentsOf(def.typeId)).map((doc) => ({ m: materialOf(def, doc), hidden: inPrivateFolder(doc.folder) }))));
+/** Knowledge's own Recallable types, which keep their Topic in `languageId`. */
+const KEYED_BY_TOPIC = new Set<string>([WORD, SENTENCE, FACT]);
+
+/**
+ * One Topic's Recallable material, each marked Private or not. Knowledge's own
+ * types are read by the Topic's key; another App's are read whole, once, and
+ * kept by their declared Topic: the Recallable Contract names no topic field
+ * (ADR 0073).
+ */
+async function materialOfTopic(topicId: string): Promise<{ m: MaterialDoc; hidden: boolean }[]> {
+  const all = await Promise.all(
+    recallableDefs().map(async (def) => {
+      const docs = KEYED_BY_TOPIC.has(def.typeId) ? await documentsWhere(def.typeId, "languageId", topicId) : await documentsOf(def.typeId);
+      return docs.map((doc) => ({ m: materialOf(def, doc), hidden: inPrivateFolder(doc.folder) })).filter((x) => x.m.topicId === topicId);
+    }),
+  );
   return all.flat();
 }
 
 /**
  * The reads a practice report takes (domain/report.ts), normalised as the
- * screens read them. Decks and Recalls are read by their Topic's key; the
- * Recallable Contract names no topic field (ADR 0073), so material is read
- * per type and kept by its declared Topic.
+ * screens read them, each keyed by the Topic where its type allows.
  */
 export const reportReads: ReportReads = {
   topics: async () => (await documentsOf<Topic>(TOPIC)).map(normalizeTopic),
   decksOf: async (topicId) => (await documentsWhere<Deck>(DECK, "languageId", topicId)).map(normalizeDeck),
-  materialOf: async (topicId) => (await allMaterial()).filter((x) => !x.hidden && x.m.topicId === topicId).map((x) => x.m),
-  recallsOf: async (topicId) => {
-    const hidden = new Set((await allMaterial()).filter((x) => x.hidden).map((x) => x.m.id));
+  practiceOf: async (topicId) => {
+    const [material, recalls] = await Promise.all([materialOfTopic(topicId), documentsWhere<Recall>(RECALL, "languageId", topicId)]);
     // A Recall of Private material goes with it.
-    return (await documentsWhere<Recall>(RECALL, "languageId", topicId)).filter((r) => !hidden.has(r.itemId)).map(normalizeRecall);
+    const hidden = new Set(material.filter((x) => x.hidden).map((x) => x.m.id));
+    return { material: material.filter((x) => !x.hidden).map((x) => x.m), recalls: recalls.filter((r) => !hidden.has(r.itemId)).map(normalizeRecall) };
   },
 };
 
@@ -491,9 +504,9 @@ export async function deleteItemUndoably(id: string): Promise<{ undo: () => Prom
  * Bring a deleted item back, for Undo: under its own id, so every Deck lists it again.
  * Its clip comes with it only while the Undo window held it (`deleteItemUndoably`).
  */
-export async function restoreItem(item: Item): Promise<void> {
-  const { clip, ...rest } = item as Item & { clip?: string };
-  await putDocument(clip && heldClips.has(clip) ? { ...rest, clip } : rest);
+async function restoreItem(item: Item): Promise<void> {
+  const clip = clipOfItem(item);
+  await putDocument(!clip || heldClips.has(clip) ? item : { ...item, clip: "" });
 }
 
 /** The cascade, for any Recallable Document: its Recalls mean nothing without its Prompts, nor its clip (ADR 0116) without it. Decks simply stop listing it on read. */
@@ -565,7 +578,7 @@ export function setMembership(deck: Deck, item: Pick<Item, "id" | "languageId">,
 
 /** The Deck of that name in the Topic (case ignored), made when absent — how an agent files a lesson (ADR 0115). */
 export function deckNamed(languageId: string, name: string): Promise<Deck> {
-  const key = `${languageId}\u0000${name.trim().toLowerCase()}`;
+  const key = `${languageId}\u0000${nameKey(name)}`;
   const next = (deckMakes.get(key) ?? Promise.resolve()).catch(() => undefined).then(() => findOrMakeDeck(languageId, name));
   const settled = next.then(() => undefined, () => undefined);
   deckMakes.set(key, settled);

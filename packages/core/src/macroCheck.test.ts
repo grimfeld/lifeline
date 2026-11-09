@@ -82,6 +82,14 @@ describe("checkMacro", () => {
     });
   });
 
+  it("is broken by a read-only Command as a step: its answer would go nowhere", async () => {
+    const report: OwnedCommand = { ...headless("knowledge", "report", []), readOnly: true, title: "Report" };
+    expect(await checkMacro({ name: "M", steps: [s("knowledge/report")] }, [...COMMANDS, report], lookup)).toEqual({
+      ok: false,
+      reasons: ["Step 1: “Report” only answers an agent, so it cannot be a step"],
+    });
+  });
+
   it("is broken by a Macro as a step", async () => {
     expect(await check(s("macros/m2"))).toEqual({
       ok: false,

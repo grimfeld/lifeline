@@ -14,7 +14,7 @@ import {
 import {
   commandAppTitle,
   CALENDAR_VIEWS,
-  isInvocable,
+  commandRun,
   chordLabel,
   commandKey,
   isModShortcut,
@@ -148,8 +148,8 @@ export function CommandPalette() {
     return key && <CommandShortcut className="ml-2">{chordLabel(key)}</CommandShortcut>;
   };
   const runnable = commands.filter((c) => c.dialog || c.run);
-  // What `!` can name: every Command but an inline-only one (ADR 0088), headless-only ones included.
-  const nameable = useMemo(() => commands.filter((c) => c.dialog || c.run || isInvocable(c)), [commands]);
+  // What `!` can name: every Command that can be picked (ADR 0088), headless-only ones included; not an inline-only or a read-only one.
+  const nameable = useMemo(() => commands.filter((c) => commandRun(c) !== "none"), [commands]);
   // Every inline Command reads the query anew on each change of it (ADR 0088).
   const offers =
     search.trim() === ""

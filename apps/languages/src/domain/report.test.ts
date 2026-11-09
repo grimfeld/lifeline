@@ -98,17 +98,16 @@ describe("topicReport", () => {
     const r: ReportReads = {
       topics: async () => [topicDoc("it", "Italian"), topicDoc("fr", "French")],
       decksOf: async (t) => (asked.push(`decks:${t}`), t === "it" ? [deckDoc("d1", "it", "Lesson 1", ["a"])] : []),
-      materialOf: async (t) => (asked.push(`material:${t}`), t === "it" ? [word("a", "stazione", "station")] : [{ ...word("x", "gare", "station"), topicId: "fr" }]),
-      recallsOf: async (t) => (asked.push(`recalls:${t}`), recalls.filter((x) => x.languageId === t)),
+      practiceOf: async (t) => (asked.push(`practice:${t}`), { material: t === "it" ? [word("a", "stazione", "station")] : [{ ...word("x", "gare", "station"), topicId: "fr" }], recalls: recalls.filter((x) => x.languageId === t) }),
     };
     return { r, asked };
   }
 
-  it("reads only the requested Topic's Decks, material and Recalls", async () => {
+  it("reads only the requested Topic's Decks, and its material with its Recalls once", async () => {
     const { r, asked } = reads();
     const out = await topicReport({ topic: " italian " }, r, now);
     expect(out.topic).toBe("Italian");
-    expect(asked.sort()).toEqual(["decks:it", "material:it", "recalls:it"]);
+    expect(asked.sort()).toEqual(["decks:it", "practice:it"]);
     expect(out.mostFailed.map((p) => p.itemId)).toEqual(["a"]);
   });
 

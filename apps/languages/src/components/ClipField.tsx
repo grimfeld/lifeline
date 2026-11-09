@@ -58,6 +58,8 @@ export function useClipDraft(open: boolean, savedClip: string | undefined) {
 export function ClipField({ clip, onPut, onRemove, idPrefix }: { clip: string; onPut: (file: Blob & { name?: string }) => Promise<void>; onRemove: () => Promise<void>; idPrefix: string }) {
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  // What a screen reader hears: the change of state only, never the running seconds.
+  const [announced, setAnnounced] = useState("");
   const recorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -65,6 +67,7 @@ export function ClipField({ clip, onPut, onRemove, idPrefix }: { clip: string; o
   const canRecord = typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia && !!recorderType();
 
   function release() {
+    if (stream.current) setAnnounced("Recording stopped");
     if (timer.current) clearInterval(timer.current);
     timer.current = null;
     stream.current?.getTracks().forEach((t) => t.stop());
@@ -108,6 +111,7 @@ export function ClipField({ clip, onPut, onRemove, idPrefix }: { clip: string; o
     r.start();
     setSeconds(0);
     setRecording(true);
+    setAnnounced("Recording");
     let elapsed = 0;
     timer.current = setInterval(() => {
       elapsed += 1;
@@ -130,16 +134,14 @@ export function ClipField({ clip, onPut, onRemove, idPrefix }: { clip: string; o
     <div className="grid gap-2">
       <Label id={`${idPrefix}-clip-label`}>Audio clip</Label>
       {clip && <ClipPreview clipId={clip} />}
+      <span role="status" className="sr-only">
+        {announced}
+      </span>
       <div role="group" aria-labelledby={`${idPrefix}-clip-label`} className="flex flex-wrap items-center gap-2">
         {recording ? (
-          <>
-            <Button type="button" size="sm" variant="destructive" onClick={stop} aria-label="Stop recording">
-              <Square /> Stop · {seconds}s
-            </Button>
-            <span role="status" className="sr-only">
-              Recording, {seconds} seconds
-            </span>
-          </>
+          <Button type="button" size="sm" variant="destructive" onClick={stop} aria-label="Stop recording">
+            <Square /> Stop · {seconds}s
+          </Button>
         ) : (
           canRecord && (
             <Button type="button" size="sm" variant="outline" onClick={() => void start()}>

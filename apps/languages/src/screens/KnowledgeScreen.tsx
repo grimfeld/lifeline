@@ -39,7 +39,7 @@ export function KnowledgeScreen() {
   const archived = topics.filter((l) => l.archived);
   const phone = usePhone();
   // Clips a closed tab or a lapsed Undo left behind (ADR 0116).
-  useEffect(() => void sweepClipOrphans().catch(() => undefined), []);
+  useEffect(() => void sweepClipOrphans().catch((err) => console.warn("[knowledge] sweeping orphaned clips failed", err)), []);
 
   return (
     <div className="mx-auto grid w-full max-w-3xl gap-4 p-4 md:p-6">

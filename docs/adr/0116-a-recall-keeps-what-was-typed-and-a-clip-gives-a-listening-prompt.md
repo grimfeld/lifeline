@@ -1,6 +1,6 @@
 ---
 status: accepted
-amends: ADR 0058 (in part — a Recall may carry a typed attempt; a clip adds a listening Prompt); ADR 0037 (in part — a clip's Attachment is deleted by its item, not by the cleanup Command)
+amends: ADR 0058 (in part — a Recall may carry a typed attempt; a clip adds a listening Prompt), ADR 0037 (in part — a clip's Attachment is deleted by its item, not by the cleanup Command)
 ---
 
 # A Recall keeps what was typed, and a clip gives a listening Prompt

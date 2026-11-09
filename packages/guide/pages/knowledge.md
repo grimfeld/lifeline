@@ -181,7 +181,8 @@ Claude can **draft** what it teaches you, but only you decide what enters your p
 - "Keep a fact in History: When was the Peace of Westphalia? 1648" — `knowledge_fact`.
 - Whatever Claude adds is a **draft**, always. The tools take an optional **Deck** name (a lesson;
   the Deck is made in the Topic when it is not there yet) and a note for *Where it was met*, which
-  Lifeline writes after "Agent draft" and the Deck's name.
+  Lifeline writes after "Drafted by" and the app's name (Claude, say; "Agent draft" when the app gave
+  none) and the Deck's name.
 - Claude cannot accept, pause, unpause or delete anything, and cannot change what you have accepted.
   To fix an accepted Word, Sentence or Fact it uses **Draft a change…** (`knowledge_draft_change`),
   giving the item and the fields it would change: you see the draft change beside the current values

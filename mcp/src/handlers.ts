@@ -11,6 +11,7 @@ import {
   reportMessage,
   runMacroHeadless,
   withMacros,
+  type InvokeAgent,
   type MacroRecord,
   saveMacro,
   commandKey,
@@ -225,12 +226,12 @@ async function assertFine(macro: MacroShape): Promise<void> {
 }
 
 /** Run a Macro's tool headless, handing the agent the run's own report: every step's outcome, not only the sentence. */
-async function runMacroTool(tool: MacroTool, args: Args): Promise<unknown> {
+async function runMacroTool(tool: MacroTool, args: Args, agent: InvokeAgent): Promise<unknown> {
   const macros = await allMacros();
   const macro = macros.find((m) => m.id === tool.macro);
   if (!macro) throw new ToolError(`Macro ${tool.name} is gone`);
   try {
-    const report = await runMacroHeadless(macro, await registry(macros), args, { agent: true });
+    const report = await runMacroHeadless(macro, await registry(macros), args, { agent });
     return { message: reportMessage(report), report: { name: report.name, steps: report.steps } };
   } catch (e) {
     throw new ToolError((e as Error).message);
@@ -482,18 +483,18 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
   },
 };
 
-/** Run one tool. Command tools run the App's Command through Core's argument check. */
-export async function runTool(name: string, args: Args): Promise<unknown> {
+/** Run one tool for the agent calling (its client's name, when known). Command tools run the App's Command through Core's argument check. */
+export async function runTool(name: string, args: Args, agent: InvokeAgent = {}): Promise<unknown> {
   const spec = TOOLS.find((t) => t.name === name);
   const macro = spec ? undefined : (await listMacroTools()).find((t) => t.name === name);
   if (!spec && !macro) throw new ToolError(`Unknown tool ${name}`);
   const { workspace, ...rest } = args;
   await enterWorkspace(workspace);
-  if (!spec) return runMacroTool(macro!, rest);
+  if (!spec) return runMacroTool(macro!, rest, agent);
   if (spec.command) {
     const def = allCommands().find((c) => c.id === spec.command);
     if (!def) throw new ToolError(`Command ${spec.command} is gone`);
-    return invokeCommand(def, rest, { agent: true }).catch((e: Error) => {
+    return invokeCommand(def, rest, { agent }).catch((e: Error) => {
       throw new ToolError(e.message);
     });
   }

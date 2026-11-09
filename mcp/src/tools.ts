@@ -262,7 +262,7 @@ function commandTool(def: CommandDef & { appId: string }): ToolSpec | null {
   return {
     name: commandToolName(def.id),
     title: def.title,
-    description: def.about ?? `${def.title} — the ${def.appId} App's own operation, as its "${def.title}" command does.`,
+    description: def.agentDescription ?? `${def.title} — the ${def.appId} App's own operation, as its "${def.title}" command does.`,
     input,
     write: !def.readOnly,
     command: def.id,
