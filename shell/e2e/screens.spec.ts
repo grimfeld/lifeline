@@ -176,6 +176,48 @@ async function withLeeches(page: Page) {
   await expect(page.getByRole("heading", { name: "Leeches" })).toBeVisible();
 }
 
+/** Knowledge → Practice on a due Sentence whose blank has the longest answer, revealed after typing the longest attempt (ADR 0116). */
+async function typedAttemptRevealed(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      await core.putDocument({ type: "language_sentence", title: long, languageId: topic.id, text: `${long} {{${word}}}`, translation: long, notes: "", origin: "", originId: "", paused: false, addedAt: at, tags: [] });
+      localStorage.setItem("lifeline.languages.active", topic.id);
+    },
+    [CORE_URL, longText("Typed topic"), LONG_WORD] as const,
+  );
+  await page.reload();
+  await workLocally(page);
+  await page.getByRole("button", { name: /^Practise / }).filter({ hasText: longText("Typed topic") }).click();
+  const field = page.getByLabel("Your answer");
+  await field.fill(`${LONG_WORD}${LONG_WORD}`);
+  await field.press("Enter");
+  await expect(page.getByTestId("attempt-vs-answer")).toBeVisible();
+}
+
+/** Knowledge → Words: a Word with a long draft change and Recalls holding long typed attempts, its peek opened (ADR 0115, 0116). */
+async function wordWithDraftChange(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      const w = await core.putDocument({ type: "language_word", title: "draftword", languageId: topic.id, term: "draftword", meaning: `${long} ${word}`, notes: `${long} ${word}`, origin: "", originId: "", paused: false, addedAt: at, tags: [], draftChange: { meaning: `${long} ${word} ${word}`, notes: `${word}${word}` } });
+      for (let k = 0; k < 3; k++) await core.putDocument({ type: "language_recall", title: "fail", languageId: topic.id, itemId: w.id, slot: "reverse", grade: "fail", typed: `${long} ${word}`, at: new Date(Date.now() - (k + 1) * 3_600_000).toISOString(), tags: [] });
+      localStorage.setItem("lifeline.languages.active", topic.id);
+    },
+    [CORE_URL, longText("Draft word topic"), LONG_WORD] as const,
+  );
+  await page.goto("/app/languages?tab=words");
+  await workLocally(page);
+  await page.getByRole("button", { name: /^draftword/ }).click();
+  await expect(page.getByRole("dialog").getByRole("region", { name: "Draft change" })).toBeVisible();
+}
+
 /**
  * Knowledge → Puzzles over a Topic with four Decks a Connections can draw
  * from (ADR 0106): the longest Deck names, and Words and Facts with the
@@ -940,6 +982,8 @@ const SCREENS: ScreenCase[] = [
   { name: "Knowledge · Deck review", path: "/app/languages?tab=decks", afterOpen: reviewingDrafts },
   { name: "Knowledge · Mixing decks", path: "/app/languages", afterOpen: mixingDecks },
   { name: "Knowledge · Leeches", path: "/app/languages", afterOpen: withLeeches },
+  { name: "Knowledge · Typed attempt revealed", path: "/app/languages", afterOpen: typedAttemptRevealed },
+  { name: "Knowledge · Draft change and typed Recalls", path: "/app/languages?tab=words", afterOpen: wordWithDraftChange },
   { name: "Knowledge · Puzzles", path: "/app/languages?tab=puzzles", afterOpen: withPuzzleWord },
   { name: "Knowledge · Puzzle player", path: "/app/languages?tab=puzzles", afterOpen: playPuzzle },
   { name: "Knowledge · Puzzle played", path: "/app/languages?tab=puzzles", afterOpen: givenUpPuzzle },
