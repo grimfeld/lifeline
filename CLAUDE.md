@@ -88,7 +88,7 @@ is private, and a pre-push hook refuses any other and prints the fix.
 
 ## Workflow metrics (agentic-metrics)
 
-This repo is measured by [agentic-metrics](https://github.com/grimfeld/agentic-metrics); its settings are in `.agentic-metrics.json`. The conventions (an `estimate: 2d` comment before work starts, a `caused-by: #N` reply on a bug once its cause is found, `autonomy:*` labels to correct a ticket's level, a "Notable intervention" line in a PR when the user stepped in) are in the plugin's `agentic-metrics:conventions` skill. The `agentic-metrics` workflow adds `Closes #N` from the branch name and the `regression` label from a `caused-by:` reply, so agents don't have to.
+This repo is measured by [agentic-metrics](https://github.com/grimfeld/agentic-metrics); its settings are in `.agentic-metrics.json`. The conventions (an `estimate: 2d` comment before work starts, a `caused-by: #N` reply on a bug once its cause is found, `autonomy:*` labels to correct a ticket's level, a "Notable intervention" line in a PR when the user stepped in) are in the plugin's `agentic-metrics:conventions` skill. The `agentic-metrics` workflow adds `Closes #N` from the branch name and the `regression` label from a `caused-by:` reply, so agents don't have to. The recorder hook (`.agentic-metrics/recorder.mjs`, registered in `.claude/settings.json`) adds a `Session-Record:` trailer to the commits a Claude Code session makes; leave it in place when amending or rewording a commit.
 
 ## Agent skills
 
