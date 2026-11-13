@@ -101,7 +101,7 @@ test("an Address is changed and removed", async ({ page }) => {
   const id = await newPerson(page, "Ada Roy");
   await addAddress(page, "Home", "12 Rue Example, Paris");
   await page.getByRole("button", { name: "Edit", exact: true }).click();
-  await page.getByRole("button", { name: "Change Home" }).click();
+  await page.getByRole("button", { name: "Change Home: 12 Rue Example, Paris" }).click();
   const dialog = page.getByRole("dialog", { name: "Change address" });
   await dialog.getByLabel("Label").fill("Flat");
   await dialog.getByRole("button", { name: "Save" }).click();

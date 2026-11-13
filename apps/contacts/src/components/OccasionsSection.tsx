@@ -33,7 +33,7 @@ export function OccasionsSection({ person }: { person: Person }) {
               icon={<CalendarHeart className="size-4" />}
               title={<span className="font-medium">{isBirthday(o) ? "🎂 " : ""}{o.label}</span>}
               sub={dotJoin([describeDay(o.day), o.yearly ? "every year" : "once", u && whenOf(u.inDays), u?.age != null && `turns ${u.age}`])}
-              editLabel={`Edit ${o.label}`}
+              editLabel={`Edit ${o.label}: ${describeDay(o.day)}`}
               onEdit={() => setEditing(o)}
               removeLabel={`Remove ${o.label}`}
               onRemove={() => void removeWithUndo(o.label, () => removePart(person.id, "occasions", o.id), (r) => restorePart(person.id, "occasions", r))}

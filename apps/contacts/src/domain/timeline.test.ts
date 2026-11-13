@@ -37,6 +37,11 @@ describe("a Person's timeline", () => {
       ["2026-06", 1],
     ]);
   });
+  it("puts what has no day in a month of its own, null, last", () => {
+    const undated = { sourceId: "u", type: "note", title: "Undated", day: null };
+    const dated = { sourceId: "d", type: "note", title: "Dated", day: "2026-11-02" };
+    expect(timelineMonths([dated, undated]).map((m) => m.month)).toEqual(["2026-11", null]);
+  });
   it("is empty for someone nothing links to", () => {
     expect(timelineOf(idx, "nobody")).toEqual([]);
   });

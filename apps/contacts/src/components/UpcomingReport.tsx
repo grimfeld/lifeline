@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { personHref } from "../constants";
 import { formatHuman, todayStr, type CardProps } from "@lifeline/core";
 import { usePeople } from "../data/repo";
-import { monthLabel } from "../domain/dots";
+import { monthLabel } from "./format";
 import { upcomingOccasions, whenOf, type UpcomingOccasion } from "../domain/occasions";
 import { PersonRowLink } from "./PersonRow";
 import { Section } from "./Section";
@@ -55,12 +55,10 @@ const monthOf = (day: string) => monthLabel(day, { month: "short" });
 /**
  * Upcoming on the People home (#422): the same Occasions as a strip of days,
  * each the day's number over its month and when, the name and the Occasion.
- * It scrolls sideways when there are more than fit.
+ * It scrolls sideways when there are more than fit. The home works `items` out
+ * (over `days`) once, for the strip and Everyone's badges both.
  */
-export function UpcomingStrip({ days = UPCOMING_DAYS }: { days?: number }) {
-  const rows = usePeople();
-  const today = todayStr();
-  const items = useMemo(() => upcomingOccasions(rows, today, days), [rows, today, days]);
+export function UpcomingStrip({ items, days }: { items: readonly UpcomingOccasion[]; days: number }) {
   return (
     <Section title="Upcoming">
       {items.length === 0 ? (

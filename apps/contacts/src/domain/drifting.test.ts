@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex, type Document, type DocumentTypeDef } from "@lifeline/core";
 import { personTypeDef } from "../types";
-import { drifting, driftingFrom, groupByRelationship, lastDays } from "./drifting";
+import { driftingFrom, groupByRelationship, lastDays, type DriftSource } from "./drifting";
 import type { Person } from "./types";
 
 const base = { folder: "", tags: [], createdAt: "2026-01-01", updatedAt: "", deleted: 0 as const };
@@ -35,7 +35,9 @@ const docs: Document[] = [
   day("2026-03-01", "[[Fresh]] [[Bob]]"),
 ];
 const idx = buildLinkIndex(docs, types);
-const names = (rows: ReturnType<typeof drifting>) => rows.map((r) => r.person.title);
+/** Drifting as the People home works it out: each Person's last day, then who drifts. */
+const drifting = (index: typeof idx, ps: readonly Person[], { source = "seen", today }: { source?: DriftSource; today: string }) => driftingFrom(ps, lastDays(index, ps, { source, today }), today);
+const names = (rows: ReturnType<typeof driftingFrom>) => rows.map((r) => r.person.title);
 
 describe("Drifting", () => {
   it("ranks Not seen in 90 days by default, longest unseen first", () => {
@@ -74,8 +76,9 @@ describe("Drifting", () => {
 });
 
 describe("Drifting from the last days already worked out", () => {
-  it("is what drifting finds, by Seen or by Mentioned", () => {
-    for (const source of ["seen", "mentioned"] as const) expect(driftingFrom(people, lastDays(idx, people, { source, today }), today)).toEqual(drifting(idx, people, { source, today }));
+  it("drifts by the last days it is handed, whatever walked them", () => {
+    const last = new Map([["Anne", "2026-11-01"], ["Bob", "2026-01-01"]]);
+    expect(driftingFrom([anne, bob, cy], last, today).map((r) => [r.person.title, r.daysSince])).toEqual([["Cy", null], ["Bob", 311]]);
   });
   it("gives each Person their last day, undefined when never", () => {
     const last = lastDays(idx, people, { source: "seen", today });

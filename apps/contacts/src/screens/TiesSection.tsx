@@ -117,7 +117,7 @@ export function TiesSection({ person }: { person: Person }) {
                 )}
               </>
             }
-            editLabel={`Edit tie with ${r.otherName}`}
+            editLabel={`Edit ${r.label}: ${r.otherName}`}
             onEdit={() => setEditing(r)}
             removeLabel={`Remove tie with ${r.otherName}`}
             onRemove={() => void removeWithUndo(`the Tie to ${r.otherName}`, () => removeTie(r.id), restoreTie)}
