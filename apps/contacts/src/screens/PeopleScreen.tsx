@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
-import { Badge, Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ToggleGroup, ToggleGroupItem } from "@lifeline/ui";
+import { Badge, Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Tip, ToggleGroup, ToggleGroupItem } from "@lifeline/ui";
 import { UserPlus } from "lucide-react";
 import { UPCOMING_DAYS, UpcomingStrip } from "../components/UpcomingReport";
 import { DriftingSection } from "../components/DriftingSection";
@@ -34,7 +34,7 @@ function PersonRow({ person, lastSeen, news, showRelationship }: { person: Perso
               <span className="min-w-0 truncate">{person.relationship}</span>
             </Badge>
           )}
-          {soon && <NextOccasionBadge next={soon} variant="default" bareAge />}
+          {soon && <NextOccasionBadge next={soon} variant="default" />}
           {drift !== undefined && (
             <Badge variant="outline" className="text-warning">
               {drift === null ? "drifting" : `drifting · ${drift} days`}
@@ -127,9 +127,12 @@ export function PeopleScreen() {
                       <ToggleGroup aria-label="Relationship" value={activeRelationship || ANY} onValueChange={(v) => setRelationship(v === ANY ? "" : v)}>
                         <ToggleGroupItem value={ANY}>Everyone</ToggleGroupItem>
                         {relationships.map((r) => (
-                          <ToggleGroupItem key={r} value={r} title={r} className="min-w-0">
-                            <span className="max-w-[16rem] min-w-0 truncate">{r}</span>
-                          </ToggleGroupItem>
+                          // A long Relationship is cut to 16rem; its Tip gives it whole on the desk.
+                          <Tip key={r} label={r}>
+                            <ToggleGroupItem value={r} className="min-w-0">
+                              <span className="max-w-64 min-w-0 truncate">{r}</span>
+                            </ToggleGroupItem>
+                          </Tip>
                         ))}
                       </ToggleGroup>
                     )}

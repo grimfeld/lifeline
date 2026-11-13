@@ -18,7 +18,7 @@ Workspace, A to Z under a letter each (a name that starts with no letter goes un
   will turn. Each opens the Person. It is a heads-up, never a reminder. It can also be placed as an
   **Upcoming** Card on any Screen, as a list, with its own number of days ahead.
 - **Badges** on each row in Everyone: what they are to you, their next Occasion when it is in the
-  next 30 days ("Birthday in 9 days · 61"), **drifting** with how many days when they are in
+  next 30 days ("Birthday in 9 days · turns 61"), **drifting** with how many days when they are in
   Drifting (below), counted the way Drifting is switched (Not seen or Not mentioned), and their Tags.
 - **Search** matches a name or any alias, ignoring case and accents.
 - **Relationship** (a row of choices, **Everyone** first) and **Tag** narrow the list, and together
@@ -39,8 +39,8 @@ bring them back.
 
 ### A Person's page
 
-At the top, their name, then what they are to you (their **Relationship**: click it and type to
-change it, Enter or leaving it saves), then their age (when their Birthday has a year) and their
+At the top, their name, then what they are to you (their **Relationship**, underlined with dashes:
+click it and type to change it, Enter or leaving it saves, Escape puts it back), then their age (when their Birthday has a year) and their
 aliases. Under them, three buttons: **Call**, **Email** and **Profile** reach them by their first
 current phone number, email and handle; a former one is skipped. One they have none of is dimmed, and adds one of
 its kind: a dimmed **Email** opens the dialog on Email. Their next
@@ -52,7 +52,9 @@ Below, two columns (one after the other on a phone):
   an **Add** row at its foot. Reading, a number calls, an email mails and a name opens its page.
   **Edit**, at the top of the page, changes them: each row then opens its dialog when clicked,
   a cross removes it (with Undo) and **Former** marks a Contact detail or Address former. Edit also
-  lets you rename them (every `[[link]]` to them follows) and shows **More**: their **Aliases**, their
+  lets you rename them in place, as the Relationship is changed (every `[[link]]` to them follows).
+  A name can't be emptied ("Name can't be empty.") or be another Person's: the reason shows under
+  it, to fix or undo with Escape. Edit also shows **More**: their **Aliases**, their
   **Tags** and **Excluded from Drifting**. **Done** goes back to reading.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
