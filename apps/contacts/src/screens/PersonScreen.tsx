@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { PERSON_TYPE, documentType, patchDocument, todayStr, useDocument, useLinkIndex, type Document } from "@lifeline/core";
 import { DocumentEditor } from "@lifeline/editor";
-import { Badge, Page, PageHeader, cn } from "@lifeline/ui";
+import { Badge, Input, Page, PageHeader, cn, useCommitDraft } from "@lifeline/ui";
 import { ArrowLeft, AtSign, Mail, Phone } from "lucide-react";
 import { PEOPLE_HREF } from "../constants";
 import { type ContactKind, type Person } from "../domain/types";
@@ -27,31 +27,47 @@ const back = (
   </Link>
 );
 
-/** A line of text written where it stands: on Enter or on leaving it; Escape puts it back. */
+/**
+ * A line of text written where it stands: on Enter or on leaving it; Escape puts it back.
+ * A refused write shows under the field and leaves what was typed, to be fixed.
+ */
 function InlineText({ label, value, placeholder, required, onCommit, className }: { label: string; value: string; placeholder?: string; required?: boolean; onCommit: (v: string) => unknown; className?: string }) {
-  const [draft, setDraft] = useState(value);
-  useEffect(() => setDraft(value), [value]);
-  const commit = () => {
-    const next = draft.trim();
-    if (next === value.trim() || (required && !next)) return setDraft(value);
-    void onCommit(next);
-  };
+  const { draft, error, change, commit, revert } = useCommitDraft(
+    value,
+    (next: string) => {
+      const text = next.trim();
+      if (required && !text) throw new Error(`${label} can't be empty.`);
+      return onCommit(text);
+    },
+    { equals: (a, b) => a.trim() === b.trim() },
+  );
+  const errorId = useId();
   return (
-    <input
-      aria-label={label}
-      value={draft}
-      placeholder={placeholder}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") e.currentTarget.blur();
-        if (e.key === "Escape") {
-          setDraft(value);
-          e.currentTarget.blur();
-        }
-      }}
-      className={cn("hover:bg-accent focus-visible:bg-accent placeholder:text-muted-foreground w-full min-w-0 rounded-md bg-transparent px-1 outline-none", className)}
-    />
+    <div className="grid min-w-0 gap-1">
+      <Input
+        aria-label={label}
+        aria-describedby={error ? errorId : undefined}
+        aria-invalid={error ? true : undefined}
+        value={draft}
+        placeholder={placeholder}
+        onChange={(e) => change(e.target.value)}
+        onBlur={() => void commit()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            revert();
+            e.currentTarget.blur();
+          }
+        }}
+        className={cn("hover:border-input border-transparent bg-transparent", className)}
+      />
+      {error && (
+        <p id={errorId} data-slot="field-error" className="text-destructive text-xs">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 

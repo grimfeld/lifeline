@@ -208,3 +208,34 @@ test("the People home lists Everyone, searched by name and alias and filtered by
   await expect(page).toHaveURL(/\/app\/people\/person\//);
   await expect(page.getByRole("heading", { level: 1, name: "Léa Martin" })).toBeVisible();
 });
+
+test("the Relationship and Name written in place: Escape puts the stored value back, and a refused Name shows under the field", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  const id = await inCore(page, async (core, a: { type: string }) => (await core.createDocument({ type: a.type, title: "Anne Dupont", fields: { relationship: "my aunt" } })).id as string, { type: PERSON });
+  await page.goto(`/app/people/person/${id}`);
+  await workLocally(page);
+
+  const relationship = page.getByLabel("Relationship");
+  await relationship.fill("my cousin");
+  await relationship.press("Escape");
+  await expect(relationship).toHaveValue("my aunt");
+  await page.reload();
+  await workLocally(page);
+  await expect(page.getByLabel("Relationship")).toHaveValue("my aunt");
+  expect((await personNamed(page, "Anne Dupont"))?.relationship).toBe("my aunt");
+
+  // Enter writes it.
+  await page.getByLabel("Relationship").fill("my cousin");
+  await page.getByLabel("Relationship").press("Enter");
+  await expect.poll(async () => (await personNamed(page, "Anne Dupont"))?.relationship).toBe("my cousin");
+
+  // A Name cannot be emptied: the refusal shows under the field and the title stays.
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const name = page.getByLabel("Name", { exact: true });
+  await name.fill("");
+  await name.press("Enter");
+  await expect(page.getByText("Name can't be empty.")).toBeVisible();
+  await expect(name).toHaveAttribute("aria-invalid", "true");
+  expect(await personNamed(page, "Anne Dupont")).toBeTruthy();
+});
