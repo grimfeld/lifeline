@@ -1,7 +1,7 @@
 import { formatHuman, type DateStr } from "@lifeline/core";
 import { fold } from "./person";
 import type { Drifter } from "./drifting";
-import { upcomingOccasions, type UpcomingOccasion } from "./occasions";
+import type { UpcomingOccasion } from "./occasions";
 import type { Person } from "./types";
 
 export interface EveryoneFilter {
@@ -56,9 +56,9 @@ export interface RowNews {
   drifting: Map<string, number | null>;
 }
 
-/** Each row's news: the nearest Occasion in the next `days` days, and the days since for those drifting. */
-export function rowNews(people: readonly Person[], drifters: readonly Drifter[], today: DateStr, days: number): RowNews {
-  const upcoming = new Map<string, UpcomingOccasion>();
-  for (const u of upcomingOccasions(people, today, days)) if (!upcoming.has(u.personId)) upcoming.set(u.personId, u);
-  return { upcoming, drifting: new Map(drifters.map((d) => [d.person.id, d.daysSince])) };
+/** Each row's news: its Person's first Occasion in `upcoming` (Upcoming's list, soonest first, worked out once for the screen), and the days since for those drifting. */
+export function rowNews(upcoming: readonly UpcomingOccasion[], drifters: readonly Drifter[]): RowNews {
+  const next = new Map<string, UpcomingOccasion>();
+  for (const u of upcoming) if (!next.has(u.personId)) next.set(u.personId, u);
+  return { upcoming: next, drifting: new Map(drifters.map((d) => [d.person.id, d.daysSince])) };
 }

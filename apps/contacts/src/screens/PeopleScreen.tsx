@@ -13,6 +13,7 @@ import { personHref } from "../constants";
 import { driftingFrom, lastDays, type DriftSource } from "../domain/drifting";
 import { NextOccasionBadge, TagBadges } from "../components/Badges";
 import { usePeople } from "../data/repo";
+import { upcomingOccasions } from "../domain/occasions";
 
 const ANY = "__any__";
 
@@ -88,7 +89,9 @@ export function PeopleScreen() {
   const lastSeen = useMemo(() => lastDays(index, people, { source: "seen", today }), [index, people, today]);
   const lastMentioned = useMemo(() => (driftSource === "mentioned" ? lastDays(index, people, { source: "mentioned", today }) : null), [driftSource, index, people, today]);
   const drifters = useMemo(() => driftingFrom(people, lastMentioned ?? lastSeen, today), [people, lastMentioned, lastSeen, today]);
-  const news = useMemo<RowNews>(() => rowNews(people, drifters, today, UPCOMING_DAYS), [people, drifters, today]);
+  // Upcoming once, for the strip and the rows' badges both.
+  const upcoming = useMemo(() => upcomingOccasions(people, today, UPCOMING_DAYS), [people, today]);
+  const news = useMemo<RowNews>(() => rowNews(upcoming, drifters), [upcoming, drifters]);
   const relationships = useMemo(() => relationshipsOf(people), [people]);
   const tags = useMemo(() => tagsOf(people), [people]);
   // A filter whose value no one carries any more (the last of them was changed) is no filter.
@@ -105,7 +108,7 @@ export function PeopleScreen() {
       <PageHeader title="People">{people.length > 0 ? add : null}</PageHeader>
 
       {/* UPCOMING (#416): the Occasions in the next days. Goes here, above Drifting. */}
-      <UpcomingStrip />
+      <UpcomingStrip items={upcoming} days={UPCOMING_DAYS} />
 
       {/* DRIFTING (#420): who I have not seen for a while. Goes here, between Upcoming and Everyone. */}
       {people.length > 0 && <DriftingSection rows={drifters} source={driftSource} onSourceChange={setDriftSource} />}
