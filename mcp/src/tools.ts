@@ -13,7 +13,8 @@ import { manifests } from "./apps";
  *  - generic tools over Core — Documents, the agenda, the Schedulable and
  *    Timed Contracts — that work for every App at once, and the Guide;
  *  - one tool per headless Command (a Command with `args` and `invoke`),
- *    so creating a Task or a Chore runs the App's own operation.
+ *    so creating a Task or a Chore runs the App's own operation. A read-only
+ *    Command (ADR 0115) is a read tool, like the generic reads.
  *
  * And one kind that is not here: a tool per headless Macro (ADR 0092). Macros
  * are the Account's own data, so `TOOLS` cannot hold them; `macroTools` builds
@@ -273,9 +274,9 @@ function commandTool(def: CommandDef & { appId: string }): ToolSpec | null {
   return {
     name: commandToolName(def.id),
     title: def.title,
-    description: `${def.title} — the ${def.appId} App's own operation, as its "${def.title}" command does.`,
+    description: def.agentDescription ?? `${def.title} — the ${def.appId} App's own operation, as its "${def.title}" command does.`,
     input,
-    write: true,
+    write: !def.readOnly,
     command: def.id,
   };
 }
@@ -285,6 +286,11 @@ export const TOOLS: ToolSpec[] = [
   ...GENERIC,
   ...manifests.flatMap((m) => m.commands.map((c) => commandTool({ ...c, appId: m.id }))).filter((t): t is ToolSpec => t !== null),
 ];
+
+/** The tools a connection is offered: a read-only grant (no lifeline:write) sees only the read tools. */
+export function offeredTools(tools: readonly ToolSpec[], canWrite: boolean): ToolSpec[] {
+  return tools.filter((t) => canWrite || !t.write);
+}
 
 /** A headless Macro's tool, as the device describes it: plain data, so it crosses from the worker to the server. */
 export interface MacroTool {

@@ -1,7 +1,7 @@
 ---
 status: accepted
 amends: ADR 0058, ADR 0050 (in part — the Handoff gains an origin Document), ADR 0059 (in part — a Topic's Tally is reported by Knowledge)
-amended-by: ADR 0086 (in part — selecting text offers every Intake)
+amended-by: ADR 0086 (in part — selecting text offers every Intake), ADR 0115 (in part — agent drafts and a practice report)
 ---
 
 # Recallable is a Core Contract; Knowledge owns practice, in Topics

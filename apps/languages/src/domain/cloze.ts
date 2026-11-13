@@ -3,9 +3,13 @@
  * each blank written `{{like this}}`. A blank is known by its own text,
  * normalised — so adding, removing or reordering blanks leaves the others'
  * Recalls where they were (ADR 0058). The same text blanked twice gets `#2`.
+ * A blank may carry a hint, `{{answer|hint}}` (ADR 0116): shown in the gap,
+ * never part of the blank's text or slot.
  */
-export type ClozePart = { kind: "text"; text: string } | { kind: "blank"; text: string; slot: string };
+export type ClozePart = { kind: "text"; text: string } | { kind: "blank"; text: string; hint?: string; slot: string };
 
+/** What every blank's slot starts with: `blank:<text>`, `#n` after a repeat. */
+export const BLANK_PREFIX = "blank:";
 const BLANK = /\{\{(.*?)\}\}/g;
 
 /** Case, accents kept (they are part of the word); spaces collapsed, ends trimmed. */
@@ -20,12 +24,15 @@ export function parseCloze(text: string): ClozePart[] {
   for (const m of text.matchAll(BLANK)) {
     const at = m.index ?? 0;
     if (at > last) parts.push({ kind: "text", text: text.slice(last, at) });
-    const inner = (m[1] ?? "").trim();
+    const raw = m[1] ?? "";
+    const bar = raw.indexOf("|");
+    const inner = (bar < 0 ? raw : raw.slice(0, bar)).trim();
+    const hint = bar < 0 ? "" : raw.slice(bar + 1).trim();
     const norm = normalizeBlank(inner);
     if (norm) {
       const n = (seen.get(norm) ?? 0) + 1;
       seen.set(norm, n);
-      parts.push({ kind: "blank", text: inner, slot: `blank:${norm}${n > 1 ? `#${n}` : ""}` });
+      parts.push({ kind: "blank", text: inner, ...(hint ? { hint } : {}), slot: `${BLANK_PREFIX}${norm}${n > 1 ? `#${n}` : ""}` });
     } else {
       parts.push({ kind: "text", text: m[0] });
     }

@@ -1,6 +1,7 @@
 import { Worker } from "node:worker_threads";
 import { fileURLToPath } from "node:url";
 import type PocketBase from "pocketbase";
+import type { InvokeAgent } from "@lifeline/core";
 import type { MacroTool } from "./tools";
 import type { DeviceAuth, DeviceRequest, DeviceResponse } from "./worker";
 
@@ -185,14 +186,14 @@ export class DevicePool {
   }
 
   /** Run one tool as the Account. Resolves to the tool's result; rejects with ExpectedError for the agent's own mistakes. */
-  async call(userId: string, tool: string, args: Record<string, unknown>, write: boolean): Promise<unknown> {
+  async call(userId: string, tool: string, args: Record<string, unknown>, write: boolean, agent: InvokeAgent = {}): Promise<unknown> {
     const auth = await this.authFor(userId);
     if (write) {
       this.writes++;
       this.macros.delete(userId);
     }
     const device = this.deviceFor(userId);
-    const res = await this.send(userId, device, { kind: "call", tool, args, write, auth });
+    const res = await this.send(userId, device, { kind: "call", tool, args, write, agent, auth });
     if (res.ok) return res.result;
     if (res.wall) logWallRefusal(tool, userId, res.wall);
     throw res.expected ? new ExpectedError(res.error) : new Error(res.error);

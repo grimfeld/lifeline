@@ -1,20 +1,26 @@
 import { useMemo, useState } from "react";
 import { Button, CommitField, cn, toast } from "@lifeline/ui";
-import type { Document } from "@lifeline/core";
-import { Pause, Pencil, Play } from "lucide-react";
+import { openPeek, type Document } from "@lifeline/core";
+import { Check, Pause, Pencil, Play } from "lucide-react";
 import { heldPrompts } from "../domain/practice";
-import { itemMaterial } from "../domain/prompts";
-import { FACT, SENTENCE, WORD, type Fact, type Item, type Sentence, type Word } from "../domain/types";
-import { setMembership, setPaused, updateFact, updateSentence, updateWord, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
-import { WordDialog } from "./WordDialog";
-import { SentenceDialog } from "./SentenceDialog";
-import { FactDialog } from "./FactDialog";
+import { FORWARD, LISTEN, REVERSE, isBlankSlot, itemMaterial } from "../domain/prompts";
+import { BLANK_PREFIX, plainSentence } from "../domain/cloze";
+import { sentencesUsing } from "../domain/wordSentences";
+import { FACT, SENTENCE, WORD, type Item, type Sentence } from "../domain/types";
+import { acceptDraft, setMembership, setPaused, updateItem, useDecks, useItems, useTopicRecalls, useTopics } from "../data/repo";
+import { ItemDialog } from "./ItemDialog";
 import { OriginLine } from "./OriginLine";
+import { DraftChangeNotice } from "./DraftChangeNotice";
+
+/** How many of an item's latest Recalls its Peek lists. */
+const HISTORY_SHOWN = 10;
 
 function slotLabel(slot: string): string {
-  if (slot === "forward") return "Forward";
-  if (slot === "reverse") return "Reverse";
-  return `Blank · ${slot.replace(/^blank:/, "")}`;
+  if (slot === FORWARD) return "Forward";
+  if (slot === REVERSE) return "Reverse";
+  if (slot === LISTEN) return "Listening";
+  if (isBlankSlot(slot)) return `Blank · ${slot.slice(BLANK_PREFIX.length)}`;
+  return slot;
 }
 
 function dueLabel(d: Date | null, now: Date): string {
@@ -29,10 +35,7 @@ function dueLabel(d: Date | null, now: Date): string {
  * meaning) and keeps its Prompts (ADR 0058). The Topic is guarded and stays.
  */
 function saveItem(item: Item, patch: Record<string, string>): Promise<void> {
-  const base = { languageId: item.languageId, origin: item.origin, originId: item.originId, tags: item.tags };
-  if (item.type === WORD) return updateWord(item, { ...base, term: item.term, meaning: item.meaning, notes: item.notes, ...patch });
-  if (item.type === SENTENCE) return updateSentence(item, { ...base, text: item.text, translation: item.translation, ...patch });
-  return updateFact(item, { ...base, question: item.question, answer: item.answer, notes: item.notes, ...patch });
+  return updateItem(item, { ...item, ...patch } as Item);
 }
 
 /** The item's own Fields, edited in place: what is learned, its other side, notes, and where it was met unless that is a link. */
@@ -43,7 +46,7 @@ function ItemFields({ item }: { item: Item }) {
   return (
     <div className="grid gap-3">
       {item.type === WORD && [field("term", "Word", item.term), field("meaning", "Meaning", item.meaning)]}
-      {item.type === SENTENCE && [field("text", "Sentence", item.text, { hint: "Mark each blank with {{ }}" }), field("translation", "Translation", item.translation)]}
+      {item.type === SENTENCE && [field("text", "Sentence", item.text, { hint: "Mark each blank with {{ }}" }), field("translation", "Translation", item.translation), field("notes", "Notes", item.notes, { multiline: true })]}
       {item.type === FACT && [field("question", "Question", item.question), field("answer", "Answer", item.answer, { multiline: true })]}
       {!item.originId && field("origin", "Where you met it", item.origin)}
       {item.type !== SENTENCE && field("notes", "Notes", item.notes, { multiline: true })}
@@ -68,6 +71,11 @@ export function ItemPeek({ doc }: { doc: Document }) {
   const now = useMemo(() => new Date(), [recalls]);
   const prompts = useMemo(() => heldPrompts([itemMaterial(item)], recalls), [item, recalls]);
 
+  // Latest first; what was typed (ADR 0116) shows beside each, so recurring errors are seen.
+  const history = useMemo(() => recalls.filter((r) => r.itemId === item.id).sort((a, b) => b.at.localeCompare(a.at)).slice(0, HISTORY_SHOWN), [recalls, item.id]);
+
+  const using = useMemo(() => (item.type === WORD ? sentencesUsing(item.term, items.filter((i): i is Sentence => i.type === SENTENCE)) : []), [item, items]);
+
   return (
     <div className="flex flex-col gap-4">
       <span className="text-muted-foreground flex flex-wrap gap-x-1 text-xs">
@@ -79,6 +87,7 @@ export function ItemPeek({ doc }: { doc: Document }) {
           </>
         )}
       </span>
+      <DraftChangeNotice item={item} />
       <ItemFields key={item.id} item={item} />
       <div className="flex flex-col gap-1">
         <span className="text-muted-foreground text-xs font-medium">Prompts</span>
@@ -87,13 +96,46 @@ export function ItemPeek({ doc }: { doc: Document }) {
             <li key={p.key} className="flex justify-between gap-3 border-b py-1 last:border-0">
               <span className="min-w-0 flex-1 truncate">{slotLabel(p.slot)}</span>
               <span className="text-muted-foreground text-xs">
-                {item.paused ? "paused" : dueLabel(p.held.due, now)}
+                {item.draft ? "draft" : item.paused ? "paused" : dueLabel(p.held.due, now)}
                 {p.held.lapses ? ` · ${p.held.lapses} lapse${p.held.lapses === 1 ? "" : "s"}` : ""}
               </span>
             </li>
           ))}
         </ul>
       </div>
+      {history.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className="text-muted-foreground text-xs font-medium">Recalls</span>
+          <ul className="flex flex-col text-sm">
+            {history.map((r) => (
+              <li key={r.id} className="flex flex-col gap-0.5 border-b py-1 last:border-0">
+                <span className="flex justify-between gap-3">
+                  <span className="min-w-0 flex-1 truncate">
+                    {r.grade === "pass" ? "Passed" : "Failed"} · {slotLabel(r.slot)}
+                  </span>
+                  <span className="text-muted-foreground shrink-0 text-xs">{new Date(r.at).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</span>
+                </span>
+                {r.typed && <span className="text-muted-foreground max-w-full text-xs break-words whitespace-pre-wrap">Typed: {r.typed}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {using.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className="text-muted-foreground shrink-0 text-xs font-medium">Sentences</span>
+          <ul className="flex flex-col text-sm">
+            {using.map((s) => (
+              <li key={s.id} className="border-b last:border-0">
+                <button type="button" onClick={() => openPeek(s.id)} className="hover:bg-accent/50 focus-visible:ring-ring flex w-full min-w-0 items-center justify-between gap-3 rounded-sm py-1.5 text-left focus-visible:ring-2 focus-visible:outline-none">
+                  <span className="min-w-0 flex-1 truncate">{plainSentence(s.text)}</span>
+                  {(s.draft || s.paused) && <span className="text-muted-foreground text-xs">{s.draft ? "draft" : "paused"}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {decks.length > 0 && (
         <div className="flex flex-col gap-1">
           <span className="text-muted-foreground text-xs font-medium">Decks</span>
@@ -118,13 +160,17 @@ export function ItemPeek({ doc }: { doc: Document }) {
         <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
           <Pencil /> Edit
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => void setPaused(item.id, !item.paused)}>
-          {item.paused ? <Play /> : <Pause />} {item.paused ? "Resume" : "Pause"}
-        </Button>
+        {item.draft ? (
+          <Button size="sm" variant="ghost" onClick={() => void acceptDraft(item.id)}>
+            <Check /> Accept
+          </Button>
+        ) : (
+          <Button size="sm" variant="ghost" onClick={() => void setPaused(item.id, !item.paused)}>
+            {item.paused ? <Play /> : <Pause />} {item.paused ? "Resume" : "Pause"}
+          </Button>
+        )}
       </div>
-      {item.type === SENTENCE && <SentenceDialog open={editing} onOpenChange={setEditing} sentence={item as Sentence} />}
-      {item.type === WORD && <WordDialog open={editing} onOpenChange={setEditing} word={item as Word} />}
-      {item.type === FACT && <FactDialog open={editing} onOpenChange={setEditing} fact={item as Fact} />}
+      <ItemDialog item={item} open={editing} onOpenChange={setEditing} />
     </div>
   );
 }

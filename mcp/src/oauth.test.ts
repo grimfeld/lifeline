@@ -49,6 +49,14 @@ describe("refresh-token rotation", () => {
   });
 });
 
+describe("an access token says who is calling", () => {
+  it("carries the client's registered name, for a draft to name its drafter", async () => {
+    const row = { id: "g1", user: "u1", client_id: "c1", client_name: "Claude", scopes: "lifeline:read", access_hash: sha256("lla_n"), access_expires: later, resource: "" };
+    const info = await new LifelineOAuth(fakeAdmin(row).admin, "http://pb").verifyAccessToken("lla_n");
+    expect(info.extra).toEqual({ userId: "u1", clientName: "Claude" });
+  });
+});
+
 describe("in-memory OAuth state stays bounded", () => {
   it("drops expired entries from the access-token cache as tokens are verified", async () => {
     vi.useFakeTimers();

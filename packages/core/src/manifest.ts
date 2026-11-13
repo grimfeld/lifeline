@@ -272,12 +272,24 @@ export interface CommandArg {
 export interface CommandResult {
   message: string;
   id?: string;
+  /** What a read-only Command (`CommandDef.readOnly`) answers with, as plain data (ADR 0115). */
+  data?: unknown;
 }
 
 /** What an inline Command offers for the query it read (ADR 0088): the row's label, saying what it understood, and what picking it does. */
 export interface InlineOffer {
   label: string;
   run: (ctx: CommandCtx) => void | Promise<void>;
+}
+
+/** An outside agent calling through MCP (ADR 0115): `name` is the client's own, from its registration, when it gave one. */
+export interface InvokeAgent {
+  name?: string;
+}
+
+/** Who runs a headless Command (ADR 0115): `agent` when an outside agent calls it through MCP, so an App may treat what it makes as a draft, not chosen. A Macro run by an agent hands it to every step. */
+export interface InvokeContext {
+  agent?: InvokeAgent;
 }
 
 /**
@@ -332,13 +344,23 @@ export interface CommandDef {
    * no UI, no navigation — the App's own operation, so its invariants hold
    * whoever calls. Throws with a readable message on bad input.
    */
-  invoke?: (args: Record<string, unknown>) => Promise<CommandResult>;
+  invoke?: (args: Record<string, unknown>, ctx?: InvokeContext) => Promise<CommandResult>;
   /**
    * `invoke` returns the id of the Document it made or changed (`CommandResult.id`),
    * so a later step of a Macro may take it as a link (ADR 0092). Declared, not
    * guessed: a Command that leaves no Document (setting a mood) leaves it out.
    */
   returnsDocument?: boolean;
+  /**
+   * `invoke` only reads (ADR 0115): it changes nothing and answers in
+   * `CommandResult.data`. An agent with a read-only grant is still offered it.
+   */
+  readOnly?: boolean;
+  /**
+   * What the headless form does and answers, for a caller with no dialog to
+   * look at — an agent (ADR 0062). Left out, its title says enough.
+   */
+  agentDescription?: string;
   /**
    * An inline Command (CONTEXT.md "Command", ADR 0088) reads the palette's
    * whole query as its argument: asked on every change of the query, it offers

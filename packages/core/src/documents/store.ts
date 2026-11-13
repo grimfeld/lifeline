@@ -87,6 +87,16 @@ export async function allDocumentsEveryWorkspace(): Promise<Document[]> {
   return visibleUnder(await documentsTable().where("deleted").equals(0).toArray(), await privateGate());
 }
 
+/**
+ * Every live Document of these types, in every Workspace and past the Private gate.
+ * Only for checks that must see what the views hide, such as which Attachments are
+ * still held by something (a locked Private Word still holds its clip). Never to display.
+ */
+export async function documentsOfUngated<T extends Document = Document>(types: string[]): Promise<T[]> {
+  const rows = await Promise.all(types.map((t) => documentsTable().where("[type+deleted]").equals([t, 0]).toArray()));
+  return rows.flat() as T[];
+}
+
 /** React hook: live rows of one type. */
 export function useDocuments<T extends Document = Document>(type: string | undefined): T[] {
   const wsId = useCurrentWorkspaceId();

@@ -262,6 +262,12 @@ export interface DocumentTypeDef {
    * asked for the owner; without one, the id is refused like any internal one.
    */
   owner?: (doc: Document) => Promise<Document | undefined>;
+  /**
+   * Why an outside agent may not change this Document through `update_document`,
+   * or nothing when it may (ADR 0115: an agent never edits accepted Knowledge
+   * material). The App's own Commands and the user's edits are not asked.
+   */
+  agentEditRefusal?: (doc: Document) => string | undefined;
   /** Sort order in pickers / the Bases list. */
   order?: number;
   /** The Reports the user chose for this type (ADR 0076); absent = the defaults (`reportsOf`). */

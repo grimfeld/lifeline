@@ -36,8 +36,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The scripts' own tests (check-ui's rules among them).
-      - run: node --test scripts/*.test.mjs
+      # The scripts' own tests (check-ui's rules among them), and PocketBase's hook guards.
+      - run: node --test scripts/*.test.mjs pocketbase/test/*.test.cjs
       # UI rules on the lines this change adds (CODING_STANDARDS.md § UI, ADR 0079).
       - run: node scripts/check-ui.mjs
         env:

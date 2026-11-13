@@ -4,10 +4,12 @@ import { initialList, initialText, useTagVocabulary, type IntakeDialogProps } fr
 import { Brackets } from "lucide-react";
 import { parseCloze } from "../domain/cloze";
 import type { Sentence } from "../domain/types";
-import { addSentence, deleteItem, updateSentence, useActiveTopic, useTopics } from "../data/repo";
+import { acceptDraft, addSentence, deleteItem, updateSentence, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
 import { originOf, type ItemDialogProps } from "./WordDialog";
 import { OriginLine } from "./OriginLine";
+import { DraftChangeNotice } from "./DraftChangeNotice";
+import { ClipField, useClipDraft } from "./ClipField";
 
 export interface SentencePrefill {
   text?: string;
@@ -41,16 +43,19 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
   const [languageId, setLanguageId] = useState("");
   const [text, setText] = useState("");
   const [translation, setTranslation] = useState("");
+  const [notes, setNotes] = useState("");
   const [origin, setOrigin] = useState("");
   const [originId, setOriginId] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const draft = useClipDraft(open, sentence?.clip);
 
   useEffect(() => {
     if (!open) return;
     setLanguageId(sentence?.languageId ?? (initialText(initial, "topic") || (active?.id ?? "")));
     setText(sentence?.text ?? prefill?.text ?? initialText(initial, "text"));
     setTranslation(sentence?.translation ?? initialText(initial, "translation"));
+    setNotes(sentence?.notes ?? initialText(initial, "notes"));
     setOrigin(sentence?.origin ?? prefill?.origin ?? initialText(initial, "origin"));
     setOriginId(sentence?.originId ?? prefill?.originId ?? "");
     setTags(sentence?.tags ?? initialList(initial, "tags"));
@@ -76,13 +81,14 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
     });
   }
 
-  async function save() {
-    const input = { languageId, text, translation, origin, originId, tags };
+  async function save(accept = false) {
+    const input = { languageId, text, translation, notes, origin, originId, tags, clip: draft.clip };
     let made = "";
     try {
       if (sentence) {
         await updateSentence(sentence, input);
-        toast.success("Sentence updated");
+        if (accept) await acceptDraft(sentence.id);
+        toast.success(accept ? "Sentence accepted" : "Sentence updated");
       } else {
         made = await addSentence(input);
         toast.success(`Sentence added · ${blanks.length} prompt${blanks.length === 1 ? "" : "s"}`);
@@ -90,8 +96,14 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
     } catch (err) {
       return void toast.error((err as Error).message);
     }
+    await draft.settle(draft.clip);
     if (made) onSaved?.(made);
     onOpenChange(false);
+  }
+
+  function closing(o: boolean) {
+    if (!o) void draft.settle("");
+    onOpenChange(o);
   }
 
   async function remove() {
@@ -105,7 +117,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
   const noTopic = topics.filter((l) => !l.archived).length === 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={closing}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{sentence ? "Edit sentence" : "New sentence"}</DialogTitle>
@@ -114,6 +126,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
           <p className="text-muted-foreground text-sm">Add a topic first, in Knowledge.</p>
         ) : (
           <div className="grid gap-4">
+            {sentence && <DraftChangeNotice item={sentence} onDone={() => onOpenChange(false)} />}
             {!sentence && <TopicSelect topics={topics} value={languageId} onChange={setLanguageId} />}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
@@ -123,6 +136,7 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
                 </Button>
               </div>
               <Textarea id="st-text" ref={area} rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="Tengo {{ganas}} de comer" autoFocus />
+              <span className="text-muted-foreground text-xs">A hint shows in the gap: {"{{nel|in}}"}.</span>
               <div className="flex min-h-5 flex-wrap items-center gap-1">
                 {blanks.length === 0 ? (
                   <span className="text-muted-foreground text-xs">Select a word and press Blank — each blank is one prompt.</span>
@@ -138,6 +152,11 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
             <div className="grid gap-2">
               <Label htmlFor="st-translation">Translation</Label>
               <Input id="st-translation" value={translation} onChange={(e) => setTranslation(e.target.value)} placeholder="Optional — a translation, or context; shown with every blank" />
+            </div>
+            <ClipField idPrefix="st" clip={draft.clip} onPut={draft.put} onRemove={draft.remove} />
+            <div className="grid gap-2">
+              <Label htmlFor="st-notes">Notes</Label>
+              <Textarea id="st-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional — the rule, or also: in centro; shown on every reveal" />
             </div>
             {originId ? (
               <div className="flex min-w-0 items-center gap-2">
@@ -166,9 +185,16 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
           ) : (
             <span />
           )}
-          <Button onClick={() => void save()} disabled={noTopic}>
-            {sentence ? "Save" : "Add"}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {sentence?.draft && (
+              <Button variant="outline" onClick={() => void save(true)}>
+                Save & accept
+              </Button>
+            )}
+            <Button onClick={() => void save()} disabled={noTopic}>
+              {sentence ? "Save" : "Add"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -131,6 +131,12 @@ export function queueOfHeld(all: HeldPrompt[], introduced: Map<string, number>, 
   };
 }
 
+/** The Recalls of material in practice: paused material and drafts are out of Retention and the report (ADR 0115). */
+export function recallsOfLive(items: Material[], recalls: Recall[]): Recall[] {
+  const ids = new Set(items.filter((m) => m.live).map((m) => m.id));
+  return recalls.filter((r) => ids.has(r.itemId));
+}
+
 /**
  * Retention (CONTEXT.md "Retention"): the share of the last 30 days' Recalls
  * passed, leaving out each Prompt's very first — meeting it is not
@@ -167,4 +173,10 @@ export function dueAheadOfHeld(held: HeldPrompt[], now: Date, days = 7): { day: 
     if (slot) slot.count++;
   }
   return out;
+}
+
+/** What several Decks hold together (a Practice narrowed to more than one): the union, an item in two Decks once, in the items' own order. */
+export function inDecks<T extends { id: string }>(decks: { members: string[] }[], items: T[]): T[] {
+  const ids = new Set(decks.flatMap((d) => d.members));
+  return items.filter((i) => ids.has(i.id));
 }

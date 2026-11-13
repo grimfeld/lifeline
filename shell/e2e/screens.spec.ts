@@ -141,11 +141,120 @@ async function givenUpPuzzle(page: Page) {
   await expect(page.getByRole("button", { name: "Practise now" })).toBeVisible();
 }
 
+/** Knowledge → Practice with many Decks of the longest names, "Mix decks" on and all of them ticked (#430). */
+async function mixingDecks(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      const w = await core.putDocument({ type: "language_word", languageId: topic.id, term: word, meaning: long, notes: "", origin: "", originId: "", paused: false, addedAt: at, tags: [] });
+      for (let d = 0; d < 8; d++) await core.putDocument({ type: "language_deck", title: `${long} ${d}`, name: `${long} ${d}`, languageId: topic.id, members: [w.id], tags: [] });
+    },
+    [CORE_URL, longText("Mix topic"), LONG_WORD] as const,
+  );
+  await page.getByRole("button", { name: "Mix decks" }).click();
+  for (let d = 0; d < 8; d++) await page.getByRole("button", { pressed: false }).filter({ hasText: longText("Mix topic") }).filter({ hasText: " due" }).first().click();
+  await expect(page.getByRole("button", { name: /decks together/ })).toBeVisible();
+}
+
+/** Knowledge → Practice with Leeches of the longest questions, fail counts and all (#433). */
+async function withLeeches(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      for (let i = 0; i < 3; i++) {
+        const w = await core.putDocument({ type: "language_word", title: `${word}${i}`, languageId: topic.id, term: `${word}${i}`, meaning: `${long} ${i}`, notes: "", origin: "", originId: "", paused: false, addedAt: at, tags: [] });
+        for (let k = 0; k < 5; k++) await core.putDocument({ type: "language_recall", title: "fail", languageId: topic.id, itemId: w.id, slot: "reverse", grade: "fail", at: new Date(Date.now() - (k + 1) * 3_600_000).toISOString(), tags: [] });
+      }
+    },
+    [CORE_URL, longText("Leech topic"), LONG_WORD] as const,
+  );
+  await expect(page.getByRole("heading", { name: "Leeches" })).toBeVisible();
+}
+
+/** Knowledge → Practice on a due Sentence whose blank has the longest answer, revealed after typing the longest attempt (ADR 0116). */
+async function typedAttemptRevealed(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      await core.putDocument({ type: "language_sentence", title: long, languageId: topic.id, text: `${long} {{${word}}}`, translation: long, notes: "", origin: "", originId: "", paused: false, addedAt: at, tags: [] });
+      localStorage.setItem("lifeline.languages.active", topic.id);
+    },
+    [CORE_URL, longText("Typed topic"), LONG_WORD] as const,
+  );
+  await page.reload();
+  await workLocally(page);
+  await page.getByRole("button", { name: /^Practise / }).filter({ hasText: longText("Typed topic") }).click();
+  const field = page.getByLabel("Your answer");
+  await field.fill(`${LONG_WORD}${LONG_WORD}`);
+  await field.press("Enter");
+  await expect(page.getByTestId("attempt-vs-answer")).toBeVisible();
+}
+
+/** Knowledge → Words: a Word with a long draft change and Recalls holding long typed attempts, its peek opened (ADR 0115, 0116). */
+async function wordWithDraftChange(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      const w = await core.putDocument({ type: "language_word", title: "draftword", languageId: topic.id, term: "draftword", meaning: `${long} ${word}`, notes: `${long} ${word}`, origin: "", originId: "", paused: false, addedAt: at, tags: [], draftChange: { meaning: `${long} ${word} ${word}`, notes: `${word}${word}` } });
+      for (let k = 0; k < 3; k++) await core.putDocument({ type: "language_recall", title: "fail", languageId: topic.id, itemId: w.id, slot: "reverse", grade: "fail", typed: `${long} ${word}`, at: new Date(Date.now() - (k + 1) * 3_600_000).toISOString(), tags: [] });
+      localStorage.setItem("lifeline.languages.active", topic.id);
+    },
+    [CORE_URL, longText("Draft word topic"), LONG_WORD] as const,
+  );
+  await page.goto("/app/languages?tab=words");
+  await workLocally(page);
+  await page.getByRole("button", { name: /^draftword/ }).click();
+  await expect(page.getByRole("dialog").getByRole("region", { name: "Draft change" })).toBeVisible();
+}
+
 /**
  * Knowledge → Puzzles over a Topic with four Decks a Connections can draw
  * from (ADR 0106): the longest Deck names, and Words and Facts with the
  * longest terms, answers, meanings, questions, notes and origins.
  */
+/**
+ * Knowledge → Decks over a Deck of agent drafts (ADR 0115), its review opened:
+ * a Word, a Sentence and a Fact with the longest terms, notes and origin a person could type.
+ */
+async function withDraftReview(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ([coreUrl, long, word]) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const topic = await core.putDocument({ type: "language", title: long, name: long, newCap: 10, archived: false, tallies: [], tags: [] });
+      const at = new Date().toISOString();
+      const common = { languageId: topic.id, notes: `${long} ${word}`, origin: `${long} ${word}`, originId: "", paused: false, draft: true, addedAt: at, tags: [] };
+      const members = [
+        (await core.putDocument({ type: "language_word", term: `${word} ${long}`, meaning: `${long} ${word}`, ...common })).id,
+        (await core.putDocument({ type: "language_sentence", text: `${long} {{${word}}}`, translation: `${long} ${word}`, ...common })).id,
+        (await core.putDocument({ type: "knowledge_fact", title: `${long} ${word}`, question: `${long} ${word}`, answer: `${word} ${long}`, ...common })).id,
+      ];
+      await core.putDocument({ type: "language_deck", title: long, name: long, languageId: topic.id, members, tags: [] });
+      localStorage.setItem("lifeline.languages.active", topic.id);
+    },
+    [CORE_URL, longText("Draft deck"), LONG_WORD] as const,
+  );
+}
+
+/** …and the Deck's drafts reviewed. */
+async function reviewingDrafts(page: Page) {
+  await withDraftReview(page);
+  await page.getByRole("button", { name: /^Review \d+ drafts?$/ }).first().click();
+  await expect(page.getByRole("dialog").getByText("Draft 1 of 3")).toBeVisible();
+}
+
 async function withConnections(page: Page) {
   await workLocally(page);
   await page.evaluate(
@@ -927,6 +1036,12 @@ const SCREENS: ScreenCase[] = [
   { name: "Mood", path: "/app/mood" },
   { name: "Swear Jar", path: "/app/swearjar" },
   { name: "Knowledge", path: "/app/languages" },
+  { name: "Knowledge · Decks with drafts", path: "/app/languages?tab=decks", afterOpen: withDraftReview },
+  { name: "Knowledge · Deck review", path: "/app/languages?tab=decks", afterOpen: reviewingDrafts },
+  { name: "Knowledge · Mixing decks", path: "/app/languages", afterOpen: mixingDecks },
+  { name: "Knowledge · Leeches", path: "/app/languages", afterOpen: withLeeches },
+  { name: "Knowledge · Typed attempt revealed", path: "/app/languages", afterOpen: typedAttemptRevealed },
+  { name: "Knowledge · Draft change and typed Recalls", path: "/app/languages?tab=words", afterOpen: wordWithDraftChange },
   { name: "Knowledge · Puzzles", path: "/app/languages?tab=puzzles", afterOpen: withPuzzleWord },
   { name: "Knowledge · Puzzle player", path: "/app/languages?tab=puzzles", afterOpen: playPuzzle },
   { name: "Knowledge · Puzzle played", path: "/app/languages?tab=puzzles", afterOpen: givenUpPuzzle },

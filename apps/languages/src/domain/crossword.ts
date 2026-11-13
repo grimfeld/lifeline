@@ -1,6 +1,7 @@
+import { inPractice } from "./draft";
 import { parseCloze } from "./cloze";
 import { recallsByPrompt } from "./practice";
-import { promptKey } from "./prompts";
+import { FORWARD, REVERSE, promptKey } from "./prompts";
 import { fold, leastRecentFirst, lettersOf, type Avoid } from "./puzzle";
 import { replay } from "./schedule";
 import { FACT, SENTENCE, WORD, type Fact, type Puzzle, type PuzzleDraw, type Recall, type Sentence, type Word } from "./types";
@@ -185,11 +186,11 @@ function blankClue(text: string, slot: string): string {
  */
 export function crosswordDraws(topicId: string, items: { words: Word[]; sentences: Sentence[]; facts: Fact[] }, recalls: Recall[], enye = false): PuzzleDraw[] {
   const met = new Set(recalls.filter((r) => r.languageId === topicId).map((r) => promptKey(r.itemId, r.slot)));
-  const live = <T extends { languageId: string; paused: boolean; addedAt?: string; id: string }>(xs: T[]) =>
-    xs.filter((x) => x.languageId === topicId && !x.paused).sort((a, b) => (a.addedAt ?? "").localeCompare(b.addedAt ?? "") || a.id.localeCompare(b.id));
+  const live = <T extends { languageId: string; paused: boolean; draft?: boolean; addedAt?: string; id: string }>(xs: T[]) =>
+    xs.filter((x) => x.languageId === topicId && inPractice(x)).sort((a, b) => (a.addedAt ?? "").localeCompare(b.addedAt ?? "") || a.id.localeCompare(b.id));
   const out: PuzzleDraw[] = [];
-  for (const w of live(items.words)) if (w.type === WORD) out.push({ itemId: w.id, slot: "reverse", answer: (w.term ?? "").trim(), clue: w.meaning, hint: "" });
-  for (const f of live(items.facts)) if (f.type === FACT) out.push({ itemId: f.id, slot: "forward", answer: (f.answer ?? "").trim(), clue: f.question, hint: "" });
+  for (const w of live(items.words)) if (w.type === WORD) out.push({ itemId: w.id, slot: REVERSE, answer: (w.term ?? "").trim(), clue: w.meaning, hint: "" });
+  for (const f of live(items.facts)) if (f.type === FACT) out.push({ itemId: f.id, slot: FORWARD, answer: (f.answer ?? "").trim(), clue: f.question, hint: "" });
   for (const s of live(items.sentences)) {
     if (s.type !== SENTENCE) continue;
     for (const part of parseCloze(s.text ?? "")) {

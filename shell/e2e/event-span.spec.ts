@@ -10,6 +10,14 @@ import { setTime } from "./support/time-field";
  * it covers.
  */
 
+// The week of Mon 10 Nov 2025, a year before any run's seed: the seed dates its
+// Events and Blockers around the real today, and a fixed week it reaches is too
+// full to find the test's own. The clock is pinned to that Monday morning, so the
+// week is upcoming; a case about another moment pins its own.
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2025-11-10T08:00:00"));
+});
+
 async function workLocally(page: Page) {
   const local = page.getByRole("button", { name: "Work locally" });
   await local.waitFor({ timeout: 3000 }).then(() => local.click(), () => {});
@@ -38,19 +46,19 @@ test("the dialog rolls 22:00 → 06:00 to the next day, and the Event shows on b
   const title = `Night flight ${Date.now()}`;
   const dialog = await openAddEvent(page);
   await dialog.getByLabel("Title").fill(title);
-  // Mon 9 Nov 2026.
-  await pickDate(page, dialog.getByLabel("Day", { exact: true }), "2026-11-09");
+  // Mon 10 Nov 2025.
+  await pickDate(page, dialog.getByLabel("Day", { exact: true }), "2025-11-10");
   await setTime(dialog.getByRole("combobox", { name: "Start" }), "22:00");
   await setTime(dialog.getByRole("combobox", { name: "End" }), "06:00");
   await expect(dialog.getByText(/^until Tue.* · 8h$/), "the end day shows beside the End").toBeVisible();
   await dialog.getByRole("button", { name: "Add event" }).click();
   await expect(dialog).toBeHidden();
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-10", start: "22:00", end: "06:00" });
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "22:00", end: "06:00" });
 
-  await page.goto("/calendar?view=week&d=2026-11-09");
+  await page.goto("/calendar?view=week&d=2025-11-10");
   await workLocally(page);
-  const monday = page.locator('[data-col="2026-11-09"]');
-  const tuesday = page.locator('[data-col="2026-11-10"]');
+  const monday = page.locator('[data-col="2025-11-10"]');
+  const tuesday = page.locator('[data-col="2025-11-11"]');
   await expect(monday.getByText(title)).toBeVisible();
   await expect(tuesday.getByText(title)).toBeVisible();
   // The cut edges say where it carries on.
@@ -62,7 +70,7 @@ test("the dialog rolls 22:00 → 06:00 to the next day, and the Event shows on b
   await expect(page.getByText(/^until Tue.* · 8h$/)).toBeVisible();
   await page.keyboard.press("Escape");
 
-  await page.goto("/calendar?view=upcoming&d=2026-11-09");
+  await page.goto("/calendar?view=upcoming&d=2025-11-10");
   await workLocally(page);
   const rows = page.getByRole("button", { name: title, exact: true });
   await expect(rows).toHaveCount(2);
@@ -75,15 +83,15 @@ test('"Ends another day" sets a conference from Monday 09:00 to Wednesday 17:00'
   const title = `Conference ${Date.now()}`;
   const dialog = await openAddEvent(page);
   await dialog.getByLabel("Title").fill(title);
-  await pickDate(page, dialog.getByLabel("Day", { exact: true }), "2026-11-09");
+  await pickDate(page, dialog.getByLabel("Day", { exact: true }), "2025-11-10");
   await setTime(dialog.getByRole("combobox", { name: "Start" }), "09:00");
   await dialog.getByRole("button", { name: "Ends another day" }).click();
-  await pickDate(page, dialog.getByLabel("End day"), "2026-11-11");
+  await pickDate(page, dialog.getByLabel("End day"), "2025-11-12");
   await setTime(dialog.getByRole("combobox", { name: "End" }), "17:00");
   await expect(dialog.getByText(/^until Wed.* · 2d 8h$/)).toBeVisible();
   await dialog.getByRole("button", { name: "Add event" }).click();
   await expect(dialog).toBeHidden();
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-11", start: "09:00", end: "17:00" });
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-12", start: "09:00", end: "17:00" });
 });
 
 /** An Event put straight into the store, for the Schedule to show. */
@@ -96,13 +104,13 @@ const seedEvent = (page: Page, ev: { title: string; date: string; endDate: strin
     { coreUrl: CORE_URL, ev },
   );
 
-/** The Week of Mon 9 Nov 2026, with an overnight Event from Monday 22:00 to Tuesday 06:00. */
+/** The Week of Mon 10 Nov 2025, with an overnight Event from Monday 22:00 to Tuesday 06:00. */
 async function weekWithNightFlight(page: Page, title: string) {
-  await page.goto("/calendar?view=week&d=2026-11-09");
+  await page.goto("/calendar?view=week&d=2025-11-10");
   await workLocally(page);
-  await seedEvent(page, { title, date: "2026-11-09", endDate: "2026-11-10", start: "22:00", end: "06:00" });
-  const monday = page.locator('[data-col="2026-11-09"]').getByTitle(title, { exact: false });
-  const tuesday = page.locator('[data-col="2026-11-10"]').getByTitle(title, { exact: false });
+  await seedEvent(page, { title, date: "2025-11-10", endDate: "2025-11-11", start: "22:00", end: "06:00" });
+  const monday = page.locator('[data-col="2025-11-10"]').getByTitle(title, { exact: false });
+  const tuesday = page.locator('[data-col="2025-11-11"]').getByTitle(title, { exact: false });
   await expect(tuesday).toBeVisible();
   return { monday, tuesday };
 }
@@ -125,7 +133,7 @@ test("dragging the next-day piece of an overnight Event moves the whole Event, k
   await tuesday.scrollIntoViewIfNeeded();
   // Tuesday's piece runs 00:00–06:00: drop it an hour later.
   await dragDown(page, (await tuesday.boundingBox())!, 10, HOUR_PX);
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-10", start: "23:00", end: "07:00" });
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "23:00", end: "07:00" });
 });
 
 test("only the last piece of an overnight Event resizes, and it moves only the end", async ({ page, isMobile }) => {
@@ -137,47 +145,47 @@ test("only the last piece of an overnight Event resizes, and it moves only the e
   await tuesday.scrollIntoViewIfNeeded();
   const box = (await tuesday.boundingBox())!;
   await dragDown(page, box, box.height - 3, HOUR_PX);
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-10", start: "22:00", end: "07:00" });
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "22:00", end: "07:00" });
 });
 
 test("the Hours editor gives an Event a Start and an End, rolling an earlier End to the next day", async ({ page }) => {
   const title = `Late shift ${Date.now()}`;
-  await page.goto("/calendar?view=week&d=2026-11-09");
+  await page.goto("/calendar?view=week&d=2025-11-10");
   await workLocally(page);
-  await seedEvent(page, { title, date: "2026-11-09", endDate: null, start: "20:00", end: "21:00" });
-  await page.locator('[data-col="2026-11-09"]').getByText(title).click();
+  await seedEvent(page, { title, date: "2025-11-10", endDate: null, start: "20:00", end: "21:00" });
+  await page.locator('[data-col="2025-11-10"]').getByText(title).click();
   await expect(page.getByRole("combobox", { name: "Start" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Length" }), "an Event is given an end, not a length").toHaveCount(0);
   await setTime(page.getByRole("combobox", { name: "End" }), "02:00");
   await expect(page.getByText(/^until Tue.* · 6h$/)).toBeVisible();
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-10", start: "20:00", end: "02:00" });
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "20:00", end: "02:00" });
   // Moving the Start keeps the length.
   await setTime(page.getByRole("combobox", { name: "Start" }), "19:00");
-  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-10", start: "19:00", end: "01:00" });
+  await expect.poll(() => storedEvent(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "19:00", end: "01:00" });
 });
 
 test('an Event stored before as ending at "24:00" still ends at midnight on its own day (#224)', async ({ page }) => {
   const title = `Old late show ${Date.now()}`;
-  await page.goto("/calendar?view=week&d=2026-11-09");
+  await page.goto("/calendar?view=week&d=2025-11-10");
   await workLocally(page);
-  await seedEvent(page, { title, date: "2026-11-09", endDate: null, start: "22:00", end: "24:00" });
-  await expect(page.locator('[data-col="2026-11-09"]').getByTitle(title, { exact: false })).toBeVisible();
-  await expect(page.locator('[data-col="2026-11-10"]').getByTitle(title, { exact: false }), "midnight leaves no piece on the next day").toHaveCount(0);
+  await seedEvent(page, { title, date: "2025-11-10", endDate: null, start: "22:00", end: "24:00" });
+  await expect(page.locator('[data-col="2025-11-10"]').getByTitle(title, { exact: false })).toBeVisible();
+  await expect(page.locator('[data-col="2025-11-11"]').getByTitle(title, { exact: false }), "midnight leaves no piece on the next day").toHaveCount(0);
 });
 
 test("the Hours editor keeps a Start and a Length for a Time block of work", async ({ page }) => {
   const title = `Write report ${Date.now()}`;
-  await page.goto("/calendar?view=week&d=2026-11-09");
+  await page.goto("/calendar?view=week&d=2025-11-10");
   await workLocally(page);
   await page.evaluate(
     async ({ coreUrl, title }) => {
       const core = await import(/* @vite-ignore */ coreUrl);
-      const task = await core.putDocument({ type: "task", title, status: "active", date: "2026-11-09", completedOn: null, recurrence: null, notes: "", tags: [] });
-      await core.addTimeBlock("tasks", task.id, "2026-11-09", { start: "10:00", end: "11:00" });
+      const task = await core.putDocument({ type: "task", title, status: "active", date: "2025-11-10", completedOn: null, recurrence: null, notes: "", tags: [] });
+      await core.addTimeBlock("tasks", task.id, "2025-11-10", { start: "10:00", end: "11:00" });
     },
     { coreUrl: CORE_URL, title },
   );
-  await page.locator('[data-col="2026-11-09"]').getByText(title).click();
+  await page.locator('[data-col="2025-11-10"]').getByText(title).click();
   await expect(page.getByRole("combobox", { name: "Start" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Length" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "End" })).toHaveCount(0);
@@ -185,14 +193,14 @@ test("the Hours editor keeps a Start and a Length for a Time block of work", asy
 
 test("an overnight Event counts as running on its second day until it ends, on the Events screen", async ({ page }) => {
   const title = `Red-eye ${Date.now()}`;
-  // Tue 10 Nov 2026, 03:00: the Mon 22:00 → Tue 06:00 flight is still on.
-  await page.clock.setFixedTime(new Date("2026-11-10T03:00:00"));
+  // Tue 11 Nov 2025, 03:00: the Mon 22:00 → Tue 06:00 flight is still on.
+  await page.clock.setFixedTime(new Date("2025-11-11T03:00:00"));
   await page.goto("/app/events");
   await workLocally(page);
   await page.evaluate(
     async ({ coreUrl, title }) => {
       const core = await import(/* @vite-ignore */ coreUrl);
-      await core.putDocument({ type: "event", title, date: "2026-11-09", endDate: "2026-11-10", start: "22:00", end: "06:00", notes: "", tags: [] });
+      await core.putDocument({ type: "event", title, date: "2025-11-10", endDate: "2025-11-11", start: "22:00", end: "06:00", notes: "", tags: [] });
     },
     { coreUrl: CORE_URL, title },
   );
@@ -201,7 +209,7 @@ test("an overnight Event counts as running on its second day until it ends, on t
   await expect(section("Past 30 days").getByText(title)).toHaveCount(0);
 
   // Tue 07:00: it has landed.
-  await page.clock.setFixedTime(new Date("2026-11-10T07:00:00"));
+  await page.clock.setFixedTime(new Date("2025-11-11T07:00:00"));
   await page.reload();
   await workLocally(page);
   await expect(section("Past 30 days").getByText(title)).toBeVisible();
@@ -229,16 +237,16 @@ const storedBlocker = (page: Page, title: string) =>
   );
 
 /**
- * The Week of Mon 9 Nov 2026 with a one-off blocker from Monday 21:00 to
+ * The Week of Mon 10 Nov 2025 with a one-off blocker from Monday 21:00 to
  * Tuesday 09:00: its Monday and Tuesday bands. The hours start at 07:00, so
  * Tuesday's band shows 07:00–09:00 of its 00:00–09:00.
  */
 async function weekWithOvernightBlocker(page: Page, b: { title: string; endDate?: string }) {
-  await page.goto("/calendar?view=week&d=2026-11-09");
+  await page.goto("/calendar?view=week&d=2025-11-10");
   await workLocally(page);
-  await seedBlocker(page, { date: "2026-11-09", start: "21:00", end: "09:00", ...b });
-  const monday = page.locator('[data-col="2026-11-09"]').getByLabel(b.title, { exact: false });
-  const tuesday = page.locator('[data-col="2026-11-10"]').getByLabel(b.title, { exact: false });
+  await seedBlocker(page, { date: "2025-11-10", start: "21:00", end: "09:00", ...b });
+  const monday = page.locator('[data-col="2025-11-10"]').getByLabel(b.title, { exact: false });
+  const tuesday = page.locator('[data-col="2025-11-11"]').getByLabel(b.title, { exact: false });
   await expect(tuesday).toBeVisible();
   await expect(monday).toBeAttached();
   return { monday, tuesday };
@@ -252,7 +260,7 @@ test("dragging the next-day part of a one-off overnight blocker moves the whole 
   await tuesday.scrollIntoViewIfNeeded();
   // Tuesday's part runs 00:00–09:00: drop it an hour later.
   await dragDown(page, (await tuesday.boundingBox())!, 10, HOUR_PX);
-  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-10", start: "22:00", end: "10:00" });
+  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "22:00", end: "10:00" });
   await expect(monday, "the evening part is still there").toBeAttached();
   await expect(tuesday).toBeVisible();
 });
@@ -260,21 +268,21 @@ test("dragging the next-day part of a one-off overnight blocker moves the whole 
 test("only the last part of a one-off overnight blocker resizes, and it moves only the end", async ({ page, isMobile }) => {
   test.skip(isMobile, "a phone sets an end in the Hours editor, not by an edge");
   const title = `Ferry ${Date.now()}`;
-  const { monday, tuesday } = await weekWithOvernightBlocker(page, { title, endDate: "2026-11-10" });
+  const { monday, tuesday } = await weekWithOvernightBlocker(page, { title, endDate: "2025-11-11" });
   await expect(monday.locator(".cursor-ns-resize"), "the evening part carries on: no end of its own to drag").toHaveCount(0);
   await expect(tuesday.locator(".cursor-ns-resize")).toHaveCount(1);
   await tuesday.scrollIntoViewIfNeeded();
   const box = (await tuesday.boundingBox())!;
   await dragDown(page, box, box.height - 3, HOUR_PX);
-  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-10", start: "21:00", end: "10:00" });
+  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-11", start: "21:00", end: "10:00" });
 });
 
 test("the Time blocker dialog gives a one-off blocker a Start and an End, with the end day when it differs", async ({ page }) => {
   const title = `Travelling ${Date.now()}`;
   await page.goto("/app/events?tab=blockers");
   await workLocally(page);
-  // Mon 9 → Wed 11 Nov 2026.
-  await seedBlocker(page, { title, date: "2026-11-09", endDate: "2026-11-11", start: "18:00", end: "09:00" });
+  // Mon 10 → Wed 12 Nov 2025.
+  await seedBlocker(page, { title, date: "2025-11-10", endDate: "2025-11-12", start: "18:00", end: "09:00" });
   const row = page.locator('[data-slot="card"]').filter({ hasText: title });
   await row.getByRole("button", { name: "More actions" }).click();
   await page.getByRole("menuitem", { name: "Edit" }).click();
@@ -285,5 +293,5 @@ test("the Time blocker dialog gives a one-off blocker a Start and an End, with t
   await expect(dialog.getByLabel("All day"), "a band has hours").toHaveCount(0);
   await setTime(dialog.getByRole("combobox", { name: "End" }), "11:00");
   await dialog.getByRole("button", { name: "Save" }).click();
-  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2026-11-09", endDate: "2026-11-11", start: "18:00", end: "11:00" });
+  await expect.poll(() => storedBlocker(page, title)).toEqual({ date: "2025-11-10", endDate: "2025-11-12", start: "18:00", end: "11:00" });
 });

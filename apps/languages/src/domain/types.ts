@@ -1,5 +1,6 @@
 import type { DateStr, Document, TallyOccurrenceDef } from "@lifeline/core";
 import type { Placement } from "./crossword";
+import type { DraftChange } from "./draft";
 
 /** Stored ids keep the retired Languages name (ADR 0073): App, Module, URL, the `language` type and every `languageId`. */
 export const APP_ID = "languages";
@@ -54,8 +55,14 @@ export interface Word extends Document {
   /** Where it was met, as a link to the Document it came from (a Note, a Quote) — followed, never copied. Empty for none. */
   originId: string;
   paused: boolean;
-  /** ISO instant it was added — what "oldest added first" orders new Prompts by. */
+  /** An agent's draft change to this accepted item (ADR 0115): the fields it would rewrite, until the user accepts or discards it. */
+  draftChange?: DraftChange | null;
+  /** An agent's draft, not yet accepted (ADR 0115): listed and editable, out of every Practice. Absent = accepted. */
+  draft?: boolean;
+  /** ISO instant it was added — what "oldest added first" orders new Prompts by. Set again when a draft is accepted. */
   addedAt: string;
+  /** The id of its audio clip, an Attachment (ADR 0116); empty or absent for none. Played on every reveal. */
+  clip?: string;
 }
 
 /** A Sentence (CONTEXT.md "Sentence"): text with `{{blanks}}`, one Prompt per blank. */
@@ -66,10 +73,18 @@ export interface Sentence extends Document {
   text: string;
   /** In the user's own words, shown with each Prompt. */
   translation: string;
+  /** The rule that settles a blank, or an equally right alternative; shown on every reveal (ADR 0116). */
+  notes: string;
   origin: string;
   originId: string;
   paused: boolean;
+  /** An agent's draft change to this accepted item (ADR 0115): the fields it would rewrite, until the user accepts or discards it. */
+  draftChange?: DraftChange | null;
+  /** An agent's draft, not yet accepted (ADR 0115). Absent = accepted. */
+  draft?: boolean;
   addedAt: string;
+  /** The id of its audio clip, an Attachment (ADR 0116); empty or absent for none. Played on every reveal. */
+  clip?: string;
 }
 
 /** A Deck (CONTEXT.md "Deck"): a chosen set of Words and Sentences inside one Topic. Membership is the Deck's. */
@@ -99,6 +114,8 @@ export interface Recall extends Document {
   grade: Grade;
   /** ISO instant. */
   at: string;
+  /** What the user typed before revealing (ADR 0116): written once with the Recall, never edited, never checked. Absent for none. */
+  typed?: string;
 }
 
 /**
@@ -115,6 +132,10 @@ export interface Fact extends Document {
   origin: string;
   originId: string;
   paused: boolean;
+  /** An agent's draft change to this accepted item (ADR 0115): the fields it would rewrite, until the user accepts or discards it. */
+  draftChange?: DraftChange | null;
+  /** An agent's draft, not yet accepted (ADR 0115). Absent = accepted. */
+  draft?: boolean;
   addedAt: string;
 }
 
