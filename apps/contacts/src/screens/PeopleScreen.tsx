@@ -165,7 +165,7 @@ export function PeopleScreen() {
             ) : (
               <div className="grid min-w-0 gap-4">
                 {byLetter(shown).map(([letter, ps]) => (
-                  <section key={letter} aria-label={letter} className="grid min-w-0 gap-1 md:grid-cols-[2rem_minmax(0,1fr)]">
+                  <section key={letter} className="grid min-w-0 gap-1 md:grid-cols-[2rem_minmax(0,1fr)]">
                     <h3 className="text-muted-foreground px-2 pt-2 text-sm font-medium md:px-0">{letter}</h3>
                     <ul className="grid min-w-0">
                       {ps.map((p) => (

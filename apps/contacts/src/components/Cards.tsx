@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, type MouseEvent, type ReactNode } from "react";
 import { Button, Tip, cn } from "@lifeline/ui";
 import { Check, Pencil, Plus, X } from "lucide-react";
 
@@ -14,7 +14,7 @@ export const useEditing = () => useContext(EditingContext);
 /** The page's Edit / Done switch. */
 export function EditToggle({ editing, onChange }: { editing: boolean; onChange: (editing: boolean) => void }) {
   return (
-    <Button variant={editing ? "default" : "secondary"} size="sm" aria-pressed={editing} onClick={() => onChange(!editing)}>
+    <Button variant={editing ? "default" : "secondary"} size="sm" onClick={() => onChange(!editing)}>
       {editing ? (
         <>
           <Check /> Done
@@ -60,11 +60,18 @@ export function CardRow(props: {
       {sub && <span className="text-muted-foreground block min-w-0 text-xs break-words">{sub}</span>}
     </>
   );
+  // The row is about to go: hand focus to the next row's main control (the Add row at the end), or the keyboard falls to the page.
+  const removeAndKeepFocus = (e: MouseEvent<HTMLButtonElement>) => {
+    const li = e.currentTarget.closest("li");
+    const next = li?.nextElementSibling?.querySelector<HTMLElement>("[data-row-focus]") ?? li?.previousElementSibling?.querySelector<HTMLElement>("[data-row-focus]");
+    next?.focus();
+    onRemove();
+  };
   return (
     <li className="flex min-w-0 items-center gap-3 px-3 py-2" data-testid={testId} data-former={former || undefined}>
       {editing && (
         <Tip label={removeLabel}>
-          <Button variant="ghost" size="icon-xs" className="text-destructive" onClick={onRemove}>
+          <Button variant="destructive" size="icon-xs" onClick={removeAndKeepFocus}>
             <X />
           </Button>
         </Tip>
@@ -73,7 +80,7 @@ export function CardRow(props: {
         {icon}
       </span>
       {editing ? (
-        <button type="button" aria-label={editLabel} onClick={onEdit} className="hover:bg-accent focus-visible:ring-ring -my-1 min-w-0 flex-1 rounded-md py-1 text-left focus-visible:ring-2 focus-visible:outline-none">
+        <button type="button" data-row-focus aria-label={editLabel} onClick={onEdit} className="hover:bg-accent focus-visible:ring-ring -my-1 min-w-0 flex-1 rounded-md py-1 text-left focus-visible:ring-2 focus-visible:outline-none">
           {text}
         </button>
       ) : (
@@ -96,7 +103,7 @@ export function CardRow(props: {
 export function AddRow({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
     <li>
-      <button type="button" onClick={onClick} className="text-primary hover:bg-accent focus-visible:ring-ring flex w-full min-w-0 items-center gap-3 rounded-b-lg px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:outline-none">
+      <button type="button" data-row-focus onClick={onClick} className="text-primary hover:bg-accent focus-visible:ring-ring flex w-full min-w-0 items-center gap-3 rounded-b-lg px-3 py-2 text-left text-sm focus-visible:ring-2 focus-visible:outline-none">
         <Plus className="size-4 shrink-0" aria-hidden />
         <span className="min-w-0">{children}</span>
       </button>

@@ -65,12 +65,11 @@ export function UpcomingStrip({ days = UPCOMING_DAYS }: { days?: number }) {
       {items.length === 0 ? (
         <p className="text-muted-foreground text-sm">Nothing in the next {days} days.</p>
       ) : (
-        <ol className="flex min-w-0 snap-x gap-2 overflow-x-auto pb-1">
+        <ol className="flex min-w-0 snap-x gap-2 overflow-x-auto p-1">
           {items.map((u) => (
             <li key={`${u.personId}:${u.occasionId}@${u.date}`} className="w-32 shrink-0 snap-start">
               <Link
                 to={personHref(u.personId)}
-                aria-label={`${u.name} · ${u.label}${u.age !== null ? ` · turns ${u.age}` : ""}, ${formatHuman(u.date)}`}
                 className="hover:bg-accent focus-visible:ring-ring grid min-w-0 gap-0.5 rounded-lg p-2 focus-visible:ring-2 focus-visible:outline-none"
               >
                 <span className="text-3xl leading-none font-light tabular-nums">{Number(u.date.slice(8, 10))}</span>

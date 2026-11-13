@@ -50,10 +50,10 @@ test("Upcoming heads the People home with the Occasions coming, the age reached,
   await page.goto("/app/people");
   await workLocally(page);
   await expect(rows).toHaveCount(before + 2);
-  await expect(upcoming.getByRole("link", { name: /Zelda Upcoming · Birthday · turns 40/ })).toBeVisible();
+  await expect(upcoming.getByRole("link", { name: /in 3 days.*Zelda Upcoming.*Birthday · turns 40/ })).toBeVisible();
   await expect(upcoming).toContainText("Surgery");
   await expect(upcoming).not.toContainText("Far away");
 
-  await upcoming.getByRole("link", { name: /Zelda Upcoming · Birthday/ }).click();
+  await upcoming.getByRole("link", { name: /Zelda Upcoming.*Birthday/ }).click();
   await expect(page).toHaveURL(new RegExp(`/app/people/person/${id}`));
 });
