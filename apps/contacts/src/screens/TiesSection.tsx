@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Button, Combobox, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input, type ComboboxOption } from "@lifeline/ui";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Link2, Search } from "lucide-react";
 import { personHref } from "../constants";
 import { type Person } from "../domain/types";
 import { otherNameOf, tieCandidates, tieDraft, tieQuestions, tiesSeenFrom, type TieDraft, type TieRow } from "../domain/ties";
@@ -9,12 +9,13 @@ import { removeTie, restoreTie, saveTieFrom, useTies } from "../data/ties";
 import { message, removeWithUndo } from "../components/writes";
 import { usePeople } from "../data/repo";
 import { Section } from "../components/Section";
+import { AddRow, CardList, CardRow, useEditing } from "../components/Cards";
 
 /**
  * Add or edit a Tie from `person`'s page (#404 stories 17-20): the other
  * Person by name completion (fixed when editing), then a word for each end.
- * The words are as the Tie reads from this page: what they are to me, what I
- * am to them.
+ * The words are as the Tie reads from this page: what the other Person is to
+ * this one, and what this one is to them. A Tie is never to me.
  */
 function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow; onOpenChange: (open: boolean) => void }) {
   const people = usePeople();
@@ -87,44 +88,43 @@ function OtherPerson(props: { name: string; picked: boolean; fixed: boolean; que
   );
 }
 
-/** The Person page's Ties section (#404 story 69): each Tie read from this side, the other Person a link. */
+/** The Person page's Ties section (#404 story 69): each Tie read from this side, the other Person a link. A card (#422). */
 export function TiesSection({ person }: { person: Person }) {
   const ties = useTies();
   const people = usePeople();
   const rows = useMemo(() => tiesSeenFrom(person.id, ties, people), [person.id, ties, people]);
   const [editing, setEditing] = useState<TieRow | "new" | null>(null);
+  // In Edit the row opens its dialog, so the name is no link of its own there.
+  const inEdit = useEditing();
 
   return (
     <Section title="Ties">
-      {rows.length === 0 && <p className="text-muted-foreground text-sm">No ties yet.</p>}
-      <ul className="grid min-w-0 gap-1">
+      <CardList>
+        {rows.length === 0 && <li className="text-muted-foreground px-3 py-2 text-sm">No ties yet.</li>}
         {rows.map((r) => (
-          <li key={r.id} className="flex min-w-0 items-center gap-1">
-            <span className="min-w-0 flex-1 break-words text-sm">
-              <span className="text-muted-foreground">{r.label}: </span>
-              <Link to={personHref(r.otherId)} className="underline-offset-2 hover:underline">
-                {r.otherName}
-              </Link>
-            </span>
-            <Button size="icon-xs" variant="ghost" aria-label={`Edit tie with ${r.otherName}`} onClick={() => setEditing(r)}>
-              <Pencil />
-            </Button>
-            <Button
-              size="icon-xs"
-              variant="ghost"
-              aria-label={`Remove tie with ${r.otherName}`}
-              onClick={() => void removeWithUndo(`the Tie to ${r.otherName}`, () => removeTie(r.id), restoreTie)}
-            >
-              <Trash2 />
-            </Button>
-          </li>
+          <CardRow
+            key={r.id}
+            icon={<Link2 className="size-4" />}
+            title={
+              <>
+                <span className="text-muted-foreground">{r.label}: </span>
+                {inEdit ? (
+                  r.otherName
+                ) : (
+                  <Link to={personHref(r.otherId)} className="underline-offset-2 hover:underline">
+                    {r.otherName}
+                  </Link>
+                )}
+              </>
+            }
+            editLabel={`Edit tie with ${r.otherName}`}
+            onEdit={() => setEditing(r)}
+            removeLabel={`Remove tie with ${r.otherName}`}
+            onRemove={() => void removeWithUndo(`the Tie to ${r.otherName}`, () => removeTie(r.id), restoreTie)}
+          />
         ))}
-      </ul>
-      <div>
-        <Button size="sm" variant="outline" onClick={() => setEditing("new")}>
-          <Plus /> Add tie
-        </Button>
-      </div>
+        <AddRow onClick={() => setEditing("new")}>Add tie</AddRow>
+      </CardList>
       {editing && <TieDialog person={person} row={editing === "new" ? undefined : editing} onOpenChange={(o) => !o && setEditing(null)} />}
     </Section>
   );

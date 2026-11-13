@@ -1,48 +1,46 @@
 import { useState } from "react";
 import { Button, Checkbox, ChoiceField, DatePicker, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field, Input } from "@lifeline/ui";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarHeart } from "lucide-react";
+import { todayStr } from "@lifeline/core";
 import type { Occasion, Person } from "../domain/types";
-import { describeDay, isBirthday, occasionDayProblem, occasionLabelProblem } from "../domain/occasions";
+import { describeDay, isBirthday, occasionDayProblem, occasionLabelProblem, upcomingOccasions, whenOf } from "../domain/occasions";
 import { addOccasion, editOccasion, removePart, restorePart } from "../data/repo";
 import { asksMonthDay, dayWhenNoYear, daysIn, monthDay, occasionDraft, occasionInput, pickerDay, type OccasionDraft } from "../domain/occasionForm";
 import { message, removeWithUndo } from "./writes";
 import { Section } from "./Section";
+import { AddRow, CardList, CardRow } from "./Cards";
 
 /**
  * A Person's Occasions (#404 stories 22-31), added, edited and removed here:
  * a label, a day (the year may be left out) and whether it comes back yearly.
+ * A card (#422): each Occasion with when it comes next; Edit opens and removes them.
  */
 export function OccasionsSection({ person }: { person: Person }) {
   const [editing, setEditing] = useState<Occasion | "new" | null>(null);
   const occasions = person.occasions ?? [];
+  const today = todayStr();
+  const next = new Map(upcomingOccasions([person], today, 364).map((u) => [u.occasionId, u]));
   return (
     <Section title="Occasions">
-      {occasions.length === 0 && <p className="text-muted-foreground text-sm">No occasions yet: a birthday, the day you met, a wedding.</p>}
-      <ul className="grid min-w-0 gap-1">
-        {occasions.map((o) => (
-          <li key={o.id} className="flex min-w-0 items-center gap-2 text-sm">
-            <span className="min-w-0 flex-1 break-words">
-              <span className="font-medium">{isBirthday(o) ? "🎂 " : ""}{o.label}</span> <span className="text-muted-foreground">· {describeDay(o.day)} · {o.yearly ? "every year" : "once"}</span>
-            </span>
-            <Button variant="ghost" size="icon" aria-label={`Edit ${o.label}`} onClick={() => setEditing(o)}>
-              <Pencil />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`Remove ${o.label}`}
-              onClick={() => void removeWithUndo(o.label, () => removePart(person.id, "occasions", o.id), (r) => restorePart(person.id, "occasions", r))}
-            >
-              <Trash2 />
-            </Button>
-          </li>
-        ))}
-      </ul>
-      <div>
-        <Button variant="outline" size="sm" onClick={() => setEditing("new")}>
-          <Plus /> Add occasion
-        </Button>
-      </div>
+      <CardList>
+        {occasions.length === 0 && <li className="text-muted-foreground px-3 py-2 text-sm">No occasions yet: a birthday, the day you met, a wedding.</li>}
+        {occasions.map((o) => {
+          const u = next.get(o.id);
+          return (
+            <CardRow
+              key={o.id}
+              icon={<CalendarHeart className="size-4" />}
+              title={<span className="font-medium">{isBirthday(o) ? "🎂 " : ""}{o.label}</span>}
+              sub={[describeDay(o.day), o.yearly ? "every year" : "once", u && whenOf(u.inDays), u?.age != null && `turns ${u.age}`].filter(Boolean).join(" · ")}
+              editLabel={`Edit ${o.label}`}
+              onEdit={() => setEditing(o)}
+              removeLabel={`Remove ${o.label}`}
+              onRemove={() => void removeWithUndo(o.label, () => removePart(person.id, "occasions", o.id), (r) => restorePart(person.id, "occasions", r))}
+            />
+          );
+        })}
+        <AddRow onClick={() => setEditing("new")}>Add occasion</AddRow>
+      </CardList>
       <OccasionDialog personId={person.id} editing={editing} onClose={() => setEditing(null)} />
     </Section>
   );

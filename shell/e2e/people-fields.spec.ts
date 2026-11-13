@@ -31,7 +31,7 @@ async function pickPerson(page: Page, dialog: ReturnType<Page["getByRole"]>, lab
   await expect(dialog.getByText(name)).toBeVisible();
 }
 
-test("a Task added For someone, found by an alias, shows on their Person page under Tasks", async ({ page }) => {
+test("a Task added For someone, found by an alias, shows on their Person page's timeline", async ({ page }) => {
   const title = `Buy a present ${Date.now()}`;
   await page.goto("/app/projects");
   await workLocally(page);
@@ -46,10 +46,11 @@ test("a Task added For someone, found by an alias, shows on their Person page un
 
   await page.goto(`/app/people/person/${anne}`);
   await workLocally(page);
-  await expect(page.getByRole("region", { name: "Tasks" })).toContainText(title);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText("via For");
 });
 
-test("a Transaction added For someone shows on their Person page under Transactions", async ({ page }) => {
+test("a Transaction added For someone shows on their Person page's timeline", async ({ page }) => {
   const payee = `Flowers ${Date.now()}`;
   await page.goto("/app/ledger");
   await workLocally(page);
@@ -71,7 +72,7 @@ test("a Transaction added For someone shows on their Person page under Transacti
 
   await page.goto(`/app/people/person/${marc}`);
   await workLocally(page);
-  await expect(page.getByRole("region", { name: "Transactions" })).toContainText(payee);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(payee);
 });
 
 test("a book added Recommended by someone shows on their Person page, and Reason stays free text", async ({ page }) => {
@@ -92,7 +93,7 @@ test("a book added Recommended by someone shows on their Person page, and Reason
 
   await page.goto(`/app/people/person/${jo}`);
   await workLocally(page);
-  await expect(page.getByRole("region", { name: "Books" })).toContainText(title);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
 });
 
 test("a book's Recommended by is set on its page after it was added", async ({ page }) => {
@@ -110,5 +111,5 @@ test("a book's Recommended by is set on its page after it was added", async ({ p
 
   await page.goto(`/app/people/person/${jo}`);
   await workLocally(page);
-  await expect(page.getByRole("region", { name: "Books" })).toContainText(title);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
 });

@@ -11,15 +11,18 @@ are to you (their **Relationship**), Tags, and a page of your own words about th
 ### The People home
 
 The People Module lands on its home, which opens on **Upcoming** and then lists **Everyone**: every Person in the current
-Workspace, by name, each with what they are to you and when you last saw them. Click one to open their page.
+Workspace, A to Z under a letter each, with when you last saw them. Click one to open their page.
 
-- **Upcoming** — the Occasions in the next 30 days, soonest first: who, which Occasion, the day and
-  how far off, and for a Birthday with a known year the age they will turn. Each row opens the Person.
-  It is a heads-up, never a reminder. It can also be placed as an **Upcoming** Card on any Screen, with
-  its own number of days ahead.
+- **Upcoming** — the Occasions in the next 30 days as a strip of days, soonest first: the day's
+  number, how far off, who and which Occasion, and for a Birthday with a known year the age they
+  will turn. Each opens the Person. It is a heads-up, never a reminder. It can also be placed as an
+  **Upcoming** Card on any Screen, as a list, with its own number of days ahead.
+- **Badges** on each row in Everyone: what they are to you, their next Occasion when it is in the
+  next 30 days ("Birthday in 9 days · 61"), **drifting** with how many days when they are in
+  Drifting (below), and their Tags.
 - **Search** matches a name or any alias, ignoring case and accents.
-- **Relationship** and **Tag** narrow the list, and together they narrow it further. On a phone
-  they are under **Filters**.
+- **Relationship** (a row of choices, **Everyone** first) and **Tag** narrow the list, and together
+  they narrow it further. On a phone they are under **Filters**.
 - With no one yet, the home offers **Add person**.
 
 ### Drifting
@@ -30,34 +33,39 @@ never seen ("Never seen"), then the longest unseen, each with how many days it h
 it to **Not mentioned** to count the Days that link to them instead of the Events. Anyone
 without a Relationship is not listed. It is only a list: Lifeline never reminds you.
 
-**Leave out** on a row, or **Excluded from Drifting** on a Person's page (and in their Peek),
+**Leave out** on a row, or **Excluded from Drifting** on a Person's page (under **Edit**) and in their Peek,
 takes them out of Drifting, for someone you don't mean to see again. Untick it on their page to
 bring them back.
 
 ### A Person's page
 
-- **Header** — their name, their age (when their Birthday has a year), what they are to you, and
-  their aliases.
-- **Details** — change their name (every `[[link]]` to them follows), their **Aliases**, their
-  **Relationship**, their **Tags** and **Excluded from Drifting**, edited in place.
-- **Contact details** — the ways to reach them, each under a label of your own ("Mobile", "Work",
-  "Instagram"). See below.
-- **Occasions** — the named days in their life: see below.
-- **Addresses** — where they live or can be found, each under a label of your own ("Home",
-  "Work", "Holiday house"). See below.
-- **Ties** — how they stand to other People, each read from their side: "daughter: Léa" on
-  Anne's page, "mother: Anne" on Léa's. See Ties below.
+At the top, their name, then what they are to you (their **Relationship**: click it and type to
+change it, Enter or leaving it saves), then their age (when their Birthday has a year) and their
+aliases. Under them, three buttons: **Call**, **Email** and **Profile** reach them by their first
+current phone number, email and handle; one they have none of is dimmed, and adds one. Their next
+Occasion within the year sits beside them.
+
+Below, two columns (one after the other on a phone):
+
+- **The cards** — **Contact details**, **Addresses**, **Occasions** and **Ties**, each a card with
+  an **Add** row at its foot. Reading, a number calls, an email mails and a name opens its page.
+  **Edit**, at the top of the page, changes them: each row then opens its dialog when clicked,
+  a cross removes it (with Undo) and **Former** marks a Contact detail or Address former. Edit also
+  lets you rename them (every `[[link]]` to them follows) and shows **More**: their **Aliases**, their
+  **Tags** and **Excluded from Drifting**. **Done** goes back to reading.
+- **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
+  any page.
 - **Reports** — **Last seen** (the last day of an Event that links to them, through its **With**
   or a `[[link]]` in its notes) and **Last
   mentioned** (the last Day that links to them), side by side and never added together. Seen
   counts an Event once per day it is on, every day of a trip, and nothing in the future; Tasks
   and Occasions never count. A type can also choose **Seen count**, a **Seen heatmap**, **Top seen**
   and **Not seen lately** in its editor, and each can be placed as a Report Card.
-- **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
-  any page.
-- **Events, Tasks and the rest** — what links to them through a People field (an Event's **With**, a Task's or a Transaction's **For**, a book's **Recommended by**), grouped by what it is. Only an Event counts as having seen them: its **With**, or a `[[link]]` to
-  them in its notes ("Dinner with [[Marc]]").
-- **Backlinks** — every Day, Note or other Document that links to them. Click one to peek at it.
+- **Timeline** — their Occasions in the year ahead, above a **Today** line, then everything that
+  links to them, by month, newest first: Events with them, Tasks and Transactions for them, books
+  they recommended, and the Days and notes that name them, each once, saying what it is and how it
+  links ("via With", "mentioned"). Click one to peek at it. Only an Event counts as having seen
+  them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]").
 
 Deleting a Person takes them out of every People field that held them (an Event's **With**, a
 Task's **For**…); the Events, Tasks and the rest stay. A `[[link]]` to them in a body becomes an
@@ -66,8 +74,8 @@ unresolved link, as for any deleted page.
 ### Contact details
 
 Add one with **Add contact detail** on the Person's page: a **label**, a **kind** (Phone, Email or
-Handle) and the number, address or handle as you'd type it. Pencil edits it, the cross-person
-button marks it former, the bin removes it (with Undo).
+Handle) and the number, address or handle as you'd type it. Under **Edit**, click one to change it,
+**Former** marks it former, the cross removes it (with Undo).
 
 - **Phone** — a click calls (`tel:`); on a computer, whatever handles calls there answers.
 - **Email** — a click opens a new mail to them.
@@ -75,8 +83,9 @@ button marks it former, the bin removes it (with Undo).
   address you typed (`instagram.com/anne`), a Fediverse address (`@anne@mastodon.social`), or a
   `@name` whose label names the service (Instagram, X or Twitter, GitHub, Telegram, TikTok,
   LinkedIn). Any other handle stays plain text.
-- **Former** — a number that stopped working, an account they closed. It moves under **Former**,
-  struck through, with no action, as history; the same button makes it current again.
+- **Former** — a number that stopped working, an account they closed. It moves after the current
+  ones, struck through and marked **Former**, with no action, as history; under **Edit**, **Current**
+  makes it current again.
 
 Contact details are never on the map, and Claude never sees them (below).
 ### Occasions
@@ -101,12 +110,12 @@ day instead (29 February included). A once Occasion always needs its year.
 
 ### Addresses
 
-- **Add address** takes a label and the postal text. The bin removes one, with Undo. When you save it, Lifeline looks the place
+- **Add address** takes a label and the postal text. Under **Edit**, click one to change it; the cross removes it, with Undo. When you save it, Lifeline looks the place
   up (OpenStreetMap's Nominatim) and puts a **Pin** on the Map, labelled "Marc · Work". A
   Person with two current Addresses stands on the Map twice.
-- When someone moves, **Mark as former**: the Address leaves the Map and stays on their page, below
-  the current ones, as history. **Mark as current** brings it back.
-- If the lookup finds nothing, or fails, the Address is still saved and shown, marked "Not on
+- When someone moves, mark it **Former** under **Edit**: the Address leaves the Map and stays on their page, below
+  the current ones, as history. **Current** brings it back.
+- If the lookup finds nothing, or fails, the Address is still saved and shown, marked "not on
   the map", with **Try again**. The message says which: no place found means check the text; the
   lookup could not be reached means try again later. Changing an Address's text looks it up afresh.
 - A shared home is held by each Person who lives there: add it to each.
@@ -117,8 +126,9 @@ day instead (29 February included). A once Occasion always needs its year.
 A **Tie** says how two People stand to each other. Press **Add tie** on either Person's page,
 find the other Person by name, and give a word for each end ("mother" and "daughter"). It is
 stored once and shows on both pages, each read from its own side, with the other Person as a
-link. The words are yours: "godmother", "ex" and "best friend's brother" all fit. **Edit** or
-**Remove** it from either page (with Undo) and both change. A Tie is never to you, only between two People.
+link. The dialog asks both ways round, by name: "Léa is Anne's…" and "Anne is Léa's…". The words
+are yours: "godmother", "ex" and "best friend's brother" all fit. Change or remove it under **Edit**
+on either page (with Undo) and both change. A Tie is never to you, only between two People.
 Deleting a Person removes their Ties; the other Person's page is untouched. A Tie is not a link
 in a body, so it adds no Backlink and counts for no Report.
 

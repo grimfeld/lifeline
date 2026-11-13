@@ -1,29 +1,76 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router";
 import { seenDays, todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
-import { Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { Badge, Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ToggleGroup, ToggleGroupItem } from "@lifeline/ui";
 import { UserPlus } from "lucide-react";
-import { UpcomingReport } from "../components/UpcomingReport";
+import { UPCOMING_DAYS, UpcomingStrip } from "../components/UpcomingReport";
 import { DriftingSection } from "../components/DriftingSection";
 import { AddPersonDialog } from "../components/AddPersonDialog";
-import { PersonRowLink, RelationshipLabel } from "../components/PersonRow";
 import { Section } from "../components/Section";
 import { activeFilter, everyone, lastSeenLabel, relationshipsOf, tagsOf } from "../domain/everyone";
 import { type Person } from "../domain/types";
+import { personHref } from "../constants";
+import { fold } from "../domain/person";
+import { drifting } from "../domain/drifting";
+import { upcomingOccasions, whenOf, type UpcomingOccasion } from "../domain/occasions";
 import { usePeople } from "../data/repo";
 
 const ANY = "__any__";
 
-/** One Person in Everyone: their name and what they are to me, a link to their page. */
-function PersonRow({ person, lastSeen }: { person: Person; lastSeen?: DateStr }) {
+/** What a row says about someone at a glance (#422): their next Occasion soon, and how long they have drifted. */
+interface RowNews {
+  upcoming: Map<string, UpcomingOccasion>;
+  drifting: Map<string, number | null>;
+}
+
+/** One Person in Everyone: their name, badges for what they are to me, what comes up and their Tags, and when last seen; a link to their page. */
+function PersonRow({ person, lastSeen, news, showRelationship }: { person: Person; lastSeen?: DateStr; news: RowNews; showRelationship: boolean }) {
+  const soon = news.upcoming.get(person.id);
+  const drift = news.drifting.get(person.id);
   return (
     <li>
-      <PersonRowLink personId={person.id}>
-        <span className="min-w-0 flex-1 truncate font-medium">{person.title}</span>
-        {person.relationship && <RelationshipLabel>{person.relationship}</RelationshipLabel>}
-        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{lastSeenLabel(lastSeen)}</span>
-      </PersonRowLink>
+      <Link
+        to={personHref(person.id)}
+        className="hover:bg-accent focus-visible:ring-ring flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-2 py-2 focus-visible:ring-2 focus-visible:outline-none"
+      >
+        <span className="min-w-0 truncate font-medium">{person.title}</span>
+        <span className="flex min-w-0 flex-wrap gap-1">
+          {showRelationship && person.relationship && (
+            <Badge variant="secondary" className="max-w-full">
+              <span className="min-w-0 truncate">{person.relationship}</span>
+            </Badge>
+          )}
+          {soon && (
+            <Badge variant="default">
+              {soon.label} {whenOf(soon.inDays)}
+              {soon.age !== null && ` · ${soon.age}`}
+            </Badge>
+          )}
+          {drift !== undefined && (
+            <Badge variant="outline" className="text-warning">
+              {drift === null ? "drifting" : `drifting · ${drift} days`}
+            </Badge>
+          )}
+          {person.tags.map((t) => (
+            <Badge key={t} variant="outline" className="max-w-full">
+              <span className="min-w-0 truncate">#{t}</span>
+            </Badge>
+          ))}
+        </span>
+        <span className="text-muted-foreground ml-auto shrink-0 text-xs tabular-nums">{lastSeenLabel(lastSeen)}</span>
+      </Link>
     </li>
   );
+}
+
+/** Everyone A to Z, under a letter each (#422). */
+function byLetter(people: readonly Person[]): [string, Person[]][] {
+  const letters = new Map<string, Person[]>();
+  for (const p of people) {
+    const letter = fold(p.title).charAt(0).toUpperCase() || "#";
+    letters.set(letter, [...(letters.get(letter) ?? []), p]);
+  }
+  return [...letters.entries()];
 }
 
 /** One of Everyone's filters: its values in use, or any ("" when none is picked). */
@@ -46,9 +93,10 @@ function FilterSelect({ label, anyLabel, value, options, onChange }: { label: st
 }
 
 /**
- * The People Module's home (#404 story 67): Upcoming, then Drifting, then
- * Everyone. Everyone is every Person in the Workspace, searched by name and
- * alias and filtered by Relationship and Tag.
+ * The People Module's home (#404 story 67, #422): Upcoming as a strip of
+ * days, then Drifting, then Everyone. Everyone is every Person in the
+ * Workspace A to Z, searched by name and alias and filtered by Relationship
+ * and Tag, each row with badges for what is coming up and who is drifting.
  */
 export function PeopleScreen() {
   const [adding, setAdding] = useState(false);
@@ -61,6 +109,11 @@ export function PeopleScreen() {
   const today = todayStr();
   // Seen walks every Event that links to a Person: once per change to the index, never per keystroke in the search.
   const lastSeen = useMemo(() => new Map(people.map((p) => [p.id, seenDays(index, p.id, today).at(-1)])), [index, people, today]);
+  const news = useMemo<RowNews>(() => {
+    const upcoming = new Map<string, UpcomingOccasion>();
+    for (const u of upcomingOccasions(people, today, UPCOMING_DAYS)) if (!upcoming.has(u.personId)) upcoming.set(u.personId, u);
+    return { upcoming, drifting: new Map(drifting(index, people, { source: "seen", today }).map((d) => [d.person.id, d.daysSince])) };
+  }, [index, people, today]);
   const relationships = useMemo(() => relationshipsOf(people), [people]);
   const tags = useMemo(() => tagsOf(people), [people]);
   // A filter whose value no one carries any more (the last of them was changed) is no filter.
@@ -77,7 +130,7 @@ export function PeopleScreen() {
       <PageHeader title="People">{people.length > 0 ? add : null}</PageHeader>
 
       {/* UPCOMING (#416): the Occasions in the next days. Goes here, above Drifting. */}
-      <UpcomingReport />
+      <UpcomingStrip />
 
       {/* DRIFTING (#420): who I have not seen for a while. Goes here, between Upcoming and Everyone. */}
       {people.length > 0 && <DriftingSection people={people} />}
@@ -88,22 +141,40 @@ export function PeopleScreen() {
         ) : (
           <>
             <PhoneDock>
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 max-md:contents">
-                <Input aria-label="Search people" className="flex-1 md:min-w-40 max-md:w-auto max-md:basis-36" placeholder="Search name or alias…" value={query} onChange={(e) => setQuery(e.target.value)} />
+              <div className="grid min-w-0 flex-1 gap-2 max-md:contents">
+                <Input aria-label="Search people" className="max-md:w-auto max-md:basis-36" placeholder="Search name or alias…" value={query} onChange={(e) => setQuery(e.target.value)} />
                 <PhoneFilters active={+(activeRelationship !== "") + +(activeTag !== "")}>
-                  <FilterSelect label="Relationship" anyLabel="Any relationship" value={activeRelationship} options={relationships} onChange={setRelationship} />
-                  <FilterSelect label="Tag" anyLabel="Any tag" value={activeTag} options={tags} onChange={setTag} />
+                  <div className="flex min-w-0 flex-wrap items-center gap-2 max-md:contents">
+                    {relationships.length > 0 && (
+                      <ToggleGroup aria-label="Relationship" value={activeRelationship || ANY} onValueChange={(v) => setRelationship(v === ANY ? "" : v)}>
+                        <ToggleGroupItem value={ANY}>Everyone</ToggleGroupItem>
+                        {relationships.map((r) => (
+                          <ToggleGroupItem key={r} value={r}>
+                            {r}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
+                    )}
+                    <FilterSelect label="Tag" anyLabel="Any tag" value={activeTag} options={tags} onChange={setTag} />
+                  </div>
                 </PhoneFilters>
               </div>
             </PhoneDock>
             {shown.length === 0 ? (
               <p className="text-muted-foreground text-sm">Nobody matches that.</p>
             ) : (
-              <ul className="grid min-w-0 gap-2">
-                {shown.map((p) => (
-                  <PersonRow key={p.id} person={p} lastSeen={lastSeen.get(p.id)} />
+              <div className="grid min-w-0 gap-4">
+                {byLetter(shown).map(([letter, ps]) => (
+                  <section key={letter} aria-label={letter} className="grid min-w-0 gap-1 md:grid-cols-[2rem_minmax(0,1fr)]">
+                    <h3 className="text-muted-foreground px-2 pt-2 text-sm font-medium md:px-0">{letter}</h3>
+                    <ul className="grid min-w-0">
+                      {ps.map((p) => (
+                        <PersonRow key={p.id} person={p} lastSeen={lastSeen.get(p.id)} news={news} showRelationship={!activeRelationship} />
+                      ))}
+                    </ul>
+                  </section>
                 ))}
-              </ul>
+              </div>
             )}
           </>
         )}

@@ -698,10 +698,12 @@ for (const w of WIDTHS) {
       // A row peeks the Person; the Peek's way through is their page.
       await page.getByRole("dialog", { name: "Aoife Brennan" }).getByRole("button", { name: "Open in People" }).click();
       await expect(page).toHaveURL(/\/app\/people\/person\//);
-      await expect(page.getByText("Best friend · also Aoife")).toBeVisible();
-      const backlinks = page.getByRole("heading", { name: /^Backlinks · \d+$/ });
-      await expect(backlinks).toBeVisible();
-      expect(Number((await backlinks.textContent())!.split("·")[1]), "Days linking to Aoife").toBeGreaterThanOrEqual(4);
+      await expect(page.getByLabel("Relationship")).toHaveValue("Best friend");
+      await expect(page.getByText("also Aoife")).toBeVisible();
+      // On her timeline (#422), each Day once: a Day is titled by its date.
+      const days = page.getByRole("region", { name: "Timeline" }).getByRole("button", { name: /^\d{4}-\d{2}-\d{2}/ });
+      await expect(days.first()).toBeVisible();
+      expect(await days.count(), "Days linking to Aoife").toBeGreaterThanOrEqual(4);
     });
 
     test("wikilinks in the seeded Days resolve to the seeded people and places", async ({ page }) => {

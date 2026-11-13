@@ -41,6 +41,7 @@ test("a Tie entered on Anne's page reads from Léa's, is edited from there, and 
   await ties.getByRole("link", { name: "Léa" }).click();
   await expect(page).toHaveURL(new RegExp(`/person/${lea}$`));
   await expect(ties).toContainText("mother: Anne");
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await ties.getByRole("button", { name: "Edit tie with Anne" }).click();
   const edit = page.getByRole("dialog", { name: "Edit tie" });
   await edit.getByLabel("Anne is Léa's…").fill("mum");

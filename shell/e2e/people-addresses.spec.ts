@@ -63,7 +63,9 @@ test("two current Addresses stand on the Map twice; a former one leaves it", asy
 
   await page.goto(`/app/people/person/${id}`);
   await workLocally(page);
-  await page.getByTestId("address").filter({ hasText: "Home" }).getByRole("button", { name: "Mark as former" }).click();
+  // Former is changed in Edit (#422).
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByTestId("address").filter({ hasText: "Home" }).getByRole("button", { name: "Mark Home former" }).click();
   await expect.poll(async () => (await addressesOf(page, id)).find((a) => a.label === "Home")?.former).toBe(true);
   // The former Address stays on the page, below the current one.
   await expect(page.getByTestId("address").nth(1)).toContainText("Home");
@@ -84,13 +86,13 @@ test("a failed lookup keeps the Address with no Pin, and trying again finds it",
 
   const row = page.getByTestId("address");
   await expect(row).toContainText("Holiday house");
-  await expect(row).toContainText("Not on the map");
+  await expect(row).toContainText(/not on the map/i);
   expect((await addressesOf(page, id))[0]).toMatchObject({ text: "12 Rue Example, Paris", former: false });
   expect((await addressesOf(page, id))[0]!.lat).toBeUndefined();
 
   state.down = false;
   await row.getByRole("button", { name: "Try again" }).click();
-  await expect(row).not.toContainText("Not on the map");
+  await expect(row).not.toContainText(/not on the map/i);
   await expect.poll(async () => (await addressesOf(page, id))[0]?.lat).toBeCloseTo(48.85);
 });
 
@@ -98,6 +100,7 @@ test("an Address is changed and removed", async ({ page }) => {
   await stubGeocoders(page, { down: false });
   const id = await newPerson(page, "Ada Roy");
   await addAddress(page, "Home", "12 Rue Example, Paris");
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await page.getByRole("button", { name: "Change Home" }).click();
   const dialog = page.getByRole("dialog", { name: "Change address" });
   await dialog.getByLabel("Label").fill("Flat");

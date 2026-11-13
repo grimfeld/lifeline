@@ -50,6 +50,7 @@ test("Drifting ranks the People not seen lately, and leaving one out removes the
 
   // Their page brings them back.
   await page.getByRole("region", { name: "Everyone" }).getByRole("link", { name: /Drift Older/ }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   const excluded = page.getByRole("checkbox", { name: "Excluded from Drifting" });
   await expect(excluded).toBeChecked();
   await excluded.click();

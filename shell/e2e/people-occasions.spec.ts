@@ -53,6 +53,7 @@ test("an Occasion can be edited and removed", async ({ page }) => {
   await workLocally(page);
   const occasions = page.getByRole("region", { name: "Occasions" });
   await expect(occasions).toContainText("Surgery");
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await occasions.getByRole("button", { name: "Edit Surgery" }).click();
   await page.getByRole("dialog", { name: "Edit occasion" }).getByLabel("Label").fill("Operation");
   await page.getByRole("dialog", { name: "Edit occasion" }).getByRole("button", { name: "Save" }).click();

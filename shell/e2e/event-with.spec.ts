@@ -28,5 +28,5 @@ test("an Event added With someone, found by an alias, shows on their Person page
 
   await page.goto(`/app/people/person/${marc}`);
   await workLocally(page);
-  await expect(page.getByRole("region", { name: "Events" })).toContainText(title);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
 });

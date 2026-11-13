@@ -1,21 +1,25 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
-import { PERSON_TYPE, documentType, patchDocument, todayStr, useDocument, useLinkIndex, useOpenPeek, type Document, type LinkRef } from "@lifeline/core";
-import { BacklinksSection, DocumentEditor, FieldLinksSection } from "@lifeline/editor";
-import { CommitField, Page, PageHeader } from "@lifeline/ui";
-import { ArrowLeft } from "lucide-react";
+import { PERSON_TYPE, documentType, patchDocument, todayStr, useDocument, useLinkIndex, type Document } from "@lifeline/core";
+import { DocumentEditor } from "@lifeline/editor";
+import { Badge, Page, PageHeader, cn } from "@lifeline/ui";
+import { ArrowLeft, AtSign, Mail, Phone } from "lucide-react";
 import { PEOPLE_HREF } from "../constants";
-import { type Person } from "../domain/types";
-import { ageOf } from "../domain/occasions";
+import { type ContactKind, type Person } from "../domain/types";
+import { ageOf, upcomingOccasions, whenOf } from "../domain/occasions";
 import { knownLine } from "../domain/person";
+import { contactAction, contactDetailsOf } from "../domain/contactDetails";
 import { livePerson, patchPerson } from "../data/repo";
 import { PersonFields } from "../components/PersonFields";
 import { Section } from "../components/Section";
 import { OccasionsSection } from "../components/OccasionsSection";
 import { AddressesSection } from "../components/AddressesSection";
-import { ContactDetailsSection } from "../components/ContactDetailsSection";
+import { BLANK_DETAIL, ContactDetailsSection } from "../components/ContactDetailsSection";
+import type { DetailInput } from "../domain/contactDetails";
+import { EditToggle, EditingProvider } from "../components/Cards";
 import { TiesSection } from "./TiesSection";
 import { ReportsSection } from "./ReportsSection";
+import { TimelineSection } from "./TimelineSection";
 
 const back = (
   <Link to={PEOPLE_HREF} className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline">
@@ -23,21 +27,89 @@ const back = (
   </Link>
 );
 
+/** A line of text written where it stands: on Enter or on leaving it; Escape puts it back. */
+function InlineText({ label, value, placeholder, required, onCommit, className }: { label: string; value: string; placeholder?: string; required?: boolean; onCommit: (v: string) => unknown; className?: string }) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  const commit = () => {
+    const next = draft.trim();
+    if (next === value.trim() || (required && !next)) return setDraft(value);
+    void onCommit(next);
+  };
+  return (
+    <input
+      aria-label={label}
+      value={draft}
+      placeholder={placeholder}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        if (e.key === "Escape") {
+          setDraft(value);
+          e.currentTarget.blur();
+        }
+      }}
+      className={cn("hover:bg-accent focus-visible:bg-accent placeholder:text-muted-foreground w-full min-w-0 rounded-md bg-transparent px-1 outline-none", className)}
+    />
+  );
+}
+
+const QUICK: { kind: ContactKind; label: string; icon: typeof Phone }[] = [
+  { kind: "phone", label: "Call", icon: Phone },
+  { kind: "email", label: "Email", icon: Mail },
+  { kind: "handle", label: "Profile", icon: AtSign },
+];
+
 /**
- * The Person page (#404 story 69): a hidden route, as a Library work's page
- * is (ADR 0110), and the Peek's "Open". The header — name, aliases,
- * Relationship — then its Occasions, Addresses, Contact details, Ties and
- * Reports, the body, and the backlinks, each peeked where the user is.
+ * The page's contact buttons (#422): Call, Email and Profile, each the first
+ * current detail of its kind. One with nothing behind it is dimmed, and adds.
+ */
+function ContactButtons({ person, onAdd }: { person: Person; onAdd: () => void }) {
+  const details = contactDetailsOf(person);
+  return (
+    <div className="flex min-w-0 flex-wrap gap-4">
+      {QUICK.map(({ kind, label, icon: Icon }) => {
+        const detail = details.find((c) => c.kind === kind && !c.former);
+        const action = detail && contactAction(detail);
+        const disc = (
+          <span className={cn("flex size-10 items-center justify-center rounded-full", action ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+            <Icon className="size-4" />
+          </span>
+        );
+        const tile = "focus-visible:ring-ring flex flex-col items-center gap-1 rounded-lg text-xs focus-visible:ring-2 focus-visible:outline-none";
+        return action ? (
+          <a key={kind} href={action.href} aria-label={`${label} ${detail.value}`} {...(action.external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className={tile}>
+            {disc}
+            {label}
+          </a>
+        ) : (
+          <button key={kind} type="button" onClick={onAdd} aria-label={`${label}: add a contact detail`} className={cn(tile, "text-muted-foreground")}>
+            {disc}
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * The Person page (#404 story 69, #422): a hidden route, as a Library work's
+ * page is (ADR 0110), and the Peek's "Open". The name and Relationship, the
+ * contact buttons, then two columns: the cards (Contact details, Addresses,
+ * Occasions, Ties), read by default and changed in Edit; and About them, the
+ * Reports and the timeline of what links to them. Stacked on a phone.
  */
 export function PersonScreen() {
   const { id } = useParams<{ id: string }>();
   const row = useDocument<Person>(id);
   const person = useMemo(() => livePerson(row), [row]);
   const index = useLinkIndex();
-  const openPeek = useOpenPeek();
+  const [editing, setEditing] = useState(false);
   // Only the body and its Tags are written from the editor, so a Field changed above is never sent back as it was.
   const saveBody = useCallback((next: Document) => patchDocument(next.id, { body: next.body, tags: next.tags }), []);
-  const openRef = (ref: LinkRef) => void (ref.kind === "doc" && openPeek(ref.id));
+  const detailDialog = useState<DetailInput | null>(null);
 
   if (!person) {
     return (
@@ -48,35 +120,78 @@ export function PersonScreen() {
     );
   }
 
-  const known = knownLine(person, ageOf(person.occasions ?? [], todayStr()));
+  const today = todayStr();
+  const known = knownLine({ relationship: "", aliases: person.aliases }, ageOf(person.occasions ?? [], today));
+  const next = upcomingOccasions([person], today, 364)[0];
   return (
-    <Page>
-      <div className="min-w-0">{back}</div>
-      <header className="grid min-w-0 gap-1">
-        <PageHeader title={person.title} />
-        {known && <p className="text-muted-foreground min-w-0 text-sm">{known}</p>}
-      </header>
-
-      <Section title="Details">
-        <CommitField label="Name" value={person.title} onCommit={(title) => patchPerson(person.id, { title })} />
-        <PersonFields person={person} />
-      </Section>
-
-      <OccasionsSection person={person} />
-      <AddressesSection person={person} />
-      <ContactDetailsSection person={person} />
-      <TiesSection person={person} />
-      <ReportsSection person={person} />
-
-      <Section title="About them">
-        <div className="min-h-40 min-w-0 rounded-lg border p-2">
-          <DocumentEditor key={person.id} doc={person} def={documentType(PERSON_TYPE)} index={index} bodyOnly bodyLabel="About them" save={saveBody} />
+    <EditingProvider value={editing}>
+      <Page width="wide">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          {back}
+          <EditToggle editing={editing} onChange={setEditing} />
         </div>
-      </Section>
 
-      <BacklinksSection docId={person.id} index={index} wikilinksOnly onOpen={openRef} />
-      {/* What links in through People fields (an Event's With, a Task's For…), grouped by what they are. */}
-      <FieldLinksSection docId={person.id} index={index} onOpen={openRef} />
-    </Page>
+        <header className="grid min-w-0 gap-1">
+          <PageHeader
+            title={editing ? <InlineText label="Name" required value={person.title} onCommit={(title) => patchPerson(person.id, { title })} className="-mx-1" /> : person.title}
+            documentTitle={person.title}
+          />
+          <InlineText
+            label="Relationship"
+            value={person.relationship}
+            placeholder="What they are to you: my aunt, a climbing partner…"
+            onCommit={(relationship) => patchPerson(person.id, { relationship })}
+            className="-mx-1 text-sm"
+          />
+          {known && <p className="text-muted-foreground min-w-0 text-sm break-words">{known}</p>}
+        </header>
+
+        <div className="flex min-w-0 flex-wrap items-start gap-4">
+          <ContactButtons person={person} onAdd={() => detailDialog[1](BLANK_DETAIL)} />
+          {next && (
+            <Badge variant="secondary">
+              {next.label} {whenOf(next.inDays)}
+              {next.age !== null && ` · turns ${next.age}`}
+            </Badge>
+          )}
+        </div>
+
+        {/* A grid track of 22rem: the cards' column, wide enough for an Address on two lines. */}
+        <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] md:gap-10">
+          <div className="grid min-w-0 content-start gap-6">
+            <ContactDetailsSection person={person} dialog={detailDialog} />
+            <AddressesSection person={person} />
+            <OccasionsSection person={person} />
+            <TiesSection person={person} />
+            {editing ? (
+              <Section title="More">
+                <PersonFields person={person} relationship={false} />
+              </Section>
+            ) : (
+              (person.tags.length > 0 || person.excludedFromDrifting) && (
+                <div className="flex min-w-0 flex-wrap gap-1">
+                  {person.tags.map((t) => (
+                    <Badge key={t} variant="secondary" className="max-w-full">
+                      <span className="min-w-0 truncate">#{t}</span>
+                    </Badge>
+                  ))}
+                  {person.excludedFromDrifting && <Badge variant="outline">Left out of Drifting</Badge>}
+                </div>
+              )
+            )}
+          </div>
+
+          <div className="grid min-w-0 content-start gap-6">
+            <Section title="About them">
+              <div className="min-h-28 min-w-0 rounded-lg border p-2">
+                <DocumentEditor key={person.id} doc={person} def={documentType(PERSON_TYPE)} index={index} bodyOnly bodyLabel="About them" save={saveBody} />
+              </div>
+            </Section>
+            <ReportsSection person={person} />
+            <TimelineSection person={person} />
+          </div>
+        </div>
+      </Page>
+    </EditingProvider>
   );
 }

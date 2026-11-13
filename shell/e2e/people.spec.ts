@@ -61,7 +61,8 @@ test("a Person made from the palette is given aliases, a Relationship and Tags i
   await peek.getByRole("button", { name: "Open in People" }).click();
   await expect(page).toHaveURL(/\/app\/people\/person\//);
   await expect(page.getByRole("heading", { level: 1, name: "Anne Dupont" })).toBeVisible();
-  await expect(page.getByText("my mother · also Mum")).toBeVisible();
+  await expect(page.getByLabel("Relationship")).toHaveValue("my mother");
+  await expect(page.getByText("also Mum")).toBeVisible();
 });
 
 test("[[Mum]] and [[Anne Dupont]] land on one Person, whose page lists the Day's links as backlinks and whose body is written there", async ({ page }) => {
@@ -75,9 +76,8 @@ test("[[Mum]] and [[Anne Dupont]] land on one Person, whose page lists the Day's
 
   await page.goto(`/app/people/person/${id}`);
   await workLocally(page);
-  // One backlink for each of the Day's two links, by alias and by name.
-  await expect(page.getByRole("heading", { name: "Backlinks · 2" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^2001-02-03 Day/ })).toHaveCount(2);
+  // The Day is on their timeline once, though it links to them by alias and by name.
+  await expect(page.getByRole("region", { name: "Timeline" }).getByRole("button", { name: /^2001-02-03/ })).toHaveCount(1);
   await page.getByRole("region", { name: "About them" }).locator(".cm-content").click();
   await page.keyboard.type("Grows tomatoes.");
   await expect.poll(async () => (await personNamed(page, "Anne Dupont")) as { body?: string } | undefined).toMatchObject({ body: "Grows tomatoes." });
@@ -138,17 +138,22 @@ test("a Person's Contact details are added through the dialog, act by kind, and 
   await expect(section.getByRole("link", { name: "anne@example.org" })).toHaveAttribute("href", "mailto:anne@example.org");
   await expect(section.getByRole("link", { name: "@anne_p" })).toHaveAttribute("href", "https://instagram.com/anne_p");
 
-  // Marked former: kept as history, no action.
+  // Marked former in Edit (#422): kept as history, no action.
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await section.getByRole("button", { name: "Mark Mobile former" }).click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(section.getByRole("link", { name: "+33 6 12 34 56 78" })).toHaveCount(0);
   await expect(section.getByText("+33 6 12 34 56 78")).toBeVisible();
   await expect(section.getByText("Former", { exact: true }).first()).toBeVisible();
 
   // Edited, then removed.
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await section.getByRole("button", { name: "Edit Work" }).click();
   await page.getByLabel("Value").fill("anne@work.example.org");
   await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(section.getByRole("link", { name: "anne@work.example.org" })).toBeVisible();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   await section.getByRole("button", { name: "Remove Instagram" }).click();
   await expect.poll(async () => ((await inCore(page, async (core, i: string) => (await core.getDocument(i)) as never, id)) as { contactDetails?: { label: string; former: boolean }[] }).contactDetails?.map((c) => `${c.label}:${c.former}`)).toEqual(["Mobile:true", "Work:false"]);
 });
@@ -185,8 +190,12 @@ test("the People home lists Everyone, searched by name and alias and filtered by
     const filters = page.getByRole("button", { name: /^Filters/ });
     const phone = await filters.isVisible();
     if (phone) await filters.click();
-    await page.getByRole("combobox", { name: label }).click();
-    await page.getByRole("option", { name: option, exact: true }).click();
+    // On the desk the Relationship is a row of choices (#422); on a phone, and the Tag anywhere, a select.
+    if (label === "Relationship" && !phone) await page.getByRole("radio", { name: option, exact: true }).click();
+    else {
+      await page.getByRole("combobox", { name: label }).click();
+      await page.getByRole("option", { name: option, exact: true }).click();
+    }
     if (phone) await page.keyboard.press("Escape");
   };
   await pick("Relationship", "kin-x");

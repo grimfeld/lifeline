@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Button, Tip, toast } from "@lifeline/ui";
-import { MapPin, Pencil, Plus, Trash2 } from "lucide-react";
+import { Button, cn, toast } from "@lifeline/ui";
+import { MapPin } from "lucide-react";
 import { editAddress, isUnplaced, sortedAddresses } from "../domain/addresses";
 import { removePart, restorePart, updateAddresses } from "../data/repo";
 import { relocateAddress } from "../data/addresses";
@@ -8,6 +8,7 @@ import { removeWithUndo, writeOrSay } from "./writes";
 import type { Address, Person } from "../domain/types";
 import { Section } from "./Section";
 import { AddressDialog } from "./AddressDialog";
+import { AddRow, CardList, CardRow } from "./Cards";
 
 function AddressRow({ person, address, onEdit }: { person: Person; address: Address; onEdit: () => void }) {
   const change = (write: () => Promise<unknown>) => writeOrSay("The Address could not be changed.", write);
@@ -21,64 +22,48 @@ function AddressRow({ person, address, onEdit }: { person: Person; address: Addr
     });
 
   return (
-    <li className="grid min-w-0 gap-1 rounded-lg border p-2" data-testid="address" data-former={address.former || undefined}>
-      <div className="flex min-w-0 items-start gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="min-w-0 text-sm font-medium break-words">
-            {address.label}
-            {address.former && <span className="text-muted-foreground font-normal"> · former</span>}
-          </p>
-          <p className="text-muted-foreground min-w-0 text-sm break-words whitespace-pre-line">{address.text}</p>
-        </div>
-        <div className="flex shrink-0 gap-1">
-          <Tip label={`Change ${address.label}`}>
-            <Button variant="ghost" size="icon" onClick={onEdit}>
-              <Pencil />
-            </Button>
-          </Tip>
-          <Tip label={`Remove ${address.label}`}>
-            <Button variant="ghost" size="icon" onClick={() => void removeWithUndo(address.label, () => removePart(person.id, "addresses", address.id), (r) => restorePart(person.id, "addresses", r))}>
-              <Trash2 />
-            </Button>
-          </Tip>
-        </div>
-      </div>
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        {isUnplaced(address) && (
-          <>
-            <span className="text-muted-foreground text-xs">Not on the map: no place found.</span>
-            <Button variant="outline" size="sm" onClick={retry}>
-              <MapPin /> Try again
-            </Button>
-          </>
-        )}
-        <Button variant="ghost" size="sm" onClick={() => change(() => updateAddresses(person.id, (list) => editAddress(list, address.id, { former: !address.former })))}>
-          {address.former ? "Mark as current" : "Mark as former"}
-        </Button>
-      </div>
-    </li>
+    <CardRow
+      icon={<MapPin className={cn("size-4", !isUnplaced(address) && !address.former && "text-primary")} />}
+      title={<span className={cn("whitespace-pre-line", address.former && "line-through")}>{address.text}</span>}
+      sub={
+        <>
+          {address.label}
+          {address.former && " · former"}
+          {isUnplaced(address) && " · not on the map: no place found"}
+        </>
+      }
+      editLabel={`Change ${address.label}`}
+      onEdit={onEdit}
+      removeLabel={`Remove ${address.label}`}
+      onRemove={() => void removeWithUndo(address.label, () => removePart(person.id, "addresses", address.id), (r) => restorePart(person.id, "addresses", r))}
+      former={address.former}
+      formerLabel={address.former ? `Mark ${address.label} current` : `Mark ${address.label} former`}
+      onFormer={() => change(() => updateAddresses(person.id, (list) => editAddress(list, address.id, { former: !address.former })))}
+      extra={
+        isUnplaced(address) ? (
+          <Button variant="ghost" size="xs" onClick={retry}>
+            Try again
+          </Button>
+        ) : undefined
+      }
+      testId="address"
+    />
   );
 }
 
-/** The Person page's Addresses (#418): current ones first, former ones kept below as history. */
+/** The Person page's Addresses (#418): current ones first, former ones kept below as history. A card (#422). */
 export function AddressesSection({ person }: { person: Person }) {
   const [editing, setEditing] = useState<Address | "new" | null>(null);
   const list = sortedAddresses(person.addresses ?? []);
   return (
     <Section title="Addresses">
-      {list.length === 0 && <p className="text-muted-foreground text-sm">No address yet.</p>}
-      {list.length > 0 && (
-        <ul className="grid min-w-0 gap-2">
-          {list.map((a) => (
-            <AddressRow key={a.id} person={person} address={a} onEdit={() => setEditing(a)} />
-          ))}
-        </ul>
-      )}
-      <div>
-        <Button variant="outline" size="sm" onClick={() => setEditing("new")}>
-          <Plus /> Add address
-        </Button>
-      </div>
+      <CardList>
+        {list.length === 0 && <li className="text-muted-foreground px-3 py-2 text-sm">No address yet.</li>}
+        {list.map((a) => (
+          <AddressRow key={a.id} person={person} address={a} onEdit={() => setEditing(a)} />
+        ))}
+        <AddRow onClick={() => setEditing("new")}>Add address</AddRow>
+      </CardList>
       <AddressDialog
         personId={person.id}
         address={editing && editing !== "new" ? editing : undefined}
