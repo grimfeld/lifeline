@@ -100,7 +100,7 @@ function ContactButtons({ person, onAdd }: { person: Person; onAdd: (kind: Conta
           </span>
         );
         const tile = "focus-visible:ring-ring flex flex-col items-center gap-1 rounded-lg text-xs focus-visible:ring-2 focus-visible:outline-none";
-        return action && detail ? (
+        return action ? (
           <a key={kind} href={action.href} aria-label={`${label} ${detail.value}`} {...(action.external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className={tile}>
             {disc}
             {label}
