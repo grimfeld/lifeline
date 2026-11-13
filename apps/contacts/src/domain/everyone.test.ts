@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Person } from "./types";
 import { formatHuman } from "@lifeline/core";
+import { upcomingOccasions } from "./occasions";
 import { activeFilter, byLetter, everyone, lastSeenLabel, relationshipsOf, rowNews, tagsOf } from "./everyone";
 
 const P = (title: string, more: Partial<Person> = {}): Person =>
@@ -66,14 +67,15 @@ describe("What a row says", () => {
   const wed = { id: "w", label: "Wedding", day: "2001-11-20", yearly: true };
   const bday = { id: "b", label: "Birthday", day: "1990-11-10", yearly: true };
   it("shows a Person's nearest Occasion soon, with the age a Birthday reaches", () => {
-    const news = rowNews([P("Anne", { occasions: [wed, bday] })], [], today, 30);
+    // The Upcoming the home already shows, soonest first: each row takes its Person's first.
+    const news = rowNews(upcomingOccasions([P("Anne", { occasions: [wed, bday] })], today, 30), []);
     expect(news.upcoming.get("Anne")).toMatchObject({ label: "Birthday", inDays: 2, age: 36 });
   });
-  it("shows no Occasion beyond the window", () => {
-    expect(rowNews([P("Anne", { occasions: [wed] })], [], today, 7).upcoming.has("Anne")).toBe(false);
+  it("shows no Occasion that Upcoming leaves out", () => {
+    expect(rowNews(upcomingOccasions([P("Anne", { occasions: [wed] })], today, 7), []).upcoming.has("Anne")).toBe(false);
   });
   it("says how long the drifting have drifted, and nothing for the never seen", () => {
-    const news = rowNews([anne, marc], [{ person: anne, last: "2026-05-01", daysSince: 191 }, { person: marc, last: null, daysSince: null }], today, 30);
+    const news = rowNews([], [{ person: anne, last: "2026-05-01", daysSince: 191 }, { person: marc, last: null, daysSince: null }]);
     expect([...news.drifting]).toEqual([["Anne Dupont", 191], ["Marc Petit", null]]);
     expect(news.drifting.has("Zed")).toBe(false);
   });

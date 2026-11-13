@@ -104,6 +104,11 @@ describe("the Person page's Call, Email and Profile", () => {
       ["handle", null, null],
     ]);
   });
+  it("has a detail behind every action, so a button that acts can name it", () => {
+    const acting = quickContacts({ contactDetails: [d({ id: "now", value: "+33 6 12 34 56 78" })] }).filter((q) => q.action !== null);
+    // Typed as a union: once `action` is there, `detail` is too, unchecked.
+    expect(acting.map((q) => (q.action ? `${q.action.href} ${q.detail.value}` : ""))).toEqual(["tel:+33612345678 +33 6 12 34 56 78"]);
+  });
   it("has no action for a current detail whose value is not usable, so it adds one of its kind", () => {
     expect(quick(d({ id: "bad", kind: "email", value: "not an address" }))[1]).toEqual(["email", "bad", null]);
   });

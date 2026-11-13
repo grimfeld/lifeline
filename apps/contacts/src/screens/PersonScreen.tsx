@@ -1,8 +1,8 @@
-import { useCallback, useId, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { PERSON_TYPE, documentType, patchDocument, todayStr, useDocument, useLinkIndex, type Document } from "@lifeline/core";
 import { DocumentEditor } from "@lifeline/editor";
-import { Badge, Input, Page, PageHeader, cn, useCommitDraft } from "@lifeline/ui";
+import { Badge, Field, Input, Page, PageHeader, cn, useCommitDraft } from "@lifeline/ui";
 import { ArrowLeft, AtSign, Mail, Phone, Plus } from "lucide-react";
 import { PEOPLE_HREF } from "../constants";
 import { type ContactKind, type Person } from "../domain/types";
@@ -30,7 +30,9 @@ const back = (
 
 /**
  * A line of text written where it stands: on Enter or on leaving it; Escape puts it back.
- * A refused write shows under the field and leaves what was typed, to be fixed.
+ * A refused write shows under the field and leaves what was typed, to be fixed. The page
+ * around it says what it is, so its label is for screen readers only. At rest a dashed
+ * underline says it can be changed, on a touch screen too; hover and focus draw the box.
  */
 function InlineText({ label, value, placeholder, required, onCommit, className }: { label: string; value: string; placeholder?: string; required?: boolean; onCommit: (v: string) => unknown; className?: string }) {
   const { draft, error, change, commit, revert } = useCommitDraft(
@@ -42,13 +44,9 @@ function InlineText({ label, value, placeholder, required, onCommit, className }
     },
     { equals: (a, b) => a.trim() === b.trim() },
   );
-  const errorId = useId();
   return (
-    <div className="grid min-w-0 gap-1">
+    <Field label={label} hideLabel error={error} className="min-w-0 gap-1">
       <Input
-        aria-label={label}
-        aria-describedby={error ? errorId : undefined}
-        aria-invalid={error ? true : undefined}
         value={draft}
         placeholder={placeholder}
         onChange={(e) => change(e.target.value)}
@@ -61,14 +59,9 @@ function InlineText({ label, value, placeholder, required, onCommit, className }
             e.currentTarget.blur();
           }
         }}
-        className={cn("hover:border-input border-transparent bg-transparent", className)}
+        className={cn("border-transparent border-b-input hover:border-input focus-visible:border-ring border-dashed bg-transparent dark:bg-transparent hover:border-solid focus-visible:border-solid", className)}
       />
-      {error && (
-        <p id={errorId} data-slot="field-error" className="text-destructive text-xs">
-          {error}
-        </p>
-      )}
-    </div>
+    </Field>
   );
 }
 
@@ -100,7 +93,7 @@ function ContactButtons({ person, onAdd }: { person: Person; onAdd: (kind: Conta
           </span>
         );
         const tile = "focus-visible:ring-ring flex flex-col items-center gap-1 rounded-lg text-xs focus-visible:ring-2 focus-visible:outline-none";
-        return action && detail ? (
+        return action ? (
           <a key={kind} href={action.href} aria-label={`${label} ${detail.value}`} {...(action.external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className={tile}>
             {disc}
             {label}
@@ -154,8 +147,9 @@ export function PersonScreen() {
         </div>
 
         <header className="grid min-w-0 gap-1">
+          {/* In Edit the Name keeps the heading's type: py-0 lets its 28px line sit inside the kit Input's 32px box, uncut. */}
           <PageHeader
-            title={editing ? <InlineText label="Name" required value={person.title} onCommit={(title) => patchPerson(person.id, { title })} className="-mx-1" /> : person.title}
+            title={editing ? <InlineText label="Name" required value={person.title} onCommit={(title) => patchPerson(person.id, { title })} className="-mx-1 py-0 text-xl font-semibold tracking-tight md:text-xl" /> : person.title}
             documentTitle={person.title}
           />
           <InlineText
@@ -174,7 +168,7 @@ export function PersonScreen() {
         </div>
 
         {/* A grid track of 22rem: the cards' column, wide enough for an Address on two lines. */}
-        <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] md:gap-6">
+        <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
           <div className="grid min-w-0 content-start gap-6">
             <ContactDetailsSection person={person} editing={detailEditing} onEditing={setDetailEditing} />
             <AddressesSection person={person} />

@@ -49,21 +49,22 @@ export function contactAction(detail: ContactDetail): ContactAction | null {
   return handleAction(detail.label, value);
 }
 
-/** One of the Person page's Call, Email and Profile buttons (#422). */
-export interface QuickContact {
-  kind: ContactKind;
-  /** The kind's first current detail; null when there is none. */
-  detail: ContactDetail | null;
-  /** What a click does; null when there is no usable detail, and the button adds one of `kind` instead. */
-  action: ContactAction | null;
-}
+/**
+ * One of the Person page's Call, Email and Profile buttons (#422): it acts on its
+ * kind's first current detail, or, with no usable one (`action` null), adds one of `kind`.
+ */
+export type QuickContact =
+  | { kind: ContactKind; detail: ContactDetail; action: ContactAction }
+  /** `detail` is the unusable current one, or null when there is none. */
+  | { kind: ContactKind; detail: ContactDetail | null; action: null };
 
 /** The Call, Email and Profile buttons, one per kind: each its kind's first current detail (a former one is skipped). */
 export function quickContacts(person: { contactDetails?: unknown }): QuickContact[] {
   const details = contactDetailsOf(person);
   return CONTACT_KINDS.map((kind) => {
     const detail = details.find((c) => c.kind === kind && !c.former) ?? null;
-    return { kind, detail, action: detail && contactAction(detail) };
+    const action = detail && contactAction(detail);
+    return detail && action ? { kind, detail, action } : { kind, detail, action: null };
   });
 }
 

@@ -32,7 +32,7 @@ function AddressRow({ person, address, onEdit }: { person: Person; address: Addr
           {isUnplaced(address) && " · not on the map: no place found"}
         </>
       }
-      editLabel={`Change ${address.label}`}
+      editLabel={`Change ${address.label}: ${address.text.split("\n").map((l) => l.trim()).filter(Boolean).join(", ")}`}
       onEdit={onEdit}
       removeLabel={`Remove ${address.label}`}
       onRemove={() => void removeWithUndo(address.label, () => removePart(person.id, "addresses", address.id), (r) => restorePart(person.id, "addresses", r))}

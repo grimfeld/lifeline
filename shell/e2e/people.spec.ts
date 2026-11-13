@@ -239,7 +239,7 @@ test("the People home lists Everyone, searched by name and alias and filtered by
   await expect(page.getByRole("heading", { level: 1, name: "Léa Martin" })).toBeVisible();
 });
 
-test("the Relationship and Name written in place: Escape puts the stored value back, and a refused Name shows under the field", async ({ page }) => {
+test("the Relationship and Name written in place: Escape puts the stored value back, and a refused Name or rename shows under the field", async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
   const id = await inCore(page, async (core, a: { type: string }) => (await core.createDocument({ type: a.type, title: "Anne Dupont", fields: { relationship: "my aunt" } })).id as string, { type: PERSON });
@@ -268,4 +268,14 @@ test("the Relationship and Name written in place: Escape puts the stored value b
   await expect(page.getByText("Name can't be empty.")).toBeVisible();
   await expect(name).toHaveAttribute("aria-invalid", "true");
   expect(await personNamed(page, "Anne Dupont")).toBeTruthy();
+
+  // A rename the store refuses (another Person has that name): its message shows under the field, the typed name stays, nothing is written.
+  await inCore(page, async (core, a: { type: string }) => void (await core.createDocument({ type: a.type, title: "Léa Dupont" })), { type: PERSON });
+  await name.fill("Léa Dupont");
+  await name.press("Enter");
+  await expect(page.getByText("“Léa Dupont” already exists", { exact: false })).toBeVisible();
+  await expect(name).toHaveAttribute("aria-invalid", "true");
+  await expect(name).toHaveValue("Léa Dupont");
+  expect(await personNamed(page, "Anne Dupont")).toBeTruthy();
+  expect((await people(page)).filter((p) => p.title === "Léa Dupont")).toHaveLength(1);
 });

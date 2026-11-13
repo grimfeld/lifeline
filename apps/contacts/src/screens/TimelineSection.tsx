@@ -3,7 +3,8 @@ import { documentType, formatHuman, linkFieldLabel, singularOf, todayStr, useLin
 import { cn } from "@lifeline/ui";
 import type { Person } from "../domain/types";
 import { upcomingOccasions, whenOf } from "../domain/occasions";
-import { dotJoin, monthLabel } from "../domain/dots";
+import { dotJoin } from "../domain/dots";
+import { monthLabel } from "../components/format";
 import { timelineMonths, timelineOf } from "../domain/timeline";
 import { Section } from "../components/Section";
 
@@ -18,7 +19,7 @@ function Stop({ strong, children }: { strong?: boolean; children: ReactNode }) {
   );
 }
 
-const monthName = (month: string) => (month ? monthLabel(month, { month: "long", year: "numeric" }) : "Undated");
+const monthName = (month: string | null) => (month !== null ? monthLabel(month, { month: "long", year: "numeric" }) : "Undated");
 
 /**
  * A Person's timeline (#422): their Occasions in the year ahead above a
@@ -52,7 +53,7 @@ export function TimelineSection({ person }: { person: Person }) {
           <span aria-hidden className="bg-border h-px flex-1" />
         </li>
         {months.map(({ month, entries }) => (
-          <li key={month} className="min-w-0">
+          <li key={month ?? "undated"} className="min-w-0">
             <h3 className="text-muted-foreground pb-2 pl-6 text-xs font-medium">{monthName(month)}</h3>
             <ol className="min-w-0">
               {entries.map((e) => {

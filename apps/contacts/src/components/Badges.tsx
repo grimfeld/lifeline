@@ -1,12 +1,12 @@
 import { Badge } from "@lifeline/ui";
 import { whenOf, type UpcomingOccasion } from "../domain/occasions";
 
-/** A Person's next Occasion as a badge: "Birthday in 3 days", with their age ("turns 40", or just "40" when bare). */
-export function NextOccasionBadge({ next, variant, bareAge }: { next: Pick<UpcomingOccasion, "label" | "inDays" | "age">; variant: "default" | "secondary"; bareAge?: boolean }) {
+/** A Person's next Occasion as a badge: "Birthday in 3 days · turns 40". */
+export function NextOccasionBadge({ next, variant }: { next: Pick<UpcomingOccasion, "label" | "inDays" | "age">; variant: "default" | "secondary" }) {
   return (
     <Badge variant={variant}>
       {next.label} {whenOf(next.inDays)}
-      {next.age !== null && ` · ${bareAge ? next.age : `turns ${next.age}`}`}
+      {next.age !== null && ` · turns ${next.age}`}
     </Badge>
   );
 }

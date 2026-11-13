@@ -54,7 +54,7 @@ test("an Occasion can be edited and removed", async ({ page }) => {
   const occasions = page.getByRole("region", { name: "Occasions" });
   await expect(occasions).toContainText("Surgery");
   await page.getByRole("button", { name: "Edit", exact: true }).click();
-  await occasions.getByRole("button", { name: "Edit Surgery" }).click();
+  await occasions.getByRole("button", { name: "Edit Surgery: 12 May 2026" }).click();
   await page.getByRole("dialog", { name: "Edit occasion" }).getByLabel("Label").fill("Operation");
   await page.getByRole("dialog", { name: "Edit occasion" }).getByRole("button", { name: "Save" }).click();
   await expect(occasions).toContainText("Operation");
