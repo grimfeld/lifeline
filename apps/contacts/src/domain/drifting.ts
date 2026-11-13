@@ -28,11 +28,21 @@ export interface Drifter {
  * rest longest unseen first.
  */
 export function drifting(index: LinkIndex, people: readonly Person[], { source = "seen", today }: { source?: DriftSource; today: DateStr }): Drifter[] {
+  return driftingFrom(people, lastDays(index, people, { source, today }), today);
+}
+
+/** Each Person's last day seen (or mentioned), undefined when never: one walk of the index, for a screen to share. */
+export function lastDays(index: LinkIndex, people: readonly Person[], { source = "seen", today }: { source?: DriftSource; today: DateStr }): Map<string, DateStr | undefined> {
   const daysOf = sourceOf(source, today);
+  return new Map(people.map((p) => [p.id, daysOf(index, p.id).at(-1)]));
+}
+
+/** Drifting over last days already worked out (`lastDays`), so a screen that shows them walks the index once. */
+export function driftingFrom(people: readonly Person[], last: ReadonlyMap<string, DateStr | undefined>, today: DateStr): Drifter[] {
   const cutoff = addDays(today, -DRIFTING_DAYS);
   return people
     .filter(followed)
-    .map((person) => drifterOf(person, daysOf(index, person.id).at(-1) ?? null, today))
+    .map((person) => drifterOf(person, last.get(person.id) ?? null, today))
     .filter((d) => d.last === null || d.last <= cutoff)
     .sort(longestUnseenFirst);
 }

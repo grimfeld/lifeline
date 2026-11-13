@@ -60,7 +60,7 @@ test("Drifting ranks the People not seen lately, and leaving one out removes the
   await expect(page.getByRole("region", { name: "Drifting" }).getByText("Drift Older")).toBeVisible();
 });
 
-test("Not mentioned counts the Days that link instead", async ({ page }) => {
+test("Not mentioned counts the Days that link instead, and Everyone's drifting badges follow the switch", async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
   await inCore(
@@ -75,6 +75,9 @@ test("Not mentioned counts the Days that link instead", async ({ page }) => {
   );
   const drifting = page.getByRole("region", { name: "Drifting" });
   await expect(drifting.getByText("Quiet Qui")).toHaveCount(0);
+  const row = page.getByRole("region", { name: "Everyone" }).getByRole("link", { name: /Quiet Qui/ });
+  await expect(row).toBeVisible();
+  await expect(row).not.toContainText("drifting");
   // A toggle on the desk, a select on a phone (ADR 0064).
   const by = drifting.getByRole("combobox", { name: "Drifting by" });
   if (await by.isVisible()) {
@@ -82,4 +85,5 @@ test("Not mentioned counts the Days that link instead", async ({ page }) => {
     await page.getByRole("option", { name: "Not mentioned" }).click();
   } else await drifting.getByRole("radio", { name: "Not mentioned" }).click();
   await expect(drifting.getByText("Quiet Qui")).toBeVisible();
+  await expect(row).toContainText(/drifting · 1[45]\d days/);
 });

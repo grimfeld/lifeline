@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Person } from "./types";
 import { formatHuman } from "@lifeline/core";
-import { activeFilter, everyone, lastSeenLabel, relationshipsOf, tagsOf } from "./everyone";
+import { activeFilter, byLetter, everyone, lastSeenLabel, relationshipsOf, rowNews, tagsOf } from "./everyone";
 
 const P = (title: string, more: Partial<Person> = {}): Person =>
   ({ id: title, type: "contacts_person", title, aliases: [], relationship: "", tags: [], ...more }) as unknown as Person;
@@ -48,5 +48,33 @@ describe("Everyone's filters and rows", () => {
     expect(lastSeenLabel("2026-03-04")).toBe(`Last seen ${formatHuman("2026-03-04")}`);
     expect(lastSeenLabel("2026-03-04")).not.toBe("Last seen ");
     expect(lastSeenLabel(undefined)).toBe("Never seen");
+  });
+});
+
+describe("Everyone A to Z", () => {
+  const letters = (ps: Person[]) => byLetter(ps).map(([letter, rows]) => [letter, names(rows)]);
+  it("puts each Person under the first letter of their name, accent and case aside", () => {
+    expect(letters(everyone([P("Émile"), P("anne"), P("Eve"), P("Bob")], {}))).toEqual([["A", ["anne"]], ["B", ["Bob"]], ["E", ["Émile", "Eve"]]]);
+  });
+  it("puts a name that does not start with a letter under #", () => {
+    expect(letters([P("42nd Street Café"), P("@marc"), P("Zed")])).toEqual([["#", ["42nd Street Café", "@marc"]], ["Z", ["Zed"]]]);
+  });
+});
+
+describe("What a row says", () => {
+  const today = "2026-11-08";
+  const wed = { id: "w", label: "Wedding", day: "2001-11-20", yearly: true };
+  const bday = { id: "b", label: "Birthday", day: "1990-11-10", yearly: true };
+  it("shows a Person's nearest Occasion soon, with the age a Birthday reaches", () => {
+    const news = rowNews([P("Anne", { occasions: [wed, bday] })], [], today, 30);
+    expect(news.upcoming.get("Anne")).toMatchObject({ label: "Birthday", inDays: 2, age: 36 });
+  });
+  it("shows no Occasion beyond the window", () => {
+    expect(rowNews([P("Anne", { occasions: [wed] })], [], today, 7).upcoming.has("Anne")).toBe(false);
+  });
+  it("says how long the drifting have drifted, and nothing for the never seen", () => {
+    const news = rowNews([anne, marc], [{ person: anne, last: "2026-05-01", daysSince: 191 }, { person: marc, last: null, daysSince: null }], today, 30);
+    expect([...news.drifting]).toEqual([["Anne Dupont", 191], ["Marc Petit", null]]);
+    expect(news.drifting.has("Zed")).toBe(false);
   });
 });

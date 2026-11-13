@@ -11,7 +11,7 @@ are to you (their **Relationship**), Tags, and a page of your own words about th
 ### The People home
 
 The People Module lands on its home, which opens on **Upcoming** and then lists **Everyone**: every Person in the current
-Workspace, A to Z under a letter each, with when you last saw them. Click one to open their page.
+Workspace, A to Z under a letter each (a name that starts with no letter goes under **#**), with when you last saw them. Click one to open their page.
 
 - **Upcoming** — the Occasions in the next 30 days as a strip of days, soonest first: the day's
   number, how far off, who and which Occasion, and for a Birthday with a known year the age they
@@ -19,7 +19,7 @@ Workspace, A to Z under a letter each, with when you last saw them. Click one to
   **Upcoming** Card on any Screen, as a list, with its own number of days ahead.
 - **Badges** on each row in Everyone: what they are to you, their next Occasion when it is in the
   next 30 days ("Birthday in 9 days · 61"), **drifting** with how many days when they are in
-  Drifting (below), and their Tags.
+  Drifting (below), counted the way Drifting is switched (Not seen or Not mentioned), and their Tags.
 - **Search** matches a name or any alias, ignoring case and accents.
 - **Relationship** (a row of choices, **Everyone** first) and **Tag** narrow the list, and together
   they narrow it further. On a phone they are under **Filters**.
@@ -42,7 +42,8 @@ bring them back.
 At the top, their name, then what they are to you (their **Relationship**: click it and type to
 change it, Enter or leaving it saves), then their age (when their Birthday has a year) and their
 aliases. Under them, three buttons: **Call**, **Email** and **Profile** reach them by their first
-current phone number, email and handle; one they have none of is dimmed, and adds one. Their next
+current phone number, email and handle; a former one is skipped. One they have none of is dimmed, and adds one of
+its kind: a dimmed **Email** opens the dialog on Email. Their next
 Occasion within the year sits beside them.
 
 Below, two columns (one after the other on a phone):

@@ -1,27 +1,20 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { seenDays, todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
+import { todayStr, useLinkIndex, type DateStr } from "@lifeline/core";
 import { Badge, Button, EmptyState, Input, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ToggleGroup, ToggleGroupItem } from "@lifeline/ui";
 import { UserPlus } from "lucide-react";
 import { UPCOMING_DAYS, UpcomingStrip } from "../components/UpcomingReport";
 import { DriftingSection } from "../components/DriftingSection";
 import { AddPersonDialog } from "../components/AddPersonDialog";
 import { Section } from "../components/Section";
-import { activeFilter, everyone, lastSeenLabel, relationshipsOf, tagsOf } from "../domain/everyone";
+import { activeFilter, byLetter, everyone, lastSeenLabel, relationshipsOf, rowNews, tagsOf, type RowNews } from "../domain/everyone";
 import { type Person } from "../domain/types";
 import { personHref } from "../constants";
-import { fold } from "../domain/person";
-import { drifting } from "../domain/drifting";
-import { upcomingOccasions, whenOf, type UpcomingOccasion } from "../domain/occasions";
+import { driftingFrom, lastDays, type DriftSource } from "../domain/drifting";
+import { whenOf } from "../domain/occasions";
 import { usePeople } from "../data/repo";
 
 const ANY = "__any__";
-
-/** What a row says about someone at a glance (#422): their next Occasion soon, and how long they have drifted. */
-interface RowNews {
-  upcoming: Map<string, UpcomingOccasion>;
-  drifting: Map<string, number | null>;
-}
 
 /** One Person in Everyone: their name, badges for what they are to me, what comes up and their Tags, and when last seen; a link to their page. */
 function PersonRow({ person, lastSeen, news, showRelationship }: { person: Person; lastSeen?: DateStr; news: RowNews; showRelationship: boolean }) {
@@ -63,16 +56,6 @@ function PersonRow({ person, lastSeen, news, showRelationship }: { person: Perso
   );
 }
 
-/** Everyone A to Z, under a letter each (#422). */
-function byLetter(people: readonly Person[]): [string, Person[]][] {
-  const letters = new Map<string, Person[]>();
-  for (const p of people) {
-    const letter = fold(p.title).charAt(0).toUpperCase() || "#";
-    letters.set(letter, [...(letters.get(letter) ?? []), p]);
-  }
-  return [...letters.entries()];
-}
-
 /** One of Everyone's filters: its values in use, or any ("" when none is picked). */
 function FilterSelect({ label, anyLabel, value, options, onChange }: { label: string; anyLabel: string; value: string; options: readonly string[]; onChange: (value: string) => void }) {
   return (
@@ -107,13 +90,14 @@ export function PeopleScreen() {
   const shown = useMemo(() => everyone(people, { query, relationship, tag }), [people, query, relationship, tag]);
   const index = useLinkIndex();
   const today = todayStr();
+  // Drifting by Seen or by Mentioned: the Drifting section's switch, and the row badges follow it.
+  const [driftSource, setDriftSource] = useState<DriftSource>("seen");
   // Seen walks every Event that links to a Person: once per change to the index, never per keystroke in the search.
-  const lastSeen = useMemo(() => new Map(people.map((p) => [p.id, seenDays(index, p.id, today).at(-1)])), [index, people, today]);
-  const news = useMemo<RowNews>(() => {
-    const upcoming = new Map<string, UpcomingOccasion>();
-    for (const u of upcomingOccasions(people, today, UPCOMING_DAYS)) if (!upcoming.has(u.personId)) upcoming.set(u.personId, u);
-    return { upcoming, drifting: new Map(drifting(index, people, { source: "seen", today }).map((d) => [d.person.id, d.daysSince])) };
-  }, [index, people, today]);
+  // Drifting reuses it; Mentioned is walked only while the switch is on it.
+  const lastSeen = useMemo(() => lastDays(index, people, { source: "seen", today }), [index, people, today]);
+  const lastMentioned = useMemo(() => (driftSource === "mentioned" ? lastDays(index, people, { source: "mentioned", today }) : null), [driftSource, index, people, today]);
+  const drifters = useMemo(() => driftingFrom(people, lastMentioned ?? lastSeen, today), [people, lastMentioned, lastSeen, today]);
+  const news = useMemo<RowNews>(() => rowNews(people, drifters, today, UPCOMING_DAYS), [people, drifters, today]);
   const relationships = useMemo(() => relationshipsOf(people), [people]);
   const tags = useMemo(() => tagsOf(people), [people]);
   // A filter whose value no one carries any more (the last of them was changed) is no filter.
@@ -133,7 +117,7 @@ export function PeopleScreen() {
       <UpcomingStrip />
 
       {/* DRIFTING (#420): who I have not seen for a while. Goes here, between Upcoming and Everyone. */}
-      {people.length > 0 && <DriftingSection people={people} />}
+      {people.length > 0 && <DriftingSection rows={drifters} source={driftSource} onSourceChange={setDriftSource} />}
 
       <Section title="Everyone">
         {people.length === 0 ? (
