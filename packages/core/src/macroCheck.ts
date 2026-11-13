@@ -100,6 +100,10 @@ export async function checkMacro(macro: MacroShape, commands: readonly OwnedComm
       reasons.push(`${at}“${def.title}” is a Macro, and a Macro cannot be a step`);
       continue;
     }
+    if (def.readOnly) {
+      reasons.push(`${at}“${def.title}” only answers an agent, so it cannot be a step`);
+      continue;
+    }
     if (commandNavigates(def) && i < macro.steps.length - 1) reasons.push(`${at}“${def.title}” goes somewhere, so it must be the last step`);
     const args = isInvocable(def) ? def.args : [];
     for (const [key, src] of Object.entries(step.args)) {

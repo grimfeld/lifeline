@@ -29,8 +29,28 @@ describe("Word and Sentence through the Recallable Contract", () => {
     expect(promptsOf(materialOf(defOf(SENTENCE), sentence as unknown as Document)).map((p) => p.key)).toEqual(["s|blank:ganas", "s|blank:comer"]);
   });
 
+  it("a clip adds a listening Prompt, and no other key moves (ADR 0116)", () => {
+    const keys = (d: object) => promptsOf(materialOf(defOf((d as { type: string }).type), d as unknown as Document)).map((p) => p.key);
+    expect(keys({ ...word, clip: "att1" })).toEqual([...keys(word), "w|listen"]);
+    expect(keys({ ...sentence, clip: "att1" })).toEqual([...keys(sentence), "s|listen"]);
+    expect(keys({ ...fact, clip: "att1" })).toEqual(keys(fact));
+  });
+
+  it("the listening slot is the same whichever clip, and is gone with the clip", () => {
+    const keys = (d: object) => promptsOf(materialOf(defOf((d as { type: string }).type), d as unknown as Document)).map((p) => p.key);
+    expect(keys({ ...word, clip: "att2" })).toEqual(keys({ ...word, clip: "att1" }));
+    expect(keys({ ...word, clip: "" })).toEqual(keys(word));
+  });
+
   it("gives a Fact one forward Prompt — its answer is no cue for its question", () => {
     expect(promptsOf(materialOf(defOf(FACT), fact as unknown as Document)).map((p) => p.key)).toEqual(["f|forward"]);
+  });
+
+  it("keeps a draft out of practice, as paused material is, and an accepted one in", () => {
+    const draft = { ...word, draft: true } as unknown as Document;
+    expect(materialOf(defOf(WORD), draft).live).toBe(false);
+    expect(materialOf(defOf(WORD), { ...word, draft: false } as unknown as Document).live).toBe(true);
+    expect(materialOf(defOf(WORD), draft).slots).toEqual(["forward", "reverse"]);
   });
 
   it("reads absent fields the way PocketBase returns them", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { argProblems, initialList, initialMoment, initialNumber, initialText, invokeCommand, momentOf, pickLinked, readCommandArgs } from "./commands";
+import { argProblems, commandRun, initialList, initialMoment, initialNumber, initialText, invokeCommand, momentOf, pickLinked, readCommandArgs } from "./commands";
 import type { CommandArg, CommandDef } from "./manifest";
 
 const ARGS: CommandArg[] = [
@@ -155,5 +155,17 @@ describe("reading a dialog's initial values", () => {
     expect(initialList(initial, "tags")).toEqual(["a", "b"]);
     expect(initialList(initial, "one")).toEqual(["solo"]);
     expect(initialList(initial, "none")).toEqual([]);
+  });
+});
+
+describe("commandRun", () => {
+  const headless: CommandDef = { id: "x", title: "X", args: [], invoke: async () => ({ message: "ok" }) };
+
+  it("reads a headless Command as headless", () => {
+    expect(commandRun(headless)).toBe("headless");
+  });
+
+  it("gives a read-only Command no way to be picked: it answers an agent, in data the palette, a key or a Macro would drop (ADR 0115)", () => {
+    expect(commandRun({ ...headless, readOnly: true })).toBe("none");
   });
 });

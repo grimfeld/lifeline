@@ -1,6 +1,6 @@
 ---
 status: accepted
-amended-by: ADR 0073
+amended-by: ADR 0073, ADR 0116 (in part — a typed attempt and a listening Prompt)
 ---
 
 # Languages derives every schedule from Recalls

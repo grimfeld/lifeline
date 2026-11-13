@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { dueAhead, dueAheadOfHeld, heldPrompts, introducedByTopic, introducedOn, practiceQueue, queueOfHeld, retention, spaceSiblings } from "./practice";
+import { inDecks, dueAhead, dueAheadOfHeld, heldPrompts, introducedByTopic, introducedOn, practiceQueue, queueOfHeld, retention, spaceSiblings } from "./practice";
 import { itemMaterial } from "./prompts";
-import { RECALL, SENTENCE, WORD, type Grade, type Material, type Recall, type Sentence, type Word } from "./types";
+import { RECALL, SENTENCE, WORD, type Deck, type Grade, type Material, type Recall, type Sentence, type Word } from "./types";
 
 /** Local wall-clock instants, so day boundaries are the test machine's own. */
 const at = (day: number, h = 9, m = 0) => new Date(2026, 8, day, h, m).toISOString();
@@ -10,7 +10,7 @@ const word = (id: string, addedDay = 1): Material =>
   itemMaterial({ id, type: WORD, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", term: id, meaning: "", notes: "", origin: "", originId: "", paused: false, addedAt: at(addedDay) } as Word);
 
 const sentence = (id: string, text: string): Material =>
-  itemMaterial({ id, type: SENTENCE, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", text, translation: "", origin: "", originId: "", paused: false, addedAt: at(1) } as Sentence);
+  itemMaterial({ id, type: SENTENCE, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", text, translation: "", notes: "", origin: "", originId: "", paused: false, addedAt: at(1) } as Sentence);
 
 let n = 0;
 const recall = (itemId: string, slot: string, grade: Grade, when: string): Recall =>
@@ -130,5 +130,59 @@ describe("dueAhead", () => {
     expect(week).toHaveLength(7);
     expect(week[0]).toEqual({ day: "2026-09-28", count: 2 });
     expect(week.slice(1).every((d) => d.count === 0)).toBe(true);
+  });
+});
+
+describe("practising several Decks together", () => {
+  const deck = (id: string, members: string[]) => ({ id, members }) as Deck;
+  const items = [word("a", 1), word("b", 2), word("c", 3), word("d", 4)];
+  const now = new Date(at(10, 12));
+
+  it("draws the union of the Decks' items, an item in two Decks once", () => {
+    const scope = inDecks([deck("x", ["a", "b"]), deck("y", ["b", "c"])], items);
+    expect(scope.map((i) => i.id)).toEqual(["a", "b", "c"]);
+    const q = practiceQueue(scope, [], { now, newCap: 99 });
+    expect(q.queue.filter((p) => p.key === "b|forward")).toHaveLength(1);
+  });
+
+  it("keeps the Topic's daily new cap across the picked Decks", () => {
+    const scope = inDecks([deck("x", ["a"]), deck("y", ["c", "d"])], items);
+    const recalls = [recall("b", "forward", "pass", at(10, 8))]; // one introduced today elsewhere in the Topic
+    const q = practiceQueue(scope, recalls, { now, newCap: 3 });
+    expect(q.newToday).toBe(2);
+    expect(q.newWaiting).toBe(6);
+  });
+
+  it("spaces sibling Prompts apart across the picked Decks", () => {
+    const scope = inDecks([deck("x", ["a"]), deck("y", ["b"])], items);
+    const ids = practiceQueue(scope, [], { now, newCap: 4 }).queue.map((p) => p.itemId);
+    expect(ids).toHaveLength(4);
+    for (let i = 1; i < ids.length; i++) expect(ids[i]).not.toBe(ids[i - 1]);
+  });
+});
+
+describe("a listening Prompt (ADR 0116)", () => {
+  const clipped = (id: string, clip: string): Material =>
+    itemMaterial({ id, type: WORD, title: id, tags: [], folder: "", createdAt: "", updatedAt: "", deleted: 0, languageId: "es", term: id, meaning: "", notes: "", origin: "", originId: "", clip, paused: false, addedAt: at(1) } as Word);
+
+  it("counts against the daily new cap like any other new Prompt", () => {
+    const q = practiceQueue([clipped("a", "c1")], [], { now: new Date(at(10)), newCap: 3 });
+    expect(q.newWaiting).toBe(3);
+    expect(q.queue.map((p) => p.slot)).toEqual(["forward", "reverse", "listen"].slice(0, 3));
+    expect(practiceQueue([clipped("a", "c1")], [], { now: new Date(at(10)), newCap: 2 }).queue.map((p) => p.slot)).not.toContain("listen");
+  });
+
+  it("is spaced from its siblings", () => {
+    const q = practiceQueue([clipped("a", "c1"), clipped("b", "c2")], [], { now: new Date(at(10)), newCap: 6 });
+    expect(q.queue.slice(0, 5).some((p, i) => i > 0 && p.itemId === q.queue[i - 1]!.itemId)).toBe(false);
+  });
+
+  it("keeps its schedule through a new clip, and resumes after a removed one", () => {
+    const rs = [recall("a", "listen", "pass", at(5))];
+    const slots = (m: Material) => heldPrompts([m], rs).find((p) => p.slot === "listen")?.held.state;
+    expect(slots(clipped("a", "c1"))).not.toBe("new");
+    expect(slots(clipped("a", "c2"))).toBe(slots(clipped("a", "c1")));
+    expect(heldPrompts([clipped("a", "")], rs).map((p) => p.slot)).toEqual(["forward", "reverse"]);
+    expect(slots(clipped("a", "c3"))).toBe(slots(clipped("a", "c1")));
   });
 });

@@ -1,7 +1,11 @@
-import type { CommandDef, CommandDialogProps } from "@lifeline/core";
-import { Brain, MessageCircleQuestion, Play, Plus, TextCursorInput } from "lucide-react";
-import { TOPIC, KNOWLEDGE_HREF } from "./domain/types";
-import { addFact, addSentence, addWord, allFacts, allTopics, allSentences, allWords } from "./data/repo";
+import type { CommandDef, CommandDialogProps, InvokeContext } from "@lifeline/core";
+import { Brain, MessageCircleQuestion, PencilLine, Play, Plus, TextCursorInput } from "lucide-react";
+import { TOPIC, KNOWLEDGE_HREF, WORD, SENTENCE, FACT, type Item } from "./domain/types";
+import { fieldOf, KIND_NAME, kindsWith, REWRITABLE, REWRITABLE_FIELDS, REWRITABLE_KEYS, type DraftChange } from "./domain/draft";
+import { blankSlots } from "./domain/cloze";
+import { addFact, addSentence, addWord, allFacts, allTopics, allSentences, allWords, deckNamed, reportReads, saveDraftChange, setMembership, updateItem } from "./data/repo";
+import { sameName } from "./domain/names";
+import { topicReport } from "./domain/report";
 
 /** A headless add goes into a Topic still in use (not archived): named, never the device’s active one. */
 async function openTopic(id: string) {
@@ -10,7 +14,26 @@ async function openTopic(id: string) {
   return topic;
 }
 
-const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+/**
+ * What an agent's capture leaves (ADR 0115): always a draft, whatever it passes,
+ * its origin naming the drafter, the lesson (the Deck) and the caller's own note.
+ */
+function drafting(ctx: InvokeContext | undefined, a: Record<string, unknown>): { draft?: true; origin: string | undefined } {
+  const origin = a.origin as string | undefined;
+  if (!ctx?.agent) return { origin };
+  const by = ctx.agent.name?.trim() ? `Drafted by ${ctx.agent.name.trim()}` : "Agent draft";
+  return { draft: true, origin: [by, (a.deck as string | undefined)?.trim(), origin?.trim()].filter(Boolean).join(" · ") };
+}
+
+/** File a new item in the Deck named, made in its Topic when absent — a lesson (ADR 0115). */
+async function fileInDeck(topicId: string, itemId: string, deck: unknown): Promise<void> {
+  const name = typeof deck === "string" ? deck.trim() : "";
+  if (!name) return;
+  await setMembership(await deckNamed(topicId, name), { id: itemId, languageId: topicId }, true);
+}
+
+const DECK_ARG = { key: "deck", label: "Deck", kind: "text", hint: "The Deck (a lesson) to file it in; made in the Topic if it is not there yet." } as const;
+
 import { WordDialog } from "./components/WordDialog";
 import { SentenceDialog } from "./components/SentenceDialog";
 import { FactDialog } from "./components/FactDialog";
@@ -37,20 +60,22 @@ export const knowledgeCommands: CommandDef[] = [
     capture: true,
     args: [
       { key: "topic", label: "Topic", kind: "link", linkType: TOPIC, required: true, hint: "The Topic it belongs to, e.g. Spanish or Philosophy." },
-      { key: "term", label: "Term", kind: "text", required: true, hint: "The word or phrase itself; may be several words." },
+      { key: "term", label: "Term", kind: "text", required: true, hint: "The word or phrase itself; may be several words. Through MCP this makes a draft the user accepts before it is practised." },
       { key: "meaning", label: "Meaning", kind: "text", required: true, hint: "In the user's own words." },
       { key: "notes", label: "Notes", kind: "longtext" },
-      { key: "origin", label: "Where it was met", kind: "text" },
+      { key: "origin", label: "Where it was met", kind: "text", hint: "Where it came from; an agent's note on the draft." },
+      DECK_ARG,
       { key: "tags", label: "Tags", kind: "list" },
     ],
     returnsDocument: true,
-    async invoke(a) {
+    async invoke(a, ctx) {
       const topic = await openTopic(a.topic as string);
       const term = a.term as string;
-      const twin = (await allWords()).find((w) => w.languageId === topic.id && same(w.term, term));
+      const twin = (await allWords()).find((w) => w.languageId === topic.id && sameName(w.term, term));
       if (twin) throw new Error(`“${twin.term}” is already a ${topic.title} word; tell the user — nothing was changed`);
-      const id = await addWord({ languageId: topic.id, term, meaning: a.meaning as string, notes: a.notes as string | undefined, origin: a.origin as string | undefined, tags: a.tags as string[] | undefined });
-      return { id, message: `${term.trim()} added to ${topic.title}` };
+      const id = await addWord({ languageId: topic.id, term, meaning: a.meaning as string, notes: a.notes as string | undefined, ...drafting(ctx, a), tags: a.tags as string[] | undefined });
+      await fileInDeck(topic.id, id, a.deck);
+      return { id, message: `${term.trim()} ${ctx?.agent ? "drafted in" : "added to"} ${topic.title}` };
     },
   },
   {
@@ -62,25 +87,28 @@ export const knowledgeCommands: CommandDef[] = [
     capture: true,
     args: [
       { key: "topic", label: "Topic", kind: "link", linkType: TOPIC, required: true, hint: "The Topic it belongs to, e.g. Spanish." },
-      { key: "text", label: "Sentence", kind: "longtext", required: true, hint: "Each blank in double braces: Tengo {{ganas}} de ir." },
+      { key: "text", label: "Sentence", kind: "longtext", required: true, hint: "Each blank in double braces: Tengo {{ganas}} de ir. A hint for the gap after a bar: Vado {{nel|in}} centro. Through MCP this makes a draft the user accepts before it is practised." },
       { key: "translation", label: "Translation", kind: "text", hint: "Shown with every Prompt, so each blank has one answer." },
-      { key: "origin", label: "Where it was met", kind: "text" },
+      { key: "notes", label: "Notes", kind: "longtext", hint: "The rule that settles a blank, or an equally right alternative (also: in centro); shown on every reveal." },
+      { key: "origin", label: "Where it was met", kind: "text", hint: "Where it came from; an agent's note on the draft." },
+      DECK_ARG,
       { key: "tags", label: "Tags", kind: "list" },
     ],
     returnsDocument: true,
-    async invoke(a) {
+    async invoke(a, ctx) {
       const topic = await openTopic(a.topic as string);
       const text = a.text as string;
-      const twin = (await allSentences()).find((s) => s.languageId === topic.id && same(s.text, text));
+      const twin = (await allSentences()).find((s) => s.languageId === topic.id && sameName(s.text, text));
       if (twin) throw new Error(`That sentence is already in ${topic.title}; tell the user — nothing was changed`);
-      const id = await addSentence({ languageId: topic.id, text, translation: a.translation as string | undefined, origin: a.origin as string | undefined, tags: a.tags as string[] | undefined });
-      const blanks = (text.match(/\{\{\s*\S.*?\}\}/g) ?? []).length;
-      return { id, message: `Sentence added to ${topic.title} · ${blanks} prompt${blanks === 1 ? "" : "s"}` };
+      const id = await addSentence({ languageId: topic.id, text, translation: a.translation as string | undefined, notes: a.notes as string | undefined, ...drafting(ctx, a), tags: a.tags as string[] | undefined });
+      const blanks = blankSlots(text).length;
+      await fileInDeck(topic.id, id, a.deck);
+      return { id, message: `Sentence ${ctx?.agent ? "drafted in" : "added to"} ${topic.title} · ${blanks} prompt${blanks === 1 ? "" : "s"}` };
     },
   },
   {
-    // Headless, like every capture Command — but only for what the user dictates
-    // word for word: no caller drafts a question or answer (CONTEXT.md "Knowledge").
+    // Headless, like every capture Command. An agent's call is always a draft (ADR 0115):
+    // the user accepts it before it is practised.
     id: "knowledge.fact",
     title: "Keep a fact…",
     keywords: ["knowledge", "fact", "question", "answer", "history", "science", "philosophy", "remember"],
@@ -89,20 +117,68 @@ export const knowledgeCommands: CommandDef[] = [
     capture: true,
     args: [
       { key: "topic", label: "Topic", kind: "link", linkType: TOPIC, required: true, hint: "The Topic it belongs to, e.g. History." },
-      { key: "question", label: "Question", kind: "text", required: true, hint: "Exactly as the user worded it — never drafted for them." },
-      { key: "answer", label: "Answer", kind: "longtext", required: true, hint: "Exactly as the user worded it — never drafted for them." },
+      { key: "question", label: "Question", kind: "text", required: true, hint: "What is asked. Through MCP this makes a draft the user accepts before it is practised." },
+      { key: "answer", label: "Answer", kind: "longtext", required: true },
       { key: "notes", label: "Notes", kind: "longtext" },
-      { key: "origin", label: "Where it was met", kind: "text" },
+      { key: "origin", label: "Where it was met", kind: "text", hint: "Where it came from; an agent's note on the draft." },
+      DECK_ARG,
       { key: "tags", label: "Tags", kind: "list" },
     ],
     returnsDocument: true,
-    async invoke(a) {
+    async invoke(a, ctx) {
       const topic = await openTopic(a.topic as string);
       const question = a.question as string;
-      const twin = (await allFacts()).find((f) => f.languageId === topic.id && same(f.question, question));
+      const twin = (await allFacts()).find((f) => f.languageId === topic.id && sameName(f.question, question));
       if (twin) throw new Error(`That question is already a ${topic.title} fact; tell the user — nothing was changed`);
-      const id = await addFact({ languageId: topic.id, question, answer: a.answer as string, notes: a.notes as string | undefined, origin: a.origin as string | undefined, tags: a.tags as string[] | undefined });
-      return { id, message: `Fact kept in ${topic.title}` };
+      const id = await addFact({ languageId: topic.id, question, answer: a.answer as string, notes: a.notes as string | undefined, ...drafting(ctx, a), tags: a.tags as string[] | undefined });
+      await fileInDeck(topic.id, id, a.deck);
+      return { id, message: ctx?.agent ? `Fact drafted in ${topic.title}` : `Fact kept in ${topic.title}` };
+    },
+  },
+  {
+    // Headless only. An agent never edits accepted material (ADR 0115): it drafts a change, the user accepts or discards it.
+    id: "knowledge.draft-change",
+    title: "Draft a change…",
+    keywords: ["knowledge", "draft", "rewrite", "change", "fix", "word", "sentence", "fact"],
+    icon: PencilLine,
+    args: [
+      { key: "id", label: "Item", kind: "link", linkType: [WORD, SENTENCE, FACT], required: true, hint: "The Word, Sentence or Fact to rewrite. It is never changed: the user sees your values beside its own and accepts or discards them. A newer draft change replaces an older one. A draft is simply updated." },
+      ...REWRITABLE_KEYS.map((key) => ({ key, label: REWRITABLE_FIELDS[key].label, kind: REWRITABLE_FIELDS[key].long ? ("longtext" as const) : ("text" as const), hint: [`${kindsWith(key)} only`, REWRITABLE_FIELDS[key].hint].filter(Boolean).join("; ") + "." })),
+    ],
+    returnsDocument: true,
+    async invoke(a) {
+      const item = [...(await allWords()), ...(await allSentences()), ...(await allFacts())].find((i) => i.id === a.id);
+      if (!item) throw new Error("That is no Word, Sentence or Fact");
+      const kind = KIND_NAME[item.type];
+      const wrong = REWRITABLE_KEYS.filter((k) => a[k] !== undefined && !REWRITABLE[item.type].includes(k));
+      if (wrong.length) throw new Error(`${wrong.join(", ")} ${wrong.length === 1 ? "is" : "are"} not a field of a ${kind}; nothing was drafted`);
+      const given: DraftChange = {};
+      for (const k of REWRITABLE[item.type]) if (typeof a[k] === "string" && a[k].trim() !== fieldOf(item, k)) given[k] = a[k];
+      if (!Object.keys(given).length) throw new Error("There is nothing to change: no field differs from the item’s own; nothing was drafted");
+      if (item.draft) {
+        await updateItem(item, { ...item, ...given } as Item);
+        return { id: item.id, message: `${kind} draft updated` };
+      }
+      await saveDraftChange(item, given);
+      return { id: item.id, message: `Change to the ${kind.toLowerCase()} drafted — the user accepts or discards it` };
+    },
+  },
+  {
+    // Headless and read-only (ADR 0115): an agent reads how practice goes, even on a read-only grant.
+    id: "knowledge.report",
+    title: "Knowledge practice report",
+    keywords: ["knowledge", "report", "practice", "retention", "leeches"],
+    agentDescription:
+      "How the user's practice of a Knowledge Topic is going, read-only: Retention (the share of the last 30 days' Recalls passed, as the app shows it), what is due now, how many new Prompts are waiting, the Leeches (Prompts with 4 or more fails among their last 8 Recalls, with question, answer and fail count), and the Prompts failed most over the last 30 days, each with its question, answer, slot and latest Recalls (grade, moment, and `typed`: what the user typed before revealing, where they typed an attempt — read these to see what went wrong). Optionally narrowed to some of the Topic's Decks (lessons). Drafts and paused material are left out. The report is in `data`. Use it to choose what to teach next instead of asking for a score.",
+    args: [
+      { key: "topic", label: "Topic", kind: "text", required: true, hint: "The Topic's id or exact name, e.g. Italian." },
+      { key: "decks", label: "Decks", kind: "list", hint: "Deck (lesson) ids or names of that Topic; omit for the whole Topic." },
+    ],
+    readOnly: true,
+    async invoke(a) {
+      const report = await topicReport({ topic: String(a.topic), decks: Array.isArray(a.decks) ? a.decks.map(String) : undefined }, reportReads);
+      const scope = report.decks.length ? `${report.topic} (${report.decks.join(", ")})` : report.topic;
+      return { message: `Practice report for ${scope}: ${report.dueToday} due, ${report.newWaiting} new waiting, ${report.leeches.length} Leeches`, data: report };
     },
   },
   { id: "knowledge.practise", title: "Practise everything", keywords: ["knowledge", "practice", "practise", "review", "recall", "due", "flashcards"], icon: Play, run: ({ navigate }) => navigate(`${KNOWLEDGE_HREF}?practice=all`) },

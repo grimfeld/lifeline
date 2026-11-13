@@ -1,16 +1,17 @@
 import { useMemo, useState } from "react";
 import { openPeek } from "@lifeline/core";
-import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, PhoneDock, PhoneFilters, cn, usePhone } from "@lifeline/ui";
-import { MessageCircleQuestion, Pause, Play, Plus, Search, TextCursorInput, WholeWord } from "lucide-react";
+import { Badge, Button, Card, CardContent, DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, Input, PhoneDock, PhoneFilters, Tip, cn, usePhone } from "@lifeline/ui";
+import { Check, MessageCircleQuestion, Pause, Play, Plus, Search, TextCursorInput, WholeWord } from "lucide-react";
+import { draftChangeLines } from "../domain/draft";
 import { heldPrompts } from "../domain/practice";
 import { itemLines, itemMaterial } from "../domain/prompts";
 import { FACT, SENTENCE, WORD, type Deck, type Fact, type Item, type Recall, type Sentence, type Word } from "../domain/types";
-import { setPaused, type MaterialDoc } from "../data/repo";
+import { acceptDraft, setPaused, type MaterialDoc } from "../data/repo";
 import { WordDialog } from "../components/WordDialog";
 import { SentenceDialog } from "../components/SentenceDialog";
 import { FactDialog } from "../components/FactDialog";
 
-type Filter = "all" | "words" | "sentences" | "facts" | "paused";
+type Filter = "all" | "words" | "sentences" | "facts" | "drafts" | "paused";
 
 /** The soonest any of an item's Prompts is due — "new" while none has a Recall. */
 function nextHint(dues: (Date | null)[], now: Date): string {
@@ -45,7 +46,7 @@ export function WordsTab({ items, others = [], decks, recalls }: { items: Item[]
     const q = query.trim().toLocaleLowerCase();
     const deck = decks.find((d) => d.id === deckId);
     return items
-      .filter((i) => (filter === "words" ? i.type === WORD : filter === "sentences" ? i.type === SENTENCE : filter === "facts" ? i.type === FACT : filter === "paused" ? i.paused : true))
+      .filter((i) => (filter === "words" ? i.type === WORD : filter === "sentences" ? i.type === SENTENCE : filter === "facts" ? i.type === FACT : filter === "drafts" ? !!i.draft : filter === "paused" ? i.paused : true))
       .filter((i) => !deck || deck.members.includes(i.id))
       .filter((i) => {
         if (!q) return true;
@@ -61,6 +62,7 @@ export function WordsTab({ items, others = [], decks, recalls }: { items: Item[]
     ["sentences", "Sentences"],
     ["facts", "Facts"],
     ["paused", "Paused"],
+    ...(items.some((i) => i.draft) || filter === "drafts" ? ([["drafts", "Drafts"]] as [Filter, string][]) : []),
   ];
 
   return (
@@ -118,16 +120,27 @@ export function WordsTab({ items, others = [], decks, recalls }: { items: Item[]
             {shown.map((i) => {
               const { main, sub } = itemLines(i);
               return (
-                <div key={i.id} className={cn("hover:bg-accent/50 flex items-center gap-2 rounded-sm px-1 py-1 text-sm", i.paused && "opacity-60")}>
+                <div key={i.id} className={cn("hover:bg-accent/50 flex items-center gap-2 rounded-sm px-1 py-1 text-sm", (i.paused || i.draft) && "opacity-60")}>
                   <button className="grid min-w-0 flex-1 text-left" onClick={() => setEditing(i)}>
                     <span className="truncate font-medium">{main}</span>
                     {sub && <span className="text-muted-foreground truncate text-xs">{sub}</span>}
                   </button>
+                  {draftChangeLines(i).length > 0 && <Badge variant="outline">draft change</Badge>}
                   {i.type !== WORD && <Badge variant="outline">{i.type === SENTENCE ? "sentence" : "fact"}</Badge>}
-                  <span className="text-muted-foreground w-16 shrink-0 text-right text-xs">{i.paused ? "paused" : nextHint(dues.get(i.id) ?? [], now)}</span>
-                  <Button size="icon" variant="ghost" className="size-8 shrink-0" onClick={() => void setPaused(i.id, !i.paused)} aria-label={i.paused ? "Resume" : "Pause"} title={i.paused ? "Resume" : "Pause"}>
-                    {i.paused ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
-                  </Button>
+                  <span className="text-muted-foreground w-16 shrink-0 text-right text-xs">{i.draft ? "draft" : i.paused ? "paused" : nextHint(dues.get(i.id) ?? [], now)}</span>
+                  {i.draft ? (
+                    <Tip label="Accept — start practising it">
+                      <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => void acceptDraft(i.id)}>
+                        <Check />
+                      </Button>
+                    </Tip>
+                  ) : (
+                    <Tip label={i.paused ? "Resume" : "Pause"}>
+                      <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => void setPaused(i.id, !i.paused)}>
+                        {i.paused ? <Play /> : <Pause />}
+                      </Button>
+                    </Tip>
+                  )}
                 </div>
               );
             })}
@@ -137,7 +150,7 @@ export function WordsTab({ items, others = [], decks, recalls }: { items: Item[]
 
       {others.length > 0 && (
         <section className="grid gap-1.5">
-          <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">Also kept here</h2>
+          <h2 className="text-muted-foreground text-sm font-medium">Also kept here</h2>
           <Card className="py-0">
             <CardContent className="grid gap-0.5 px-2 py-2">
               {others.map((m) => (

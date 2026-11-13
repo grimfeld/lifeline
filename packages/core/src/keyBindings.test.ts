@@ -91,6 +91,10 @@ describe("howKeyRuns", () => {
     expect(howKeyRuns({ id: "g", title: "Go", run: () => {} })).toBe("run");
   });
 
+  it("is nothing for a read-only Command: its answer is for an agent, and a key would drop it", () => {
+    expect(howKeyRuns({ ...headless, readOnly: true })).toBeUndefined();
+  });
+
   it("is nothing for a Command that needs arguments and has no dialog to ask them", () => {
     expect(howKeyRuns({ ...headless, args: [{ key: "t", label: "T", kind: "text", required: true }] })).toBeUndefined();
   });

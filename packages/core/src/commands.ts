@@ -1,7 +1,7 @@
 import { allDocuments, documentsOf, getDocument } from "./documents/store";
 import { documentsWithRole, hasRole } from "./documents/roles";
 import type { Document } from "./documents/types";
-import type { CommandArg, CommandDef, CommandResult } from "./manifest";
+import type { CommandArg, CommandDef, CommandResult, InvokeContext } from "./manifest";
 
 /**
  * Headless Commands (ADR 0062): a Command that declares an argument
@@ -30,11 +30,14 @@ export function isInvocable(def: CommandDef): def is CommandDef & { args: Comman
  * How a Command runs when it is picked — the one reading the palette, a
  * Macro's step and a key all share: headless with its arguments (`invoke`), in
  * its dialog, or by its `run`, which either takes the user somewhere or stays
- * (`navigates: false`). "none" when it has none of them (inline only).
+ * (`navigates: false`). "none" when it has none of them (inline only), or when
+ * it is read-only: its answer is data for an agent (ADR 0115), which a palette
+ * row, a key or a Macro's step would drop, so only MCP runs it (`invokeCommand`).
  */
 export type CommandRun = "headless" | "dialog" | "navigates" | "run" | "none";
 
 export function commandRun(def: CommandDef): CommandRun {
+  if (def.readOnly) return "none";
   if (isInvocable(def)) return "headless";
   if (def.dialog) return "dialog";
   if (def.run) return (def.navigates ?? true) ? "navigates" : "run";
@@ -230,9 +233,9 @@ export async function argProblems(args: CommandArg[], raw: Record<string, unknow
 }
 
 /** Run a Command headless: arguments checked against its signature, then the App's `invoke`. */
-export async function invokeCommand(def: CommandDef, raw: Record<string, unknown>): Promise<CommandResult> {
+export async function invokeCommand(def: CommandDef, raw: Record<string, unknown>, ctx?: InvokeContext): Promise<CommandResult> {
   if (!isInvocable(def)) throw new Error(`“${def.title}” cannot be run without its dialog`);
-  return def.invoke(await readCommandArgs(def.args, raw));
+  return def.invoke(await readCommandArgs(def.args, raw), ctx);
 }
 
 // ── A dialog's initial values (CommandDialogProps.initial) ────────────────

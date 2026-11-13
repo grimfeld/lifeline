@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Card, CardContent, toast } from "@lifeline/ui";
+import { Button, Card, CardContent, Input, toast } from "@lifeline/ui";
 import { recallableDef } from "@lifeline/core";
 import { Check, Eye, X } from "lucide-react";
 import { practiceQueue, type HeldPrompt, type NewCap } from "../domain/practice";
+import { isTypeable, promptText } from "../domain/prompts";
 import type { Grade, Recall } from "../domain/types";
 import { recordRecall, strikeRecall, type MaterialDoc } from "../data/repo";
 
@@ -33,6 +34,8 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
 }) {
   const [now, setNow] = useState(() => new Date());
   const [revealed, setRevealed] = useState(false);
+  // What was typed before revealing (ADR 0116): optional, kept with the Recall, never checked.
+  const [typed, setTyped] = useState("");
   const [pending, setPending] = useState<{ key: string; id: string } | null>(null);
   const [lastItem, setLastItem] = useState("");
   const [count, setCount] = useState({ passed: 0, failed: 0 });
@@ -59,6 +62,9 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
   const item = current ? live.find((i) => i.id === current.itemId) : undefined;
   // Each Prompt is drawn by the App that owns its Document (ADR 0073).
   const Face = item ? recallableDef(item.type)?.face : undefined;
+  const typeable = !!current && !!item && isTypeable(item.type, current.slot);
+  const attempt = typed.trim();
+  const answer = revealed && item && current && typeable && attempt ? promptText(item, current.slot).answer : null;
 
   async function grade(g: Grade) {
     if (!current || !item || !revealed || graded.current) return;
@@ -66,7 +72,7 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
     const key = current.key;
     let r: Awaited<ReturnType<typeof recordRecall>>;
     try {
-      r = await recordRecall(item, current.slot, g);
+      r = await recordRecall(item, current.slot, g, typed);
     } catch (e) {
       graded.current = false;
       toast.error((e as Error).message);
@@ -75,6 +81,7 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
     setPending({ key, id: r.id });
     setLastItem(item.id);
     setRevealed(false);
+    setTyped("");
     setNow(new Date());
     setCount((c) => (g === "pass" ? { ...c, passed: c.passed + 1 } : { ...c, failed: c.failed + 1 }));
     if (r.tallyError) toast.error(r.tallyError);
@@ -104,6 +111,12 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  // The typed field or the Show answer button unmounts on reveal; focus follows to the grade buttons rather than falling to the body.
+  const firstGrade = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (revealed) firstGrade.current?.focus();
+  }, [revealed]);
+
   const done = count.passed + count.failed;
 
   return (
@@ -121,12 +134,46 @@ export function PracticeRun({ label, items, recalls, newCap, onDone }: {
         <>
           <Card className="min-h-72 py-0">
             <CardContent className="grid min-h-72 place-items-center px-6 py-10">
-              <Face doc={item.doc} slot={current.slot} revealed={revealed} />
+              <Face key={current.key} doc={item.doc} slot={current.slot} revealed={revealed} />
             </CardContent>
           </Card>
+          {answer !== null && (
+            <div className="grid grid-cols-2 gap-3 text-center" data-testid="attempt-vs-answer">
+              <div className="grid min-w-0 content-start gap-1 rounded-lg border p-3">
+                <span className="text-muted-foreground text-xs">You typed</span>
+                <span className="text-lg break-words whitespace-pre-wrap">{attempt}</span>
+              </div>
+              <div className="grid min-w-0 content-start gap-1 rounded-lg border p-3">
+                <span className="text-muted-foreground text-xs">Answer</span>
+                <span className="text-primary text-lg break-words whitespace-pre-wrap">{answer}</span>
+              </div>
+            </div>
+          )}
+          {typeable && !revealed && (
+            <Input
+              // Focused on every Prompt, so typing then Enter needs no click; keyed so a new Prompt refocuses it.
+              key={current.key}
+              autoFocus
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setRevealed(true);
+                }
+              }}
+              placeholder="Type your answer (optional)"
+              aria-label="Your answer"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="go"
+            />
+          )}
           {revealed ? (
             <div className="grid grid-cols-2 gap-3">
-              <Button size="lg" variant="outline" className="h-14 text-base" onClick={() => void grade("fail")}>
+              {/* ui-allow: control-size — the grade buttons are the big thumb targets, as before */}
+              <Button ref={firstGrade} size="lg" variant="outline" className="h-14 text-base" onClick={() => void grade("fail")}>
                 <X /> Fail
               </Button>
               <Button size="lg" className="h-14 text-base" onClick={() => void grade("pass")}>

@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
 import { initialList, initialText, useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import type { Word } from "../domain/types";
-import { addWord, deleteItem, updateWord, useActiveTopic, useTopics } from "../data/repo";
+import { acceptDraft, addWord, deleteItem, updateWord, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
 import { OriginLine } from "./OriginLine";
+import { DraftChangeNotice } from "./DraftChangeNotice";
+import { ClipField, useClipDraft } from "./ClipField";
 
 /**
  * A Word, Sentence or Fact dialog: an Intake's dialog without the Handoff, so
@@ -38,6 +40,7 @@ export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved
   const [originId, setOriginId] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const draft = useClipDraft(open, word?.clip);
   // What this opening kept: a close after "Save & add another" still tells the caller it saved.
   const kept = useRef("");
 
@@ -59,12 +62,13 @@ export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved
     if (open && !word && !languageId && active) setLanguageId(active.id);
   }, [open, word, languageId, active]);
 
-  async function save(another = false) {
-    const input = { languageId, term, meaning, notes, origin, originId, tags };
+  async function save(another = false, accept = false) {
+    const input = { languageId, term, meaning, notes, origin, originId, tags, clip: draft.clip };
     try {
       if (word) {
         await updateWord(word, input);
-        toast.success("Word updated");
+        if (accept) await acceptDraft(word.id);
+        toast.success(accept ? "Word accepted" : "Word updated");
       } else {
         kept.current = await addWord(input);
         toast.success(`${term.trim()} added`);
@@ -72,7 +76,9 @@ export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved
     } catch (err) {
       return void toast.error((err as Error).message);
     }
+    await draft.settle(draft.clip);
     if (another) {
+      draft.reset();
       setTerm("");
       setMeaning("");
       setNotes("");
@@ -82,6 +88,7 @@ export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved
   }
 
   function close(o: boolean) {
+    if (!o) void draft.settle("");
     if (!o && kept.current) onSaved?.(kept.current);
     onOpenChange(o);
   }
@@ -106,6 +113,7 @@ export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved
           <p className="text-muted-foreground text-sm">Add a topic first, in Knowledge.</p>
         ) : (
           <div className="grid gap-4">
+            {word && <DraftChangeNotice item={word} onDone={() => onOpenChange(false)} />}
             {!word && <TopicSelect topics={topics} value={languageId} onChange={setLanguageId} />}
             <div className="grid gap-2">
               <Label htmlFor="wd-term">Word</Label>
@@ -128,6 +136,7 @@ export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved
                 <Input id="wd-origin" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Optional — a link, a book, Pedro at dinner" />
               </div>
             )}
+            <ClipField idPrefix="wd" clip={draft.clip} onPut={draft.put} onRemove={draft.remove} />
             <div className="grid gap-2">
               <Label htmlFor="wd-notes">Notes</Label>
               <Textarea id="wd-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
@@ -148,9 +157,16 @@ export function WordDialog({ open, onOpenChange, word, prefill, initial, onSaved
               Save & add another
             </Button>
           )}
-          <Button onClick={() => void save()} disabled={noTopic}>
-            {word ? "Save" : "Add"}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {word?.draft && (
+              <Button variant="outline" onClick={() => void save(false, true)}>
+                Save & accept
+              </Button>
+            )}
+            <Button onClick={() => void save()} disabled={noTopic}>
+              {word ? "Save" : "Add"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

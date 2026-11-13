@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
 import { initialList, initialText, useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import type { Fact } from "../domain/types";
-import { addFact, deleteItem, updateFact, useActiveTopic, useTopics } from "../data/repo";
+import { acceptDraft, addFact, deleteItem, updateFact, useActiveTopic, useTopics } from "../data/repo";
 import { TopicSelect } from "./TopicSelect";
 import { OriginLine } from "./OriginLine";
+import { DraftChangeNotice } from "./DraftChangeNotice";
 import { originOf, type ItemDialogProps } from "./WordDialog";
 
 export interface FactPrefill {
@@ -53,12 +54,13 @@ export function FactDialog({ open, onOpenChange, fact, prefill, initial, onSaved
     if (open && !fact && !languageId && active) setLanguageId(active.id);
   }, [open, fact, languageId, active]);
 
-  async function save(another = false) {
+  async function save(another = false, accept = false) {
     const input = { languageId, question, answer, notes, origin, originId, tags };
     try {
       if (fact) {
         await updateFact(fact, input);
-        toast.success("Fact updated");
+        if (accept) await acceptDraft(fact.id);
+        toast.success(accept ? "Fact accepted" : "Fact updated");
       } else {
         kept.current = await addFact(input);
         toast.success("Fact kept");
@@ -101,6 +103,7 @@ export function FactDialog({ open, onOpenChange, fact, prefill, initial, onSaved
           <p className="text-muted-foreground text-sm">Add a topic first, in Knowledge.</p>
         ) : (
           <div className="grid gap-4">
+            {fact && <DraftChangeNotice item={fact} onDone={() => onOpenChange(false)} />}
             {context && (
               <blockquote className="text-muted-foreground max-h-40 overflow-y-auto border-l-2 pl-3 text-sm whitespace-pre-wrap [overflow-wrap:anywhere]" aria-label="The passage you selected">
                 {context}
@@ -148,9 +151,16 @@ export function FactDialog({ open, onOpenChange, fact, prefill, initial, onSaved
               Save & add another
             </Button>
           )}
-          <Button onClick={() => void save()} disabled={noTopic}>
-            {fact ? "Save" : "Keep"}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {fact?.draft && (
+              <Button variant="outline" onClick={() => void save(false, true)}>
+                Save & accept
+              </Button>
+            )}
+            <Button onClick={() => void save()} disabled={noTopic}>
+              {fact ? "Save" : "Keep"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -54,11 +54,31 @@ const EXT_BY_MIME: Record<string, string> = {
   "image/svg+xml": "svg",
   "image/avif": "avif",
   "image/bmp": "bmp",
+  "audio/webm": "webm",
+  "audio/ogg": "ogg",
+  "audio/mp4": "m4a",
+  "audio/x-m4a": "m4a",
+  "audio/aac": "aac",
+  "audio/mpeg": "mp3",
+  "audio/wav": "wav",
+  "audio/x-wav": "wav",
+  "audio/flac": "flac",
 };
 
-/** What an image of this mime is called on disk ("jpg" for JPEG). */
+/** A mime without its parameters: a recorder's `audio/webm;codecs=opus` is `audio/webm`. */
+export function baseMime(mime: string): string {
+  return mime.split(";")[0]!.trim().toLowerCase();
+}
+
+/** Audio — a Knowledge clip (ADR 0116), kept by its owner and not embedded in any body. */
+export function isAudioMime(mime: string): boolean {
+  return baseMime(mime).startsWith("audio/");
+}
+
+/** What a file of this mime is called on disk ("jpg" for JPEG, "webm" for a recording). */
 export function extensionFor(mime: string): string {
-  return EXT_BY_MIME[mime] ?? "png";
+  const m = baseMime(mime);
+  return EXT_BY_MIME[m] ?? (m.startsWith("audio/") ? "webm" : "png");
 }
 
 function stamp(d: Date): string {
@@ -77,9 +97,9 @@ export function sanitizeAttachmentName(name: string): string {
  * stored bytes' own (a HEIC re-encoded as JPEG ends in .jpg). A taken name
  * gets ` 1`, ` 2`… — `taken` compares however the caller does (normalised).
  */
-export function attachmentName(original: string | undefined, ext: string, taken: (name: string) => boolean, now = new Date()): string {
+export function attachmentName(original: string | undefined, ext: string, taken: (name: string) => boolean, now = new Date(), fallbackStem = "Pasted image"): string {
   const stemOf = (s: string) => s.replace(/\.[A-Za-z0-9]+$/, "");
-  const fallback = `Pasted image ${stamp(now)}`;
+  const fallback = `${fallbackStem} ${stamp(now)}`;
   const stem = original?.trim() ? sanitizeAttachmentName(stemOf(original.trim())) || fallback : fallback;
   let candidate = `${stem}.${ext}`;
   for (let i = 1; taken(candidate); i++) candidate = `${stem} ${i}.${ext}`;
@@ -110,7 +130,8 @@ export function embeddedNames(bodies: readonly string[]): Set<string> {
 /** The Attachments no body embeds any more (CONTEXT.md: orphaned). Pure. */
 export function orphanedAmong(attachments: readonly Attachment[], docs: readonly Pick<Document, "body">[]): Attachment[] {
   const used = embeddedNames(docs.map((d) => (typeof d.body === "string" ? d.body : "")));
-  return attachments.filter((a) => !a.deleted && !used.has(normalizeName(a.name)));
+  // Audio is a Knowledge clip: its Word or Sentence holds it by id, no body embeds it, and the owner deletes it.
+  return attachments.filter((a) => !a.deleted && !isAudioMime(a.mime) && !used.has(normalizeName(a.name)));
 }
 
 // --- store ---------------------------------------------------------------------
@@ -181,14 +202,27 @@ export async function prepareImage(file: Blob): Promise<{ blob: Blob; mime: stri
  */
 export async function addAttachment(file: Blob & { name?: string }): Promise<Attachment> {
   if (!file.type.startsWith("image/")) throw new Error("Only images can be attached");
-  const { blob, mime } = await prepareImage(file);
-  if (blob.size > MAX_ATTACHMENT_BYTES) throw new Error(`Image is too big (${Math.round(blob.size / 1048576)} MB; the limit is 20 MB)`);
-  if (!EXT_BY_MIME[mime]) throw new Error(`Unsupported image type: ${mime || "unknown"}`);
+  return storeAttachment(file, await prepareImage(file), "Pasted image");
+}
+
+/**
+ * Store an audio clip (a recording or a file) as an Attachment, untouched.
+ * Its owner keeps the returned `id` and deletes it with `deleteAttachment`.
+ */
+export async function addAudioAttachment(file: Blob & { name?: string }): Promise<Attachment> {
+  if (!isAudioMime(file.type)) throw new Error("Only audio can be attached as a clip");
+  return storeAttachment(file, { blob: file, mime: baseMime(file.type) }, "Clip");
+}
+
+async function storeAttachment(file: Blob & { name?: string }, prepared: { blob: Blob; mime: string }, stem: string): Promise<Attachment> {
+  const { blob, mime } = prepared;
+  if (blob.size > MAX_ATTACHMENT_BYTES) throw new Error(`File is too big (${Math.round(blob.size / 1048576)} MB; the limit is 20 MB)`);
+  if (!EXT_BY_MIME[mime]) throw new Error(`Unsupported file type: ${mime || "unknown"}`);
   // Names stay unique across the Account, not just this Workspace: the server
   // enforces that, and a name colliding across a boundary would break on push.
   const existing = await db().collection<Attachment>(ATTACHMENTS).toArray();
   const taken = new Set(existing.map((a) => normalizeName(a.name)));
-  const name = attachmentName(file.name, extensionFor(mime), (n) => taken.has(normalizeName(n)));
+  const name = attachmentName(file.name, extensionFor(mime), (n) => taken.has(normalizeName(n)), new Date(), stem);
   const id = newId();
   await blobs().put({ id, blob });
   const rec = { id, name, mime, size: blob.size, workspace: await workspaceScope() };
@@ -229,7 +263,7 @@ export function attachmentUrl(att: Attachment): Promise<string> {
       if (isDemo()) throw new Error("Not on this device");
       const base = pb.baseURL.replace(/\/$/, "");
       const res = await fetch(`${base}/api/files/${ATTACHMENTS}/${att.id}/${encodeURIComponent(att.file)}?token=${encodeURIComponent(await token())}`);
-      if (!res.ok) throw new Error(`Could not load image (${res.status})`);
+      if (!res.ok) throw new Error(`Could not load file (${res.status})`);
       blob = await res.blob();
       await blobs().put({ id: att.id, blob });
     }

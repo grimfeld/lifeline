@@ -13,3 +13,5 @@ package-lock.json
 shell/test-results/
 shell/playwright-report/
 shell/e2e/.auth/
+
+.DS_Store

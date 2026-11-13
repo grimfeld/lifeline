@@ -1,6 +1,7 @@
+import { inPractice } from "./draft";
 import { todayStr } from "@lifeline/core";
 import { parseCloze } from "./cloze";
-import { promptKey } from "./prompts";
+import { REVERSE, promptKey } from "./prompts";
 import { recallsByPrompt } from "./practice";
 import { replay } from "./schedule";
 import { SENTENCE, type Puzzle, type PuzzleDraw, type Recall, type Sentence, type Word } from "./types";
@@ -46,8 +47,8 @@ export function wordleLetters(term: string): string[] | null {
  * reversed at least once (a pass or a fail), with a term of the right shape.
  */
 export function wordleCandidates(topicId: string, words: Word[], recalls: Recall[]): Word[] {
-  const met = new Set(recalls.filter((r) => r.languageId === topicId && r.slot === "reverse").map((r) => r.itemId));
-  return words.filter((w) => w.languageId === topicId && !w.paused && met.has(w.id) && wordleLetters(w.term) !== null);
+  const met = new Set(recalls.filter((r) => r.languageId === topicId && r.slot === REVERSE).map((r) => r.itemId));
+  return words.filter((w) => w.languageId === topicId && inPractice(w) && met.has(w.id) && wordleLetters(w.term) !== null);
 }
 
 /**
@@ -77,7 +78,7 @@ export function leastRecentFirst<T>(xs: T[], idOf: (x: T) => string, avoid: Avoi
  */
 export function pickTowardDue(candidates: Word[], recalls: Recall[], opts: { random: () => number; avoid?: Avoid }): Word | undefined {
   const by = recallsByPrompt(recalls);
-  const dueOf = (w: Word) => replay(by.get(promptKey(w.id, "reverse")) ?? []).due?.getTime() ?? Number.POSITIVE_INFINITY;
+  const dueOf = (w: Word) => replay(by.get(promptKey(w.id, REVERSE)) ?? []).due?.getTime() ?? Number.POSITIVE_INFINITY;
   const rank = (ws: Word[]) => ws.map((w) => ({ w, due: dueOf(w) })).sort((a, b) => a.due - b.due || a.w.id.localeCompare(b.w.id));
   const pool = candidates.filter((w) => !opts.avoid?.has(w.id));
   if (!pool.length) return leastRecentFirst(rank(candidates), (x) => x.w.id, opts.avoid ?? new Map())[0]?.w;
@@ -95,10 +96,10 @@ export function pickTowardDue(candidates: Word[], recalls: Recall[], opts: { ran
 export function wordleDraw(word: Word, sentences: Sentence[], enye = false): PuzzleDraw {
   const term = fold(word.term.trim(), enye);
   const sentence = sentences
-    .filter((s) => s.type === SENTENCE && s.languageId === word.languageId && !s.paused && s.translation?.trim())
+    .filter((s) => s.type === SENTENCE && s.languageId === word.languageId && inPractice(s) && s.translation?.trim())
     .sort((a, b) => (a.addedAt ?? "").localeCompare(b.addedAt ?? "") || a.id.localeCompare(b.id))
     .find((s) => parseCloze(s.text ?? "").some((p) => p.kind === "blank" && fold(p.text, enye) === term));
-  return { itemId: word.id, slot: "reverse", answer: word.term.trim(), clue: word.meaning, hint: sentence?.translation.trim() ?? "" };
+  return { itemId: word.id, slot: REVERSE, answer: word.term.trim(), clue: word.meaning, hint: sentence?.translation.trim() ?? "" };
 }
 
 export type Mark = "right" | "present" | "absent";

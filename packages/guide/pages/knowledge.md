@@ -2,7 +2,7 @@
 
 Keeping what you chose to keep from being forgotten: words, sentences, facts and quotes,
 practised a little each day by recalling them. Knowledge never picks what you learn: each thing
-here is one you added, in your own words.
+here is one you added, in your own words, or one Claude drafted and you accepted.
 
 ## Knowledge
 
@@ -11,10 +11,34 @@ What you keep here: **Topics** (Spanish, History, Philosophy…), and in each on
 Topic to a set you choose.
 
 - **Word** — a term and its meaning; practised both ways (term → meaning, meaning → term).
-- **Sentence** — a sentence with blanks in double braces, `Tengo {{ganas}} de comer`, and an
-  optional translation; each blank is practised on its own.
+- **Sentence** — a sentence with blanks in double braces, `Tengo {{ganas}} de comer`, an
+  optional translation and optional **notes**; each blank is practised on its own. A blank may carry
+  a **hint** after a bar, `Vado {{nel|in}} centro`: the hint shows in the gap while the blank is
+  hidden (the answer is only `nel`). Adding, changing or removing a hint never resets the blank's
+  history, and the plain Sentence and Puzzles never show it. Notes hold the rule that settles a
+  blank, or an equally right alternative (*also: in centro*), and appear on every reveal, pass or fail.
 - **Fact** — a question and its answer, both in your words; practised one way.
 - Each can note where you met it: a link to the page it came from, a URL or a few words.
+- A Word or a Sentence can carry an **audio clip** — see below.
+
+### Audio clips
+
+- In a Word's or a Sentence's form, **Record** a clip with the microphone (the phone or the
+  browser asks for it only when you press Record, never when the form opens), or **Attach a file**
+  instead: a line from a film, a native speaker. Audio files up to 20 MB.
+- You can hear the clip in the form before saving. **Re-record** or **Replace with a file** swaps
+  it; **Remove** takes it away. Nothing changes on the item until you save, and a clip you
+  recorded and then closed the form on is thrown away.
+- When you reveal any of the item's prompts, the clip plays once, with a **Replay** button under
+  the answer. An item without a clip reveals exactly as before.
+- **Listening prompt** — while a Word or a Sentence has a clip it gains one more prompt: the clip
+  plays as soon as the prompt appears (with **Replay**), and you recall the term and meaning of a
+  Word, or the whole text of a Sentence. You may type what you heard before revealing, like on a
+  blank; you still grade yourself, and the recall keeps what you typed. It counts against the
+  topic's daily new cap like any new prompt and never comes straight after its item's other
+  prompts. Replacing the clip keeps its schedule; removing the clip takes the prompt out of
+  Practice, and its history is kept for when a clip is back. Puzzles never use it.
+- Deleting the item deletes its clip. Claude cannot add clips.
 
 ### Topics
 
@@ -34,11 +58,27 @@ Topic to a set you choose.
 - How much is ready: due today, new today, and how many more new are waiting.
 - **Practise** the open Topic, one of its **Decks**, **Everything** across all Topics, or what
   you kept **From a source** — a book, a podcast, with its episodes.
+- **Mix decks** (once a Topic has two Decks) — tick several Decks, then **Practise N decks
+  together**: lessons mix in one practice. An item in two of them comes up once, and the Topic's
+  daily new cap and the spacing of sibling prompts hold as for one Deck.
 - In a practice: try to recall the answer, **Show answer**, then grade yourself **Pass** or
   **Fail**. Keys: Space reveals, 1 or F fails, 2 or J passes. **Undo** a mis-tap. **Stop** any
   time — nothing is lost.
-- **Retention** — the share of recalls passed over the last 30 days, for this Topic and for all.
+- **Typing an answer** — on a Word's reverse prompt, a Sentence's blank and a listening prompt, a field, already focused, offers to take
+  what you think the answer is before you reveal (press Enter, or **Show answer**; leaving it empty
+  works as always). The reveal puts **You typed** beside **Answer**; Lifeline never checks it, so a
+  typo or an equally right answer is yours to grade. The recall keeps what you typed, unchanged, and
+  an item's peek lists its latest recalls with it, so you can see the same mistake coming back.
+  Forward Word prompts and Facts are reveal-only. **Undo** takes the typed answer along with the recall.
+- **Retention** — the share of recalls passed over the last 30 days, for this Topic and for all. Paused
+  material and drafts are left out.
 - **The week ahead** — how many prompts fall due each day.
+- **Leeches** — prompts you keep failing: 4 fails or more among a prompt's last 8 recalls (a
+  recall you struck out does not count). The list shows each one's question and how many fails
+  it has, with **Pause** (keeps its history, stops practising it) and **Edit** (rewrite it).
+  Nothing is stored: a prompt leaves the list on its own once its recent recalls pass. Drafts and
+  paused material are never listed, and the list is absent while there are none. It says only that
+  you keep failing it, not that anything else is learnt.
 
 ### Kept
 
@@ -47,14 +87,36 @@ Topic to a set you choose.
 - Each shows when it is next due. **Pause** takes it out of practice and keeps its history;
   **Resume** puts it back.
 - **+** adds a Word, a Sentence or a Fact.
+- **Drafts** — what Claude drafted for you (see *Ask Claude*) is listed here marked **draft**, and a
+  **Drafts** filter shows up while there are any. A draft is not practised, not drawn by a Puzzle
+  and not counted in what is due or in Retention until you **accept** it. Tap the check on its row
+  (or **Accept** when you open it) to accept it; open it to edit first and choose **Save & accept**;
+  or **Delete** it. An accepted draft counts as new from the moment you accept it, so the Topic's
+  **New per day** counts it that day. Its *Where it was met* still says who drafted it, and for which
+  lesson (Deck), after you accept it.
+- **Draft changes** — when Claude wants to fix an item you already accepted, it never edits it:
+  the item shows a **draft change** mark, and opening it shows the **Draft change** with each field's
+  current text struck above Claude's. **Accept change** applies it like an edit you made
+  yourself: a Word keeps its Prompts, and a Sentence keeps the blanks whose text is unchanged (a
+  blank that changed starts fresh). **Discard** drops it. A newer draft change replaces an older one.
 - **Also kept here** — Quotes kept in this Topic from Notes.
 - Open one to edit it, see its prompts, and put it in or out of Decks. Editing never resets its
   practice.
+- A Word's peek also lists the **Sentences** of its Topic that use it, each opening its own peek
+  (paused ones are marked). A Sentence uses a Word when its text, blanks filled, holds the term as
+  a whole word or phrase: capitals ignored, accents kept (*è* is not *e*), no stemming (*tavolo*
+  does not find *tavoli*). Nothing is stored or linked; it is read fresh each time.
 
 ### Decks
 
 - A Deck is a set you choose inside one Topic ("Kitchen", "Work emails"), to practise on its own.
 - Name it and tick what it holds. Deleting a Deck keeps its words.
+- A Deck holding drafts (a lesson Claude drafted) shows **Review N drafts** on its row. The review
+  steps through the drafts one at a time: **Accept**, **Edit** (then **Save & accept**) or **Delete**
+  each (deleted at once, with **Undo** in the message), with **Previous** and **Next** to move about.
+  **Accept all** stays unavailable until every draft left has been shown, so a long lesson is
+  accepted in one go yet you saw each item; it accepts only what is still a draft. Accepting here is exactly accepting one draft: each
+  counts as new from that moment.
 
 ### Puzzles
 
@@ -111,14 +173,31 @@ it came from; for a Fact, the selection stays beside you while you write the que
 
 ## Ask Claude
 
-Claude adds only what you dictate, word for word — it never words a meaning, a question or an
-answer for you.
+Claude can **draft** what it teaches you, but only you decide what enters your practice.
 
-- "Add to Spanish: *tener ganas de* — to feel like" — `knowledge_word`.
+- "Add to Italian, in the Deck Lesson 2: *la stazione* — the station" — `knowledge_word`.
 - "Add the sentence *Tengo {{ganas}} de comer*, meaning *I feel like eating*" —
-  `knowledge_sentence`.
+  `knowledge_sentence`, which also takes notes, and hints in the text (`{{nel|in}}`).
 - "Keep a fact in History: When was the Peace of Westphalia? 1648" — `knowledge_fact`.
+- Whatever Claude adds is a **draft**, always. The tools take an optional **Deck** name (a lesson;
+  the Deck is made in the Topic when it is not there yet) and a note for *Where it was met*, which
+  Lifeline writes after "Drafted by" and the app's name (Claude, say; "Agent draft" when the app gave
+  none) and the Deck's name.
+- Claude cannot accept, pause, unpause or delete anything, and cannot change what you have accepted.
+  To fix an accepted Word, Sentence or Fact it uses **Draft a change…** (`knowledge_draft_change`),
+  giving the item and the fields it would change: you see the draft change beside the current values
+  and accept or discard it. Each item holds one draft change at a time; editing accepted material any
+  other way (`update_document`) is refused. On a draft it simply updates the draft, and a Macro Claude
+  runs drafts what it adds, as Claude's own capture does.
 - Adding the same thing twice is refused, not duplicated.
+- Claude cannot record or attach clips: those are yours.
+- "How is my Italian going?" — **Knowledge practice report** (`knowledge_report`), read-only, so Claude
+  can read it even on a connection you did not allow to make changes. For a Topic (and optionally some of its
+  Decks, a lesson each) it gives **Retention** (the figure the app shows), what is **due** now, how many
+  new prompts are waiting, your **leeches** (as the app lists them, each with its question, answer and fails), and the prompts **failed most** in the last 30 days (up to ten, most failed
+  first): each with its question, answer, which prompt it is, and its latest recalls (pass or fail, when, and
+  what you typed, if you did). Drafts and paused material are left out; a recall you struck out is gone. Claude reads this to
+  choose the next lesson, never to change anything.
 - Practising is yours: Claude does not grade recalls, and does not play or start Puzzles.
 
 ## Tips

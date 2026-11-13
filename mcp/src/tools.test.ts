@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MacroShape } from "@lifeline/core";
-import { commandToolName, macroTools, macroToolSpec, TOOLS } from "./tools";
+import { commandToolName, macroTools, macroToolSpec, offeredTools, TOOLS } from "./tools";
 import { grantedScopes } from "./oauth";
 import { unsyncedWrite } from "./devices";
 
@@ -50,6 +50,34 @@ describe("tool catalogue", () => {
     expect(names).toEqual(expect.arrayContaining(["knowledge_word", "knowledge_sentence"]));
     expect(names.filter((n) => n.startsWith("languages_"))).toEqual([]);
     expect(Object.keys(TOOLS.find((t) => t.name === "knowledge_word")!.input)).toEqual(expect.arrayContaining(["topic", "term", "meaning"]));
+  });
+
+  it("makes a read-only Command a read tool, offered under a read-only grant (ADR 0115)", () => {
+    const report = TOOLS.find((t) => t.name === "knowledge_report")!;
+    expect(report.command).toBe("knowledge.report");
+    expect(report.write).toBe(false);
+    const readOnly = offeredTools(TOOLS, false).map((t) => t.name);
+    expect(readOnly).toContain("knowledge_report");
+    expect(readOnly).not.toContain("knowledge_word");
+    expect(offeredTools(TOOLS, true).map((t) => t.name)).toEqual(expect.arrayContaining(["knowledge_report", "knowledge_word"]));
+  });
+
+  it("keeps App operations out of the generic tools: the report is the Knowledge App's Command (ADR 0062)", () => {
+    const generic = TOOLS.filter((t) => !t.command).map((t) => t.name);
+    expect(generic).not.toContain("knowledge_report");
+  });
+
+  it("tells an agent the report carries Leeches and the typed attempts on Recalls (ADR 0115, 0116)", () => {
+    const report = TOOLS.find((t) => t.name === "knowledge_report")!;
+    expect(report.description).toMatch(/Leeches/);
+    expect(report.description).toMatch(/typed/);
+  });
+
+  it("lets an agent hand a Sentence its notes, and hint a blank in the text (ADR 0116)", () => {
+    const sentence = TOOLS.find((t) => t.name === "knowledge_sentence")!;
+    expect(Object.keys(sentence.input)).toEqual(expect.arrayContaining(["topic", "text", "translation", "notes"]));
+    expect(sentence.input.notes!.safeParse("also: in centro").success).toBe(true);
+    expect(sentence.input.text!.description).toContain("{{nel|in}}");
   });
 });
 

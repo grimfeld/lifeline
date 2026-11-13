@@ -58,6 +58,7 @@ interface GrantRow {
   id: string;
   user: string;
   client_id: string;
+  client_name: string;
   scopes: string;
   access_expires: string;
   refresh_expires: string;
@@ -330,7 +331,8 @@ export class LifelineOAuth implements OAuthServerProvider {
       scopes: row.scopes.split(" "),
       expiresAt: Math.floor(new Date(row.access_expires.replace(" ", "T")).getTime() / 1000),
       resource: row.resource ? new URL(row.resource) : undefined,
-      extra: { userId: row.user },
+      // The client's registered name, for what it drafts to say who drafted it (ADR 0115).
+      extra: { userId: row.user, clientName: row.client_name || undefined },
     };
     this.verified.set(hash, { info, until: Math.min(Date.now() + VERIFY_CACHE_MS, info.expiresAt! * 1000) });
     void this.admin.collection("mcp_grants").update(row.id, { last_used: iso(0) }).catch((err) => console.error(`[oauth] recording grant ${row.id}'s last use failed`, err));

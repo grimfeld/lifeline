@@ -1,8 +1,11 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { documentTypeSync, documentsOf, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
+import { allAttachments, deleteAttachment, documentTypeSync, documentsOf, documentsOfUngated, documentsWhere, fieldsOfDocument, fireTallies, getDocument, hasRole, hasPulledOnce, inPrivateFolder, isAudioMime, normalizeTags, patchDocument, putDocument, recallableDefs, removeDocument, removeDocumentsWhere, talliesOf, useAllDocuments, useDocuments, type Document, type Tally } from "@lifeline/core";
 import { plainSentence } from "../domain/cloze";
+import { accepted, clipOfItem, draftChangeLines, REWRITABLE, type DraftChange } from "../domain/draft";
 import { dayOf } from "../domain/practice";
 import { materialOf, type MaterialDoc } from "../domain/material";
+import { nameKey, sameName } from "../domain/names";
+import type { ReportReads } from "../domain/report";
 import { sourceChain, type SourceReading } from "../domain/sources";
 
 export type { MaterialDoc };
@@ -16,15 +19,15 @@ function normalizeTopic(l: Topic): Topic {
 }
 
 function normalizeWord(w: Word): Word {
-  return { ...w, languageId: w.languageId ?? "", term: w.term || w.title || "", meaning: w.meaning ?? "", notes: w.notes ?? "", origin: w.origin ?? "", originId: w.originId ?? "", paused: !!w.paused, addedAt: w.addedAt || w.createdAt || "", tags: w.tags ?? [] };
+  return { ...w, languageId: w.languageId ?? "", term: w.term || w.title || "", meaning: w.meaning ?? "", notes: w.notes ?? "", origin: w.origin ?? "", originId: w.originId ?? "", clip: w.clip ?? "", paused: !!w.paused, draft: !!w.draft, addedAt: w.addedAt || w.createdAt || "", tags: w.tags ?? [] };
 }
 
 function normalizeSentence(s: Sentence): Sentence {
-  return { ...s, languageId: s.languageId ?? "", text: s.text ?? "", translation: s.translation ?? "", origin: s.origin ?? "", originId: s.originId ?? "", paused: !!s.paused, addedAt: s.addedAt || s.createdAt || "", tags: s.tags ?? [] };
+  return { ...s, languageId: s.languageId ?? "", text: s.text ?? "", translation: s.translation ?? "", notes: s.notes ?? "", origin: s.origin ?? "", originId: s.originId ?? "", clip: s.clip ?? "", paused: !!s.paused, draft: !!s.draft, addedAt: s.addedAt || s.createdAt || "", tags: s.tags ?? [] };
 }
 
 function normalizeFact(f: Fact): Fact {
-  return { ...f, languageId: f.languageId ?? "", question: f.question || f.title || "", answer: f.answer ?? "", notes: f.notes ?? "", origin: f.origin ?? "", originId: f.originId ?? "", paused: !!f.paused, addedAt: f.addedAt || f.createdAt || "", tags: f.tags ?? [] };
+  return { ...f, languageId: f.languageId ?? "", question: f.question || f.title || "", answer: f.answer ?? "", notes: f.notes ?? "", origin: f.origin ?? "", originId: f.originId ?? "", paused: !!f.paused, draft: !!f.draft, addedAt: f.addedAt || f.createdAt || "", tags: f.tags ?? [] };
 }
 
 function normalizeDeck(d: Deck): Deck {
@@ -32,7 +35,7 @@ function normalizeDeck(d: Deck): Deck {
 }
 
 function normalizeRecall(r: Recall): Recall {
-  return { ...r, languageId: r.languageId ?? "", itemId: r.itemId ?? "", slot: r.slot ?? "", grade: r.grade === "pass" ? "pass" : "fail", at: r.at || "" };
+  return { ...r, languageId: r.languageId ?? "", itemId: r.itemId ?? "", slot: r.slot ?? "", grade: r.grade === "pass" ? "pass" : "fail", at: r.at || "", ...(r.typed ? { typed: String(r.typed) } : {}) };
 }
 
 // ---- Reads ----
@@ -231,7 +234,21 @@ export interface WordInput {
   notes?: string;
   origin?: string;
   originId?: string;
+  /** The id of its clip Attachment; "" removes it, left out keeps it (ADR 0116). */
+  clip?: string;
   tags?: string[];
+  /** Made as an agent's draft (ADR 0115): never set by the app's own dialogs. */
+  draft?: boolean;
+}
+
+/** The `draft` mark a new item carries: only an agent's (ADR 0115). */
+const draftOf = (input: { draft?: boolean }) => (input.draft ? { draft: true } : {});
+/** The `clip` an edit writes: only when the input says. */
+const clipOf = (input: { clip?: string }) => (input.clip === undefined ? {} : { clip: input.clip });
+
+/** A replaced or removed clip's Attachment goes with it: the clip is nobody else's. */
+async function dropReplacedClip(before: string | undefined, input: { clip?: string }): Promise<void> {
+  if (before && input.clip !== undefined && input.clip !== before) await deleteAttachment(before);
 }
 
 function wordRowOf(input: WordInput) {
@@ -239,8 +256,47 @@ function wordRowOf(input: WordInput) {
   if (!input.languageId) throw new Error("Pick a topic");
   if (!term) throw new Error("The word needs its term");
   if (!input.meaning.trim()) throw new Error("Write what it means");
-  return { type: WORD, title: term, languageId: input.languageId, term, meaning: input.meaning.trim(), notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
+  return { type: WORD, title: term, languageId: input.languageId, term, meaning: input.meaning.trim(), notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", ...clipOf(input), tags: normalizeTags(input.tags ?? []), folder: "" } as const;
 }
+
+/**
+ * Every Recallable Document, with whether it sits in the Private folder, which is
+ * out of an agent's reach whether or not a password is set (ADR 0062), as
+ * `isAgentVisible` holds for the other MCP reads.
+ */
+/** Knowledge's own Recallable types, which keep their Topic in `languageId`. */
+const KEYED_BY_TOPIC = new Set<string>([WORD, SENTENCE, FACT]);
+
+/**
+ * One Topic's Recallable material, each marked Private or not. Knowledge's own
+ * types are read by the Topic's key; another App's are read whole, once, and
+ * kept by their declared Topic: the Recallable Contract names no topic field
+ * (ADR 0073).
+ */
+async function materialOfTopic(topicId: string): Promise<{ m: MaterialDoc; hidden: boolean }[]> {
+  const all = await Promise.all(
+    recallableDefs().map(async (def) => {
+      const docs = KEYED_BY_TOPIC.has(def.typeId) ? await documentsWhere(def.typeId, "languageId", topicId) : await documentsOf(def.typeId);
+      return docs.map((doc) => ({ m: materialOf(def, doc), hidden: inPrivateFolder(doc.folder) })).filter((x) => x.m.topicId === topicId);
+    }),
+  );
+  return all.flat();
+}
+
+/**
+ * The reads a practice report takes (domain/report.ts), normalised as the
+ * screens read them, each keyed by the Topic where its type allows.
+ */
+export const reportReads: ReportReads = {
+  topics: async () => (await documentsOf<Topic>(TOPIC)).map(normalizeTopic),
+  decksOf: async (topicId) => (await documentsWhere<Deck>(DECK, "languageId", topicId)).map(normalizeDeck),
+  practiceOf: async (topicId) => {
+    const [material, recalls] = await Promise.all([materialOfTopic(topicId), documentsWhere<Recall>(RECALL, "languageId", topicId)]);
+    // A Recall of Private material goes with it.
+    const hidden = new Set(material.filter((x) => x.hidden).map((x) => x.m.id));
+    return { material: material.filter((x) => !x.hidden).map((x) => x.m), recalls: recalls.filter((r) => !hidden.has(r.itemId)).map(normalizeRecall) };
+  },
+};
 
 /** Every Topic, Word, Sentence and Fact, read once — what headless adds check against. */
 export async function allTopics(): Promise<Topic[]> {
@@ -256,39 +312,51 @@ export async function allSentences(): Promise<Sentence[]> {
 }
 
 export async function addWord(input: WordInput): Promise<string> {
-  const row = await putDocument<Word>({ ...wordRowOf(input), paused: false, addedAt: new Date().toISOString() });
+  const row = await putDocument<Word>({ ...wordRowOf(input), paused: false, ...draftOf(input), addedAt: new Date().toISOString() });
   return row.id;
+}
+
+/** A draft change the item now matches changes nothing, so it goes: no badge with no notice to discard it from. */
+async function settleDraftChange(item: Item): Promise<void> {
+  if (item.draftChange && !draftChangeLines(item).length) await patchDocument(item.id, { draftChange: null });
 }
 
 /** Editing never resets a Word: its forward and reverse stay the same Prompts (ADR 0058). */
 export async function updateWord(w: Word, input: WordInput): Promise<void> {
-  await putDocument<Word>({ ...w, ...wordRowOf(input) });
+  await settleDraftChange(await putDocument<Word>({ ...w, ...wordRowOf(input) }));
+  await dropReplacedClip(w.clip, input);
 }
 
 export interface SentenceInput {
   languageId: string;
   text: string;
   translation?: string;
+  notes?: string;
   origin?: string;
   originId?: string;
+  /** The id of its clip Attachment; "" removes it, left out keeps it (ADR 0116). */
+  clip?: string;
   tags?: string[];
+  /** Made as an agent's draft (ADR 0115): never set by the app's own dialogs. */
+  draft?: boolean;
 }
 
 function sentenceRowOf(input: SentenceInput) {
   const text = input.text.trim();
   if (!input.languageId) throw new Error("Pick a topic");
   if (!/\{\{\s*\S.*?\}\}/.test(text)) throw new Error("Mark at least one blank with {{ }}");
-  return { type: SENTENCE, title: plainSentence(text), languageId: input.languageId, text, translation: input.translation?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", tags: normalizeTags(input.tags ?? []), folder: "" } as const;
+  return { type: SENTENCE, title: plainSentence(text), languageId: input.languageId, text, translation: input.translation?.trim() ?? "", notes: input.notes?.trim() ?? "", origin: input.origin?.trim() ?? "", originId: input.originId ?? "", ...clipOf(input), tags: normalizeTags(input.tags ?? []), folder: "" } as const;
 }
 
 export async function addSentence(input: SentenceInput): Promise<string> {
-  const row = await putDocument<Sentence>({ ...sentenceRowOf(input), paused: false, addedAt: new Date().toISOString() });
+  const row = await putDocument<Sentence>({ ...sentenceRowOf(input), paused: false, ...draftOf(input), addedAt: new Date().toISOString() });
   return row.id;
 }
 
 /** A blank whose text changed becomes a new Prompt; the others keep their Recalls (ADR 0058). */
 export async function updateSentence(s: Sentence, input: SentenceInput): Promise<void> {
-  await putDocument<Sentence>({ ...s, ...sentenceRowOf(input) });
+  await settleDraftChange(await putDocument<Sentence>({ ...s, ...sentenceRowOf(input) }));
+  await dropReplacedClip(s.clip, input);
 }
 
 export interface FactInput {
@@ -299,9 +367,11 @@ export interface FactInput {
   origin?: string;
   originId?: string;
   tags?: string[];
+  /** Made as an agent's draft (ADR 0115): never set by the app's own dialogs. */
+  draft?: boolean;
 }
 
-/** Both sides are the user's own words (CONTEXT.md "Knowledge"): nothing here is ever drafted for them. */
+/** Both sides are the user's own words (CONTEXT.md "Knowledge"): Lifeline drafts nothing; an agent's draft is the user's to accept (ADR 0115). */
 function factRowOf(input: FactInput) {
   const question = input.question.trim();
   if (!input.languageId) throw new Error("Pick a topic");
@@ -315,13 +385,80 @@ export async function allFacts(): Promise<Fact[]> {
 }
 
 export async function addFact(input: FactInput): Promise<string> {
-  const row = await putDocument<Fact>({ ...factRowOf(input), paused: false, addedAt: new Date().toISOString() });
+  const row = await putDocument<Fact>({ ...factRowOf(input), paused: false, ...draftOf(input), addedAt: new Date().toISOString() });
   return row.id;
 }
 
 /** Editing never resets a Fact: its one Prompt stays the same Prompt. */
 export async function updateFact(f: Fact, input: FactInput): Promise<void> {
-  await putDocument<Fact>({ ...f, ...factRowOf(input) });
+  await settleDraftChange(await putDocument<Fact>({ ...f, ...factRowOf(input) }));
+}
+
+/**
+ * Accept a draft (ADR 0115): out of draft, added from this moment — so it enters
+ * practice as new now, and the daily new cap counts it today. Its origin stays.
+ */
+export async function acceptDraft(id: string): Promise<void> {
+  const item = await getDocument<Item>(id);
+  if (!item) return;
+  const { draft, addedAt } = accepted(item, new Date().toISOString());
+  await patchDocument(id, { draft, addedAt });
+}
+
+/** Each kind's own edit, so whatever edits an item of unknown kind goes through the same checks and Prompt rules (ADR 0058). */
+const UPDATE: Record<Item["type"], (item: Item, input: Item) => Promise<void>> = {
+  [WORD]: (w, input) => updateWord(w as Word, input as Word),
+  [SENTENCE]: (s, input) => updateSentence(s as Sentence, input as Sentence),
+  [FACT]: (f, input) => updateFact(f as Fact, input as Fact),
+};
+
+/** Edit a Word, Sentence or Fact as its own update does: `input` is the item as it should read. */
+export async function updateItem(item: Item, input: Item): Promise<void> {
+  await UPDATE[item.type](item, input);
+}
+
+/** Each kind's row check: throws as its edit would when the item could not be saved so. */
+const CHECK: Record<Item["type"], (item: Item) => unknown> = {
+  [WORD]: (w) => wordRowOf(w as Word),
+  [SENTENCE]: (s) => sentenceRowOf(s as Sentence),
+  [FACT]: (f) => factRowOf(f as Fact),
+};
+
+/** The item read with the change over it — checked as an edit is, so a change that could not be saved is refused before it is stored. */
+function withChange(item: Item, change: DraftChange): Item {
+  const own = { ...item, ...change } as Item;
+  CHECK[own.type](own);
+  return own;
+}
+
+/**
+ * An agent's draft change to an accepted item (ADR 0115), stored beside it as its one draft
+ * change — a newer one replaces it — and never applied until the user accepts it. A draft
+ * itself takes no draft change: the caller edits it directly.
+ */
+export async function saveDraftChange(item: Item, fields: DraftChange): Promise<void> {
+  const change: DraftChange = {};
+  for (const key of REWRITABLE[item.type]) if (fields[key] !== undefined) change[key] = fields[key]!.trim();
+  withChange(item, change); // throws when the result is not a valid item
+  await patchDocument(item.id, { draftChange: change });
+}
+
+/** Accept the draft change: applied as an ordinary edit, so Prompt identity and Recalls follow ADR 0058. */
+export async function acceptDraftChange(item: Item): Promise<void> {
+  if (!item.draftChange) return;
+  await updateItem({ ...item, draftChange: null }, withChange(item, item.draftChange));
+}
+
+export async function discardDraftChange(id: string): Promise<void> {
+  await patchDocument(id, { draftChange: null });
+}
+
+/** Accept a Deck's drafts at once: each exactly as `acceptDraft`, and only those still drafts — one deleted or accepted meanwhile is left alone. */
+export async function acceptDrafts(ids: string[]): Promise<void> {
+  for (const id of ids) {
+    const doc = await getDocument<Item>(id);
+    if (doc?.draft) await acceptDraft(id);
+  }
 }
 
 /** Paused: listed, Recalls kept, out of every Practice until unpaused. */
@@ -333,9 +470,70 @@ export async function deleteItem(id: string): Promise<void> {
   await removeDocument(id);
 }
 
-/** The cascade, for any Recallable Document: its Recalls mean nothing without its Prompts. Decks simply stop listing it on read. */
+/** Clips whose item is deleted but may still be undone (ADR 0116): the cascade leaves them be. */
+const heldClips = new Set<string>();
+
+/**
+ * Delete an item whose deletion can be undone (CODING_STANDARDS § Deleting). Its clip is
+ * kept while the Undo window is open: `undo()` brings the item back with it, `commit()`
+ * (the window closed) deletes it.
+ */
+export async function deleteItemUndoably(id: string): Promise<{ undo: () => Promise<void>; commit: () => Promise<void> }> {
+  const item = await getDocument<Item>(id);
+  if (!item) return { undo: async () => undefined, commit: async () => undefined };
+  const clip = clipOfItem(item);
+  if (clip) heldClips.add(clip);
+  await removeDocument(id);
+  let settled = false; // Undo's click also dismisses its toast: whichever comes first decides
+  return {
+    undo: async () => {
+      if (settled) return;
+      settled = true;
+      await restoreItem(item);
+      if (clip) heldClips.delete(clip);
+    },
+    commit: async () => {
+      if (settled) return;
+      settled = true;
+      if (clip && heldClips.delete(clip)) await deleteAttachment(clip);
+    },
+  };
+}
+
+/**
+ * Bring a deleted item back, for Undo: under its own id, so every Deck lists it again.
+ * Its clip comes with it only while the Undo window held it (`deleteItemUndoably`).
+ */
+async function restoreItem(item: Item): Promise<void> {
+  const clip = clipOfItem(item);
+  await putDocument(!clip || heldClips.has(clip) ? item : { ...item, clip: "" });
+}
+
+/** The cascade, for any Recallable Document: its Recalls mean nothing without its Prompts, nor its clip (ADR 0116) without it. Decks simply stop listing it on read. */
 export async function removeItemRecalls(doc: Document): Promise<void> {
   await removeDocumentsWhere(RECALL, (r) => r.itemId === doc.id);
+  const clip = clipOfItem(doc as Item);
+  if (clip && !heldClips.has(clip)) await deleteAttachment(clip);
+}
+
+/** A clip nobody holds is only an orphan once it is this old: a dialog open since may yet keep it. */
+const CLIP_GRACE_MS = 86_400_000;
+
+/**
+ * Delete the audio Attachments no Word or Sentence holds (ADR 0116): what a closed tab
+ * or a lapsed Undo left behind. Orphan cleanup (ADR 0037) skips audio, so this is its owner's.
+ */
+export async function sweepClipOrphans(now = Date.now()): Promise<void> {
+  // Until both have been pulled once, a Word may simply not have arrived to claim its clip.
+  if (!(await hasPulledOnce("documents")) || !(await hasPulledOnce("attachments"))) return;
+  const held = new Set<string>(heldClips);
+  // Ungated: a Word in the locked Private folder, or in another Workspace, still holds its clip.
+  for (const doc of await documentsOfUngated<Word | Sentence>([WORD, SENTENCE])) if (doc.clip) held.add(doc.clip);
+  for (const a of await allAttachments()) {
+    if (!isAudioMime(a.mime) || held.has(a.id)) continue;
+    if (now - Date.parse(a.updatedAt) < CLIP_GRACE_MS) continue;
+    await deleteAttachment(a.id);
+  }
 }
 
 // ---- Decks ----
@@ -361,7 +559,7 @@ const membershipWrites = new Map<string, Promise<void>>();
  * of the Deck's Topic go in. The Deck is re-read under a per-Deck queue,
  * so quick clicks made against the same (stale) Deck each keep their change.
  */
-export function setMembership(deck: Deck, item: Item, member: boolean): Promise<void> {
+export function setMembership(deck: Deck, item: Pick<Item, "id" | "languageId">, member: boolean): Promise<void> {
   if (item.languageId !== deck.languageId) return Promise.reject(new Error("A deck holds one topic only"));
   const write = async () => {
     const current = await getDocument<Deck>(deck.id);
@@ -378,6 +576,28 @@ export function setMembership(deck: Deck, item: Item, member: boolean): Promise<
   return next;
 }
 
+/** The Deck of that name in the Topic (case ignored), made when absent — how an agent files a lesson (ADR 0115). */
+export function deckNamed(languageId: string, name: string): Promise<Deck> {
+  const key = `${languageId}\u0000${nameKey(name)}`;
+  const next = (deckMakes.get(key) ?? Promise.resolve()).catch(() => undefined).then(() => findOrMakeDeck(languageId, name));
+  const settled = next.then(() => undefined, () => undefined);
+  deckMakes.set(key, settled);
+  void settled.then(() => {
+    if (deckMakes.get(key) === settled) deckMakes.delete(key);
+  });
+  return next;
+}
+
+/** Deck makes per Topic and lowercased name, one after another: the second finds the Deck the first made. */
+const deckMakes = new Map<string, Promise<void>>();
+
+async function findOrMakeDeck(languageId: string, name: string): Promise<Deck> {
+  const n = name.trim();
+  const found = (await documentsWhere<Deck>(DECK, "languageId", languageId)).map(normalizeDeck).find((d) => sameName(d.name, n));
+  if (found) return found;
+  return normalizeDeck((await getDocument<Deck>(await addDeck(languageId, n)))!);
+}
+
 export async function deleteDeck(id: string): Promise<void> {
   await removeDocument(id);
 }
@@ -388,13 +608,14 @@ export async function deleteDeck(id: string): Promise<void> {
  * Record one Recall (ADR 0058) on a Prompt of any Recallable Material — and,
  * when it is the Topic's first of the day, report the day as the Topic's
  * occurrence (ADR 0059), so its Tallies fire. A failing Tally never loses the
- * Recall.
+ * Recall. A typed attempt (ADR 0116) is kept with it, trimmed; an empty one is not.
  */
-export async function recordRecall(item: Material, slot: string, grade: Grade): Promise<{ id: string; tallyError?: string }> {
+export async function recordRecall(item: Material, slot: string, grade: Grade, typed?: string): Promise<{ id: string; tallyError?: string }> {
   const at = new Date().toISOString();
   const day = dayOf(at);
   const earlier = (await documentsWhere<Recall>(RECALL, "languageId", item.topicId)).some((r) => r.at && dayOf(r.at) === day);
-  const row = await putDocument<Recall>({ type: RECALL, title: `${grade === "pass" ? "✓" : "✗"} ${item.title} · ${day}`, languageId: item.topicId, itemId: item.id, slot, grade, at, folder: "", tags: [] });
+  const attempt = typed?.trim();
+  const row = await putDocument<Recall>({ type: RECALL, title: `${grade === "pass" ? "✓" : "✗"} ${item.title} · ${day}`, languageId: item.topicId, itemId: item.id, slot, grade, at, ...(attempt ? { typed: attempt } : {}), folder: "", tags: [] });
   if (earlier) return { id: row.id };
   const topic = await getDocument<Topic>(item.topicId);
   if (!topic || topic.archived) return { id: row.id };
