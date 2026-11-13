@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { PERSON_TYPE, documentType, patchDocument, todayStr, useDocument, useLinkIndex, type Document } from "@lifeline/core";
 import { DocumentEditor } from "@lifeline/editor";
