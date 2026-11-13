@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLinkIndex } from "./links";
-import { backlinkContext, backlinksShown, fieldLinksTo, linkFieldLabel } from "./fieldLinks";
+import { backlinkContext, linkFieldLabel } from "./fieldLinks";
 import type { Document, DocumentTypeDef, FieldDef } from "./types";
 
 const T = (id: string, fields: FieldDef[] = []): DocumentTypeDef => ({ id, label: id + "s", titleRule: "name", body: "optional", fields, linkable: true, builtIn: true });
@@ -21,30 +20,8 @@ const docs = [
   doc("t1", "task", "Buy a gift", { for: ["marc"] }),
   doc("n1", "note", "Notes", { body: "[[Marc]] said hi" }),
 ];
-const idx = buildLinkIndex(docs, types);
-
-describe("fieldLinksTo", () => {
-  it("groups what links in through Link fields by the type of the linking Document, with the field that did it", () => {
-    expect(fieldLinksTo(idx, "marc").map((g) => [g.type, g.rows.map((r) => [r.sourceId, r.field])])).toEqual([
-      ["event", [["e1", "with"], ["e2", "with"]]],
-      ["task", [["t1", "for"]]],
-    ]);
-  });
-
-  it("leaves out what only a wikilink says", () => {
-    expect(fieldLinksTo(idx, "marc").flatMap((g) => g.rows.map((r) => r.sourceId))).not.toContain("n1");
-  });
-
-  it("is empty when nothing links through a field", () => {
-    expect(fieldLinksTo(idx, "e1")).toEqual([]);
-  });
-});
 
 describe("the Backlinks a page lists", () => {
-  it("is every Backlink, or only the wikilinks when Link fields are listed apart", () => {
-    expect(backlinksShown(idx, "marc", false).map((b) => b.sourceId)).toEqual(["e1", "e2", "t1", "n1"]);
-    expect(backlinksShown(idx, "marc", true).map((b) => b.sourceId)).toEqual(["n1"]);
-  });
   it("says a Backlink by the field it came through, the words around it, or the start of the linking body", () => {
     const n2 = doc("n2", "note", "Old", { body: "# Long ago\n\nWe met **once**." });
     expect([
