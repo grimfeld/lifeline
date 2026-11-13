@@ -56,7 +56,8 @@ export function CardRow(props: {
   const { icon, title, sub, editLabel, onEdit, removeLabel, onRemove, former, formerLabel, onFormer, extra, testId } = props;
   const text = (
     <>
-      <span className="block min-w-0 text-sm break-words">{title}</span>
+      {/* pr-1: a long unbroken word can overshoot its line by a pixel or two; the room keeps it inside the box. */}
+      <span className="block min-w-0 pr-1 text-sm break-words">{title}</span>
       {sub && <span className="text-muted-foreground block min-w-0 text-xs break-words">{sub}</span>}
     </>
   );
