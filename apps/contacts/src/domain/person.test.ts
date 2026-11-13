@@ -53,9 +53,9 @@ describe("the name the Add person dialog opens with", () => {
 
 describe("the line under a Person's name", () => {
   it("gives the age, the Relationship and the aliases, leaving out what is not known", () => {
-    expect(knownLine({ relationship: "my mother", aliases: ["Mum", "Maman"] }, 65)).toBe("65 years old · my mother · also Mum, Maman");
-    expect(knownLine({ relationship: "", aliases: ["Mum"] }, null)).toBe("also Mum");
-    expect(knownLine({ relationship: "colleague", aliases: [] }, 0)).toBe("0 years old · colleague");
-    expect(knownLine({ relationship: "", aliases: [] }, null)).toBe("");
+    expect(knownLine(["Mum", "Maman"], 65)).toBe("65 years old · also Mum, Maman");
+    expect(knownLine(["Mum"], null)).toBe("also Mum");
+    expect(knownLine([], 0)).toBe("0 years old");
+    expect(knownLine([], null)).toBe("");
   });
 });

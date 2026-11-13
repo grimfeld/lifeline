@@ -43,7 +43,9 @@ export function byLetter(people: readonly Person[]): [string, Person[]][] {
   for (const p of people) {
     const first = fold(p.title).charAt(0).toUpperCase();
     const letter = /\p{L}/u.test(first) ? first : "#";
-    letters.set(letter, [...(letters.get(letter) ?? []), p]);
+    const list = letters.get(letter);
+    if (list) list.push(p);
+    else letters.set(letter, [p]);
   }
   return [...letters.entries()];
 }

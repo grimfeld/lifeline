@@ -11,9 +11,6 @@ import { AddRow, CardList, CardRow, useEditing } from "./Cards";
 const KIND_ICON = { phone: Phone, email: Mail, handle: AtSign } as const;
 const PLACEHOLDER: Record<ContactKind, string> = { phone: "+33 6 12 34 56 78", email: "anne@example.org", handle: "@anne or instagram.com/anne" };
 export const BLANK_DETAIL: DetailInput = { label: "", kind: "phone", value: "" };
-const BLANK = BLANK_DETAIL;
-/** The Contact detail dialog's state: what it edits (BLANK_DETAIL to add), or null when shut. */
-export type DetailDialogState = [DetailInput | null, (input: DetailInput | null) => void];
 /** The keyboard a phone shows for each kind's value: digits for a number, the @ key for an email. A mode, not a type: the browser's own checks stay out of it. */
 const INPUT_MODE: Record<ContactKind, "tel" | "email" | "text"> = { phone: "tel", email: "email", handle: "text" };
 
@@ -21,11 +18,9 @@ const INPUT_MODE: Record<ContactKind, "tel" | "email" | "text"> = { phone: "tel"
  * The Person page's Contact details (#404 story 69, CONTEXT.md "Contact detail"): each under its own label; a click calls, mails or opens the service; a former one is history, with no action.
  * A card (#422): current ones first, former ones after them.
  */
-export function ContactDetailsSection({ person, dialog }: { person: Person; dialog?: DetailDialogState }) {
+export function ContactDetailsSection({ person, editing, onEditing }: { person: Person; editing: DetailInput | null; onEditing: (input: DetailInput | null) => void }) {
   const details = contactDetailsOf(person);
-  const own = useState<DetailInput | null>(null);
-  // The page may hold the dialog, so its contact buttons can open it too.
-  const [editing, setEditing] = dialog ?? own;
+  // The page holds the dialog's state (what it edits: BLANK_DETAIL to add, null when shut), so its contact buttons can open it too.
   const ordered = [...details.filter((c) => !c.former), ...details.filter((c) => c.former)];
 
   // Every change starts from the stored list, never from this render's copy: two quick ones keep each other.
@@ -44,7 +39,7 @@ export function ContactDetailsSection({ person, dialog }: { person: Person; dial
               title={<DetailValue detail={c} />}
               sub={c.label}
               editLabel={`Edit ${c.label}: ${c.value}`}
-              onEdit={() => setEditing(c)}
+              onEdit={() => onEditing(c)}
               removeLabel={`Remove ${c.label}`}
               onRemove={() => void removeWithUndo(c.label, () => removePart(person.id, "contactDetails", c.id), (r) => restorePart(person.id, "contactDetails", r))}
               former={c.former}
@@ -54,14 +49,14 @@ export function ContactDetailsSection({ person, dialog }: { person: Person; dial
             />
           );
         })}
-        <AddRow onClick={() => setEditing(BLANK)}>Add contact detail</AddRow>
+        <AddRow onClick={() => onEditing(BLANK_DETAIL)}>Add contact detail</AddRow>
       </CardList>
       <DetailDialog
         input={editing}
-        onClose={() => setEditing(null)}
+        onClose={() => onEditing(null)}
         onSave={async (input) => {
           await update((list) => saveDetail(list, input));
-          setEditing(null);
+          onEditing(null);
         }}
       />
     </Section>
@@ -81,7 +76,7 @@ function DetailValue({ detail }: { detail: ContactDetail }) {
 }
 
 function DetailDialog({ input, onClose, onSave }: { input: DetailInput | null; onClose: () => void; onSave: (input: DetailInput) => Promise<void> }) {
-  const [draft, setDraft] = useState<DetailInput>(BLANK);
+  const [draft, setDraft] = useState<DetailInput>(BLANK_DETAIL);
   const [labelError, setLabelError] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);

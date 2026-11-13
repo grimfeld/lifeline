@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { personHref } from "../constants";
 import { formatHuman, todayStr, type CardProps } from "@lifeline/core";
 import { usePeople } from "../data/repo";
+import { monthLabel } from "../domain/dots";
 import { upcomingOccasions, whenOf, type UpcomingOccasion } from "../domain/occasions";
 import { PersonRowLink } from "./PersonRow";
 import { Section } from "./Section";
@@ -49,7 +50,7 @@ export function UpcomingReport({ days = UPCOMING_DAYS }: { days?: number }) {
   );
 }
 
-const monthOf = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { month: "short" });
+const monthOf = (day: string) => monthLabel(day, { month: "short" });
 
 /**
  * Upcoming on the People home (#422): the same Occasions as a strip of days,
