@@ -495,8 +495,9 @@ for (const w of WIDTHS) {
 
     test.describe("from an empty store", () => {
       test.use({ storageState: EMPTY });
-      // Writing the life takes seconds of its own, behind the first screen.
-      test.describe.configure({ timeout: SEEDING });
+      // Each case writes the life twice: on first open, then again on Reset. On a
+      // CI runner one write alone can take half of SEEDING.
+      test.describe.configure({ timeout: 2 * SEEDING });
       test("Reset asks first, then removes an edit and brings back the seeded life dated around today", async ({ page }) => {
         await page.clock.setFixedTime(new Date("2027-03-10T09:30:00"));
         await addTask(page, "Return the library card");
@@ -617,7 +618,9 @@ for (const w of WIDTHS) {
       // An Author's page looks their bibliography up whenever they carry an external key.
       await open(page, "/app/library");
       await page.getByRole("button", { name: "Open Normal People" }).first().click();
-      await page.getByRole("dialog").getByRole("link", { name: "Sally Rooney" }).first().click();
+      // The work opens on a page of its own, which links to its Author's.
+      await expect(page).toHaveURL(/\/app\/library\/works\//);
+      await page.getByRole("link", { name: "Sally Rooney" }).first().click();
       await expect(page).toHaveURL(/\/app\/library\/authors\//);
       await expect(page.getByText("Sally Rooney").first()).toBeVisible();
       await page.waitForLoadState("networkidle");
@@ -636,7 +639,8 @@ for (const w of WIDTHS) {
         // Started twelve days before the visit, too.
         await open(page, "/app/cinema");
         await page.getByRole("button", { name: "Open Derry Girls" }).first().click();
-        await expect(page.getByRole("dialog").getByText("2027-02-26", { exact: true })).toBeVisible();
+        await expect(page).toHaveURL(/\/app\/cinema\/works\//);
+        await expect(page.getByText("2027-02-26", { exact: true })).toBeVisible();
       });
     });
   });
