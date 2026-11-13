@@ -16,7 +16,7 @@ jobs:
   conventions:
     runs-on: ubuntu-latest
     steps:
-      - uses: grimfeld/agentic-metrics/action@cd4d821a55d883d465630f2bb64ce0a422764f54 # main
+      - uses: grimfeld/agentic-metrics/action@759d4af7a65ec5b89958833a55b2744b8ce26d52 # v0.4.0
         with:
           branch-regex: '^(\d+)(?=[-_/]|$)|(?:^|[-_/])(?:issues?|tickets?|spec|gh|fix|bug|feat|feature)[-_/]?(\d+)(?=[-_/]|$)'
           bug-label: 'bug'
