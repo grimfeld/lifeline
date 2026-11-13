@@ -8,7 +8,7 @@ import { PEOPLE_HREF } from "../constants";
 import { type ContactKind, type Person } from "../domain/types";
 import { ageOf, upcomingOccasions, whenOf } from "../domain/occasions";
 import { knownLine } from "../domain/person";
-import { contactAction, contactDetailsOf } from "../domain/contactDetails";
+import { quickContacts } from "../domain/contactDetails";
 import { livePerson, patchPerson } from "../data/repo";
 import { PersonFields } from "../components/PersonFields";
 import { Section } from "../components/Section";
@@ -71,36 +71,35 @@ function InlineText({ label, value, placeholder, required, onCommit, className }
   );
 }
 
-const QUICK: { kind: ContactKind; label: string; icon: typeof Phone }[] = [
-  { kind: "phone", label: "Call", icon: Phone },
-  { kind: "email", label: "Email", icon: Mail },
-  { kind: "handle", label: "Profile", icon: AtSign },
-];
+const QUICK: Record<ContactKind, { label: string; icon: typeof Phone }> = {
+  phone: { label: "Call", icon: Phone },
+  email: { label: "Email", icon: Mail },
+  handle: { label: "Profile", icon: AtSign },
+};
 
 /**
  * The page's contact buttons (#422): Call, Email and Profile, each the first
- * current detail of its kind. One with nothing behind it is dimmed, and adds.
+ * current detail of its kind. One with nothing behind it is dimmed, and adds
+ * a detail of its kind.
  */
-function ContactButtons({ person, onAdd }: { person: Person; onAdd: () => void }) {
-  const details = contactDetailsOf(person);
+function ContactButtons({ person, onAdd }: { person: Person; onAdd: (kind: ContactKind) => void }) {
   return (
     <div className="flex min-w-0 flex-wrap gap-4">
-      {QUICK.map(({ kind, label, icon: Icon }) => {
-        const detail = details.find((c) => c.kind === kind && !c.former);
-        const action = detail && contactAction(detail);
+      {quickContacts(person).map(({ kind, detail, action }) => {
+        const { label, icon: Icon } = QUICK[kind];
         const disc = (
           <span className={cn("flex size-10 items-center justify-center rounded-full", action ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
             <Icon className="size-4" />
           </span>
         );
         const tile = "focus-visible:ring-ring flex flex-col items-center gap-1 rounded-lg text-xs focus-visible:ring-2 focus-visible:outline-none";
-        return action ? (
+        return action && detail ? (
           <a key={kind} href={action.href} aria-label={`${label} ${detail.value}`} {...(action.external ? { target: "_blank", rel: "noopener noreferrer" } : {})} className={tile}>
             {disc}
             {label}
           </a>
         ) : (
-          <button key={kind} type="button" onClick={onAdd} aria-label={`${label}: add a contact detail`} className={cn(tile, "text-muted-foreground")}>
+          <button key={kind} type="button" onClick={() => onAdd(kind)} aria-label={`${label}: add a contact detail`} className={cn(tile, "text-muted-foreground")}>
             {disc}
             {label}
           </button>
@@ -163,7 +162,7 @@ export function PersonScreen() {
         </header>
 
         <div className="flex min-w-0 flex-wrap items-start gap-4">
-          <ContactButtons person={person} onAdd={() => detailDialog[1](BLANK_DETAIL)} />
+          <ContactButtons person={person} onAdd={(kind) => detailDialog[1]({ ...BLANK_DETAIL, kind })} />
           {next && (
             <Badge variant="secondary">
               {next.label} {whenOf(next.inDays)}

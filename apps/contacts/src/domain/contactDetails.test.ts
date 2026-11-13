@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ContactDetail } from "./types";
-import { contactAction, contactDetailsOf, markFormer, saveDetail, detailLabelProblem, detailValueProblem } from "./contactDetails";
+import { contactAction, contactDetailsOf, quickContacts, markFormer, saveDetail, detailLabelProblem, detailValueProblem } from "./contactDetails";
 
 const d = (over: Partial<ContactDetail>): ContactDetail => ({ id: "c1", label: "Mobile", kind: "phone", value: "", former: false, ...over });
 
@@ -89,5 +89,22 @@ describe("the list", () => {
     const list = [d({ id: "c1" }), d({ id: "c2" })];
     expect(markFormer(list, "c2", true)[1]?.former).toBe(true);
     expect(markFormer(markFormer(list, "c2", true), "c2", false)[1]?.former).toBe(false);
+  });
+});
+
+describe("the Person page's Call, Email and Profile", () => {
+  const quick = (...contactDetails: ContactDetail[]) => quickContacts({ contactDetails }).map((q) => [q.kind, q.detail?.id ?? null, q.action?.href ?? null]);
+  it("uses each kind's first current detail, skipping a former one ahead of it", () => {
+    expect(quick(d({ id: "old", value: "+33 1 00 00 00 00", former: true }), d({ id: "now", value: "+33 6 12 34 56 78" }), d({ id: "next", value: "+33 6 99 99 99 99" }))[0]).toEqual(["phone", "now", "tel:+33612345678"]);
+  });
+  it("names the kind to add when a Person has none of it", () => {
+    expect(quick(d({ id: "now", value: "+33 6 12 34 56 78" }))).toEqual([
+      ["phone", "now", "tel:+33612345678"],
+      ["email", null, null],
+      ["handle", null, null],
+    ]);
+  });
+  it("has no action for a current detail whose value is not usable, so it adds one of its kind", () => {
+    expect(quick(d({ id: "bad", kind: "email", value: "not an address" }))[1]).toEqual(["email", "bad", null]);
   });
 });

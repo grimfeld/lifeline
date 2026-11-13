@@ -161,6 +161,31 @@ test("a Person's Contact details are added through the dialog, act by kind, and 
   await expect.poll(async () => ((await inCore(page, async (core, i: string) => (await core.getDocument(i)) as never, id)) as { contactDetails?: { label: string; former: boolean }[] }).contactDetails?.map((c) => `${c.label}:${c.former}`)).toEqual(["Mobile:true", "Work:false"]);
 });
 
+test("the Person page's Call uses the first current number, and a dimmed Email adds an email", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  const contactDetails = [
+    { id: "c1", label: "Old", kind: "phone", value: "+33 1 11 11 11 11", former: true },
+    { id: "c2", label: "Mobile", kind: "phone", value: "+33 6 12 34 56 78", former: false },
+  ];
+  const id = await inCore(page, async (core, a: { type: string; contactDetails: unknown }) => (await core.createDocument({ type: a.type, title: "Anne Dupont", fields: { contactDetails: a.contactDetails } })).id as string, { type: PERSON, contactDetails });
+  await page.goto(`/app/people/person/${id}`);
+  await workLocally(page);
+
+  // The former number comes first in the list, yet Call skips it.
+  await expect(page.getByRole("link", { name: "Call +33 6 12 34 56 78" })).toHaveAttribute("href", "tel:+33612345678");
+  await expect(page.getByRole("link", { name: /^Call / })).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Email: add a contact detail" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add a contact detail" });
+  await expect(dialog.getByLabel("Kind")).toContainText("Email");
+  await dialog.getByLabel("Label").fill("Work");
+  await dialog.getByLabel("Value").fill("anne@example.org");
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole("link", { name: "Email anne@example.org" })).toHaveAttribute("href", "mailto:anne@example.org");
+});
+
 test("the People home lists Everyone, searched by name and alias and filtered by Relationship and Tag", async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);

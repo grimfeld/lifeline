@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex, type Document, type DocumentTypeDef } from "@lifeline/core";
 import { personTypeDef } from "../types";
-import { drifting, groupByRelationship } from "./drifting";
+import { drifting, driftingFrom, groupByRelationship, lastDays } from "./drifting";
 import type { Person } from "./types";
 
 const base = { folder: "", tags: [], createdAt: "2026-01-01", updatedAt: "", deleted: 0 as const };
@@ -70,6 +70,19 @@ describe("Drifting", () => {
   });
   it("still leaves out a never-seen Person with no Relationship or excluded", () => {
     expect(names(drifting(idx, [P("Nobody", { relationship: "" }), P("Left", { excludedFromDrifting: true })], { today }))).toEqual([]);
+  });
+});
+
+describe("Drifting from the last days already worked out", () => {
+  it("is what drifting finds, by Seen or by Mentioned", () => {
+    for (const source of ["seen", "mentioned"] as const) expect(driftingFrom(people, lastDays(idx, people, { source, today }), today)).toEqual(drifting(idx, people, { source, today }));
+  });
+  it("gives each Person their last day, undefined when never", () => {
+    const last = lastDays(idx, people, { source: "seen", today });
+    // Cy is on an Event in August and on a Day in October: seen then, mentioned since.
+    expect(last.get("Cy")).toBe("2026-08-20");
+    expect(lastDays(idx, people, { source: "mentioned", today }).get("Cy")).toBe("2026-10-01");
+    expect(lastDays(idx, [P("New")], { source: "seen", today }).get("New")).toBeUndefined();
   });
 });
 

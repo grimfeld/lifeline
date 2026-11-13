@@ -1,8 +1,6 @@
-import { useMemo, useState } from "react";
-import { formatHuman, todayStr, useLinkIndex } from "@lifeline/core";
+import { formatHuman } from "@lifeline/core";
 import { Button, Tip, ToggleGroup, ToggleGroupItem } from "@lifeline/ui";
-import { DRIFTING_DAYS, drifting, type DriftSource } from "../domain/drifting";
-import type { Person } from "../domain/types";
+import { DRIFTING_DAYS, type Drifter, type DriftSource } from "../domain/drifting";
 import { patchPerson } from "../data/repo";
 import { PersonRowLink, RelationshipLabel } from "./PersonRow";
 import { writeOrSay } from "./writes";
@@ -12,16 +10,12 @@ import { Section } from "./Section";
  * Drifting on the People home (#404 story 70): who I have lost touch with —
  * the never seen first, then the longest unseen. Not seen in 90 days, or
  * switched to Not mentioned. Derived and never a reminder; "Leave out" drops
- * someone from it, and their page brings them back.
+ * someone from it, and their page brings them back. The People home works
+ * the rows out and holds the switch, so Everyone's badges follow it.
  */
-export function DriftingSection({ people }: { people: readonly Person[] }) {
-  const [source, setSource] = useState<DriftSource>("seen");
-  const index = useLinkIndex();
-  const today = todayStr();
-  const rows = useMemo(() => drifting(index, people, { source, today }), [index, people, source, today]);
-
+export function DriftingSection({ rows, source, onSourceChange }: { rows: readonly Drifter[]; source: DriftSource; onSourceChange: (source: DriftSource) => void }) {
   const toggle = (
-    <ToggleGroup value={source} onValueChange={(v) => setSource(v as DriftSource)} aria-label="Drifting by">
+    <ToggleGroup value={source} onValueChange={(v) => onSourceChange(v as DriftSource)} aria-label="Drifting by">
       <ToggleGroupItem value="seen" aria-label="Not seen">
         Not seen
       </ToggleGroupItem>
