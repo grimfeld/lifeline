@@ -3,6 +3,7 @@ import { documentType, formatHuman, linkFieldLabel, singularOf, todayStr, useLin
 import { cn } from "@lifeline/ui";
 import type { Person } from "../domain/types";
 import { upcomingOccasions, whenOf } from "../domain/occasions";
+import { dotJoin, monthLabel } from "../domain/dots";
 import { timelineMonths, timelineOf } from "../domain/timeline";
 import { Section } from "../components/Section";
 
@@ -17,7 +18,7 @@ function Stop({ strong, children }: { strong?: boolean; children: ReactNode }) {
   );
 }
 
-const monthName = (month: string) => (month ? new Date(`${month}-15T12:00:00`).toLocaleDateString(undefined, { month: "long", year: "numeric" }) : "Undated");
+const monthName = (month: string) => (month ? monthLabel(month, { month: "long", year: "numeric" }) : "Undated");
 
 /**
  * A Person's timeline (#422): their Occasions in the year ahead above a
@@ -63,7 +64,7 @@ export function TimelineSection({ person }: { person: Person }) {
                     <button type="button" onClick={() => void openPeek(e.sourceId)} className="hover:bg-accent focus-visible:ring-ring -mx-1 block w-full min-w-0 rounded-md px-1 text-left focus-visible:ring-2 focus-visible:outline-none">
                       <span className="block min-w-0 truncate text-sm">{e.title || "Untitled"}</span>
                       <span className="text-muted-foreground block min-w-0 truncate text-xs">
-                        {[def && singularOf(def), e.day && formatHuman(e.day), how].filter(Boolean).join(" · ")}
+                        {dotJoin([def && singularOf(def), e.day && formatHuman(e.day), how])}
                       </span>
                     </button>
                   </Stop>

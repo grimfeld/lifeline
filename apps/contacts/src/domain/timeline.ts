@@ -5,8 +5,8 @@ export interface TimelineEntry {
   sourceId: string;
   type: string;
   title: string;
-  /** The Document's own day: its date, a Day's title, else the day it last changed. */
-  day: DateStr;
+  /** The Document's own day: its date, a Day's title, else the day it last changed; null when it has none. */
+  day: DateStr | null;
   /** The Link field it links through (an Event's With); none when it names them in its text. */
   field?: string;
 }
@@ -21,13 +21,13 @@ function localDay(v: unknown): DateStr | undefined {
   return Number.isNaN(t.getTime()) ? undefined : todayStr(t);
 }
 
-function dayOf(d: { type: string; title: string } & Record<string, unknown>): DateStr {
+function dayOf(d: { type: string; title: string } & Record<string, unknown>): DateStr | null {
   const own = d.type === "daily" ? d.title : d.date;
   for (const v of [own, d.updatedAt, d.createdAt]) {
     const day = localDay(v);
     if (day) return day;
   }
-  return "" as DateStr;
+  return null;
 }
 
 /**
@@ -44,14 +44,14 @@ export function timelineOf(index: LinkIndex, personId: string): TimelineEntry[] 
     if (had && (had.field || !b.field)) continue;
     byId.set(b.sourceId, { sourceId: b.sourceId, type: d.type, title: d.title, day: dayOf(d), ...(b.field ? { field: b.field } : {}) });
   }
-  return [...byId.values()].sort((a, b) => b.day.localeCompare(a.day) || a.title.localeCompare(b.title));
+  return [...byId.values()].sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || a.title.localeCompare(b.title));
 }
 
 /** The timeline by month ("2026-11"), newest month first, as `timelineOf` orders it. */
 export function timelineMonths(entries: readonly TimelineEntry[]): { month: string; entries: TimelineEntry[] }[] {
   const months: { month: string; entries: TimelineEntry[] }[] = [];
   for (const e of entries) {
-    const month = e.day.slice(0, 7);
+    const month = e.day?.slice(0, 7) ?? "";
     const last = months.at(-1);
     if (last?.month === month) last.entries.push(e);
     else months.push({ month, entries: [e] });

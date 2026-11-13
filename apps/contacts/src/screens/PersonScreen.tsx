@@ -3,10 +3,10 @@ import { Link, useParams } from "react-router";
 import { PERSON_TYPE, documentType, patchDocument, todayStr, useDocument, useLinkIndex, type Document } from "@lifeline/core";
 import { DocumentEditor } from "@lifeline/editor";
 import { Badge, Input, Page, PageHeader, cn, useCommitDraft } from "@lifeline/ui";
-import { ArrowLeft, AtSign, Mail, Phone } from "lucide-react";
+import { ArrowLeft, AtSign, Mail, Phone, Plus } from "lucide-react";
 import { PEOPLE_HREF } from "../constants";
 import { type ContactKind, type Person } from "../domain/types";
-import { ageOf, upcomingOccasions, whenOf } from "../domain/occasions";
+import { ageOf, upcomingOccasions } from "../domain/occasions";
 import { knownLine } from "../domain/person";
 import { quickContacts } from "../domain/contactDetails";
 import { livePerson, patchPerson } from "../data/repo";
@@ -17,6 +17,7 @@ import { AddressesSection } from "../components/AddressesSection";
 import { BLANK_DETAIL, ContactDetailsSection } from "../components/ContactDetailsSection";
 import type { DetailInput } from "../domain/contactDetails";
 import { EditToggle, EditingProvider } from "../components/Cards";
+import { NextOccasionBadge, TagBadges } from "../components/Badges";
 import { TiesSection } from "./TiesSection";
 import { ReportsSection } from "./ReportsSection";
 import { TimelineSection } from "./TimelineSection";
@@ -88,8 +89,14 @@ function ContactButtons({ person, onAdd }: { person: Person; onAdd: (kind: Conta
       {quickContacts(person).map(({ kind, detail, action }) => {
         const { label, icon: Icon } = QUICK[kind];
         const disc = (
-          <span className={cn("flex size-10 items-center justify-center rounded-full", action ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+          <span className={cn("relative flex size-10 items-center justify-center rounded-full", action ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
             <Icon className="size-4" />
+            {/* Nothing behind it: a plus says pressing adds a detail rather than calls. */}
+            {!action && (
+              <span aria-hidden className="bg-background text-foreground absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border">
+                <Plus className="size-3" />
+              </span>
+            )}
           </span>
         );
         const tile = "focus-visible:ring-ring flex flex-col items-center gap-1 rounded-lg text-xs focus-visible:ring-2 focus-visible:outline-none";
@@ -124,7 +131,7 @@ export function PersonScreen() {
   const [editing, setEditing] = useState(false);
   // Only the body and its Tags are written from the editor, so a Field changed above is never sent back as it was.
   const saveBody = useCallback((next: Document) => patchDocument(next.id, { body: next.body, tags: next.tags }), []);
-  const detailDialog = useState<DetailInput | null>(null);
+  const [detailEditing, setDetailEditing] = useState<DetailInput | null>(null);
 
   if (!person) {
     return (
@@ -136,7 +143,7 @@ export function PersonScreen() {
   }
 
   const today = todayStr();
-  const known = knownLine({ relationship: "", aliases: person.aliases }, ageOf(person.occasions ?? [], today));
+  const known = knownLine(person.aliases, ageOf(person.occasions ?? [], today));
   const next = upcomingOccasions([person], today, 364)[0];
   return (
     <EditingProvider value={editing}>
@@ -162,19 +169,14 @@ export function PersonScreen() {
         </header>
 
         <div className="flex min-w-0 flex-wrap items-start gap-4">
-          <ContactButtons person={person} onAdd={(kind) => detailDialog[1]({ ...BLANK_DETAIL, kind })} />
-          {next && (
-            <Badge variant="secondary">
-              {next.label} {whenOf(next.inDays)}
-              {next.age !== null && ` · turns ${next.age}`}
-            </Badge>
-          )}
+          <ContactButtons person={person} onAdd={(kind) => setDetailEditing({ ...BLANK_DETAIL, kind })} />
+          {next && <NextOccasionBadge next={next} variant="secondary" />}
         </div>
 
         {/* A grid track of 22rem: the cards' column, wide enough for an Address on two lines. */}
-        <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] md:gap-10">
+        <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] md:gap-6">
           <div className="grid min-w-0 content-start gap-6">
-            <ContactDetailsSection person={person} dialog={detailDialog} />
+            <ContactDetailsSection person={person} editing={detailEditing} onEditing={setDetailEditing} />
             <AddressesSection person={person} />
             <OccasionsSection person={person} />
             <TiesSection person={person} />
@@ -185,11 +187,7 @@ export function PersonScreen() {
             ) : (
               (person.tags.length > 0 || person.excludedFromDrifting) && (
                 <div className="flex min-w-0 flex-wrap gap-1">
-                  {person.tags.map((t) => (
-                    <Badge key={t} variant="secondary" className="max-w-full">
-                      <span className="min-w-0 truncate">#{t}</span>
-                    </Badge>
-                  ))}
+                  <TagBadges tags={person.tags} variant="secondary" />
                   {person.excludedFromDrifting && <Badge variant="outline">Left out of Drifting</Badge>}
                 </div>
               )

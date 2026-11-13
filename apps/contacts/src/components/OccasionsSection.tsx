@@ -3,6 +3,7 @@ import { Button, Checkbox, ChoiceField, DatePicker, Dialog, DialogContent, Dialo
 import { CalendarHeart } from "lucide-react";
 import { todayStr } from "@lifeline/core";
 import type { Occasion, Person } from "../domain/types";
+import { dotJoin } from "../domain/dots";
 import { describeDay, isBirthday, occasionDayProblem, occasionLabelProblem, upcomingOccasions, whenOf } from "../domain/occasions";
 import { addOccasion, editOccasion, removePart, restorePart } from "../data/repo";
 import { asksMonthDay, dayWhenNoYear, daysIn, monthDay, occasionDraft, occasionInput, pickerDay, type OccasionDraft } from "../domain/occasionForm";
@@ -31,7 +32,7 @@ export function OccasionsSection({ person }: { person: Person }) {
               key={o.id}
               icon={<CalendarHeart className="size-4" />}
               title={<span className="font-medium">{isBirthday(o) ? "🎂 " : ""}{o.label}</span>}
-              sub={[describeDay(o.day), o.yearly ? "every year" : "once", u && whenOf(u.inDays), u?.age != null && `turns ${u.age}`].filter(Boolean).join(" · ")}
+              sub={dotJoin([describeDay(o.day), o.yearly ? "every year" : "once", u && whenOf(u.inDays), u?.age != null && `turns ${u.age}`])}
               editLabel={`Edit ${o.label}`}
               onEdit={() => setEditing(o)}
               removeLabel={`Remove ${o.label}`}

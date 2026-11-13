@@ -11,7 +11,7 @@ import { activeFilter, byLetter, everyone, lastSeenLabel, relationshipsOf, rowNe
 import { type Person } from "../domain/types";
 import { personHref } from "../constants";
 import { driftingFrom, lastDays, type DriftSource } from "../domain/drifting";
-import { whenOf } from "../domain/occasions";
+import { NextOccasionBadge, TagBadges } from "../components/Badges";
 import { usePeople } from "../data/repo";
 
 const ANY = "__any__";
@@ -33,22 +33,13 @@ function PersonRow({ person, lastSeen, news, showRelationship }: { person: Perso
               <span className="min-w-0 truncate">{person.relationship}</span>
             </Badge>
           )}
-          {soon && (
-            <Badge variant="default">
-              {soon.label} {whenOf(soon.inDays)}
-              {soon.age !== null && ` · ${soon.age}`}
-            </Badge>
-          )}
+          {soon && <NextOccasionBadge next={soon} variant="default" bareAge />}
           {drift !== undefined && (
             <Badge variant="outline" className="text-warning">
               {drift === null ? "drifting" : `drifting · ${drift} days`}
             </Badge>
           )}
-          {person.tags.map((t) => (
-            <Badge key={t} variant="outline" className="max-w-full">
-              <span className="min-w-0 truncate">#{t}</span>
-            </Badge>
-          ))}
+          <TagBadges tags={person.tags} variant="outline" />
         </span>
         <span className="text-muted-foreground ml-auto shrink-0 text-xs tabular-nums">{lastSeenLabel(lastSeen)}</span>
       </Link>
@@ -148,6 +139,7 @@ export function PeopleScreen() {
               <p className="text-muted-foreground text-sm">Nobody matches that.</p>
             ) : (
               <div className="grid min-w-0 gap-4">
+                {/* Each letter's section has a 2rem track for the letter: one capital, with room before the names. */}
                 {byLetter(shown).map(([letter, ps]) => (
                   <section key={letter} className="grid min-w-0 gap-1 md:grid-cols-[2rem_minmax(0,1fr)]">
                     <h3 className="text-muted-foreground px-2 pt-2 text-sm font-medium md:px-0">{letter}</h3>

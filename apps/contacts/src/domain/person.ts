@@ -1,3 +1,4 @@
+import { dotJoin } from "./dots";
 import { QUICK_MAKE_MAX, initialText, type Handoff } from "@lifeline/core";
 
 /**
@@ -11,10 +12,9 @@ export function nameFromHandoff(handoff: Handoff): string {
   return handoff.title.trim();
 }
 
-/** The line under a Person's name: "65 years old · my mother · also Mum, Maman", leaving out what is not known. */
-export function knownLine(person: { relationship: string; aliases: readonly string[] }, age: number | null): string {
-  const parts = [age === null ? "" : `${age} years old`, person.relationship, person.aliases.length ? `also ${person.aliases.join(", ")}` : ""];
-  return parts.filter(Boolean).join(" · ");
+/** The line under a Person's name: "65 years old · also Mum, Maman", leaving out what is not known. */
+export function knownLine(aliases: readonly string[], age: number | null): string {
+  return dotJoin([age === null ? "" : `${age} years old`, aliases.length ? `also ${aliases.join(", ")}` : ""]);
 }
 
 /** The name an Add person dialog opens with: from a Handoff when it has one, else from the caller's initial values. */
