@@ -1,4 +1,4 @@
-import { todayStr, type DateStr, type LinkIndex } from "@lifeline/core";
+import { DAY_TYPE, todayStr, type DateStr, type LinkIndex } from "@lifeline/core";
 
 /** One thing on a Person's timeline (#422): a Document that links to them, on its own day. */
 export interface TimelineEntry {
@@ -22,7 +22,7 @@ function localDay(v: unknown): DateStr | undefined {
 }
 
 function dayOf(d: { type: string; title: string } & Record<string, unknown>): DateStr | null {
-  const own = d.type === "daily" ? d.title : d.date;
+  const own = d.type === DAY_TYPE ? d.title : d.date;
   for (const v of [own, d.updatedAt, d.createdAt]) {
     const day = localDay(v);
     if (day) return day;
@@ -47,11 +47,11 @@ export function timelineOf(index: LinkIndex, personId: string): TimelineEntry[] 
   return [...byId.values()].sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || a.title.localeCompare(b.title));
 }
 
-/** The timeline by month ("2026-11"), newest month first, as `timelineOf` orders it. */
-export function timelineMonths(entries: readonly TimelineEntry[]): { month: string; entries: TimelineEntry[] }[] {
-  const months: { month: string; entries: TimelineEntry[] }[] = [];
+/** The timeline by month ("2026-11"; null for what has no day), newest month first, as `timelineOf` orders it. */
+export function timelineMonths(entries: readonly TimelineEntry[]): { month: string | null; entries: TimelineEntry[] }[] {
+  const months: { month: string | null; entries: TimelineEntry[] }[] = [];
   for (const e of entries) {
-    const month = e.day?.slice(0, 7) ?? "";
+    const month = e.day?.slice(0, 7) ?? null;
     const last = months.at(-1);
     if (last?.month === month) last.entries.push(e);
     else months.push({ month, entries: [e] });
