@@ -44,10 +44,14 @@ export function tieCandidates(personId: string, people: readonly Pick<Person, "i
   return people.filter((p) => p.id !== personId).map((p) => ({ value: p.id, label: p.title, keywords: p.aliases, ...(p.relationship ? { description: p.relationship } : {}) }));
 }
 
-/** The Tie dialog's two questions, naming the other Person once they are known. */
-export function tieQuestions(otherName: string): { label: string; ownLabel: string } {
-  if (!otherName) return { label: "They are my…", ownLabel: "I am their…" };
-  return { label: `${otherName} is my…`, ownLabel: `I am ${otherName}'s…` };
+/**
+ * The Tie dialog's two questions, asked from `personName`'s page. A Tie is
+ * between two People, never to me, so both name the People; the other one
+ * once they are picked.
+ */
+export function tieQuestions(personName: string, otherName: string): { label: string; ownLabel: string } {
+  if (!otherName) return { label: `They are ${personName}'s…`, ownLabel: `${personName} is their…` };
+  return { label: `${otherName} is ${personName}'s…`, ownLabel: `${personName} is ${otherName}'s…` };
 }
 
 /** What the Tie dialog holds: the other Person's id ("" until picked) and the two words, as this page reads them. */

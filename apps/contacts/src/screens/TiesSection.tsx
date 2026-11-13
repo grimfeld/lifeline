@@ -24,7 +24,7 @@ function TieDialog({ person, row, onOpenChange }: { person: Person; row?: TieRow
   const set = (patch: Partial<TieDraft>) => setDraft((d) => ({ ...d, ...patch }));
   const options = useMemo(() => tieCandidates(person.id, people), [people, person.id]);
   const otherName = otherNameOf(people, draft.otherId, row);
-  const questions = tieQuestions(otherName);
+  const questions = tieQuestions(person.title, otherName);
 
   async function save() {
     try {

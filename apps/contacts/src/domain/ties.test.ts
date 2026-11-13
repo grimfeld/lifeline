@@ -55,8 +55,8 @@ describe("the Tie dialog", () => {
     expect(otherNameOf([anne], "p2", { otherName: "Léa" })).toBe("Léa");
     expect(otherNameOf([anne, lea], "", undefined)).toBe("");
   });
-  it("asks about the other Person by name once they are known", () => {
-    expect(tieQuestions("Léa")).toEqual({ label: "Léa is my…", ownLabel: "I am Léa's…" });
-    expect(tieQuestions("")).toEqual({ label: "They are my…", ownLabel: "I am their…" });
+  it("asks how the two People stand to each other, never about me", () => {
+    expect(tieQuestions("Anne", "Léa")).toEqual({ label: "Léa is Anne's…", ownLabel: "Anne is Léa's…" });
+    expect(tieQuestions("Anne", "")).toEqual({ label: "They are Anne's…", ownLabel: "Anne is their…" });
   });
 });

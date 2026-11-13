@@ -27,8 +27,8 @@ test("a Tie entered on Anne's page reads from Léa's, is edited from there, and 
   const dialog = page.getByRole("dialog", { name: "Add a tie" });
   await dialog.getByRole("combobox").fill("Lé");
   await page.getByRole("option", { name: /Léa/ }).click();
-  await dialog.getByLabel("Léa is my…").fill("daughter");
-  await dialog.getByLabel("I am Léa's…").fill("mother");
+  await dialog.getByLabel("Léa is Anne's…").fill("daughter");
+  await dialog.getByLabel("Anne is Léa's…").fill("mother");
   await dialog.getByRole("button", { name: "Add" }).click();
   await expect(ties).toContainText("daughter: Léa");
 
@@ -43,7 +43,7 @@ test("a Tie entered on Anne's page reads from Léa's, is edited from there, and 
   await expect(ties).toContainText("mother: Anne");
   await ties.getByRole("button", { name: "Edit tie with Anne" }).click();
   const edit = page.getByRole("dialog", { name: "Edit tie" });
-  await edit.getByLabel("Anne is my…").fill("mum");
+  await edit.getByLabel("Anne is Léa's…").fill("mum");
   await edit.getByRole("button", { name: "Save" }).click();
   await expect(ties).toContainText("mum: Anne");
   await page.goto(`/app/people/person/${anne}`);
