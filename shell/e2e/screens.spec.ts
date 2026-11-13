@@ -402,6 +402,20 @@ async function longAddresses(page: Page) {
   await expect(page.getByTestId("address")).toHaveCount(3);
 }
 
+/** A Relationship as long as a person could type, so the People filter row holds a long toggle. */
+async function longRelationship(page: Page) {
+  await workLocally(page);
+  await inCore(
+    page,
+    async (core, a: { long: string }) => {
+      const [doc] = await core.documentsOf("contacts_person");
+      await core.patchDocument(doc.id, { relationship: `${a.long} ${a.long}` });
+    },
+    { long: longText("A relationship") },
+  );
+  await expect(page.getByText(/^A relationship/).first()).toBeVisible();
+}
+
 async function longContactDetails(page: Page) {
   await workLocally(page);
   const id = new URL(page.url()).pathname.split("/").pop()!;
@@ -882,8 +896,9 @@ const SCREENS: ScreenCase[] = [
   { name: "Quotes", path: "/app/quotes" },
   { name: "Museum", path: "/app/museum" },
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
-  { name: "People", path: "/app/people" },
+  { name: "People", path: "/app/people", afterOpen: longRelationship },
   { name: "Person", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); } },
+  { name: "Person · Edit", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); await page.getByRole("button", { name: "Edit", exact: true }).click(); } },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },

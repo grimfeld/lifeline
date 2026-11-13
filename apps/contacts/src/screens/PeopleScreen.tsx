@@ -149,8 +149,8 @@ export function PeopleScreen() {
                       <ToggleGroup aria-label="Relationship" value={activeRelationship || ANY} onValueChange={(v) => setRelationship(v === ANY ? "" : v)}>
                         <ToggleGroupItem value={ANY}>Everyone</ToggleGroupItem>
                         {relationships.map((r) => (
-                          <ToggleGroupItem key={r} value={r}>
-                            {r}
+                          <ToggleGroupItem key={r} value={r} title={r} className="min-w-0">
+                            <span className="max-w-[16rem] min-w-0 truncate">{r}</span>
                           </ToggleGroupItem>
                         ))}
                       </ToggleGroup>
