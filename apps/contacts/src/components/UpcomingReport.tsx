@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { personHref } from "../constants";
 import { formatHuman, todayStr, type CardProps } from "@lifeline/core";
 import { usePeople } from "../data/repo";
-import { monthLabel } from "../domain/dots";
+import { monthLabel } from "./format";
 import { upcomingOccasions, whenOf, type UpcomingOccasion } from "../domain/occasions";
 import { PersonRowLink } from "./PersonRow";
 import { Section } from "./Section";

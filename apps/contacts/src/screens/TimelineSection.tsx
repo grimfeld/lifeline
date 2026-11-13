@@ -3,7 +3,8 @@ import { documentType, formatHuman, linkFieldLabel, singularOf, todayStr, useLin
 import { cn } from "@lifeline/ui";
 import type { Person } from "../domain/types";
 import { upcomingOccasions, whenOf } from "../domain/occasions";
-import { dotJoin, monthLabel } from "../domain/dots";
+import { dotJoin } from "../domain/dots";
+import { monthLabel } from "../components/format";
 import { timelineMonths, timelineOf } from "../domain/timeline";
 import { Section } from "../components/Section";
 
