@@ -15,15 +15,20 @@ type ControlProps = {
  * Field gives it an id for the Label (or uses the one it has), names the hint and
  * error as its description, and sets `aria-invalid` while there is an error — so
  * the kit's invalid styling shows and a screen reader reads the message with it.
+ * `hideLabel` keeps the Label for screen readers only, where what stands around the
+ * control already says what it is (a value edited where it is shown).
  */
 function Field({
   label,
   hint,
   error,
+  hideLabel,
   className,
   children,
 }: {
   label: React.ReactNode
+  /** Read by screen readers, not shown. */
+  hideLabel?: boolean
   hint?: React.ReactNode
   /** What is wrong with the value, shown under the control. Empty = valid. */
   error?: React.ReactNode
@@ -40,7 +45,9 @@ function Field({
     undefined
   return (
     <div data-slot="field" className={cn("grid gap-2", className)}>
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className={hideLabel ? "sr-only" : undefined}>
+        {label}
+      </Label>
       {React.cloneElement(children, {
         id,
         "aria-describedby": describedBy,
