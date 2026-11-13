@@ -409,7 +409,7 @@ async function longRelationship(page: Page) {
     page,
     async (core, a: { long: string }) => {
       const [doc] = await core.documentsOf("contacts_person");
-      await core.patchDocument(doc.id, { relationship: `${a.long} ${a.long}` });
+      await core.patchDocument(doc!.id, { relationship: `${a.long} ${a.long}` });
     },
     { long: longText("A relationship") },
   );
