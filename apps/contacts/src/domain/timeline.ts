@@ -1,4 +1,4 @@
-import type { DateStr, LinkIndex } from "@lifeline/core";
+import { todayStr, type DateStr, type LinkIndex } from "@lifeline/core";
 
 /** One thing on a Person's timeline (#422): a Document that links to them, on its own day. */
 export interface TimelineEntry {
@@ -11,10 +11,22 @@ export interface TimelineEntry {
   field?: string;
 }
 
-const DAY = /^\d{4}-\d{2}-\d{2}/;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-function dayOf(d: Record<string, unknown>): DateStr {
-  for (const v of [d.date, d.title, d.updatedAt, d.createdAt]) if (typeof v === "string" && DAY.test(v)) return v.slice(0, 10) as DateStr;
+/** A date-only value as is; a timestamp as the local day it falls on (what todayStr says). */
+function localDay(v: unknown): DateStr | undefined {
+  if (typeof v !== "string") return undefined;
+  if (DAY.test(v)) return v;
+  const t = new Date(v);
+  return Number.isNaN(t.getTime()) ? undefined : todayStr(t);
+}
+
+function dayOf(d: { type: string; title: string } & Record<string, unknown>): DateStr {
+  const own = d.type === "daily" ? d.title : d.date;
+  for (const v of [own, d.updatedAt, d.createdAt]) {
+    const day = localDay(v);
+    if (day) return day;
+  }
   return "" as DateStr;
 }
 

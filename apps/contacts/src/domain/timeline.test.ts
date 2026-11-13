@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildLinkIndex, type Document, type DocumentTypeDef } from "@lifeline/core";
 import { personTypeDef } from "../types";
 import { timelineMonths, timelineOf } from "./timeline";
@@ -39,5 +39,24 @@ describe("a Person's timeline", () => {
   });
   it("is empty for someone nothing links to", () => {
     expect(timelineOf(idx, "nobody")).toEqual([]);
+  });
+});
+
+describe("an undated entry's day", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  const timelineWith = (extra: object) => {
+    const note = { ...base, id: "n", type: "note", title: "Gift ideas", body: "for [[Anne]]", ...extra } as unknown as Document;
+    return timelineOf(buildLinkIndex([anne, note], types), "anne");
+  };
+  it("is the local day of the timestamp, not the UTC one", () => {
+    vi.stubEnv("TZ", "America/New_York"); // UTC-5 in winter
+    // 23:30 on 30 Nov local is 04:30 on 1 Dec UTC.
+    const [e] = timelineWith({ updatedAt: "2026-12-01T04:30:00Z" });
+    expect(e?.day).toBe("2026-11-30");
+    expect(timelineMonths([e!]).map((m) => m.month)).toEqual(["2026-11"]);
+  });
+  it("ignores a date in the title of a note, but not of a Day", () => {
+    vi.stubEnv("TZ", "UTC");
+    expect(timelineWith({ title: "2025-01-01 resolutions", updatedAt: "2026-06-30T10:00:00Z" })[0]?.day).toBe("2026-06-30");
   });
 });
