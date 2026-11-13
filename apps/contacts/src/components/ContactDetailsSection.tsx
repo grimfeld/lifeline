@@ -43,7 +43,7 @@ export function ContactDetailsSection({ person, dialog }: { person: Person; dial
               icon={<Icon className="size-4" />}
               title={<DetailValue detail={c} />}
               sub={c.label}
-              editLabel={`Edit ${c.label}`}
+              editLabel={`Edit ${c.label}: ${c.value}`}
               onEdit={() => setEditing(c)}
               removeLabel={`Remove ${c.label}`}
               onRemove={() => void removeWithUndo(c.label, () => removePart(person.id, "contactDetails", c.id), (r) => restorePart(person.id, "contactDetails", r))}

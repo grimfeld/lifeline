@@ -148,13 +148,16 @@ test("a Person's Contact details are added through the dialog, act by kind, and 
 
   // Edited, then removed.
   await page.getByRole("button", { name: "Edit", exact: true }).click();
-  await section.getByRole("button", { name: "Edit Work" }).click();
+  await section.getByRole("button", { name: "Edit Work: anne@example.org" }).click();
   await page.getByLabel("Value").fill("anne@work.example.org");
   await page.getByRole("button", { name: "Save" }).click();
   await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(section.getByRole("link", { name: "anne@work.example.org" })).toBeVisible();
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   await section.getByRole("button", { name: "Remove Instagram" }).click();
+  // Removing a row hands the keyboard to the next one (the former Mobile, listed last), and the toggle only swaps its label.
+  await expect(section.getByRole("button", { name: /^Edit Mobile/ })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Done", exact: true })).not.toHaveAttribute("aria-pressed");
   await expect.poll(async () => ((await inCore(page, async (core, i: string) => (await core.getDocument(i)) as never, id)) as { contactDetails?: { label: string; former: boolean }[] }).contactDetails?.map((c) => `${c.label}:${c.former}`)).toEqual(["Mobile:true", "Work:false"]);
 });
 
@@ -165,6 +168,8 @@ test("the People home lists Everyone, searched by name and alias and filtered by
   const everyone = page.getByRole("region", { name: "Everyone" });
   await expect(everyone.getByRole("link").first()).toBeVisible();
   const before = await everyone.getByRole("link").count();
+  // A letter heads its group; it is no landmark of its own.
+  await expect(page.getByRole("region", { name: /^[A-Z]$/ })).toHaveCount(0);
 
   await inCore(
     page,
