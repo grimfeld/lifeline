@@ -248,7 +248,7 @@ export interface CommandCtx {
  * Value shapes a Command argument takes. `json` is a structured value whose shape `hint` spells out (a Task's recurrence);
  * `rows` is a list of records, each checked against the argument's own `of` signature (a Receipt's Lines, ADR 0075).
  */
-export type CommandArgKind = "text" | "longtext" | "number" | "boolean" | "date" | "time" | "select" | "multiselect" | "list" | "link" | "json" | "rows";
+export type CommandArgKind = "text" | "longtext" | "number" | "boolean" | "date" | "time" | "select" | "multiselect" | "list" | "link" | "links" | "json" | "rows";
 
 /** One argument of a Command's signature (CONTEXT.md "Command"). */
 export interface CommandArg {
@@ -258,9 +258,9 @@ export interface CommandArg {
   required?: boolean;
   /** select / multiselect. */
   options?: FieldOption[];
-  /** link: the Document type (or family) the id must belong to. */
+  /** link / links: the Document type (or family) each id must belong to. */
   linkType?: string | string[];
-  /** link: the Role (ADR 0069) the Document must play; wins over `linkType`. */
+  /** link / links: the Role (ADR 0069) the Document must play; wins over `linkType`. */
   linkRole?: string;
   /** What the value means, for a caller with no dialog to look at — an agent (ADR 0062). */
   hint?: string;

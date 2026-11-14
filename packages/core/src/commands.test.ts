@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { argProblems, commandRun, initialList, initialMoment, initialNumber, initialText, invokeCommand, linkProblemText, matchLink, momentOf, pickLinked, readCommandArgs } from "./commands";
+import { argProblems, commandRun, initialList, initialMoment, initialNumber, initialText, invokeCommand, linkProblemText, matchLink, matchLinks, momentOf, pickLinked, pickLinks, readCommandArgs } from "./commands";
 import type { CommandArg, CommandDef } from "./manifest";
 
 const ARGS: CommandArg[] = [
@@ -152,6 +152,44 @@ describe("link arguments: an id, the title or an alias, never a guess", () => {
 
   it("says each problem in words", () => {
     expect(linkProblemText({ kind: "unknown", label: "Person", value: "Bob" })).toBe("No Person called “Bob”");
+  });
+});
+
+describe("list-of-links arguments: each entry by the same rule, every problem at once", () => {
+  const WITH: CommandArg = { key: "with", label: "Person", kind: "links", linkType: "person" };
+  const docs = [
+    { id: "p1", type: "person", title: "Marc Lefèvre", aliases: ["Marco", "Marc"] },
+    { id: "p2", type: "person", title: "Zoé Martin" },
+    { id: "p3", type: "person", title: "Anne", aliases: ["Mum"] },
+    { id: "p4", type: "person", title: "Anna", aliases: ["Mum"] },
+    { id: "n1", type: "note", title: "Bob" },
+  ];
+
+  it("resolves each entry by id, title or alias, in the order given", () => {
+    expect(pickLinks(WITH, ["zoe martin", "Marco"], docs)).toEqual(["p2", "p1"]);
+    expect(pickLinks(WITH, ["p3"], docs)).toEqual(["p3"]);
+  });
+
+  it("names each Document once, where it first appears", () => {
+    expect(pickLinks(WITH, ["Marc", "Zoé Martin", "Marco", "p1", "marc lefevre"], docs)).toEqual(["p1", "p2"]);
+  });
+
+  it("takes an empty list as none", () => {
+    expect(pickLinks(WITH, [], docs)).toEqual([]);
+  });
+
+  it("collects every problem rather than stopping at the first", () => {
+    expect(matchLinks(WITH, ["Bob", "Mum", "Marco"], docs)).toEqual({
+      ids: ["p1"],
+      problems: [
+        { kind: "unknown", label: "Person", value: "Bob" },
+        { kind: "ambiguous", label: "Person", value: "Mum", candidates: [{ id: "p3", title: "Anne" }, { id: "p4", title: "Anna" }] },
+      ],
+    });
+  });
+
+  it("refuses with all the problems in one message", () => {
+    expect(() => pickLinks(WITH, ["Bob", "Mum", "Marco"], docs)).toThrow("No Person called “Bob”; “Mum” is more than one Person: Anne (id p3), Anna (id p4). Pass the id of the one meant");
   });
 });
 
