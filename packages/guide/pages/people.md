@@ -158,8 +158,8 @@ if you have added something since.
 
 - **Add person…** — a new Person, from their name alone. Where: the Capture sheet, the palette
   (Ctrl+K).
-- **Add occasion…** — a birthday, anniversary or other Occasion for a Person found by name or
-  alias; it has no screen, and is how Claude adds Occasions (`people_occasion_add`). Where: Claude
+- **Add occasion…** — a birthday, anniversary or other Occasion for a Person found by name,
+  alias or id; it has no screen, and is how Claude adds Occasions (`people_occasion_add`). Where: Claude
   only.
 - **Go to People** — the People home. Where: the palette.
 
@@ -172,9 +172,11 @@ you can add someone you just met before you forget it.
 
 - "Add my aunt Anne Dupont, I call her Mum" — `people_add`, with a name, aliases, a
   Relationship and Tags.
-- "Anne's birthday is 12 November 1961" — `people_occasion_add`, for the Person found by name or
-  alias, with a label, a day (the year optional) and yearly or once. An unknown name, or one
-  that two People share, is refused and Claude asks which.
+- "Anne's birthday is 12 November 1961" — `people_occasion_add`, for the Person found by name,
+  alias or id (accents and case aside), with a label, a day (the year optional) and yearly or
+  once. An unknown name is refused; so is one that fits two People — a name they share, or one's
+  name and the other's alias — and the refusal lists each with their id, so Claude can ask which
+  and call again with it.
 - "Whose birthday is coming up?" — `people_upcoming` is the Upcoming Report for the next days,
   with the age each Birthday reaches; `agenda` lists Occasions too, as `occasion` entries apart
   from Deadlines, with the same age.

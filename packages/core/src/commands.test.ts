@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { argProblems, commandRun, initialList, initialMoment, initialNumber, initialText, invokeCommand, momentOf, pickLinked, readCommandArgs } from "./commands";
+import { argProblems, commandRun, initialList, initialMoment, initialNumber, initialText, invokeCommand, linkProblemText, matchLink, momentOf, pickLinked, readCommandArgs } from "./commands";
 import type { CommandArg, CommandDef } from "./manifest";
 
 const ARGS: CommandArg[] = [
@@ -101,30 +101,57 @@ describe("momentOf", () => {
   });
 });
 
-describe("pickLinked", () => {
+describe("link arguments: an id, the title or an alias, never a guess", () => {
   const STAT: CommandArg = { key: "stat", label: "Stat", kind: "link", linkType: "stat" };
   const docs = [
-    { id: "s1", type: "stat", title: "Weight" },
+    { id: "s1", type: "stat", title: "Weight", aliases: ["Poids"] },
     { id: "s2", type: "stat", title: "Steps" },
     { id: "s3", type: "stat", title: "steps" },
+    { id: "s4", type: "stat", title: "Café   consumed", aliases: [] },
+    { id: "s5", type: "stat", title: "Sleep", aliases: ["Rest"] },
+    { id: "s6", type: "stat", title: "Rest" },
     { id: "n1", type: "note", title: "Weight" },
+    { id: "n2", type: "note", title: "Mood", aliases: ["Humeur"] },
   ];
 
   it("takes an id of the right type", () => {
     expect(pickLinked(STAT, "s2", docs)).toBe("s2");
+    expect(matchLink(STAT, "s2", docs)).toEqual({ id: "s2" });
   });
 
-  it("takes an exact title, case-insensitive, of the right type only", () => {
+  it("takes a title compared as wikilinks are: case, accents and repeated spaces folded", () => {
     expect(pickLinked(STAT, "  weight ", docs)).toBe("s1");
+    expect(pickLinked(STAT, "cafe consumed", docs)).toBe("s4");
   });
 
-  it("refuses a title that matches nothing, never guessing", () => {
-    expect(() => pickLinked(STAT, "Weigth", docs)).toThrow('Stat: no stat called “Weigth”');
-    expect(() => pickLinked(STAT, "n1", docs)).toThrow("no stat called");
+  it("takes an alias the same way", () => {
+    expect(pickLinked(STAT, "poids", docs)).toBe("s1");
   });
 
-  it("refuses an ambiguous title and lists the candidates' ids", () => {
-    expect(() => pickLinked(STAT, "STEPS", docs)).toThrow(/2 stats are called “STEPS”.*s2.*s3/);
+  it("looks only among the Documents of the argument's type", () => {
+    expect(matchLink(STAT, "Humeur", docs)).toEqual({ problem: { kind: "unknown", label: "Stat", value: "Humeur" } });
+    expect(matchLink(STAT, "n1", docs)).toEqual({ problem: { kind: "unknown", label: "Stat", value: "n1" } });
+  });
+
+  it("refuses a name that matches nothing, in the argument's own noun", () => {
+    expect(() => pickLinked(STAT, "Weigth", docs)).toThrow("No Stat called “Weigth”");
+  });
+
+  it("refuses an ambiguous title, listing each candidate's title and id", () => {
+    expect(matchLink(STAT, "STEPS", docs)).toEqual({
+      problem: { kind: "ambiguous", label: "Stat", value: "STEPS", candidates: [{ id: "s2", title: "Steps" }, { id: "s3", title: "steps" }] },
+    });
+    expect(() => pickLinked(STAT, "STEPS", docs)).toThrow("“STEPS” is more than one Stat: Steps (id s2), steps (id s3). Pass the id of the one meant");
+  });
+
+  it("counts a title and another's alias alike: ambiguous, not the title", () => {
+    expect(matchLink(STAT, "rest", docs)).toEqual({
+      problem: { kind: "ambiguous", label: "Stat", value: "rest", candidates: [{ id: "s5", title: "Sleep" }, { id: "s6", title: "Rest" }] },
+    });
+  });
+
+  it("says each problem in words", () => {
+    expect(linkProblemText({ kind: "unknown", label: "Person", value: "Bob" })).toBe("No Person called “Bob”");
   });
 });
 

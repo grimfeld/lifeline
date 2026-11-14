@@ -30,6 +30,14 @@ vi.mock("@lifeline/core", async (importOriginal) => {
   };
 });
 
+// Core reads a link argument's candidates from its own store module, so it is stood in for there too.
+vi.mock("../../packages/core/src/documents/store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../packages/core/src/documents/store")>()),
+  getDocument: async (id: string) => docs.get(id),
+  allDocuments: async () => [...docs.values()],
+  documentsOf: async (type: string) => [...docs.values()].filter((d) => d.type === type),
+}));
+
 const { runTool } = await import("./handlers");
 // Through the manifest only, as the server takes it (apps.ts).
 const personTypeDef = contactsApp.types.find((t) => t.id === PERSON_TYPE)!;
@@ -80,9 +88,26 @@ describe("people_occasion_add", () => {
     await expect(runTool("people_occasion_add", { person: "Bob", label: "Birthday", day: "01-01" })).rejects.toThrow(/No Person called “Bob”/);
     expect(core.patchDocument).not.toHaveBeenCalled();
   });
-  it("refuses an ambiguous name, naming who it could be", async () => {
-    await expect(runTool("people_occasion_add", { person: "Mum", label: "Birthday", day: "01-01" })).rejects.toThrow(/ambiguous: Anne Dupont, Anna/);
+  it("refuses an ambiguous name, listing each Person's title and id", async () => {
+    await expect(runTool("people_occasion_add", { person: "Mum", label: "Birthday", day: "01-01" })).rejects.toThrow("“Mum” is more than one Person: Anne Dupont (id p1), Anna (id p2)");
     expect(core.patchDocument).not.toHaveBeenCalled();
+  });
+  it("refuses a name that is one Person's title and another's alias", async () => {
+    docs.set("p4", person("p4", "Mum"));
+    await expect(runTool("people_occasion_add", { person: "mum", label: "Birthday", day: "01-01" })).rejects.toThrow(/more than one Person: Anne Dupont \(id p1\), Anna \(id p2\), Mum \(id p4\)/);
+    expect(core.patchDocument).not.toHaveBeenCalled();
+  });
+  it("takes the Person by id, and by a name without its accents or with extra spaces", async () => {
+    await runTool("people_occasion_add", { person: "p2", label: "Name day", day: "07-26" });
+    expect(core.patchDocument).toHaveBeenLastCalledWith("p2", expect.anything());
+    docs.set("p4", person("p4", "Léa  Martin"));
+    await runTool("people_occasion_add", { person: " LEA martin ", label: "Birthday", day: "02-14" });
+    expect(core.patchDocument).toHaveBeenLastCalledWith("p4", expect.anything());
+  });
+  it("is described as taking an id, the title or an alias, under the key person", async () => {
+    const { TOOLS } = await import("./tools");
+    const tool = TOOLS.find((t) => t.name === "people_occasion_add")!;
+    expect(tool.input.person!.description).toMatch(/an id, the title or an alias/);
   });
   it("refuses a day that is none, or a once Occasion with no year", async () => {
     await expect(runTool("people_occasion_add", { person: "Anna", label: "Birthday", day: "13-40" })).rejects.toThrow(/real day/);

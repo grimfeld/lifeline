@@ -47,6 +47,14 @@ vi.mock("@lifeline/core", async (importOriginal) => {
   };
 });
 
+// Core reads a link argument's candidates from its own store module, so it is stood in for there too.
+vi.mock("../../packages/core/src/documents/store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../packages/core/src/documents/store")>()),
+  getDocument: async (id: string) => docs.get(id),
+  allDocuments: async () => [...docs.values()],
+  documentsOf: async (type: string) => [...docs.values()].filter((d) => d.type === type),
+}));
+
 const { runTool, WallRefused } = await import("./handlers");
 
 // Through the manifest only, as the server takes it (apps.ts).

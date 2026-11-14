@@ -38,7 +38,7 @@ const macro: OwnedCommand = {
 const setsMood: OwnedCommand = { ...headless("mood", "set", []), returnsDocument: undefined };
 const COMMANDS = [headless("pocket", "spend", AMOUNT), headless("notes", "add", SOURCE), headless("library", "add", []), goTo, dialogOnly, macro, setsMood];
 
-/** Two Sources, one of them a title twice over. */
+/** Sources: one a title twice over, one a title that is also another's alias. */
 const lookup: DocumentLookup = {
   linkable: async (arg) =>
     arg.linkType === "source"
@@ -46,6 +46,8 @@ const lookup: DocumentLookup = {
           { id: "dune", type: "source", title: "Dune" },
           { id: "e1", type: "source", title: "Emma" },
           { id: "e2", type: "source", title: "Emma" },
+          { id: "m1", type: "source", title: "Marc" },
+          { id: "m2", type: "source", title: "Marc Lefèvre", aliases: ["Marco", "marc"] },
         ]
       : [],
 };
@@ -118,8 +120,20 @@ describe("checkMacro", () => {
   it("is broken by a fixed link to no Document, or to several", async () => {
     expect(await check(s("notes/add", { source: { from: "fixed", value: "Gone" } }), s("notes/add", { source: { from: "fixed", value: "Emma" } }))).toEqual({
       ok: false,
-      reasons: ["Step 1: Source: no source called “Gone”", "Step 2: Source: 2 sources are called “Emma”; pass one id: e1, e2"],
+      reasons: ["Step 1: No Source called “Gone”", "Step 2: “Emma” is more than one Source: Emma (id e1), Emma (id e2). Pass the id of the one meant"],
     });
+  });
+
+  it("takes a fixed link by alias or without its accents", async () => {
+    expect(await check(s("notes/add", { source: { from: "fixed", value: "marco" } }), s("notes/add", { source: { from: "fixed", value: "Marc Lefevre" } }))).toEqual({ ok: true });
+  });
+
+  it("is broken by a fixed name that has become ambiguous (a title and another's alias), with the candidates", async () => {
+    expect(await check(s("notes/add", { source: { from: "fixed", value: "Marc" } }))).toEqual({
+      ok: false,
+      reasons: ["Step 1: “Marc” is more than one Source: Marc (id m1), Marc Lefèvre (id m2). Pass the id of the one meant"],
+    });
+    expect(await check(s("notes/add", { source: { from: "fixed", value: "m1" } }))).toEqual({ ok: true });
   });
 
   it("is broken by a reference to a step that is not earlier", async () => {
@@ -188,7 +202,7 @@ describe("checkMacro", () => {
       reasons: [
         "Step 1: Lines, row 1: Price: expected a number",
         "Step 1: Lines, row 2: Price is required",
-        "Step 1: Lines, row 2: Source: no source called “Gone”",
+        "Step 1: Lines, row 2: No Source called “Gone”",
       ],
     });
   });

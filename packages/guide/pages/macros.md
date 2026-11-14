@@ -33,6 +33,11 @@ makes a Document — every required value is fixed or asked, and a step that tak
 last. A Macro that fails is **Broken**: the list marks it, with each reason, until it is mended,
 and run, it does nothing and says why.
 
+A fixed link names its Document by id, title or alias, as `[[links]]` do (case, accents and extra
+spaces aside). A name that later fits two Documents — you added a second Marc, or gave someone
+"Marc" as an alias — breaks the Macro, and the reason lists each candidate with its id: pick the one
+meant and the Macro runs again.
+
 ## Running a Macro
 
 - A Macro is in the palette (Ctrl+K) by its name, marked *Macros*, in every Workspace.

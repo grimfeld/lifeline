@@ -5,7 +5,6 @@ import { normalizeAddresses } from "../domain/addresses";
 import { contactDetailsOf } from "../domain/contactDetails";
 import { putBack, takeOut } from "../domain/parts";
 import { normalizeOccasions, occasionProblem } from "../domain/occasions";
-import { findPerson } from "../domain/person";
 
 /** A Person as stored, with the App's keys filled in for a row written before they existed. */
 export function normalizePerson(doc: Person): Person {
@@ -40,16 +39,6 @@ export async function addOccasion(personId: string, input: OccasionInput): Promi
   const occasion = { id: newId(), ...o };
   await updateParts(personId, "occasions", (list) => [...list, occasion]);
   return occasion;
-}
-
-/**
- * Add an Occasion to the Person a name or alias points to. Throws in words for
- * an unknown or ambiguous name, or for an Occasion that is none.
- */
-export async function addOccasionByName(name: string, input: OccasionInput): Promise<{ person: Person; occasion: Occasion }> {
-  const found = findPerson(await allPeople(), name);
-  if ("problem" in found) throw new Error(found.problem);
-  return { person: found.person, occasion: await addOccasion(found.person.id, input) };
 }
 
 /** Change an Occasion on a Person. */

@@ -26,7 +26,9 @@ export const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toL
 /**
  * The one Person a name or alias points to (case and accents aside), else a
  * readable refusal: nobody has it, or several do (and who they are, so the
- * caller can say which). Used by the agents' `people_occasion_add`.
+ * caller can say which). Contacts' own finder, for its dialogs; a Command's
+ * link argument (the agents' `people_occasion_add` among them) resolves by
+ * Core's rule instead (`matchLink`), which also takes an id.
  */
 export function findPerson<P extends { title: string; aliases?: string[] }>(people: readonly P[], name: string): { person: P } | { problem: string } {
   const want = fold(name);
