@@ -118,7 +118,7 @@ export async function editTask(taskId: string, edit: { notes?: string; tags?: st
   const patch: Record<string, unknown> = {};
   if (edit.notes !== undefined) patch.notes = edit.notes;
   if (edit.tags !== undefined) patch.tags = normalizeTags(edit.tags);
-  if (edit.for !== undefined) patch.for = edit.for;
+  if (edit.for !== undefined) patch.for = [...new Set(edit.for)];
   if (Object.keys(patch).length > 0) await patchDocument(taskId, patch);
 }
 

@@ -66,7 +66,7 @@ export async function editEvent(id: string, edit: { notes?: string; tags?: strin
   const patch: Record<string, unknown> = {};
   if (edit.notes !== undefined) patch.notes = edit.notes;
   if (edit.tags !== undefined) patch.tags = normalizeTags(edit.tags);
-  if (edit.with !== undefined) patch.with = edit.with;
+  if (edit.with !== undefined) patch.with = [...new Set(edit.with)];
   if (Object.keys(patch).length > 0) await patchDocument(id, patch);
 }
 
