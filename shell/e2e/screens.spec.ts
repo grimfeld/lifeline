@@ -475,7 +475,7 @@ function peekOf(type: string, userField?: boolean, write?: boolean) {
 function peekWithPerson(type: string, key: string) {
   return async (page: Page) => {
     await workLocally(page);
-    const title: string = await page.evaluate(async ({ coreUrl, type, key }) => {
+    const personTitle: string = await page.evaluate(async ({ coreUrl, type, key }) => {
       const core = await import(/* @vite-ignore */ coreUrl);
       const [doc] = await core.documentsOf(type);
       const people: { id: string; title: string }[] = await core.documentsOf("contacts_person");
@@ -485,7 +485,7 @@ function peekWithPerson(type: string, key: string) {
       return person.title;
     }, { coreUrl: CORE_URL, type, key });
     await page.getByRole("dialog").waitFor();
-    await page.getByRole("dialog").getByRole("button", { name: `Remove ${title}`, exact: true }).waitFor();
+    await page.getByRole("dialog").getByRole("button", { name: `Remove ${personTitle}`, exact: true }).waitFor();
   };
 }
 

@@ -18,16 +18,6 @@ async function only(): Promise<Event> {
   return e!;
 }
 
-describe("editEvent", () => {
-  it("stores the People it is with once each, and an empty list clears them", async () => {
-    const id = await addEvent({ title: "Dinner", date: "2026-05-02" });
-    await editEvent(id, { with: ["ana", "ana", "bo"] });
-    expect((await only()).with).toEqual(["ana", "bo"]);
-    await editEvent(id, { with: [] });
-    expect((await only()).with).toEqual([]);
-  });
-});
-
 describe("addEvent", () => {
   it("stores an all-day Event with defaults: no notes, no end day, no times, no Tags, nobody with", async () => {
     await addEvent({ title: "Fair", date: "2026-05-02" });
@@ -75,6 +65,16 @@ describe("addEvent", () => {
   it("stores the People it was with, each once", async () => {
     await addEvent({ title: "Dinner", date: "2026-05-02", with: ["ana", "ben", "ana"] });
     expect((await only()).with).toEqual(["ana", "ben"]);
+  });
+});
+
+describe("editEvent", () => {
+  it("stores the People it is with once each, and an empty list clears them", async () => {
+    const id = await addEvent({ title: "Dinner", date: "2026-05-02" });
+    await editEvent(id, { with: ["ana", "ana", "bo"] });
+    expect((await only()).with).toEqual(["ana", "bo"]);
+    await editEvent(id, { with: [] });
+    expect((await only()).with).toEqual([]);
   });
 });
 
