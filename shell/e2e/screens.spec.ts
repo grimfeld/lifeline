@@ -471,19 +471,21 @@ function peekOf(type: string, userField?: boolean, write?: boolean) {
   };
 }
 
-/** A Peek of a Document of `type` with a People field (`key`) holding the seed's long-named Person (its chip, #447). */
+/** A Peek of a Document of `type` with a People field (`key`) holding the seed's long-named Person (its chip, #446, #447). */
 function peekWithPerson(type: string, key: string) {
   return async (page: Page) => {
     await workLocally(page);
-    await page.evaluate(async ({ coreUrl, type, key }) => {
+    const title: string = await page.evaluate(async ({ coreUrl, type, key }) => {
       const core = await import(/* @vite-ignore */ coreUrl);
       const [doc] = await core.documentsOf(type);
-      const [person] = await core.documentsOf("contacts_person");
+      const people: { id: string; title: string }[] = await core.documentsOf("contacts_person");
+      const person = people.reduce((a, b) => (b.title.length > a.title.length ? b : a));
       await core.patchDocument(doc.id, { [key]: [person.id] });
       core.openPeek(doc.id);
+      return person.title;
     }, { coreUrl: CORE_URL, type, key });
     await page.getByRole("dialog").waitFor();
-    await page.getByRole("dialog").getByRole("button", { name: /^Remove / }).waitFor();
+    await page.getByRole("dialog").getByRole("button", { name: `Remove ${title}`, exact: true }).waitFor();
   };
 }
 
