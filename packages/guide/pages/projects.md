@@ -96,7 +96,8 @@ Milestones.
 - **New task** — title, type (one-time or weekly / monthly / yearly recurring), day, Project and
   Milestone, Estimate (minutes), notes, **For** and Tags. **For** is who the Task is for ("buy
   Anne's present"): type a name or an alias from People and pick it; the Task then shows on that
-  Person's page under Tasks. **Push** in the form saves and finds it time.
+  Person's page under Tasks. **Push** in the form saves and finds it time. **For** can also be
+  edited from a Task's Peek: a pick or a removal is saved at once.
   Where: **New task** on the Tasks page.
 - **Add task** — the same form. Claude and Macros can also name the Milestone and Lane of its
   Project (by name, among that Project's own; the done Lane ticks it); either without a Project is
@@ -113,8 +114,8 @@ Milestones.
   untick to undo. Where: a Card you can place.
 - **Quick add** — a Card: one box, Enter adds a Task to the Unassigned pool or to Today (you
   choose). Where: a Card you can place.
-- **Peek** — a Task opened from anywhere: Done / Not done, Push, Archive, and its fields edited in
-  place.
+- **Peek** — a Task opened from anywhere: Done / Not done, Push, Archive, and its fields (day, Project,
+  Estimate, notes, **For**, Tags) edited in place.
 
 Each repeat of a recurring Task is ticked and moved on its own. A missed one stops being overdue
 once the next one comes round.

@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { Button, CommitField, EstimatePicker, Field, TagInput, toast, useCommitDraft, usePushFlow } from "@lifeline/ui";
 import { formatHuman, normalizeTag, pushSurfaceItem, todayStr, useTagVocabulary, type Document, type PeekProps } from "@lifeline/core";
+import { PeopleField } from "@lifeline/editor";
 import { Archive, ArchiveRestore, Check, Pencil, Repeat, Undo2 } from "lucide-react";
 import type { Task } from "../domain/types";
 import { describeRecurrence } from "../domain/occurrences";
@@ -32,6 +33,7 @@ function TaskPeekPart({ doc }: { doc: Document }) {
   const suggestions = useTagVocabulary().map((v) => v.tag);
   // Its own ids: the Peek may sit over a page with the Task dialog's.
   const dayId = useId();
+  const forId = useId();
   const day = useCommitDraft(task.date ?? "", (d) => moveItem(task.id, d || null), { delay: WRITE_DELAY });
   const oneTime = !task.recurrence;
   const done = oneTime && !!task.completedOn;
@@ -93,6 +95,9 @@ function TaskPeekPart({ doc }: { doc: Document }) {
         <EstimatePicker value={task.estimate} onChange={(min) => void setEstimate(task.id, min)} />
       </Field>
       <CommitField label="Notes" multiline rows={3} delay={WRITE_DELAY} value={task.notes} placeholder="Optional" onCommit={(notes) => editTask(task.id, { notes })} />
+      <Field label="For">
+        <PeopleField id={forId} label="For" value={task.for ?? []} onChange={(ids) => void editTask(task.id, { for: ids })} />
+      </Field>
       <Field label="Tags">
         <TagInput
           value={task.tags ?? []}
