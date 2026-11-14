@@ -542,7 +542,7 @@ A named day in a Person's life â€” Birthday, Met, Wedding, Surgery, Graduation â
 _Avoid_: important date, date (a Field kind), anniversary (only the yearly ones), milestone (a Project's), occurrence (a Chore's), reminder
 
 ### Timeline (Person page)
-The section of a Person's page that shows what links to them: their Occasions in the year ahead above a **Today** line, then everything that links in, grouped **by month**, newest first, each Document **once** and saying how it links ("via With", "mentioned"). Replaces the by-kind groups and the separate Backlinks list. Built from the links, never stored. A reading of one Person's links, not the Daylog (what happened on a day, where "timeline" stays under Avoid) and not the Projects Module's Timeline screen (Milestones along a Project's dates).
+The section of a Person's page that shows what links to them, split by a **Today** line: above it, their Occasions in the year ahead and whatever links in dated today or later (an Event next month, however far off); below it, whatever links in from before, then what has no day. Both sides grouped **by month**, newest first, so the soonest sits just above the line; each Document **once**, saying how it links ("via With", "mentioned") and, above the line, how soon it is. Replaces the by-kind groups and the separate Backlinks list. Built from the links, never stored. A reading of one Person's links, not the Daylog (what happened on a day, where "timeline" stays under Avoid) and not the Projects Module's Timeline screen (Milestones along a Project's dates).
 _Avoid_: history, activity feed, backlinks (one way a Document links in)
 
 ### Wikilink

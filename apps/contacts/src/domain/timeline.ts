@@ -1,4 +1,5 @@
-import { DAY_TYPE, todayStr, type DateStr, type LinkIndex } from "@lifeline/core";
+import { DAY_TYPE, diffDays, todayStr, type DateStr, type LinkIndex } from "@lifeline/core";
+import type { UpcomingOccasion } from "./occasions";
 
 /** One thing on a Person's timeline (#422): a Document that links to them, on its own day. */
 export interface TimelineEntry {
@@ -47,14 +48,48 @@ export function timelineOf(index: LinkIndex, personId: string): TimelineEntry[] 
   return [...byId.values()].sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || a.title.localeCompare(b.title));
 }
 
-/** The timeline by month ("2026-11"; null for what has no day), newest month first, as `timelineOf` orders it. */
-export function timelineMonths(entries: readonly TimelineEntry[]): { month: string | null; entries: TimelineEntry[] }[] {
-  const months: { month: string | null; entries: TimelineEntry[] }[] = [];
-  for (const e of entries) {
-    const month = e.day?.slice(0, 7) ?? null;
+/** One stop on the line: an Occasion ahead, or a Document that links in. */
+export type TimelineStop =
+  | { kind: "occasion"; day: DateStr; occasion: UpcomingOccasion }
+  | { kind: "entry"; day: DateStr | null; entry: TimelineEntry; /** Days from today, for what is today or later. */ inDays?: number };
+
+export interface TimelineMonth {
+  /** "2026-11"; null for what has no day. */
+  month: string | null;
+  stops: TimelineStop[];
+}
+
+/** Stops by month, in the order given; what has no day in a month of its own, null. */
+export function timelineMonths(stops: readonly TimelineStop[]): TimelineMonth[] {
+  const months: TimelineMonth[] = [];
+  for (const s of stops) {
+    const month = s.day?.slice(0, 7) ?? null;
     const last = months.at(-1);
-    if (last?.month === month) last.entries.push(e);
-    else months.push({ month, entries: [e] });
+    if (last?.month === month) last.stops.push(s);
+    else months.push({ month, stops: [s] });
   }
   return months;
+}
+
+const stopTitle = (s: TimelineStop) => (s.kind === "occasion" ? s.occasion.label : s.entry.title);
+
+/**
+ * The two sides of the Today line, each by month, newest first. Ahead:
+ * Occasions and what links in from today on, one order, the furthest at the
+ * top and the soonest just above the line. Below: what is past, then what has
+ * no day.
+ */
+export function timelineSides(
+  entries: readonly TimelineEntry[],
+  occasions: readonly UpcomingOccasion[],
+  today: DateStr,
+): { ahead: TimelineMonth[]; past: TimelineMonth[] } {
+  const ahead: TimelineStop[] = occasions.map((occasion) => ({ kind: "occasion", day: occasion.date, occasion }));
+  const past: TimelineStop[] = [];
+  for (const entry of entries) {
+    if (entry.day !== null && entry.day >= today) ahead.push({ kind: "entry", day: entry.day, entry, inDays: diffDays(today, entry.day) });
+    else past.push({ kind: "entry", day: entry.day, entry });
+  }
+  ahead.sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || (a.kind === b.kind ? 0 : a.kind === "occasion" ? -1 : 1) || stopTitle(a).localeCompare(stopTitle(b)));
+  return { ahead: timelineMonths(ahead), past: timelineMonths(past) };
 }
