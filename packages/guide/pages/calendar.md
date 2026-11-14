@@ -113,7 +113,7 @@ Commands and Cards:
   you can place.
 - **Countdown** — a Card: a big number of days until one event you pick. Where: a Card you can
   place.
-- **Peek** — an Event opened from a link: its day and times, notes, With and Tags edited in place. Picking or removing a Person in With is saved at once, and the Event shows on their Timeline.
+- **Peek** — an Event opened from a link: its day and times, notes, With (picked People, saved at once) and Tags edited in place.
 
 Editing or deleting a template never changes the Events it made.
 
