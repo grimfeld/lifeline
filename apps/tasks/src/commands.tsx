@@ -7,7 +7,7 @@ import {
   DialogTitle,
   toast,
 } from "@lifeline/ui";
-import { todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { getDocument, PERSON_TYPE, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { Check, ListChecks, ListTodo, Plus } from "lucide-react";
 import { TaskDialog } from "./components/TaskDialog";
 import { dueItems } from "./domain/occurrences";
@@ -88,6 +88,7 @@ export const taskCommands: CommandDef[] = [
       { key: "project", label: "Project", kind: "link", linkType: PROJECT, hint: "The Project it serves." },
       { key: "milestone", label: "Milestone", kind: "text", hint: "One of the Project's Milestones, by id or title. Needs a Project." },
       { key: "lane", label: "Lane", kind: "text", hint: "One of the Project's Board Lanes, by id or title; the first Lane when omitted. Needs a Project. A done Lane ticks the task." },
+      { key: "for", label: "For", kind: "links", linkType: PERSON_TYPE, hint: "The People it is for: their name, an alias or an id; each must be only one Person." },
     ],
     returnsDocument: true,
     async invoke(a) {
@@ -101,6 +102,7 @@ export const taskCommands: CommandDef[] = [
       if (recurrence && a.lane !== undefined) throw new Error("Lane: a recurring task stands in no Lane; it may take a Project and a Milestone");
       const milestone = project && a.milestone !== undefined ? await resolveInProject("milestone", project, a.milestone as string) : null;
       const lane = project && a.lane !== undefined ? await resolveInProject("lane", project, a.lane as string) : null;
+      const people = (a.for as string[] | undefined) ?? [];
       const id = await addTask({
         title: a.title as string,
         date: (a.date as string | undefined) ?? null,
@@ -111,10 +113,12 @@ export const taskCommands: CommandDef[] = [
         project,
         milestone: milestone?.id ?? null,
         lane: lane?.id ?? null,
+        for: people,
       });
       if (lane) await settleForLane({ id, completedOn: null }, !!lane.done);
       const when = recurrence ? "recurring" : a.date ? `on ${a.date}` : "unassigned";
-      return { id, message: `Added task “${a.title}” (${when})` };
+      const named = (await Promise.all(people.map(async (p) => (await getDocument(p))?.title))).filter(Boolean);
+      return { id, message: `Added task “${a.title}” (${when})${named.length ? ` with ${named.join(", ")}` : ""}` };
     },
   },
   {
