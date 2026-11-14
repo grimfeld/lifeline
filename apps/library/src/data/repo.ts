@@ -1,10 +1,15 @@
 import { useMemo } from "react";
-import { type DocumentInput, documentsOf, documentsWithRole, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
+import { type DocumentInput, documentsOf, documentsWithRole, getDocument, newId, normalizeTags, patchDocument, putDocument, removeDocument, removeDocumentsWhere, removeRole, restoreRole, sharedLiveQuery, todayStr, useDocument, useLiveQuery } from "@lifeline/core";
 import { AUTHOR, SETTINGS_TYPE, WORK_TYPE_IDS, type Acquisition, type Author, type Engagement, type Work, type LookupSettings } from "../domain/types";
 import type { WorkTypeId } from "../domain/workTypes";
 import type { Patch } from "../domain/rules";
 import { answersTo, mergePlan, relinkAuthors, splitAuthorNames, type AuthorPatch } from "../domain/authors";
 import type { AuthorRef } from "./openlibrary";
+
+/** A stored list of ids (or names) as strings, blanks skipped; none from anything that is not a list. */
+function idsOf(v: unknown): string[] {
+  return Array.isArray(v) ? v.map(String).filter(Boolean) : [];
+}
 
 /**
  * PocketBase stores absent text/number fields as ""/0 and hands them back
@@ -13,12 +18,13 @@ import type { AuthorRef } from "./openlibrary";
 export function normalize(m: Work): Work {
   return {
     ...m,
-    authors: Array.isArray(m.authors) ? m.authors.map(String).filter(Boolean) : [],
+    authors: idsOf(m.authors),
     externalKey: m.externalKey ?? "",
     coverUrl: m.coverUrl ?? "",
     size: m.size || 0,
     year: m.year || 0,
     reason: m.reason ?? "",
+    recommendedBy: idsOf(m.recommendedBy),
     slot: m.slot || 0,
     addedOn: m.addedOn ?? "",
     acquiredOn: m.acquiredOn ?? "",
@@ -66,6 +72,8 @@ export async function addWork(input: {
   year?: number;
   acquisition: Acquisition;
   reason: string;
+  /** The People who recommended it (ids). */
+  recommendedBy?: string[];
   /** Where the Work arrives on the shelf: To read unless said (a work may come with its history). */
   engagement?: Engagement;
   /** Only with Done; Done without one is finished today. Started and slotted days are never backdated. */
@@ -91,6 +99,7 @@ export async function addWork(input: {
     acquisition: input.acquisition,
     engagement,
     reason: input.reason.trim(),
+    recommendedBy: [...new Set(input.recommendedBy)],
     slot: 0,
     addedOn: today,
     acquiredOn: input.acquisition === "OWNED" || input.acquisition === "BORROWED" ? today : "",
@@ -192,7 +201,7 @@ export function parseQuickTitle(raw: string): { title: string; author: string } 
 export function normalizeAuthor(a: Author): Author {
   return {
     ...a,
-    aliases: Array.isArray(a.aliases) ? a.aliases.map(String).filter(Boolean) : [],
+    aliases: idsOf(a.aliases),
     externalKey: a.externalKey ?? "",
     photoUrl: a.photoUrl ?? "",
     born: a.born ?? "",
@@ -272,21 +281,37 @@ export async function worksBy(authorId: string): Promise<Work[]> {
   return rows.filter((w) => w.authors.includes(authorId));
 }
 
-/** Delete an Author: its Works are unlinked, never deleted (CONTEXT.md). Returns the ids it unlinked, for `restoreAuthor`. */
-export async function deleteAuthor(id: string): Promise<string[]> {
+/** What `deleteAuthor` did, for `restoreAuthor`: the Works it unlinked, and whether it only took the Author Role off. */
+export interface DeletedAuthor {
+  unlinked: string[];
+  /** True when the Author was a Document of another type wearing the Role (a Person): it stays, without the Role. */
+  kept: boolean;
+  /** The Role's Field values taken off with it, when kept. */
+  dropped: Record<string, unknown>;
+}
+
+/**
+ * Delete an Author: its Works are unlinked, never deleted (CONTEXT.md). A bare
+ * Author is deleted; a Document that only wears the Author Role (a Person) is
+ * never deleted from here: it takes the Role off and stays.
+ */
+export async function deleteAuthor(id: string): Promise<DeletedAuthor> {
+  const doc = await getDocument(id);
   const unlinked: string[] = [];
   for (const w of await worksBy(id)) {
     await patchDocument(w.id, { authors: w.authors.filter((a) => a !== id) });
     unlinked.push(w.id);
   }
+  if (doc && doc.type !== AUTHOR) return { unlinked, kept: true, dropped: (await removeRole(id, AUTHOR)) ?? {} };
   await removeDocument(id);
-  return unlinked;
+  return { unlinked, kept: false, dropped: {} };
 }
 
-/** Undo `deleteAuthor`: the Author comes back under its own id and takes back the Works it had (the Undo toast). */
-export async function restoreAuthor(author: Author, workIds: string[]): Promise<void> {
-  await putDocument<Author>(author as DocumentInput<Author>);
-  for (const wid of workIds) {
+/** Undo `deleteAuthor`: the Author comes back under its own id (or takes the Role back) and takes back the Works it had (the Undo toast). */
+export async function restoreAuthor(author: Author, deleted: DeletedAuthor): Promise<void> {
+  if (deleted.kept) await restoreRole(author.id, AUTHOR, deleted.dropped);
+  else await putDocument<Author>(author as DocumentInput<Author>);
+  for (const wid of deleted.unlinked) {
     const w = await getDocument<Work>(wid);
     if (w && !w.authors.includes(author.id)) await patchDocument(wid, { authors: [...w.authors, author.id] });
   }

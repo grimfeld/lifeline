@@ -1,4 +1,4 @@
-import { formatHuman, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
+import { formatHuman, PERSON_TYPE, type AppManifest, type DocumentTypeDef } from "@lifeline/core";
 import { lazyChunk } from "@lifeline/ui";
 import { Ban, CalendarClock, LayoutTemplate } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
@@ -42,8 +42,12 @@ const eventType: DocumentTypeDef = {
     { key: "start", label: "Start", kind: "text", guarded: true, column: true },
     { key: "end", label: "End", kind: "text", guarded: true, column: true },
     { key: "notes", label: "Notes", kind: "longtext" },
+    // A People field (CONTEXT.md): linked through Core's Person type, so the Calendar never imports Contacts.
+    { key: "with", label: "With", kind: "links", linkType: PERSON_TYPE },
   ],
   indexes: ["date"],
+  // "Dinner with [[Marc]]" in its Notes links Marc (ADR 0112): the Event counts as Seen.
+  linkingText: ["notes"],
   linkable: { subtitle: (d) => formatHuman((d as Event).date) },
   href: () => EVENTS_HREF,
   order: 30,

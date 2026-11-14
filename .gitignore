@@ -14,4 +14,5 @@ shell/test-results/
 shell/playwright-report/
 shell/e2e/.auth/
 
+# macOS Finder metadata
 .DS_Store

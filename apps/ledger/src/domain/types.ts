@@ -40,6 +40,8 @@ export interface Transaction extends Document {
   /** Free text; autocomplete and prefill derive from ledger history, never stored elsewhere. */
   payee: string;
   note: string;
+  /** For: the People it was for (a gift, a shared bill), ids; a People field. Absent on a Transaction made before it. */
+  for?: string[];
   /** The bank's row identity, for import dedupe. */
   importId: string;
   /** The PayPal transaction this payee was resolved from — the sweep skips what it already did. */

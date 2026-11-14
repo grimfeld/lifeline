@@ -30,6 +30,8 @@ export interface Work extends Document {
   engagement: Engagement;
   /** Who recommended it / what made me want it. Optional, captured at add time. */
   reason: string;
+  /** Recommended by: the People who suggested it (ids), a People field. Absent on a Work made before it. */
+  recommendedBy?: string[];
   /** 1..cap when on the Nightstand of its type; 0 = not slotted. */
   slot: number;
   addedOn: DateStr;

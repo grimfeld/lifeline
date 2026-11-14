@@ -38,7 +38,9 @@ On the **Transactions** page (four tabs):
 
 Commands and Cards:
 
-- **Add transaction** — an expense or income: amount, day, Account, Category, payee, note, tags.
+- **Add transaction** — an expense or income: amount, day, Account, Category, payee, note, **For**
+  and tags. **For** is who it was for (a gift, a shared bill): type a name or an alias from People
+  and pick it; the Transaction then shows on that Person's page under Transactions.
   Where: the **+** button on Transactions, the Capture sheet, the palette (Ctrl+K), and a Card
   you can place.
 - **Add transfer** — money moved between two of your Accounts (paying a credit card is one).

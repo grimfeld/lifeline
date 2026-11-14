@@ -29,16 +29,28 @@ export function normalizeTask(t: Task): Task {
   return {
     ...t,
     notes: t.notes ?? "",
+    for: Array.isArray(t.for) ? t.for.map(String).filter(Boolean) : [],
     date: t.date || null,
     completedOn: t.completedOn || null,
     recurrence: t.recurrence || null,
     estimate: Number(t.estimate) > 0 ? Math.round(Number(t.estimate)) : null,
     tags: t.tags ?? [],
-    project: t.project || null,
-    milestone: (t.project && t.milestone) || null,
-    lane: (t.project && t.lane) || null,
-    rank: t.rank === null || t.rank === undefined || t.rank === ("" as unknown) || !Number.isFinite(Number(t.rank)) ? null : Number(t.rank),
+    ...placeOf(t),
+    rank: rankOf(t.rank),
   };
+}
+
+/** Where a Task sits: a Milestone and a Lane only inside a Project. */
+function placeOf(t: { project?: string | null; milestone?: string | null; lane?: string | null }): Pick<Task, "project" | "milestone" | "lane"> {
+  const project = t.project || null;
+  return { project, milestone: (project && t.milestone) || null, lane: (project && t.lane) || null };
+}
+
+/** A stored rank as a number; a blank or a non-number is no rank (0 is one). */
+function rankOf(rank: unknown): number | null {
+  if (rank === null || rank === undefined || rank === "") return null;
+  const n = Number(rank);
+  return Number.isFinite(n) ? n : null;
 }
 
 function normalizeOverride(o: OccurrenceOverride): OccurrenceOverride {
@@ -71,6 +83,7 @@ export async function addTask(input: {
   project?: string | null;
   milestone?: string | null;
   lane?: string | null;
+  for?: string[];
 }): Promise<string> {
   const id = newId();
   await putDocument<Task>({
@@ -78,6 +91,7 @@ export async function addTask(input: {
     type: TASK,
     title: input.title,
     notes: input.notes ?? "",
+    for: [...new Set(input.for)],
     status: "active",
     date: input.recurrence ? null : (input.date ?? null),
     completedOn: null,
@@ -85,9 +99,7 @@ export async function addTask(input: {
     estimate: input.estimate ?? null,
     createdAt: todayStr(),
     tags: normalizeTags(input.tags),
-    project: input.project ?? null,
-    milestone: input.project ? (input.milestone ?? null) : null,
-    lane: input.project ? (input.lane ?? null) : null,
+    ...placeOf(input),
     rank: null,
   });
   return id;

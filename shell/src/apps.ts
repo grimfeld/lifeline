@@ -23,6 +23,7 @@ import { pantryApp } from "@lifeline/app-pantry";
 import { shoppingApp } from "@lifeline/app-shopping";
 import { moodApp } from "@lifeline/app-mood";
 import { thoughtsApp } from "@lifeline/app-thoughts";
+import { contactsApp } from "@lifeline/app-contacts";
 import { manuscriptApp } from "@lifeline/app-manuscript";
 import { pricesApp } from "@lifeline/app-prices";
 import { hubApp } from "./hub";
@@ -32,4 +33,4 @@ import { hubApp } from "./hub";
  * main.tsx registers it; the build reads it for the published Intakes list
  * (build/intakes.ts). mcp/src/apps.ts keeps the server in step.
  */
-export const APPS: AppManifest[] = [hubApp, choresApp, pantryApp, shoppingApp, tasksApp, projectsApp, calendarApp, statsApp, lifelevelApp, libraryApp, cinemaApp, discothequeApp, arcadeApp, commonplaceApp, museumApp, notesApp, thoughtsApp, writerApp, manuscriptApp, sourcesApp, workoutApp, ledgerApp, pocketApp, pricesApp, moodApp, swearjarApp, knowledgeApp];
+export const APPS: AppManifest[] = [hubApp, choresApp, pantryApp, shoppingApp, tasksApp, projectsApp, calendarApp, statsApp, lifelevelApp, libraryApp, cinemaApp, discothequeApp, arcadeApp, commonplaceApp, museumApp, notesApp, contactsApp, thoughtsApp, writerApp, manuscriptApp, sourcesApp, workoutApp, ledgerApp, pocketApp, pricesApp, moodApp, swearjarApp, knowledgeApp];

@@ -187,3 +187,15 @@ export function ownedByKey(works: Work[]): Map<string, Work> {
   for (const w of works) if (w.externalKey && !out.has(w.externalKey)) out.set(w.externalKey, w);
   return out;
 }
+
+/**
+ * What the toast says once an Author is deleted: a Person wearing the Role is
+ * never deleted from the Library, only takes the Role off; Works stay, unlinked.
+ */
+export function deletedAuthorMessage(title: string, deleted: { kept: boolean; unlinked: readonly string[] }): { title: string; description?: string } {
+  const n = deleted.unlinked.length;
+  return {
+    title: deleted.kept ? `“${title}” is no longer an Author` : `Deleted “${title}”`,
+    description: n ? `Their ${n} work${n === 1 ? "" : "s"} stay, unlinked.` : undefined,
+  };
+}

@@ -1,0 +1,62 @@
+import { useState } from "react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, Button, toast } from "@lifeline/ui";
+import { roleDef, type Document } from "@lifeline/core";
+import { UserRound } from "lucide-react";
+import { turnIntoPerson } from "../turnIntoPerson";
+
+/** On a bare Author's or Artist's Vault page (when `canTurnIntoPerson`): the button that asks to turn them into a Person. */
+export function TurnIntoPersonButton({ doc, roleId }: { doc: Document; roleId: string }) {
+  const [asking, setAsking] = useState(false);
+  return (
+    <>
+      <Button size="sm" variant="outline" onClick={() => setAsking(true)}>
+        <UserRound /> Turn into a Person…
+      </Button>
+      <TurnIntoPersonDialog doc={asking ? doc : null} roleId={roleId} onClose={() => setAsking(false)} />
+    </>
+  );
+}
+
+/**
+ * "Turn into a Person" (CONTEXT.md "Person", ADR 0113), asked before it is
+ * done: an Author or Artist the user has come to know becomes a Person that
+ * still wears the Role. Nothing is lost; People then lists it.
+ */
+export function TurnIntoPersonDialog({ doc, roleId, onClose }: { doc: Document | null; roleId: string; onClose: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const role = roleDef(roleId)?.label ?? "Author";
+  async function run(asked: Document) {
+    setBusy(true);
+    await turnAndTell(asked, roleId);
+    setBusy(false);
+    onClose();
+  }
+  return (
+    <AlertDialog open={!!doc} onOpenChange={(o) => !o && onClose()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="break-words">Turn {doc?.title} into a Person?</AlertDialogTitle>
+          <AlertDialogDescription>
+            They become one of your People, and stay an {role}: their works still link to them. Their links, aliases and notes carry over unchanged.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction disabled={busy} onClick={() => doc && void run(doc)}>
+            Turn into a Person
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+/** Turn it into a Person, and say so — or say why not. Never throws. */
+async function turnAndTell(doc: Document, roleId: string): Promise<void> {
+  try {
+    await turnIntoPerson(doc.id, roleId);
+    toast.success(`${doc.title} is now a Person`);
+  } catch (e) {
+    toast.error(`${doc.title} could not be turned into a Person.`, { description: e instanceof Error ? e.message : undefined });
+  }
+}

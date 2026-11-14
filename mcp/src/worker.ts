@@ -2,8 +2,8 @@ import "fake-indexeddb/auto";
 import { parentPort, workerData } from "node:worker_threads";
 import { db, initApps, lastSyncError, pb, pushNow, syncNow, type InvokeAgent } from "@lifeline/core";
 import { manifests } from "./apps";
-import { unsyncedWrite } from "./devices";
-import { listMacroTools, runTool, ToolError } from "./handlers";
+import { unsyncedWrite, type WallHit } from "./devices";
+import { listMacroTools, runTool, ToolError, WallRefused } from "./handlers";
 
 /**
  * One Account's headless device (ADR 0062). A worker thread has its own
@@ -28,7 +28,7 @@ export type DeviceRequest =
 
 export type DeviceResponse =
   | { id: number; ok: true; result: unknown; pending: number }
-  | { id: number; ok: false; error: string; expected: boolean; pending: number };
+  | { id: number; ok: false; error: string; expected: boolean; pending: number; wall?: WallHit };
 
 /**
  * How old the last pull may be before a call pulls again. A read tolerates a
@@ -82,7 +82,7 @@ async function handle(req: DeviceRequest): Promise<DeviceResponse> {
     }
     return { id: req.id, ok: true, result: unsynced ? { ...(result as object), ...unsynced } : result, pending: await pending() };
   } catch (err) {
-    return { id: req.id, ok: false, error: (err as Error).message ?? String(err), expected: err instanceof ToolError, pending: await pending().catch(() => -1) };
+    return { id: req.id, ok: false, error: (err as Error).message ?? String(err), expected: err instanceof ToolError, wall: err instanceof WallRefused ? err.wall : undefined, pending: await pending().catch(() => -1) };
   }
 }
 

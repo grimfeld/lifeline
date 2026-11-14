@@ -2,7 +2,10 @@
  * Address → coordinates through OSM's Nominatim (ADR 0011). One client for
  * every App: identifies itself as their usage policy requires, never fires
  * more than one request per second, and remembers answers for the session.
- * Always called from an explicit user action, never on render or on save.
+ * Always called from an explicit user action: a "Locate" click, or saving a
+ * Person's Address whose text changed (ADR 0113), which looks it up once.
+ * Never on render, in bulk, or from a sync. A failure throws, with the HTTP
+ * status: a caller tells it apart from finding nothing.
  */
 
 export interface GeocodeHit {

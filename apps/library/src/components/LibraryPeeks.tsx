@@ -1,6 +1,7 @@
 import { Button, CommitField, Field, TagInput } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary, type PeekProps } from "@lifeline/core";
 import { PEEK_WRITE_DELAY, WorkPeekFields } from "@lifeline/parts";
+import { PeopleField } from "@lifeline/editor";
 import { ChevronDown } from "lucide-react";
 import { workType } from "../domain/workTypes";
 import type { Author, Work } from "../domain/types";
@@ -43,8 +44,8 @@ export function WorkPeek({ doc }: PeekProps) {
 /**
  * A work's plain Fields, edited in place — in its Peek and on its page alike:
  * the family's (Authors, Year, size, Marks, Reason, cover) with the Library's
- * own after the Marks (synopsis, series, original title and language) and,
- * on the page, its Tags.
+ * own after the Marks (synopsis, series, original title and language, who
+ * recommended it) and, on the page, its Tags.
  */
 export function LibraryWorkFields({ item, tags }: { item: Work; tags?: boolean }) {
   const def = workType(item.type);
@@ -64,6 +65,9 @@ export function LibraryWorkFields({ item, tags }: { item: Work; tags?: boolean }
           </div>
           <CommitField label="Original title" delay={PEEK_WRITE_DELAY} value={item.originalTitle} onCommit={(originalTitle) => patchWork(item, { originalTitle })} />
           <CommitField label="Original language" delay={PEEK_WRITE_DELAY} placeholder="Japanese" value={item.originalLanguage} onCommit={(originalLanguage) => patchWork(item, { originalLanguage })} />
+          <Field label="Recommended by">
+            <PeopleField label="Recommended by" value={item.recommendedBy ?? []} onChange={(recommendedBy) => void patchWork(item, { recommendedBy })} />
+          </Field>
           {tags && (
             <Field label="Tags">
               <TagInput value={item.tags ?? []} onChange={(t) => void patchWork(item, { tags: t })} suggestions={tagSuggestions} normalize={normalizeTag} placeholder="Add tag…" />

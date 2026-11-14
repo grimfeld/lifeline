@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { hasRole, type Document, type LinkIndex } from "@lifeline/core";
+import { canTurnIntoPerson, TurnIntoPersonButton } from "@lifeline/parts";
 import { BookOpen } from "lucide-react";
 import { AUTHOR } from "../domain/types";
 import { authorHref } from "../constants";
@@ -14,6 +15,11 @@ export function AuthorPanel({ doc, index }: { doc: Document; index: LinkIndex })
         <BookOpen className="size-3.5" /> Open in Library
       </Link>
       <span className="text-muted-foreground"> · {works} {works === 1 ? "work" : "works"}, bibliography</span>
+      {canTurnIntoPerson(doc, AUTHOR) && (
+        <div className="mt-2">
+          <TurnIntoPersonButton doc={doc} roleId={AUTHOR} />
+        </div>
+      )}
     </section>
   );
 }

@@ -1,0 +1,103 @@
+import { describe, expect, it } from "vitest";
+import { buildLinkIndex, type Document, type DocumentTypeDef } from "@lifeline/core";
+import { personTypeDef } from "../types";
+import { driftingFrom, groupByRelationship, lastDays, type DriftSource } from "./drifting";
+import type { Person } from "./types";
+
+const base = { folder: "", tags: [], createdAt: "2026-01-01", updatedAt: "", deleted: 0 as const };
+const P = (title: string, more: Partial<Person> = {}): Person =>
+  ({ ...base, id: title, type: "contacts_person", title, body: "", aliases: [], relationship: "friend", ...more }) as unknown as Person;
+// A real Event: no body, its wikilinks in Notes.
+const ev = (id: string, date: string, notes: string, endDate?: string): Document => ({ ...base, id, type: "event", title: id, notes, date, endDate }) as unknown as Document;
+const day = (date: string, body: string): Document => ({ ...base, id: `d${date}`, type: "daily", title: date, body });
+const types: DocumentTypeDef[] = [
+  personTypeDef,
+  { id: "event", label: "Events", titleRule: "name", body: "none", fields: [{ key: "notes", label: "Notes", kind: "longtext" }], linkingText: ["notes"], builtIn: true },
+  { id: "daily", label: "Days", titleRule: "date", body: "optional", fields: [], builtIn: true, linkable: { mentions: false } },
+];
+
+const today = "2026-11-08";
+const anne = P("Anne");
+const bob = P("Bob");
+const cy = P("Cy");
+const stranger = P("Stranger", { relationship: "" });
+const gone = P("Gone", { excludedFromDrifting: true });
+const fresh = P("Fresh");
+const people = [anne, bob, cy, stranger, gone, fresh];
+const docs: Document[] = [
+  ...(people as unknown as Document[]),
+  ev("e1", "2026-05-01", "[[Anne]]"), // 191 days
+  ev("e2", "2026-07-01", "[[Bob]]"), // 130 days
+  ev("e3", "2026-08-20", "[[Cy]]"), // 80 days
+  ev("e4", "2026-01-01", "[[Stranger]] [[Gone]]"),
+  ev("e5", "2026-11-01", "[[Fresh]]"),
+  day("2026-10-01", "[[Cy]]"),
+  day("2026-03-01", "[[Fresh]] [[Bob]]"),
+];
+const idx = buildLinkIndex(docs, types);
+/** Drifting as the People home works it out: each Person's last day, then who drifts. */
+const drifting = (index: typeof idx, ps: readonly Person[], { source = "seen", today }: { source?: DriftSource; today: string }) => driftingFrom(ps, lastDays(index, ps, { source, today }), today);
+const names = (rows: ReturnType<typeof driftingFrom>) => rows.map((r) => r.person.title);
+
+describe("Drifting", () => {
+  it("ranks Not seen in 90 days by default, longest unseen first", () => {
+    expect(names(drifting(idx, people, { today }))).toEqual(["Anne", "Bob"]);
+    expect(drifting(idx, people, { today })[0]).toMatchObject({ last: "2026-05-01", daysSince: 191 });
+  });
+  it("never drifts a Person with no Relationship", () => {
+    expect(names(drifting(idx, people, { today }))).not.toContain("Stranger");
+    expect(names(drifting(idx, [P("Stranger", { relationship: "  " })], { today }))).toEqual([]);
+  });
+  it("never drifts a Person excluded from Drifting", () => {
+    expect(names(drifting(idx, people, { today }))).not.toContain("Gone");
+  });
+  it("drifts someone last seen exactly 90 days ago, and not 89", () => {
+    const edge = [P("Ninety"), P("EightyNine")];
+    const at = buildLinkIndex([...(edge as unknown as Document[]), ev("n", "2026-08-10", "[[Ninety]]"), ev("m", "2026-08-11", "[[EightyNine]]")], types);
+    expect(drifting(at, edge, { today }).map((r) => [r.person.title, r.daysSince])).toEqual([["Ninety", 90]]);
+  });
+  it("counts from the last day they were seen, not the first", () => {
+    const twice = [P("Twice")];
+    const at = buildLinkIndex([...(twice as unknown as Document[]), ev("a", "2026-01-10", "[[Twice]]"), ev("b", "2026-06-01", "[[Twice]]")], types);
+    expect(drifting(at, twice, { today })).toMatchObject([{ last: "2026-06-01", daysSince: 160 }]);
+  });
+  it("switches to Not mentioned over the Mentioned days", () => {
+    const rows = drifting(idx, people, { today, source: "mentioned" });
+    // Anne is on an Event but on no Day: never mentioned, so she drifts first.
+    expect(rows.map((r) => [r.person.title, r.last, r.daysSince])).toEqual([["Anne", null, null], ["Bob", "2026-03-01", 252], ["Fresh", "2026-03-01", 252]]);
+  });
+  it("counts a Person never seen at all as drifting, before everyone seen, by name", () => {
+    const rows = drifting(idx, [...people, P("Zoe"), P("New")], { today });
+    expect(rows.map((r) => [r.person.title, r.last, r.daysSince])).toEqual([["New", null, null], ["Zoe", null, null], ["Anne", "2026-05-01", 191], ["Bob", "2026-07-01", 130]]);
+  });
+  it("still leaves out a never-seen Person with no Relationship or excluded", () => {
+    expect(names(drifting(idx, [P("Nobody", { relationship: "" }), P("Left", { excludedFromDrifting: true })], { today }))).toEqual([]);
+  });
+});
+
+describe("Drifting from the last days already worked out", () => {
+  it("drifts by the last days it is handed, whatever walked them", () => {
+    const last = new Map([["Anne", "2026-11-01"], ["Bob", "2026-01-01"]]);
+    expect(driftingFrom([anne, bob, cy], last, today).map((r) => [r.person.title, r.daysSince])).toEqual([["Cy", null], ["Bob", 311]]);
+  });
+  it("gives each Person their last day, undefined when never", () => {
+    const last = lastDays(idx, people, { source: "seen", today });
+    // Cy is on an Event in August and on a Day in October: seen then, mentioned since.
+    expect(last.get("Cy")).toBe("2026-08-20");
+    expect(lastDays(idx, people, { source: "mentioned", today }).get("Cy")).toBe("2026-10-01");
+    expect(lastDays(idx, [P("New")], { source: "seen", today }).get("New")).toBeUndefined();
+  });
+});
+
+describe("Group by Relationship", () => {
+  it("groups People under each Relationship with a count, by label, People by name", () => {
+    const g = groupByRelationship([P("Zed", { relationship: "colleague" }), anne, bob, stranger, P("Al", { relationship: " friend " })]);
+    expect(g.map((x) => [x.relationship, x.count, x.people.map((p) => p.title)])).toEqual([
+      ["colleague", 1, ["Zed"]],
+      ["friend", 3, ["Al", "Anne", "Bob"]],
+    ]);
+  });
+  it("leaves out People with no Relationship", () => {
+    expect(groupByRelationship([stranger])).toEqual([]);
+  });
+});

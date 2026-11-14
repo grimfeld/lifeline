@@ -1,4 +1,4 @@
-import type { Document, DocumentTypeDef, FieldDef } from "@lifeline/core";
+import type { Document, DocumentTypeDef, FieldDef, RoleDef } from "@lifeline/core";
 import { Amphora, Building2, Camera, Frame, Palette, Pencil, User } from "lucide-react";
 import { ART_FORMS, type ArtFormId } from "./domain/artForms";
 import { ARTIST, EXHIBITION, EXHIBITION_STATES, ROOM, type Artwork } from "./domain/types";
@@ -37,7 +37,7 @@ export const artworkTypeDefs: DocumentTypeDef[] = ART_FORMS.map((f, i) => ({
   // Edited where it is peeked, through the Museum's own controls (ADR 0085).
   peekEdit: ArtworkPeek,
   fields: [
-    { key: "artistId", label: f.artistLabel, kind: "link", linkType: ARTIST, column: true },
+    { key: "artistId", label: f.artistLabel, kind: "link", linkRole: ARTIST, column: true },
     { key: "year", label: "Year", kind: "text", column: true },
     ...(f.hasMaterials
       ? ([
@@ -72,6 +72,19 @@ export const artistTypeDef: DocumentTypeDef = {
     { key: "imageUrl", label: "Portrait URL", kind: "url" },
     { key: "externalKey", label: "External key", kind: "text", hidden: true },
   ],
+};
+
+/**
+ * The Artist Role (ADR 0069): what makes a Document an Artist without making it
+ * of the Artist type — a Person I came to know wears it, and their artworks
+ * still name them. Lends the Artist's own facts; the wearer keeps its own
+ * title, aliases and body. The Artist type is its home.
+ */
+export const artistRole: RoleDef = {
+  id: ARTIST,
+  label: "Artist",
+  homeType: ARTIST,
+  fields: artistTypeDef.fields.filter((f) => f.key !== "aliases"),
 };
 
 export const exhibitionTypeDef: DocumentTypeDef = {

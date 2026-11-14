@@ -2,14 +2,16 @@
 // The Work types carry the Parts kit (ADR 0074), whose UI imports need a DOM.
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { documentsOf, documentsTable, getDocument, initApps, patchDocument, putDocument, removeDocument, type Document } from "@lifeline/core";
+import { PERSON_TYPE, addRole, documentsOf, documentsTable, getDocument, hasRole, initApps, patchDocument, putDocument, removeDocument, type Document, type DocumentTypeDef } from "@lifeline/core";
 import { workTypeDefs, authorRole, authorTypeDef } from "../types";
 import { libraryParts } from "../parts";
 import type { Work } from "../domain/types";
 import { sortGallery } from "../domain/browse";
 import { addWork, allAuthors, allWorks, deleteAuthor, ensureAuthor, normalize, patchWork, quickAddWork, restoreAuthor } from "./repo";
 
-initApps([{ id: "library", title: "Library", types: [...workTypeDefs, authorTypeDef, ...libraryParts.typeDefs], roles: [authorRole], screens: [], cards: [], commands: [] }]);
+// A Person stand-in (the Library never imports Contacts), to wear the Author Role.
+const personType: DocumentTypeDef = { id: PERSON_TYPE, label: "People", singular: "Person", titleRule: "name", body: "optional", fields: [], linkable: true, builtIn: true };
+initApps([{ id: "library", title: "Library", types: [...workTypeDefs, authorTypeDef, ...libraryParts.typeDefs, personType], roles: [authorRole], screens: [], cards: [], commands: [] }]);
 
 const work = async (id: string) => normalize((await getDocument<Work>(id))!);
 
@@ -30,6 +32,22 @@ describe("the Work's descriptive fields", () => {
     const id = await addWork({ medium: "manga", title: "Berserk", acquisition: "OWNED", reason: "", series: "Berserk", seriesNumber: 2, originalLanguage: "Japanese" });
     const w = await work(id);
     expect([w.series, w.seriesNumber, w.originalLanguage]).toEqual(["Berserk", 2, "Japanese"]);
+  });
+});
+
+describe("who recommended a Work", () => {
+  it("is stored once each when the Work is added, and nobody when not said", async () => {
+    const id = await addWork({ medium: "book", title: "Dune", acquisition: "WANTED", reason: "", recommendedBy: ["ana", "ben", "ana"] });
+    const other = await addWork({ medium: "book", title: "Emma", acquisition: "WANTED", reason: "" });
+    expect((await work(id)).recommendedBy).toEqual(["ana", "ben"]);
+    expect((await work(other)).recommendedBy).toEqual([]);
+  });
+
+  it("reads as ids, skipping blanks, and nobody from a value that is not a list", () => {
+    const stored = (recommendedBy: unknown) => normalize({ id: "w", type: "book", title: "Dune", authors: [], recommendedBy } as unknown as Work).recommendedBy;
+    expect(stored(["ana", "", 7])).toEqual(["ana", "7"]);
+    expect(stored("ana")).toEqual([]);
+    expect(stored(undefined)).toEqual([]);
   });
 });
 
@@ -117,18 +135,44 @@ describe("deleteAuthor and restoreAuthor", () => {
     await patchDocument(emma, { authors: [other.id] });
 
     const snapshot = (await getDocument(herbert.id))!;
-    const unlinked = await deleteAuthor(herbert.id);
-    expect([...unlinked].sort()).toEqual([dune, messiah].sort());
+    const deleted = await deleteAuthor(herbert.id);
+    expect(deleted.kept).toBe(false);
+    expect([...deleted.unlinked].sort()).toEqual([dune, messiah].sort());
     expect((await allAuthors()).map((a) => a.id)).toEqual([other.id]);
     expect((await work(dune)).authors).toEqual([]);
     expect((await work(messiah)).authors).toEqual([other.id]);
 
-    await restoreAuthor(snapshot as never, unlinked);
+    await restoreAuthor(snapshot as never, deleted);
     const back = (await getDocument(herbert.id)) as unknown as Record<string, unknown>;
     expect(back).toMatchObject({ id: herbert.id, title: "Frank Herbert", aliases: ["F. Herbert"], externalKey: "openlibrary:/authors/OL1A", born: "1920", died: "1986", deleted: 0 });
     expect((await work(dune)).authors).toEqual([herbert.id]);
     expect((await work(messiah)).authors.sort()).toEqual([herbert.id, other.id].sort());
     expect((await work(emma)).authors).toEqual([other.id]);
+  });
+});
+
+describe("deleting a Person who wears the Author Role", () => {
+  it("takes the Role off and keeps the Person, unlinking their works; Undo puts both back", async () => {
+    const ursula = await putDocument({ type: PERSON_TYPE, title: "Ursula", body: "A friend." });
+    await addRole(ursula.id, "author");
+    await patchDocument(ursula.id, { born: "1929" });
+    const earthsea = await addWork({ medium: "book", title: "Earthsea", acquisition: "WANTED", reason: "" });
+    await patchDocument(earthsea, { authors: [ursula.id] });
+
+    const snapshot = (await getDocument(ursula.id))!;
+    const deleted = await deleteAuthor(ursula.id);
+    expect(deleted.kept).toBe(true);
+    const after = (await getDocument(ursula.id))!;
+    expect(after).toMatchObject({ title: "Ursula", body: "A friend.", deleted: 0 });
+    expect(hasRole(after, "author")).toBe(false);
+    expect(after.born).toBeUndefined();
+    expect((await work(earthsea)).authors).toEqual([]);
+
+    await restoreAuthor(snapshot as never, deleted);
+    const back = (await getDocument(ursula.id))!;
+    expect(hasRole(back, "author")).toBe(true);
+    expect(back.born).toBe("1929");
+    expect((await work(earthsea)).authors).toEqual([ursula.id]);
   });
 });
 

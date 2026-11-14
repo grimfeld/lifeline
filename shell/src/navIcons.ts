@@ -13,6 +13,7 @@ import {
   MapPin,
   NotebookText,
   TrendingUp,
+  Users,
   Waypoints,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ export const MODULE_ICONS: Record<string, React.ComponentType<{ className?: stri
   culture: BookOpen,
   money: Landmark,
   journal: NotebookText,
+  people: Users,
   notes: LibraryBig,
   research: Feather,
   manuscript: BookOpenText,

@@ -1,4 +1,5 @@
 import {
+  PERSON_TYPE,
   createDocument,
   documentType,
   getDocument,
@@ -45,7 +46,7 @@ const at = (k: PlaceKey, shown?: string) => (shown ? `[[${PLACES[k].name}|${show
 // ---- People and places -------------------------------------------------------
 
 /**
- * The user-defined types the Journal homes. The type registry is a live cache
+ * The user-defined type the Journal homes (Places). The type registry is a live cache
  * (`documentType` starts its watch, nothing else has before the first render),
  * so wait for it to carry the type before writing any of its Documents.
  */
@@ -57,21 +58,6 @@ async function ensureType(rec: Omit<DocumentTypeRecord, "id" | "updatedAt" | "de
 }
 
 async function seedPeopleAndPlaces(): Promise<void> {
-  await ensureType({
-    typeId: "person",
-    label: "People",
-    icon: "user",
-    folder: "People",
-    body: "optional",
-    linkable: true,
-    module: "journal",
-    order: 0,
-    fields: [
-      { key: "role", label: "Who", kind: "text" },
-      { key: "aliases", label: "Aliases", kind: "list" },
-    ],
-    reports: [{ kind: "top", n: 5 }, { kind: "quiet", n: 5, days: 14 }, { kind: "last" }, { kind: "count" }, { kind: "heatmap" }],
-  });
   await ensureType({
     typeId: "place",
     label: "Places",
@@ -91,7 +77,8 @@ async function seedPeopleAndPlaces(): Promise<void> {
   });
 
   for (const p of Object.values(PEOPLE)) {
-    await createDocument({ type: "person", title: p.name, body: `${p.note}\n`, fields: { role: p.role, aliases: [first(p.name)] } });
+    // The Contacts App's People (ADR 0113): what they are to Iris is their Relationship.
+    await createDocument({ type: PERSON_TYPE, title: p.name, body: `${p.note}\n`, fields: { relationship: p.role, aliases: [first(p.name)] } });
   }
   for (const p of Object.values(PLACES)) {
     await createDocument({ type: "place", title: p.name, body: `${p.note}\n`, fields: { kind: p.kind, where: writeGeo({ lat: p.lat, lon: p.lng }), aliases: [] } });

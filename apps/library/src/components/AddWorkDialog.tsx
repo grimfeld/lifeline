@@ -19,6 +19,7 @@ import {
   toast,
 } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary } from "@lifeline/core";
+import { PeopleField } from "@lifeline/editor";
 import { X } from "lucide-react";
 import { WORK_TYPES, workType, type WorkTypeId } from "../domain/workTypes";
 import { ACQ_LABEL, ACQUISITION, ENGAGEMENT, type Acquisition, type Engagement } from "../domain/types";
@@ -57,6 +58,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
   const [year, setYear] = useState("");
   const [size, setSize] = useState("");
   const [reason, setReason] = useState("");
+  const [recommendedBy, setRecommendedBy] = useState<string[]>([]);
   const [synopsis, setSynopsis] = useState("");
   const [series, setSeries] = useState("");
   const [seriesNumber, setSeriesNumber] = useState("");
@@ -86,6 +88,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
     setYear("");
     setSize("");
     setReason("");
+    setRecommendedBy([]);
     setSynopsis("");
     setSeries("");
     setSeriesNumber("");
@@ -212,6 +215,7 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
         engagement: shelf,
         finishedOn: shelf === "DONE" ? finishedOn : "",
         reason: reason.trim(),
+        recommendedBy,
         tags,
         synopsis,
         series,
@@ -385,6 +389,10 @@ export function AddWorkDialog({ open, onOpenChange, defaultType = "book" }: { op
               <div className="grid gap-2">
                 <Label htmlFor="media-reason">Reason <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Textarea id="media-reason" value={reason} autoFocus={!!pick} rows={3} placeholder="Who recommended it, or what made you want it. Future you will not remember." onChange={(e) => setReason(e.target.value)} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="media-recommended-by">Recommended by</Label>
+                <PeopleField id="media-recommended-by" value={recommendedBy} onChange={setRecommendedBy} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="media-tags">Tags</Label>

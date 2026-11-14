@@ -39,6 +39,7 @@ function normalizeTransaction(t: Transaction): Transaction {
     categoryId: t.categoryId ?? "",
     payee: t.payee ?? "",
     note: t.note ?? "",
+    for: Array.isArray(t.for) ? t.for.map(String).filter(Boolean) : [],
     importId: t.importId ?? "",
     paypalId: t.paypalId ?? "",
     bankPayee: t.bankPayee ?? "",
@@ -137,6 +138,8 @@ export interface TransactionInput {
   payee?: string;
   note?: string;
   tags?: string[];
+  /** The People it was for (ids); none when absent, so an update passes them on. */
+  for?: string[];
   importId?: string;
   paypalId?: string;
   bankPayee?: string;
@@ -160,18 +163,32 @@ function rowOf(input: TransactionInput): Omit<Transaction, "id" | "updatedAt" | 
     kind: input.kind,
     date: input.date,
     amount: input.amount,
-    accountId: input.kind === "transfer" ? "" : (input.accountId ?? ""),
-    fromAccountId: input.kind === "transfer" ? (input.fromAccountId ?? "") : "",
-    toAccountId: input.kind === "transfer" ? (input.toAccountId ?? "") : "",
-    categoryId: input.kind === "expense" || input.kind === "income" ? (input.categoryId ?? "") : "",
-    payee: input.payee?.trim() ?? "",
-    note: input.note?.trim() ?? "",
+    ...accountsOf(input),
+    categoryId: categoryOf(input),
+    payee: (input.payee ?? "").trim(),
+    note: (input.note ?? "").trim(),
     importId: input.importId ?? "",
     paypalId: input.paypalId ?? "",
     bankPayee: input.bankPayee ?? "",
     folder: "",
-    tags: normalizeTags(input.tags ?? []),
+    tags: normalizeTags(input.tags),
+    for: [...new Set(input.for)],
   };
+}
+
+/** Which Accounts a Transaction is on, by kind: a transfer is between its two and has none of its own; the rest are on one. */
+function accountsOf(input: TransactionInput): Pick<Transaction, "accountId" | "fromAccountId" | "toAccountId"> {
+  const transfer = input.kind === "transfer";
+  return {
+    accountId: (!transfer && input.accountId) || "",
+    fromAccountId: (transfer && input.fromAccountId) || "",
+    toAccountId: (transfer && input.toAccountId) || "",
+  };
+}
+
+/** Only an expense or an income takes a Category. */
+function categoryOf(input: TransactionInput): string {
+  return ((input.kind === "expense" || input.kind === "income") && input.categoryId) || "";
 }
 
 export async function addTransaction(input: TransactionInput): Promise<string> {
@@ -200,7 +217,7 @@ export async function updateTransaction(t: Transaction, input: TransactionInput)
  */
 export async function editTransaction(t: Transaction, patch: Partial<Pick<TransactionInput, "date" | "amount" | "accountId" | "fromAccountId" | "toAccountId" | "categoryId" | "payee" | "note">>): Promise<void> {
   const n = normalizeTransaction(t);
-  await updateTransaction(n, { kind: n.kind, date: n.date, amount: n.amount, accountId: n.accountId, fromAccountId: n.fromAccountId, toAccountId: n.toAccountId, categoryId: n.categoryId, payee: n.payee, note: n.note, tags: n.tags, ...patch });
+  await updateTransaction(n, { kind: n.kind, date: n.date, amount: n.amount, accountId: n.accountId, fromAccountId: n.fromAccountId, toAccountId: n.toAccountId, categoryId: n.categoryId, payee: n.payee, note: n.note, tags: n.tags, for: n.for, ...patch });
 }
 
 export async function deleteTransaction(id: string): Promise<void> {

@@ -3,17 +3,18 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ATTACHMENTS, db, DOCUMENTS, type SyncedRecord } from "../data/db";
 import { sharedLiveQuery } from "../data/live";
 import { reuseUnchanged } from "../data/reconcile";
-import { put, remove } from "../data/repo";
+import { put, putAll, remove } from "../data/repo";
 import { newId } from "../ids";
 import { todayStr } from "../dates";
 import { normalizeTags } from "../tags";
 import { extractLinks, extractProseTags, isImageEmbed, normalizeName } from "../markdown";
 import { normalizeFolder } from "../folders";
-import { documentTypeSync } from "./registry";
+import { allDocumentTypes, documentTypeSync } from "./registry";
 import { recallableDefs, registeredApps } from "../registry";
 import { inPrivateFolder, privateGate, visibleUnder } from "../private";
 import { onWorkspaceChange, useCurrentWorkspaceId, workspaceScope } from "../workspaces";
-import type { Document } from "./types";
+import { isLinkKind, type Document, type DocumentTypeDef, type FieldDef } from "./types";
+import { allRoles, fieldsOfDocument, type RoleDef } from "./roles";
 
 /**
  * The Document store (ADR 0018): one Dexie table, one PocketBase collection.
@@ -170,12 +171,84 @@ export async function removeDocument(id: string): Promise<void> {
   // `removeDocumentsWhere` below tombstones directly, so a cascade that uses
   // it cannot re-enter this.
   const doc = await documentsTable().get(id);
-  if (doc && !doc.deleted) {
-    await documentTypeSync(doc.type)?.onDelete?.(doc);
-    // A Recallable Document's practice goes with it, whatever App owns it and whichever keeps the practice (ADR 0073).
-    if (recallableDefs().some((d) => d.typeId === doc.type)) for (const a of registeredApps()) await a.forgetRecallable?.(doc);
+  if (!doc || doc.deleted) return remove(DOCUMENTS, id);
+  const def = documentTypeSync(doc.type);
+  await def?.onDelete?.(doc);
+  await forgetPractice(doc);
+  // The links its type asks to undo, and the tombstone, in one write: a failure
+  // halfway would leave a live Document already gone from the Fields that held it.
+  const holders = def?.unlinkOnDelete ? await unlinkedHolders(doc.id, doc.type) : [];
+  const current = (await documentsTable().get(id)) ?? doc;
+  await putAll<Document>(DOCUMENTS, [...holders, { ...current, deleted: 1 }]);
+}
+
+/** A Recallable Document's practice goes with it, whatever App owns it and whichever keeps the practice (ADR 0073). */
+async function forgetPractice(doc: Document): Promise<void> {
+  if (!recallableDefs().some((d) => d.typeId === doc.type)) return;
+  for (const a of registeredApps()) await a.forgetRecallable?.(doc);
+}
+
+/** Whether a Link field may hold a Document of `type`: one restricted to another type may not. A Role-restricted one may. */
+function mayHold(f: FieldDef, type: string): boolean {
+  if (!isLinkKind(f.kind)) return false;
+  if (f.linkRole || !f.linkType) return true;
+  return (Array.isArray(f.linkType) ? f.linkType : [f.linkType]).includes(type);
+}
+
+/**
+ * Where a link to a Document of `type` can be stored: the types whose own
+ * Fields may hold it, and the Roles whose Fields may (worn by a Document of
+ * any type). Every other Document can't, and is never read.
+ */
+export function linkHolders(type: string, types: readonly DocumentTypeDef[] = allDocumentTypes(), roles: readonly RoleDef[] = allRoles()): { types: string[]; roles: string[] } {
+  return {
+    types: types.filter((t) => t.fields.some((f) => mayHold(f, type))).map((t) => t.id),
+    roles: roles.filter((r) => r.fields.some((f) => mayHold(f, type))).map((r) => r.id),
+  };
+}
+
+/**
+ * Every live Document, of every Workspace, with `id` taken out of the Link
+ * fields that hold it (`unlinkOnDelete`), ready to write: a `links` Field
+ * loses the one id; a `link` Field is emptied. Only the Documents that could
+ * hold it are read (`linkHolders`, through the type and Role indexes), not the
+ * whole store. Each keeps its Workspace, folder and tags (none derives from a
+ * Link field); an untitled one is titled again, as `putDocument` would.
+ */
+async function unlinkedHolders(id: string, type: string): Promise<Document[]> {
+  const out: Document[] = [];
+  for (const row of await liveHolders(type)) {
+    if (row.id === id) continue;
+    const patch = unlinked(row, id);
+    if (!patch) continue;
+    const next = { ...row, ...patch };
+    const titleOf = documentTypeSync(row.type)?.titleOf;
+    if (!next.title && titleOf) next.title = titleOf(next);
+    out.push(next);
   }
-  await remove(DOCUMENTS, id);
+  return out;
+}
+
+/** The live Documents, of any Workspace, that could hold a link to a Document of `type` (`linkHolders`), each once. */
+async function liveHolders(type: string): Promise<Document[]> {
+  const holders = linkHolders(type);
+  const [byType, byRole] = await Promise.all([
+    holders.types.length ? documentsTable().where("[type+deleted]").anyOf(holders.types.map((t) => [t, 0])).toArray() : [],
+    holders.roles.length ? documentsTable().where("roles").anyOf(holders.roles).toArray() : [],
+  ]);
+  return [...new Map([...byType, ...byRole].filter((r) => !r.deleted).map((r) => [r.id, r])).values()];
+}
+
+/** A Document's Link fields with `id` taken out — a `links` Field loses it, a `link` Field is emptied — or nothing when none holds it. */
+function unlinked(row: Document, id: string): Record<string, unknown> | undefined {
+  const patch: Record<string, unknown> = {};
+  for (const f of fieldsOfDocument(row, documentTypeSync(row.type))) {
+    if (!isLinkKind(f.kind)) continue;
+    const v = row[f.key];
+    if (Array.isArray(v) && v.includes(id)) patch[f.key] = v.filter((x) => x !== id);
+    else if (v === id) patch[f.key] = "";
+  }
+  return Object.keys(patch).length ? patch : undefined;
 }
 
 /** Tombstone every live Document of a type matching a predicate (cascades: a Task's overrides, a Writing's Versions). */

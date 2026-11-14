@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { displayTitle, documentType, excerpt, getDocument, linkMentions, patchDocument, planLinkAll, singularOf, unambiguousHits, useUnlinkedIn, useUnlinkedMentionsOf, type LinkIndex, type LinkRef, type MentionHit } from "@lifeline/core";
+import { backlinkContext, displayTitle, documentType, getDocument, linkMentions, patchDocument, planLinkAll, singularOf, unambiguousHits, useUnlinkedIn, useUnlinkedMentionsOf, type LinkIndex, type LinkRef, type MentionHit } from "@lifeline/core";
 import { Button, cn, toast } from "@lifeline/ui";
 
 type OnOpen = (ref: LinkRef, name: string) => void;
@@ -29,7 +29,8 @@ function SourceRow({ index, sourceId, context, onOpen }: { index: LinkIndex; sou
     <button type="button" className="hover:bg-accent w-full min-w-0 flex-1 rounded-md px-2 py-1 text-left" onClick={() => onOpen({ kind: "doc", id: sourceId, type: src?.type ?? "" }, title)}>
       <div className="flex min-w-0 items-baseline gap-2">
         <span className="min-w-0 truncate font-medium">{title}</span>
-        {def && <span className="text-muted-foreground shrink-0 text-2xs uppercase">{singularOf(def)}</span>}
+        {/* A user type's name may be as long as a title: it gives way too, never pushes the row wide (ADR 0065). */}
+        {def && <span className="text-muted-foreground min-w-0 truncate text-2xs uppercase">{singularOf(def)}</span>}
       </div>
       <div className="text-muted-foreground line-clamp-2 text-xs break-words">{context}</div>
     </button>
@@ -37,9 +38,8 @@ function SourceRow({ index, sourceId, context, onOpen }: { index: LinkIndex; sou
 }
 
 /** Backlinks: the Documents that link here, by wikilink or Link field. */
-export function BacklinksSection({ docId, index, onOpen, emptyHint = true }: SectionProps & { emptyHint?: boolean }) {
+export function BacklinksSection({ docId, index, onOpen }: SectionProps) {
   const backlinks = index.backlinksTo(docId);
-  if (backlinks.length === 0 && !emptyHint) return null;
   return (
     <section className="min-w-0">
       <h3 className={HEADING}>Backlinks · {backlinks.length}</h3>
@@ -47,14 +47,11 @@ export function BacklinksSection({ docId, index, onOpen, emptyHint = true }: Sec
         <p className="text-muted-foreground text-xs">Nothing links here yet.</p>
       ) : (
         <ul className="grid min-w-0 gap-1.5">
-          {backlinks.map((b, i) => {
-            const src = index.byId.get(b.sourceId);
-            return (
-              <li key={`${b.sourceId}-${i}`} className="min-w-0">
-                <SourceRow index={index} sourceId={b.sourceId} onOpen={onOpen} context={b.field ? `via ${b.field}` : b.context || excerpt(typeof src?.body === "string" ? src.body : "", 100)} />
-              </li>
-            );
-          })}
+          {backlinks.map((b, i) => (
+            <li key={`${b.sourceId}-${i}`} className="min-w-0">
+              <SourceRow index={index} sourceId={b.sourceId} onOpen={onOpen} context={backlinkContext(b, index.byId.get(b.sourceId))} />
+            </li>
+          ))}
         </ul>
       )}
     </section>

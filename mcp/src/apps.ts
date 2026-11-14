@@ -23,6 +23,7 @@ import { pantryApp } from "@lifeline/app-pantry";
 import { shoppingApp } from "@lifeline/app-shopping";
 import { moodApp } from "@lifeline/app-mood";
 import { thoughtsApp } from "@lifeline/app-thoughts";
+import { contactsApp } from "@lifeline/app-contacts";
 import { manuscriptApp } from "@lifeline/app-manuscript";
 import { pricesApp } from "@lifeline/app-prices";
 
@@ -47,6 +48,7 @@ export const manifests: AppManifest[] = [
   commonplaceApp,
   museumApp,
   notesApp,
+  contactsApp,
   thoughtsApp,
   writerApp,
   manuscriptApp,

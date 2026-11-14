@@ -7,6 +7,7 @@ const types = new Map<string, DocumentTypeDef>();
 const docs = new Map<string, Document>();
 const macros: MacroRecord[] = [];
 const commands: OwnedCommand[] = [];
+const agendaItems: import("@lifeline/core").TimedItem[] = [];
 const core = vi.hoisted(() => ({
   saveMacro: vi.fn(),
   createDocument: vi.fn(),
@@ -22,13 +23,14 @@ vi.mock("@lifeline/core", async (importOriginal) => {
     ...actual,
     ...core,
     allWorkspaces: async () => [],
+    surfaceItemsIn: async () => ({ items: [], pool: [] }),
     setCurrentWorkspace: () => undefined,
     documentTypeSync: (id: string) => types.get(id),
     getDocument: async (id: string) => docs.get(id),
     allDocuments: async () => [...docs.values()],
     allMacros: async () => macros,
     allCommands: () => commands,
-    timedProviders: () => [{ appId: "calendar", useItems: () => [], reschedule: core.reschedule }],
+    timedProviders: () => [{ appId: "calendar", useItems: () => [], reschedule: core.reschedule, itemsIn: async () => agendaItems }],
   };
 });
 
@@ -268,5 +270,21 @@ describe("get_document", () => {
     docs.set("b1", doc("b1", "board", "Private"));
     docs.set("l1", doc("l1", "lane"));
     await expect(runTool("get_document", { id: "l1" })).rejects.toThrow(/No Document l1/);
+  });
+});
+
+describe("agenda", () => {
+  const item = (over: Partial<import("@lifeline/core").TimedItem>) => ({ key: "k", appId: "calendar", itemId: "i", title: "t", date: "2026-03-04", start: null, end: null, ...over });
+
+  it("calls an Occasion marker an occasion, a Deadline marker a deadline, and the rest events", async () => {
+    agendaItems.length = 0;
+    agendaItems.push(
+      item({ itemId: "a", title: "🎂 Anne · 65", marker: true, occasion: true }),
+      item({ itemId: "b", title: "⚑ Ship", marker: true }),
+      item({ itemId: "c", title: "Lunch", start: "12:00", end: "13:00" }),
+    );
+    const out = (await runTool("agenda", { start: "2026-03-04", end: "2026-03-04" })) as { days: Record<string, { kind: string; title: string }[]> };
+    expect((out.days["2026-03-04"] ?? []).map((r) => [r.title, r.kind])).toEqual(expect.arrayContaining([["🎂 Anne · 65", "occasion"], ["⚑ Ship", "deadline"], ["Lunch", "event"]]));
+    agendaItems.length = 0;
   });
 });

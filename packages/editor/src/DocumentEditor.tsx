@@ -74,6 +74,8 @@ export interface DocumentEditorProps {
    * frame draws the rest and owns the switch back to reading.
    */
   bodyOnly?: boolean;
+  /** The body editor's accessible name (default "Body"): the heading it sits under, when it has one. */
+  bodyLabel?: string;
 }
 
 /**
@@ -82,7 +84,7 @@ export interface DocumentEditorProps {
  * the links panel. Saves are debounced. Text mode shows the frontmatter
  * projection; edits to guarded fields there are reverted with a notice.
  */
-export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, linksPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn, minimal = false, bodyOnly = false }: DocumentEditorProps) {
+export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, linksPanel = true, docDate = null, onCreateUnresolved, onDeleted, toolbar, banner, allowGuarded, save, remove: removeFn, minimal = false, bodyOnly = false, bodyLabel }: DocumentEditorProps) {
   const navigate = useNavigate();
   const isMobile = usePhone();
   const [panelOpen, setPanelOpen] = useState(showPanel);
@@ -289,6 +291,7 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
       context={context}
       autoFocus={autoFocus}
       onQuietChange={setQuiet}
+      label={bodyLabel}
       placeholder="Write… [[ links any Document, #tags, ```daylog for the day's facts"
     />
   );

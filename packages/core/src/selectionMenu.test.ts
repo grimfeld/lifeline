@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex } from "./documents/links";
 import type { Document, DocumentTypeDef } from "./documents/types";
-import { aliasWrite, buildSelectionMenu, linkTargets, writeLink, type SelectionMenuInput } from "./selectionMenu";
+import { aliasWrite, buildSelectionMenu, canonicalName, linkTargets, writeLink, type SelectionMenuInput } from "./selectionMenu";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
   id, label: id + "s", titleRule: "name", body: "optional", fields: [], linkable: true, builtIn: true, ...extra,
@@ -59,6 +59,18 @@ describe("the Selection menu's groups", () => {
 
   it("lists the Module the user is in first, right after Link, then an App in no Module, the others keeping their places", () => {
     expect(shape(menu({ currentModule: "languages" })).map(([t]) => t)).toEqual(["Link", "Knowledge", "Calendar", "House", "Projects", "Notes"]);
+  });
+
+  it("offers the Contacts App's Person under People, right after the Journal (ADR 0113)", () => {
+    const groups = menu({
+      text: "Anne",
+      intakes: [...INTAKES, intake("contacts", "person", "Person")],
+      moduleOf: (appId) => (appId === "contacts" ? "people" : MODULE_OF[appId]),
+      appTitle: (appId) => (appId === "contacts" ? "Contacts" : APP_TITLE[appId]),
+      userTypes: [{ id: "place", title: "Place", homeModule: "journal", linkable: true }],
+    });
+    expect(shape(groups).map(([t]) => t)).toEqual(["Link", "Calendar", "House", "Projects", "Journal", "People", "Notes", "Knowledge"]);
+    expect(shape(groups).find(([t]) => t === "People")).toEqual(["People", ["Person"]]);
   });
 
   it("keeps an App in no Module first when the Module the user is in offers nothing", () => {
@@ -294,5 +306,13 @@ describe("writeLink", () => {
       expect(writeLink("Marie", { text: "Marie", occurrence: 1, count: 2 }, "Marie")).toBeNull();
       expect(writeLink("No one", { text: "Marie", occurrence: 0, count: 1 }, "Marie")).toBeNull();
     });
+  });
+});
+
+describe("the name a link to a Document is written with", () => {
+  it("is its title, its path when another Document shares the title, and nothing for a Document not there", () => {
+    const shared = [doc("a", "note", "Paris", { folder: "Trips" }), doc("b", "note", "Paris", { folder: "Cities" }), doc("c", "note", "Lyon")];
+    const index = buildLinkIndex(shared, types);
+    expect([canonicalName(index, "c"), canonicalName(index, "a"), canonicalName(index, "gone")]).toEqual(["Lyon", "Trips/Paris", undefined]);
   });
 });

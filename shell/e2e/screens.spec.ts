@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
+import { inCore } from "./support/core";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
 import { selectText } from "./support/selection";
 import { datePickerLabelled, dayFromToday, openCalendar, showPhoneFilters } from "./support/date-picker";
@@ -493,6 +494,59 @@ function longBook(peek: boolean) {
 }
 
 /**
+ * A Person page with Addresses as long as a person could type (#418): a long
+ * label and text, one current with no place found and one former.
+ */
+async function longAddresses(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, long, word }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const [doc] = await core.documentsOf("contacts_person");
+      const at = (id: string, former: boolean, lat?: number) => ({ id, label: `${long} ${word}`, text: `${long}\n${word}${word} ${long}`, former, ...(lat === undefined ? {} : { lat, lon: 2 }) });
+      await core.patchDocument(doc.id, { addresses: [at("a1", false, 48.8), at("a2", false), at("a3", true, 1)] });
+    },
+    { coreUrl: CORE_URL, long: longText("An address"), word: LONG_WORD },
+  );
+  await expect(page.getByTestId("address")).toHaveCount(3);
+}
+
+/** A Relationship as long as a person could type, so the People filter row holds a long toggle. */
+async function longRelationship(page: Page) {
+  await workLocally(page);
+  await inCore(
+    page,
+    async (core, a: { long: string }) => {
+      const [doc] = await core.documentsOf("contacts_person");
+      await core.patchDocument(doc!.id, { relationship: `${a.long} ${a.long}` });
+    },
+    { long: longText("A relationship") },
+  );
+  await expect(page.getByText(/^A relationship/).first()).toBeVisible();
+}
+
+async function longContactDetails(page: Page) {
+  await workLocally(page);
+  const id = new URL(page.url()).pathname.split("/").pop()!;
+  const long = LONG_WORD;
+  await inCore(
+    page,
+    async (core, a: { id: string; long: string }) => {
+      await core.patchDocument(a.id, {
+        contactDetails: [
+          { id: "c1", label: a.long, kind: "phone", value: `+33 ${"6 12 34 56 78 ".repeat(12)}`, former: false },
+          { id: "c2", label: `Email ${a.long}`, kind: "email", value: `${a.long}@${a.long}.example.org`, former: false },
+          { id: "c3", label: a.long, kind: "handle", value: `https://instagram.com/${a.long}`, former: false },
+          { id: "c4", label: a.long, kind: "handle", value: `@${a.long}`, former: true },
+        ],
+      });
+    },
+    { id, long },
+  );
+  await expect(page.getByText(`Email ${long}`)).toBeVisible();
+}
+
+/**
  * A Provision's Peek with its "Expires" Date picker open (ADR 0087): the
  * calendar sits inside the viewport and nothing scrolls sideways, at phone
  * width too; the layout check then covers the popover itself.
@@ -713,6 +767,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Progress", path: "/module/progress", afterOpen: workLocally },
   { name: "Knowledge module", path: "/module/languages" },
   { name: "Journal module", path: "/module/journal" },
+  { name: "People module", path: "/module/people" },
   { name: "Notes module", path: "/module/notes" },
   { name: "Thoughts module", path: "/module/thoughts" },
   { name: "Research module", path: "/module/research" },
@@ -950,6 +1005,9 @@ const SCREENS: ScreenCase[] = [
   { name: "Quotes", path: "/app/quotes" },
   { name: "Museum", path: "/app/museum" },
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
+  { name: "People", path: "/app/people", afterOpen: longRelationship },
+  { name: "Person", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); } },
+  { name: "Person · Edit", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); await page.getByRole("button", { name: "Edit", exact: true }).click(); } },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },

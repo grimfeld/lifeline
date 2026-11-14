@@ -36,6 +36,7 @@ import {
   type Handoff,
   type Weekday,
 } from "@lifeline/core";
+import { PeopleField } from "@lifeline/editor";
 import type { Recurrence, Task } from "../domain/types";
 import { DayPicker, ProjectPicker } from "./TaskFields";
 import { addTask, updateTask } from "../data/repo";
@@ -124,6 +125,7 @@ export function TaskDialog({
   const [monthDays, setMonthDays] = useState<number[]>([1]);
   const [yearDates, setYearDates] = useState<{ month: number; day: number }[]>([{ month: 1, day: 1 }]);
   const [tags, setTags] = useState<string[]>([]);
+  const [forIds, setForIds] = useState<string[]>([]);
   const [estimate, setEstimate] = useState<number | null>(null);
   const [project, setProject] = useState<string | null>(null);
   const [milestone, setMilestone] = useState<string | null>(null);
@@ -141,6 +143,7 @@ export function TaskDialog({
     setMonthDays(r?.kind === "monthly" ? r.days : [1]);
     setYearDates(r?.kind === "yearly" ? r.dates : [{ month: 1, day: 1 }]);
     setTags(task?.tags ?? initialList(initial, "tags"));
+    setForIds(task?.for ?? []);
     setEstimate(task?.estimate ?? initialNumber(initial, "estimate") ?? null);
     setProject(task ? task.project : (initialText(initial, "project") || (defaultProject ?? null)));
     setMilestone(task ? task.milestone : (defaultMilestone ?? null));
@@ -196,10 +199,11 @@ export function TaskDialog({
         completedOn: recurrence ? null : task.completedOn,
         estimate,
         tags,
+        for: forIds,
       });
       toast.success("Task updated");
     } else {
-      const id = await addTask({ title: title.trim(), notes: notes.trim(), recurrence, date: date || null, estimate, tags, project: place.project, milestone: place.milestone });
+      const id = await addTask({ title: title.trim(), notes: notes.trim(), recurrence, date: date || null, estimate, tags, project: place.project, milestone: place.milestone, for: forIds });
       toast.success("Task added");
       onSaved?.(id);
     }
@@ -372,6 +376,10 @@ export function TaskDialog({
                 placeholder="Optional"
                 rows={3}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="task-for">For</Label>
+              <PeopleField id="task-for" value={forIds} onChange={setForIds} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="task-tags">Tags</Label>

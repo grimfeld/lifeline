@@ -13,6 +13,7 @@ import {
   toast,
 } from "@lifeline/ui";
 import { displayTitle, docHref, initialList, initialText, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff, type IntakePrefill } from "@lifeline/core";
+import { PeopleField } from "@lifeline/editor";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
 import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors } from "../domain/eventForm";
@@ -60,6 +61,7 @@ export function EventDialog({
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
   const [tags, setTags] = useState<string[]>([]);
+  const [withIds, setWithIds] = useState<string[]>([]);
   /** Errors show once saving has been tried, and clear as each field is fixed. */
   const [tried, setTried] = useState(false);
   const errors = tried ? eventFormErrors({ title, date, endDate, allDay, start, end }) : {};
@@ -74,6 +76,7 @@ export function EventDialog({
     setTitle(event?.title ?? preTitle ?? handoff?.title ?? "");
     setNotes(event?.notes ?? (handoff ? [handoff.url, handoff.author ? `From ${handoff.author}` : ""].filter(Boolean).join("\n") : initialText(initial, "notes")));
     setTags(event?.tags ?? initialList(initial, "tags"));
+    setWithIds(event?.with ?? []);
     setTried(false);
     if (event) {
       setDate(event.date);
@@ -109,6 +112,7 @@ export function EventDialog({
       notes: notes.trim(),
       ...whenOf({ date, endDate, allDay, start, end }),
       tags,
+      with: withIds,
     };
     if (event) {
       await updateEvent({ ...event, ...fields });
@@ -151,6 +155,9 @@ export function EventDialog({
           />
           <Field label="Notes">
             <Textarea id="ev-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional" />
+          </Field>
+          <Field label="With">
+            <PeopleField id="ev-with" value={withIds} onChange={setWithIds} />
           </Field>
           <Field label="Tags">
             <TagInput id="ev-tags" value={tags} onChange={setTags} suggestions={suggestions} normalize={normalizeTag} placeholder="Add tag…" />
