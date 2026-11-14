@@ -1,5 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
+import { openPalette } from "./support/palette";
 
 /**
  * Macros (CONTEXT.md "Macro", ADR 0092): made in Settings → Macros from
@@ -256,4 +258,41 @@ test("a dialog step closed without saving stops the Macro there, reported cancel
     return (await core.documentsOf("task")).map((d: { title: string }) => d.title);
   }, CORE_URL);
   expect(titles).not.toContain("Never after a cancel");
+});
+
+test("a Macro's Add event step fixed With someone, picked by alias, runs from the palette and puts the Event on their Timeline", async ({ page, isMobile }) => {
+  test.skip(isMobile, "the palette is not opened on a phone");
+  const stamp = Date.now();
+  const title = `Thursday dinner ${stamp}`;
+  const name = `Zoé Martin ${stamp}`;
+  await page.goto("/settings/macros");
+  await workLocally(page);
+  const zoe = await inCore(page, async (core, a) => (await core.createDocument({ type: "contacts_person", title: a.name, fields: { aliases: [a.alias] } })).id as string, { name, alias: `Zozo ${stamp}` });
+
+  await page.getByRole("button", { name: "New Macro" }).click();
+  const editor = page.getByRole("dialog");
+  await editor.getByLabel("Name").fill(`Dinner with Zoé ${stamp}`);
+  await editor.getByRole("combobox", { name: "Add a step" }).fill("Add event");
+  await page.getByRole("option", { name: "Add event", exact: true }).click();
+  const step = editor.getByRole("list", { name: "Steps" }).getByRole("listitem").last();
+  await step.getByLabel("Title (required)").fill(title);
+  await step.getByLabel("Day (required)").click();
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await step.getByRole("combobox", { name: "With", exact: true }).fill(`Zozo ${stamp}`);
+  await page.getByRole("option", { name: new RegExp(name) }).click();
+  await expect(step.getByText(name)).toBeVisible();
+  await editor.getByRole("button", { name: "Save" }).click();
+  await expect(editor).toBeHidden();
+
+  await openPalette(page);
+  await page.getByRole("combobox").fill(`Dinner with Zoé ${stamp}`);
+  await page.getByRole("option", { name: new RegExp(`Dinner with Zoé ${stamp}`) }).click();
+  const report = page.getByRole("dialog", { name: `Dinner with Zoé ${stamp}` }).getByRole("list", { name: "Steps" }).getByRole("listitem");
+  await expect(report).toHaveCount(1);
+  await expect(report.nth(0)).toContainText("Done");
+  await expect(report.nth(0)).toContainText(`with ${name}`);
+
+  await page.goto(`/app/people/person/${zoe}`);
+  await workLocally(page);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
 });

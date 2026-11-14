@@ -400,26 +400,28 @@ const LONG_HANDOFF = encodeHandoff(
 
 /**
  * Settings → Macros over a long-named Macro whose steps carry long fixed
- * values, an asked argument, a step skipped if refused, and a step whose Command is gone — with its editor open when `edit`.
+ * values, an asked argument, a step skipped if refused, an Add event step With a long-named Person, and a step whose Command is gone — with its editor open when `edit`.
  */
 function macrosWithLongContent(edit?: boolean) {
   return async (page: Page) => {
     await workLocally(page);
     const name = longText("A Macro");
     await page.evaluate(
-      async ({ coreUrl, name, title }) => {
+      async ({ coreUrl, name, title, person }) => {
         const core = await import(/* @vite-ignore */ coreUrl);
         if ((await core.allMacros()).some((m: { name: string }) => m.name === name)) return;
+        const with_ = (await core.documentsOf("contacts_person")).find((p: { title: string }) => p.title === person) ?? (await core.createDocument({ type: "contacts_person", title: person }));
         await core.saveMacro({
           name,
           steps: [
             { command: "tasks/tasks.add", args: { title: { from: "fixed", value: title }, notes: { from: "asked" } } },
             { command: "shopping/shopping.add", args: { title: { from: "fixed", value: title } }, skipIfRefused: true },
+            { command: "calendar/calendar.add-event", args: { title: { from: "fixed", value: title }, date: { from: "asked" }, with: { from: "fixed", value: [with_.id] } } },
             { command: `gone/${name.replace(/ /g, "")}`, args: {} },
           ],
         });
       },
-      { coreUrl: CORE_URL, name, title: longText("A task") },
+      { coreUrl: CORE_URL, name, title: longText("A task"), person: longText("A Person") },
     );
     const row = page.getByRole("list", { name: "Macros" }).getByRole("button", { name }).first();
     await row.waitFor();

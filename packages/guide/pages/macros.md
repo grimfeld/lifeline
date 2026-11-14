@@ -10,8 +10,14 @@ They are yours across every Workspace and every device.
   - **Fixed** — the value typed here, the same every run;
   - **Asked when it runs** — every asked value, from all the steps, is asked in one form before the
     first step runs;
-  - **What step N made** (for a link) — the Document an earlier step made, so a Note can be about
-    the Source step 1 added. Only a step that makes a Document offers it: setting a mood makes none.
+  - **What step N made** (for a link, or a list of People) — the Document an earlier step made, so a
+    Note can be about the Source step 1 added, or an Event can be with the Person step 1 added. Only a
+    step that makes a Document offers it: setting a mood makes none.
+- **A step can name People.** A list of People, such as **Add event**'s **With**, is filled as a
+  People field is: type a name or an alias and pick them from the suggestions, as many as you like;
+  the cross on a name takes it off. Asked when it runs, the up-front form picks them the same way.
+- **Save** checks the Macro first. One that would be broken (below) is not saved: the editor says
+  why, step by step, for you to mend.
 - **Skip if refused** on a step: when it is refused (today's mood is already set), the report says
   it was skipped and why, and the Macro carries on.
 - A Command that only has its own dialog can be a step too: its dialog opens at its turn, and the
@@ -28,12 +34,12 @@ They are yours across every Workspace and every device.
 
 Before its first step, a Macro checks that every step can be given what it needs: its Command still
 exists and is not another Macro (a Macro cannot be a step), each fixed value fits, a fixed link
-names one Document, a step takes only what an earlier step made — into a link, from a step that
+(and each name in a fixed list of People) names one Document, a step takes only what an earlier step made — into a link, from a step that
 makes a Document — every required value is fixed or asked, and a step that takes you somewhere is
 last. A Macro that fails is **Broken**: the list marks it, with each reason, until it is mended,
 and run, it does nothing and says why.
 
-A fixed link names its Document by id, title or alias, as `[[links]]` do (case, accents and extra
+A fixed link, and each entry of a fixed list, names its Document by id, title or alias, as `[[links]]` do (case, accents and extra
 spaces aside). A name that later fits two Documents — you added a second Marc, or gave someone
 "Marc" as an alias — breaks the Macro, and the reason lists each candidate with its id: pick the one
 meant and the Macro runs again.
@@ -67,7 +73,8 @@ delete it, and it never comes back, on any device. A new version of Lifeline nev
 ## Ask Claude
 
 [Claude](connector.md) can run a Macro whose steps all work without a dialog, and list, create and
-edit Macros, checked exactly as here. A Macro it makes appears here at once, yours to edit or
+edit Macros, checked exactly as here: a list of People it fixes or passes takes names, aliases or
+ids, and a name that fits no one, or several, is refused with each candidate's id. A Macro it makes appears here at once, yours to edit or
 delete; Claude cannot delete one.
 
 ## Related

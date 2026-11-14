@@ -1,4 +1,4 @@
-import { commandKey, commandNavigates, isInvocable, linkableDocuments, pickLinked, readCommandArgs, type LinkableDocument, type OwnedCommand } from "./commands";
+import { asStrings, commandKey, commandNavigates, isInvocable, linkableDocuments, linkProblemText, matchLinks, pickLinked, readCommandArgs, type LinkableDocument, type OwnedCommand } from "./commands";
 import { MACRO_APP, type MacroShape } from "./macros";
 import type { CommandArg } from "./manifest";
 
@@ -25,11 +25,19 @@ export const storeLookup: DocumentLookup = { linkable: linkableDocuments };
 export type MacroCheck = { ok: true } | { ok: false; reasons: string[] };
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
-const empty = (v: unknown) => v === undefined || v === null || v === "";
+const empty = (v: unknown) => v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
 
-/** Why a fixed value does not fit its argument; none when it does. A link is looked up, rows are checked row by row. */
+/** Why a fixed value does not fit its argument; none when it does. A link is looked up, each entry of a list of links too, rows are checked row by row. */
 async function valueProblems(arg: CommandArg, value: unknown, lookup: DocumentLookup): Promise<string[]> {
   if (empty(value)) return [];
+  if (arg.kind === "links") {
+    try {
+      const values = asStrings(arg, value);
+      return values.length ? matchLinks(arg, values, await lookup.linkable(arg)).problems.map(linkProblemText) : [];
+    } catch (e) {
+      return [message(e)];
+    }
+  }
   if (arg.kind === "link") {
     try {
       pickLinked(arg, String(value), await lookup.linkable(arg));
@@ -82,7 +90,7 @@ export function returnsDocument(def: OwnedCommand): boolean {
  * Check a Macro before it runs: every Command exists and is not a Macro, a
  * step that goes somewhere is last, every value a step gives is one its
  * Command takes and fits it, fixed links name one living Document, a step's
- * result is taken only by a link, from an earlier step that returns a Document, and every
+ * result is taken only by a link or a list of links (as its one entry), from an earlier step that returns a Document, and every
  * required value has a source.
  */
 export async function checkMacro(macro: MacroShape, commands: readonly OwnedCommand[], lookup: DocumentLookup = storeLookup): Promise<MacroCheck> {
@@ -116,7 +124,7 @@ export async function checkMacro(macro: MacroShape, commands: readonly OwnedComm
       if (src.from === "step") {
         const made = `${at}${arg.label} takes what step ${src.step + 1} made, but `;
         const earlier = src.step >= 0 && src.step < i ? defs[src.step] : undefined;
-        if (arg.kind !== "link") reasons.push(`${made}only a link can take a Document`);
+        if (arg.kind !== "link" && arg.kind !== "links") reasons.push(`${made}only a link can take a Document`);
         else if (!(src.step >= 0 && src.step < i)) reasons.push(`${made}step ${src.step + 1} does not come before it`);
         // Only a headless step that says it returns a Document reports one; a dialog or a place makes nothing a later step can take.
         else if (earlier && !returnsDocument(earlier)) reasons.push(`${made}“${earlier.title}” makes no Document`);

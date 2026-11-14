@@ -61,7 +61,8 @@ function isRealDate(s: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
-function asStrings(arg: CommandArg, v: unknown): string[] {
+/** A list-of-text value read: an array of strings, or a comma-separated string; entries trimmed, blanks dropped. */
+export function asStrings(arg: CommandArg, v: unknown): string[] {
   const list = typeof v === "string" ? v.split(",") : v;
   if (!Array.isArray(list) || list.some((x) => typeof x !== "string")) throw new Error(`${arg.label}: expected a list of text`);
   return list.map((x: string) => x.trim()).filter(Boolean);

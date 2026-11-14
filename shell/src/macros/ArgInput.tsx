@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { Checkbox, DatePicker, Field, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TimeField } from "@lifeline/ui";
-import type { CommandArg } from "@lifeline/core";
+import { PERSON_TYPE, type CommandArg } from "@lifeline/core";
+import { PeopleField } from "@lifeline/editor";
 
 const NONE = "\u0000none";
 
@@ -64,6 +65,19 @@ export function ArgInput({ arg, value, error, onChange }: { arg: CommandArg; val
           </Select>
         </Field>
       );
+    case "links":
+      // A list of People is picked as a People field picks them (completing names and aliases); any other list is typed.
+      if (arg.linkType === PERSON_TYPE)
+        return (
+          <Field label={label} hint={arg.hint} error={error}>
+            <PeopleField label={label} placeholder="Add a person…" value={entries(value)} onChange={(ids) => onChange(ids.length ? ids : undefined)} />
+          </Field>
+        );
+      return (
+        <Field label={label} hint={arg.hint ?? kindHint(arg)} error={error}>
+          <Input value={entries(value).join(", ")} onChange={(e) => onChange(e.target.value)} />
+        </Field>
+      );
     default:
       return (
         <Field label={label} hint={arg.hint ?? kindHint(arg)} error={error}>
@@ -73,13 +87,21 @@ export function ArgInput({ arg, value, error, onChange }: { arg: CommandArg; val
   }
 }
 
+/** A list value as its entries: a list as it is, or text split at its commas. */
+function entries(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(String);
+  return typeof value === "string" ? value.split(",").map((v) => v.trim()).filter(Boolean) : [];
+}
+
 function kindHint(arg: CommandArg): string | undefined {
   switch (arg.kind) {
     case "list":
     case "multiselect":
       return arg.options ? `Comma-separated, among ${arg.options.map((o) => o.value).join(", ")}` : "Comma-separated";
     case "link":
-      return "The title of the Document";
+      return "The title of the Document, an alias or its id";
+    case "links":
+      return "Comma-separated: each a title, an alias or an id";
     case "json":
     case "rows":
       return "As JSON";

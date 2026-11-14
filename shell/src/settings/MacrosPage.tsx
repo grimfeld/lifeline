@@ -188,8 +188,17 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
   const update = (i: number, change: Partial<DraftStep>) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, ...change } : st)));
   const setArg = (i: number, key: string, arg: StepArg) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, args: { ...st.args, [key]: arg } } : st)));
 
+  // Why the Macro as drafted would be broken: saving refuses it so, as create_macro does, saying which (ADR 0092).
+  const [refused, setRefused] = useState<string[]>([]);
+
   async function save() {
-    await saveMacro({ id: macro?.id, name: name.trim(), steps: steps.map(fromDraft) });
+    const draft = { name: name.trim(), steps: steps.map(fromDraft) };
+    const check = await checkMacro(draft, commands);
+    if (!check.ok) {
+      setRefused(check.reasons);
+      return;
+    }
+    await saveMacro({ id: macro?.id, ...draft });
     toast.success(macro ? `Saved “${name.trim()}”` : `Made the Macro “${name.trim()}”`);
     onClose();
   }
@@ -258,6 +267,18 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
           leading={<Plus />}
           onValueChange={(command) => setSteps((s) => [...s, { command, args: {}, skipIfRefused: false }])}
         />
+        {refused.length > 0 && (
+          <div role="alert" className="text-destructive flex min-w-0 flex-col gap-1 text-sm">
+            <p>Not saved: it would be broken.</p>
+            <ul className="flex min-w-0 flex-col gap-0.5 text-xs" aria-label="Why it would be broken">
+              {refused.map((r) => (
+                <li key={r} className="break-words">
+                  {r}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
@@ -284,7 +305,7 @@ function SkipToggle({ checked, onChange }: { checked: boolean; onChange: (v: boo
 const FIXED = "fixed";
 const ASKED = "asked";
 
-/** One argument of a step: where its value comes from, and the fixed value when it is fixed. Only a link can take what an earlier step made. */
+/** One argument of a step: where its value comes from, and the fixed value when it is fixed. Only a link, or a list of links (as its one entry), can take what an earlier step made. */
 function ArgSource({ arg, source, earlier, onChange }: { arg: CommandArg; source?: StepArg; earlier: { index: number; title: string }[]; onChange: (a: StepArg) => void }) {
   const current = source ?? { from: "fixed", value: undefined };
   const choice = current.from === "step" ? `step:${current.step}` : current.from;
@@ -301,7 +322,7 @@ function ArgSource({ arg, source, earlier, onChange }: { arg: CommandArg; source
         <SelectContent>
           <SelectItem value={FIXED}>Fixed</SelectItem>
           <SelectItem value={ASKED}>Asked when it runs</SelectItem>
-          {arg.kind === "link" &&
+          {(arg.kind === "link" || arg.kind === "links") &&
             earlier.map((e) => (
               <SelectItem key={e.index} value={`step:${e.index}`}>
                 <span className="truncate">

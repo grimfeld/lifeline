@@ -36,7 +36,8 @@ const macro: OwnedCommand = {
 
 /** A headless Command that makes nothing to take: setting a mood. */
 const setsMood: OwnedCommand = { ...headless("mood", "set", []), returnsDocument: undefined };
-const COMMANDS = [headless("pocket", "spend", AMOUNT), headless("notes", "add", SOURCE), headless("library", "add", []), goTo, dialogOnly, macro, setsMood];
+const WITH: CommandArg[] = [{ key: "with", label: "With", kind: "links", linkType: "source" }];
+const COMMANDS = [headless("pocket", "spend", AMOUNT), headless("notes", "add", SOURCE), headless("calendar", "add-event", WITH), headless("library", "add", []), goTo, dialogOnly, macro, setsMood];
 
 /** Sources: one a title twice over, one a title that is also another's alias. */
 const lookup: DocumentLookup = {
@@ -204,6 +205,38 @@ describe("checkMacro", () => {
         "Step 1: Lines, row 2: Price is required",
         "Step 1: Lines, row 2: No Source called “Gone”",
       ],
+    });
+  });
+  describe("a list of links (an Event's With)", () => {
+    // The test registers no types, so a refusal names the argument (“With”); in the app it names the type (“Person”).
+    it("takes a fixed list, each entry by id, title or alias", async () => {
+      expect(await check(s("calendar/add-event", { with: { from: "fixed", value: ["dune", "Marco", "Marc Lefevre"] } }))).toEqual({ ok: true });
+    });
+
+    it("is broken by every unknown or ambiguous entry of a fixed list, saying which", async () => {
+      expect(await check(s("calendar/add-event", { with: { from: "fixed", value: ["Dune", "Gone", "Emma"] } }))).toEqual({
+        ok: false,
+        reasons: ["Step 1: No With called “Gone”", "Step 1: “Emma” is more than one With: Emma (id e1), Emma (id e2). Pass the id of the one meant"],
+      });
+    });
+
+    it("is broken by a fixed entry that has become ambiguous, with the candidates", async () => {
+      expect(await check(s("calendar/add-event", { with: { from: "fixed", value: ["Marc"] } }))).toEqual({
+        ok: false,
+        reasons: ["Step 1: “Marc” is more than one With: Marc (id m1), Marc Lefèvre (id m2). Pass the id of the one meant"],
+      });
+    });
+
+    it("can be asked when the Macro runs", async () => {
+      expect(await check(s("calendar/add-event", { with: { from: "asked" } }))).toEqual({ ok: true });
+    });
+
+    it("can take what an earlier step made, as its one entry", async () => {
+      expect(await check(s("library/add"), s("calendar/add-event", { with: { from: "step", step: 0 } }))).toEqual({ ok: true });
+    });
+
+    it("treats an empty fixed list as none", async () => {
+      expect(await check(s("calendar/add-event", { with: { from: "fixed", value: [] } }))).toEqual({ ok: true });
     });
   });
 });
