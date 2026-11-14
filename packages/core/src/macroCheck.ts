@@ -1,4 +1,4 @@
-import { asStrings, commandKey, commandNavigates, isInvocable, linkableDocuments, linkProblemText, matchLinks, pickLinked, readCommandArgs, type LinkableDocument, type OwnedCommand } from "./commands";
+import { commandKey, commandNavigates, isInvocable, linkableDocuments, linkProblemText, linkValues, matchLinks, pickLinked, readCommandArgs, takesDocument, type LinkableDocument, type OwnedCommand } from "./commands";
 import { MACRO_APP, type MacroShape } from "./macros";
 import type { CommandArg } from "./manifest";
 
@@ -32,7 +32,7 @@ async function valueProblems(arg: CommandArg, value: unknown, lookup: DocumentLo
   if (empty(value)) return [];
   if (arg.kind === "links") {
     try {
-      const values = asStrings(arg, value);
+      const values = linkValues(arg, value);
       return values.length ? matchLinks(arg, values, await lookup.linkable(arg)).problems.map(linkProblemText) : [];
     } catch (e) {
       return [message(e)];
@@ -90,8 +90,8 @@ export function returnsDocument(def: OwnedCommand): boolean {
  * Check a Macro before it runs: every Command exists and is not a Macro, a
  * step that goes somewhere is last, every value a step gives is one its
  * Command takes and fits it, fixed links name one living Document, a step's
- * result is taken only by a link or a list of links (as its one entry), from an earlier step that returns a Document, and every
- * required value has a source.
+ * result is taken only by a link or a list of links (as its one entry), from
+ * an earlier step that returns a Document, and every required value has a source.
  */
 export async function checkMacro(macro: MacroShape, commands: readonly OwnedCommand[], lookup: DocumentLookup = storeLookup): Promise<MacroCheck> {
   if (macro.steps.length === 0) return { ok: false, reasons: ["It has no steps"] };
@@ -124,7 +124,7 @@ export async function checkMacro(macro: MacroShape, commands: readonly OwnedComm
       if (src.from === "step") {
         const made = `${at}${arg.label} takes what step ${src.step + 1} made, but `;
         const earlier = src.step >= 0 && src.step < i ? defs[src.step] : undefined;
-        if (arg.kind !== "link" && arg.kind !== "links") reasons.push(`${made}only a link can take a Document`);
+        if (!takesDocument(arg)) reasons.push(`${made}only a link or a list of links can take a Document`);
         else if (!(src.step >= 0 && src.step < i)) reasons.push(`${made}step ${src.step + 1} does not come before it`);
         // Only a headless step that says it returns a Document reports one; a dialog or a place makes nothing a later step can take.
         else if (earlier && !returnsDocument(earlier)) reasons.push(`${made}“${earlier.title}” makes no Document`);
@@ -137,4 +137,22 @@ export async function checkMacro(macro: MacroShape, commands: readonly OwnedComm
     }
   }
   return reasons.length ? { ok: false, reasons } : { ok: true };
+}
+
+/**
+ * What the Macro editor refuses to save: each fixed link, or entry of a fixed
+ * list of links, that names no Document or several, saying which. A draft
+ * broken in any other way is saved, and shows as broken (`checkMacro`).
+ */
+export async function fixedLinkProblems(macro: MacroShape, commands: readonly OwnedCommand[], lookup: DocumentLookup = storeLookup): Promise<string[]> {
+  const out: string[] = [];
+  for (const [i, step] of macro.steps.entries()) {
+    const def = commands.find((c) => commandKey(c) === step.command);
+    if (!def || !isInvocable(def)) continue;
+    for (const arg of def.args.filter(takesDocument)) {
+      const src = step.args[arg.key];
+      if (src?.from === "fixed") out.push(...(await valueProblems(arg, src.value, lookup)).map((p) => `Step ${i + 1}: ${p}`));
+    }
+  }
+  return out;
 }

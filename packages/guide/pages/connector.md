@@ -71,8 +71,9 @@ Every Module's page in this Guide lists its own under **Ask Claude**. They need 
 - Where a tool names a Document (a Person, a Source, a Topic…), Claude can give its id, its title
   or one of its aliases, as `[[links]]` do — "Lefevre" finds "Lefèvre". A name that fits nothing,
   or several, is refused with each candidate's title and id; nothing is guessed.
-- Where a tool takes several (an Event's **With**, a Task's or a Transaction's **For**, a work's **Recommended by**), Claude passes a list; each is found the same
-  way and counted once, and every name that fails comes back in one refusal, with nothing written.
+- Where a tool takes several (an Event's **With**, a Task's or a Transaction's **For**, a work's
+  **Recommended by**), Claude passes a list; each is found the same way and counted once, and every
+  name that fails comes back in one refusal, naming the argument, with nothing written.
 
 ## Tips
 

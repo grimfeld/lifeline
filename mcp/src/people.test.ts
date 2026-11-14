@@ -85,11 +85,11 @@ describe("people_occasion_add", () => {
     expect(core.patchDocument).toHaveBeenCalledWith("p1", { occasions: expect.arrayContaining([expect.objectContaining({ label: "Wedding", day: "2027-05-01", yearly: false })]) });
   });
   it("refuses an unknown Person, writing nothing", async () => {
-    await expect(runTool("people_occasion_add", { person: "Bob", label: "Birthday", day: "01-01" })).rejects.toThrow(/No Person called “Bob”/);
+    await expect(runTool("people_occasion_add", { person: "Bob", label: "Birthday", day: "01-01" })).rejects.toThrow("Person: No Person called “Bob”");
     expect(core.patchDocument).not.toHaveBeenCalled();
   });
   it("refuses an ambiguous name, listing each Person's title and id", async () => {
-    await expect(runTool("people_occasion_add", { person: "Mum", label: "Birthday", day: "01-01" })).rejects.toThrow("“Mum” is more than one Person: Anne Dupont (id p1), Anna (id p2)");
+    await expect(runTool("people_occasion_add", { person: "Mum", label: "Birthday", day: "01-01" })).rejects.toThrow("Person: “Mum” is more than one Person: Anne Dupont (id p1), Anna (id p2)");
     expect(core.patchDocument).not.toHaveBeenCalled();
   });
   it("refuses a name that is one Person's title and another's alias", async () => {

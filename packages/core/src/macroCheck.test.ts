@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkMacro, type DocumentLookup } from "./macroCheck";
+import { checkMacro, fixedLinkProblems, type DocumentLookup } from "./macroCheck";
 import type { OwnedCommand } from "./commands";
 import type { MacroStep } from "./macros";
 import type { CommandArg } from "./manifest";
@@ -121,7 +121,7 @@ describe("checkMacro", () => {
   it("is broken by a fixed link to no Document, or to several", async () => {
     expect(await check(s("notes/add", { source: { from: "fixed", value: "Gone" } }), s("notes/add", { source: { from: "fixed", value: "Emma" } }))).toEqual({
       ok: false,
-      reasons: ["Step 1: No Source called “Gone”", "Step 2: “Emma” is more than one Source: Emma (id e1), Emma (id e2). Pass the id of the one meant"],
+      reasons: ["Step 1: Source: No Source called “Gone”", "Step 2: Source: “Emma” is more than one Source: Emma (id e1), Emma (id e2). Pass the id of the one meant"],
     });
   });
 
@@ -132,7 +132,7 @@ describe("checkMacro", () => {
   it("is broken by a fixed name that has become ambiguous (a title and another's alias), with the candidates", async () => {
     expect(await check(s("notes/add", { source: { from: "fixed", value: "Marc" } }))).toEqual({
       ok: false,
-      reasons: ["Step 1: “Marc” is more than one Source: Marc (id m1), Marc Lefèvre (id m2). Pass the id of the one meant"],
+      reasons: ["Step 1: Source: “Marc” is more than one Source: Marc (id m1), Marc Lefèvre (id m2). Pass the id of the one meant"],
     });
     expect(await check(s("notes/add", { source: { from: "fixed", value: "m1" } }))).toEqual({ ok: true });
   });
@@ -164,7 +164,7 @@ describe("checkMacro", () => {
   it("is broken by a step's result given to an argument that is not a link", async () => {
     expect(await check(s("library/add"), s("pocket/spend", { amount: { from: "step", step: 0 } }))).toEqual({
       ok: false,
-      reasons: ["Step 2: Amount takes what step 1 made, but only a link can take a Document"],
+      reasons: ["Step 2: Amount takes what step 1 made, but only a link or a list of links can take a Document"],
     });
   });
 
@@ -203,7 +203,7 @@ describe("checkMacro", () => {
       reasons: [
         "Step 1: Lines, row 1: Price: expected a number",
         "Step 1: Lines, row 2: Price is required",
-        "Step 1: Lines, row 2: No Source called “Gone”",
+        "Step 1: Lines, row 2: Source: No Source called “Gone”",
       ],
     });
   });
@@ -216,14 +216,14 @@ describe("checkMacro", () => {
     it("is broken by every unknown or ambiguous entry of a fixed list, saying which", async () => {
       expect(await check(s("calendar/add-event", { with: { from: "fixed", value: ["Dune", "Gone", "Emma"] } }))).toEqual({
         ok: false,
-        reasons: ["Step 1: No With called “Gone”", "Step 1: “Emma” is more than one With: Emma (id e1), Emma (id e2). Pass the id of the one meant"],
+        reasons: ["Step 1: With: No With called “Gone”", "Step 1: With: “Emma” is more than one With: Emma (id e1), Emma (id e2). Pass the id of the one meant"],
       });
     });
 
     it("is broken by a fixed entry that has become ambiguous, with the candidates", async () => {
       expect(await check(s("calendar/add-event", { with: { from: "fixed", value: ["Marc"] } }))).toEqual({
         ok: false,
-        reasons: ["Step 1: “Marc” is more than one With: Marc (id m1), Marc Lefèvre (id m2). Pass the id of the one meant"],
+        reasons: ["Step 1: With: “Marc” is more than one With: Marc (id m1), Marc Lefèvre (id m2). Pass the id of the one meant"],
       });
     });
 
@@ -238,5 +238,37 @@ describe("checkMacro", () => {
     it("treats an empty fixed list as none", async () => {
       expect(await check(s("calendar/add-event", { with: { from: "fixed", value: [] } }))).toEqual({ ok: true });
     });
+
+    it("reads a fixed text as one entry, never splitting it at its commas", async () => {
+      expect(await check(s("calendar/add-event", { with: { from: "fixed", value: "Dune, Marco" } }))).toEqual({
+        ok: false,
+        reasons: ["Step 1: With: No With called “Dune, Marco”"],
+      });
+      expect(await check(s("calendar/add-event", { with: { from: "fixed", value: "Marco" } }))).toEqual({ ok: true });
+    });
+  });
+});
+
+describe("fixedLinkProblems: what the Macro editor refuses to save", () => {
+  const draft = (...steps: MacroStep[]) => fixedLinkProblems({ name: "M", steps }, COMMANDS, lookup);
+
+  it("is each fixed link, or entry of a fixed list of links, that names no Document or several", async () => {
+    expect(await draft(s("notes/add", { source: { from: "fixed", value: "Gone" } }), s("calendar/add-event", { with: { from: "fixed", value: ["Dune", "Emma"] } }))).toEqual([
+      "Step 1: Source: No Source called “Gone”",
+      "Step 2: With: “Emma” is more than one With: Emma (id e1), Emma (id e2). Pass the id of the one meant",
+    ]);
+  });
+
+  it("is nothing for a draft broken otherwise: a missing value, an unfit one, a step out of place", async () => {
+    expect(
+      await draft(
+        s("hub/go.today"),
+        s("pocket/spend", { amount: { from: "fixed", value: "lots" } }),
+        s("pocket/spend"),
+        s("notes/add", { source: { from: "step", step: 5 } }),
+        s("gone/away"),
+        s("notes/add", { source: { from: "fixed", value: "Dune" } }),
+      ),
+    ).toEqual([]);
   });
 });

@@ -31,7 +31,7 @@ export * from "./markdown";
 export * from "./media";
 export * from "./templates";
 export * from "./folders";
-export { PERSON_TYPE } from "./people";
+export { PEOPLE_HINT, PERSON_TYPE, peopleArg, peopleNamed } from "./people";
 export * from "./documents/types";
 export * from "./documents/registry";
 export * from "./documents/typeRules";

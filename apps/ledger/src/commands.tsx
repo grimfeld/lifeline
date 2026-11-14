@@ -1,4 +1,4 @@
-import { getDocument, pickLinked, PERSON_TYPE, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { pickLinked, peopleArg, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { ArrowLeftRight, ChartLine, Landmark, ListChecks, PiggyBank, Plus, Wand2 } from "lucide-react";
 import { ACCOUNT, BUDGET_HREF, CATEGORY, REGISTER_HREF, REPORTS_HREF, RULES_HREF } from "./domain/types";
 import { completeEntry } from "./domain/entry";
@@ -32,7 +32,7 @@ export const ledgerCommands: CommandDef[] = [
       { key: "payee", label: "Payee", kind: "text" },
       { key: "note", label: "Note", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
-      { key: "for", label: "For", kind: "links", linkType: PERSON_TYPE, hint: "The People it was for: their name, an alias or an id; each must be only one Person." },
+      peopleArg("for", "For", "The People it was for"),
     ],
     returnsDocument: true,
     async invoke(a) {
@@ -50,8 +50,7 @@ export const ledgerCommands: CommandDef[] = [
       const people = (a.for as string[] | undefined) ?? [];
       const id = await addTransaction({ ...entry, payee: entry.payee ?? "", note: (a.note as string | undefined) ?? "", tags: a.tags as string[] | undefined, for: people });
       const category = categories.find((c) => c.id === entry.categoryId)?.title ?? "";
-      const names = (await Promise.all(people.map(async (p) => (await getDocument(p))?.title))).filter(Boolean);
-      return { id, message: `Added ${kind} of ${formatCents(entry.amount)} on ${entry.date}${category ? ` (${category})` : ""}${names.length ? ` with ${names.join(", ")}` : ""}` };
+      return { id, message: `Added ${kind} of ${formatCents(entry.amount)} on ${entry.date}${category ? ` (${category})` : ""}${await peopleNamed("for", people)}` };
     },
   },
   { id: "ledger.transfer", title: "Add transfer", keywords: ["transfer", "move money", "savings"], icon: ArrowLeftRight, dialog: AddTransferDialog },

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatTime, getDocument, initialText, PERSON_TYPE, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { formatTime, initialText, peopleArg, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
 import { Ban, CalendarPlus, LayoutTemplate, Zap } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
@@ -60,7 +60,7 @@ export const calendarCommands: CommandDef[] = [
       },
       { key: "notes", label: "Notes", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
-      { key: "with", label: "With", kind: "links", linkType: PERSON_TYPE, hint: "The People there: their name, an alias or an id; each must be only one Person." },
+      peopleArg("with", "With", "The People there"),
     ],
     returnsDocument: true,
     async invoke(a) {
@@ -81,8 +81,7 @@ export const calendarCommands: CommandDef[] = [
         with: people,
       });
       const at = start ? ` at ${start}${end ? `–${endDate && endDate !== a.date ? `${endDate} ` : ""}${end}` : ""}` : "";
-      const named = (await Promise.all(people.map(async (p) => (await getDocument(p))?.title))).filter(Boolean);
-      return { id, message: `Added event “${a.title}” on ${a.date}${at}${named.length ? ` with ${named.join(", ")}` : ""}` };
+      return { id, message: `Added event “${a.title}” on ${a.date}${at}${await peopleNamed("with", people)}` };
     },
   },
   {

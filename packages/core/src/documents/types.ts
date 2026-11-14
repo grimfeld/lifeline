@@ -308,8 +308,8 @@ export function displayTitle(doc: Document, def?: Pick<DocumentTypeDef, "titleOf
   return t || "(untitled)";
 }
 
-/** Aliases of a Document for link resolution (the `aliases` list field by default). */
-export function aliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
+/** Aliases of a Document for link resolution (the `aliases` list field by default); any record with its fields will do. */
+export function aliasesOf(doc: Readonly<Record<string, unknown>>, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
   const l = def?.linkable;
   const key = typeof l === "object" && l?.aliasesField ? l.aliasesField : "aliases";
   const v = doc[key];

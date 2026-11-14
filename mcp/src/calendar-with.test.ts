@@ -88,7 +88,7 @@ describe("calendar_add_event with People", () => {
   it("refuses an unknown and an ambiguous name together, making no Event", async () => {
     docs.set("p1", person("p1", "Marc Lefèvre", ["Marco", "Marc"]));
     const call = runTool("calendar_add_event", { title: "Dinner", date: "2026-11-14", with: ["Bob", "Marc", "Zoé Martin"] });
-    await expect(call).rejects.toThrow("No Person called “Bob”; “Marc” is more than one Person: Marc Lefèvre (id p1), Marc (id p4). Pass the id of the one meant");
+    await expect(call).rejects.toThrow("With: No Person called “Bob”; With: “Marc” is more than one Person: Marc Lefèvre (id p1), Marc (id p4). Pass the id of the one meant");
     expect(core.putDocument).not.toHaveBeenCalled();
   });
 

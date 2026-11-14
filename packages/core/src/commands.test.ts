@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { argProblems, commandRun, initialList, initialMoment, initialNumber, initialText, invokeCommand, linkProblemText, matchLink, matchLinks, momentOf, pickLinked, pickLinks, readCommandArgs } from "./commands";
+import { argProblems, commandRun, initialList, initialMoment, initialNumber, initialText, invokeCommand, linkProblemText, linkValues, matchLink, matchLinks, momentOf, pickLinked, pickLinks, readCommandArgs, takesDocument } from "./commands";
 import type { CommandArg, CommandDef } from "./manifest";
 
 const ARGS: CommandArg[] = [
@@ -129,34 +129,43 @@ describe("link arguments: an id, the title or an alias, never a guess", () => {
   });
 
   it("looks only among the Documents of the argument's type", () => {
-    expect(matchLink(STAT, "Humeur", docs)).toEqual({ problem: { kind: "unknown", label: "Stat", value: "Humeur" } });
-    expect(matchLink(STAT, "n1", docs)).toEqual({ problem: { kind: "unknown", label: "Stat", value: "n1" } });
+    expect(matchLink(STAT, "Humeur", docs)).toEqual({ problem: { kind: "unknown", arg: "Stat", noun: "Stat", value: "Humeur" } });
+    expect(matchLink(STAT, "n1", docs)).toEqual({ problem: { kind: "unknown", arg: "Stat", noun: "Stat", value: "n1" } });
   });
 
-  it("refuses a name that matches nothing, in the argument's own noun", () => {
-    expect(() => pickLinked(STAT, "Weigth", docs)).toThrow("No Stat called “Weigth”");
+  it("refuses a name that matches nothing, by the argument, in its own noun", () => {
+    expect(() => pickLinked(STAT, "Weigth", docs)).toThrow("Stat: No Stat called “Weigth”");
   });
 
   it("refuses an ambiguous title, listing each candidate's title and id", () => {
     expect(matchLink(STAT, "STEPS", docs)).toEqual({
-      problem: { kind: "ambiguous", label: "Stat", value: "STEPS", candidates: [{ id: "s2", title: "Steps" }, { id: "s3", title: "steps" }] },
+      problem: { kind: "ambiguous", arg: "Stat", noun: "Stat", value: "STEPS", candidates: [{ id: "s2", title: "Steps" }, { id: "s3", title: "steps" }] },
     });
-    expect(() => pickLinked(STAT, "STEPS", docs)).toThrow("“STEPS” is more than one Stat: Steps (id s2), steps (id s3). Pass the id of the one meant");
+    expect(() => pickLinked(STAT, "STEPS", docs)).toThrow("Stat: “STEPS” is more than one Stat: Steps (id s2), steps (id s3). Pass the id of the one meant");
   });
 
   it("counts a title and another's alias alike: ambiguous, not the title", () => {
     expect(matchLink(STAT, "rest", docs)).toEqual({
-      problem: { kind: "ambiguous", label: "Stat", value: "rest", candidates: [{ id: "s5", title: "Sleep" }, { id: "s6", title: "Rest" }] },
+      problem: { kind: "ambiguous", arg: "Stat", noun: "Stat", value: "rest", candidates: [{ id: "s5", title: "Sleep" }, { id: "s6", title: "Rest" }] },
     });
   });
 
-  it("says each problem in words", () => {
-    expect(linkProblemText({ kind: "unknown", label: "Person", value: "Bob" })).toBe("No Person called “Bob”");
+  it("says each problem in words, after the argument it is in", () => {
+    expect(linkProblemText({ kind: "unknown", arg: "With", noun: "Person", value: "Bob" })).toBe("With: No Person called “Bob”");
+  });
+});
+
+describe("takesDocument", () => {
+  it("is true of a link and a list of links, and of nothing else", () => {
+    expect(takesDocument({ kind: "link" })).toBe(true);
+    expect(takesDocument({ kind: "links" })).toBe(true);
+    expect(takesDocument({ kind: "list" })).toBe(false);
+    expect(takesDocument({ kind: "text" })).toBe(false);
   });
 });
 
 describe("list-of-links arguments: each entry by the same rule, every problem at once", () => {
-  const WITH: CommandArg = { key: "with", label: "Person", kind: "links", linkType: "person" };
+  const WITH: CommandArg = { key: "with", label: "With", kind: "links", linkType: "person" };
   const docs = [
     { id: "p1", type: "person", title: "Marc Lefèvre", aliases: ["Marco", "Marc"] },
     { id: "p2", type: "person", title: "Zoé Martin" },
@@ -182,14 +191,21 @@ describe("list-of-links arguments: each entry by the same rule, every problem at
     expect(matchLinks(WITH, ["Bob", "Mum", "Marco"], docs)).toEqual({
       ids: ["p1"],
       problems: [
-        { kind: "unknown", label: "Person", value: "Bob" },
-        { kind: "ambiguous", label: "Person", value: "Mum", candidates: [{ id: "p3", title: "Anne" }, { id: "p4", title: "Anna" }] },
+        { kind: "unknown", arg: "With", noun: "With", value: "Bob" },
+        { kind: "ambiguous", arg: "With", noun: "With", value: "Mum", candidates: [{ id: "p3", title: "Anne" }, { id: "p4", title: "Anna" }] },
       ],
     });
   });
 
   it("refuses with all the problems in one message", () => {
-    expect(() => pickLinks(WITH, ["Bob", "Mum", "Marco"], docs)).toThrow("No Person called “Bob”; “Mum” is more than one Person: Anne (id p3), Anna (id p4). Pass the id of the one meant");
+    expect(() => pickLinks(WITH, ["Bob", "Mum", "Marco"], docs)).toThrow("With: No With called “Bob”; With: “Mum” is more than one With: Anne (id p3), Anna (id p4). Pass the id of the one meant");
+  });
+
+  it("reads a single text as one entry, commas and all; a list entry by entry", () => {
+    expect(linkValues(WITH, " Lefèvre, Marc ")).toEqual(["Lefèvre, Marc"]);
+    expect(linkValues(WITH, "  ")).toEqual([]);
+    expect(linkValues(WITH, [" Marco ", "", "Zoé"])).toEqual(["Marco", "Zoé"]);
+    expect(() => linkValues(WITH, 3)).toThrow("With: expected a list of names or ids");
   });
 });
 

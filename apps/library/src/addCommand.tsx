@@ -1,4 +1,4 @@
-import { getDocument, PERSON_TYPE, type CommandDef } from "@lifeline/core";
+import { peopleArg, peopleNamed, type CommandDef } from "@lifeline/core";
 import { SlidersHorizontal } from "lucide-react";
 import { AddWorkDialog } from "./components/AddWorkDialog";
 import { WORK_TYPES, workType, type WorkTypeId } from "./domain/workTypes";
@@ -48,7 +48,7 @@ export const libraryAddCommand: CommandDef = {
     { key: "shelf", label: "Shelf", kind: "select", options: SHELF_OPTIONS, hint: "Defaults to To read. In progress starts it today; Done finishes it. The Nightstand is never set here." },
     { key: "finishedOn", label: "Finished on", kind: "date", hint: "Only with the Done shelf; Done without it is finished today." },
     { key: "tags", label: "Tags", kind: "list" },
-    { key: "recommendedBy", label: "Recommended by", kind: "links", linkType: PERSON_TYPE, hint: "The People who recommended it: their name, an alias or an id; each must be only one Person." },
+    peopleArg("recommendedBy", "Recommended by", "The People who recommended it"),
   ],
   returnsDocument: true,
   async invoke(a) {
@@ -106,7 +106,6 @@ export const libraryAddCommand: CommandDef = {
       tags: a.tags as string[] | undefined,
       recommendedBy: people,
     });
-    const named = (await Promise.all(people.map(async (p) => (await getDocument(p))?.title))).filter(Boolean);
-    return { id, message: `${title} added (${workType(medium).engagement[shelf]}, ${ACQ_LABEL[acquisition].toLowerCase()})${named.length ? ` with ${named.join(", ")}` : ""}` };
+    return { id, message: `${title} added (${workType(medium).engagement[shelf]}, ${ACQ_LABEL[acquisition].toLowerCase()})${await peopleNamed("recommended by", people)}` };
   },
 };

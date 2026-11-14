@@ -89,7 +89,7 @@ describe("a Macro step's With", () => {
   it("is refused at create_macro and update_macro when a fixed entry names no one or several, saying which", async () => {
     const steps = dinner({ from: "fixed", value: ["Bob", "Marc", "Zoé"] });
     docs.set("p1", person("p1", "Marc Lefèvre", ["Marco", "Marc"]));
-    const said = "Step 1: No Person called “Bob”; Step 1: “Marc” is more than one Person: Marc Lefèvre (id p1), Marc (id p4). Pass the id of the one meant";
+    const said = "Step 1: With: No Person called “Bob”; Step 1: With: “Marc” is more than one Person: Marc Lefèvre (id p1), Marc (id p4). Pass the id of the one meant";
     await expect(runTool("create_macro", { name: "Dinner", steps })).rejects.toThrow(said);
     macros.push(rec("m1", "Dinner", dinner({ from: "asked" })));
     await expect(runTool("update_macro", { id: "m1", steps })).rejects.toThrow(said);
@@ -112,7 +112,7 @@ describe("a Macro step's With", () => {
     macros.push(rec("m1", "Dinner", dinner({ from: "fixed", value: ["Marc Lefevre"] })));
     docs.set("p5", person("p5", "Marc Lefèvre"));
     const out = (await runTool("list_macros", {})) as { macros: { broken?: string[] }[] };
-    expect(out.macros[0]!.broken).toEqual(["Step 1: “Marc Lefevre” is more than one Person: Marc Lefèvre (id p1), Marc Lefèvre (id p5). Pass the id of the one meant"]);
+    expect(out.macros[0]!.broken).toEqual(["Step 1: With: “Marc Lefevre” is more than one Person: Marc Lefèvre (id p1), Marc Lefèvre (id p5). Pass the id of the one meant"]);
     await expect(runTool("macro_dinner", {})).rejects.toThrow(/more than one Person/);
     expect(core.putDocument).not.toHaveBeenCalled();
   });

@@ -77,19 +77,19 @@ beforeEach(() => {
 });
 
 const ADDS = [
-  { tool: "tasks_add", arg: "for", field: "for", type: "task", base: { title: "Buy a present" }, msg: "Added task “Buy a present” (unassigned)", view: "For" },
-  { tool: "ledger_add", arg: "for", field: "for", type: "ledger_transaction", base: { amount: 12.5, account: "acc", category: "Gifts" }, msg: "Added expense of", view: "For" },
-  { tool: "library_add", arg: "recommendedBy", field: "recommendedBy", type: "book", base: { title: "Dune" }, msg: "Dune added", view: "Recommended by" },
-  { tool: "library_quick_add", arg: "recommendedBy", field: "recommendedBy", type: "book", base: { title: "Dune" }, msg: "Dune added", view: "Recommended by" },
+  { tool: "tasks_add", arg: "for", field: "for", type: "task", base: { title: "Buy a present" }, msg: "Added task “Buy a present” (unassigned)", view: "For", lead: "for" },
+  { tool: "ledger_add", arg: "for", field: "for", type: "ledger_transaction", base: { amount: 12.5, account: "acc", category: "Gifts" }, msg: "Added expense of", view: "For", lead: "for" },
+  { tool: "library_add", arg: "recommendedBy", field: "recommendedBy", type: "book", base: { title: "Dune" }, msg: "Dune added", view: "Recommended by", lead: "recommended by" },
+  { tool: "library_quick_add", arg: "recommendedBy", field: "recommendedBy", type: "book", base: { title: "Dune" }, msg: "Dune added", view: "Recommended by", lead: "recommended by" },
 ] as const;
 
-describe.each(ADDS)("$tool with People", ({ tool, arg, field, type, base, msg, view }) => {
+describe.each(ADDS)("$tool with People", ({ tool, arg, field, type, base, msg, view, lead }) => {
   it("stores the Person an alias names, and says whom it found", async () => {
     const out = (await runTool(tool, { ...base, [arg]: ["Marco", "zoe martin"] })) as { message: string };
     expect(madeOf(type)).toHaveLength(1);
     expect(madeOf(type)[0]![field]).toEqual(["p1", "p2"]);
     expect(out.message).toContain(msg);
-    expect(out.message).toMatch(/ with Marc Lefèvre, Zoé Martin$/);
+    expect(out.message).toMatch(new RegExp(` ${lead} Marc Lefèvre, Zoé Martin$`));
   });
 
   it("merges a Person named twice into one", async () => {
@@ -102,7 +102,7 @@ describe.each(ADDS)("$tool with People", ({ tool, arg, field, type, base, msg, v
   it("refuses an unknown and an ambiguous name together, making nothing", async () => {
     docs.set("p1", person("p1", "Marc Lefèvre", ["Marco", "Marc"]));
     const call = runTool(tool, { ...base, [arg]: ["Bob", "Marc"] });
-    await expect(call).rejects.toThrow("No Person called “Bob”; “Marc” is more than one Person: Marc Lefèvre (id p1), Marc (id p4). Pass the id of the one meant");
+    await expect(call).rejects.toThrow(`${view}: No Person called “Bob”; ${view}: “Marc” is more than one Person: Marc Lefèvre (id p1), Marc (id p4). Pass the id of the one meant`);
     expect(core.putDocument).not.toHaveBeenCalled();
   });
 
@@ -117,7 +117,7 @@ describe.each(ADDS)("$tool with People", ({ tool, arg, field, type, base, msg, v
   it("without the argument, makes it as before, with no one", async () => {
     const out = (await runTool(tool, { ...base })) as { message: string };
     expect(madeOf(type)[0]![field]).toEqual([]);
-    expect(out.message).not.toContain(" with ");
+    expect(out.message).not.toContain(` ${lead} `);
     await runTool(tool, { ...base, [arg]: [] });
     expect(madeOf(type)[1]![field]).toEqual([]);
   });
