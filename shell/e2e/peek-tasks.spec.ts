@@ -152,3 +152,34 @@ test("an Event peeked from the Vault gets a time there; an end before its start 
   await page.waitForTimeout(800);
   expect((await field(page, id)).end).toBe("09:00");
 });
+
+test("a Task's For is edited in its Peek: a Person picked by alias is stored at once, removed, and added again onto their Timeline", async ({ page }) => {
+  const title = `Buy a present ${Date.now()}`;
+  await page.goto("/vault");
+  await workLocally(page);
+  const anne = await inCore(page, async (core) => (await core.createDocument({ type: "contacts_person", title: "Anne Verhoeven", fields: { aliases: ["Annie"] } })).id as string, null);
+  const id = await inCore(
+    page,
+    async (core, t: string) => (await core.putDocument({ type: "task", title: t, status: "active", date: null, completedOn: null, recurrence: null, notes: "", tags: [] })).id as string,
+    title,
+  );
+  const stored = async () => (await field(page, id)).for ?? [];
+
+  const dialog = await peek(page, id);
+  await dialog.getByRole("combobox", { name: "For" }).fill("Annie");
+  await page.getByRole("option", { name: /Anne Verhoeven/ }).click();
+  await expect(dialog.getByText("Anne Verhoeven")).toBeVisible();
+  await expect.poll(stored).toEqual([anne]);
+
+  await dialog.getByRole("button", { name: "Remove Anne Verhoeven" }).click();
+  await expect.poll(stored).toEqual([]);
+
+  await dialog.getByRole("combobox", { name: "For" }).fill("Annie");
+  await page.getByRole("option", { name: /Anne Verhoeven/ }).click();
+  await expect.poll(stored).toEqual([anne]);
+
+  await page.goto(`/app/people/person/${anne}`);
+  await workLocally(page);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText("via For");
+});
