@@ -277,7 +277,10 @@ sheet on its own.
 Through the Lifeline connector, Claude can:
 
 - Add a work: "Add Dune by Frank Herbert to my reading list" (`library_quick_add`),
-  `cinema_quick_add`, `discotheque_quick_add`, `arcade_quick_add`.
+  `cinema_quick_add`, `discotheque_quick_add`, `arcade_quick_add`. For a book, comic or manga
+  (`library_quick_add`, and `library_add` for the full form) Claude can fill **Recommended by**
+  too: each person by name, alias or id, each found once in People. A name that is no one, or
+  more than one person, refuses the whole call and nothing is added; the answer says whom it found.
 - Mark something watched or listened, with stars or a like: `cinema_mark_watched`,
   `discotheque_mark_listened`.
 - Read the next Part: "Next episode of Severance" (`cinema_next_part`), `library_next_part`,
