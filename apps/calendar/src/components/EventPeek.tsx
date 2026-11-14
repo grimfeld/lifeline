@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { CommitField, Field, TagInput, useCommitDraft } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary, type Document, type PeekProps } from "@lifeline/core";
+import { PeopleField } from "@lifeline/editor";
 import type { Event } from "../domain/types";
 import { whenFormErrors, whenOf, type WhenForm } from "../domain/eventForm";
 import { editEvent, setEventWhen } from "../data/repo";
@@ -26,7 +27,7 @@ function formOf(e: Event): WhenForm {
 /**
  * The Calendar App's part of an Event's Peek (ADR 0085): when it happens — its
  * guarded day and times, written through `setEventWhen` once they make an
- * Event (`whenFormErrors`), as the Event dialog does — and its notes and Tags.
+ * Event (`whenFormErrors`), as the Event dialog does — and its notes, With (the People who were there, written at once) and Tags.
  * The title, the user's own Fields and the ways through are the Peek's frame's.
  */
 export function EventPeek({ doc }: PeekProps) {
@@ -59,6 +60,9 @@ function EventPeekPart({ doc }: { doc: Document }) {
         }}
       />
       <CommitField label="Notes" multiline rows={3} delay={WRITE_DELAY} value={event.notes ?? ""} placeholder="Optional" onCommit={(notes) => editEvent(event.id, { notes })} />
+      <Field label="With">
+        <PeopleField id={`${idPrefix}-with`} label="With" value={event.with ?? []} onChange={(ids) => void editEvent(event.id, { with: ids })} />
+      </Field>
       <Field label="Tags">
         <TagInput
           value={event.tags ?? []}

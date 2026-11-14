@@ -153,6 +153,46 @@ test("an Event peeked from the Vault gets a time there; an end before its start 
   expect((await field(page, id)).end).toBe("09:00");
 });
 
+test("an Event peeked from the Vault gets People in With by alias, saved at once, and shows on their Timeline", async ({ page }) => {
+  const stamp = Date.now();
+  const title = `Dinner ${stamp}`;
+  await page.goto("/vault");
+  await workLocally(page);
+  const { id, anne } = await inCore(
+    page,
+    async (core, a: { title: string }) => ({
+      id: (await core.putDocument({ type: "event", title: a.title, date: "2026-03-02", endDate: null, start: null, end: null, notes: "", tags: [] })).id as string,
+      anne: (await core.createDocument({ type: "contacts_person", title: "Anne Verhoeven", fields: { aliases: ["Annie"] } })).id as string,
+    }),
+    { title },
+  );
+
+  const dialog = await peek(page, id);
+  // Between Notes and Tags, as in the Event dialog; empty on an Event made before With existed.
+  const top = async (loc: ReturnType<typeof dialog.getByLabel>) => (await loc.boundingBox())!.y;
+  const [notesY, withY, tagsY] = [await top(dialog.getByLabel("Notes")), await top(dialog.getByRole("combobox", { name: "With" })), await top(dialog.getByPlaceholder("Add tag…"))];
+  expect(notesY).toBeLessThan(withY);
+  expect(withY).toBeLessThan(tagsY);
+
+  const withField = dialog.getByRole("combobox", { name: "With" });
+  await withField.fill("Annie");
+  await page.getByRole("option", { name: /Anne Verhoeven/ }).click();
+  await expect(dialog.getByText("Anne Verhoeven")).toBeVisible();
+  await expect.poll(async () => (await field(page, id)).with).toEqual([anne]);
+
+  await dialog.getByRole("button", { name: "Remove Anne Verhoeven" }).click();
+  await expect.poll(async () => (await field(page, id)).with ?? []).toEqual([]);
+
+  await withField.fill("Annie");
+  await page.getByRole("option", { name: /Anne Verhoeven/ }).click();
+  await expect.poll(async () => (await field(page, id)).with).toEqual([anne]);
+
+  await page.goto(`/app/people/person/${anne}`);
+  await workLocally(page);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText("via With");
+});
+
 test("a Task's For is edited in its Peek: a Person picked by alias is stored at once, removed, and added again onto their Timeline", async ({ page }) => {
   const title = `Buy a present ${Date.now()}`;
   await page.goto("/vault");
