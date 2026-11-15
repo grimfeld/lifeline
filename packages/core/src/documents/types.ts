@@ -262,6 +262,13 @@ export interface DocumentTypeDef {
    */
   followers?: (doc: Document) => Promise<string[]>;
   /**
+   * Run once a Document has moved to another Workspace, with the rest of that
+   * move already written (so Documents moved together see each other there):
+   * the owning App drops what now points across the boundary, as `onDelete`
+   * does on delete (a Household's members of another Workspace, ADR 0117).
+   */
+  onMove?: (doc: Document, workspace: string) => Promise<void>;
+  /**
    * How the type describes one of its Documents to an agent (ADR 0098): what
    * the owning App's screens show of it beyond its fields — a Project's Board
    * — as plain JSON. `get_document` answers it under `detail`; the UI never
