@@ -145,6 +145,25 @@ export type DocumentInput<T extends Document = Document> = OmitKnown<T, "id" | "
  * moves a Document between Workspaces; only `moveDocumentToWorkspace` does.
  */
 export async function putDocument<T extends Document = Document>(input: DocumentInput<T>): Promise<T> {
+  const row = await rowOf(input);
+  await put<T>(DOCUMENTS, row);
+  return row;
+}
+
+/**
+ * Several Documents written as one, as `putDocument` writes each: every one
+ * stored, or none (an Event and the blockers attached to it, which must never
+ * land half-moved). One LWW clock for all.
+ */
+export async function putDocuments(inputs: readonly DocumentInput[]): Promise<Document[]> {
+  const rows: Document[] = [];
+  for (const input of inputs) rows.push(await rowOf(input));
+  await putAll<Document>(DOCUMENTS, rows);
+  return rows;
+}
+
+/** The row `putDocument` stores for an input: its id, day made, folder, Tags, title and Workspace settled. */
+async function rowOf<T extends Document>(input: DocumentInput<T>): Promise<T> {
   const def = documentTypeSync(input.type);
   const id = input.id ?? newId();
   const body = def?.body === "none" ? undefined : (input.body as string | undefined);
@@ -160,7 +179,6 @@ export async function putDocument<T extends Document = Document>(input: Document
   if (body === undefined) delete (row as Document).body;
   else (row as Document).body = body;
   if (!row.title && def?.titleOf) row.title = def.titleOf(row);
-  await put<T>(DOCUMENTS, row);
   return row;
 }
 

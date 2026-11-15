@@ -113,9 +113,28 @@ Commands and Cards:
   you can place.
 - **Countdown** — a Card: a big number of days until one event you pick. Where: a Card you can
   place.
-- **Peek** — an Event opened from a link: its day and times, notes and Tags edited in place.
+- **Peek** — an Event opened from a link: its day and times, notes and Tags edited in place;
+  on a timed Event, **Before…** and **After…** attach a blocker (below).
 
 Editing or deleting a template never changes the Events it made.
+
+### Attached blockers
+
+Travel to the dentist, prep before a call: a one-off blocker can be **attached** to a timed Event
+so that it goes wherever the Event goes.
+
+- **Attach** — open the Event's Peek and pick **Before…** or **After…**, then a Blocker template
+  ("Travel 30"). The band is made flush against the Event: ending at its start, or starting at
+  its end. An Event can have several, on either side. All-day Events don't offer it.
+- **It follows** — however the Event is moved (dragged on the Schedule, moved in Month, retimed in
+  its Peek or its form, or by Claude), its attached blockers move with it. A band before the
+  Event keeps its gap to the Event's start and its own length; a band after keeps its gap to the
+  end. Make the Event longer and only the bands after it move; start it earlier and only the
+  bands before it move. Undo in the editor puts the Event and its bands back together.
+- **Adjusting** — drag or resize an attached band yourself and it stays attached, keeping the new
+  gap or length from then on. A band before stays before, even dragged past the Event.
+- A blocker you drop from a template beside an Event is never attached, and blockers you placed
+  before stay as they are. Attached bands look exactly like any other one-off band.
 
 ## Also on the Calendar
 

@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { addDays, diffDays, documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr, type TimedWhen } from "@lifeline/core";
+import { addDays, diffDays, documentsOf, getDocument, normalizeTags, patchDocument, putDocument, putDocuments, removeDocument, useDocuments, type DateStr, type DocumentInput, type TimedWhen } from "@lifeline/core";
 import { EVENT_TYPE, type Event } from "../domain/types";
 import type { EventWhen } from "../domain/eventForm";
 import { rescheduled } from "../domain/events";
 import { midnightNextDay } from "../domain/span";
+import { blockersFollowing } from "./attached";
 
 /** PocketBase returns absent text fields as ""; re-establish null on read, and an old "24:00" end as 00:00 the next day (ADR 0090). */
 function normalize(e: Event): Event {
@@ -57,8 +58,23 @@ function endDayOf(input: { date: DateStr; endDate?: DateStr | null; end?: string
   return input.endDate && input.endDate > input.date && (!start || input.end) ? input.endDate : null;
 }
 
+/**
+ * The one way an existing Event is written when it may move (#497): the Event
+ * and its attached blockers, each rewritten against where it now is, in one
+ * all-or-none write — so they never land half-moved, whichever Surface, dialog
+ * or tool moved it.
+ */
+async function writeMoved(was: Event, now: Event): Promise<void> {
+  const blockers = await blockersFollowing(was, now);
+  await putDocuments([now as DocumentInput, ...blockers]);
+}
+
+/** The Event dialog's save: everything at once, its attached blockers following a new time. */
 export async function updateEvent(ev: Event): Promise<void> {
-  await putDocument<Event>(midnightNextDay({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) }));
+  const next = midnightNextDay({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) });
+  const was = await getDocument<Event>(ev.id);
+  if (!was || was.type !== EVENT_TYPE) return void (await putDocument<Event>(next));
+  await writeMoved(normalize(was), normalize(next));
 }
 
 /** Edit an Event's own words — its notes and Tags — from wherever it is shown (its Peek, ADR 0085). */
@@ -73,7 +89,8 @@ export async function editEvent(id: string, edit: { notes?: string; tags?: strin
 export async function setEventWhen(id: string, when: EventWhen): Promise<void> {
   const ev = await getDocument<Event>(id);
   if (!ev || ev.type !== EVENT_TYPE) return;
-  await patchDocument(id, midnightNextDay({ date: when.date, endDate: when.endDate, start: when.start, end: when.end }));
+  const was = normalize(ev);
+  await writeMoved(was, normalize({ ...ev, ...midnightNextDay({ date: when.date, endDate: when.endDate, start: when.start, end: when.end }) }));
 }
 
 export async function deleteEvent(id: string): Promise<void> {
@@ -87,12 +104,13 @@ export async function moveEvent(id: string, to: DateStr): Promise<void> {
   if (!ev || ev.type !== EVENT_TYPE) return;
   const e = normalize(ev);
   const len = e.endDate && e.endDate > e.date ? diffDays(e.date, e.endDate) : 0;
-  await putDocument<Event>({ ...e, date: to, endDate: len > 0 ? addDays(to, len) : null });
+  await writeMoved(e, { ...e, date: to, endDate: len > 0 ? addDays(to, len) : null });
 }
 
 /** Reschedule an event to when it now happens, whole (ADR 0090) — `rescheduled` says what is kept. */
 export async function rescheduleEvent(id: string, when: TimedWhen): Promise<void> {
   const ev = await getDocument<Event>(id);
   if (!ev || ev.type !== EVENT_TYPE) return;
-  await putDocument<Event>(midnightNextDay(rescheduled(normalize(ev), when)));
+  const was = normalize(ev);
+  await writeMoved(was, midnightNextDay(rescheduled(was, when)));
 }

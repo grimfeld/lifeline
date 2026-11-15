@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { documentsOf, getDocument, normalizeTags, patchDocument, putDocument, removeDocument, useDocuments, type DateStr, type TimedWhen, type TimeStr, type Weekday } from "@lifeline/core";
 import { blockerSpan, compareBlockers, rescheduledBlocker } from "../domain/blockers";
 import { midnightNextDay } from "../domain/span";
-import { TIME_BLOCKER_TYPE, type TimeBlocker } from "../domain/types";
+import { TIME_BLOCKER_TYPE, type BlockerSide, type TimeBlocker } from "../domain/types";
 
 /** PocketBase returns absent text fields as ""; re-establish null/defaults on read. */
 function normalize(b: TimeBlocker): TimeBlocker {
@@ -22,6 +22,9 @@ function normalize(b: TimeBlocker): TimeBlocker {
     color: b.color || null,
     active: b.active !== false,
     tags: b.tags ?? [],
+    // Attached (CONTEXT.md "Attached blocker") only as a one-off with a link and a side; anything else reads plain.
+    attachedTo: (date && b.attachedTo) || null,
+    side: date && b.attachedTo && (b.side === "before" || b.side === "after") ? b.side : null,
   };
 }
 
@@ -53,6 +56,9 @@ export async function addTimeBlocker(input: {
   color?: string | null;
   active?: boolean;
   tags?: string[];
+  /** A one-off attached to an Event (`attachBlocker` only): the Event's id and the side it stands on. */
+  attachedTo?: string | null;
+  side?: BlockerSide | null;
 }): Promise<string> {
   const when = input.date ? midnightNextDay({ date: input.date, endDate: input.endDate ?? null, start: input.start, end: input.end }) : { endDate: null, end: input.end };
   const row = await putDocument<TimeBlocker>({
@@ -66,6 +72,7 @@ export async function addTimeBlocker(input: {
     color: input.color ?? null,
     active: input.active !== false,
     tags: normalizeTags(input.tags ?? []),
+    ...(input.date && input.attachedTo && input.side && { attachedTo: input.attachedTo, side: input.side }),
   });
   return row.id;
 }
