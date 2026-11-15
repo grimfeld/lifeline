@@ -5,6 +5,8 @@ import { aliasesOf, displayTitle, isLinkKind, singularOf, type Document, type Do
 import { useAllDocuments } from "./store";
 import { fieldsOfDocument } from "./roles";
 import { usePrivateLockedRefs, type PrivateLockedRefs } from "../private";
+import type { DateStr } from "../dates";
+import { sourceDays } from "./sourceDays";
 
 const NO_LOCKED: PrivateLockedRefs = { names: new Set(), ids: new Set() };
 import { useDocumentTypes } from "./registry";
@@ -26,6 +28,17 @@ export interface Backlink {
   context: string;
   /** Key of the Link field that holds the reference, for field-based backlinks. */
   field?: string;
+}
+
+/**
+ * What reaches a Document (ADR 0117): a Backlink, or a link to a Document it
+ * is a member of (a Household), marked with what it came via.
+ */
+export interface Reach extends Backlink {
+  /** The Document whose link this is (the Household), when it is not a link to this one. */
+  via?: string;
+  /** For a `via` reach from a dated source: the source's days on which this one was a member. */
+  days?: DateStr[];
 }
 
 export interface LinkName {
@@ -53,6 +66,13 @@ export interface LinkIndex {
   resolveAll(name: string): LinkRef[];
   linksFrom(docId: string): ResolvedLink[];
   backlinksTo(docId: string): Backlink[];
+  /**
+   * What reaches a Document (ADR 0117): its Backlinks, then a link to each
+   * Document that counts it among its `linkable.members` on the source's day
+   * (on every day for a source with none of its own), marked `via` that
+   * Document. A source that also links directly is there once, as the direct link.
+   */
+  reaches(docId: string): Reach[];
   /** Normalised unresolved names → ids of the Documents mentioning them. */
   unresolved: Map<string, string[]>;
   /** Tag → ids of the Documents carrying it. */
@@ -325,6 +345,7 @@ function assemble(docs: Document[], t: Targets, contributions: Map<string, Contr
     for (const tag of c.tags) push(tags, tag, d.id);
   }
   const { defs, byId, targets, titleOf, ref } = t;
+  let reachedVia: Map<string, Reach[]> | undefined;
 
   return {
     docs,
@@ -334,6 +355,14 @@ function assemble(docs: Document[], t: Targets, contributions: Map<string, Contr
     resolveAll: t.resolveAll,
     linksFrom: (id) => linksFromMap.get(id) ?? [],
     backlinksTo: (id) => backlinks.get(id) ?? [],
+    reaches(id) {
+      const direct = backlinks.get(id) ?? [];
+      reachedVia ??= viaMembers(docs, defs, byId, backlinks);
+      const via = reachedVia.get(id);
+      if (!via) return direct;
+      const named = new Set(direct.map((b) => b.sourceId));
+      return [...direct, ...via.filter((r) => !named.has(r.sourceId))];
+    },
     unresolved,
     tags,
     names: () => names(targets, "canonical"),
@@ -359,6 +388,52 @@ function assemble(docs: Document[], t: Targets, contributions: Map<string, Contr
     }
     return out;
   }
+}
+
+/** A day before and after any membership's bounds: a member on both was one on every day. */
+const EVER: [DateStr, DateStr] = ["0000-01-01", "9999-12-31"];
+
+/**
+ * The reaches through membership (ADR 0117), by member id: for each Document
+ * whose type declares `linkable.members`, each source linking to it reaches
+ * whoever was a member on one of its days — or, for a source with no date of
+ * its own, whoever is a member whatever the day. Derived, never stored.
+ */
+function viaMembers(docs: Document[], defs: Map<string, DocumentTypeDef>, byId: Map<string, Document>, backlinks: Map<string, Backlink[]>): Map<string, Reach[]> {
+  const out = new Map<string, Reach[]>();
+  for (const group of docs) {
+    const l = defs.get(group.type)?.linkable;
+    const members = typeof l === "object" ? l.members : undefined;
+    if (!members) continue;
+    const of = (day: DateStr) => members(group, day).filter((m) => m !== group.id);
+    const seen = new Set<string>();
+    for (const b of backlinks.get(group.id) ?? []) {
+      if (seen.has(b.sourceId)) continue;
+      seen.add(b.sourceId);
+      const reached = new Map<string, DateStr[] | undefined>();
+      const days = sourceDays(byId.get(b.sourceId));
+      if (days) {
+        for (const day of days) {
+          for (const m of of(day)) {
+            const list = reached.get(m);
+            if (list) list.push(day);
+            else reached.set(m, [day]);
+          }
+        }
+      } else {
+        const first = new Set(of(EVER[0]));
+        for (const m of of(EVER[1])) if (first.has(m)) reached.set(m, undefined);
+      }
+      for (const [m, on] of reached) {
+        if (m === b.sourceId) continue;
+        const r: Reach = { ...b, via: group.id, ...(on ? { days: on } : {}) };
+        const list = out.get(m);
+        if (list) list.push(r);
+        else out.set(m, [r]);
+      }
+    }
+  }
+  return out;
 }
 
 /**

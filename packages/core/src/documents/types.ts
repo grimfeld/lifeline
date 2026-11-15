@@ -1,5 +1,6 @@
 import type * as React from "react";
 import type { SyncedRecord } from "../data/db";
+import type { DateStr } from "../dates";
 import { normalizeName } from "../markdown";
 
 /**
@@ -178,6 +179,9 @@ export interface DocumentTypeDef {
    * its own Fields (a Person's Given name): they resolve, complete and are
    * mentioned as aliases are, read through `aliasesOf`, and are never written
    * into the aliases Field — correcting the Field corrects the name.
+   * `members` (ADR 0117) says which Documents one of the type's Documents
+   * stands for on a day (a Household's members then): a link to it reaches
+   * them too (`LinkIndex.reaches`), never as a Backlink. Declared in code.
    */
   linkable?:
     | boolean
@@ -187,6 +191,8 @@ export interface DocumentTypeDef {
         expand?: (name: string) => string[] | null;
         mentions?: boolean;
         extraNames?: (doc: Document) => string[];
+        /** ids of the Documents this one stands for on that day */
+        members?: (doc: Document, day: DateStr) => string[];
       };
   /**
    * Text Fields whose wikilinks the link index reads as links, for a type with

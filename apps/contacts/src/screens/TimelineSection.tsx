@@ -24,7 +24,8 @@ const monthName = (month: string | null) => (month !== null ? monthLabel(month, 
 /**
  * A Person's timeline (#422): their Occasions in the year ahead above a
  * Today line, then what links to them (Events with them, Tasks for them,
- * Days and notes that name them) by month, newest first. Each opens in a Peek.
+ * Days and notes that name them, and "via the Smiths" what links to their
+ * Household then) by month, newest first. Each opens in a Peek.
  */
 export function TimelineSection({ person }: { person: Person }) {
   const index = useLinkIndex();
@@ -59,7 +60,7 @@ export function TimelineSection({ person }: { person: Person }) {
               {entries.map((e) => {
                 const source = index.byId.get(e.sourceId);
                 const def = documentType(e.type);
-                const how = e.field ? `via ${linkFieldLabel(source, def, e.field)}` : "mentioned";
+                const how = e.via ? `via ${index.byId.get(e.via)?.title || "a Household"}` : e.field ? `via ${linkFieldLabel(source, def, e.field)}` : "mentioned";
                 return (
                   <Stop key={e.sourceId}>
                     <button type="button" onClick={() => void openPeek(e.sourceId)} className="hover:bg-accent focus-visible:ring-ring -mx-1 block w-full min-w-0 rounded-md px-1 text-left focus-visible:ring-2 focus-visible:outline-none">

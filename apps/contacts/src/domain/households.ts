@@ -24,6 +24,17 @@ export function membershipsOf(raw: unknown): Membership[] {
   return out;
 }
 
+/**
+ * Who a Household stands for on a day (ADR 0117): the ids of whoever was a
+ * member then, since and until both included, a blank bound meaning always.
+ * What its link counts for, through Core's `linkable.members`.
+ */
+export function memberIdsOn(raw: unknown, day: string): string[] {
+  return membershipsOf(raw)
+    .filter((m) => (!m.since || m.since <= day) && (!m.until || day <= m.until))
+    .map((m) => m.personId);
+}
+
 /** One member as the Household page lists them: the membership, and the Person's name. */
 export interface MemberRow extends Membership {
   name: string;

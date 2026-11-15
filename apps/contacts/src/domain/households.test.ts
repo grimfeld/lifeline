@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { householdsOf, memberCandidates, membershipsOf, membersOf } from "./households";
+import { householdsOf, memberCandidates, memberIdsOn, membershipsOf, membersOf } from "./households";
+import { householdTypeDef } from "../types";
 
 const people = [
   { id: "paul", title: "Paul Smith", aliases: ["Dad"], relationship: "my brother" },
@@ -48,5 +49,20 @@ describe("a Person's Households", () => {
     expect(householdsOf("tom", [smiths, flat]).map((h) => h.title)).toEqual(["Student flat", "the Smiths"]);
     expect(householdsOf("paul", [smiths, flat]).map((h) => h.id)).toEqual(["h1"]);
     expect(householdsOf("mary", [smiths, flat])).toEqual([]);
+  });
+});
+
+describe("who a Household stands for on a day (ADR 0117)", () => {
+  const members = [{ personId: "paul" }, { personId: "mary", since: "2026-03-01" }, { personId: "tom", until: "2026-06-30" }];
+  it("is whoever was a member that day, both bounds included", () => {
+    expect(memberIdsOn(members, "2026-02-28")).toEqual(["paul", "tom"]);
+    expect(memberIdsOn(members, "2026-03-01")).toEqual(["paul", "mary", "tom"]);
+    expect(memberIdsOn(members, "2026-06-30")).toEqual(["paul", "mary", "tom"]);
+    expect(memberIdsOn(members, "2026-07-01")).toEqual(["paul", "mary"]);
+  });
+  it("is what the Household type declares to the link index", () => {
+    const declared = householdTypeDef.linkable as { members: (doc: unknown, day: string) => string[] };
+    expect(declared.members({ members }, "2026-07-01")).toEqual(["paul", "mary"]);
+    expect(declared.members({}, "2026-07-01")).toEqual([]);
   });
 });

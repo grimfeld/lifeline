@@ -77,7 +77,8 @@ Below, two columns (one after the other on a phone):
 - **Timeline** — their Occasions in the year ahead, above a **Today** line, then everything that
   links to them, by month, newest first: Events with them, Tasks and Transactions for them, books
   they recommended, and the Days and notes that name them, each once, saying what it is and how it
-  links ("via With", "mentioned"). Click one to peek at it. Only an Event counts as having seen
+  links ("via With", "mentioned", or "via the Smiths" for a link to a Household of theirs). Click
+  one to peek at it. Only an Event counts as having seen
   them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]").
 
 Deleting a Person takes them out of every People field that held them (an Event's **With**, a
@@ -168,6 +169,10 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
 - Only People of the Household's own Workspace can be its members.
 - `[[the Smiths]]` links to the Household like any page, and clicking it opens its **Peek**,
   where you can change its aliases, members and Tags; **Open** goes to its page.
+- **A link to a Household counts for its members.** "Dinner at `[[the Smiths]]`" in a Day or an
+  Event stands on each member's **Timeline** ("via the Smiths") and counts toward their **Last
+  seen** and **Last mentioned**, so toward **Drifting** too, as if you had named each of them. A
+  Day or Event that names someone and their Household is one entry, as the direct link.
 - Deleting a Person takes them out of every Household; the Households stay. Deleting a
   Household changes no Person.
 - The home stays each member's **Address**: a Household has none, and no Occasion or Contact

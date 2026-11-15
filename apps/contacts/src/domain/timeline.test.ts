@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildLinkIndex, type Document, type DocumentTypeDef } from "@lifeline/core";
-import { personTypeDef } from "../types";
+import { householdTypeDef, personTypeDef } from "../types";
 import { timelineMonths, timelineOf } from "./timeline";
 
 const base = { folder: "", tags: [], createdAt: "2026-01-01", updatedAt: "2026-06-30T10:00:00Z", deleted: 0 as const };
@@ -63,5 +63,28 @@ describe("an undated entry's day", () => {
   it("ignores a date in the title of a note, but not of a Day", () => {
     vi.stubEnv("TZ", "UTC");
     expect(timelineWith({ title: "2025-01-01 resolutions", updatedAt: "2026-06-30T10:00:00Z" })[0]?.day).toBe("2026-06-30");
+  });
+});
+
+describe("a link to their Household (ADR 0117)", () => {
+  const smiths = { ...base, id: "smiths", type: "contacts_household", title: "the Smiths", body: "", aliases: [], members: [{ personId: "anne" }, { personId: "tom", until: "2026-06-30" }] } as unknown as Document;
+  const tom = { ...anne, id: "tom", title: "Tom", aliases: [] } as unknown as Document;
+  const linking = [
+    { ...base, id: "dinner", type: "daily", title: "2026-11-01", body: "Dinner at [[the Smiths]]" },
+    // Naming both her and her Household: one entry, as the direct link.
+    { ...base, id: "both", type: "daily", title: "2026-10-20", body: "[[Anne]] at [[the Smiths]]" },
+  ] as unknown as Document[];
+  const withHousehold = buildLinkIndex([...docs, smiths, tom, ...linking], [...types, householdTypeDef]);
+  it("stands on each member's timeline, via the Household", () => {
+    const tl = timelineOf(withHousehold, "anne");
+    expect(tl.find((e) => e.sourceId === "dinner")).toMatchObject({ day: "2026-11-01", via: "smiths" });
+  });
+  it("is one entry, the direct link, when the Document names them too", () => {
+    const both = timelineOf(withHousehold, "anne").filter((e) => e.sourceId === "both");
+    expect(both).toHaveLength(1);
+    expect(both[0]!.via).toBeUndefined();
+  });
+  it("counts only for whoever was a member on the source's day", () => {
+    expect(timelineOf(withHousehold, "tom")).toEqual([]);
   });
 });
