@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildLinkIndex } from "./links";
+import { aliasesOf } from "./types";
 import type { Document, DocumentTypeDef } from "./types";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
@@ -179,3 +180,18 @@ describe("a type's extra names (the Linkable Contract's `extraNames`, a Person's
   });
 });
 
+
+describe("the Linkable hooks are trusted pure reads: a throwing one is a bug that surfaces", () => {
+  const boom = () => {
+    throw new Error("boom");
+  };
+  it("lets a throwing extraNames throw", () => {
+    const bad = T("person", { linkable: { extraNames: boom } });
+    expect(() => aliasesOf(doc("p1", "person", "Anne"), bad)).toThrow("boom");
+  });
+  it("lets a throwing members throw", () => {
+    const bad = T("household", { linkable: { members: boom } });
+    const docs = [doc("h", "household", "Home"), doc("n", "note", "Note", "at [[Home]]")];
+    expect(() => buildLinkIndex(docs, [T("note"), bad]).reaches("h")).toThrow("boom");
+  });
+});
