@@ -58,7 +58,7 @@ test("a Person made from the palette is given aliases, a Relationship and Tags i
   await peek.getByLabel("Tags").press("Enter");
   await expect.poll(() => personNamed(page, "Anne Dupont")).toMatchObject({ aliases: ["Mum"], relationship: "my mother", tags: ["family"] });
 
-  await peek.getByRole("button", { name: "Open in People" }).click();
+  await peek.getByRole("button", { name: "Open in World" }).click();
   await expect(page).toHaveURL(/\/app\/people\/person\//);
   await expect(page.getByRole("heading", { level: 1, name: "Anne Dupont" })).toBeVisible();
   await expect(page.getByLabel("Relationship")).toHaveValue("my mother");
@@ -83,11 +83,11 @@ test("[[Mum]] and [[Anne Dupont]] land on one Person, whose page lists the Day's
   await expect.poll(async () => (await personNamed(page, "Anne Dupont")) as { body?: string } | undefined).toMatchObject({ body: "Grows tomatoes." });
 });
 
-test("a name selected in a Day becomes a Person under People, and a link to them", async ({ page }) => {
+test("a name selected in a Day becomes a Person under World, and a link to them", async ({ page }) => {
   const dayId = await openDay(page, "2001-02-04", "Met Léa Martin at the market.");
   await selectText(page.locator(".cm-content"), "Léa Martin");
   await page.getByRole("button", { name: "Selection menu" }).click();
-  await page.getByRole("dialog", { name: "Selection menu" }).getByRole("group", { name: "People" }).getByRole("option", { name: "Person", exact: true }).click();
+  await page.getByRole("dialog", { name: "Selection menu" }).getByRole("group", { name: "World" }).getByRole("option", { name: "Person", exact: true }).click();
 
   const dialog = page.getByRole("dialog", { name: "Add a person" });
   await expect(dialog.getByLabel("Name")).toHaveValue("Léa Martin");

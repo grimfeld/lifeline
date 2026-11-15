@@ -768,7 +768,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Progress", path: "/module/progress", afterOpen: workLocally },
   { name: "Knowledge module", path: "/module/languages" },
   { name: "Journal module", path: "/module/journal" },
-  { name: "People module", path: "/module/people" },
+  { name: "World module", path: "/module/people" },
   { name: "Notes module", path: "/module/notes" },
   { name: "Thoughts module", path: "/module/thoughts" },
   { name: "Research module", path: "/module/research" },
