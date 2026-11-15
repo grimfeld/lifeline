@@ -473,6 +473,24 @@ function peekOf(type: string, userField?: boolean, write?: boolean) {
 }
 
 /**
+ * An attached blocker's Peek (#497): "Before <Event>" over an Event with the
+ * longest title a person could type, and its Detach beside it.
+ */
+async function attachedBlockerPeek(page: Page) {
+  await workLocally(page);
+  await page.evaluate(
+    async ({ coreUrl, title }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const ev = await core.putDocument({ type: "event", title, date: "2025-11-10", endDate: null, start: "11:00", end: "12:00", notes: "", tags: [] });
+      const b = await core.putDocument({ type: "time_blocker", title: "Travel 30", date: "2025-11-10", endDate: "2025-11-10", weekdays: [], start: "10:30", end: "11:00", active: true, color: null, tags: [], attachedTo: ev.id, side: "before" });
+      core.openPeek(b.id);
+    },
+    { coreUrl: CORE_URL, title: longText("Dentist") },
+  );
+  await page.getByRole("dialog").getByRole("button", { name: "Detach" }).waitFor();
+}
+
+/**
  * The first book given the longest synopsis, series and original title a
  * person could type (the seed's `library.add` keeps only its title), then —
  * with `peek` — its Peek opened over the page, as a phone sees it.
@@ -789,6 +807,7 @@ const SCREENS: ScreenCase[] = [
   // The Apps' own editable parts (ADR 0085): a Task's and an Event's Fields edited through their App's controls.
   { name: "Vault · Peek of a Task", path: "/vault", afterOpen: peekOf("task") },
   { name: "Vault · Peek of an Event", path: "/vault", afterOpen: peekOf("event") },
+  { name: "Vault · Peek of an attached blocker", path: "/vault", afterOpen: attachedBlockerPeek },
   { name: "Vault · Peek of a Project, writing beneath its App's part", path: "/vault", afterOpen: peekOf("project", false, true) },
   // House's editable Peeks (ADR 0085): each App's own controls over a long-titled Document.
   { name: "Vault · Peek of chore", path: "/vault/d/:id", type: "chore", afterOpen: peekOf("chore") },
