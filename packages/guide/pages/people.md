@@ -70,8 +70,8 @@ Below, two columns (one after the other on a phone):
   above, their Occasions in the year ahead and whatever is dated today or later (a planned Event,
   with how soon it is: "tomorrow", "in 29 days"); below, what is past, then what has no day.
   An Event still under way (a trip begun but not yet over) stays above the line, by its first
-  day, until its End day has passed. Click one to peek at it. Only an Event counts as having seen
-  them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]").
+  day, until its End day has passed. Click one to peek at it. Only an Event counts as having
+  seen them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]").
 
 Deleting a Person takes them out of every People field that held them (an Event's **With**, a
 Task's **For**…); the Events, Tasks and the rest stay. A `[[link]]` to them in a body becomes an

@@ -203,7 +203,7 @@ export function upcomingOccasions(people: readonly PersonOccasions[], from: Date
     .sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name) || a.label.localeCompare(b.label));
 }
 
-/** How soon an Upcoming Occasion is: "today", "tomorrow", "in 5 days". */
+/** How soon a day is, for an Upcoming Occasion or a Document: "today", "tomorrow", "in 5 days". */
 export const whenOf = (inDays: number) => (inDays === 0 ? "today" : inDays === 1 ? "tomorrow" : `in ${inDays} days`);
 
 /** The Person id inside a marker's item id. */
