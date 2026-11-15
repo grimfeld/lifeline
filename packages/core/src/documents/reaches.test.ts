@@ -100,6 +100,23 @@ describe("reaches through two Households", () => {
   });
 });
 
+describe("reaches through two Households in turn", () => {
+  // Cat lived at the Old house until 1 May and at the New house from 2 May; one Event spans the move.
+  const moved = buildLinkIndex(
+    [
+      doc("cat", "person", "Cat"),
+      doc("old", "household", "Old house", "", { members: [{ personId: "cat", until: "2026-05-01" }] }),
+      doc("new", "household", "New house", "", { members: [{ personId: "cat", since: "2026-05-02" }] }),
+      doc("mv", "event", "Moving", "", { date: "2026-05-01", endDate: "2026-05-02", notes: "[[Old house]] to [[New house]]" }),
+    ],
+    types,
+  );
+  it("counts the days through each, as one reach", () => {
+    expect(moved.reaches("cat").map((r) => [r.sourceId, r.via, r.days])).toEqual([["mv", "old", ["2026-05-01", "2026-05-02"]]]);
+    expect(seenDays(moved, "cat", "2026-12-31")).toEqual(["2026-05-01", "2026-05-02"]);
+  });
+});
+
 describe("Mentioned and Seen through a Household", () => {
   it("count the Days that link to a member's Household, once per day", () => {
     expect(mentionDays(idx, "paul")).toEqual(["2026-02-01", "2026-08-01", "2026-08-02"]);

@@ -350,18 +350,15 @@ export function typedAliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linka
  * Aliases of a Document for link resolution, completion and Unlinked
  * mentions: its aliases Field, then the extra names its type derives
  * (`linkable.extraNames`) that are not blank, its title or an alias already.
+ * Like `linkable.members`, `extraNames` is a trusted pure read: a throw is a
+ * bug in the type and surfaces, it is not swallowed.
  */
 export function aliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
   const typed = typedAliasesOf(doc, def);
   const l = def?.linkable;
   const extra = typeof l === "object" ? l?.extraNames : undefined;
   if (!extra) return typed;
-  let names: string[];
-  try {
-    names = extra(doc);
-  } catch {
-    names = [];
-  }
+  const names = extra(doc);
   const seen = new Set([doc.title, ...typed].map(normalizeName));
   const out = [...typed];
   for (const n of names) {

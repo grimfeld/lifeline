@@ -1,9 +1,8 @@
-import { normalizeName } from "@lifeline/core";
-import { fold } from "./person";
+import { isDateStr, normalizeName } from "@lifeline/core";
+import { fold, otherNamesOf } from "./person";
 import type { Membership, Person } from "./types";
 
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
-const dayOr = (v: unknown) => (typeof v === "string" && DAY.test(v) ? v : undefined);
+const dayOr = (v: unknown) => (isDateStr(v) ? v : undefined);
 
 /**
  * A Household's memberships as stored, well-formed whatever wrote them: each
@@ -31,12 +30,28 @@ export function hasMember(household: { id: string; members?: unknown }, personId
 }
 
 /**
+ * A stored members list, parsed once: Core asks `memberIdsOn` for every day a
+ * linking Event spans, and a Document's stored list is never changed in place
+ * (an edit writes a new one), so the parse is kept per list.
+ */
+const parsed = new WeakMap<object, Membership[]>();
+function parsedMemberships(raw: unknown): readonly Membership[] {
+  if (!Array.isArray(raw)) return [];
+  let out = parsed.get(raw);
+  if (!out) {
+    out = membershipsOf(raw);
+    parsed.set(raw, out);
+  }
+  return out;
+}
+
+/**
  * Who a Household stands for on a day (ADR 0117): the ids of whoever was a
  * member then, since and until both included, a blank bound meaning always.
  * What its link counts for, through Core's `linkable.members`.
  */
 export function memberIdsOn(raw: unknown, day: string): string[] {
-  return membershipsOf(raw)
+  return parsedMemberships(raw)
     .filter((m) => (!m.since || m.since <= day) && (!m.until || day <= m.until))
     .map((m) => m.personId);
 }
@@ -91,11 +106,11 @@ export interface MemberCandidate {
 }
 
 /** Who can join a Household: the People not in it yet, by name or alias. */
-export function memberCandidates(household: { members?: unknown }, people: readonly Pick<Person, "id" | "title" | "aliases" | "relationship">[]): MemberCandidate[] {
+export function memberCandidates(household: { members?: unknown }, people: readonly (Pick<Person, "id" | "title" | "aliases" | "relationship"> & { type?: string })[]): MemberCandidate[] {
   const inIt = new Set(membershipsOf(household.members).map((m) => m.personId));
   return people
     .filter((p) => !inIt.has(p.id))
-    .map((p) => ({ value: p.id, label: p.title, keywords: p.aliases, ...(p.relationship ? { description: p.relationship } : {}) }));
+    .map((p) => ({ value: p.id, label: p.title, keywords: otherNamesOf(p), ...(p.relationship ? { description: p.relationship } : {}) }));
 }
 
 /** The Households a Person belongs to (several, maybe), A to Z by title. */

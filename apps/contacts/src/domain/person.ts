@@ -1,5 +1,5 @@
 import { dotJoin } from "./dots";
-import { QUICK_MAKE_MAX, initialText, type Handoff } from "@lifeline/core";
+import { QUICK_MAKE_MAX, aliasesOf, documentType, initialText, type Document, type Handoff } from "@lifeline/core";
 
 /**
  * The name a Person is made with from a Handoff: the selected words when they
@@ -23,15 +23,18 @@ export const initialName = (handoff: Handoff | undefined, initial: Record<string
 /** A name as compared: case and accents aside. */
 export const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 
+/** Every name a Person answers to beside their title: aliases and Given name, as links read them (ADR 0117). */
+export const otherNamesOf = (p: { type?: string; aliases?: string[] }): string[] => aliasesOf(p as unknown as Document, p.type ? documentType(p.type) : undefined);
+
 /**
  * The one Person a name or alias points to (case and accents aside), else a
  * readable refusal: nobody has it, or several do (and who they are, so the
  * caller can say which). Used by the agents' `people_occasion_add`.
  */
-export function findPerson<P extends { title: string; aliases?: string[] }>(people: readonly P[], name: string): { person: P } | { problem: string } {
+export function findPerson<P extends { title: string; type?: string; aliases?: string[] }>(people: readonly P[], name: string): { person: P } | { problem: string } {
   const want = fold(name);
   if (!want) return { problem: "Say which Person (a name or an alias)" };
-  const hits = people.filter((p) => [p.title, ...(p.aliases ?? [])].some((n) => fold(n) === want));
+  const hits = people.filter((p) => [p.title, ...otherNamesOf(p)].some((n) => fold(n) === want));
   if (hits.length === 1) return { person: hits[0]! };
   if (hits.length === 0) return { problem: `No Person called “${name.trim()}”` };
   return { problem: `“${name.trim()}” is ambiguous: ${hits.map((p) => p.title).join(", ")}. Use a name that is only one of them` };

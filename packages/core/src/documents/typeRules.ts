@@ -1,3 +1,4 @@
+import { isDateStr } from "./sourceDays";
 import { DOCUMENT_COMMON_KEYS, ROLES_KEY, type Document, type FieldDef, type FieldKind, type FieldOption } from "./types";
 
 /**
@@ -27,7 +28,7 @@ export function fitsKind(v: unknown, f: Pick<FieldDef, "kind" | "options">): boo
     case "boolean":
       return typeof v === "boolean";
     case "date":
-      return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+      return isDateStr(v);
     case "datetime":
       return typeof v === "string" && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(v);
     case "select":

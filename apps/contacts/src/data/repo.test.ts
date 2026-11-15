@@ -1,8 +1,8 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { PERSON_TYPE, createDocument, documentType, documentsTable, getDocument, initApps, putDocument, removeDocument, saveDocumentType, type DocumentTypeDef, type FieldDef } from "@lifeline/core";
+import { PERSON_TYPE, allDocumentTypes, buildLinkIndex, createDocument, documentType, documentsTable, getDocument, initApps, putDocument, removeDocument, saveDocumentType, type DocumentTypeDef, type FieldDef } from "@lifeline/core";
 import { personTypeDef } from "../types";
-import { addOccasion, addOccasionByName, addPerson, editOccasion, livePerson, normalizePerson, patchPerson, removePart, restorePart, updateContactDetails } from "./repo";
+import { addOccasion, addOccasionByName, addPerson, applyTidy, editOccasion, livePerson, normalizePerson, patchPerson, removePart, restorePart, updateContactDetails } from "./repo";
 import type { Person } from "../domain/types";
 
 // Stand-ins for the other Apps' People fields (Contacts imports none of them): an Event's With, a Task's
@@ -191,6 +191,12 @@ describe("adding an Occasion by name", () => {
     const { occasion } = await addOccasionByName("mum", { label: "Birthday", day: "1961-11-12", yearly: true });
     expect(((await getDocument(p.id)) as unknown as { occasions: unknown[] }).occasions).toEqual([occasion]);
   });
+  it("finds the Person by their Given name, which is no alias", async () => {
+    const p = await addPerson({ name: "Mum" });
+    await patchPerson(p.id, { givenName: "Anne" });
+    const { person } = await addOccasionByName("anne", { label: "Birthday", day: "1961-11-12", yearly: true });
+    expect(person.id).toBe(p.id);
+  });
   it("refuses an unknown name and an ambiguous one", async () => {
     await addPerson({ name: "Anne", aliases: ["Mum"] });
     await addPerson({ name: "Anna", aliases: ["Mum"] });
@@ -212,5 +218,29 @@ describe("deleting a Person", () => {
     for (const l of linking) await putDocument({ id: l.id, type: l.type, title: l.id, [l.key]: [marc.id, jo.id] });
     await removeDocument(marc.id);
     for (const l of linking) expect((await getDocument(l.id))?.[l.key]).toEqual([jo.id]);
+  });
+});
+
+describe("applying the tidy-up (ADR 0117)", () => {
+  it("writes the names and drops the duplicated alias, once", async () => {
+    const p = await addPerson({ name: "Anne Dupont", aliases: ["Anne", "Maman"] });
+    expect(await applyTidy([p.id])).toBe(1);
+    expect(await getDocument(p.id)).toMatchObject({ givenName: "Anne", familyName: "Dupont", aliases: ["Maman"] });
+    expect(await applyTidy([p.id])).toBe(0);
+  });
+
+  it("skips a Person who is deleted, missing or already tidied", async () => {
+    const gone = await addPerson({ name: "Zed Gone", aliases: ["Zed"] });
+    await removeDocument(gone.id);
+    const done = await addPerson({ name: "Al Bee", aliases: ["Al"], givenName: "Al" });
+    expect(await applyTidy([gone.id, "nope", done.id])).toBe(0);
+  });
+
+  it("keeps [[Anne]] resolving to the Person once the alias is dropped", async () => {
+    const p = await addPerson({ name: "Anne Dupont", aliases: ["Anne"] });
+    await applyTidy([p.id]);
+    const docs = await documentsTable().toArray();
+    const ref = buildLinkIndex(docs, allDocumentTypes()).resolve("Anne");
+    expect(ref).toMatchObject({ kind: "doc", id: p.id });
   });
 });

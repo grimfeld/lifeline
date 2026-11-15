@@ -1,4 +1,4 @@
-import { DAY_TYPE, todayStr, type DateStr, type LinkIndex } from "@lifeline/core";
+import { DAY_TYPE, isDateStr, todayStr, type DateStr, type LinkIndex, type Reach } from "@lifeline/core";
 
 /** One thing on a Person's timeline (#422): a Document that links to them, on its own day. */
 export interface TimelineEntry {
@@ -13,12 +13,10 @@ export interface TimelineEntry {
   via?: string;
 }
 
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
-
 /** A date-only value as is; a timestamp as the local day it falls on (what todayStr says). */
 function localDay(v: unknown): DateStr | undefined {
   if (typeof v !== "string") return undefined;
-  if (DAY.test(v)) return v;
+  if (isDateStr(v)) return v;
   const t = new Date(v);
   return Number.isNaN(t.getTime()) ? undefined : todayStr(t);
 }
@@ -33,6 +31,14 @@ function dayOf(d: { type: string; title: string } & Record<string, unknown>): Da
 }
 
 /**
+ * Whether a reach takes the place of the entry already kept for its source:
+ * a direct link through a Link field over one that is not. A direct link
+ * already beats one through a Household, because `reaches` lists direct links
+ * first and a source through a Household only when it names no one directly.
+ */
+const outranks = (r: Reach, kept: TimelineEntry): boolean => !r.via && !!r.field && !kept.field;
+
+/**
  * What links to a Person, newest first: Events with them, Tasks for them,
  * notes and Days that name them, and what links to a Household they were a
  * member of then (ADR 0117). Each Document once, by its Link field when it has
@@ -45,8 +51,9 @@ export function timelineOf(index: LinkIndex, personId: string): TimelineEntry[] 
     const d = index.byId.get(b.sourceId);
     if (!d) continue;
     const had = byId.get(b.sourceId);
-    if (had && (b.via || had.field || !b.field)) continue;
-    byId.set(b.sourceId, { sourceId: b.sourceId, type: d.type, title: d.title, day: dayOf(d), ...(b.field && !b.via ? { field: b.field } : {}), ...(b.via ? { via: b.via } : {}) });
+    if (had && !outranks(b, had)) continue;
+    const how = b.via ? { via: b.via } : b.field ? { field: b.field } : {};
+    byId.set(b.sourceId, { sourceId: b.sourceId, type: d.type, title: d.title, day: dayOf(d), ...how });
   }
   return [...byId.values()].sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || a.title.localeCompare(b.title));
 }
