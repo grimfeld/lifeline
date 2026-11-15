@@ -1,10 +1,11 @@
-import { getDocument, type DocumentInput } from "@lifeline/core";
+import { useMemo } from "react";
+import { getDocument, patchDocument, type DocumentInput } from "@lifeline/core";
 import { attachmentOf, flushSpan, followedSpan } from "../domain/attached";
 import { blockerSpan } from "../domain/blockers";
 import { spanOf } from "../domain/events";
 import { durationOf } from "../domain/templates";
 import { BLOCKER_TEMPLATE_TYPE, EVENT_TYPE, TIME_BLOCKER_TYPE, type BlockerSide, type BlockerTemplate, type Event, type TimeBlocker } from "../domain/types";
-import { addTimeBlocker, allTimeBlockers } from "./blockers";
+import { addTimeBlocker, allTimeBlockers, useTimeBlockers } from "./blockers";
 
 /**
  * Attach a blocker to a timed Event (CONTEXT.md "Attached blocker"): a
@@ -48,4 +49,26 @@ export async function blockersFollowing(was: Event, now: Event): Promise<Documen
     out.push({ ...b, type: TIME_BLOCKER_TYPE, date: to.date, endDate: to.endDate, start: to.start, end: to.end } as DocumentInput);
   }
   return out;
+}
+
+/** The one-off blockers attached to an Event, live (its Peek lists them). */
+export function useAttachedBlockers(eventId: string): TimeBlocker[] {
+  const all = useTimeBlockers();
+  return useMemo(() => all.filter((b) => attachmentOf(b)?.eventId === eventId), [all, eventId]);
+}
+
+/**
+ * Let an attached blocker stand on its own: the link and side are cleared and
+ * the band stays exactly where it is. Returns the undo, which attaches it
+ * again on the same side.
+ */
+export async function detachBlocker(id: string): Promise<() => Promise<void>> {
+  const b = (await allTimeBlockers()).find((x) => x.id === id);
+  if (!b) throw new Error("That blocker is gone");
+  const was = attachmentOf(b);
+  if (!was) return async () => {};
+  await patchDocument(id, { attachedTo: null, side: null });
+  return async () => {
+    await patchDocument(id, { attachedTo: was.eventId, side: was.side });
+  };
 }

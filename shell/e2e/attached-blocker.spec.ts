@@ -76,8 +76,30 @@ test("Travel 30 attached before an Event from its Peek follows the Event when it
   await page.mouse.up();
   await expect.poll(() => stored(page, id)).toEqual({ date: "2025-11-10", start: "12:00", end: "13:00" });
   await expect.poll(() => attached(page, id)).toEqual([{ title: travel, side: "before", date: "2025-11-10", start: "11:30", end: "12:00" }]);
-  // And the Schedule paints it there: its band ends where the Event now starts.
-  await expect.poll(async () => Math.round(((await event.boundingBox())!.y - (await band.locator("..").boundingBox())!.y) / HOUR_PX * 2) / 2).toBe(0.5);
+  // The Event's Peek lists the band; its own Peek says "Before <Event>" and offers Detach.
+  const bandId = await inCore(page, async (core, e: string) => ((await core.documentsOf("time_blocker")).find((b) => b.attachedTo === e)!.id as string), id);
+  await inCore(page, async (core, docId: string) => core.openPeek(docId), id);
+  await page.getByRole("dialog").first().getByRole("button", { name: travel, exact: true }).click();
+  const bandPeek = page.getByRole("dialog").first();
+  await expect(bandPeek.getByRole("button", { name: title, exact: true })).toBeVisible();
+  await expect(bandPeek.getByText(new RegExp(`^Before ${title}$`))).toBeVisible();
+  await bandPeek.getByRole("button", { name: "Detach", exact: true }).click();
+  await expect.poll(() => attached(page, id)).toEqual([]);
+  await expect(bandPeek.getByRole("button", { name: "Detach" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(bandPeek).toBeHidden();
+
+  // Dragged another hour later, the detached band stays where it was.
+  const y = (await event.boundingBox())!;
+  await page.mouse.move(x, y.y + 10);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) await page.mouse.move(x, y.y + 10 + (HOUR_PX * i) / 8);
+  await page.mouse.up();
+  await expect.poll(() => stored(page, id)).toEqual({ date: "2025-11-10", start: "13:00", end: "14:00" });
+  expect(await stored(page, bandId)).toEqual({ date: "2025-11-10", start: "11:30", end: "12:00" });
+
+  // And the Schedule paints it there: the detached band ends an hour and a half above the Event.
+  await expect.poll(async () => Math.round(((await event.boundingBox())!.y - (await band.locator("..").boundingBox())!.y) / HOUR_PX * 2) / 2).toBe(1.5);
 });
 
 test("an all-day Event's Peek offers no Before… or After…", async ({ page }) => {

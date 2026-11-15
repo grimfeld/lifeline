@@ -6,7 +6,7 @@ import { calendarTimed } from "./timed";
 import { addEvent, allEvents, setEventWhen, updateEvent } from "./data/repo";
 import { addTimeBlocker, allTimeBlockers, rescheduleTimeBlocker } from "./data/blockers";
 import { addBlockerTemplate } from "./data/blockerTemplates";
-import { attachBlocker, attachedBlockersOf } from "./data/attached";
+import { attachBlocker, attachedBlockersOf, detachBlocker } from "./data/attached";
 import type { BlockerSide } from "./domain/types";
 
 initApps([calendarApp]);
@@ -162,5 +162,33 @@ describe("an Event's time edited in its dialog or Peek takes its attached blocke
     const row = (await allEvents()).find((e) => e.id === ev)!;
     await updateEvent({ ...row, title: "Dentist (moved)", start: "13:00", end: "14:00" });
     expect(await band(before)).toMatchObject({ date: "2026-08-24", start: "12:30", end: "13:00" });
+  });
+});
+
+describe("detachBlocker", () => {
+  it("clears the attachment and leaves the band exactly where it stands; the Event then moves without it", async () => {
+    const ev = await dentist();
+    const b = await attach(ev, "before");
+    const was = await band(b);
+    await detachBlocker(b);
+    expect(await band(b)).toEqual(was);
+    expect((await allTimeBlockers())[0]).toMatchObject({ attachedTo: null, side: null });
+    expect(await attachedBlockersOf(ev)).toEqual([]);
+    await calendarTimed.reschedule!(ev, { date: "2026-08-24", start: "14:00", endDate: "2026-08-24", end: "15:00" });
+    expect(await band(b)).toEqual(was);
+  });
+
+  it("is undone by re-attaching on the same side, and the band follows again", async () => {
+    const ev = await dentist();
+    const b = await attach(ev, "after");
+    const undo = await detachBlocker(b);
+    await undo();
+    expect((await allTimeBlockers())[0]).toMatchObject({ attachedTo: ev, side: "after" });
+    await calendarTimed.reschedule!(ev, { date: "2026-08-24", start: "14:00", endDate: "2026-08-24", end: "15:00" });
+    expect(await band(b)).toMatchObject({ start: "15:00", end: "15:30" });
+  });
+
+  it("refuses a blocker that is gone", async () => {
+    await expect(detachBlocker("nope")).rejects.toThrow(/gone/);
   });
 });

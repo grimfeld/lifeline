@@ -3,6 +3,7 @@ import { lazyChunk } from "@lifeline/ui";
 import { Ban, CalendarClock, LayoutTemplate } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
 import { EventPeek } from "./components/EventPeek";
+import { BlockerPeek } from "./components/BlockerPeek";
 import { UpcomingEventsCard } from "./cards/UpcomingEventsCard";
 import { NextEventsCard, nextEventsSettings, nextEventsTitle } from "./cards/NextEventsCard";
 import { CountdownCard, countdownSettings, useCountdownTitle } from "./cards/CountdownCard";
@@ -105,6 +106,8 @@ const timeBlockerType: DocumentTypeDef = {
   ],
   indexes: ["date"],
   linkable: { subtitle: (d) => describeBlocker(d as TimeBlocker) },
+  // Its fields listed, and for an attached one the Event it follows and Detach (#497).
+  peekEdit: BlockerPeek,
   href: () => BLOCKERS_HREF,
   order: 32,
   builtIn: true,

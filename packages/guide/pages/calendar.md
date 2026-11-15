@@ -125,7 +125,9 @@ so that it goes wherever the Event goes.
 
 - **Attach** — open the Event's Peek and pick **Before…** or **After…**, then a Blocker template
   ("Travel 30"). The band is made flush against the Event: ending at its start, or starting at
-  its end. An Event can have several, on either side. All-day Events don't offer it.
+  its end. An Event can have several, on either side. All-day Events don't offer it. The Event's
+  form offers **Before…** and **After…** too once the Event is saved, and its Peek lists the
+  blockers attached to it.
 - **It follows** — however the Event is moved (dragged on the Schedule, moved in Month, retimed in
   its Peek or its form, or by Claude), its attached blockers move with it. A band before the
   Event keeps its gap to the Event's start and its own length; a band after keeps its gap to the
@@ -133,6 +135,10 @@ so that it goes wherever the Event goes.
   bands before it move. Undo in the editor puts the Event and its bands back together.
 - **Adjusting** — drag or resize an attached band yourself and it stays attached, keeping the new
   gap or length from then on. A band before stays before, even dragged past the Event.
+- **Its Peek** — open an attached band from its Event's Peek list (or any link to it) and its Peek reads "Before **Dentist**" or "After **Dentist**", linking
+  to the Event. A blocker that isn't attached shows no such line.
+- **Detach** — on that Peek, **Detach** lets the band stand on its own: it stays exactly where it
+  is and stops following the Event. Undo in the toast attaches it again on the same side.
 - A blocker you drop from a template beside an Event is never attached, and blockers you placed
   before stay as they are. Attached bands look exactly like any other one-off band.
 

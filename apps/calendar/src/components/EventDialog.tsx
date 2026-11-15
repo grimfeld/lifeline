@@ -18,6 +18,7 @@ import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
 import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors } from "../domain/eventForm";
 import { WhenFields, whenIds } from "./WhenFields";
+import { AttachBlocker } from "./AttachBlocker";
 
 /** Each checked control's id — its input's and the one an error focuses — in the order the dialog shows them. */
 const FIELD_IDS: Record<keyof EventFormErrors, string> = { title: "ev-title", ...whenIds("ev-") };
@@ -153,6 +154,8 @@ export function EventDialog({
               setEnd(w.end);
             }}
           />
+          {/* Only a saved, timed Event takes attached blockers (#497): a new one is attached once saved. */}
+          {event?.start && !allDay && <AttachBlocker eventId={event.id} eventTitle={event.title} />}
           <Field label="Notes">
             <Textarea id="ev-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional" />
           </Field>
