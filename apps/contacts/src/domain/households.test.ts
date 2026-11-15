@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { householdsOf, memberCandidates, membershipsOf, membersOf } from "./households";
+import { householdTypeDef } from "../types";
+import { HOUSEHOLD } from "./types";
 
 const people = [
   { id: "paul", title: "Paul Smith", aliases: ["Dad"], relationship: "my brother" },
@@ -48,5 +50,29 @@ describe("a Person's Households", () => {
     expect(householdsOf("tom", [smiths, flat]).map((h) => h.title)).toEqual(["Student flat", "the Smiths"]);
     expect(householdsOf("paul", [smiths, flat]).map((h) => h.id)).toEqual(["h1"]);
     expect(householdsOf("mary", [smiths, flat])).toEqual([]);
+  });
+});
+
+describe("who a Household stands for on a day (ADR 0117, the With picker)", () => {
+  const members = (household: Record<string, unknown>, day: string) => {
+    const l = householdTypeDef.linkable;
+    return typeof l === "object" && l.members ? l.members({ id: "h", type: HOUSEHOLD, title: "the Smiths", ...household } as never, day) : null;
+  };
+  const smiths = { members: [{ personId: "paul" }, { personId: "tom", since: "2001-04-02", until: "2024-09-01" }, { personId: "lily", since: "2025-03-10" }] };
+
+  it("is the Household's members on that day, since and until days included", () => {
+    expect(members(smiths, "2026-11-15")).toEqual(["paul", "lily"]);
+    expect(members(smiths, "2024-09-01")).toEqual(["paul", "tom"]);
+    expect(members(smiths, "2001-04-02")).toEqual(["paul", "tom"]);
+    expect(members(smiths, "2025-03-10")).toEqual(["paul", "lily"]);
+  });
+
+  it("leaves out someone not yet arrived or already gone", () => {
+    expect(members(smiths, "2001-04-01")).toEqual(["paul"]);
+    expect(members(smiths, "2024-09-02")).toEqual(["paul"]);
+  });
+
+  it("is no one for a Household with no members", () => {
+    expect(members({}, "2026-11-15")).toEqual([]);
   });
 });

@@ -86,7 +86,9 @@ The **Events** page has three tabs:
   and end, or **All day** (with an optional last day for several days), notes, **With** and Tags.
   **With** is who was there: type a name or an alias from People and pick it. The Event then
   shows on each Person's page under Events, and counts as having seen them. A `[[link]]` to a
-  Person in the notes ("Dinner with [[Marc]]") counts as having seen them too.
+  Person in the notes ("Dinner with [[Marc]]") counts as having seen them too. **With** offers
+  Households as well ("the Smiths"): picking one adds the People who live there today, each its
+  own chip, so you can take off whoever was away. **With** keeps the People, never the Household.
 - **Templates** — **Event templates** (title, length or all day, usual start, notes, Tags), each
   with **Add today**; and **Blocker templates** (title, length, colour).
 - **Blockers** — your Time blockers. A weekly one has a title, weekdays (or Every day / Weekdays /

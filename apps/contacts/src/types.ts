@@ -4,6 +4,7 @@ import { describeHousehold, describePerson } from "./describe";
 import { removeTiesOf, tieIdsOf } from "./data/ties";
 import { householdHref, personHref } from "./constants";
 import { dropMembershipsOf } from "./data/households";
+import { memberIdsOn } from "./domain/households";
 import { addressPinsOf } from "./domain/addresses";
 
 /**
@@ -98,7 +99,8 @@ export const householdTypeDef: DocumentTypeDef = {
   titleRule: "name",
   body: "optional",
   folder: HOUSEHOLDS_FOLDER,
-  linkable: { subtitle: () => "Household" },
+  // It stands for its members on a day (ADR 0117): an Event's With adds them.
+  linkable: { subtitle: () => "Household", members: memberIdsOn },
   href: (d) => householdHref(d.id),
   order: 31,
   builtIn: true,

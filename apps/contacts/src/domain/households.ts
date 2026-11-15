@@ -24,6 +24,13 @@ export function membershipsOf(raw: unknown): Membership[] {
   return out;
 }
 
+/** The ids of a Household's members on a day: those whose since and until days (each included, blank meaning always) hold it. */
+export function memberIdsOn(household: { readonly [key: string]: unknown }, day: string): string[] {
+  return membershipsOf(household.members)
+    .filter((m) => (!m.since || m.since <= day) && (!m.until || day <= m.until))
+    .map((m) => m.personId);
+}
+
 /** One member as the Household page lists them: the membership, and the Person's name. */
 export interface MemberRow extends Membership {
   name: string;

@@ -1,5 +1,6 @@
 import type * as React from "react";
 import type { SyncedRecord } from "../data/db";
+import type { DateStr } from "../dates";
 import { normalizeName } from "../markdown";
 
 /**
@@ -187,6 +188,8 @@ export interface DocumentTypeDef {
         expand?: (name: string) => string[] | null;
         mentions?: boolean;
         extraNames?: (doc: Document) => string[];
+        /** Ids of the Documents this one stands for on that day (a Household's members, ADR 0117). */
+        members?: (doc: Document, day: DateStr) => string[];
       };
   /**
    * Text Fields whose wikilinks the link index reads as links, for a type with
