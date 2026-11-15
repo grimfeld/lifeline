@@ -1,4 +1,4 @@
-import { peopleArg, peopleNamed, type CommandDef } from "@lifeline/core";
+import { peopleArg, peopleIn, peopleNamed, type CommandDef } from "@lifeline/core";
 import { SlidersHorizontal } from "lucide-react";
 import { AddWorkDialog } from "./components/AddWorkDialog";
 import { WORK_TYPES, workType, type WorkTypeId } from "./domain/workTypes";
@@ -85,7 +85,7 @@ export const libraryAddCommand: CommandDef = {
 
     const names = (a.authors as string | undefined)?.trim();
     const authors = names ? await ensureAuthorNames(splitAuthorNames(names)) : hit ? await ensureAuthorRefs(hit.authors) : [];
-    const people = (a.recommendedBy as string[] | undefined) ?? [];
+    const people = peopleIn(a, "recommendedBy");
     const id = await addWork({
       medium,
       title,

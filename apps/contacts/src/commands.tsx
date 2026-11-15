@@ -1,4 +1,4 @@
-import { PERSON_TYPE, peopleNamed, type CommandDef } from "@lifeline/core";
+import { PERSON_HINT, PERSON_TYPE, peopleNamed, type CommandDef } from "@lifeline/core";
 import { CalendarHeart, UserPlus, Users } from "lucide-react";
 import { AddPersonDialog } from "./components/AddPersonDialog";
 import { addOccasion, addPerson } from "./data/repo";
@@ -34,7 +34,7 @@ export const contactsCommands: CommandDef[] = [
     keywords: ["occasion", "birthday", "anniversary", "person", "people"],
     icon: CalendarHeart,
     args: [
-      { key: "person", label: "Person", kind: "link", linkType: PERSON_TYPE, required: true, hint: "Their name, an alias or an id; it must be only one Person." },
+      { key: "person", label: "Person", kind: "link", linkType: PERSON_TYPE, required: true, hint: `The Person: ${PERSON_HINT}.` },
       { key: "label", label: "Label", kind: "text", required: true, hint: "\"Birthday\" gives their age; anything else (\"Anniversary\", \"Surgery\") is shown as written." },
       { key: "day", label: "Day", kind: "text", required: true, hint: "YYYY-MM-DD, or MM-DD when the year is unknown (a yearly Occasion only)." },
       { key: "yearly", label: "Yearly", kind: "boolean", hint: "Default true: it falls on that day every year. false: once, on that day (needs the year)." },

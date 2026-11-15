@@ -63,8 +63,12 @@ function isRealDate(s: string): boolean {
 
 /** A list-of-text value read: an array of strings, or a comma-separated string; entries trimmed, blanks dropped. */
 function asStrings(arg: CommandArg, v: unknown): string[] {
-  const list = typeof v === "string" ? v.split(",") : v;
-  if (!Array.isArray(list) || list.some((x) => typeof x !== "string")) throw new Error(`${arg.label}: expected a list of text`);
+  return trimmedStrings(arg, typeof v === "string" ? v.split(",") : v, "text");
+}
+
+/** The tail both list readers share: an array of strings, each trimmed, blanks dropped. */
+function trimmedStrings(arg: CommandArg, list: unknown, what: string): string[] {
+  if (!Array.isArray(list) || list.some((x) => typeof x !== "string")) throw new Error(`${arg.label}: expected a list of ${what}`);
   return list.map((x: string) => x.trim()).filter(Boolean);
 }
 
@@ -83,9 +87,7 @@ export const MAX_LINK_VALUES = 50;
  * entry (a name may hold a comma: “Lefèvre, Marc”); entries trimmed, blanks dropped.
  */
 export function linkValues(arg: CommandArg, v: unknown): string[] {
-  const list = typeof v === "string" ? [v] : v;
-  if (!Array.isArray(list) || list.some((x) => typeof x !== "string")) throw new Error(`${arg.label}: expected a list of names or ids`);
-  const values = list.map((x: string) => x.trim()).filter(Boolean);
+  const values = trimmedStrings(arg, typeof v === "string" ? [v] : v, "names or ids");
   if (values.length > MAX_LINK_VALUES) throw new Error(`${arg.label}: at most ${MAX_LINK_VALUES} names or ids`);
   return values;
 }

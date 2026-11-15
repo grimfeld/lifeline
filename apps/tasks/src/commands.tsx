@@ -7,7 +7,7 @@ import {
   DialogTitle,
   toast,
 } from "@lifeline/ui";
-import { peopleArg, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { peopleArg, peopleIn, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { Check, ListChecks, ListTodo, Plus } from "lucide-react";
 import { TaskDialog } from "./components/TaskDialog";
 import { dueItems } from "./domain/occurrences";
@@ -102,7 +102,7 @@ export const taskCommands: CommandDef[] = [
       if (recurrence && a.lane !== undefined) throw new Error("Lane: a recurring task stands in no Lane; it may take a Project and a Milestone");
       const milestone = project && a.milestone !== undefined ? await resolveInProject("milestone", project, a.milestone as string) : null;
       const lane = project && a.lane !== undefined ? await resolveInProject("lane", project, a.lane as string) : null;
-      const people = (a.for as string[] | undefined) ?? [];
+      const people = peopleIn(a, "for");
       const id = await addTask({
         title: a.title as string,
         date: (a.date as string | undefined) ?? null,
