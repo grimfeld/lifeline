@@ -60,7 +60,7 @@ export function TidyNamesDialog({ open, onOpenChange, rows }: { open: boolean; o
                       return next;
                     })
                   }
-                  aria-label={`Tidy ${r.title}`}
+                  aria-label={`Tidy ${r.title}: Given name ${r.givenName}, Family name ${r.familyName || "none"}, drops alias ${r.drop.join(", ")}`}
                 />
                 <span className="grid min-w-0 gap-0.5 text-sm">
                   <span className="min-w-0 truncate font-medium">{r.title}</span>
@@ -72,7 +72,7 @@ export function TidyNamesDialog({ open, onOpenChange, rows }: { open: boolean; o
             </li>
           ))}
         </ul>
-        {error && <p className="text-destructive text-sm">{error}</p>}
+        {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
