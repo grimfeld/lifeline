@@ -1,5 +1,5 @@
 import { isDateStr, normalizeName } from "@lifeline/core";
-import { fold } from "./person";
+import { fold, otherNamesOf } from "./person";
 import type { Membership, Person } from "./types";
 
 const dayOr = (v: unknown) => (isDateStr(v) ? v : undefined);
@@ -102,11 +102,11 @@ export interface MemberCandidate {
 }
 
 /** Who can join a Household: the People not in it yet, by name or alias. */
-export function memberCandidates(household: { members?: unknown }, people: readonly Pick<Person, "id" | "title" | "aliases" | "relationship">[]): MemberCandidate[] {
+export function memberCandidates(household: { members?: unknown }, people: readonly (Pick<Person, "id" | "title" | "aliases" | "relationship"> & { type?: string })[]): MemberCandidate[] {
   const inIt = new Set(membershipsOf(household.members).map((m) => m.personId));
   return people
     .filter((p) => !inIt.has(p.id))
-    .map((p) => ({ value: p.id, label: p.title, keywords: p.aliases, ...(p.relationship ? { description: p.relationship } : {}) }));
+    .map((p) => ({ value: p.id, label: p.title, keywords: otherNamesOf(p), ...(p.relationship ? { description: p.relationship } : {}) }));
 }
 
 /** The Households a Person belongs to (several, maybe), A to Z by title. */

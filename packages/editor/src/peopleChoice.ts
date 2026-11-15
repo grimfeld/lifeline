@@ -1,4 +1,4 @@
-import { aliasesOf, type Document } from "@lifeline/core";
+import { aliasesOf, documentType, type Document } from "@lifeline/core";
 import type { ComboboxOption } from "@lifeline/ui";
 
 /*
@@ -11,7 +11,7 @@ export function personOptions(people: readonly Document[], chosen: readonly stri
   return people
     .filter((p) => !chosen.includes(p.id))
     .map((p) => {
-      const aliases = aliasesOf(p);
+      const aliases = aliasesOf(p, documentType(p.type));
       return { value: p.id, label: p.title, keywords: aliases, description: aliases.length ? `also ${aliases.join(", ")}` : undefined };
     });
 }

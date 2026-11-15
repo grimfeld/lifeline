@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hasMember, householdsForFamilyName, householdsOf, memberCandidates, memberIdsOn, membershipSpan, membershipsOf, membersOf, splitMembers } from "./households";
-import { householdTypeDef } from "../types";
+import { initApps } from "@lifeline/core";
+import { householdTypeDef, personTypeDef } from "../types";
 import { HOUSEHOLD } from "./types";
 
 const people = [
@@ -8,6 +9,8 @@ const people = [
   { id: "mary", title: "Mary Martin", aliases: [], relationship: "" },
   { id: "tom", title: "Tom Smith", aliases: [], relationship: "" },
 ];
+
+initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personTypeDef, householdTypeDef], screens: [], cards: [], commands: [] }]);
 
 describe("a Household's memberships (ADR 0117)", () => {
   it("reads each stored membership, with its since and until days when they are days", () => {
@@ -39,6 +42,11 @@ describe("a Household's members as its page shows them", () => {
       { personId: "mary", name: "Mary Martin", since: "2010-06-12" },
       { personId: "tom", name: "Tom Smith" },
     ]);
+  });
+
+  it("completes a candidate by their Given name too", () => {
+    const mum = { id: "m", type: "contacts_person", title: "Mum", aliases: [], givenName: "Anne", relationship: "" };
+    expect(memberCandidates({ members: [] }, [mum])).toEqual([{ value: "m", label: "Mum", keywords: ["Anne"] }]);
   });
 
   it("offers as new members only the People not in it yet, found by name or alias", () => {

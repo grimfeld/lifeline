@@ -1,5 +1,5 @@
 import { formatHuman, type DateStr } from "@lifeline/core";
-import { fold } from "./person";
+import { fold, otherNamesOf } from "./person";
 import type { Drifter } from "./drifting";
 import type { UpcomingOccasion } from "./occasions";
 import type { Person } from "./types";
@@ -19,7 +19,7 @@ export function everyone(people: readonly Person[], { query = "", relationship =
   return people
     .filter((p) => !relationship || p.relationship === relationship)
     .filter((p) => !tag || p.tags.includes(tag))
-    .filter((p) => !q || [p.title, ...p.aliases].some((n) => fold(n).includes(q)))
+    .filter((p) => !q || [p.title, ...otherNamesOf(p)].some((n) => fold(n).includes(q)))
     .sort((a, b) => a.title.localeCompare(b.title));
 }
 
