@@ -288,6 +288,14 @@ export interface DocumentTypeDef {
    */
   agentWalled?: readonly string[];
   /**
+   * Titles unique among the type's Documents in every folder, case and
+   * accents aside (a Place's, ADR 0119), where others are unique per folder.
+   * Core holds it on every write (`putDocument`, and so a rename, a page's
+   * title field, a Base cell, an agent's `update_document`), refusing with
+   * `TitleTaken`, which names and carries the Document that has the title.
+   */
+  uniqueTitles?: boolean;
+  /**
    * How the owning App makes one of these from a name alone, by its own rules
    * — so a field elsewhere (an Event's At, ADR 0119) can offer "Create …"
    * without importing the App (ADR 0100). Answers the Document there is when

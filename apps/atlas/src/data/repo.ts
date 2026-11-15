@@ -1,21 +1,7 @@
 import { useMemo } from "react";
-import { PLACE_TYPE, allDocumentTypes, allDocuments, buildLinkIndex, createDocument, documentsOf, getDocument, locateAddress, normalizeTags, patchDocument, renameDocument, saveFieldOptions, todayStr, useDocuments, writeGeo, type Coords, type Document, type Located, type Lookup } from "@lifeline/core";
-import { hasHappened, kindFrom, normalizePlace, placeTitled, toTrySinceOf, visitedBy } from "../domain/place";
+import { PLACE_TYPE, allDocumentTypes, assertTitleFree, allDocuments, buildLinkIndex, createDocument, documentsOf, getDocument, locateAddress, normalizeTags, patchDocument, renameDocument, saveFieldOptions, todayStr, useDocuments, writeGeo, type Coords, type Document, type Located, type Lookup } from "@lifeline/core";
+import { hasHappened, kindFrom, normalizePlace, toTrySinceOf, visitedBy } from "../domain/place";
 import { PLACES_FOLDER, type Place } from "../domain/types";
-
-/**
- * A Place's title is another Place's (ADR 0119): the refusal names it, and
- * carries it so a form can offer it and an agent can use its id.
- */
-export class PlaceTaken extends Error {
-  constructor(
-    title: string,
-    readonly existing: Document,
-  ) {
-    super(`“${title}” is already a Place: ${existing.title}`);
-    this.name = "PlaceTaken";
-  }
-}
 
 /** Every Place in the Workspace, live, with the App's keys well-formed. */
 export function usePlaces(): Place[] {
@@ -28,10 +14,9 @@ export const livePlace = (row: Document | undefined): Place | undefined => (row 
 
 const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);
 
-/** Throws `PlaceTaken` when another Place has this title, in any folder, case and accents aside. */
-async function assertFree(title: string, self?: string): Promise<void> {
-  const taken = placeTitled(await documentsOf(PLACE_TYPE), title, self);
-  if (taken) throw new PlaceTaken(title, taken);
+/** Throws Core's `TitleTaken` when another Place has this title, in any folder, case and accents aside (ADR 0119). */
+async function assertFree(title: string): Promise<void> {
+  assertTitleFree(await documentsOf(PLACE_TYPE), PLACE_TYPE, PLACES_FOLDER, title);
 }
 
 /** An address as the form gives it: the text, and the coordinates when a typeahead hit or a Locate candidate was picked. */
@@ -60,7 +45,7 @@ async function resolveAddress(input: AddressInput, lookup: Lookup): Promise<{ fi
  * name), aliases, Tags and an address are kept when given; a typed address is
  * looked up on save, a picked one keeps its coordinates. Lands in Places.
  * Throws when the name is empty, its Kind is none, or another Place has it
- * (`PlaceTaken`). An address found nowhere is kept, off the map.
+ * (Core's `TitleTaken`). An address found nowhere is kept, off the map.
  */
 export async function addPlace(
   input: { name: string; kind?: string; aliases?: string[]; tags?: string[]; address?: string; at?: Coords; toTry?: boolean },
@@ -116,7 +101,7 @@ export interface PlacePatch {
 
 /**
  * Change a Place: only the patched keys. A new name renames it, rewriting
- * every `[[link]]` to the old one; one another Place has is refused (`PlaceTaken`).
+ * every `[[link]]` to the old one; one another Place has is refused (Core's `TitleTaken`).
  */
 export async function patchPlace(id: string, patch: PlacePatch): Promise<void> {
   const { title, ...rest } = patch;
@@ -133,10 +118,8 @@ export async function patchPlace(id: string, patch: PlacePatch): Promise<void> {
   if (title !== undefined) {
     if (!title.trim()) throw new Error("A Place needs a name");
     const doc = await getDocument(id);
-    if (doc) {
-      await assertFree(title.trim(), id);
-      await renameDocument(doc, title);
-    }
+    // Core holds Places' titles unique in every folder (`uniqueTitles`): a taken one is refused with `TitleTaken`.
+    if (doc) await renameDocument(doc, title);
   }
   if (Object.keys(fields).length) await patchDocument(id, fields);
 }

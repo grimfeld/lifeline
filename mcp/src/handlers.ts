@@ -36,7 +36,8 @@ import {
   surfaceItemsIn,
   timedProviders,
   whenProblem,
-  titleTaken,
+  TitleTaken,
+  assertTitleFree,
   todayStr,
   typeFieldsOf,
   fieldsOfDocument,
@@ -311,6 +312,16 @@ async function describedDocument(id: unknown): Promise<Document> {
   const answer = doc && def?.internal && def.owner && !inPrivateFolder(doc.folder) ? await def.owner(doc) : doc;
   if (!answer || !isAgentVisible(answer)) throw new ToolError(`No Document ${id} in this Workspace`);
   return answer;
+}
+
+/**
+ * A title refused as an agent reads it: the Document that has it named with
+ * its id, so the agent can use that one instead — unless that one is hidden
+ * from agents, which a refusal never names.
+ */
+function titleRefusal(e: unknown): ToolError {
+  if (e instanceof TitleTaken) return new ToolError(isAgentVisible(e.existing) ? `${e.message} (id ${e.existing.id})` : `“${e.title}” is already taken`);
+  return new ToolError(e instanceof Error ? e.message : String(e));
 }
 
 function assertNotPrivate(folder: string): void {
@@ -607,12 +618,16 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     const rename = a.title !== undefined && String(a.title).trim() !== doc.title;
     if (rename && def.titleRule === "derived") throw new ToolError(`${def.label} take their title from their fields`);
     if (move || rename) {
-      // The same clashes moveDocument and renameDocument refuse, checked up front.
-      const sameType = (await allDocuments()).filter((d) => d.type === doc.type);
+      // The same clashes moveDocument and renameDocument refuse, checked up front: per folder, or in every folder for a type whose titles are unique (a Place's).
+      const docs = await allDocuments();
       const folder = move ? normalizeFolder(String(a.folder)) : doc.folder;
-      if (move && titleTaken(sameType, folder, doc.title, doc.id)) throw new ToolError(`“${doc.title}” already exists in ${folder || "the root"}`);
       const title = String(a.title ?? "").trim();
-      if (rename && title && titleTaken(sameType, folder, title, doc.id)) throw new ToolError(`“${title}” already exists in ${folder || "the root"}`);
+      try {
+        if (move) assertTitleFree(docs, doc.type, folder, doc.title, doc.id);
+        if (rename && title) assertTitleFree(docs, doc.type, folder, title, doc.id);
+      } catch (e) {
+        throw titleRefusal(e);
+      }
     }
     // A worn Role's Fields (ADR 0069) are written like the type's own.
     const patch: Args = await readFields(withRoleFields(doc, def) ?? def, (a.fields as Args | undefined) ?? {});
@@ -632,7 +647,7 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     }
     if (rename) {
       await renameDocument(doc, String(a.title)).catch((e: Error) => {
-        throw new ToolError(e.message);
+        throw titleRefusal(e);
       });
       changed.push("title");
     }

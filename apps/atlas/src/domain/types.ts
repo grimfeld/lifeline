@@ -26,7 +26,7 @@ export interface Place extends Document {
   closed: boolean;
 }
 
-/** Where every Place lands: one folder, so Core's per-folder title check covers Places as one set. */
+/** Where every Place lands. Their titles are unique in every folder all the same (`uniqueTitles`, ADR 0119). */
 export const PLACES_FOLDER = "Places";
 
 /** The Kinds a Place starts with (ADR 0119); the user renames and adds through the type (`userOptions`). */

@@ -1,4 +1,4 @@
-import { PLACE_TYPE, documentFigures, documentType, eventLastDay, sourceOf, foldName, normalizeName, readGeo, type Coords, type DateStr, type Document, type FieldOption, type LinkIndex } from "@lifeline/core";
+import { PLACE_TYPE, documentFigures, documentType, eventLastDay, sourceOf, foldName, readGeo, type Coords, type DateStr, type Document, type FieldOption, type LinkIndex } from "@lifeline/core";
 import { KINDS, type Place } from "./types";
 
 /** The Kind options as they stand: the App's, under the user's names, then the user's own. */
@@ -23,12 +23,6 @@ export function kindFrom(input: string | undefined, options: readonly FieldOptio
   const hit = options.find((o) => foldName(o.value) === wanted || foldName(o.label) === wanted);
   if (!hit) throw new Error(`No Kind “${input!.trim()}”: one of ${options.map((o) => o.label).join(", ")}`);
   return hit.value;
-}
-
-/** The Place whose title this one would clash with (Places' titles are unique, ADR 0119), but `self`. */
-export function placeTitled(places: readonly Document[], title: string, self?: string): Document | undefined {
-  const t = normalizeName(title);
-  return places.find((p) => p.id !== self && !p.deleted && normalizeName(p.title) === t);
 }
 
 /**

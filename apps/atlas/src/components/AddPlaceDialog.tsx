@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { initialText, useOpenPeek, type CommandDialogProps, type Coords, type Document } from "@lifeline/core";
+import { TitleTaken, initialText, useOpenPeek, type CommandDialogProps, type Coords, type Document } from "@lifeline/core";
 import { Button, ChoiceField, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, toast } from "@lifeline/ui";
-import { PlaceTaken, addPlace } from "../data/repo";
+import { addPlace } from "../data/repo";
 import { kindOptions } from "../domain/place";
 import { HereButton } from "./Here";
 import { LocateButton, PlaceSearchField, WhereNote, type PlaceHit } from "./PlaceLookup";
@@ -46,7 +46,7 @@ export function AddPlaceDialog({ open, onOpenChange, initial }: CommandDialogPro
       openPeek(p.id);
     } catch (e) {
       setError(message(e));
-      setTaken(e instanceof PlaceTaken ? e.existing : undefined);
+      setTaken(e instanceof TitleTaken ? e.existing : undefined);
     } finally {
       setBusy(false);
     }

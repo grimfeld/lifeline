@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { PLACE_TYPE, appById, documentFigures, documentType, patchDocument, reportsIn, seenSummary, sourceOf, todayStr, useDocument, useLinkIndex, type Document, type LinkIndex } from "@lifeline/core";
+import { PLACE_TYPE, TitleTaken, appById, documentFigures, documentType, patchDocument, reportsIn, seenSummary, sourceOf, todayStr, useDocument, useLinkIndex, type Document, type LinkIndex } from "@lifeline/core";
 import { BacklinksSection, DocumentEditor, DocumentReports, UnlinkedMentionsSection, useOpenLinkRef } from "@lifeline/editor";
 import { Field, Input, MiniMap, Page, PageHeader, useCommitDraft } from "@lifeline/ui";
 import { ArrowLeft } from "lucide-react";
 import { PLACES_HREF, placeHref } from "../constants";
-import { PlaceTaken, livePlace, patchPlace, settleToTry } from "../data/repo";
+import { livePlace, patchPlace, settleToTry } from "../data/repo";
 import { PlaceFields } from "../components/PlaceFields";
 import { placeCoordsOf } from "../domain/place";
 import { PlaceTimeline } from "./PlaceTimeline";
@@ -29,7 +29,7 @@ function NameField({ place }: { place: Document }) {
       try {
         await patchPlace(place.id, { title: next });
       } catch (e) {
-        if (e instanceof PlaceTaken) setTaken(e.existing);
+        if (e instanceof TitleTaken) setTaken(e.existing);
         throw e;
       }
     },

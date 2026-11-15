@@ -84,6 +84,7 @@ export { liveQuery } from "dexie";
 export * from "./external";
 export * from "./fetch";
 export * from "./documents/ops";
+export * from "./documents/titles";
 export * from "./attachments";
 export * from "./private";
 export * from "./workspaces";

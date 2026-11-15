@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PLACE_TYPE } from "@lifeline/core";
+import { PLACE_TYPE, registerBuiltinTypes } from "@lifeline/core";
 import type { Document, DocumentTypeDef, OwnedCommand } from "@lifeline/core";
 import { atlasApp } from "@lifeline/app-atlas";
 
@@ -32,6 +32,8 @@ vi.mock("@lifeline/core", async (importOriginal) => {
 const { runTool } = await import("./handlers");
 // Through the manifest only, as the server takes it (apps.ts).
 const placeTypeDef = atlasApp.types.find((t) => t.id === PLACE_TYPE)!;
+// Core's own title check reads its registry, not the stand-in above: Places' titles are unique there too.
+registerBuiltinTypes([placeTypeDef]);
 
 const place = (id: string, title: string, extra: Record<string, unknown> = {}) =>
   ({ id, type: PLACE_TYPE, title, folder: "Places", tags: [], body: "", createdAt: "2026-01-01", updatedAt: "2026-11-01", deleted: 0, aliases: [], kind: "", ...extra }) as unknown as Document;

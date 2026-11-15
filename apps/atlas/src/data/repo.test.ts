@@ -1,9 +1,9 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DOCUMENT_TYPES, EVENT_TYPE, PLACE_TYPE, allDocumentTypes, allDocuments, buildLinkIndex, createDocument, db, documentType, documentsOf, documentsTable, getDocument, initApps, patchDocument, putDocument, type DocumentTypeDef } from "@lifeline/core";
+import { DOCUMENT_TYPES, EVENT_TYPE, PLACE_TYPE, TitleTaken, allDocumentTypes, allDocuments, buildLinkIndex, createDocument, db, documentType, documentsOf, documentsTable, getDocument, initApps, patchDocument, putDocument, type DocumentTypeDef } from "@lifeline/core";
 import { placeTypeDef } from "../types";
 import { kindOptions, lastVisitOf, placeCoordsOf, placesList } from "../domain/place";
-import { PlaceTaken, addPlace, livePlace, patchPlace, saveKindOptions, settleToTry } from "./repo";
+import { addPlace, livePlace, patchPlace, saveKindOptions, settleToTry } from "./repo";
 
 // A stand-in for Calendar's Event (Atlas never imports it, ADR 0100): an At, and notes whose wikilinks count.
 const eventType: DocumentTypeDef = {
@@ -62,7 +62,7 @@ describe("adding a Place (ADR 0119)", () => {
   it("refuses a title another Place has, whatever its case or accents, and offers that Place", async () => {
     const janou = await addPlace({ name: "Chez Janou" });
     const refusal = await addPlace({ name: "chez janóu" }).catch((e: unknown) => e);
-    expect(refusal).toBeInstanceOf(PlaceTaken);
+    expect(refusal).toBeInstanceOf(TitleTaken);
     expect(refusal).toMatchObject({ message: "“chez janóu” is already a Place: Chez Janou", existing: { id: janou.id, title: "Chez Janou" } });
   });
 

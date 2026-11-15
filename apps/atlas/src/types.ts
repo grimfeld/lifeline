@@ -1,8 +1,8 @@
-import { EVENT_TYPE, PLACE_TYPE, type DocumentTypeDef } from "@lifeline/core";
+import { EVENT_TYPE, PLACE_TYPE, TitleTaken, type DocumentTypeDef } from "@lifeline/core";
 import { KINDS, PLACES_FOLDER } from "./domain/types";
 import { placeCoordsOf, placeSubtitle } from "./domain/place";
 import { placeHref } from "./constants";
-import { PlaceTaken, addPlace, afterEventSaved } from "./data/repo";
+import { addPlace, afterEventSaved } from "./data/repo";
 
 /**
  * The Place type (ADR 0119), UI-free: the icon and the Peek are attached in
@@ -16,6 +16,8 @@ export const placeTypeDef: DocumentTypeDef = {
   singular: "Place",
   iconName: "map-pin",
   titleRule: "name",
+  // Places' titles are unique in every folder (ADR 0119): Core holds it on every write, naming the Place that has it.
+  uniqueTitles: true,
   body: "optional",
   folder: PLACES_FOLDER,
   // The completer and the Peek say what it is: "Place · Restaurant".
@@ -37,7 +39,7 @@ export const placeTypeDef: DocumentTypeDef = {
     try {
       return await addPlace({ name });
     } catch (e) {
-      if (e instanceof PlaceTaken) return e.existing;
+      if (e instanceof TitleTaken) return e.existing;
       throw e;
     }
   },
