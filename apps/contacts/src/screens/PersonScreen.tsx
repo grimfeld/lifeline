@@ -124,6 +124,10 @@ export function PersonScreen() {
             onCommit={(relationship) => patchPerson(person.id, { relationship })}
             className="-mx-1 text-sm"
           />
+          <div className="grid min-w-0 gap-1 md:grid-cols-2">
+            <InlineText label="Given name" value={person.givenName ?? ""} placeholder="Given name" onCommit={(givenName) => patchPerson(person.id, { givenName })} className="-mx-1 text-sm" />
+            <InlineText label="Family name" value={person.familyName ?? ""} placeholder="Family name" onCommit={(familyName) => patchPerson(person.id, { familyName })} className="-mx-1 text-sm" />
+          </div>
           {known && <p className="text-muted-foreground min-w-0 text-sm break-words">{known}</p>}
           <PersonHouseholds person={person} />
         </header>
@@ -142,7 +146,7 @@ export function PersonScreen() {
             <TiesSection person={person} />
             {editing ? (
               <Section title="More">
-                <PersonFields person={person} relationship={false} />
+                <PersonFields person={person} relationship={false} names={false} />
               </Section>
             ) : (
               (person.tags.length > 0 || person.excludedFromDrifting) && (

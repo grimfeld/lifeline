@@ -13,12 +13,18 @@ const asName = (raw: string) => raw.trim() || null;
  * What the Contacts App edits on every Person, on their page and in their
  * Peek alike: the other names they go by, what they are to me, and their Tags.
  * The name, the body and the user's own Fields are the page's or Core's.
- * The Person page edits the Relationship under the name, so it leaves it out here.
+ * The Person page edits the Relationship and the Given and Family names under the name, so it leaves them out here.
  */
-export function PersonFields({ person, relationship = true }: { person: Person; relationship?: boolean }) {
+export function PersonFields({ person, relationship = true, names = true }: { person: Person; relationship?: boolean; names?: boolean }) {
   const suggestions = useTagVocabulary().map((v) => v.tag);
   return (
     <div className="grid min-w-0 gap-3">
+      {names && (
+        <>
+          <CommitField label="Given name" hint="Their own name: it links to them like an alias, and never changes the title." delay={WRITE_DELAY} value={person.givenName ?? ""} placeholder="Anne" onCommit={(givenName) => patchPerson(person.id, { givenName })} />
+          <CommitField label="Family name" hint="The name they share with their family." delay={WRITE_DELAY} value={person.familyName ?? ""} placeholder="Dupont" onCommit={(familyName) => patchPerson(person.id, { familyName })} />
+        </>
+      )}
       <Field label="Aliases" hint="Other names they go by: each one links to them.">
         <TagInput value={person.aliases} onChange={(aliases) => void patchPerson(person.id, { aliases })} normalize={asName} placeholder="Mum, Anne…" />
       </Field>

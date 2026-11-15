@@ -10,7 +10,7 @@ import type { Document, DocumentTypeDef } from "./types";
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
   id, label: id + "s", titleRule: "name", body: "optional", fields: [], linkable: true, builtIn: true, ...extra,
 });
-const types = [T("note"), T("person"), T("media", { linkable: { aliasesField: "aliases" } }),
+const types = [T("note"), T("person", { linkable: { extraNames: (d) => [String(d.givenName ?? "")] } }), T("media", { linkable: { aliasesField: "aliases" } }),
   T("recipe", { fields: [{ key: "source", label: "Source", kind: "link" }] }),
   T("version", { internal: true, linkable: false, fields: [{ key: "of", label: "Of", kind: "link" }] })];
 
@@ -22,7 +22,7 @@ const vault = (): Document[] => [
   doc("a", "note", "Alpha", "See [[Beta]] and [[Yas]], not [[Nobody]]. #idea", { tags: ["idea"] }),
   doc("b", "note", "Beta", "Back to [[Alpha]]. [[Dune]]"),
   doc("m", "media", "Dune", "", { aliases: ["Arrakis"] }),
-  doc("p", "person", "Yasmine", "Self [[Yasmine]]", { aliases: ["Yas"] }),
+  doc("p", "person", "Yasmine", "Self [[Yasmine]]", { aliases: ["Yas"], givenName: "Yasmina" }),
   doc("r", "recipe", "Cake", "[[Arrakis]] spice", { source: "m" }),
   doc("v", "version", "Snapshot", "[[Beta]] [[Nobody]]", { of: "a" }),
 ];
@@ -40,7 +40,7 @@ function snapshot(idx: LinkIndex) {
     tags: [...idx.tags.entries()].sort(),
     names: idx.names(),
     mentions: idx.mentionNames(),
-    resolve: ["Alpha", "Beta", "Yas", "Arrakis", "media:Dune", "Nobody", "Gamma"].map((n) => idx.resolve(n)),
+    resolve: ["Alpha", "Beta", "Yas", "Arrakis", "media:Dune", "Nobody", "Gamma", "Yasmina", "Mina"].map((n) => idx.resolve(n)),
   };
 }
 
@@ -86,6 +86,13 @@ describe("linkIndexFor patches what a whole build would give", () => {
     const v3 = edit(v2, "p", { folder: "People" });
     const v4 = edit(v3, "a", { type: "person" });
     expect(run(v0, v1, v2, v3, v4)).toEqual({ full: 5, patched: 0 });
+  });
+
+  it("a corrected extra name (a Given name) is a whole build, so [[…]] follows it", () => {
+    const v0 = vault().map((d) => (d.id === "b" ? { ...d, body: "[[Mina]]" } : d));
+    const v1 = edit(v0, "p", { givenName: "Mina" });
+    expect(run(v0, v1)).toEqual({ full: 2, patched: 0 });
+    expect(linkIndexFor(v1, types).backlinksTo("p").map((b) => b.sourceId)).toContain("b");
   });
 
   it("a Document added or deleted is a whole build", () => {

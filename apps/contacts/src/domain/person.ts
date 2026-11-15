@@ -36,3 +36,9 @@ export function findPerson<P extends { title: string; aliases?: string[] }>(peop
   if (hits.length === 0) return { problem: `No Person called “${name.trim()}”` };
   return { problem: `“${name.trim()}” is ambiguous: ${hits.map((p) => p.title).join(", ")}. Use a name that is only one of them` };
 }
+
+/**
+ * The title a Person is added with when none is typed (ADR 0117): the Given and
+ * Family names, "Anne Dupont". Only at add: after that neither rewrites the other.
+ */
+export const composeTitle = (given: string | undefined, family: string | undefined) => [given, family].map((n) => (n ?? "").trim()).filter(Boolean).join(" ");

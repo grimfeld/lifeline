@@ -19,7 +19,11 @@ export const personTypeDef: DocumentTypeDef = {
   titleRule: "name",
   body: "optional",
   folder: PEOPLE_FOLDER,
-  linkable: { subtitle: (d) => ((d as Person).relationship?.trim() ? `Person · ${(d as Person).relationship.trim()}` : "Person") },
+  linkable: {
+    subtitle: (d) => ((d as Person).relationship?.trim() ? `Person · ${(d as Person).relationship.trim()}` : "Person"),
+    // [[Anne]] reaches them by their Given name, read from the Field and never copied into Aliases (ADR 0117).
+    extraNames: (d) => [(d as Person).givenName ?? ""],
+  },
   // Opens on its own page; its Peek's "Open" leads there (ADR 0110's pattern).
   href: (d) => personHref(d.id),
   // A Pin for each current Address with coordinates, through the App's code and no geo Field (#418).
@@ -40,6 +44,9 @@ export const personTypeDef: DocumentTypeDef = {
   describe: describePerson,
   agentWalled: AGENT_WALLED_KEYS,
   fields: [
+    // Beside the title, never part of it after add (ADR 0117).
+    { key: "givenName", label: "Given name", kind: "text", column: true },
+    { key: "familyName", label: "Family name", kind: "text", column: true },
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "relationship", label: "Relationship", kind: "text", column: true },
     // Left out of Drifting by choice (#420): set on the Person's page or from their Drifting row.

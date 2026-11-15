@@ -41,7 +41,8 @@ bring them back.
 ### A Person's page
 
 At the top, their name, then what they are to you (their **Relationship**, underlined with dashes:
-click it and type to change it, Enter or leaving it saves, Escape puts it back), then their age (when their Birthday has a year) and their
+click it and type to change it, Enter or leaving it saves, Escape puts it back), then their
+**Given name** and **Family name** (both optional, written the same way: "Anne" and "Dupont"), then their age (when their Birthday has a year) and their
 aliases, then **Households:** with each Household they belong to as a link, and **Add to a Household…**
 (see Households, below). Under them, three buttons: **Call**, **Email** and **Profile** reach them by their first
 current phone number, email and handle; a former one is skipped. One they have none of is dimmed, and adds one of
@@ -56,7 +57,8 @@ Below, two columns (one after the other on a phone):
   a cross removes it (with Undo) and **Former** marks a Contact detail or Address former. Edit also
   lets you rename them in place, as the Relationship is changed (every `[[link]]` to them follows).
   A name can't be emptied ("Name can't be empty.") or be another Person's: the reason shows under
-  it, to fix or undo with Escape. Edit also shows **More**: their **Aliases**, their
+  it, to fix or undo with Escape. Changing the name never changes the Given or Family name, and
+  changing those never changes the name: the name stays "Mum" or "Dr Okafor" as you wrote it. Edit also shows **More**: their **Aliases**, their
   **Tags** and **Excluded from Drifting**. **Done** goes back to reading.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
@@ -169,6 +171,12 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
 
 - Write `[[` and their name, or any of their aliases: `[[Mum]]` and `[[Anne Dupont]]` land on
   the same Person. The completer marks each one as a Person, with their Relationship.
+- Their **Given name** works like an alias you never type: with "Anne" as Anne Dupont's Given
+  name, `[[Anne]]` lands on her, the completer offers "Anne → Anne Dupont", and a plain "Anne"
+  in a Day shows under her **Unlinked mentions**. It is read from the Given name, never copied
+  into her Aliases, so correcting the Given name changes what `[[Anne]]` reaches (a page titled
+  "Anne" still comes first, as it does over an alias). Two People with the same Given name share
+  it as two equal aliases would: `[[Anne]]` goes to one of them, so write the full name to be sure.
 - Click a link to a Person to open them in a **Peek**, where you can change their aliases,
   Relationship and Tags and write in their body. **Open** goes to their page.
 - Select a name in a Day (or any body) and pick **Person** under **People** in the Selection
@@ -182,7 +190,10 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
 
 ### Commands
 
-- **Add person…** — a new Person, from their name alone. Where: the Capture sheet, the palette
+- **Add person…** — a new Person, from a name, or from a **Given name** and a **Family name**: until
+  you type a name, it fills in as "Anne Dupont" while you type the two, and a name you typed
+  ("Mum") is kept as typed. Both names are kept on the Person, beside the name, and can be left
+  empty. Where: the Capture sheet, the palette
   (Ctrl+K).
 - **Add occasion…** — a birthday, anniversary or other Occasion for a Person found by name or
   alias; it has no screen, and is how Claude adds Occasions (`people_occasion_add`). Where: Claude
@@ -191,13 +202,13 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
 
 ## Capture
 
-**+** on the phone (or Ctrl+K at the desk) offers **Add person…** under People: just a name, so
+**+** on the phone (or Ctrl+K at the desk) offers **Add person…** under People: just a name (or the two names), so
 you can add someone you just met before you forget it.
 
 ## Ask Claude
 
-- "Add my aunt Anne Dupont, I call her Mum" — `people_add`, with a name, aliases, a
-  Relationship and Tags.
+- "Add my aunt Anne Dupont, I call her Mum" — `people_add`, with a name, optional Given and
+  Family names, aliases, a Relationship and Tags.
 - "Anne's birthday is 12 November 1961" — `people_occasion_add`, for the Person found by name or
   alias, with a label, a day (the year optional) and yearly or once. An unknown name, or one
   that two People share, is refused and Claude asks which.
@@ -209,14 +220,13 @@ you can add someone you just met before you forget it.
 - "Who is Léa to Anne?" — `get_document` on a Person also lists their Ties, read from their side
   ("daughter: Léa"), leaving out anyone in the Private folder.
 - "What have I written about Anne?" — `search_documents`, `get_document`.
-
 - "Who lives at the Smiths'?" — `get_document` on a Household gives its name, aliases and its
   members by name, leaving out anyone in the Private folder; nothing of a member's Addresses or
   Contact details.
 
 ### What Claude sees of a Person
 
-Claude reads a Person's name, aliases, Relationship, Tags, Occasions, Ties, body, and any Field you
+Claude reads a Person's name, Given and Family name, aliases, Relationship, Tags, Occasions, Ties, body, and any Field you
 added to Person yourself, and it can change those; it can add an Occasion.
 
 Claude never sees a Person's **Addresses** or **Contact details**, current or former, from any
