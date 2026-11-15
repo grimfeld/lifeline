@@ -2,6 +2,7 @@ import { allDocumentTypes, allDocuments, buildLinkIndex, documentFigures, inPriv
 import { tiesSeenFrom } from "./domain/ties";
 import { normalizeOccasions } from "./domain/occasions";
 import { allPeople } from "./data/repo";
+import { membersOf } from "./domain/households";
 import { tiesOf } from "./data/ties";
 
 /** What an agent may count or name: nothing in the Private folder (ADR 0038), whose gate an agent never opens. */
@@ -31,4 +32,14 @@ export async function describePerson(person: Document): Promise<Record<string, u
       lastMentioned: figure(documentFigures(index, person.id, today, sourceOf("mentioned", today))),
     },
   };
+}
+
+/**
+ * A Household as an agent reads it beyond its Fields (ADR 0117): its members
+ * by name, as its page lists them. Only their names and ids: nothing of a
+ * Person's walled parts, and no one in the Private folder.
+ */
+export async function describeHousehold(household: Document): Promise<Record<string, unknown>> {
+  const people = (await allPeople()).filter(agentMaySee);
+  return { members: membersOf({ members: household.members }, people).map((m) => ({ id: m.personId, title: m.name })) };
 }

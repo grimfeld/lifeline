@@ -2,7 +2,9 @@ import { useCallback, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { PERSON_TYPE, documentType, patchDocument, todayStr, useDocument, useLinkIndex, type Document } from "@lifeline/core";
 import { DocumentEditor } from "@lifeline/editor";
-import { Badge, Field, Input, Page, PageHeader, cn, useCommitDraft } from "@lifeline/ui";
+import { Badge, Page, PageHeader, cn } from "@lifeline/ui";
+import { InlineText } from "../components/InlineText";
+import { PersonHouseholds } from "../components/PersonHouseholds";
 import { ArrowLeft, AtSign, Mail, Phone, Plus } from "lucide-react";
 import { PEOPLE_HREF } from "../constants";
 import { type ContactKind, type Person } from "../domain/types";
@@ -27,43 +29,6 @@ const back = (
     <ArrowLeft className="size-4" /> People
   </Link>
 );
-
-/**
- * A line of text written where it stands: on Enter or on leaving it; Escape puts it back.
- * A refused write shows under the field and leaves what was typed, to be fixed. The page
- * around it says what it is, so its label is for screen readers only. At rest a dashed
- * underline says it can be changed, on a touch screen too; hover and focus draw the box.
- */
-function InlineText({ label, value, placeholder, required, onCommit, className }: { label: string; value: string; placeholder?: string; required?: boolean; onCommit: (v: string) => unknown; className?: string }) {
-  const { draft, error, change, commit, revert } = useCommitDraft(
-    value,
-    (next: string) => {
-      const text = next.trim();
-      if (required && !text) throw new Error(`${label} can't be empty.`);
-      return onCommit(text);
-    },
-    { equals: (a, b) => a.trim() === b.trim() },
-  );
-  return (
-    <Field label={label} hideLabel error={error} className="min-w-0 gap-1">
-      <Input
-        value={draft}
-        placeholder={placeholder}
-        onChange={(e) => change(e.target.value)}
-        onBlur={() => void commit()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-          if (e.key === "Escape") {
-            e.stopPropagation();
-            revert();
-            e.currentTarget.blur();
-          }
-        }}
-        className={cn("border-transparent border-b-input hover:border-input focus-visible:border-ring border-dashed bg-transparent dark:bg-transparent hover:border-solid focus-visible:border-solid", className)}
-      />
-    </Field>
-  );
-}
 
 const QUICK: Record<ContactKind, { label: string; icon: typeof Phone }> = {
   phone: { label: "Call", icon: Phone },
@@ -164,6 +129,7 @@ export function PersonScreen() {
             <InlineText label="Family name" value={person.familyName ?? ""} placeholder="Family name" onCommit={(familyName) => patchPerson(person.id, { familyName })} className="-mx-1 text-sm" />
           </div>
           {known && <p className="text-muted-foreground min-w-0 text-sm break-words">{known}</p>}
+          <PersonHouseholds person={person} />
         </header>
 
         <div className="flex min-w-0 flex-wrap items-start gap-4">

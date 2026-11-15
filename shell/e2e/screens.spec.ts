@@ -511,6 +511,26 @@ async function longAddresses(page: Page) {
   await expect(page.getByTestId("address")).toHaveCount(3);
 }
 
+/**
+ * The seeded Household (its title as long as a person could type) holding
+ * every seeded Person, and a second as long, so a Person's page names two
+ * Households and the Household's page lists its members (ADR 0117).
+ */
+async function longHouseholds(page: Page) {
+  await workLocally(page);
+  await inCore(
+    page,
+    async (core, a: { long: string }) => {
+      const people = await core.documentsOf("contacts_person");
+      const members = people.map((p) => ({ personId: p.id }));
+      const [seeded] = await core.documentsOf("contacts_household");
+      await core.patchDocument(seeded!.id, { members });
+      await core.putDocument({ type: "contacts_household", title: a.long, aliases: [], members, tags: [] });
+    },
+    { long: longText("Another household") },
+  );
+}
+
 /** A Relationship as long as a person could type, so the People filter row holds a long toggle. */
 async function longRelationship(page: Page) {
   await workLocally(page);
@@ -1008,6 +1028,10 @@ const SCREENS: ScreenCase[] = [
   { name: "People", path: "/app/people", afterOpen: longRelationship },
   { name: "Person", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); } },
   { name: "Person · Edit", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); await page.getByRole("button", { name: "Edit", exact: true }).click(); } },
+  { name: "Person · Households", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
+  { name: "Households", path: "/app/people/households", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
+  { name: "Household", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await workLocally(page); await expect(page.getByText("No members yet.")).toBeVisible(); } },
+  { name: "Household · members", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByTestId("member").first()).toBeVisible(); } },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },

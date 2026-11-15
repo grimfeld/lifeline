@@ -1,8 +1,9 @@
 import { PERSON_TYPE, getDocument, type DocumentTypeDef } from "@lifeline/core";
-import { AGENT_WALLED_KEYS, PEOPLE_FOLDER, TIE, type Person } from "./domain/types";
-import { describePerson } from "./describe";
+import { AGENT_WALLED_KEYS, HOUSEHOLD, HOUSEHOLDS_FOLDER, PEOPLE_FOLDER, TIE, type Person } from "./domain/types";
+import { describeHousehold, describePerson } from "./describe";
 import { removeTiesOf, tieIdsOf } from "./data/ties";
-import { personHref } from "./constants";
+import { householdHref, personHref } from "./constants";
+import { dropMembershipsOf } from "./data/households";
 import { addressPinsOf } from "./domain/addresses";
 
 /**
@@ -31,8 +32,11 @@ export const personTypeDef: DocumentTypeDef = {
   reports: [{ kind: "lastSeen" }, { kind: "last" }],
   order: 30,
   builtIn: true,
-  // Their Ties go with them, and move with them between Workspaces (#412).
-  onDelete: (doc) => removeTiesOf(doc.id),
+  // Their Ties go with them, and move with them between Workspaces (#412); their place in any Household goes too (ADR 0117).
+  onDelete: async (doc) => {
+    await removeTiesOf(doc.id);
+    await dropMembershipsOf(doc.id);
+  },
   followers: (doc) => tieIdsOf(doc.id),
   // Gone from every People field too (an Event's With, a Task's For…): the other Apps never import Contacts.
   unlinkOnDelete: true,
@@ -77,4 +81,32 @@ export const tieTypeDef: DocumentTypeDef = {
   ],
   // Either Person speaks for it.
   owner: async (doc) => (typeof doc.a === "string" ? getDocument(doc.a) : undefined),
+};
+
+/**
+ * The Household (ADR 0117): the People who live together, Linkable by its
+ * title and aliases, with a body. Its members are the Contacts App's own part
+ * (guarded, hidden json), chosen on its page, its Peek or a Person's page,
+ * never by a Base or an agent. It holds nothing of a Person's, so deleting it
+ * touches no one, and nothing walled reaches an agent through it.
+ */
+export const householdTypeDef: DocumentTypeDef = {
+  id: HOUSEHOLD,
+  label: "Households",
+  singular: "Household",
+  iconName: "home",
+  titleRule: "name",
+  body: "optional",
+  folder: HOUSEHOLDS_FOLDER,
+  linkable: { subtitle: () => "Household" },
+  href: (d) => householdHref(d.id),
+  order: 31,
+  builtIn: true,
+  // An agent reads its name, aliases and the names of its members (ADR 0117), as it reads a Person.
+  describe: describeHousehold,
+  fields: [
+    { key: "aliases", label: "Aliases", kind: "list" },
+    // `{ personId, since?, until? }[]` (`Membership`): only the App's own controls write it.
+    { key: "members", label: "Members", kind: "json", guarded: true, hidden: true },
+  ],
 };
