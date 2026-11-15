@@ -247,16 +247,16 @@ function argSchema(arg: CommandArg): ZodTypeAny {
       s = arg.options?.length ? z.enum(arg.options.map((o) => o.value) as [string, ...string[]]) : z.string();
       break;
     case "multiselect":
-      s = z.array(arg.options?.length ? z.enum(arg.options.map((o) => o.value) as [string, ...string[]]) : z.string()).max(MAX_ARRAY_VALUES);
+      s = z.array(arg.options?.length ? z.enum(arg.options.map((o) => o.value) as [string, ...string[]]) : z.string()).max(arg.maxValues ?? MAX_ARRAY_VALUES);
       break;
     case "list":
-      s = z.array(z.string()).max(MAX_ARRAY_VALUES);
+      s = z.array(z.string()).max(arg.maxValues ?? MAX_ARRAY_VALUES);
       break;
     case "json":
       s = z.record(z.string(), z.unknown());
       break;
     case "rows":
-      s = z.array(z.object(Object.fromEntries((arg.of ?? []).map((a) => [a.key, argSchema(a)])))).max(MAX_ARRAY_VALUES);
+      s = z.array(z.object(Object.fromEntries((arg.of ?? []).map((a) => [a.key, argSchema(a)])))).max(arg.maxValues ?? MAX_ARRAY_VALUES);
       break;
     default:
       s = z.string();
