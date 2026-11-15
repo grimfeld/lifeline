@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
-import type { Document } from "@lifeline/core";
+import { initApps, type Document, type DocumentTypeDef } from "@lifeline/core";
 import { afterKey, householdOptions, personOptions, withMembers, withPerson } from "./peopleChoice";
 
 const person = (id: string, title: string, aliases?: unknown): Document =>
   ({ id, type: "contacts_person", title, body: "", folder: "", tags: [], createdAt: "", updatedAt: "", deleted: 0, aliases }) as Document;
 
+// A type that names its people by a Field beyond aliases, as a Person's Given name (ADR 0117).
+const withGiven: DocumentTypeDef = { id: "contacts_person", label: "People", titleRule: "name", body: "none", builtIn: true, linkable: { extraNames: (d) => [String((d as unknown as { givenName?: string }).givenName ?? "")] }, fields: [{ key: "givenName", label: "Given name", kind: "text" }] };
+initApps([{ id: "contacts", title: "Contacts", types: [withGiven], screens: [], cards: [], commands: [] }]);
+
 describe("a People field's choice", () => {
+  it("completes someone by their Given name", () => {
+    const mum = { ...person("mum", "Mum"), givenName: "Anne" } as Document;
+    expect(personOptions([mum], [])).toEqual([{ value: "mum", label: "Mum", keywords: ["Anne"], description: "also Anne" }]);
+  });
+
   const people = [person("m", "Marc", ["Marco", "", 7]), person("j", "Jo"), person("a", "Ana", "Annie")];
 
   it("offers the People not chosen yet, completing their aliases and saying them", () => {

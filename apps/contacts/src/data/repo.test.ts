@@ -191,6 +191,12 @@ describe("adding an Occasion by name", () => {
     const { occasion } = await addOccasionByName("mum", { label: "Birthday", day: "1961-11-12", yearly: true });
     expect(((await getDocument(p.id)) as unknown as { occasions: unknown[] }).occasions).toEqual([occasion]);
   });
+  it("finds the Person by their Given name, which is no alias", async () => {
+    const p = await addPerson({ name: "Mum" });
+    await patchPerson(p.id, { givenName: "Anne" });
+    const { person } = await addOccasionByName("anne", { label: "Birthday", day: "1961-11-12", yearly: true });
+    expect(person.id).toBe(p.id);
+  });
   it("refuses an unknown name and an ambiguous one", async () => {
     await addPerson({ name: "Anne", aliases: ["Mum"] });
     await addPerson({ name: "Anna", aliases: ["Mum"] });
