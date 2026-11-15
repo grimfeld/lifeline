@@ -38,7 +38,7 @@ link them or make something from them.
 - **Then each Module** — what it can make from the words, the Module you are in first:
   - People: a Person; Notes: a Quote; Projects: a Task; Knowledge: a Word, a Sentence or a
     Fact; House: a Need for the Shopping list; Calendar: an Event.
-  - Your own types homed there (Journal: Place). Types homed nowhere are under **Other**.
+  - Your own types homed there (Journal: Recipe). Types homed nowhere are under **Other**.
 - An App's choice opens its own form, filled in with the words; nothing is saved until you save
   it. A Person, once saved, is linked from the words, as a type of your own is.
 - A type of your own is made at once, titled by the words, linked from them and opened in a Peek

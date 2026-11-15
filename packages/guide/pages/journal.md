@@ -8,7 +8,7 @@ Its sidebar (on a phone, the tabs in the Phone dock): **Today**, **This week**, 
 
 ## Journal
 
-What you keep here: Days, Weeks, Months, Quarters and Years, your own Types (People, Places…)
+What you keep here: Days, Weeks, Months, Quarters and Years, your own Types (Recipes, Essays…)
 and the Templates every kind of page starts from.
 
 ### Today — the Day page
@@ -57,7 +57,7 @@ and the Templates every kind of page starts from.
 
 ### Types
 
-- Your own kinds of page — People, Places, whatever you need — with the fields you give them.
+- Your own kinds of page — Recipes, Essays, whatever you need — with the fields you give them.
   A type made here lives in the Journal.
 - **New type** — name it, give it fields and an icon.
 - Each type lists its pages, with **New …** to add one, a pencil to edit the type, and a link to
@@ -78,9 +78,9 @@ and the Templates every kind of page starts from.
 - **Open today** — today's Day. Where: the palette (Ctrl+K), or the sidebar's **Today**.
 - **Go to date…** — keeps the palette open for a date or a period to type (`2023-03-14`,
   `2023-Q1`…); the row at the top opens it. Future dates open too, and nothing is made.
-- **New note…** — pick a kind of page (Place, Essay…), give it a title and, if you like,
+- **New note…** — pick a kind of page (Recipe, Essay…), give it a title and, if you like,
   a Template; it opens straight away. Where: the palette.
-- **New …** — one command per kind of page, such as **New place…**, for when you already know
+- **New …** — one command per kind of page, such as **New recipe…**, for when you already know
   the kind. Where: the palette.
 - **Quick capture** — one line appended to today's Day with the time. Where: the Capture sheet,
   the palette. Ctrl+Enter (⌘+Enter) saves.
@@ -135,12 +135,13 @@ for today's Day, stamped with the time.
 - "What did I write last Tuesday?" — `search_documents`, `get_document`.
 - "Add a paragraph to today's journal" — `update_document` (it replaces the whole text, so
   Claude reads it first).
-- "Make a page for the café on the corner" — `create_document`, for your own types such as Place.
-  People are [People](people.md)'s: "Add my friend Ana" is `people_add`.
+- "Make a page for my lemon tart recipe" — `create_document`, for your own types such as Recipe.
+  People are [People](people.md)'s: "Add my friend Ana" is `people_add`; Places are
+  [Places](places.md)': "Save the café on the corner" is `places_add`.
 
 ## Tips
 
-- Select words in a Day to link them, or to make a Place (or a [Person](people.md)) from them in one go.
+- Select words in a Day to link them, or to make a [Person](people.md) (or a page of your own type) from them in one go.
 - A quote can go straight into today's Day: **Insert into today's note** on any quote in Notes.
 - The Day page stays light on a phone: links, Reviews and On this day are a tap away rather
   than on screen.

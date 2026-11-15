@@ -34,6 +34,8 @@ const ENTRIES: Entry[] = [
   { slug: "money", title: "Money", kind: "module", module: "money", apps: ["ledger", "pocket", "prices"] },
   { slug: "journal", title: "Journal", kind: "module", module: "journal", apps: ["notes"] },
   { slug: "people", title: "People", kind: "module", module: "people", apps: ["contacts"] },
+  // Atlas sits in the same Module as Contacts; its Places have a page of their own.
+  { slug: "places", title: "Places", kind: "module", apps: ["atlas"] },
   { slug: "notes", title: "Notes", kind: "module", module: "notes", apps: ["commonplace", "sources"] },
   { slug: "research", title: "Research", kind: "module", module: "research", apps: ["writer"] },
   { slug: "manuscript", title: "Manuscript", kind: "module", module: "manuscript", apps: ["manuscript"] },
