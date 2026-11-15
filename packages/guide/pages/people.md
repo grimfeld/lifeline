@@ -1,6 +1,6 @@
 # People
 
-The people in your life: family, friends, colleagues, someone you met once, someone who has
+The people in your life, kept by the Contacts App inside [World](world.md): family, friends, colleagues, someone you met once, someone who has
 died. Each one is a **Person** you can link to from anywhere, with a page of their own.
 
 ## People
@@ -10,7 +10,7 @@ are to you (their **Relationship**), Tags, and a page of your own words about th
 
 ### The People home
 
-The People Module lands on its home, which opens on **Upcoming** and then lists **Everyone**: every Person in the current
+Contacts lands on the People home, which opens on **Upcoming** and then lists **Everyone**: every Person in the current
 Workspace, A to Z under a letter each (a name that starts with no letter goes under **#**), with when you last saw them. Click one to open their page.
 
 - **Upcoming** — the Occasions in the next 30 days as a strip of days, soonest first: the day's

@@ -1,7 +1,7 @@
 # Places
 
 The places you go: restaurants, cafés, bars, museums, shops, parks. Each one is a **Place** you can
-link to from anywhere, with a page of its own. Places sit beside People in the same Module.
+link to from anywhere, with a page of its own. Places sit beside People in [World](world.md).
 
 ## Atlas
 
@@ -42,7 +42,7 @@ called "Lidl". Places stand on the [Graph](graph.md) in Atlas's colour.
 
 ## Capture
 
-**+** on a phone offers **Add place** when the Workspace takes this Module; Ctrl+K offers it
+**+** on a phone offers **Add place**, under World, when the Workspace takes World; Ctrl+K offers it
 everywhere.
 
 ## Ask Claude
@@ -60,6 +60,7 @@ Places are open to Claude: it can find and read them, Kind, aliases, Tags and no
 
 ## Related
 
-- [People](people.md) — the people in your life, in the same Module.
+- [World](world.md) — the Module Places belong to.
+- [People](people.md) — the people in your life, beside Places in World.
 - [Links](links.md) — how `[[links]]`, aliases and backlinks work.
 - [Graph](graph.md) — what connects to your Places.

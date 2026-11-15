@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GUIDE_PAGES, guideLink } from "./index";
+import { GUIDE_PAGES, guideLink, guidePageOfModule } from "./index";
 import { guideBody } from "./pages";
 
 const body = (slug: string) => guideBody(slug) ?? "";
@@ -8,6 +8,12 @@ describe("the Guide", () => {
   it("gives every page a title of its own, its first heading", () => {
     for (const p of GUIDE_PAGES) expect(/^# (.+)$/m.exec(body(p.slug))?.[1]?.trim(), p.slug).toBe(p.title);
     expect(new Set(GUIDE_PAGES.map((p) => p.title)).size).toBe(GUIDE_PAGES.length);
+  });
+
+  it("explains the people Module on a World page, and keeps Contacts on People (ADR 0119)", () => {
+    expect(guidePageOfModule("people")?.slug).toBe("world");
+    expect(guidePageOfModule("people")?.title).toBe("World");
+    expect(GUIDE_PAGES.find((p) => p.slug === "people")?.apps).toEqual(["contacts"]);
   });
 
   it("lists every page on its home", () => {

@@ -9,6 +9,7 @@ import projects from "../pages/projects.md?raw";
 import culture from "../pages/culture.md?raw";
 import money from "../pages/money.md?raw";
 import journal from "../pages/journal.md?raw";
+import world from "../pages/world.md?raw";
 import people from "../pages/people.md?raw";
 import places from "../pages/places.md?raw";
 import notes from "../pages/notes.md?raw";
@@ -48,6 +49,7 @@ const BODIES: Record<string, string> = {
   culture,
   money,
   journal,
+  world,
   people,
   places,
   notes,

@@ -57,8 +57,9 @@ More in [Using Lifeline on a phone](phone.md).
 - [Culture](culture.md)
 - [Money](money.md)
 - [Journal](journal.md)
-- [People](people.md)
-- [Places](places.md)
+- [World](world.md) — the people and places of your life
+  - [People](people.md) — Contacts, inside World
+  - [Places](places.md) — Atlas, inside World
 - [Notes](notes.md)
 - [Research](research.md)
 - [Manuscript](manuscript.md)
