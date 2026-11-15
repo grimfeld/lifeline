@@ -68,7 +68,8 @@ Below, two columns (one after the other on a phone):
   links to them, by month, newest first: Events with them, Tasks and Transactions for them, books
   they recommended, and the Days and notes that name them, each once, saying what it is and how it
   links ("via With", "mentioned"). Click one to peek at it. Only an Event counts as having seen
-  them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]").
+  them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]"). An Event
+  **At** their home (its At set to them) is listed, but never counts as having seen them.
 
 Deleting a Person takes them out of every People field that held them (an Event's **With**, a
 Task's **For**…); the Events, Tasks and the rest stay. A `[[link]]` to them in a body becomes an

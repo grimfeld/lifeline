@@ -13,7 +13,7 @@ import {
   toast,
 } from "@lifeline/ui";
 import { displayTitle, docHref, initialList, initialText, normalizeTag, todayStr, useLinkIndex, useTagVocabulary, type DateStr, type Handoff, type IntakePrefill } from "@lifeline/core";
-import { PeopleField } from "@lifeline/editor";
+import { AtField, PeopleField } from "@lifeline/editor";
 import type { Event } from "../domain/types";
 import { addEvent, updateEvent } from "../data/repo";
 import { eventFormErrors, newEventWhen, whenOf, withEnd, withStart, type EventFormErrors } from "../domain/eventForm";
@@ -62,6 +62,7 @@ export function EventDialog({
   const [end, setEnd] = useState("10:00");
   const [tags, setTags] = useState<string[]>([]);
   const [withIds, setWithIds] = useState<string[]>([]);
+  const [at, setAt] = useState("");
   /** Errors show once saving has been tried, and clear as each field is fixed. */
   const [tried, setTried] = useState(false);
   const errors = tried ? eventFormErrors({ title, date, endDate, allDay, start, end }) : {};
@@ -77,6 +78,7 @@ export function EventDialog({
     setNotes(event?.notes ?? (handoff ? [handoff.url, handoff.author ? `From ${handoff.author}` : ""].filter(Boolean).join("\n") : initialText(initial, "notes")));
     setTags(event?.tags ?? initialList(initial, "tags"));
     setWithIds(event?.with ?? []);
+    setAt(event?.at ?? "");
     setTried(false);
     if (event) {
       setDate(event.date);
@@ -113,6 +115,7 @@ export function EventDialog({
       ...whenOf({ date, endDate, allDay, start, end }),
       tags,
       with: withIds,
+      at,
     };
     if (event) {
       await updateEvent({ ...event, ...fields });
@@ -158,6 +161,9 @@ export function EventDialog({
           </Field>
           <Field label="With">
             <PeopleField id="ev-with" value={withIds} onChange={setWithIds} />
+          </Field>
+          <Field label="At">
+            <AtField id="ev-at" value={at} onChange={setAt} />
           </Field>
           <Field label="Tags">
             <TagInput id="ev-tags" value={tags} onChange={setTags} suggestions={suggestions} normalize={normalizeTag} placeholder="Add tag…" />

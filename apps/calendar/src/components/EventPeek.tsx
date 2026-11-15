@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import { CommitField, Field, TagInput, useCommitDraft } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary, type Document, type PeekProps } from "@lifeline/core";
+import { AtField } from "@lifeline/editor";
 import type { Event } from "../domain/types";
 import { whenFormErrors, whenOf, type WhenForm } from "../domain/eventForm";
 import { editEvent, setEventWhen } from "../data/repo";
@@ -59,6 +60,9 @@ function EventPeekPart({ doc }: { doc: Document }) {
         }}
       />
       <CommitField label="Notes" multiline rows={3} delay={WRITE_DELAY} value={event.notes ?? ""} placeholder="Optional" onCommit={(notes) => editEvent(event.id, { notes })} />
+      <Field label="At">
+        <AtField id={`${idPrefix}at`} value={event.at ?? ""} onChange={(at) => void editEvent(event.id, { at })} />
+      </Field>
       <Field label="Tags">
         <TagInput
           value={event.tags ?? []}

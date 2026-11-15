@@ -1,5 +1,6 @@
 import { addDays, formatHuman, matchesTagFilter, nowClock, todayStr, useTagFilter } from "@lifeline/core";
 import { compareEvents, describeTime } from "../domain/events";
+import { AtText } from "../components/EventAt";
 import { isOver } from "../domain/countdown";
 import { useEvents } from "../data/repo";
 
@@ -29,7 +30,12 @@ export function UpcomingEventsCard() {
           <span className="text-muted-foreground w-16 shrink-0 text-xs">
             {e.date === today ? "Today" : formatHuman(e.date)}
           </span>
-          <span className="truncate">{e.title}</span>
+          <span className="min-w-0 truncate">
+            {e.title}
+            <span className="text-muted-foreground text-xs">
+              <AtText at={e.at} />
+            </span>
+          </span>
           <span className="text-muted-foreground ml-auto shrink-0 text-xs">{describeTime(e)}</span>
         </li>
       ))}

@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { addDays, diffDays, formatHuman, type DateStr } from "../dates";
-import { mentionable, type LinkIndex } from "./links";
+import { mentionable, type Backlink, type LinkIndex } from "./links";
 import type { Document, DocumentTypeDef, ReportKind, ReportSetting } from "./types";
+import { PERSON_TYPE } from "../people";
 
 /**
  * Reports (CONTEXT.md, ADR 0076): read-only figures about the Documents of one
@@ -104,14 +105,27 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 /** An Event spanning more days than this is not counted past it (a typo's endDate must not spin). */
 const MAX_SPAN = 3660;
 
+/** The Event's At field (ADR 0119): where it happens, a Place or a Person's home. */
+export const EVENT_AT_FIELD = "at";
+
+/**
+ * Whether an Event's link counts its target as Seen (ADR 0119): every link
+ * does, but an At on a Person — being at Marc's home is not seeing Marc. With,
+ * and a wikilink in the notes, still count; At on a Place counts (Visited).
+ */
+export const countsAsSeen = (b: Backlink, target: Document | undefined): boolean => !(b.field === EVENT_AT_FIELD && target?.type === PERSON_TYPE);
+
 /**
  * The distinct days (oldest first, none after `today`) on which Events that
  * link to one Document are on: once per day however many Events, each day of a
- * multi-day Event, nothing in the future. Markers and Tasks are not Events.
+ * multi-day Event, nothing in the future. Markers and Tasks are not Events,
+ * and an Event's At on a Person is no sighting (`countsAsSeen`).
  */
 export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateStr[] {
   const days = new Set<DateStr>();
+  const target = index.byId.get(docId);
   for (const b of index.backlinksTo(docId)) {
+    if (!countsAsSeen(b, target)) continue;
     const span = eventSpan(index.byId.get(b.sourceId));
     if (!span) continue;
     const last = span.to < today ? span.to : today;
