@@ -1,3 +1,4 @@
+import { normalizeName } from "@lifeline/core";
 import { fold } from "./person";
 import type { Membership, Person } from "./types";
 
@@ -66,4 +67,22 @@ export function memberCandidates(household: { members?: unknown }, people: reado
 /** The Households a Person belongs to (several, maybe), A to Z by title. */
 export function householdsOf<H extends { title: string; members?: unknown }>(personId: string, households: readonly H[]): H[] {
   return households.filter((h) => membershipsOf(h.members).some((m) => m.personId === personId)).sort((a, b) => byName(a.title, b.title));
+}
+
+/**
+ * The Households to suggest to a Person being added (ADR 0117: offered, never
+ * joined by itself): those with a member, among `people` (the People visible in
+ * their Workspace), whose Family name is the one typed, compared as wikilinks
+ * compare names (case, accents and spacing aside). A Household is offered once,
+ * A to Z; no Family name suggests none.
+ */
+export function householdsForFamilyName<H extends { title: string; members?: unknown }>(
+  familyName: string,
+  households: readonly H[],
+  people: readonly Pick<Person, "id" | "familyName">[],
+): H[] {
+  const key = normalizeName(familyName);
+  if (!key) return [];
+  const shared = new Set(people.filter((p) => normalizeName(p.familyName ?? "") === key).map((p) => p.id));
+  return households.filter((h) => membershipsOf(h.members).some((m) => shared.has(m.personId))).sort((a, b) => byName(a.title, b.title));
 }
