@@ -15,6 +15,8 @@ export function PeopleField({
   value,
   onChange,
   id,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
   label = "People",
   placeholder = "Add a person…",
   autoFocus,
@@ -22,6 +24,9 @@ export function PeopleField({
   value: string[];
   onChange: (ids: string[]) => void;
   id?: string;
+  /** Given by a Field around it: the hint and error that describe the box, and whether its value is invalid. */
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
   /** What the suggestion list is called to a screen reader. */
   label?: string;
   placeholder?: string;
@@ -49,6 +54,8 @@ export function PeopleField({
       )}
       <Combobox
         id={id}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
         query={query}
         onQueryChange={setQuery}
         options={options}

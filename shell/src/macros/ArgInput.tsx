@@ -1,6 +1,6 @@
-import { useId, useState } from "react";
+import { useId } from "react";
 import { Checkbox, DatePicker, Field, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TimeField } from "@lifeline/ui";
-import { PERSON_TYPE, type CommandArg } from "@lifeline/core";
+import type { CommandArg } from "@lifeline/core";
 import { PeopleField } from "@lifeline/editor";
 
 const NONE = "\u0000none";
@@ -66,16 +66,10 @@ export function ArgInput({ arg, value, error, onChange }: { arg: CommandArg; val
         </Field>
       );
     case "links":
-      // A list of People is picked as a People field picks them (completing names and aliases); any other list is typed.
-      if (arg.linkType === PERSON_TYPE)
-        return (
-          <Field label={label} hint={arg.hint} error={error}>
-            <PeopleField label={label} placeholder="Add a person…" value={entries(value)} onChange={(ids) => onChange(ids.length ? ids : undefined)} />
-          </Field>
-        );
+      // Every list of links a Command takes is a list of People, picked as a People field picks them (completing names and aliases).
       return (
-        <Field label={label} hint={[arg.hint, kindHint(arg)].filter(Boolean).join(" ")} error={error}>
-          <CommaList value={value} onChange={onChange} />
+        <Field label={label} hint={arg.hint} error={error}>
+          <PeopleField label={label} placeholder="Add a person…" value={entries(value)} onChange={(ids) => onChange(ids.length ? ids : undefined)} />
         </Field>
       );
     default:
@@ -93,34 +87,10 @@ function entries(value: unknown): string[] {
   return typeof value === "string" && value.trim() ? [value.trim()] : [];
 }
 
-/**
- * A list typed as text, split at its commas into the entries it hands on (Core
- * reads a single text as one entry, so the split is this box's alone). The
- * text is kept as typed, so a comma can be typed before the next entry.
- */
-function CommaList({ value, onChange }: { value: unknown; onChange: (v: string[] | undefined) => void }) {
-  const [text, setText] = useState(() => entries(value).join(", "));
-  return (
-    <Input
-      value={text}
-      onChange={(e) => {
-        setText(e.target.value);
-        const list = e.target.value
-          .split(",")
-          .map((v) => v.trim())
-          .filter(Boolean);
-        onChange(list.length ? list : undefined);
-      }}
-    />
-  );
-}
-
 function kindHint(arg: CommandArg): string | undefined {
   switch (arg.kind) {
     case "link":
       return "The title of the Document, an alias or its id";
-    case "links":
-      return "Comma-separated, each a title, an alias or an id (a name with a comma in it goes by its id)";
     case "list":
     case "multiselect":
       return arg.options ? `Comma-separated, among ${arg.options.map((o) => o.value).join(", ")}` : "Comma-separated";
