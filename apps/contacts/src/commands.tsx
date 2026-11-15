@@ -1,4 +1,4 @@
-import { PERSON_TYPE, getDocument, type CommandDef } from "@lifeline/core";
+import { PERSON_TYPE, peopleNamed, type CommandDef } from "@lifeline/core";
 import { CalendarHeart, UserPlus, Users } from "lucide-react";
 import { AddPersonDialog } from "./components/AddPersonDialog";
 import { addOccasion, addPerson } from "./data/repo";
@@ -42,8 +42,7 @@ export const contactsCommands: CommandDef[] = [
     async invoke(a) {
       const personId = String(a.person);
       const occasion = await addOccasion(personId, { label: String(a.label ?? ""), day: String(a.day ?? ""), yearly: a.yearly !== false });
-      const person = await getDocument(personId);
-      return { message: `Added ${occasion.label} (${occasion.day}${occasion.yearly ? ", yearly" : ", once"}) to ${person?.title ?? "them"}`, id: personId };
+      return { message: `Added ${occasion.label} (${occasion.day}${occasion.yearly ? ", yearly" : ", once"})${await peopleNamed("to", [personId])}`, id: personId };
     },
   },
   { id: "people.open", title: "Go to People", keywords: ["people", "contacts", "persons"], icon: Users, run: ({ navigate }) => navigate(PEOPLE_HREF) },
