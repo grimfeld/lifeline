@@ -100,7 +100,7 @@ export function ResearchScreen() {
             <DialogTitle>New essay</DialogTitle>
           </DialogHeader>
           <Input aria-label="Title" autoFocus placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && title.trim() && void create()} />
-          <TagInput value={tags} onChange={setTags} suggestions={vocabulary} normalize={normalizeTag} placeholder="Topic tags — a thesis, a series…" />
+          <TagInput aria-label="Topic tags" value={tags} onChange={setTags} suggestions={vocabulary} normalize={normalizeTag} placeholder="Topic tags — a thesis, a series…" />
           <DialogFooter>
             <Button onClick={() => void create()} disabled={!title.trim()}>
               Create

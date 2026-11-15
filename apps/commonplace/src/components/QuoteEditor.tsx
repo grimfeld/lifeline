@@ -50,7 +50,7 @@ export function QuoteEditor({ source, quote, onDone, onCancel, autoFocus = true 
         <Input placeholder="Page / chapter / time" value={locator} onChange={(e) => setLocator(e.target.value)} aria-label="Locator" />
         <Input placeholder="Your comment (optional)" value={comment} onChange={(e) => setComment(e.target.value)} aria-label="Comment" />
       </div>
-      <TagInput value={tags} onChange={setTags} suggestions={suggestions} normalize={normalizeTag} placeholder="Add tag…" />
+      <TagInput aria-label="Tags" value={tags} onChange={setTags} suggestions={suggestions} normalize={normalizeTag} placeholder="Add tag…" />
       <div className="flex justify-end gap-2">
         {onCancel && (
           <Button size="sm" variant="ghost" onClick={onCancel}>

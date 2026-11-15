@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, COLOR_SLOTS, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, cn, colorVar, toast, type ColorSlot } from "@lifeline/ui";
+import { Button, cn, COLOR_SLOTS, colorVar, DatePicker, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TagInput, toast, type ColorSlot } from "@lifeline/ui";
 import { addDays, todayStr, useTagVocabulary } from "@lifeline/core";
 import { EMOJI_PRESETS, PERIOD_KINDS, PERIOD_LABEL, faceColor, faceOf, firstGrapheme, type Allowance, type PeriodKind } from "../domain/types";
 import { Jar } from "./Jar";
@@ -156,10 +156,9 @@ export function AllowanceEditorDialog({ open, onOpenChange, allowance, spendCoun
               </div>
             </div>
           </div>
-          <div className="grid gap-2">
-            <Label>Tags</Label>
+          <Field label="Tags">
             <TagInput value={tags} onChange={setTags} suggestions={suggestions} />
-          </div>
+          </Field>
         </div>
         <DialogFooter className="gap-2 sm:justify-between">
           {allowance ? (

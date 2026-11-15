@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
 import { initialList, initialText, useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import type { Fact } from "../domain/types";
 import { acceptDraft, addFact, deleteItem, updateFact, useActiveTopic, useTopics } from "../data/repo";
@@ -135,10 +135,9 @@ export function FactDialog({ open, onOpenChange, fact, prefill, initial, onSaved
               <Label htmlFor="fc-notes">Notes</Label>
               <Textarea id="fc-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional — shown with the answer" />
             </div>
-            <div className="grid gap-2">
-              <Label>Tags</Label>
+            <Field label="Tags">
               <TagInput value={tags} onChange={setTags} suggestions={suggestions} />
-            </div>
+            </Field>
           </div>
         )}
         <DialogFooter className="gap-2 sm:justify-between">

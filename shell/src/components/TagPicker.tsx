@@ -1,4 +1,4 @@
-import { TagInput } from "@lifeline/ui";
+import { TagInput, type TagInputProps } from "@lifeline/ui";
 import { normalizeTag, useTagVocabulary } from "@lifeline/core";
 
 /** TagInput fed with the derived cross-App vocabulary (Taggable Contract, ADR 0014). */
@@ -9,6 +9,7 @@ export function TagPicker({
   placeholder,
   className,
   autoFocus,
+  ...aria
 }: {
   id?: string;
   value: readonly string[];
@@ -16,7 +17,7 @@ export function TagPicker({
   placeholder?: string;
   className?: string;
   autoFocus?: boolean;
-}) {
+} & Pick<TagInputProps, "aria-label" | "aria-describedby" | "aria-invalid">) {
   const vocab = useTagVocabulary();
   return (
     <TagInput
@@ -28,6 +29,7 @@ export function TagPicker({
       placeholder={placeholder}
       className={className}
       autoFocus={autoFocus}
+      {...aria}
     />
   );
 }
