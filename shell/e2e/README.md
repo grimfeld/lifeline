@@ -38,6 +38,7 @@ the three instead. The two Demo builds start only when the run includes the `dem
 
   Text that overhangs its box on purpose opts out with `data-layout-ignore`
   (and a comment saying why).
+- Each screen also gets an axe scan, limited to the `label` and `aria-valid-attr-value` rules: every form control has an accessible name, and its ARIA attributes (an `aria-describedby` naming a hint, say) point at something real.
 
   Each line names the element whose text is out of place and the box it left.
   The element at fault is often a sibling: a long label without `min-w-0`

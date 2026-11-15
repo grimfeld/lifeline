@@ -1,17 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTagVocabulary } from "@lifeline/core";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  TagInput,
-  toast,
-} from "@lifeline/ui";
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, Label, TagInput, toast } from "@lifeline/ui";
 import type { Difficulty, Habit } from "../domain/types";
 import { DifficultyField } from "./ActivityFields";
 import { addHabit, updateHabit } from "../data/repo";
@@ -56,10 +45,9 @@ export function HabitEditorDialog({ open, onOpenChange, habit }: { open: boolean
             <Input id="habit-name" value={name} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void submit()} />
           </div>
           <DifficultyField value={difficulty} onChange={setDifficulty} />
-          <div className="grid gap-2">
-            <Label>Tags</Label>
+          <Field label="Tags">
             <TagInput value={tags} onChange={setTags} suggestions={suggestions} />
-          </div>
+          </Field>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
