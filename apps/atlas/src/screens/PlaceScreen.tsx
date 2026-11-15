@@ -1,12 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
-import { PLACE_TYPE, documentType, patchDocument, useDocument, useLinkIndex, type Document } from "@lifeline/core";
-import { BacklinksSection, DocumentEditor, UnlinkedMentionsSection, useOpenLinkRef } from "@lifeline/editor";
+import { PLACE_TYPE, documentFigures, documentType, patchDocument, reportsIn, seenSummary, sourceOf, todayStr, useDocument, useLinkIndex, type Document, type LinkIndex } from "@lifeline/core";
+import { BacklinksSection, DocumentEditor, DocumentReports, UnlinkedMentionsSection, useOpenLinkRef } from "@lifeline/editor";
 import { Field, Input, Page, PageHeader, useCommitDraft } from "@lifeline/ui";
 import { ArrowLeft } from "lucide-react";
 import { PLACES_HREF, placeHref } from "../constants";
 import { PlaceTaken, livePlace, patchPlace } from "../data/repo";
 import { PlaceFields } from "../components/PlaceFields";
+import { PlaceTimeline } from "./PlaceTimeline";
 
 const back = (
   <Link to={PLACES_HREF} className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline">
@@ -59,10 +60,30 @@ function NameField({ place }: { place: Document }) {
   );
 }
 
+/** "Last visited 10 Nov · 1 visit" (ADR 0119): counted from the Events that link to it, once per day, only those that have happened. */
+function Visited({ place, index }: { place: Document; index: LinkIndex }) {
+  const today = todayStr();
+  const line = useMemo(() => seenSummary(documentFigures(index, place.id, today, sourceOf("seen", today)), documentType(PLACE_TYPE)), [index, place.id, today]);
+  return <p className="text-muted-foreground min-w-0 text-sm break-words">{line}</p>;
+}
+
+/** The Place's Reports, as its type chooses them: Visited and Mentioned side by side, never added together. */
+function ReportsSection({ place, index }: { place: Document; index: LinkIndex }) {
+  const def = documentType(PLACE_TYPE);
+  if (reportsIn(def, "document").length === 0) return null;
+  return (
+    <section className="grid min-w-0 gap-2" aria-label="Reports">
+      <h2 className="text-muted-foreground text-sm font-medium">Reports</h2>
+      <DocumentReports index={index} def={def} docId={place.id} heading={false} />
+    </section>
+  );
+}
+
 /**
  * A Place's page (ADR 0119): a hidden route, and the Peek's "Open". Its name,
- * Kind, aliases and Tags; what it is, in the body; and what links to it, with
- * the prose that names it unlinked. Two columns on the desk, stacked on a phone.
+ * when it was last visited, Kind, aliases and Tags, and its Reports; what it
+ * is, in the body; its timeline; and what links to it, with the prose that
+ * names it unlinked. Two columns on the desk, stacked on a phone.
  */
 export function PlaceScreen() {
   const { id } = useParams<{ id: string }>();
@@ -85,12 +106,16 @@ export function PlaceScreen() {
   return (
     <Page width="wide">
       {back}
-      <PageHeader title={place.title} />
+      <div className="grid min-w-0 gap-1">
+        <PageHeader title={place.title} />
+        <Visited place={place} index={index} />
+      </div>
       {/* A grid track of 22rem: the fields' column, as the Person page's. */}
       <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <section className="grid min-w-0 content-start gap-3" aria-label="Details">
           <NameField key={place.id} place={place} />
           <PlaceFields place={place} />
+          <ReportsSection place={place} index={index} />
         </section>
         <div className="grid min-w-0 content-start gap-6">
           <section className="grid min-w-0 gap-2">
@@ -99,6 +124,7 @@ export function PlaceScreen() {
               <DocumentEditor key={place.id} doc={place} def={documentType(PLACE_TYPE)} index={index} bodyOnly bodyLabel="Notes" save={saveBody} />
             </div>
           </section>
+          <PlaceTimeline place={place} index={index} />
           <div className="grid min-w-0 gap-4 text-sm">
             <BacklinksSection docId={place.id} index={index} onOpen={open} />
             <UnlinkedMentionsSection docId={place.id} index={index} onOpen={open} />

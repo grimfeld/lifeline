@@ -526,6 +526,9 @@ async function longPlaces(page: Page) {
       await core.saveFieldOptions("atlas_place", "kind", [{ value: "restaurant", label: `${a.long} ${a.word}` }]);
       await core.patchDocument(doc!.id, { kind: "restaurant", aliases: [`${a.long} ${a.word}`, a.word], tags: [`${a.word}-tag`] });
       await core.createDocument({ type: "daily", title: "2001-03-04", body: `Lunch at [[${doc!.title}]]. ${doc!.title} again ${a.long}.` });
+      // Its timeline and Visited: a long-titled Event that happened, and one ahead of the Today line.
+      await core.createDocument({ type: "event", title: `${a.long} ${a.word}`, fields: { date: "2001-03-05", at: doc!.id } });
+      await core.createDocument({ type: "event", title: `${a.word} ${a.long}`, fields: { date: core.addDays(core.todayStr(), 30), at: doc!.id } });
     },
     { long: longText("A kind"), word: LONG_WORD },
   );

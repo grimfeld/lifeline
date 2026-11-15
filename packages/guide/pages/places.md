@@ -28,10 +28,34 @@ of a chain are two Places with two names: "Lidl Jean Jaurès" and "Lidl Prado".
 
 ### A Place's page
 
-Its name, which you rename right there (every `[[link]]` to the old name follows), its Kind,
-aliases and Tags; **Notes**, the page of your own words; then **Backlinks**, every Day, note and
+Its name, which you rename right there (every `[[link]]` to the old name follows), and under it
+when you last went: "Last visited 10 Nov · 1 visit", or "Not visited yet". Then its Kind,
+aliases and Tags, and its **Reports**; **Notes**, the page of your own words; its **Timeline**;
+then **Backlinks**, every Day, note and
 Event that links to it (an Event **At** it says "via At"), and **Unlinked mentions**, the prose that names it without a link, ready
 to link. A Place's Peek edits its Kind, aliases and Tags, and **Open** leads to its page.
+
+### Visited and its Reports
+
+**Visited** is how often you go, counted from the Events that link to the Place: an Event **At**
+it, or one with `[[Chez Janou]]` in its notes. It counts once per day, however many Events, each
+day of a two-day Event, and only Events that have happened: next week's booking isn't a visit
+yet. An Event that ends at midnight counts only the day it started. A Day that links to the Place
+is **Mentioned** instead, shown beside Visited and never added to it.
+
+- **Reports** — on the Place's page: **Last visited** (the day and how long ago), **Visits** (this
+  year and in all) and **Last mentioned** (the last Day that links to it).
+- **Top visited** — the Places on the most days of Events, shown on each [Journal](journal.md)
+  period as **Places · Top visited**, beside **People · Top seen**.
+- **Report Cards** — any of them can be placed on a Screen as a Report Card: pick Places for
+  **Top visited** or **Not visited lately**, or one Place for **Last visited**, **Visits** or a
+  **Visited heatmap**. See [Screens](screens.md).
+
+### Timeline
+
+On a Place's page, the Events planned there sit above a **Today** line, the nearest just above
+it; below it, everything that links to the Place by month, newest first: Events At it ("via At"),
+and the Days and notes that name it ("mentioned"). Click one to peek at it.
 
 ### Linking to a Place
 
