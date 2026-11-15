@@ -8,6 +8,8 @@ export interface TimelineEntry {
   title: string;
   /** The Document's own day: its date, a Day's title, else the day it last changed; null when it has none. */
   day: DateStr | null;
+  /** Whether `day` is the Document's own (its date, a Day's title), not the last-changed fallback; only an own day can be ahead. */
+  ownDay: boolean;
   /** The Link field it links through (an Event's With); none when it names them in its text. */
   field?: string;
 }
@@ -22,13 +24,14 @@ function localDay(v: unknown): DateStr | undefined {
   return Number.isNaN(t.getTime()) ? undefined : todayStr(t);
 }
 
-function dayOf(d: { type: string; title: string } & Record<string, unknown>): DateStr | null {
-  const own = d.type === DAY_TYPE ? d.title : d.date;
-  for (const v of [own, d.updatedAt, d.createdAt]) {
+function dayOf(d: { type: string; title: string } & Record<string, unknown>): { day: DateStr | null; ownDay: boolean } {
+  const own = localDay(d.type === DAY_TYPE ? d.title : d.date);
+  if (own) return { day: own, ownDay: true };
+  for (const v of [d.updatedAt, d.createdAt]) {
     const day = localDay(v);
-    if (day) return day;
+    if (day) return { day, ownDay: false };
   }
-  return null;
+  return { day: null, ownDay: false };
 }
 
 /**
@@ -43,7 +46,7 @@ export function timelineOf(index: LinkIndex, personId: string): TimelineEntry[] 
     if (!d) continue;
     const had = byId.get(b.sourceId);
     if (had && (had.field || !b.field)) continue;
-    byId.set(b.sourceId, { sourceId: b.sourceId, type: d.type, title: d.title, day: dayOf(d), ...(b.field ? { field: b.field } : {}) });
+    byId.set(b.sourceId, { sourceId: b.sourceId, type: d.type, title: d.title, ...dayOf(d), ...(b.field ? { field: b.field } : {}) });
   }
   return [...byId.values()].sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || a.title.localeCompare(b.title));
 }
@@ -87,7 +90,7 @@ export function timelineSides(
   const ahead: TimelineStop[] = occasions.map((occasion) => ({ kind: "occasion", day: occasion.date, occasion }));
   const past: TimelineStop[] = [];
   for (const entry of entries) {
-    if (entry.day !== null && entry.day >= today) ahead.push({ kind: "entry", day: entry.day, entry, inDays: diffDays(today, entry.day) });
+    if (entry.ownDay && entry.day !== null && entry.day >= today) ahead.push({ kind: "entry", day: entry.day, entry, inDays: diffDays(today, entry.day) });
     else past.push({ kind: "entry", day: entry.day, entry });
   }
   ahead.sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || (a.kind === b.kind ? 0 : a.kind === "occasion" ? -1 : 1) || stopTitle(a).localeCompare(stopTitle(b)));
