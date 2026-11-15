@@ -59,7 +59,8 @@ The **Guide** is Lifeline's in-app manual (`/guide`, and Claude's MCP `guide` to
 
 Start each piece of work with `pnpm worktree:new <name>`: a worktree under
 `.claude/worktrees/<name>` on a new branch off `origin/master` (code, ADRs and CONTEXT.md
-alike), installed and ready for e2e. The main checkout belongs to whoever opened it.
+alike; `--base <ref>` branches off another ref, say an integration branch), installed and
+ready for e2e. Rerun it on a worktree that stopped partway to finish it. The main checkout belongs to whoever opened it.
 `pnpm worktrees:prune` clears the worktrees whose work is on master.
 
 **PRs land in batches (ADR 0096).** A PR runs its CI once. Once green, don't merge master
