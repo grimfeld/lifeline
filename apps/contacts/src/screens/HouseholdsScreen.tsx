@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
+import { todayStr } from "@lifeline/core";
 import { Link, useNavigate } from "react-router";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, EmptyState, Field, Input, Page, PageHeader, PhoneDock } from "@lifeline/ui";
 import { ArrowLeft, Home, Plus } from "lucide-react";
 import { PEOPLE_HREF, householdHref } from "../constants";
-import { membersOf } from "../domain/households";
+import { currentMemberNames } from "../domain/households";
 import { fold } from "../domain/person";
 import { usePeople } from "../data/repo";
 import { addHousehold, useHouseholds } from "../data/households";
@@ -65,14 +66,15 @@ function AddHouseholdDialog({ onOpenChange }: { onOpenChange: (open: boolean) =>
 
 /**
  * The People Module's Households screen (ADR 0117): every Household in the
- * Workspace, A to Z, each with its members' names; a link to its page.
+ * Workspace, A to Z, each with its current members' names (not the former
+ * ones its page lists apart); a link to its page.
  */
 export function HouseholdsScreen() {
   const households = useHouseholds();
   const people = usePeople();
   const [adding, setAdding] = useState(false);
   const rows = useMemo(
-    () => [...households].sort((a, b) => fold(a.title).localeCompare(fold(b.title))).map((h) => ({ household: h, names: membersOf(h, people).map((m) => m.name) })),
+    () => [...households].sort((a, b) => fold(a.title).localeCompare(fold(b.title))).map((h) => ({ household: h, names: currentMemberNames(h, people, todayStr()) })),
     [households, people],
   );
   const addButton = (

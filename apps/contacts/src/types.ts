@@ -3,7 +3,7 @@ import { AGENT_WALLED_KEYS, HOUSEHOLD, HOUSEHOLDS_FOLDER, PEOPLE_FOLDER, TIE, ty
 import { describeHousehold, describePerson } from "./describe";
 import { removeTiesOf, tieIdsOf } from "./data/ties";
 import { householdHref, personHref } from "./constants";
-import { dropMembershipsOf } from "./data/households";
+import { dropMembersOutside, dropMembershipsOf, dropMembershipsOutside } from "./data/households";
 import { memberIdsOn } from "./domain/households";
 import { addressPinsOf } from "./domain/addresses";
 
@@ -39,6 +39,8 @@ export const personTypeDef: DocumentTypeDef = {
     await dropMembershipsOf(doc.id);
   },
   followers: (doc) => tieIdsOf(doc.id),
+  // Out of the Households they leave behind: members belong to the Household's Workspace (ADR 0117).
+  onMove: (doc, workspace) => dropMembershipsOutside(doc.id, workspace),
   // Gone from every People field too (an Event's With, a Task's For…): the other Apps never import Contacts.
   unlinkOnDelete: true,
   // An agent reads their Ties and Reports (#404 story 92), and never their Addresses or Contact details (ADR 0114).
@@ -108,6 +110,8 @@ export const householdTypeDef: DocumentTypeDef = {
   builtIn: true,
   // An agent reads its name, aliases and the names of its members (ADR 0117), as it reads a Person.
   describe: describeHousehold,
+  // Moved, it keeps only the members in its new Workspace (ADR 0117); a Person moved with it stays.
+  onMove: (doc, workspace) => dropMembersOutside(doc.id, workspace),
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },
     // `{ personId, since?, until? }[]` (`Membership`): only the App's own controls write it.

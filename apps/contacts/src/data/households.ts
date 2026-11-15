@@ -111,3 +111,25 @@ export async function dropMembershipsOf(personId: string): Promise<void> {
     await patchDocument(h.id, { members: membershipsOf(h.members).filter((m) => m.personId !== personId), workspace: h.workspace ?? "" });
   }
 }
+
+/**
+ * What goes when a Person moves to another Workspace: their place in every
+ * Household outside it (ADR 0117: members belong to the Household's own
+ * Workspace). Those in the new Workspace keep them.
+ */
+export async function dropMembershipsOutside(personId: string, workspace: string): Promise<void> {
+  for (const h of await documentsOfUngated<Household>([HOUSEHOLD])) {
+    if ((h.workspace ?? "") === workspace || !hasMember(h, personId)) continue;
+    await patchDocument(h.id, { members: membershipsOf(h.members).filter((m) => m.personId !== personId), workspace: h.workspace ?? "" });
+  }
+}
+
+/** What goes when a Household moves to another Workspace: its members who are not in it. */
+export async function dropMembersOutside(householdId: string, workspace: string): Promise<void> {
+  const household = (await documentsOfUngated<Household>([HOUSEHOLD])).find((h) => h.id === householdId);
+  if (!household) return;
+  const there = new Set((await documentsOfUngated([PERSON_TYPE])).filter((p) => (p.workspace ?? "") === workspace).map((p) => p.id));
+  const members = membershipsOf(household.members);
+  const kept = members.filter((m) => there.has(m.personId));
+  if (kept.length < members.length) await patchDocument(householdId, { members: kept, workspace });
+}

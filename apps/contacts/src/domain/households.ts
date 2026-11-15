@@ -89,6 +89,10 @@ export function splitMembers<R extends Membership>(rows: readonly R[], today: st
   return { current: rows.filter((r) => !former(r)), former: rows.filter(former) };
 }
 
+/** The names a Households row shows and counts: its current members on `today`, A to Z, as the Household page lists them. */
+export const currentMemberNames = (household: { members?: unknown }, people: readonly Pick<Person, "id" | "title">[], today: string): string[] =>
+  splitMembers(membersOf(household, people), today).current.map((m) => m.name);
+
 /** A membership's days as one phrase for a row: "since 2001-04-02", "until 2024-09-01", or both; nothing when neither is set. */
 export const membershipSpan = (m: Pick<Membership, "since" | "until">): string => [m.since && `since ${m.since}`, m.until && `until ${m.until}`].filter(Boolean).join(" ");
 

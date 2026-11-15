@@ -12,7 +12,8 @@ beforeEach(async () => {
   await documentsTable().clear();
 });
 
-const membersIn = async (id: string) => ((await getDocument<Household>(id))?.members ?? []).map((m) => m.personId);
+// Read past the Workspace gate: a moved Household is out of the current scope.
+const membersIn = async (id: string) => (((await documentsTable().get(id)) as Household | undefined)?.members ?? []).map((m) => m.personId);
 
 describe("Households (ADR 0117)", () => {
   it("is made from a name, with aliases, in its own folder, and no members yet", async () => {
@@ -76,6 +77,26 @@ describe("Households (ADR 0117)", () => {
     await addMember(smiths.id, paul.id);
     await addMember(smiths.id, tom.id);
     await removeDocument(paul.id);
+    expect(await membersIn(smiths.id)).toEqual([tom.id]);
+  });
+
+  it("lets a Person who moves to another Workspace leave the Households of the old one", async () => {
+    const paul = await addPerson({ name: "Paul" });
+    const tom = await addPerson({ name: "Tom" });
+    const smiths = await addHousehold({ name: "the Smiths" });
+    await addMember(smiths.id, paul.id);
+    await addMember(smiths.id, tom.id);
+    await moveDocumentsToWorkspace([paul.id], "ws2");
+    expect(await membersIn(smiths.id)).toEqual([tom.id]);
+  });
+
+  it("keeps, of a Household that moves, only the members in its new Workspace", async () => {
+    const paul = await addPerson({ name: "Paul" });
+    const tom = await addPerson({ name: "Tom" });
+    const smiths = await addHousehold({ name: "the Smiths" });
+    await addMember(smiths.id, paul.id);
+    await addMember(smiths.id, tom.id);
+    await moveDocumentsToWorkspace([smiths.id, tom.id], "ws2");
     expect(await membersIn(smiths.id)).toEqual([tom.id]);
   });
 

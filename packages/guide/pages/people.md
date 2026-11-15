@@ -158,7 +158,8 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
 
 - **Households**, beside **People** in the People Module (its sidebar, or its tabs at the bottom,
   against the bar, on a phone), lists every Household in the current Workspace,
-  A to Z, with its members' names. **Add household** takes a name and opens its page.
+  A to Z, with the names and number of its current members (former members only on its page).
+  **Add household** takes a name and opens its page.
 - **A Household's page** — its name, underlined with dashes (click it to rename it; every
   `[[link]]` to it follows), its **Members**, its **Aliases** and **About it**, its body, then its
   own **Reports** (**Last seen** and **Last mentioned**) and **Timeline**: what links to the
@@ -173,7 +174,9 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
 - **Adding a Person** whose Family name matches a member of a Household suggests joining it
   (see **Add person…**, below); nothing joins unless you tap the suggestion.
 - Someone may belong to several Households: a student's flat and their parents' home.
-- Only People of the Household's own Workspace can be its members.
+- Only People of the Household's own Workspace can be its members. A Person moved to another
+  Workspace leaves the Households of the old one; a Household moved keeps only the members that
+  are in its new Workspace (move them together to keep them).
 - In an Event's **With**, typing a Household's name offers it ("Household · Paul Smith, Mary
   Martin…"); picking it adds its members of today as People, without doubling anyone already
   there. Take off whoever was away: **With** records who was there, and keeps the People, never
