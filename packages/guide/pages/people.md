@@ -203,7 +203,7 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
   into her Aliases, so correcting the Given name changes what `[[Anne]]` reaches (a page titled
   "Anne" still comes first, as it does over an alias). Two People with the same Given name share
   it as two equal aliases would: `[[Anne]]` goes to one of them, so write the full name to be sure.
-- Click a link to a Person to open them in a **Peek**, where you can change their aliases,
+- Click a link to a Person to open them in a **Peek**, where you can change their Given name, Family name, aliases,
   Relationship and Tags and write in their body. **Open** goes to their page.
 - Select a name in a Day (or any body) and pick **Person** under **People** in the Selection
   menu: the Person is made, and the name becomes a link to them.

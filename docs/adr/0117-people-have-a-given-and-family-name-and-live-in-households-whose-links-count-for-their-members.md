@@ -1,6 +1,6 @@
 ---
 status: accepted
-amends: ADR 0113 (in part — a Person gains a Given and a Family name, and People gain Households)
+amends: ADR 0113 (in part — a Person gains a Given and a Family name, and People gain Households), ADR 0112 (in part — a link to a Household counts toward its members' Seen and Mentioned)
 ---
 
 # People have a Given and Family name, and live in Households whose links count for their members
@@ -11,6 +11,7 @@ Nearly every Person ended up with their given name typed as an alias, and "dinne
 - The **Given name is a derived alias**. It resolves `[[Anne]]`, shows in the completer and raises Unlinked mentions like a typed alias, but is never copied into Aliases, so correcting it corrects the name.
 - **Membership is chosen, never matched.** A Family name only *suggests* joining a Household whose members share it. A membership carries optional **since** and **until** days. Moving out sets until and never removes the member. A Person may belong to several Households. Members are People visible in the Household's own Workspace.
 - **A link to a Household counts for its members.** For whoever was a member on the linking Day's or Event's date, it stands on their Timeline ("via the Smiths") and counts toward their Seen and Mentioned (ADR 0112). This is derived from the links and never stored.
+- **Three Linkable hooks carry it, all in Core.** `extraNames` lets a type supply derived names (the Given name) beside its aliases; `members` names the Documents a Linkable stands for; `reaches` is what the link index answers for a target: itself plus, on the date of the link, its members. Reports read `reaches`, so Seen and Mentioned count a Household link for each member. Unchanged: a Report still counts each Day or Event once per day, the two families are never added together, and a type with no hooks behaves as before.
 - **People fields hold People, never a Household.** Picking a Household in an Event's With adds its current members, each removable, because With records who was actually there.
 - A Household has a title, aliases, members and a body, and nothing else. The home stays each member's Address, so Pins, "former" and ADR 0114's agent ban stay as they are. An agent reads a Household's name and members.
 - The given names already typed as aliases are tidied once, on request: a review list proposes filling the names from the title and dropping the duplicated alias.
