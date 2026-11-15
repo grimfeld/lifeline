@@ -472,6 +472,24 @@ function peekOf(type: string, userField?: boolean, write?: boolean) {
   };
 }
 
+/** A Peek of a Document of `type` with a People field (`key`) holding the seed's long-named Person (its chip, #446, #447). */
+function peekWithPerson(type: string, key: string) {
+  return async (page: Page) => {
+    await workLocally(page);
+    const personTitle: string = await page.evaluate(async ({ coreUrl, type, key }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const [doc] = await core.documentsOf(type);
+      const people: { id: string; title: string }[] = await core.documentsOf("contacts_person");
+      const person = people.reduce((a, b) => (b.title.length > a.title.length ? b : a));
+      await core.patchDocument(doc.id, { [key]: [person.id] });
+      core.openPeek(doc.id);
+      return person.title;
+    }, { coreUrl: CORE_URL, type, key });
+    await page.getByRole("dialog").waitFor();
+    await page.getByRole("dialog").getByRole("button", { name: `Remove ${personTitle}`, exact: true }).waitFor();
+  };
+}
+
 /**
  * The first book given the longest synopsis, series and original title a
  * person could type (the seed's `library.add` keeps only its title), then —
@@ -788,7 +806,9 @@ const SCREENS: ScreenCase[] = [
   ),
   // The Apps' own editable parts (ADR 0085): a Task's and an Event's Fields edited through their App's controls.
   { name: "Vault · Peek of a Task", path: "/vault", afterOpen: peekOf("task") },
+  { name: "Vault · Peek of a Task, For a Person", path: "/vault", afterOpen: peekWithPerson("task", "for") },
   { name: "Vault · Peek of an Event", path: "/vault", afterOpen: peekOf("event") },
+  { name: "Vault · Peek of an Event, With a Person", path: "/vault", afterOpen: peekWithPerson("event", "with") },
   { name: "Vault · Peek of a Project, writing beneath its App's part", path: "/vault", afterOpen: peekOf("project", false, true) },
   // House's editable Peeks (ADR 0085): each App's own controls over a long-titled Document.
   { name: "Vault · Peek of chore", path: "/vault/d/:id", type: "chore", afterOpen: peekOf("chore") },

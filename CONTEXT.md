@@ -518,7 +518,7 @@ The People I have not seen in a while: a ranking of Seen (Not seen in 90 days, a
 _Avoid_: neglected, overdue, stale, reminder
 
 ### People field
-A built-in Links field to People that another App's type carries, so a Person is linked from where things happen and not only from bodies: an Event's **With** (who was there — what Seen counts), a Task's **For**, a Transaction's **For** (a gift, a shared bill), a work's **Recommended by** (beside its Reason, which stays free text). Offered in the owning App's own dialog with name completion; a source of Backlinks like any Link. The owning App keeps the field; Contacts only owns the Person it points to. The user may add Person-linked Fields of their own to any other type.
+A built-in Links field to People that another App's type carries, so a Person is linked from where things happen and not only from bodies: an Event's **With** (who was there — what Seen counts), a Task's **For**, a Transaction's **For** (a gift, a shared bill), a work's **Recommended by** (beside its Reason, which stays free text). Offered, with name completion, in the owning App's own dialog and in its Peek; a source of Backlinks like any Link. The owning App keeps the field; Contacts only owns the Person it points to. The user may add Person-linked Fields of their own to any other type.
 _Avoid_: attendees, participants, mention (a wikilink's), tag
 
 ### Tie
