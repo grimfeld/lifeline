@@ -35,7 +35,8 @@ import {
   commandNavigates,
   commandRun,
   deleteMacro,
-  fixedLinkProblems,
+  fixedLinkReasons,
+  memoLookup,
   moveStep,
   removeStep,
   resetMacro,
@@ -67,7 +68,10 @@ export function MacrosPage() {
   const [editing, setEditing] = useState<MacroRecord | "new" | null>(null);
   // Checked as a run checks it (ADR 0092), again whenever a Document a fixed link names changes.
   const checks = useLiveQuery(
-    async () => new Map<string, MacroCheck>(await Promise.all(macros.map(async (m) => [m.id, await checkMacro(m, commands)] as const))),
+    async () => {
+      const lookup = memoLookup();
+      return new Map<string, MacroCheck>(await Promise.all(macros.map(async (m) => [m.id, await checkMacro(m, commands, lookup)] as const)));
+    },
     [macros, commands],
   );
 
@@ -101,7 +105,7 @@ export function MacrosPage() {
         <ul className="flex flex-col gap-2" aria-label="Macros">
           {macros.map((m) => {
             const check = checks?.get(m.id);
-            const broken = check && !check.ok ? check.reasons : undefined;
+            const broken = check && !check.ok ? check.reasons.map((r) => r.text) : undefined;
             return (
               <li key={m.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
                 <button
@@ -196,9 +200,9 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
 
   async function save() {
     const draft = { name: name.trim(), steps: steps.map(fromDraft) };
-    const problems = await fixedLinkProblems(draft, commands);
+    const problems = fixedLinkReasons(await checkMacro(draft, commands, memoLookup()));
     if (problems.length) {
-      setRefused(problems);
+      setRefused(problems.map((r) => r.text));
       return;
     }
     await saveMacro({ id: macro?.id, ...draft });

@@ -186,7 +186,7 @@ async function runStep(def: OwnedCommand, step: MacroStep, index: number, opts: 
  */
 export async function runMacro(macro: MacroShape, commands: readonly OwnedCommand[], opts: RunOptions = {}): Promise<MacroReport> {
   const check = await checkMacro(macro, commands, opts.lookup);
-  if (!check.ok) return brokenReport(macro, commands, check.reasons);
+  if (!check.ok) return brokenReport(macro, commands, check.reasons.map((r) => r.text));
   const outcomes: (StepOutcome | undefined)[] = [];
   const steps: StepReport[] = [];
   let stopped = false;
@@ -286,7 +286,7 @@ export function macroCommand(macro: MacroShape & { id: string }, commands: reado
     run: async (ctx) => {
       // Broken, it asks nothing: the report says why at once.
       const check = await checkMacro(macro, commands);
-      if (!check.ok) return void report(brokenReport(macro, commands, check.reasons));
+      if (!check.ok) return void report(brokenReport(macro, commands, check.reasons.map((r) => r.text)));
       const screen = ui();
       let asked: Record<string, unknown> = {};
       if (args.length > 0) {
