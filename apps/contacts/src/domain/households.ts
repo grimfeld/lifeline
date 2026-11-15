@@ -17,11 +17,16 @@ export function membershipsOf(raw: unknown): Membership[] {
     const personId = m && typeof m === "object" ? (m as Record<string, unknown>).personId : undefined;
     if (typeof personId !== "string" || !personId || seen.has(personId)) continue;
     seen.add(personId);
-    const since = dayOr((m as Membership).since);
-    const until = dayOr((m as Membership).until);
-    out.push({ personId, ...(since ? { since } : {}), ...(until ? { until } : {}) });
+    out.push(normalizeMembership(personId, (m as Membership).since, (m as Membership).until));
   }
   return out;
+}
+
+/** A membership of a Person, its since and until days kept only when they are days. */
+export function normalizeMembership(personId: string, since?: unknown, until?: unknown): Membership {
+  const s = dayOr(since);
+  const u = dayOr(until);
+  return { personId, ...(s ? { since: s } : {}), ...(u ? { until: u } : {}) };
 }
 
 /** Whether a Person is listed in a Household, a past member too. */
@@ -61,7 +66,7 @@ export interface MemberRow extends Membership {
   name: string;
 }
 
-const byName = (a: string, b: string) => fold(a).localeCompare(fold(b));
+export const byName = (a: string, b: string) => fold(a).localeCompare(fold(b));
 
 /**
  * A Household's members among `people` (the People visible in its Workspace),

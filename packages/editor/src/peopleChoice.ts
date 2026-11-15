@@ -38,8 +38,7 @@ export interface HouseholdChoice {
 }
 
 /** Those of `members` a pick would add: People here, not chosen yet, each once. */
-function toAdd(chosen: readonly string[], members: readonly string[], people: readonly Document[]): string[] {
-  const here = new Set(people.map((p) => p.id));
+function toAdd(chosen: readonly string[], members: readonly string[], here: ReadonlySet<string>): string[] {
   const out: string[] = [];
   for (const id of members) if (here.has(id) && !chosen.includes(id) && !out.includes(id)) out.push(id);
   return out;
@@ -48,8 +47,9 @@ function toAdd(chosen: readonly string[], members: readonly string[], people: re
 /** The Households a People field offers, completed by name or alias, each saying whom it adds; one that would add no one is left out. */
 export function householdOptions(households: readonly HouseholdChoice[], people: readonly Document[], chosen: readonly string[]): ComboboxOption[] {
   const names = new Map(people.map((p) => [p.id, p.title]));
+  const here = new Set(names.keys());
   return households.flatMap((h) => {
-    const adds = toAdd(chosen, h.members, people);
+    const adds = toAdd(chosen, h.members, here);
     if (!adds.length) return [];
     const who = adds.map((id) => names.get(id)).join(", ");
     return [{ value: h.doc.id, label: h.doc.title, keywords: aliasesOf(h.doc), description: h.kind ? `${h.kind} · ${who}` : who }];
@@ -58,6 +58,6 @@ export function householdOptions(households: readonly HouseholdChoice[], people:
 
 /** The People with a Household's members added (never the Household itself), or undefined when it adds no one. */
 export function withMembers(chosen: readonly string[], members: readonly string[], people: readonly Document[]): string[] | undefined {
-  const adds = toAdd(chosen, members, people);
+  const adds = toAdd(chosen, members, new Set(people.map((p) => p.id)));
   return adds.length ? [...chosen, ...adds] : undefined;
 }

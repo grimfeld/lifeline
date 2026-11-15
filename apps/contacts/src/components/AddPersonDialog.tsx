@@ -8,8 +8,8 @@ import { composeTitle, initialName } from "../domain/person";
 import { message } from "./writes";
 
 /**
- * Add a Person (#404 stories 1, 2, 5): a name, or the two names that make it, and nothing else — aliases, a
- * Relationship and the rest are given on their page or Peek afterwards. The
+ * Add a Person (#404 stories 1, 2, 5): a name, or the two names that make it, and the Households a Family
+ * name suggests (joined only when tapped) — aliases, a Relationship and the rest are given on their page or Peek afterwards. The
  * palette's and the capture sheet's "Add person…", and the Contacts App's
  * Intake, opened with a Handoff (a name selected in a Day). Opens the new
  * Person's Peek where the user is, unless an Intake's caller takes it from
@@ -116,6 +116,7 @@ export function AddPersonDialog({ open, onOpenChange, handoff, initial, onSaved 
                     size="sm"
                     variant={on ? "default" : "outline"}
                     aria-pressed={on}
+                    // ui-allow: control-size — a long Household name wraps, so the button grows past the kit's height
                     className="h-auto min-w-0 max-w-full whitespace-normal break-words py-1 text-left"
                     onClick={() => setJoining(on ? joining.filter((id) => id !== h.id) : [...joining, h.id])}
                   >

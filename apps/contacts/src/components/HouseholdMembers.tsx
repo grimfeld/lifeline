@@ -130,7 +130,7 @@ export function HouseholdMembers({ household }: { household: Household }) {
       </CardList>
       {former.length > 0 && (
         <div className="mt-3 grid gap-1" role="group" aria-label="Former members">
-          <h3 className="text-muted-foreground text-xs font-medium">Former members</h3>
+          <h3 className="text-muted-foreground text-sm font-medium">Former members</h3>
           <CardList>
             {former.map((m) => (
               <MemberItem key={m.personId} household={household} member={m} onDays={() => setDating(m.personId)} />

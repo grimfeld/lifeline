@@ -4,8 +4,7 @@ import { Link, useNavigate } from "react-router";
 import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, EmptyState, Field, Input, Page, PageHeader, PhoneDock } from "@lifeline/ui";
 import { ArrowLeft, Home, Plus } from "lucide-react";
 import { PEOPLE_HREF, householdHref } from "../constants";
-import { currentMemberNames } from "../domain/households";
-import { fold } from "../domain/person";
+import { byName, currentMemberNames } from "../domain/households";
 import { usePeople } from "../data/repo";
 import { addHousehold, useHouseholds } from "../data/households";
 import { message } from "../components/writes";
@@ -74,7 +73,7 @@ export function HouseholdsScreen() {
   const people = usePeople();
   const [adding, setAdding] = useState(false);
   const rows = useMemo(
-    () => [...households].sort((a, b) => fold(a.title).localeCompare(fold(b.title))).map((h) => ({ household: h, names: currentMemberNames(h, people, todayStr()) })),
+    () => [...households].sort((a, b) => byName(a.title, b.title)).map((h) => ({ household: h, names: currentMemberNames(h, people, todayStr()) })),
     [households, people],
   );
   const addButton = (
@@ -103,7 +102,9 @@ export function HouseholdsScreen() {
                   <span className="min-w-0 truncate font-medium">{household.title}</span>
                   <span className="text-muted-foreground min-w-0 truncate text-xs">{names.length ? names.join(", ") : "No members yet"}</span>
                 </span>
-                <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{names.length}</span>
+                <span className="text-muted-foreground shrink-0 text-xs tabular-nums" aria-hidden>
+                  {names.length}
+                </span>
               </Link>
             </li>
           ))}
