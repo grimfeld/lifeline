@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Person } from "./types";
-import { formatHuman } from "@lifeline/core";
+import { formatHuman, initApps } from "@lifeline/core";
+import { personTypeDef } from "../types";
 import { upcomingOccasions } from "./occasions";
 import { activeFilter, byLetter, everyone, lastSeenLabel, relationshipsOf, rowNews, tagsOf } from "./everyone";
+
+initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personTypeDef], screens: [], cards: [], commands: [] }]);
 
 const P = (title: string, more: Partial<Person> = {}): Person =>
   ({ id: title, type: "contacts_person", title, aliases: [], relationship: "", tags: [], ...more }) as unknown as Person;
@@ -24,6 +27,10 @@ describe("Everyone", () => {
     expect(names(everyone(all, { query: "LEA" }))).toEqual(["Léa Martin"]);
     expect(names(everyone(all, { query: "  pet " }))).toEqual(["Marc Petit"]);
     expect(everyone(all, { query: "nobody" })).toEqual([]);
+  });
+
+  it("finds someone by their Given name when it is neither title nor alias", () => {
+    expect(names(everyone([P("Mum", { givenName: "Anne" } as Partial<Person>), stranger], { query: "anne" }))).toEqual(["Mum"]);
   });
 
   it("filters by Relationship and by Tag, and the filters combine", () => {

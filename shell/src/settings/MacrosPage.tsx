@@ -35,12 +35,16 @@ import {
   commandNavigates,
   commandRun,
   deleteMacro,
+  fixedLinkReasons,
+  reasonLine,
+  memoLookup,
   moveStep,
   removeStep,
   resetMacro,
   restoreMacro,
   returnsDocument,
   saveMacro,
+  takesDocument,
   useAllCommands,
   useLiveQuery,
   useMacros,
@@ -53,6 +57,7 @@ import {
 } from "@lifeline/core";
 import { ArrowDown, ArrowLeft, ArrowUp, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { ArgInput, argLabel } from "../macros/ArgInput";
+import { refusalKey, refusalsOf, withoutStep } from "./macroRefusals";
 
 /**
  * `/settings/macros` (ADR 0092): the user's Macros — each a Command made of
@@ -65,7 +70,10 @@ export function MacrosPage() {
   const [editing, setEditing] = useState<MacroRecord | "new" | null>(null);
   // Checked as a run checks it (ADR 0092), again whenever a Document a fixed link names changes.
   const checks = useLiveQuery(
-    async () => new Map<string, MacroCheck>(await Promise.all(macros.map(async (m) => [m.id, await checkMacro(m, commands)] as const))),
+    async () => {
+      const lookup = memoLookup();
+      return new Map<string, MacroCheck>(await Promise.all(macros.map(async (m) => [m.id, await checkMacro(m, commands, lookup)] as const)));
+    },
     [macros, commands],
   );
 
@@ -99,7 +107,7 @@ export function MacrosPage() {
         <ul className="flex flex-col gap-2" aria-label="Macros">
           {macros.map((m) => {
             const check = checks?.get(m.id);
-            const broken = check && !check.ok ? check.reasons : undefined;
+            const broken = check && !check.ok ? check.reasons.map(reasonLine) : undefined;
             return (
               <li key={m.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
                 <button
@@ -184,12 +192,39 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
   });
 
   // A step result follows the step it names, as a step moves or one before it goes.
-  const move = (i: number, by: -1 | 1) => setSteps((s) => moveStep(s, i, by));
-  const update = (i: number, change: Partial<DraftStep>) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, ...change } : st)));
-  const setArg = (i: number, key: string, arg: StepArg) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, args: { ...st.args, [key]: arg } } : st)));
+  // A refusal is kept by its step's place: once steps move or go, or a step changes, it no longer holds.
+  const move = (i: number, by: -1 | 1) => {
+    setSteps((s) => moveStep(s, i, by));
+    setRefused({});
+  };
+  const drop = (i: number) => {
+    setSteps((s) => removeStep(s, i));
+    setRefused({});
+  };
+  const update = (i: number, change: Partial<DraftStep>) => {
+    setSteps((s) => s.map((st, j) => (j === i ? { ...st, ...change } : st)));
+    setRefused((r) => withoutStep(r, i));
+  };
+  const setArg = (i: number, key: string, arg: StepArg) => {
+    setSteps((s) => s.map((st, j) => (j === i ? { ...st, args: { ...st.args, [key]: arg } } : st)));
+    // Editing the argument at fault answers its refusal.
+    setRefused((r) => omitKey(r, refusalKey(i, key)));
+  };
+
+  // A fixed link, or entry of a fixed list of links, that names no Document or several: saving refuses it, saying which.
+  // A draft broken any other way is saved, and listed as broken.
+  // Each refusal is kept by its step and argument, and shown under that argument until it changes.
+  const [refused, setRefused] = useState<Record<string, string>>({});
 
   async function save() {
-    await saveMacro({ id: macro?.id, name: name.trim(), steps: steps.map(fromDraft) });
+    const draft = { name: name.trim(), steps: steps.map(fromDraft) };
+    setRefused({});
+    const problems = fixedLinkReasons(await checkMacro(draft, commands, memoLookup()));
+    if (problems.length) {
+      setRefused(refusalsOf(problems));
+      return;
+    }
+    await saveMacro({ id: macro?.id, ...draft });
     toast.success(macro ? `Saved “${name.trim()}”` : `Made the Macro “${name.trim()}”`);
     onClose();
   }
@@ -229,7 +264,7 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
                     </Button>
                   </Tip>
                   <Tip label="Remove step">
-                    <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => setSteps((st) => removeStep(st, i))}>
+                    <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => drop(i)}>
                       <X />
                     </Button>
                   </Tip>
@@ -237,7 +272,7 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
                 {!def && <p className="text-destructive text-sm">This Command no longer exists.</p>}
                 {kind === "headless" &&
                   def!.args!.map((arg) => (
-                    <ArgSource key={arg.key} arg={arg} source={s.args[arg.key]} earlier={earlier} onChange={(a) => setArg(i, arg.key, a)} />
+                    <ArgSource key={arg.key} arg={arg} source={s.args[arg.key]} earlier={earlier} error={refused[refusalKey(i, arg.key)]} onChange={(a) => setArg(i, arg.key, a)} />
                   ))}
                 {kind === "headless" && <SkipToggle checked={s.skipIfRefused} onChange={(skipIfRefused) => update(i, { skipIfRefused })} />}
                 {kind === "dialog" && <p className="text-muted-foreground text-sm">Opens its own dialog at its turn.</p>}
@@ -258,6 +293,11 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
           leading={<Plus />}
           onValueChange={(command) => setSteps((s) => [...s, { command, args: {}, skipIfRefused: false }])}
         />
+        {Object.keys(refused).length > 0 && (
+          <p role="alert" className="text-destructive text-sm">
+            Not saved: a fixed link names no Document, or several. Fix the fields marked.
+          </p>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
@@ -281,11 +321,21 @@ function SkipToggle({ checked, onChange }: { checked: boolean; onChange: (v: boo
   );
 }
 
+function omitKey(r: Record<string, string>, key: string): Record<string, string> {
+  if (!(key in r)) return r;
+  const { [key]: _gone, ...rest } = r;
+  return rest;
+}
+
 const FIXED = "fixed";
 const ASKED = "asked";
 
-/** One argument of a step: where its value comes from, and the fixed value when it is fixed. Only a link can take what an earlier step made. */
-function ArgSource({ arg, source, earlier, onChange }: { arg: CommandArg; source?: StepArg; earlier: { index: number; title: string }[]; onChange: (a: StepArg) => void }) {
+/**
+ * One argument of a step: where its value comes from, and the fixed value when
+ * it is fixed. Only a link, or a list of links (as its one entry), can take
+ * what an earlier step made.
+ */
+function ArgSource({ arg, source, earlier, error, onChange }: { arg: CommandArg; source?: StepArg; earlier: { index: number; title: string }[]; error?: string; onChange: (a: StepArg) => void }) {
   const current = source ?? { from: "fixed", value: undefined };
   const choice = current.from === "step" ? `step:${current.step}` : current.from;
   const label = argLabel(arg);
@@ -301,7 +351,7 @@ function ArgSource({ arg, source, earlier, onChange }: { arg: CommandArg; source
         <SelectContent>
           <SelectItem value={FIXED}>Fixed</SelectItem>
           <SelectItem value={ASKED}>Asked when it runs</SelectItem>
-          {arg.kind === "link" &&
+          {takesDocument(arg) &&
             earlier.map((e) => (
               <SelectItem key={e.index} value={`step:${e.index}`}>
                 <span className="truncate">
@@ -312,7 +362,7 @@ function ArgSource({ arg, source, earlier, onChange }: { arg: CommandArg; source
         </SelectContent>
       </Select>
       {current.from === "fixed" ? (
-        <ArgInput arg={arg} value={current.value} onChange={(value) => onChange({ from: "fixed", value })} />
+        <ArgInput arg={arg} value={current.value} error={error} onChange={(value) => onChange({ from: "fixed", value })} />
       ) : (
         <p className="text-muted-foreground min-w-0 text-sm break-words">
           {label}: {current.from === "asked" ? "asked when the Macro runs" : `what step ${current.step + 1} made`}

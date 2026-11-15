@@ -166,3 +166,18 @@ describe("planLinkAll", () => {
     expect(plan.skipped.map((m) => m.sourceId)).toEqual(["d2"]);
   });
 });
+
+describe("a type's extra names (a Person's Given name) are Unlinked mentions too", () => {
+  const types = [T("note"), T("person", { linkable: { extraNames: (d) => [String(d.givenName ?? "")] } })];
+  const docs = [
+    doc("p1", "person", "Anne Martin", "", "", { givenName: "Anne" }),
+    doc("n1", "note", "Diary", "Coffee with anne today."),
+  ];
+
+  it("plain prose naming the Given name is a mention of its Person, linked under the title", () => {
+    const idx = buildLinkIndex(docs, types);
+    expect(unlinkedIn(idx, "n1").map((h) => [h.text, h.targetId, h.canonical])).toEqual([["anne", "p1", "Anne Martin"]]);
+    expect(unlinkedMentionsOf(idx, "p1").map((r) => r.sourceId)).toEqual(["n1"]);
+  });
+});
+

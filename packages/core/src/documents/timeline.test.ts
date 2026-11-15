@@ -3,7 +3,18 @@ import { buildLinkIndex } from "./links";
 import type { Document, DocumentTypeDef } from "./types";
 import { PERSON_TYPE } from "../people";
 import { PLACE_TYPE } from "../places";
-import { splitAtToday, timelineMonths, timelineOf } from "./timeline";
+import { timelineMonths, timelineOf, timelineSides, type TimelineEntry, type TimelineOccasion } from "./timeline";
+
+/** A Household, as Contacts declares it (ADR 0117): a link to it counts for whoever was a member on the source's day. */
+const householdTypeDef: DocumentTypeDef = {
+  id: "contacts_household",
+  label: "Households",
+  titleRule: "name",
+  body: "optional",
+  fields: [{ key: "aliases", label: "Aliases", kind: "list" }],
+  linkable: { members: (doc) => ((doc as unknown as { members: { personId: string; since?: string; until?: string }[] }).members ?? []).map(({ personId, ...days }) => ({ id: personId, ...days })) },
+  builtIn: true,
+};
 
 const base = { folder: "", tags: [], createdAt: "2026-01-01", updatedAt: "2026-06-30T10:00:00Z", deleted: 0 as const };
 const anne = { ...base, id: "anne", type: "contacts_person", title: "Anne", body: "", aliases: ["Mum"], relationship: "mother" } as unknown as Document;
@@ -33,19 +44,98 @@ describe("a Person's timeline", () => {
     ]);
   });
   it("groups it by month, newest month first", () => {
-    expect(timelineMonths(timelineOf(idx, "anne")).map((m) => [m.month, m.entries.length])).toEqual([
+    expect(timelineSides(timelineOf(idx, "anne"), [], "2026-11-14").past.map((m) => [m.month, m.stops.length])).toEqual([
       ["2026-11", 1],
       ["2026-10", 1],
       ["2026-06", 1],
     ]);
   });
   it("puts what has no day in a month of its own, null, last", () => {
-    const undated = { sourceId: "u", type: "note", title: "Undated", day: null };
-    const dated = { sourceId: "d", type: "note", title: "Dated", day: "2026-11-02" };
-    expect(timelineMonths([dated, undated]).map((m) => m.month)).toEqual(["2026-11", null]);
+    const undated = { sourceId: "u", type: "note", title: "Undated", day: null, ownDay: false };
+    const dated = { sourceId: "d", type: "note", title: "Dated", day: "2026-11-02", ownDay: true };
+    expect(timelineSides([dated, undated], [], "2026-11-14").past.map((m) => m.month)).toEqual(["2026-11", null]);
   });
   it("is empty for someone nothing links to", () => {
     expect(timelineOf(idx, "nobody")).toEqual([]);
+  });
+});
+
+describe("the two sides of the Today line", () => {
+  afterEach(() => vi.unstubAllEnvs());
+  const today = "2026-11-14";
+  const entry = (sourceId: string, day: string | null): TimelineEntry => ({ sourceId, type: "event", title: sourceId, day, ownDay: day !== null, field: "with" });
+  const occasion = (label: string, date: string, inDays: number): TimelineOccasion => ({ label, date, inDays });
+  const names = (months: ReturnType<typeof timelineSides>["ahead"]) =>
+    months.map((m) => [m.month, m.stops.map((s) => (s.kind === "occasion" ? s.occasion.label : s.entry.sourceId))]);
+  // As timelineOf gives them: newest first. "dinner" shares today with "Today's" and sorts before it by title.
+  const entries = [entry("housewarming", "2026-12-13"), entry("film", "2026-11-15"), entry("dinner", "2026-11-14"), entry("day", "2026-10-28"), entry("undated", null)];
+  const occasions = [occasion("Today's", "2026-11-14", 0), occasion("Birthday", "2026-11-20", 6), occasion("Wedding", "2027-03-01", 107)];
+  const sides = timelineSides(entries, occasions, today);
+
+  it("puts today and what is after it above the line, Occasions and Documents in one order, furthest first, an Occasion before a Document on its day", () => {
+    expect(names(sides.ahead)).toEqual([
+      ["2027-03", ["Wedding"]],
+      ["2026-12", ["housewarming"]],
+      ["2026-11", ["Birthday", "film", "Today's", "dinner"]],
+    ]);
+  });
+  it("keeps what is past, then what has no day, below it", () => {
+    expect(names(sides.past)).toEqual([
+      ["2026-10", ["day"]],
+      [null, ["undated"]],
+    ]);
+  });
+  it("says how soon a Document ahead is, and nothing for one past", () => {
+    const stops = [...sides.ahead, ...sides.past].flatMap((m) => m.stops).filter((s) => s.kind === "entry");
+    expect(stops.map((s) => [s.entry.sourceId, s.inDays])).toEqual([
+      ["housewarming", 29],
+      ["film", 1],
+      ["dinner", 0],
+      ["day", null],
+      ["undated", null],
+    ]);
+  });
+  it("shows a Document however far ahead it is", () => {
+    expect(names(timelineSides([entry("far", "2030-01-01")], [], today).ahead)).toEqual([["2030-01", ["far"]]]);
+  });
+  it("keeps a note last changed today below the line: its day is not its own", () => {
+    vi.stubEnv("TZ", "UTC");
+    const note = { ...base, id: "n", type: "note", title: "Gift ideas", body: "for [[Anne]]", updatedAt: "2026-11-14T10:00:00Z" } as unknown as Document;
+    const sides = timelineSides(timelineOf(buildLinkIndex([anne, note], types), "anne"), [], today);
+    expect(sides.ahead).toEqual([]);
+    const first = sides.past[0]?.stops[0];
+    expect(first?.kind === "entry" && first.entry.sourceId).toBe("n");
+    expect(first?.kind === "entry" && first.inDays).toBeNull();
+  });
+  it("keeps an Event still under way above the line, by its first day, with no how soon", () => {
+    const trip = { ...base, id: "trip", type: "event", title: "Trip", date: "2026-11-13", endDate: "2026-11-20", with: ["anne"] } as unknown as Document;
+    const over = { ...base, id: "over", type: "event", title: "Weekend", date: "2026-11-07", endDate: "2026-11-13", with: ["anne"] } as unknown as Document;
+    const sides = timelineSides(timelineOf(buildLinkIndex([anne, trip, over], types), "anne"), [], today);
+    expect(names(sides.ahead)).toEqual([["2026-11", ["trip"]]]);
+    expect(names(sides.past)).toEqual([["2026-11", ["over"]]]);
+    const [stop] = sides.ahead[0]!.stops;
+    expect(stop?.kind === "entry" && stop.day).toBe("2026-11-13");
+    expect(stop?.kind === "entry" && stop.inDays).toBeNull();
+  });
+  it("puts an Event that ran to midnight last night below the line", () => {
+    // 22:00 on the 13th to 00:00 on the 14th only reaches midnight: on the 14th it is over.
+    const party = { ...base, id: "party", type: "event", title: "Party", date: "2026-11-13", start: "22:00", endDate: "2026-11-14", end: "00:00", with: ["anne"] } as unknown as Document;
+    const sides = timelineSides(timelineOf(buildLinkIndex([anne, party], types), "anne"), [], today);
+    expect(sides.ahead).toEqual([]);
+    expect(names(sides.past)).toEqual([["2026-11", ["party"]]]);
+  });
+  it("keeps an Event that runs to midnight tonight above the line", () => {
+    const party = { ...base, id: "party", type: "event", title: "Party", date: "2026-11-14", start: "22:00", endDate: "2026-11-15", end: "00:00", with: ["anne"] } as unknown as Document;
+    const sides = timelineSides(timelineOf(buildLinkIndex([anne, party], types), "anne"), [], today);
+    expect(names(sides.ahead)).toEqual([["2026-11", ["party"]]]);
+  });
+  it("keeps an Event ending today above the line, below one starting today", () => {
+    const ending = { ...entry("ending", "2026-11-10"), endDay: "2026-11-14" };
+    expect(names(timelineSides([entry("tonight", "2026-11-14"), ending], [], today).ahead)).toEqual([["2026-11", ["tonight", "ending"]]]);
+  });
+  it("keeps an Event dated today above the line, saying today", () => {
+    const [stop] = timelineSides([entry("tonight", "2026-11-14")], [], today).ahead[0]!.stops;
+    expect(stop?.kind === "entry" && stop.inDays).toBe(0);
   });
 });
 
@@ -60,7 +150,7 @@ describe("an undated entry's day", () => {
     // 23:30 on 30 Nov local is 04:30 on 1 Dec UTC.
     const [e] = timelineWith({ updatedAt: "2026-12-01T04:30:00Z" });
     expect(e?.day).toBe("2026-11-30");
-    expect(timelineMonths([e!]).map((m) => m.month)).toEqual(["2026-11"]);
+    expect(timelineMonths([{ kind: "entry", day: e!.day, entry: e!, inDays: null }]).map((m) => m.month)).toEqual(["2026-11"]);
   });
   it("ignores a date in the title of a note, but not of a Day", () => {
     vi.stubEnv("TZ", "UTC");
@@ -79,9 +169,33 @@ describe("a Place's timeline (ADR 0119)", () => {
   const day = { ...base, id: "d", type: "daily", title: "2026-11-12", body: "back at [[Chez Janou]]" } as unknown as Document;
   const pidx = buildLinkIndex([janou, ev("dinner", "2026-11-10"), ev("tonight", "2026-11-15"), ev("booked", "2026-11-20"), ev("birthday", "2026-12-04"), day], placeTypes);
 
-  it("puts upcoming Events above the Today line, the nearest last, and today's and the past below it", () => {
-    const { upcoming, past } = splitAtToday(timelineOf(pidx, "janou"), "2026-11-15");
-    expect(upcoming.map((e) => [e.sourceId, e.field])).toEqual([["birthday", "at"], ["booked", "at"]]);
-    expect(past.map((e) => [e.sourceId, e.field])).toEqual([["tonight", "at"], ["d", undefined], ["dinner", "at"]]);
+  it("puts today's and upcoming Events above the Today line, the nearest last, and the past below it", () => {
+    const { ahead, past } = timelineSides(timelineOf(pidx, "janou"), [], "2026-11-15");
+    const of = (months: typeof ahead) => months.flatMap((m) => m.stops).map((s) => (s.kind === "entry" ? [s.entry.sourceId, s.entry.field] : []));
+    expect(of(ahead)).toEqual([["birthday", "at"], ["booked", "at"], ["tonight", "at"]]);
+    expect(of(past)).toEqual([["d", undefined], ["dinner", "at"]]);
+  });
+});
+
+describe("a link to their Household (ADR 0117)", () => {
+  const smiths = { ...base, id: "smiths", type: "contacts_household", title: "the Smiths", body: "", aliases: [], members: [{ personId: "anne" }, { personId: "tom", until: "2026-06-30" }] } as unknown as Document;
+  const tom = { ...anne, id: "tom", title: "Tom", aliases: [] } as unknown as Document;
+  const linking = [
+    { ...base, id: "dinner", type: "daily", title: "2026-11-01", body: "Dinner at [[the Smiths]]" },
+    // Naming both her and her Household: one entry, as the direct link.
+    { ...base, id: "both", type: "daily", title: "2026-10-20", body: "[[Anne]] at [[the Smiths]]" },
+  ] as unknown as Document[];
+  const withHousehold = buildLinkIndex([...docs, smiths, tom, ...linking], [...types, householdTypeDef]);
+  it("stands on each member's timeline, via the Household", () => {
+    const tl = timelineOf(withHousehold, "anne");
+    expect(tl.find((e) => e.sourceId === "dinner")).toMatchObject({ day: "2026-11-01", via: "smiths" });
+  });
+  it("is one entry, the direct link, when the Document names them too", () => {
+    const both = timelineOf(withHousehold, "anne").filter((e) => e.sourceId === "both");
+    expect(both).toHaveLength(1);
+    expect(both[0]!.via).toBeUndefined();
+  });
+  it("counts only for whoever was a member on the source's day", () => {
+    expect(timelineOf(withHousehold, "tom")).toEqual([]);
   });
 });

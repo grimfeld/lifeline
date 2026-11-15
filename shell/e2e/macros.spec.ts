@@ -1,5 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { CORE_URL } from "./support/seed";
+import { inCore } from "./support/core";
+import { openPalette } from "./support/palette";
 
 /**
  * Macros (CONTEXT.md "Macro", ADR 0092): made in Settings → Macros from
@@ -256,4 +258,109 @@ test("a dialog step closed without saving stops the Macro there, reported cancel
     return (await core.documentsOf("task")).map((d: { title: string }) => d.title);
   }, CORE_URL);
   expect(titles).not.toContain("Never after a cancel");
+});
+
+test("a Macro's Add event step fixed With someone, picked by alias, runs from the palette and puts the Event on their Timeline", async ({ page, isMobile }) => {
+  test.skip(isMobile, "the palette is not opened on a phone");
+  const stamp = Date.now();
+  const title = `Thursday dinner ${stamp}`;
+  const name = `Zoé Martin ${stamp}`;
+  await page.goto("/settings/macros");
+  await workLocally(page);
+  const zoe = await inCore(page, async (core, a) => (await core.createDocument({ type: "contacts_person", title: a.name, fields: { aliases: [a.alias] } })).id as string, { name, alias: `Zozo ${stamp}` });
+
+  await page.getByRole("button", { name: "New Macro" }).click();
+  const editor = page.getByRole("dialog");
+  await editor.getByLabel("Name").fill(`Dinner with Zoé ${stamp}`);
+  await editor.getByRole("combobox", { name: "Add a step" }).fill("Add event");
+  await page.getByRole("option", { name: "Add event", exact: true }).click();
+  const step = editor.getByRole("list", { name: "Steps" }).getByRole("listitem").last();
+  await step.getByLabel("Title (required)").fill(title);
+  await step.getByLabel("Day (required)").click();
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await step.getByRole("combobox", { name: "With", exact: true }).fill(`Zozo ${stamp}`);
+  await page.getByRole("option", { name: new RegExp(name) }).click();
+  await expect(step.getByText(name)).toBeVisible();
+  await editor.getByRole("button", { name: "Save" }).click();
+  await expect(editor).toBeHidden();
+
+  await openPalette(page);
+  await page.getByRole("combobox").fill(`Dinner with Zoé ${stamp}`);
+  await page.getByRole("option", { name: new RegExp(`Dinner with Zoé ${stamp}`) }).click();
+  const report = page.getByRole("dialog", { name: `Dinner with Zoé ${stamp}` }).getByRole("list", { name: "Steps" }).getByRole("listitem");
+  await expect(report).toHaveCount(1);
+  await expect(report.nth(0)).toContainText("Done");
+  await expect(report.nth(0)).toContainText(`with ${name}`);
+
+  await page.goto(`/app/people/person/${zoe}`);
+  await workLocally(page);
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
+});
+
+test("a Macro refused for a fixed name no Person has says so under that field, and clears it once the name is dropped", async ({ page }) => {
+  const stamp = Date.now();
+  const name = `Ghost dinner ${stamp}`;
+  await page.goto("/settings/macros");
+  await workLocally(page);
+  await inCore(
+    page,
+    async (core, a) => {
+      await core.saveMacro({
+        name: a.name,
+        steps: [{ command: "calendar/calendar.add-event", args: { title: { from: "fixed", value: "Dinner" }, date: { from: "fixed", value: "2030-01-01" }, with: { from: "fixed", value: ["Nobody Called This"] } } }],
+      });
+    },
+    { name },
+  );
+  await page.getByRole("list", { name: "Macros" }).getByRole("listitem").filter({ hasText: name }).getByRole("button").first().click();
+  const editor = page.getByRole("dialog");
+  const picker = editor.getByRole("combobox", { name: "With", exact: true });
+  await expect(picker).not.toHaveAttribute("aria-invalid", "true");
+  await editor.getByRole("button", { name: "Save" }).click();
+
+  // The refusal sits under the With field, which is marked invalid and described by it.
+  await expect(picker).toHaveAttribute("aria-invalid", "true");
+  const error = editor.locator("[data-slot=field-error]");
+  await expect(error).toContainText("Nobody Called This");
+  const errorId = await error.getAttribute("id");
+  expect(await picker.getAttribute("aria-describedby")).toContain(errorId!);
+  await expect(editor.getByRole("alert")).toContainText("Not saved");
+
+  // Editing the argument clears it, and the summary with it.
+  await editor.getByRole("button", { name: "Remove person" }).click();
+  await expect(picker).not.toHaveAttribute("aria-invalid", "true");
+  await expect(editor.locator("[data-slot=field-error]")).toHaveCount(0);
+  await expect(editor.getByRole("alert")).toHaveCount(0);
+});
+
+test("a refusal does not outlive the step it was about: moving or removing a step clears it", async ({ page }) => {
+  const name = `Ghost lunch ${Date.now()}`;
+  await page.goto("/settings/macros");
+  await workLocally(page);
+  const fixed = (value: unknown) => ({ from: "fixed" as const, value });
+  const event = (title: string, ghost: boolean) => ({
+    command: "calendar/calendar.add-event",
+    args: { title: fixed(title), date: fixed("2030-01-01"), ...(ghost ? { with: fixed(["Nobody Called This"]) } : {}) },
+  });
+  await inCore(page, async (core, a) => core.saveMacro({ name: a.name, steps: a.steps }), { name, steps: [event("Lunch", true), event("Walk", false)] });
+  await page.getByRole("list", { name: "Macros" }).getByRole("listitem").filter({ hasText: name }).getByRole("button").first().click();
+  const editor = page.getByRole("dialog");
+  const refusal = editor.locator("[data-slot=field-error]");
+  const save = editor.getByRole("button", { name: "Save" });
+
+  await save.click();
+  await expect(refusal).toContainText("Nobody Called This");
+  await expect(editor.getByRole("alert")).toContainText("Not saved");
+
+  // The step moves: its refusal is not left under whichever step now sits where it was.
+  await editor.getByRole("button", { name: "Move down" }).first().click();
+  await expect(refusal).toHaveCount(0);
+  await expect(editor.getByRole("alert")).toHaveCount(0);
+
+  // Refused again, then the step goes.
+  await save.click();
+  await expect(refusal).toContainText("Nobody Called This");
+  await editor.getByRole("button", { name: "Remove step" }).first().click();
+  await expect(refusal).toHaveCount(0);
+  await expect(editor.getByRole("alert")).toHaveCount(0);
 });

@@ -38,7 +38,7 @@ describe("calendar_add_event's at", () => {
   });
 
   it("refuses a name that is no Place or Person", async () => {
-    await expect(add({ title: "Lost", date: "2026-11-21", at: "Bob" })).rejects.toThrow("At: no Place or Person called “Bob”");
+    await expect(add({ title: "Lost", date: "2026-11-21", at: "Bob" })).rejects.toThrow("At: No Place or Person called “Bob”");
     expect(await agendaOn("2026-11-21")).toEqual([]);
   });
 });

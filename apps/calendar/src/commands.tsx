@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { EVENT_AT_FIELD, PERSON_TYPE, PLACE_TYPE, formatTime, getDocument, initialText, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { EVENT_AT_FIELD, PERSON_TYPE, PLACE_TYPE, formatTime, getDocument, initialText, peopleArg, peopleIn, peopleNamed, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
 import { Ban, CalendarPlus, LayoutTemplate, Zap } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
@@ -60,6 +60,7 @@ export const calendarCommands: CommandDef[] = [
       },
       { key: "notes", label: "Notes", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
+      peopleArg("with", "With", "The People there"),
       {
         key: EVENT_AT_FIELD,
         label: "At",
@@ -75,6 +76,7 @@ export const calendarCommands: CommandDef[] = [
       const endDate = (a.endDate as string | undefined) ?? null;
       const refused = eventArgsError({ date: a.date as string, start, end, endDate });
       if (refused) throw new Error(refused);
+      const people = peopleIn(a, "with");
       const id = await addEvent({
         title: a.title as string,
         date: a.date as string,
@@ -83,12 +85,13 @@ export const calendarCommands: CommandDef[] = [
         end,
         notes: a.notes as string | undefined,
         tags: a.tags as string[] | undefined,
+        with: people,
         at: a.at as string | undefined,
       });
       const time = start ? ` at ${start}${end ? `–${endDate && endDate !== a.date ? `${endDate} ` : ""}${end}` : ""}` : "";
       // The Place's or Person's title only (ADR 0114): never where a Person lives.
       const where = a.at ? (await getDocument(a.at as string))?.title : undefined;
-      return { id, message: `Added event “${a.title}” on ${a.date}${time}${where ? `, At ${where}` : ""}` };
+      return { id, message: `Added event “${a.title}” on ${a.date}${time}${where ? `, At ${where}` : ""}${await peopleNamed("with", people)}` };
     },
   },
   {

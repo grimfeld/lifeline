@@ -65,12 +65,13 @@ export async function updateEvent(ev: Event): Promise<void> {
   await putDocument<Event>(midnightNextDay({ ...ev, type: EVENT_TYPE, tags: normalizeTags(ev.tags ?? []) }));
 }
 
-/** Edit an Event's own words — its notes and Tags — from wherever it is shown (its Peek, ADR 0085). */
-export async function editEvent(id: string, edit: { notes?: string; tags?: string[]; at?: string }): Promise<void> {
+/** Edit an Event's own words — its notes, Tags, With and At — from wherever it is shown (its Peek, ADR 0085). */
+export async function editEvent(id: string, edit: { notes?: string; tags?: string[]; with?: string[]; at?: string }): Promise<void> {
   const patch: Record<string, unknown> = {};
   if (edit.at !== undefined) patch.at = edit.at;
   if (edit.notes !== undefined) patch.notes = edit.notes;
   if (edit.tags !== undefined) patch.tags = normalizeTags(edit.tags);
+  if (edit.with !== undefined) patch.with = [...new Set(edit.with)];
   if (Object.keys(patch).length > 0) await patchDocument(id, patch);
 }
 

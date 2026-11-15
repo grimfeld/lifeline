@@ -113,8 +113,8 @@ Milestones.
   untick to undo. Where: a Card you can place.
 - **Quick add** — a Card: one box, Enter adds a Task to the Unassigned pool or to Today (you
   choose). Where: a Card you can place.
-- **Peek** — a Task opened from anywhere: Done / Not done, Push, Archive, and its fields edited in
-  place.
+- **Peek** — a Task opened from anywhere: Done / Not done, Push, Archive, and its fields (day, Project,
+  Estimate, notes, For (picked People, saved at once) and Tags) edited in place.
 
 Each repeat of a recurring Task is ticked and moved on its own. A missed one stops being overdue
 once the next one comes round.
@@ -129,7 +129,10 @@ Making a Project is deliberate, so **New project** is in the palette only.
 Through the Lifeline connector, Claude can:
 
 - Add a Task — on a day, in the pool, recurring, with an Estimate, Tags or a Project — "Add a task
-  to call the plumber on Friday for the bathroom project", `tasks_add`.
+  to call the plumber on Friday for the bathroom project", `tasks_add`. It can fill **For** too —
+  "Remind me to buy Zoé's present": each person by name, alias or id, each found once in People.
+  A name that is no one, or more than one person, refuses the whole call and no Task is made; the
+  answer says whom it found, and the Task shows on their Timeline "via For".
 - See and tick off what is due — "What's on today?", `agenda` then `complete_item`.
 - Move a Task to another day or back to the pool — "Move the plumber call to Monday",
   `move_item`.

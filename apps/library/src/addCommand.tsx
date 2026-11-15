@@ -1,4 +1,4 @@
-import { type CommandDef } from "@lifeline/core";
+import { peopleArg, peopleIn, peopleNamed, type CommandDef } from "@lifeline/core";
 import { SlidersHorizontal } from "lucide-react";
 import { AddWorkDialog } from "./components/AddWorkDialog";
 import { WORK_TYPES, workType, type WorkTypeId } from "./domain/workTypes";
@@ -48,6 +48,7 @@ export const libraryAddCommand: CommandDef = {
     { key: "shelf", label: "Shelf", kind: "select", options: SHELF_OPTIONS, hint: "Defaults to To read. In progress starts it today; Done finishes it. The Nightstand is never set here." },
     { key: "finishedOn", label: "Finished on", kind: "date", hint: "Only with the Done shelf; Done without it is finished today." },
     { key: "tags", label: "Tags", kind: "list" },
+    peopleArg("recommendedBy", "Recommended by", "The People who recommended it"),
   ],
   returnsDocument: true,
   async invoke(a) {
@@ -84,6 +85,7 @@ export const libraryAddCommand: CommandDef = {
 
     const names = (a.authors as string | undefined)?.trim();
     const authors = names ? await ensureAuthorNames(splitAuthorNames(names)) : hit ? await ensureAuthorRefs(hit.authors) : [];
+    const people = peopleIn(a, "recommendedBy");
     const id = await addWork({
       medium,
       title,
@@ -102,7 +104,8 @@ export const libraryAddCommand: CommandDef = {
       engagement: shelf,
       finishedOn,
       tags: a.tags as string[] | undefined,
+      recommendedBy: people,
     });
-    return { id, message: `${title} added (${workType(medium).engagement[shelf]}, ${ACQ_LABEL[acquisition].toLowerCase()})` };
+    return { id, message: `${title} added (${workType(medium).engagement[shelf]}, ${ACQ_LABEL[acquisition].toLowerCase()})${await peopleNamed("recommended by", people)}` };
   },
 };

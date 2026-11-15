@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { documentsTable, initApps, putDocument } from "@lifeline/core";
 import { calendarApp } from "../index";
 import { EVENT_TYPE, type Event } from "../domain/types";
-import { addEvent, allEvents } from "./repo";
+import { addEvent, allEvents, editEvent } from "./repo";
 
 initApps([calendarApp]);
 
@@ -73,6 +73,16 @@ describe("addEvent", () => {
     await documentsTable().clear();
     await addEvent({ title: "Nap", date: "2026-05-02" });
     expect((await only()).at).toBe("");
+  });
+});
+
+describe("editEvent", () => {
+  it("stores the People it is with once each, and an empty list clears them", async () => {
+    const id = await addEvent({ title: "Dinner", date: "2026-05-02" });
+    await editEvent(id, { with: ["ana", "ana", "bo"] });
+    expect((await only()).with).toEqual(["ana", "bo"]);
+    await editEvent(id, { with: [] });
+    expect((await only()).with).toEqual([]);
   });
 });
 

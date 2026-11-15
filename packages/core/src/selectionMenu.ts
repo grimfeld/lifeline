@@ -3,7 +3,7 @@ import { orderGroups } from "./intakeGroups";
 import { normalizeName } from "./markdown";
 import type { LinkIndex } from "./documents/links";
 import { maskProse, wikilinkFor } from "./documents/mentions";
-import { aliasesOf, type Document, type DocumentTypeDef } from "./documents/types";
+import { aliasesKey, aliasesOf, typedAliasesOf, type Document, type DocumentTypeDef } from "./documents/types";
 
 /**
  * The **Selection menu** (CONTEXT.md, ADR 0086): what selecting text in a
@@ -185,11 +185,9 @@ export function linkTargets(index: LinkIndex, originId: string, query: string): 
  */
 export function aliasWrite(words: string, target: Document, def: Pick<DocumentTypeDef, "linkable"> | null | undefined): { key: string; value: string[] } | null {
   const w = normalizeName(words);
-  const aliases = aliasesOf(target, def);
-  if (!w || w === normalizeName(target.title) || aliases.some((a) => normalizeName(a) === w)) return null;
-  const l = def?.linkable;
-  const key = typeof l === "object" && l?.aliasesField ? l.aliasesField : "aliases";
-  return { key, value: [...aliases, words.trim()] };
+  // Named already counts the type's extra names (a Given name); the write keeps to the aliases Field (ADR 0117).
+  if (!w || w === normalizeName(target.title) || aliasesOf(target, def).some((a) => normalizeName(a) === w)) return null;
+  return { key: aliasesKey(def), value: [...typedAliasesOf(target, def), words.trim()] };
 }
 
 /**

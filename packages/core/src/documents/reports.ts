@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { addDays, diffDays, formatHuman, type DateStr } from "../dates";
 import { mentionable, type Backlink, type LinkIndex } from "./links";
+import { dayOf, eventSpan, MAX_SPAN } from "./sourceDays";
 import type { Document, DocumentTypeDef, ReportKind, ReportSetting, SeenAs } from "./types";
 import { PERSON_TYPE } from "../people";
-import { lastDayCovered } from "../contracts/timed";
 
 /**
  * Reports (CONTEXT.md, ADR 0076): read-only figures about the Documents of one
@@ -13,15 +13,7 @@ import { lastDayCovered } from "../contracts/timed";
  * them. Periods, other Documents and unlinked mentions never count.
  */
 
-/** The Day's type: its Documents are titled by their date. */
-export const DAY_TYPE = "daily";
-
-/**
- * The Event's type id. Core may not import Apps, so — like `DAY_TYPE` — the one
- * type the Seen family reads is named here. Seen reads only what any dated
- * Document has: a `date` and an optional `endDate` (ADR 0112).
- */
-export const EVENT_TYPE = "event";
+export { DAY_TYPE, EVENT_TYPE, dayOf, isDateStr } from "./sourceDays";
 
 export type ReportFamily = "ranking" | "document";
 /** What a Report counts (ADR 0112): Days that link (Mentioned) or Events that link (Seen). */
@@ -94,12 +86,16 @@ export interface ReportWindow {
 
 const inWindow = (d: DateStr, w: ReportWindow) => (!w.from || d >= w.from) && (!w.to || d <= w.to);
 
-/** The distinct dates of the Days that link to one Document, oldest first. */
+/**
+ * The distinct dates of the Days that reach one Document, oldest first: that
+ * link to it, or to a Household it was a member of that day (ADR 0117).
+ */
 export function mentionDays(index: LinkIndex, docId: string): DateStr[] {
   const days = new Set<DateStr>();
-  for (const b of index.backlinksTo(docId)) {
+  for (const b of index.reaches(docId)) {
     const src = index.byId.get(b.sourceId);
-    if (src?.type === DAY_TYPE && /^\d{4}-\d{2}-\d{2}$/.test(src.title)) days.add(src.title);
+    const day = dayOf(src);
+    if (day) days.add(day);
   }
   return [...days].sort();
 }
@@ -110,10 +106,6 @@ export function mentionDays(index: LinkIndex, docId: string): DateStr[] {
  * a new family is a new source beside `mentionDays`, not new kind code.
  */
 export type DaysSource = (index: LinkIndex, docId: string) => DateStr[];
-
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
-/** An Event spanning more days than this is not counted past it (a typo's endDate must not spin). */
-const MAX_SPAN = 3660;
 
 /** The Event's At field (ADR 0119): where it happens, a Place or a Person's home. */
 export const EVENT_AT_FIELD = "at";
@@ -127,38 +119,26 @@ export const countsAsSeen = (b: Backlink, target: Document | undefined): boolean
 
 /**
  * The distinct days (oldest first, none after `today`) on which Events that
- * link to one Document are on: once per day however many Events, each day of a
+ * reach one Document are on: once per day however many Events, each day of a
  * multi-day Event, nothing in the future. Markers and Tasks are not Events,
- * and an Event's At on a Person is no sighting (`countsAsSeen`).
+ * and an Event's At on a Person is no sighting (`countsAsSeen`). Through a
+ * Household (ADR 0117), only the days they were a member.
  */
 export function seenDays(index: LinkIndex, docId: string, today: DateStr): DateStr[] {
   const days = new Set<DateStr>();
   const target = index.byId.get(docId);
-  for (const b of index.backlinksTo(docId)) {
+  for (const b of index.reaches(docId)) {
     if (!countsAsSeen(b, target)) continue;
     const span = eventSpan(index.byId.get(b.sourceId));
     if (!span) continue;
+    if (b.via) {
+      for (const d of b.days ?? []) if (d <= today) days.add(d);
+      continue;
+    }
     const last = span.to < today ? span.to : today;
     for (let d = span.from, i = 0; d <= last && i < MAX_SPAN; d = addDays(d, 1), i++) days.add(d);
   }
   return [...days].sort();
-}
-
-/** A field read as a date, when it is one. */
-const dateIn = (v: unknown): DateStr | undefined => (typeof v === "string" && DATE.test(v) ? v : undefined);
-
-/**
- * The days an Event is on, first to last (an `endDate` before its `date` is
- * ignored, and an end at 00:00 doesn't cover its day: `lastDayCovered`, ADR
- * 0090); nothing for any other Document or an undated Event.
- */
-function eventSpan(src: Document | undefined): { from: DateStr; to: DateStr } | undefined {
-  if (src?.type !== EVENT_TYPE) return undefined;
-  const from = dateIn(src.date);
-  if (!from) return undefined;
-  const end = dateIn(src.endDate);
-  if (!end || end <= from) return { from, to: from };
-  return { from, to: lastDayCovered({ date: from, endDate: end, end: typeof src.end === "string" ? src.end : "" }) };
 }
 
 /**

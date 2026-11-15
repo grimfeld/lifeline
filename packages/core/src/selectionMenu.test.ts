@@ -178,6 +178,13 @@ describe("aliasWrite: adding the selected words as an alias", () => {
     expect(aliasWrite("madame  curie", marie, person)).toBeNull();
   });
 
+  it("counts a type's extra names as named, and never writes them into the aliases Field", () => {
+    const given = T("person", { linkable: { extraNames: (d) => [String(d.givenName ?? "")] } });
+    const anne = doc("p3", "person", "Anne Martin", { givenName: "Anne", aliases: ["Annie"] });
+    expect(aliasWrite("anne", anne, given)).toBeNull();
+    expect(aliasWrite("Nanou", anne, given)).toEqual({ key: "aliases", value: ["Annie", "Nanou"] });
+  });
+
   it("writes to the type's own aliases Field", () => {
     expect(aliasWrite("Marie", doc("p1", "person", "Marie Curie", { names: "Mme Curie" }), T("person", { linkable: { aliasesField: "names" } }))).toEqual({ key: "names", value: ["Mme Curie", "Marie"] });
   });

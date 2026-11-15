@@ -5,11 +5,12 @@ import { normalizeAddresses } from "../domain/addresses";
 import { contactDetailsOf } from "../domain/contactDetails";
 import { putBack, takeOut } from "../domain/parts";
 import { normalizeOccasions, occasionProblem } from "../domain/occasions";
-import { findPerson } from "../domain/person";
+import { cleanAliases, composeTitle } from "../domain/person";
+import { tidyPatch } from "../domain/givenNames";
 
 /** A Person as stored, with the App's keys filled in for a row written before they existed. */
 export function normalizePerson(doc: Person): Person {
-  return { ...doc, aliases: Array.isArray(doc.aliases) ? doc.aliases : [], relationship: typeof doc.relationship === "string" ? doc.relationship : "", excludedFromDrifting: doc.excludedFromDrifting === true, occasions: normalizeOccasions(doc.occasions), addresses: normalizeAddresses(doc.addresses) };
+  return { ...doc, aliases: Array.isArray(doc.aliases) ? doc.aliases : [], relationship: typeof doc.relationship === "string" ? doc.relationship : "", givenName: typeof doc.givenName === "string" ? doc.givenName : "", familyName: typeof doc.familyName === "string" ? doc.familyName : "", excludedFromDrifting: doc.excludedFromDrifting === true, occasions: normalizeOccasions(doc.occasions), addresses: normalizeAddresses(doc.addresses) };
 }
 
 /** A row as the Person page shows it: none when it is missing, deleted, or no Person. */
@@ -40,16 +41,6 @@ export async function addOccasion(personId: string, input: OccasionInput): Promi
   const occasion = { id: newId(), ...o };
   await updateParts(personId, "occasions", (list) => [...list, occasion]);
   return occasion;
-}
-
-/**
- * Add an Occasion to the Person a name or alias points to. Throws in words for
- * an unknown or ambiguous name, or for an Occasion that is none.
- */
-export async function addOccasionByName(name: string, input: OccasionInput): Promise<{ person: Person; occasion: Occasion }> {
-  const found = findPerson(await allPeople(), name);
-  if ("problem" in found) throw new Error(found.problem);
-  return { person: found.person, occasion: await addOccasion(found.person.id, input) };
 }
 
 /** Change an Occasion on a Person. */
@@ -97,25 +88,28 @@ export async function restorePart<K extends PartKey>(personId: string, key: K, r
   await updateParts(personId, key, (list) => putBack(list, removed.entry, removed.index));
 }
 
-const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);
-
 /**
  * Add a Person: a name is all it takes (#404 story 1). Aliases, a
  * Relationship and Tags are kept when given. Lands in the People folder.
  * Throws when the name is empty or already a Person's there.
  */
-export async function addPerson(input: { name: string; aliases?: string[]; relationship?: string; tags?: string[] }): Promise<Person> {
-  const name = input.name.trim();
+export async function addPerson(input: { name?: string; givenName?: string; familyName?: string; aliases?: string[]; relationship?: string; tags?: string[] }): Promise<Person> {
+  const givenName = input.givenName?.trim() ?? "";
+  const familyName = input.familyName?.trim() ?? "";
+  // A typed name wins; the two names compose the title only when none is typed (ADR 0117).
+  const name = input.name?.trim() || composeTitle(givenName, familyName);
   if (!name) throw new Error("A Person needs a name");
   return (await createDocument({
     type: PERSON_TYPE,
     title: name,
-    fields: { aliases: cleanAliases(input.aliases), relationship: input.relationship?.trim() ?? "", tags: normalizeTags(input.tags ?? []) },
+    fields: { givenName, familyName, aliases: cleanAliases(input.aliases), relationship: input.relationship?.trim() ?? "", tags: normalizeTags(input.tags ?? []) },
   })) as Person;
 }
 
 export interface PersonPatch {
   title?: string;
+  givenName?: string;
+  familyName?: string;
   aliases?: string[];
   relationship?: string;
   tags?: string[];
@@ -140,6 +134,8 @@ export async function patchPerson(id: string, patch: PersonPatch): Promise<void>
 /** The stored fields a patch writes, each cleaned as `addPerson` cleans it; only the keys given. */
 function personFields(patch: Omit<PersonPatch, "title">): Record<string, unknown> {
   const fields: Record<string, unknown> = {};
+  if (patch.givenName !== undefined) fields.givenName = patch.givenName.trim();
+  if (patch.familyName !== undefined) fields.familyName = patch.familyName.trim();
   if (patch.aliases) fields.aliases = cleanAliases(patch.aliases);
   if (patch.relationship !== undefined) fields.relationship = patch.relationship.trim();
   if (patch.excludedFromDrifting !== undefined) fields.excludedFromDrifting = patch.excludedFromDrifting;
@@ -155,3 +151,25 @@ export const updateAddresses = (id: string, change: (list: Address[]) => Address
 
 /** Change a Person's Contact details the same way: `change` is given the stored list. */
 export const updateContactDetails = (id: string, change: (list: ContactDetail[]) => ContactDetail[]) => updateParts(id, "contactDetails", change);
+
+/**
+ * Tidy the given-name aliases of the People `ids` (ADR 0117): fill their names and
+ * drop the duplicated alias. Each is worked out again from the stored row, so one
+ * that changed since the review (or was deleted) is skipped. Returns how many changed; a write that fails says how many were done before it.
+ */
+export async function applyTidy(ids: readonly string[]): Promise<number> {
+  let done = 0;
+  for (const id of ids) {
+    const doc = await getDocument(id);
+    if (!doc || doc.deleted || doc.type !== PERSON_TYPE) continue;
+    const patch = tidyPatch(normalizePerson(doc as Person));
+    if (!patch) continue;
+    try {
+      await patchDocument(id, patch);
+    } catch (e) {
+      throw new Error(`${e instanceof Error ? e.message : String(e)} (${done} of ${ids.length} tidied before it)`);
+    }
+    done++;
+  }
+  return done;
+}

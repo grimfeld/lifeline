@@ -87,7 +87,9 @@ The **Events** page has three tabs:
   and Tags.
   **With** is who was there: type a name or an alias from People and pick it. The Event then
   shows on each Person's page under Events, and counts as having seen them. A `[[link]]` to a
-  Person in the notes ("Dinner with [[Marc]]") counts as having seen them too.
+  Person in the notes ("Dinner with [[Marc]]") counts as having seen them too. **With** offers
+  Households as well ("the Smiths"): picking one adds the People who live there today, each its
+  own chip, so you can take off whoever was away. **With** keeps the People, never the Household.
   **At** is where it happens: one [Place](places.md), or one Person, meaning their home. Type a
   name or an alias; each suggestion says whether it is a Place ("Place · Restaurant") or a Person.
   A name that matches none offers **New place “…”**, which adds the Place and sets At to it (a
@@ -126,7 +128,7 @@ Commands and Cards:
   you can place.
 - **Countdown** — a Card: a big number of days until one event you pick. Where: a Card you can
   place.
-- **Peek** — an Event opened from a link: its day and times, notes and Tags edited in place.
+- **Peek** — an Event opened from a link: its day and times, notes, With (picked People, saved at once), At and Tags edited in place.
 
 Editing or deleting a template never changes the Events it made.
 
@@ -151,8 +153,12 @@ each Event template under it. Pin a template you use daily to make it one tap.
 Through the Lifeline connector, Claude can:
 
 - Read what is on — "What do I have this week?", `agenda`.
-- Add an Event — "Add dentist on Thursday at 14:00", `calendar_add_event`; with `at`, where it
-  happens — "Book dinner at Chez Janou Friday": a Place or a Person, by name, alias or id.
+- Add an Event — "Add dentist on Thursday at 14:00", `calendar_add_event`. It can fill **With**
+  too — "Add dinner with Marco and Zoé on Friday": each person by name, alias or id, each found
+  once in People. A name that is no one, or more than one person, refuses the whole call (every
+  such name at once), and no Event is made. The answer says whom it found ("…with Marc Lefèvre,
+  Zoé Martin"), and the Event shows on each one's Timeline "via With". With `at`, it says where
+  it happens — "Book dinner at Chez Janou Friday": a Place or a Person, by name, alias or id.
 - Say where an Event is — `agenda` names each Event's At: a Place with its Kind and address, a
   Person by their name only, never their address. An At or With that Claude may not see (a Person
   in your Private folder) is left out of every answer.

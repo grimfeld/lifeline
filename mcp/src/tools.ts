@@ -1,5 +1,5 @@
 import { z, type ZodTypeAny } from "zod";
-import { isInvocable, macroCommand, commandKey, type CommandArg, type CommandDef, type MacroShape, type OwnedCommand } from "@lifeline/core";
+import { isInvocable, MAX_LINK_VALUES, macroCommand, commandKey, type CommandArg, type CommandDef, type MacroShape, type OwnedCommand } from "@lifeline/core";
 import { GUIDE_PAGES, guidePage } from "@lifeline/guide";
 import { guideBody } from "@lifeline/guide/pages";
 import { manifests } from "./apps";
@@ -252,6 +252,9 @@ function argSchema(arg: CommandArg): ZodTypeAny {
     case "list":
       s = z.array(z.string()).max(arg.maxValues ?? MAX_ARRAY_VALUES);
       break;
+    case "links":
+      s = z.array(z.string()).max(MAX_LINK_VALUES);
+      break;
     case "json":
       s = z.record(z.string(), z.unknown());
       break;
@@ -261,9 +264,16 @@ function argSchema(arg: CommandArg): ZodTypeAny {
     default:
       s = z.string();
   }
-  const about = [arg.label, arg.hint, arg.kind === "link" ? "Takes an id, the exact title or an alias" : undefined].filter(Boolean).join(". ");
+  const about = [arg.label, arg.hint, linkAbout(arg)].filter(Boolean).join(". ");
   s = s.describe(about);
   return arg.required ? s : s.optional();
+}
+
+/** How a link argument names its Document(s), for an agent reading the schema. */
+function linkAbout(arg: CommandArg): string | undefined {
+  if (arg.kind === "link") return "Takes an id, the title or an alias (case and accents aside); a name that is no Document, or several, is refused";
+  if (arg.kind === "links") return "A list of ids, titles or aliases (case and accents aside), each naming one Document; any name that is no Document, or several, refuses the whole call";
+  return undefined;
 }
 
 function argsInput(args: readonly CommandArg[]): Record<string, ZodTypeAny> {

@@ -168,7 +168,7 @@ export function findTwin(items: Work[], input: { medium: WorkTypeId; title: stri
  * created by name (ADR 0052). Returns the new id (for Undo), or the twin it
  * found instead — then nothing was added.
  */
-export async function quickAddWork(input: { medium: WorkTypeId; title: string; author?: string; hit?: { externalKey: string; coverUrl: string; year: number; size: number; authors: AuthorRef[] } }): Promise<{ id: string; twin?: Work }> {
+export async function quickAddWork(input: { medium: WorkTypeId; title: string; author?: string; recommendedBy?: string[]; hit?: { externalKey: string; coverUrl: string; year: number; size: number; authors: AuthorRef[] } }): Promise<{ id: string; twin?: Work }> {
   // Already yours: nothing is created (no Work, no Author) — the caller says so.
   const twin = findTwin(await allWorks(), { medium: input.medium, title: input.title, externalKey: input.hit?.externalKey });
   if (twin) return { id: twin.id, twin };
@@ -183,6 +183,7 @@ export async function quickAddWork(input: { medium: WorkTypeId; title: string; a
     size: input.hit?.size ?? 0,
     acquisition: "WANTED",
     reason: "",
+    recommendedBy: input.recommendedBy,
   });
   return { id };
 }

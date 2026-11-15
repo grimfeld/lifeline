@@ -117,9 +117,10 @@ is **Mentioned** instead, shown beside Visited and never added to it.
 
 ### Timeline
 
-On a Place's page, the Events planned there sit above a **Today** line, the nearest just above
-it; below it, everything that links to the Place by month, newest first: Events At it ("via At"),
-and the Days and notes that name it ("mentioned"). Click one to peek at it.
+On a Place's page, the Events planned there, today's included, sit above a **Today** line by
+month, the nearest just above it; an Event still under way stays there until its End day has
+passed. Below it, everything else that links to the Place by month, newest first: Events At it
+("via At"), and the Days and notes that name it ("mentioned"). Click one to peek at it.
 
 ### Linking to a Place
 
