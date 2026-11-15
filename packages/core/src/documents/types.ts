@@ -394,11 +394,13 @@ export function singularOf(def: Pick<DocumentTypeDef, "label" | "singular">): st
 
 /** Slug for a user-defined type id from its label: "Recipe idea" → "recipe-idea". */
 export function slugify(label: string): string {
-  return label
+  const slug = label
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
+    .replace(/[^a-z0-9]+/g, "-");
+  // At most one "-" at each end now: trimmed by hand, no regex (CodeQL js/polynomial-redos).
+  const start = slug.startsWith("-") ? 1 : 0;
+  const end = slug.endsWith("-") && slug.length > start ? slug.length - 1 : slug.length;
+  return slug.slice(start, end).slice(0, 40);
 }
