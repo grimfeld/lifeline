@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkMacro, fixedLinkProblems, type DocumentLookup } from "./macroCheck";
+import { checkMacro, fixedLinkReasons, memoLookup, type DocumentLookup } from "./macroCheck";
 import type { OwnedCommand } from "./commands";
 import type { MacroStep } from "./macros";
 import type { CommandArg } from "./manifest";
@@ -53,7 +53,13 @@ const lookup: DocumentLookup = {
       : [],
 };
 
-const check = (...steps: MacroStep[]) => checkMacro({ name: "M", steps }, COMMANDS, lookup);
+const checkTexts = async (...args: Parameters<typeof checkMacro>) => {
+  const r = await checkMacro(...args);
+  return r.ok ? r : { ok: false as const, reasons: r.reasons.map((x) => x.text) };
+};
+const checked = (...steps: MacroStep[]) => checkMacro({ name: "M", steps }, COMMANDS, lookup);
+/** The check with each reason as its text; the tagging is asserted on its own below. */
+const check = (...steps: MacroStep[]) => checkTexts({ name: "M", steps }, COMMANDS, lookup);
 const s = (command: string, args: MacroStep["args"] = {}): MacroStep => ({
   command,
   args,
@@ -87,7 +93,7 @@ describe("checkMacro", () => {
 
   it("is broken by a read-only Command as a step: its answer would go nowhere", async () => {
     const report: OwnedCommand = { ...headless("knowledge", "report", []), readOnly: true, title: "Report" };
-    expect(await checkMacro({ name: "M", steps: [s("knowledge/report")] }, [...COMMANDS, report], lookup)).toEqual({
+    expect(await checkTexts({ name: "M", steps: [s("knowledge/report")] }, [...COMMANDS, report], lookup)).toEqual({
       ok: false,
       reasons: ["Step 1: “Report” only answers an agent, so it cannot be a step"],
     });
@@ -187,7 +193,7 @@ describe("checkMacro", () => {
     };
     const receipt = headless("prices", "receipt", [lines]);
     const fixedLines = (value: unknown) =>
-      checkMacro(
+      checkTexts(
         {
           name: "M",
           steps: [s("prices/receipt", { lines: { from: "fixed", value } })],
@@ -249,26 +255,50 @@ describe("checkMacro", () => {
   });
 });
 
-describe("fixedLinkProblems: what the Macro editor refuses to save", () => {
-  const draft = (...steps: MacroStep[]) => fixedLinkProblems({ name: "M", steps }, COMMANDS, lookup);
+describe("the one rule for what stops a Macro from saving", () => {
+  /** What the Macro editor refuses: the fixed-link reasons of the one check. */
+  const editor = async (...steps: MacroStep[]) => fixedLinkReasons(await checked(...steps));
 
-  it("is each fixed link, or entry of a fixed list of links, that names no Document or several", async () => {
-    expect(await draft(s("notes/add", { source: { from: "fixed", value: "Gone" } }), s("calendar/add-event", { with: { from: "fixed", value: ["Dune", "Emma"] } }))).toEqual([
-      "Step 1: Source: No Source called “Gone”",
-      "Step 2: With: “Emma” is more than one With: Emma (id e1), Emma (id e2). Pass the id of the one meant",
-    ]);
+  it("tags each reason with its kind, step and argument key; the editor keeps the fixed-link ones, and checkMacro refuses the same", async () => {
+    const steps = [s("notes/add", { source: { from: "fixed", value: "Gone" } }), s("calendar/add-event", { with: { from: "fixed", value: ["Dune", "Emma"] } })];
+    const expected = [
+      { kind: "fixed-link", step: 0, key: "source", text: "Step 1: Source: No Source called “Gone”" },
+      { kind: "fixed-link", step: 1, key: "with", text: "Step 2: With: “Emma” is more than one With: Emma (id e1), Emma (id e2). Pass the id of the one meant" },
+    ];
+    expect(await editor(...steps)).toEqual(expected);
+    expect(await checked(...steps)).toEqual({ ok: false, reasons: expected });
   });
 
   it("is nothing for a draft broken otherwise: a missing value, an unfit one, a step out of place", async () => {
-    expect(
-      await draft(
-        s("hub/go.today"),
-        s("pocket/spend", { amount: { from: "fixed", value: "lots" } }),
-        s("pocket/spend"),
-        s("notes/add", { source: { from: "step", step: 5 } }),
-        s("gone/away"),
-        s("notes/add", { source: { from: "fixed", value: "Dune" } }),
-      ),
-    ).toEqual([]);
+    const steps = [
+      s("hub/go.today"),
+      s("pocket/spend", { amount: { from: "fixed", value: "lots" } }),
+      s("pocket/spend"),
+      s("notes/add", { source: { from: "step", step: 5 } }),
+      s("gone/away"),
+      s("notes/add", { source: { from: "fixed", value: "Dune" } }),
+    ];
+    expect(await editor(...steps)).toEqual([]);
+    const r = await checked(...steps);
+    expect(!r.ok && r.reasons.every((x) => x.kind === "other")).toBe(true);
+  });
+
+  it("is nothing for a Macro that passes", async () => {
+    expect(fixedLinkReasons(await checked(s("notes/add", { source: { from: "fixed", value: "Dune" } })))).toEqual([]);
+  });
+
+  it("reads each link type once per pass, however many fixed links name it", async () => {
+    const reads: string[] = [];
+    const counting: DocumentLookup = {
+      linkable: async (arg) => {
+        reads.push(`${arg.linkType}/${arg.linkRole ?? ""}`);
+        return lookup.linkable(arg);
+      },
+    };
+    const link = (value: string) => s("notes/add", { source: { from: "fixed", value } });
+    const macros = [1, 2, 3].map((n) => ({ name: `M${n}`, steps: [link("Dune"), link("Gone"), s("calendar/add-event", { with: { from: "fixed", value: ["Dune"] } })] }));
+    const memo = memoLookup(counting);
+    for (const m of macros) await checkMacro(m, COMMANDS, memo);
+    expect(reads).toEqual(["source/"]);
   });
 });
