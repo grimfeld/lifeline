@@ -1,8 +1,8 @@
-import { PLACE_TYPE, type DocumentTypeDef } from "@lifeline/core";
+import { EVENT_TYPE, PLACE_TYPE, type DocumentTypeDef } from "@lifeline/core";
 import { KINDS, PLACES_FOLDER } from "./domain/types";
 import { placeCoordsOf, placeSubtitle } from "./domain/place";
 import { placeHref } from "./constants";
-import { PlaceTaken, addPlace } from "./data/repo";
+import { PlaceTaken, addPlace, afterEventSaved } from "./data/repo";
 
 /**
  * The Place type (ADR 0119), UI-free: the icon and the Peek are attached in
@@ -41,11 +41,16 @@ export const placeTypeDef: DocumentTypeDef = {
       throw e;
     }
   },
+  // To try clears once an Event that links here has happened (ADR 0119), however the Event was saved (ADR 0121).
+  afterSaveOf: { of: [EVENT_TYPE], run: afterEventSaved },
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "kind", label: "Kind", kind: "select", options: KINDS.map((k) => ({ ...k })), userOptions: true, column: true },
     // Written through the App, so the coordinates always follow the text; agents read both (no wall).
     { key: "address", label: "Address", kind: "text", guarded: true, column: true },
     { key: "geo", label: "Coordinates", kind: "geo", guarded: true },
+    // Plain marks, so a list, the map and a Base filter them as fields. To try is cleared by Atlas, never derived.
+    { key: "toTry", label: "To try", kind: "boolean" },
+    { key: "closed", label: "Closed", kind: "boolean" },
   ],
 };

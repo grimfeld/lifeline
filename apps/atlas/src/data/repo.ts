@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { PLACE_TYPE, createDocument, documentsOf, getDocument, locateAddress, normalizeTags, patchDocument, renameDocument, saveFieldOptions, useDocuments, writeGeo, type Document, type FieldOption, type Located, type Lookup } from "@lifeline/core";
-import { kindFrom, kindOptionsOf, normalizePlace, placeTitled } from "../domain/place";
+import { PLACE_TYPE, allDocumentTypes, allDocuments, buildLinkIndex, createDocument, documentsOf, getDocument, locateAddress, normalizeTags, patchDocument, renameDocument, saveFieldOptions, todayStr, useDocuments, writeGeo, type Document, type FieldOption, type Located, type Lookup } from "@lifeline/core";
+import { hasHappened, kindFrom, kindOptionsOf, normalizePlace, placeTitled, visitedBy } from "../domain/place";
 import { PLACES_FOLDER, type Place } from "../domain/types";
 
 /**
@@ -65,7 +65,7 @@ async function resolveAddress(input: AddressInput, lookup: Lookup): Promise<{ fi
  * (`PlaceTaken`). An address found nowhere is kept, off the map.
  */
 export async function addPlace(
-  input: { name: string; kind?: string; aliases?: string[]; tags?: string[]; address?: string; at?: Coords },
+  input: { name: string; kind?: string; aliases?: string[]; tags?: string[]; address?: string; at?: Coords; toTry?: boolean },
   lookup: Lookup = locateAddress,
 ): Promise<Place> {
   const name = input.name.trim();
@@ -77,7 +77,7 @@ export async function addPlace(
     type: PLACE_TYPE,
     title: name,
     folder: PLACES_FOLDER,
-    fields: { aliases: cleanAliases(input.aliases), kind, tags: normalizeTags(input.tags ?? []), ...address },
+    fields: { aliases: cleanAliases(input.aliases), kind, tags: normalizeTags(input.tags ?? []), ...address, toTry: input.toTry === true, closed: false },
   });
   return normalizePlace(doc);
 }
@@ -104,6 +104,9 @@ export interface PlacePatch {
   kind?: string;
   aliases?: string[];
   tags?: string[];
+  toTry?: boolean;
+  /** Closed for good, or reopened with false (ADR 0119). */
+  closed?: boolean;
 }
 
 /**
@@ -116,6 +119,8 @@ export async function patchPlace(id: string, patch: PlacePatch): Promise<void> {
   if (rest.kind !== undefined) fields.kind = kindFrom(rest.kind);
   if (rest.aliases) fields.aliases = cleanAliases(rest.aliases);
   if (rest.tags) fields.tags = normalizeTags(rest.tags);
+  if (rest.toTry !== undefined) fields.toTry = rest.toTry;
+  if (rest.closed !== undefined) fields.closed = rest.closed;
   if (title !== undefined) {
     if (!title.trim()) throw new Error("A Place needs a name");
     const doc = await getDocument(id);
@@ -132,3 +137,24 @@ export const kindOptions = (): FieldOption[] => kindOptionsOf();
 
 /** Rename and add Kinds: the list as the user wants it, a new one with no value. None is ever lost. */
 export const saveKindOptions = (options: readonly { value?: string; label: string }[]) => saveFieldOptions(PLACE_TYPE, "kind", options);
+
+/**
+ * Clear To try on the Places that have been gone to since it was set: an
+ * Event that has happened links to each, by At or in its notes (ADR 0119).
+ * Every To try Place, or the one given. Idempotent: a Place cleared, or never
+ * marked, is not written again. Run when an Event is saved and when a Place is
+ * opened, so a dinner that passed while nothing was saved still counts.
+ */
+export async function settleToTry(placeId?: string): Promise<void> {
+  const marked = (await documentsOf(PLACE_TYPE)).filter((p) => p.toTry === true && (!placeId || p.id === placeId));
+  if (marked.length === 0) return;
+  const today = todayStr();
+  // Built here, not through the UI's shared index, so a save never evicts the screen's.
+  const index = buildLinkIndex(await allDocuments(), allDocumentTypes());
+  for (const p of marked) if (visitedBy(index, p.id, today)) await patchDocument(p.id, { toTry: false });
+}
+
+/** After an Event is saved (Core's `afterSaveOf`, ADR 0121): only one that has happened can clear a To try. */
+export async function afterEventSaved(event: Document): Promise<void> {
+  if (hasHappened(event, todayStr())) await settleToTry();
+}

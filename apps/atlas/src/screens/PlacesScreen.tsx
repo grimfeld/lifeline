@@ -1,16 +1,23 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { useDocumentTypes } from "@lifeline/core";
-import { Badge, Button, EmptyState, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
+import { Badge, Button, EmptyState, Page, PageHeader, PhoneDock, PhoneFilters, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, ToggleGroup, ToggleGroupItem } from "@lifeline/ui";
 import { MapPinPlus, Tags } from "lucide-react";
 import { AddPlaceDialog } from "../components/AddPlaceDialog";
 import { KindsDialog } from "../components/KindsDialog";
-import { kindLabel, placesList } from "../domain/place";
+import { kindLabel, placesList, type PlacesShown } from "../domain/place";
 import { type Place } from "../domain/types";
 import { kindOptions, usePlaces } from "../data/repo";
 import { placeHref } from "../constants";
 
 const ANY = "__any__";
+
+/** The three lists, and what each says when the Kind leaves none. */
+const LISTS: { value: PlacesShown; label: string; none: string }[] = [
+  { value: "open", label: "All", none: "No Place of that Kind." },
+  { value: "toTry", label: "To try", none: "No Place to try here: mark one To try on its page." },
+  { value: "closed", label: "Closed", none: "No closed Place here." },
+];
 
 /** One Place in the list: its name, its Kind and Tags; a link to its page. */
 function PlaceRow({ place, showKind }: { place: Place; showKind: boolean }) {
@@ -37,17 +44,20 @@ function PlaceRow({ place, showKind }: { place: Place; showKind: boolean }) {
 
 /**
  * Atlas's Places screen (ADR 0119): every Place in the Workspace, A to Z by
- * name, filtered by Kind. "Kinds" renames and adds them.
+ * name, filtered by Kind. All leaves the closed ones out; To try lists those
+ * marked, open ones only; Closed lists the rest. "Kinds" renames and adds them.
  */
 export function PlacesScreen() {
   const [adding, setAdding] = useState(false);
   const [editingKinds, setEditingKinds] = useState(false);
   const [kind, setKind] = useState("");
+  const [show, setShow] = useState<PlacesShown>("open");
   useDocumentTypes();
   const places = usePlaces();
   const options = kindOptions();
   // A Kind no Place has any more is still a filter, showing none: the Kinds are the user's list, not the Places'.
-  const shown = useMemo(() => placesList(places, { kind }), [places, kind]);
+  const shown = useMemo(() => placesList(places, { kind, show }), [places, kind, show]);
+  const none = LISTS.find((l) => l.value === show)?.none ?? "";
   const add = (
     <Button onClick={() => setAdding(true)}>
       <MapPinPlus /> Add place
@@ -67,7 +77,14 @@ export function PlacesScreen() {
       ) : (
         <>
           <PhoneDock>
-            <PhoneFilters active={+(kind !== "")}>
+            <PhoneFilters active={+(kind !== "") + +(show !== "open")}>
+              <ToggleGroup value={show} onValueChange={(v) => setShow(v as PlacesShown)} aria-label="Which Places">
+                {LISTS.map((l) => (
+                  <ToggleGroupItem key={l.value} value={l.value} aria-label={l.label}>
+                    {l.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
               <Select value={kind || ANY} onValueChange={(v) => setKind(v === ANY ? "" : v)}>
                 <SelectTrigger className="w-full min-w-0 md:w-48" aria-label="Kind">
                   <SelectValue />
@@ -84,7 +101,7 @@ export function PlacesScreen() {
             </PhoneFilters>
           </PhoneDock>
           {shown.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No Place of that Kind.</p>
+            <p className="text-muted-foreground text-sm">{kind ? "No Place of that Kind." : none}</p>
           ) : (
             <ul className="grid min-w-0" aria-label="Places">
               {shown.map((p) => (

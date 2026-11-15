@@ -12,8 +12,10 @@ Atlas's colour, homes in Contacts'. Click a pin, then **Open**, to go to its Pla
 - **Places** and **People** chips at the top, each with its count: tap one to hide or show its
   pins. On a phone they sit in the Phone dock.
 - **Kind** narrows the Places to one Kind (cafés, museums…); People's pins stay.
-- Only what has been found stands here: a Place whose address was found, a current Address with
-  its spot. Drawing the map looks nothing up. A former Address, or one found nowhere, has no pin.
+- **To try** shows only the Places marked To try, and goes with the Kind: a café near you that you
+  haven't tried. People's pins stay.
+- Only what has been found stands here: a Place whose address was found and that is not closed, a
+  current Address with its spot. Drawing the map looks nothing up. A former Address, or one found nowhere, has no pin.
 - With nothing on the map yet, it says how to get something there.
 
 ## What is in it

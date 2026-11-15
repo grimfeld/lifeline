@@ -1,12 +1,29 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
-import { DOCUMENT_TYPES, PLACE_TYPE, createDocument, db, documentType, documentsTable, getDocument, initApps, type DocumentTypeDef } from "@lifeline/core";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DOCUMENT_TYPES, EVENT_TYPE, PLACE_TYPE, createDocument, db, documentType, documentsTable, getDocument, initApps, patchDocument, putDocument, type DocumentTypeDef } from "@lifeline/core";
 import { placeTypeDef } from "../types";
-import { PlaceTaken, addPlace, kindOptions, patchPlace, saveKindOptions } from "./repo";
+import { placeCoordsOf, placesList } from "../domain/place";
+import { PlaceTaken, addPlace, kindOptions, livePlace, patchPlace, saveKindOptions, settleToTry } from "./repo";
+
+// A stand-in for Calendar's Event (Atlas never imports it, ADR 0100): an At, and notes whose wikilinks count.
+const eventType: DocumentTypeDef = {
+  id: EVENT_TYPE,
+  label: "Events",
+  titleRule: "name",
+  body: "none",
+  linkingText: ["notes"],
+  builtIn: true,
+  fields: [
+    { key: "date", label: "Date", kind: "date" },
+    { key: "endDate", label: "End date", kind: "date" },
+    { key: "notes", label: "Notes", kind: "longtext" },
+    { key: "at", label: "At", kind: "link", linkType: PLACE_TYPE },
+  ],
+};
 
 initApps([
   { id: "atlas", title: "Atlas", module: "people", types: [placeTypeDef], screens: [], cards: [], commands: [] },
-  { id: "others", title: "Others", types: [{ id: "note", label: "Notes", titleRule: "name", body: "optional", builtIn: true, fields: [] } satisfies DocumentTypeDef], screens: [], cards: [], commands: [] },
+  { id: "others", title: "Others", types: [{ id: "note", label: "Notes", titleRule: "name", body: "optional", builtIn: true, fields: [] } satisfies DocumentTypeDef, eventType], screens: [], cards: [], commands: [] },
 ]);
 
 beforeEach(async () => {
@@ -142,5 +159,97 @@ describe("a Place made from a name elsewhere (an Event's At, ADR 0119)", () => {
   it("answers the Place that has the name already, making no second one", async () => {
     const first = await addPlace({ name: "Chez Janou" });
     expect((await placeTypeDef.createNamed!("chez janou")).id).toBe(first.id);
+  });
+});
+
+// The spec's worked example: today is Sunday 15 November 2026.
+const TODAY = new Date(2026, 10, 15, 12);
+const event = (title: string, fields: Record<string, unknown>) => putDocument({ type: EVENT_TYPE, title, notes: "", at: "", endDate: null, ...fields });
+const toTry = async (id: string) => livePlace(await getDocument(id))?.toTry;
+
+describe("To try (ADR 0119)", () => {
+  beforeEach(() => vi.useFakeTimers({ toFake: ["Date"], now: TODAY }));
+  afterEach(() => vi.useRealTimers());
+
+  it("is marked when a Place is added or changed, and lists it under To try", async () => {
+    const janou = await addPlace({ name: "Chez Janou", toTry: true });
+    const flore = await addPlace({ name: "Café de Flore" });
+    await patchPlace(flore.id, { toTry: true });
+    const orsay = await addPlace({ name: "Musée d'Orsay" });
+    const places = [janou, flore, orsay].map((p) => p.id);
+    const all = (await Promise.all(places.map(getDocument))).map((d) => livePlace(d)!);
+    expect(placesList(all, { show: "toTry" }).map((p) => p.title)).toEqual(["Café de Flore", "Chez Janou"]);
+    await patchPlace(flore.id, { toTry: false });
+    expect(await toTry(flore.id)).toBe(false);
+  });
+
+  it("clears once an Event At the Place has happened", async () => {
+    const janou = await addPlace({ name: "Chez Janou", toTry: true });
+    await event("Dinner", { date: "2026-11-10", at: janou.id });
+    expect(await toTry(janou.id)).toBe(false);
+  });
+
+  it("stays while the Event At it is still to come, today's included", async () => {
+    const janou = await addPlace({ name: "Chez Janou", toTry: true });
+    await event("Dinner", { date: "2026-11-20", at: janou.id });
+    await event("Lunch", { date: "2026-11-15", at: janou.id });
+    // A weekend that ends today has not happened yet.
+    await event("Weekend", { date: "2026-11-14", endDate: "2026-11-15", at: janou.id });
+    expect(await toTry(janou.id)).toBe(true);
+  });
+
+  it("clears for an Event that links to it from its notes", async () => {
+    const janou = await addPlace({ name: "Chez Janou", aliases: ["Janou"], toTry: true });
+    await event("Anne's birthday", { date: "2026-11-01", notes: "Then dessert at [[Janou]]." });
+    expect(await toTry(janou.id)).toBe(false);
+  });
+
+  it("clears when an Event At it is moved into the past", async () => {
+    const janou = await addPlace({ name: "Chez Janou", toTry: true });
+    const dinner = await event("Dinner", { date: "2026-11-20", at: janou.id });
+    await patchDocument(dinner.id, { date: "2026-11-12" });
+    expect(await toTry(janou.id)).toBe(false);
+  });
+
+  it("is not cleared by a Day that only mentions the Place", async () => {
+    const janou = await addPlace({ name: "Chez Janou", toTry: true });
+    await createDocument({ type: "note", title: "Saturday", body: "Anne says [[Chez Janou]] is good." });
+    expect(await toTry(janou.id)).toBe(true);
+  });
+
+  it("is cleared when the Place is opened, for an Event that happened since it was saved, and twice changes nothing", async () => {
+    vi.setSystemTime(new Date(2026, 10, 1, 12));
+    const janou = await addPlace({ name: "Chez Janou", toTry: true });
+    await event("Dinner", { date: "2026-11-10", at: janou.id });
+    expect(await toTry(janou.id)).toBe(true);
+    vi.setSystemTime(TODAY);
+    await settleToTry(janou.id);
+    expect(await toTry(janou.id)).toBe(false);
+    const after = await getDocument(janou.id);
+    await settleToTry(janou.id);
+    expect(await getDocument(janou.id)).toEqual(after);
+  });
+});
+
+describe("closed (ADR 0119)", () => {
+  it("takes the Place off the map and out of the default and To try lists, and the closed list shows it", async () => {
+    const janou = await addPlace({ name: "Chez Janou", toTry: true, address: "2 Rue Roger Verlomme, Paris", at: { lat: 48.85, lon: 2.36 } });
+    const flore = await addPlace({ name: "Café de Flore" });
+    await patchPlace(janou.id, { closed: true });
+    const all = [livePlace(await getDocument(janou.id))!, livePlace(await getDocument(flore.id))!];
+    expect(placeCoordsOf(all[0]!)).toBeNull();
+    expect(placesList(all).map((p) => p.title)).toEqual(["Café de Flore"]);
+    expect(placesList(all, { show: "toTry" })).toEqual([]);
+    expect(placesList(all, { show: "closed" }).map((p) => p.title)).toEqual(["Chez Janou"]);
+  });
+
+  it("keeps the Place's address, body and links, and reopening puts it back on the map", async () => {
+    const janou = await addPlace({ name: "Chez Janou", address: "2 Rue Roger Verlomme, Paris", at: { lat: 48.85, lon: 2.36 } });
+    const day = await createDocument({ type: "note", title: "Saturday", body: "Lunch at [[Chez Janou]]." });
+    await patchPlace(janou.id, { closed: true });
+    expect(await getDocument(janou.id)).toMatchObject({ closed: true, address: "2 Rue Roger Verlomme, Paris", geo: [48.85, 2.36] });
+    expect((await getDocument(day.id))?.body).toBe("Lunch at [[Chez Janou]].");
+    await patchPlace(janou.id, { closed: false });
+    expect(placeCoordsOf((await getDocument(janou.id))!)).toEqual({ lat: 48.85, lon: 2.36 });
   });
 });

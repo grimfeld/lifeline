@@ -1,11 +1,11 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { PLACE_TYPE, appById, documentFigures, documentType, patchDocument, reportsIn, seenSummary, sourceOf, todayStr, useDocument, useLinkIndex, type Document, type LinkIndex } from "@lifeline/core";
 import { BacklinksSection, DocumentEditor, DocumentReports, UnlinkedMentionsSection, useOpenLinkRef } from "@lifeline/editor";
 import { Field, Input, MiniMap, Page, PageHeader, useCommitDraft } from "@lifeline/ui";
 import { ArrowLeft } from "lucide-react";
 import { PLACES_HREF, placeHref } from "../constants";
-import { PlaceTaken, livePlace, patchPlace } from "../data/repo";
+import { PlaceTaken, livePlace, patchPlace, settleToTry } from "../data/repo";
 import { PlaceFields } from "../components/PlaceFields";
 import { placeCoordsOf } from "../domain/place";
 import { PlaceTimeline } from "./PlaceTimeline";
@@ -107,6 +107,10 @@ export function PlaceScreen() {
   const navigate = useNavigate();
   // Only the body and its Tags are written from the editor, so a Field changed beside it is never sent back as it was.
   const saveBody = useCallback((next: Document) => patchDocument(next.id, { body: next.body, tags: next.tags }), []);
+  // To try is settled on opening too (ADR 0119): a dinner booked here may have passed since anything was saved.
+  useEffect(() => {
+    if (id) void settleToTry(id);
+  }, [id]);
 
   if (!place) {
     return (
@@ -124,6 +128,7 @@ export function PlaceScreen() {
         <PageHeader title={place.title} />
         <Visited place={place} index={index} />
       </div>
+      {place.closed && <p className="text-muted-foreground text-sm">Closed: off the map and the lists of places to go. Untick Closed to reopen it.</p>}
       {/* A grid track of 22rem: the fields' column, as the Person page's. */}
       <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
         <section className="grid min-w-0 content-start gap-3" aria-label="Details">

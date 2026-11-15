@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { PLACE_TYPE, appById, documentType, useDocumentTypes, useDocuments, useLocatablePins } from "@lifeline/core";
 import { cn, MapView, PageHeader, PhoneDock, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lifeline/ui";
-import { Map as MapIcon, MapPin, Users } from "lucide-react";
+import { Map as MapIcon, MapPin, Sparkles, Users } from "lucide-react";
 import { handModule } from "../handModule";
 import { worldPins } from "./worldMap";
 
@@ -17,7 +17,7 @@ const ANY = "__any__";
 /**
  * World's home (ADR 0119): one map of every Place and every current Address,
  * told apart by Atlas's and Contacts' colours. A chip turns one App's Pins
- * off; the Kind narrows the Places. The Pins are what Core reads from stored
+ * off; the Kind and To try narrow the Places, together. The Pins are what Core reads from stored
  * coordinates: drawing the map looks nothing up (ADR 0011).
  */
 function WorldMap() {
@@ -28,7 +28,8 @@ function WorldMap() {
   const kinds = documentType(PLACE_TYPE)?.fields.find((f) => f.key === "kind")?.options ?? [];
   const [hidden, setHidden] = useState<string[]>([]);
   const [kind, setKind] = useState("");
-  const pins = useMemo(() => worldPins(all, places, { hidden, kind }), [all, places, hidden, kind]);
+  const [toTry, setToTry] = useState(false);
+  const pins = useMemo(() => worldPins(all, places, { hidden, kind, toTry }), [all, places, hidden, kind, toTry]);
   const chips = CHIPS.filter((c) => appById(c.appId));
   const toggle = (appId: string) => setHidden((h) => (h.includes(appId) ? h.filter((x) => x !== appId) : [...h, appId]));
 
@@ -61,6 +62,17 @@ function WorldMap() {
                 </button>
               );
             })}
+            <button
+              type="button"
+              onClick={() => setToTry((on) => !on)}
+              aria-pressed={toTry}
+              className={cn(
+                "focus-visible:ring-ring flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none max-md:h-8 max-md:justify-center max-md:px-3",
+                toTry ? "bg-accent" : "text-muted-foreground",
+              )}
+            >
+              <Sparkles className="size-3" /> To try
+            </button>
             <Select value={kind || ANY} onValueChange={(v) => setKind(v === ANY ? "" : v)}>
               <SelectTrigger size="sm" className="min-w-0 max-md:h-8 max-md:flex-1 md:w-40" aria-label="Kind">
                 <SelectValue />
