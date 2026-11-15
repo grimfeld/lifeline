@@ -75,6 +75,31 @@ describe("reaches", () => {
   });
 });
 
+describe("reaches through two Households", () => {
+  // Ann lives at the Smiths' and keeps a flat in town with Bob; a Day names both.
+  const two = buildLinkIndex(
+    [
+      doc("ann", "person", "Ann"),
+      doc("bob", "person", "Bob"),
+      doc("home", "household", "Home", "", { members: [{ personId: "ann" }] }),
+      doc("flat", "household", "Flat", "", { members: [{ personId: "ann" }, { personId: "bob" }] }),
+      doc("w1", "event", "Week away", "", { date: "2026-05-01", endDate: "2026-05-02", notes: "[[Home]] and [[Flat]]" }),
+      doc("d9", "daily", "2026-05-03", "Saw [[Flat]] then [[Home]]"),
+    ],
+    types,
+  );
+  it("names each source once, through the first of their Households", () => {
+    expect(two.reaches("ann").map((r) => [r.sourceId, r.via])).toEqual([
+      ["w1", "home"],
+      ["d9", "home"],
+    ]);
+  });
+  it("keeps every day the source counts for them", () => {
+    expect(two.reaches("ann").find((r) => r.sourceId === "w1")?.days).toEqual(["2026-05-01", "2026-05-02"]);
+    expect(seenDays(two, "ann", "2026-12-31")).toEqual(["2026-05-01", "2026-05-02"]);
+  });
+});
+
 describe("Mentioned and Seen through a Household", () => {
   it("count the Days that link to a member's Household, once per day", () => {
     expect(mentionDays(idx, "paul")).toEqual(["2026-02-01", "2026-08-01", "2026-08-02"]);

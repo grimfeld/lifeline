@@ -70,7 +70,8 @@ export interface LinkIndex {
    * What reaches a Document (ADR 0117): its Backlinks, then a link to each
    * Document that counts it among its `linkable.members` on the source's day
    * (on every day for a source with none of its own), marked `via` that
-   * Document. A source that also links directly is there once, as the direct link.
+   * Document. A source is there once: as the direct link when it is one, else
+   * through the first such Document, on every day any of them counts.
    */
   reaches(docId: string): Reach[];
   /** Normalised unresolved names → ids of the Documents mentioning them. */
@@ -397,7 +398,8 @@ const EVER: [DateStr, DateStr] = ["0000-01-01", "9999-12-31"];
  * The reaches through membership (ADR 0117), by member id: for each Document
  * whose type declares `linkable.members`, each source linking to it reaches
  * whoever was a member on one of its days — or, for a source with no date of
- * its own, whoever is a member whatever the day. Derived, never stored.
+ * its own, whoever is a member whatever the day. One reach per member and
+ * source, through the first Household. Derived, never stored.
  */
 function viaMembers(docs: Document[], defs: Map<string, DocumentTypeDef>, byId: Map<string, Document>, backlinks: Map<string, Backlink[]>): Map<string, Reach[]> {
   const out = new Map<string, Reach[]>();
@@ -426,8 +428,14 @@ function viaMembers(docs: Document[], defs: Map<string, DocumentTypeDef>, byId: 
       }
       for (const [m, on] of reached) {
         if (m === b.sourceId) continue;
-        const r: Reach = { ...b, via: group.id, ...(on ? { days: on } : {}) };
         const list = out.get(m);
+        // Through two of their Households, a source is still one reach: the first Household's, on every day either counts.
+        const had = list?.find((r) => r.sourceId === b.sourceId);
+        if (had) {
+          if (on) had.days = [...new Set([...(had.days ?? []), ...on])].sort();
+          continue;
+        }
+        const r: Reach = { ...b, via: group.id, ...(on ? { days: on } : {}) };
         if (list) list.push(r);
         else out.set(m, [r]);
       }
