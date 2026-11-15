@@ -1,6 +1,8 @@
 import { allDocuments, documentsOf, getDocument } from "./documents/store";
 import { documentsWithRole, hasRole } from "./documents/roles";
-import type { Document } from "./documents/types";
+import { aliasesOf, singularOf, type Document } from "./documents/types";
+import { documentTypeSync } from "./documents/registry";
+import { normalizeName } from "./markdown";
 import type { CommandArg, CommandDef, CommandResult, InvokeContext } from "./manifest";
 
 /**
@@ -69,8 +71,8 @@ function linkTypes(arg: CommandArg): string[] | undefined {
   return arg.linkType === undefined ? undefined : Array.isArray(arg.linkType) ? arg.linkType : [arg.linkType];
 }
 
-/** What a link argument is matched against: a Document's id, type, title and Roles. */
-export type LinkableDocument = Pick<Document, "id" | "type" | "title"> & { roles?: unknown };
+/** What a link argument is matched against: a Document's id, type, title, aliases and Roles. */
+export type LinkableDocument = Pick<Document, "id" | "type" | "title"> & { roles?: unknown; aliases?: unknown };
 
 /** The Documents a link argument may name: those of its Role, else of its type(s), else all. */
 export function linkCandidates<T extends LinkableDocument>(arg: CommandArg, docs: readonly T[]): T[] {
@@ -78,22 +80,44 @@ export function linkCandidates<T extends LinkableDocument>(arg: CommandArg, docs
   return arg.linkRole ? docs.filter((d) => hasRole(d, arg.linkRole!)) : types ? docs.filter((d) => types.includes(d.type)) : [...docs];
 }
 
+/** What a link argument's refusals call what it names: "stat" / "stats" by default, "Place or Person" / "Places or People" for an At. */
+export interface LinkNouns {
+  noun?: string;
+  nouns?: string;
+}
+
 /**
- * A link argument names a Document by id or by its exact title,
- * case-insensitive, among `docs` (already read through the store's gates, so
- * the call's Workspace only). Never a guess: no match, or several, is an
- * error the caller can act on.
+ * The one resolver for a link argument (an agent's `at`, `template`, `stat`…):
+ * a Document named by id, else by its exact title (case aside), else by its
+ * title or an alias with case and accents aside, the way Wikilinks resolve —
+ * among `docs` (already read through the store's gates, so the call's
+ * Workspace only). A title beats another Document's alias. Never a guess: no
+ * match, or several, is an error the caller can act on.
  */
-export function pickLinked(arg: CommandArg, value: string, docs: readonly LinkableDocument[]): string {
+export function pickLinked(arg: CommandArg, value: string, docs: readonly LinkableDocument[], words: LinkNouns = {}): string {
   const ofType = linkCandidates(arg, docs);
   const byId = ofType.find((d) => d.id === value);
   if (byId) return byId.id;
   const wanted = value.trim().toLowerCase();
-  const hits = ofType.filter((d) => d.title.trim().toLowerCase() === wanted);
-  const what = arg.label.toLowerCase();
+  const titled = ofType.filter((d) => d.title.trim().toLowerCase() === wanted);
+  const key = normalizeName(value);
+  const hits = titled.length ? titled : ofType.filter((d) => [d.title, ...aliasesOfLinkable(d)].some((n) => normalizeName(n) === key));
+  const what = words.noun ?? arg.label.toLowerCase();
   if (hits.length === 1) return hits[0]!.id;
   if (hits.length === 0) throw new Error(`${arg.label}: no ${what} called “${value}”`);
-  throw new Error(`${arg.label}: ${hits.length} ${what}s are called “${value}”; pass one id: ${hits.map((d) => d.id).join(", ")}`);
+  throw new Error(`${arg.label}: ${hits.length} ${words.nouns ?? `${what}s`} are called “${value}”; pass one id: ${hits.map((d) => d.id).join(", ")}`);
+}
+
+/** A candidate's aliases: its type's aliases Field (`aliases` by default). */
+const aliasesOfLinkable = (d: LinkableDocument): string[] => aliasesOf(d as Document, documentTypeSync(d.type));
+
+/** How a link argument over several types names them: "Place or Person", "Places or People". Nothing for one type, a Role or any. */
+function linkNouns(arg: CommandArg): LinkNouns {
+  const types = linkTypes(arg);
+  if (arg.linkRole || !types || types.length < 2) return {};
+  const defs = types.map((t) => documentTypeSync(t));
+  if (defs.some((d) => !d)) return {};
+  return { noun: defs.map((d) => singularOf(d!)).join(" or "), nouns: defs.map((d) => d!.label).join(" or ") };
 }
 
 /** The Documents a link argument may name, read from the store (the current Workspace): of its Role, else its type(s), else all. */
@@ -155,7 +179,7 @@ async function readArg(arg: CommandArg, v: unknown): Promise<unknown> {
       }
       if (doc && (!types || types.includes(doc.type))) return value;
       const candidates = types ? (await Promise.all(types.map((t) => documentsOf(t)))).flat() : await allDocuments();
-      return pickLinked(arg, value, candidates);
+      return pickLinked(arg, value, candidates, linkNouns(arg));
     }
     case "json": {
       if (typeof v === "string") {

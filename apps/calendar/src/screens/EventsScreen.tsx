@@ -22,6 +22,7 @@ import { formatHuman, nowClock, todayStr } from "@lifeline/core";
 import { Clock, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Event } from "../domain/types";
 import { describeTime, isMultiDay } from "../domain/events";
+import { AtText } from "../components/EventAt";
 import { groupEvents, isOver } from "../domain/countdown";
 import { deleteEvent, useEvents } from "../data/repo";
 import { EventDialog } from "../components/EventDialog";
@@ -40,6 +41,7 @@ function EventRow({ ev, onEdit }: { ev: Event; onEdit: (e: Event) => void }) {
           <div className="truncate font-medium">{ev.title}</div>
           <div className="text-muted-foreground flex items-center gap-1.5 truncate text-xs">
             <Clock className="size-3" /> {describeTime(ev)}
+            <AtText at={ev.at} />
             {ev.notes && <span className="truncate">· {ev.notes}</span>}
             <TagChips tags={ev.tags} size="xs" className="shrink-0" />
           </div>

@@ -5,6 +5,7 @@ export * from "./FieldsForm";
 export * from "./PeekControls";
 export * from "./LinksPanel";
 export * from "./PeopleField";
+export * from "./AtField";
 export * from "./Reports";
 export * from "./LocalGraphPanel";
 export * from "./DaylogBlock";

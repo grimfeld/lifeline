@@ -3,6 +3,8 @@ import { formatHuman } from "../dates";
 import { buildLinkIndex } from "./links";
 import { DEFAULT_REPORTS, agoText, documentFigures, lastText, reportWords, mentionDays, notMentionedSince, rankingRows, seenDays, sourceOf, reportsIn, reportsOf, topMentioned } from "./reports";
 import type { Document, DocumentTypeDef } from "./types";
+import { PERSON_TYPE } from "../people";
+import { PLACE_TYPE } from "../places";
 
 const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef => ({
   id, label: id + "s", titleRule: "name", body: "optional", fields: [], linkable: true, builtIn: true, ...extra,
@@ -154,6 +156,44 @@ describe("Seen (ADR 0112)", () => {
     expect(rankingRows(fidx, "person", { kind: "topSeen", n: 5 }, {}, today)).toEqual([]);
     const withEvent = buildLinkIndex([...people, { ...doc("e9", "event", "Dinner"), date: "2026-10-07", endDate: null, with: ["marc"] } as unknown as Document], fieldTypes);
     expect(seenDays(withEvent, "marc", today)).toEqual(["2026-10-07"]);
+  });
+  it("counts an Event's At toward a Place but never toward a Person, while With and notes still count (ADR 0119)", () => {
+    const atTypes = [
+      T(PERSON_TYPE),
+      T(PLACE_TYPE),
+      T("event", {
+        body: "none",
+        linkingText: ["notes"],
+        fields: [
+          { key: "notes", label: "Notes", kind: "longtext" },
+          { key: "with", label: "With", kind: "links", linkType: PERSON_TYPE },
+          { key: "at", label: "At", kind: "link", linkType: [PLACE_TYPE, PERSON_TYPE] },
+        ],
+      }),
+    ];
+    const event = (id: string, date: string, at: string, withIds: string[], notes = "") => ({ ...doc(id, "event", id), body: undefined, date, endDate: null, at, with: withIds, notes }) as unknown as Document;
+    const atIdx = buildLinkIndex(
+      [
+        doc("marc", PERSON_TYPE, "Marc"),
+        doc("anne", PERSON_TYPE, "Anne"),
+        doc("janou", PLACE_TYPE, "Chez Janou"),
+        // Feeding Marc's cat while he is away: At Marc, Marc not With.
+        event("cat", "2026-11-03", "marc", []),
+        // Dinner with Anne at Chez Janou.
+        event("dinner", "2026-11-10", "janou", ["anne"]),
+        // At Anne's and With her: With counts.
+        event("tea", "2026-11-12", "anne", ["anne"]),
+        // At Marc's, Marc only named in the notes: the wikilink counts.
+        event("party", "2026-11-13", "marc", [], "[[Marc]]'s birthday"),
+      ],
+      atTypes,
+    );
+    const on = "2026-11-15";
+    expect(seenDays(atIdx, "marc", on)).toEqual(["2026-11-13"]);
+    expect(seenDays(atIdx, "anne", on)).toEqual(["2026-11-10", "2026-11-12"]);
+    expect(seenDays(atIdx, "janou", on)).toEqual(["2026-11-10"]);
+    // The At link is still a backlink: Marc's page lists the Event.
+    expect(atIdx.backlinksTo("marc").map((b) => [b.sourceId, b.field ?? "notes"]).sort()).toEqual([["cat", "at"], ["party", "at"], ["party", "notes"]]);
   });
   it("ranks Top seen and Not seen in N days over a window", () => {
     const top = rankingRows(sidx, "person", { kind: "topSeen", n: 5 }, {}, today);

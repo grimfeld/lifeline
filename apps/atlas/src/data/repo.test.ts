@@ -132,3 +132,15 @@ describe("Kind options", () => {
     await expect(saveKindOptions([...kindOptions(), { label: "museum" }])).rejects.toThrow(/“museum” is already a Kind/);
   });
 });
+
+describe("a Place made from a name elsewhere (an Event's At, ADR 0119)", () => {
+  it("is added by name through the type, as Atlas adds one", async () => {
+    const made = await placeTypeDef.createNamed!("Chez Janou");
+    expect(made).toMatchObject({ type: PLACE_TYPE, title: "Chez Janou", folder: "Places" });
+  });
+
+  it("answers the Place that has the name already, making no second one", async () => {
+    const first = await addPlace({ name: "Chez Janou" });
+    expect((await placeTypeDef.createNamed!("chez janou")).id).toBe(first.id);
+  });
+});

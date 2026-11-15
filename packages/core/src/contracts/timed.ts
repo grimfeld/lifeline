@@ -239,6 +239,12 @@ export interface TimedItem {
    * Person's Occasion): whoever may not see that Document may not see the item.
    */
   docId?: string;
+  /**
+   * Where it happens (an Event's At, ADR 0119): the Place's or Person's id
+   * and title, never more — At on a Person is the Person, not their Address
+   * (ADR 0114). Absent when it happens nowhere in particular.
+   */
+  at?: { docId: string; title: string };
 }
 
 /** Whether a Deadline marker's day has passed (ADR 0061): it stays there, red, and never rolls forward. An Occasion is never missed. */

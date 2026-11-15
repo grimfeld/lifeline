@@ -30,7 +30,7 @@ of a chain are two Places with two names: "Lidl Jean Jaurès" and "Lidl Prado".
 
 Its name, which you rename right there (every `[[link]]` to the old name follows), its Kind,
 aliases and Tags; **Notes**, the page of your own words; then **Backlinks**, every Day, note and
-Event that links to it, and **Unlinked mentions**, the prose that names it without a link, ready
+Event that links to it (an Event **At** it says "via At"), and **Unlinked mentions**, the prose that names it without a link, ready
 to link. A Place's Peek edits its Kind, aliases and Tags, and **Open** leads to its page.
 
 ### Linking to a Place
