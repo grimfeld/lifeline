@@ -64,9 +64,9 @@ test("a Household is made, takes members from its page and from a Person's, and 
 test("Add person suggests joining a Household of the same Family name, and joins only when tapped", async ({ page }) => {
   await page.goto("/app/people");
   await workLocally(page);
-  const paul = await inCore(page, async (core, t: string) => (await core.createDocument({ type: "contacts_person", title: "Paul Zzsmith", fields: { givenName: "Paul", familyName: "Zzsmith" } })).id as string, "x");
+  const paul = await inCore(page, async (core, _arg: string) => (await core.createDocument({ type: "contacts_person", title: "Paul Zzsmith", fields: { givenName: "Paul", familyName: "Zzsmith" } })).id as string, "x");
   await inCore(page, async (core, p: string) => { await core.createDocument({ type: "contacts_household", title: "the Zzsmiths", fields: { members: [{ personId: p }] } }); }, paul);
-  const members = (title: string) => inCore(page, async (core, t: string) => ((await core.documentsOf("contacts_household")) as { title: string; members: unknown[] }[]).find((h) => h.title === t)?.members.length ?? -1, title);
+  const members = (title: string) => inCore(page, async (core, t: string) => ((await core.documentsOf("contacts_household")) as unknown as { title: string; members: unknown[] }[]).find((h) => h.title === t)?.members.length ?? -1, title);
 
   async function openDialog() {
     await openPalette(page);
