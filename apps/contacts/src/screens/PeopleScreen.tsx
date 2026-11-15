@@ -113,7 +113,7 @@ export function PeopleScreen() {
       <PageHeader title="People">{people.length > 0 ? add : null}</PageHeader>
 
       {tidy.length > 0 && (
-        <div className="bg-muted/50 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm">
+        <div className="bg-muted/50 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm">
           <span className="min-w-0">{tidy.length === 1 ? "1 person has their given name typed as an alias." : `${tidy.length} people have their given name typed as an alias.`}</span>
           <Button variant="outline" size="sm" onClick={() => setTidying(true)}>
             Tidy given names…
