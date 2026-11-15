@@ -23,13 +23,14 @@ export const atlasCommands: CommandDef[] = [
       { key: "address", label: "Address", kind: "text", hint: "Optional: its postal address (\"2 Rue Roger Verlomme, Paris\"); looked up once to put it on the map." },
       { key: "aliases", label: "Aliases", kind: "list", hint: "Optional: other names for it (\"Janou\"); each one links to it." },
       { key: "tags", label: "Tags", kind: "list", hint: "Optional: Tags to file it under (\"cuisine/japanese\")." },
+      { key: "toTry", label: "To try", kind: "boolean", hint: "Optional: true to put it on the user's To try list, a place they want to go. It clears by itself once an Event there has happened." },
     ],
     returnsDocument: true,
     async invoke(a) {
       try {
-        const p = await addPlace({ name: String(a.name ?? ""), kind: a.kind as string | undefined, aliases: a.aliases as string[] | undefined, tags: a.tags as string[] | undefined, address: a.address as string | undefined });
+        const p = await addPlace({ name: String(a.name ?? ""), kind: a.kind as string | undefined, aliases: a.aliases as string[] | undefined, tags: a.tags as string[] | undefined, address: a.address as string | undefined, toTry: a.toTry === true });
         const where = p.address ? (p.geo ? ", on the map" : ", but its address was found nowhere: it is off the map") : "";
-        return { message: `Added ${p.title} to Places${where}`, id: p.id };
+        return { message: `Added ${p.title} to Places${p.toTry ? ", To try" : ""}${where}`, id: p.id };
       } catch (e) {
         // The agent can use the Place there is rather than make another.
         if (e instanceof PlaceTaken) throw new Error(`${e.message} (id ${e.existing.id})`);

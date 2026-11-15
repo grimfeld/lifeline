@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { normalizeTag, useDocumentTypes, useTagVocabulary, type PeekProps } from "@lifeline/core";
-import { Button, ChoiceField, Field, TagInput, toast } from "@lifeline/ui";
+import { Button, Checkbox, ChoiceField, Field, TagInput, toast } from "@lifeline/ui";
 import type { Place } from "../domain/types";
 import { normalizePlace, placeCoordsOf } from "../domain/place";
 import { kindOptions, patchPlace, setPlaceAddress, type AddressInput } from "../data/repo";
@@ -11,8 +11,9 @@ const asName = (raw: string) => raw.trim() || null;
 
 /**
  * What the Atlas App edits on every Place, on its page and in its Peek alike:
- * its Kind, its address, the other names it goes by, and its Tags. The name, the body and
- * the user's own Fields are the page's or Core's.
+ * its Kind, its two marks To try and closed, its address, the other names it
+ * goes by, and its Tags. The name, the body and the user's own Fields are the
+ * page's or Core's.
  */
 export function PlaceFields({ place }: { place: Place }) {
   const suggestions = useTagVocabulary().map((v) => v.tag);
@@ -21,6 +22,7 @@ export function PlaceFields({ place }: { place: Place }) {
   return (
     <div className="grid min-w-0 gap-3">
       <ChoiceField label="Kind" value={place.kind} options={kindOptions()} optional onCommit={(kind) => patchPlace(place.id, { kind })} />
+      <PlaceMarks place={place} />
       <PlaceAddress key={place.id} place={place} />
       <Field label="Aliases" hint="Other names for it: each one links to it.">
         <TagInput value={place.aliases} onChange={(aliases) => void patchPlace(place.id, { aliases })} normalize={asName} placeholder="Janou, the Orsay…" />
@@ -28,6 +30,23 @@ export function PlaceFields({ place }: { place: Place }) {
       <Field label="Tags">
         <TagInput value={place.tags ?? []} onChange={(tags) => void patchPlace(place.id, { tags })} suggestions={suggestions} normalize={normalizeTag} placeholder="Add tag…" />
       </Field>
+    </div>
+  );
+}
+
+/**
+ * To try (cleared by itself once an Event there has happened) and closed
+ * (off the map and the lists, everything else kept; unticked, it is reopened).
+ */
+function PlaceMarks({ place }: { place: Place }) {
+  return (
+    <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-2">
+      <label className="flex items-center gap-2 text-sm">
+        <Checkbox checked={place.toTry} onCheckedChange={(v) => void patchPlace(place.id, { toTry: !!v })} /> To try
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <Checkbox checked={place.closed} onCheckedChange={(v) => void patchPlace(place.id, { closed: !!v })} /> Closed
+      </label>
     </div>
   );
 }

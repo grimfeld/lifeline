@@ -161,7 +161,21 @@ export async function putDocument<T extends Document = Document>(input: Document
   else (row as Document).body = body;
   if (!row.title && def?.titleOf) row.title = def.titleOf(row);
   await put<T>(DOCUMENTS, row);
+  await runAfterSave(row);
   return row;
+}
+
+/** The types that keep their own Documents true when one of this type is saved (`afterSaveOf`, ADR 0121), each told in turn. */
+async function runAfterSave(saved: Document): Promise<void> {
+  for (const def of allDocumentTypes()) {
+    const hook = def.afterSaveOf;
+    if (!hook?.of.includes(saved.type)) continue;
+    try {
+      await hook.run(saved);
+    } catch (e) {
+      console.warn(`[documents] ${def.id} after saving ${saved.type} failed`, e);
+    }
+  }
 }
 
 /** Tombstone a Document (never a hard delete). */

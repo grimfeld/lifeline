@@ -277,6 +277,17 @@ export interface DocumentTypeDef {
    */
   createNamed?: (name: string) => Promise<Document>;
   /**
+   * What the owning App keeps true of its own Documents when a Document of
+   * another type is saved (ADR 0121): a Place's To try, cleared once an Event
+   * that links to it has happened. After `putDocument` (and so `patchDocument`)
+   * writes a Document whose type is in `of`, Core calls `run` with it as
+   * written; the App works out what that Document means for its own, so
+   * neither App imports the other (ADR 0100). `run` must be idempotent and
+   * write only its own type's Documents. A failure is logged, never thrown:
+   * the save it follows stands.
+   */
+  afterSaveOf?: { of: readonly string[]; run: (saved: Document) => Promise<void> };
+  /**
    * For an internal type (ADR 0098): the Document that speaks for one of its
    * own — a Lane's Project. `get_document` on the internal id answers as if
    * asked for the owner; without one, the id is refused like any internal one.
