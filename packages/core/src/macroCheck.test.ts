@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkMacro, fixedLinkReasons, memoLookup, type DocumentLookup } from "./macroCheck";
+import { checkMacro, fixedLinkReasons, memoLookup, reasonLine, type DocumentLookup } from "./macroCheck";
 import type { OwnedCommand } from "./commands";
 import type { MacroStep } from "./macros";
 import type { CommandArg } from "./manifest";
@@ -36,8 +36,9 @@ const macro: OwnedCommand = {
 
 /** A headless Command that makes nothing to take: setting a mood. */
 const setsMood: OwnedCommand = { ...headless("mood", "set", []), returnsDocument: undefined };
+const PERSON: CommandArg[] = [{ key: "person", label: "Person", kind: "link", linkType: "person" }];
 const WITH: CommandArg[] = [{ key: "with", label: "With", kind: "links", linkType: "source" }];
-const COMMANDS = [headless("pocket", "spend", AMOUNT), headless("notes", "add", SOURCE), headless("calendar", "add-event", WITH), headless("library", "add", []), goTo, dialogOnly, macro, setsMood];
+const COMMANDS = [headless("pocket", "spend", AMOUNT), headless("notes", "add", SOURCE), headless("calendar", "add-event", WITH), headless("library", "add", []), headless("people", "add", PERSON), goTo, dialogOnly, macro, setsMood];
 
 /** Sources: one a title twice over, one a title that is also another's alias. */
 const lookup: DocumentLookup = {
@@ -55,7 +56,7 @@ const lookup: DocumentLookup = {
 
 const checkTexts = async (...args: Parameters<typeof checkMacro>) => {
   const r = await checkMacro(...args);
-  return r.ok ? r : { ok: false as const, reasons: r.reasons.map((x) => x.text) };
+  return r.ok ? r : { ok: false as const, reasons: r.reasons.map(reasonLine) };
 };
 const checked = (...steps: MacroStep[]) => checkMacro({ name: "M", steps }, COMMANDS, lookup);
 /** The check with each reason as its text; the tagging is asserted on its own below. */
@@ -262,8 +263,8 @@ describe("the one rule for what stops a Macro from saving", () => {
   it("tags each reason with its kind, step and argument key; the editor keeps the fixed-link ones, and checkMacro refuses the same", async () => {
     const steps = [s("notes/add", { source: { from: "fixed", value: "Gone" } }), s("calendar/add-event", { with: { from: "fixed", value: ["Dune", "Emma"] } })];
     const expected = [
-      { kind: "fixed-link", step: 0, key: "source", text: "Step 1: Source: No Source called “Gone”" },
-      { kind: "fixed-link", step: 1, key: "with", text: "Step 2: With: “Emma” is more than one With: Emma (id e1), Emma (id e2). Pass the id of the one meant" },
+      { kind: "fixed-link", step: 0, key: "source", text: "Source: No Source called “Gone”" },
+      { kind: "fixed-link", step: 1, key: "with", text: "With: “Emma” is more than one With: Emma (id e1), Emma (id e2). Pass the id of the one meant" },
     ];
     expect(await editor(...steps)).toEqual(expected);
     expect(await checked(...steps)).toEqual({ ok: false, reasons: expected });
@@ -295,10 +296,27 @@ describe("the one rule for what stops a Macro from saving", () => {
         return lookup.linkable(arg);
       },
     };
-    const link = (value: string) => s("notes/add", { source: { from: "fixed", value } });
-    const macros = [1, 2, 3].map((n) => ({ name: `M${n}`, steps: [link("Dune"), link("Gone"), s("calendar/add-event", { with: { from: "fixed", value: ["Dune"] } })] }));
+    const source = (value: string) => s("notes/add", { source: { from: "fixed", value } });
+    const person = (value: string) => s("people/add", { person: { from: "fixed", value } });
+    const macros = [1, 2, 3].map((n) => ({
+      name: `M${n}`,
+      steps: [source("Dune"), person("Zoé"), source("Gone"), person("Léa"), s("calendar/add-event", { with: { from: "fixed", value: ["Dune"] } })],
+    }));
     const memo = memoLookup(counting);
     for (const m of macros) await checkMacro(m, COMMANDS, memo);
-    expect(reads).toEqual(["source/"]);
+    expect(reads).toEqual(["source/", "person/"]);
+  });
+
+  it("names every bad entry of one fixed list in a reason of its own, each with its step and argument", async () => {
+    const r = await checked(s("calendar/add-event", { with: { from: "fixed", value: ["Gone", "Nowhere"] } }));
+    expect(fixedLinkReasons(r).map(({ step, key, text }) => ({ step, key, text }))).toEqual([
+      { step: 0, key: "with", text: "With: No With called “Gone”" },
+      { step: 0, key: "with", text: "With: No With called “Nowhere”" },
+    ]);
+  });
+
+  it("writes a reason as a line of a list: the step's number first", () => {
+    expect(reasonLine({ kind: "other", step: 1, text: "“Go” goes somewhere" })).toBe("Step 2: “Go” goes somewhere");
+    expect(reasonLine({ kind: "other", text: "It has no steps" })).toBe("It has no steps");
   });
 });

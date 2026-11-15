@@ -332,3 +332,34 @@ test("a Macro refused for a fixed name no Person has says so under that field, a
   await expect(editor.locator("[data-slot=field-error]")).toHaveCount(0);
   await expect(editor.getByRole("alert")).toHaveCount(0);
 });
+
+test("a refusal does not outlive the step it was about: moving or removing a step clears it", async ({ page }) => {
+  const name = `Ghost lunch ${Date.now()}`;
+  await page.goto("/settings/macros");
+  await workLocally(page);
+  const event = (title: string, ghost: boolean) => ({
+    command: "calendar/calendar.add-event",
+    args: { title: { from: "fixed", value: title }, date: { from: "fixed", value: "2030-01-01" }, ...(ghost ? { with: { from: "fixed", value: ["Nobody Called This"] } } : {}) },
+  });
+  await inCore(page, async (core, a) => core.saveMacro({ name: a.name, steps: a.steps }), { name, steps: [event("Lunch", true), event("Walk", false)] });
+  await page.getByRole("list", { name: "Macros" }).getByRole("listitem").filter({ hasText: name }).getByRole("button").first().click();
+  const editor = page.getByRole("dialog");
+  const refusal = editor.locator("[data-slot=field-error]");
+  const save = editor.getByRole("button", { name: "Save" });
+
+  await save.click();
+  await expect(refusal).toContainText("Nobody Called This");
+  await expect(editor.getByRole("alert")).toContainText("Not saved");
+
+  // The step moves: its refusal is not left under whichever step now sits where it was.
+  await editor.getByRole("button", { name: "Move down" }).first().click();
+  await expect(refusal).toHaveCount(0);
+  await expect(editor.getByRole("alert")).toHaveCount(0);
+
+  // Refused again, then the step goes.
+  await save.click();
+  await expect(refusal).toContainText("Nobody Called This");
+  await editor.getByRole("button", { name: "Remove step" }).first().click();
+  await expect(refusal).toHaveCount(0);
+  await expect(editor.getByRole("alert")).toHaveCount(0);
+});
