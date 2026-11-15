@@ -23,6 +23,8 @@ museums visited, people's homes, places from your Journal.
   [Bases](bases.md) (edit the type › add a Field › Coordinates).
 - Fill in the coordinates on a Document and it gets a pin. A Document with an address but no
   coordinates has no pin yet.
+- An **Event** that is **At** a Place or a Person stands at that Place, or at the Person's home
+  (see [World](world.md)), under the **Events** chip. Its **Open →** opens the Event in its Peek.
 - No such type yet? The Map says so: "No Document type is Locatable yet".
 
 ## Elsewhere

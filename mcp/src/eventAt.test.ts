@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeAll, describe, expect, it } from "vitest";
-import { PERSON_TYPE, PLACE_TYPE, createDocument, getDocument, initApps, putDocument, removeDocument } from "@lifeline/core";
+import { PERSON_TYPE, PLACE_TYPE, allDocumentTypes, allDocuments, createDocument, getDocument, initApps, pinsOf, putDocument, removeDocument } from "@lifeline/core";
 import { manifests } from "./apps";
 import { runTool } from "./handlers";
 
@@ -103,6 +103,16 @@ describe("the agent wall: an Event At a Person (ADR 0114, ADR 0119)", () => {
     const day = await agendaOn("2026-11-24");
     expect(day.find((i) => i.title === "Tea at Mum's")?.at).toEqual({ id: anne, title: "Anne Dupont" });
     expect(((await runTool("get_document", { id: ev })) as { fields: Record<string, unknown> }).fields.at).toBe(anne);
+  });
+
+  it("stands on the map at the Person's Address (#505), yet no tool's answer gives where, even rounded", async () => {
+    const pins = pinsOf(await allDocuments(), allDocumentTypes(), ["event"], []).filter((p) => p.itemId === ev);
+    expect(pins.map((p) => [p.name, p.lat, p.lon])).toEqual([["Tea at Mum's", 48.871234, 2.381234]]);
+    const where = [...pins.flatMap((p) => [p.key, String(p.lat), String(p.lon)]), "48.87", "2.38", "locatableVia"];
+    for (const { name, args } of EVENT_TOOLS()) {
+      const answer = JSON.stringify(await runTool(name, args));
+      for (const value of where) expect(answer, `${name} located the Event: “${value}”`).not.toContain(value);
+    }
   });
 
   it("finds no Event by the words of its Person's Address", async () => {

@@ -51,6 +51,8 @@ const eventType: DocumentTypeDef = {
   // "Dinner with [[Marc]]" in its Notes links Marc (ADR 0112): the Event counts as Seen.
   linkingText: ["notes"],
   linkable: { subtitle: (d) => formatHuman((d as Event).date) },
+  // On the map where it is At (ADR 0122): Core stands it at the Place's or the Person's main Pin, so the Calendar reads no address.
+  locatableVia: "at",
   href: () => EVENTS_HREF,
   order: 30,
   // Edited where it is peeked (ADR 0085): its day and times through the App's own controls.

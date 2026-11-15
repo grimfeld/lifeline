@@ -2,7 +2,7 @@ import { PLACE_TYPE, type Document, type SurfacePin } from "@lifeline/core";
 
 /** The World map's filter: Apps whose Pins are off, one Kind of Place, and To try. */
 export interface WorldFilter {
-  /** App ids whose Pins are hidden ("contacts", "atlas"). */
+  /** App ids whose Pins are hidden ("contacts", "atlas", "calendar"). */
   hidden?: readonly string[];
   /** A Place Kind's value: only Places of that Kind; the Addresses stay. "" or absent for every Kind. */
   kind?: string;
@@ -14,7 +14,8 @@ export interface WorldFilter {
  * The World home's Pins (ADR 0119): every Place's and every current Address's,
  * as Core reads them (a closed Place has none), less the Apps turned off and
  * the Places of another Kind or not To try. Both are read from the Place
- * itself: a Pin carries neither.
+ * itself: a Pin carries neither. An Event At a Place or a Person (#505)
+ * stands at their Pin and follows neither filter.
  */
 export function worldPins(pins: readonly SurfacePin[], places: readonly Document[], filter: WorldFilter): SurfacePin[] {
   const hidden = new Set(filter.hidden ?? []);

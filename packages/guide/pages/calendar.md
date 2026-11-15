@@ -96,6 +96,9 @@ The **Events** page has three tabs:
   its backlinks ("via At"), and its At shows wherever Events are listed ("At Chez Janou"), and in
   its Peek, where it can be changed. At on a Person never counts as having seen them: feeding
   Marc's cat while he is away is not seeing Marc. Put him in **With** for that.
+  An Event At a Place or a Person stands on the [World](world.md) map and the [Map](map.md) there,
+  with its title and day; see World for which home a Person's Event stands at. Claude is never
+  told where an Event At a Person is: it reads the Person's name only.
 - **Templates** — **Event templates** (title, length or all day, usual start, notes, Tags), each
   with **Add today**; and **Blocker templates** (title, length, colour).
 - **Blockers** — your Time blockers. A weekly one has a title, weekdays (or Every day / Weekdays /
