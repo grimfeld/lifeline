@@ -513,23 +513,34 @@ async function longAddresses(page: Page) {
 }
 
 /**
- * The Places screen and a Place page at their longest (ADR 0119): a Kind renamed
- * as long as a person could type, a Place carrying it with long aliases and Tags,
- * and a Day linking to it with an unlinked mention beside.
+ * The seeded Place at its longest (ADR 0119): a Kind renamed as long as a
+ * person could type, long aliases, Tags and address, on the map, and a Day
+ * linking to it with an unlinked mention beside.
  */
-async function longPlaces(page: Page) {
+async function seedLongPlace(page: Page) {
   await workLocally(page);
   await inCore(
     page,
-    async (core, a: { long: string; word: string }) => {
+    async (core, a: { long: string; word: string; address: string }) => {
       const [doc] = await core.documentsOf("atlas_place");
       await core.saveFieldOptions("atlas_place", "kind", [{ value: "restaurant", label: `${a.long} ${a.word}` }]);
-      await core.patchDocument(doc!.id, { kind: "restaurant", aliases: [`${a.long} ${a.word}`, a.word], tags: [`${a.word}-tag`] });
+      await core.patchDocument(doc!.id, { kind: "restaurant", aliases: [`${a.long} ${a.word}`, a.word], tags: [`${a.word}-tag`], address: `${a.address} ${a.word}`, geo: [43.3, 5.4] });
       await core.createDocument({ type: "daily", title: "2001-03-04", body: `Lunch at [[${doc!.title}]]. ${doc!.title} again ${a.long}.` });
     },
-    { long: longText("A kind"), word: LONG_WORD },
+    { long: longText("A kind"), word: LONG_WORD, address: longText("An address") },
   );
+}
+
+/** The Places screen and a Place page at their longest: the seeded Place, its Kind's long name shown. */
+async function longPlaces(page: Page) {
+  await seedLongPlace(page);
   await expect(page.getByText(/^A kind/).first()).toBeVisible();
+}
+
+/** World's map with the long Place on it and its Kind's long name in the Kind filter. */
+async function longWorld(page: Page) {
+  await seedLongPlace(page);
+  await expect(page.getByRole("button", { name: /^Places 1$/ })).toBeVisible();
 }
 
 /** A Relationship as long as a person could type, so the People filter row holds a long toggle. */
@@ -788,7 +799,7 @@ const SCREENS: ScreenCase[] = [
   { name: "Progress", path: "/module/progress", afterOpen: workLocally },
   { name: "Knowledge module", path: "/module/languages" },
   { name: "Journal module", path: "/module/journal" },
-  { name: "World module", path: "/module/people" },
+  { name: "World module", path: "/module/people", afterOpen: longWorld },
   { name: "Notes module", path: "/module/notes" },
   { name: "Thoughts module", path: "/module/thoughts" },
   { name: "Research module", path: "/module/research" },
@@ -1033,6 +1044,19 @@ const SCREENS: ScreenCase[] = [
   { name: "Place", path: "/app/places/place/:id", type: "atlas_place", afterOpen: longPlaces },
   { name: "Places · Kinds", path: "/app/places", afterOpen: async (page) => { await longPlaces(page); await page.getByRole("button", { name: "Kinds", exact: true }).click(); await expect(page.getByRole("dialog", { name: "Kinds" })).toBeVisible(); } },
   { name: "Places · Add place", path: "/app/places", afterOpen: async (page) => { await longPlaces(page); await page.getByRole("button", { name: "Add place", exact: true }).click(); await expect(page.getByRole("dialog", { name: "Add a place" })).toBeVisible(); } },
+  {
+    name: "Places · Add place, a long address typed",
+    path: "/app/places",
+    afterOpen: async (page) => {
+      await longPlaces(page);
+      await page.getByRole("button", { name: "Add place", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Add a place" });
+      await dialog.getByLabel("Name").fill(`${longText("A name")} ${LONG_WORD}`);
+      await dialog.getByLabel("Address").fill(`${longText("An address")} ${LONG_WORD}`);
+      await dialog.getByRole("heading", { name: "Add a place" }).click();
+      await expect(dialog.getByText(/^Not on the map yet/)).toBeVisible();
+    },
+  },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },

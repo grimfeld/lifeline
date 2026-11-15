@@ -27,6 +27,8 @@ export interface ComboboxProps<T extends ComboboxOption = ComboboxOption> {
   /** The typed text, when the caller keeps it; otherwise the Combobox does, and clears it after a pick. */
   query?: string
   onQueryChange?: (query: string) => void
+  /** A pick fills the input itself (a name looked up, then kept): the query is left as `onValueChange` set it, not cleared. */
+  keepQuery?: boolean
   /** Options known at once, matched against the query accent- and case-insensitively. */
   options?: readonly T[]
   /**
@@ -82,6 +84,7 @@ function Combobox<T extends ComboboxOption>({
   onValueChange,
   query: queryProp,
   onQueryChange,
+  keepQuery = false,
   options = [],
   search,
   searchDelay = 350,
@@ -163,7 +166,7 @@ function Combobox<T extends ComboboxOption>({
       if (!o) return
       onValueChange(o.value, o)
     }
-    if (queryProp === undefined || onQueryChange) setQuery("")
+    if (!keepQuery && (queryProp === undefined || onQueryChange)) setQuery("")
     setFound([])
     inputRef.current?.focus()
   }

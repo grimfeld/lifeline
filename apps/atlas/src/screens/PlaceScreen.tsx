@@ -1,12 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
-import { PLACE_TYPE, documentType, patchDocument, useDocument, useLinkIndex, type Document } from "@lifeline/core";
+import { Link, useNavigate, useParams } from "react-router";
+import { PLACE_TYPE, appById, documentType, patchDocument, useDocument, useLinkIndex, type Document } from "@lifeline/core";
 import { BacklinksSection, DocumentEditor, UnlinkedMentionsSection, useOpenLinkRef } from "@lifeline/editor";
-import { Field, Input, Page, PageHeader, useCommitDraft } from "@lifeline/ui";
+import { Field, Input, MiniMap, Page, PageHeader, useCommitDraft } from "@lifeline/ui";
 import { ArrowLeft } from "lucide-react";
 import { PLACES_HREF, placeHref } from "../constants";
 import { PlaceTaken, livePlace, patchPlace } from "../data/repo";
 import { PlaceFields } from "../components/PlaceFields";
+import { placeCoordsOf } from "../domain/place";
 
 const back = (
   <Link to={PLACES_HREF} className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline">
@@ -59,9 +60,20 @@ function NameField({ place }: { place: Document }) {
   );
 }
 
+/** The Place's spot, read from its stored coordinates (never looked up here, ADR 0011); nothing while it has none. */
+function PlaceMap({ place, onExpand }: { place: Document; onExpand: () => void }) {
+  const at = placeCoordsOf(place);
+  if (!at) return null;
+  return (
+    <section aria-label="On the map" className="min-w-0">
+      <MiniMap lat={at.lat} lon={at.lon} color={appById("atlas")?.color} onExpand={onExpand} />
+    </section>
+  );
+}
+
 /**
  * A Place's page (ADR 0119): a hidden route, and the Peek's "Open". Its name,
- * Kind, aliases and Tags; what it is, in the body; and what links to it, with
+ * Kind, address and its spot on a map, aliases and Tags; what it is, in the body; and what links to it, with
  * the prose that names it unlinked. Two columns on the desk, stacked on a phone.
  */
 export function PlaceScreen() {
@@ -70,6 +82,7 @@ export function PlaceScreen() {
   const place = useMemo(() => livePlace(row), [row]);
   const index = useLinkIndex();
   const open = useOpenLinkRef(index);
+  const navigate = useNavigate();
   // Only the body and its Tags are written from the editor, so a Field changed beside it is never sent back as it was.
   const saveBody = useCallback((next: Document) => patchDocument(next.id, { body: next.body, tags: next.tags }), []);
 
@@ -91,6 +104,7 @@ export function PlaceScreen() {
         <section className="grid min-w-0 content-start gap-3" aria-label="Details">
           <NameField key={place.id} place={place} />
           <PlaceFields place={place} />
+          <PlaceMap place={place} onExpand={() => navigate(`/map?focus=${PLACE_TYPE}/${place.id}`)} />
         </section>
         <div className="grid min-w-0 content-start gap-6">
           <section className="grid min-w-0 gap-2">

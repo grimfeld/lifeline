@@ -257,6 +257,12 @@ export interface DocumentTypeDef {
    */
   describe?: (doc: Document) => Promise<Record<string, unknown>>;
   /**
+   * Field keys `search_documents` gives with each of this type's hits, so an
+   * agent need not get each one to see what it found (a Place's address). The
+   * agent wall still holds: a walled key is never given. Declared in code.
+   */
+  searchFields?: string[];
+  /**
    * The agent wall (ADR 0114): keys of this type's Documents an agent never
    * reads or writes, whatever Fields declare them (a Person's Addresses and
    * Contact details). The MCP server strips them from every answer and refuses

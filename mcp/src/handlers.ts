@@ -210,7 +210,16 @@ function summary(doc: Document, query?: string) {
     const from = Math.max(0, at - 60);
     snippet = (from > 0 ? "…" : "") + body.slice(from, from + 200).replace(/\s+/g, " ").trim() + (body.length > from + 200 ? "…" : "");
   }
-  return { id: doc.id, type: doc.type, title: doc.title, folder: doc.folder || undefined, tags: doc.tags.length ? doc.tags : undefined, updatedAt: doc.updatedAt, snippet };
+  return { id: doc.id, type: doc.type, title: doc.title, folder: doc.folder || undefined, tags: doc.tags.length ? doc.tags : undefined, updatedAt: doc.updatedAt, snippet, fields: searchFieldsOf(doc) };
+}
+
+/** The Fields a type gives with its search hits (`searchFields`, a Place's address), the walled ones never; none when it gives none. */
+function searchFieldsOf(stored: Document): Record<string, unknown> | undefined {
+  const keys = documentTypeSync(stored.type)?.searchFields;
+  if (!keys?.length) return undefined;
+  const doc = agentView(stored);
+  const out = Object.fromEntries(keys.flatMap((k) => (doc[k] === undefined || doc[k] === "" || doc[k] === null ? [] : [[k, doc[k]]])));
+  return Object.keys(out).length ? out : undefined;
 }
 
 function full(stored: Document) {

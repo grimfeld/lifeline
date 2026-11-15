@@ -6,11 +6,11 @@ link to from anywhere, with a page of its own. Places sit beside People in [Worl
 ## Atlas
 
 What you keep here: Places, each with a name, the other names you call it (aliases), a **Kind**,
-Tags, and a page of your own words about it: what you ordered, what you thought, who told you
+an **address**, Tags, and a page of your own words about it: what you ordered, what you thought, who told you
 about it. There is no rating: what you think stays in your own words.
 
-- **Add place** — a name is all it takes; pick a Kind too if you like. Where: the Places screen,
-  the Capture sheet, the palette (Ctrl+K).
+- **Add place** — a name is all it takes; pick a Kind and an address too if you like. Where: the
+  Places screen, the Capture sheet, the palette (Ctrl+K).
 - **Go to Places** — opens the Places screen. Where: the palette.
 - **Places** — every Place in the current Workspace, A to Z. **Kind** narrows the list to one Kind;
   on a phone it is under **Filters**. Click a Place to open its page. With no Place yet, the screen
@@ -26,12 +26,34 @@ Place with a name a Place already has, or renaming one to it, is refused, whatev
 accents, and the Place there is offered instead: **Open** it rather than make a second. Two branches
 of a chain are two Places with two names: "Lidl Jean Jaurès" and "Lidl Prado".
 
+### Finding its address
+
+Type a Place's name, or its address, in **Add place** and real places that match are offered as
+you type, each with its address. Pick one and it fills the name, the address and the spot on the
+map in one go. When nothing matches (a small or new place), type the address yourself and press
+**Locate** to find it; if several places answer, choose one. Or just **Add**: a typed address is
+looked up once when the Place is saved. One found nowhere is kept all the same, off the map, and
+the form says so: "Not on the map yet".
+
+The spot is found only then, when you pick or save, never when a map is drawn, so maps stay fast
+and work offline. A Place with no address, or one found nowhere, has no Pin.
+
 ### A Place's page
 
-Its name, which you rename right there (every `[[link]]` to the old name follows), its Kind,
-aliases and Tags; **Notes**, the page of your own words; then **Backlinks**, every Day, note and
+Its name, which you rename right there (every `[[link]]` to the old name follows), its Kind, its
+**Address**, aliases and Tags, and its spot on a small map (expand it to open the
+[Map](map.md) there); **Notes**, the page of your own words; then **Backlinks**, every Day, note and
 Event that links to it, and **Unlinked mentions**, the prose that names it without a link, ready
-to link. A Place's Peek edits its Kind, aliases and Tags, and **Open** leads to its page.
+to link. A Place's Peek edits its Kind, address, aliases and Tags, and **Open** leads to its page.
+
+To change the address, type a new one and press **Save address**, which looks it up again, or pick
+a match, which is saved at once with its spot. An address that is not on the map yet offers
+**Locate**. Clearing the address takes the Place off the map.
+
+### On the map
+
+A Place with an address found stands on [World](world.md)'s map and on the [Map](map.md), as a pin
+in Atlas's colour, apart from People's homes.
 
 ### Linking to a Place
 
@@ -47,10 +69,11 @@ everywhere.
 
 ## Ask Claude
 
-Places are open to Claude: it can find and read them, Kind, aliases, Tags and notes included.
+Places are open to Claude: it can find and read them, Kind, address, aliases, Tags and notes
+included. Its searches show each Place's Kind and address.
 
 - "Save that ramen place Anne told me about" — `places_add`, with a name and, if you like, a Kind,
-  aliases and Tags. A name a Place already has is refused, and Claude is told which Place it is.
+  an address (looked up once to put it on the map), aliases and Tags. A name a Place already has is refused, and Claude is told which Place it is.
 - "Which museums have I saved?" — Claude searches your Places and reads them.
 
 ## Tips
@@ -60,7 +83,8 @@ Places are open to Claude: it can find and read them, Kind, aliases, Tags and no
 
 ## Related
 
-- [World](world.md) — the Module Places belong to.
+- [World](world.md) — the Module Places belong to, and its map.
+- [Map](map.md) — every pin, Places among them.
 - [People](people.md) — the people in your life, beside Places in World.
 - [Links](links.md) — how `[[links]]`, aliases and backlinks work.
 - [Graph](graph.md) — what connects to your Places.
