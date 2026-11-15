@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { addDays, diffDays, formatHuman, type DateStr } from "../dates";
 import { mentionable, type LinkIndex } from "./links";
-import { DAY_TYPE, eventSpan, MAX_SPAN } from "./sourceDays";
+import { dayOf, eventSpan, MAX_SPAN } from "./sourceDays";
 import type { DocumentTypeDef, ReportKind, ReportSetting } from "./types";
 
 /**
@@ -12,7 +12,7 @@ import type { DocumentTypeDef, ReportKind, ReportSetting } from "./types";
  * them. Periods, other Documents and unlinked mentions never count.
  */
 
-export { DAY_TYPE, EVENT_TYPE } from "./sourceDays";
+export { DAY_TYPE, EVENT_TYPE, dayOf, isDateStr } from "./sourceDays";
 
 export type ReportFamily = "ranking" | "document";
 /** What a Report counts (ADR 0112): Days that link (Mentioned) or Events that link (Seen). */
@@ -84,7 +84,8 @@ export function mentionDays(index: LinkIndex, docId: string): DateStr[] {
   const days = new Set<DateStr>();
   for (const b of index.reaches(docId)) {
     const src = index.byId.get(b.sourceId);
-    if (src?.type === DAY_TYPE && /^\d{4}-\d{2}-\d{2}$/.test(src.title)) days.add(src.title);
+    const day = dayOf(src);
+    if (day) days.add(day);
   }
   return [...days].sort();
 }
