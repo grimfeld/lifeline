@@ -79,6 +79,10 @@ export const AGENT_WALLED_KEYS = ["addresses", "contactDetails"] as const;
 
 export interface Person extends Document {
   type: typeof PERSON_TYPE;
+  /** Their own name ("Anne"); optional, never part of the title once made, and one of their names for links (ADR 0117). */
+  givenName?: string;
+  /** The name they share with their family ("Dupont"); optional, never grouping. */
+  familyName?: string;
   /** Other names they go by: `[[Mum]]` lands on Anne Dupont. */
   aliases: string[];
   /** What they are to me, in my own words ("my aunt"); "" when not said. Not a Tie, not a Tag. */
@@ -120,4 +124,36 @@ export interface Tie extends Document {
   b: string;
   labelA: string;
   labelB: string;
+}
+
+/** The type of a Household (ADR 0117): App-prefixed, as Person's is, so a user's own `household` type stays theirs. */
+export const HOUSEHOLD = "contacts_household";
+
+/** Where a new Household lands (a home, never a rule). */
+export const HOUSEHOLDS_FOLDER = "People/Households";
+
+/**
+ * One Person's place in a Household (ADR 0117): chosen, never matched by a
+ * Family name. `since` and `until` are "YYYY-MM-DD" days, absent meaning
+ * always; someone who moves out gets an `until` and is never removed (#462).
+ * A Person is a member of a Household at most once.
+ */
+export interface Membership {
+  personId: string;
+  since?: string;
+  until?: string;
+}
+
+/**
+ * A **Household** (CONTEXT.md): the People who live together, "the Smiths".
+ * Linkable by its title and aliases, with a body. Its `members` are the
+ * Contacts App's own (guarded, hidden): only the Household page, its Peek and
+ * a Person's page change them. It holds no Person's data, so deleting it
+ * touches no Person; deleting a Person drops their memberships.
+ */
+export interface Household extends Document {
+  type: typeof HOUSEHOLD;
+  aliases: string[];
+  members: Membership[];
+  body?: string;
 }

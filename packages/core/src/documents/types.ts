@@ -1,5 +1,7 @@
 import type * as React from "react";
 import type { SyncedRecord } from "../data/db";
+import type { DateStr } from "../dates";
+import { normalizeName } from "../markdown";
 
 /**
  * The Document (ADR 0018): the one basic block. Every user-facing record is
@@ -172,9 +174,28 @@ export interface DocumentTypeDef {
    * its titles it stands for — a scripture range `John 3:16–18` → three
    * Verse titles — or null when the name is not its business. `mentions:
    * false` keeps the type's Documents out of Unlinked mentions (CONTEXT.md):
-   * still wikilink targets, never offered from plain prose.
+   * still wikilink targets, never offered from plain prose. `extraNames`
+   * (ADR 0117) gives a Document names beside its aliases Field, derived from
+   * its own Fields (a Person's Given name): they resolve, complete and are
+   * mentioned as aliases are, read through `aliasesOf`, and are never written
+   * into the aliases Field — correcting the Field corrects the name.
+   * `members` (ADR 0117) says which Documents one of the type's Documents
+   * stands for, each with the days it does (a Household's members, since and
+   * until): a link to it reaches them on those days (`LinkIndex.reaches`),
+   * never as a Backlink. Read once per Document, however many days its
+   * linking sources span. Declared in code.
    */
-  linkable?: boolean | { aliasesField?: string; subtitle?: (doc: Document) => string | undefined; expand?: (name: string) => string[] | null; mentions?: boolean };
+  linkable?:
+    | boolean
+    | {
+        aliasesField?: string;
+        subtitle?: (doc: Document) => string | undefined;
+        expand?: (name: string) => string[] | null;
+        mentions?: boolean;
+        extraNames?: (doc: NamedRow) => string[];
+        /** The Documents this one stands for, each with the days it does. */
+        members?: (doc: Document) => MemberSpan[];
+      };
   /**
    * Text Fields whose wikilinks the link index reads as links, for a type with
    * no body that keeps its prose in a Field (an Event's Notes). They make
@@ -243,6 +264,15 @@ export interface DocumentTypeDef {
    */
   followers?: (doc: Document) => Promise<string[]>;
   /**
+   * Run once a Document has moved to another Workspace, with the rest of that
+   * move already written, Attachments included (so Documents moved together
+   * see each other there): the owning App drops what now points across the
+   * boundary, as `onDelete` does on delete (a Household's members of another
+   * Workspace). Every moved Document's hook runs; the first that throws is
+   * reported after them, and the move stays written (ADR 0118).
+   */
+  onMove?: (doc: Document, workspace: string) => Promise<void>;
+  /**
    * How the type describes one of its Documents to an agent (ADR 0098): what
    * the owning App's screens show of it beyond its fields — a Project's Board
    * — as plain JSON. `get_document` answers it under `detail`; the UI never
@@ -308,12 +338,60 @@ export function displayTitle(doc: Document, def?: Pick<DocumentTypeDef, "titleOf
   return t || "(untitled)";
 }
 
-/** Aliases of a Document for link resolution (the `aliases` list field by default). */
-export function aliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
+/** The key of a type's aliases Field: the `aliases` list Field unless the type names another. */
+export function aliasesKey(def?: Pick<DocumentTypeDef, "linkable"> | null): string {
   const l = def?.linkable;
-  const key = typeof l === "object" && l?.aliasesField ? l.aliasesField : "aliases";
-  const v = doc[key];
+  return typeof l === "object" && l?.aliasesField ? l.aliasesField : "aliases";
+}
+
+/** What a Document's aliases Field holds, and only that: the base of a write to it. */
+/**
+ * One Document a Linkable stands for (ADR 0117), from `since` to `until`, both
+ * included; a missing bound means always.
+ */
+export interface MemberSpan {
+  id: string;
+  since?: DateStr;
+  until?: DateStr;
+}
+
+/** Whether a span covers a day. */
+export const spanCovers = (span: MemberSpan, day: DateStr): boolean => (!span.since || span.since <= day) && (!span.until || day <= span.until);
+
+/** The ids a Linkable stands for on a day, in the order its spans give them. */
+export const membersOnDay = (spans: readonly MemberSpan[], day: DateStr): string[] => spans.filter((s) => spanCovers(s, day)).map((s) => s.id);
+
+/** What naming a Document reads of it: its title and its flat fields. A Document is one; so is a row an App reads before it is stored. */
+export type NamedRow = Pick<Document, "title"> & { [field: string]: unknown };
+
+export function typedAliasesOf(doc: NamedRow, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
+  const v = doc[aliasesKey(def)];
   return Array.isArray(v) ? v.map(String).filter(Boolean) : typeof v === "string" && v ? [v] : [];
+}
+
+/**
+ * Aliases of a Document for link resolution, completion and Unlinked
+ * mentions: its aliases Field, then the extra names its type derives
+ * (`linkable.extraNames`) that are not blank, its title or an alias already.
+ * Like `linkable.members`, `extraNames` is a trusted pure read: a throw is a
+ * bug in the type and surfaces, it is not swallowed.
+ */
+export function aliasesOf(doc: NamedRow, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
+  const typed = typedAliasesOf(doc, def);
+  const l = def?.linkable;
+  const extra = typeof l === "object" ? l?.extraNames : undefined;
+  if (!extra) return typed;
+  const names = extra(doc);
+  const seen = new Set([doc.title, ...typed].map(normalizeName));
+  const out = [...typed];
+  for (const n of names) {
+    const name = typeof n === "string" ? n.trim() : "";
+    const k = normalizeName(name);
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(name);
+  }
+  return out;
 }
 
 /** Coordinates of a Document per its type's Locatable declaration. */

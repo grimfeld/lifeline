@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
 import { inCore } from "./support/core";
+import { openPalette } from "./support/palette";
 import { expectNoBrokenLayout, layoutProblems } from "./support/layout";
 import { selectText } from "./support/selection";
 import { datePickerLabelled, dayFromToday, openCalendar, showPhoneFilters } from "./support/date-picker";
@@ -530,6 +531,41 @@ async function longAddresses(page: Page) {
   await expect(page.getByTestId("address")).toHaveCount(3);
 }
 
+/**
+ * The seeded Household (its title as long as a person could type) holding
+ * every seeded Person, and a second as long, so a Person's page names two
+ * Households and the Household's page lists its members (ADR 0117).
+ */
+async function longHouseholds(page: Page) {
+  await workLocally(page);
+  await inCore(
+    page,
+    async (core, a: { long: string }) => {
+      const people = await core.documentsOf("contacts_person");
+      const members = people.map((p) => ({ personId: p.id }));
+      const [seeded] = await core.documentsOf("contacts_household");
+      await core.patchDocument(seeded!.id, { members });
+      await core.putDocument({ type: "contacts_household", title: a.long, aliases: [], members, tags: [] });
+    },
+    { long: longText("Another household") },
+  );
+}
+
+/**
+ * The seeded Household with a former member: the Households' first Person
+ * given an until day long past, so the page lists them apart, with their
+ * days (ADR 0117). Run after `longHouseholds`.
+ */
+async function formerMember(page: Page) {
+  await inCore(page, async (core) => {
+    for (const h of await core.documentsOf("contacts_household")) {
+      const [first, ...rest] = h.members as { personId: string }[];
+      await core.patchDocument(h.id, { members: [{ ...first!, since: "1990-01-01", until: "2001-02-03" }, ...rest] });
+    }
+  }, undefined);
+  await expect(page.getByRole("group", { name: "Former members" }).getByTestId("member")).toHaveCount(1);
+}
+
 /** A Relationship as long as a person could type, so the People filter row holds a long toggle. */
 async function longRelationship(page: Page) {
   await workLocally(page);
@@ -1027,8 +1063,45 @@ const SCREENS: ScreenCase[] = [
   { name: "Museum", path: "/app/museum" },
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
   { name: "People", path: "/app/people", afterOpen: longRelationship },
+  {
+    // Add a person with the longest names a person could type: the two name inputs stack on a phone.
+    name: "People · Add person",
+    path: "/app/people",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await openPalette(page);
+      await page.keyboard.type("Add person");
+      await page.getByRole("option", { name: /Add person/ }).first().click();
+      const dialog = page.getByRole("dialog", { name: "Add a person" });
+      await dialog.getByLabel("Given name").fill(longText("Given"));
+      await dialog.getByLabel("Family name").fill(longText("Family"));
+      await expect(dialog.getByLabel("Name", { exact: true })).not.toHaveValue("");
+    },
+  },
+  {
+    // The tidy-up notice and its dialog over a Person whose long title starts with a long alias.
+    name: "People · Tidy given names",
+    path: "/app/people",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await inCore(
+        page,
+        async (core, a: { long: string }) => {
+          await core.createDocument({ type: "contacts_person", title: `${a.long} Dupont`, fields: { aliases: [a.long, `${a.long} Annie`] } });
+        },
+        { long: LONG_WORD },
+      );
+      await page.getByRole("button", { name: "Tidy given names…" }).click();
+      await expect(page.getByRole("dialog", { name: "Tidy given names" })).toBeVisible();
+    },
+  },
   { name: "Person", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); } },
   { name: "Person · Edit", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); await page.getByRole("button", { name: "Edit", exact: true }).click(); } },
+  { name: "Person · Households", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
+  { name: "Households", path: "/app/people/households", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },
+  { name: "Household", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await workLocally(page); await expect(page.getByText("No members yet.")).toBeVisible(); } },
+  { name: "Household · former members", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await longHouseholds(page); await formerMember(page); } },
+  { name: "Household · members", path: "/app/people/household/:id", type: "contacts_household", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByTestId("member").first()).toBeVisible(); } },
   { name: "Thoughts", path: "/app/thoughts" },
   { name: "Thought", path: "/app/thoughts/:id", type: "thought" },
   { name: "Notes · Sources", path: "/app/notes" },

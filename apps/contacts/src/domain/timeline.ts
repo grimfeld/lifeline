@@ -1,4 +1,4 @@
-import { DAY_TYPE, diffDays, lastDayCovered, todayStr, type DateStr, type LinkIndex } from "@lifeline/core";
+import { DAY_TYPE, diffDays, isDateStr, lastDayCovered, todayStr, type DateStr, type LinkIndex, type Reach } from "@lifeline/core";
 import type { UpcomingOccasion } from "./occasions";
 
 /** One thing on a Person's timeline (#422): a Document that links to them, on its own day. */
@@ -14,14 +14,14 @@ export interface TimelineEntry {
   endDay?: DateStr;
   /** The Link field it links through (an Event's With); none when it names them in its text. */
   field?: string;
+  /** The Household it links to, when it reaches them through one they were a member of then (ADR 0117). */
+  via?: string;
 }
-
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** A date-only value as is; a timestamp as the local day it falls on (what todayStr says). */
 function localDay(v: unknown): DateStr | undefined {
   if (typeof v !== "string") return undefined;
-  if (DAY.test(v)) return v;
+  if (isDateStr(v)) return v;
   const t = new Date(v);
   return Number.isNaN(t.getTime()) ? undefined : todayStr(t);
 }
@@ -50,18 +50,29 @@ function dayOf(d: { type: string; title: string } & Record<string, unknown>): En
 }
 
 /**
+ * Whether a reach takes the place of the entry already kept for its source:
+ * a direct link through a Link field over one that is not. A direct link
+ * already beats one through a Household, because `reaches` lists direct links
+ * first and a source through a Household only when it names no one directly.
+ */
+const outranks = (r: Reach, kept: TimelineEntry): boolean => !r.via && !!r.field && !kept.field;
+
+/**
  * What links to a Person, newest first: Events with them, Tasks for them,
- * notes and Days that name them. Each Document once, by its Link field when
- * it has one (a Day naming them by name and by alias is one entry).
+ * notes and Days that name them, and what links to a Household they were a
+ * member of then (ADR 0117). Each Document once, by its Link field when it has
+ * one (a Day naming them by name and by alias is one entry), and by a direct
+ * link over one through their Household.
  */
 export function timelineOf(index: LinkIndex, personId: string): TimelineEntry[] {
   const byId = new Map<string, TimelineEntry>();
-  for (const b of index.backlinksTo(personId)) {
+  for (const b of index.reaches(personId)) {
     const d = index.byId.get(b.sourceId);
     if (!d) continue;
     const had = byId.get(b.sourceId);
-    if (had && (had.field || !b.field)) continue;
-    byId.set(b.sourceId, { sourceId: b.sourceId, type: d.type, title: d.title, ...dayOf(d), ...(b.field ? { field: b.field } : {}) });
+    if (had && !outranks(b, had)) continue;
+    const how = b.via ? { via: b.via } : b.field ? { field: b.field } : {};
+    byId.set(b.sourceId, { sourceId: b.sourceId, type: d.type, title: d.title, ...dayOf(d), ...how });
   }
   return [...byId.values()].sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || a.title.localeCompare(b.title));
 }

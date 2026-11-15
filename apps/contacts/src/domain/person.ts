@@ -1,5 +1,6 @@
 import { dotJoin } from "./dots";
-import { QUICK_MAKE_MAX, initialText, type Handoff } from "@lifeline/core";
+import { PERSON_TYPE, QUICK_MAKE_MAX, aliasesOf, documentType, initialText, type Handoff } from "@lifeline/core";
+import type { Person } from "./types";
 
 /**
  * The name a Person is made with from a Handoff: the selected words when they
@@ -23,16 +24,34 @@ export const initialName = (handoff: Handoff | undefined, initial: Record<string
 /** A name as compared: case and accents aside. */
 export const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
 
+/** Every name a Person answers to beside their title: aliases and Given name, as links read them (ADR 0117). */
+export const otherNamesOf = (p: PersonNames): string[] => aliasesOf(p, documentType(PERSON_TYPE));
+
+/** What naming a Person reads of them: their title, and the aliases and Given name when they have them. */
+export type PersonNames = Pick<Person, "title"> & Partial<Pick<Person, "aliases" | "givenName">>;
+
 /**
  * The one Person a name or alias points to (case and accents aside), else a
  * readable refusal: nobody has it, or several do (and who they are, so the
  * caller can say which). Used by the agents' `people_occasion_add`.
  */
-export function findPerson<P extends { title: string; aliases?: string[] }>(people: readonly P[], name: string): { person: P } | { problem: string } {
+export function findPerson<P extends PersonNames>(people: readonly P[], name: string): { person: P } | { problem: string } {
   const want = fold(name);
   if (!want) return { problem: "Say which Person (a name or an alias)" };
-  const hits = people.filter((p) => [p.title, ...(p.aliases ?? [])].some((n) => fold(n) === want));
+  const hits = people.filter((p) => [p.title, ...otherNamesOf(p)].some((n) => fold(n) === want));
   if (hits.length === 1) return { person: hits[0]! };
   if (hits.length === 0) return { problem: `No Person called “${name.trim()}”` };
   return { problem: `“${name.trim()}” is ambiguous: ${hits.map((p) => p.title).join(", ")}. Use a name that is only one of them` };
 }
+
+/**
+ * The title a Person is added with when none is typed (ADR 0117): the Given and
+ * Family names, "Anne Dupont". Only at add: after that neither rewrites the other.
+ */
+export const composeTitle = (given: string | undefined, family: string | undefined) => [given, family].map((n) => (n ?? "").trim()).filter(Boolean).join(" ");
+
+/** An alias is a name, kept as written: not lower-cased and hyphenated as a Tag is. A TagInput's `normalize`. */
+export const asName = (raw: string) => raw.trim() || null;
+
+/** Aliases as stored: each trimmed, blanks dropped. A Person's and a Household's alike. */
+export const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);

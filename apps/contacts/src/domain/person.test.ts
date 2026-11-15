@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { QUICK_MAKE_MAX } from "@lifeline/core";
-import { findPerson, initialName, knownLine, nameFromHandoff } from "./person";
+import { composeTitle, findPerson, initialName, knownLine, nameFromHandoff } from "./person";
 
 describe("the name a Person is made with from a Handoff", () => {
   it("is the selected words when they are a name", () => {
@@ -57,5 +57,19 @@ describe("the line under a Person's name", () => {
     expect(knownLine(["Mum"], null)).toBe("also Mum");
     expect(knownLine([], 0)).toBe("0 years old");
     expect(knownLine([], null)).toBe("");
+  });
+});
+
+describe("the title composed from the names (ADR 0117)", () => {
+  it("is the Given and Family name, trimmed", () => {
+    expect(composeTitle(" Anne ", "Dupont")).toBe("Anne Dupont");
+    expect(composeTitle("Anne", "García López")).toBe("Anne García López");
+  });
+  it("is the one name given when the other is blank or missing", () => {
+    expect(composeTitle("Anne", "  ")).toBe("Anne");
+    expect(composeTitle(undefined, "Dupont")).toBe("Dupont");
+  });
+  it("is empty with neither", () => {
+    expect(composeTitle("", undefined)).toBe("");
   });
 });
