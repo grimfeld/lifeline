@@ -10,6 +10,8 @@ export interface TimelineEntry {
   day: DateStr | null;
   /** Whether `day` is the Document's own (its date, a Day's title), not the last-changed fallback; only an own day can be ahead. */
   ownDay: boolean;
+  /** The last day of an own-dated entry that runs over several (an Event's End day); it is ahead until this day has passed. */
+  endDay?: DateStr;
   /** The Link field it links through (an Event's With); none when it names them in its text. */
   field?: string;
 }
@@ -24,9 +26,12 @@ function localDay(v: unknown): DateStr | undefined {
   return Number.isNaN(t.getTime()) ? undefined : todayStr(t);
 }
 
-function dayOf(d: { type: string; title: string } & Record<string, unknown>): { day: DateStr | null; ownDay: boolean } {
+function dayOf(d: { type: string; title: string } & Record<string, unknown>): { day: DateStr | null; ownDay: boolean; endDay?: DateStr } {
   const own = localDay(d.type === DAY_TYPE ? d.title : d.date);
-  if (own) return { day: own, ownDay: true };
+  if (own) {
+    const end = d.type === DAY_TYPE ? undefined : localDay(d.endDate);
+    return { day: own, ownDay: true, ...(end && end > own ? { endDay: end } : {}) };
+  }
   for (const v of [d.updatedAt, d.createdAt]) {
     const day = localDay(v);
     if (day) return { day, ownDay: false };
@@ -79,8 +84,9 @@ const stopTitle = (s: TimelineStop) => (s.kind === "occasion" ? s.occasion.label
 /**
  * The two sides of the Today line, each by month, newest first. Ahead:
  * Occasions and what links in from today on, one order, the furthest at the
- * top and the soonest just above the line. Below: what is past, then what has
- * no day.
+ * top and the soonest just above the line; an Event still under way (begun,
+ * its End day not passed) is ahead too, by its first day, with no "how soon".
+ * Below: what is past, then what has no day.
  */
 export function timelineSides(
   entries: readonly TimelineEntry[],
@@ -90,7 +96,8 @@ export function timelineSides(
   const ahead: TimelineStop[] = occasions.map((occasion) => ({ kind: "occasion", day: occasion.date, occasion }));
   const past: TimelineStop[] = [];
   for (const entry of entries) {
-    if (entry.ownDay && entry.day !== null && entry.day >= today) ahead.push({ kind: "entry", day: entry.day, entry, inDays: diffDays(today, entry.day) });
+    if (entry.ownDay && entry.day !== null && (entry.endDay ?? entry.day) >= today)
+      ahead.push({ kind: "entry", day: entry.day, entry, ...(entry.day >= today ? { inDays: diffDays(today, entry.day) } : {}) });
     else past.push({ kind: "entry", day: entry.day, entry });
   }
   ahead.sort((a, b) => (b.day ?? "").localeCompare(a.day ?? "") || (a.kind === b.kind ? 0 : a.kind === "occasion" ? -1 : 1) || stopTitle(a).localeCompare(stopTitle(b)));

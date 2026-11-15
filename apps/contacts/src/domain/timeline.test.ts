@@ -95,6 +95,20 @@ describe("the two sides of the Today line", () => {
     expect(first?.kind === "entry" && first.entry.sourceId).toBe("n");
     expect(first?.kind === "entry" && first.inDays).toBeUndefined();
   });
+  it("keeps an Event still under way above the line, by its first day, with no how soon", () => {
+    const trip = { ...base, id: "trip", type: "event", title: "Trip", date: "2026-11-13", endDate: "2026-11-20", with: ["anne"] } as unknown as Document;
+    const over = { ...base, id: "over", type: "event", title: "Weekend", date: "2026-11-07", endDate: "2026-11-13", with: ["anne"] } as unknown as Document;
+    const sides = timelineSides(timelineOf(buildLinkIndex([anne, trip, over], types), "anne"), [], today);
+    expect(names(sides.ahead)).toEqual([["2026-11", ["trip"]]]);
+    expect(names(sides.past)).toEqual([["2026-11", ["over"]]]);
+    const [stop] = sides.ahead[0]!.stops;
+    expect(stop?.kind === "entry" && stop.day).toBe("2026-11-13");
+    expect(stop?.kind === "entry" && stop.inDays).toBeUndefined();
+  });
+  it("keeps an Event ending today above the line, below one starting today", () => {
+    const ending = { ...entry("ending", "2026-11-10"), endDay: "2026-11-14" };
+    expect(names(timelineSides([entry("tonight", "2026-11-14"), ending], [], today).ahead)).toEqual([["2026-11", ["tonight", "ending"]]]);
+  });
   it("keeps an Event dated today above the line, saying today", () => {
     const [stop] = timelineSides([entry("tonight", "2026-11-14")], [], today).ahead[0]!.stops;
     expect(stop?.kind === "entry" && stop.inDays).toBe(0);
