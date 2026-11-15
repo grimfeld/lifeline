@@ -2,9 +2,9 @@ import { useMemo } from "react";
 import { addDays, diffDays, documentsOf, getDocument, normalizeTags, patchDocument, putDocument, putDocuments, removeDocument, useDocuments, type DateStr, type DocumentInput, type TimedWhen } from "@lifeline/core";
 import { EVENT_TYPE, type Event } from "../domain/types";
 import type { EventWhen } from "../domain/eventForm";
-import { rescheduled } from "../domain/events";
+import { rescheduled, spanOf } from "../domain/events";
 import { midnightNextDay } from "../domain/span";
-import { blockersFollowing } from "./attached";
+import { blockersFollowing, detachedFrom } from "./attached";
 
 /** PocketBase returns absent text fields as ""; re-establish null on read, and an old "24:00" end as 00:00 the next day (ADR 0090). */
 function normalize(e: Event): Event {
@@ -65,7 +65,8 @@ function endDayOf(input: { date: DateStr; endDate?: DateStr | null; end?: string
  * or tool moved it.
  */
 async function writeMoved(was: Event, now: Event): Promise<void> {
-  const blockers = await blockersFollowing(was, now);
+  // Made all day, its blockers are detached in the same write and stay where they stand (#519).
+  const blockers = !spanOf(now) && spanOf(was) ? await detachedFrom(was.id) : await blockersFollowing(was, now);
   await putDocuments([now as DocumentInput, ...blockers]);
 }
 
