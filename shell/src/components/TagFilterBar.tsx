@@ -18,7 +18,7 @@ export function TagFilterBar({ value, onChange, className }: { value: string[]; 
       {open ? (
         <>
           {/* The picker gives way on a phone header rather than running off the edge. */}
-          <TagPicker value={value} onChange={onChange} placeholder="Filter by tag…" className="w-56 max-md:w-full max-md:min-w-0" autoFocus={value.length === 0} />
+          <TagPicker aria-label="Filter by tag" value={value} onChange={onChange} placeholder="Filter by tag…" className="w-56 max-md:w-full max-md:min-w-0" autoFocus={value.length === 0} />
           <Button
             size="icon"
             variant="ghost"

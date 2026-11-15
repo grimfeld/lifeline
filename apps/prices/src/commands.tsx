@@ -68,6 +68,9 @@ function storedSecond(amount: unknown, unit: string | undefined, product: Produc
   }
 }
 
+/** One big grocery receipt can pass 50 lines, the MCP default cap (issue #481). */
+const MAX_RECEIPT_ROWS = 200;
+
 /**
  * Two capture Commands (ADR 0082): the receipt at the kitchen table, the price spotted on a shelf.
  * Lifeline reads no photo (ADR 0075): an agent reads the receipt and runs "Add receipt…" headless,
@@ -91,6 +94,7 @@ export const pricesCommands: CommandDef[] = [
         label: "Lines",
         kind: "rows",
         required: true,
+        maxValues: MAX_RECEIPT_ROWS,
         hint: "One row per priced entry. A discount printed on its own line is folded into the line it belongs to, which is then a promo.",
         of: [
           { key: "label", label: "Label", kind: "text", required: true, hint: "As printed." },

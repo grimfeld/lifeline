@@ -182,10 +182,9 @@ export function ProductDialog({ open, onOpenChange, product, defaultTitle, initi
               {clearedCount} will be cleared{into ? `: ${into.title} is not measured the same way` : ""}.
             </p>
           )}
-          <div className="grid gap-1.5">
-            <Label>Tags</Label>
+          <Field label="Tags">
             <TagInput value={tags} onChange={setTags} suggestions={vocabulary} />
-          </div>
+          </Field>
           {product && mergeTargets.length > 0 && (
             <div className="grid gap-1.5">
               <Label>Merge into another product</Label>

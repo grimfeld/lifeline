@@ -11,6 +11,11 @@ decision in `docs/adr/` outranks anything here.
 - **Vocabulary.** Identifiers, comments and every string a person sees use the terms in
   `CONTEXT.md`; a term's _Avoid_ list is binding ("an option its Choice doesn't offer",
   never "a choice its options don't offer").
+- **A new member reaches everything.** When a union or kind gains a member, every switch,
+  guard, message and Guide line on that union accounts for it. A test repeated across files
+  becomes one named predicate (`takesDocument`, not `kind === "link" || kind === "links"`).
+- **A result speaks its field's words.** A Command's result and refusal read in the words of
+  the Field they name: "with" for With, "for" for For, "recommended by" for Recommended by.
 - **ADRs.** A diff that contradicts an ADR is a finding, even when the code works: change
   the code, or the ADR in the same change.
 
@@ -131,7 +136,8 @@ A screen is not done until it survives the longest content a person could type (
 0065). `shell/e2e/screens.spec.ts` opens every screen at phone (360px) and desktop
 (1280px) width over a store seeded with very long titles, fields, folders, tags and
 unbroken words, and fails when text spills out of its box, is cut off without an ellipsis,
-or makes a box scroll sideways that was not meant to. How to run it: `shell/e2e/README.md`.
+or makes a box scroll sideways that was not meant to. How to run it, and the rules for writing a spec (what a wait targets, what to wait for
+before a read, what the seed holds): `shell/e2e/README.md`.
 
 - **A new screen gets a row in `SCREENS`** (App screen, Module page, Core page, Calendar
   view, detail page with `:id` + `type`). The test "every screen has a row in this file"
@@ -170,6 +176,7 @@ or makes a box scroll sideways that was not meant to. How to run it: `shell/e2e/
 ### Forms and feedback
 
 - A field is `Field` (Label, control, hint, error): `<Field label="Title" error={…}><Input/></Field>`.
+- `Field` gives its control a unique id and binds the label to it; pass `id` only when something outside the Field must address the control.
 - **(check)** Dates are picked from the kit's calendar, never the browser's (ADR 0087):
   `DatePicker` for a day, `DateTimeField` for a day and time, `DatePickerButton` for an
   icon jump, `CommitField type="date"` in a Peek. No native `type="date"` or

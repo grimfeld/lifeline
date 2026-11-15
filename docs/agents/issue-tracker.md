@@ -2,6 +2,8 @@
 
 Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
 
+In a cloud session there is no `gh` for issues or PRs: use the GitHub MCP tools (`issue_read`, `issue_write`, `add_issue_comment`, `update_pull_request`, loaded via ToolSearch) for each `gh` command below; `gh api -X GET search/issues` still works for search. Read a spec's tickets with `issue_read` `get` on the parent (its body or `sub_issues_summary`), then `get` each ticket, not `get_sub_issues`, which embeds the whole repository object in every child (about 20k tokens for four tickets).
+
 ## Conventions
 
 - **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.

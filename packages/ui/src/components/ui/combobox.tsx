@@ -56,6 +56,9 @@ export interface ComboboxProps<T extends ComboboxOption = ComboboxOption> {
   placeholder?: string
   autoFocus?: boolean
   "aria-label"?: string
+  /** A `Field` child: it takes the Field's id, description and invalid state. */
+  "aria-describedby"?: string
+  "aria-invalid"?: React.AriaAttributes["aria-invalid"]
   className?: string
   /** Runs before the Combobox's own keys (Backspace on an empty query to drop a chip, say). */
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>
@@ -92,6 +95,8 @@ function Combobox<T extends ComboboxOption>({
   placeholder,
   autoFocus,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
   className,
   onKeyDown,
 }: ComboboxProps<T>) {
@@ -199,6 +204,8 @@ function Combobox<T extends ComboboxOption>({
               placeholder={placeholder}
               autoFocus={autoFocus}
               aria-label={ariaLabel}
+              aria-describedby={ariaDescribedBy}
+              aria-invalid={ariaInvalid}
               className={cn(leading && "pl-8")}
               onChange={(e) => {
                 setQuery(e.target.value)

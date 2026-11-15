@@ -9,7 +9,7 @@
   // Windows-only lookup in scripts/dev-launcher.mjs.
   "ignoreBinaries": ["where"],
   "workspaces": {
-    ".": { "entry": ["scripts/*.mjs"], "project": ["scripts/**"] },
+    ".": { "entry": ["scripts/*.mjs"], "project": ["scripts/**"], "ignore": ["scripts/e2e-env.d.mts"] }, // typings for shell/playwright.config.ts, which knip does not trace
     "mcp": { "entry": ["src/server.ts", "scripts/*.mjs"], "project": ["src/**", "scripts/**"] },
     "packages/extension": { "entry": ["src/background.ts", "src/inject.ts"], "project": ["src/**", "scripts/**"] },
     "shell": {

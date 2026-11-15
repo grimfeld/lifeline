@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type AriaAttributes } from "react";
 import { PERSON_TYPE, useDocuments } from "@lifeline/core";
 import { Button, Combobox } from "@lifeline/ui";
 import { Search, X } from "lucide-react";
@@ -18,6 +18,8 @@ export function PeopleField({
   label = "People",
   placeholder = "Add a person…",
   autoFocus,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
 }: {
   value: string[];
   onChange: (ids: string[]) => void;
@@ -26,6 +28,9 @@ export function PeopleField({
   label?: string;
   placeholder?: string;
   autoFocus?: boolean;
+  /** A `Field` child: it takes the Field's id, description and invalid state. */
+  "aria-describedby"?: string;
+  "aria-invalid"?: AriaAttributes["aria-invalid"];
 }) {
   const people = useDocuments(PERSON_TYPE);
   const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
@@ -61,6 +66,8 @@ export function PeopleField({
         leading={<Search />}
         placeholder={placeholder}
         autoFocus={autoFocus}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
         onKeyDown={(e) => {
           const next = afterKey(e.key, query, value);
           if (!next) return;
