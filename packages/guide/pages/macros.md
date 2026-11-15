@@ -14,7 +14,7 @@ They are yours across every Workspace and every device.
     Note can be about the Source step 1 added, or an Event can be with the Person step 1 added. Only a
     step that makes a Document offers it: setting a mood makes none.
 - **A step can name People.** A list of People, such as **Add event**'s **With**, is filled as a
-  People field is: type a name or an alias and pick them from the suggestions, as many as you like;
+  People field is: type a name or an alias and pick them from the suggestions, up to 50;
   the cross on a name takes it off. Asked when it runs, the up-front form picks them the same way.
 - **Save** looks up each fixed link, and each name in a fixed list. One that fits no Document, or
   several, is not saved: the editor says which, under the field at fault, until you change it. A Macro broken any

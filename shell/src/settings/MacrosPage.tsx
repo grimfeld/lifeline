@@ -36,6 +36,7 @@ import {
   commandRun,
   deleteMacro,
   fixedLinkReasons,
+  reasonLine,
   memoLookup,
   moveStep,
   removeStep,
@@ -56,6 +57,7 @@ import {
 } from "@lifeline/core";
 import { ArrowDown, ArrowLeft, ArrowUp, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { ArgInput, argLabel } from "../macros/ArgInput";
+import { refusalKey, refusalsOf, withoutStep } from "./macroRefusals";
 
 /**
  * `/settings/macros` (ADR 0092): the user's Macros — each a Command made of
@@ -105,7 +107,7 @@ export function MacrosPage() {
         <ul className="flex flex-col gap-2" aria-label="Macros">
           {macros.map((m) => {
             const check = checks?.get(m.id);
-            const broken = check && !check.ok ? check.reasons.map((r) => r.text) : undefined;
+            const broken = check && !check.ok ? check.reasons.map(reasonLine) : undefined;
             return (
               <li key={m.id} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
                 <button
@@ -190,12 +192,23 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
   });
 
   // A step result follows the step it names, as a step moves or one before it goes.
-  const move = (i: number, by: -1 | 1) => setSteps((s) => moveStep(s, i, by));
-  const update = (i: number, change: Partial<DraftStep>) => setSteps((s) => s.map((st, j) => (j === i ? { ...st, ...change } : st)));
+  // A refusal is kept by its step's place: once steps move or go, or a step changes, it no longer holds.
+  const move = (i: number, by: -1 | 1) => {
+    setSteps((s) => moveStep(s, i, by));
+    setRefused({});
+  };
+  const drop = (i: number) => {
+    setSteps((s) => removeStep(s, i));
+    setRefused({});
+  };
+  const update = (i: number, change: Partial<DraftStep>) => {
+    setSteps((s) => s.map((st, j) => (j === i ? { ...st, ...change } : st)));
+    setRefused((r) => withoutStep(r, i));
+  };
   const setArg = (i: number, key: string, arg: StepArg) => {
     setSteps((s) => s.map((st, j) => (j === i ? { ...st, args: { ...st.args, [key]: arg } } : st)));
     // Editing the argument at fault answers its refusal.
-    setRefused((r) => omitKey(r, `${i}:${key}`));
+    setRefused((r) => omitKey(r, refusalKey(i, key)));
   };
 
   // A fixed link, or entry of a fixed list of links, that names no Document or several: saving refuses it, saying which.
@@ -208,8 +221,7 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
     setRefused({});
     const problems = fixedLinkReasons(await checkMacro(draft, commands, memoLookup()));
     if (problems.length) {
-      // The text opens with "Step N: ", which the field's own place already says.
-      setRefused(Object.fromEntries(problems.map((r) => [`${r.step}:${r.key}`, r.text.replace(/^Step \d+: /, "")])));
+      setRefused(refusalsOf(problems));
       return;
     }
     await saveMacro({ id: macro?.id, ...draft });
@@ -252,7 +264,7 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
                     </Button>
                   </Tip>
                   <Tip label="Remove step">
-                    <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => setSteps((st) => removeStep(st, i))}>
+                    <Button size="icon-sm" variant="ghost" className="shrink-0" onClick={() => drop(i)}>
                       <X />
                     </Button>
                   </Tip>
@@ -260,7 +272,7 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
                 {!def && <p className="text-destructive text-sm">This Command no longer exists.</p>}
                 {kind === "headless" &&
                   def!.args!.map((arg) => (
-                    <ArgSource key={arg.key} arg={arg} source={s.args[arg.key]} earlier={earlier} error={refused[`${i}:${arg.key}`]} onChange={(a) => setArg(i, arg.key, a)} />
+                    <ArgSource key={arg.key} arg={arg} source={s.args[arg.key]} earlier={earlier} error={refused[refusalKey(i, arg.key)]} onChange={(a) => setArg(i, arg.key, a)} />
                   ))}
                 {kind === "headless" && <SkipToggle checked={s.skipIfRefused} onChange={(skipIfRefused) => update(i, { skipIfRefused })} />}
                 {kind === "dialog" && <p className="text-muted-foreground text-sm">Opens its own dialog at its turn.</p>}
@@ -283,7 +295,7 @@ function MacroEditor({ macro, commands, onClose }: { macro?: MacroRecord; comman
         />
         {Object.keys(refused).length > 0 && (
           <p role="alert" className="text-destructive text-sm">
-            Not saved: a fixed link names no Document, or several. Fix the fields marked below.
+            Not saved: a fixed link names no Document, or several. Fix the fields marked.
           </p>
         )}
         <DialogFooter>

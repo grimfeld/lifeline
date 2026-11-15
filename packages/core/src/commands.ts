@@ -141,11 +141,6 @@ export function matchLink(arg: CommandArg, value: string, docs: readonly Linkabl
   return linkMatcher(arg, docs)(value);
 }
 
-/** A document in `docs` the argument may name, by id: the one rule by which an id wins over any name. */
-function byIdIn(docs: readonly LinkableDocument[], value: string): LinkableDocument | undefined {
-  return docs.find((d) => d.id === value);
-}
-
 /**
  * `matchLink` for many values against the same Documents: the candidates' names
  * are normalised once, and each value is a lookup.
@@ -167,7 +162,8 @@ function linkMatcher(arg: CommandArg, docs: readonly LinkableDocument[]): (value
   };
   const noun = linkNoun(arg);
   return (value) => {
-    const byId = byIdIn(ofType, value);
+    // An id wins over any name.
+    const byId = ofType.find((d) => d.id === value);
     if (byId) return { id: byId.id };
     const wanted = normalizeName(value);
     const hits = (wanted && named().get(wanted)) || [];
@@ -217,11 +213,17 @@ async function areIds(arg: CommandArg, values: readonly string[]): Promise<boole
   return found.every((d) => d && linkCandidates(arg, [d]).length > 0);
 }
 
+/** Where a link argument's Documents are read from: its Role, else its type(s), else all. Two arguments with the same source read the same Documents. */
+export function linkSource(arg: CommandArg): { role: string } | { types: string[] } | { all: true } {
+  const types = linkTypes(arg);
+  return arg.linkRole ? { role: arg.linkRole } : types ? { types } : { all: true };
+}
+
 /** The Documents a link argument may name, read from the store (the current Workspace): of its Role, else its type(s), else all. */
 export async function linkableDocuments(arg: CommandArg): Promise<Document[]> {
-  const types = linkTypes(arg);
-  if (arg.linkRole) return documentsWithRole(arg.linkRole);
-  return types ? (await Promise.all(types.map((t) => documentsOf(t)))).flat() : allDocuments();
+  const from = linkSource(arg);
+  if ("role" in from) return documentsWithRole(from.role);
+  return "types" in from ? (await Promise.all(from.types.map((t) => documentsOf(t)))).flat() : allDocuments();
 }
 
 /** One argument, coerced to its kind; undefined when absent. Throws a readable message on a bad value. */

@@ -6,6 +6,7 @@ import {
   allCommands,
   allMacros,
   checkMacro,
+  reasonLine,
   memoLookup,
   commandNavigates,
   isInvocable,
@@ -311,7 +312,7 @@ function assertMacroOutsideWall(macro: MacroShape): void {
 async function assertFine(macro: MacroShape): Promise<void> {
   assertMacroOutsideWall(macro);
   const check = await checkMacro(macro, await registry());
-  if (!check.ok) throw new ToolError(`“${macro.name}” would be broken: ${check.reasons.map((r) => r.text).join("; ")}`);
+  if (!check.ok) throw new ToolError(`“${macro.name}” would be broken: ${check.reasons.map(reasonLine).join("; ")}`);
 }
 
 /** Run a Macro's tool headless, handing the agent the run's own report: every step's outcome, not only the sentence. */
@@ -349,7 +350,7 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     const list = await Promise.all(
       macros.map(async (m) => {
         const check = await checkMacro(m, all, lookup);
-        return { id: m.id, name: m.name, builtin: m.builtin, steps: m.steps, tool: tools.find((t) => t.macro === m.id)?.name, broken: check.ok ? undefined : check.reasons.map((r) => r.text) };
+        return { id: m.id, name: m.name, builtin: m.builtin, steps: m.steps, tool: tools.find((t) => t.macro === m.id)?.name, broken: check.ok ? undefined : check.reasons.map(reasonLine) };
       }),
     );
     // The Commands a step may name: the Apps' own (a Macro is never a step).
