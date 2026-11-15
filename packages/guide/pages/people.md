@@ -68,8 +68,9 @@ Below, two columns (one after the other on a phone):
   and Transactions for them, books they recommended, and the Days and notes that name them, each
   once, saying what it is and how it links ("via With", "mentioned"). A **Today** line splits it:
   above, their Occasions in the year ahead and whatever is dated today or later (a planned Event,
-  with how soon it is: "tomorrow", "in 29 days"); below, what is past, then what has no day. Click one to peek at it. Only an Event counts as having seen
-  them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]").
+  with how soon it is: "tomorrow", "in 29 days"); below, what is past, then what has no day.
+  Click one to peek at it. Only an Event counts as having seen them: its **With**, or a
+  `[[link]]` to them in its notes ("Dinner with [[Marc]]").
 
 Deleting a Person takes them out of every People field that held them (an Event's **With**, a
 Task's **For**…); the Events, Tasks and the rest stay. A `[[link]]` to them in a body becomes an

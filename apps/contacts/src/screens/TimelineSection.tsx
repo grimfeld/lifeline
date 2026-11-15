@@ -2,7 +2,7 @@ import { useMemo, type ReactNode } from "react";
 import { documentType, formatHuman, linkFieldLabel, singularOf, todayStr, useLinkIndex, useOpenPeek } from "@lifeline/core";
 import { cn } from "@lifeline/ui";
 import type { Person } from "../domain/types";
-import { upcomingOccasions, whenOf } from "../domain/occasions";
+import { upcomingOccasions, whenOf, type UpcomingOccasion } from "../domain/occasions";
 import { dotJoin } from "../domain/dots";
 import { monthLabel } from "../components/format";
 import { timelineOf, timelineSides, type TimelineMonth, type TimelineStop } from "../domain/timeline";
@@ -16,6 +16,21 @@ function Stop({ strong, children }: { strong?: boolean; children: ReactNode }) {
       <span aria-hidden className={cn("ring-background absolute top-1.5 left-0.5 size-2.5 rounded-full ring-4", strong ? "bg-primary" : "bg-muted-foreground")} />
       {children}
     </li>
+  );
+}
+
+/** An Occasion ahead: its label, the age it brings, and how soon it is. */
+function OccasionStop({ occasion: u }: { occasion: UpcomingOccasion }) {
+  return (
+    <Stop strong>
+      <p className="min-w-0 text-sm break-words">
+        <span className="font-medium">{u.label}</span>
+        {u.age !== null && <span className="text-muted-foreground"> · turns {u.age}</span>}
+      </p>
+      <p className="text-muted-foreground text-xs">
+        {formatHuman(u.date)} · {whenOf(u.inDays)}
+      </p>
+    </Stop>
   );
 }
 
@@ -45,20 +60,7 @@ export function TimelineSection({ person }: { person: Person }) {
   const { ahead, past } = useMemo(() => timelineSides(entries, upcomingOccasions([person], today, 364), today), [entries, person, today]);
 
   const render = (s: TimelineStop) => {
-    if (s.kind === "occasion") {
-      const u = s.occasion;
-      return (
-        <Stop key={`${u.occasionId}@${u.date}`} strong>
-          <p className="min-w-0 text-sm break-words">
-            <span className="font-medium">{u.label}</span>
-            {u.age !== null && <span className="text-muted-foreground"> · turns {u.age}</span>}
-          </p>
-          <p className="text-muted-foreground text-xs">
-            {formatHuman(u.date)} · {whenOf(u.inDays)}
-          </p>
-        </Stop>
-      );
-    }
+    if (s.kind === "occasion") return <OccasionStop key={`${s.occasion.occasionId}@${s.occasion.date}`} occasion={s.occasion} />;
     const e = s.entry;
     const source = index.byId.get(e.sourceId);
     const def = documentType(e.type);
@@ -79,7 +81,7 @@ export function TimelineSection({ person }: { person: Person }) {
     <Section title="Timeline">
       <ol className="min-w-0">
         {ahead.map((m) => (
-          <Month key={`ahead-${m.month}`} {...m} render={render} />
+          <Month key={`ahead-${m.month ?? "undated"}`} {...m} render={render} />
         ))}
         <li className="flex items-center gap-2 pb-3" aria-label="Today">
           <span aria-hidden className="bg-primary size-3.5 shrink-0 rounded-full" />

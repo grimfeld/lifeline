@@ -59,7 +59,7 @@ export interface TimelineMonth {
   stops: TimelineStop[];
 }
 
-/** Stops by month, in the order given; what has no day in a month of its own, null. */
+/** Groups stops by month, in the order given; stops with no day go in a month that is null. */
 export function timelineMonths(stops: readonly TimelineStop[]): TimelineMonth[] {
   const months: TimelineMonth[] = [];
   for (const s of stops) {
