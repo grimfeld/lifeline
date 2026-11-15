@@ -53,7 +53,9 @@ and the Templates every kind of page starts from.
 - **‹ ›** pages through periods, **This week** (or month…) jumps back, and **↑** climbs to the
   longer stretch around it.
 - The side column (or the Links sheet) adds who you mentioned most over the period, for each
-  type that tracks it, with **More →** to that type's own page.
+  type that tracks it, with **More →** to that type's own page; then who you saw most
+  (**People · Top seen**) and where you went most (**Places · Top visited**), counted from the
+  period's Events and never added to the mentions.
 
 ### Types
 

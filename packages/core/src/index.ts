@@ -47,6 +47,7 @@ export * from "./documents/links";
 export * from "./documents/fieldLinks";
 export * from "./documents/mentions";
 export * from "./documents/reports";
+export * from "./documents/timeline";
 export * from "./documents/graph";
 export * from "./documents/href";
 export * from "./documents/peek";

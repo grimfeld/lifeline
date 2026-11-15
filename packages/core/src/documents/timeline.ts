@@ -1,6 +1,8 @@
-import { DAY_TYPE, todayStr, type DateStr, type LinkIndex } from "@lifeline/core";
+import { todayStr, type DateStr } from "../dates";
+import type { LinkIndex } from "./links";
+import { DAY_TYPE } from "./reports";
 
-/** One thing on a Person's timeline (#422): a Document that links to them, on its own day. */
+/** One thing on a Document's timeline (#422: a Person's, ADR 0119: a Place's): a Document that links to it, on its own day. */
 export interface TimelineEntry {
   sourceId: string;
   type: string;
@@ -31,13 +33,14 @@ function dayOf(d: { type: string; title: string } & Record<string, unknown>): Da
 }
 
 /**
- * What links to a Person, newest first: Events with them, Tasks for them,
- * notes and Days that name them. Each Document once, by its Link field when
- * it has one (a Day naming them by name and by alias is one entry).
+ * What links to a Document, newest first: for a Person, Events with them,
+ * Tasks for them, notes and Days that name them; for a Place, Events At it.
+ * Each Document once, by its Link field when it has one (a Day naming it by
+ * name and by alias is one entry).
  */
-export function timelineOf(index: LinkIndex, personId: string): TimelineEntry[] {
+export function timelineOf(index: LinkIndex, docId: string): TimelineEntry[] {
   const byId = new Map<string, TimelineEntry>();
-  for (const b of index.backlinksTo(personId)) {
+  for (const b of index.backlinksTo(docId)) {
     const d = index.byId.get(b.sourceId);
     if (!d) continue;
     const had = byId.get(b.sourceId);
@@ -57,4 +60,14 @@ export function timelineMonths(entries: readonly TimelineEntry[]): { month: stri
     else months.push({ month, entries: [e] });
   }
   return months;
+}
+
+/**
+ * A timeline cut at today (ADR 0119): what is on a day after today, the
+ * farthest first so the nearest sits just above the Today line, and the rest
+ * (today's, the past's and the undated) below it, as `timelineOf` orders it.
+ */
+export function splitAtToday(entries: readonly TimelineEntry[], today: DateStr): { upcoming: TimelineEntry[]; past: TimelineEntry[] } {
+  const upcoming = entries.filter((e) => e.day !== null && e.day > today);
+  return { upcoming, past: entries.filter((e) => !upcoming.includes(e)) };
 }

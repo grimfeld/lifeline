@@ -128,6 +128,13 @@ export type TitleRule = "name" | "date" | "derived";
 /** The Report kinds a type may choose (ADR 0076): ranking kinds rank a type's Documents, the others describe one Document. */
 export type ReportKind = "top" | "quiet" | "last" | "count" | "heatmap" | "topSeen" | "quietSeen" | "lastSeen" | "seenCount" | "seenHeatmap";
 /** One chosen Report on a type, in the type's order, with its parameters. */
+/** A type's own words for the Seen family (ADR 0119): `{ verb: "visited", one: "visit", many: "visits" }`. */
+export interface SeenAs {
+  verb: string;
+  one: string;
+  many: string;
+}
+
 export interface ReportSetting {
   kind: ReportKind;
   /** How many Documents a ranking Report lists. */
@@ -292,6 +299,11 @@ export interface DocumentTypeDef {
   order?: number;
   /** The Reports the user chose for this type (ADR 0076); absent = the defaults (`reportsOf`). */
   reports?: ReportSetting[];
+  /**
+   * What this type calls the Seen family (ADR 0119): a Place is "visited", its
+   * days "visits". Absent, it is Seen, counted in days.
+   */
+  seenAs?: SeenAs;
   /** Built-in (code) vs user-defined (data). */
   builtIn: boolean;
   /** A built-in whose label/icon/fields were customised by a user record. */
