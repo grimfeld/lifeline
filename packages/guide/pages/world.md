@@ -17,9 +17,10 @@ Event's pin opens the Event in its Peek.
 
 - **Places**, **People** and **Events** chips at the top, each with its count: tap one to hide or
   show its pins. On a phone they sit in the Phone dock.
-- **Kind** narrows the Places to one Kind (cafés, museums…); People's and Events' pins stay.
+- **Kind** narrows the Places to one Kind (cafés, museums…), and the Events At them; People's
+  pins, and Events At a Person, stay.
 - **To try** shows only the Places marked To try, and goes with the Kind: a café near you that you
-  haven't tried. People's and Events' pins stay.
+  haven't tried, and the Events At those Places. People's pins, and Events At a Person, stay.
 - Only what has been found stands here: a Place whose address was found and that is not closed, a
   current Address with its spot. Drawing the map looks nothing up. A former Address, or one found nowhere, has no pin.
 - With nothing on the map yet, it says how to get something there.
