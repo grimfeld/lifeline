@@ -60,6 +60,10 @@ describe("people_add", () => {
     await runTool("people_add", { name: "Léa", aliases: ["Lele"], relationship: "my friend", tags: ["friends"] });
     expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ type: PERSON_TYPE, title: "Léa", fields: expect.objectContaining({ aliases: ["Lele"], relationship: "my friend", tags: ["friends"] }) }));
   });
+  it("keeps a Given and a Family name beside the title", async () => {
+    await runTool("people_add", { name: "Mum", givenName: "Anne", familyName: "Dupont" });
+    expect(core.createDocument).toHaveBeenCalledWith(expect.objectContaining({ title: "Mum", fields: expect.objectContaining({ givenName: "Anne", familyName: "Dupont" }) }));
+  });
   it("refuses an empty name", async () => {
     await expect(runTool("people_add", { name: " " })).rejects.toThrow(/Name is required/);
   });

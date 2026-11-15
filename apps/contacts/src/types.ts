@@ -36,6 +36,9 @@ export const personTypeDef: DocumentTypeDef = {
   describe: describePerson,
   agentWalled: AGENT_WALLED_KEYS,
   fields: [
+    // Beside the title, never part of it after add (ADR 0117).
+    { key: "givenName", label: "Given name", kind: "text", column: true },
+    { key: "familyName", label: "Family name", kind: "text", column: true },
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "relationship", label: "Relationship", kind: "text", column: true },
     // Left out of Drifting by choice (#420): set on the Person's page or from their Drifting row.

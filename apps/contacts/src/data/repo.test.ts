@@ -29,12 +29,31 @@ describe("adding a Person (ADR 0113)", () => {
     expect(p).toMatchObject({ aliases: ["Mum", "Maman"], relationship: "my mother", tags: ["family"] });
   });
 
+  it("keeps a Given and a Family name beside the title, empty when not given", async () => {
+    expect(await addPerson({ name: "Mum", givenName: " Anne ", familyName: "Dupont" })).toMatchObject({ title: "Mum", givenName: "Anne", familyName: "Dupont" });
+    expect(await addPerson({ name: "Marc" })).toMatchObject({ givenName: "", familyName: "" });
+  });
+
+  it("composes the title from the names when none is typed, and keeps a typed one as typed", async () => {
+    expect(await addPerson({ name: "", givenName: "Anne", familyName: "Dupont" })).toMatchObject({ title: "Anne Dupont" });
+    expect(await addPerson({ givenName: "Anne" })).toMatchObject({ title: "Anne" });
+    expect(await addPerson({ name: "Mum", givenName: "Anne", familyName: "Dupont" })).toMatchObject({ title: "Mum" });
+  });
+
   it("refuses a Person with no name", async () => {
     await expect(addPerson({ name: "  " })).rejects.toThrow("A Person needs a name");
   });
 });
 
 describe("changing a Person", () => {
+  it("never rewrites the title from the names, nor the names from the title", async () => {
+    const p = await addPerson({ givenName: "Anne", familyName: "Dupont" });
+    await patchPerson(p.id, { givenName: "Annie", familyName: " Martin " });
+    expect(await getDocument(p.id)).toMatchObject({ title: "Anne Dupont", givenName: "Annie", familyName: "Martin" });
+    await patchPerson(p.id, { title: "Mum" });
+    expect(await getDocument(p.id)).toMatchObject({ title: "Mum", givenName: "Annie", familyName: "Martin" });
+  });
+
   it("writes their aliases, Relationship and Tags", async () => {
     const p = await addPerson({ name: "Anne Dupont" });
     await patchPerson(p.id, { aliases: ["Mum"], relationship: "my mother", tags: ["family"] });

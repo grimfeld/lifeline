@@ -44,7 +44,7 @@ test("a Person made from the palette is given aliases, a Relationship and Tags i
   await page.getByRole("option", { name: /Add person/ }).first().click();
 
   const dialog = page.getByRole("dialog", { name: "Add a person" });
-  await dialog.getByLabel("Name").fill("Anne Dupont");
+  await dialog.getByLabel("Name", { exact: true }).fill("Anne Dupont");
   await dialog.getByRole("button", { name: "Add" }).click();
 
   // The new Person opens in a Peek where the user is.
@@ -63,6 +63,33 @@ test("a Person made from the palette is given aliases, a Relationship and Tags i
   await expect(page.getByRole("heading", { level: 1, name: "Anne Dupont" })).toBeVisible();
   await expect(page.getByLabel("Relationship")).toHaveValue("my mother");
   await expect(page.getByText("also Mum")).toBeVisible();
+});
+
+test("Add person composes the title from the Given and Family name until a title is typed", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  await openPalette(page);
+  await page.keyboard.type("Add person");
+  await page.getByRole("option", { name: /Add person/ }).first().click();
+
+  const dialog = page.getByRole("dialog", { name: "Add a person" });
+  await dialog.getByLabel("Given name").fill("Anne");
+  await dialog.getByLabel("Family name").fill("Dupont");
+  await expect(dialog.getByLabel("Name", { exact: true })).toHaveValue("Anne Dupont");
+  // A typed title wins: the names no longer rewrite it.
+  await dialog.getByLabel("Name", { exact: true }).fill("Mum");
+  await dialog.getByLabel("Family name").fill("Martin");
+  await expect(dialog.getByLabel("Name", { exact: true })).toHaveValue("Mum");
+  await dialog.getByRole("button", { name: "Add" }).click();
+
+  const peek = page.getByRole("dialog", { name: "Mum" });
+  await expect(peek.getByLabel("Given name")).toHaveValue("Anne");
+  await expect(peek.getByLabel("Family name")).toHaveValue("Martin");
+  await expect.poll(() => personNamed(page, "Mum")).toMatchObject({ givenName: "Anne", familyName: "Martin" });
+  // Editing a name never touches the title.
+  await peek.getByLabel("Given name").fill("Annie");
+  await peek.getByLabel("Given name").press("Enter");
+  await expect.poll(() => personNamed(page, "Mum")).toMatchObject({ givenName: "Annie", familyName: "Martin" });
 });
 
 test("[[Mum]] and [[Anne Dupont]] land on one Person, whose page lists the Day's links as backlinks and whose body is written there", async ({ page }) => {
@@ -90,7 +117,7 @@ test("a name selected in a Day becomes a Person under People, and a link to them
   await page.getByRole("dialog", { name: "Selection menu" }).getByRole("group", { name: "People" }).getByRole("option", { name: "Person", exact: true }).click();
 
   const dialog = page.getByRole("dialog", { name: "Add a person" });
-  await expect(dialog.getByLabel("Name")).toHaveValue("Léa Martin");
+  await expect(dialog.getByLabel("Name", { exact: true })).toHaveValue("Léa Martin");
   await dialog.getByRole("button", { name: "Add" }).click();
 
   await expect.poll(() => personNamed(page, "Léa Martin")).toBeDefined();
@@ -107,7 +134,7 @@ test("the phone's capture sheet offers Add person under People", async ({ page, 
   await sheet.getByRole("button", { name: /Add person/ }).click();
 
   const dialog = page.getByRole("dialog", { name: "Add a person" });
-  await dialog.getByLabel("Name").fill("Marc Petit");
+  await dialog.getByLabel("Name", { exact: true }).fill("Marc Petit");
   await dialog.getByRole("button", { name: "Add" }).click();
   await expect.poll(() => personNamed(page, "Marc Petit")).toMatchObject({ type: PERSON });
 });

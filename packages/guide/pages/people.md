@@ -40,7 +40,8 @@ bring them back.
 ### A Person's page
 
 At the top, their name, then what they are to you (their **Relationship**, underlined with dashes:
-click it and type to change it, Enter or leaving it saves, Escape puts it back), then their age (when their Birthday has a year) and their
+click it and type to change it, Enter or leaving it saves, Escape puts it back), then their
+**Given name** and **Family name** (both optional, written the same way: "Anne" and "Dupont"), then their age (when their Birthday has a year) and their
 aliases. Under them, three buttons: **Call**, **Email** and **Profile** reach them by their first
 current phone number, email and handle; a former one is skipped. One they have none of is dimmed, and adds one of
 its kind: a dimmed **Email** opens the dialog on Email. Their next
@@ -54,7 +55,8 @@ Below, two columns (one after the other on a phone):
   a cross removes it (with Undo) and **Former** marks a Contact detail or Address former. Edit also
   lets you rename them in place, as the Relationship is changed (every `[[link]]` to them follows).
   A name can't be emptied ("Name can't be empty.") or be another Person's: the reason shows under
-  it, to fix or undo with Escape. Edit also shows **More**: their **Aliases**, their
+  it, to fix or undo with Escape. Changing the name never changes the Given or Family name, and
+  changing those never changes the name: the name stays "Mum" or "Dr Okafor" as you wrote it. Edit also shows **More**: their **Aliases**, their
   **Tags** and **Excluded from Drifting**. **Done** goes back to reading.
 - **About them** — the body: what you know of them, written with `[[links]]` and `#tags` like
   any page.
@@ -156,7 +158,10 @@ if you have added something since.
 
 ### Commands
 
-- **Add person…** — a new Person, from their name alone. Where: the Capture sheet, the palette
+- **Add person…** — a new Person, from a name, or from a **Given name** and a **Family name**: until
+  you type a name, it fills in as "Anne Dupont" while you type the two, and a name you typed
+  ("Mum") is kept as typed. Both names are kept on the Person, beside the name, and can be left
+  empty. Where: the Capture sheet, the palette
   (Ctrl+K).
 - **Add occasion…** — a birthday, anniversary or other Occasion for a Person found by name or
   alias; it has no screen, and is how Claude adds Occasions (`people_occasion_add`). Where: Claude
@@ -165,13 +170,13 @@ if you have added something since.
 
 ## Capture
 
-**+** on the phone (or Ctrl+K at the desk) offers **Add person…** under People: just a name, so
+**+** on the phone (or Ctrl+K at the desk) offers **Add person…** under People: just a name (or the two names), so
 you can add someone you just met before you forget it.
 
 ## Ask Claude
 
-- "Add my aunt Anne Dupont, I call her Mum" — `people_add`, with a name, aliases, a
-  Relationship and Tags.
+- "Add my aunt Anne Dupont, I call her Mum" — `people_add`, with a name, optional Given and
+  Family names, aliases, a Relationship and Tags.
 - "Anne's birthday is 12 November 1961" — `people_occasion_add`, for the Person found by name or
   alias, with a label, a day (the year optional) and yearly or once. An unknown name, or one
   that two People share, is refused and Claude asks which.
@@ -186,7 +191,7 @@ you can add someone you just met before you forget it.
 
 ### What Claude sees of a Person
 
-Claude reads a Person's name, aliases, Relationship, Tags, Occasions, Ties, body, and any Field you
+Claude reads a Person's name, Given and Family name, aliases, Relationship, Tags, Occasions, Ties, body, and any Field you
 added to Person yourself, and it can change those; it can add an Occasion.
 
 Claude never sees a Person's **Addresses** or **Contact details**, current or former, from any

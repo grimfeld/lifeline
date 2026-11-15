@@ -5,11 +5,11 @@ import { normalizeAddresses } from "../domain/addresses";
 import { contactDetailsOf } from "../domain/contactDetails";
 import { putBack, takeOut } from "../domain/parts";
 import { normalizeOccasions, occasionProblem } from "../domain/occasions";
-import { findPerson } from "../domain/person";
+import { composeTitle, findPerson } from "../domain/person";
 
 /** A Person as stored, with the App's keys filled in for a row written before they existed. */
 export function normalizePerson(doc: Person): Person {
-  return { ...doc, aliases: Array.isArray(doc.aliases) ? doc.aliases : [], relationship: typeof doc.relationship === "string" ? doc.relationship : "", excludedFromDrifting: doc.excludedFromDrifting === true, occasions: normalizeOccasions(doc.occasions), addresses: normalizeAddresses(doc.addresses) };
+  return { ...doc, aliases: Array.isArray(doc.aliases) ? doc.aliases : [], relationship: typeof doc.relationship === "string" ? doc.relationship : "", givenName: typeof doc.givenName === "string" ? doc.givenName : "", familyName: typeof doc.familyName === "string" ? doc.familyName : "", excludedFromDrifting: doc.excludedFromDrifting === true, occasions: normalizeOccasions(doc.occasions), addresses: normalizeAddresses(doc.addresses) };
 }
 
 /** A row as the Person page shows it: none when it is missing, deleted, or no Person. */
@@ -104,18 +104,23 @@ const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? [])
  * Relationship and Tags are kept when given. Lands in the People folder.
  * Throws when the name is empty or already a Person's there.
  */
-export async function addPerson(input: { name: string; aliases?: string[]; relationship?: string; tags?: string[] }): Promise<Person> {
-  const name = input.name.trim();
+export async function addPerson(input: { name?: string; givenName?: string; familyName?: string; aliases?: string[]; relationship?: string; tags?: string[] }): Promise<Person> {
+  const givenName = input.givenName?.trim() ?? "";
+  const familyName = input.familyName?.trim() ?? "";
+  // A typed name wins; the two names compose the title only when none is typed (ADR 0117).
+  const name = input.name?.trim() || composeTitle(givenName, familyName);
   if (!name) throw new Error("A Person needs a name");
   return (await createDocument({
     type: PERSON_TYPE,
     title: name,
-    fields: { aliases: cleanAliases(input.aliases), relationship: input.relationship?.trim() ?? "", tags: normalizeTags(input.tags ?? []) },
+    fields: { givenName, familyName, aliases: cleanAliases(input.aliases), relationship: input.relationship?.trim() ?? "", tags: normalizeTags(input.tags ?? []) },
   })) as Person;
 }
 
 export interface PersonPatch {
   title?: string;
+  givenName?: string;
+  familyName?: string;
   aliases?: string[];
   relationship?: string;
   tags?: string[];
@@ -140,6 +145,8 @@ export async function patchPerson(id: string, patch: PersonPatch): Promise<void>
 /** The stored fields a patch writes, each cleaned as `addPerson` cleans it; only the keys given. */
 function personFields(patch: Omit<PersonPatch, "title">): Record<string, unknown> {
   const fields: Record<string, unknown> = {};
+  if (patch.givenName !== undefined) fields.givenName = patch.givenName.trim();
+  if (patch.familyName !== undefined) fields.familyName = patch.familyName.trim();
   if (patch.aliases) fields.aliases = cleanAliases(patch.aliases);
   if (patch.relationship !== undefined) fields.relationship = patch.relationship.trim();
   if (patch.excludedFromDrifting !== undefined) fields.excludedFromDrifting = patch.excludedFromDrifting;

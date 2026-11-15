@@ -79,6 +79,10 @@ export const AGENT_WALLED_KEYS = ["addresses", "contactDetails"] as const;
 
 export interface Person extends Document {
   type: typeof PERSON_TYPE;
+  /** Their own name ("Anne"); optional, never part of the title once made, and one of their names for links (ADR 0117). */
+  givenName?: string;
+  /** The name they share with their family ("Dupont"); optional, never grouping. */
+  familyName?: string;
   /** Other names they go by: `[[Mum]]` lands on Anne Dupont. */
   aliases: string[];
   /** What they are to me, in my own words ("my aunt"); "" when not said. Not a Tie, not a Tag. */
