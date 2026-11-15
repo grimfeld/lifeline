@@ -30,6 +30,20 @@ vi.mock("@lifeline/core", async (importOriginal) => {
   };
 });
 
+// Core reads a link argument's candidates from its own store module, so it is stood in for there too.
+vi.mock("../../packages/core/src/documents/store", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../packages/core/src/documents/store")>()),
+  getDocument: async (id: string) => docs.get(id),
+  allDocuments: async () => [...docs.values()],
+  documentsOf: async (type: string) => [...docs.values()].filter((d) => d.type === type),
+}));
+
+// …and its type, so a link argument reads the names the type derives (a Person's Given name).
+vi.mock("../../packages/core/src/documents/registry", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../packages/core/src/documents/registry")>()),
+  documentTypeSync: (id: string) => types.get(id),
+}));
+
 const { runTool } = await import("./handlers");
 // Through the manifest only, as the server takes it (apps.ts).
 const personTypeDef = contactsApp.types.find((t) => t.id === PERSON_TYPE)!;
@@ -75,20 +89,42 @@ describe("people_occasion_add", () => {
   it("adds a yearly Occasion to the Person found by name", async () => {
     const out = await runTool("people_occasion_add", { person: "anne dupont", label: "Anniversary", day: "06-01" });
     expect(core.patchDocument).toHaveBeenCalledWith("p1", { occasions: expect.arrayContaining([expect.objectContaining({ label: "Anniversary", day: "06-01", yearly: true })]) });
-    expect(out).toMatchObject({ id: "p1", message: expect.stringContaining("Anne Dupont") });
+    expect(out).toMatchObject({ id: "p1", message: "Added Anniversary (06-01, yearly) to Anne Dupont" });
   });
   it("adds a once Occasion with its year, by alias", async () => {
     docs.delete("p2");
     await runTool("people_occasion_add", { person: "Mum", label: "Wedding", day: "2027-05-01", yearly: false });
     expect(core.patchDocument).toHaveBeenCalledWith("p1", { occasions: expect.arrayContaining([expect.objectContaining({ label: "Wedding", day: "2027-05-01", yearly: false })]) });
   });
+  it("finds the Person by their Given name, which is no alias (ADR 0117)", async () => {
+    docs.set("p4", person("p4", "Granny", { givenName: "Odile" }));
+    await runTool("people_occasion_add", { person: "odile", label: "Birthday", day: "04-02" });
+    expect(core.patchDocument).toHaveBeenLastCalledWith("p4", expect.anything());
+  });
   it("refuses an unknown Person, writing nothing", async () => {
-    await expect(runTool("people_occasion_add", { person: "Bob", label: "Birthday", day: "01-01" })).rejects.toThrow(/No Person called “Bob”/);
+    await expect(runTool("people_occasion_add", { person: "Bob", label: "Birthday", day: "01-01" })).rejects.toThrow("Person: No Person called “Bob”");
     expect(core.patchDocument).not.toHaveBeenCalled();
   });
-  it("refuses an ambiguous name, naming who it could be", async () => {
-    await expect(runTool("people_occasion_add", { person: "Mum", label: "Birthday", day: "01-01" })).rejects.toThrow(/ambiguous: Anne Dupont, Anna/);
+  it("refuses an ambiguous name, listing each Person's title and id", async () => {
+    await expect(runTool("people_occasion_add", { person: "Mum", label: "Birthday", day: "01-01" })).rejects.toThrow("Person: “Mum” is more than one Person: Anne Dupont (id p1), Anna (id p2)");
     expect(core.patchDocument).not.toHaveBeenCalled();
+  });
+  it("refuses a name that is one Person's title and another's alias", async () => {
+    docs.set("p4", person("p4", "Mum"));
+    await expect(runTool("people_occasion_add", { person: "mum", label: "Birthday", day: "01-01" })).rejects.toThrow(/more than one Person: Anne Dupont \(id p1\), Anna \(id p2\), Mum \(id p4\)/);
+    expect(core.patchDocument).not.toHaveBeenCalled();
+  });
+  it("takes the Person by id, and by a name without its accents or with extra spaces", async () => {
+    await runTool("people_occasion_add", { person: "p2", label: "Name day", day: "07-26" });
+    expect(core.patchDocument).toHaveBeenLastCalledWith("p2", expect.anything());
+    docs.set("p4", person("p4", "Léa  Martin"));
+    await runTool("people_occasion_add", { person: " LEA martin ", label: "Birthday", day: "02-14" });
+    expect(core.patchDocument).toHaveBeenLastCalledWith("p4", expect.anything());
+  });
+  it("is described as taking an id, the title or an alias, under the key person", async () => {
+    const { TOOLS } = await import("./tools");
+    const tool = TOOLS.find((t) => t.name === "people_occasion_add")!;
+    expect(tool.input.person!.description).toMatch(/an id, the title or an alias/);
   });
   it("refuses a day that is none, or a once Occasion with no year", async () => {
     await expect(runTool("people_occasion_add", { person: "Anna", label: "Birthday", day: "13-40" })).rejects.toThrow(/real day/);

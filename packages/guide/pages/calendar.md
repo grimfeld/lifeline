@@ -140,7 +140,11 @@ each Event template under it. Pin a template you use daily to make it one tap.
 Through the Lifeline connector, Claude can:
 
 - Read what is on — "What do I have this week?", `agenda`.
-- Add an Event — "Add dentist on Thursday at 14:00", `calendar_add_event`.
+- Add an Event — "Add dentist on Thursday at 14:00", `calendar_add_event`. It can fill **With**
+  too — "Add dinner with Marco and Zoé on Friday": each person by name, alias or id, each found
+  once in People. A name that is no one, or more than one person, refuses the whole call (every
+  such name at once), and no Event is made. The answer says whom it found ("…with Marc Lefèvre,
+  Zoé Martin"), and the Event shows on each one's Timeline "via With".
 - Add one from a template — "Add Gym today", `calendar_add_from_template`.
 - Move an Event or a Task to another day — `move_item`; retime an Event or one-off blocker —
   "Move the dentist to 15:30", `reschedule_timed`.

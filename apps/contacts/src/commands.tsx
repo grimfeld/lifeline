@@ -1,7 +1,7 @@
-import type { CommandDef } from "@lifeline/core";
+import { PERSON_HINT, PERSON_TYPE, peopleNamed, type CommandDef } from "@lifeline/core";
 import { CalendarHeart, UserPlus, Users } from "lucide-react";
 import { AddPersonDialog } from "./components/AddPersonDialog";
-import { addOccasionByName, addPerson } from "./data/repo";
+import { addOccasion, addPerson } from "./data/repo";
 import { PEOPLE_HREF } from "./constants";
 
 /**
@@ -36,14 +36,15 @@ export const contactsCommands: CommandDef[] = [
     keywords: ["occasion", "birthday", "anniversary", "person", "people"],
     icon: CalendarHeart,
     args: [
-      { key: "person", label: "Person", kind: "text", required: true, hint: "Their name or an alias; it must be only one Person." },
+      { key: "person", label: "Person", kind: "link", linkType: PERSON_TYPE, required: true, hint: `The Person: ${PERSON_HINT}.` },
       { key: "label", label: "Label", kind: "text", required: true, hint: "\"Birthday\" gives their age; anything else (\"Anniversary\", \"Surgery\") is shown as written." },
       { key: "day", label: "Day", kind: "text", required: true, hint: "YYYY-MM-DD, or MM-DD when the year is unknown (a yearly Occasion only)." },
       { key: "yearly", label: "Yearly", kind: "boolean", hint: "Default true: it falls on that day every year. false: once, on that day (needs the year)." },
     ],
     async invoke(a) {
-      const { person, occasion } = await addOccasionByName(String(a.person ?? ""), { label: String(a.label ?? ""), day: String(a.day ?? ""), yearly: a.yearly !== false });
-      return { message: `Added ${occasion.label} (${occasion.day}${occasion.yearly ? ", yearly" : ", once"}) to ${person.title}`, id: person.id };
+      const personId = String(a.person);
+      const occasion = await addOccasion(personId, { label: String(a.label ?? ""), day: String(a.day ?? ""), yearly: a.yearly !== false });
+      return { message: `Added ${occasion.label} (${occasion.day}${occasion.yearly ? ", yearly" : ", once"})${await peopleNamed("to", [personId])}`, id: personId };
     },
   },
   { id: "people.open", title: "Go to People", keywords: ["people", "contacts", "persons"], icon: Users, run: ({ navigate }) => navigate(PEOPLE_HREF) },

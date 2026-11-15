@@ -1,6 +1,7 @@
 import { useId } from "react";
 import { Checkbox, DatePicker, Field, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, TimeField } from "@lifeline/ui";
 import type { CommandArg } from "@lifeline/core";
+import { PeopleField } from "@lifeline/editor";
 
 const NONE = "\u0000none";
 
@@ -64,6 +65,13 @@ export function ArgInput({ arg, value, error, onChange }: { arg: CommandArg; val
           </Select>
         </Field>
       );
+    case "links":
+      // Every list of links a Command takes is a list of People, picked as a People field picks them (completing names and aliases).
+      return (
+        <Field label={label} hint={arg.hint} error={error}>
+          <PeopleField label={label} placeholder="Add a person…" value={entries(value)} onChange={(ids) => onChange(ids.length ? ids : undefined)} />
+        </Field>
+      );
     default:
       return (
         <Field label={label} hint={arg.hint ?? kindHint(arg)} error={error}>
@@ -73,13 +81,19 @@ export function ArgInput({ arg, value, error, onChange }: { arg: CommandArg; val
   }
 }
 
+/** A list value as its entries: a list as it is, or a single text as its one entry. */
+function entries(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(String);
+  return typeof value === "string" && value.trim() ? [value.trim()] : [];
+}
+
 function kindHint(arg: CommandArg): string | undefined {
   switch (arg.kind) {
+    case "link":
+      return "The title of the Document, an alias or its id";
     case "list":
     case "multiselect":
       return arg.options ? `Comma-separated, among ${arg.options.map((o) => o.value).join(", ")}` : "Comma-separated";
-    case "link":
-      return "The title of the Document";
     case "json":
     case "rows":
       return "As JSON";

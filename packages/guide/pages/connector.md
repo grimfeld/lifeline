@@ -68,6 +68,12 @@ Every Module's page in this Guide lists its own under **Ask Claude**. They need 
 - Adding a *thing* that already exists (a Need, a Word, today's mood) is refused and reported, never
   overwritten.
 - Logging a *record* (a spend, a fine, an entry) always adds a new one.
+- Where a tool names a Document (a Person, a Source, a Topic…), Claude can give its id, its title
+  or one of its aliases, as `[[links]]` do — "Lefevre" finds "Lefèvre". A name that fits nothing,
+  or several, is refused with each candidate's title and id; nothing is guessed.
+- Where a tool takes several (an Event's **With**, a Task's or a Transaction's **For**, a work's
+  **Recommended by**), Claude passes a list; each is found the same way and counted once, and every
+  name that fails comes back in one refusal, naming the argument, with nothing written.
 
 ## Tips
 

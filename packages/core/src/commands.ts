@@ -1,6 +1,8 @@
 import { allDocuments, documentsOf, getDocument } from "./documents/store";
 import { documentsWithRole, hasRole } from "./documents/roles";
-import type { Document } from "./documents/types";
+import { aliasesOf, singularOf, type Document } from "./documents/types";
+import { documentTypeSync } from "./documents/registry";
+import { normalizeName } from "./markdown";
 import type { CommandArg, CommandDef, CommandResult, InvokeContext } from "./manifest";
 
 /**
@@ -59,9 +61,14 @@ function isRealDate(s: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
+/** A list-of-text value read: an array of strings, or a comma-separated string; entries trimmed, blanks dropped. */
 function asStrings(arg: CommandArg, v: unknown): string[] {
-  const list = typeof v === "string" ? v.split(",") : v;
-  if (!Array.isArray(list) || list.some((x) => typeof x !== "string")) throw new Error(`${arg.label}: expected a list of text`);
+  return trimmedStrings(arg, typeof v === "string" ? v.split(",") : v, "text");
+}
+
+/** The tail both list readers share: an array of strings, each trimmed, blanks dropped. */
+function trimmedStrings(arg: CommandArg, list: unknown, what: string): string[] {
+  if (!Array.isArray(list) || list.some((x) => typeof x !== "string")) throw new Error(`${arg.label}: expected a list of ${what}`);
   return list.map((x: string) => x.trim()).filter(Boolean);
 }
 
@@ -69,8 +76,24 @@ function linkTypes(arg: CommandArg): string[] | undefined {
   return arg.linkType === undefined ? undefined : Array.isArray(arg.linkType) ? arg.linkType : [arg.linkType];
 }
 
-/** What a link argument is matched against: a Document's id, type, title and Roles. */
-export type LinkableDocument = Pick<Document, "id" | "type" | "title"> & { roles?: unknown };
+/** Whether an argument takes a Document: a link, or a list of links (an earlier step's Document as its one entry). */
+export const takesDocument = (arg: Pick<CommandArg, "kind">): boolean => arg.kind === "link" || arg.kind === "links";
+
+/** The most names or ids a list-of-links value may hold: one runaway call must not make thousands of passes over every Document. */
+export const MAX_LINK_VALUES = 50;
+
+/**
+ * A list-of-links value read: a list, entry by entry, or a single text as one
+ * entry (a name may hold a comma: “Lefèvre, Marc”); entries trimmed, blanks dropped.
+ */
+export function linkValues(arg: CommandArg, v: unknown): string[] {
+  const values = trimmedStrings(arg, typeof v === "string" ? [v] : v, "names or ids");
+  if (values.length > MAX_LINK_VALUES) throw new Error(`${arg.label}: at most ${MAX_LINK_VALUES} names or ids`);
+  return values;
+}
+
+/** What a link argument is matched against: a Document's id, type, title, Roles and aliases (in `aliases`, or the field its type names). */
+export type LinkableDocument = Pick<Document, "id" | "type" | "title"> & { roles?: unknown; aliases?: unknown };
 
 /** The Documents a link argument may name: those of its Role, else of its type(s), else all. */
 export function linkCandidates<T extends LinkableDocument>(arg: CommandArg, docs: readonly T[]): T[] {
@@ -78,29 +101,129 @@ export function linkCandidates<T extends LinkableDocument>(arg: CommandArg, docs
   return arg.linkRole ? docs.filter((d) => hasRole(d, arg.linkRole!)) : types ? docs.filter((d) => types.includes(d.type)) : [...docs];
 }
 
+/** A Document a refused link value could have meant: what an agent passes back to choose it. */
+export interface LinkChoice {
+  id: string;
+  title: string;
+}
+
 /**
- * A link argument names a Document by id or by its exact title,
- * case-insensitive, among `docs` (already read through the store's gates, so
- * the call's Workspace only). Never a guess: no match, or several, is an
- * error the caller can act on.
+ * Why a link value names no Document: nothing matches it, or several do (each a
+ * candidate). `arg` is the argument's label; `noun` what it names: its type's
+ * singular, else its label.
  */
-export function pickLinked(arg: CommandArg, value: string, docs: readonly LinkableDocument[]): string {
+export type LinkProblem = { arg: string; noun: string; value: string } & ({ kind: "unknown" } | { kind: "ambiguous"; candidates: LinkChoice[] });
+
+/** A link value resolved: the one Document's id, or why there is none. */
+export type LinkMatch = { id: string } | { problem: LinkProblem };
+
+/** The names a Document answers to as a link value: its title and its aliases (as its type defines them). */
+function namesOf(d: LinkableDocument): string[] {
+  return [d.title, ...aliasesOf(d, documentTypeSync(d.type))];
+}
+
+/** What a link argument names, in a refusal: its one type's singular ("Person", though the argument is "With"), else its own label. */
+function linkNoun(arg: CommandArg): string {
+  const types = linkTypes(arg);
+  const def = !arg.linkRole && types?.length === 1 ? documentTypeSync(types[0]!) : undefined;
+  return def ? singularOf(def) : arg.label;
+}
+
+/**
+ * The matching rule of every link argument: `value` names a Document among
+ * `docs` (already read through the store's gates, so the call's Workspace
+ * only), narrowed to those the argument may name. First by id; else by name,
+ * compared as wikilinks are (case, accents and repeated spaces folded) against
+ * each Document's title and aliases, a title counting no more than an alias.
+ * Never a guess: none, or several, is a problem the caller can act on.
+ */
+export function matchLink(arg: CommandArg, value: string, docs: readonly LinkableDocument[]): LinkMatch {
+  return linkMatcher(arg, docs)(value);
+}
+
+/**
+ * `matchLink` for many values against the same Documents: the candidates' names
+ * are normalised once, and each value is a lookup.
+ */
+function linkMatcher(arg: CommandArg, docs: readonly LinkableDocument[]): (value: string) => LinkMatch {
   const ofType = linkCandidates(arg, docs);
-  const byId = ofType.find((d) => d.id === value);
-  if (byId) return byId.id;
-  const wanted = value.trim().toLowerCase();
-  const hits = ofType.filter((d) => d.title.trim().toLowerCase() === wanted);
-  const what = arg.label.toLowerCase();
-  if (hits.length === 1) return hits[0]!.id;
-  if (hits.length === 0) throw new Error(`${arg.label}: no ${what} called “${value}”`);
-  throw new Error(`${arg.label}: ${hits.length} ${what}s are called “${value}”; pass one id: ${hits.map((d) => d.id).join(", ")}`);
+  let index: Map<string, LinkableDocument[]> | undefined;
+  const named = (): Map<string, LinkableDocument[]> => {
+    if (index) return index;
+    index = new Map();
+    for (const d of ofType) {
+      for (const n of new Set(namesOf(d).map(normalizeName))) {
+        const list = index.get(n);
+        if (list) list.push(d);
+        else index.set(n, [d]);
+      }
+    }
+    return index;
+  };
+  const noun = linkNoun(arg);
+  return (value) => {
+    // An id wins over any name.
+    const byId = ofType.find((d) => d.id === value);
+    if (byId) return { id: byId.id };
+    const wanted = normalizeName(value);
+    const hits = (wanted && named().get(wanted)) || [];
+    if (hits.length === 1) return { id: hits[0]!.id };
+    const said = { arg: arg.label, noun, value: value.trim() };
+    if (hits.length === 0) return { problem: { kind: "unknown", ...said } };
+    return { problem: { kind: "ambiguous", ...said, candidates: hits.map((d) => ({ id: d.id, title: d.title })) } };
+  };
+}
+
+/** A link problem in words, after the argument it is in, with what to pass instead when it is ambiguous. */
+export function linkProblemText(p: LinkProblem): string {
+  if (p.kind === "unknown") return `${p.arg}: No ${p.noun} called “${p.value}”`;
+  return `${p.arg}: “${p.value}” is more than one ${p.noun}: ${p.candidates.map((c) => `${c.title} (id ${c.id})`).join(", ")}. Pass the id of the one meant`;
+}
+
+/** `matchLink`, throwing its problem in words: the id of the one Document `value` names. */
+export function pickLinked(arg: CommandArg, value: string, docs: readonly LinkableDocument[]): string {
+  const m = matchLink(arg, value, docs);
+  if ("problem" in m) throw new Error(linkProblemText(m.problem));
+  return m.id;
+}
+
+/** A list of link values resolved: the ids found, each Document once and in the order first named, and every value's problem. */
+export function matchLinks(arg: CommandArg, values: readonly string[], docs: readonly LinkableDocument[]): { ids: string[]; problems: LinkProblem[] } {
+  const ids: string[] = [];
+  const problems: LinkProblem[] = [];
+  const match = linkMatcher(arg, docs);
+  for (const value of values) {
+    const m = match(value);
+    if ("problem" in m) problems.push(m.problem);
+    else if (!ids.includes(m.id)) ids.push(m.id);
+  }
+  return { ids, problems };
+}
+
+/** `matchLinks`, throwing every problem in one message: the ids of the Documents `values` name. */
+export function pickLinks(arg: CommandArg, values: readonly string[], docs: readonly LinkableDocument[]): string[] {
+  const { ids, problems } = matchLinks(arg, values, docs);
+  if (problems.length) throw new Error(problems.map(linkProblemText).join("; "));
+  return ids;
+}
+
+/** Whether every value is the id of a Document the argument may name, read on its own without reading every Document it may name. */
+async function areIds(arg: CommandArg, values: readonly string[]): Promise<boolean> {
+  const found = await Promise.all(values.map((id) => getDocument(id)));
+  return found.every((d) => d && linkCandidates(arg, [d]).length > 0);
+}
+
+/** Where a link argument's Documents are read from: its Role, else its type(s), else all. Two arguments with the same source read the same Documents. */
+export function linkSource(arg: CommandArg): { role: string } | { types: string[] } | { all: true } {
+  const types = linkTypes(arg);
+  return arg.linkRole ? { role: arg.linkRole } : types ? { types } : { all: true };
 }
 
 /** The Documents a link argument may name, read from the store (the current Workspace): of its Role, else its type(s), else all. */
 export async function linkableDocuments(arg: CommandArg): Promise<Document[]> {
-  const types = linkTypes(arg);
-  if (arg.linkRole) return documentsWithRole(arg.linkRole);
-  return types ? (await Promise.all(types.map((t) => documentsOf(t)))).flat() : allDocuments();
+  const from = linkSource(arg);
+  if ("role" in from) return documentsWithRole(from.role);
+  return "types" in from ? (await Promise.all(from.types.map((t) => documentsOf(t)))).flat() : allDocuments();
 }
 
 /** One argument, coerced to its kind; undefined when absent. Throws a readable message on a bad value. */
@@ -147,15 +270,14 @@ async function readArg(arg: CommandArg, v: unknown): Promise<unknown> {
       return asStrings(arg, v);
     case "link": {
       const value = String(v);
-      const types = linkTypes(arg);
-      const doc = await getDocument(value);
-      if (arg.linkRole) {
-        if (doc && hasRole(doc, arg.linkRole)) return value;
-        return pickLinked(arg, value, await documentsWithRole(arg.linkRole));
-      }
-      if (doc && (!types || types.includes(doc.type))) return value;
-      const candidates = types ? (await Promise.all(types.map((t) => documentsOf(t)))).flat() : await allDocuments();
-      return pickLinked(arg, value, candidates);
+      if (await areIds(arg, [value])) return value;
+      return pickLinked(arg, value, await linkableDocuments(arg));
+    }
+    case "links": {
+      const values = linkValues(arg, v);
+      if (!values.length) return undefined;
+      if (await areIds(arg, values)) return [...new Set(values)];
+      return pickLinks(arg, values, await linkableDocuments(arg));
     }
     case "json": {
       if (typeof v === "string") {
