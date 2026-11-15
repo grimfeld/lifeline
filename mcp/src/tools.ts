@@ -52,6 +52,9 @@ function readGuide({ page }: Record<string, unknown>): unknown {
   return p ? { page: p.slug, title: p.title, markdown: guideBody(p.slug) } : { error: `No Guide page "${String(page)}".`, pages };
 }
 
+/** The most values any array argument takes (issue #481): one cap for every tool, so no input is unbounded. */
+export const MAX_ARRAY_VALUES = 50;
+
 /** A step as an agent writes it: the stored shape, so list_macros' steps go back into update_macro unchanged. */
 const stepArg = z.discriminatedUnion("from", [
   z.object({ from: z.literal("fixed"), value: z.unknown().describe("The value, as the Command's own tool takes it.") }),
@@ -67,6 +70,7 @@ const steps = z
     }),
   )
   .min(1)
+  .max(MAX_ARRAY_VALUES)
   .describe("The steps, in order. A step that goes somewhere comes last; a Macro is never a step.");
 
 const GENERIC: ToolSpec[] = [
@@ -172,7 +176,7 @@ const GENERIC: ToolSpec[] = [
       title: z.string(),
       body: z.string().optional().describe("Markdown. Omit to start from the type's template."),
       folder: z.string().optional(),
-      tags: z.array(z.string()).optional(),
+      tags: z.array(z.string()).max(MAX_ARRAY_VALUES).optional(),
       fields: z.record(z.string(), z.unknown()).optional().describe("Type fields by key (see list_types). Guarded fields are refused."),
       workspace,
     },
@@ -187,7 +191,7 @@ const GENERIC: ToolSpec[] = [
       id: z.string(),
       title: z.string().optional(),
       body: z.string().optional().describe("Replaces the whole markdown body."),
-      tags: z.array(z.string()).optional().describe("Replaces the explicit tags."),
+      tags: z.array(z.string()).max(MAX_ARRAY_VALUES).optional().describe("Replaces the explicit tags."),
       folder: z.string().optional(),
       fields: z.record(z.string(), z.unknown()).optional().describe("Fields to set; null clears one."),
       workspace,
@@ -243,16 +247,16 @@ function argSchema(arg: CommandArg): ZodTypeAny {
       s = arg.options?.length ? z.enum(arg.options.map((o) => o.value) as [string, ...string[]]) : z.string();
       break;
     case "multiselect":
-      s = z.array(arg.options?.length ? z.enum(arg.options.map((o) => o.value) as [string, ...string[]]) : z.string());
+      s = z.array(arg.options?.length ? z.enum(arg.options.map((o) => o.value) as [string, ...string[]]) : z.string()).max(MAX_ARRAY_VALUES);
       break;
     case "list":
-      s = z.array(z.string());
+      s = z.array(z.string()).max(MAX_ARRAY_VALUES);
       break;
     case "json":
       s = z.record(z.string(), z.unknown());
       break;
     case "rows":
-      s = z.array(z.object(Object.fromEntries((arg.of ?? []).map((a) => [a.key, argSchema(a)]))));
+      s = z.array(z.object(Object.fromEntries((arg.of ?? []).map((a) => [a.key, argSchema(a)])))).max(MAX_ARRAY_VALUES);
       break;
     default:
       s = z.string();
