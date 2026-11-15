@@ -61,7 +61,7 @@ describe("the Selection menu's groups", () => {
     expect(shape(menu({ currentModule: "languages" })).map(([t]) => t)).toEqual(["Link", "Knowledge", "Calendar", "House", "Projects", "Notes"]);
   });
 
-  it("offers the Contacts App's Person under People, right after the Journal (ADR 0113)", () => {
+  it("offers the Contacts App's Person under World, right after the Journal (ADR 0113, 0119)", () => {
     const groups = menu({
       text: "Anne",
       intakes: [...INTAKES, intake("contacts", "person", "Person")],
@@ -69,8 +69,8 @@ describe("the Selection menu's groups", () => {
       appTitle: (appId) => (appId === "contacts" ? "Contacts" : APP_TITLE[appId]),
       userTypes: [{ id: "place", title: "Place", homeModule: "journal", linkable: true }],
     });
-    expect(shape(groups).map(([t]) => t)).toEqual(["Link", "Calendar", "House", "Projects", "Journal", "People", "Notes", "Knowledge"]);
-    expect(shape(groups).find(([t]) => t === "People")).toEqual(["People", ["Person"]]);
+    expect(shape(groups).map(([t]) => t)).toEqual(["Link", "Calendar", "House", "Projects", "Journal", "World", "Notes", "Knowledge"]);
+    expect(shape(groups).find(([t]) => t === "World")).toEqual(["World", ["Person"]]);
   });
 
   it("keeps an App in no Module first when the Module the user is in offers nothing", () => {
