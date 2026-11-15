@@ -12,11 +12,19 @@ export const DAY_TYPE = "daily";
 export const EVENT_TYPE = "event";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Whether a value is a YYYY-MM-DD string: the one "is this a date" check. */
+export const isDateStr = (v: unknown): v is DateStr => typeof v === "string" && DATE.test(v);
+
+/** A Day's date (its title), when it is a Day titled by one; nothing for any other Document. */
+export const dayOf = (src: Document | undefined): DateStr | undefined =>
+  src?.type === DAY_TYPE && isDateStr(src.title) ? src.title : undefined;
+
 /** An Event spanning more days than this is not counted past it (a typo's endDate must not spin). */
 export const MAX_SPAN = 3660;
 
 /** A field read as a date, when it is one. */
-const dateIn = (v: unknown): DateStr | undefined => (typeof v === "string" && DATE.test(v) ? v : undefined);
+const dateIn = (v: unknown): DateStr | undefined => (isDateStr(v) ? v : undefined);
 
 /** The days an Event is on, first to last (an `endDate` before its `date` is ignored); nothing for any other Document or an undated Event. */
 export function eventSpan(src: Document | undefined): { from: DateStr; to: DateStr } | undefined {
@@ -32,7 +40,10 @@ export function eventSpan(src: Document | undefined): { from: DateStr; to: DateS
  * Event (up to `MAX_SPAN`); undefined for a Document with no date of its own.
  */
 export function sourceDays(src: Document | undefined): DateStr[] | undefined {
-  if (src?.type === DAY_TYPE) return DATE.test(src.title) ? [src.title] : undefined;
+  if (src?.type === DAY_TYPE) {
+    const day = dayOf(src);
+    return day ? [day] : undefined;
+  }
   const span = eventSpan(src);
   if (!span) return undefined;
   const days: DateStr[] = [];

@@ -1,9 +1,8 @@
-import { normalizeName } from "@lifeline/core";
+import { isDateStr, normalizeName } from "@lifeline/core";
 import { fold, otherNamesOf } from "./person";
 import type { Membership, Person } from "./types";
 
-const DAY = /^\d{4}-\d{2}-\d{2}$/;
-const dayOr = (v: unknown) => (typeof v === "string" && DAY.test(v) ? v : undefined);
+const dayOr = (v: unknown) => (isDateStr(v) ? v : undefined);
 
 /**
  * A Household's memberships as stored, well-formed whatever wrote them: each
