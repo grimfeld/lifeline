@@ -14,7 +14,7 @@ export interface TidyRow {
 }
 
 /**
- * The alias a title begins with (whole words, names compared as wikilinks do),
+ * The alias a title begins with (a proper leading part: never the whole title; whole words, names compared as wikilinks do),
  * the longest when several do, with what is left of the title after it.
  */
 function leadingAlias(title: string, aliases: readonly string[]): { alias: string; rest: string } | null {
@@ -23,7 +23,7 @@ function leadingAlias(title: string, aliases: readonly string[]): { alias: strin
   for (const alias of aliases) {
     const want = normalizeName(alias);
     if (!want) continue;
-    for (let n = 1; n <= words.length; n++) {
+    for (let n = 1; n < words.length; n++) {
       if (normalizeName(words.slice(0, n).join(" ")) !== want) continue;
       if (!best || alias.trim().length > best.alias.length) best = { alias: alias.trim(), rest: words.slice(n).join(" ") };
       break;
