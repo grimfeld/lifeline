@@ -337,9 +337,10 @@ test("a refusal does not outlive the step it was about: moving or removing a ste
   const name = `Ghost lunch ${Date.now()}`;
   await page.goto("/settings/macros");
   await workLocally(page);
+  const fixed = (value: unknown) => ({ from: "fixed" as const, value });
   const event = (title: string, ghost: boolean) => ({
     command: "calendar/calendar.add-event",
-    args: { title: { from: "fixed", value: title }, date: { from: "fixed", value: "2030-01-01" }, ...(ghost ? { with: { from: "fixed", value: ["Nobody Called This"] } } : {}) },
+    args: { title: fixed(title), date: fixed("2030-01-01"), ...(ghost ? { with: fixed(["Nobody Called This"]) } : {}) },
   });
   await inCore(page, async (core, a) => core.saveMacro({ name: a.name, steps: a.steps }), { name, steps: [event("Lunch", true), event("Walk", false)] });
   await page.getByRole("list", { name: "Macros" }).getByRole("listitem").filter({ hasText: name }).getByRole("button").first().click();
