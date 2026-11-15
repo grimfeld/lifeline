@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { hasMember, householdsForFamilyName, householdsOf, memberCandidates, memberIdsOn, membershipSpan, membershipsOf, membersOf, splitMembers } from "./households";
+import { currentMemberNames, hasMember, householdsForFamilyName, householdsOf, memberCandidates, memberIdsOn, membershipSpan, membershipsOf, membersOf, splitMembers } from "./households";
 import { initApps } from "@lifeline/core";
 import { householdTypeDef, personTypeDef } from "../types";
-import { HOUSEHOLD } from "./types";
 
 const people = [
   { id: "paul", title: "Paul Smith", aliases: ["Dad"], relationship: "my brother" },
@@ -76,34 +75,17 @@ describe("who a Household stands for on a day (ADR 0117)", () => {
     expect(memberIdsOn(members, "2026-06-30")).toEqual(["paul", "mary", "tom"]);
     expect(memberIdsOn(members, "2026-07-01")).toEqual(["paul", "mary"]);
   });
-  it("is what the Household type declares to the link index", () => {
+  it("holds both bounds of a membership with a since and an until, and no one before or after", () => {
+    const span = [{ personId: "paul" }, { personId: "tom", since: "2001-04-02", until: "2024-09-01" }];
+    expect(memberIdsOn(span, "2001-04-01")).toEqual(["paul"]);
+    expect(memberIdsOn(span, "2001-04-02")).toEqual(["paul", "tom"]);
+    expect(memberIdsOn(span, "2024-09-01")).toEqual(["paul", "tom"]);
+    expect(memberIdsOn(span, "2024-09-02")).toEqual(["paul"]);
+  });
+  it("is what the Household type declares to the link index, and no one for a Household with no members", () => {
     const declared = householdTypeDef.linkable as { members: (doc: unknown, day: string) => string[] };
     expect(declared.members({ members }, "2026-07-01")).toEqual(["paul", "mary"]);
     expect(declared.members({}, "2026-07-01")).toEqual([]);
-  });
-});
-
-describe("who a Household stands for on a day (ADR 0117, the With picker)", () => {
-  const members = (household: Record<string, unknown>, day: string) => {
-    const l = householdTypeDef.linkable;
-    return typeof l === "object" && l.members ? l.members({ id: "h", type: HOUSEHOLD, title: "the Smiths", ...household } as never, day) : null;
-  };
-  const smiths = { members: [{ personId: "paul" }, { personId: "tom", since: "2001-04-02", until: "2024-09-01" }, { personId: "lily", since: "2025-03-10" }] };
-
-  it("is the Household's members on that day, since and until days included", () => {
-    expect(members(smiths, "2026-11-15")).toEqual(["paul", "lily"]);
-    expect(members(smiths, "2024-09-01")).toEqual(["paul", "tom"]);
-    expect(members(smiths, "2001-04-02")).toEqual(["paul", "tom"]);
-    expect(members(smiths, "2025-03-10")).toEqual(["paul", "lily"]);
-  });
-
-  it("leaves out someone not yet arrived or already gone", () => {
-    expect(members(smiths, "2001-04-01")).toEqual(["paul"]);
-    expect(members(smiths, "2024-09-02")).toEqual(["paul"]);
-  });
-
-  it("is no one for a Household with no members", () => {
-    expect(members({}, "2026-11-15")).toEqual([]);
   });
 });
 
@@ -140,6 +122,11 @@ describe("former members (ADR 0117)", () => {
     const { current, former } = splitMembers(rows, "2026-11-15");
     expect(former.map((r) => r.personId)).toEqual(["b"]);
     expect(current.map((r) => r.personId)).toEqual(["a", "c", "d"]);
+  });
+  it("are left out of the Households list, which names and counts the current members only", () => {
+    const people = [{ id: "a", title: "Ann" }, { id: "b", title: "Bob" }];
+    expect(currentMemberNames({ members: [{ personId: "b", until: "2026-06-30" }] }, people, "2026-11-15")).toEqual([]);
+    expect(currentMemberNames({ members: [{ personId: "b", until: "2026-06-30" }, { personId: "a" }] }, people, "2026-11-15")).toEqual(["Ann"]);
   });
   it("say their days in a phrase", () => {
     expect(membershipSpan({})).toBe("");

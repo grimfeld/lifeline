@@ -285,12 +285,16 @@ export async function moveDocumentsToWorkspace(ids: string[], workspace: string)
     for (const f of (await documentTypeSync(doc.type)?.followers?.(doc)) ?? []) all.add(f);
   }
   const bodies: string[] = [];
+  const moved: Document[] = [];
   for (const id of all) {
     const doc = await documentsTable().get(id);
     if (!doc || doc.deleted || (doc.workspace ?? "") === workspace) continue;
     await put<Document>(DOCUMENTS, { ...doc, workspace });
+    moved.push({ ...doc, workspace });
     if (typeof doc.body === "string" && doc.body) bodies.push(doc.body);
   }
+  // Each type then drops what its moved Documents left pointing across the boundary.
+  for (const doc of moved) await documentTypeSync(doc.type)?.onMove?.(doc, workspace);
   // Attachments follow the Document that embeds them (ADR 0048). Left behind,
   // the moved body could not resolve its images, and "Clean up attachments"
   // in either Workspace took them for orphans.
