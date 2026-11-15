@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { getDocument, patchDocument, putDocument, removeDocument, vaultDocPath, type DateStr, type DocumentInput, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
+import { getDocument, patchDocument, putDocuments, removeDocument, vaultDocPath, type DateStr, type DocumentInput, type TimedItem, type TimedProvider, type TimedTemplate } from "@lifeline/core";
 import { daysOf, describeTime, piecesOf, spanOf } from "./domain/events";
 import { bandsIn, blockerSpan, describeBlocker, isOneOff } from "./domain/blockers";
 import { describeTemplate, durationOf, formatDuration } from "./domain/templates";
+import { attachedBlockersOf } from "./data/attached";
 import { addEvent, allEvents, moveEvent, rescheduleEvent, useEvents } from "./data/repo";
 import { allTimeBlockers, rescheduleTimeBlocker, useTimeBlockers } from "./data/blockers";
 import { addEventFromTemplate, useEventTemplates } from "./data/templates";
@@ -127,9 +128,11 @@ export const calendarTimed: TimedProvider = {
     const row = await getDocument(itemId);
     if (!row || (row.type !== EVENT_TYPE && row.type !== TIME_BLOCKER_TYPE)) throw new Error("That item is gone");
     if (row.type === TIME_BLOCKER_TYPE && !(row as TimeBlocker).date) throw new Error("A weekly blocker is a rule — edit it on the Events screen's Blockers tab");
+    // The Event's cascade takes its attached blockers (#519): the undo puts all of them back, still attached.
+    const taken = row.type === EVENT_TYPE ? await attachedBlockersOf(itemId) : [];
     await removeDocument(itemId);
     return async () => {
-      await putDocument(row as DocumentInput);
+      await putDocuments([row as DocumentInput, ...(taken as unknown as DocumentInput[])]);
     };
   },
   async rename(itemId, title) {
