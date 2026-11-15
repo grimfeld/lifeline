@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, EmptyState, Field, Input, Page, PageHeader } from "@lifeline/ui";
+import { Button, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, EmptyState, Field, Input, Page, PageHeader, PhoneDock } from "@lifeline/ui";
 import { ArrowLeft, Home, Plus } from "lucide-react";
 import { PEOPLE_HREF, householdHref } from "../constants";
 import { membersOf } from "../domain/households";
@@ -75,7 +75,7 @@ export function HouseholdsScreen() {
     () => [...households].sort((a, b) => fold(a.title).localeCompare(fold(b.title))).map((h) => ({ household: h, names: membersOf(h, people).map((m) => m.name) })),
     [households, people],
   );
-  const add = (
+  const addButton = (
     <Button onClick={() => setAdding(true)}>
       <Plus /> Add household
     </Button>
@@ -85,9 +85,9 @@ export function HouseholdsScreen() {
       <Link to={PEOPLE_HREF} className="text-muted-foreground inline-flex items-center gap-1 text-sm hover:underline">
         <ArrowLeft className="size-4" /> People
       </Link>
-      <PageHeader title="Households">{rows.length > 0 ? add : null}</PageHeader>
+      <PageHeader title="Households">{rows.length > 0 ? <PhoneDock>{addButton}</PhoneDock> : null}</PageHeader>
       {rows.length === 0 ? (
-        <EmptyState action={add}>The People who live together. Add one, choose its members, then link it from any page with [[its name]].</EmptyState>
+        <EmptyState action={addButton}>The People who live together. Add one, choose its members, then link it from any page with [[its name]].</EmptyState>
       ) : (
         <ul className="grid min-w-0">
           {rows.map(({ household, names }) => (

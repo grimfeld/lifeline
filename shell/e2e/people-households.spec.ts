@@ -66,3 +66,12 @@ test("a Household's page has its own Timeline and Reports: what links to it, by 
   await expect(entry).not.toContainText("via");
   await expect(page.getByRole("region", { name: "Reports" })).toContainText("today");
 });
+
+test("on a phone, Add household sits in the Phone dock", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "the Phone dock is the phone's");
+  await page.goto("/app/people/households");
+  await workLocally(page);
+  const dock = page.locator("[data-phone-dock-line]");
+  await expect(dock.getByRole("button", { name: "Add household" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("button", { name: "Add household" })).toHaveCount(0);
+});

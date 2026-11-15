@@ -1041,6 +1041,23 @@ const SCREENS: ScreenCase[] = [
   { name: "Museum", path: "/app/museum" },
   { name: "Exhibition", path: "/app/museum/e/:id", type: "exhibition" },
   { name: "People", path: "/app/people", afterOpen: longRelationship },
+  {
+    // The tidy-up notice and its dialog over a Person whose long title starts with a long alias.
+    name: "People · Tidy given names",
+    path: "/app/people",
+    afterOpen: async (page) => {
+      await workLocally(page);
+      await inCore(
+        page,
+        async (core, a: { long: string }) => {
+          await core.createDocument({ type: "contacts_person", title: `${a.long} Dupont`, fields: { aliases: [a.long, `${a.long} Annie`] } });
+        },
+        { long: LONG_WORD },
+      );
+      await page.getByRole("button", { name: "Tidy given names…" }).click();
+      await expect(page.getByRole("dialog", { name: "Tidy given names" })).toBeVisible();
+    },
+  },
   { name: "Person", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); } },
   { name: "Person · Edit", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longAddresses(page); await longContactDetails(page); await page.getByRole("button", { name: "Edit", exact: true }).click(); } },
   { name: "Person · Households", path: "/app/people/person/:id", type: "contacts_person", afterOpen: async (page) => { await longHouseholds(page); await expect(page.getByRole("link", { name: /^Another household/ })).toBeVisible(); } },

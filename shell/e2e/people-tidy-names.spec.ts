@@ -30,3 +30,29 @@ test("tidying fills the names, drops the duplicated alias, and the offer goes", 
   await page.getByRole("dialog", { name: "Tidy given names" }).getByRole("button", { name: "Apply to 1" }).click();
   await expect(page.getByRole("button", { name: "Tidy given names…" })).toHaveCount(0);
 });
+
+test("each row's checkbox is named with what Apply will change", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  await make(page, "Anne Dupont", ["Anne", "Annie"]);
+  await page.getByRole("button", { name: "Tidy given names…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Tidy given names" });
+  await expect(dialog.getByRole("checkbox", { name: /Anne Dupont.*Given name Anne.*Family name Dupont.*drops alias Anne/ })).toBeVisible();
+});
+
+test("a failed Apply is announced, and the dialog stays open", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  await make(page, "Anne Dupont", ["Anne"]);
+  await page.getByRole("button", { name: "Tidy given names…" }).click();
+  const dialog = page.getByRole("dialog", { name: "Tidy given names" });
+  // Every write queues for push: a refused queue entry fails the write.
+  await inCore(page, async (core) => {
+    core.db()._outbox.hook("creating", () => {
+      throw new Error("Disk full");
+    });
+  }, undefined);
+  await dialog.getByRole("button", { name: "Apply to 1" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Disk full");
+  await expect(dialog).toBeVisible();
+});
