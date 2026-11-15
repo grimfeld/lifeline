@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { extractLinks, isImageEmbed, normalizeName, type WikiLink } from "../markdown";
 import { docPath, normalizeFolder } from "../folders";
-import { aliasesOf, displayTitle, isLinkKind, singularOf, type Document, type DocumentTypeDef } from "./types";
+import { aliasesOf, displayTitle, isLinkKind, singularOf, spanCovers, type Document, type DocumentTypeDef, type MemberSpan } from "./types";
 import { useAllDocuments } from "./store";
 import { fieldsOfDocument } from "./roles";
 import { usePrivateLockedRefs, type PrivateLockedRefs } from "../private";
@@ -398,7 +398,7 @@ function membersHook(def: DocumentTypeDef | undefined): MembersHook | undefined 
   return typeof l === "object" ? l.members : undefined;
 }
 
-type MembersHook = (doc: Document, day: DateStr) => string[];
+type MembersHook = (doc: Document) => MemberSpan[];
 
 /** Whether any type declares `linkable.members`: without one, nothing reaches a Document but its Backlinks. */
 function declaresMembers(defs: Map<string, DocumentTypeDef>): boolean {
@@ -406,41 +406,23 @@ function declaresMembers(defs: Map<string, DocumentTypeDef>): boolean {
   return false;
 }
 
-/** Who a Household stands for on a day, never itself, read once per day however many sources ask. */
-function membersOn(household: Document, members: MembersHook): (day: DateStr) => string[] {
-  const byDay = new Map<DateStr, string[]>();
-  return (day) => {
-    let ids = byDay.get(day);
-    if (!ids) {
-      ids = members(household, day).filter((m) => m !== household.id);
-      byDay.set(day, ids);
-    }
-    return ids;
-  };
-}
-
-/** A day before and after any membership's bounds: a member on both was one on every day. */
-const EVER: [DateStr, DateStr] = ["0000-01-01", "9999-12-31"];
-
-/** Whoever is a member whatever the day (neither a since nor an until): all a dateless source reaches. */
-function alwaysMembers(on: (day: DateStr) => string[]): string[] {
-  const last = new Set(on(EVER[1]));
-  return on(EVER[0]).filter((m) => last.has(m));
-}
-
-/** Who a source on `days` reaches through a Household, each with the days they were a member; a dateless source (no days) reaches its always-members, on no day in particular. */
-function reachedBy(days: DateStr[] | null | undefined, on: (day: DateStr) => string[]): Map<string, DateStr[] | undefined> {
+/**
+ * Who a source on `days` reaches through a Household's spans, each with the
+ * days they were a member. A member with no bounds takes the source's days as
+ * they are, unexpanded; a dateless source (no days) reaches only those.
+ */
+function reachedBy(days: DateStr[] | null | undefined, spans: readonly MemberSpan[]): Map<string, DateStr[] | undefined> {
   const reached = new Map<string, DateStr[] | undefined>();
-  if (!days) {
-    for (const m of alwaysMembers(on)) reached.set(m, undefined);
-    return reached;
-  }
-  for (const day of days) {
-    for (const m of on(day)) {
-      const list = reached.get(m);
-      if (list) list.push(day);
-      else reached.set(m, [day]);
+  for (const span of spans) {
+    const always = !span.since && !span.until;
+    if (!days) {
+      if (always) reached.set(span.id, undefined);
+      continue;
     }
+    const on = always ? days : days.filter((d) => spanCovers(span, d));
+    if (!on.length) continue;
+    const had = reached.get(span.id);
+    reached.set(span.id, had ? [...new Set([...had, ...on])].sort() : on);
   }
   return reached;
 }
@@ -474,9 +456,12 @@ function viaMembers(docs: Document[], defs: Map<string, DocumentTypeDef>, byId: 
   for (const household of docs) {
     const members = membersHook(defs.get(household.type));
     if (!members) continue;
-    const on = membersOn(household, members);
-    for (const b of firstPerSource(backlinks.get(household.id) ?? [])) {
-      for (const [m, days] of reachedBy(sourceDays(byId.get(b.sourceId)), on)) {
+    const sources = firstPerSource(backlinks.get(household.id) ?? []);
+    if (!sources.length) continue;
+    // Read once per Household, never itself.
+    const spans = members(household).filter((s) => s.id !== household.id);
+    for (const b of sources) {
+      for (const [m, days] of reachedBy(sourceDays(byId.get(b.sourceId)), spans)) {
         if (m !== b.sourceId) mergeReach(out, m, { ...b, via: household.id, ...(days ? { days } : {}) });
       }
     }

@@ -4,7 +4,7 @@ import { describeHousehold, describePerson } from "./describe";
 import { removeTiesOf, tieIdsOf } from "./data/ties";
 import { householdHref, personHref } from "./constants";
 import { dropMembersOutside, dropMembershipsOf } from "./data/households";
-import { memberIdsOn } from "./domain/households";
+import { memberSpansOf } from "./domain/households";
 import { addressPinsOf } from "./domain/addresses";
 
 /**
@@ -102,7 +102,7 @@ export const householdTypeDef: DocumentTypeDef = {
   body: "optional",
   folder: HOUSEHOLDS_FOLDER,
   // A link to it counts for whoever was a member on the source's day (ADR 0117): Core's `reaches`.
-  linkable: { subtitle: () => "Household", members: (doc, day) => memberIdsOn(doc.members, day) },
+  linkable: { subtitle: () => "Household", members: (doc) => memberSpansOf(doc.members) },
   href: (d) => householdHref(d.id),
   // Its own page's Reports, as a Person's (ADR 0112): what links to it by name, never through its members.
   reports: [{ kind: "lastSeen" }, { kind: "last" }],

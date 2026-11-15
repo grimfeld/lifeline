@@ -180,8 +180,10 @@ export interface DocumentTypeDef {
    * mentioned as aliases are, read through `aliasesOf`, and are never written
    * into the aliases Field — correcting the Field corrects the name.
    * `members` (ADR 0117) says which Documents one of the type's Documents
-   * stands for on a day (a Household's members then): a link to it reaches
-   * them too (`LinkIndex.reaches`), never as a Backlink. Declared in code.
+   * stands for, each with the days it does (a Household's members, since and
+   * until): a link to it reaches them on those days (`LinkIndex.reaches`),
+   * never as a Backlink. Read once per Document, however many days its
+   * linking sources span. Declared in code.
    */
   linkable?:
     | boolean
@@ -191,8 +193,8 @@ export interface DocumentTypeDef {
         expand?: (name: string) => string[] | null;
         mentions?: boolean;
         extraNames?: (doc: NamedRow) => string[];
-        /** ids of the Documents this one stands for on that day */
-        members?: (doc: Document, day: DateStr) => string[];
+        /** The Documents this one stands for, each with the days it does. */
+        members?: (doc: Document) => MemberSpan[];
       };
   /**
    * Text Fields whose wikilinks the link index reads as links, for a type with
@@ -343,6 +345,22 @@ export function aliasesKey(def?: Pick<DocumentTypeDef, "linkable"> | null): stri
 }
 
 /** What a Document's aliases Field holds, and only that: the base of a write to it. */
+/**
+ * One Document a Linkable stands for (ADR 0117), from `since` to `until`, both
+ * included; a missing bound means always.
+ */
+export interface MemberSpan {
+  id: string;
+  since?: DateStr;
+  until?: DateStr;
+}
+
+/** Whether a span covers a day. */
+export const spanCovers = (span: MemberSpan, day: DateStr): boolean => (!span.since || span.since <= day) && (!span.until || day <= span.until);
+
+/** The ids a Linkable stands for on a day, in the order its spans give them. */
+export const membersOnDay = (spans: readonly MemberSpan[], day: DateStr): string[] => spans.filter((s) => spanCovers(s, day)).map((s) => s.id);
+
 /** What naming a Document reads of it: its title and its flat fields. A Document is one; so is a row an App reads before it is stored. */
 export type NamedRow = Pick<Document, "title"> & { [field: string]: unknown };
 

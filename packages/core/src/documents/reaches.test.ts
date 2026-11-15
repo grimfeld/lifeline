@@ -11,13 +11,13 @@ const T = (id: string, extra: Partial<DocumentTypeDef> = {}): DocumentTypeDef =>
   id, label: id + "s", titleRule: "name", body: "optional", fields: [], linkable: true, builtIn: true, ...extra,
 });
 type M = { personId: string; since?: string; until?: string };
-const on = (m: M, day: string) => (!m.since || m.since <= day) && (!m.until || day <= m.until);
+const spans = (d: Document) => ((d.members ?? []) as M[]).map(({ personId, ...days }) => ({ id: personId, ...days }));
 const types = [
   T("person"),
   T("note"),
   T("daily", { titleRule: "date", linkable: { mentions: false } }),
   T("event", { body: "none", fields: [{ key: "notes", label: "Notes", kind: "longtext" }, { key: "with", label: "With", kind: "links" }], linkingText: ["notes"] }),
-  T("household", { linkable: { members: (doc, day) => ((doc.members ?? []) as M[]).filter((m) => on(m, day)).map((m) => m.personId) } }),
+  T("household", { linkable: { members: spans } }),
 ];
 const doc = (id: string, type: string, title: string, body = "", extra: Record<string, unknown> = {}): Document => ({
   id, type, title, body, folder: "", tags: [], createdAt: "2026-01-01", updatedAt: "", deleted: 0, ...extra,
@@ -127,5 +127,34 @@ describe("Mentioned and Seen through a Household", () => {
     expect(seenDays(idx, "paul", "2026-12-31")).toEqual(["2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02"]);
     expect(seenDays(idx, "tom", "2026-12-31")).toEqual(["2026-06-29", "2026-06-30"]);
     expect(seenDays(idx, "mary", "2026-07-01")).toEqual(["2026-06-29", "2026-06-30", "2026-07-01"]);
+  });
+});
+
+describe("a long Event linking a Household", () => {
+  // Ten years at the Smiths': who they stand for is read once per Household, not once per day.
+  let reads = 0;
+  const counted = T("household", {
+    linkable: {
+      members: (d: Document) => {
+        reads++;
+        return spans(d);
+      },
+    },
+  });
+  const long = buildLinkIndex(
+    [
+      doc("paul", "person", "Paul"),
+      doc("tom", "person", "Tom"),
+      doc("smiths", "household", "the Smiths", "", { members: [{ personId: "paul" }, { personId: "tom", until: "2016-01-02" }] }),
+      doc("dec", "event", "A decade", "", { date: "2016-01-01", endDate: "2025-12-31", notes: "at [[the Smiths]]" }),
+    ],
+    [...types.filter((t) => t.id !== "household"), counted],
+  );
+  it("reads the members once, and keeps every day for whoever has no bounds", () => {
+    reads = 0;
+    const paul = long.reaches("paul");
+    expect(reads).toBe(1);
+    expect(paul[0]!.days).toHaveLength(3653);
+    expect(long.reaches("tom")[0]!.days).toEqual(["2016-01-01", "2016-01-02"]);
   });
 });

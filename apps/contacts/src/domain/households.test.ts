@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { currentMemberNames, hasMember, householdsForFamilyName, householdsOf, memberCandidates, memberIdsOn, membershipSpan, membershipsOf, membersOf, splitMembers } from "./households";
-import { initApps } from "@lifeline/core";
+import { currentMemberNames, hasMember, householdsForFamilyName, householdsOf, memberCandidates, memberSpansOf, membershipSpan, membershipsOf, membersOf, splitMembers } from "./households";
+import { initApps, membersOnDay, type MemberSpan } from "@lifeline/core";
 import { householdTypeDef, personTypeDef } from "../types";
+
+/** Who the Household type declares on a day, read as Core reads it. */
+const memberIdsOn = (raw: unknown, day: string) => membersOnDay(memberSpansOf(raw), day);
 
 const people = [
   { id: "paul", title: "Paul Smith", aliases: ["Dad"], relationship: "my brother" },
@@ -83,9 +86,9 @@ describe("who a Household stands for on a day (ADR 0117)", () => {
     expect(memberIdsOn(span, "2024-09-02")).toEqual(["paul"]);
   });
   it("is what the Household type declares to the link index, and no one for a Household with no members", () => {
-    const declared = householdTypeDef.linkable as { members: (doc: unknown, day: string) => string[] };
-    expect(declared.members({ members }, "2026-07-01")).toEqual(["paul", "mary"]);
-    expect(declared.members({}, "2026-07-01")).toEqual([]);
+    const declared = householdTypeDef.linkable as { members: (doc: unknown) => MemberSpan[] };
+    expect(declared.members({ members })).toEqual([{ id: "paul" }, { id: "mary", since: "2026-03-01" }, { id: "tom", until: "2026-06-30" }]);
+    expect(declared.members({})).toEqual([]);
   });
 });
 
