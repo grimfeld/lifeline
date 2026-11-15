@@ -19,6 +19,15 @@ describe("a Person as a link target (ADR 0113)", () => {
     expect(names.find((n) => n.name === "Marc")?.subtitle).toBe("Person");
   });
 
+  it("is reached by its Given name, never copied into its Aliases (ADR 0117)", () => {
+    const given: Document = { ...anne, givenName: "Anne" };
+    const idx = buildLinkIndex([given, marc], [personTypeDef]);
+    expect(idx.resolve("anne")).toMatchObject({ kind: "doc", id: "p1" });
+    expect(idx.names().find((n) => n.name === "Anne")?.subtitle).toBe("→ Anne Dupont");
+    expect(given.aliases).toEqual(["Mum"]);
+    expect(buildLinkIndex([{ ...given, givenName: "Annie" }, marc], [personTypeDef]).resolve("Anne")).toMatchObject({ kind: "unresolved" });
+  });
+
   it("is mentionable, so the Mentioned Reports apply", () => {
     expect(personTypeDef.linkable).not.toMatchObject({ mentions: false });
   });

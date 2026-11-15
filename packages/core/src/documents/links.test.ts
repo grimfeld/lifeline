@@ -136,3 +136,46 @@ describe("a type's linking text Fields", () => {
     expect(buildLinkIndex([self], [...types, evType]).backlinksTo("e2")).toEqual([]);
   });
 });
+
+describe("a type's extra names (the Linkable Contract's `extraNames`, a Person's Given name)", () => {
+  const given = T("person", { linkable: { extraNames: (d) => [String(d.givenName ?? "")] } });
+  const types2 = [T("note"), given];
+  const docs = [
+    doc("p1", "person", "Anne Martin", "", "", { givenName: "Anne", aliases: ["Annie"] }),
+    doc("p2", "person", "Bob Stone", "", "", { givenName: " ", aliases: [] }),
+    doc("n1", "note", "Diary", "Tea with [[Anne]] and [[person:anne]]."),
+  ];
+
+  it("resolve [[Given name]] to its Document, after titles, as an alias does", () => {
+    const idx = buildLinkIndex(docs, types2);
+    expect(idx.resolve("anne")).toEqual({ kind: "doc", id: "p1", type: "person" });
+    expect(idx.resolve("person:Anne")).toEqual({ kind: "doc", id: "p1", type: "person" });
+    expect(idx.linksFrom("n1").map((l) => l.ref)).toEqual([{ kind: "doc", id: "p1", type: "person" }, { kind: "doc", id: "p1", type: "person" }]);
+    // A title wins over an extra name, as over an alias.
+    const withTitle = buildLinkIndex([...docs, doc("n2", "note", "Anne")], types2);
+    expect(withTitle.resolve("Anne")).toEqual({ kind: "doc", id: "n2", type: "note" });
+  });
+  it("are offered by the completer under the name, showing the title it leads to; a blank one is not", () => {
+    const idx = buildLinkIndex(docs, types2);
+    const of = (id: string) => idx.names().filter((n) => n.ref.kind === "doc" && n.ref.id === id).map((n) => [n.name, n.subtitle]);
+    expect(of("p1")).toEqual([["Anne Martin", "person"], ["Annie", "→ Anne Martin"], ["Anne", "→ Anne Martin"]]);
+    expect(of("p2")).toEqual([["Bob Stone", "person"]]);
+  });
+  it("is the same name once when it is also a typed alias or the title", () => {
+    const idx = buildLinkIndex([doc("p1", "person", "Anne", "", "", { givenName: "anne", aliases: ["Anne", "ANNE"] })], types2);
+    expect(idx.names().map((n) => n.name)).toEqual(["Anne", "Anne", "ANNE"]);
+  });
+  it("two Documents with the same extra name: [[Anne]] goes where two equal typed aliases would (the first)", () => {
+    const twins = [doc("p1", "person", "Anne Martin", "", "", { givenName: "Anne" }), doc("p2", "person", "Anne Roy", "", "", { givenName: "Anne" })];
+    const asAliases = [doc("p1", "person", "Anne Martin", "", "", { aliases: ["Anne"] }), doc("p2", "person", "Anne Roy", "", "", { aliases: ["Anne"] })];
+    expect(buildLinkIndex(twins, types2).resolve("Anne")).toEqual(buildLinkIndex(asAliases, types2).resolve("Anne"));
+    expect(buildLinkIndex(twins, types2).resolve("person:Anne")).toEqual(buildLinkIndex(asAliases, types2).resolve("person:Anne"));
+  });
+  it("a corrected extra name changes what [[…]] resolves to", () => {
+    const fixed = docs.map((d) => (d.id === "p1" ? { ...d, givenName: "Ann" } : d));
+    const idx = buildLinkIndex(fixed, types2);
+    expect(idx.resolve("Anne")).toEqual({ kind: "unresolved", name: "Anne" });
+    expect(idx.resolve("Ann")).toEqual({ kind: "doc", id: "p1", type: "person" });
+  });
+});
+

@@ -37,6 +37,9 @@ Open it with the links-panel button on a Document's toolbar. It holds:
 - Add an **Aliases** Field to a Linkable type, then fill it in on each Document.
 - Or select words in a body, choose **Link to…** in the [Selection menu](peek.md), pick the
   Document, and tick **Also add "…" as an alias**.
+- Some types add a name of their own that works the same way without being typed into Aliases: a
+  Person's **Given name** (see [People](people.md)). The tickbox is not offered for words that
+  already name the Document this way.
 
 ## Linking from a selection
 

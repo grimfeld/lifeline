@@ -145,6 +145,12 @@ if you have added something since.
 
 - Write `[[` and their name, or any of their aliases: `[[Mum]]` and `[[Anne Dupont]]` land on
   the same Person. The completer marks each one as a Person, with their Relationship.
+- Their **Given name** works like an alias you never type: with "Anne" as Anne Dupont's Given
+  name, `[[Anne]]` lands on her, the completer offers "Anne → Anne Dupont", and a plain "Anne"
+  in a Day shows under her **Unlinked mentions**. It is read from the Given name, never copied
+  into her Aliases, so correcting the Given name changes what `[[Anne]]` reaches (a page titled
+  "Anne" still comes first, as it does over an alias). Two People with the same Given name share
+  it as two equal aliases would: `[[Anne]]` goes to one of them, so write the full name to be sure.
 - Click a link to a Person to open them in a **Peek**, where you can change their aliases,
   Relationship and Tags and write in their body. **Open** goes to their page.
 - Select a name in a Day (or any body) and pick **Person** under **People** in the Selection

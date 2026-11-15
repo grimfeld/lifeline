@@ -1,5 +1,6 @@
 import type * as React from "react";
 import type { SyncedRecord } from "../data/db";
+import { normalizeName } from "../markdown";
 
 /**
  * The Document (ADR 0018): the one basic block. Every user-facing record is
@@ -172,9 +173,21 @@ export interface DocumentTypeDef {
    * its titles it stands for — a scripture range `John 3:16–18` → three
    * Verse titles — or null when the name is not its business. `mentions:
    * false` keeps the type's Documents out of Unlinked mentions (CONTEXT.md):
-   * still wikilink targets, never offered from plain prose.
+   * still wikilink targets, never offered from plain prose. `extraNames`
+   * (ADR 0117) gives a Document names beside its aliases Field, derived from
+   * its own Fields (a Person's Given name): they resolve, complete and are
+   * mentioned as aliases are, read through `aliasesOf`, and are never written
+   * into the aliases Field — correcting the Field corrects the name.
    */
-  linkable?: boolean | { aliasesField?: string; subtitle?: (doc: Document) => string | undefined; expand?: (name: string) => string[] | null; mentions?: boolean };
+  linkable?:
+    | boolean
+    | {
+        aliasesField?: string;
+        subtitle?: (doc: Document) => string | undefined;
+        expand?: (name: string) => string[] | null;
+        mentions?: boolean;
+        extraNames?: (doc: Document) => string[];
+      };
   /**
    * Text Fields whose wikilinks the link index reads as links, for a type with
    * no body that keeps its prose in a Field (an Event's Notes). They make
@@ -308,12 +321,44 @@ export function displayTitle(doc: Document, def?: Pick<DocumentTypeDef, "titleOf
   return t || "(untitled)";
 }
 
-/** Aliases of a Document for link resolution (the `aliases` list field by default). */
-export function aliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
+/** The key of a type's aliases Field: the `aliases` list Field unless the type names another. */
+export function aliasesKey(def?: Pick<DocumentTypeDef, "linkable"> | null): string {
   const l = def?.linkable;
-  const key = typeof l === "object" && l?.aliasesField ? l.aliasesField : "aliases";
-  const v = doc[key];
+  return typeof l === "object" && l?.aliasesField ? l.aliasesField : "aliases";
+}
+
+/** What a Document's aliases Field holds, and only that: the base of a write to it. */
+export function typedAliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
+  const v = doc[aliasesKey(def)];
   return Array.isArray(v) ? v.map(String).filter(Boolean) : typeof v === "string" && v ? [v] : [];
+}
+
+/**
+ * Aliases of a Document for link resolution, completion and Unlinked
+ * mentions: its aliases Field, then the extra names its type derives
+ * (`linkable.extraNames`) that are not blank, its title or an alias already.
+ */
+export function aliasesOf(doc: Document, def?: Pick<DocumentTypeDef, "linkable"> | null): string[] {
+  const typed = typedAliasesOf(doc, def);
+  const l = def?.linkable;
+  const extra = typeof l === "object" ? l?.extraNames : undefined;
+  if (!extra) return typed;
+  let names: string[];
+  try {
+    names = extra(doc);
+  } catch {
+    names = [];
+  }
+  const seen = new Set([doc.title, ...typed].map(normalizeName));
+  const out = [...typed];
+  for (const n of names) {
+    const name = typeof n === "string" ? n.trim() : "";
+    const k = normalizeName(name);
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(name);
+  }
+  return out;
 }
 
 /** Coordinates of a Document per its type's Locatable declaration. */

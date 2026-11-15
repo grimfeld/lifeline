@@ -18,7 +18,11 @@ export const personTypeDef: DocumentTypeDef = {
   titleRule: "name",
   body: "optional",
   folder: PEOPLE_FOLDER,
-  linkable: { subtitle: (d) => ((d as Person).relationship?.trim() ? `Person · ${(d as Person).relationship.trim()}` : "Person") },
+  linkable: {
+    subtitle: (d) => ((d as Person).relationship?.trim() ? `Person · ${(d as Person).relationship.trim()}` : "Person"),
+    // [[Anne]] reaches them by their Given name, read from the Field and never copied into Aliases (ADR 0117).
+    extraNames: (d) => [(d as Person).givenName ?? ""],
+  },
   // Opens on its own page; its Peek's "Open" leads there (ADR 0110's pattern).
   href: (d) => personHref(d.id),
   // A Pin for each current Address with coordinates, through the App's code and no geo Field (#418).
