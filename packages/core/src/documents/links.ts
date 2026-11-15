@@ -403,13 +403,13 @@ const EVER: [DateStr, DateStr] = ["0000-01-01", "9999-12-31"];
  */
 function viaMembers(docs: Document[], defs: Map<string, DocumentTypeDef>, byId: Map<string, Document>, backlinks: Map<string, Backlink[]>): Map<string, Reach[]> {
   const out = new Map<string, Reach[]>();
-  for (const group of docs) {
-    const l = defs.get(group.type)?.linkable;
+  for (const household of docs) {
+    const l = defs.get(household.type)?.linkable;
     const members = typeof l === "object" ? l.members : undefined;
     if (!members) continue;
-    const of = (day: DateStr) => members(group, day).filter((m) => m !== group.id);
+    const of = (day: DateStr) => members(household, day).filter((m) => m !== household.id);
     const seen = new Set<string>();
-    for (const b of backlinks.get(group.id) ?? []) {
+    for (const b of backlinks.get(household.id) ?? []) {
       if (seen.has(b.sourceId)) continue;
       seen.add(b.sourceId);
       const reached = new Map<string, DateStr[] | undefined>();
@@ -435,7 +435,7 @@ function viaMembers(docs: Document[], defs: Map<string, DocumentTypeDef>, byId: 
           if (on) had.days = [...new Set([...(had.days ?? []), ...on])].sort();
           continue;
         }
-        const r: Reach = { ...b, via: group.id, ...(on ? { days: on } : {}) };
+        const r: Reach = { ...b, via: household.id, ...(on ? { days: on } : {}) };
         if (list) list.push(r);
         else out.set(m, [r]);
       }

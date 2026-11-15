@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Document } from "@lifeline/core";
-import { afterKey, groupOptions, personOptions, withMembers, withPerson } from "./peopleChoice";
+import { afterKey, householdOptions, personOptions, withMembers, withPerson } from "./peopleChoice";
 
 const person = (id: string, title: string, aliases?: unknown): Document =>
   ({ id, type: "contacts_person", title, body: "", folder: "", tags: [], createdAt: "", updatedAt: "", deleted: 0, aliases }) as Document;
@@ -33,13 +33,13 @@ describe("a People field that also offers Households (an Event's With, ADR 0117)
   const smiths = { doc: household("h", "the Smiths", ["Smiths"]), kind: "Household", members: ["paul", "mary", "lily"] };
 
   it("offers a Household by name or alias, saying who it adds", () => {
-    expect(groupOptions([smiths], people, ["mary"])).toEqual([
+    expect(householdOptions([smiths], people, ["mary"])).toEqual([
       { value: "h", label: "the Smiths", keywords: ["Smiths"], description: "Household · Paul Smith, Lily Smith" },
     ]);
   });
   it("leaves out a Household that would add no one: all there already, or no member among the People", () => {
     const strangers = { doc: household("g", "the Greens"), kind: "Household", members: ["gone"] };
-    expect(groupOptions([smiths, strangers], people, ["paul", "mary", "lily"])).toEqual([]);
+    expect(householdOptions([smiths, strangers], people, ["paul", "mary", "lily"])).toEqual([]);
   });
   it("adds a Household's members as People, after those there, never twice", () => {
     expect(withMembers(["jo", "mary"], smiths.members, people)).toEqual(["jo", "mary", "paul", "lily"]);

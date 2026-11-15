@@ -31,7 +31,7 @@ export function afterKey(key: string, query: string, chosen: readonly string[]):
  * ADR 0117): what it is called ("Household"), and the ids of the People it
  * stands for today.
  */
-export interface GroupChoice {
+export interface HouseholdChoice {
   doc: Document;
   kind?: string;
   members: readonly string[];
@@ -45,18 +45,18 @@ function toAdd(chosen: readonly string[], members: readonly string[], people: re
   return out;
 }
 
-/** The groups a People field offers, completed by name or alias, each saying whom it adds; one that would add no one is left out. */
-export function groupOptions(groups: readonly GroupChoice[], people: readonly Document[], chosen: readonly string[]): ComboboxOption[] {
+/** The Households a People field offers, completed by name or alias, each saying whom it adds; one that would add no one is left out. */
+export function householdOptions(households: readonly HouseholdChoice[], people: readonly Document[], chosen: readonly string[]): ComboboxOption[] {
   const names = new Map(people.map((p) => [p.id, p.title]));
-  return groups.flatMap((g) => {
-    const adds = toAdd(chosen, g.members, people);
+  return households.flatMap((h) => {
+    const adds = toAdd(chosen, h.members, people);
     if (!adds.length) return [];
     const who = adds.map((id) => names.get(id)).join(", ");
-    return [{ value: g.doc.id, label: g.doc.title, keywords: aliasesOf(g.doc), description: g.kind ? `${g.kind} · ${who}` : who }];
+    return [{ value: h.doc.id, label: h.doc.title, keywords: aliasesOf(h.doc), description: h.kind ? `${h.kind} · ${who}` : who }];
   });
 }
 
-/** The People with a group's members added (never the group itself), or undefined when it adds no one. */
+/** The People with a Household's members added (never the Household itself), or undefined when it adds no one. */
 export function withMembers(chosen: readonly string[], members: readonly string[], people: readonly Document[]): string[] | undefined {
   const adds = toAdd(chosen, members, people);
   return adds.length ? [...chosen, ...adds] : undefined;
