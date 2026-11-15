@@ -5,7 +5,7 @@ const P = (title: string, aliases: string[], givenName = "") => ({ id: title, ti
 
 describe("tidy-up of given-name aliases", () => {
   it("proposes the alias a title begins with as the Given name, the rest as the Family name", () => {
-    expect(tidyRowOf(P("Anne Dupont", ["Anne", "Annie"]))).toEqual({ id: "Anne Dupont", title: "Anne Dupont", givenName: "Anne", familyName: "Dupont", drop: ["Anne"] });
+    expect(tidyRowOf(P("Anne Dupont", ["Anne", "Annie"]))).toEqual({ id: "Anne Dupont", title: "Anne Dupont", givenName: "Anne", familyName: "Dupont", drop: ["Anne"], keep: ["Annie"] });
   });
   it("compares names as wikilinks do (case, accents, spacing) and whole words only", () => {
     expect(tidyRowOf(P("Élodie  Martin", ["elodie"]))?.familyName).toBe("Martin");

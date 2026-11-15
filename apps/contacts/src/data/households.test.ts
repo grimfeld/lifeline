@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { buildLinkIndex, documentsOf, documentsTable, getDocument, initApps, moveDocumentsToWorkspace, removeDocument } from "@lifeline/core";
 import { householdTypeDef, personTypeDef, tieTypeDef } from "../types";
 import { addPerson } from "./repo";
-import { addHousehold, addMember, allHouseholds, joinNewHousehold, removeMember, restoreMember, setMembershipDays } from "./households";
+import { addHousehold, addMember, joinNewHousehold, removeMember, restoreMember, setMembershipDays } from "./households";
 import type { Household } from "../domain/types";
 
 initApps([{ id: "contacts", title: "Contacts", module: "people", types: [personTypeDef, tieTypeDef, householdTypeDef], screens: [], cards: [], commands: [] }]);
@@ -106,8 +106,18 @@ describe("Households (ADR 0117)", () => {
     await addMember(smiths.id, paul.id);
     const before = await getDocument(paul.id);
     await removeDocument(smiths.id);
-    expect(await allHouseholds()).toEqual([]);
+    expect(await documentsOf("contacts_household")).toEqual([]);
     expect(await getDocument(paul.id)).toEqual(before);
+  });
+});
+
+describe("joining a new Household (ADR 0117)", () => {
+  it("leaves no empty Household when the join fails, and the name stays free", async () => {
+    await expect(joinNewHousehold("no-such-person", "the Smiths")).rejects.toThrow();
+    expect(await documentsOf("contacts_household")).toEqual([]);
+    const paul = await addPerson({ name: "Paul" });
+    const h = await joinNewHousehold(paul.id, "the Smiths");
+    expect(await membersIn(h.id)).toEqual([paul.id]);
   });
 });
 

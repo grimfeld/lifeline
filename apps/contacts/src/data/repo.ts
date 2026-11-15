@@ -165,7 +165,7 @@ export const updateContactDetails = (id: string, change: (list: ContactDetail[])
 /**
  * Tidy the given-name aliases of the People `ids` (ADR 0117): fill their names and
  * drop the duplicated alias. Each is worked out again from the stored row, so one
- * that changed since the review (or was deleted) is skipped. Returns how many changed.
+ * that changed since the review (or was deleted) is skipped. Returns how many changed; a write that fails says how many were done before it.
  */
 export async function applyTidy(ids: readonly string[]): Promise<number> {
   let done = 0;
@@ -174,7 +174,11 @@ export async function applyTidy(ids: readonly string[]): Promise<number> {
     if (!doc || doc.deleted || doc.type !== PERSON_TYPE) continue;
     const patch = tidyPatch(normalizePerson(doc as Person));
     if (!patch) continue;
-    await patchDocument(id, patch);
+    try {
+      await patchDocument(id, patch);
+    } catch (e) {
+      throw new Error(`${e instanceof Error ? e.message : String(e)} (${done} of ${ids.length} tidied before it)`);
+    }
     done++;
   }
   return done;

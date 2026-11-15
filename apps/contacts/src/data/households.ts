@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { PERSON_TYPE, createDocument, documentsOf, documentsOfUngated, getDocument, normalizeTags, patchDocument, renameDocument, useDocuments, type Document } from "@lifeline/core";
+import { PERSON_TYPE, createDocument, documentsOfUngated, getDocument, normalizeTags, patchDocument, removeDocument, renameDocument, useDocuments, type Document } from "@lifeline/core";
 import { HOUSEHOLD, type Household, type Membership } from "../domain/types";
-import { hasMember, membershipsOf } from "../domain/households";
+import { hasMember, membershipsOf, normalizeMembership } from "../domain/households";
 import { cleanAliases } from "../domain/person";
 import type { Removed } from "./repo";
 
@@ -16,9 +16,6 @@ export function useHouseholds(): Household[] {
   const docs = useDocuments<Household>(HOUSEHOLD);
   return useMemo(() => docs.map(normalizeHousehold), [docs]);
 }
-
-/** Every Household in the Workspace, read once. */
-export const allHouseholds = async () => (await documentsOf<Household>(HOUSEHOLD)).map(normalizeHousehold);
 
 /** Add a Household: a name is all it takes. Lands in its folder, with no members. Throws when the name is empty or taken there. */
 export async function addHousehold(input: { name: string; aliases?: string[]; tags?: string[] }): Promise<Household> {
@@ -73,14 +70,20 @@ export async function setMembershipDays(householdId: string, personId: string, d
   const since = days.since === undefined ? current.since : days.since;
   const until = days.until === undefined ? current.until : days.until;
   if (since && until && until < since) throw new Error("Until comes before since");
-  const next: Membership = { personId, ...(since ? { since } : {}), ...(until ? { until } : {}) };
-  await patchDocument(householdId, { members: members.map((m) => (m.personId === personId ? membershipsOf([next])[0]! : m)) });
+  const next = normalizeMembership(personId, since, until);
+  await patchDocument(householdId, { members: members.map((m) => (m.personId === personId ? next : m)) });
 }
 
 /** Make a Household of that name and the Person its first member: "Add to a household…" on their page, with a new one. */
 export async function joinNewHousehold(personId: string, name: string): Promise<Household> {
   const household = await addHousehold({ name });
-  await addMember(household.id, personId);
+  try {
+    await addMember(household.id, personId);
+  } catch (e) {
+    // Never leave the Household behind empty: a retry would find its name taken.
+    await removeDocument(household.id);
+    throw e;
+  }
   return { ...household, members: [{ personId }] };
 }
 

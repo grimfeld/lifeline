@@ -36,6 +36,7 @@ export function HouseholdScreen() {
     return (
       <Page>
         {back}
+        <PageHeader title="Household not found" />
         <p className="text-muted-foreground text-sm">No such household here: it may have been deleted, or live in another Workspace.</p>
       </Page>
     );
