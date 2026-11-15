@@ -34,6 +34,10 @@ test("takes the newest build", () => {
   const fs = fakeFs(["/pw/chromium-1243/chrome-linux/chrome", "/pw/chromium-1248/chrome-linux/chrome"]);
   assert.equal(preinstalledChromium("/pw", "linux", fs.exists, fs.list), join("/pw", "chromium-1248", "chrome-linux", "chrome"));
 });
+test("finds the chrome-linux64 folder newer builds unpack to", () => {
+  const fs = fakeFs(["/pw/chromium-1243/chrome-linux64/chrome"]);
+  assert.equal(preinstalledChromium("/pw", "linux", fs.exists, fs.list), join("/pw", "chromium-1243", "chrome-linux64", "chrome"));
+});
 test("no directory, or no chromium in it, is undefined", () => {
   const none = fakeFs([]);
   assert.equal(preinstalledChromium("/pw", "linux", none.exists, none.list), undefined);

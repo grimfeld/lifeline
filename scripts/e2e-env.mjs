@@ -33,13 +33,16 @@ export function preinstalledChromium(dir = PW_BROWSERS, platform = process.platf
     .map((name) => /^chromium-(\d+)$/.exec(name))
     .filter(Boolean)
     .sort((a, b) => Number(b[1]) - Number(a[1]));
-  const inside =
-    platform === "darwin" ? ["chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium"]
-    : platform === "win32" ? ["chrome-win", "chrome.exe"]
-    : ["chrome-linux", "chrome"];
+  // Newer Linux builds unpack to chrome-linux64, older ones to chrome-linux.
+  const candidates =
+    platform === "darwin" ? [["chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium"]]
+    : platform === "win32" ? [["chrome-win", "chrome.exe"]]
+    : [["chrome-linux64", "chrome"], ["chrome-linux", "chrome"]];
   for (const [name] of builds) {
-    const exe = join(dir, name, ...inside);
-    if (exists(exe)) return exe;
+    for (const inside of candidates) {
+      const exe = join(dir, name, ...inside);
+      if (exists(exe)) return exe;
+    }
   }
   return undefined;
 }
