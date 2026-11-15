@@ -270,6 +270,13 @@ export interface DocumentTypeDef {
    */
   agentWalled?: readonly string[];
   /**
+   * How the owning App makes one of these from a name alone, by its own rules
+   * — so a field elsewhere (an Event's At, ADR 0119) can offer "Create …"
+   * without importing the App (ADR 0100). Answers the Document there is when
+   * the App refuses a second of that name.
+   */
+  createNamed?: (name: string) => Promise<Document>;
+  /**
    * For an internal type (ADR 0098): the Document that speaks for one of its
    * own — a Lane's Project. `get_document` on the internal id answers as if
    * asked for the owner; without one, the id is refused like any internal one.

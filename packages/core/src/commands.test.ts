@@ -126,6 +126,36 @@ describe("pickLinked", () => {
   it("refuses an ambiguous title and lists the candidates' ids", () => {
     expect(() => pickLinked(STAT, "STEPS", docs)).toThrow(/2 stats are called “STEPS”.*s2.*s3/);
   });
+
+  describe("over several types, by alias too (an Event's At, ADR 0119)", () => {
+    const AT: CommandArg = { key: "at", label: "At", kind: "link", linkType: ["atlas_place", "contacts_person"] };
+    const places = [
+      { id: "pl1", type: "atlas_place", title: "Chez Janou", aliases: ["Janou"] },
+      { id: "pl2", type: "atlas_place", title: "Lidl Prado", aliases: ["Lidl"] },
+      { id: "pe1", type: "contacts_person", title: "Marc Lefèvre", aliases: ["Marco"] },
+      { id: "pe2", type: "contacts_person", title: "Lidl", aliases: [] },
+      { id: "n1", type: "note", title: "Janou notes", aliases: ["Janou"] },
+    ];
+
+    it("takes a Place or a Person by id, title or alias, case and accents aside", () => {
+      expect(pickLinked(AT, "pl1", places)).toBe("pl1");
+      expect(pickLinked(AT, "pe1", places)).toBe("pe1");
+      expect(pickLinked(AT, "chez janou", places)).toBe("pl1");
+      expect(pickLinked(AT, "marc lefevre", places)).toBe("pe1");
+      expect(pickLinked(AT, "janou", places)).toBe("pl1");
+      expect(pickLinked(AT, "MARCO", places)).toBe("pe1");
+    });
+
+    it("prefers a title to another Document's alias", () => {
+      expect(pickLinked(AT, "Lidl", places)).toBe("pe2");
+    });
+
+    it("names the types it looked through when nothing matches, and lists an alias shared by two", () => {
+      expect(() => pickLinked(AT, "Bob", places, { noun: "Place or Person", nouns: "Places or People" })).toThrow("At: no Place or Person called “Bob”");
+      const twice = [...places, { id: "pl3", type: "atlas_place", title: "Le Marco", aliases: ["Marco"] }];
+      expect(() => pickLinked(AT, "Marco", twice, { noun: "Place or Person", nouns: "Places or People" })).toThrow(/2 Places or People are called “Marco”.*pe1.*pl3/);
+    });
+  });
 });
 
 describe("reading a dialog's initial values", () => {

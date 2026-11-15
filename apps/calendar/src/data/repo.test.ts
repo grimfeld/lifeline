@@ -66,12 +66,20 @@ describe("addEvent", () => {
     await addEvent({ title: "Dinner", date: "2026-05-02", with: ["ana", "ben", "ana"] });
     expect((await only()).with).toEqual(["ana", "ben"]);
   });
+
+  it("stores where it is At, one id, and nowhere when not given (ADR 0119)", async () => {
+    await addEvent({ title: "Dinner", date: "2026-05-02", at: "janou" });
+    expect((await only()).at).toBe("janou");
+    await documentsTable().clear();
+    await addEvent({ title: "Nap", date: "2026-05-02" });
+    expect((await only()).at).toBe("");
+  });
 });
 
 describe("reading an Event", () => {
   it("re-establishes nulls and lists from what PocketBase hands back blank", async () => {
     await putDocument<Event>({ type: EVENT_TYPE, title: "Old", date: "2026-05-02", endDate: "", start: "", end: "" } as unknown as Event);
-    expect(await only()).toMatchObject({ notes: "", endDate: null, start: null, end: null, tags: [], with: [] });
+    expect(await only()).toMatchObject({ notes: "", endDate: null, start: null, end: null, tags: [], with: [], at: "" });
   });
 
   it("reads the People it was with as ids, skipping blanks, and none from a value that is not a list", async () => {

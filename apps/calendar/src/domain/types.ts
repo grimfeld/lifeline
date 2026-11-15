@@ -17,6 +17,12 @@ export interface Event extends Document {
   end: TimeStr | null;
   /** With: the People who were there (ids), a People field. Absent on an Event made before it. */
   with?: string[];
+  /**
+   * At (ADR 0119): where it happens, one Place or one Person (their home) —
+   * an id, "" for nowhere. Absent on an Event made before it. At on a Person
+   * never counts as seeing them; only With and the notes do.
+   */
+  at?: string;
 }
 
 /** Document type id. */

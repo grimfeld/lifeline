@@ -2,6 +2,7 @@ import { PLACE_TYPE, type DocumentTypeDef } from "@lifeline/core";
 import { KINDS, PLACES_FOLDER } from "./domain/types";
 import { placeCoordsOf, placeSubtitle } from "./domain/place";
 import { placeHref } from "./constants";
+import { PlaceTaken, addPlace } from "./data/repo";
 
 /**
  * The Place type (ADR 0119), UI-free: the icon and the Peek are attached in
@@ -27,6 +28,15 @@ export const placeTypeDef: DocumentTypeDef = {
   searchFields: ["kind", "address"],
   order: 31,
   builtIn: true,
+  // "Create …" in an Event's At (ADR 0119): a Place by name, or the one that already has it.
+  async createNamed(name) {
+    try {
+      return await addPlace({ name });
+    } catch (e) {
+      if (e instanceof PlaceTaken) return e.existing;
+      throw e;
+    }
+  },
   fields: [
     { key: "aliases", label: "Aliases", kind: "list" },
     { key: "kind", label: "Kind", kind: "select", options: KINDS.map((k) => ({ ...k })), userOptions: true, column: true },

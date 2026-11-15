@@ -83,10 +83,19 @@ page is reached from **Events** on the Calendar.
 The **Events** page has three tabs:
 
 - **Events** — Today, Upcoming and the past 30 days. **New event** adds one: title, day, start
-  and end, or **All day** (with an optional last day for several days), notes, **With** and Tags.
+  and end, or **All day** (with an optional last day for several days), notes, **With**, **At**
+  and Tags.
   **With** is who was there: type a name or an alias from People and pick it. The Event then
   shows on each Person's page under Events, and counts as having seen them. A `[[link]]` to a
   Person in the notes ("Dinner with [[Marc]]") counts as having seen them too.
+  **At** is where it happens: one [Place](places.md), or one Person, meaning their home. Type a
+  name or an alias; each suggestion says whether it is a Place ("Place · Restaurant") or a Person.
+  A name that matches none offers **New place “…”**, which adds the Place and sets At to it (a
+  name a Place already has picks that Place). The ✕ on it clears At. An Event is At one place at
+  most: several stops are several Events. The Event shows on that Place's or Person's page among
+  its backlinks ("via At"), and its At shows wherever Events are listed ("At Chez Janou"), and in
+  its Peek, where it can be changed. At on a Person never counts as having seen them: feeding
+  Marc's cat while he is away is not seeing Marc. Put him in **With** for that.
 - **Templates** — **Event templates** (title, length or all day, usual start, notes, Tags), each
   with **Add today**; and **Blocker templates** (title, length, colour).
 - **Blockers** — your Time blockers. A weekly one has a title, weekdays (or Every day / Weekdays /
@@ -138,7 +147,10 @@ each Event template under it. Pin a template you use daily to make it one tap.
 Through the Lifeline connector, Claude can:
 
 - Read what is on — "What do I have this week?", `agenda`.
-- Add an Event — "Add dentist on Thursday at 14:00", `calendar_add_event`.
+- Add an Event — "Add dentist on Thursday at 14:00", `calendar_add_event`; with `at`, where it
+  happens — "Book dinner at Chez Janou Friday": a Place or a Person, by name, alias or id.
+- Say where an Event is — `agenda` names each Event's At. An At on a Person reaches Claude as
+  that Person's name only, never their address.
 - Add one from a template — "Add Gym today", `calendar_add_from_template`.
 - Move an Event or a Task to another day — `move_item`; retime an Event or one-off blocker —
   "Move the dentist to 15:30", `reschedule_timed`.

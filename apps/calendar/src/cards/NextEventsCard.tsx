@@ -1,6 +1,7 @@
 import { formatHuman, matchesTagFilter, nowClock, todayStr, useTagFilter, type CardProps, type CardSettingsSchema } from "@lifeline/core";
 import { countdownWord, daysUntil, nextEvents } from "../domain/countdown";
 import { describeTime } from "../domain/events";
+import { AtText } from "../components/EventAt";
 import { useEvents } from "../data/repo";
 
 export const nextEventsSettings: CardSettingsSchema = {
@@ -54,6 +55,7 @@ export function NextEventsCard({ settings }: CardProps) {
               <span className="text-muted-foreground block truncate text-xs">
                 {formatHuman(e.date)}
                 {e.start ? ` · ${describeTime(e)}` : ""}
+                <AtText at={e.at} />
               </span>
             </span>
           </li>

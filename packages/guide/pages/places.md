@@ -43,7 +43,7 @@ and work offline. A Place with no address, or one found nowhere, has no Pin.
 Its name, which you rename right there (every `[[link]]` to the old name follows), its Kind, its
 **Address**, aliases and Tags, and its spot on a small map (expand it to open the
 [Map](map.md) there); **Notes**, the page of your own words; then **Backlinks**, every Day, note and
-Event that links to it, and **Unlinked mentions**, the prose that names it without a link, ready
+Event that links to it (an Event **At** it says "via At"), and **Unlinked mentions**, the prose that names it without a link, ready
 to link. A Place's Peek edits its Kind, address, aliases and Tags, and **Open** leads to its page.
 
 To change the address, type a new one and press **Save address**, which looks it up again, or pick

@@ -15,6 +15,7 @@ function normalize(e: Event): Event {
     end: e.end || null,
     tags: e.tags ?? [],
     with: Array.isArray(e.with) ? e.with.map(String).filter(Boolean) : [],
+    at: typeof e.at === "string" ? e.at : "",
   });
 }
 
@@ -36,6 +37,8 @@ export async function addEvent(input: {
   end?: string | null;
   tags?: string[];
   with?: string[];
+  /** A Place's or a Person's id (ADR 0119). */
+  at?: string;
 }): Promise<string> {
   const start = input.start || null;
   const row = await putDocument<Event>(midnightNextDay({
@@ -48,6 +51,7 @@ export async function addEvent(input: {
     end: start ? (input.end || null) : null,
     tags: normalizeTags(input.tags),
     with: [...new Set(input.with)],
+    at: input.at ?? "",
   }));
   return row.id;
 }
@@ -62,8 +66,9 @@ export async function updateEvent(ev: Event): Promise<void> {
 }
 
 /** Edit an Event's own words — its notes and Tags — from wherever it is shown (its Peek, ADR 0085). */
-export async function editEvent(id: string, edit: { notes?: string; tags?: string[] }): Promise<void> {
+export async function editEvent(id: string, edit: { notes?: string; tags?: string[]; at?: string }): Promise<void> {
   const patch: Record<string, unknown> = {};
+  if (edit.at !== undefined) patch.at = edit.at;
   if (edit.notes !== undefined) patch.notes = edit.notes;
   if (edit.tags !== undefined) patch.tags = normalizeTags(edit.tags);
   if (Object.keys(patch).length > 0) await patchDocument(id, patch);

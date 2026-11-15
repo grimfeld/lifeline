@@ -137,6 +137,17 @@ async function agentTimedItems(range: { start: string; end: string }): Promise<T
   return out;
 }
 
+/**
+ * Where a Timed item happens, as an agent reads it (an Event's At, ADR 0119):
+ * the Place's or Person's id and title, never a Person's Address (ADR 0114),
+ * and nothing when that Document is gone or hidden from agents.
+ */
+async function agentAt(it: TimedItem): Promise<{ id: string; title: string } | undefined> {
+  if (!it.at) return undefined;
+  const doc = await getDocument(it.at.docId);
+  return doc && !doc.deleted && isAgentVisible(doc) ? { id: doc.id, title: doc.title } : undefined;
+}
+
 /** What the agenda calls a Timed item. */
 function agendaKind(it: TimedItem): "block" | "occasion" | "deadline" | "event" {
   if (it.background) return "block";
@@ -452,7 +463,8 @@ const handlers: Record<string, (a: Args) => Promise<unknown>> = {
     const timedItems = [];
     for (const it of await agentTimedItems(range)) {
       if (it.background && !a.blocks) continue;
-      timedItems.push({ kind: agendaKind(it), appId: it.appId, itemId: it.itemId, title: it.title, date: it.date, start: it.start ?? undefined, end: it.end ?? undefined, subtitle: it.subtitle, age: it.occasion ? it.age : undefined, tags: it.tags?.length ? it.tags : undefined });
+      const at = await agentAt(it);
+      timedItems.push({ kind: agendaKind(it), appId: it.appId, itemId: it.itemId, title: it.title, date: it.date, start: it.start ?? undefined, end: it.end ?? undefined, subtitle: it.subtitle, at, age: it.occasion ? it.age : undefined, tags: it.tags?.length ? it.tags : undefined });
     }
     const work = items.map((it) => ({
       kind: it.start ? "time-block" : "item",
