@@ -62,8 +62,9 @@ Below, two columns (one after the other on a phone):
   or a `[[link]]` in its notes) and **Last
   mentioned** (the last Day that links to them), side by side and never added together. Seen
   counts an Event once per day it is on, every day of a trip, and nothing in the future; Tasks
-  and Occasions never count. A type can also choose **Seen count**, a **Seen heatmap**, **Top seen**
-  and **Not seen lately** in its editor, and each can be placed as a Report Card.
+  and Occasions never count. **Top seen** (who was on the most days of Events) shows on each
+  [Journal](journal.md) period, as **People · Top seen**. A type can also choose **Seen count**, a
+  **Seen heatmap** and **Not seen lately** in its editor, and each can be placed as a Report Card.
 - **Timeline** — their Occasions in the year ahead, above a **Today** line, then everything that
   links to them, by month, newest first: Events with them, Tasks and Transactions for them, books
   they recommended, and the Days and notes that name them, each once, saying what it is and how it

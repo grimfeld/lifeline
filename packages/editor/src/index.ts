@@ -7,6 +7,7 @@ export * from "./LinksPanel";
 export * from "./PeopleField";
 export * from "./AtField";
 export * from "./Reports";
+export * from "./Timeline";
 export * from "./LocalGraphPanel";
 export * from "./DaylogBlock";
 export * from "./DocumentEditor";

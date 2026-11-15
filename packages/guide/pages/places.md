@@ -57,9 +57,11 @@ the Events held there. Untick **Closed** to reopen it.
 
 ### A Place's page
 
-Its name, which you rename right there (every `[[link]]` to the old name follows), its Kind, its
-**Address**, aliases and Tags, and its spot on a small map (expand it to open the
-[Map](map.md) there); **Notes**, the page of your own words; then **Backlinks**, every Day, note and
+Its name, which you rename right there (every `[[link]]` to the old name follows), and under it
+when you last went: "Last visited 10 Nov · 1 visit", or "Not visited yet". Then its Kind, its
+**Address**, aliases and Tags, its spot on a small map (expand it to open the [Map](map.md)
+there) and its **Reports**; **Notes**, the page of your own words; its **Timeline**; then
+**Backlinks**, every Day, note and
 Event that links to it (an Event **At** it says "via At"), and **Unlinked mentions**, the prose that names it without a link, ready
 to link. **To try** and **Closed** sit under its Kind. A Place's Peek edits its Kind, To try and
 Closed, address, aliases and Tags, and **Open** leads to its page.
@@ -74,6 +76,28 @@ A Place with an address found stands on [World](world.md)'s map and on the [Map]
 in Atlas's colour, apart from People's homes. A closed Place has no pin. On World's map, **To try**
 shows only the Places you want to try, and goes with the Kind: To try and Café are the cafés you
 haven't been to yet. People's homes stay on the map either way.
+
+### Visited and its Reports
+
+**Visited** is how often you go, counted from the Events that link to the Place: an Event **At**
+it, or one with `[[Chez Janou]]` in its notes. It counts once per day, however many Events, each
+day of a two-day Event, and only Events that have happened: next week's booking isn't a visit
+yet. An Event that ends at midnight counts only the day it started. A Day that links to the Place
+is **Mentioned** instead, shown beside Visited and never added to it.
+
+- **Reports** — on the Place's page: **Last visited** (the day and how long ago), **Visits** (this
+  year and in all) and **Last mentioned** (the last Day that links to it).
+- **Top visited** — the Places on the most days of Events, shown on each [Journal](journal.md)
+  period as **Places · Top visited**, beside **People · Top seen**.
+- **Report Cards** — any of them can be placed on a Screen as a Report Card: pick Places for
+  **Top visited** or **Not visited lately**, or one Place for **Last visited**, **Visits** or a
+  **Visited heatmap**. See [Screens](screens.md).
+
+### Timeline
+
+On a Place's page, the Events planned there sit above a **Today** line, the nearest just above
+it; below it, everything that links to the Place by month, newest first: Events At it ("via At"),
+and the Days and notes that name it ("mentioned"). Click one to peek at it.
 
 ### Linking to a Place
 
