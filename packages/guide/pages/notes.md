@@ -120,7 +120,8 @@ Four kinds:
 - "Keep this quote from the podcast: …" — `commonplace_quote_add`, word for word.
 - "Add the article *The Tyranny of Structurelessness* as a source" — `commonplace_source_add`,
   with its kind, link, author and the Source it is part of.
-- A Source is named by its exact title (or id), so Claude may ask which one you mean.
+- A Source is named by its id, title or alias (case and accents don't matter). A name that fits no Source, or
+  several, is refused with each candidate's id, so Claude may ask which one you mean.
 
 ## Tips
 
