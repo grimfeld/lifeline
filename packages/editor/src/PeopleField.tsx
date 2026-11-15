@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type AriaAttributes } from "react";
 import { PERSON_TYPE, useDocuments } from "@lifeline/core";
 import { Button, Combobox } from "@lifeline/ui";
 import { Search, X } from "lucide-react";
@@ -15,22 +15,22 @@ export function PeopleField({
   value,
   onChange,
   id,
-  "aria-describedby": ariaDescribedBy,
-  "aria-invalid": ariaInvalid,
   label = "People",
   placeholder = "Add a person…",
   autoFocus,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
 }: {
   value: string[];
   onChange: (ids: string[]) => void;
   id?: string;
-  /** Given by a Field around it: the hint and error that describe the box, and whether its value is invalid. */
-  "aria-describedby"?: string;
-  "aria-invalid"?: boolean;
   /** What the suggestion list is called to a screen reader. */
   label?: string;
   placeholder?: string;
   autoFocus?: boolean;
+  /** A `Field` child: it takes the Field's id, description and invalid state. */
+  "aria-describedby"?: string;
+  "aria-invalid"?: AriaAttributes["aria-invalid"];
 }) {
   const people = useDocuments(PERSON_TYPE);
   const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
@@ -54,8 +54,6 @@ export function PeopleField({
       )}
       <Combobox
         id={id}
-        aria-describedby={ariaDescribedBy}
-        aria-invalid={ariaInvalid}
         query={query}
         onQueryChange={setQuery}
         options={options}
@@ -68,6 +66,8 @@ export function PeopleField({
         leading={<Search />}
         placeholder={placeholder}
         autoFocus={autoFocus}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
         onKeyDown={(e) => {
           const next = afterKey(e.key, query, value);
           if (!next) return;

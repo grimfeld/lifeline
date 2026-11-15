@@ -19,7 +19,9 @@ cases need. Run the layout test locally before pushing a change that touches a s
 
 Each run starts its own servers on the first free three ports from 1421 on (1421, 1424,
 1427…), so runs in several worktrees at once don't collide; `E2E_PORT` picks the first of
-the three instead. The two Demo builds start only when the run includes the `demo` or
+the three instead. In a cloud container the config launches the Chromium in
+`/opt/pw-browsers` on its own, whatever build it is: never run `playwright install` there,
+and never change that directory. The two Demo builds start only when the run includes the `demo` or
 `demo-setup` project (no `--project` at all, or one of those).
 
 - Open the command palette with `openPalette(page)` from `support/palette.ts`, never a bare key press: it waits for a closing palette, then for the input. Press `Control` (editor chords: `pressMod` in `support/keys.ts`), never `ControlOrMeta` (the `desktop` project is a Windows user agent; `scripts/e2e-keys.test.mjs` checks).
@@ -28,6 +30,21 @@ the three instead. The two Demo builds start only when the run includes the `dem
   every Card on one Screen — all read from the registry, so new types, Fields,
   Commands and Cards are covered without editing anything. The seeded IndexedDB
   is saved to `.auth/seeded.json` and loaded by every test.
+  - `support/seed.ts` is the only data the layout cases see; the Demo life
+    (`src/demo/life/`) is not loaded.
+  - It fills what headless Commands set. A Field no Command sets, such as a links
+    Field like With or For, stays empty.
+  - To show one, patch it in the row's `afterOpen`; `peekWithPerson` in
+    `screens.spec.ts` is the pattern.
+- Before `evaluate` / `evaluateAll` (they read the DOM once, without waiting), wait with a
+  web-first assertion (`await expect(…).toBeVisible()`, `toHaveCount(n)`) for every element
+  the read depends on. Prefer an assertion such as `toHaveText([...])` over a raw read when
+  it can say the same thing.
+- A wait or assertion on something the test created targets that thing's exact accessible
+  name (`exact: true`), built from the data the test used:
+  `getByRole("button", { name: `Remove ${personTitle}`, exact: true })`. A pattern
+  (`/^Remove /`) also matches neighbouring controls that seeded data adds, such as a Tag
+  chip's `Remove tag …`.
 - `screens.spec.ts` lists the screens (`SCREENS`). **Add a row for every new
   screen**; the last test fails when a registered screen has none.
 - `support/layout.ts` is the check. It reports:
@@ -38,6 +55,7 @@ the three instead. The two Demo builds start only when the run includes the `dem
 
   Text that overhangs its box on purpose opts out with `data-layout-ignore`
   (and a comment saying why).
+- Each screen also gets an axe scan, limited to the `label` and `aria-valid-attr-value` rules: every form control has an accessible name, and its ARIA attributes (an `aria-describedby` naming a hint, say) point at something real.
 
   Each line names the element whose text is out of place and the box it left.
   The element at fault is often a sibling: a long label without `min-w-0`

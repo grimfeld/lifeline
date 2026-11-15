@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
 import { inCore } from "./support/core";
@@ -1071,6 +1072,19 @@ async function open(page: Page, path: string): Promise<void> {
   await expect(page.locator("#root")).not.toBeEmpty();
 }
 
+/**
+ * Every form control has an accessible name (`label`) and its ARIA attributes hold
+ * valid values (`aria-valid-attr-value`: an `aria-describedby` naming no element
+ * fails it). It catches a control inside `Field` that drops the `id`,
+ * `aria-describedby` or `aria-invalid` it is handed (#480): fix the component,
+ * not the screen. Only those two rules, so the scan stays fast and deterministic.
+ */
+async function expectNamedControls(page: Page, screen: string) {
+  const { violations } = await new AxeBuilder({ page }).withRules(["label", "aria-valid-attr-value"]).analyze();
+  const found = violations.flatMap((v) => v.nodes.map((n) => `${v.id}: ${n.target.join(" ")} — ${n.failureSummary?.split("\n").slice(1).join(" ").trim()}`));
+  expect(found, `${screen}: form controls without a name or with invalid ARIA:\n  ${found.join("\n  ")}`).toEqual([]);
+}
+
 for (const screen of SCREENS) {
   test(`${screen.name} holds long content`, async ({ page }) => {
     const errors: string[] = [];
@@ -1086,6 +1100,7 @@ for (const screen of SCREENS) {
     await open(page, path);
     await screen.afterOpen?.(page);
     await expectNoBrokenLayout(page, screen.name);
+    await expectNamedControls(page, screen.name);
     expect(errors, `no uncaught errors:\n  ${errors.join("\n  ")}`).toEqual([]);
   });
 }

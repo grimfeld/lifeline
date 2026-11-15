@@ -266,6 +266,8 @@ export interface CommandArg {
   hint?: string;
   /** rows: the signature every row is checked against. */
   of?: CommandArg[];
+  /** list / multiselect / rows: most values an agent may send, where the MCP default (50) is too few (issue #481). */
+  maxValues?: number;
 }
 
 /** What a headless Command run reports back: a sentence, and the Document it made or changed. */

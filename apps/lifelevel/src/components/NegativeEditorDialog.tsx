@@ -1,18 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTagVocabulary } from "@lifeline/core";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Input,
-  Label,
-  TagInput,
-  toast,
-  Tip,
-} from "@lifeline/ui";
+import { Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, Label, TagInput, Tip, toast } from "@lifeline/ui";
 import { Trash2 } from "lucide-react";
 import type { Gravity, Negative } from "../domain/types";
 import { GravityField, RivalHabitField } from "./ActivityFields";
@@ -92,10 +80,9 @@ export function NegativeEditorDialog({ open, onOpenChange, negative }: { open: b
           </div>
           <GravityField value={gravity} onChange={setGravity} />
           <RivalHabitField value={target} habits={habits} onChange={setTarget} />
-          <div className="grid gap-2">
-            <Label>Tags</Label>
+          <Field label="Tags">
             <TagInput value={tags} onChange={setTags} suggestions={suggestions} />
-          </div>
+          </Field>
           {negative && (
             <div className="grid gap-2">
               <Label>Logged {logs.length}×</Label>

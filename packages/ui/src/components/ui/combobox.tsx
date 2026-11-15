@@ -56,9 +56,9 @@ export interface ComboboxProps<T extends ComboboxOption = ComboboxOption> {
   placeholder?: string
   autoFocus?: boolean
   "aria-label"?: string
-  /** Set by a Field around the Combobox: what describes it, and whether its value is invalid. */
+  /** A `Field` child: it takes the Field's id, description and invalid state. */
   "aria-describedby"?: string
-  "aria-invalid"?: boolean
+  "aria-invalid"?: React.AriaAttributes["aria-invalid"]
   className?: string
   /** Runs before the Combobox's own keys (Backspace on an empty query to drop a chip, say). */
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, COLOR_SLOTS, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, cn, colorVar, toast, type ColorSlot } from "@lifeline/ui";
+import { Button, cn, COLOR_SLOTS, colorVar, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, Label, TagInput, toast, type ColorSlot } from "@lifeline/ui";
 import { useTagVocabulary } from "@lifeline/core";
 import { EMOJI_PRESETS, faceColor, faceOf, firstGrapheme, type Offence } from "../domain/types";
 import { editAmount, formatCents, parseAmount } from "../domain/money";
@@ -112,10 +112,9 @@ export function OffenceEditorDialog({ open, onOpenChange, offence, fineCount = 0
               </div>
             </div>
           </div>
-          <div className="grid gap-2">
-            <Label>Tags</Label>
+          <Field label="Tags">
             <TagInput value={tags} onChange={setTags} suggestions={suggestions} />
-          </div>
+          </Field>
         </div>
         <DialogFooter className="gap-2 sm:justify-between">
           {offence ? (

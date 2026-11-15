@@ -351,7 +351,9 @@ export function SelectionMenu() {
             </Button>
           </div>
         ) : pane.kind === "search" ? (
-          <Command shouldFilter={false}>
+          // Keyed apart from the menu's Command: reused, it would keep the menu's chosen row as
+          // the input's aria-activedescendant, an id no longer on the page.
+          <Command key="search" shouldFilter={false}>
             <CommandInput value={query} onValueChange={setQuery} placeholder="Link to…" aria-label="Search Documents" autoFocus />
             <CommandList>
               <CommandEmpty>No Document matches.</CommandEmpty>
@@ -365,7 +367,7 @@ export function SelectionMenu() {
             </CommandList>
           </Command>
         ) : (
-          <Command shouldFilter={false}>
+          <Command key="menu" shouldFilter={false}>
             <CommandInput value={query} onValueChange={setQuery} placeholder="Link or make…" aria-label="Filter" />
             <CommandList>
               <CommandEmpty>Nothing matches.</CommandEmpty>

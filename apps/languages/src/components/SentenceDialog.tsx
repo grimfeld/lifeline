@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Badge, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
+import { Badge, Button, Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, Field, Input, Label, TagInput, Textarea, toast } from "@lifeline/ui";
 import { initialList, initialText, useTagVocabulary, type IntakeDialogProps } from "@lifeline/core";
 import { Brackets } from "lucide-react";
 import { parseCloze } from "../domain/cloze";
@@ -171,10 +171,9 @@ export function SentenceDialog({ open, onOpenChange, sentence, prefill, initial,
                 <Input id="st-origin" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="Optional" />
               </div>
             )}
-            <div className="grid gap-2">
-              <Label>Tags</Label>
+            <Field label="Tags">
               <TagInput value={tags} onChange={setTags} suggestions={suggestions} />
-            </div>
+            </Field>
           </div>
         )}
         <DialogFooter className="gap-2 sm:justify-between">
