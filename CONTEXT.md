@@ -513,12 +513,24 @@ _Avoid_: diary, vault (the raw editor), collections (for its Types — a Collect
 Someone I know, or knew: a Linkable Document of its own built-in type, owned by the Contacts App in the **People** Module — never a user-defined type. Their other names are aliases, so `[[Mum]]` and `[[Anne Dupont]]` land on one Person. Has a body: the place for what I know of them. A Person may wear a Role (the Author Role, when they also wrote books). Only people in my life are People: an Author or Artist I have never met stays that App's own; one I come to know is **turned into a Person**, keeping the Role, the links, the aliases and the body. Like every Document, a Person is held by one Workspace, or shared: someone in both my work and my life is two People, one in each. Not a contact: a Person need not be reachable — the dead, someone met once. The type's id is `contacts_person`, not `person`, so a user-defined `person` type made before it stays the user's own, untouched.
 _Avoid_: contact, friend, acquaintance, relation (a kind of Tie, not the Person)
 
+### Given name
+A Person's own name — "Anne" — held beside the title and never part of it: an optional Field, offered with the Family name when a Person is added, where the two compose the title ("Anne Dupont") until one is typed; after that, neither rewrites the other. Every Person's Given name is also one of their names: `[[Anne]]` finds them, the completer offers them, plain "Anne" in a body is an Unlinked mention of them — exactly as an alias would, but never copied into the aliases, so correcting it corrects the name. Two Annes make `[[Anne]]` ambiguous, as two typed aliases would.
+_Avoid_: first name, forename (a Given name need not come first)
+
+### Family name
+The name a Person shares with their family — "Dupont", "García López" — an optional Field beside the title, never part of it, composing the title with the Given name only when a Person is added. It names; it never groups: a Household's members are chosen, and a Family name only suggests who they might be.
+_Avoid_: surname, last name (it need not come last), maiden name
+
+### Household
+The People who live together — Paul, Mary, Tom and Lily, "the Smiths" — as a Linkable Document of its own in the People Module, with a title, aliases and **members** the user chooses, so that "dinner at `[[the Smiths]]`" names them. Not kin: Paul's mother in another town is Paul's Tie, not a member. Not a Family name match: Mary Martin, married to Paul, is a member; an unrelated Smith is not. A Person may be a member of several (a student's flat and their parents' home, a child of separated parents). A membership may carry a **since** and an **until** day, blank meaning always; someone who moves out gets an until day and is never removed, as an Address is marked former. A link to a Household counts for whoever was a member on the linking Day's or Event's date: it stands on their Timelines ("via the Smiths") and counts toward their Seen and Mentioned. Picking a Household in an Event's **With** adds its current members as People, each removable (Lily was away): a People field holds People, never a Household. Holds a body, but no Address, Occasion or Contact detail — the home stays each member's Address. An agent reads its name and members, as it reads a Person. Its members are People visible in its own Workspace. Listed on the People Module's Households screen and named on each member's page; a Family name shared with a Household's members only suggests joining it.
+_Avoid_: family (kin, which Ties say), group, home (an Address)
+
 ### Drifting
 The People I have not seen in a while: a ranking of Seen (Not seen in 90 days, a fixed window; Not mentioned as the alternative) over the People who have a Relationship, minus any I have chosen to leave out. Someone I have never seen at all is drifting too, ahead of everyone seen. Where the People Module asks "who have I lost touch with?". Derived, like every Report; never a reminder.
 _Avoid_: neglected, overdue, stale, reminder
 
 ### People field
-A built-in Links field to People that another App's type carries, so a Person is linked from where things happen and not only from bodies: an Event's **With** (who was there — what Seen counts), a Task's **For**, a Transaction's **For** (a gift, a shared bill), a work's **Recommended by** (beside its Reason, which stays free text). Offered in the owning App's own dialog with name completion; a source of Backlinks like any Link. The owning App keeps the field; Contacts only owns the Person it points to. The user may add Person-linked Fields of their own to any other type.
+A built-in Links field to People that another App's type carries, so a Person is linked from where things happen and not only from bodies: an Event's **With** (who was there — what Seen counts), a Task's **For**, a Transaction's **For** (a gift, a shared bill), a work's **Recommended by** (beside its Reason, which stays free text). Offered, with name completion, in the owning App's own dialog and in its Peek; a source of Backlinks like any Link. The owning App keeps the field; Contacts only owns the Person it points to. The user may add Person-linked Fields of their own to any other type.
 _Avoid_: attendees, participants, mention (a wikilink's), tag
 
 ### Tie
@@ -531,7 +543,7 @@ _Avoid_: role (a built-in type's fields lent to a Document), tag (Tags group, a 
 
 ### Address
 A place a Person lives or can be found, held on that Person under a label of the user's own ("Home", "Work", "Holiday house"): postal text and the coordinates found for it when it is saved. Each current Address is a Pin of its own ("Marc · Work"); a Person with several stands on the map several times. A shared home is held by each Person who lives there. When someone moves, the old Address is marked **former** rather than removed: it leaves the map and stays on their page as history. Never shown to an agent: an agent reads the Person, never where they live. Not a Place (a user-defined type of the Journal's, a Document with links of its own); an Address is only ever part of its Person.
-_Avoid_: location (the coordinates), place, household
+_Avoid_: location (the coordinates), place, household (the People who live together)
 
 ### Contact detail
 A way to reach a Person, held on that Person under a label — a phone number, an email address, a handle on some service — and acted on by a click: call, write, open. Marked **former** rather than removed when it stops working. Never on the map. Like an Address, never shown to an agent.
@@ -542,7 +554,7 @@ A named day in a Person's life — Birthday, Met, Wedding, Surgery, Graduation �
 _Avoid_: important date, date (a Field kind), anniversary (only the yearly ones), milestone (a Project's), occurrence (a Chore's), reminder
 
 ### Timeline (Person page)
-The section of a Person's page that shows what links to them: their Occasions in the year ahead above a **Today** line, then everything that links in, grouped **by month**, newest first, each Document **once** and saying how it links ("via With", "mentioned"). Replaces the by-kind groups and the separate Backlinks list. Built from the links, never stored. A reading of one Person's links, not the Daylog (what happened on a day, where "timeline" stays under Avoid) and not the Projects Module's Timeline screen (Milestones along a Project's dates).
+The section of a Person's page that shows what links to them, split by a **Today** line: above it, their Occasions in the year ahead and whatever links in dated today or later (an Event next month, however far off), and an Event still under way (its End day today or later; one ending at 00:00 only reaches midnight, so its last day is the day before), placed by its first day with no "how soon"; below it, whatever links in from before, then what has no day. A Document with no date of its own (a note) is placed by the day it last changed and always sits below the line. Both sides grouped **by month**, newest first, so the soonest sits just above the line; each Document **once**, saying how it links ("via With", "mentioned", "via the Smiths" for a link to a Household they belonged to then) and, above the line, how soon it is. Replaces the by-kind groups and the separate Backlinks list. Built from the links, never stored. A reading of one Person's links, not the Daylog (what happened on a day, where "timeline" stays under Avoid) and not the Projects Module's Timeline screen (Milestones along a Project's dates).
 _Avoid_: history, activity feed, backlinks (one way a Document links in)
 
 ### Wikilink
@@ -558,10 +570,10 @@ A Linkable Document's title or alias appearing as plain prose in another Documen
 _Avoid_: unlinked reference, suggestion, candidate, "unlinked here" (old label for unlinked names)
 
 ### Linkable
-Core Contract: a Document type whose Documents are wikilink targets by title and alias, and receive backlinks. Declarable by data (a user-defined type just says so).
+Core Contract: a Document type whose Documents are wikilink targets by title and alias, and receive backlinks. A type may also supply **derived names** (a Person's Given name resolves `[[Anne]]` without being copied into aliases) and **members** a link reaches (a Household's People) — ADR 0117. Declarable by data (a user-defined type just says so).
 
 ### Report
-A read-only figure or table derived from the Documents of one type and the links to them — who was mentioned most this month, when a place was last mentioned, how often a person comes up over time. Two families never added together: **Mentioned** counts Days that link to a Document, **Seen** counts Events that link to it, each once per day. Each type chooses its own Reports. Derived, never logged, never stored. Shown on a Journal period, on one Document, on the type's own page, and placeable as a Card. Not a Stat (a Stat is a series the user logs).
+A read-only figure or table derived from the Documents of one type and the links to them — who was mentioned most this month, when a place was last mentioned, how often a person comes up over time. Two families never added together: **Mentioned** counts Days that link to a Document, **Seen** counts Events that link to it, each once per day. A link to a Household counts for each member on that date (Household reach, ADR 0117). Each type chooses its own Reports. Derived, never logged, never stored. Shown on a Journal period, on one Document, on the type's own page, and placeable as a Card. Not a Stat (a Stat is a series the user logs).
 _Avoid_: stat, statistic, insight, summary, analytics
 
 ### Role

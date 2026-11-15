@@ -7,6 +7,8 @@ import { UPCOMING_DAYS, UpcomingStrip } from "../components/UpcomingReport";
 import { DriftingSection } from "../components/DriftingSection";
 import { AddPersonDialog } from "../components/AddPersonDialog";
 import { Section } from "../components/Section";
+import { TidyNamesDialog } from "../components/TidyNamesDialog";
+import { tidyCandidates } from "../domain/givenNames";
 import { activeFilter, byLetter, everyone, lastSeenLabel, relationshipsOf, rowNews, tagsOf, type RowNews } from "../domain/everyone";
 import { type Person } from "../domain/types";
 import { personHref } from "../constants";
@@ -75,6 +77,7 @@ function FilterSelect({ label, anyLabel, value, options, onChange }: { label: st
  */
 export function PeopleScreen() {
   const [adding, setAdding] = useState(false);
+  const [tidying, setTidying] = useState(false);
   const [query, setQuery] = useState("");
   const [relationship, setRelationship] = useState("");
   const [tag, setTag] = useState("");
@@ -92,6 +95,8 @@ export function PeopleScreen() {
   // Upcoming once, for the strip and the rows' badges both.
   const upcoming = useMemo(() => upcomingOccasions(people, today, UPCOMING_DAYS), [people, today]);
   const news = useMemo<RowNews>(() => rowNews(upcoming, drifters), [upcoming, drifters]);
+  // The tidy-up of given-name aliases (ADR 0117): offered while any candidate exists, never run by itself.
+  const tidy = useMemo(() => tidyCandidates(people), [people]);
   const relationships = useMemo(() => relationshipsOf(people), [people]);
   const tags = useMemo(() => tagsOf(people), [people]);
   // A filter whose value no one carries any more (the last of them was changed) is no filter.
@@ -106,6 +111,15 @@ export function PeopleScreen() {
   return (
     <Page>
       <PageHeader title="People">{people.length > 0 ? add : null}</PageHeader>
+
+      {tidy.length > 0 && (
+        <div className="bg-muted/50 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm">
+          <span className="min-w-0">{tidy.length === 1 ? "1 person has their given name typed as an alias." : `${tidy.length} people have their given name typed as an alias.`}</span>
+          <Button variant="outline" size="sm" onClick={() => setTidying(true)}>
+            Tidy given names…
+          </Button>
+        </div>
+      )}
 
       {/* UPCOMING (#416): the Occasions in the next days. Goes here, above Drifting. */}
       <UpcomingStrip items={upcoming} days={UPCOMING_DAYS} />
@@ -162,6 +176,7 @@ export function PeopleScreen() {
         )}
       </Section>
       <AddPersonDialog open={adding} onOpenChange={setAdding} />
+      <TidyNamesDialog open={tidying && tidy.length > 0} onOpenChange={setTidying} rows={tidy} />
     </Page>
   );
 }

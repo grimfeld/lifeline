@@ -98,6 +98,14 @@ describe("editing a Task's own words", () => {
     const [t] = (await state()).tasks;
     expect({ notes: t?.notes, tags: t?.tags, date: t?.date }).toEqual({ notes: "new", tags: ["home", "errands"], date: day(2) });
   });
+
+  it("stores the People it is for once each, and an empty list clears them", async () => {
+    const id = await addTask({ title: "a", date: day(2) });
+    await editTask(id, { for: ["ana", "ana", "bo"] });
+    expect((await state()).tasks[0]?.for).toEqual(["ana", "bo"]);
+    await editTask(id, { for: [] });
+    expect((await state()).tasks[0]?.for).toEqual([]);
+  });
 });
 
 describe("adding a Task", () => {

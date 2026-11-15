@@ -1,5 +1,6 @@
 import { dotJoin } from "./dots";
-import { QUICK_MAKE_MAX, initialText, type Handoff } from "@lifeline/core";
+import { PERSON_TYPE, QUICK_MAKE_MAX, aliasesOf, documentType, initialText, type Handoff } from "@lifeline/core";
+import type { Person } from "./types";
 
 /**
  * The name a Person is made with from a Handoff: the selected words when they
@@ -22,3 +23,22 @@ export const initialName = (handoff: Handoff | undefined, initial: Record<string
 
 /** A name as compared: case and accents aside. */
 export const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().trim();
+
+/** Every name a Person answers to beside their title: aliases and Given name, as links read them (ADR 0117). */
+export const otherNamesOf = (p: PersonNames): string[] => aliasesOf(p, documentType(PERSON_TYPE));
+
+/** What naming a Person reads of them: their title, and the aliases and Given name when they have them. */
+export type PersonNames = Pick<Person, "title"> & Partial<Pick<Person, "aliases" | "givenName">>;
+
+
+/**
+ * The title a Person is added with when none is typed (ADR 0117): the Given and
+ * Family names, "Anne Dupont". Only at add: after that neither rewrites the other.
+ */
+export const composeTitle = (given: string | undefined, family: string | undefined) => [given, family].map((n) => (n ?? "").trim()).filter(Boolean).join(" ");
+
+/** An alias is a name, kept as written: not lower-cased and hyphenated as a Tag is. A TagInput's `normalize`. */
+export const asName = (raw: string) => raw.trim() || null;
+
+/** Aliases as stored: each trimmed, blanks dropped. A Person's and a Household's alike. */
+export const cleanAliases = (aliases: readonly string[] | undefined) => (aliases ?? []).map((a) => a.trim()).filter(Boolean);

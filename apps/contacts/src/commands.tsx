@@ -17,14 +17,16 @@ export const contactsCommands: CommandDef[] = [
     dialog: AddPersonDialog,
     capture: true,
     args: [
-      { key: "name", label: "Name", kind: "text", required: true, hint: "Their name, as you'd write it in a [[link]]." },
+      { key: "name", label: "Name", kind: "text", required: true, hint: "Their name, as you'd write it in a [[link]]. Kept as typed as the title." },
+      { key: "givenName", label: "Given name", kind: "text", hint: "Optional: their own name (\"Anne\"), kept beside the title; it links to them like an alias." },
+      { key: "familyName", label: "Family name", kind: "text", hint: "Optional: the name they share with their family (\"Dupont\"); it never groups people." },
       { key: "aliases", label: "Aliases", kind: "list", hint: "Optional: other names they go by (\"Mum\"); each one links to them." },
       { key: "relationship", label: "Relationship", kind: "text", hint: "Optional: what they are to the user, in the user's words (\"my aunt\")." },
       { key: "tags", label: "Tags", kind: "list", hint: "Optional: Tags to file them under." },
     ],
     returnsDocument: true,
     async invoke(a) {
-      const p = await addPerson({ name: String(a.name ?? ""), aliases: a.aliases as string[] | undefined, relationship: a.relationship as string | undefined, tags: a.tags as string[] | undefined });
+      const p = await addPerson({ name: String(a.name ?? ""), givenName: a.givenName as string | undefined, familyName: a.familyName as string | undefined, aliases: a.aliases as string[] | undefined, relationship: a.relationship as string | undefined, tags: a.tags as string[] | undefined });
       return { message: `Added ${p.title} to People`, id: p.id };
     },
   },
