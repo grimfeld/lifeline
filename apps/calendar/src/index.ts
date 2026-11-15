@@ -90,6 +90,18 @@ const timeBlockerType: DocumentTypeDef = {
     { key: "end", label: "End", kind: "text", guarded: true, column: true },
     { key: "active", label: "On", kind: "boolean", column: true },
     { key: "color", label: "Colour", kind: "text" },
+    // An attached blocker (CONTEXT.md, #497): the Event it follows and the edge it is held to. Set by attaching only.
+    { key: "attachedTo", label: "Attached to", kind: "link", linkType: EVENT_TYPE, guarded: true },
+    {
+      key: "side",
+      label: "Side",
+      kind: "select",
+      guarded: true,
+      options: [
+        { value: "before", label: "Before" },
+        { value: "after", label: "After" },
+      ],
+    },
   ],
   indexes: ["date"],
   linkable: { subtitle: (d) => describeBlocker(d as TimeBlocker) },
