@@ -161,6 +161,14 @@ function eventSpan(src: Document | undefined): { from: DateStr; to: DateStr } | 
   return { from, to: lastDayCovered({ date: from, endDate: end, end: typeof src.end === "string" ? src.end : "" }) };
 }
 
+/**
+ * An Event's last day: its end day, the day before when it ends at 00:00
+ * (`lastDayCovered`, ADR 0090), its first when it has no later end; none for
+ * any other Document or an undated Event. What Seen counts to, and what says
+ * an Event has happened (ADR 0119).
+ */
+export const eventLastDay = (doc: Document | undefined): DateStr | undefined => eventSpan(doc)?.to;
+
 /** The days source of a Report family, as of `today`. */
 export function sourceOf(source: ReportSource, today: DateStr): DaysSource {
   return source === "seen" ? (index, docId) => seenDays(index, docId, today) : mentionDays;

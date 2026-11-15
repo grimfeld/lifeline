@@ -5,6 +5,7 @@ import { normalizeName, renameLinks, renameLinksMany } from "../markdown";
 import { renderTemplate } from "../templates";
 import { todayStr } from "../dates";
 import { defaultFolder, docPath, isWithin, normalizeFolder, rebase, titleTaken } from "../folders";
+import { assertTitleFree } from "./titles";
 import { documentTypeSync } from "./registry";
 import { allDocuments, putDocument } from "./store";
 import { assertMayEnterPrivate, assertNotReservedFolder, inPrivateFolder, privateGate } from "../private";
@@ -24,9 +25,7 @@ export async function createDocument(input: { type: string; title: string; folde
   const folder = input.folder === undefined ? defaultFolder(input.type, title, def?.folder ?? "") : normalizeFolder(input.folder);
   await assertMayEnterPrivate(folder, def);
   const docs = await allDocuments();
-  if (def?.titleRule !== "derived" && titleTaken(docs.filter((d) => d.type === input.type), folder, title)) {
-    throw new Error(`“${title}” already exists in ${folder || "the root"}`);
-  }
+  if (def?.titleRule !== "derived") assertTitleFree(docs, input.type, folder, title);
   const body = def?.body === "none" ? undefined : (input.body ?? (await templateFor(input.type, title, docs, input.templateId)));
   return putDocument({ ...(input.fields ?? {}), type: input.type, title, folder, body });
 }
@@ -109,7 +108,7 @@ export async function renameDocument(doc: Document, newTitle: string): Promise<v
   const title = newTitle.trim();
   if (!title || title === doc.title) return;
   const docs = await allDocuments();
-  if (titleTaken(docs.filter((d) => d.type === doc.type), doc.folder, title, doc.id)) throw new Error(`“${title}” already exists in ${doc.folder || "the root"}`);
+  assertTitleFree(docs, doc.type, doc.folder, title, doc.id);
   const next = { ...doc, title } as Document;
   await putDocument(next);
   await rewriteReferrers(doc, next);
@@ -121,7 +120,7 @@ export async function moveDocument(doc: Document, folder: string): Promise<void>
   if (f === doc.folder) return;
   await assertMayEnterPrivate(f, documentTypeSync(doc.type));
   const docs = await allDocuments();
-  if (titleTaken(docs.filter((d) => d.type === doc.type), f, doc.title, doc.id)) throw new Error(`“${doc.title}” already exists in ${f || "the root"}`);
+  assertTitleFree(docs, doc.type, f, doc.title, doc.id);
   const next = { ...doc, folder: f } as Document;
   await putDocument(next);
   await rewriteReferrers(doc, next);

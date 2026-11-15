@@ -52,6 +52,17 @@ describe("agenda names an Event's At", () => {
     expect(at).toEqual({ Supper: { id: place, title: "Chez Janou" }, Cat: { id: person, title: "Marc Lefèvre" }, Nap: undefined });
   });
 
+  it("gives the Place's address and Kind beside it, as a search does, and a Person's id and title alone", async () => {
+    const mori = (await createDocument({ type: PLACE_TYPE, title: "Mori Ramen", folder: "Places", fields: { kind: "restaurant", address: "18 Rue Sainte-Anne, Paris", geo: [48.8667, 2.3361] } })).id;
+    await add({ title: "Ramen", date: "2026-11-27", at: mori });
+    await add({ title: "Cat again", date: "2026-11-27", at: person });
+    const at = Object.fromEntries((await agendaOn("2026-11-27")).map((i) => [i.title, i.at]));
+    expect(at).toEqual({
+      Ramen: { id: mori, title: "Mori Ramen", fields: { kind: "restaurant", address: "18 Rue Sainte-Anne, Paris" } },
+      "Cat again": { id: person, title: "Marc Lefèvre" },
+    });
+  });
+
   it("names nothing once the Place is deleted", async () => {
     const gone = (await createDocument({ type: PLACE_TYPE, title: "Le Fermé", folder: "Places" })).id;
     await add({ title: "Lunch", date: "2026-11-23", at: gone });

@@ -13,10 +13,11 @@ about it. There is no rating: what you think stays in your own words.
   **Here** for the places around you. Where: the
   Places screen, the Capture sheet, the palette (Ctrl+K).
 - **Go to Places** — opens the Places screen. Where: the palette.
-- **Places** — every Place in the current Workspace, A to Z. **All**, **To try** and **Closed**
+- **Places** — every Place in the current Workspace, A to Z, or by **Last visit** (**Sort**):
+  the Place you went to most recently first, the ones you have never been to last. **All**, **To try** and **Closed**
   switch between the lists: All leaves the closed Places out, To try lists the open Places marked
   To try, Closed lists the closed ones. **Kind** narrows any of them to one Kind, so To try and
-  Restaurant together are the restaurants you want to go to. On a phone both are under **Filters**. Click a Place to open its page. With no Place yet, the screen
+  Restaurant together are the restaurants you want to go to. On a phone these and Sort are under **Filters**. Click a Place to open its page. With no Place yet, the screen
   offers **Add place**.
 - **Kinds** — on the Places screen: rename a Kind or add your own (bakery, climbing gym…). A Kind
   is never removed, so no Place loses its own, and a renamed one keeps every Place that had it.
@@ -24,8 +25,9 @@ about it. There is no rating: what you think stays in your own words.
 
 ### Names are unique
 
-Each Place has a name no other Place has, so `[[Chez Janou]]` always lands on one Place. Adding a
-Place with a name a Place already has, or renaming one to it, is refused, whatever its capitals or
+Each Place has a name no other Place has, in whatever folder it is filed, so `[[Chez Janou]]`
+always lands on one Place. Adding a Place with a name a Place already has, or renaming one to it
+(on its page, in the Vault, in a Base or the file tree), is refused, whatever its capitals or
 accents, and the Place there is offered instead: **Open** it rather than make a second. Two branches
 of a chain are two Places with two names: "Lidl Jean Jaurès" and "Lidl Prado".
 
@@ -59,7 +61,9 @@ location at all, there is no Here.
 
 Tick **To try** on a Place's page or in its Peek to keep it on your list of places to go. It drops
 off by itself once you have been: when an Event **At** the Place, or one whose notes link to it,
-has happened, meaning its last day is before today. An Event still to come, today's included,
+has happened since you marked it, meaning its last day is on or after the day you ticked it, and
+before today. An Event from before you ticked it doesn't count, so a Place you have been to can go
+back on the list ("I want to go again"). An Event still to come, today's included,
 leaves the mark, so booking a table is not counted as going. A Day that only mentions the Place
 leaves it too. The mark is checked when an Event is saved and when you open the Place, so a dinner
 that passed since is caught then. Untick it yourself whenever you like.
@@ -92,6 +96,8 @@ in Atlas's colour, apart from People's homes. A closed Place has no pin. On Worl
 shows only the Places you want to try, and goes with the Kind: To try and Café are the cafés you
 haven't been to yet. People's homes stay on the map either way.
 Each Event **At** the Place stands at its pin too, in the Calendar's colour, with its title and day.
+On World's map it follows its Place through **Kind** and **To try**: To try shows the Events at the
+Places you want to try, and no others.
 
 ### Visited and its Reports
 
@@ -130,10 +136,11 @@ everywhere.
 ## Ask Claude
 
 Places are open to Claude: it can find and read them, Kind, address, aliases, Tags and notes
-included. Its searches show each Place's Kind and address.
+included. Its searches show each Place's Kind and address, and so does `agenda` for an Event At a
+Place.
 
 - "Save that ramen place Anne told me about" — `places_add`, with a name and, if you like, a Kind,
-  an address (looked up once to put it on the map), aliases, Tags and To try ("I want to try it"). A name a Place already has is refused, and Claude is told which Place it is.
+  an address (looked up once to put it on the map), aliases, Tags and To try ("I want to try it"). A name a Place already has is refused, and Claude is told which Place it is; so is renaming a Place to one (`update_document`).
 - "Which museums have I saved?" — Claude searches your Places and reads them.
 
 ## Tips

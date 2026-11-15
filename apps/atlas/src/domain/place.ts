@@ -1,11 +1,11 @@
-import { EVENT_TYPE, PLACE_TYPE, documentType, foldName, lastDayCovered, normalizeName, readGeo, type DateStr, type Document, type FieldOption, type LinkIndex } from "@lifeline/core";
+import { PLACE_TYPE, documentFigures, documentType, eventLastDay, sourceOf, foldName, readGeo, type Coords, type DateStr, type Document, type FieldOption, type LinkIndex } from "@lifeline/core";
 import { KINDS, type Place } from "./types";
 
 /** The Kind options as they stand: the App's, under the user's names, then the user's own. */
-export const kindOptionsOf = (): FieldOption[] => documentType(PLACE_TYPE)?.fields.find((f) => f.key === "kind")?.options ?? KINDS.map((k) => ({ ...k }));
+export const kindOptions = (): FieldOption[] => documentType(PLACE_TYPE)?.fields.find((f) => f.key === "kind")?.options ?? KINDS.map((k) => ({ ...k }));
 
 /** A Kind's name, or the stored value when no option has it any more. */
-export const kindLabel = (value: string, options: readonly FieldOption[] = kindOptionsOf()): string => options.find((o) => o.value === value)?.label ?? value;
+export const kindLabel = (value: string, options: readonly FieldOption[] = kindOptions()): string => options.find((o) => o.value === value)?.label ?? value;
 
 /** What the completer and the Peek say a Place is: "Place", or "Place · Restaurant". */
 export function placeSubtitle(doc: Document): string {
@@ -17,18 +17,12 @@ export function placeSubtitle(doc: Document): string {
  * The Kind a typed word names, by value or name, case and accents aside; ""
  * for none given. Throws in words, naming the Kinds there are, when it names none.
  */
-export function kindFrom(input: string | undefined, options: readonly FieldOption[] = kindOptionsOf()): string {
+export function kindFrom(input: string | undefined, options: readonly FieldOption[] = kindOptions()): string {
   const wanted = foldName((input ?? "").trim());
   if (!wanted) return "";
   const hit = options.find((o) => foldName(o.value) === wanted || foldName(o.label) === wanted);
   if (!hit) throw new Error(`No Kind “${input!.trim()}”: one of ${options.map((o) => o.label).join(", ")}`);
   return hit.value;
-}
-
-/** The Place whose title this one would clash with (Places' titles are unique, ADR 0119), but `self`. */
-export function placeTitled(places: readonly Document[], title: string, self?: string): Document | undefined {
-  const t = normalizeName(title);
-  return places.find((p) => p.id !== self && !p.deleted && normalizeName(p.title) === t);
 }
 
 /**
@@ -37,7 +31,7 @@ export function placeTitled(places: readonly Document[], title: string, self?: s
  * Locatable reader, so a map reads what was found on save and never looks
  * anything up itself (ADR 0011).
  */
-export function placeCoordsOf(doc: Document): { lat: number; lon: number } | null {
+export function placeCoordsOf(doc: Document): Coords | null {
   return doc.closed === true ? null : readGeo(doc.geo);
 }
 
@@ -61,30 +55,47 @@ export type PlacesShown = "open" | "toTry" | "closed";
 /** Whether a Place belongs in a list: a closed one is in the closed list only (ADR 0119). */
 const shownIn = (p: Place, show: PlacesShown) => (show === "closed" ? p.closed : !p.closed && (show === "open" || p.toTry));
 
-/** The Places screen's list: the open Places, those To try or the closed ones, of one Kind when one is picked, A to Z by name. */
-export function placesList(places: readonly Place[], filter: { kind?: string; show?: PlacesShown } = {}): Place[] {
-  return places
-    .filter((p) => shownIn(p, filter.show ?? "open") && (!filter.kind || p.kind === filter.kind))
-    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+/** How the Places screen orders its list (#487 story 58): A to Z by name, or by last visit, newest first. */
+export type PlacesSort = "name" | "lastVisit";
+
+const byName = (a: Place, b: Place) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" });
+
+/**
+ * The Places screen's list: the open Places, those To try or the closed ones,
+ * of one Kind when one is picked; A to Z by name, or by last visit (newest
+ * first, the Places never visited last, a tie A to Z), read through `lastVisit`.
+ */
+export function placesList(
+  places: readonly Place[],
+  filter: { kind?: string; show?: PlacesShown; sort?: PlacesSort; lastVisit?: (id: string) => DateStr | undefined } = {},
+): Place[] {
+  const shown = places.filter((p) => shownIn(p, filter.show ?? "open") && (!filter.kind || p.kind === filter.kind));
+  if (filter.sort !== "lastVisit" || !filter.lastVisit) return shown.sort(byName);
+  const last = new Map(shown.map((p) => [p.id, filter.lastVisit!(p.id) ?? ""]));
+  return shown.sort((a, b) => last.get(b.id)!.localeCompare(last.get(a.id)!) || byName(a, b));
 }
 
-/** An Event's last day, its first when it has no end; none for anything else or an undated one. */
-function lastDayOf(doc: Document | undefined): DateStr | undefined {
-  if (doc?.type !== EVENT_TYPE || typeof doc.date !== "string" || !doc.date) return undefined;
-  const endDate = typeof doc.endDate === "string" && doc.endDate ? doc.endDate : doc.date;
-  return lastDayCovered({ date: doc.date, endDate, end: typeof doc.end === "string" ? doc.end : "" });
-}
+/** A Place's last visit: the Visited figure (ADR 0119), the last day an Event that links here was on, up to today; none if never. */
+export const lastVisitOf = (index: LinkIndex, placeId: string, today: DateStr): DateStr | undefined => documentFigures(index, placeId, today, sourceOf("seen", today)).last ?? undefined;
 
 /** Whether an Event has happened: its last day is before today (ADR 0119). Today's is still to come. */
 export const hasHappened = (doc: Document | undefined, today: DateStr): boolean => {
-  const last = lastDayOf(doc);
+  const last = eventLastDay(doc);
   return !!last && last < today;
 };
 
 /**
  * Whether a Place has been gone to: an Event that has happened links to it,
  * by its At or a wikilink in its notes (ADR 0119). What clears To try. A Day
- * that names it is a mention, never a visit.
+ * that names it is a mention, never a visit. With `since` (the day To try was
+ * marked), only an Event whose last day is on or after it counts, so a Place
+ * gone to before can be marked again; without, any that has happened does.
  */
-export const visitedBy = (index: LinkIndex, placeId: string, today: DateStr): boolean =>
-  index.backlinksTo(placeId).some((b) => hasHappened(index.byId.get(b.sourceId), today));
+export const visitedBy = (index: LinkIndex, placeId: string, today: DateStr, since?: DateStr): boolean =>
+  index.backlinksTo(placeId).some((b) => {
+    const event = index.byId.get(b.sourceId);
+    return hasHappened(event, today) && (!since || eventLastDay(event)! >= since);
+  });
+
+/** The day a Place was marked To try, when it was marked by a build that keeps it; none for an older mark. */
+export const toTrySinceOf = (doc: Document): DateStr | undefined => (typeof doc.toTrySince === "string" && /^\d{4}-\d{2}-\d{2}$/.test(doc.toTrySince) ? doc.toTrySince : undefined);

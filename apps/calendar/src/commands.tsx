@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { PERSON_TYPE, PLACE_TYPE, formatTime, getDocument, initialText, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
+import { EVENT_AT_FIELD, PERSON_TYPE, PLACE_TYPE, formatTime, getDocument, initialText, todayStr, type CommandDef, type CommandDialogProps } from "@lifeline/core";
 import { toast } from "@lifeline/ui";
 import { Ban, CalendarPlus, LayoutTemplate, Zap } from "lucide-react";
 import { EventDialog } from "./components/EventDialog";
@@ -61,7 +61,7 @@ export const calendarCommands: CommandDef[] = [
       { key: "notes", label: "Notes", kind: "longtext" },
       { key: "tags", label: "Tags", kind: "list" },
       {
-        key: "at",
+        key: EVENT_AT_FIELD,
         label: "At",
         kind: "link",
         linkType: [PLACE_TYPE, PERSON_TYPE],

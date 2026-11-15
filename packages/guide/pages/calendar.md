@@ -97,7 +97,8 @@ The **Events** page has three tabs:
   its Peek, where it can be changed. At on a Person never counts as having seen them: feeding
   Marc's cat while he is away is not seeing Marc. Put him in **With** for that.
   An Event At a Place or a Person stands on the [World](world.md) map and the [Map](map.md) there,
-  with its title and day; see World for which home a Person's Event stands at. Claude is never
+  with its title and day; see World for which home a Person's Event stands at. On World's map,
+  an Event At a Place follows that Place through the Kind and To try filters. Claude is never
   told where an Event At a Person is: it reads the Person's name only.
 - **Templates** — **Event templates** (title, length or all day, usual start, notes, Tags), each
   with **Add today**; and **Blocker templates** (title, length, colour).
@@ -152,8 +153,9 @@ Through the Lifeline connector, Claude can:
 - Read what is on — "What do I have this week?", `agenda`.
 - Add an Event — "Add dentist on Thursday at 14:00", `calendar_add_event`; with `at`, where it
   happens — "Book dinner at Chez Janou Friday": a Place or a Person, by name, alias or id.
-- Say where an Event is — `agenda` names each Event's At. An At on a Person reaches Claude as
-  that Person's name only, never their address.
+- Say where an Event is — `agenda` names each Event's At: a Place with its Kind and address, a
+  Person by their name only, never their address. An At or With that Claude may not see (a Person
+  in your Private folder) is left out of every answer.
 - Add one from a template — "Add Gym today", `calendar_add_from_template`.
 - Move an Event or a Task to another day — `move_item`; retime an Event or one-off blocker —
   "Move the dentist to 15:30", `reschedule_timed`.

@@ -15,6 +15,7 @@ import { inPrivateFolder, privateGate, visibleUnder } from "../private";
 import { onWorkspaceChange, useCurrentWorkspaceId, workspaceScope } from "../workspaces";
 import { isLinkKind, type Document, type DocumentTypeDef, type FieldDef } from "./types";
 import { allRoles, fieldsOfDocument, type RoleDef } from "./roles";
+import { assertTitleFree } from "./titles";
 
 /**
  * The Document store (ADR 0018): one Dexie table, one PocketBase collection.
@@ -160,9 +161,22 @@ export async function putDocument<T extends Document = Document>(input: Document
   if (body === undefined) delete (row as Document).body;
   else (row as Document).body = body;
   if (!row.title && def?.titleOf) row.title = def.titleOf(row);
+  if (def?.uniqueTitles) await assertUniqueTitle(row);
   await put<T>(DOCUMENTS, row);
   await runAfterSave(row);
   return row;
+}
+
+/**
+ * A type whose titles are unique in every folder (`uniqueTitles`, a Place's):
+ * the one choke point every title passes, from a rename to a page's title
+ * field or a Base cell. Checked only when the title is new or changed, so a
+ * Document that shares its title from before (a sync, an older build) still saves.
+ */
+async function assertUniqueTitle(row: Document): Promise<void> {
+  const was = await documentsTable().get(row.id);
+  if (was && !was.deleted && normalizeName(was.title) === normalizeName(row.title)) return;
+  assertTitleFree(await documentsOf(row.type), row.type, row.folder, row.title, row.id);
 }
 
 /** The types that keep their own Documents true when one of this type is saved (`afterSaveOf`, ADR 0121), each told in turn. */

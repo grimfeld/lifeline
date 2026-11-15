@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { normalizeTag, useDocumentTypes, useTagVocabulary, type PeekProps } from "@lifeline/core";
 import { Button, Checkbox, ChoiceField, Field, TagInput, toast } from "@lifeline/ui";
 import type { Place } from "../domain/types";
-import { normalizePlace, placeCoordsOf } from "../domain/place";
-import { kindOptions, patchPlace, setPlaceAddress, type AddressInput } from "../data/repo";
+import { kindOptions, normalizePlace, placeCoordsOf } from "../domain/place";
+import { patchPlace, setPlaceAddress, type AddressInput } from "../data/repo";
 import { LocateButton, PlaceSearchField, WhereNote } from "./PlaceLookup";
 
 /** An alias is a name, kept as written: not lower-cased and hyphenated as a Tag is. */

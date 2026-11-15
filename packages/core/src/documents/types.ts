@@ -127,7 +127,6 @@ export type TitleRule = "name" | "date" | "derived";
  */
 /** The Report kinds a type may choose (ADR 0076): ranking kinds rank a type's Documents, the others describe one Document. */
 export type ReportKind = "top" | "quiet" | "last" | "count" | "heatmap" | "topSeen" | "quietSeen" | "lastSeen" | "seenCount" | "seenHeatmap";
-/** One chosen Report on a type, in the type's order, with its parameters. */
 /** A type's own words for the Seen family (ADR 0119): `{ verb: "visited", one: "visit", many: "visits" }`. */
 export interface SeenAs {
   verb: string;
@@ -135,6 +134,7 @@ export interface SeenAs {
   many: string;
 }
 
+/** One chosen Report on a type, in the type's order, with its parameters. */
 export interface ReportSetting {
   kind: ReportKind;
   /** How many Documents a ranking Report lists. */
@@ -287,6 +287,14 @@ export interface DocumentTypeDef {
    * them in every write, Command and Macro step.
    */
   agentWalled?: readonly string[];
+  /**
+   * Titles unique among the type's Documents in every folder, case and
+   * accents aside (a Place's, ADR 0119), where others are unique per folder.
+   * Core holds it on every write (`putDocument`, and so a rename, a page's
+   * title field, a Base cell, an agent's `update_document`), refusing with
+   * `TitleTaken`, which names and carries the Document that has the title.
+   */
+  uniqueTitles?: boolean;
   /**
    * How the owning App makes one of these from a name alone, by its own rules
    * — so a field elsewhere (an Event's At, ADR 0119) can offer "Create …"

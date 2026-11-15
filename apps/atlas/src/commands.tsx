@@ -1,7 +1,7 @@
-import type { CommandDef } from "@lifeline/core";
+import { TitleTaken, type CommandDef } from "@lifeline/core";
 import { MapPin, MapPinPlus } from "lucide-react";
 import { AddPlaceDialog } from "./components/AddPlaceDialog";
-import { PlaceTaken, addPlace } from "./data/repo";
+import { addPlace } from "./data/repo";
 import { PLACES_HREF } from "./constants";
 
 /**
@@ -33,7 +33,7 @@ export const atlasCommands: CommandDef[] = [
         return { message: `Added ${p.title} to Places${p.toTry ? ", To try" : ""}${where}`, id: p.id };
       } catch (e) {
         // The agent can use the Place there is rather than make another.
-        if (e instanceof PlaceTaken) throw new Error(`${e.message} (id ${e.existing.id})`);
+        if (e instanceof TitleTaken) throw new Error(`${e.message} (id ${e.existing.id})`);
         throw e;
       }
     },

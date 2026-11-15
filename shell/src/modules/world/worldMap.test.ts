@@ -5,6 +5,8 @@ import { worldPins } from "./worldMap";
 const pin = (appId: string, type: string, itemId: string, key = `${type}/${itemId}`): SurfacePin => ({ appId, type, itemId, key, name: itemId, lat: 1, lon: 2 });
 const place = (id: string, kind: string, toTry = false) => ({ id, type: "atlas_place", title: id, kind, toTry }) as unknown as Document;
 
+const event = (id: string, at: string) => ({ id, type: "event", title: id, at }) as unknown as Document;
+
 const janou = pin("atlas", "atlas_place", "janou");
 const flore = pin("atlas", "atlas_place", "flore");
 const marcHome = pin("contacts", "contacts_person", "marc", "contacts_person/marc#home");
@@ -30,9 +32,20 @@ describe("the World map's Pins (ADR 0119)", () => {
     expect(worldPins([janou, marcHome, flore, lebrun], places, { toTry: true, kind: "cafe" }).map((p) => p.itemId)).toEqual(["marc", "lebrun"]);
   });
 
-  it("keeps an Event At a Place or a Person (#505) through Kind and To try, and hides it with the Calendar's chip", () => {
+  it("filters an Event At a Place (#505) by its Place's Kind and To try, and hides it with the Events chip", () => {
     const dinner = pin("calendar", "event", "dinner");
-    expect(worldPins([janou, dinner, flore], places, { kind: "cafe", toTry: true }).map((p) => p.itemId)).toEqual(["dinner"]);
-    expect(worldPins([janou, dinner], places, { hidden: ["calendar"] }).map((p) => p.itemId)).toEqual(["janou"]);
+    const coffee = pin("calendar", "event", "coffee");
+    const events = [event("dinner", "janou"), event("coffee", "flore")];
+    expect(worldPins([janou, dinner, flore, coffee], [...places, ...events], { kind: "cafe" }).map((p) => p.itemId)).toEqual(["flore", "coffee"]);
+    expect(worldPins([janou, dinner, flore, coffee], [...places, ...events], { toTry: true }).map((p) => p.itemId)).toEqual(["janou", "dinner"]);
+    expect(worldPins([janou, dinner, flore, coffee], [...places, ...events], { kind: "cafe", toTry: true }).map((p) => p.itemId)).toEqual([]);
+    expect(worldPins([janou, dinner], [...places, ...events], { hidden: ["calendar"] }).map((p) => p.itemId)).toEqual(["janou"]);
+  });
+
+  it("keeps an Event At a Person through Kind and To try: only the Events chip hides it", () => {
+    const tea = pin("calendar", "event", "tea");
+    const docs = [...places, event("tea", "marc"), { id: "marc", type: "contacts_person", title: "Marc" } as unknown as Document];
+    expect(worldPins([janou, tea, marcHome], docs, { kind: "cafe", toTry: true }).map((p) => p.itemId)).toEqual(["tea", "marc"]);
+    expect(worldPins([tea, marcHome], docs, { hidden: ["calendar"] }).map((p) => p.itemId)).toEqual(["marc"]);
   });
 });

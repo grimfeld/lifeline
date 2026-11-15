@@ -15,6 +15,7 @@ import {
   formatHuman,
   geoOf,
   normalizeTag,
+  openPeek,
   putDocument,
   removeDocument,
   restoreRole,
@@ -22,6 +23,7 @@ import {
   ROLES_KEY,
   singularOf,
   textToDocument,
+  TitleTaken,
   useTagVocabulary,
   wearableRoles,
   withRoleFields,
@@ -138,6 +140,16 @@ export function DocumentEditor({ doc, def, index, autoFocus, showPanel = true, l
     pending.current = {};
     if (typeof next.body === "string") noteWritten(echoes.current, typeof docRef.current.body === "string" ? docRef.current.body : "", next.body);
     write(next).catch((err: unknown) => {
+      if (err instanceof TitleTaken) {
+        // A title another Document has (a Place's, unique in every folder): never retried. The rest
+        // goes back in the queue, the title field shows the stored one, and the toast offers the other.
+        const { title: _taken, ...rest } = patch;
+        pending.current = { ...rest, ...pending.current };
+        setTitle(docRef.current.title);
+        toast.error(`Couldn’t rename it: ${err.message}`, { action: { label: `Open ${err.existing.title}`, onClick: () => openPeek(err.existing.id) } });
+        if (Object.keys(pending.current).length) timer.current = window.setTimeout(flush, 500);
+        return;
+      }
       // The edit goes back in the queue (under anything typed since), so the
       // next change or leaving the Document tries it again instead of dropping it.
       pending.current = { ...patch, ...pending.current };

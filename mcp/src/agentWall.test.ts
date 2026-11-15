@@ -182,6 +182,17 @@ describe("the agent wall: what an agent reads of a Person (ADR 0114)", () => {
     expect(await runTool("search_documents", { query: "secret" })).toMatchObject({ total: 0 });
     await expect(runTool("get_document", { id: "p2" })).rejects.toThrow(/No Document p2/);
   });
+
+  it("names no Private Person an Event is At or With, in get_document, search or agenda", async () => {
+    docs.set("p3", person("p3", "Hidden host", "Private/People"));
+    docs.set("e3", { id: "e3", type: "event", title: "Supper Qvx", folder: "", tags: [], createdAt: "", updatedAt: "", deleted: 0, date: "2026-11-21", endDate: null, start: "19:00", end: "20:00", notes: "", with: ["p3", "p1"], at: "p3" } as unknown as Document);
+    const got = (await runTool("get_document", { id: "e3" })) as { fields: Record<string, unknown> };
+    expect(got.fields.at).toBeUndefined();
+    expect(got.fields.with).toEqual(["p1"]);
+    expect(JSON.stringify(await runTool("search_documents", { query: "Qvx" }))).not.toContain("p3");
+    expect(await runTool("search_documents", { query: "p3" })).toMatchObject({ total: 0 });
+    expect(JSON.stringify(await runTool("agenda", { start: "2026-11-21", end: "2026-11-21" }))).not.toContain("p3");
+  });
 });
 
 describe("the agent wall: a Person's Pins (#418)", () => {

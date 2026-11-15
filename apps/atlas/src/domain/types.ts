@@ -20,11 +20,13 @@ export interface Place extends Document {
   geo: [number, number] | null;
   /** On my list of places to go; Atlas clears it once an Event that links here has happened. */
   toTry: boolean;
+  /** The day To try was marked (YYYY-MM-DD); "" or absent when unmarked, or marked by an older build. */
+  toTrySince?: string;
   /** Shut for good: off the map and the lists of places to go, its links, body and history kept. */
   closed: boolean;
 }
 
-/** Where every Place lands: one folder, so Core's per-folder title check covers Places as one set. */
+/** Where every Place lands. Their titles are unique in every folder all the same (`uniqueTitles`, ADR 0119). */
 export const PLACES_FOLDER = "Places";
 
 /** The Kinds a Place starts with (ADR 0119); the user renames and adds through the type (`userOptions`). */

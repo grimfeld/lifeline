@@ -19,19 +19,22 @@ const ANY = "__any__";
  * World's home (ADR 0119): one map of every Place and every current Address,
  * told apart by Atlas's and Contacts' colours, and of every Event At one of
  * them (ADR 0122), in the Calendar's. A chip turns one App's Pins
- * off; the Kind and To try narrow the Places, together. The Pins are what Core reads from stored
+ * off; the Kind and To try narrow the Places, together, and the Events At them. The Pins are what Core reads from stored
  * coordinates: drawing the map looks nothing up (ADR 0011).
  */
 function WorldMap() {
   const navigate = useNavigate();
   const all = useLocatablePins(WORLD_APPS);
   const places = useDocuments(PLACE_TYPE);
+  // An Event At a Place follows its Place through Kind and To try (#505): its At is read from it.
+  const events = useDocuments(EVENT_TYPE);
+  const docs = useMemo(() => [...places, ...events], [places, events]);
   useDocumentTypes();
   const kinds = documentType(PLACE_TYPE)?.fields.find((f) => f.key === "kind")?.options ?? [];
   const [hidden, setHidden] = useState<string[]>([]);
   const [kind, setKind] = useState("");
   const [toTry, setToTry] = useState(false);
-  const pins = useMemo(() => worldPins(all, places, { hidden, kind, toTry }), [all, places, hidden, kind, toTry]);
+  const pins = useMemo(() => worldPins(all, docs, { hidden, kind, toTry }), [all, docs, hidden, kind, toTry]);
   const chips = CHIPS.filter((c) => appById(c.appId));
   const toggle = (appId: string) => setHidden((h) => (h.includes(appId) ? h.filter((x) => x !== appId) : [...h, appId]));
 
