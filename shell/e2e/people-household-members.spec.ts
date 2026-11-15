@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { inCore } from "./support/core";
+import { openPalette } from "./support/palette";
 
 /** Households (ADR 0117, #460): made, given members, joined from a Person's page, linked, and left by a deleted Person. */
 
@@ -58,4 +59,39 @@ test("a Household is made, takes members from its page and from a Person's, and 
   await expect(members).toContainText("No members yet.");
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(members.getByRole("link", { name: "Tom Hhtest" })).toBeVisible();
+});
+
+test("Add person suggests joining a Household of the same Family name, and joins only when tapped", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  const paul = await inCore(page, async (core, _arg: string) => (await core.createDocument({ type: "contacts_person", title: "Paul Zzsmith", fields: { givenName: "Paul", familyName: "Zzsmith" } })).id as string, "x");
+  await inCore(page, async (core, p: string) => { await core.createDocument({ type: "contacts_household", title: "the Zzsmiths", fields: { members: [{ personId: p }] } }); }, paul);
+  const members = (title: string) => inCore(page, async (core, t: string) => ((await core.documentsOf("contacts_household")) as unknown as { title: string; members: unknown[] }[]).find((h) => h.title === t)?.members.length ?? -1, title);
+
+  async function openDialog() {
+    await openPalette(page);
+    await page.keyboard.type("Add person");
+    await page.getByRole("option", { name: /Add person/ }).first().click();
+    return page.getByRole("dialog", { name: "Add a person" });
+  }
+
+  // Not tapped: they are added, and join nothing.
+  let dialog = await openDialog();
+  await dialog.getByLabel("Given name").fill("Una");
+  await dialog.getByLabel("Family name").fill("zzsmith");
+  await expect(dialog.getByRole("button", { name: "Join the Zzsmiths?" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Una zzsmith" })).toBeVisible();
+  expect(await members("the Zzsmiths")).toBe(1);
+  await page.keyboard.press("Escape");
+
+  // No suggestion for another name; tapped: they join.
+  dialog = await openDialog();
+  await dialog.getByLabel("Family name").fill("Other");
+  await expect(dialog.getByRole("button", { name: /Join/ })).toHaveCount(0);
+  await dialog.getByLabel("Given name").fill("Ugo");
+  await dialog.getByLabel("Family name").fill("Zzsmith");
+  await dialog.getByRole("button", { name: "Join the Zzsmiths?" }).click();
+  await dialog.getByRole("button", { name: "Add", exact: true }).click();
+  await expect.poll(() => members("the Zzsmiths")).toBe(2);
 });

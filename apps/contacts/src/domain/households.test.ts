@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { householdsOf, memberCandidates, memberIdsOn, membershipsOf, membersOf } from "./households";
+import { householdsForFamilyName, householdsOf, memberCandidates, memberIdsOn, membershipsOf, membersOf } from "./households";
 import { householdTypeDef } from "../types";
 
 const people = [
@@ -64,5 +64,32 @@ describe("who a Household stands for on a day (ADR 0117)", () => {
     const declared = householdTypeDef.linkable as { members: (doc: unknown, day: string) => string[] };
     expect(declared.members({ members }, "2026-07-01")).toEqual(["paul", "mary"]);
     expect(declared.members({}, "2026-07-01")).toEqual([]);
+  });
+});
+
+describe("the Households suggested for a Family name (ADR 0117)", () => {
+  const folks = [
+    { id: "paul", familyName: "Smith" },
+    { id: "mary", familyName: "Martin" },
+    { id: "ana", familyName: "" },
+  ];
+  const smiths = { title: "the Smiths", members: [{ personId: "paul" }] };
+  const martins = { title: "Martin & co", members: [{ personId: "mary" }, { personId: "ana" }] };
+  const empty = { title: "Empty", members: [] };
+
+  it("offers a Household with a member of that Family name, names compared as links are", () => {
+    expect(householdsForFamilyName("smith", [smiths, martins, empty], folks)).toEqual([smiths]);
+    expect(householdsForFamilyName("  SMÏTH ", [smiths, martins], folks)).toEqual([smiths]);
+  });
+
+  it("offers a Household once however many of its members match, A to Z, and none for a name nobody has or none at all", () => {
+    const flat = { title: "Flat", members: [{ personId: "paul" }, { personId: "mary" }] };
+    expect(householdsForFamilyName("Smith", [smiths, flat], folks).map((h) => h.title)).toEqual(["Flat", "the Smiths"]);
+    expect(householdsForFamilyName("Jones", [smiths], folks)).toEqual([]);
+    expect(householdsForFamilyName("  ", [smiths, martins], folks)).toEqual([]);
+  });
+
+  it("ignores a member who is not among the People visible", () => {
+    expect(householdsForFamilyName("Smith", [smiths], [])).toEqual([]);
   });
 });

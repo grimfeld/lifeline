@@ -165,6 +165,8 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
   Each member's name opens their page.
 - **From a Person's page**, **Add to a Household…** finds a Household by name, or makes a new one
   from the name you type ("New household “Student flat”") with them in it.
+- **Adding a Person** whose Family name matches a member of a Household suggests joining it
+  (see **Add person…**, below); nothing joins unless you tap the suggestion.
 - Someone may belong to several Households: a student's flat and their parents' home.
 - Only People of the Household's own Workspace can be its members.
 - `[[the Smiths]]` links to the Household like any page, and clicking it opens its **Peek**,
@@ -204,7 +206,10 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
 - **Add person…** — a new Person, from a name, or from a **Given name** and a **Family name**: until
   you type a name, it fills in as "Anne Dupont" while you type the two, and a name you typed
   ("Mum") is kept as typed. Both names are kept on the Person, beside the name, and can be left
-  empty. Where: the Capture sheet, the palette
+  empty. When the **Family name** is one a member of a Household of this Workspace has ("Smith",
+  and the Smiths have a Smith in them), the dialog asks **Join the Smiths?**: tap it and the new
+  Person joins when you press **Add**; leave it, and they join nothing. It is only ever a
+  suggestion, and an unrelated Smith simply isn't tapped. Where: the Capture sheet, the palette
   (Ctrl+K).
 - **Add occasion…** — a birthday, anniversary or other Occasion for a Person found by name or
   alias; it has no screen, and is how Claude adds Occasions (`people_occasion_add`). Where: Claude
