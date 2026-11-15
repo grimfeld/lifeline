@@ -1,6 +1,7 @@
 ---
 status: accepted
 amends: ADR 0069 (in part — Person is a built-in type, no longer the user-defined example)
+amended-by: ADR 0119 (the People Module becomes World)
 ---
 
 # Person is a built-in type owned by the Contacts App, in a People Module
