@@ -64,11 +64,15 @@ Below, two columns (one after the other on a phone):
   counts an Event once per day it is on, every day of a trip, and nothing in the future; Tasks
   and Occasions never count. A type can also choose **Seen count**, a **Seen heatmap**, **Top seen**
   and **Not seen lately** in its editor, and each can be placed as a Report Card.
-- **Timeline** — their Occasions in the year ahead, above a **Today** line, then everything that
-  links to them, by month, newest first: Events with them, Tasks and Transactions for them, books
-  they recommended, and the Days and notes that name them, each once, saying what it is and how it
-  links ("via With", "mentioned"). Click one to peek at it. Only an Event counts as having seen
-  them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]").
+- **Timeline** — everything that links to them, by month, newest first: Events with them, Tasks
+  and Transactions for them, books they recommended, and the Days and notes that name them, each
+  once, saying what it is and how it links ("via With", "mentioned"). A **Today** line splits it:
+  above, their Occasions in the year ahead and whatever is dated today or later (a planned Event,
+  with how soon it is: "tomorrow", "in 29 days"); below, what is past, then what has no day.
+  A note or anything else with no date of its own sits below the line, on the day it last
+  changed. An Event still under way (a trip begun but not yet over) stays above the line, by its
+  first day, until its End day has passed; one that ends at midnight is over that night. Click one to peek at it. Only an Event counts as having
+  seen them: its **With**, or a `[[link]]` to them in its notes ("Dinner with [[Marc]]").
 
 Deleting a Person takes them out of every People field that held them (an Event's **With**, a
 Task's **For**…); the Events, Tasks and the rest stay. A `[[link]]` to them in a body becomes an

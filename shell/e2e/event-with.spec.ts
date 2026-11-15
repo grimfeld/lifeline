@@ -30,3 +30,25 @@ test("an Event added With someone, found by an alias, shows on their Person page
   await workLocally(page);
   await expect(page.getByRole("region", { name: "Timeline" })).toContainText(title);
 });
+
+test("an Event With someone still to come stands above the Today line on their timeline, one gone by below it", async ({ page }) => {
+  await page.goto("/app/people");
+  await workLocally(page);
+  const ids = await inCore(page, async (core) => {
+    const marc = (await core.createDocument({ type: "contacts_person", title: "Marc Lefèvre" })).id as string;
+    await core.createDocument({ type: "event", title: "Housewarming ahead", fields: { date: "2099-12-13", with: [marc] } });
+    await core.createDocument({ type: "event", title: "Dinner gone by", fields: { date: "2001-02-03", with: [marc] } });
+    return marc;
+  }, null);
+
+  await page.goto(`/app/people/person/${ids}`);
+  await workLocally(page);
+  const timeline = page.getByRole("region", { name: "Timeline" });
+  await expect(timeline.getByRole("button", { name: /Housewarming ahead/ })).toBeVisible();
+  await expect(timeline.getByRole("button", { name: /Dinner gone by/ })).toBeVisible();
+  const order = await timeline.locator("li[aria-label='Today'], button").evaluateAll((els) => els.map((el) => el.getAttribute("aria-label") ?? el.textContent ?? ""));
+  const at = (s: string) => order.findIndex((t) => t.includes(s));
+  expect(at("Housewarming ahead")).toBeLessThan(at("Today"));
+  expect(at("Dinner gone by")).toBeGreaterThan(at("Today"));
+  await expect(timeline.getByRole("button", { name: /Housewarming ahead/ })).toContainText(/in \d+ days/);
+});
