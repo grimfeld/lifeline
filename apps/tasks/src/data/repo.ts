@@ -114,10 +114,11 @@ export async function updateTask(task: Task): Promise<void> {
  * Peek, ADR 0085). Its day, completion and place in a Project are guarded and
  * move only through their intents below; nothing else passed here is written.
  */
-export async function editTask(taskId: string, edit: { notes?: string; tags?: string[] }): Promise<void> {
+export async function editTask(taskId: string, edit: { notes?: string; tags?: string[]; for?: string[] }): Promise<void> {
   const patch: Record<string, unknown> = {};
   if (edit.notes !== undefined) patch.notes = edit.notes;
   if (edit.tags !== undefined) patch.tags = normalizeTags(edit.tags);
+  if (edit.for !== undefined) patch.for = [...new Set(edit.for)];
   if (Object.keys(patch).length > 0) await patchDocument(taskId, patch);
 }
 

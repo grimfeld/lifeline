@@ -530,7 +530,7 @@ The People I have not seen in a while: a ranking of Seen (Not seen in 90 days, a
 _Avoid_: neglected, overdue, stale, reminder
 
 ### People field
-A built-in Links field to People that another App's type carries, so a Person is linked from where things happen and not only from bodies: an Event's **With** (who was there — what Seen counts), a Task's **For**, a Transaction's **For** (a gift, a shared bill), a work's **Recommended by** (beside its Reason, which stays free text). Offered in the owning App's own dialog with name completion; a source of Backlinks like any Link. The owning App keeps the field; Contacts only owns the Person it points to. The user may add Person-linked Fields of their own to any other type.
+A built-in Links field to People that another App's type carries, so a Person is linked from where things happen and not only from bodies: an Event's **With** (who was there — what Seen counts), a Task's **For**, a Transaction's **For** (a gift, a shared bill), a work's **Recommended by** (beside its Reason, which stays free text). Offered, with name completion, in the owning App's own dialog and in its Peek; a source of Backlinks like any Link. The owning App keeps the field; Contacts only owns the Person it points to. The user may add Person-linked Fields of their own to any other type.
 _Avoid_: attendees, participants, mention (a wikilink's), tag
 
 ### Tie
@@ -554,7 +554,7 @@ A named day in a Person's life — Birthday, Met, Wedding, Surgery, Graduation �
 _Avoid_: important date, date (a Field kind), anniversary (only the yearly ones), milestone (a Project's), occurrence (a Chore's), reminder
 
 ### Timeline (Person page)
-The section of a Person's page that shows what links to them: their Occasions in the year ahead above a **Today** line, then everything that links in, grouped **by month**, newest first, each Document **once** and saying how it links ("via With", "mentioned", "via the Smiths" for a link to a Household they belonged to then). Replaces the by-kind groups and the separate Backlinks list. Built from the links, never stored. A reading of one Person's links, not the Daylog (what happened on a day, where "timeline" stays under Avoid) and not the Projects Module's Timeline screen (Milestones along a Project's dates).
+The section of a Person's page that shows what links to them, split by a **Today** line: above it, their Occasions in the year ahead and whatever links in dated today or later (an Event next month, however far off), and an Event still under way (its End day today or later; one ending at 00:00 only reaches midnight, so its last day is the day before), placed by its first day with no "how soon"; below it, whatever links in from before, then what has no day. A Document with no date of its own (a note) is placed by the day it last changed and always sits below the line. Both sides grouped **by month**, newest first, so the soonest sits just above the line; each Document **once**, saying how it links ("via With", "mentioned", "via the Smiths" for a link to a Household they belonged to then) and, above the line, how soon it is. Replaces the by-kind groups and the separate Backlinks list. Built from the links, never stored. A reading of one Person's links, not the Daylog (what happened on a day, where "timeline" stays under Avoid) and not the Projects Module's Timeline screen (Milestones along a Project's dates).
 _Avoid_: history, activity feed, backlinks (one way a Document links in)
 
 ### Wikilink

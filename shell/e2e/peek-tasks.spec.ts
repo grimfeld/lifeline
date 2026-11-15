@@ -152,3 +152,60 @@ test("an Event peeked from the Vault gets a time there; an end before its start 
   await page.waitForTimeout(800);
   expect((await field(page, id)).end).toBe("09:00");
 });
+
+/**
+ * A People field in a Peek (#446, #447): a Person picked by alias is stored at
+ * once, removed, picked again, and then shows on their Timeline via the field.
+ */
+async function pickAndRemovePerson(page: Page, id: string, title: string, label: "With" | "For", key: "with" | "for") {
+  const anne = await inCore(page, async (core) => (await core.createDocument({ type: "contacts_person", title: "Anne Verhoeven", fields: { aliases: ["Annie"] } })).id as string, null);
+  const stored = async () => ((await field(page, id))[key] as string[] | undefined) ?? [];
+  const dialog = await peek(page, id);
+  const input = dialog.getByRole("combobox", { name: label });
+  // Between Notes and Tags, as in the dialogs.
+  const top = async (loc: ReturnType<typeof dialog.getByLabel>) => (await loc.boundingBox())!.y;
+  const [notesY, fieldY, tagsY] = [await top(dialog.getByLabel("Notes")), await top(input), await top(dialog.getByPlaceholder("Add tag…"))];
+  expect(notesY).toBeLessThan(fieldY);
+  expect(fieldY).toBeLessThan(tagsY);
+  const pick = async () => {
+    await input.fill("Annie");
+    await page.getByRole("option", { name: /Anne Verhoeven/ }).click();
+    await expect.poll(stored).toEqual([anne]);
+  };
+
+  await pick();
+  await expect(dialog.getByText("Anne Verhoeven")).toBeVisible();
+  await dialog.getByRole("button", { name: "Remove Anne Verhoeven" }).click();
+  await expect.poll(stored).toEqual([]);
+  await pick();
+
+  await page.goto(`/app/people/person/${anne}`);
+  await workLocally(page);
+  const timeline = page.getByRole("region", { name: "Timeline" });
+  await expect(timeline).toContainText(title);
+  await expect(timeline).toContainText(`via ${label}`);
+}
+
+test("an Event peeked from the Vault gets People in With by alias, saved at once, and shows on their Timeline", async ({ page }) => {
+  const title = `Dinner ${Date.now()}`;
+  await page.goto("/vault");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, t: string) => (await core.putDocument({ type: "event", title: t, date: "2026-03-02", endDate: null, start: null, end: null, notes: "", tags: [] })).id as string,
+    title,
+  );
+  await pickAndRemovePerson(page, id, title, "With", "with");
+});
+
+test("a Task's For is edited in its Peek: a Person picked by alias is stored at once, removed, and added again onto their Timeline", async ({ page }) => {
+  const title = `Buy a present ${Date.now()}`;
+  await page.goto("/vault");
+  await workLocally(page);
+  const id = await inCore(
+    page,
+    async (core, t: string) => (await core.putDocument({ type: "task", title: t, status: "active", date: null, completedOn: null, recurrence: null, notes: "", tags: [] })).id as string,
+    title,
+  );
+  await pickAndRemovePerson(page, id, title, "For", "for");
+});

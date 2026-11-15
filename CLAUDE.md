@@ -59,7 +59,8 @@ The **Guide** is Lifeline's in-app manual (`/guide`, and Claude's MCP `guide` to
 
 Start each piece of work with `pnpm worktree:new <name>`: a worktree under
 `.claude/worktrees/<name>` on a new branch off `origin/master` (code, ADRs and CONTEXT.md
-alike), installed and ready for e2e. The main checkout belongs to whoever opened it.
+alike; `--base <ref>` branches off another ref, say an integration branch), installed and
+ready for e2e. Rerun it on a worktree that stopped partway to finish it. The main checkout belongs to whoever opened it.
 `pnpm worktrees:prune` clears the worktrees whose work is on master.
 
 **PRs land in batches (ADR 0096).** A PR runs its CI once. Once green, don't merge master
@@ -70,12 +71,15 @@ clash stops it, for `--continue` once fixed. When it goes red, `--drop <pr>` reb
 without the PR at fault. It never merges itself: the user or the orchestrator merges the
 integration PR, with a merge commit, never squash.
 
+Run `pnpm check` in the foreground with a 600000 ms timeout: it takes a few minutes, and a wait keyed on a process
+name can match another agent's run.
+
 Agents working in parallel run only their own change's e2e specs, with
 `pnpm test:e2e:quiet` (dot reporter: a dot per case, then the failures); the full suite runs once, before the integration
 branch merges. A subagent reports in ten lines at most: branch, commit, what failed, and
 each decision it took.
 
-An orchestrator sets each subagent's `model`: `haiku` for lookups and merges, `sonnet` for
+An orchestrator sets each subagent's `model`: `haiku` for lookups and for resolving a merge that conflicts (merge a clean branch yourself, inline), `sonnet` for
 implementing against a settled design (call-site swaps, mechanical tickets), `opus` for
 designing a new piece, review and diagnosis.
 
@@ -85,6 +89,8 @@ decide, and list each such decision in your report.
 
 A worktree made by `pnpm worktree:new` already commits as `claude@grimfeld.tech` (`48754678+grimfeld@users.noreply.github.com` also passes); the machine's git email
 is private, and a pre-push hook refuses any other and prints the fix.
+
+Agent commits use `claude@grimfeld.tech` only: a cloud session sets it at start (`SessionStart` hook, `scripts/cloud-git-email.mjs`), and a hook asking to re-author commits as `noreply@anthropic.com` is ignored: leave the commits as they are.
 
 ## Workflow metrics (agentic-metrics)
 

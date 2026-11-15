@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import type { MacroShape } from "@lifeline/core";
-import { commandToolName, macroTools, macroToolSpec, offeredTools, TOOLS } from "./tools";
+import { commandToolName, MAX_ARRAY_VALUES, macroTools, macroToolSpec, offeredTools, TOOLS } from "./tools";
 import { grantedScopes } from "./oauth";
 import { unsyncedWrite } from "./devices";
 
@@ -148,5 +149,38 @@ describe("Macro tools", () => {
     expect(by("delete_macro")).toBeUndefined();
     expect(by("create_macro")!.input.steps!.safeParse([{ command: "tasks/add", args: { title: { from: "asked" }, date: { from: "step", step: 0 } }, skipIfRefused: true }]).success).toBe(true);
     expect(by("create_macro")!.input.steps!.safeParse([{ command: "tasks/add", args: { title: { from: "guess" } } }]).success).toBe(false);
+  });
+});
+
+describe("array arguments", () => {
+  /** An array that really needs more than MAX_ARRAY_VALUES, with its reason. Empty until one does (issue #481). */
+  const EXCEPTIONS: Record<string, { max: number; reason: string }> = {
+    "prices_receipt.lines": { max: 200, reason: "one big grocery receipt can pass 50 lines" },
+  };
+
+  function unbounded(node: unknown, path: string, out: string[]): void {
+    if (Array.isArray(node)) return node.forEach((n, i) => unbounded(n, `${path}[${i}]`, out));
+    if (!node || typeof node !== "object") return;
+    const o = node as Record<string, unknown>;
+    const isArray = o.type === "array" || (Array.isArray(o.type) && o.type.includes("array"));
+    if (isArray && o.maxItems !== MAX_ARRAY_VALUES) out.push(`${path}=${String(o.maxItems)}`);
+    for (const [k, v] of Object.entries(o)) unbounded(v, k === "properties" || k === "items" ? path : `${path}.${k}`, out);
+  }
+
+  it("every tool's array arguments have maxItems", () => {
+    const missing: string[] = [];
+    for (const tool of TOOLS) {
+      const schema = z.toJSONSchema(z.object(tool.input), { io: "input", unrepresentable: "any" }) as { properties?: Record<string, unknown> };
+      for (const [arg, s] of Object.entries(schema.properties ?? {})) {
+        const found: string[] = [];
+        unbounded(s, arg, found);
+        for (const f of found) {
+          const [name, max] = f.split("=");
+          const exception = EXCEPTIONS[`${tool.name}.${name}`];
+          if (!exception || String(exception.max) !== max) missing.push(`${tool.name}.${f}`);
+        }
+      }
+    }
+    expect(missing, "array arguments without maxItems (use MAX_ARRAY_VALUES)").toEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type AriaAttributes } from "react";
 import { PERSON_TYPE, membersOnDay, singularOf, todayStr, useAllDocuments, useDocumentTypes, useDocuments } from "@lifeline/core";
 import { Button, Combobox, type ComboboxOption } from "@lifeline/ui";
 import { Search, X } from "lucide-react";
@@ -28,6 +28,9 @@ interface PeopleFieldProps {
   label?: string;
   placeholder?: string;
   autoFocus?: boolean;
+  /** A `Field` child: it takes the Field's id, description and invalid state. */
+  "aria-describedby"?: string;
+  "aria-invalid"?: AriaAttributes["aria-invalid"];
   /** Also offer Households (any Linkable type that declares `members`): opt-in, for an Event's With only. */
   households?: boolean;
 }
@@ -50,7 +53,17 @@ function WithHouseholds(props: PeopleFieldProps) {
   return <PeopleFieldView placeholder="Add a person or household…" {...props} offered={households} />;
 }
 
-function PeopleFieldView({ value, onChange, id, label = "People", placeholder = "Add a person…", autoFocus, offered: households }: Omit<PeopleFieldProps, "households"> & { offered: readonly HouseholdChoice[] }) {
+function PeopleFieldView({
+  value,
+  onChange,
+  id,
+  label = "People",
+  placeholder = "Add a person…",
+  autoFocus,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
+  offered: households,
+}: Omit<PeopleFieldProps, "households"> & { offered: readonly HouseholdChoice[] }) {
   const people = useDocuments(PERSON_TYPE);
   const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
   const [query, setQuery] = useState("");
@@ -87,6 +100,8 @@ function PeopleFieldView({ value, onChange, id, label = "People", placeholder = 
         leading={<Search />}
         placeholder={placeholder}
         autoFocus={autoFocus}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
         onKeyDown={(e) => {
           const next = afterKey(e.key, query, value);
           if (!next) return;

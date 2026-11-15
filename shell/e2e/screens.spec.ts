@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { encodeHandoff } from "@lifeline/handoff";
 import { CORE_URL, LONG_WORD, longText } from "./support/seed";
 import { inCore } from "./support/core";
@@ -472,6 +473,24 @@ function peekOf(type: string, userField?: boolean, write?: boolean) {
   };
 }
 
+/** A Peek of a Document of `type` with a People field (`key`) holding the seed's long-named Person (its chip, #446, #447). */
+function peekWithPerson(type: string, key: string) {
+  return async (page: Page) => {
+    await workLocally(page);
+    const personTitle: string = await page.evaluate(async ({ coreUrl, type, key }) => {
+      const core = await import(/* @vite-ignore */ coreUrl);
+      const [doc] = await core.documentsOf(type);
+      const people: { id: string; title: string }[] = await core.documentsOf("contacts_person");
+      const person = people.reduce((a, b) => (b.title.length > a.title.length ? b : a));
+      await core.patchDocument(doc.id, { [key]: [person.id] });
+      core.openPeek(doc.id);
+      return person.title;
+    }, { coreUrl: CORE_URL, type, key });
+    await page.getByRole("dialog").waitFor();
+    await page.getByRole("dialog").getByRole("button", { name: `Remove ${personTitle}`, exact: true }).waitFor();
+  };
+}
+
 /**
  * The first book given the longest synopsis, series and original title a
  * person could type (the seed's `library.add` keeps only its title), then —
@@ -823,7 +842,9 @@ const SCREENS: ScreenCase[] = [
   ),
   // The Apps' own editable parts (ADR 0085): a Task's and an Event's Fields edited through their App's controls.
   { name: "Vault · Peek of a Task", path: "/vault", afterOpen: peekOf("task") },
+  { name: "Vault · Peek of a Task, For a Person", path: "/vault", afterOpen: peekWithPerson("task", "for") },
   { name: "Vault · Peek of an Event", path: "/vault", afterOpen: peekOf("event") },
+  { name: "Vault · Peek of an Event, With a Person", path: "/vault", afterOpen: peekWithPerson("event", "with") },
   { name: "Vault · Peek of a Project, writing beneath its App's part", path: "/vault", afterOpen: peekOf("project", false, true) },
   // House's editable Peeks (ADR 0085): each App's own controls over a long-titled Document.
   { name: "Vault · Peek of chore", path: "/vault/d/:id", type: "chore", afterOpen: peekOf("chore") },
@@ -1142,6 +1163,19 @@ async function open(page: Page, path: string): Promise<void> {
   await expect(page.locator("#root")).not.toBeEmpty();
 }
 
+/**
+ * Every form control has an accessible name (`label`) and its ARIA attributes hold
+ * valid values (`aria-valid-attr-value`: an `aria-describedby` naming no element
+ * fails it). It catches a control inside `Field` that drops the `id`,
+ * `aria-describedby` or `aria-invalid` it is handed (#480): fix the component,
+ * not the screen. Only those two rules, so the scan stays fast and deterministic.
+ */
+async function expectNamedControls(page: Page, screen: string) {
+  const { violations } = await new AxeBuilder({ page }).withRules(["label", "aria-valid-attr-value"]).analyze();
+  const found = violations.flatMap((v) => v.nodes.map((n) => `${v.id}: ${n.target.join(" ")} — ${n.failureSummary?.split("\n").slice(1).join(" ").trim()}`));
+  expect(found, `${screen}: form controls without a name or with invalid ARIA:\n  ${found.join("\n  ")}`).toEqual([]);
+}
+
 for (const screen of SCREENS) {
   test(`${screen.name} holds long content`, async ({ page }) => {
     const errors: string[] = [];
@@ -1157,6 +1191,7 @@ for (const screen of SCREENS) {
     await open(page, path);
     await screen.afterOpen?.(page);
     await expectNoBrokenLayout(page, screen.name);
+    await expectNamedControls(page, screen.name);
     expect(errors, `no uncaught errors:\n  ${errors.join("\n  ")}`).toEqual([]);
   });
 }

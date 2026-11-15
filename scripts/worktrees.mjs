@@ -2,13 +2,16 @@
 // Makes the worktree an agent works in, and removes the ones left behind once their
 // work is on master.
 //
-//   node scripts/worktrees.mjs new <name>
+//   node scripts/worktrees.mjs new <name> [--base <ref>]
 //   node scripts/worktrees.mjs prune [--dry-run]
 //
 // `new` fetches origin, adds .claude/worktrees/<name> (under the main checkout) on a new
-// branch <name> off origin/master, sets its commit email to claude@grimfeld.tech (this
+// branch <name> off <ref> (--base; origin/master by default), sets its commit email to claude@grimfeld.tech (this
 // worktree only, through extensions.worktreeConfig), installs its packages (which also activates the git
-// hooks) and makes sure Playwright's Chromium is there for the e2e tests.
+// hooks) and makes sure Playwright's Chromium is there for the e2e tests. That last step is
+// skipped where /opt/pw-browsers exists (the e2e config uses that Chromium itself) and is
+// best-effort elsewhere: a failure prints a note and the command still succeeds. A rerun on
+// a worktree that already exists finishes the steps that did not run.
 //
 // A worktree goes when all of these hold:
 //   - it is not the main checkout;
@@ -21,9 +24,11 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const IDLE_MS = 24 * 60 * 60 * 1000;
 const BASE = "origin/master";
+const PW_BROWSERS = "/opt/pw-browsers";
 const AGENT_EMAIL = "claude@grimfeld.tech";
 
 const git = (cwd, ...args) => execFileSync("git", ["-c", "core.longpaths=true", ...args], { cwd, encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "pipe"] });
@@ -94,34 +99,51 @@ function prune(dryRun) {
   console.log(`worktrees: ${dryRun ? "dry run" : `${removed} removed`}`);
 }
 
-function create(name) {
-  if (!name || !/^[\w.-]+$/.test(name)) {
-    console.error("usage: pnpm worktree:new <name>  (letters, digits, . _ -)");
+/** `new`'s arguments: the name, and the base ref after `--base` (default origin/master). */
+export function parseNew(flags) {
+  const i = flags.indexOf("--base");
+  const base = i === -1 ? BASE : flags[i + 1];
+  const rest = i === -1 ? flags : flags.filter((_, j) => j !== i && j !== i + 1);
+  return { name: rest[0], base: base && !base.startsWith("-") ? base : undefined };
+}
+
+function create(flags) {
+  const { name, base } = parseNew(flags);
+  if (!name || !base || !/^[\w.-]+$/.test(name)) {
+    console.error("usage: pnpm worktree:new <name> [--base <ref>]  (name: letters, digits, . _ -)");
     process.exit(1);
   }
   const [main] = worktrees();
   const path = join(main.path, ".claude", "worktrees", name);
-  if (existsSync(path)) {
-    console.error(`worktrees: ${path} already exists`);
-    process.exit(1);
-  }
   const run = (cwd, cmd, ...args) => execFileSync(cmd, args, { cwd, stdio: "inherit" });
-  run(main.path, "git", "fetch", "origin");
-  run(main.path, "git", "worktree", "add", "-b", name, path, BASE);
+  if (existsSync(path)) console.log(`worktrees: ${path} already exists; finishing what is missing`);
+  else {
+    run(main.path, "git", "fetch", "origin");
+    run(main.path, "git", "worktree", "add", "-b", name, path, base);
+  }
   // Agent commits carry the noreply email (the machine's own is private, and the pre-push
   // hook refuses it), set for this worktree only so the main checkout keeps the user's.
   run(main.path, "git", "config", "extensions.worktreeConfig", "true");
   run(path, "git", "config", "--worktree", "user.email", AGENT_EMAIL);
   run(path, "pnpm", "install");
-  // A quick no-op when Chromium is already there.
-  run(path, "pnpm", "--filter", "@lifeline/shell", "exec", "playwright", "install", "chromium");
+  if (existsSync(PW_BROWSERS)) console.log(`worktrees: ${PW_BROWSERS} exists; the e2e config uses its Chromium (see shell/e2e/README.md)`);
+  else {
+    try {
+      // A quick no-op when Chromium is already there.
+      run(path, "pnpm", "--filter", "@lifeline/shell", "exec", "playwright", "install", "chromium");
+    } catch {
+      console.warn("worktrees: Playwright's Chromium did not install; see shell/e2e/README.md");
+    }
+  }
   console.log(`\nworktrees: ready at ${path} on branch ${name}`);
 }
 
-const [command, ...flags] = process.argv.slice(2);
-if (command === "prune") prune(flags.includes("--dry-run"));
-else if (command === "new") create(flags[0]);
-else {
-  console.error("usage: node scripts/worktrees.mjs new <name> | prune [--dry-run]");
-  process.exit(1);
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const [command, ...flags] = process.argv.slice(2);
+  if (command === "prune") prune(flags.includes("--dry-run"));
+  else if (command === "new") create(flags);
+  else {
+    console.error("usage: node scripts/worktrees.mjs new <name> [--base <ref>] | prune [--dry-run]");
+    process.exit(1);
+  }
 }

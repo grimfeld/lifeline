@@ -1,25 +1,10 @@
-import { createServer } from "node:net";
 import { defineConfig, devices } from "@playwright/test";
+import { free, preinstalledChromium } from "../scripts/e2e-env.mjs";
 
 /**
  * End-to-end layout tests (see e2e/README.md): every screen, at phone and
  * desktop widths, filled with the longest content a person could type.
  */
-
-/** Resolves whether nothing listens on `port`, on IPv4 or IPv6 localhost. */
-const free = (port: number) =>
-  Promise.all(
-    ["127.0.0.1", "::1"].map(
-      (host) =>
-        new Promise<boolean>((resolve) => {
-          const server = createServer()
-            // A machine without IPv6 has nothing listening there either.
-            .once("error", (e: NodeJS.ErrnoException) => resolve(e.code === "EADDRNOTAVAIL"))
-            .once("listening", () => server.close(() => resolve(true)))
-            .listen(port, host);
-        }),
-    ),
-  ).then((all) => all.every(Boolean));
 
 /** The first of 1421, 1424, 1427… whose three ports (the app and both Demos) are all free. */
 async function freeBase() {
@@ -69,6 +54,7 @@ function selectedProjects(argv = process.argv) {
   }
   return names.map((n) => new RegExp(`^${n.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`, "i"));
 }
+const chromium = preinstalledChromium();
 const projects = selectedProjects();
 /** The Demo builds take half a minute and two ports: only for a run that has Demo cases. */
 const needsDemo = projects.length === 0 || projects.some((p) => p.test("demo") || p.test("demo-setup"));
@@ -80,8 +66,13 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
+  // In CI the github reporter turns each failure into an annotation on the check run.
+  reporter: process.env.CI ? [["list"], ["github"], ["html", { open: "never" }]] : "list",
   use: {
+    // Cloud containers ship their Chromium in /opt/pw-browsers, at a build that may not
+    // be the one this Playwright expects, and cannot download another: launch that one.
+    // Elsewhere nothing is set and Playwright uses its own.
+    ...(chromium ? { launchOptions: { executablePath: chromium } } : {}),
     baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

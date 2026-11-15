@@ -29,6 +29,8 @@ export interface TagInputProps {
   className?: string;
   autoFocus?: boolean;
   disabled?: boolean;
+  /** The input's name where no Label points at it: the placeholder goes once a tag is added. */
+  "aria-label"?: string;
   /** Set by `Field`: its hint and error, read with the input. */
   "aria-describedby"?: string;
   "aria-invalid"?: AriaAttributes["aria-invalid"];
@@ -40,7 +42,7 @@ export interface TagInputProps {
  * filters `suggestions`, Arrow keys + Enter pick one. The input is a combobox:
  * the highlighted suggestion is its `aria-activedescendant`.
  */
-export function TagInput({ id, value, onChange, suggestions = [], placeholder = "Add tag…", normalize = defaultNormalizeTag, className, autoFocus, disabled, "aria-describedby": describedBy, "aria-invalid": invalid }: TagInputProps) {
+export function TagInput({ id, value, onChange, suggestions = [], placeholder = "Add tag…", normalize = defaultNormalizeTag, className, autoFocus, disabled, "aria-label": ariaLabel, "aria-describedby": describedBy, "aria-invalid": invalid }: TagInputProps) {
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
   const [activeAt, setActive] = useState(0);
@@ -129,6 +131,7 @@ export function TagInput({ id, value, onChange, suggestions = [], placeholder = 
           disabled={disabled}
           autoFocus={autoFocus}
           role="combobox"
+          aria-label={ariaLabel}
           aria-describedby={describedBy}
           aria-invalid={invalid}
           aria-expanded={shown}
