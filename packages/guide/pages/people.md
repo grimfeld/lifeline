@@ -169,6 +169,10 @@ mother in another town is his Tie, not a member, and Mary keeps her own name and
   (see **Add person…**, below); nothing joins unless you tap the suggestion.
 - Someone may belong to several Households: a student's flat and their parents' home.
 - Only People of the Household's own Workspace can be its members.
+- In an Event's **With**, typing a Household's name offers it ("Household · Paul Smith, Mary
+  Martin…"); picking it adds its members of today as People, without doubling anyone already
+  there. Take off whoever was away: **With** records who was there, and keeps the People, never
+  the Household.
 - `[[the Smiths]]` links to the Household like any page, and clicking it opens its **Peek**,
   where you can change its aliases, members and Tags; **Open** goes to its page.
 - **A link to a Household counts for its members.** "Dinner at `[[the Smiths]]`" in a Day or an

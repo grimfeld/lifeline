@@ -157,7 +157,7 @@ export function EventDialog({
             <Textarea id="ev-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Optional" />
           </Field>
           <Field label="With">
-            <PeopleField id="ev-with" value={withIds} onChange={setWithIds} />
+            <PeopleField id="ev-with" value={withIds} onChange={setWithIds} groups />
           </Field>
           <Field label="Tags">
             <TagInput id="ev-tags" value={tags} onChange={setTags} suggestions={suggestions} normalize={normalizeTag} placeholder="Add tag…" />
